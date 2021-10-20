@@ -167,6 +167,16 @@ export function getReleaseBounds(release?: Release): ReleaseBounds {
     };
   }
 
+  const thousandDaysAfterReleaseStart = moment(releaseStart).add('999', 'days');
+  if (thousandDaysAfterReleaseStart.isBefore(releaseEnd)) {
+    // if the release spans for more than thousand days, we need to clamp it
+    // (otherwise we would hit the backend limit for the amount of data buckets)
+    return {
+      releaseStart,
+      releaseEnd: thousandDaysAfterReleaseStart.utc().format(),
+    };
+  }
+
   return {
     releaseStart,
     releaseEnd,
@@ -176,17 +186,9 @@ export function getReleaseBounds(release?: Release): ReleaseBounds {
 type GetReleaseParams = {
   location: Location;
   releaseBounds: ReleaseBounds;
-  defaultStatsPeriod: string;
-  allowEmptyPeriod: boolean;
 };
 
-// these options are here only temporarily while we still support older and newer release details page
-export function getReleaseParams({
-  location,
-  releaseBounds,
-  defaultStatsPeriod,
-  allowEmptyPeriod,
-}: GetReleaseParams) {
+export function getReleaseParams({location, releaseBounds}: GetReleaseParams) {
   const params = getParams(
     pick(location.query, [
       ...Object.values(URL_PARAM),
@@ -195,8 +197,7 @@ export function getReleaseParams({
     ]),
     {
       allowAbsolutePageDatetime: true,
-      defaultStatsPeriod,
-      allowEmptyPeriod,
+      allowEmptyPeriod: true,
     }
   );
   if (

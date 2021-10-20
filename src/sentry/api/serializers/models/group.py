@@ -10,7 +10,7 @@ from django.conf import settings
 from django.db.models import Min, prefetch_related_objects
 from django.utils import timezone
 
-from sentry import tagstore, tsdb
+from sentry import release_health, tagstore, tsdb
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.api.serializers.models.plugin import is_plugin_deprecated
@@ -984,25 +984,19 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                     metrics.incr(f"group.get_session_counts.{found}")
 
                 if missed_items:
-                    filters = {"project_id": list({item.project_id for item in missed_items})}
-                    if self.environment_ids:
-                        filters["environment"] = self.environment_ids
-
-                    result_totals = raw_query(
-                        selected_columns=["sessions"],
-                        dataset=Dataset.Sessions,
-                        start=self.start,
-                        end=self.end,
-                        filter_keys=filters,
-                        groupby=["project_id"],
-                        referrer="serializers.GroupSerializerSnuba.session_totals",
+                    project_ids = list({item.project_id for item in missed_items})
+                    project_sessions = release_health.get_num_sessions_per_project(
+                        project_ids,
+                        self.start,
+                        self.end,
+                        self.environment_ids,
                     )
 
                     results = {}
-                    for data in result_totals["data"]:
-                        cache_key = self._build_session_cache_key(data["project_id"])
-                        results[data["project_id"]] = data["sessions"]
-                        cache.set(cache_key, data["sessions"], 3600)
+                    for project_id, count in project_sessions:
+                        cache_key = self._build_session_cache_key(project_id)
+                        results[project_id] = count
+                        cache.set(cache_key, count, 3600)
 
                     for item in missed_items:
                         if item.project_id in results.keys():

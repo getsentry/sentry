@@ -571,7 +571,6 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         Given an existing authenticated user, and an updated identity (e.g.
         the ident changed from the SSO provider), we should be re-linking
         the identity automatically as they don't have a password.
-
         This is specifically testing an unauthenticated flow.
         """
         AuthProvider.objects.create(organization=self.organization, provider="dummy")
@@ -594,39 +593,6 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         self.assertTemplateUsed(resp, "sentry/auth-confirm-identity.html")
         assert resp.status_code == 200
         assert resp.context["existing_user"] is None
-
-    @with_feature("organizations:idp-automatic-migration")
-    @mock.patch("sentry.auth.helper.send_one_time_account_confirm_link")
-    def test_flow_automatically_migrated_without_verified_without_password(
-        self, mock_send_one_time_account_confirm_link
-    ):
-        provider = AuthProvider.objects.create(organization=self.organization, provider="dummy")
-
-        # setup a 'previous' identity, such as when we migrated Google from
-        # the old idents to the new
-        user = self.create_user("bar@example.com", is_managed=False, password="")
-        assert not user.has_usable_password()
-        UserEmail.objects.filter(user=user, email="bar@example.com").update(is_verified=False)
-        self.create_member(organization=self.organization, user=user)
-
-        resp = self.client.post(self.path, {"init": True})
-
-        assert resp.status_code == 200
-        assert self.provider.TEMPLATE in resp.content.decode("utf-8")
-
-        path = reverse("sentry-auth-sso")
-
-        resp = self.client.post(path, {"email": "bar@example.com"})
-        mock_send_one_time_account_confirm_link.assert_called_with(
-            user,
-            self.organization,
-            provider.get_provider().name,
-            "bar@example.com",
-            MigratingIdentityId(id="bar@example.com", legacy_id=None),
-        )
-        self.assertTemplateUsed(resp, "sentry/auth-confirm-account.html")
-        assert resp.status_code == 200
-        assert resp.context["existing_user"] == user
 
     def test_flow_managed_duplicate_users_without_membership(self):
         """
@@ -998,3 +964,84 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         )
 
         assert resp.redirect_chain == [("/auth/2fa/", 302)]
+
+
+class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
+    def setUp(self):
+        self.owner = self.create_user()
+        self.organization = self.create_organization(name="foo", owner=self.owner)
+        self.user = self.create_user("bar@example.com", is_managed=False, password="")
+        self.auth_provider = AuthProvider.objects.create(
+            organization=self.organization, provider="dummy"
+        )
+        self.path = reverse("sentry-auth-organization", args=[self.organization.slug])
+        self.auth_sso_path = reverse("sentry-auth-sso")
+        UserEmail.objects.filter(user=self.user, email="bar@example.com").update(is_verified=False)
+
+    @with_feature("organizations:idp-automatic-migration")
+    @mock.patch("sentry.auth.helper.send_one_time_account_confirm_link")
+    def test_flow_verify_and_link_without_password_sends_email(
+        self, mock_send_one_time_account_confirm_link
+    ):
+        assert not self.user.has_usable_password()
+        self.create_member(organization=self.organization, user=self.user)
+
+        resp = self.client.post(self.path, {"init": True})
+
+        assert resp.status_code == 200
+        assert self.provider.TEMPLATE in resp.content.decode("utf-8")
+
+        resp = self.client.post(self.auth_sso_path, {"email": "bar@example.com"})
+        mock_send_one_time_account_confirm_link.assert_called_with(
+            self.user,
+            self.organization,
+            self.auth_provider,
+            "bar@example.com",
+            MigratingIdentityId(id="bar@example.com", legacy_id=None),
+        )
+        self.assertTemplateUsed(resp, "sentry/auth-confirm-account.html")
+        assert resp.status_code == 200
+        assert resp.context["existing_user"] == self.user
+
+    @with_feature("organizations:idp-automatic-migration")
+    @mock.patch("sentry.auth.idpmigration.MessageBuilder")
+    def test_flow_verify_and_link_without_password_login_success(self, email):
+        assert not self.user.has_usable_password()
+        self.create_member(organization=self.organization, user=self.user)
+
+        resp = self.client.post(self.path, {"init": True})
+
+        assert resp.status_code == 200
+        assert self.provider.TEMPLATE in resp.content.decode("utf-8")
+
+        resp = self.client.post(self.auth_sso_path, {"email": "bar@example.com"})
+        self.assertTemplateUsed(resp, "sentry/auth-confirm-account.html")
+
+        assert resp.status_code == 200
+        assert resp.context["existing_user"] == self.user
+        path = reverse(
+            "sentry-idp-email-verification",
+            args=[email.call_args.kwargs["context"]["verification_key"]],
+        )
+
+        resp = self.client.get(path)
+        assert resp.templates[0].name == "sentry/idp_account_verified.html"
+
+        assert resp.status_code == 200
+
+        path = reverse("sentry-auth-organization", args=[self.organization.slug])
+
+        resp = self.client.post(path, follow=True)
+
+        assert resp.redirect_chain == [
+            (reverse("sentry-login"), 302),
+            ("/organizations/foo/issues/", 302),
+        ]
+
+        auth_identity = AuthIdentity.objects.get(auth_provider=self.auth_provider)
+        assert self.user == auth_identity.user
+
+        member = OrganizationMember.objects.get(organization=self.organization, user=self.user)
+        assert getattr(member.flags, "sso:linked")
+        assert not getattr(member.flags, "sso:invalid")
+        assert not getattr(member.flags, "member-limit:restricted")

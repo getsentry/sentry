@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import color from 'color';
 import {Location} from 'history';
 
 import GuideAnchor from 'app/components/assistant/guideAnchor';
@@ -24,10 +25,10 @@ import {Theme} from 'app/utils/theme';
 import {isProjectMobileForReleases} from 'app/views/releases/list';
 
 import {getReleaseNewIssuesUrl, getReleaseUnhandledIssuesUrl} from '../../utils';
-import {ReleaseHealthRequestRenderProps} from '../../utils/releaseHealthRequest';
 import CrashFree from '../crashFree';
 import HealthStatsChart from '../healthStatsChart';
 import HealthStatsPeriod from '../healthStatsPeriod';
+import {ReleaseListRequestRenderProps} from '../releaseListRequest';
 import {DisplayOption} from '../utils';
 
 import Header from './header';
@@ -75,7 +76,7 @@ type Props = {
   location: Location;
   showPlaceholders: boolean;
   isTopRelease: boolean;
-  getHealthData: ReleaseHealthRequestRenderProps['getHealthData'];
+  getHealthData: ReleaseListRequestRenderProps['getHealthData'];
   showReleaseAdoptionStages: boolean;
   adoptionStages?: Release['adoptionStages'];
 };
@@ -287,11 +288,11 @@ const ExpandButtonWrapper = styled('div')`
   justify-content: center;
   background-image: linear-gradient(
     180deg,
-    hsla(0, 0%, 100%, 0.15) 0,
-    ${p => p.theme.white}
+    ${p => color(p.theme.background).alpha(0).string()} 0,
+    ${p => p.theme.background}
   );
   background-repeat: repeat-x;
-  border-bottom: ${space(1)} solid ${p => p.theme.white};
+  border-bottom: ${space(1)} solid ${p => p.theme.background};
   border-top: ${space(1)} solid transparent;
   border-bottom-right-radius: ${p => p.theme.borderRadius};
   @media (max-width: ${p => p.theme.breakpoints[1]}) {
