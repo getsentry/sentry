@@ -3,6 +3,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import Threads from 'app/components/events/interfaces/threads';
 
 describe('Threads', () => {
+  const organization = TestStubs.Organization();
   const entries = TestStubs.Entries()[0];
   const event = TestStubs.Event({entries});
   const exceptionEntry = entries[0];
@@ -55,6 +56,7 @@ describe('Threads', () => {
         orgId="org-slug"
         projectId="project-id"
         event={newEvent}
+        organization={organization}
       />
     );
 
@@ -87,6 +89,7 @@ describe('Threads', () => {
             event.entries[2],
           ],
         }}
+        organization={organization}
       />
     );
 
@@ -105,6 +108,7 @@ describe('Threads', () => {
           orgId="org-slug"
           projectId="project-id"
           event={event}
+          organization={organization}
         />
       );
 
@@ -133,6 +137,7 @@ describe('Threads', () => {
               event.entries[2],
             ],
           }}
+          organization={organization}
         />
       );
 
