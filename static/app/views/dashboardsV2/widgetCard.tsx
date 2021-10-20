@@ -1,6 +1,6 @@
 import * as React from 'react';
 import LazyLoad from 'react-lazyload';
-import {browserHistory, withRouter, WithRouterProps} from 'react-router';
+import {Link, withRouter, WithRouterProps} from 'react-router';
 import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -123,48 +123,48 @@ class WidgetCard extends React.Component<Props> {
       // Open table widget in Discover
 
       if (widget.queries.length) {
-        menuOptions.push(
-          <MenuItem
-            key="open-discover"
-            onClick={event => {
-              event.preventDefault();
-              trackAnalyticsEvent({
-                eventKey: 'dashboards2.tablewidget.open_in_discover',
-                eventName: 'Dashboards2: Table Widget - Open in Discover',
-                organization_id: parseInt(this.props.organization.id, 10),
-              });
-              if (widget.queries.length === 1) {
-                const eventView = eventViewFromWidget(
-                  widget.title,
-                  widget.queries[0],
-                  selection,
-                  widget.displayType
-                );
-                const discoverLocation = eventView.getResultsViewUrlTarget(
-                  organization.slug
-                );
-                if (this.isAllowWidgetsToDiscover()) {
-                  // Pull a max of 3 valid Y-Axis from the widget
-                  const yAxisOptions = eventView
-                    .getYAxisOptions()
-                    .map(({value}) => value);
-                  discoverLocation.query.yAxis = widget.queries[0].fields
-                    .filter(field => yAxisOptions.includes(field))
-                    .slice(0, 3);
-                }
-                browserHistory.push(discoverLocation);
-              } else {
+        trackAnalyticsEvent({
+          eventKey: 'dashboards2.tablewidget.open_in_discover',
+          eventName: 'Dashboards2: Table Widget - Open in Discover',
+          organization_id: parseInt(this.props.organization.id, 10),
+        });
+        const eventView = eventViewFromWidget(
+          widget.title,
+          widget.queries[0],
+          selection,
+          widget.displayType
+        );
+        const discoverLocation = eventView.getResultsViewUrlTarget(organization.slug);
+        if (this.isAllowWidgetsToDiscover()) {
+          // Pull a max of 3 valid Y-Axis from the widget
+          const yAxisOptions = eventView.getYAxisOptions().map(({value}) => value);
+          discoverLocation.query.yAxis = widget.queries[0].fields
+            .filter(field => yAxisOptions.includes(field))
+            .slice(0, 3);
+        }
+        if (widget.queries.length === 1) {
+          menuOptions.push(
+            <Link to={discoverLocation}>
+              <StyledMenuItem key="open-discover">{t('Open in Discover')}</StyledMenuItem>
+            </Link>
+          );
+        } else {
+          menuOptions.push(
+            <StyledMenuItem
+              key="open-discover"
+              onClick={event => {
+                event.preventDefault();
                 trackAdvancedAnalyticsEvent('dashboards_views.query_selector.opened', {
                   organization,
                   widget_type: widget.displayType,
                 });
                 openDashboardWidgetQuerySelectorModal({organization, widget});
-              }
-            }}
-          >
-            {t('Open in Discover')}
-          </MenuItem>
-        );
+              }}
+            >
+              {t('Open in Discover')}
+            </StyledMenuItem>
+          );
+        }
       }
     }
 
@@ -302,4 +302,11 @@ const WidgetHeader = styled('div')`
 
 const ContextWrapper = styled('div')`
   margin-left: ${space(1)};
+`;
+
+const StyledMenuItem = styled(MenuItem)`
+  color: ${p => p.theme.gray500};
+  :hover {
+    color: ${p => p.theme.gray500};
+  }
 `;
