@@ -17,7 +17,7 @@ class StatusDetailsValidator(serializers.Serializer):  # type: ignore
     # in minutes, max of one week
     ignoreUserWindow = serializers.IntegerField(max_value=7 * 24 * 60)
 
-    def validate_inRelease(self, value: bool) -> bool:
+    def validate_inRelease(self, value: str) -> Release:
         project = self.context["project"]
         if value == "latest":
             try:
