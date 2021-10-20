@@ -80,6 +80,7 @@ const config: Config.InitialOptions = {
     '^.+\\.tsx?$': ['babel-jest', babelConfig as any],
     '^.+\\.pegjs?$': '<rootDir>/tests/js/jest-pegjs-transform.js',
   },
+  transformIgnorePatterns: ['node_modules/(?!echarts)/'],
   moduleFileExtensions: ['js', 'ts', 'jsx', 'tsx'],
   globals: {},
 
