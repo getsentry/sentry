@@ -5,7 +5,6 @@ import omit from 'lodash/omit';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
-import {getSeriesApiInterval} from 'app/components/charts/utils';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {t} from 'app/locale';
 import {
@@ -18,7 +17,13 @@ import {
 import {Series} from 'app/types/echarts';
 import {percent} from 'app/utils';
 import {getPeriod} from 'app/utils/getPeriod';
-import {getCount, getCountSeries, initSessionsChart} from 'app/utils/sessions';
+import {
+  filterSessionsInTimeWindow,
+  getCount,
+  getCountSeries,
+  getSessionsInterval,
+  initSessionsChart,
+} from 'app/utils/sessions';
 import {Theme} from 'app/utils/theme';
 import {getCrashFreePercent} from 'app/views/releases/utils';
 
@@ -94,14 +99,23 @@ class ProjectSessionsChartRequest extends React.Component<Props, State> {
     }));
 
     try {
+      const queryParams = this.queryParams({shouldFetchWithPrevious});
       const response: SessionApiResponse = await api.requestPromise(this.path, {
-        query: this.queryParams({shouldFetchWithPrevious}),
+        query: queryParams,
       });
+
+      const filteredResponse = filterSessionsInTimeWindow(
+        response,
+        queryParams.start,
+        queryParams.end
+      );
 
       const {timeseriesData, previousTimeseriesData, totalSessions} =
         displayMode === DisplayModes.SESSIONS
-          ? this.transformSessionCountData(response)
-          : this.transformData(response, {fetchedWithPrevious: shouldFetchWithPrevious});
+          ? this.transformSessionCountData(filteredResponse)
+          : this.transformData(filteredResponse, {
+              fetchedWithPrevious: shouldFetchWithPrevious,
+            });
 
       if (this.unmounting) {
         return;
@@ -132,14 +146,16 @@ class ProjectSessionsChartRequest extends React.Component<Props, State> {
     return `/organizations/${organization.slug}/sessions/`;
   }
 
-  queryParams({shouldFetchWithPrevious = false}) {
-    const {selection, query} = this.props;
+  queryParams({shouldFetchWithPrevious = false}): Record<string, any> {
+    const {selection, query, organization} = this.props;
     const {datetime, projects, environments: environment} = selection;
 
     const baseParams = {
       field: 'sum(session)',
       groupBy: 'session.status',
-      interval: getSeriesApiInterval(datetime),
+      interval: getSessionsInterval(datetime, {
+        highFidelity: organization.features.includes('minute-resolution-sessions'),
+      }),
       project: projects[0],
       environment,
       query,

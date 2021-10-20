@@ -45,7 +45,7 @@ from sentry.utils.snuba import Dataset
         ("p100", "Float32", None, "duration"),
         ("apdex_transaction_duration_300", "Float32", None, "number"),
         ("failure_rate", "Float32", None, "percentage"),
-        ("count_miserable_user_300", "Float32", None, "number"),
+        ("count_miserable_user_300", "Float32", None, "integer"),
         ("user_misery_300", "Float32", None, "number"),
         ("percentile_transaction_duration_0_95", "Float32", None, "duration"),
         ("count_thing", "UInt64", None, "integer"),
@@ -1632,7 +1632,7 @@ class ResolveFieldListTest(unittest.TestCase):
 
 
 def resolve_snql_fieldlist(fields):
-    return QueryFields(Dataset.Discover, {}).resolve_select(fields)
+    return QueryFields(Dataset.Discover, {}).resolve_select(fields, [])
 
 
 @pytest.mark.parametrize(

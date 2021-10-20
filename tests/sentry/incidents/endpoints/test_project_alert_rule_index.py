@@ -220,7 +220,6 @@ class AlertRuleCreateEndpointTest(APITestCase):
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
         assert resp.data == serialize(alert_rule, self.user)
 
-    # TODO MARCOS
     @patch(
         "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
         side_effect=[("#", 10, False), ("#", 10, False), ("#", 20, False)],
