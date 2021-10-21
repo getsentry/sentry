@@ -12,8 +12,7 @@ jobs:
     timeout-minutes: 12
     strategy:
       matrix:
-        # TODO(joshuarli): Switch to 3.8.12 when we switch over to Python 3.8.
-        python-version: [3.6.13]
+        python-version: [3.8.12]
     steps:
       - uses: actions/checkout@v2
 

@@ -137,6 +137,7 @@ def rsa_key_from_jwk(jwk: str) -> str:
         # The return type is verified in our own tests, this is fine.
         return key.private_bytes(Encoding.PEM, PrivateFormat.PKCS8, NoEncryption()).decode("UTF-8")  # type: ignore
     elif isinstance(key, RSAPublicKey):
-        return key.public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo).decode("UTF-8")
+        # The return type is verified in our own tests, this is fine.
+        return key.public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo).decode("UTF-8")  # type: ignore
     else:
         raise ValueError("Unknown RSA JWK key")
