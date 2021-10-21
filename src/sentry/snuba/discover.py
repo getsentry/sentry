@@ -108,6 +108,7 @@ def zerofill(data, start, end, rollup, orderby):
     data_by_time = {}
 
     for obj in data:
+        # This is needed for SnQL, and was originally done in utils.snuba.get_snuba_translators
         if isinstance(obj["time"], str):
             obj["time"] = int(to_timestamp(parse_datetime(obj["time"])))
         if obj["time"] in data_by_time:

@@ -2819,18 +2819,17 @@ class QueryFields(QueryBase):
 
         # Add threshold config alias if there's a function that depends on it
         # TODO: this should be replaced with an explicit request for the project_threshold_config as a column
-        if self.auto_fields:
-            for column in {
-                "apdex()",
-                "count_miserable(user)",
-                "user_misery()",
-            }:
-                if (
-                    column in stripped_columns
-                    and PROJECT_THRESHOLD_CONFIG_ALIAS not in stripped_columns
-                ):
-                    stripped_columns.append(PROJECT_THRESHOLD_CONFIG_ALIAS)
-                    break
+        for column in {
+            "apdex()",
+            "count_miserable(user)",
+            "user_misery()",
+        }:
+            if (
+                column in stripped_columns
+                and PROJECT_THRESHOLD_CONFIG_ALIAS not in stripped_columns
+            ):
+                stripped_columns.append(PROJECT_THRESHOLD_CONFIG_ALIAS)
+                break
 
         for column in stripped_columns:
             if column == "":
