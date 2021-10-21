@@ -20,7 +20,7 @@ const defaultProps = {
 };
 
 type Props = {
-  options: SelectValue<string>[];
+  options: (SelectValue<string> & {checkboxHidden?: boolean})[];
   selected: string[];
   onChange: (value: string[]) => void;
   title: string;
@@ -136,23 +136,25 @@ class OptionCheckboxSelector extends Component<Props, State> {
                           maxLength={60}
                           expandDirection="left"
                         />
-                        <Tooltip
-                          title={
-                            disabled
-                              ? t(
-                                  opt.tooltip ??
-                                    'Only a maximum of 3 fields can be displayed on the Y-Axis at a time'
-                                )
-                              : undefined
-                          }
-                        >
-                          <CheckboxFancy
-                            className={opt.value}
-                            isChecked={selected.includes(opt.value)}
-                            isDisabled={disabled}
-                            onClick={event => this.handleCheckboxClick(event, opt)}
-                          />
-                        </Tooltip>
+                        {!opt.checkboxHidden && (
+                          <Tooltip
+                            title={
+                              disabled
+                                ? t(
+                                    opt.tooltip ??
+                                      'Only a maximum of 3 fields can be displayed on the Y-Axis at a time'
+                                  )
+                                : undefined
+                            }
+                          >
+                            <CheckboxFancy
+                              className={opt.value}
+                              isChecked={selected.includes(opt.value)}
+                              isDisabled={disabled}
+                              onClick={event => this.handleCheckboxClick(event, opt)}
+                            />
+                          </Tooltip>
+                        )}
                       </StyledDropdownItem>
                     );
                   })}

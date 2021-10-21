@@ -222,21 +222,19 @@ class ResultsChartContainer extends Component<ContainerProps> {
 
     const yAxisValue = hasConnectDiscoverAndDashboards ? yAxis : [eventView.getYAxis()];
     let yAxisOptions = eventView.getYAxisOptions();
-    // Disable multi y axis options when in an unsupported Display Mode
+    // Hide multi y axis checkbox when in an unsupported Display Mode
     if (
       !MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES.includes(
         eventView.getDisplayMode() as DisplayModes
       )
     ) {
       yAxisOptions = yAxisOptions.map(option => {
-        if (option.value !== yAxisValue[0]) {
-          return {
-            ...option,
-            disabled: true,
-            tooltip: t('Multiple Y-Axis cannot be plotted on this Display mode.'),
-          };
-        }
-        return option;
+        return {
+          ...option,
+          disabled: true,
+          tooltip: t('Multiple Y-Axis cannot be plotted on this Display mode.'),
+          checkboxHidden: true,
+        };
       });
     }
 
