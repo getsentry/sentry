@@ -229,14 +229,6 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
 
         organization = self.context["project"].organization
         request = self.context["request"]
-        has_sources = features.has(
-            "organizations:custom-symbol-sources", organization, actor=request.user
-        )
-
-        if not has_sources:
-            raise serializers.ValidationError(
-                "Organization is not allowed to set custom symbol sources"
-            )
 
         try:
             # We should really only grab and parse if there are sources in sources_json whose
@@ -249,6 +241,20 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             raise serializers.ValidationError(str(e))
 
         sources_json = json.dumps(sources) if sources else ""
+
+        # special case: a single appStoreConnect source is always ok, regardless
+        # of whether the org has custom symbol sources
+        if len(sources) == 1 and sources[0].get("type") == "appStoreConnect":
+            return sources_json
+
+        has_sources = features.has(
+            "organizations:custom-symbol-sources", organization, actor=request.user
+        )
+
+        if not has_sources:
+            raise serializers.ValidationError(
+                "Organization is not allowed to set custom symbol sources"
+            )
 
         has_multiple_appconnect = features.has(
             "organizations:app-store-connect-multiple", organization, actor=request.user
