@@ -1,3 +1,4 @@
+from unittest import mock
 from urllib.parse import parse_qs
 
 import responses
@@ -27,7 +28,6 @@ from sentry.plugins.base import Notification
 from sentry.tasks.digests import deliver_digest
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
-from sentry.utils.compat import mock
 from sentry.utils.compat.mock import patch
 
 from . import SlackActivityNotificationTest, get_attachment, send_notification

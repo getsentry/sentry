@@ -1,4 +1,5 @@
 from datetime import timedelta
+from unittest import mock
 
 from django.utils import timezone
 
@@ -18,7 +19,6 @@ from sentry.models import (
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils import TestCase
 from sentry.types.integrations import ExternalProviders
-from sentry.utils.compat import mock
 from sentry.utils.compat.mock import patch
 
 

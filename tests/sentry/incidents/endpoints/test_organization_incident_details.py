@@ -1,4 +1,5 @@
 from datetime import datetime
+from unittest import mock
 
 import pytz
 from exam import fixture
@@ -6,7 +7,6 @@ from exam import fixture
 from sentry.api.serializers import serialize
 from sentry.incidents.models import Incident, IncidentActivity, IncidentStatus
 from sentry.testutils import APITestCase
-from sentry.utils.compat import mock
 
 
 class BaseIncidentDetailsTest:

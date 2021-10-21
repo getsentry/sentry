@@ -4,10 +4,10 @@ from concurrent.futures import CancelledError, Future
 from contextlib import contextmanager
 from queue import Full
 from threading import Event
+from unittest import mock
 
 import pytest
 
-from sentry.utils.compat import mock
 from sentry.utils.concurrent import (
     FutureSet,
     SynchronousExecutor,
