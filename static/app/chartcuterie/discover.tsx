@@ -1,9 +1,8 @@
-import 'app/components/charts/components/visualMap';
-
 import {EChartOption} from 'echarts';
 import * as echarts from 'echarts';
 import isArray from 'lodash/isArray';
 
+import VisualMap from 'app/components/charts/components/visualMap';
 import XAxis from 'app/components/charts/components/xAxis';
 import AreaSeries from 'app/components/charts/series/areaSeries';
 import BarSeries from 'app/components/charts/series/barSeries';
@@ -378,19 +377,21 @@ discoverCharts.push({
 
     return {
       backgroundColor: theme.background,
-      visualMap: {
-        left: 'right',
-        min: 0,
-        max: 10,
-        inRange: {
-          color: [theme.purple200, theme.purple300],
-        },
-        text: ['High', 'Low'],
-        textStyle: {
-          color: theme.textColor,
-        },
-        calculable: false,
-      },
+      visualMap: [
+        VisualMap({
+          left: 'right',
+          min: 0,
+          max: 10,
+          inRange: {
+            color: [theme.purple200, theme.purple300],
+          },
+          text: ['High', 'Low'],
+          textStyle: {
+            color: theme.textColor,
+          },
+          calculable: false,
+        }),
+      ],
       series: [mapSeries],
     };
   },
