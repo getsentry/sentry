@@ -305,7 +305,7 @@ def resolve_equation_list(
     auto_add: Optional[bool] = False,
     plain_math: Optional[bool] = False,
     use_snql: Optional[bool] = False,
-) -> Tuple[List[JsonQueryType], List[str], List[Operation]]:
+) -> Tuple[List[JsonQueryType], List[str], List[Operation], List[bool]]:
     """Given a list of equation strings, resolve them to their equivalent snuba json query formats
     :param equations: list of equations strings that haven't been parsed yet
     :param selected_columns: list of public aliases from the endpoint, can be a mix of fields and aggregates
@@ -319,6 +319,7 @@ def resolve_equation_list(
     resolved_equations: List[JsonQueryType] = []
     parsed_equations: List[Operation] = []
     resolved_columns: List[str] = selected_columns[:]
+    contains_function: List[bool] = []
     for index, equation in enumerate(equations):
         parsed_equation, fields, functions = parse_arithmetic(equation, use_snql=use_snql)
 
@@ -350,7 +351,8 @@ def resolve_equation_list(
         # TODO: currently returning "resolved_equations" for the json syntax
         # once we're converted to SnQL this should only return parsed_equations
         parsed_equations.append(parsed_equation)
-    return resolved_equations, resolved_columns, parsed_equations
+        contains_function.append(len(functions) > 0)
+    return resolved_equations, resolved_columns, parsed_equations, contains_function
 
 
 def is_equation(field: str) -> bool:

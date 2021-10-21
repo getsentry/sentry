@@ -71,7 +71,7 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
 
         if equations is not None:
             try:
-                resolved_equations, _, _ = resolve_equation_list(equations, fields)
+                resolved_equations, _, _, _ = resolve_equation_list(equations, fields)
             except (InvalidSearchQuery, ArithmeticError) as err:
                 raise serializers.ValidationError({"fields": f"Invalid fields: {err}"})
         else:

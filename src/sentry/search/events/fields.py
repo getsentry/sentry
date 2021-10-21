@@ -2313,8 +2313,9 @@ class QueryFields(QueryBase):
         params: ParamsType,
         auto_fields: bool = False,
         functions_acl: Optional[List[str]] = None,
+        equation_config: Optional[Dict[str, bool]] = None,
     ):
-        super().__init__(dataset, params, auto_fields, functions_acl)
+        super().__init__(dataset, params, auto_fields, functions_acl, equation_config)
 
         self.function_alias_map: Dict[str, FunctionDetails] = {}
         self.field_alias_converter: Mapping[str, Callable[[str], SelectType]] = {
@@ -2805,29 +2806,31 @@ class QueryFields(QueryBase):
         stripped_columns = [column.strip() for column in selected_columns]
 
         if equations:
-            _, _, parsed_equations = resolve_equation_list(
-                equations, stripped_columns, use_snql=True
+            _, _, parsed_equations, contains_function = resolve_equation_list(
+                equations, stripped_columns, use_snql=True, **self.equation_config
             )
-            resolved_columns.extend(
-                [
-                    self.resolve_equation(equation, f"equation[{index}]")
-                    for index, equation in enumerate(parsed_equations)
-                ]
-            )
+            for index, (equation, is_function) in enumerate(
+                zip(parsed_equations, contains_function)
+            ):
+                resolved_equation = self.resolve_equation(equation, f"equation[{index}]")
+                resolved_columns.append(resolved_equation)
+                if is_function:
+                    self.aggregates.append(resolved_equation)
 
         # Add threshold config alias if there's a function that depends on it
         # TODO: this should be replaced with an explicit request for the project_threshold_config as a column
-        for column in {
-            "apdex()",
-            "count_miserable(user)",
-            "user_misery()",
-        }:
-            if (
-                column in stripped_columns
-                and PROJECT_THRESHOLD_CONFIG_ALIAS not in stripped_columns
-            ):
-                stripped_columns.append(PROJECT_THRESHOLD_CONFIG_ALIAS)
-                break
+        if self.auto_fields:
+            for column in {
+                "apdex()",
+                "count_miserable(user)",
+                "user_misery()",
+            }:
+                if (
+                    column in stripped_columns
+                    and PROJECT_THRESHOLD_CONFIG_ALIAS not in stripped_columns
+                ):
+                    stripped_columns.append(PROJECT_THRESHOLD_CONFIG_ALIAS)
+                    break
 
         for column in stripped_columns:
             if column == "":
