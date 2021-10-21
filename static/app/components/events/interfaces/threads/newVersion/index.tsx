@@ -2,6 +2,7 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import isNil from 'lodash/isNil';
 
+import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import EventDataSection from 'app/components/events/eventDataSection';
 import CrashContent from 'app/components/events/interfaces/crashContent';
 import CrashTitle from 'app/components/events/interfaces/crashHeader/crashTitle';
@@ -91,10 +92,21 @@ function Threads({
       title={
         hasMoreThanOneThread ? (
           <CrashTitle
-            title={t('Exception')}
+            title=""
             newestFirst={newestFirst}
             hideGuide={hideGuide}
             onChange={handleChangeNewestFirst}
+            beforeTitle={
+              activeThread && (
+                <ThreadSelector
+                  threads={threads}
+                  activeThread={activeThread}
+                  event={event}
+                  onChange={handleSelectNewThread}
+                  exception={exception}
+                />
+              )
+            }
           />
         ) : (
           <CrashTitle
@@ -118,33 +130,33 @@ function Threads({
       wrapTitle={false}
     >
       <Fragment>
-        {activeThread && (
-          <Fragment>
-            <ThreadSelector
-              threads={threads}
-              activeThread={activeThread}
-              event={event}
-              onChange={handleSelectNewThread}
-              exception={exception}
-            />
-            {(!isNil(activeThread?.id) || !!activeThread?.name) && (
-              <Pills>
-                {!isNil(activeThread.id) && (
-                  <Pill name={t('id')} value={String(activeThread.id)} />
-                )}
-                {!!activeThread.name?.trim() && (
-                  <Pill name={t('name')} value={activeThread.name} />
-                )}
-                <Pill name={t('was active')} value={activeThread.current} />
-                <Pill
-                  name={t('errored')}
-                  className={activeThread.crashed ? 'false' : 'true'}
-                >
-                  {activeThread.crashed ? t('yes') : t('no')}
-                </Pill>
-              </Pills>
+        <div>
+          <DropdownControl buttonProps={{prefix: t('Sort By')}} label={activeSort.label}>
+            {SORT_OPTIONS.map(({label, value}) => (
+              <DropdownItem
+                key={value}
+                onSelect={this.handleSortChange}
+                eventKey={value}
+                isActive={value === activeSort.value}
+              >
+                {label}
+              </DropdownItem>
+            ))}
+          </DropdownControl>
+        </div>
+        {activeThread && (!isNil(activeThread?.id) || !!activeThread?.name) && (
+          <Pills>
+            {!isNil(activeThread.id) && (
+              <Pill name={t('id')} value={String(activeThread.id)} />
             )}
-          </Fragment>
+            {!!activeThread.name?.trim() && (
+              <Pill name={t('name')} value={activeThread.name} />
+            )}
+            <Pill name={t('was active')} value={activeThread.current} />
+            <Pill name={t('errored')} className={activeThread.crashed ? 'false' : 'true'}>
+              {activeThread.crashed ? t('yes') : t('no')}
+            </Pill>
+          </Pills>
         )}
         {stackTraceNotFound ? (
           <NoStackTraceMessage
