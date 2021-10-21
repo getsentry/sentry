@@ -105,9 +105,9 @@ def unfurl_discover(
         params.setlist("name", params.getlist("name") or to_list(saved_query.get("name")))
 
         fields = params.getlist("field") or to_list(saved_query.get("fields"))
-        default_axis = fields.filter(is_aggregate).append(DEFAULT_AXIS_OPTION)
+        axis_options = [field for field in fields if is_aggregate(field)] + [DEFAULT_AXIS_OPTION]
         params.setlist(
-            "yAxis", params.getlist("yAxis") or to_list(saved_query.get("yAxis", default_axis))
+            "yAxis", params.getlist("yAxis") or to_list(saved_query.get("yAxis", axis_options[0]))
         )
         params.setlist("field", params.getlist("field") or to_list(saved_query.get("fields")))
 

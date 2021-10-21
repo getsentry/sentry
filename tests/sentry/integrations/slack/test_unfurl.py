@@ -300,6 +300,66 @@ class UnfurlTest(TestCase):
         assert len(chart_data["stats"][first_key]["data"]) == 288
 
     @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
+    def test_unfurl_correct_y_axis_for_saved_query(self, mock_generate_chart):
+        query = {
+            "fields": [
+                "message",
+                "event.type",
+                "project",
+                "user.display",
+                "p50(transaction.duration)",
+            ],
+        }
+        saved_query = DiscoverSavedQuery.objects.create(
+            organization=self.organization,
+            created_by=self.user,
+            name="Test query",
+            query=query,
+            version=2,
+        )
+        saved_query.set_projects([self.project.id])
+
+        min_ago = iso_format(before_now(minutes=1))
+        self.store_event(
+            data={"message": "first", "fingerprint": ["group2"], "timestamp": min_ago},
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={"message": "second", "fingerprint": ["group2"], "timestamp": min_ago},
+            project_id=self.project.id,
+        )
+
+        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?id={saved_query.id}&statsPeriod=24h&project={self.project.id}"
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise Exception("Missing link_type/args")
+
+        links = [
+            UnfurlableUrl(url=url, args=args),
+        ]
+
+        with self.feature(
+            [
+                "organizations:discover",
+                "organizations:discover-basic",
+                "organizations:chart-unfurls",
+                "organizations:discover-top-events",
+            ]
+        ):
+            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+
+        assert unfurls[url] == build_discover_attachment(
+            title=args["query"].get("name"), chart_url="chart-url"
+        )
+        assert len(mock_generate_chart.mock_calls) == 1
+
+        assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_DISCOVER_TOTAL_PERIOD
+        chart_data = mock_generate_chart.call_args[0][1]
+        assert chart_data["seriesName"] == "p50(transaction.duration)"
+        assert len(chart_data["stats"]["data"]) == 288
+
+    @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
     def test_top_events_url_param(self, mock_generate_chart):
         min_ago = iso_format(before_now(minutes=1))
         self.store_event(
