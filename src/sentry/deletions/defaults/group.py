@@ -28,6 +28,7 @@ DIRECT_GROUP_RELATED_MODELS = (
     models.GroupOwner,
     models.GroupEmailThread,
     models.GroupSubscription,
+    models.GroupHistory,
 )
 
 _GROUP_RELATED_MODELS = DIRECT_GROUP_RELATED_MODELS + (
