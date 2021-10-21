@@ -170,7 +170,11 @@ discoverCharts.push({
     }
 
     const stats = Object.values(data.stats);
-    const color = theme.charts.getColorPalette(stats.length - 2);
+    const hasOther = Object.keys(data.stats).includes('Other');
+    const color = theme.charts.getColorPalette(stats.length - 2 - (hasOther ? 1 : 0));
+    if (hasOther) {
+      color.push(theme.chartOther);
+    }
 
     const series = stats
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
@@ -223,7 +227,11 @@ discoverCharts.push({
     }
 
     const stats = Object.values(data.stats);
-    const color = theme.charts.getColorPalette(stats.length - 2);
+    const hasOther = Object.keys(data.stats).includes('Other');
+    const color = theme.charts.getColorPalette(stats.length - 2 - (hasOther ? 1 : 0));
+    if (hasOther) {
+      color.push(theme.chartOther);
+    }
 
     const series = stats
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))

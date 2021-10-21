@@ -14,6 +14,8 @@ import BaseChart from './baseChart';
 type ChartProps = Omit<React.ComponentProps<typeof BaseChart>, 'css'>;
 
 type MapChartSeriesDataUnit = Omit<SeriesDataUnit, 'name' | 'itemStyle'> & {
+  // Docs for map itemStyle differ from Series data unit. See https://echarts.apache.org/en/option.html#series-map.data.itemStyle
+  itemStyle?: MapSeriesOption['itemStyle'];
   name?: string;
 };
 
@@ -25,6 +27,7 @@ type Props = Omit<ChartProps, 'series'> & {
   series: MapChartSeries[];
   theme: Theme;
   seriesOptions?: MapSeriesOption;
+  fromDiscover?: boolean;
 };
 
 type JSONResult = Record<string, any>;
@@ -67,7 +70,7 @@ class WorldMapChart extends React.Component<Props, State> {
       return null;
     }
 
-    const {series, seriesOptions, theme, ...props} = this.props;
+    const {series, seriesOptions, theme, fromDiscover, ...props} = this.props;
     const processedSeries = series.map(({seriesName, data, ...options}) =>
       MapSeries({
         ...seriesOptions,
@@ -76,7 +79,7 @@ class WorldMapChart extends React.Component<Props, State> {
         name: seriesName,
         nameMap: this.state.countryToCodeMap ?? undefined,
         aspectScale: 0.85,
-        zoom: 1.3,
+        zoom: fromDiscover ? 1.1 : 1.3,
         center: [10.97, 9.71],
         itemStyle: {
           areaColor: theme.gray200,
@@ -124,7 +127,8 @@ class WorldMapChart extends React.Component<Props, State> {
           backgroundColor: theme.background,
           visualMap: [
             VisualMap({
-              left: 'right',
+              left: fromDiscover ? undefined : 'right',
+              right: fromDiscover ? 5 : undefined,
               min: 0,
               max: maxValue,
               inRange: {
@@ -148,6 +152,7 @@ class WorldMapChart extends React.Component<Props, State> {
         tooltip={{
           formatter: tooltipFormatter,
         }}
+        height={fromDiscover ? 400 : undefined}
       />
     );
   }

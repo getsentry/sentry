@@ -6,6 +6,7 @@ import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {EventsStats, GlobalSelection, MultiSeriesEventsStats} from 'app/types';
 import {defined, escape} from 'app/utils';
 import {parsePeriodToHours} from 'app/utils/dates';
+import {TableDataWithTitle} from 'app/utils/discover/discoverQuery';
 import {decodeList} from 'app/utils/queryString';
 
 const DEFAULT_TRUNCATE_LENGTH = 80;
@@ -209,3 +210,39 @@ export const lightenHexToRgb = (colors: string[]) =>
     ];
     return `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
   });
+
+const DEFAULT_GEO_DATA = {
+  title: '',
+  data: [],
+};
+export const processTableResults = (tableResults?: TableDataWithTitle[]) => {
+  if (!tableResults || !tableResults.length) {
+    return DEFAULT_GEO_DATA;
+  }
+
+  const tableResult = tableResults[0];
+
+  const {data, meta} = tableResult;
+
+  if (!data || !data.length || !meta) {
+    return DEFAULT_GEO_DATA;
+  }
+
+  const preAggregate = Object.keys(meta).find(column => {
+    return column !== 'geo.country_code';
+  });
+
+  if (!preAggregate) {
+    return DEFAULT_GEO_DATA;
+  }
+
+  return {
+    title: tableResult.title ?? '',
+    data: data.map(row => {
+      return {
+        name: row['geo.country_code'] as string,
+        value: row[preAggregate] as number,
+      };
+    }),
+  };
+};
