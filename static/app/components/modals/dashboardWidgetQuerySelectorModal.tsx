@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {browserHistory} from 'react-router';
+import {Link} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -54,17 +54,21 @@ class DashboardWidgetQuerySelectorModal extends React.Component<Props> {
               </SearchLabel>
               <StyledInput value={query.conditions} disabled />
             </Container>
-            <OpenInDiscoverButton
-              priority="primary"
-              icon={<IconChevron size="xs" direction="right" />}
-              onClick={() => {
-                trackAdvancedAnalyticsEvent('dashboards_views.query_selector.selected', {
-                  organization,
-                  widget_type: widget.displayType,
-                });
-                browserHistory.push(discoverLocation);
-              }}
-            />
+            <Link to={discoverLocation}>
+              <OpenInDiscoverButton
+                priority="primary"
+                icon={<IconChevron size="xs" direction="right" />}
+                onClick={() => {
+                  trackAdvancedAnalyticsEvent(
+                    'dashboards_views.query_selector.selected',
+                    {
+                      organization,
+                      widget_type: widget.displayType,
+                    }
+                  );
+                }}
+              />
+            </Link>
           </QueryContainer>
         </React.Fragment>
       );

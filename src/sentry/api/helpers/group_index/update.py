@@ -1,33 +1,22 @@
-import logging
 from collections import defaultdict
 from datetime import timedelta
-from typing import Any, Mapping, Optional
+from typing import Any, Mapping, MutableMapping, Optional, Sequence
 from uuid import uuid4
 
-import sentry_sdk
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.utils import timezone
-from rest_framework import serializers
-from rest_framework.exceptions import ParseError
+from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, eventstream, features, search
-from sentry.api.base import audit_logger
-from sentry.api.fields import ActorField
-from sentry.api.issue_search import convert_query_values, parse_search_query
+from sentry import analytics, eventstream, features
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer
-from sentry.app import ratelimiter
-from sentry.constants import DEFAULT_SORT_OPTION
 from sentry.db.models.query import create_or_update
-from sentry.exceptions import InvalidSearchQuery
 from sentry.models import (
     TOMBSTONE_FIELDS_FROM_GROUP,
     Activity,
     ActorTuple,
-    Commit,
-    Environment,
     Group,
     GroupAssignee,
     GroupBookmark,
@@ -42,279 +31,39 @@ from sentry.models import (
     GroupStatus,
     GroupSubscription,
     GroupTombstone,
+    Project,
     Release,
-    Repository,
-    Team,
     User,
     UserOption,
     follows_semver_versioning_scheme,
     remove_group_from_inbox,
 )
-from sentry.models.group import STATUS_UPDATE_CHOICES, looks_like_short_id
-from sentry.models.grouphistory import (
-    activity_type_to_history_status,
-    record_group_history,
-    record_group_history_from_activity_type,
-)
-from sentry.models.groupinbox import GroupInbox, GroupInboxRemoveAction, add_group_to_inbox
+from sentry.models.group import STATUS_UPDATE_CHOICES
+from sentry.models.grouphistory import record_group_history_from_activity_type
+from sentry.models.groupinbox import GroupInboxRemoveAction, add_group_to_inbox
 from sentry.notifications.types import SUBSCRIPTION_REASON_MAP, GroupSubscriptionReason
 from sentry.signals import (
-    advanced_search_feature_gated,
-    issue_deleted,
     issue_ignored,
     issue_mark_reviewed,
     issue_resolved,
     issue_unignored,
     issue_unresolved,
 )
-from sentry.tasks.deletion import delete_groups as delete_groups_task
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.merge import merge_groups
 from sentry.utils import metrics
-from sentry.utils.audit import create_audit_entry
-from sentry.utils.compat import zip
-from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.functional import extract_lazy_object
-from sentry.utils.hashlib import md5_text
 
-delete_logger = logging.getLogger("sentry.deletions.api")
-
-# Bulk mutations are limited to 1000 items.
-# TODO(dcramer): It'd be nice to support more than this, but it's a bit too
-#  complicated right now.
-BULK_MUTATION_LIMIT = 1000
+from . import ACTIVITIES_COUNT, BULK_MUTATION_LIMIT, SearchFunction, delete_group_list
+from .validators import GroupValidator, ValidationError
 
 
-class ValidationError(Exception):
-    pass
-
-
-def build_query_params_from_request(request, organization, projects, environments):
-    query_kwargs = {"projects": projects, "sort_by": request.GET.get("sort", DEFAULT_SORT_OPTION)}
-
-    limit = request.GET.get("limit")
-    if limit:
-        try:
-            query_kwargs["limit"] = int(limit)
-        except ValueError:
-            raise ValidationError("invalid limit")
-
-    # TODO: proper pagination support
-    if request.GET.get("cursor"):
-        try:
-            query_kwargs["cursor"] = Cursor.from_string(request.GET.get("cursor"))
-        except ValueError:
-            raise ParseError(detail="Invalid cursor parameter.")
-    query = request.GET.get("query", "is:unresolved").strip()
-    sentry_sdk.set_tag("search.query", query)
-    sentry_sdk.set_tag("search.sort", query)
-    if projects:
-        sentry_sdk.set_tag("search.projects", len(projects) if len(projects) <= 5 else ">5")
-    if environments:
-        sentry_sdk.set_tag(
-            "search.environments", len(environments) if len(environments) <= 5 else ">5"
-        )
-    if query:
-        try:
-            search_filters = convert_query_values(
-                parse_search_query(query), projects, request.user, environments
-            )
-        except InvalidSearchQuery as e:
-            raise ValidationError(f"Error parsing search query: {e}")
-
-        validate_search_filter_permissions(organization, search_filters, request.user)
-        query_kwargs["search_filters"] = search_filters
-
-    return query_kwargs
-
-
-# List of conditions that mark a SearchFilter as an advanced search. Format is
-# (lambda SearchFilter(): <boolean condition>, '<feature_name')
-advanced_search_features = [
-    (lambda search_filter: search_filter.is_negation, "negative search"),
-    (lambda search_filter: search_filter.value.is_wildcard(), "wildcard search"),
-]
-
-
-def validate_search_filter_permissions(organization, search_filters, user):
-    """
-    Verifies that an organization is allowed to perform the query that they
-    submitted.
-    If the org is using a feature they don't have access to, raises
-    `ValidationError` with information which part of the query they don't have
-    access to.
-    :param search_filters:
-    """
-    # If the organization has advanced search, then no need to perform any
-    # other checks since they're allowed to use all search features
-    if features.has("organizations:advanced-search", organization):
-        return
-
-    for search_filter in search_filters:
-        for feature_condition, feature_name in advanced_search_features:
-            if feature_condition(search_filter):
-                advanced_search_feature_gated.send_robust(
-                    user=user, organization=organization, sender=validate_search_filter_permissions
-                )
-                raise ValidationError(
-                    f"You need access to the advanced search feature to use {feature_name}"
-                )
-
-
-def get_by_short_id(organization_id, is_short_id_lookup, query):
-    if is_short_id_lookup == "1" and looks_like_short_id(query):
-        try:
-            return Group.objects.by_qualified_short_id(organization_id, query)
-        except Group.DoesNotExist:
-            pass
-
-
-class InCommitValidator(serializers.Serializer):
-    commit = serializers.CharField(required=True)
-    repository = serializers.CharField(required=True)
-
-    def validate_repository(self, value):
-        project = self.context["project"]
-        try:
-            value = Repository.objects.get(organization_id=project.organization_id, name=value)
-        except Repository.DoesNotExist:
-            raise serializers.ValidationError("Unable to find the given repository.")
-        return value
-
-    def validate(self, attrs):
-        attrs = super().validate(attrs)
-        repository = attrs.get("repository")
-        commit = attrs.get("commit")
-        if not repository:
-            raise serializers.ValidationError(
-                {"repository": ["Unable to find the given repository."]}
-            )
-        if not commit:
-            raise serializers.ValidationError({"commit": ["Unable to find the given commit."]})
-        try:
-            commit = Commit.objects.get(repository_id=repository.id, key=commit)
-        except Commit.DoesNotExist:
-            raise serializers.ValidationError({"commit": ["Unable to find the given commit."]})
-        return commit
-
-
-class StatusDetailsValidator(serializers.Serializer):
-    inNextRelease = serializers.BooleanField()
-    inRelease = serializers.CharField()
-    inCommit = InCommitValidator(required=False)
-    ignoreDuration = serializers.IntegerField()
-    ignoreCount = serializers.IntegerField()
-    # in minutes, max of one week
-    ignoreWindow = serializers.IntegerField(max_value=7 * 24 * 60)
-    ignoreUserCount = serializers.IntegerField()
-    # in minutes, max of one week
-    ignoreUserWindow = serializers.IntegerField(max_value=7 * 24 * 60)
-
-    def validate_inRelease(self, value):
-        project = self.context["project"]
-        if value == "latest":
-            try:
-                value = (
-                    Release.objects.filter(
-                        projects=project, organization_id=project.organization_id
-                    )
-                    .extra(select={"sort": "COALESCE(date_released, date_added)"})
-                    .order_by("-sort")[0]
-                )
-            except IndexError:
-                raise serializers.ValidationError(
-                    "No release data present in the system to form a basis for 'Next Release'"
-                )
-        else:
-            try:
-                value = Release.objects.get(
-                    projects=project, organization_id=project.organization_id, version=value
-                )
-            except Release.DoesNotExist:
-                raise serializers.ValidationError(
-                    "Unable to find a release with the given version."
-                )
-        return value
-
-    def validate_inNextRelease(self, value):
-        project = self.context["project"]
-        try:
-            value = (
-                Release.objects.filter(projects=project, organization_id=project.organization_id)
-                .extra(select={"sort": "COALESCE(date_released, date_added)"})
-                .order_by("-sort")[0]
-            )
-        except IndexError:
-            raise serializers.ValidationError(
-                "No release data present in the system to form a basis for 'Next Release'"
-            )
-        return value
-
-
-class InboxDetailsValidator(serializers.Serializer):
-    # Support undo / snooze reasons
-    pass
-
-
-class GroupValidator(serializers.Serializer):
-    inbox = serializers.BooleanField()
-    inboxDetails = InboxDetailsValidator()
-    status = serializers.ChoiceField(
-        choices=zip(STATUS_UPDATE_CHOICES.keys(), STATUS_UPDATE_CHOICES.keys())
-    )
-    statusDetails = StatusDetailsValidator()
-    hasSeen = serializers.BooleanField()
-    isBookmarked = serializers.BooleanField()
-    isPublic = serializers.BooleanField()
-    isSubscribed = serializers.BooleanField()
-    merge = serializers.BooleanField()
-    discard = serializers.BooleanField()
-    ignoreDuration = serializers.IntegerField()
-    ignoreCount = serializers.IntegerField()
-    # in minutes, max of one week
-    ignoreWindow = serializers.IntegerField(max_value=7 * 24 * 60)
-    ignoreUserCount = serializers.IntegerField()
-    # in minutes, max of one week
-    ignoreUserWindow = serializers.IntegerField(max_value=7 * 24 * 60)
-    assignedTo = ActorField()
-
-    # TODO(dcramer): remove in 9.0
-    # for the moment, the CLI sends this for any issue update, so allow nulls
-    snoozeDuration = serializers.IntegerField(allow_null=True)
-
-    def validate_assignedTo(self, value):
-        if (
-            value
-            and value.type is User
-            and not self.context["project"].member_set.filter(user_id=value.id).exists()
-        ):
-            raise serializers.ValidationError("Cannot assign to non-team member")
-
-        if (
-            value
-            and value.type is Team
-            and not self.context["project"].teams.filter(id=value.id).exists()
-        ):
-            raise serializers.ValidationError(
-                "Cannot assign to a team without access to the project"
-            )
-
-        return value
-
-    def validate_discard(self, value):
-        access = self.context.get("access")
-        if value and (not access or not access.has_scope("event:admin")):
-            raise serializers.ValidationError("You do not have permission to discard events")
-        return value
-
-    def validate(self, attrs):
-        attrs = super().validate(attrs)
-        if len(attrs) > 1 and "discard" in attrs:
-            raise serializers.ValidationError("Other attributes cannot be updated when discarding")
-        return attrs
-
-
-def handle_discard(request, group_list, projects, user):
+def handle_discard(
+    request: Request,
+    group_list: Sequence["Group"],
+    projects: Sequence["Project"],
+    user: "User",
+) -> Response:
     for project in projects:
         if not features.has("projects:discard-groups", project, actor=user):
             return Response({"detail": ["You do not have that feature enabled"]}, status=400)
@@ -342,115 +91,16 @@ def handle_discard(request, group_list, projects, user):
                 )
 
     for project in projects:
-        delete_group_list(request, project, groups_to_delete.get(project.id), delete_type="discard")
-
-    return Response(status=204)
-
-
-def delete_group_list(request, project, group_list, delete_type):
-    if not group_list:
-        return
-
-    # deterministic sort for sanity, and for very large deletions we'll
-    # delete the "smaller" groups first
-    group_list.sort(key=lambda g: (g.times_seen, g.id))
-    group_ids = [g.id for g in group_list]
-
-    Group.objects.filter(id__in=group_ids).exclude(
-        status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]
-    ).update(status=GroupStatus.PENDING_DELETION)
-
-    eventstream_state = eventstream.start_delete_groups(project.id, group_ids)
-    transaction_id = uuid4().hex
-
-    # We do not want to delete split hashes as they are necessary for keeping groups... split.
-    GroupHash.objects.filter(
-        project_id=project.id, group__id__in=group_ids, state=GroupHash.State.SPLIT
-    ).update(group=None)
-    GroupHash.objects.filter(project_id=project.id, group__id__in=group_ids).exclude(
-        state=GroupHash.State.SPLIT
-    ).delete()
-
-    # We remove `GroupInbox` rows here so that they don't end up influencing queries for
-    # `Group` instances that are pending deletion
-    GroupInbox.objects.filter(project_id=project.id, group__id__in=group_ids).delete()
-
-    delete_groups_task.apply_async(
-        kwargs={
-            "object_ids": group_ids,
-            "transaction_id": transaction_id,
-            "eventstream_state": eventstream_state,
-        },
-        countdown=3600,
-    )
-
-    for group in group_list:
-        create_audit_entry(
-            request=request,
-            transaction_id=transaction_id,
-            logger=audit_logger,
-            organization_id=project.organization_id,
-            target_object=group.id,
-        )
-
-        delete_logger.info(
-            "object.delete.queued",
-            extra={
-                "object_id": group.id,
-                "organization_id": project.organization_id,
-                "transaction_id": transaction_id,
-                "model": type(group).__name__,
-            },
-        )
-
-        issue_deleted.send_robust(
-            group=group, user=request.user, delete_type=delete_type, sender=delete_group_list
-        )
-
-
-def delete_groups(request, projects, organization_id, search_fn):
-    """
-    `search_fn` refers to the `search.query` method with the appropriate
-    project, org, environment, and search params already bound
-    """
-    group_ids = request.GET.getlist("id")
-    if group_ids:
-        group_list = list(
-            Group.objects.filter(
-                project__in=projects,
-                project__organization_id=organization_id,
-                id__in=set(group_ids),
-            ).exclude(status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS])
-        )
-    else:
-        try:
-            cursor_result, _ = search_fn(
-                {
-                    "limit": BULK_MUTATION_LIMIT,
-                    "paginator_options": {"max_limit": BULK_MUTATION_LIMIT},
-                }
-            )
-        except ValidationError as exc:
-            return Response({"detail": str(exc)}, status=400)
-
-        group_list = list(cursor_result)
-
-    if not group_list:
-        return Response(status=204)
-
-    groups_by_project_id = defaultdict(list)
-    for group in group_list:
-        groups_by_project_id[group.project_id].append(group)
-
-    for project in projects:
         delete_group_list(
-            request, project, groups_by_project_id.get(project.id), delete_type="delete"
+            request, project, groups_to_delete.get(project.id, []), delete_type="discard"
         )
 
     return Response(status=204)
 
 
-def self_subscribe_and_assign_issue(acting_user, group):
+def self_subscribe_and_assign_issue(
+    acting_user: Optional["User"], group: "Group"
+) -> Optional["ActorTuple"]:
     # Used during issue resolution to assign to acting user
     # returns None if the user didn't elect to self assign on resolution
     # or the group is assigned already, otherwise returns Actor
@@ -464,75 +114,12 @@ def self_subscribe_and_assign_issue(acting_user, group):
         )
         if self_assign_issue == "1" and not group.assignee_set.exists():
             return ActorTuple(type=User, id=acting_user.id)
+    return None
 
 
-def track_slo_response(name):
-    def inner_func(function):
-        def wrapper(request, *args, **kwargs):
-            from sentry.utils import snuba
-
-            try:
-                response = function(request, *args, **kwargs)
-            except snuba.RateLimitExceeded:
-                metrics.incr(
-                    f"{name}.slo.http_response",
-                    sample_rate=1.0,
-                    tags={
-                        "status": 429,
-                        "detail": "snuba.RateLimitExceeded",
-                        "func": function.__qualname__,
-                    },
-                )
-                raise
-            except Exception:
-                metrics.incr(
-                    f"{name}.slo.http_response",
-                    sample_rate=1.0,
-                    tags={"status": 500, "detail": "Exception"},
-                )
-                # Continue raising the error now that we've incr the metric
-                raise
-
-            metrics.incr(
-                f"{name}.slo.http_response",
-                sample_rate=1.0,
-                tags={"status": response.status_code, "detail": "response"},
-            )
-            return response
-
-        return wrapper
-
-    return inner_func
-
-
-def build_rate_limit_key(function, request):
-    ip = request.META["REMOTE_ADDR"]
-    return f"rate_limit_endpoint:{md5_text(function.__qualname__).hexdigest()}:{ip}"
-
-
-def rate_limit_endpoint(limit=1, window=1):
-    def inner(function):
-        def wrapper(self, request, *args, **kwargs):
-            if ratelimiter.is_limited(
-                build_rate_limit_key(function, request),
-                limit=limit,
-                window=window,
-            ):
-                return Response(
-                    {
-                        "detail": f"You are attempting to use this endpoint too quickly. Limit is {limit}/{window}s"
-                    },
-                    status=429,
-                )
-            else:
-                return function(self, request, *args, **kwargs)
-
-        return wrapper
-
-    return inner
-
-
-def get_current_release_version_of_group(group, follows_semver=False):
+def get_current_release_version_of_group(
+    group: "Group", follows_semver: bool = False
+) -> Optional[Release]:
     """
     Function that returns the latest release version associated with a Group, and by latest we
     mean either most recent (date) or latest in semver versioning scheme
@@ -561,7 +148,7 @@ def get_current_release_version_of_group(group, follows_semver=False):
                 .get()
             )
         except Release.DoesNotExist:
-            ...
+            pass
     else:
         # This sets current_release_version to the most recent release associated with a group
         # In order to be able to do that, `use_cache` has to be set to False. Otherwise,
@@ -573,11 +160,11 @@ def get_current_release_version_of_group(group, follows_semver=False):
 
 
 def update_groups(
-    request,
-    group_ids,
-    projects,
-    organization_id,
-    search_fn,
+    request: Request,
+    group_ids: Sequence["Group"],
+    projects: Sequence["Project"],
+    organization_id: int,
+    search_fn: SearchFunction,
     user: Optional["User"] = None,
     data: Optional[Mapping[str, Any]] = None,
 ) -> Response:
@@ -663,7 +250,7 @@ def update_groups(
                 .order_by("-sort")[0]
             )
             activity_type = Activity.SET_RESOLVED_IN_RELEASE
-            activity_data = {
+            activity_data: MutableMapping[str, Optional[Any]] = {
                 # no version yet
                 "version": ""
             }
@@ -884,9 +471,7 @@ def update_groups(
                         ident=resolution.id if resolution else None,
                         data=activity_data,
                     )
-                    history_status = activity_type_to_history_status(activity_type)
-                    if history_status is not None:
-                        record_group_history(group, history_status, actor=acting_user)
+                    record_group_history_from_activity_type(group, activity_type, actor=acting_user)
 
                     # TODO(dcramer): we need a solution for activity rollups
                     # before sending notifications on bulk changes
@@ -1053,7 +638,9 @@ def update_groups(
                 GroupResolution.Type.in_release,
             ):
                 result["activity"] = serialize(
-                    Activity.objects.get_activities_for_group(group=group_list[0], num=100),
+                    Activity.objects.get_activities_for_group(
+                        group=group_list[0], num=ACTIVITIES_COUNT
+                    ),
                     acting_user,
                 )
     except UnboundLocalError:
@@ -1173,8 +760,7 @@ def update_groups(
                     user=acting_user,
                 )
 
-    # XXX(dcramer): this feels a bit shady like it should be its own
-    # endpoint
+    # XXX(dcramer): this feels a bit shady like it should be its own endpoint.
     if result.get("merge") and len(group_list) > 1:
         # don't allow merging cross project
         if len(projects) > 1:
@@ -1235,93 +821,3 @@ def update_groups(
         result["inbox"] = inbox
 
     return Response(result)
-
-
-def calculate_stats_period(stats_period, start, end):
-    if stats_period is None:
-        # default
-        stats_period = "24h"
-    elif stats_period == "":
-        # disable stats
-        stats_period = None
-
-    if stats_period == "auto":
-        stats_period_start = start
-        stats_period_end = end
-    else:
-        stats_period_start = None
-        stats_period_end = None
-    return stats_period, stats_period_start, stats_period_end
-
-
-def prep_search(cls, request, project, extra_query_kwargs=None):
-    try:
-        environment = cls._get_environment_from_request(request, project.organization_id)
-    except Environment.DoesNotExist:
-        # XXX: The 1000 magic number for `max_hits` is an abstraction leak
-        # from `sentry.api.paginator.BasePaginator.get_result`.
-        result = CursorResult([], None, None, hits=0, max_hits=1000)
-        query_kwargs = {}
-    else:
-        environments = [environment] if environment is not None else environment
-        query_kwargs = build_query_params_from_request(
-            request, project.organization, [project], environments
-        )
-        if extra_query_kwargs is not None:
-            assert "environment" not in extra_query_kwargs
-            query_kwargs.update(extra_query_kwargs)
-
-        query_kwargs["environments"] = environments
-        result = search.query(**query_kwargs)
-    return result, query_kwargs
-
-
-def get_first_last_release(request, group):
-    first_release = group.get_first_release()
-    if first_release is not None:
-        last_release = group.get_last_release()
-    else:
-        last_release = None
-
-    if first_release is not None and last_release is not None:
-        first_release, last_release = get_first_last_release_info(
-            request, group, [first_release, last_release]
-        )
-    elif first_release is not None:
-        first_release = get_release_info(request, group, first_release)
-    elif last_release is not None:
-        last_release = get_release_info(request, group, last_release)
-
-    return first_release, last_release
-
-
-def get_release_info(request, group, version):
-    try:
-        release = Release.objects.get(
-            projects=group.project,
-            organization_id=group.project.organization_id,
-            version=version,
-        )
-    except Release.DoesNotExist:
-        release = {"version": version}
-    return serialize(release, request.user)
-
-
-def get_first_last_release_info(request, group, versions):
-    releases = {
-        release.version: release
-        for release in Release.objects.filter(
-            projects=group.project,
-            organization_id=group.project.organization_id,
-            version__in=versions,
-        )
-    }
-    serialized_releases = serialize(
-        [releases.get(version) for version in versions],
-        request.user,
-    )
-    # Default to a dictionary if the release object wasn't found and not serialized
-    return [
-        item if item is not None else {"version": version}
-        for item, version in zip(serialized_releases, versions)
-    ]

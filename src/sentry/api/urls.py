@@ -182,6 +182,9 @@ from .endpoints.organization_events_meta import (
     OrganizationEventsMetaEndpoint,
     OrganizationEventsRelatedIssuesEndpoint,
 )
+from .endpoints.organization_events_spans_performance import (
+    OrganizationEventsSpansPerformanceEndpoint,
+)
 from .endpoints.organization_events_stats import OrganizationEventsStatsEndpoint
 from .endpoints.organization_events_trace import (
     OrganizationEventsTraceEndpoint,
@@ -997,6 +1000,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/events-facets-performance-histogram/$",
                     OrganizationEventsFacetsPerformanceHistogramEndpoint.as_view(),
                     name="sentry-api-0-organization-events-facets-performance-histogram",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/events-spans-performance/$",
+                    OrganizationEventsSpansPerformanceEndpoint.as_view(),
+                    name="sentry-api-0-organization-events-spans-performance",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/events-meta/$",
