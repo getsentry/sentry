@@ -41,76 +41,52 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         session_2 = "5e910c1a-6941-460e-9843-24103fb6a63c"
         session_3 = "a148c0c5-06a2-423b-8901-6b43b812cf82"
         user_1 = "39887d89-13b2-4c84-8c23-5d13d2102666"
-        self.store_session(
-            {
-                "session_id": session_1,
-                "distinct_id": user_1,
-                "status": "exited",
-                "seq": 0,
-                "release": self.session_release,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
-        )
 
         self.store_session(
-            {
-                "session_id": session_2,
-                "distinct_id": user_1,
-                "status": "ok",
-                "seq": 0,
-                "release": self.session_release,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": None,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
+            self.build_session(
+                distinct_id=user_1,
+                session_id=session_1,
+                status="exited",
+                release=self.session_release,
+                environment="prod",
+                started=self.session_started,
+                received=self.received,
+            )
         )
-
         self.store_session(
-            {
-                "session_id": session_2,
-                "distinct_id": user_1,
-                "status": "exited",
-                "seq": 1,
-                "release": self.session_release,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 30.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
+            self.build_session(
+                distinct_id=user_1,
+                session_id=session_2,
+                release=self.session_release,
+                environment="prod",
+                duration=None,
+                started=self.session_started,
+                received=self.received,
+            )
         )
-
         self.store_session(
-            {
-                "session_id": session_3,
-                "distinct_id": user_1,
-                "status": "crashed",
-                "seq": 0,
-                "release": self.session_crashed_release,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
+            self.build_session(
+                distinct_id=user_1,
+                session_id=session_2,
+                seq=1,
+                duration=30,
+                status="exited",
+                release=self.session_release,
+                environment="prod",
+                started=self.session_started,
+                received=self.received,
+            )
+        )
+        self.store_session(
+            self.build_session(
+                distinct_id=user_1,
+                session_id=session_3,
+                status="crashed",
+                release=self.session_crashed_release,
+                environment="prod",
+                started=self.session_started,
+                received=self.received,
+            )
         )
 
     def test_get_oldest_health_data_for_releases(self):
@@ -193,21 +169,12 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         # Add an extra session with a different `distinct_id` so that sorting by users
         # is stable
         self.store_session(
-            {
-                "session_id": "5e910c1a-6941-460e-9843-24103fb6a63c",
-                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102665",
-                "status": "ok",
-                "seq": 0,
-                "release": self.session_release,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": None,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
+            self.build_session(
+                release=self.session_release,
+                environment="prod",
+                started=self.session_started,
+                received=self.received,
+            )
         )
 
         for scope in "sessions", "users":
@@ -228,21 +195,13 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
 
         # add another user to session_release to make sure that they are sorted correctly
         self.store_session(
-            {
-                "session_id": str(uuid.uuid4()),
-                "distinct_id": str(uuid.uuid4()),
-                "status": "exited",
-                "seq": 0,
-                "release": self.session_release,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
+            self.build_session(
+                status="exited",
+                release=self.session_release,
+                environment="prod",
+                started=self.session_started,
+                received=self.received,
+            )
         )
 
         for scope in "crash_free_sessions", "crash_free_users":
@@ -260,20 +219,13 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         returned on `users` and `crash_free_users` sorts
         """
         self.store_session(
-            {
-                "session_id": "bd1521fc-d27c-11eb-b8bc-0242ac130003",
-                "status": "ok",
-                "seq": 0,
-                "release": "release-with-no-users",
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": None,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
+            self.build_session(
+                distinct_id=None,
+                release="release-with-no-users",
+                environment="prod",
+                started=self.session_started,
+                received=self.received,
+            )
         )
         data = self.backend.get_project_releases_by_stability(
             [self.project.id], offset=0, limit=100, scope="users", stats_period="24h"
@@ -321,21 +273,13 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
 
     def test_get_release_adoption_lowered(self):
         self.store_session(
-            {
-                "session_id": "4574c381-acc5-4e05-b10b-f16cdc2f385a",
-                "distinct_id": "da50f094-10b4-40fb-89fb-cb3aa9014148",
-                "status": "crashed",
-                "seq": 0,
-                "release": self.session_crashed_release,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
+            self.build_session(
+                release=self.session_crashed_release,
+                environment="prod",
+                status="crashed",
+                started=self.session_started,
+                received=self.received,
+            )
         )
 
         data = self.backend.get_release_adoption(
@@ -481,39 +425,24 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         """
         # Same release session
         self.store_session(
-            {
-                "session_id": "5e910c1a-6941-460e-9843-24103fb6a63c",
-                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
-                "status": "exited",
-                "seq": 1,
-                "release": self.session_release,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 30.0,
-                "errors": 0,
-                "started": self.session_started - 3600 * 2,
-                "received": self.received - 3600 * 2,
-            }
+            self.build_session(
+                release=self.session_release,
+                environment="prod",
+                status="exited",
+                started=self.session_started - 3600 * 2,
+                received=self.received - 3600 * 2,
+            )
         )
+
         # Different release session
         self.store_session(
-            {
-                "session_id": "a148c0c5-06a2-423b-8901-6b43b812cf82",
-                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
-                "status": "crashed",
-                "seq": 0,
-                "release": self.session_crashed_release,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started - 3600 * 2,
-                "received": self.received - 3600 * 2,
-            }
+            self.build_session(
+                release=self.session_crashed_release,
+                environment="prod",
+                status="crashed",
+                started=self.session_started - 3600 * 2,
+                received=self.received - 3600 * 2,
+            )
         )
 
         if isinstance(self.backend, MetricsReleaseHealthBackend):
@@ -683,21 +612,13 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         _100h = 100 * 60 * 60  # 100 hours in seconds
         proj_id = self.project.id
         self.store_session(
-            {
-                "session_id": "f6a01ae0-7fa7-44df-afb9-ae32ef1c8102",
-                "distinct_id": "5849e12a-220a-4bda-8c72-4e35391c341f",
-                "status": "crashed",
-                "seq": 0,
-                "release": "foo@3.0.0",
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": proj_id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started - _100h,
-                "received": self.received - 3600 * 2,
-            }
+            self.build_session(
+                release="foo@3.0.0",
+                environment="prod",
+                status="crashed",
+                started=self.session_started - _100h,
+                received=self.received - 3600 * 2,
+            )
         )
 
         data = self.backend.get_changed_project_release_model_adoptions([proj_id])
@@ -708,21 +629,14 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         proj_id = self.project.id
         new_proj_id = proj_id + 1
         self.store_session(
-            {
-                "session_id": "f6a01ae0-7fa7-44df-afb9-ae32ef1c8102",
-                "distinct_id": "5849e12a-220a-4bda-8c72-4e35391c341f",
-                "status": "crashed",
-                "seq": 0,
-                "release": "foo@3.0.0",
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": new_proj_id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received - 3600 * 2,
-            }
+            self.build_session(
+                project_id=new_proj_id,
+                release="foo@3.0.0",
+                environment="prod",
+                status="crashed",
+                started=self.session_started,
+                received=self.received - 3600 * 2,
+            )
         )
 
         data = self.backend.get_changed_project_release_model_adoptions([proj_id, new_proj_id])
