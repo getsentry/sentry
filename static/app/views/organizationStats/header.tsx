@@ -28,7 +28,7 @@ function StatsHeader({organization, activeTab}: Props) {
               size="small"
               href="mailto:workflow-feedback@sentry.io?subject=Team Stats Feedback"
             >
-              Give Feedback
+              {t('Give Feedback')}
             </Button>
           </Layout.HeaderActions>
         )}
