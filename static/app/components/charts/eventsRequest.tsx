@@ -40,12 +40,9 @@ type LoadingStatus = {
   errored: boolean;
 };
 
-// Chart format for multiple series.
-type MultiSeriesResults = Series[];
-
 export type RenderProps = LoadingStatus &
   TimeSeriesData & {
-    results?: MultiSeriesResults;
+    results?: Series[]; // Chart with multiple series.
   };
 
 type DefaultProps = {
@@ -483,15 +480,16 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
           ];
         })
         .sort((a, b) => a[0] - b[0]);
-      const results: MultiSeriesResults = sortedTimeseriesData.map(item => {
+      const results: Series[] = sortedTimeseriesData.map(item => {
         return item[1];
       });
-      const previousTimeseriesData: MultiSeriesResults | undefined =
-        sortedTimeseriesData.some(item => item[2] === null)
-          ? undefined
-          : sortedTimeseriesData.map(item => {
-              return item[2] as Series;
-            });
+      const previousTimeseriesData: Series[] | undefined = sortedTimeseriesData.some(
+        item => item[2] === null
+      )
+        ? undefined
+        : sortedTimeseriesData.map(item => {
+            return item[2] as Series;
+          });
 
       return children({
         loading,

@@ -146,6 +146,50 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
+  it('Worst LCP widget', async function () {
+    const data = initializeData();
+
+    const wrapper = mountWithTheme(
+      <WrappedComponent
+        data={data}
+        defaultChartSetting={PerformanceWidgetSetting.WORST_LCP_VITALS}
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+      'Worst LCP Web Vitals'
+    );
+    expect(wrapper.find('a[data-test-id="view-all-button"]').text()).toEqual('View All');
+    expect(eventsV2Mock).toHaveBeenCalledTimes(1);
+    expect(eventsV2Mock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: [],
+          field: [
+            'transaction',
+            'title',
+            'project.id',
+            'count_if(measurements.lcp,greaterOrEquals,4000)',
+            'count_if(measurements.lcp,greaterOrEquals,2500)',
+            'count_if(measurements.lcp,greaterOrEquals,0)',
+            'equation|count_if(measurements.lcp,greaterOrEquals,2500) - count_if(measurements.lcp,greaterOrEquals,4000)',
+            'equation|count_if(measurements.lcp,greaterOrEquals,0) - count_if(measurements.lcp,greaterOrEquals,2500)',
+          ],
+          per_page: 3,
+          project: [],
+          query: '',
+          sort: '-count_if(measurements.lcp,greaterOrEquals,4000)',
+          statsPeriod: '14d',
+        }),
+      })
+    );
+  });
+
   it('Most errors widget', async function () {
     const data = initializeData();
 

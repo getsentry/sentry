@@ -17,6 +17,7 @@ import QuestionTooltip from 'app/components/questionTooltip';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import {OrganizationSummary} from 'app/types';
+import {Series} from 'app/types/echarts';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
 import EventView from 'app/utils/discover/eventView';
@@ -27,7 +28,14 @@ import useApi from 'app/utils/useApi';
 
 import {replaceSeriesName, transformEventStatsSmoothed} from '../trends/utils';
 
-import {getMaxOfSeries, vitalNameFromLocation, webVitalMeh, webVitalPoor} from './utils';
+import {
+  fieldToVital,
+  getMaxOfSeries,
+  vitalNameFromLocation,
+  vitalStateColors,
+  webVitalMeh,
+  webVitalPoor,
+} from './utils';
 
 const QUERY_KEYS = [
   'environment',
@@ -271,3 +279,89 @@ function VitalChart({
 }
 
 export default withRouter(VitalChart);
+
+export type _VitalChartProps = Props & {
+  data?: Series[];
+  loading: boolean;
+  reloading: boolean;
+  field: string;
+  height?: number;
+  grid: LineChart['props']['grid'];
+};
+
+function __VitalChart(props: _VitalChartProps) {
+  const {field: yAxis, data: _results, loading, reloading, height, grid} = props;
+  if (!_results) {
+    return null;
+  }
+  const theme = useTheme();
+
+  const chartOptions = {
+    grid,
+    seriesOptions: {
+      showSymbol: false,
+    },
+    tooltip: {
+      trigger: 'axis' as const,
+      valueFormatter: (value: number, seriesName?: string) =>
+        tooltipFormatter(value, seriesName),
+    },
+    xAxis: {
+      axisLine: {
+        show: false,
+      },
+      axisTick: {
+        show: false,
+      },
+      splitLine: {
+        show: false,
+      },
+    },
+    yAxis: {
+      axisLabel: {
+        color: theme.chartLabel,
+        showMaxLabel: false,
+        formatter: (value: number) => axisLabelFormatter(value, yAxis),
+      },
+    },
+  };
+
+  const results = _results.filter(r => !!fieldToVital(r.seriesName));
+
+  const {smoothedResults} = transformEventStatsSmoothed(results);
+
+  const smoothedSeries = smoothedResults
+    ? smoothedResults.map(({seriesName, ...rest}) => {
+        return {
+          seriesName: fieldToVital(seriesName) || 'count',
+          ...rest,
+          color: theme[vitalStateColors[fieldToVital(seriesName)]],
+          lineStyle: {
+            opacity: 1,
+            width: 2,
+          },
+        };
+      })
+    : [];
+
+  return (
+    <div>
+      <TransitionChart loading={loading} reloading={reloading}>
+        <TransparentLoadingMask visible={reloading} />
+        {getDynamicText({
+          value: (
+            <LineChart
+              height={height}
+              {...chartOptions}
+              onLegendSelectChanged={() => {}}
+              series={[...smoothedSeries]}
+            />
+          ),
+          fixed: 'Web Vitals Chart',
+        })}
+      </TransitionChart>
+    </div>
+  );
+}
+
+export const _VitalChart = withRouter(__VitalChart);
