@@ -31,15 +31,15 @@ class UserIdentityConfigEndpointTest(UserIdentityConfigTest):
         identities = {(obj["category"], obj["provider"]["key"]): obj for obj in response.data}
         assert len(identities) == 3
 
-        social_ident = identities[("social-identity", "GitHub")]
+        social_ident = identities[("social-identity", "github")]
         assert social_ident["status"] == "can_disconnect"
         assert social_ident["organization"] is None
 
-        global_ident = identities[("global-identity", "GitHub")]
+        global_ident = identities[("global-identity", "github")]
         assert global_ident["status"] == "can_disconnect"
         assert global_ident["organization"] is None
 
-        org_ident = identities[("org-identity", "Dummy")]
+        org_ident = identities[("org-identity", "dummy")]
         assert org_ident["status"] == "needed_for_org_auth"
         assert org_ident["organization"]["id"] == str(self.organization.id)
 
