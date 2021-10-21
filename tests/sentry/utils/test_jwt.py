@@ -1,7 +1,7 @@
 import jwt as pyjwt
 import pytest
 
-from sentry.testutils.helpers.constants import RS256_KEY, RS256_PUB_KEY, RSA_JWK, RSA_PUB_JWK
+from sentry.testutils.helpers.jwt import RS256_KEY, RS256_PUB_KEY, RSA_JWK, RSA_PUB_JWK
 from sentry.utils import json  # type: ignore
 from sentry.utils import jwt as jwt_utils
 
