@@ -1,5 +1,4 @@
 from collections import namedtuple
-from unittest import mock
 from urllib.parse import parse_qs, urlencode, urlparse
 
 from django.urls import reverse
@@ -9,6 +8,7 @@ from sentry.auth.providers.oauth2 import OAuth2Callback, OAuth2Login, OAuth2Prov
 from sentry.models import AuthProvider
 from sentry.testutils import AuthProviderTestCase
 from sentry.utils import json
+from sentry.utils.compat import mock
 
 
 class DummyOAuth2Login(OAuth2Login):

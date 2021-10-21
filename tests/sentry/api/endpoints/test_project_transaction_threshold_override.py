@@ -1,5 +1,3 @@
-from unittest import mock
-
 from django.urls import reverse
 
 from sentry.models.transaction_threshold import (
@@ -8,6 +6,7 @@ from sentry.models.transaction_threshold import (
 )
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.utils.compat import mock
 from sentry.utils.samples import load_data
 
 

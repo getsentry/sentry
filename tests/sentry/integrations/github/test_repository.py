@@ -1,5 +1,4 @@
 import datetime
-from unittest import mock
 
 import pytest
 import responses
@@ -11,6 +10,7 @@ from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils import PluginTestCase
 from sentry.testutils.asserts import assert_commit_shape
 from sentry.utils import json
+from sentry.utils.compat import mock
 
 from .testutils import COMPARE_COMMITS_EXAMPLE, GET_COMMIT_EXAMPLE, GET_LAST_COMMITS_EXAMPLE
 

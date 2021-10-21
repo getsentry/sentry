@@ -1,4 +1,3 @@
-from unittest import mock
 from urllib.parse import urlencode
 
 import pytest
@@ -13,6 +12,7 @@ from sentry.auth.authenticators import RecoveryCodeInterface, TotpInterface
 from sentry.models import OrganizationMember, User
 from sentry.testutils import TestCase
 from sentry.utils import json
+from sentry.utils.compat import mock
 
 
 # TODO(dcramer): need tests for SSO behavior and single org behavior

@@ -1,9 +1,8 @@
-from unittest import mock
-
 from django.urls import reverse
 
 from sentry.constants import SentryAppStatus
 from sentry.testutils import APITestCase
+from sentry.utils.compat import mock
 
 
 class SentryAppPublishRequestTest(APITestCase):

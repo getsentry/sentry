@@ -1,6 +1,5 @@
 import uuid
 from datetime import timedelta
-from unittest import mock, zip
 from uuid import uuid4
 
 import dateutil.parser as parse_date
@@ -13,6 +12,7 @@ from sentry.models.transaction_threshold import ProjectTransactionThreshold, Tra
 from sentry.snuba.discover import OTHER_KEY
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.compat import mock, zip
 from sentry.utils.samples import load_data
 
 

@@ -1,5 +1,4 @@
 import base64
-from unittest import mock
 from urllib.parse import parse_qs, urlencode, urlparse
 
 import pytest
@@ -13,7 +12,7 @@ from sentry.auth.providers.saml2.provider import HAS_SAML2, Attributes, SAML2Pro
 from sentry.models import AuditLogEntry, AuditLogEntryEvent, AuthProvider, Organization
 from sentry.testutils import AuthProviderTestCase
 from sentry.testutils.helpers import Feature
-from sentry.utils.compat import map
+from sentry.utils.compat import map, mock
 
 dummy_provider_config = {
     "idp": {

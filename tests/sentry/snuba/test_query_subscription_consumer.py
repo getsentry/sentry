@@ -1,7 +1,6 @@
 import unittest
 from copy import deepcopy
 from datetime import timedelta
-from unittest import mock
 
 import pytz
 from dateutil.parser import parse as parse_date
@@ -19,6 +18,7 @@ from sentry.snuba.query_subscription_consumer import (
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import TestCase
 from sentry.utils import json
+from sentry.utils.compat import mock
 
 
 class BaseQuerySubscriptionTest:

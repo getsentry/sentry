@@ -1,10 +1,9 @@
-from unittest import mock
-
 import responses
 
 from sentry.models import Activity
 from sentry.notifications.notifications.activity import RegressionActivityNotification
 from sentry.types.activity import ActivityType
+from sentry.utils.compat import mock
 
 from . import SlackActivityNotificationTest, get_attachment, send_notification
 

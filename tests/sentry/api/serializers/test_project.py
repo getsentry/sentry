@@ -1,6 +1,5 @@
 import datetime
 from datetime import timedelta
-from unittest import mock
 
 from django.db.models import F
 from django.utils import timezone
@@ -25,6 +24,7 @@ from sentry.models import (
 )
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.compat import mock
 from sentry.utils.samples import load_data
 
 

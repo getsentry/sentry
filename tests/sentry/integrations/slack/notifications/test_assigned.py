@@ -1,4 +1,3 @@
-from unittest import mock
 from urllib.parse import parse_qs
 
 import responses
@@ -6,6 +5,7 @@ import responses
 from sentry.models import Activity, Identity, IdentityProvider, IdentityStatus, Integration
 from sentry.notifications.notifications.activity import AssignedActivityNotification
 from sentry.types.activity import ActivityType
+from sentry.utils.compat import mock
 
 from . import SlackActivityNotificationTest, get_attachment, send_notification
 

@@ -1,4 +1,3 @@
-from unittest import mock
 from urllib.parse import urlencode
 
 from sentry import options
@@ -10,6 +9,7 @@ from sentry.testutils import TestCase
 from sentry.testutils.helpers import override_options
 from sentry.utils import json
 from sentry.utils.cache import memoize
+from sentry.utils.compat import mock
 
 
 class SlackRequestTest(TestCase):

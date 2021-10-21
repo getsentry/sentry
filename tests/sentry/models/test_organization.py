@@ -1,5 +1,4 @@
 import copy
-from unittest import mock
 from uuid import uuid4
 
 from django.core import mail
@@ -34,6 +33,7 @@ from sentry.models import (
     User,
 )
 from sentry.testutils import TestCase
+from sentry.utils.compat import mock
 
 
 class OrganizationTest(TestCase):

@@ -1,5 +1,3 @@
-from unittest import mock
-
 import pytest
 
 from sentry.integrations.example.integration import ExampleIntegration
@@ -13,6 +11,7 @@ from sentry.models import (
     OrganizationIntegration,
 )
 from sentry.testutils import TestCase
+from sentry.utils.compat import mock
 
 
 class GroupAssigneeTestCase(TestCase):

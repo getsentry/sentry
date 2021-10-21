@@ -1,10 +1,11 @@
 import itertools
 from datetime import datetime, timedelta
-from unittest import TestCase, mock
+from unittest import TestCase
 
 import pytz
 
 from sentry.tsdb.base import ONE_DAY, ONE_HOUR, ONE_MINUTE, BaseTSDB
+from sentry.utils.compat import mock
 from sentry.utils.dates import to_timestamp
 
 

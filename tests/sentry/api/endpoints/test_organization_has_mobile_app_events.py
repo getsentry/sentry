@@ -1,6 +1,5 @@
-from unittest import mock
-
 from sentry.testutils import APITestCase
+from sentry.utils.compat import mock
 from sentry.utils.samples import create_sample_event
 
 

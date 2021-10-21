@@ -1,7 +1,6 @@
 import uuid
 from datetime import datetime, timedelta
 from hashlib import md5
-from unittest import mock
 
 import pytest
 import pytz
@@ -28,6 +27,7 @@ from sentry.search.snuba.backend import (
 from sentry.search.snuba.executors import InvalidQueryForExecutor
 from sentry.testutils import SnubaTestCase, TestCase, xfail_if_not_postgres
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.compat import mock
 from sentry.utils.snuba import SENTRY_SNUBA_MAP, Dataset, SnubaError
 
 

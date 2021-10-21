@@ -1,5 +1,4 @@
 import os
-from unittest import mock
 from urllib.parse import parse_qsl
 
 from django.conf import settings
@@ -16,6 +15,7 @@ from sentry.models import (
     UserEmail,
 )
 from sentry.testutils import APITestCase
+from sentry.utils.compat import mock
 from tests.sentry.api.endpoints.test_user_authenticator_details import assert_security_email_sent
 
 

@@ -1,5 +1,3 @@
-from unittest import mock
-
 import pytest
 
 from sentry.eventstream.kafka.state import (
@@ -10,6 +8,7 @@ from sentry.eventstream.kafka.state import (
     SynchronizedPartitionState,
     SynchronizedPartitionStateManager,
 )
+from sentry.utils.compat import mock
 
 
 def test_transitions():

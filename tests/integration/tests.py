@@ -1,8 +1,7 @@
-from unittest import mock
-
 from django.conf import settings
 
 from sentry.testutils import TestCase
+from sentry.utils.compat import mock
 from sentry.utils.settings import ConfigurationError, import_string, validate_settings
 
 DEPENDENCY_TEST_DATA = {

@@ -1,5 +1,4 @@
 import unittest
-from unittest import mock
 
 from django.http import HttpRequest
 from exam import fixture
@@ -7,6 +6,7 @@ from exam import fixture
 from sentry import options
 from sentry.models import Project
 from sentry.testutils import TestCase
+from sentry.utils.compat import mock
 from sentry.utils.http import (
     absolute_uri,
     get_origins,

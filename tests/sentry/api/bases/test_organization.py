@@ -1,5 +1,4 @@
 from datetime import timedelta
-from unittest import mock
 
 from django.db.models import F
 from django.test import RequestFactory
@@ -15,6 +14,7 @@ from sentry.auth.access import NoAccess, from_request
 from sentry.auth.authenticators import TotpInterface
 from sentry.models import ApiKey, Organization, OrganizationMember
 from sentry.testutils import TestCase
+from sentry.utils.compat import mock
 
 
 class MockSuperUser:

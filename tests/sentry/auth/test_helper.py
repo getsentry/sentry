@@ -1,4 +1,3 @@
-from unittest import mock
 from urllib.parse import urlencode
 
 from django.contrib import messages
@@ -23,6 +22,7 @@ from sentry.models import (
 )
 from sentry.testutils import TestCase
 from sentry.utils import json
+from sentry.utils.compat import mock
 from sentry.utils.redis import clusters
 
 

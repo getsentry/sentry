@@ -1,4 +1,3 @@
-from unittest import mock
 from urllib.parse import urlencode
 
 from django.test import override_settings
@@ -17,6 +16,7 @@ from sentry.models import (
 from sentry.testutils import AuthProviderTestCase
 from sentry.testutils.helpers import with_feature
 from sentry.utils import json
+from sentry.utils.compat import mock
 
 
 # TODO(dcramer): this is an integration test and repeats tests from

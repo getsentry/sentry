@@ -1,6 +1,5 @@
 import types
 from datetime import datetime
-from unittest import mock
 
 import pytest
 from django.utils import timezone
@@ -10,6 +9,7 @@ from sentry.auth.helper import AuthHelper
 from sentry.auth.providers.saml2.provider import Attributes, SAML2ACSView, SAML2Provider
 from sentry.models import AuthProvider
 from sentry.testutils import TestCase
+from sentry.utils.compat import mock
 
 dummy_provider_config = {
     "attribute_mapping": {

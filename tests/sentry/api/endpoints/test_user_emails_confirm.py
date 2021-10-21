@@ -1,7 +1,6 @@
-from unittest import mock
-
 from sentry.models import UserEmail
 from sentry.testutils import APITestCase
+from sentry.utils.compat import mock
 
 
 class UserEmailsConfirmTest(APITestCase):

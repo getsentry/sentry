@@ -1,7 +1,6 @@
 import copy
 import functools
 from datetime import datetime, timedelta
-from unittest import mock
 
 import pytest
 import pytz
@@ -38,7 +37,7 @@ from sentry.tasks.reports import (
 from sentry.testutils.cases import OutcomesSnubaTest, SnubaTestCase, TestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import iso_format
-from sentry.utils.compat import map
+from sentry.utils.compat import map, mock
 from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
 from sentry.utils.outcomes import Outcome
 

@@ -1,5 +1,4 @@
 import copy
-from unittest import mock
 
 import pytest
 import responses
@@ -19,6 +18,7 @@ from sentry.testutils import APITestCase, IntegrationTestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils import json
+from sentry.utils.compat import mock
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign
 from tests.fixtures.integrations import StubService

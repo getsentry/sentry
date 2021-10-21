@@ -1,8 +1,7 @@
-from unittest import mock
-
 from sentry.killswitches import KillswitchInfo
 from sentry.runner.commands.killswitches import killswitches
 from sentry.testutils import CliTestCase
+from sentry.utils.compat import mock
 
 OPTION = "store.load-shed-group-creation-projects"
 

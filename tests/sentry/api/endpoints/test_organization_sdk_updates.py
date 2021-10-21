@@ -1,10 +1,9 @@
-from unittest import mock
-
 from django.urls import reverse
 
 from sentry.sdk_updates import SdkIndexState
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.compat import mock
 
 
 class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
