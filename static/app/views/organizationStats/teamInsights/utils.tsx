@@ -1,5 +1,7 @@
 import chunk from 'lodash/chunk';
+import moment from 'moment';
 
+import BaseChart from 'app/components/charts/baseChart';
 import {SeriesDataUnit} from 'app/types/echarts';
 
 /**
@@ -28,3 +30,20 @@ export function convertDayValueObjectToSeries(
     name: new Date(bucket).getTime(),
   }));
 }
+
+export const barAxisLabel = (
+  dataEntries: number
+): React.ComponentProps<typeof BaseChart>['xAxis'] => {
+  return {
+    splitNumber: dataEntries,
+    type: 'category',
+    min: 0,
+    axisLabel: {
+      showMaxLabel: true,
+      showMinLabel: true,
+      formatter: (date: number) => {
+        return moment(new Date(date)).format('MMM Do');
+      },
+    },
+  };
+};
