@@ -29,8 +29,8 @@ class TeamTimeToResolutionEndpoint(TeamEndpoint, EnvironmentMixin):
             )
             .annotate(bucket=TruncDay("date_added"))
             .values("bucket", "prev_history_date")
-            # We do the coalesce here to handle historical data. At some point every `RESOLVED` row
-            # will have a non-null `prev_history_date`, and at that point we could remove this.
+            # We need to coalesce here since we won't store the initial `UNRESOLVED` row for every
+            # group, since it's unnecessary and just takes extra storage.
             .annotate(
                 ttr=F("date_added") - Coalesce(F("prev_history_date"), F("group__first_seen"))
             )
