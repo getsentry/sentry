@@ -1,9 +1,14 @@
+from typing import TYPE_CHECKING, Optional, Union
+
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from sentry import features
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
+
+if TYPE_CHECKING:
+    from sentry.models import Group, Release, Team, User
 
 
 class GroupHistoryStatus:
@@ -124,7 +129,12 @@ def get_prev_history(group, status):
     return prev_histories.first()
 
 
-def record_group_history_from_activity_type(group, activity_type, actor=None, release=None):
+def record_group_history_from_activity_type(
+    group: "Group",
+    activity_type: int,
+    actor: Optional[Union["User", "Team"]] = None,
+    release: Optional["Release"] = None,
+):
     """
     Writes a `GroupHistory` row for an activity type if there's a relevant `GroupHistoryStatus` that
     maps to it
@@ -134,7 +144,12 @@ def record_group_history_from_activity_type(group, activity_type, actor=None, re
         return record_group_history(group, status, actor, release)
 
 
-def record_group_history(group, status, actor=None, release=None):
+def record_group_history(
+    group: "Group",
+    status: int,
+    actor: Optional[Union["User", "Team"]] = None,
+    release: Optional["Release"] = None,
+):
     if not features.has("organizations:group-history", group.organization):
         return
     prev_history = get_prev_history(group, status)

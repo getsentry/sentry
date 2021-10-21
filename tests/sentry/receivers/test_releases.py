@@ -7,6 +7,8 @@ from sentry.models import (
     CommitAuthor,
     Group,
     GroupAssignee,
+    GroupHistory,
+    GroupHistoryStatus,
     GroupInbox,
     GroupInboxReason,
     GroupLink,
@@ -33,6 +35,13 @@ class ResolveGroupResolutionsTest(TestCase):
 
 
 class ResolvedInCommitTest(TestCase):
+    def setUp(self):
+        self._feature_ctx_manager = self.feature("organizations:group-history")
+        self._feature_ctx_manager.__enter__()
+
+    def tearDown(self):
+        self._feature_ctx_manager.__exit__(None, None, None)
+
     def assertResolvedFromCommit(self, group, commit):
         assert GroupLink.objects.filter(
             group_id=group.id, linked_type=GroupLink.LinkedType.commit, linked_id=commit.id
@@ -41,6 +50,10 @@ class ResolvedInCommitTest(TestCase):
             id=group.id, status=GroupStatus.RESOLVED, resolved_at__isnull=False
         ).exists()
         assert not GroupInbox.objects.filter(group=group).exists()
+        assert GroupHistory.objects.filter(
+            group=group,
+            status=GroupHistoryStatus.SET_RESOLVED_IN_COMMIT,
+        ).exists()
 
     def assertNotResolvedFromCommit(self, group, commit):
         assert not GroupLink.objects.filter(
