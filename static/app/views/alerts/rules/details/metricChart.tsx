@@ -498,14 +498,14 @@ class MetricChart extends React.PureComponent<Props, State> {
     }
 
     let maxThresholdValue = 0;
-    if (warningTrigger?.alertThreshold) {
+    if (!rule.comparisonDelta && warningTrigger?.alertThreshold) {
       const {alertThreshold} = warningTrigger;
       const warningThresholdLine = createThresholdSeries(theme.yellow300, alertThreshold);
       series.push(warningThresholdLine);
       maxThresholdValue = Math.max(maxThresholdValue, alertThreshold);
     }
 
-    if (criticalTrigger?.alertThreshold) {
+    if (!rule.comparisonDelta && criticalTrigger?.alertThreshold) {
       const {alertThreshold} = criticalTrigger;
       const criticalThresholdLine = createThresholdSeries(theme.red300, alertThreshold);
       series.push(criticalThresholdLine);
