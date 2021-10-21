@@ -40,7 +40,7 @@ class DigestNotification(ProjectNotification):
         self.target_identifier = target_identifier
 
     def get_participants(self) -> Mapping[ExternalProviders, Iterable[Union["Team", "User"]]]:
-        group = [list(value.keys())[0] for key, value in self.digest.items()][0]
+        group = [key for value in self.digest.values() for key in value.keys()][0]
         return get_send_to(
             project=self.project,
             target_type=self.target_type,

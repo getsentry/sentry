@@ -200,9 +200,14 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest):
 
     @responses.activate
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
-    def test_issue_alert_team_issue_owners_user_settings_off(self, mock_func):
+    @patch.object(sentry, "digests")
+    def test_issue_alert_team_issue_owners_user_settings_off_digests(self, digests, mock_func):
         """Test that issue alerts are sent to a team in Slack via an Issue Owners rule action
-        even when the users' issue alert notification settings are off."""
+        even when the users' issue alert notification settings are off and digests are triggered."""
+
+        backend = RedisBackend()
+        digests.digest = backend.digest
+        digests.enabled.return_value = True
 
         # turn off the user's issue alert notification settings
         # there was a bug where issue alerts to a team's Slack channel
@@ -275,12 +280,13 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest):
             },
         )
 
-        notification = AlertRuleNotification(
-            Notification(event=event, rule=rule), ActionTargetType.ISSUE_OWNERS, self.team.id
-        )
+        key = f"mail:p:{self.project.id}"
+        backend.add(key, event_to_record(event, [rule]), increment_delay=0, maximum_delay=0)
 
         with self.tasks():
-            notification.send()
+            deliver_digest(key)
+
+        assert digests.call_count == 0
 
         # check that only one was sent out - more would mean each user is being notified
         # rather than the team
