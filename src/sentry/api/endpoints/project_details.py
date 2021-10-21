@@ -242,11 +242,13 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
 
         sources_json = json.dumps(sources) if sources else ""
 
-        # special case: a single appStoreConnect source is always ok, regardless
-        # of whether the org has custom symbol sources
-        if len(sources) == 1 and sources[0].get("type") == "appStoreConnect":
+        # If no sources are added, we're either only deleting sources or doing nothing.
+        # This is always allowed.
+        added_sources = [s for s in sources if s not in orig_sources]
+        if not added_sources:
             return sources_json
 
+        # Adding sources is only allowed if custom symbol sources are enabled.
         has_sources = features.has(
             "organizations:custom-symbol-sources", organization, actor=request.user
         )
