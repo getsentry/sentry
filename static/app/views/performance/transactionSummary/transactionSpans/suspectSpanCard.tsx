@@ -87,7 +87,8 @@ export default function SuspectSpanEntry(props: Props) {
   const examples = suspectSpan.examples.map(example => ({
     id: example.id,
     project: suspectSpan.project,
-    timestamp: example.finishTimestamp,
+    // finish timestamp is in seconds but want milliseconds
+    timestamp: example.finishTimestamp * 1000,
     spanDuration: example.nonOverlappingExclusiveTime,
     repeated: example.spans.length,
     cumulativeDuration: example.spans.reduce(
