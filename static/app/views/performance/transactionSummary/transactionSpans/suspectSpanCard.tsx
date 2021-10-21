@@ -1,4 +1,4 @@
-import {Fragment, ReactNode} from 'react';
+import {ReactNode} from 'react';
 import {Location, LocationDescriptor, Query} from 'history';
 
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
@@ -98,8 +98,8 @@ export default function SuspectSpanEntry(props: Props) {
   }));
 
   return (
-    <Fragment>
-      <UpperPanel data-test-id="suspect-card-upper">
+    <div data-test-id="suspect-card">
+      <UpperPanel>
         <HeaderItem
           label="Span Operation"
           value={<SpanLabel span={suspectSpan} />}
@@ -141,7 +141,7 @@ export default function SuspectSpanEntry(props: Props) {
           location={location}
         />
       </LowerPanel>
-    </Fragment>
+    </div>
   );
 }
 
@@ -204,7 +204,6 @@ function renderBodyCellWithMeta(
 ) {
   return (column: SuspectSpanTableColumn, dataRow: SuspectSpanDataRow): ReactNode => {
     const fieldRenderer = getFieldRenderer(column.key, SPANS_TABLE_COLUMN_TYPE);
-
     let rendered = fieldRenderer(dataRow, {location, organization});
 
     if (column.key === 'id') {
