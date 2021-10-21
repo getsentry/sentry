@@ -8,10 +8,31 @@ from sentry.models import Project, ProjectOption, Team, User
 from sentry.notifications.notifications.base import BaseNotification, ProjectNotification
 from sentry.notifications.notify import register_notification_provider
 from sentry.types.integrations import ExternalProviders
-from sentry.utils.email import MessageBuilder
+from sentry.utils import json
+from sentry.utils.email import MessageBuilder, group_id_to_email
 from sentry.utils.linksign import generate_signed_link
 
 logger = logging.getLogger(__name__)
+
+
+def get_headers(notification: BaseNotification) -> Mapping[str, Any]:
+    headers = {
+        "X-SMTPAPI": json.dumps({"category": notification.get_category()}),
+    }
+    if isinstance(notification, ProjectNotification):
+        headers["X-Sentry-Project"] = notification.project.slug
+
+    group = getattr(notification, "group", None)
+    if group:
+        headers.update(
+            {
+                "X-Sentry-Logger": group.logger,
+                "X-Sentry-Logger-Level": group.get_level_display(),
+                "X-Sentry-Reply-To": group_id_to_email(group.id),
+            }
+        )
+
+    return headers
 
 
 def build_subject_prefix(project: "Project") -> str:
@@ -101,7 +122,7 @@ def get_builder_args(
         "context": context,
         "template": notification.get_template(),
         "html_template": notification.get_html_template(),
-        "headers": notification.get_headers(),
+        "headers": get_headers(notification),
         "reference": notification.get_reference(),
         "reply_reference": notification.get_reply_reference(),
         "type": notification.get_type(),

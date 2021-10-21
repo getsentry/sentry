@@ -46,6 +46,14 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
         return "?referrer=" + self.referrer
 
     def determine_recipients(self) -> Iterable[Union["Team", "User"]]:
+        members = self.determine_member_recipients()
+        # store the members in our cache
+        for member in members:
+            self.set_member_in_cache(member)
+        # convert members to users
+        return list(map(lambda member: member.user, members))
+
+    def determine_member_recipients(self) -> Iterable["OrganizationMember"]:
         """
         Depending on the type of request this might be all organization owners,
         a specific person, or something in between.
@@ -60,7 +68,7 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
         # TODO: need to read off notification settings
         recipients = self.determine_recipients()
         output = {
-            provider: [recepient for recepient in recipients] for provider in available_providers
+            provider: [recipient for recipient in recipients] for provider in available_providers
         }
 
         return output
@@ -72,8 +80,9 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
         if not participants_by_provider:
             return
 
+        context = self.get_context()
         for provider, recipients in participants_by_provider.items():
-            notify(provider, self, recipients, self.get_context())
+            notify(provider, self, recipients, context)
 
     def get_member(self, user: "User") -> "OrganizationMember":
         # cache the result
@@ -86,7 +95,6 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
     def set_member_in_cache(self, member: OrganizationMember) -> None:
         """
         A way to set a member in a cache to avoid a query.
-        Used by debug email views since models are not saved.
         """
         self.member_by_user_id[member.user_id] = member
 

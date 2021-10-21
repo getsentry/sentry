@@ -6,8 +6,6 @@ from typing_extensions import Literal
 
 from sentry import analytics
 from sentry.types.integrations import ExternalProviders
-from sentry.utils import json
-from sentry.utils.email import group_id_to_email
 from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
@@ -24,7 +22,7 @@ if TYPE_CHECKING:
 class MessageAction:
     label: str
     url: str
-    style: Optional[Literal["primary", "danger", "default"]]
+    style: Optional[Literal["primary", "danger", "default"]] = None
 
     def as_slack(self) -> Mapping[str, Any]:
         return {
@@ -50,6 +48,10 @@ class BaseNotification:
         )
 
         return SlackNotificationsMessageBuilder
+
+    @property
+    def org_slug(self):
+        return self.organization.slug
 
     def get_filename(self) -> str:
         raise NotImplementedError
@@ -108,9 +110,6 @@ class BaseNotification:
     ) -> None:
         raise NotImplementedError
 
-    def get_headers(self) -> Mapping[str, Any]:
-        return {}
-
     def get_log_params(self, recipient: Union["Team", "User"]) -> Dict[str, Any]:
         return {
             "organization_id": self.organization.id,
@@ -167,25 +166,6 @@ class ProjectNotification(BaseNotification, abc.ABC):
         elif isinstance(self, ActivityNotification):
             extra.update({"activity": self.activity})
         return extra
-
-    def get_headers(self) -> Mapping[str, Any]:
-        headers = {
-            "X-Sentry-Project": self.project.slug,
-            "X-SMTPAPI": json.dumps({"category": self.get_category()}),
-        }
-
-        # TODO: let the group subclass of notification handle this
-        group = getattr(self, "group", None)
-        if group:
-            headers.update(
-                {
-                    "X-Sentry-Logger": group.logger,
-                    "X-Sentry-Logger-Level": group.get_level_display(),
-                    "X-Sentry-Reply-To": group_id_to_email(group.id),
-                }
-            )
-
-        return headers
 
     def get_subject_with_prefix(self, context: Optional[Mapping[str, Any]] = None) -> bytes:
         from sentry.mail.notifications import build_subject_prefix
