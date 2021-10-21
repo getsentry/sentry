@@ -93,15 +93,14 @@ class TeamResolutionTime extends AsyncComponent<Props, State> {
           xAxis={{
             type: 'time',
           }}
-          series={
-            [
-              {
-                seriesName: t('Time to Resolution'),
-                data: seriesData,
-                silent: true,
-              },
-            ] as any
-          }
+          series={[
+            {
+              seriesName: t('Time to Resolution'),
+              data: seriesData,
+              // @ts-expect-error silent not included in bar series
+              silent: true,
+            },
+          ]}
         />
       </ChartWrapper>
     );
