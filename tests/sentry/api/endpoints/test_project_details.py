@@ -1,4 +1,5 @@
 from time import time
+from unittest import mock, zip
 
 import pytest
 
@@ -31,7 +32,6 @@ from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature, faux
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
-from sentry.utils.compat import mock, zip
 
 
 def _dyn_sampling_data():

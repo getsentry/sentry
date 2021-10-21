@@ -1,11 +1,11 @@
 from datetime import timedelta
+from unittest.mock import patch
 
 from django.utils import timezone
 
 from sentry.models import Group, GroupSnooze, GroupStatus
 from sentry.tasks.clear_expired_snoozes import clear_expired_snoozes
 from sentry.testutils import TestCase
-from sentry.utils.compat.mock import patch
 
 
 class ClearExpiredSnoozesTest(TestCase):

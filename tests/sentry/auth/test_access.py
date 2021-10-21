@@ -1,9 +1,10 @@
+from unittest.mock import Mock
+
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.auth import access
 from sentry.models import AuthIdentity, AuthProvider, ObjectStatus, Organization
 from sentry.testutils import TestCase
-from sentry.utils.compat.mock import Mock
 
 
 class FromUserTest(TestCase):

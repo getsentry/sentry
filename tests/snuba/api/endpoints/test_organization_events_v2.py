@@ -1,4 +1,5 @@
 from base64 import b64encode
+from unittest import mock, zip
 
 import pytest
 from django.urls import reverse
@@ -28,7 +29,6 @@ from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils import json
-from sentry.utils.compat import mock, zip
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import QueryExecutionError, QueryIllegalTypeOfArgument, RateLimitExceeded
 

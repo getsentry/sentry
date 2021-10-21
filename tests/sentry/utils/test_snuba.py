@@ -1,5 +1,6 @@
 import unittest
 from datetime import datetime, timedelta
+from unittest import mock
 
 import pytest
 import pytz
@@ -7,7 +8,6 @@ from django.utils import timezone
 
 from sentry.models import GroupRelease, Project, Release
 from sentry.testutils import TestCase
-from sentry.utils.compat import mock
 from sentry.utils.snuba import (
     Dataset,
     SnubaQueryParams,

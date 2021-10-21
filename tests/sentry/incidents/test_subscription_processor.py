@@ -1,6 +1,7 @@
 import unittest
 from datetime import datetime, timedelta
 from random import randint
+from unittest.mock import Mock, call, patch
 from uuid import uuid4
 
 import pytz
@@ -42,7 +43,6 @@ from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.utils import json
 from sentry.utils.compat import map
-from sentry.utils.compat.mock import Mock, call, patch
 from sentry.utils.dates import to_timestamp
 
 EMPTY = object()
