@@ -42,7 +42,7 @@ export const barAxisLabel = (
       showMaxLabel: true,
       showMinLabel: true,
       formatter: (date: number) => {
-        return moment(new Date(date)).format('MMM Do');
+        return moment(new Date(date)).format('MMM D');
       },
     },
   };
