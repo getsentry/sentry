@@ -110,8 +110,6 @@ ORG_OPTIONS = (
     ("apdexThreshold", "sentry:apdex_threshold", int, None),
 )
 
-delete_logger = logging.getLogger("sentry.deletions.api")
-
 DELETION_STATUSES = frozenset(
     [OrganizationStatus.PENDING_DELETION, OrganizationStatus.DELETION_IN_PROGRESS]
 )
@@ -503,10 +501,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                     event=AuditLogEntryEvent.ORG_RESTORE,
                     data=organization.get_audit_log_data(),
                 )
-                delete_logger.info(
-                    "object.delete.canceled",
-                    extra={"object_id": organization.id, "model": Organization.__name__},
-                )
+                ScheduledDeletion.cancel(organization)
             elif changed_data:
                 self.create_audit_entry(
                     request=request,

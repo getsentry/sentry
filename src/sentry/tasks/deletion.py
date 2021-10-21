@@ -84,10 +84,6 @@ def run_deletion(deletion_id, first_pass=True):
         deletion.delete()
         return
 
-    if first_pass:
-        actor = deletion.get_actor()
-        pending_delete.send(sender=type(instance), instance=instance, actor=actor)
-
     task = deletions.get(
         model=deletion.get_model(),
         query={"id": deletion.object_id},
@@ -105,6 +101,10 @@ def run_deletion(deletion_id, first_pass=True):
         )
         deletion.delete()
         return
+
+    if first_pass:
+        actor = deletion.get_actor()
+        pending_delete.send(sender=type(instance), instance=instance, actor=actor)
 
     has_more = task.chunk()
     if has_more:
