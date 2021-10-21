@@ -1,4 +1,5 @@
 import logging
+import re
 from gzip import GzipFile
 from io import BytesIO
 from urllib.parse import urljoin
@@ -18,6 +19,7 @@ MAX_CHUNKS_PER_REQUEST = 64
 MAX_REQUEST_SIZE = 32 * 1024 * 1024
 MAX_CONCURRENCY = settings.DEBUG and 1 or 8
 HASH_ALGORITHM = "sha1"
+SENTRYCLI_SEMVER_RE = re.compile(r"^sentry-cli\/(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+).*$")
 
 CHUNK_UPLOAD_ACCEPT = (
     "debug_files",  # DIF assemble
@@ -48,12 +50,29 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         endpoint = options.get("system.upload-url-prefix")
         relative_url = reverse("sentry-api-0-chunk-upload", args=[organization.slug])
 
+        # Starting `sentry-cli@1.70.1` we added a support for relative chunk-uploads urls
+        # User-Agent: sentry-cli/1.70.1
+        user_agent = request.headers.get("User-Agent", "")
+        sentrycli_version = SENTRYCLI_SEMVER_RE.search(user_agent)
+        supports_relative_url = (
+            (sentrycli_version is not None)
+            and (int(sentrycli_version.group("major")) >= 1)
+            and (int(sentrycli_version.group("minor")) >= 70)
+            and (int(sentrycli_version.group("patch")) >= 1)
+        )
+
+        # If user do not overwritten upload url prefix
         if len(endpoint) == 0:
-            # If config is not set, we return relative, versionless endpoint (with `/api/0` stripped)
-            prefix = "/api/0"
-            url = relative_url.replace(prefix, "/")
+            # And we support relative url uploads, return a relative, versionless endpoint (with `/api/0` stripped)
+            if supports_relative_url:
+                prefix = "/api/0"
+                url = relative_url.replace(prefix, "/")
+            # Otherwise, if we do not support them, return an absolute, versioned endpoint with a default, system-wide prefix
+            else:
+                endpoint = options.get("system.url-prefix")
+                url = urljoin(endpoint.rstrip("/") + "/", relative_url.lstrip("/"))
         else:
-            # Otherwise, we want a relative, versioned endpoint, with user-configured prefix
+            # If user overriden upload url prefix, we want an absolute, versioned endpoint, with user-configured prefix
             url = urljoin(endpoint.rstrip("/") + "/", relative_url.lstrip("/"))
 
         return Response(
