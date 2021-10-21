@@ -44,46 +44,46 @@ export default function XAxis({
     }
   };
 
-  return merge(
-    {
-      type: isGroupedByDate ? 'time' : 'category',
-      boundaryGap: false,
-      axisLine: {
-        lineStyle: {
-          color: theme.chartLabel,
-        },
-      },
-      axisTick: {
-        lineStyle: {
-          color: theme.chartLabel,
-        },
-      },
-      splitLine: {
-        show: false,
-      },
-      axisLabel: {
+  const defaults: XAXisComponentOption = {
+    type: isGroupedByDate ? 'time' : 'category',
+    boundaryGap: false,
+    axisLine: {
+      lineStyle: {
         color: theme.chartLabel,
-        fontFamily: theme.text.family,
-        margin: 12,
-
-        // This was default with ChartZoom, we are making it default for all charts now
-        // Otherwise the xAxis can look congested when there is always a min/max label
-        showMaxLabel: false,
-        showMinLabel: false,
-
-        formatter: axisLabelFormatter,
-      },
-      axisPointer: {
-        show: true,
-        type: 'line',
-        label: {
-          show: false,
-        },
-        lineStyle: {
-          width: 0.5,
-        },
       },
     },
-    props
-  );
+    axisTick: {
+      lineStyle: {
+        color: theme.chartLabel,
+      },
+    },
+    splitLine: {
+      show: false,
+    },
+    axisLabel: {
+      color: theme.chartLabel,
+      fontFamily: theme.text.family,
+      margin: 12,
+
+      // This was default with ChartZoom, we are making it default for all charts now
+      // Otherwise the xAxis can look congested when there is always a min/max label
+      showMaxLabel: false,
+      showMinLabel: false,
+
+      // @ts-expect-error formatter type is missing
+      formatter: axisLabelFormatter,
+    },
+    axisPointer: {
+      show: true,
+      type: 'line',
+      label: {
+        show: false,
+      },
+      lineStyle: {
+        width: 0.5,
+      },
+    },
+  };
+
+  return merge(defaults, props);
 }
