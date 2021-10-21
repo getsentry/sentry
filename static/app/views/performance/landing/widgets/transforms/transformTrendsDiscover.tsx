@@ -1,7 +1,7 @@
-import {ChildrenProps} from 'app/utils/performance/trends/trendsDiscoverQuery';
+import {TrendDiscoveryChildrenProps} from 'app/utils/performance/trends/trendsDiscoverQuery';
 import {normalizeTrends} from 'app/views/performance/trends/utils';
 
-export function transformTrendsDiscover(_: any, props: ChildrenProps) {
+export function transformTrendsDiscover(_: any, props: TrendDiscoveryChildrenProps) {
   const {trendsData} = props;
   const events = trendsData
     ? normalizeTrends((trendsData && trendsData.events && trendsData.events.data) || [])
