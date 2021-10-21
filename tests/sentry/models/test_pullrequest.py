@@ -23,14 +23,13 @@ class FindReferencedGroupsTest(TestCase):
         assert len(groups) == 1
         assert group in groups
 
-        with self.feature("organizations:group-history"):
-            pr = PullRequest.objects.create(
-                key="1",
-                repository_id=repo.id,
-                organization_id=group.organization.id,
-                title="very cool PR to fix the thing",
-                message=f"Foo Biz\n\nFixes {group2.qualified_short_id}",
-            )
+        pr = PullRequest.objects.create(
+            key="1",
+            repository_id=repo.id,
+            organization_id=group.organization.id,
+            title="very cool PR to fix the thing",
+            message=f"Foo Biz\n\nFixes {group2.qualified_short_id}",
+        )
 
         groups = pr.find_referenced_groups()
         assert len(groups) == 1

@@ -5,7 +5,6 @@ from django.db.models import SET_NULL
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from sentry import features
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
 
 if TYPE_CHECKING:
@@ -153,8 +152,6 @@ def record_group_history(
     actor: Optional[Union["User", "Team"]] = None,
     release: Optional["Release"] = None,
 ):
-    if not features.has("organizations:group-history", group.organization):
-        return
     prev_history = get_prev_history(group, status)
     return GroupHistory.objects.create(
         organization=group.project.organization,

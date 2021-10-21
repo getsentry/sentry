@@ -35,13 +35,6 @@ class ResolveGroupResolutionsTest(TestCase):
 
 
 class ResolvedInCommitTest(TestCase):
-    def setUp(self):
-        self._feature_ctx_manager = self.feature("organizations:group-history")
-        self._feature_ctx_manager.__enter__()
-
-    def tearDown(self):
-        self._feature_ctx_manager.__exit__(None, None, None)
-
     def assertResolvedFromCommit(self, group, commit):
         assert GroupLink.objects.filter(
             group_id=group.id, linked_type=GroupLink.LinkedType.commit, linked_id=commit.id
