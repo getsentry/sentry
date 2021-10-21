@@ -81,7 +81,7 @@ class EventDataSection extends React.Component<Props> {
                   {titleNode}
                 </Permalink>
               ) : (
-                <div>{titleNode}</div>
+                titleNode
               )}
             </Title>
             {type === 'extra' && (

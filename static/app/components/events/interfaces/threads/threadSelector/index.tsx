@@ -1,3 +1,4 @@
+import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
@@ -56,35 +57,42 @@ const ThreadSelector = ({threads, event, exception, activeThread, onChange}: Pro
   };
 
   return (
-    <StyledDropdownAutoComplete
-      items={getItems()}
-      onSelect={item => {
-        handleChange(item.thread);
-      }}
-      maxHeight={DROPDOWN_MAX_HEIGHT}
-      searchPlaceholder={t('Filter Threads')}
-      emptyMessage={t('You have no threads')}
-      noResultsMessage={t('No threads found')}
-      menuHeader={<Header />}
-      closeOnSelect
-      emptyHidesInput
-    >
-      {({isOpen, selectedItem}) => (
-        <StyledDropdownButton size="small" isOpen={isOpen} align="left">
-          {selectedItem ? (
-            <SelectedOption
-              id={selectedItem.thread.id}
-              details={selectedItem.threadInfo}
-            />
-          ) : (
-            <SelectedOption
-              id={activeThread.id}
-              details={filterThreadInfo(event, activeThread, exception)}
-            />
+    <ClassNames>
+      {({css}) => (
+        <StyledDropdownAutoComplete
+          items={getItems()}
+          onSelect={item => {
+            handleChange(item.thread);
+          }}
+          maxHeight={DROPDOWN_MAX_HEIGHT}
+          searchPlaceholder={t('Filter Threads')}
+          emptyMessage={t('You have no threads')}
+          noResultsMessage={t('No threads found')}
+          menuHeader={<Header />}
+          rootClassName={css`
+            width: 100%;
+          `}
+          closeOnSelect
+          emptyHidesInput
+        >
+          {({isOpen, selectedItem}) => (
+            <StyledDropdownButton isOpen={isOpen} size="small" align="left">
+              {selectedItem ? (
+                <SelectedOption
+                  id={selectedItem.thread.id}
+                  details={selectedItem.threadInfo}
+                />
+              ) : (
+                <SelectedOption
+                  id={activeThread.id}
+                  details={filterThreadInfo(event, activeThread, exception)}
+                />
+              )}
+            </StyledDropdownButton>
           )}
-        </StyledDropdownButton>
+        </StyledDropdownAutoComplete>
       )}
-    </StyledDropdownAutoComplete>
+    </ClassNames>
   );
 };
 

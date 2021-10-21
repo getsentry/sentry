@@ -10,7 +10,7 @@ import {Event} from 'app/types/event';
 import {Thread} from 'app/types/events';
 import {STACK_TYPE, STACK_VIEW} from 'app/types/stacktrace';
 
-import NoStackTraceMessage from '../../noStackTraceMessage';
+import NoStackTraceMessage from '../noStackTraceMessage';
 
 type CrashContentProps = React.ComponentProps<typeof CrashContent>;
 
