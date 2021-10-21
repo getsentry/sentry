@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING, Optional, Union
 
 from django.db import models
+from django.db.models import SET_NULL
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
@@ -12,6 +13,8 @@ if TYPE_CHECKING:
 
 
 class GroupHistoryStatus:
+    # Note that we don't record the initial group creation unresolved here to save on creating a row
+    # for every group.
     UNRESOLVED = 0
     RESOLVED = 1
     SET_RESOLVED_IN_RELEASE = 11
@@ -78,7 +81,7 @@ class GroupHistory(Model):
     group = FlexibleForeignKey("sentry.Group", db_constraint=False)
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
     release = FlexibleForeignKey("sentry.Release", null=True, db_constraint=False)
-    actor = FlexibleForeignKey("sentry.Actor", null=True)
+    actor = FlexibleForeignKey("sentry.Actor", null=True, on_delete=SET_NULL)
 
     status = BoundedPositiveIntegerField(
         default=0,
