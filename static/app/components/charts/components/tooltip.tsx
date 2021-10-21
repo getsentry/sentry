@@ -245,6 +245,7 @@ export default function Tooltip({
     show: true,
     trigger: 'item',
     backgroundColor: 'transparent',
+    borderWidth: 0,
     transitionDuration: 0,
     padding: 0,
     // Default hideDelay in echarts docs is 100ms
