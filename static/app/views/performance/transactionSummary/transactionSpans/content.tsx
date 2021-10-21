@@ -81,13 +81,16 @@ function SpansContent(props: Props) {
         eventView={eventView}
       >
         {({suspectSpans, isLoading, error, pageLinks}) => {
-          if (isLoading) {
-            return <LoadingIndicator />;
-          }
-
           if (error) {
             setError(error);
             return null;
+          }
+
+          // make sure to clear the clear the error message
+          setError(undefined);
+
+          if (isLoading) {
+            return <LoadingIndicator />;
           }
 
           if (!suspectSpans?.length) {

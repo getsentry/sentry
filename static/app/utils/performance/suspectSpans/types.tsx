@@ -1,11 +1,11 @@
-type ExampleSpan = {
+export type ExampleSpan = {
   id: string;
   startTimestamp: number;
   finishTimestamp: number;
   exclusiveTime: number;
 };
 
-type ExampleTransaction = {
+export type ExampleTransaction = {
   id: string;
   description: string | null;
   startTimestamp: number;

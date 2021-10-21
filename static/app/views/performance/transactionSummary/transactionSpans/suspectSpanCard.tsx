@@ -99,7 +99,7 @@ export default function SuspectSpanEntry(props: Props) {
 
   return (
     <Fragment>
-      <UpperPanel>
+      <UpperPanel data-test-id="suspect-card-upper">
         <HeaderItem
           label="Span Operation"
           value={<SpanLabel span={suspectSpan} />}
@@ -125,7 +125,7 @@ export default function SuspectSpanEntry(props: Props) {
           align="right"
         />
       </UpperPanel>
-      <LowerPanel>
+      <LowerPanel data-test-id="suspect-card-lower">
         <GridEditable
           data={examples}
           columnOrder={SPANS_TABLE_COLUMN_ORDER}
