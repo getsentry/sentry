@@ -9,11 +9,11 @@ from sentry.testutils.helpers.jwt import RS256_KEY, RS256_PUB_KEY
 from sentry.utils.http import absolute_uri
 
 
-class JiraUninstalledTest(APITestCase):
+class JiraInstalledTest(APITestCase):
     external_id = "it2may+cody"
     jira_signing_algorithm = "RS256"
     kid = "cudi"
-    path = "/extensions/jira/uninstalled/"
+    path = "/extensions/jira/installed/"
 
     def jwt_token(self):
         return jwt.encode(
@@ -29,20 +29,27 @@ class JiraUninstalledTest(APITestCase):
 
     @responses.activate
     def test_simple(self):
-        org = self.organization
-
-        integration = Integration.objects.create(
-            provider="jira", status=ObjectStatus.VISIBLE, external_id=self.external_id
-        )
-        integration.add_organization(org, self.user)
-
         responses.add(
             responses.GET,
             f"https://connect-install-keys.atlassian.com/{self.kid}",
             body=RS256_PUB_KEY,
         )
 
-        resp = self.client.post(self.path, data={}, HTTP_AUTHORIZATION="JWT " + self.jwt_token())
-        integration = Integration.objects.get(id=integration.id)
-        assert integration.status == ObjectStatus.DISABLED
+        resp = self.client.post(
+            self.path,
+            data={
+                "jira": {
+                    "metadata": {},
+                    "external_id": self.external_id,
+                },
+                "clientKey": "limepie",
+                "oauthClientId": "EFG",
+                "publicKey": "yourCar",
+                "sharedSecret": "garden",
+                "baseUrl": "https://sentry.io.org.xyz.online.dev.sentry.io",
+            },
+            HTTP_AUTHORIZATION="JWT " + self.jwt_token(),
+        )
+        integration = Integration.objects.get(provider="jira", external_id=self.external_id)
+        assert integration.status == ObjectStatus.VISIBLE
         assert resp.status_code == 200
