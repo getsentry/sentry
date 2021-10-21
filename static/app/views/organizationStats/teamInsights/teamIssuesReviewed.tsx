@@ -123,21 +123,19 @@ class TeamIssuesReviewed extends AsyncComponent<Props, State> {
               stacked
               isGroupedByDate
               legend={{right: 0, top: 0}}
-              series={
-                [
-                  {
-                    seriesName: t('Reviewed'),
-                    data: convertDaySeriesToWeeks(reviewedSeries),
-                    silent: true,
-                  },
-                  {
-                    seriesName: t('Not Reviewed'),
-                    data: convertDaySeriesToWeeks(notReviewedSeries),
-                    silent: true,
-                  },
+              series={[
+                {
+                  seriesName: t('Reviewed'),
+                  data: convertDaySeriesToWeeks(reviewedSeries),
+                  silent: true,
                   // silent is not incldued in the type for BarSeries
-                ] as any[]
-              }
+                } as any,
+                {
+                  seriesName: t('Not Reviewed'),
+                  data: convertDaySeriesToWeeks(notReviewedSeries),
+                  silent: true,
+                },
+              ]}
             />
           )}
         </IssuesChartWrapper>

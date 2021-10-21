@@ -93,9 +93,10 @@ class TeamAlertsTriggered extends AsyncComponent<Props, State> {
               {
                 seriesName: t('Alerts Triggered'),
                 data: seriesData,
+                // @ts-expect-error silent does not exist in bar series type
                 silent: true,
               },
-            ].reverse()}
+            ]}
           />
         )}
       </ChartWrapper>
