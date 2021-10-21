@@ -62,6 +62,10 @@ function getTitleForType(type: ItemType) {
     return t('Operator Helpers');
   }
 
+  if (type === ItemType.PROPERTY) {
+    return t('Properties');
+  }
+
   return t('Tags');
 }
 
