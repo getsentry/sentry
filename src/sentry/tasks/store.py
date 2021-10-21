@@ -179,7 +179,6 @@ def preprocess_event(
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
     project: Optional[Project] = None,
-    **kwargs: Any,
 ) -> None:
     return _do_preprocess_event(
         cache_key=cache_key,
@@ -203,7 +202,6 @@ def preprocess_event_from_reprocessing(
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
     project: Optional[Project] = None,
-    **kwargs: Any,
 ) -> None:
     return _do_preprocess_event(
         cache_key=cache_key,
@@ -221,7 +219,7 @@ def preprocess_event_from_reprocessing(
     time_limit=(60 * 5) + 5,
     soft_time_limit=60 * 5,
 )
-def retry_process_event(process_task_name: str, task_kwargs: Dict[str, Any], **kwargs: Any) -> None:
+def retry_process_event(process_task_name: str, task_kwargs: Dict[str, Any]) -> None:
     """
     The only purpose of this task is be enqueued with some ETA set. This is
     essentially an implementation of ETAs on top of Celery's existing ETAs, but
@@ -417,7 +415,6 @@ def process_event(
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
     data_has_changed: bool = False,
-    **kwargs: Any,
 ) -> None:
     """
     Handles event processing (for those events that need it)
@@ -449,7 +446,6 @@ def process_event_from_reprocessing(
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
     data_has_changed: bool = False,
-    **kwargs: Any,
 ) -> None:
     return do_process_event(
         cache_key=cache_key,
@@ -591,7 +587,6 @@ def _do_save_event(
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
     project_id: Optional[int] = None,
-    **kwargs: Any,
 ) -> None:
     """
     Saves an event to the database.
@@ -758,6 +753,5 @@ def save_event(
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
     project_id: Optional[int] = None,
-    **kwargs: Any,
 ) -> None:
-    _do_save_event(cache_key, data, start_time, event_id, project_id, **kwargs)
+    _do_save_event(cache_key, data, start_time, event_id, project_id)
