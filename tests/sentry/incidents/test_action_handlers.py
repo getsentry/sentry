@@ -19,6 +19,7 @@ from sentry.incidents.action_handlers import (
 from sentry.incidents.logic import update_incident_status
 from sentry.incidents.models import (
     INCIDENT_STATUS,
+    AlertRuleThresholdType,
     AlertRuleTriggerAction,
     IncidentStatus,
     IncidentStatusMethod,
@@ -190,6 +191,16 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             self.project, incident, action.alert_rule_trigger, status
         )
 
+    def test_resolve(self):
+        status = TriggerStatus.RESOLVED
+        incident = self.create_incident()
+        action = self.create_alert_rule_trigger_action(triggered_for_incident=incident)
+        generated_email_context = generate_incident_trigger_email_context(
+            self.project, incident, action.alert_rule_trigger, status
+        )
+        assert generated_email_context["threshold"] == 100
+        assert generated_email_context["threshold_direction_string"] == "<"
+
     def test_context_for_crash_rate_alert(self):
         """
         Test that ensures the metric name for Crash rate alerts excludes the alias
@@ -209,6 +220,28 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             )["aggregate"]
             == "percentage(sessions_crashed, sessions)"
         )
+
+    def test_context_for_resolved_crash_rate_alert(self):
+        """
+        Test that ensures the resolved notification contains the correct threshold string
+        """
+        status = TriggerStatus.RESOLVED
+        incident = self.create_incident()
+        alert_rule = self.create_alert_rule(
+            aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
+            threshold_type=AlertRuleThresholdType.BELOW,
+            query="",
+        )
+        alert_rule_trigger = self.create_alert_rule_trigger(alert_rule)
+        action = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=alert_rule_trigger, triggered_for_incident=incident
+        )
+        generated_email_context = generate_incident_trigger_email_context(
+            self.project, incident, action.alert_rule_trigger, status
+        )
+        assert generated_email_context["aggregate"] == "percentage(sessions_crashed, sessions)"
+        assert generated_email_context["threshold"] == 100
+        assert generated_email_context["threshold_direction_string"] == ">"
 
     def test_environment(self):
         status = TriggerStatus.ACTIVE
