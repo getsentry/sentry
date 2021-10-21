@@ -214,9 +214,9 @@ class TeamReleases extends AsyncComponent<Props, State> {
                 markLine: MarkLine({
                   silent: true,
                   lineStyle: {color: theme.gray200, type: 'dashed', width: 1},
-                  data: [{yAxis: totalPeriodAverage} as any],
+                  data: [{yAxis: totalPeriodAverage}],
                 }),
-              } as any,
+              },
             ]}
             tooltip={{
               formatter: seriesParams => {

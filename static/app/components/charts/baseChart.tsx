@@ -18,6 +18,7 @@ import type {
 } from 'echarts';
 import {GraphicComponent, GridComponent} from 'echarts/components';
 import * as echarts from 'echarts/core';
+import {TooltipFormatterCallback} from 'echarts/types/dist/shared';
 import ReactEchartsCore from 'echarts-for-react/lib/core';
 
 import {IS_ACCEPTANCE_TEST} from 'app/constants';
@@ -127,7 +128,7 @@ type Props = {
       valueFormatter?: (
         value: number,
         label?: string,
-        seriesParams?: EChartOption.Tooltip.Format
+        seriesParams?: TooltipFormatterCallback<any>
       ) => string | number;
       nameFormatter?: (name: string) => string;
       /**

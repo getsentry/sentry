@@ -141,13 +141,14 @@ function createIncidentSeries(
         },
       ] as any,
       label: {
-        show: incident.identifier,
+        silent: true,
+        show: !!incident.identifier,
         position: 'insideEndBottom',
         formatter: incident.identifier,
         color: lineColor,
         fontSize: 10,
         fontFamily: 'Rubik',
-      } as any,
+      },
     }),
     data: [],
   };

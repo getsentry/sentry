@@ -287,11 +287,11 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
         stat.total = stat.accepted + stat.filtered + stat.dropped.total;
 
         // Chart Data
-        (chartStats.accepted as any[]).push({value: [stat.date, stat.accepted]} as any);
+        (chartStats.accepted as any[]).push({value: [stat.date, stat.accepted]});
         (chartStats.dropped as any[]).push({
           value: [stat.date, stat.dropped.total],
         } as any);
-        (chartStats.filtered as any[])?.push({value: [stat.date, stat.filtered]} as any);
+        (chartStats.filtered as any[])?.push({value: [stat.date, stat.filtered]});
       });
 
       return {

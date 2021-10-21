@@ -167,7 +167,7 @@ const TagsHeatMap = (
       axisLabel: {
         formatter: (value: string) => truncate(value, 30),
       },
-    } as any, // TODO(k-fish): Expand typing to allow data option
+    },
     xAxis: {
       boundaryGap: true,
       type: 'category' as const,
@@ -190,7 +190,7 @@ const TagsHeatMap = (
         interval: 0,
         alignWithLabel: true,
       },
-    } as any, // TODO(k-fish): Expand typing to allow data option
+    },
 
     grid: {
       left: space(3),
