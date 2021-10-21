@@ -375,6 +375,8 @@ class ITunesClient:
             ClientState.SMS_AUTH_REQUESTED,
         ], f"Actual client state: {self.state}"
 
+        assert self._trusted_phone is not None
+
         trusted_phone, sms_automatically_sent = self._request_trusted_phone_info()
 
         if sms_automatically_sent:
