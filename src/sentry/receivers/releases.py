@@ -205,7 +205,7 @@ def resolved_in_pull_request(instance, created, **kwargs):
                     data={"pull_request": instance.id},
                 )
                 record_group_history(
-                    group, GroupHistoryStatus.RESOLVED_IN_PULL_REQUEST, actor=acting_user
+                    group, GroupHistoryStatus.SET_RESOLVED_IN_PULL_REQUEST, actor=acting_user
                 )
         except IntegrityError:
             pass
