@@ -3,8 +3,8 @@ import {withRouter, WithRouterProps} from 'react-router';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import Feature from 'app/components/acl/feature';
 import Button from 'app/components/button';
-import HookOrDefault from 'app/components/hookOrDefault';
 import Link from 'app/components/links/link';
 import HeaderItem from 'app/components/organizations/headerItem';
 import PlatformList from 'app/components/platformList';
@@ -313,16 +313,12 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
   }
 }
 
-const MultiProjectOverride = HookOrDefault({
-  hookName: 'project-selector-all-projects:customization',
-  defaultComponent: ({children, defaultButtonText, defaultOnClick, organization}) => {
-    // render nothing if feature unavailable
-    if (!organization.features.includes('global-views')) {
-      return null;
-    }
-    return children({buttonText: defaultButtonText, onClick: defaultOnClick});
-  },
-});
+type FeatureRenderProps = {
+  renderDisabledView?: (p: {
+    canShowAllProjects: boolean;
+    onButtonClick: () => void;
+  }) => React.ReactNode;
+};
 
 type ControlProps = {
   organization: Organization;
@@ -357,7 +353,7 @@ const SelectorFooterControls = ({
 
   const canShowAllProjects = (hasGlobalRole || hasOpenMembership) && !allSelected;
   const onProjectClick = canShowAllProjects ? onShowAllProjects : onShowMyProjects;
-  const projectText = canShowAllProjects
+  const buttonText = canShowAllProjects
     ? t('Select All Projects')
     : t('Select My Projects');
 
@@ -367,18 +363,25 @@ const SelectorFooterControls = ({
 
       <FooterActions>
         {!disableMultipleProjectSelection && (
-          <MultiProjectOverride
-            defaultButtonText={projectText}
-            defaultOnClick={onProjectClick}
-            canShowAllProjects={canShowAllProjects}
+          <Feature
+            features={['organizations:global-views']}
             organization={organization}
+            hookName="feature-disabled:project-selector-all-projects"
+            renderDisabled={false}
           >
-            {({buttonText, ...rest}) => (
-              <Button priority="default" size="xsmall" {...rest}>
-                {buttonText}
-              </Button>
-            )}
-          </MultiProjectOverride>
+            {({renderDisabledView}: FeatureRenderProps) =>
+              renderDisabledView ? (
+                renderDisabledView({
+                  onButtonClick: onProjectClick,
+                  canShowAllProjects,
+                })
+              ) : (
+                <Button priority="default" size="xsmall" onClick={onProjectClick}>
+                  {buttonText}
+                </Button>
+              )
+            }
+          </Feature>
         )}
 
         {hasChanges && (
