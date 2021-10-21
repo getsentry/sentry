@@ -40,10 +40,12 @@ class DigestNotification(ProjectNotification):
         self.target_identifier = target_identifier
 
     def get_participants(self) -> Mapping[ExternalProviders, Iterable[Union["Team", "User"]]]:
+        group = [list(value.keys())[0] for key, value in self.digest.items()][0]
         return get_send_to(
             project=self.project,
             target_type=self.target_type,
             target_identifier=self.target_identifier,
+            event=group.get_latest_event() or None,
         )
 
     def get_filename(self) -> str:

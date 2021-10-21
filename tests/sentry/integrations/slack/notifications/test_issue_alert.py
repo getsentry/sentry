@@ -200,6 +200,106 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest):
 
     @responses.activate
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
+    def test_issue_alert_team_issue_owners_user_settings_off(self, mock_func):
+        """Test that issue alerts are sent to a team in Slack via an Issue Owners rule action
+        even when the users' issue alert notification settings are off."""
+
+        # turn off the user's issue alert notification settings
+        # there was a bug where issue alerts to a team's Slack channel
+        # were only firing if this was set to ALWAYS
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.SLACK,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.NEVER,
+            user=self.user,
+        )
+        # add a second user to the team so we can be sure it's only
+        # sent once (to the team, and not to each individual user)
+        user2 = self.create_user(is_superuser=False)
+        self.create_member(teams=[self.team], user=user2, organization=self.organization)
+        self.idp = IdentityProvider.objects.create(type="slack", external_id="TXXXXXXX2", config={})
+        self.identity = Identity.objects.create(
+            external_id="UXXXXXXX2",
+            idp=self.idp,
+            user=user2,
+            status=IdentityStatus.VALID,
+            scopes=[],
+        )
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.SLACK,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.NEVER,
+            user=user2,
+        )
+        # update the team's notification settings
+        ExternalActor.objects.create(
+            actor=self.team.actor,
+            organization=self.organization,
+            integration=self.integration,
+            provider=ExternalProviders.SLACK.value,
+            external_name="goma",
+            external_id="CXXXXXXX2",
+        )
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.SLACK,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.ALWAYS,
+            team=self.team,
+        )
+
+        rule = GrammarRule(Matcher("path", "*"), [Owner("team", self.team.slug)])
+        ProjectOwnership.objects.create(
+            project_id=self.project.id, schema=dump_schema([rule]), fallthrough=True
+        )
+
+        event = self.store_event(
+            data={
+                "message": "Hello world",
+                "level": "error",
+                "stacktrace": {"frames": [{"filename": "foo.py"}]},
+            },
+            project_id=self.project.id,
+        )
+
+        action_data = {
+            "id": "sentry.mail.actions.NotifyEmailAction",
+            "targetType": "IssueOwners",
+            "targetIdentifier": "",
+        }
+        rule = Rule.objects.create(
+            project=self.project,
+            label="ja rule",
+            data={
+                "match": "all",
+                "actions": [action_data],
+            },
+        )
+
+        notification = AlertRuleNotification(
+            Notification(event=event, rule=rule), ActionTargetType.ISSUE_OWNERS, self.team.id
+        )
+
+        with self.tasks():
+            notification.send()
+
+        # check that only one was sent out - more would mean each user is being notified
+        # rather than the team
+        assert len(responses.calls) == 1
+
+        # check that the team got a notification
+        data = parse_qs(responses.calls[0].request.body)
+        assert data["channel"] == ["CXXXXXXX2"]
+        assert "attachments" in data
+        attachments = json.loads(data["attachments"][0])
+        assert len(attachments) == 1
+        assert attachments[0]["title"] == "Hello world"
+        assert (
+            attachments[0]["footer"]
+            == f"{self.project.slug} | <http://testserver/settings/{self.organization.slug}/teams/{self.team.slug}/notifications/?referrer=AlertRuleSlackTeam|Notification Settings>"
+        )
+
+    @responses.activate
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     def test_issue_alert_team(self, mock_func):
         """Test that issue alerts are sent to a team in Slack."""
 
