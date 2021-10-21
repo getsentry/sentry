@@ -10,7 +10,9 @@ import ContextMenu from 'app/views/dashboardsV2/contextMenu';
 
 import {GenericPerformanceWidgetDataType} from '../types';
 import {PerformanceWidgetSetting, WIDGET_DEFINITIONS} from '../widgetDefinitions';
+import {LineChartListWidget} from '../widgets/lineChartListWidget';
 import {SingleFieldAreaWidget} from '../widgets/singleFieldAreaWidget';
+import {TrendsWidget} from '../widgets/trendsWidget';
 
 import {ChartRowProps} from './widgetChartRow';
 
@@ -75,6 +77,7 @@ const _WidgetContainer = (props: Props) => {
   };
 
   const widgetProps = {
+    chartSetting,
     ...WIDGET_DEFINITIONS({organization})[chartSetting],
     ContainerActions: containerProps => (
       <WidgetContainerActions
@@ -87,9 +90,11 @@ const _WidgetContainer = (props: Props) => {
 
   switch (widgetProps.dataType) {
     case GenericPerformanceWidgetDataType.trends:
-      throw new Error('Trends not currently supported.');
+      return <TrendsWidget {...props} {...widgetProps} />;
     case GenericPerformanceWidgetDataType.area:
       return <SingleFieldAreaWidget {...props} {...widgetProps} />;
+    case GenericPerformanceWidgetDataType.line_list:
+      return <LineChartListWidget {...props} {...widgetProps} />;
     default:
       throw new Error(`Widget type "${widgetProps.dataType}" has no implementation.`);
   }

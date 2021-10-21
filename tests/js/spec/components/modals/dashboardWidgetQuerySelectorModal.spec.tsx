@@ -1,5 +1,3 @@
-import {browserHistory} from 'react-router';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
@@ -138,8 +136,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     const wrapper = mountModal({initialData, widget: mockWidget});
     // @ts-expect-error
     await tick();
-    wrapper.find('OpenInDiscoverButton').simulate('click');
-    expect(browserHistory.push).toHaveBeenCalledWith(
+    expect(wrapper.find('QueryContainer').find('Link').props().to).toEqual(
       expect.objectContaining({
         pathname: '/organizations/org-slug/discover/results/',
         query: expect.objectContaining({
@@ -159,8 +156,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     const wrapper = mountModal({initialData, widget: mockWidget});
     // @ts-expect-error
     await tick();
-    wrapper.find('OpenInDiscoverButton').simulate('click');
-    expect(browserHistory.push).toHaveBeenCalledWith({
+    expect(wrapper.find('QueryContainer').find('Link').props().to).toEqual({
       pathname: '/organizations/org-slug/discover/results/',
       query: expect.objectContaining({
         field: ['geo.country_code', 'count()'],

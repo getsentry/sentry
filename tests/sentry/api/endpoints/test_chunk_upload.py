@@ -1,11 +1,13 @@
 from hashlib import sha1
 
+import pytest
 from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
 from sentry import options
 from sentry.api.endpoints.chunk import (
+    API_PREFIX,
     HASH_ALGORITHM,
     MAX_CHUNKS_PER_REQUEST,
     MAX_CONCURRENCY,
@@ -16,6 +18,10 @@ from sentry.testutils import APITestCase
 
 
 class ChunkUploadTest(APITestCase):
+    @pytest.fixture(autouse=True)
+    def _restore_upload_url_options(self):
+        options.delete("system.upload-url-prefix")
+
     def setUp(self):
         self.organization = self.create_organization(owner=self.user)
         self.token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
@@ -33,13 +39,60 @@ class ChunkUploadTest(APITestCase):
         assert response.data["maxFileSize"] == options.get("system.maximum-file-size")
         assert response.data["concurrency"] == MAX_CONCURRENCY
         assert response.data["hashAlgorithm"] == HASH_ALGORITHM
-        assert response.data["url"] == self.url.replace("/api/0", "/")
+        assert response.data["url"] == options.get("system.url-prefix") + self.url
 
         options.set("system.upload-url-prefix", "test")
         response = self.client.get(
             self.url, HTTP_AUTHORIZATION=f"Bearer {self.token.token}", format="json"
         )
 
+        assert response.data["url"] == options.get("system.upload-url-prefix") + self.url
+
+    def test_relative_url_support(self):
+        # Starting `sentry-cli@1.70.1` we added a support for relative chunk-uploads urls
+
+        # >= 1.70.1
+        response = self.client.get(
+            self.url,
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+            HTTP_USER_AGENT="sentry-cli/1.70.1",
+            format="json",
+        )
+        assert response.data["url"] == self.url.lstrip(API_PREFIX)
+
+        response = self.client.get(
+            self.url,
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+            HTTP_USER_AGENT="sentry-cli/2.77.4",
+            format="json",
+        )
+        assert response.data["url"] == self.url.lstrip(API_PREFIX)
+
+        # < 1.70.1
+        response = self.client.get(
+            self.url,
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+            HTTP_USER_AGENT="sentry-cli/1.70.0",
+            format="json",
+        )
+        assert response.data["url"] == options.get("system.url-prefix") + self.url
+
+        response = self.client.get(
+            self.url,
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+            HTTP_USER_AGENT="sentry-cli/0.69.3",
+            format="json",
+        )
+        assert response.data["url"] == options.get("system.url-prefix") + self.url
+
+        # user overriden upload url prefix has priority, even when calling from sentry-cli that supports relative urls
+        options.set("system.upload-url-prefix", "test")
+        response = self.client.get(
+            self.url,
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+            HTTP_USER_AGENT="sentry-cli/1.70.1",
+            format="json",
+        )
         assert response.data["url"] == options.get("system.upload-url-prefix") + self.url
 
     def test_large_uploads(self):

@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import Button from 'app/components/button';
 import FeatureBadge from 'app/components/featureBadge';
 import * as Layout from 'app/components/layouts/thirds';
 import Link from 'app/components/links/link';
@@ -20,6 +21,17 @@ function StatsHeader({organization, activeTab}: Props) {
         <StyledHeaderContent>
           <StyledLayoutTitle>{t('Stats')}</StyledLayoutTitle>
         </StyledHeaderContent>
+        {activeTab === 'team' && (
+          <Layout.HeaderActions>
+            <Button
+              title={t('Send us feedback via email')}
+              size="small"
+              href="mailto:workflow-feedback@sentry.io?subject=Team Stats Feedback"
+            >
+              {t('Give Feedback')}
+            </Button>
+          </Layout.HeaderActions>
+        )}
       </BorderlessHeader>
       <Layout.Header>
         <Layout.HeaderNavTabs underlined>
@@ -44,6 +56,9 @@ export default StatsHeader;
 
 const BorderlessHeader = styled(Layout.Header)`
   border-bottom: 0;
+
+  /* Not enough buttons to change direction for mobile view */
+  grid-template-columns: 1fr auto;
 `;
 
 const StyledHeaderContent = styled(Layout.HeaderContent)`

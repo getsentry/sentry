@@ -120,9 +120,8 @@ describe('Dashboards > WidgetCard', function () {
 
     const menuOptions = wrapper.find('ContextMenu').props().children;
     expect(menuOptions.length > 0).toBe(true);
-    expect(menuOptions[0].props.children).toEqual(t('Open in Discover'));
-    menuOptions[0].props.onClick(mockEvent);
-    expect(browserHistory.push).toHaveBeenCalledWith(
+    expect(menuOptions[0].props.children.props.children).toEqual(t('Open in Discover'));
+    expect(menuOptions[0].props.to).toEqual(
       expect.objectContaining({
         pathname: '/organizations/org-slug/discover/results/',
         query: expect.objectContaining({
