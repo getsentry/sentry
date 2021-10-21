@@ -1820,7 +1820,14 @@ SENTRY_DEVSERVICES = {
     ),
     "snuba": lambda settings, options: (
         {
-            "image": "getsentry/snuba:nightly",
+            "image": "getsentry/snuba:nightly" if not APPLE_ARM64
+            # We don't yet have a way to produce a Snuba arm64 image as part of our release process, thus, we build it
+            # by hand (docker build . -t armenzg/snuba:4602206-arm64-test) on an Apple arm64 host
+            # This is because the amd64 image does not support pthread robust mutexes affecting uWSGI
+            # For details see: https://github.com/getsentry/snuba/issues/2147
+            # If you need to test against the latest Snuba, you need to start devservices w/o snuba
+            # and start `snuba api`
+            else "armenzg/snuba:4602206-arm64-test",
             "pull": True,
             "ports": {"1218/tcp": 1218},
             "command": ["devserver"],
