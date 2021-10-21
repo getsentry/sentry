@@ -6,7 +6,7 @@ import isEqual from 'lodash/isEqual';
 import throttle from 'lodash/throttle';
 
 import Button from 'app/components/button';
-import BarChart from 'app/components/charts/barChart';
+import BarChart, {BarChartSeries} from 'app/components/charts/barChart';
 import BarChartZoom from 'app/components/charts/barChartZoom';
 import MarkLine from 'app/components/charts/components/markLine';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
@@ -418,7 +418,7 @@ class VitalCard extends Component<Props, State> {
     }
   }
 
-  getBaselineSeries() {
+  getBaselineSeries(): BarChartSeries | null {
     const {theme, chartData} = this.props;
     const summary = this.summary;
     if (summary === null || this.state.refPixelRect === null) {
@@ -466,23 +466,19 @@ class VitalCard extends Component<Props, State> {
         color: theme.textColor,
         type: 'solid',
       },
-    });
-
-    // TODO(tonyx): This conflicts with the types declaration of `MarkLine`
-    // if we add it in the constructor. So we opt to add it here so typescript
-    // doesn't complain.
-    (markLine as any).tooltip = {
-      formatter: () => {
-        return [
-          '<div class="tooltip-series tooltip-series-solo">',
-          '<span class="tooltip-label">',
-          `<strong>${t('p75')}</strong>`,
-          '</span>',
-          '</div>',
-          '<div class="tooltip-arrow"></div>',
-        ].join('');
+      tooltip: {
+        formatter: () => {
+          return [
+            '<div class="tooltip-series tooltip-series-solo">',
+            '<span class="tooltip-label">',
+            `<strong>${t('p75')}</strong>`,
+            '</span>',
+            '</div>',
+            '<div class="tooltip-arrow"></div>',
+          ].join('');
+        },
       },
-    };
+    });
 
     return {
       seriesName: t('p75'),

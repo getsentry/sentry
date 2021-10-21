@@ -6,9 +6,7 @@ export default function MapSeries(props: MapSeriesOption = {map: ''}): MapSeries
   return {
     roam: true,
     itemStyle: {
-      // TODO(ts): label doesn't seem to exist on the emphasis? I have not
-      //           verified if removing this has an affect on the world chart.
-      emphasis: {label: {show: false}} as any,
+      emphasis: {label: {show: false}},
     },
     ...props,
     type: 'map',

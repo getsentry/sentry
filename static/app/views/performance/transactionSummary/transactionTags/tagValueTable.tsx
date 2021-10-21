@@ -281,7 +281,7 @@ export class TagValueTable extends Component<Props, State> {
               newColumns
             ) as any,
             renderBodyCell: this.renderBodyCellWithData(this.props) as any,
-            onResizeColumn: this.handleResizeColumn as any,
+            onResizeColumn: this.handleResizeColumn,
           }}
           location={location}
         />
