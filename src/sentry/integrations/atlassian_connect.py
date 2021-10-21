@@ -113,9 +113,6 @@ def authenticate_asymmetric_jwt(token: Optional[str]) -> Optional[Mapping[str, s
     )
     if not decoded_claims:
         raise AtlassianConnectValidationError("Unable to verify asymmetric installation JWT")
-
-    print("🔥🔥🔥🔥")
-    print("Verified claims via CDN (should only happen on installation events)")
     return decoded_claims
 
 
