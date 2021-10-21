@@ -20,6 +20,7 @@ import withApi from 'app/utils/withApi';
 import {vitalDetailRouteWithQuery} from 'app/views/performance/vitalDetail/utils';
 import {_VitalChart} from 'app/views/performance/vitalDetail/vitalChart';
 
+import {excludeTransaction} from '../../utils';
 import {VitalBar} from '../../vitalsCards';
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import SelectableList, {RightAlignedCell} from '../components/selectableList';
