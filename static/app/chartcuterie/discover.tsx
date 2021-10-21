@@ -1,7 +1,9 @@
-import echarts, {EChartOption} from 'echarts';
+import 'app/components/charts/components/visualMap';
+
+import {EChartOption} from 'echarts';
+import * as echarts from 'echarts';
 import isArray from 'lodash/isArray';
 
-import VisualMap from 'app/components/charts/components/visualMap';
 import XAxis from 'app/components/charts/components/xAxis';
 import AreaSeries from 'app/components/charts/series/areaSeries';
 import BarSeries from 'app/components/charts/series/barSeries';
@@ -23,9 +25,9 @@ const discoverxAxis = XAxis({
   axisLabel: {fontSize: 11},
 });
 
-import map from 'app/data/world.json';
+const worldMap = require('app/data/world.json');
 
-echarts.registerMap('sentryWorld', map);
+echarts.registerMap('sentryWorld', worldMap);
 
 export const discoverCharts: RenderDescriptor<ChartType>[] = [];
 
@@ -376,21 +378,19 @@ discoverCharts.push({
 
     return {
       backgroundColor: theme.background,
-      visualMap: [
-        VisualMap({
-          left: 'right',
-          min: 0,
-          max: 10,
-          inRange: {
-            color: [theme.purple200, theme.purple300],
-          },
-          text: ['High', 'Low'],
-          textStyle: {
-            color: theme.textColor,
-          },
-          calculable: false,
-        }),
-      ],
+      visualMap: {
+        left: 'right',
+        min: 0,
+        max: 10,
+        inRange: {
+          color: [theme.purple200, theme.purple300],
+        },
+        text: ['High', 'Low'],
+        textStyle: {
+          color: theme.textColor,
+        },
+        calculable: false,
+      },
       series: [mapSeries],
     };
   },
