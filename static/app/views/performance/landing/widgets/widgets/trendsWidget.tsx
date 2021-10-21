@@ -2,7 +2,6 @@ import {Fragment, FunctionComponent, useMemo, useState} from 'react';
 import {withRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
-import omit from 'lodash/omit';
 
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Link from 'app/components/links/link';
@@ -64,7 +63,7 @@ export function TrendsWidget(props: Props) {
       field: 'trend_percentage()',
     },
   ];
-  const rest = {eventView, ...omit(props, 'eventView')};
+  const rest = {...props, eventView};
   eventView.additionalConditions.addFilterValues('tpm()', ['>0.01']);
   eventView.additionalConditions.addFilterValues('count_percentage()', ['>0.25', '<4']);
   eventView.additionalConditions.addFilterValues('trend_percentage()', ['>0%']);
