@@ -8,6 +8,7 @@ import {Client} from 'app/api';
 import AreaChart from 'app/components/charts/areaChart';
 import BarChart from 'app/components/charts/barChart';
 import EventsChart from 'app/components/charts/eventsChart';
+import {getInterval} from 'app/components/charts/utils';
 import WorldMapChart from 'app/components/charts/worldMapChart';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {Panel} from 'app/components/panels';
@@ -89,6 +90,18 @@ class ResultsChart extends Component<ResultsChartProps> {
         : hasConnectDiscoverAndDashboards && yAxisValue.length > 1 && !isDaily
         ? AreaChart
         : undefined;
+    const interval =
+      display === DisplayModes.BAR
+        ? getInterval(
+            {
+              start,
+              end,
+              period: globalSelection.datetime.period,
+              utc: utc === 'true',
+            },
+            'low'
+          )
+        : eventView.interval;
 
     return (
       <Fragment>
@@ -109,7 +122,7 @@ class ResultsChart extends Component<ResultsChartProps> {
               disablePrevious={!isPrevious}
               disableReleases={!isPeriod}
               field={isTopEvents ? apiPayload.field : undefined}
-              interval={eventView.interval}
+              interval={interval}
               showDaily={isDaily}
               topEvents={isTopEvents ? topEvents : undefined}
               orderby={isTopEvents ? decodeScalar(apiPayload.sort) : undefined}
