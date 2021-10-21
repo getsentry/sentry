@@ -157,7 +157,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       'LCP Distribution'
     );
 
-    // Add histogram mock
+    // TODO(k-fish): Add histogram mock
   });
 
   it('FCP Histogram Widget', async function () {
@@ -177,7 +177,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       'FCP Distribution'
     );
 
-    // Add histogram mock
+    // TODO(k-fish): Add histogram mock
   });
 
   it('Most errors widget', async function () {
