@@ -69,6 +69,7 @@ export {IconPrint} from './iconPrint';
 export {IconProject} from './iconProject';
 export {IconProjects} from './iconProjects';
 export {IconQuestion} from './iconQuestion';
+export {IconRectangle} from './iconRectangle';
 export {IconRefresh} from './iconRefresh';
 export {IconReleases} from './iconReleases';
 export {IconReturn} from './iconReturn';
