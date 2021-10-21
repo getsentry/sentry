@@ -20,7 +20,7 @@ MAX_REQUEST_SIZE = 32 * 1024 * 1024
 MAX_CONCURRENCY = settings.DEBUG and 1 or 8
 HASH_ALGORITHM = "sha1"
 SENTRYCLI_SEMVER_RE = re.compile(r"^sentry-cli\/(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+).*$")
-
+API_PREFIX = "/api/0"
 CHUNK_UPLOAD_ACCEPT = (
     "debug_files",  # DIF assemble
     "release_files",  # Release files assemble
@@ -65,8 +65,7 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         if len(endpoint) == 0:
             # And we support relative url uploads, return a relative, versionless endpoint (with `/api/0` stripped)
             if supports_relative_url:
-                prefix = "/api/0"
-                url = relative_url.replace(prefix, "/")
+                url = relative_url.lstrip(API_PREFIX)
             # Otherwise, if we do not support them, return an absolute, versioned endpoint with a default, system-wide prefix
             else:
                 endpoint = options.get("system.url-prefix")
