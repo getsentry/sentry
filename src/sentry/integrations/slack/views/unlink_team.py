@@ -1,6 +1,6 @@
 from django.core.signing import BadSignature, SignatureExpired
+from django.http.response import HttpResponse
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry.integrations.utils import get_identity_or_404
 from sentry.models import ExternalActor, Identity, Integration
@@ -42,7 +42,7 @@ def build_team_unlinking_url(
 class SlackUnlinkTeamView(BaseView):  # type: ignore
     @transaction_start("SlackUnlinkIdentityView")
     @never_cache
-    def handle(self, request: Request, signed_params: str) -> Response:
+    def handle(self, request: Request, signed_params: str) -> HttpResponse:
         try:
             params = unsign(signed_params)
         except (SignatureExpired, BadSignature):

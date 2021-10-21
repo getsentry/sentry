@@ -1,8 +1,10 @@
 import logging
+from typing import Any, Dict, Mapping, Optional
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.http import HttpResponse
+from django.http.request import HttpRequest
 from django.template import loader
 
 from sentry.auth import access
@@ -12,7 +14,9 @@ from sentry.utils.auth import get_login_url  # NOQA: backwards compatibility
 logger = logging.getLogger("sentry")
 
 
-def get_default_context(request, existing_context=None, team=None):
+def get_default_context(
+    request: HttpRequest, existing_context: Optional[Mapping[str, Any]] = None, team: Team = None
+) -> Dict[str, Any]:
     from sentry import options
     from sentry.plugins.base import plugins
 
@@ -64,7 +68,9 @@ def get_default_context(request, existing_context=None, team=None):
     return context
 
 
-def render_to_string(template, context=None, request=None):
+def render_to_string(
+    template: str, context: Dict[str, Any] = None, request: HttpRequest = None
+) -> str:
 
     # HACK: set team session value for dashboard redirect
     if context and "team" in context and isinstance(context["team"], Team):
@@ -83,7 +89,13 @@ def render_to_string(template, context=None, request=None):
     return loader.render_to_string(template, context=context, request=request)
 
 
-def render_to_response(template, context=None, request=None, status=200, content_type="text/html"):
+def render_to_response(
+    template: str,
+    context: Dict[str, Any] = None,
+    request: HttpRequest = None,
+    status: int = 200,
+    content_type="text/html",
+) -> HttpResponse:
     response = HttpResponse(render_to_string(template, context, request))
     response.status_code = status
     response["Content-Type"] = content_type

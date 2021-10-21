@@ -1,4 +1,5 @@
 import logging
+from typing import Any, Mapping
 
 from django.http import (
     HttpResponse,
@@ -278,7 +279,9 @@ class BaseView(View, OrganizationMixin):
         context = csrf(request)
         return context
 
-    def respond(self, template, context=None, status=200):
+    def respond(
+        self, template: str, context: Mapping[str, Any] = None, status: int = 200
+    ) -> HttpResponse:
         default_context = self.default_context
         if context:
             default_context.update(context)

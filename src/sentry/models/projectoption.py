@@ -52,7 +52,7 @@ class ProjectOptionManager(OptionManager["Project"]):
         return success
 
     def get_all_values(self, project: "Project") -> Mapping[str, Value]:
-        if isinstance(project, models.Model):
+        if isinstance(project, Project):
             project_id = project.id
         else:
             project_id = project

@@ -138,7 +138,7 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync): 
             )
         return data
 
-    def get_unmigratable_repositories(self) -> QuerySet:
+    def get_unmigratable_repositories(self) -> "QuerySet[Repository]":
         return Repository.objects.filter(
             organization_id=self.organization_id, provider="visualstudio"
         ).exclude(external_id__in=[r["identifier"] for r in self.get_repositories()])
@@ -551,7 +551,7 @@ class AccountConfigView(PipelineView):  # type: ignore
         return None
 
 
-class AccountForm(forms.Form):  # type: ignore
+class AccountForm(forms.Form):
     def __init__(self, accounts: Sequence[Mapping[str, str]], *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.fields["account"] = forms.ChoiceField(

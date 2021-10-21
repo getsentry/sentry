@@ -1,7 +1,7 @@
 import logging
 import time
 from random import random
-from typing import Any, Callable, Dict, Iterable, List, Optional, cast
+from typing import Any, Callable, Dict, Iterable, List, Optional
 
 import jsonschema
 import pytz
@@ -70,10 +70,10 @@ class QuerySubscriptionConsumer:
         self.group_id = group_id
         if not topic:
             # TODO(typing): Need a way to get the actual value of settings to avoid this
-            topic = cast(str, settings.KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS)
+            topic = settings.KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS  # type:ignore
 
         self.topic = topic
-        cluster_name: str = settings.KAFKA_TOPICS[topic]["cluster"]
+        cluster_name: str = settings.KAFKA_TOPICS[topic]["cluster"]  # type:ignore
         self.commit_batch_size = commit_batch_size
 
         # Adding time based commit behaviour

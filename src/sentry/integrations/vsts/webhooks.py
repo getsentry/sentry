@@ -28,7 +28,7 @@ class WorkItemWebhook(Endpoint):  # type: ignore
     def get_client(self, identity: Identity, oauth_redirect_url: str) -> VstsApiClient:
         return VstsApiClient(identity, oauth_redirect_url)
 
-    @csrf_exempt  # type: ignore
+    @csrf_exempt
     def dispatch(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         return super().dispatch(request, *args, **kwargs)
 

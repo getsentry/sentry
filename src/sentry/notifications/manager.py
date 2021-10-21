@@ -159,7 +159,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         scope_type: Optional[NotificationScopeType] = None,
         scope_identifier: Optional[int] = None,
         target_ids: Optional[Iterable[int]] = None,
-    ) -> QuerySet:
+    ) -> "QuerySet[NotificationSetting]":
         """Wrapper for .filter that translates types to actual attributes to column types."""
         filters: Dict[str, Union[int, Iterable[int]]] = {}
         if provider:
@@ -222,7 +222,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         team: Optional["Team"] = None,
         project: Optional["Project"] = None,
         organization: Optional["Organization"] = None,
-    ) -> QuerySet:
+    ) -> "QuerySet[NotificationSetting]":
         """Wrapper for .filter that translates object parameters to scopes and targets."""
         scope_type, scope_identifier = get_scope(user, team, project, organization)
         target_id = get_target_id(user, team)
@@ -233,7 +233,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         type: NotificationSettingTypes,
         user: "User",
         parents: List[Union["Organization", "Project"]],
-    ) -> QuerySet:
+    ) -> "QuerySet[NotificationSetting]":
         """
         Find all of a user's notification settings for a list of projects or
         organizations. This will include the user's parent-independent setting.
@@ -257,7 +257,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         type_: NotificationSettingTypes,
         parent: Union["Organization", "Project"],
         recipients: Iterable[Union["Team", "User"]],
-    ) -> QuerySet:
+    ) -> "QuerySet[NotificationSetting]":
         from sentry.models import Team, User
 
         """

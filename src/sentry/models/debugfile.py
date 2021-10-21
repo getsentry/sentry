@@ -81,7 +81,9 @@ class ProjectDebugFileManager(BaseManager):  # type: ignore
 
         return sorted(missing)
 
-    def find_by_checksums(self, checksums: Iterable[str], project: "Project") -> QuerySet:
+    def find_by_checksums(
+        self, checksums: Iterable[str], project: "Project"
+    ) -> "QuerySet[ProjectDebugFile]":
         if not checksums:
             return []
         checksums = [x.lower() for x in checksums]
