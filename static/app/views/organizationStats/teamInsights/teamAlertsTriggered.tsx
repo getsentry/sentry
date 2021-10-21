@@ -93,6 +93,7 @@ class TeamAlertsTriggered extends AsyncComponent<Props, State> {
               {
                 seriesName: t('Alerts Triggered'),
                 data: seriesData,
+                silent: true,
               },
             ].reverse()}
           />

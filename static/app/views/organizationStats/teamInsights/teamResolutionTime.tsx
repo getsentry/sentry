@@ -93,12 +93,15 @@ class TeamResolutionTime extends AsyncComponent<Props, State> {
           xAxis={{
             type: 'time',
           }}
-          series={[
-            {
-              seriesName: t('Time to Resolution'),
-              data: seriesData,
-            },
-          ].reverse()}
+          series={
+            [
+              {
+                seriesName: t('Time to Resolution'),
+                data: seriesData,
+                silent: true,
+              },
+            ] as any
+          }
         />
       </ChartWrapper>
     );
