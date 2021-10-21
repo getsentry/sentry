@@ -534,7 +534,7 @@ class MetricChart extends React.PureComponent<Props, State> {
                 showTimeInTooltip
                 forwardedRef={this.handleRef}
                 grid={{
-                  left: 0,
+                  left: space(0.25),
                   right: space(2),
                   top: space(2),
                   bottom: 0,
