@@ -12,8 +12,8 @@ from snuba_sdk.function import CurriedFunction, Function
 from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry.discover.arithmetic import (
-    Operation,
     OperandType,
+    Operation,
     is_equation_alias,
     resolve_equation_list,
 )
