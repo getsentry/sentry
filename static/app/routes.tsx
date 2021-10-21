@@ -926,19 +926,6 @@ function buildRoutes() {
     </Route>
   );
 
-  const teamInsightsRoutes = (
-    <Route
-      path="/organizations/:orgId/teamInsights/"
-      componentPromise={() => import('app/views/teamInsights')}
-      component={SafeLazyLoad}
-    >
-      <IndexRoute
-        componentPromise={() => import('app/views/teamInsights/overview')}
-        component={SafeLazyLoad}
-      />
-    </Route>
-  );
-
   const dashboardRoutes = (
     <Fragment>
       <Route
@@ -1121,12 +1108,16 @@ function buildRoutes() {
         />
         <Route
           path="commits/"
-          componentPromise={() => import('app/views/releases/detail/commits')}
+          componentPromise={() =>
+            import('app/views/releases/detail/commitsAndFiles/commits')
+          }
           component={SafeLazyLoad}
         />
         <Route
           path="files-changed/"
-          componentPromise={() => import('app/views/releases/detail/filesChanged')}
+          componentPromise={() =>
+            import('app/views/releases/detail/commitsAndFiles/filesChanged')
+          }
           component={SafeLazyLoad}
         />
         <Redirect from="new-events/" to="/organizations/:orgId/releases/:release/" />
@@ -1149,6 +1140,21 @@ function buildRoutes() {
       componentPromise={() => import('app/views/organizationStats')}
       component={SafeLazyLoad}
     />
+  );
+
+  const teamStatsRoutes = (
+    <Route
+      path="/organizations/:orgId/stats/team/"
+      componentPromise={() => import('app/views/organizationStats/teamInsights')}
+      component={SafeLazyLoad}
+    >
+      <IndexRoute
+        componentPromise={() =>
+          import('app/views/organizationStats/teamInsights/overview')
+        }
+        component={SafeLazyLoad}
+      />
+    </Route>
   );
 
   // TODO(mark) Long term this /queries route should go away and /discover
@@ -1762,7 +1768,6 @@ function buildRoutes() {
     <Route component={errorHandler(OrganizationDetails)}>
       {settingsRoutes}
       {projectsRoutes}
-      {teamInsightsRoutes}
       {dashboardRoutes}
       {userFeedbackRoutes}
       {issueListRoutes}
@@ -1772,6 +1777,7 @@ function buildRoutes() {
       {releasesRoutes}
       {activityRoutes}
       {statsRoutes}
+      {teamStatsRoutes}
       {discoverRoutes}
       {performanceRoutes}
       {adminManageRoutes}

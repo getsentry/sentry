@@ -2,6 +2,7 @@ import {SessionField, SessionStatus} from 'app/types';
 import {
   filterSessionsInTimeWindow,
   getCount,
+  getCountAtIndex,
   getCrashFreeRate,
   getSessionsInterval,
   getSessionStatusRate,
@@ -145,6 +146,16 @@ describe('utils/sessions', () => {
     });
     it('returns users count', () => {
       expect(getCount(groups, SessionField.USERS)).toBe(720);
+    });
+  });
+
+  describe('getCountAtIndex', () => {
+    const groups = [sessionsApiResponse.groups[1], sessionsApiResponse.groups[2]];
+    it('returns sessions count', () => {
+      expect(getCountAtIndex(groups, SessionField.SESSIONS, 1)).toBe(35);
+    });
+    it('returns users count', () => {
+      expect(getCountAtIndex(groups, SessionField.USERS, 1)).toBe(16);
     });
   });
 

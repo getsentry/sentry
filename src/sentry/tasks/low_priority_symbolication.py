@@ -10,7 +10,6 @@ This has three major tasks, executed in the following general order:
 
 import logging
 import time
-from typing import Iterable
 
 import sentry_sdk
 from typing_extensions import Literal
@@ -18,7 +17,11 @@ from typing_extensions import Literal
 from sentry import options
 from sentry.killswitches import normalize_value
 from sentry.processing import realtime_metrics
-from sentry.processing.realtime_metrics.base import BucketedCount, DurationHistogram
+from sentry.processing.realtime_metrics.base import (
+    BucketedCounts,
+    BucketedDurationsHistograms,
+    DurationsHistogram,
+)
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 
@@ -76,28 +79,75 @@ def update_lpq_eligibility(project_id: int, cutoff: int) -> None:
     should consider when calculating a project's eligibility. In other words, only data recorded
     before `cutoff` should be considered.
     """
-    try:
-        _update_lpq_eligibility(project_id, cutoff)
-    finally:
-        _record_metrics()
+    _update_lpq_eligibility(project_id, cutoff)
 
 
 def _update_lpq_eligibility(project_id: int, cutoff: int) -> None:
     # TODO: It may be a good idea to figure out how to debounce especially if this is
     # executing more than 10s after cutoff.
-    counts = realtime_metrics.get_counts_for_project(project_id, cutoff)
+
+    event_counts = realtime_metrics.get_counts_for_project(project_id, cutoff)
     durations = realtime_metrics.get_durations_for_project(project_id, cutoff)
 
-    is_eligible = calculation_magic(counts, durations)
+    excessive_rate = excessive_event_rate(project_id, event_counts)
+    excessive_duration = excessive_event_duration(project_id, durations)
 
-    if is_eligible:
+    if excessive_rate or excessive_duration:
         was_added = realtime_metrics.add_project_to_lpq(project_id)
         if was_added:
-            _report_change(project_id=project_id, change="added", reason="eligible")
+            reason = "rate" if excessive_rate else "duration"
+            if excessive_rate and excessive_duration:
+                reason = "rate-duration"
+            _report_change(project_id=project_id, change="added", reason=reason)
     else:
         was_removed = realtime_metrics.remove_projects_from_lpq({project_id})
         if was_removed:
             _report_change(project_id=project_id, change="removed", reason="ineligible")
+
+
+def excessive_event_rate(project_id: int, event_counts: BucketedCounts) -> bool:
+    """Whether the project is sending too many symbolication requests."""
+    total_rate = event_counts.rate(event_counts.TOTAL_PERIOD)
+    recent_rate = event_counts.rate(period=60)
+
+    metrics.gauge(
+        "symbolication.lpq.computation.rate.total", total_rate, tags={"project_id": project_id}
+    )
+    metrics.gauge(
+        "symbolication.lpq.computation.rate.recent", recent_rate, tags={"project_id": project_id}
+    )
+
+    if recent_rate > 50 and recent_rate > 5 * total_rate:
+        return True
+    else:
+        return False
+
+
+def excessive_event_duration(project_id: int, durations: BucketedDurationsHistograms) -> bool:
+    """Whether the project's symbolication requests are taking too long to process."""
+    total_histogram = DurationsHistogram(bucket_size=durations.histograms[0].bucket_size)
+    for histogram in durations.histograms:
+        total_histogram.incr_from(histogram)
+
+    try:
+        p75_duration = total_histogram.percentile(0.75)
+    except ValueError:
+        return False
+    events_per_minute = total_histogram.total_count() / (durations.total_time() / 60)
+
+    metrics.gauge(
+        "symbolication.lpq.computation.durations.p75", p75_duration, tags={"project_id": project_id}
+    )
+    metrics.gauge(
+        "symbolication.lpq.computation.durations.events_per_minutes",
+        events_per_minute,
+        tags={"project_id": project_id},
+    )
+
+    if events_per_minute > 15 and p75_duration > 6 * 60:
+        return True
+    else:
+        return False
 
 
 def _report_change(project_id: int, change: Literal["added", "removed"], reason: str) -> None:
@@ -112,7 +162,7 @@ def _report_change(project_id: int, change: Literal["added", "removed"], reason:
     with sentry_sdk.push_scope() as scope:
         scope.set_level("warning")
         scope.set_tag("project", project_id)
-        scope.set_tag("reason", reason)
+        scope.set_tag("lpq_reason", reason)
         sentry_sdk.capture_message(message)
 
 
@@ -147,9 +197,3 @@ def _record_metrics() -> None:
         "tasks.store.symbolicate_event.low_priority.projects.manual.never",
         never_included,
     )
-
-
-def calculation_magic(
-    invocations: Iterable[BucketedCount], durations: Iterable[DurationHistogram]
-) -> bool:
-    return False
