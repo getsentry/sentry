@@ -45,14 +45,13 @@ def build_subject_prefix(project: "Project") -> str:
 def get_unsubscribe_link(
     user_id: int, resource_id: int, key: str = "issue", referrer: Optional[str] = None
 ) -> str:
-    return str(
-        generate_signed_link(
-            user_id,
-            f"sentry-account-email-unsubscribe-{key}",
-            referrer,
-            kwargs={f"{key}_id": resource_id},
-        )
+    signed_link: str = generate_signed_link(
+        user_id,
+        f"sentry-account-email-unsubscribe-{key}",
+        referrer,
+        kwargs={f"{key}_id": resource_id},
     )
+    return signed_link
 
 
 def log_message(notification: BaseNotification, recipient: Union["Team", "User"]) -> None:
