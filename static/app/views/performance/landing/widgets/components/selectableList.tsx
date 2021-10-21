@@ -53,10 +53,8 @@ export const RightAlignedCell = styled('div')`
 `;
 
 const ListItemContainer = styled('div')`
-  display: grid;
-  grid-template-columns: 24px auto 150px 30px;
-  grid-template-rows: repeat(2, auto);
-  grid-column-gap: ${space(1)};
+  display: flex;
+
   border-top: 1px solid ${p => p.theme.border};
   padding: ${space(1)} ${space(2)};
 `;

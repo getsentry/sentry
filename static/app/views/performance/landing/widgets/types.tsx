@@ -110,6 +110,8 @@ export type GenericPerformanceWidgetProps<T extends WidgetDataConstraint> = {
 
   // Components
   HeaderActions?: HeaderActions<T>;
+  EmptyComponent?: FunctionComponent<{height?: number}>;
+
   Queries: Queries<T>;
   Visualizations: Visualizations<T>;
 };

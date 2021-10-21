@@ -486,7 +486,11 @@ function TrendsListItem(props: TrendsListItemProps) {
   );
 }
 
-const CompareDurations = ({transaction}: TrendsListItemProps) => {
+export const CompareDurations = ({
+  transaction,
+}: {
+  transaction: TrendsListItemProps['transaction'];
+}) => {
   const {fromSeconds, toSeconds, showDigits} = transformDeltaSpread(
     transaction.aggregate_range_1,
     transaction.aggregate_range_2
