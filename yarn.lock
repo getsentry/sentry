@@ -14651,10 +14651,10 @@ typescript@^4.4.4:
   resolved "https://registry.yarnpkg.com/typescript/-/typescript-4.4.4.tgz#2cd01a1a1f160704d3101fd5a58ff0f9fcb8030c"
   integrity sha512-DqGhF5IKoBl8WNf8C1gu8q0xZSInh9j1kJJMqT3a94w1JzVaBU4EXOSMrz9yDqMT0xt3selp83fuFMQ0uzv6qA==
 
-u2f-api@1.0.10:
-  version "1.0.10"
-  resolved "https://registry.yarnpkg.com/u2f-api/-/u2f-api-1.0.10.tgz#38d898a72daa6362040b27e37c8286d96cb8d320"
-  integrity sha512-0Zh+IqM2l6xaA/IUJDT9WwoEM6nwPx6ive4flVVYEfzzgXIrKFRaenieItsEkbXIgOZEw13nO3o3oLtSDOyesA==
+u2f-api@^1.2.1:
+  version "1.2.1"
+  resolved "https://registry.yarnpkg.com/u2f-api/-/u2f-api-1.2.1.tgz#9aa599eaa0c4e6c89683204a0530c28924c3a7b5"
+  integrity sha512-4kfxen+mVxYkdJWHIS7c4HxsqNUs6fkrxlMLi7uQTVVYMVfTh73PhYoAmp1B0PRGELGDiKmXlssgqxcPvtpfSg==
 
 ua-parser-js@^0.7.18:
   version "0.7.28"
