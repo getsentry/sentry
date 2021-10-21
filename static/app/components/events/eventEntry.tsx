@@ -12,7 +12,7 @@ import Spans from 'app/components/events/interfaces/spans';
 import Stacktrace from 'app/components/events/interfaces/stacktrace';
 import Template from 'app/components/events/interfaces/template';
 import Threads from 'app/components/events/interfaces/threads';
-import Trace from 'app/components/events/interfaces/trace';
+import ThreadsV2 from 'app/components/events/interfaces/threadsV2';
 import {Group, Organization, Project, SharedViewOrganization} from 'app/types';
 import {Entry, EntryType, Event, EventTransaction} from 'app/types/event';
 
@@ -108,7 +108,14 @@ function EventEntry({
     case EntryType.THREADS: {
       const {data, type} = entry;
       return hasNativeStackTraceV2 ? (
-        <Trace type={EntryType.THREADS} event={event} />
+        <ThreadsV2
+          type={type}
+          event={event}
+          data={data}
+          projectId={projectSlug}
+          groupingCurrentLevel={groupingCurrentLevel}
+          hasHierarchicalGrouping={hasHierarchicalGrouping}
+        />
       ) : (
         <Threads
           type={type}
@@ -117,7 +124,6 @@ function EventEntry({
           projectId={projectSlug}
           groupingCurrentLevel={groupingCurrentLevel}
           hasHierarchicalGrouping={hasHierarchicalGrouping}
-          organization={organization as Organization}
         />
       );
     }
