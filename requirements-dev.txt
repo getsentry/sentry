@@ -10,3 +10,5 @@ pytest-django==3.10.0
 pytest-sentry==0.1.9
 pytest-rerunfailures==9.1.1
 responses==0.10.12
+djangorestframework-stubs==1.4.0
+django-stubs==1.7.0
