@@ -7,6 +7,8 @@ from sentry.models import (
     CommitAuthor,
     Group,
     GroupAssignee,
+    GroupHistory,
+    GroupHistoryStatus,
     GroupInbox,
     GroupInboxReason,
     GroupLink,
@@ -41,6 +43,10 @@ class ResolvedInCommitTest(TestCase):
             id=group.id, status=GroupStatus.RESOLVED, resolved_at__isnull=False
         ).exists()
         assert not GroupInbox.objects.filter(group=group).exists()
+        assert GroupHistory.objects.filter(
+            group=group,
+            status=GroupHistoryStatus.SET_RESOLVED_IN_COMMIT,
+        ).exists()
 
     def assertNotResolvedFromCommit(self, group, commit):
         assert not GroupLink.objects.filter(

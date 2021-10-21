@@ -31,6 +31,7 @@ class SlackIntegrationLinkIdentityTestBase(TestCase):
 class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
     @responses.activate
     def test_basic_flow(self):
+        """Do the auth flow and assert that the identity was created."""
         linking_url = build_linking_url(
             self.integration, self.external_id, self.channel_id, self.response_url
         )
@@ -92,7 +93,10 @@ class SlackIntegrationUnlinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
         self.assertTemplateUsed(response, "sentry/auth-unlink-identity.html")
 
         # Unlink identity of user.
-        self.client.post(self.unlinking_url)
+        response = self.client.post(self.unlinking_url)
+        assert response.status_code == 200
+        self.assertTemplateUsed(response, "sentry/integrations/slack/unlinked.html")
+
         assert not Identity.objects.filter(external_id="new-slack-id", user=self.user).exists()
         assert len(responses.calls) == 1
 
