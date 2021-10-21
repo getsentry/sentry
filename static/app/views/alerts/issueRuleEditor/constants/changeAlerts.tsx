@@ -6,7 +6,7 @@ export const CHANGE_ALERT_CONDITION_IDS = [
 
 export const CHANGE_ALERT_PLACEHOLDERS_LABELS = {
   'sentry.rules.conditions.event_frequency.EventFrequencyCondition':
-    'Number of errors in an issue is...',
+    'Number of events in an issue is...',
   'sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition':
     'Number of users affected by an issue is...',
   'sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition':
