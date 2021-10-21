@@ -1,3 +1,5 @@
+import {ComponentProps} from 'react';
+
 import diagramApdex from 'sentry-images/spot/alerts-wizard-apdex.svg';
 import diagramCLS from 'sentry-images/spot/alerts-wizard-cls.svg';
 import diagramCrashFreeSessions from 'sentry-images/spot/alerts-wizard-crash-free-sessions.svg';
@@ -12,6 +14,7 @@ import diagramThroughput from 'sentry-images/spot/alerts-wizard-throughput.svg';
 import diagramTransactionDuration from 'sentry-images/spot/alerts-wizard-transaction-duration.svg';
 import diagramUsers from 'sentry-images/spot/alerts-wizard-users-experiencing-errors.svg';
 
+import FeatureBadge from 'app/components/featureBadge';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import {
@@ -53,7 +56,11 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
   crash_free_users: t('Crash Free User Rate'),
 };
 
-type AlertWizardCategory = {categoryHeading: string; options: AlertType[]};
+type AlertWizardCategory = {
+  categoryHeading: string;
+  options: AlertType[];
+  featureBadgeType?: ComponentProps<typeof FeatureBadge>['type'];
+};
 export const getAlertWizardCategories = (org: Organization): AlertWizardCategory[] => [
   {
     categoryHeading: t('Errors'),
@@ -64,6 +71,7 @@ export const getAlertWizardCategories = (org: Organization): AlertWizardCategory
         {
           categoryHeading: t('Sessions'),
           options: ['crash_free_sessions', 'crash_free_users'] as AlertType[],
+          featureBadgeType: 'beta' as const,
         },
       ]
     : []),
