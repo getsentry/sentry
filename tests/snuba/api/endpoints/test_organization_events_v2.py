@@ -1,5 +1,5 @@
 from base64 import b64encode
-from unittest import mock, zip
+from unittest import mock
 
 import pytest
 from django.urls import reverse

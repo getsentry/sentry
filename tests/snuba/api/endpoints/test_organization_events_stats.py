@@ -1,6 +1,6 @@
 import uuid
 from datetime import timedelta
-from unittest import mock, zip
+from unittest import mock
 from uuid import uuid4
 
 import dateutil.parser as parse_date

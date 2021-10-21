@@ -1,5 +1,5 @@
 from time import time
-from unittest import mock, zip
+from unittest import mock
 
 import pytest
 
