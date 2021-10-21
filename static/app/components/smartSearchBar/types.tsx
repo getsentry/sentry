@@ -6,6 +6,7 @@ export enum ItemType {
   FIRST_RELEASE = 'first-release',
   INVALID_TAG = 'invalid-tag',
   RECENT_SEARCH = 'recent-search',
+  PROPERTY = 'property',
 }
 
 export type SearchGroup = {

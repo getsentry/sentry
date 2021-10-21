@@ -135,8 +135,12 @@ export function resetCursors() {
   return cursors;
 }
 
-export function getCurrentTrendFunction(location: Location): TrendFunction {
-  const trendFunctionField = decodeScalar(location?.query?.trendFunction);
+export function getCurrentTrendFunction(
+  location: Location,
+  _trendFunctionField?: TrendFunctionField
+): TrendFunction {
+  const trendFunctionField =
+    _trendFunctionField ?? decodeScalar(location?.query?.trendFunction);
   const trendFunction = TRENDS_FUNCTIONS.find(({field}) => field === trendFunctionField);
   return trendFunction || TRENDS_FUNCTIONS[0];
 }
