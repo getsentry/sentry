@@ -28,11 +28,12 @@ import space from 'app/styles/space';
 import {Actor, DateString, Organization, Project} from 'app/types';
 import getDynamicText from 'app/utils/getDynamicText';
 import Projects from 'app/utils/projects';
+import {COMPARISON_DELTA_OPTIONS} from 'app/views/alerts/incidentRules/constants';
 import {
+  Action,
   AlertRuleThresholdType,
   Dataset,
   IncidentRule,
-  Trigger,
 } from 'app/views/alerts/incidentRules/types';
 import {extractEventTypeFilterFromRule} from 'app/views/alerts/incidentRules/utils/getEventTypeFilter';
 import Timeline from 'app/views/alerts/rules/details/timeline';
@@ -127,7 +128,7 @@ export default class DetailsBody extends React.Component<Props> {
     );
   }
 
-  renderTrigger(trigger: Trigger): React.ReactNode {
+  renderTrigger(label: string, threshold: number, actions: Action[]): React.ReactNode {
     const {rule} = this.props;
 
     if (!rule) {
@@ -135,27 +136,50 @@ export default class DetailsBody extends React.Component<Props> {
     }
 
     const status =
-      trigger.label === 'critical'
+      label === 'critical'
         ? t('Critical')
-        : trigger.label === 'warning'
+        : label === 'warning'
         ? t('Warning')
         : t('Resolved');
     const statusIcon =
-      trigger.label === 'critical' ? (
+      label === 'critical' ? (
         <StyledIconRectangle color="red300" size="sm" />
-      ) : trigger.label === 'warning' ? (
+      ) : label === 'warning' ? (
         <StyledIconRectangle color="yellow300" size="sm" />
       ) : (
         <StyledIconRectangle color="green300" size="sm" />
       );
 
-    const thresholdTypeText =
-      rule.thresholdType === AlertRuleThresholdType.ABOVE ? t('above') : t('below');
+    const thresholdTypeText = (
+      label === 'resolved'
+        ? rule.thresholdType === AlertRuleThresholdType.BELOW
+        : rule.thresholdType === AlertRuleThresholdType.ABOVE
+    )
+      ? rule.comparisonDelta
+        ? t('higher')
+        : t('above')
+      : rule.comparisonDelta
+      ? t('lower')
+      : t('below');
 
-    const thresholdText = tct('If  [condition] in [timeWindow]', {
-      condition: `${thresholdTypeText} ${trigger.alertThreshold}`,
-      timeWindow: this.getTimeWindow(),
-    });
+    const thresholdText = rule.comparisonDelta
+      ? tct(
+          'When [threshold]% [comparisonType] in [timeWindow] compared to [comparisonDelta]',
+          {
+            threshold,
+            comparisonType: thresholdTypeText,
+            timeWindow: this.getTimeWindow(),
+            comparisonDelta: (
+              COMPARISON_DELTA_OPTIONS.find(
+                ({value}) => value === rule.comparisonDelta
+              ) ?? COMPARISON_DELTA_OPTIONS[0]
+            ).label,
+          }
+        )
+      : tct('If  [condition] in [timeWindow]', {
+          condition: `${thresholdTypeText} ${threshold}`,
+          timeWindow: this.getTimeWindow(),
+        });
 
     return (
       <TriggerConditionContainer>
@@ -163,7 +187,7 @@ export default class DetailsBody extends React.Component<Props> {
         <TriggerCondition>
           {status}
           <TriggerText>{thresholdText}</TriggerText>
-          {trigger.actions.map(
+          {actions.map(
             action =>
               action.desc && <TriggerText key={action.id}>{action.desc}</TriggerText>
           )}
@@ -204,8 +228,20 @@ export default class DetailsBody extends React.Component<Props> {
 
         <SidebarGroup>
           <Heading>{t('Thresholds and Actions')}</Heading>
-          {criticalTrigger && this.renderTrigger(criticalTrigger)}
-          {warningTrigger && this.renderTrigger(warningTrigger)}
+          {typeof criticalTrigger?.alertThreshold === 'number' &&
+            this.renderTrigger(
+              criticalTrigger.label,
+              criticalTrigger.alertThreshold,
+              criticalTrigger.actions
+            )}
+          {typeof warningTrigger?.alertThreshold === 'number' &&
+            this.renderTrigger(
+              warningTrigger.label,
+              warningTrigger.alertThreshold,
+              warningTrigger.actions
+            )}
+          {typeof rule.resolveThreshold === 'number' &&
+            this.renderTrigger('resolved', rule.resolveThreshold, [])}
         </SidebarGroup>
 
         <SidebarGroup>
