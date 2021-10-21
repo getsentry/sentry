@@ -170,7 +170,15 @@ class QuerySubscriptionConsumer:
 
         i = 0
         while not self.__shutdown_requested:
-            message = self.consumer.poll(0.1)
+            # TODO: Temporary code to treat consumer poll as a transaction. To be removed once
+            #       stress tests are completed.
+            with sentry_sdk.start_transaction(
+                op="poll",
+                name="query_subscription_consumer_poll",
+                sampled=random() <= options.get("subscriptions-query.sample-rate"),
+            ):
+                message = self.consumer.poll(0.1)
+
             if message is None:
                 continue
 
