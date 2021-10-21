@@ -189,30 +189,24 @@ def resolved_in_pull_request(instance, created, **kwargs):
                     user_list = list(instance.author.find_users())
                 else:
                     user_list = ()
+                acting_user = None
                 if user_list:
-                    Activity.objects.create(
-                        project_id=group.project_id,
-                        group=group,
-                        type=Activity.SET_RESOLVED_IN_PULL_REQUEST,
-                        ident=instance.id,
-                        user=user_list[0],
-                        data={"pull_request": instance.id},
-                    )
-                    record_group_history(
-                        group, GroupHistoryStatus.RESOLVED_IN_PULL_REQUEST, actor=user_list[0]
+                    acting_user = user_list[0]
+                    GroupAssignee.objects.assign(
+                        group=group, assigned_to=acting_user, acting_user=acting_user
                     )
 
-                    GroupAssignee.objects.assign(
-                        group=group, assigned_to=user_list[0], acting_user=user_list[0]
-                    )
-                else:
-                    Activity.objects.create(
-                        project_id=group.project_id,
-                        group=group,
-                        type=Activity.SET_RESOLVED_IN_PULL_REQUEST,
-                        ident=instance.id,
-                        data={"pull_request": instance.id},
-                    )
+                Activity.objects.create(
+                    project_id=group.project_id,
+                    group=group,
+                    type=Activity.SET_RESOLVED_IN_PULL_REQUEST,
+                    ident=instance.id,
+                    user=acting_user,
+                    data={"pull_request": instance.id},
+                )
+                record_group_history(
+                    group, GroupHistoryStatus.SET_RESOLVED_IN_PULL_REQUEST, actor=acting_user
+                )
         except IntegrityError:
             pass
         else:

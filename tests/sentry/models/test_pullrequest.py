@@ -1,7 +1,7 @@
 from hashlib import sha1
 from uuid import uuid4
 
-from sentry.models import Commit, PullRequest, Repository
+from sentry.models import Commit, GroupHistory, GroupHistoryStatus, PullRequest, Repository
 from sentry.testutils import TestCase
 
 
@@ -23,14 +23,19 @@ class FindReferencedGroupsTest(TestCase):
         assert len(groups) == 1
         assert group in groups
 
-        pr = PullRequest.objects.create(
-            key="1",
-            repository_id=repo.id,
-            organization_id=group.organization.id,
-            title="very cool PR to fix the thing",
-            message=f"Foo Biz\n\nFixes {group2.qualified_short_id}",
-        )
+        with self.feature("organizations:group-history"):
+            pr = PullRequest.objects.create(
+                key="1",
+                repository_id=repo.id,
+                organization_id=group.organization.id,
+                title="very cool PR to fix the thing",
+                message=f"Foo Biz\n\nFixes {group2.qualified_short_id}",
+            )
 
         groups = pr.find_referenced_groups()
         assert len(groups) == 1
         assert group2 in groups
+        assert GroupHistory.objects.filter(
+            group=group2,
+            status=GroupHistoryStatus.SET_RESOLVED_IN_PULL_REQUEST,
+        )
