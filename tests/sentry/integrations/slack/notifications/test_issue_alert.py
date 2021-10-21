@@ -286,8 +286,6 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest):
         with self.tasks():
             deliver_digest(key)
 
-        assert digests.call_count == 0
-
         # check that only one was sent out - more would mean each user is being notified
         # rather than the team
         assert len(responses.calls) == 1
@@ -595,8 +593,6 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest):
 
         with self.tasks():
             deliver_digest(key)
-
-        assert digests.call_count == 0
 
         attachment, text = get_attachment()
 
