@@ -45,7 +45,7 @@ class DigestNotification(ProjectNotification):
             project=self.project,
             target_type=self.target_type,
             target_identifier=self.target_identifier,
-            event=group.get_latest_event() or None,
+            event=group.get_latest_event(),
         )
 
     def get_filename(self) -> str:
