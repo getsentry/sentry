@@ -6,6 +6,7 @@ import isEqual from 'lodash/isEqual';
 
 import {Client} from 'app/api';
 import AreaChart from 'app/components/charts/areaChart';
+import BarChart from 'app/components/charts/barChart';
 import EventsChart from 'app/components/charts/eventsChart';
 import WorldMapChart from 'app/components/charts/worldMapChart';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
@@ -83,6 +84,8 @@ class ResultsChart extends Component<ResultsChartProps> {
     const chartComponent =
       display === DisplayModes.WORLDMAP
         ? WorldMapChart
+        : display === DisplayModes.BAR
+        ? BarChart
         : hasConnectDiscoverAndDashboards && yAxisValue.length > 1 && !isDaily
         ? AreaChart
         : undefined;
@@ -205,9 +208,7 @@ class ResultsChartContainer extends Component<ContainerProps> {
         }
         if (
           yAxis.length > 1 &&
-          ![DisplayModes.DEFAULT, DisplayModes.DAILY, DisplayModes.PREVIOUS].includes(
-            opt.value as DisplayModes
-          )
+          !MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES.includes(opt.value as DisplayModes)
         ) {
           return {
             ...opt,
