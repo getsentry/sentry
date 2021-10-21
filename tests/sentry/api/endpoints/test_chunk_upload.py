@@ -17,6 +17,10 @@ from sentry.testutils import APITestCase
 
 
 class ChunkUploadTest(APITestCase):
+    @pytest.fixture(autouse=True)
+    def _restore_upload_url_options(self):
+        options.delete("system.upload-url-prefix")
+
     def setUp(self):
         self.organization = self.create_organization(owner=self.user)
         self.token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
@@ -208,7 +212,3 @@ class ChunkUploadTest(APITestCase):
         )
 
         assert response.status_code == 400, response.content
-
-    @pytest.fixture(autouse=True)
-    def _restore_upload_url_options(self):
-        options.delete("system.upload-url-prefix")
