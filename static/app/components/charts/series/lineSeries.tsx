@@ -10,5 +10,11 @@ export default function LineSeries(props: LineSeriesOption): LineSeriesOption {
     symbolSize: theme.charts.symbolSize,
     ...props,
     type: 'line',
+    emphasis: {
+      scale: false,
+      lineStyle: {
+        width: undefined,
+      },
+    },
   };
 }

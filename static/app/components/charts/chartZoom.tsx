@@ -176,16 +176,6 @@ class ChartZoom extends React.Component<Props> {
    * Enable zoom immediately instead of having to toggle to zoom
    */
   handleChartReady = chart => {
-    // https://github.com/apache/echarts/issues/10274
-    // This attempts to activate the area zoom toolbox feature
-    setTimeout(() => {
-      chart.dispatchAction({
-        type: 'takeGlobalCursor',
-        key: 'dataZoomSelect',
-        dataZoomSelectActive: true,
-      });
-    }, 1000);
-
     callIfFunction(this.props.onChartReady, chart);
   };
 
@@ -239,11 +229,23 @@ class ChartZoom extends React.Component<Props> {
    * we can let the native zoom animation on the chart complete
    * before we update URL state and re-render
    */
-  handleChartFinished = () => {
+  handleChartFinished = (_props, chart) => {
     if (typeof this.zooming === 'function') {
       this.zooming();
       this.zooming = null;
     }
+
+    // This attempts to activate the area zoom toolbox feature
+    const zoom = chart._componentsViews.find(c => c._features && c._features.dataZoom);
+    if (zoom && !zoom._features.dataZoom._isZoomActive) {
+      // Calling dispatchAction will re-trigger handleChartFinished
+      chart.dispatchAction({
+        type: 'takeGlobalCursor',
+        key: 'dataZoomSelect',
+        dataZoomSelectActive: true,
+      });
+    }
+
     callIfFunction(this.props.onFinished);
   };
 
