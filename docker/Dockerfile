@@ -1,4 +1,4 @@
-FROM python:3.8.12-slim-buster
+FROM python:3.6.13-slim-buster
 
 LABEL maintainer="oss@sentry.io"
 LABEL org.opencontainers.image.title="Sentry"
@@ -68,8 +68,6 @@ RUN set -x \
   && apt-get update \
   && apt-get install -y --no-install-recommends $buildDeps \
   && pip install -r /tmp/dist/requirements.txt \
-  # Pending new release of snuba-sdk including e84684c271d25f7915bdad4d26dbb1b0cbb4eb10.
-  && pip uninstall -y dataclasses \
   && mkdir /tmp/uwsgi-dogstatsd \
   && wget -O - https://github.com/eventbrite/uwsgi-dogstatsd/archive/filters-and-tags.tar.gz | \
   tar -xzf - -C /tmp/uwsgi-dogstatsd --strip-components=1 \
