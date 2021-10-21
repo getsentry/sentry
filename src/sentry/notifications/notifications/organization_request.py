@@ -51,7 +51,7 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
         for member in members:
             self.set_member_in_cache(member)
         # convert members to users
-        return list(map(lambda member: member.user, members))
+        return map(lambda member: member.user, members)
 
     def determine_member_recipients(self) -> Iterable["OrganizationMember"]:
         """

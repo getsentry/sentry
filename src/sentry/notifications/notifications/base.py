@@ -50,8 +50,8 @@ class BaseNotification:
         return SlackNotificationsMessageBuilder
 
     @property
-    def org_slug(self):
-        return self.organization.slug
+    def org_slug(self) -> str:
+        return str(self.organization.slug)
 
     def get_filename(self) -> str:
         raise NotImplementedError
