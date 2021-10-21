@@ -242,10 +242,10 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
 
         sources_json = json.dumps(sources) if sources else ""
 
-        # If no sources are added, we're either only deleting sources or doing nothing.
+        # If no sources are added or modified, we're either only deleting sources or doing nothing.
         # This is always allowed.
-        added_sources = [s for s in sources if s not in orig_sources]
-        if not added_sources:
+        added_or_modified_sources = [s for s in sources if s not in orig_sources]
+        if not added_or_modified_sources:
             return sources_json
 
         # Adding sources is only allowed if custom symbol sources are enabled.
