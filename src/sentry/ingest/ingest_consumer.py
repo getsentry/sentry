@@ -31,7 +31,7 @@ from sentry.ingest.userreport import Conflict, save_userreport
 from sentry.killswitches import killswitch_matches_context
 from sentry.models import Project
 from sentry.signals import event_accepted
-from sentry.tasks.store import preprocess_event
+from sentry.tasks.store import preprocess_event, save_event_transaction
 from sentry.utils import json, metrics
 from sentry.utils.batching_kafka_consumer import AbstractBatchWorker
 from sentry.utils.cache import cache_key_for_event
@@ -279,17 +279,28 @@ def _load_event(
                     cache_key, attachments=attachment_objects, timeout=CACHE_TIMEOUT
                 )
 
-        # Preprocess this event, which spawns either process_event or
-        # save_event. Pass data explicitly to avoid fetching it again from the
-        # cache.
-        with sentry_sdk.start_span(op="ingest_consumer.process_event.preprocess_event"):
-            preprocess_event(
+        if data.get("type") == "transaction":
+            # No need for preprocess/process for transactions thus submit
+            # directly transaction specific save_event task.
+            save_event_transaction.delay(
                 cache_key=cache_key,
-                data=data,
+                data=None,
                 start_time=start_time,
                 event_id=event_id,
-                project=project,
+                project_id=project_id,
             )
+        else:
+            # Preprocess this event, which spawns either process_event or
+            # save_event. Pass data explicitly to avoid fetching it again from the
+            # cache.
+            with sentry_sdk.start_span(op="ingest_consumer.process_event.preprocess_event"):
+                preprocess_event(
+                    cache_key=cache_key,
+                    data=data,
+                    start_time=start_time,
+                    event_id=event_id,
+                    project=project,
+                )
 
         # remember for an 1 hour that we saved this event (deduplication protection)
         cache.set(deduplication_key, "", CACHE_TIMEOUT)
