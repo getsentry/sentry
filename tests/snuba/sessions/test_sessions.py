@@ -24,26 +24,6 @@ def make_24h_stats(ts):
     return _make_stats(datetime.utcfromtimestamp(ts).replace(tzinfo=pytz.utc), 3600, 24)
 
 
-def generate_session_default_args(session_dict):
-    session_dict_default = {
-        "session_id": str(uuid.uuid4()),
-        "distinct_id": str(uuid.uuid4()),
-        "status": "ok",
-        "seq": 0,
-        "release": "random@1.0",
-        "environment": "prod",
-        "retention_days": 90,
-        "org_id": 0,
-        "project_id": 0,
-        "duration": 60.0,
-        "errors": 0,
-        "started": time.time() // 60 * 60,
-        "received": time.time(),
-    }
-    session_dict_default.update(session_dict)
-    return session_dict_default
-
-
 class ReleaseHealthMetricsTestCase(SessionMetricsTestCase):
     backend = MetricsReleaseHealthBackend()
 
@@ -167,8 +147,8 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
             (datetime.utcnow() - timedelta(days=100)).replace(tzinfo=pytz.utc)
         )
         self.store_session(
-            generate_session_default_args(
-                {
+            self.build_session(
+                **{
                     "started": date_100_days_ago // 60 * 60,
                     "received": date_100_days_ago,
                     "project_id": project2.id,
@@ -194,8 +174,12 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
             organization=self.organization,
         )
         self.store_session(
-            generate_session_default_args(
-                {"project_id": project2.id, "org_id": project2.organization_id, "status": "exited"}
+            self.build_session(
+                **{
+                    "project_id": project2.id,
+                    "org_id": project2.organization_id,
+                    "status": "exited",
+                }
             )
         )
         data = self.backend.check_has_health_data([self.project.id, project2.id])
@@ -1034,8 +1018,8 @@ class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
         # Project 1
         for _ in range(0, 2):
             self.store_session(
-                generate_session_default_args(
-                    {
+                self.build_session(
+                    **{
                         "project_id": self.project.id,
                         "org_id": self.project.organization_id,
                         "status": "exited",
@@ -1048,8 +1032,8 @@ class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
             if idx == 2:
                 status = "crashed"
             self.store_session(
-                generate_session_default_args(
-                    {
+                self.build_session(
+                    **{
                         "project_id": self.project.id,
                         "org_id": self.project.organization_id,
                         "status": status,
@@ -1064,8 +1048,8 @@ class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
             if i == 1:
                 status = "crashed"
             self.store_session(
-                generate_session_default_args(
-                    {
+                self.build_session(
+                    **{
                         "project_id": self.project2.id,
                         "org_id": self.project2.organization_id,
                         "status": status,
@@ -1079,8 +1063,8 @@ class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
             if i == 4:
                 status = "crashed"
             self.store_session(
-                generate_session_default_args(
-                    {
+                self.build_session(
+                    **{
                         "project_id": self.project3.id,
                         "org_id": self.project3.organization_id,
                         "status": status,
