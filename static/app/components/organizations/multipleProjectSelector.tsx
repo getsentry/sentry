@@ -314,7 +314,7 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
 }
 
 type FeatureRenderProps = {
-  renderDisabledView?: (p: {
+  renderShowAllButton?: (p: {
     canShowAllProjects: boolean;
     onButtonClick: () => void;
   }) => React.ReactNode;
@@ -369,9 +369,9 @@ const SelectorFooterControls = ({
             hookName="feature-disabled:project-selector-all-projects"
             renderDisabled={false}
           >
-            {({renderDisabledView}: FeatureRenderProps) =>
-              renderDisabledView ? (
-                renderDisabledView({
+            {({renderShowAllButton}: FeatureRenderProps) =>
+              renderShowAllButton ? (
+                renderShowAllButton({
                   onButtonClick: onProjectClick,
                   canShowAllProjects,
                 })
