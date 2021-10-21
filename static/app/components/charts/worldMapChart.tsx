@@ -27,6 +27,7 @@ type Props = Omit<ChartProps, 'series'> & {
   theme: Theme;
   seriesOptions?: EChartOption.SeriesMap;
   fromDiscover?: boolean;
+  fromDiscoverQueryList?: boolean;
 };
 
 type JSONResult = Record<string, any>;
@@ -69,7 +70,8 @@ class WorldMapChart extends React.Component<Props, State> {
       return null;
     }
 
-    const {series, seriesOptions, theme, fromDiscover, ...props} = this.props;
+    const {series, seriesOptions, theme, fromDiscover, fromDiscoverQueryList, ...props} =
+      this.props;
     const processedSeries = series.map(({seriesName, data, ...options}) =>
       MapSeries({
         ...seriesOptions,
@@ -78,8 +80,8 @@ class WorldMapChart extends React.Component<Props, State> {
         name: seriesName,
         nameMap: this.state.countryToCodeMap ?? undefined,
         aspectScale: 0.85,
-        zoom: fromDiscover ? 1.1 : 1.3,
-        center: [10.97, 9.71],
+        zoom: fromDiscover ? 1.1 : fromDiscoverQueryList ? 0.9 : 1.3,
+        center: [10.97, fromDiscoverQueryList ? -15 : 9.71],
         itemStyle: {
           areaColor: theme.gray200,
           borderColor: theme.backgroundSecondary,
@@ -93,6 +95,8 @@ class WorldMapChart extends React.Component<Props, State> {
           },
         },
         data,
+        silent: fromDiscoverQueryList,
+        roam: !fromDiscoverQueryList,
       })
     );
 
@@ -125,9 +129,10 @@ class WorldMapChart extends React.Component<Props, State> {
     return (
       <BaseChart
         options={{
-          backgroundColor: theme.background,
+          backgroundColor: !fromDiscoverQueryList ? theme.background : undefined,
           visualMap: [
             VisualMap({
+              show: !fromDiscoverQueryList,
               left: fromDiscover ? undefined : 'right',
               right: fromDiscover ? 5 : undefined,
               min: 0,
