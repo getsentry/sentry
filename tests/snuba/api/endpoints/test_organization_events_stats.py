@@ -799,14 +799,15 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             project_id=self.project2.id,
         )
 
-        # TODO: need to test this with snql query builder
-        response = self.get_success_response(
-            self.organization.slug,
-            start=iso_format(self.day_ago),
-            end=iso_format(self.day_ago + timedelta(hours=2)),
-            interval="1h",
-            comparisonDelta=int(timedelta(days=1).total_seconds()),
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "comparisonDelta": int(timedelta(days=1).total_seconds()),
+            }
         )
+        assert response.status_code == 200, response.content
 
         assert [attrs for time, attrs in response.data["data"]] == [
             [{"count": 1, "comparisonCount": 2}],
@@ -814,25 +815,29 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
         ]
 
     def test_comparison_invalid(self):
-        response = self.get_error_response(
-            self.organization.slug,
-            start=iso_format(self.day_ago),
-            end=iso_format(self.day_ago + timedelta(hours=2)),
-            interval="1h",
-            comparisonDelta="17h",
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "comparisonDelta": "17h",
+            },
         )
+        assert response.status_code == 400, response.content
         assert response.data["detail"] == "comparisonDelta must be an integer"
 
         start = before_now(days=85)
         end = start + timedelta(days=7)
         with self.options({"system.event-retention-days": 90}):
-            response = self.get_error_response(
-                self.organization.slug,
-                start=iso_format(start),
-                end=iso_format(end),
-                interval="1h",
-                comparisonDelta=int(timedelta(days=7).total_seconds()),
+            response = self.do_request(
+                data={
+                    "start": iso_format(start),
+                    "end": iso_format(end),
+                    "interval": "1h",
+                    "comparisonDelta": int(timedelta(days=7).total_seconds()),
+                }
             )
+            assert response.status_code == 400, response.content
             assert response.data["detail"] == "Comparison period is outside retention window"
 
 
@@ -842,7 +847,7 @@ class OrganizationEventsStatsEndpointTestWithSnql(OrganizationEventsStatsEndpoin
         self.features["organizations:discover-use-snql"] = True
 
     # Separate test for now to keep the patching simpler
-    @mock.patch("sentry.snuba.discover.raw_snql_query", return_value={"data": []})
+    @mock.patch("sentry.snuba.discover.bulk_snql_query", return_value=[{"data": []}])
     def test_invalid_interval(self, mock_query):
         self.do_request(
             data={
@@ -855,7 +860,7 @@ class OrganizationEventsStatsEndpointTestWithSnql(OrganizationEventsStatsEndpoin
         )
         assert mock_query.call_count == 1
         # Should've reset to the default for 24h
-        assert mock_query.mock_calls[0].args[0].granularity.granularity == 300
+        assert mock_query.mock_calls[0].args[0][0].granularity.granularity == 300
 
         self.do_request(
             data={
@@ -868,7 +873,7 @@ class OrganizationEventsStatsEndpointTestWithSnql(OrganizationEventsStatsEndpoin
         )
         assert mock_query.call_count == 2
         # Should've reset to the default for 24h
-        assert mock_query.mock_calls[1].args[0].granularity.granularity == 300
+        assert mock_query.mock_calls[1].args[0][0].granularity.granularity == 300
 
 
 class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):

@@ -34,6 +34,7 @@ from sentry.utils.snuba import (
     SnubaQueryParams,
     SnubaTSResult,
     bulk_raw_query,
+    bulk_snql_query,
     get_array_column_alias,
     get_array_column_field,
     get_measurement_name,
@@ -495,28 +496,71 @@ def timeseries_query(
     query time-shifted back by comparison_delta, and compare the results to get the % change for each
     time bucket. Requires that we only pass
     """
-    sentry_sdk.set_tag("discover.use_snql", use_snql and comparison_delta is None)
-    if use_snql and comparison_delta is None:
-        # temporarily add snql to referrer
-        referrer = f"{referrer}.wip-snql"
-        equations, columns = categorize_columns(selected_columns)
-        builder = TimeseriesQueryBuilder(
-            Dataset.Discover,
-            params,
-            rollup,
-            query=query,
-            selected_columns=columns,
-            equations=equations,
-        )
-        snql_query = builder.get_snql_query()
+    sentry_sdk.set_tag("discover.use_snql", use_snql)
+    if use_snql:
+        with sentry_sdk.start_span(
+            op="discover.discover", description="timeseries.filter_transform"
+        ) as span:
+            # temporarily add snql to referrer
+            referrer = f"{referrer}.wip-snql"
+            equations, columns = categorize_columns(selected_columns)
+            base_builder = TimeseriesQueryBuilder(
+                Dataset.Discover,
+                params,
+                rollup,
+                query=query,
+                selected_columns=columns,
+                equations=equations,
+            )
+            query_list = [base_builder]
+            if comparison_delta:
+                if len(base_builder.aggregates) != 1:
+                    raise InvalidSearchQuery(
+                        "Only one column can be selected for comparison queries"
+                    )
+                comp_query_params = deepcopy(params)
+                comp_query_params["start"] -= comparison_delta
+                comp_query_params["end"] -= comparison_delta
+                comparison_builder = TimeseriesQueryBuilder(
+                    Dataset.Discover,
+                    comp_query_params,
+                    rollup,
+                    query=query,
+                    selected_columns=columns,
+                    equations=equations,
+                )
+                query_list.append(comparison_builder)
 
-        query_results = raw_snql_query(snql_query, referrer)
+            query_results = bulk_snql_query(
+                [query.get_snql_query() for query in query_list], referrer
+            )
 
-        result = (
-            zerofill(query_results["data"], params["start"], params["end"], rollup, "time")
-            if zerofill_results
-            else query_results["data"]
-        )
+        with sentry_sdk.start_span(
+            op="discover.discover", description="timeseries.transform_results"
+        ) as span:
+            results = []
+            for snql_query, result in zip(query_list, query_results):
+                results.append(
+                    zerofill(
+                        result["data"],
+                        snql_query.params["start"],
+                        snql_query.params["end"],
+                        rollup,
+                        "time",
+                    )
+                    if zerofill_results
+                    else result["data"]
+                )
+
+        if len(results) == 2 and comparison_delta:
+            col_name = base_builder.aggregates[0].alias
+            # If we have two sets of results then we're doing a comparison queries. Divide the primary
+            # results by the comparison results.
+            for result, cmp_result in zip(results[0], results[1]):
+                cmp_result_val = cmp_result.get(col_name, 0)
+                result["comparisonCount"] = cmp_result_val
+
+        result = results[0]
         return SnubaTSResult({"data": result}, params["start"], params["end"], rollup)
 
     with sentry_sdk.start_span(
