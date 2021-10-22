@@ -100,7 +100,10 @@ class QueryList extends React.Component<Props> {
       const sort = eventView.sorts[0];
       const defaultWidgetQuery: WidgetQuery = {
         name: '',
-        fields: savedQuery?.yAxis ?? ['count()'],
+        fields:
+          typeof savedQuery?.yAxis === 'string'
+            ? [savedQuery?.yAxis]
+            : savedQuery?.yAxis ?? ['count()'],
         conditions: eventView.query,
         orderby: sort ? `${sort.kind === 'desc' ? '-' : ''}${sort.field}` : '',
       };
