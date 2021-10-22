@@ -9,6 +9,8 @@ import {t} from 'app/locale';
 import {NewQuery, Organization, SavedQuery} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
+import {DisplayModes} from 'app/utils/discover/types';
+import {DisplayType} from 'app/views/dashboardsV2/types';
 
 export function handleCreateQuery(
   api: Client,
@@ -238,4 +240,15 @@ export function extractAnalyticsQueryFields(payload: NewQuery): Partial<NewQuery
     fields,
     query,
   };
+}
+
+export function displayModeToDisplayType(displayMode: DisplayModes): DisplayType {
+  switch (displayMode) {
+    case DisplayModes.BAR:
+      return DisplayType.BAR;
+    case DisplayModes.WORLDMAP:
+      return DisplayType.WORLD_MAP;
+    default:
+      return DisplayType.LINE;
+  }
 }

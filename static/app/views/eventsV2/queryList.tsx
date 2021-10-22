@@ -23,12 +23,17 @@ import {Organization, SavedQuery} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'app/utils/discover/eventView';
+import {DisplayModes} from 'app/utils/discover/types';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import {decodeList} from 'app/utils/queryString';
 import withApi from 'app/utils/withApi';
 import {WidgetQuery} from 'app/views/dashboardsV2/types';
 
-import {handleCreateQuery, handleDeleteQuery} from './savedQuery/utils';
+import {
+  displayModeToDisplayType,
+  handleCreateQuery,
+  handleDeleteQuery,
+} from './savedQuery/utils';
 import MiniGraph from './miniGraph';
 import QueryCard from './querycard';
 import {getPrebuiltQueries} from './utils';
@@ -124,6 +129,7 @@ class QueryList extends React.Component<Props> {
         defaultTitle:
           savedQuery?.name ??
           (eventView.name !== 'All Events' ? eventView.name : undefined),
+        displayType: displayModeToDisplayType(eventView.display as DisplayModes),
       });
     };
 
