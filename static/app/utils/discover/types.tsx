@@ -44,3 +44,9 @@ export const CHART_AXIS_OPTIONS = [
   {label: 'count()', value: 'count()'},
   {label: 'count_unique(user)', value: 'count_unique(user)'},
 ];
+
+export const MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES = [
+  DisplayModes.DEFAULT,
+  DisplayModes.DAILY,
+  DisplayModes.PREVIOUS,
+];

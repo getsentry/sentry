@@ -82,4 +82,30 @@ describe('EventsV2 > ResultsChart', function () {
       t('No Y-Axis selected.')
     );
   });
+
+  it('disables other y-axis options when not in default, daily, or previous period display mode', async function () {
+    eventView.display = DisplayModes.WORLDMAP;
+    const wrapper = mountWithTheme(
+      <ResultsChart
+        // @ts-expect-error
+        router={TestStubs.router()}
+        organization={organization}
+        eventView={eventView}
+        // @ts-expect-error
+        location={location}
+        onAxisChange={() => undefined}
+        onDisplayChange={() => undefined}
+        total={1}
+        confirmedQuery
+        yAxis={['count()']}
+      />,
+      initialData.routerContext
+    );
+    const yAxisOptions = wrapper.find('ChartFooter').props().yAxisOptions;
+    yAxisOptions.forEach(({value, disabled}) => {
+      if (value !== 'count()') {
+        expect(disabled).toBe(true);
+      }
+    });
+  });
 });
