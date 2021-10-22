@@ -123,6 +123,27 @@ function createIncidentSeries(
   seriesName?: string,
   aggregate?: string
 ): LineChartSeries {
+  const formatter = ({value, marker}: any) => {
+    const time = formatTooltipDate(moment(value), 'MMM D, YYYY LT');
+    return [
+      `<div class="tooltip-series"><div>`,
+      `<span class="tooltip-label">${marker} <strong>${t('Alert')} #${
+        incident.identifier
+      }</strong></span>${
+        dataPoint?.value
+          ? `${seriesName} ${alertTooltipValueFormatter(
+              dataPoint.value,
+              seriesName ?? '',
+              aggregate ?? ''
+            )}`
+          : ''
+      }`,
+      `</div></div>`,
+      `<div class="tooltip-date">${time}</div>`,
+      `<div class="tooltip-arrow"></div>`,
+    ].join('');
+  };
+
   const series = {
     seriesName: 'Incident Line',
     type: 'line' as const,
@@ -150,31 +171,15 @@ function createIncidentSeries(
         fontSize: 10,
         fontFamily: 'Rubik',
       },
+      tooltip: {
+        formatter,
+      },
     }),
     data: [],
     tooltip: {
       trigger: 'item' as const,
       alwaysShowContent: true,
-      formatter: ({value, marker}: any) => {
-        const time = formatTooltipDate(moment(value), 'MMM D, YYYY LT');
-        return [
-          `<div class="tooltip-series"><div>`,
-          `<span class="tooltip-label">${marker} <strong>${t('Alert')} #${
-            incident.identifier
-          }</strong></span>${
-            dataPoint?.value
-              ? `${seriesName} ${alertTooltipValueFormatter(
-                  dataPoint.value,
-                  seriesName ?? '',
-                  aggregate ?? ''
-                )}`
-              : ''
-          }`,
-          `</div></div>`,
-          `<div class="tooltip-date">${time}</div>`,
-          `<div class="tooltip-arrow"></div>`,
-        ].join('');
-      },
+      formatter,
     },
   };
 
