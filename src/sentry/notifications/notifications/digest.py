@@ -7,7 +7,7 @@ from sentry.digests.utilities import (
     get_personalized_digests,
     should_get_personalized_digests,
 )
-from sentry.notifications.notifications.base import ProjectNotification
+from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notify import notify
 from sentry.notifications.types import ActionTargetType
 from sentry.notifications.utils import get_integration_link, has_alert_integration
@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class DigestNotification(ProjectNotification):
+class DigestNotification(BaseNotification):
     def __init__(
         self,
         project: "Project",

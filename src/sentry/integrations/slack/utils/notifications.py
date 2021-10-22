@@ -11,7 +11,7 @@ from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
 from sentry.models import Environment, Integration, Team, User
 from sentry.notifications.notifications.activity.release import ReleaseActivityNotification
-from sentry.notifications.notifications.base import BaseNotification, ProjectNotification
+from sentry.notifications.notifications.base import BaseNotification
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
@@ -89,7 +89,6 @@ def send_confirmation(
 
 
 def get_referrer_qstring(notification: BaseNotification, recipient: Union["Team", "User"]) -> str:
-    # TODO: make a generic version that works for other notification types
     return (
         "?referrer="
         + re.sub("Notification$", "Slack", notification.__class__.__name__)
@@ -105,7 +104,7 @@ def get_settings_url(notification: BaseNotification, recipient: Union["Team", "U
 
 
 def build_notification_footer(
-    notification: ProjectNotification, recipient: Union["Team", "User"]
+    notification: BaseNotification, recipient: Union["Team", "User"]
 ) -> str:
     if isinstance(recipient, Team):
         team = Team.objects.get(id=recipient.id)

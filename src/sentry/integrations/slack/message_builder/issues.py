@@ -20,7 +20,7 @@ from sentry.models import (
     Team,
     User,
 )
-from sentry.notifications.notifications.base import BaseNotification, ProjectNotification
+from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.utils import json
 from sentry.utils.dates import to_timestamp
@@ -312,7 +312,7 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
         rules: Optional[List[Rule]] = None,
         link_to_event: bool = False,
         issue_details: bool = False,
-        notification: Optional[ProjectNotification] = None,
+        notification: Optional[BaseNotification] = None,
         recipient: Optional[Union["Team", "User"]] = None,
     ) -> None:
         super().__init__()
