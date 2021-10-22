@@ -2,6 +2,7 @@ import time
 from copy import deepcopy
 from datetime import timedelta
 from unittest import mock
+from unittest.mock import Mock, call
 from uuid import uuid4
 
 import pytz
@@ -20,7 +21,6 @@ from sentry.snuba.query_subscription_consumer import (
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.utils import json
-from sentry.utils.compat.mock import Mock, call
 
 
 class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
