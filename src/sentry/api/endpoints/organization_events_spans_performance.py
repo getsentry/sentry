@@ -288,8 +288,6 @@ def query_example_transactions(
         ],
         query=query,
         orderby=get_function_alias(order_column),
-        auto_aggregations=True,
-        use_aggregate_conditions=True,
         # we want only `per_suspect` examples for each suspect
         limit=len(suspects) * per_suspect,
         functions_acl=["array_join", "sumArray", "percentileArray", "maxArray"],
