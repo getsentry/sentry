@@ -63,7 +63,8 @@ class MiniGraph extends React.Component<Props> {
     const field = isTopEvents ? apiPayload.field : undefined;
     const topEvents = isTopEvents ? TOP_N : undefined;
     const orderby = isTopEvents ? decodeScalar(apiPayload.sort) : undefined;
-    const interval = isDaily ? '1d' : getInterval({start, end, period}, 'high');
+    const intervalFidelity = display === 'bar' ? 'low' : 'high';
+    const interval = isDaily ? '1d' : getInterval({start, end, period}, intervalFidelity);
 
     return {
       organization,
@@ -82,6 +83,7 @@ class MiniGraph extends React.Component<Props> {
       showDaily: isDaily,
       expired: eventView.expired,
       name: eventView.name,
+      display,
     };
   }
 
@@ -131,6 +133,7 @@ class MiniGraph extends React.Component<Props> {
       showDaily,
       expired,
       name,
+      display,
     } = this.getRefreshProps(this.props);
 
     return (
@@ -171,11 +174,14 @@ class MiniGraph extends React.Component<Props> {
           }
 
           const allSeries = timeseriesData ?? results ?? [];
-          const chartType = this.getChartType({
-            showDaily,
-            yAxis: Array.isArray(yAxis) ? yAxis[0] : yAxis,
-            timeseriesData: allSeries,
-          });
+          const chartType =
+            display === 'bar'
+              ? display
+              : this.getChartType({
+                  showDaily,
+                  yAxis: Array.isArray(yAxis) ? yAxis[0] : yAxis,
+                  timeseriesData: allSeries,
+                });
           const data = allSeries.map(series => ({
             ...series,
             lineStyle: {

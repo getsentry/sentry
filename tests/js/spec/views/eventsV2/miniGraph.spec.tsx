@@ -47,4 +47,21 @@ describe('EventsV2 > MiniGraph', function () {
     const eventsRequestProps = wrapper.find('EventsRequest').props();
     expect(eventsRequestProps.yAxis).toEqual(yAxis);
   });
+
+  it('uses low fidelity interval for bar charts', async function () {
+    const yAxis = ['count()', 'failure_count()'];
+    eventView.display = 'bar';
+    const wrapper = mountWithTheme(
+      <MiniGraph
+        // @ts-expect-error
+        location={location}
+        eventView={eventView}
+        organization={organization}
+        yAxis={yAxis}
+      />,
+      initialData.routerContext
+    );
+    const eventsRequestProps = wrapper.find('EventsRequest').props();
+    expect(eventsRequestProps.interval).toEqual('12h');
+  });
 });
