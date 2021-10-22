@@ -19,6 +19,7 @@ import {t} from 'app/locale';
 import {GlobalSelection, Organization} from 'app/types';
 import {EChartEventHandler, Series} from 'app/types/echarts';
 import getDynamicText from 'app/utils/getDynamicText';
+import {MINUTES_THRESHOLD_TO_DISPLAY_SECONDS} from 'app/utils/sessions';
 import {Theme} from 'app/utils/theme';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import {displayCrashFreePercent} from 'app/views/releases/utils';
@@ -301,6 +302,7 @@ class Chart extends Component<ChartProps, ChartState> {
         }
         previousPeriod={previousTimeSeries}
         onLegendSelectChanged={this.handleLegendSelectChanged}
+        minutesThresholdToDisplaySeconds={MINUTES_THRESHOLD_TO_DISPLAY_SECONDS}
         transformSinglePointToBar
       />
     );

@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
 import CreateAlertButton from 'app/components/createAlertButton';
+import FeatureBadge from 'app/components/featureBadge';
 import Hovercard from 'app/components/hovercard';
 import * as Layout from 'app/components/layouts/thirds';
 import ExternalLink from 'app/components/links/externalLink';
@@ -181,9 +182,14 @@ class AlertWizard extends Component<Props, State> {
               <WizardOptions>
                 <CategoryTitle>{t('Errors')}</CategoryTitle>
                 {getAlertWizardCategories(organization).map(
-                  ({categoryHeading, options}, i) => (
+                  ({categoryHeading, options, featureBadgeType}, i) => (
                     <OptionsWrapper key={categoryHeading}>
-                      {i > 0 && <CategoryTitle>{categoryHeading}</CategoryTitle>}
+                      {i > 0 && (
+                        <CategoryTitle>
+                          {categoryHeading}{' '}
+                          {featureBadgeType && <FeatureBadge type={featureBadgeType} />}
+                        </CategoryTitle>
+                      )}
                       <RadioPanelGroup
                         choices={options.map(alertType => {
                           return [alertType, AlertWizardAlertNames[alertType]];

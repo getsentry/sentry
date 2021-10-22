@@ -15,7 +15,7 @@ describe('LoadingContainer', () => {
 
   it('handles normal state', () => {
     renderComponent();
-    expect(screen.getByText('hello!')).toBeTruthy();
+    expect(screen.getByText('hello!')).toBeInTheDocument();
     expect(() => screen.getByTestId('loading-indicator')).toThrow();
   });
 
@@ -23,21 +23,21 @@ describe('LoadingContainer', () => {
     const {rerender} = renderComponent({
       isLoading: true,
     });
-    expect(screen.getByText('hello!')).toBeTruthy();
-    expect(screen.getByTestId('loading-indicator')).toBeTruthy();
+    expect(screen.getByText('hello!')).toBeInTheDocument();
+    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
     rerender(<LoadingContainer isLoading />);
-    expect(screen.queryByText('hello!')).toBeNull();
-    expect(screen.getByTestId('loading-indicator')).toBeTruthy();
+    expect(screen.queryByText('hello!')).not.toBeInTheDocument();
+    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
   });
 
   it('handles reloading state', () => {
     const {rerender} = renderComponent({
       isReloading: true,
     });
-    expect(screen.getByText('hello!')).toBeTruthy();
-    expect(screen.getByTestId('loading-indicator')).toBeTruthy();
+    expect(screen.getByText('hello!')).toBeInTheDocument();
+    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
     rerender(<LoadingContainer isReloading />);
-    expect(screen.queryByText('hello!')).toBeNull();
-    expect(screen.getByTestId('loading-indicator')).toBeTruthy();
+    expect(screen.queryByText('hello!')).not.toBeInTheDocument();
+    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
   });
 });

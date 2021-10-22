@@ -352,6 +352,8 @@ type VitalBarProps = {
   showStates?: boolean;
   showDurationDetail?: boolean;
   showVitalPercentNames?: boolean;
+  showDetail?: boolean;
+  barHeight?: number;
 };
 
 export function VitalBar(props: VitalBarProps) {
@@ -364,6 +366,8 @@ export function VitalBar(props: VitalBarProps) {
     showStates = false,
     showDurationDetail = false,
     showVitalPercentNames = false,
+    showDetail = true,
+    barHeight,
   } = props;
 
   if (isLoading) {
@@ -402,20 +406,23 @@ export function VitalBar(props: VitalBarProps) {
 
   return (
     <React.Fragment>
-      {showBar && <ColorBar colorStops={colorStops} />}
-      <BarDetail>
-        {showDurationDetail && p75 && (
-          <div data-test-id="vital-bar-p75">
-            {t('The p75 for all transactions is ')}
-            <strong>{p75}</strong>
-          </div>
-        )}
-        <VitalPercents
-          vital={vital}
-          percents={percents}
-          showVitalPercentNames={showVitalPercentNames}
-        />
-      </BarDetail>
+      {showBar && <ColorBar barHeight={barHeight} colorStops={colorStops} />}
+      {showDetail && (
+        <BarDetail>
+          {showDurationDetail && p75 && (
+            <div data-test-id="vital-bar-p75">
+              {t('The p75 for all transactions is ')}
+              <strong>{p75}</strong>
+            </div>
+          )}
+
+          <VitalPercents
+            vital={vital}
+            percents={percents}
+            showVitalPercentNames={showVitalPercentNames}
+          />
+        </BarDetail>
+      )}
     </React.Fragment>
   );
 }

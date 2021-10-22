@@ -70,7 +70,7 @@ describe('SettingsSearch', function () {
     mountWithTheme(<SettingsSearch params={{orgId: 'org-slug'}} />);
 
     fireEvent.keyDown(document, {code: 'Slash', key: '/', keyCode: 191});
-    expect(document.activeElement).toEqual(screen.getByPlaceholderText('Search'));
+    expect(screen.getByPlaceholderText('Search')).toHaveFocus();
   });
 
   it('can search', async function () {

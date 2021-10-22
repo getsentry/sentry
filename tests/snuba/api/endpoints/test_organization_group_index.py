@@ -1,4 +1,5 @@
 from datetime import timedelta
+from unittest.mock import Mock, patch
 from uuid import uuid4
 
 from dateutil.parser import parse as parse_datetime
@@ -48,7 +49,6 @@ from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils import json
-from sentry.utils.compat.mock import Mock, patch
 
 
 class GroupListTest(APITestCase, SnubaTestCase):
@@ -1806,10 +1806,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
 
         self.login_as(user=self.user)
-        with self.feature("organizations:group-history"):
-            response = self.get_valid_response(
-                qs_params={"status": "unresolved", "project": self.project.id}, status="resolved"
-            )
+        response = self.get_valid_response(
+            qs_params={"status": "unresolved", "project": self.project.id}, status="resolved"
+        )
         assert response.data == {"status": "resolved", "statusDetails": {}, "inbox": None}
 
         # the previously resolved entry should not be included
@@ -2308,10 +2307,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        with self.feature("organizations:group-history"):
-            response = self.get_valid_response(
-                qs_params={"id": group.id}, status="resolved", statusDetails={"inRelease": "latest"}
-            )
+        response = self.get_valid_response(
+            qs_params={"id": group.id}, status="resolved", statusDetails={"inRelease": "latest"}
+        )
         assert response.data["status"] == "resolved"
         assert response.data["statusDetails"]["inRelease"] == release.version
         assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
@@ -2456,10 +2454,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        with self.feature("organizations:group-history"):
-            response = self.get_valid_response(
-                qs_params={"id": group.id}, status="resolvedInNextRelease"
-            )
+        response = self.get_valid_response(
+            qs_params={"id": group.id}, status="resolvedInNextRelease"
+        )
         assert response.data["status"] == "resolved"
         assert response.data["statusDetails"]["inNextRelease"]
         assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
@@ -2491,12 +2488,11 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        with self.feature("organizations:group-history"):
-            response = self.get_valid_response(
-                qs_params={"id": group.id},
-                status="resolved",
-                statusDetails={"inCommit": {"commit": commit.key, "repository": repo.name}},
-            )
+        response = self.get_valid_response(
+            qs_params={"id": group.id},
+            status="resolved",
+            statusDetails={"inCommit": {"commit": commit.key, "repository": repo.name}},
+        )
         assert response.data["status"] == "resolved"
         assert response.data["statusDetails"]["inCommit"]["id"] == commit.key
         assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
@@ -2529,12 +2525,11 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        with self.feature("organizations:group-history"):
-            response = self.get_valid_response(
-                qs_params={"id": group.id},
-                status="resolved",
-                statusDetails={"inCommit": {"commit": commit.key, "repository": repo.name}},
-            )
+        response = self.get_valid_response(
+            qs_params={"id": group.id},
+            status="resolved",
+            statusDetails={"inCommit": {"commit": commit.key, "repository": repo.name}},
+        )
         assert response.data["status"] == "resolved"
         assert response.data["statusDetails"]["inCommit"]["id"] == commit.key
         assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
@@ -2569,12 +2564,11 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        with self.feature("organizations:group-history"):
-            response = self.get_response(
-                qs_params={"id": group.id},
-                status="resolved",
-                statusDetails={"inCommit": {"commit": "a" * 40, "repository": repo.name}},
-            )
+        response = self.get_response(
+            qs_params={"id": group.id},
+            status="resolved",
+            statusDetails={"inCommit": {"commit": "a" * 40, "repository": repo.name}},
+        )
         assert response.status_code == 400
         assert (
             response.data["statusDetails"]["inCommit"]["commit"][0]
@@ -2591,8 +2585,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        with self.feature("organizations:group-history"):
-            response = self.get_valid_response(qs_params={"id": group.id}, status="unresolved")
+        response = self.get_valid_response(qs_params={"id": group.id}, status="unresolved")
         assert response.data == {"status": "unresolved", "statusDetails": {}}
 
         group = Group.objects.get(id=group.id)
@@ -2614,8 +2607,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        with self.feature("organizations:group-history"):
-            response = self.get_valid_response(qs_params={"id": group.id}, status="unresolved")
+        response = self.get_valid_response(qs_params={"id": group.id}, status="unresolved")
         assert response.data == {"status": "unresolved", "statusDetails": {}}
 
         group = Group.objects.get(id=group.id)
@@ -2633,8 +2625,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert not GroupHistory.objects.filter(
             group=group, status=GroupHistoryStatus.IGNORED
         ).exists()
-        with self.feature("organizations:group-history"):
-            response = self.get_valid_response(qs_params={"id": group.id}, status="ignored")
+        response = self.get_valid_response(qs_params={"id": group.id}, status="ignored")
         # existing snooze objects should be cleaned up
         assert not GroupSnooze.objects.filter(id=snooze.id).exists()
 
@@ -2866,9 +2857,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         r4 = GroupSeen.objects.filter(group=group4, user=self.user)
         assert not r4.exists()
 
-    @patch("sentry.api.helpers.group_index.uuid4")
-    @patch("sentry.api.helpers.group_index.merge_groups")
-    @patch("sentry.api.helpers.group_index.eventstream")
+    @patch("sentry.api.helpers.group_index.update.uuid4")
+    @patch("sentry.api.helpers.group_index.update.merge_groups")
+    @patch("sentry.api.helpers.group_index.update.eventstream")
     def test_merge(self, mock_eventstream, merge_groups, mock_uuid4):
         eventstream_state = object()
         mock_eventstream.start_merge = Mock(return_value=eventstream_state)
@@ -2906,10 +2897,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         user = self.user
 
         self.login_as(user=user)
-        with self.feature("organizations:group-history"):
-            response = self.get_valid_response(
-                qs_params={"id": group1.id}, assignedTo=user.username
-            )
+        response = self.get_valid_response(qs_params={"id": group1.id}, assignedTo=user.username)
         assert response.data["assignedTo"]["id"] == str(user.id)
         assert response.data["assignedTo"]["type"] == "user"
         assert GroupAssignee.objects.filter(group=group1, user=user).exists()
@@ -2923,8 +2911,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         assert GroupSubscription.objects.filter(user=user, group=group1, is_active=True).exists()
 
-        with self.feature("organizations:group-history"):
-            response = self.get_valid_response(qs_params={"id": group1.id}, assignedTo="")
+        response = self.get_valid_response(qs_params={"id": group1.id}, assignedTo="")
         assert response.data["assignedTo"] is None
 
         assert not GroupAssignee.objects.filter(group=group1, user=user).exists()
@@ -2939,8 +2926,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=member)
 
-        with self.feature("organizations:group-history"):
-            response = self.get_response(qs_params={"id": group.id}, assignedTo=non_member.username)
+        response = self.get_response(qs_params={"id": group.id}, assignedTo=non_member.username)
         assert not GroupHistory.objects.filter(
             group=group, status=GroupHistoryStatus.ASSIGNED
         ).exists()
@@ -2961,10 +2947,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             group=group, status=GroupHistoryStatus.ASSIGNED
         ).exists()
 
-        with self.feature("organizations:group-history"):
-            response = self.get_valid_response(
-                qs_params={"id": group.id}, assignedTo=f"team:{team.id}"
-            )
+        response = self.get_valid_response(qs_params={"id": group.id}, assignedTo=f"team:{team.id}")
         assert response.data["assignedTo"]["id"] == str(team.id)
         assert response.data["assignedTo"]["type"] == "team"
         assert GroupHistory.objects.filter(group=group, status=GroupHistoryStatus.ASSIGNED).exists()
@@ -2974,8 +2957,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         assert GroupSubscription.objects.filter(group=group, is_active=True).count() == 2
 
-        with self.feature("organizations:group-history"):
-            response = self.get_valid_response(qs_params={"id": group.id}, assignedTo="")
+        response = self.get_valid_response(qs_params={"id": group.id}, assignedTo="")
         assert response.data["assignedTo"] is None
         assert GroupHistory.objects.filter(
             group=group, status=GroupHistoryStatus.UNASSIGNED
@@ -3016,10 +2998,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         group2 = self.create_group(checksum="b" * 32)
 
         self.login_as(user=self.user)
-        with self.feature("organizations:group-history"):
-            response = self.get_valid_response(
-                qs_params={"id": [group1.id, group2.id]}, inbox="true"
-            )
+        response = self.get_valid_response(qs_params={"id": [group1.id, group2.id]}, inbox="true")
         assert response.data == {"inbox": True}
         assert GroupInbox.objects.filter(group=group1).exists()
         assert GroupInbox.objects.filter(group=group2).exists()
@@ -3030,8 +3009,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             group=group2, status=GroupHistoryStatus.REVIEWED
         ).exists()
 
-        with self.feature("organizations:group-history"):
-            response = self.get_valid_response(qs_params={"id": [group2.id]}, inbox="false")
+        response = self.get_valid_response(qs_params={"id": [group2.id]}, inbox="false")
         assert response.data == {"inbox": False}
         assert GroupInbox.objects.filter(group=group1).exists()
         assert not GroupHistory.objects.filter(
@@ -3054,8 +3032,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert not GroupInbox.objects.filter(group=group1).exists()
         assert not GroupInbox.objects.filter(group=group2).exists()
 
-        with self.feature("organizations:group-history"):
-            self.get_valid_response(qs_params={"id": [group2.id]}, status="unresolved")
+        self.get_valid_response(qs_params={"id": [group2.id]}, status="unresolved")
         assert not GroupInbox.objects.filter(group=group1).exists()
         assert not GroupInbox.objects.filter(group=group2).exists()
         assert not GroupHistory.objects.filter(
@@ -3077,7 +3054,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             org = args[0]
         return super().get_response(org, **kwargs)
 
-    @patch("sentry.api.helpers.group_index.eventstream")
+    @patch("sentry.api.helpers.group_index.delete.eventstream")
     @patch("sentry.eventstream")
     def test_delete_by_id(self, mock_eventstream_task, mock_eventstream_api):
         eventstream_state = {"event_stream_state": uuid4()}
