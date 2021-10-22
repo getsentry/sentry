@@ -507,7 +507,7 @@ def callback_timing(
     # here out of an abundance of caution.
     if not all(primary_timing):
         logger.warning(
-            "Received timing with unexpected endpoint: %r, primary_backend_name: %r, primary_status: %r",
+            "Received timing with unexpected endpoint: %r, primary_backend_name: %r, future_status: %r",
             primary_timing,
             primary_backend_name,
             primary_status,
