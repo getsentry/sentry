@@ -62,9 +62,9 @@ export function SingleFieldAreaWidget(props: Props) {
   return (
     <GenericPerformanceWidget<AreaDataType>
       {...props}
-      subtitle={
+      Subtitle={() => (
         <Subtitle>{t('Compared to last %s ', globalSelection.datetime.period)}</Subtitle>
-      }
+      )}
       HeaderActions={provided => (
         <Fragment>
           <HighlightNumber color={props.chartColor}>

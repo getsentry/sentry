@@ -2,7 +2,7 @@ import {usePageError} from 'app/utils/performance/contexts/pageError';
 
 import Table from '../../table';
 import {FRONTEND_PAGELOAD_COLUMN_TITLES} from '../data';
-import {TripleChartRow} from '../widgets/components/widgetChartRow';
+import {DoubleChartRow, TripleChartRow} from '../widgets/components/widgetChartRow';
 import {PerformanceWidgetSetting} from '../widgets/widgetDefinitions';
 
 import {BasePerformanceViewProps} from './types';
@@ -10,6 +10,14 @@ import {BasePerformanceViewProps} from './types';
 export function FrontendPageloadView(props: BasePerformanceViewProps) {
   return (
     <div data-test-id="frontend-pageload-view">
+      <DoubleChartRow
+        {...props}
+        allowedCharts={[
+          PerformanceWidgetSetting.TPM_AREA,
+          PerformanceWidgetSetting.MOST_RELATED_ERRORS,
+          PerformanceWidgetSetting.WORST_LCP_VITALS,
+        ]}
+      />
       <TripleChartRow
         {...props}
         allowedCharts={[
