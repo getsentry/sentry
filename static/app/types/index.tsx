@@ -2127,12 +2127,6 @@ export type SessionApiResponse = SeriesApi & {
   start: DateString;
   end: DateString;
   query: string;
-  intervals: string[];
-  groups: {
-    by: Record<string, string | number>;
-    totals: Record<string, number>;
-    series: Record<string, number[]>;
-  }[];
 };
 
 export enum SessionField {

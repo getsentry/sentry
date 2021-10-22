@@ -1,4 +1,5 @@
 from hashlib import sha1
+from unittest.mock import patch
 from uuid import uuid4
 
 from sentry.models import (
@@ -22,7 +23,6 @@ from sentry.models import (
     add_group_to_inbox,
 )
 from sentry.testutils import TestCase
-from sentry.utils.compat.mock import patch
 
 
 class ResolveGroupResolutionsTest(TestCase):

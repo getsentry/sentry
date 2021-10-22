@@ -1,5 +1,7 @@
 import chunk from 'lodash/chunk';
+import moment from 'moment';
 
+import BaseChart from 'app/components/charts/baseChart';
 import {SeriesDataUnit} from 'app/types/echarts';
 
 /**
@@ -38,3 +40,20 @@ export function groupByTrend<T extends {trend: number}>(data: T[]): T[] {
   const zeroItems = data.filter(x => Math.round(x.trend) === 0);
   return [...worseItems, ...betterItems, ...zeroItems];
 }
+
+export const barAxisLabel = (
+  dataEntries: number
+): React.ComponentProps<typeof BaseChart>['xAxis'] => {
+  return {
+    splitNumber: dataEntries,
+    type: 'category',
+    min: 0,
+    axisLabel: {
+      showMaxLabel: true,
+      showMinLabel: true,
+      formatter: (date: number) => {
+        return moment(new Date(date)).format('MMM D');
+      },
+    },
+  };
+};

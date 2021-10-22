@@ -1,3 +1,4 @@
+from unittest.mock import patch
 from urllib.parse import parse_qs, urlparse
 
 from django.urls import reverse
@@ -8,7 +9,6 @@ from sentry.integrations.vsts_extension import (
     VstsExtensionIntegrationProvider,
 )
 from sentry.models import Integration
-from sentry.utils.compat.mock import patch
 from tests.sentry.integrations.vsts.test_integration import FULL_SCOPES
 from tests.sentry.integrations.vsts.testutils import VstsIntegrationTestCase
 
