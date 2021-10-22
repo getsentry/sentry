@@ -4,77 +4,11 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.constants import SentryAppInstallationStatus
-from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, ParanoidModel
-from sentry.models import DefaultFieldsModel, Project
+from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, ParanoidModel
 
 
 def default_uuid():
     return str(uuid.uuid4())
-
-
-# connects a sentry app installation to an organization and a provider
-class SentryAppInstallationForProvider(DefaultFieldsModel):
-    __include_in_export__ = False
-
-    sentry_app_installation = FlexibleForeignKey("sentry.SentryAppInstallation")
-    organization = FlexibleForeignKey("sentry.Organization")
-    provider = models.CharField(max_length=64)
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_sentryappinstallationforprovider"
-        unique_together = (("provider", "organization"),)
-
-    @classmethod
-    def get_token(cls, organization_id, provider):
-        installation_for_provider = SentryAppInstallationForProvider.objects.select_related(
-            "sentry_app_installation"
-        ).get(organization_id=organization_id, provider=provider)
-        sentry_app_installation = installation_for_provider.sentry_app_installation
-
-        # find a token associated with the installation so we can use it for authentication
-        sentry_app_installation_token = (
-            SentryAppInstallationToken.objects.select_related("api_token")
-            .filter(sentry_app_installation=sentry_app_installation)
-            .first()
-        )
-        return sentry_app_installation_token.api_token.token
-
-
-class SentryAppInstallationToken(Model):
-    __include_in_export__ = False
-
-    api_token = FlexibleForeignKey("sentry.ApiToken")
-    sentry_app_installation = FlexibleForeignKey("sentry.SentryAppInstallation")
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_sentryappinstallationtoken"
-        unique_together = (("sentry_app_installation", "api_token"),)
-
-    @classmethod
-    def has_organization_access(cls, token, organization):
-        try:
-            install_token = cls.objects.select_related("sentry_app_installation").get(
-                api_token=token
-            )
-        except cls.DoesNotExist:
-            return False
-
-        return install_token.sentry_app_installation.organization_id == organization.id
-
-    @classmethod
-    def get_projects(cls, token):
-        try:
-            install_token = cls.objects.select_related("sentry_app_installation").get(
-                api_token=token
-            )
-        except cls.DoesNotExist:
-            return Project.objects.none()
-
-        return Project.objects.filter(
-            organization_id=install_token.sentry_app_installation.organization_id
-        )
 
 
 class SentryAppInstallation(ParanoidModel):
