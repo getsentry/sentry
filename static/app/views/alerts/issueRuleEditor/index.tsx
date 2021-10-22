@@ -382,13 +382,21 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
   getInitialValue = (type: ConditionOrActionProperty, id: string) => {
     const configuration = this.state.configs?.[type]?.find(c => c.id === id);
+
+    const hasChangeAlerts =
+      configuration?.id &&
+      this.props.organization.features.includes('change-alerts') &&
+      CHANGE_ALERT_CONDITION_IDS.includes(configuration.id);
+
     return configuration?.formFields
       ? Object.fromEntries(
           Object.entries(configuration.formFields)
             // TODO(ts): Doesn't work if I cast formField as IssueAlertRuleFormField
             .map(([key, formField]: [string, any]) => [
               key,
-              formField?.initial ?? formField?.choices?.[0]?.[0],
+              hasChangeAlerts && key === 'interval'
+                ? '1h'
+                : formField?.initial ?? formField?.choices?.[0]?.[0],
             ])
             .filter(([, initial]) => !!initial)
         )

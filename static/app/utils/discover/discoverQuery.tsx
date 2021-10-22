@@ -22,6 +22,8 @@ export type TableData = {
   meta?: MetaType;
 };
 
+export type TableDataWithTitle = TableData & {title: string};
+
 export type DiscoverQueryPropsWithThresholds = DiscoverQueryProps & {
   transactionName?: string;
   transactionThreshold?: number;

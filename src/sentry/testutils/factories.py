@@ -44,6 +44,7 @@ from sentry.mediators import (
 )
 from sentry.models import (
     Activity,
+    Actor,
     Commit,
     CommitAuthor,
     CommitFileChange,
@@ -53,6 +54,7 @@ from sentry.models import (
     ExternalIssue,
     File,
     Group,
+    GroupHistory,
     GroupLink,
     Identity,
     IdentityProvider,
@@ -1081,4 +1083,32 @@ class Factories:
             user=user,
             status=IdentityStatus.VALID,
             scopes=[],
+        )
+
+    @staticmethod
+    def create_group_history(
+        group: Group,
+        status: int,
+        release: Optional[Release] = None,
+        actor: Actor = None,
+        prev_history: GroupHistory = None,
+        date_added: datetime = None,
+    ) -> GroupHistory:
+        prev_history_date = None
+        if prev_history:
+            prev_history_date = prev_history.date_added
+
+        kwargs = {}
+        if date_added:
+            kwargs["date_added"] = date_added
+        return GroupHistory.objects.create(
+            organization=group.organization,
+            group=group,
+            project=group.project,
+            release=release,
+            actor=actor,
+            status=status,
+            prev_history=prev_history,
+            prev_history_date=prev_history_date,
+            **kwargs,
         )

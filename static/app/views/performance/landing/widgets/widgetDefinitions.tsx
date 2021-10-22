@@ -24,12 +24,15 @@ export enum PerformanceWidgetSetting {
   P50_DURATION_AREA = 'p50_duration_area',
   P95_DURATION_AREA = 'p95_duration_area',
   P99_DURATION_AREA = 'p99_duration_area',
+  P75_LCP_AREA = 'p75_lcp_area',
   TPM_AREA = 'tpm_area',
   FAILURE_RATE_AREA = 'failure_rate_area',
   USER_MISERY_AREA = 'user_misery_area',
   WORST_LCP_VITALS = 'worst_lcp_vitals',
   MOST_IMPROVED = 'most_improved',
   MOST_REGRESSED = 'most_regressed',
+  MOST_RELATED_ERRORS = 'most_related_errors',
+  MOST_RELATED_ISSUES = 'most_related_issues',
 }
 
 const WIDGET_PALETTE = CHART_PALETTE[5];
@@ -108,6 +111,13 @@ export const WIDGET_DEFINITIONS: ({
     dataType: GenericPerformanceWidgetDataType.area,
     chartColor: WIDGET_PALETTE[3],
   },
+  [PerformanceWidgetSetting.P75_LCP_AREA]: {
+    title: t('p75 LCP'),
+    titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.P75),
+    fields: ['p75(measurements.lcp)'],
+    dataType: GenericPerformanceWidgetDataType.area,
+    chartColor: WIDGET_PALETTE[1],
+  },
   [PerformanceWidgetSetting.FAILURE_RATE_AREA]: {
     title: t('Failure Rate'),
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.FAILURE_RATE),
@@ -120,6 +130,20 @@ export const WIDGET_DEFINITIONS: ({
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.USER_MISERY),
     fields: [`user_misery(${organization.apdexThreshold ?? ''})`], // TODO(k-fish): Check threshold is correct vs existing landing
     dataType: GenericPerformanceWidgetDataType.area,
+    chartColor: WIDGET_PALETTE[0],
+  },
+  [PerformanceWidgetSetting.MOST_RELATED_ERRORS]: {
+    title: t('Most Related Errors'),
+    titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.USER_MISERY),
+    fields: [`failure_count()`],
+    dataType: GenericPerformanceWidgetDataType.line_list,
+    chartColor: WIDGET_PALETTE[0],
+  },
+  [PerformanceWidgetSetting.MOST_RELATED_ISSUES]: {
+    title: t('Most Related Issues'),
+    titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.USER_MISERY),
+    fields: [`count()`],
+    dataType: GenericPerformanceWidgetDataType.line_list,
     chartColor: WIDGET_PALETTE[0],
   },
   [PerformanceWidgetSetting.MOST_IMPROVED]: {
