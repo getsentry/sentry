@@ -18,6 +18,7 @@ function mountModal({
   widget,
   fromDiscover,
   defaultWidgetQuery,
+  displayType,
 }) {
   return mountWithTheme(
     <AddDashboardWidgetModal
@@ -31,6 +32,7 @@ function mountModal({
       closeModal={() => void 0}
       fromDiscover={fromDiscover}
       defaultWidgetQuery={defaultWidgetQuery}
+      displayType={displayType}
     />,
     initialData.routerContext
   );
@@ -928,6 +930,19 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(queryFields.at(1).props().fieldValue.function[0]).toEqual('failure_count');
     expect(queryFields.at(2).props().fieldValue.function[0]).toEqual('count_unique');
     await tick();
+    wrapper.unmount();
+  });
+
+  it('uses displayType if given a displayType', async function () {
+    const wrapper = mountModal({
+      initialData,
+      onAddWidget: () => undefined,
+      onUpdateWidget: () => undefined,
+      fromDiscover: true,
+      displayType: types.DisplayType.BAR,
+    });
+
+    expect(wrapper.find('SelectPicker').at(1).props().value.value).toEqual('bar');
     wrapper.unmount();
   });
 });

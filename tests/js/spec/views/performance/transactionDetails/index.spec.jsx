@@ -27,7 +27,7 @@ describe('EventDetails', () => {
       />,
       {context: routerContext}
     );
-    expect(screen.queryByText(alertText)).toBeTruthy();
+    expect(screen.queryByText(alertText)).toBeInTheDocument();
   });
 
   it('does not reender alert if already received transaction', () => {
@@ -48,6 +48,6 @@ describe('EventDetails', () => {
       />,
       {context: routerContext}
     );
-    expect(screen.queryByText(alertText)).toBeNull();
+    expect(screen.queryByText(alertText)).not.toBeInTheDocument();
   });
 });

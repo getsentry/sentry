@@ -36,6 +36,7 @@ import {
   ReactEchartsRef,
   Series,
 } from 'app/types/echarts';
+import {defined} from 'app/utils';
 import type {Theme} from 'app/utils/theme';
 
 import Grid from './components/grid';
@@ -44,7 +45,7 @@ import Tooltip from './components/tooltip';
 import XAxis from './components/xAxis';
 import YAxis from './components/yAxis';
 import LineSeries from './series/lineSeries';
-import {getDimensionValue, lightenHexToRgb} from './utils';
+import {getDiffInMinutes, getDimensionValue, lightenHexToRgb} from './utils';
 
 echarts.use([GridComponent, GraphicComponent]);
 
@@ -223,6 +224,10 @@ type Props = {
    */
   isGroupedByDate?: boolean;
   /**
+   * optional, threshold in minutes used to add seconds to the xAxis datetime format if `isGroupedByDate == true`
+   */
+  minutesThresholdToDisplaySeconds?: number;
+  /**
    * Format timestamp with date AND time
    */
   showTimeInTooltip?: boolean;
@@ -274,6 +279,7 @@ function BaseChartUnwrapped({
   echartsTheme,
   devicePixelRatio,
 
+  minutesThresholdToDisplaySeconds,
   showTimeInTooltip,
   useShortDate,
   start,
@@ -364,6 +370,14 @@ function BaseChartUnwrapped({
     ? yAxes.map(axis => YAxis({...axis, theme}))
     : [YAxis(defaultAxesProps), YAxis(defaultAxesProps)];
 
+  /**
+   * If true seconds will be added to the time format in the tooltips and chart xAxis
+   */
+  const addSecondsToTimeFormat =
+    isGroupedByDate && defined(minutesThresholdToDisplaySeconds)
+      ? getDiffInMinutes({start, end, period}) <= minutesThresholdToDisplaySeconds
+      : false;
+
   const xAxisOrCustom = !xAxes
     ? xAxis !== null
       ? XAxis({
@@ -374,12 +388,23 @@ function BaseChartUnwrapped({
           end,
           period,
           isGroupedByDate,
+          addSecondsToTimeFormat,
           utc,
         })
       : undefined
     : Array.isArray(xAxes)
     ? xAxes.map(axis =>
-        XAxis({...axis, theme, useShortDate, start, end, period, isGroupedByDate, utc})
+        XAxis({
+          ...axis,
+          theme,
+          useShortDate,
+          start,
+          end,
+          period,
+          isGroupedByDate,
+          addSecondsToTimeFormat,
+          utc,
+        })
       )
     : [XAxis(defaultAxesProps), XAxis(defaultAxesProps)];
 
@@ -396,6 +421,7 @@ function BaseChartUnwrapped({
       ? Tooltip({
           showTimeInTooltip,
           isGroupedByDate,
+          addSecondsToTimeFormat,
           utc,
           bucketSize,
           ...tooltip,
@@ -562,6 +588,7 @@ const ChartContainer = styled('div')`
 const BaseChart = forwardRef<ReactEchartsRef, Props>((props, ref) => (
   <BaseChartUnwrapped forwardedRef={ref} {...props} />
 ));
+
 BaseChart.displayName = 'forwardRef(BaseChart)';
 
 export default BaseChart;

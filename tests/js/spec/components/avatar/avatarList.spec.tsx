@@ -17,9 +17,9 @@ describe('AvatarList', () => {
     ];
 
     const {container} = renderComponent(users);
-    expect(screen.getByText('A')).toBeTruthy();
-    expect(screen.getByText('B')).toBeTruthy();
-    expect(screen.queryByTestId('avatarList-collapsedusers')).toBeNull();
+    expect(screen.getByText('A')).toBeInTheDocument();
+    expect(screen.getByText('B')).toBeInTheDocument();
+    expect(screen.queryByTestId('avatarList-collapsedusers')).not.toBeInTheDocument();
 
     expect(container).toSnapshot();
   });
@@ -35,13 +35,13 @@ describe('AvatarList', () => {
     ];
 
     const {container} = renderComponent(users);
-    expect(screen.queryAllByText(users[0].name.charAt(0))).toBeTruthy();
-    expect(screen.queryAllByText(users[1].name.charAt(0))).toBeTruthy();
-    expect(screen.queryAllByText(users[2].name.charAt(0))).toBeTruthy();
-    expect(screen.queryAllByText(users[3].name.charAt(0))).toBeTruthy();
-    expect(screen.queryAllByText(users[4].name.charAt(0))).toBeTruthy();
-    expect(screen.queryByText(users[5].name.charAt(0))).toBeNull();
-    expect(screen.getByTestId('avatarList-collapsedusers')).toBeTruthy();
+    expect(screen.queryByText(users[0].name.charAt(0))).toBeInTheDocument();
+    expect(screen.queryByText(users[1].name.charAt(0))).toBeInTheDocument();
+    expect(screen.queryByText(users[2].name.charAt(0))).toBeInTheDocument();
+    expect(screen.queryByText(users[3].name.charAt(0))).toBeInTheDocument();
+    expect(screen.queryByText(users[4].name.charAt(0))).toBeInTheDocument();
+    expect(screen.queryByText(users[5].name.charAt(0))).not.toBeInTheDocument();
+    expect(screen.getByTestId('avatarList-collapsedusers')).toBeInTheDocument();
     expect(container).toSnapshot();
   });
 });
