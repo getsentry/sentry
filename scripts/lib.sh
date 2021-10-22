@@ -103,7 +103,7 @@ sudo-askpass() {
 }
 
 upgrade-pip() {
-    pip install --upgrade "pip==21.1.2" "wheel==0.36.2"
+    pip install --upgrade "pip==21.3.1" "wheel==0.36.2"
 }
 
 install-py-dev() {
