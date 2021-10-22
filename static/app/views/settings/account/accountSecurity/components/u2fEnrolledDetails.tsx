@@ -9,21 +9,10 @@ import Tooltip from 'app/components/tooltip';
 import {IconClose, IconDelete} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {AuthenticatorDevice} from 'app/types';
 import ConfirmHeader from 'app/views/settings/account/accountSecurity/components/confirmHeader';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import Input from 'app/views/settings/components/forms/controls/input';
 import TextBlock from 'app/views/settings/components/text/textBlock';
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-type Props = {
-  isEnrolled: boolean;
-  id: string;
-  onRemoveU2fDevice: (device: AuthenticatorDevice) => void;
-  onRenameU2fDevice: (device: AuthenticatorDevice, deviceName: string) => void;
-  devices?: AuthenticatorDevice[];
-  className?: string;
-};
 
 const U2fEnrolledDetails = props => {
   const {className, isEnrolled, devices, id, onRemoveU2fDevice, onRenameU2fDevice} =
