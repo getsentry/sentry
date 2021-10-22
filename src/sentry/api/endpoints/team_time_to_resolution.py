@@ -2,7 +2,7 @@ from collections import defaultdict
 from datetime import timedelta
 
 from django.db.models import Avg, F
-from django.db.models.functions import TruncDay
+from django.db.models.functions import Coalesce, TruncDay
 from rest_framework.response import Response
 
 from sentry.api.base import EnvironmentMixin
@@ -29,16 +29,17 @@ class TeamTimeToResolutionEndpoint(TeamEndpoint, EnvironmentMixin):
             )
             .annotate(bucket=TruncDay("date_added"))
             .values("bucket", "prev_history_date")
-            .annotate(ttr=F("date_added") - F("prev_history_date"))
+            # We need to coalesce here since we won't store the initial `UNRESOLVED` row for every
+            # group, since it's unnecessary and just takes extra storage.
+            .annotate(
+                ttr=F("date_added") - Coalesce(F("prev_history_date"), F("group__first_seen"))
+            )
             .annotate(avg_ttr=Avg("ttr"))
         )
         sums = defaultdict(lambda: {"sum": timedelta(), "count": 0})
         for gh in history_list:
             key = str(gh["bucket"].date())
-            if gh["ttr"] is not None:
-                # If a `GroupHistory` row has no `prev_history_date` then this will end up being
-                # None. Isn't a problem long term, but for older data we will be missing this value.
-                sums[key]["sum"] += gh["ttr"]
+            sums[key]["sum"] += gh["ttr"]
             sums[key]["count"] += 1
 
         avgs = {}

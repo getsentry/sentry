@@ -1,4 +1,5 @@
 from time import time
+from unittest import mock
 
 import pytest
 from django.test.utils import override_settings
@@ -12,7 +13,6 @@ from sentry.tasks.store import (
     save_event,
     time_synthetic_monitoring_event,
 )
-from sentry.utils.compat import mock
 
 EVENT_ID = "cc3e6c2bb6b6498097f336d1e6979f4b"
 
@@ -103,7 +103,7 @@ def test_move_to_process_event(
         "extra": {"foo": "bar"},
     }
 
-    preprocess_event(data=data)
+    preprocess_event(cache_key="", data=data)
 
     assert mock_symbolicate_event.delay.call_count == 0
     assert mock_process_event.delay.call_count == 1
@@ -123,7 +123,7 @@ def test_move_to_save_event(
         "extra": {"foo": "bar"},
     }
 
-    preprocess_event(data=data)
+    preprocess_event(cache_key="", data=data)
 
     assert mock_symbolicate_event.delay.call_count == 0
     assert mock_process_event.delay.call_count == 0

@@ -1,11 +1,11 @@
 import functools
+from unittest.mock import patch
 
 from django.core import mail
 
 from sentry import options
 from sentry.models import GroupEmailThread, User, UserEmail, UserOption
 from sentry.testutils import TestCase
-from sentry.utils.compat.mock import patch
 from sentry.utils.email import MessageBuilder
 from sentry.utils.email.faker import create_fake_email
 
