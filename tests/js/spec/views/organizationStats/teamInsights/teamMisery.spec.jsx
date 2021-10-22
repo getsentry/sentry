@@ -132,6 +132,6 @@ describe('TeamMisery', () => {
       expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
     });
 
-    expect(screen.getByText('There are no items to display')).toBeTruthy();
+    expect(screen.getByText('There are no items to display')).toBeInTheDocument();
   });
 });
