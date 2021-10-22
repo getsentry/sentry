@@ -1,3 +1,5 @@
+from unittest.mock import Mock, patch
+
 from django.http import QueryDict
 
 from sentry.api.helpers.group_index import (
@@ -9,7 +11,6 @@ from sentry.api.helpers.group_index import (
 from sentry.api.issue_search import parse_search_query
 from sentry.models import GroupInbox, GroupInboxReason, GroupStatus, add_group_to_inbox
 from sentry.testutils import TestCase
-from sentry.utils.compat.mock import Mock, patch
 from sentry.utils.hashlib import md5_text
 
 
@@ -28,7 +29,7 @@ class ValidateSearchFilterPermissionsTest(TestCase):
     @patch("sentry.analytics.record")
     def test_negative(self, mock_record):
         query = "!has:user"
-        with self.feature({"organizations:advanced-search": False}), self.assertRaisesRegexp(
+        with self.feature({"organizations:advanced-search": False}), self.assertRaisesRegex(
             ValidationError, ".*negative search.*"
         ):
             self.run_test(query)
@@ -37,7 +38,7 @@ class ValidateSearchFilterPermissionsTest(TestCase):
         self.assert_analytics_recorded(mock_record)
 
         query = "!something:123"
-        with self.feature({"organizations:advanced-search": False}), self.assertRaisesRegexp(
+        with self.feature({"organizations:advanced-search": False}), self.assertRaisesRegex(
             ValidationError, ".*negative search.*"
         ):
             self.run_test(query)
@@ -48,7 +49,7 @@ class ValidateSearchFilterPermissionsTest(TestCase):
     @patch("sentry.analytics.record")
     def test_wildcard(self, mock_record):
         query = "abc:hello*"
-        with self.feature({"organizations:advanced-search": False}), self.assertRaisesRegexp(
+        with self.feature({"organizations:advanced-search": False}), self.assertRaisesRegex(
             ValidationError, ".*wildcard search.*"
         ):
             self.run_test(query)
@@ -57,7 +58,7 @@ class ValidateSearchFilterPermissionsTest(TestCase):
         self.assert_analytics_recorded(mock_record)
 
         query = "raw * search"
-        with self.feature({"organizations:advanced-search": False}), self.assertRaisesRegexp(
+        with self.feature({"organizations:advanced-search": False}), self.assertRaisesRegex(
             ValidationError, ".*wildcard search.*"
         ):
             self.run_test(query)

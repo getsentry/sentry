@@ -1,4 +1,5 @@
 from hashlib import sha1
+from unittest.mock import patch
 from uuid import uuid4
 
 from sentry.models import (
@@ -22,7 +23,6 @@ from sentry.models import (
     add_group_to_inbox,
 )
 from sentry.testutils import TestCase
-from sentry.utils.compat.mock import patch
 
 
 class ResolveGroupResolutionsTest(TestCase):
@@ -35,13 +35,6 @@ class ResolveGroupResolutionsTest(TestCase):
 
 
 class ResolvedInCommitTest(TestCase):
-    def setUp(self):
-        self._feature_ctx_manager = self.feature("organizations:group-history")
-        self._feature_ctx_manager.__enter__()
-
-    def tearDown(self):
-        self._feature_ctx_manager.__exit__(None, None, None)
-
     def assertResolvedFromCommit(self, group, commit):
         assert GroupLink.objects.filter(
             group_id=group.id, linked_type=GroupLink.LinkedType.commit, linked_id=commit.id

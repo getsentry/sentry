@@ -18,7 +18,8 @@ import PageHeading from 'app/components/pageHeading';
 import Pagination from 'app/components/pagination';
 import SearchBar from 'app/components/searchBar';
 import SmartSearchBar from 'app/components/smartSearchBar';
-import {DEFAULT_STATS_PERIOD, RELEASE_ADOPTION_STAGES} from 'app/constants';
+import {ItemType} from 'app/components/smartSearchBar/types';
+import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {releaseHealth} from 'app/data/platformCategories';
 import {IconInfo} from 'app/icons';
@@ -35,6 +36,7 @@ import {
   Tag,
 } from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {SEMVER_TAGS} from 'app/utils/discover/fields';
 import Projects from 'app/utils/projects';
 import routeTitleGen from 'app/utils/routeTitle';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
@@ -52,31 +54,6 @@ import ReleasesPromo from './releasesPromo';
 import ReleasesRequest from './releasesRequest';
 import ReleasesSortOptions, {ReleasesSortOption} from './releasesSortOptions';
 import ReleasesStatusOptions, {ReleasesStatusOption} from './releasesStatusOptions';
-
-const supportedTags = {
-  'release.version': {
-    key: 'release.version',
-    name: 'release.version',
-  },
-  'release.build': {
-    key: 'release.build',
-    name: 'release.build',
-  },
-  'release.package': {
-    key: 'release.package',
-    name: 'release.package',
-  },
-  'release.stage': {
-    key: 'release.stage',
-    name: 'release.stage',
-    predefined: true,
-    values: RELEASE_ADOPTION_STAGES,
-  },
-  release: {
-    key: 'release',
-    name: 'release',
-  },
-};
 
 type RouteParams = {
   orgId: string;
@@ -544,7 +521,14 @@ class ReleasesList extends AsyncView<Props, State> {
                       placeholder={t('Search by version, build, package, or stage')}
                       maxSearchItems={5}
                       hasRecentSearches={false}
-                      supportedTags={supportedTags}
+                      supportedTags={{
+                        ...SEMVER_TAGS,
+                        release: {
+                          key: 'release',
+                          name: 'release',
+                        },
+                      }}
+                      supportedTagType={ItemType.PROPERTY}
                       onSearch={this.handleSearch}
                       onGetTagValues={this.getTagValues}
                     />

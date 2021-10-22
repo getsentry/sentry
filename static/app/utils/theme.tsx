@@ -531,8 +531,8 @@ const commonTheme = {
 
     // On mobile views org stats dropdowns overlap
     orgStats: {
-      dataCategory: 1,
-      timeRange: 2,
+      dataCategory: 2,
+      timeRange: 1,
     },
 
     // On mobile views issue list dropdowns overlap

@@ -1,4 +1,5 @@
 from copy import deepcopy
+from unittest import mock
 from urllib.parse import urlencode
 
 import responses
@@ -6,7 +7,6 @@ import responses
 from sentry.models import Identity, IdentityProvider, Integration
 from sentry.testutils import APITestCase
 from sentry.utils import jwt
-from sentry.utils.compat import mock
 
 from .test_helpers import (
     DECODED_TOKEN,

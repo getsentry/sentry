@@ -578,10 +578,6 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     this.setState({comparisonType: value, comparisonDelta, timeWindow});
   };
 
-  handleComparisonDeltaChange = (value: number) => {
-    this.setState({comparisonDelta: value});
-  };
-
   handleDeleteRule = async () => {
     const {params} = this.props;
     const {orgId, projectId, ruleId} = params;

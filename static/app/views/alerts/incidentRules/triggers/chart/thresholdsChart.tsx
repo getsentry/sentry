@@ -30,6 +30,7 @@ type Props = DefaultProps & {
   thresholdType: IncidentRule['thresholdType'];
   aggregate: string;
   hideThresholdLines: boolean;
+  minutesThresholdToDisplaySeconds?: number;
   maxValue?: number;
   minValue?: number;
 } & Partial<GlobalSelection['datetime']>;
@@ -289,7 +290,15 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
   }
 
   render() {
-    const {data, triggers, period, aggregate, comparisonMarkLines} = this.props;
+    const {
+      data,
+      triggers,
+      period,
+      aggregate,
+      comparisonMarkLines,
+      minutesThresholdToDisplaySeconds,
+    } = this.props;
+
     const dataWithoutRecentBucket: AreaChartSeries[] = data?.map(
       ({data: eventData, ...restOfData}) => ({
         ...restOfData,
@@ -326,10 +335,12 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
         },
       },
     };
+
     return (
       <AreaChart
         isGroupedByDate
         showTimeInTooltip
+        minutesThresholdToDisplaySeconds={minutesThresholdToDisplaySeconds}
         period={period}
         forwardedRef={this.handleRef}
         grid={CHART_GRID}
