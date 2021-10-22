@@ -51,10 +51,7 @@ def get_double_period(period: str) -> str:
 def is_aggregate(field: str) -> bool:
     field_match = re.match(AGGREGATE_PATTERN, field)
     equation_match = re.match(AGGREGATE_BASE, field) and is_equation(field)
-    if field_match or equation_match:
-        return True
-
-    return False
+    return field_match is not None or equation_match
 
 
 def unfurl_discover(
