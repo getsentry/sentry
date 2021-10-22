@@ -97,11 +97,15 @@ class QueryList extends React.Component<Props> {
       event.preventDefault();
       event.stopPropagation();
 
+      const sort = eventView.sorts[0];
       const defaultWidgetQuery: WidgetQuery = {
         name: '',
-        fields: savedQuery?.yAxis ?? ['count()'],
+        fields:
+          typeof savedQuery?.yAxis === 'string'
+            ? [savedQuery?.yAxis]
+            : savedQuery?.yAxis ?? ['count()'],
         conditions: eventView.query,
-        orderby: '',
+        orderby: sort ? `${sort.kind === 'desc' ? '-' : ''}${sort.field}` : '',
       };
 
       trackAdvancedAnalyticsEvent('discover_views.add_to_dashboard.modal_open', {
