@@ -1,5 +1,6 @@
 import time
 from datetime import timedelta
+from unittest.mock import Mock, patch
 from urllib.parse import quote
 from uuid import uuid4
 
@@ -33,7 +34,6 @@ from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils import json
-from sentry.utils.compat.mock import Mock, patch
 
 
 class GroupListTest(APITestCase, SnubaTestCase):
