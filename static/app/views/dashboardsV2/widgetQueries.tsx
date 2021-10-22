@@ -1,4 +1,5 @@
 import * as React from 'react';
+import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 
 import {doEventsRequest} from 'app/actionCreators/events';
@@ -14,11 +15,11 @@ import {
   EventsStats,
   GlobalSelection,
   MultiSeriesEventsStats,
-  Organization,
+  OrganizationSummary,
 } from 'app/types';
 import {Series} from 'app/types/echarts';
 import {parsePeriodToHours} from 'app/utils/dates';
-import {TableData} from 'app/utils/discover/discoverQuery';
+import {TableData, TableDataWithTitle} from 'app/utils/discover/discoverQuery';
 import {getAggregateFields} from 'app/utils/discover/fields';
 import {
   DiscoverQueryRequestParams,
@@ -98,15 +99,13 @@ function transformResult(query: WidgetQuery, result: RawResult): Series[] {
 
 type Props = {
   api: Client;
-  organization: Organization;
+  organization: OrganizationSummary;
   widget: Widget;
   selection: GlobalSelection;
   children: (
     props: Pick<State, 'loading' | 'timeseriesResults' | 'tableResults' | 'errorMessage'>
   ) => React.ReactNode;
 };
-
-type TableDataWithTitle = TableData & {title: string};
 
 type State = {
   errorMessage: undefined | string;
@@ -341,10 +340,13 @@ class WidgetQueries extends React.Component<Props, State> {
             transformResult(widget.queries[i], rawResults)
           );
 
+          const rawResultsClone = cloneDeep(prevState.rawResults ?? []);
+          rawResultsClone[i] = rawResults;
+
           return {
             ...prevState,
             timeseriesResults,
-            rawResults: (prevState.rawResults ?? []).concat(rawResults),
+            rawResults: rawResultsClone,
           };
         });
       } catch (err) {

@@ -32,13 +32,13 @@ describe('StackTrace', function () {
 
     // stack trace content
     const stackTraceContent = screen.getByTestId('stack-trace-content');
-    expect(stackTraceContent).toBeTruthy();
+    expect(stackTraceContent).toBeInTheDocument();
 
     // stack trace content has to have a platform icon and a frame list
     expect(stackTraceContent.children).toHaveLength(2);
 
     // platform icon
-    expect(screen.getByTestId('platform-icon-python')).toBeTruthy();
+    expect(screen.getByTestId('platform-icon-python')).toBeInTheDocument();
 
     // frame list
     const frames = screen.getByTestId('frames');
@@ -53,20 +53,20 @@ describe('StackTrace', function () {
     // frame - filename
     const frameFilenames = screen.queryAllByTestId('filename');
     expect(frameFilenames).toHaveLength(5);
-    expect(frameFilenames[0].textContent).toEqual('raven/scripts/runner.py');
-    expect(frameFilenames[1].textContent).toEqual('raven/scripts/runner.py');
-    expect(frameFilenames[2].textContent).toEqual('raven/base.py');
-    expect(frameFilenames[3].textContent).toEqual('raven/base.py');
-    expect(frameFilenames[4].textContent).toEqual('raven/base.py');
+    expect(frameFilenames[0]).toHaveTextContent('raven/scripts/runner.py');
+    expect(frameFilenames[1]).toHaveTextContent('raven/scripts/runner.py');
+    expect(frameFilenames[2]).toHaveTextContent('raven/base.py');
+    expect(frameFilenames[3]).toHaveTextContent('raven/base.py');
+    expect(frameFilenames[4]).toHaveTextContent('raven/base.py');
 
     // frame - function
     const frameFunction = screen.queryAllByTestId('function');
     expect(frameFunction).toHaveLength(5);
-    expect(frameFunction[0].textContent).toEqual('main');
-    expect(frameFunction[1].textContent).toEqual('send_test_message');
-    expect(frameFunction[2].textContent).toEqual('captureMessage');
-    expect(frameFunction[3].textContent).toEqual('capture');
-    expect(frameFunction[4].textContent).toEqual('build_msg');
+    expect(frameFunction[0]).toHaveTextContent('main');
+    expect(frameFunction[1]).toHaveTextContent('send_test_message');
+    expect(frameFunction[2]).toHaveTextContent('captureMessage');
+    expect(frameFunction[3]).toHaveTextContent('capture');
+    expect(frameFunction[4]).toHaveTextContent('build_msg');
   });
 
   it('collapse/expand frames by clicking anywhere in the frame element', function () {
@@ -76,7 +76,7 @@ describe('StackTrace', function () {
     expect(frames.children).toHaveLength(5);
 
     // only one frame is expanded by default
-    expect(screen.queryAllByTestId('toggle-button-expanded')).toHaveLength(1);
+    expect(screen.queryByTestId('toggle-button-expanded')).toBeInTheDocument();
     expect(screen.queryAllByTestId('toggle-button-collapsed')).toHaveLength(4);
 
     // clickable list item element
@@ -87,7 +87,7 @@ describe('StackTrace', function () {
     fireEvent.click(frameTitles[0]);
 
     // all frames are now collapsed
-    expect(screen.queryAllByTestId('toggle-button-expanded')).toHaveLength(0);
+    expect(screen.queryByTestId('toggle-button-expanded')).not.toBeInTheDocument();
     expect(screen.queryAllByTestId('toggle-button-collapsed')).toHaveLength(5);
 
     // expand penultimate and last frame
@@ -109,18 +109,18 @@ describe('StackTrace', function () {
     const frames = screen.getByTestId('frames');
     expect(frames.children).toHaveLength(5);
 
-    const expandedToggleButtons = screen.queryAllByTestId('toggle-button-expanded');
+    const expandedToggleButtons = screen.getByTestId('toggle-button-expanded');
 
     // only one frame is expanded by default
-    expect(expandedToggleButtons).toHaveLength(1);
+    expect(expandedToggleButtons).toBeInTheDocument();
     expect(screen.queryAllByTestId('toggle-button-collapsed')).toHaveLength(4);
 
     // collapse the expanded frame (by default)
-    fireEvent.mouseDown(expandedToggleButtons[0]);
-    fireEvent.click(expandedToggleButtons[0]);
+    fireEvent.mouseDown(expandedToggleButtons);
+    fireEvent.click(expandedToggleButtons);
 
     // all frames are now collapsed
-    expect(screen.queryAllByTestId('toggle-button-expanded')).toHaveLength(0);
+    expect(screen.queryByTestId('toggle-button-expanded')).not.toBeInTheDocument();
     expect(screen.queryAllByTestId('toggle-button-collapsed')).toHaveLength(5);
 
     const collapsedToggleButtons = screen.queryAllByTestId('toggle-button-collapsed');
@@ -170,12 +170,10 @@ describe('StackTrace', function () {
       // frame list - in app only
       expect(frameTitles).toHaveLength(2);
 
-      expect(frameTitles[0].textContent).toEqual(
+      expect(frameTitles[0]).toHaveTextContent(
         'Crashed in non-app: raven/scripts/runner.py in main at line 112'
       );
-      expect(frameTitles[1].textContent).toEqual(
-        'raven/base.py in build_msg at line 303'
-      );
+      expect(frameTitles[1]).toHaveTextContent('raven/base.py in build_msg at line 303');
     });
 
     it('displays called from only', function () {
@@ -203,10 +201,10 @@ describe('StackTrace', function () {
       // frame list - in app only
       expect(frameTitles).toHaveLength(2);
 
-      expect(frameTitles[0].textContent).toEqual(
+      expect(frameTitles[0]).toHaveTextContent(
         'raven/scripts/runner.py in main at line 112'
       );
-      expect(frameTitles[1].textContent).toEqual(
+      expect(frameTitles[1]).toHaveTextContent(
         'Called from: raven/scripts/runner.py in send_test_message at line 77'
       );
     });
@@ -236,11 +234,11 @@ describe('StackTrace', function () {
       // frame list - in app only
       expect(frameTitles).toHaveLength(3);
 
-      expect(frameTitles[0].textContent).toEqual(
+      expect(frameTitles[0]).toHaveTextContent(
         'Crashed in non-app: raven/scripts/runner.py in main at line 112'
       );
-      expect(frameTitles[1].textContent).toEqual('raven/base.py in capture at line 459');
-      expect(frameTitles[2].textContent).toEqual(
+      expect(frameTitles[1]).toHaveTextContent('raven/base.py in capture at line 459');
+      expect(frameTitles[2]).toHaveTextContent(
         'Called from: raven/base.py in build_msg at line 303'
       );
     });

@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import responses
 from django.db import connection
 
@@ -11,7 +13,6 @@ from sentry.models import (
     User,
 )
 from sentry.testutils import TestCase
-from sentry.utils.compat.mock import patch
 
 
 class TestDestroyer(TestCase):

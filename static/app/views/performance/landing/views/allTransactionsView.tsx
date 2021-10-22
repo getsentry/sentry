@@ -24,9 +24,10 @@ export function AllTransactionsView(props: BasePerformanceViewProps) {
       <DoubleChartRow
         {...props}
         allowedCharts={[
-          PerformanceWidgetSetting.TPM_AREA,
           PerformanceWidgetSetting.MOST_RELATED_ERRORS,
           PerformanceWidgetSetting.MOST_RELATED_ISSUES,
+          PerformanceWidgetSetting.MOST_IMPROVED,
+          PerformanceWidgetSetting.MOST_REGRESSED,
         ]}
       />
       <Table {...props} setError={usePageError().setPageError} />

@@ -68,7 +68,7 @@ function _DataDisplay<T extends WidgetDataConstraint>(
   props: GenericPerformanceWidgetProps<T> &
     WidgetDataProps<T> & {nextWidgetData: T; totalHeight: number}
 ) {
-  const {Visualizations, chartHeight, totalHeight, containerType} = props;
+  const {Visualizations, chartHeight, totalHeight, containerType, EmptyComponent} = props;
 
   const Container = getPerformanceWidgetContainer({
     containerType,
@@ -111,7 +111,14 @@ function _DataDisplay<T extends WidgetDataConstraint>(
             />
           </ContentContainer>
         ))}
-        emptyComponent={<Placeholder height={`${totalHeight - paddingOffset}px`} />}
+        loadingComponent={<Placeholder height={`${totalHeight - paddingOffset}px`} />}
+        emptyComponent={
+          EmptyComponent ? (
+            <EmptyComponent />
+          ) : (
+            <Placeholder height={`${totalHeight - paddingOffset}px`} />
+          )
+        }
       />
     </Container>
   );

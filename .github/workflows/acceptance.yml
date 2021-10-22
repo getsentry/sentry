@@ -20,6 +20,7 @@ jobs:
     timeout-minutes: 20
     strategy:
       matrix:
+        # XXX: When updating this, make sure you also update CI_NODE_TOTAL.
         instance: [0, 1]
 
     env:
@@ -55,7 +56,10 @@ jobs:
         env:
           GITHUB_PR_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           GITHUB_PR_REF: ${{ github.event.pull_request.head.ref || github.ref }}
-          CI_NODE_TOTAL: ${{ strategy.job-total }}
+          # XXX: CI_NODE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
+          #      Otherwise, if there are other things in the matrix, using strategy.job-total
+          #      wouldn't be correct.
+          CI_NODE_TOTAL: 2
           CI_NODE_INDEX: ${{ matrix.instance }}
         run: |
           JEST_TESTS=$(yarn -s jest --listTests --json) yarn test-ci --forceExit
@@ -74,7 +78,6 @@ jobs:
           css-path: src/sentry/static/sentry/dist/entrypoints/sentry.css
 
       - name: Save snapshots
-        if: always()
         uses: getsentry/action-visual-snapshot@v2
         with:
           save-only: true
@@ -146,10 +149,12 @@ jobs:
     timeout-minutes: 20
     strategy:
       matrix:
+        python-version: [3.8.12]
+        # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
         instance: [0, 1, 2, 3]
-        # TODO(joshuarli): Add 3.8.12.
-        python-version: [3.6.13]
     env:
+      # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
+      MATRIX_INSTANCE_TOTAL: 4
       VISUAL_SNAPSHOT_ENABLE: 1
       TEST_GROUP_STRATEGY: roundrobin
 
@@ -182,8 +187,7 @@ jobs:
         run: |
           tar xf dist.tar.gz
 
-      - name: Run acceptance tests (#${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
-        if: always()
+      - name: Run acceptance tests (#${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         run: |
           mkdir -p ${{ steps.setup.outputs.acceptance-dir }}
           mkdir -p ${{ steps.setup.outputs.acceptance-dir }}-mobile
@@ -194,7 +198,6 @@ jobs:
           USE_SNUBA: 1
 
       - name: Save snapshots
-        if: always()
         uses: getsentry/action-visual-snapshot@v2
         with:
           save-only: true
@@ -209,10 +212,13 @@ jobs:
     timeout-minutes: 30
     strategy:
       matrix:
-        # TODO(joshuarli): Add 3.8.12.
-        python-version: [3.6.13]
+        python-version: [3.8.12]
+        # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
         instance: [0]
     env:
+      # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
+      MATRIX_INSTANCE_TOTAL: 1
+      TEST_GROUP_STRATEGY: roundrobin
       VISUAL_SNAPSHOT_ENABLE: 1
 
     steps:
@@ -244,7 +250,7 @@ jobs:
         run: |
           make build-chartcuterie-config
 
-      - name: Run chartcuterie tests (${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
+      - name: Run chartcuterie tests (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         run: |
           mkdir -p ${{ steps.setup.outputs.acceptance-dir }}
           make test-chartcuterie
@@ -252,7 +258,6 @@ jobs:
           PYTEST_SNAPSHOTS_DIR: ${{ steps.setup.outputs.acceptance-dir }}
 
       - name: Save snapshots
-        if: always()
         uses: getsentry/action-visual-snapshot@v2
         with:
           save-only: true

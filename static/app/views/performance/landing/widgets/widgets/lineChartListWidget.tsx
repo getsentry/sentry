@@ -1,5 +1,5 @@
-import {Fragment, FunctionComponent, ReactText, useMemo, useState} from 'react';
-import {browserHistory, withRouter} from 'react-router';
+import {Fragment, FunctionComponent, useMemo, useState} from 'react';
+import {withRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -7,8 +7,10 @@ import _EventsRequest from 'app/components/charts/eventsRequest';
 import {getInterval} from 'app/components/charts/utils';
 import Link from 'app/components/links/link';
 import Tooltip from 'app/components/tooltip';
+import Truncate from 'app/components/truncate';
 import {IconClose} from 'app/icons';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
@@ -17,6 +19,7 @@ import withApi from 'app/utils/withApi';
 import _DurationChart from 'app/views/performance/charts/chart';
 import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
 
+import {excludeTransaction} from '../../utils';
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import SelectableList, {RightAlignedCell} from '../components/selectableList';
 import {transformDiscoverToList} from '../transforms/transformDiscoverToList';
@@ -42,22 +45,6 @@ type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToArea>;
   list: WidgetDataResult & ReturnType<typeof transformDiscoverToList>;
 };
-
-function excludeTransaction(transaction: string | ReactText, props: Props) {
-  const {eventView, location} = props;
-
-  const searchConditions = new MutableSearch(eventView.query);
-  searchConditions.addFilterValues('!transaction', [`${transaction}`]);
-
-  browserHistory.push({
-    pathname: location.pathname,
-    query: {
-      ...location.query,
-      cursor: undefined,
-      query: searchConditions.formatString(),
-    },
-  });
-}
 
 export function LineChartListWidget(props: Props) {
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
@@ -190,17 +177,20 @@ export function LineChartListWidget(props: Props) {
               selectedIndex={selectedListIndex}
               setSelectedIndex={setSelectListIndex}
               items={provided.widgetData.list.data.map(listItem => () => {
+                const transaction = listItem.transaction as string;
                 const transactionTarget = transactionSummaryRouteWithQuery({
                   orgSlug: props.organization.slug,
                   projectID: listItem['project.id'] as string,
-                  transaction: listItem.transaction as string,
+                  transaction,
                   query: props.eventView.getGlobalSelectionQuery(),
                 });
                 switch (props.chartSetting) {
                   case PerformanceWidgetSetting.MOST_RELATED_ISSUES:
                     return (
                       <Fragment>
-                        <Link to={transactionTarget}>{listItem.transaction}</Link>
+                        <GrowLink to={transactionTarget}>
+                          <Truncate value={transaction} maxLength={40} />
+                        </GrowLink>
                         <RightAlignedCell>
                           <Tooltip title={listItem.title}>
                             <Link
@@ -222,7 +212,9 @@ export function LineChartListWidget(props: Props) {
                   default:
                     return (
                       <Fragment>
-                        <Link to={transactionTarget}>{listItem.transaction}</Link>
+                        <GrowLink to={transactionTarget}>
+                          <Truncate value={transaction} maxLength={40} />
+                        </GrowLink>
                         <RightAlignedCell>{listItem.failure_count}</RightAlignedCell>
                         <CloseContainer>
                           <StyledIconClose
@@ -255,6 +247,10 @@ const CloseContainer = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
+  padding-left: ${space(1)};
+`;
+const GrowLink = styled(Link)`
+  flex-grow: 1;
 `;
 
 const StyledIconClose = styled(IconClose)`

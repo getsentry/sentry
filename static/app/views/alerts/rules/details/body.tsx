@@ -21,18 +21,19 @@ import {parseSearch} from 'app/components/searchSyntax/parser';
 import HighlightQuery from 'app/components/searchSyntax/renderer';
 import TimeSince from 'app/components/timeSince';
 import Tooltip from 'app/components/tooltip';
-import {IconCheckmark, IconFire, IconInfo, IconWarning} from 'app/icons';
+import {IconInfo, IconRectangle} from 'app/icons';
 import {t, tct} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Actor, DateString, Organization, Project} from 'app/types';
 import getDynamicText from 'app/utils/getDynamicText';
 import Projects from 'app/utils/projects';
+import {COMPARISON_DELTA_OPTIONS} from 'app/views/alerts/incidentRules/constants';
 import {
+  Action,
   AlertRuleThresholdType,
   Dataset,
   IncidentRule,
-  Trigger,
 } from 'app/views/alerts/incidentRules/types';
 import {extractEventTypeFilterFromRule} from 'app/views/alerts/incidentRules/utils/getEventTypeFilter';
 import Timeline from 'app/views/alerts/rules/details/timeline';
@@ -127,7 +128,7 @@ export default class DetailsBody extends React.Component<Props> {
     );
   }
 
-  renderTrigger(trigger: Trigger): React.ReactNode {
+  renderTrigger(label: string, threshold: number, actions: Action[]): React.ReactNode {
     const {rule} = this.props;
 
     if (!rule) {
@@ -135,28 +136,63 @@ export default class DetailsBody extends React.Component<Props> {
     }
 
     const status =
-      trigger.label === 'critical' ? (
-        <StatusWrapper>
-          <IconFire color="red300" size="sm" /> Critical
-        </StatusWrapper>
-      ) : trigger.label === 'warning' ? (
-        <StatusWrapper>
-          <IconWarning color="yellow300" size="sm" /> Warning
-        </StatusWrapper>
+      label === 'critical'
+        ? t('Critical')
+        : label === 'warning'
+        ? t('Warning')
+        : t('Resolved');
+    const statusIcon =
+      label === 'critical' ? (
+        <StyledIconRectangle color="red300" size="sm" />
+      ) : label === 'warning' ? (
+        <StyledIconRectangle color="yellow300" size="sm" />
       ) : (
-        <StatusWrapper>
-          <IconCheckmark color="green300" size="sm" isCircled /> Resolved
-        </StatusWrapper>
+        <StyledIconRectangle color="green300" size="sm" />
       );
 
-    const thresholdTypeText =
-      rule.thresholdType === AlertRuleThresholdType.ABOVE ? t('above') : t('below');
+    const thresholdTypeText = (
+      label === 'resolved'
+        ? rule.thresholdType === AlertRuleThresholdType.BELOW
+        : rule.thresholdType === AlertRuleThresholdType.ABOVE
+    )
+      ? rule.comparisonDelta
+        ? t('higher')
+        : t('above')
+      : rule.comparisonDelta
+      ? t('lower')
+      : t('below');
+
+    const thresholdText = rule.comparisonDelta
+      ? tct(
+          'When [threshold]% [comparisonType] in [timeWindow] compared to [comparisonDelta]',
+          {
+            threshold,
+            comparisonType: thresholdTypeText,
+            timeWindow: this.getTimeWindow(),
+            comparisonDelta: (
+              COMPARISON_DELTA_OPTIONS.find(
+                ({value}) => value === rule.comparisonDelta
+              ) ?? COMPARISON_DELTA_OPTIONS[0]
+            ).label,
+          }
+        )
+      : tct('If  [condition] in [timeWindow]', {
+          condition: `${thresholdTypeText} ${threshold}`,
+          timeWindow: this.getTimeWindow(),
+        });
 
     return (
-      <TriggerCondition>
-        {status}
-        <TriggerText>{`${thresholdTypeText} ${trigger.alertThreshold}`}</TriggerText>
-      </TriggerCondition>
+      <TriggerConditionContainer>
+        {statusIcon}
+        <TriggerCondition>
+          {status}
+          <TriggerText>{thresholdText}</TriggerText>
+          {actions.map(
+            action =>
+              action.desc && <TriggerText key={action.id}>{action.desc}</TriggerText>
+          )}
+        </TriggerCondition>
+      </TriggerConditionContainer>
     );
   }
 
@@ -191,9 +227,21 @@ export default class DetailsBody extends React.Component<Props> {
         </SidebarGroup>
 
         <SidebarGroup>
-          <Heading>{t('Conditions')}</Heading>
-          {criticalTrigger && this.renderTrigger(criticalTrigger)}
-          {warningTrigger && this.renderTrigger(warningTrigger)}
+          <Heading>{t('Thresholds and Actions')}</Heading>
+          {typeof criticalTrigger?.alertThreshold === 'number' &&
+            this.renderTrigger(
+              criticalTrigger.label,
+              criticalTrigger.alertThreshold,
+              criticalTrigger.actions
+            )}
+          {typeof warningTrigger?.alertThreshold === 'number' &&
+            this.renderTrigger(
+              warningTrigger.label,
+              warningTrigger.alertThreshold,
+              warningTrigger.actions
+            )}
+          {typeof rule.resolveThreshold === 'number' &&
+            this.renderTrigger('resolved', rule.resolveThreshold, [])}
         </SidebarGroup>
 
         <SidebarGroup>
@@ -443,14 +491,6 @@ const DetailWrapper = styled('div')`
   }
 `;
 
-const StatusWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  svg {
-    margin-right: ${space(0.5)};
-  }
-`;
-
 const HeaderContainer = styled('div')`
   height: 60px;
   display: flex;
@@ -548,16 +588,25 @@ const Filters = styled('span')`
   font-family: ${p => p.theme.text.familyMono};
 `;
 
+const TriggerConditionContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+`;
+
 const TriggerCondition = styled('div')`
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  margin-left: ${space(0.75)};
 `;
 
 const TriggerText = styled('div')`
-  margin-left: ${space(0.5)};
-  white-space: nowrap;
+  color: ${p => p.theme.subText};
 `;
 
 const CreatedBy = styled('div')`
   ${overflowEllipsis}
+`;
+
+const StyledIconRectangle = styled(IconRectangle)`
+  margin-top: ${space(0.75)};
 `;
