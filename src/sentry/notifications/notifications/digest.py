@@ -106,6 +106,8 @@ class DigestNotification(ProjectNotification):
         return extra_context
 
     def send(self) -> None:
+        from sentry.models import User
+
         if not self.should_email():
             return
 
@@ -114,7 +116,12 @@ class DigestNotification(ProjectNotification):
             return
 
         # Get every user ID for every provider as a set.
-        user_ids = {user.id for users in participants_by_provider.values() for user in users}
+        user_ids = {
+            participant.id
+            for participants in participants_by_provider.values()
+            for participant in participants
+            if isinstance(participant, User)
+        }
 
         logger.info(
             "mail.adapter.notify_digest",
