@@ -6,9 +6,9 @@ from django.utils import timezone
 
 from sentry.constants import SentryAppInstallationStatus
 from sentry.db.models import (
-    BaseManager,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
+    ParanoidManager,
     ParanoidModel,
 )
 
@@ -17,7 +17,7 @@ def default_uuid():
     return str(uuid.uuid4())
 
 
-class SentryAppInstallationForProviderManager(BaseManager):
+class SentryAppInstallationForProviderManager(ParanoidManager):
     def get_installed_for_organization(self, organization_id: int) -> QuerySet:
         return self.filter(
             organization_id=organization_id,
