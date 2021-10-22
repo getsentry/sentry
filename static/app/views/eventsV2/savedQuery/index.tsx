@@ -241,11 +241,12 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
       }
       return true;
     });
+    const sort = eventView.sorts[0];
     const defaultWidgetQuery: WidgetQuery = {
       name: '',
       fields: validYAxis && validYAxis.length > 0 ? validYAxis : ['count()'],
       conditions: eventView.query,
-      orderby: '',
+      orderby: sort ? `${sort.kind === 'desc' ? '-' : ''}${sort.field}` : '',
     };
 
     trackAdvancedAnalyticsEvent('discover_views.add_to_dashboard.modal_open', {
