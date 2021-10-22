@@ -1,4 +1,5 @@
 import {Fragment, useState} from 'react';
+import styled from '@emotion/styled';
 import isNil from 'lodash/isNil';
 
 import {isStacktraceNewestFirst} from 'app/components/events/interfaces/stacktrace';
@@ -178,7 +179,7 @@ function Threads({
       );
     }
 
-    return t('Stack Trace');
+    return <Title>{t('Stack Trace')}</Title>;
   }
 
   return (
@@ -205,3 +206,7 @@ function Threads({
 }
 
 export default Threads;
+
+const Title = styled('h3')`
+  margin-bottom: 0;
+`;

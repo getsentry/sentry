@@ -95,13 +95,11 @@ function TraceEventDataSection({
             onChange={() => setState({...state, raw: !raw})}
           />
           {raw ? (
-            <Button
-              size="small"
-              disabled={!isNativePlatform(platform)}
-              href={getDownloadHref()}
-            >
-              {t('Download')}
-            </Button>
+            isNativePlatform(platform) && (
+              <Button size="small" href={getDownloadHref()}>
+                {t('Download')}
+              </Button>
+            )
           ) : (
             <Fragment>
               <SortOptions
@@ -144,8 +142,6 @@ const Header = styled('div')`
   grid-template-rows: repeat(3, 1fr);
   grid-gap: ${space(2)};
   flex: 1;
-  align-items: center;
-  justify-items: flex-end;
   z-index: 3;
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
