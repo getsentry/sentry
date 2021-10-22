@@ -13,6 +13,8 @@ export default function LineSeries(props: LineSeriesOption): LineSeriesOption {
     emphasis: {
       scale: false,
       lineStyle: {
+        // disable color highlight on hover
+        color: props.color,
         width: undefined,
       },
     },
