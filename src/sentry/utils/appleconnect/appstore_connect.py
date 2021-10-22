@@ -208,7 +208,7 @@ def get_build_info(
             # but this is sadly not available in the official API. :-(
             # Open this in your browser when you are signed into AppStoreConnect:
             # https://appstoreconnect.apple.com/iris/v1/builds?filter[processingState]=VALID&include=appStoreVersion,preReleaseVersion,buildBundles&limit=1&filter[app]=XYZ
-            "&include=appStoreVersion,preReleaseVersion"
+            "&include=appStoreVersion,preReleaseVersion,buildBundles"
             # sort newer releases first
             "&sort=-uploadedDate"
             # only include valid builds
@@ -244,14 +244,31 @@ def get_build_info(
                     build_number = build["attributes"]["version"]
                     uploaded_date = parse_date(build["attributes"]["uploadedDate"])
 
-                    result.append(
-                        {
-                            "platform": platform,
-                            "version": version,
-                            "build_number": build_number,
-                            "uploaded_date": uploaded_date,
-                        }
-                    )
+                    result = {
+                        "platform": platform,
+                        "version": version,
+                        "build_number": build_number,
+                        "uploaded_date": uploaded_date,
+                    }
+                    build_bundles = relations.get_related(build, "buildBundles")
+                    if build_bundles is not None:
+                        if len(build_bundles) != 1:
+                            with sentry_sdk.push_scope() as scope:
+                                scope.set_context(
+                                    "App Store Connect Build",
+                                    {
+                                        "build": build,
+                                        "build_bundles": build_bundles,
+                                    },
+                                )
+                            sentry_sdk.capture_message("len(buildBundles) != 1")
+                        if len(build_bundles) >= 1:
+                            bundle = build_bundles[0]
+                            url = bundle.get("dSYMUrl", None)
+                            if url:
+                                result["dsyms_url"] = url
+
+                    result.append(result)
                 except Exception:
                     logger.error(
                         "Failed to process AppStoreConnect build from API: %s", build, exc_info=True

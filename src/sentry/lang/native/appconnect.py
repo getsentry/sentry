@@ -10,7 +10,7 @@ import logging
 import pathlib
 import time
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import dateutil
 import jsonschema
@@ -279,6 +279,12 @@ class BuildInfo:
 
     # The date and time the build was uploaded to App Store Connect.
     uploaded_date: datetime
+
+    # The URL where we can download a zip file with dSYMs from.
+    #
+    # If no dSYMs are needed this will be False, if they should be needed but not available
+    # yet this will be None.
+    dsyms_url: Optional[str]
 
 
 class ITunesClient:
