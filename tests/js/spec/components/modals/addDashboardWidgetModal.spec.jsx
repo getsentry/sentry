@@ -18,7 +18,7 @@ function mountModal({
   widget,
   fromDiscover,
   defaultWidgetQuery,
-  defaultDisplayType,
+  displayType,
 }) {
   return mountWithTheme(
     <AddDashboardWidgetModal
@@ -32,7 +32,7 @@ function mountModal({
       closeModal={() => void 0}
       fromDiscover={fromDiscover}
       defaultWidgetQuery={defaultWidgetQuery}
-      defaultDisplayType={defaultDisplayType}
+      displayType={displayType}
     />,
     initialData.routerContext
   );
@@ -931,13 +931,13 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     wrapper.unmount();
   });
 
-  it('uses defaultDisplayType if given a defaultDisplayType', async function () {
+  it('uses displayType if given a displayType', async function () {
     const wrapper = mountModal({
       initialData,
       onAddWidget: () => undefined,
       onUpdateWidget: () => undefined,
       fromDiscover: true,
-      defaultDisplayType: types.DisplayType.BAR,
+      displayType: types.DisplayType.BAR,
     });
 
     expect(wrapper.find('SelectPicker').at(1).props().value.value).toEqual('bar');

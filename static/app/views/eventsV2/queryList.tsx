@@ -129,7 +129,7 @@ class QueryList extends React.Component<Props> {
         defaultTitle:
           savedQuery?.name ??
           (eventView.name !== 'All Events' ? eventView.name : undefined),
-        defaultDisplayType: displayModeToDisplayType(eventView.display as DisplayModes),
+        displayType: displayModeToDisplayType(eventView.display as DisplayModes),
       });
     };
 
