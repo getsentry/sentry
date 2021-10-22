@@ -397,7 +397,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             parse_search_query("min(measurements.size):3s")
 
     def test_is_query_unsupported(self):
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             InvalidSearchQuery, ".*queries are not supported in this search.*"
         ):
             parse_search_query("is:unassigned")

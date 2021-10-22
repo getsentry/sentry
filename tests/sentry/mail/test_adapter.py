@@ -195,8 +195,8 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             "Europe/Vienna"
         )
 
-        self.assertEquals(notification.project, self.project)
-        self.assertEquals(notification.get_reference(), group)
+        self.assertEqual(notification.project, self.project)
+        self.assertEqual(notification.get_reference(), group)
         assert notification.get_subject() == "BAR-1 - hello world"
 
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)

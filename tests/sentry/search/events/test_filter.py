@@ -558,7 +558,7 @@ class ParseBooleanSearchQueryTest(TestCase):
         project1 = self.create_project()
         project2 = self.create_project()
         project3 = self.create_project()
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             InvalidSearchQuery,
             re.escape(
                 f"Invalid query. Project(s) {str(project3.slug)} do not exist or are not actively selected."
@@ -615,22 +615,22 @@ class ParseBooleanSearchQueryTest(TestCase):
             assert test[2] == result.group_ids, test[0]
 
     def test_invalid_conditional_filters(self):
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             InvalidSearchQuery, "Condition is missing on the left side of 'OR' operator"
         ):
             get_filter("OR a:b")
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             InvalidSearchQuery, "Missing condition in between two condition operators: 'OR AND'"
         ):
             get_filter("a:b Or And c:d")
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             InvalidSearchQuery, "Condition is missing on the right side of 'AND' operator"
         ):
             get_filter("a:b AND c:d AND")
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             InvalidSearchQuery, "Condition is missing on the left side of 'OR' operator"
         ):
             get_filter("(OR a:b) AND c:d")
@@ -1459,13 +1459,13 @@ class DiscoverFunctionTest(unittest.TestCase):
         self.fn_wo_optionals.validate_argument_count("fn_wo_optionals()", ["arg1", "arg2"])
 
     def test_no_optional_not_enough_arguments(self):
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             InvalidSearchQuery, r"fn_wo_optionals\(\): expected 2 argument\(s\)"
         ):
             self.fn_wo_optionals.validate_argument_count("fn_wo_optionals()", ["arg1"])
 
     def test_no_optional_too_may_arguments(self):
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             InvalidSearchQuery, r"fn_wo_optionals\(\): expected 2 argument\(s\)"
         ):
             self.fn_wo_optionals.validate_argument_count(
@@ -1478,13 +1478,13 @@ class DiscoverFunctionTest(unittest.TestCase):
         self.fn_w_optionals.validate_argument_count("fn_w_optionals()", ["arg1"])
 
     def test_optional_not_enough_arguments(self):
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             InvalidSearchQuery, r"fn_w_optionals\(\): expected at least 1 argument\(s\)"
         ):
             self.fn_w_optionals.validate_argument_count("fn_w_optionals()", [])
 
     def test_optional_too_many_arguments(self):
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             InvalidSearchQuery, r"fn_w_optionals\(\): expected at most 2 argument\(s\)"
         ):
             self.fn_w_optionals.validate_argument_count(
@@ -1492,15 +1492,13 @@ class DiscoverFunctionTest(unittest.TestCase):
             )
 
     def test_optional_args_have_default(self):
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             AssertionError, "test: optional argument at index 0 does not have default"
         ):
             DiscoverFunction("test", optional_args=[FunctionArg("arg1")])
 
     def test_defining_duplicate_args(self):
-        with self.assertRaisesRegexp(
-            AssertionError, "test: argument arg1 specified more than once"
-        ):
+        with self.assertRaisesRegex(AssertionError, "test: argument arg1 specified more than once"):
             DiscoverFunction(
                 "test",
                 required_args=[FunctionArg("arg1")],
@@ -1508,9 +1506,7 @@ class DiscoverFunctionTest(unittest.TestCase):
                 transform="",
             )
 
-        with self.assertRaisesRegexp(
-            AssertionError, "test: argument arg1 specified more than once"
-        ):
+        with self.assertRaisesRegex(AssertionError, "test: argument arg1 specified more than once"):
             DiscoverFunction(
                 "test",
                 required_args=[FunctionArg("arg1")],
@@ -1518,9 +1514,7 @@ class DiscoverFunctionTest(unittest.TestCase):
                 transform="",
             )
 
-        with self.assertRaisesRegexp(
-            AssertionError, "test: argument arg1 specified more than once"
-        ):
+        with self.assertRaisesRegex(AssertionError, "test: argument arg1 specified more than once"):
             DiscoverFunction(
                 "test",
                 optional_args=[with_default("default", FunctionArg("arg1"))],
@@ -2624,7 +2618,7 @@ class SnQLBooleanSearchQueryTest(TestCase):
         assert having == []
 
     def test_project_not_selected(self):
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             InvalidSearchQuery,
             re.escape(
                 f"Invalid query. Project(s) {str(self.project3.slug)} do not exist or are not actively selected."
