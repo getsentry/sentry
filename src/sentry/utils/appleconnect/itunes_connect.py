@@ -375,8 +375,6 @@ class ITunesClient:
             ClientState.SMS_AUTH_REQUESTED,
         ], f"Actual client state: {self.state}"
 
-        assert self._trusted_phone is not None
-
         trusted_phone, sms_automatically_sent = self._request_trusted_phone_info()
 
         if sms_automatically_sent:
@@ -415,6 +413,7 @@ class ITunesClient:
         :raises InvalidSmsAuthError:
         """
         assert self.state is ClientState.SMS_AUTH_REQUESTED, f"Actual client state: {self.state}"
+        assert self._trusted_phone is not None
 
         url = "https://idmsa.apple.com/appleauth/auth/verify/phone/securitycode"
         logger.debug("PUT %s", url)
