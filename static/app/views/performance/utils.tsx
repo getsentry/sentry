@@ -216,15 +216,21 @@ export function getTransactionDetailsUrl(
   organization: OrganizationSummary,
   eventSlug: string,
   transaction: string,
-  query: Query
+  query: Query,
+  hash?: string
 ): LocationDescriptor {
-  return {
+  const target = {
     pathname: `/organizations/${organization.slug}/performance/${eventSlug}/`,
     query: {
       ...query,
       transaction,
     },
+    hash,
   };
+  if (!defined(hash)) {
+    delete target.hash;
+  }
+  return target;
 }
 
 export function getTransactionComparisonUrl({

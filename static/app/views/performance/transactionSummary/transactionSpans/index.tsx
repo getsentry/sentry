@@ -12,6 +12,8 @@ import PageLayout from '../pageLayout';
 import Tab from '../tabs';
 
 import SpansContent from './content';
+import {SpanSortOthers, SpanSortPercentiles} from './types';
+import {getSuspectSpanSortFromLocation} from './utils';
 
 type Props = {
   location: Location;
@@ -38,22 +40,24 @@ function TransactionSpans(props: Props) {
 function generateEventView(location: Location, transactionName: string): EventView {
   const query = decodeScalar(location.query.query, '');
   const conditions = new MutableSearch(query);
-  // TODO: what should this event type be?
   conditions
     .setFilterValues('event.type', ['transaction'])
     .setFilterValues('transaction', [transactionName]);
 
-  return EventView.fromNewQueryWithLocation(
+  const eventView = EventView.fromNewQueryWithLocation(
     {
       id: undefined,
       version: 2,
       name: transactionName,
-      fields: ['count()'],
+      fields: [...Object.values(SpanSortOthers), ...Object.values(SpanSortPercentiles)],
       query: conditions.formatString(),
       projects: [],
     },
     location
   );
+
+  const sort = getSuspectSpanSortFromLocation(location);
+  return eventView.withSorts([{field: sort.field, kind: 'desc'}]);
 }
 
 function getDocumentTitle(transactionName: string): string {
