@@ -1,6 +1,7 @@
 import io
 import os
 from hashlib import sha1
+from unittest.mock import patch
 
 from django.core.files.base import ContentFile
 
@@ -16,7 +17,6 @@ from sentry.tasks.assemble import (
     get_assemble_status,
 )
 from sentry.testutils import TestCase
-from sentry.utils.compat.mock import patch
 
 
 class BaseAssembleTest(TestCase):

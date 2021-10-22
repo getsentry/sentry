@@ -1,4 +1,5 @@
 import copy
+from unittest import mock
 
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.models import Activity, ExternalIssue, GroupLink, Integration
@@ -6,7 +7,6 @@ from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils import APITestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.utils.compat import mock
 from sentry.utils.http import absolute_uri
 
 

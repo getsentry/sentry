@@ -1,3 +1,4 @@
+from unittest.mock import patch
 from uuid import uuid1
 
 import pytest
@@ -8,7 +9,6 @@ from exam import before, fixture
 from sentry.models import Option
 from sentry.options.store import OptionsStore
 from sentry.testutils import TestCase
-from sentry.utils.compat.mock import patch
 
 
 class OptionsStoreTest(TestCase):

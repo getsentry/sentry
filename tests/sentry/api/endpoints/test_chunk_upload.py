@@ -7,6 +7,7 @@ from django.urls import reverse
 
 from sentry import options
 from sentry.api.endpoints.chunk import (
+    API_PREFIX,
     HASH_ALGORITHM,
     MAX_CHUNKS_PER_REQUEST,
     MAX_CONCURRENCY,
@@ -57,7 +58,7 @@ class ChunkUploadTest(APITestCase):
             HTTP_USER_AGENT="sentry-cli/1.70.1",
             format="json",
         )
-        assert response.data["url"] == self.url.replace("/api/0", "/")
+        assert response.data["url"] == self.url.lstrip(API_PREFIX)
 
         response = self.client.get(
             self.url,
@@ -65,7 +66,7 @@ class ChunkUploadTest(APITestCase):
             HTTP_USER_AGENT="sentry-cli/2.77.4",
             format="json",
         )
-        assert response.data["url"] == self.url.replace("/api/0", "/")
+        assert response.data["url"] == self.url.lstrip(API_PREFIX)
 
         # < 1.70.1
         response = self.client.get(

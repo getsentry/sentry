@@ -21,10 +21,12 @@ import space from 'app/styles/space';
 import {GlobalSelection, Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
+import {DisplayModes} from 'app/utils/discover/types';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import {eventViewFromWidget} from 'app/views/dashboardsV2/utils';
+import {DisplayType} from 'app/views/dashboardsV2/widget/utils';
 
 import ContextMenu from './contextMenu';
 import {Widget} from './types';
@@ -141,6 +143,13 @@ class WidgetCard extends React.Component<Props> {
           discoverLocation.query.yAxis = widget.queries[0].fields
             .filter(field => yAxisOptions.includes(field))
             .slice(0, 3);
+          switch (widget.displayType) {
+            case DisplayType.WORLD_MAP:
+              discoverLocation.query.display = DisplayModes.WORLDMAP;
+              break;
+            default:
+              break;
+          }
         }
         if (widget.queries.length === 1) {
           menuOptions.push(
@@ -305,8 +314,8 @@ const ContextWrapper = styled('div')`
 `;
 
 const StyledMenuItem = styled(MenuItem)`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
   :hover {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.textColor};
   }
 `;

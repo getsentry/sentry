@@ -23,6 +23,17 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
 class RunScheduledDeletionTest(TestCase):
+    def test_schedule_and_cancel(self):
+        org = self.create_organization(name="test")
+        team = self.create_team(organization=org, name="delete")
+
+        schedule = ScheduledDeletion.schedule(team, days=0)
+        ScheduledDeletion.cancel(team)
+        assert not ScheduledDeletion.objects.filter(id=schedule.id).exists()
+
+        # No errors if we cancel a delete that wasn't started.
+        assert ScheduledDeletion.cancel(team) is None
+
     def test_duplicate_schedule(self):
         org = self.create_organization(name="test")
         team = self.create_team(organization=org, name="delete")
@@ -99,6 +110,22 @@ class RunScheduledDeletionTest(TestCase):
         assert args["instance"] == team
         assert args["actor"] == self.user
         pending_delete.disconnect(signal_handler)
+
+    def test_no_pending_delete_trigger_on_skipped_delete(self):
+        org = self.create_organization(name="test")
+        project = self.create_project(organization=org)
+        repo = self.create_repo(project=project, name="example/example")
+
+        signal_handler = Mock()
+        pending_delete.connect(signal_handler)
+
+        ScheduledDeletion.schedule(instance=repo, actor=self.user, days=0)
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        pending_delete.disconnect(signal_handler)
+        assert signal_handler.call_count == 0
 
     def test_handle_missing_record(self):
         org = self.create_organization(name="test")

@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import pytest
 from django.http.request import QueryDict
 from django.test import RequestFactory
@@ -11,7 +13,6 @@ from sentry.integrations.slack.message_builder.issues import build_group_attachm
 from sentry.integrations.slack.unfurl import LinkType, UnfurlableUrl, link_handlers, match_link
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.utils.compat.mock import patch
 from tests.sentry.integrations.slack import install_slack
 
 
