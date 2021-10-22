@@ -150,7 +150,6 @@ const Header = styled('div')`
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-rows: repeat(2, 1fr);
-    grid-template-rows: repeat(2, 1fr);
   }
 
   @media (min-width: ${p => p.theme.breakpoints[3]}) {
