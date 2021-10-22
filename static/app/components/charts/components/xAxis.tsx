@@ -46,7 +46,7 @@ export default function XAxis({
 
   const defaults: XAXisComponentOption = {
     type: isGroupedByDate ? 'time' : 'category',
-    boundaryGap: false,
+    splitNumber: 4,
     axisLine: {
       lineStyle: {
         color: theme.chartLabel,
@@ -61,6 +61,7 @@ export default function XAxis({
       show: false,
     },
     axisLabel: {
+      hideOverlap: true,
       color: theme.chartLabel,
       fontFamily: theme.text.family,
       margin: 12,
