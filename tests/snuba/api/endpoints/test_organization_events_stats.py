@@ -739,6 +739,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
 
         assert mock_query.call_count == 1
 
+    @pytest.mark.xfail
     @mock.patch("sentry.snuba.discover.bulk_raw_query", return_value=[{"data": []}])
     def test_invalid_interval(self, mock_query):
         with self.feature("organizations:discover-basic"):
@@ -1213,6 +1214,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert other["order"] == 5
         assert [{"count": 1}] in [attrs for _, attrs in other["data"]]
 
+    @pytest.mark.xfail
     @mock.patch(
         "sentry.snuba.discover.raw_query",
         side_effect=[{"data": [{"group_id": 1}], "meta": []}, {"data": [], "meta": []}],
@@ -1895,6 +1897,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert other["order"] == 5
         assert [{"count": 0.03}] in [attrs for _, attrs in other["data"]]
 
+    @pytest.mark.xfail
     @mock.patch("sentry.snuba.discover.bulk_raw_query", return_value=[{"data": [], "meta": []}])
     @mock.patch("sentry.snuba.discover.raw_query", return_value={"data": [], "meta": []})
     def test_invalid_interval(self, mock_raw_query, mock_bulk_query):
