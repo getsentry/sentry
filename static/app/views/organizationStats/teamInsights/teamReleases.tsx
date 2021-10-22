@@ -19,7 +19,7 @@ import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {Color, Theme} from 'app/utils/theme';
 
-import {barAxisLabel, convertDaySeriesToWeeks} from './utils';
+import {barAxisLabel, convertDaySeriesToWeeks, groupByTrend} from './utils';
 
 type Props = AsyncComponent['props'] & {
   theme: Theme;
@@ -172,6 +172,12 @@ class TeamReleases extends AsyncComponent<Props, State> {
     const {projects, period, theme} = this.props;
     const {periodReleases} = this.state;
 
+    const sortedProjects = projects
+      .map(project => ({project, trend: this.getTrend(Number(project.id)) ?? 0}))
+      .sort((a, b) => Math.abs(b.trend) - Math.abs(a.trend));
+
+    const groupedProjects = groupByTrend(sortedProjects);
+
     const data = Object.entries(periodReleases?.release_counts ?? {}).map(
       ([bucket, count]) => ({
         value: Math.ceil(count),
@@ -209,6 +215,9 @@ class TeamReleases extends AsyncComponent<Props, State> {
                   lineStyle: {color: theme.gray200, type: 'dashed', width: 1},
                   // @ts-expect-error yAxis type not correct
                   data: [{yAxis: totalPeriodAverage}],
+                  label: {
+                    show: false,
+                  },
                 }),
               },
             ]}
@@ -247,7 +256,7 @@ class TeamReleases extends AsyncComponent<Props, State> {
             <RightAligned key="diff">{t('Difference')}</RightAligned>,
           ]}
         >
-          {projects.map(project => (
+          {groupedProjects.map(({project}) => (
             <Fragment key={project.id}>
               <ProjectBadgeContainer>
                 <ProjectBadge avatarSize={18} project={project} />
