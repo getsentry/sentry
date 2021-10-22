@@ -4,9 +4,11 @@ import styled from '@emotion/styled';
 import MenuItem from 'app/components/menuItem';
 import {Organization} from 'app/types';
 import localStorage from 'app/utils/localStorage';
+import {useCurrentPerformanceType} from 'app/utils/performance/contexts/currentPerformanceView';
 import {useOrganization} from 'app/utils/useOrganization';
 import withOrganization from 'app/utils/withOrganization';
 import ContextMenu from 'app/views/dashboardsV2/contextMenu';
+import {PROJECT_PERFORMANCE_TYPE} from 'app/views/performance/utils';
 
 import {GenericPerformanceWidgetDataType} from '../types';
 import {PerformanceWidgetSetting, WIDGET_DEFINITIONS} from '../widgetDefinitions';
@@ -29,20 +31,29 @@ type Props = {
 } & ChartRowProps;
 
 // Use local storage for chart settings for now.
-const getContainerLocalStorageKey = (index: number, height: number) =>
-  `landing-chart-container#${height}#${index}`;
+const getContainerLocalStorageObjectKey = 'landing-chart-container';
+const getContainerKey = (
+  index: number,
+  performanceType: PROJECT_PERFORMANCE_TYPE,
+  height: number
+) => `landing-chart-container#${performanceType}#${height}#${index}`;
 
 const getChartSetting = (
   index: number,
   height: number,
+  performanceType: PROJECT_PERFORMANCE_TYPE,
   defaultType: PerformanceWidgetSetting,
   forceDefaultChartSetting?: boolean // Used for testing.
 ): PerformanceWidgetSetting => {
   if (forceDefaultChartSetting) {
     return defaultType;
   }
-  const key = getContainerLocalStorageKey(index, height);
-  const value = localStorage.getItem(key);
+  const key = getContainerKey(index, performanceType, height);
+  const localObject = JSON.parse(
+    localStorage.getItem(getContainerLocalStorageObjectKey) || '{}'
+  );
+  const value = localObject?.[key];
+
   if (
     value &&
     Object.values(PerformanceWidgetSetting).includes(value as PerformanceWidgetSetting)
@@ -55,25 +66,38 @@ const getChartSetting = (
 const _setChartSetting = (
   index: number,
   height: number,
+  performanceType: PROJECT_PERFORMANCE_TYPE,
   setting: PerformanceWidgetSetting
 ) => {
-  const key = getContainerLocalStorageKey(index, height);
-  localStorage.setItem(key, setting);
+  const key = getContainerKey(index, performanceType, height);
+  const localObject = JSON.parse(
+    localStorage.getItem(getContainerLocalStorageObjectKey) || '{}'
+  );
+  localObject[key] = setting;
+
+  localStorage.setItem(getContainerLocalStorageObjectKey, JSON.stringify(localObject));
 };
 
 const _WidgetContainer = (props: Props) => {
-  const {organization, index, chartHeight, ...rest} = props;
-  const _chartSetting = getChartSetting(
+  const {organization, index, chartHeight, allowedCharts, ...rest} = props;
+  const performanceType = useCurrentPerformanceType();
+  let _chartSetting = getChartSetting(
     index,
     chartHeight,
+    performanceType,
     rest.defaultChartSetting,
     rest.forceDefaultChartSetting
   );
+
+  if (!allowedCharts.includes(_chartSetting)) {
+    _chartSetting = rest.defaultChartSetting;
+  }
+
   const [chartSetting, setChartSettingState] = useState(_chartSetting);
 
   const setChartSetting = (setting: PerformanceWidgetSetting) => {
     if (!props.forceDefaultChartSetting) {
-      _setChartSetting(index, chartHeight, setting);
+      _setChartSetting(index, chartHeight, performanceType, setting);
     }
     setChartSettingState(setting);
   };
