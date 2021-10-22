@@ -209,6 +209,15 @@ describe('utils/sessions', () => {
         expect(getSessionsInterval({period: '30m'}, {highFidelity: true})).toBe('1m');
       });
 
+      it('less or equal to 10 minutes', () => {
+        expect(
+          getSessionsInterval(
+            {start: '2021-10-08T12:00:00Z', end: '2021-10-08T12:05:00.000Z'},
+            {highFidelity: true}
+          )
+        ).toBe('10s');
+      });
+
       it('ignores high fidelity flag if start is older than 30d', () => {
         expect(
           getSessionsInterval(

@@ -25,7 +25,10 @@ import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {Series, SeriesDataUnit} from 'app/types/echarts';
 import {MINUTE} from 'app/utils/formatters';
-import {getCrashFreeRateSeries} from 'app/utils/sessions';
+import {
+  getCrashFreeRateSeries,
+  MINUTES_THRESHOLD_TO_DISPLAY_SECONDS,
+} from 'app/utils/sessions';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import {isSessionAggregate, SESSION_AGGREGATE_TO_FIELD} from 'app/views/alerts/utils';
@@ -359,7 +362,8 @@ class TriggersChart extends React.PureComponent<Props, State> {
     timeseriesData: Series[] = [],
     isLoading: boolean,
     isReloading: boolean,
-    comparisonMarkLines?: LineChartSeries[]
+    comparisonMarkLines?: LineChartSeries[],
+    minutesThresholdToDisplaySeconds?: number
   ) {
     const {
       triggers,
@@ -391,6 +395,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
             resolveThreshold={resolveThreshold}
             thresholdType={thresholdType}
             aggregate={aggregate}
+            minutesThresholdToDisplaySeconds={minutesThresholdToDisplaySeconds}
           />
         )}
         <ChartControls>
@@ -465,7 +470,13 @@ class TriggersChart extends React.PureComponent<Props, State> {
             },
           ];
 
-          return this.renderChart(sessionTimeSeries, loading, reloading);
+          return this.renderChart(
+            sessionTimeSeries,
+            loading,
+            reloading,
+            undefined,
+            MINUTES_THRESHOLD_TO_DISPLAY_SECONDS
+          );
         }}
       </SessionsRequest>
     ) : (

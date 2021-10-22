@@ -8,6 +8,7 @@ from freezegun import freeze_time
 
 # from sentry.testutils import TestCase
 from sentry.snuba.sessions_v2 import (
+    AllowedResolution,
     InvalidParams,
     QueryDefinition,
     get_constrained_date_range,
@@ -17,7 +18,10 @@ from sentry.snuba.sessions_v2 import (
 
 
 def _make_query(qs, allow_minute_resolution=True):
-    return QueryDefinition(QueryDict(qs), {}, allow_minute_resolution)
+    allowed_resolution = (
+        AllowedResolution.one_minute if allow_minute_resolution else AllowedResolution.one_hour
+    )
+    return QueryDefinition(QueryDict(qs), {}, allowed_resolution)
 
 
 def result_sorted(result):

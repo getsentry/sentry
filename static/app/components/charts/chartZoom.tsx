@@ -46,8 +46,8 @@ export type ZoomRenderProps = Pick<Props, typeof ZoomPropKeys[number]> & {
 };
 
 type Props = {
-  router?: InjectedRouter;
   children: (props: ZoomRenderProps) => React.ReactNode;
+  router?: InjectedRouter;
   disabled?: boolean;
   xAxis?: EChartOption.XAxis;
   xAxisIndex?: number | number[];
@@ -72,7 +72,7 @@ type Props = {
  * generic if need be in the future.
  */
 class ChartZoom extends React.Component<Props> {
-  constructor(props) {
+  constructor(props: Props) {
     super(props);
 
     // Zoom history

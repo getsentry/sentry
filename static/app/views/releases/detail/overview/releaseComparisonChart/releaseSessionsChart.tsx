@@ -28,6 +28,7 @@ import {
   getSessionP50Series,
   getSessionStatusRateSeries,
   initSessionsChart,
+  MINUTES_THRESHOLD_TO_DISPLAY_SECONDS,
 } from 'app/utils/sessions';
 import {Theme} from 'app/utils/theme';
 import {displayCrashFreePercent, roundDuration} from 'app/views/releases/utils';
@@ -642,6 +643,7 @@ class ReleaseSessionsChart extends React.Component<Props> {
                 top: '70px',
                 bottom: '0px',
               }}
+              minutesThresholdToDisplaySeconds={MINUTES_THRESHOLD_TO_DISPLAY_SECONDS}
               yAxis={this.getYAxis()}
               tooltip={{valueFormatter: this.formatTooltipValue}}
               colors={this.getColors()}
