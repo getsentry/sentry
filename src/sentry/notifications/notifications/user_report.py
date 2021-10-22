@@ -5,7 +5,7 @@ from django.utils.encoding import force_text
 
 from sentry.models import Group, GroupSubscription
 from sentry.notifications.helpers import get_reason_context
-from sentry.notifications.notifications.base import BaseNotification
+from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.utils import send_activity_notification
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class UserReportNotification(BaseNotification):
+class UserReportNotification(ProjectNotification):
     def __init__(self, project: "Project", report: Mapping[str, Any]) -> None:
         super().__init__(project)
         self.group = Group.objects.get(id=report["issue"]["id"])
