@@ -177,13 +177,17 @@ describe('Performance > Transaction Spans', function () {
       const card = cards[i];
 
       // these headers should be present by default
-      expect(await within(card).findByText('Span Operation')).toBeTruthy();
-      expect(await within(card).findByText('p75 Duration')).toBeTruthy();
-      expect(await within(card).findByText('Frequency')).toBeTruthy();
-      expect(await within(card).findByText('Total Cumulative Duration')).toBeTruthy();
+      expect(await within(card).findByText('Span Operation')).toBeInTheDocument();
+      expect(await within(card).findByText('p75 Duration')).toBeInTheDocument();
+      expect(await within(card).findByText('Frequency')).toBeInTheDocument();
+      expect(
+        await within(card).findByText('Total Cumulative Duration')
+      ).toBeInTheDocument();
 
       for (const example of spans[i].examples) {
-        expect(await within(card).findByText(getShortEventId(example.id))).toBeTruthy();
+        expect(
+          await within(card).findByText(getShortEventId(example.id))
+        ).toBeInTheDocument();
       }
     }
   });
