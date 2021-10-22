@@ -1,4 +1,5 @@
 import * as React from 'react';
+import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 
 import {doEventsRequest} from 'app/actionCreators/events';
@@ -339,10 +340,13 @@ class WidgetQueries extends React.Component<Props, State> {
             transformResult(widget.queries[i], rawResults)
           );
 
+          const rawResultsClone = cloneDeep(prevState.rawResults ?? []);
+          rawResultsClone[i] = rawResults;
+
           return {
             ...prevState,
             timeseriesResults,
-            rawResults: (prevState.rawResults ?? []).concat(rawResults),
+            rawResults: rawResultsClone,
           };
         });
       } catch (err) {

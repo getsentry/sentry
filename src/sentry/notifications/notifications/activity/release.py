@@ -28,7 +28,6 @@ class ReleaseActivityNotification(ActivityNotification):
     def __init__(self, activity: Activity) -> None:
         super().__init__(activity)
         self.group = None
-        self.organization = self.project.organization
         self.user_id_team_lookup: Optional[Mapping[int, List[int]]] = None
         self.email_list: Set[str] = set()
         self.user_ids: Set[int] = set()
