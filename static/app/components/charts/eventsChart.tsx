@@ -444,10 +444,10 @@ type ChartDataProps = {
 
 class EventsChart extends React.Component<EventsChartProps> {
   isStacked() {
-    const {topEvents, yAxis} = this.props;
+    const {topEvents, yAxis, chartComponent} = this.props;
     return (
       (typeof topEvents === 'number' && topEvents > 0) ||
-      (Array.isArray(yAxis) && yAxis.length > 1)
+      (Array.isArray(yAxis) && yAxis.length > 1 && chartComponent !== BarChart)
     );
   }
 
