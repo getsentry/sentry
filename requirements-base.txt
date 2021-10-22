@@ -94,7 +94,7 @@ phabricator==0.7.0
 
 # test dependencies, but unable to move to requirements-test until
 # sentry.utils.pytest and sentry.testutils are moved to tests/
-selenium==3.141.0
+selenium==4.0.0
 sqlparse==0.2.4
 
 # this is already a transitive dependency via structlog, and we started
