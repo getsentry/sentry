@@ -9,7 +9,7 @@ import http
 import logging
 from collections import namedtuple
 from http import HTTPStatus
-from typing import List, NewType, Optional
+from typing import List, NewType, Optional, Tuple
 
 import requests
 import sentry_sdk
@@ -144,6 +144,9 @@ class ITunesClient:
         # The scnt header as populated by :meth:`start_login_sequence`.
         self._scnt: Optional[str] = None
 
+        # The trusted phone info, set by :meth:`_request_trusted_phone_info`.
+        self._trusted_phone: Optional[TrustedPhoneInfo] = None
+
     @property
     def session_id(self) -> str:
         """The session ID, if client already has one (after :meth:start_login_sequence).
@@ -191,6 +194,9 @@ class ITunesClient:
             context["session_id"] = self.session_id
         if self._scnt is not None:
             context["scnt"] = self.scnt
+        if self._trusted_phone is not None:
+            context["phone_id"] = self._trusted_phone.id
+            context["phone_push_mode"] = self._trusted_phone.push_mode
         if self.state is ClientState.AUTHENTICATED:
             context["session_cookie"] = self.session_cookie()
         return context
@@ -215,6 +221,10 @@ class ITunesClient:
         ]:
             obj._session_id = context["session_id"]
             obj._scnt = context["scnt"]
+            if obj.state is ClientState.SMS_AUTH_REQUESTED:
+                obj._trusted_phone = TrustedPhoneInfo(
+                    id=context["phone_id"], push_mode=context["phone_push_mode"]
+                )
         if obj.state in [ClientState.AUTHENTICATED, ClientState.EXPIRED]:
             obj.load_session_cookie(context["session_cookie"])
         return obj
@@ -308,7 +318,7 @@ class ITunesClient:
         else:
             self.state = ClientState.AUTHENTICATED
 
-    def _request_trusted_phone_info(self) -> TrustedPhoneInfo:
+    def _request_trusted_phone_info(self) -> Tuple[TrustedPhoneInfo, bool]:
         """Requests the trusted phone info for the account."""
         url = "https://idmsa.apple.com/appleauth/auth"
         logger.debug("GET %s", url)
@@ -322,13 +332,15 @@ class ITunesClient:
             },
             timeout=REQUEST_TIMEOUT,
         )
+
         if response.status_code == HTTPStatus.LOCKED:
             raise SmsBlockedError
         if not response.ok:
             raise ITunesError(f"Unexpected response status: {response.status_code}")
 
         try:
-            info = response.json()["trustedPhoneNumber"]
+            info = response.json()
+            trusted_phone_info = info["trustedPhoneNumber"]
         except ValueError:
             raise ITunesError(
                 f"Received unexpected response content, response status: {response.status_code}"
@@ -337,9 +349,18 @@ class ITunesClient:
             raise ITunesError(
                 f"Trusted phone info missing from response with status: {response.status_code}"
             )
-        return TrustedPhoneInfo(
-            id=info["id"],
-            push_mode=info["pushMode"],
+
+        # The code has already been sent to the only trusted phone number
+        sms_automatically_sent = len(info.get("trustedPhoneNumbers", [])) == 1 and info.get(
+            "noTrustedDevices", False
+        )
+
+        return (
+            TrustedPhoneInfo(
+                id=trusted_phone_info["id"],
+                push_mode=trusted_phone_info["pushMode"],
+            ),
+            sms_automatically_sent,
         )
 
     def request_sms_auth(self) -> None:
@@ -353,7 +374,14 @@ class ITunesClient:
             ClientState.AUTH_REQUESTED,
             ClientState.SMS_AUTH_REQUESTED,
         ], f"Actual client state: {self.state}"
-        trusted_phone = self._request_trusted_phone_info()
+
+        trusted_phone, sms_automatically_sent = self._request_trusted_phone_info()
+
+        if sms_automatically_sent:
+            self.state = ClientState.SMS_AUTH_REQUESTED
+            self._trusted_phone = trusted_phone
+            return
+
         url = "https://idmsa.apple.com/appleauth/auth/verify/phone"
         logger.debug("PUT %s", url)
         response = self.session.put(
@@ -375,7 +403,9 @@ class ITunesClient:
             raise SmsBlockedError
         if response.status_code != HTTPStatus.OK:
             raise ITunesError(f"Unexpected response status: {response.status_code}")
+
         self.state = ClientState.SMS_AUTH_REQUESTED
+        self._trusted_phone = trusted_phone
 
     def sms_code(self, code: str) -> None:
         """Sends the SMS auth code, completing authentication.
@@ -383,15 +413,16 @@ class ITunesClient:
         :raises InvalidSmsAuthError:
         """
         assert self.state is ClientState.SMS_AUTH_REQUESTED, f"Actual client state: {self.state}"
+        assert self._trusted_phone is not None
+
         url = "https://idmsa.apple.com/appleauth/auth/verify/phone/securitycode"
         logger.debug("PUT %s", url)
-        trusted_phone = self._request_trusted_phone_info()
         response = self.session.post(
             url,
             json={
                 "securityCode": {"code": code},
-                "phoneNumber": {"id": trusted_phone.id},
-                "mode": trusted_phone.push_mode,
+                "phoneNumber": {"id": self._trusted_phone.id},
+                "mode": self._trusted_phone.push_mode,
             },
             headers={
                 "scnt": self.scnt,
@@ -401,6 +432,7 @@ class ITunesClient:
             },
             timeout=REQUEST_TIMEOUT,
         )
+
         if response.status_code != HTTPStatus.OK:
             # TODO: Make invalid code distinguishable from generic error.
             raise InvalidAuthCodeError
