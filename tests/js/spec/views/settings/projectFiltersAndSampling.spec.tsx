@@ -73,7 +73,7 @@ describe('Filters and Sampling', function () {
       const {container} = component;
 
       // Title
-      expect(screen.getByText('Filters & Sampling')).toBeTruthy();
+      expect(screen.getByText('Filters & Sampling')).toBeInTheDocument();
 
       // Error rules container
       expect(
@@ -89,18 +89,20 @@ describe('Filters and Sampling', function () {
         })
       ).toHaveAttribute('href', DYNAMIC_SAMPLING_DOC_LINK);
 
-      expect(screen.getByText('There are no error rules to display')).toBeTruthy();
-      expect(screen.getByText('Add error rule')).toBeTruthy();
+      expect(screen.getByText('There are no error rules to display')).toBeInTheDocument();
+      expect(screen.getByText('Add error rule')).toBeInTheDocument();
 
       // Transaction traces and individual transactions rules container
       expect(
         screen.getByText(
           'Rules for traces should precede rules for individual transactions.'
         )
-      ).toBeTruthy();
+      ).toBeInTheDocument();
 
-      expect(screen.getByText('There are no transaction rules to display')).toBeTruthy();
-      expect(screen.getByText('Add transaction rule')).toBeTruthy();
+      expect(
+        screen.getByText('There are no transaction rules to display')
+      ).toBeInTheDocument();
+      expect(screen.getByText('Add transaction rule')).toBeInTheDocument();
 
       const readDocsButtonLinks = screen.queryAllByRole('button', {
         name: 'Read the docs',
@@ -191,7 +193,7 @@ describe('Filters and Sampling', function () {
       const {container} = component;
 
       // Title
-      expect(screen.getByText('Filters & Sampling')).toBeTruthy();
+      expect(screen.getByText('Filters & Sampling')).toBeInTheDocument();
 
       // Error rules container
       expect(
@@ -207,27 +209,31 @@ describe('Filters and Sampling', function () {
         })
       ).toHaveAttribute('href', DYNAMIC_SAMPLING_DOC_LINK);
 
-      expect(screen.queryByText('There are no error rules to display')).toBeFalsy();
-      const errorRules = screen.queryAllByText('Errors only');
-      expect(errorRules).toHaveLength(1);
+      expect(
+        screen.queryByText('There are no error rules to display')
+      ).not.toBeInTheDocument();
+      const errorRules = screen.queryByText('Errors only');
+      expect(errorRules).toBeInTheDocument();
 
-      expect(screen.getByText('Add error rule')).toBeTruthy();
+      expect(screen.getByText('Add error rule')).toBeInTheDocument();
 
       // Transaction traces and individual transactions rules container
       expect(
         screen.getByText(
           'Rules for traces should precede rules for individual transactions.'
         )
-      ).toBeTruthy();
+      ).toBeInTheDocument();
 
-      expect(screen.queryByText('There are no transaction rules to display')).toBeFalsy();
-      const transactionTraceRules = screen.queryAllByText('Transaction traces');
-      expect(transactionTraceRules).toHaveLength(1);
+      expect(
+        screen.queryByText('There are no transaction rules to display')
+      ).not.toBeInTheDocument();
+      const transactionTraceRules = screen.queryByText('Transaction traces');
+      expect(transactionTraceRules).toBeInTheDocument();
 
-      const individualTransactionRules = screen.queryAllByText('Individual transactions');
-      expect(individualTransactionRules).toHaveLength(1);
+      const individualTransactionRules = screen.queryByText('Individual transactions');
+      expect(individualTransactionRules).toBeInTheDocument();
 
-      expect(screen.getByText('Add transaction rule')).toBeTruthy();
+      expect(screen.getByText('Add transaction rule')).toBeInTheDocument();
 
       const readDocsButtonLinks = screen.queryAllByRole('button', {
         name: 'Read the docs',
@@ -346,14 +352,18 @@ describe('Filters and Sampling', function () {
       renderComponent();
 
       // Error rules container
-      expect(screen.queryByText('There are no error rules to display')).toBeFalsy();
-      const errorRules = screen.queryAllByText('Errors only');
-      expect(errorRules).toHaveLength(1);
+      expect(
+        screen.queryByText('There are no error rules to display')
+      ).not.toBeInTheDocument();
+      const errorRules = screen.queryByText('Errors only');
+      expect(errorRules).toBeInTheDocument();
 
       // Transaction traces and individual transactions rules container
-      expect(screen.queryByText('There are no transaction rules to display')).toBeFalsy();
-      const transactionTraceRules = screen.queryAllByText('Transaction traces');
-      expect(transactionTraceRules).toHaveLength(1);
+      expect(
+        screen.queryByText('There are no transaction rules to display')
+      ).not.toBeInTheDocument();
+      const transactionTraceRules = screen.queryByText('Transaction traces');
+      expect(transactionTraceRules).toBeInTheDocument();
 
       const editRuleButtons = screen.queryAllByLabelText('Edit Rule');
       expect(editRuleButtons).toHaveLength(2);
@@ -362,27 +372,27 @@ describe('Filters and Sampling', function () {
       const modal = await renderModal(editRuleButtons[0]);
 
       // Modal content
-      expect(modal.getByText('Edit Error Sampling Rule')).toBeTruthy();
-      expect(modal.queryByText('Tracing')).toBeFalsy();
+      expect(modal.getByText('Edit Error Sampling Rule')).toBeInTheDocument();
+      expect(modal.queryByText('Tracing')).not.toBeInTheDocument();
 
       // Release Field
       await modal.findByTestId('autocomplete-release');
       const releaseField = modal.getByTestId('autocomplete-release');
-      expect(releaseField).toBeTruthy();
+      expect(releaseField).toBeInTheDocument();
 
       // Release field is not empty
-      const releaseFieldValues = within(releaseField).queryAllByTestId('multivalue');
-      expect(releaseFieldValues).toHaveLength(1);
-      expect(releaseFieldValues[0].textContent).toEqual('1*');
+      const releaseFieldValues = within(releaseField).queryByTestId('multivalue');
+      expect(releaseFieldValues).toBeInTheDocument();
+      expect(releaseFieldValues?.[0]).toHaveTextContent('1*');
 
       // Button is enabled - meaning the form is valid
       const saveRuleButton = modal.getByRole('button', {name: 'Save Rule'});
-      expect(saveRuleButton).toBeTruthy();
+      expect(saveRuleButton).toBeInTheDocument();
       expect(saveRuleButton).toBeEnabled();
 
       // Sample rate field
       const sampleRateField = modal.getByPlaceholderText('\u0025');
-      expect(sampleRateField).toBeTruthy();
+      expect(sampleRateField).toBeInTheDocument();
 
       // Sample rate is not empty
       expect(sampleRateField).toHaveValue(10);
@@ -397,8 +407,8 @@ describe('Filters and Sampling', function () {
       // Release field is now empty
       const newReleaseFieldValues = within(
         modal.getByTestId('autocomplete-release')
-      ).queryAllByTestId('multivalue');
-      expect(newReleaseFieldValues).toHaveLength(0);
+      ).queryByTestId('multivalue');
+      expect(newReleaseFieldValues).not.toBeInTheDocument();
 
       expect(modal.getByRole('button', {name: 'Save Rule'})).toBeDisabled();
 
@@ -415,12 +425,12 @@ describe('Filters and Sampling', function () {
       // Autocomplete suggests options
       const autocompleteOptions = within(
         modal.getByTestId('autocomplete-release')
-      ).queryAllByTestId('option');
-      expect(autocompleteOptions).toHaveLength(1);
-      expect(autocompleteOptions[0].textContent).toEqual('[I3].[0-9]');
+      ).queryByTestId('option');
+      expect(autocompleteOptions).toBeInTheDocument();
+      expect(autocompleteOptions?.[0]).toHaveTextContent('[I3].[0-9]');
 
       // Click on the suggested option
-      fireEvent.click(autocompleteOptions[0]);
+      fireEvent.click(autocompleteOptions?.[0]);
 
       expect(modal.getByRole('button', {name: 'Save Rule'})).toBeEnabled();
 
@@ -443,18 +453,18 @@ describe('Filters and Sampling', function () {
       await waitForElementToBeRemoved(() => screen.getByText('Edit Error Sampling Rule'));
 
       // Error rules panel is updated
-      expect(errorRules).toHaveLength(1);
+      expect(errorRules).toBeInTheDocument();
 
-      expect(screen.getByText('Errors only')).toBeTruthy();
+      expect(screen.getByText('Errors only')).toBeInTheDocument();
       expect(screen.queryAllByText('Release')).toHaveLength(2);
 
       // Old values
-      expect(screen.queryByText('1*')).toBeFalsy();
-      expect(screen.queryByText('10%')).toBeFalsy();
+      expect(screen.queryByText('1*')).not.toBeInTheDocument();
+      expect(screen.queryByText('10%')).not.toBeInTheDocument();
 
       // New values
-      expect(screen.getByText('[I3].[0-9]')).toBeTruthy();
-      expect(screen.getByText('50%')).toBeTruthy();
+      expect(screen.getByText('[I3].[0-9]')).toBeInTheDocument();
+      expect(screen.getByText('50%')).toBeInTheDocument();
     });
 
     it('transaction trace rule', async function () {
@@ -556,14 +566,18 @@ describe('Filters and Sampling', function () {
       renderComponent();
 
       // Error rules container
-      expect(screen.queryByText('There are no error rules to display')).toBeFalsy();
-      const errorRules = screen.queryAllByText('Errors only');
-      expect(errorRules).toHaveLength(1);
+      expect(
+        screen.queryByText('There are no error rules to display')
+      ).not.toBeInTheDocument();
+      const errorRules = screen.queryByText('Errors only');
+      expect(errorRules).toBeInTheDocument();
 
       // Transaction traces and individual transactions rules container
-      expect(screen.queryByText('There are no transaction rules to display')).toBeFalsy();
-      const transactionTraceRules = screen.queryAllByText('Transaction traces');
-      expect(transactionTraceRules).toHaveLength(1);
+      expect(
+        screen.queryByText('There are no transaction rules to display')
+      ).not.toBeInTheDocument();
+      const transactionTraceRules = screen.queryByText('Transaction traces');
+      expect(transactionTraceRules).toBeInTheDocument();
 
       const editRuleButtons = screen.queryAllByLabelText('Edit Rule');
       expect(editRuleButtons).toHaveLength(2);
@@ -572,28 +586,28 @@ describe('Filters and Sampling', function () {
       const modal = await renderModal(editRuleButtons[1]);
 
       // Modal content
-      expect(modal.getByText('Edit Transaction Sampling Rule')).toBeTruthy();
-      expect(modal.queryByText('Tracing')).toBeTruthy();
+      expect(modal.getByText('Edit Transaction Sampling Rule')).toBeInTheDocument();
+      expect(modal.queryByText('Tracing')).toBeInTheDocument();
       expect(modal.getByRole('checkbox')).toBeChecked();
 
       // Release Field
       await modal.findByTestId('autocomplete-release');
       const releaseField = modal.getByTestId('autocomplete-release');
-      expect(releaseField).toBeTruthy();
+      expect(releaseField).toBeInTheDocument();
 
       // Release field is not empty
-      const releaseFieldValues = within(releaseField).queryAllByTestId('multivalue');
-      expect(releaseFieldValues).toHaveLength(1);
-      expect(releaseFieldValues[0].textContent).toEqual('1.2.3');
+      const releaseFieldValues = within(releaseField).queryByTestId('multivalue');
+      expect(releaseFieldValues).toBeInTheDocument();
+      expect(releaseFieldValues?.[0]).toHaveTextContent('1.2.3');
 
       // Button is enabled - meaning the form is valid
       const saveRuleButton = modal.getByRole('button', {name: 'Save Rule'});
-      expect(saveRuleButton).toBeTruthy();
+      expect(saveRuleButton).toBeInTheDocument();
       expect(saveRuleButton).toBeEnabled();
 
       // Sample rate field
       const sampleRateField = modal.getByPlaceholderText('\u0025');
-      expect(sampleRateField).toBeTruthy();
+      expect(sampleRateField).toBeInTheDocument();
 
       // Sample rate is not empty
       expect(sampleRateField).toHaveValue(20);
@@ -608,8 +622,8 @@ describe('Filters and Sampling', function () {
       // Release field is now empty
       const newReleaseFieldValues = within(
         modal.getByTestId('autocomplete-release')
-      ).queryAllByTestId('multivalue');
-      expect(newReleaseFieldValues).toHaveLength(0);
+      ).queryByTestId('multivalue');
+      expect(newReleaseFieldValues).not.toBeInTheDocument();
 
       expect(modal.getByRole('button', {name: 'Save Rule'})).toBeDisabled();
 
@@ -626,12 +640,12 @@ describe('Filters and Sampling', function () {
       // Autocomplete suggests options
       const autocompleteOptions = within(
         modal.getByTestId('autocomplete-release')
-      ).queryAllByTestId('option');
-      expect(autocompleteOptions).toHaveLength(1);
-      expect(autocompleteOptions[0].textContent).toEqual('[0-9]');
+      ).queryByTestId('option');
+      expect(autocompleteOptions).toBeInTheDocument();
+      expect(autocompleteOptions?.[0]).toHaveTextContent('[0-9]');
 
       // Click on the suggested option
-      fireEvent.click(autocompleteOptions[0]);
+      fireEvent.click(autocompleteOptions?.[0]);
 
       expect(modal.getByRole('button', {name: 'Save Rule'})).toBeEnabled();
 
@@ -656,18 +670,18 @@ describe('Filters and Sampling', function () {
       );
 
       // Error rules panel is updated
-      expect(errorRules).toHaveLength(1);
+      expect(errorRules).toBeInTheDocument();
 
-      expect(screen.getByText('Transaction traces')).toBeTruthy();
+      expect(screen.getByText('Transaction traces')).toBeInTheDocument();
       expect(screen.queryAllByText('Release')).toHaveLength(2);
 
       // Old values
-      expect(screen.queryByText('1.2.3')).toBeFalsy();
-      expect(screen.queryByText('20%')).toBeFalsy();
+      expect(screen.queryByText('1.2.3')).not.toBeInTheDocument();
+      expect(screen.queryByText('20%')).not.toBeInTheDocument();
 
       // New values
-      expect(screen.getByText('[0-9]')).toBeTruthy();
-      expect(screen.getByText('60%')).toBeTruthy();
+      expect(screen.getByText('[0-9]')).toBeInTheDocument();
+      expect(screen.getByText('60%')).toBeInTheDocument();
     });
 
     it('individual transaction rule', async function () {
@@ -769,14 +783,18 @@ describe('Filters and Sampling', function () {
       renderComponent();
 
       // Error rules container
-      expect(screen.queryByText('There are no error rules to display')).toBeFalsy();
-      const errorRules = screen.queryAllByText('Errors only');
-      expect(errorRules).toHaveLength(1);
+      expect(
+        screen.queryByText('There are no error rules to display')
+      ).not.toBeInTheDocument();
+      const errorRules = screen.queryByText('Errors only');
+      expect(errorRules).toBeInTheDocument();
 
       // Transaction traces and individual transactions rules container
-      expect(screen.queryByText('There are no transaction rules to display')).toBeFalsy();
-      const transactionTraceRules = screen.queryAllByText('Individual transactions');
-      expect(transactionTraceRules).toHaveLength(1);
+      expect(
+        screen.queryByText('There are no transaction rules to display')
+      ).not.toBeInTheDocument();
+      const transactionTraceRules = screen.queryByText('Individual transactions');
+      expect(transactionTraceRules).toBeInTheDocument();
 
       const editRuleButtons = screen.queryAllByLabelText('Edit Rule');
       expect(editRuleButtons).toHaveLength(2);
@@ -785,27 +803,27 @@ describe('Filters and Sampling', function () {
       const modal = await renderModal(editRuleButtons[1]);
 
       // Modal content
-      expect(modal.getByText('Edit Transaction Sampling Rule')).toBeTruthy();
-      expect(modal.queryByText('Tracing')).toBeTruthy();
+      expect(modal.getByText('Edit Transaction Sampling Rule')).toBeInTheDocument();
+      expect(modal.queryByText('Tracing')).toBeInTheDocument();
       expect(modal.getByRole('checkbox')).not.toBeChecked();
 
       // Release Field
       await modal.findByTestId('autocomplete-release');
       const releaseField = modal.getByTestId('autocomplete-release');
-      expect(releaseField).toBeTruthy();
+      expect(releaseField).toBeInTheDocument();
 
       // Release field is not empty
-      const releaseFieldValues = within(releaseField).queryAllByTestId('multivalue');
-      expect(releaseFieldValues).toHaveLength(1);
+      const releaseFieldValues = within(releaseField).queryByTestId('multivalue');
+      expect(releaseFieldValues).toBeInTheDocument();
 
       // Button is enabled - meaning the form is valid
       const saveRuleButton = modal.getByRole('button', {name: 'Save Rule'});
-      expect(saveRuleButton).toBeTruthy();
+      expect(saveRuleButton).toBeInTheDocument();
       expect(saveRuleButton).toBeEnabled();
 
       // Sample rate field
       const sampleRateField = modal.getByPlaceholderText('\u0025');
-      expect(sampleRateField).toBeTruthy();
+      expect(sampleRateField).toBeInTheDocument();
 
       // Sample rate is not empty
       expect(sampleRateField).toHaveValue(20);
@@ -820,8 +838,8 @@ describe('Filters and Sampling', function () {
       // Release field is now empty
       const newReleaseFieldValues = within(
         modal.getByTestId('autocomplete-release')
-      ).queryAllByTestId('multivalue');
-      expect(newReleaseFieldValues).toHaveLength(0);
+      ).queryByTestId('multivalue');
+      expect(newReleaseFieldValues).not.toBeInTheDocument();
 
       expect(modal.getByRole('button', {name: 'Save Rule'})).toBeDisabled();
 
@@ -838,12 +856,12 @@ describe('Filters and Sampling', function () {
       // Autocomplete suggests options
       const autocompleteOptions = within(
         modal.getByTestId('autocomplete-release')
-      ).queryAllByTestId('option');
-      expect(autocompleteOptions).toHaveLength(1);
-      expect(autocompleteOptions[0].textContent).toEqual('[0-9]');
+      ).queryByTestId('option');
+      expect(autocompleteOptions).toBeInTheDocument();
+      expect(autocompleteOptions?.[0]).toHaveTextContent('[0-9]');
 
       // Click on the suggested option
-      fireEvent.click(autocompleteOptions[0]);
+      fireEvent.click(autocompleteOptions?.[0]);
 
       expect(modal.getByRole('button', {name: 'Save Rule'})).toBeEnabled();
 
@@ -868,18 +886,18 @@ describe('Filters and Sampling', function () {
       );
 
       // Error rules panel is updated
-      expect(errorRules).toHaveLength(1);
+      expect(errorRules).toBeInTheDocument();
 
-      expect(screen.getByText('Individual transactions')).toBeTruthy();
+      expect(screen.getByText('Individual transactions')).toBeInTheDocument();
       expect(screen.queryAllByText('Release')).toHaveLength(2);
 
       // Old values
-      expect(screen.queryByText('1.2.3')).toBeFalsy();
-      expect(screen.queryByText('20%')).toBeFalsy();
+      expect(screen.queryByText('1.2.3')).not.toBeInTheDocument();
+      expect(screen.queryByText('20%')).not.toBeInTheDocument();
 
       // New values
-      expect(screen.getByText('[0-9]')).toBeTruthy();
-      expect(screen.getByText('60%')).toBeTruthy();
+      expect(screen.getByText('[0-9]')).toBeInTheDocument();
+      expect(screen.getByText('60%')).toBeInTheDocument();
     });
   });
 
@@ -961,14 +979,18 @@ describe('Filters and Sampling', function () {
       renderComponent();
 
       // Error rules container
-      expect(screen.queryByText('There are no error rules to display')).toBeFalsy();
-      const errorRules = screen.queryAllByText('Errors only');
-      expect(errorRules).toHaveLength(1);
+      expect(
+        screen.queryByText('There are no error rules to display')
+      ).not.toBeInTheDocument();
+      const errorRules = screen.queryByText('Errors only');
+      expect(errorRules).toBeInTheDocument();
 
       // Transaction traces and individual transactions rules container
-      expect(screen.queryByText('There are no transaction rules to display')).toBeFalsy();
-      const transactionTraceRules = screen.queryAllByText('Transaction traces');
-      expect(transactionTraceRules).toHaveLength(1);
+      expect(
+        screen.queryByText('There are no transaction rules to display')
+      ).not.toBeInTheDocument();
+      const transactionTraceRules = screen.queryByText('Transaction traces');
+      expect(transactionTraceRules).toBeInTheDocument();
 
       const deleteRuleButtons = screen.queryAllByLabelText('Delete Rule');
       expect(deleteRuleButtons).toHaveLength(2);
@@ -978,12 +1000,12 @@ describe('Filters and Sampling', function () {
 
       expect(
         modal.getByText('Are you sure you wish to delete this dynamic sampling rule?')
-      ).toBeTruthy();
+      ).toBeInTheDocument();
 
       const modalActionButtons = modal.queryAllByRole('button');
       expect(modalActionButtons).toHaveLength(2);
-      expect(modalActionButtons[0].textContent).toEqual('Cancel');
-      expect(modalActionButtons[1].textContent).toEqual('Confirm');
+      expect(modalActionButtons[0]).toHaveTextContent('Cancel');
+      expect(modalActionButtons[1]).toHaveTextContent('Confirm');
 
       // Confirm deletion
       fireEvent.click(modalActionButtons[1]);
@@ -994,10 +1016,12 @@ describe('Filters and Sampling', function () {
       );
 
       // Error rules panel is updated
-      expect(screen.queryByText('There are no error rules to display')).toBeTruthy();
+      expect(
+        screen.queryByText('There are no error rules to display')
+      ).toBeInTheDocument();
 
       // There is still one transaction rule
-      expect(transactionTraceRules).toHaveLength(1);
+      expect(transactionTraceRules).toBeInTheDocument();
     });
   });
 
@@ -1009,16 +1033,16 @@ describe('Filters and Sampling', function () {
       const modal = await renderModal(screen.getByText('Add error rule'), true);
 
       // Modal content
-      expect(modal.getByText('Add Error Sampling Rule')).toBeTruthy();
-      expect(modal.queryByText('Tracing')).toBeFalsy();
-      expect(modal.getByText('Conditions')).toBeTruthy();
-      expect(modal.getByText('Add Condition')).toBeTruthy();
-      expect(modal.getByText('Apply sampling rate to all errors')).toBeTruthy();
-      expect(modal.getByText('Sampling Rate \u0025')).toBeTruthy();
+      expect(modal.getByText('Add Error Sampling Rule')).toBeInTheDocument();
+      expect(modal.queryByText('Tracing')).not.toBeInTheDocument();
+      expect(modal.getByText('Conditions')).toBeInTheDocument();
+      expect(modal.getByText('Add Condition')).toBeInTheDocument();
+      expect(modal.getByText('Apply sampling rate to all errors')).toBeInTheDocument();
+      expect(modal.getByText('Sampling Rate \u0025')).toBeInTheDocument();
       expect(modal.getByPlaceholderText('\u0025')).toHaveValue(null);
-      expect(modal.getByRole('button', {name: 'Cancel'})).toBeTruthy();
+      expect(modal.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
       const saveRuleButton = modal.getByRole('button', {name: 'Save Rule'});
-      expect(saveRuleButton).toBeTruthy();
+      expect(saveRuleButton).toBeInTheDocument();
       expect(saveRuleButton).toBeDisabled();
 
       // Close Modal
@@ -1044,7 +1068,7 @@ describe('Filters and Sampling', function () {
       expect(conditionOptions).toHaveLength(commonConditionCategories.length);
 
       for (const conditionOptionIndex in conditionOptions) {
-        expect(conditionOptions[conditionOptionIndex].textContent).toEqual(
+        expect(conditionOptions[conditionOptionIndex]).toHaveTextContent(
           commonConditionCategories[conditionOptionIndex]
         );
       }
@@ -1093,7 +1117,7 @@ describe('Filters and Sampling', function () {
       });
 
       const component = renderComponent();
-      const {getByText, queryByText, queryAllByText} = component;
+      const {getByText, queryByText} = component;
 
       // Open Modal
       const modal = await renderModal(getByText('Add error rule'));
@@ -1114,11 +1138,11 @@ describe('Filters and Sampling', function () {
       // Release Field
       await modal.findByTestId('autocomplete-release');
       const releaseField = modal.getByTestId('autocomplete-release');
-      expect(releaseField).toBeTruthy();
+      expect(releaseField).toBeInTheDocument();
 
       // Release field is empty
-      const releaseFieldValues = within(releaseField).queryAllByTestId('multivalue');
-      expect(releaseFieldValues).toHaveLength(0);
+      const releaseFieldValues = within(releaseField).queryByTestId('multivalue');
+      expect(releaseFieldValues).not.toBeInTheDocument();
 
       // Type into realease field
       fireEvent.change(within(releaseField).getByLabelText('Search or add a release'), {
@@ -1126,21 +1150,21 @@ describe('Filters and Sampling', function () {
       });
 
       // Autocomplete suggests options
-      const autocompleteOptions = within(releaseField).queryAllByTestId('option');
-      expect(autocompleteOptions).toHaveLength(1);
-      expect(autocompleteOptions[0].textContent).toEqual('1.2.3');
+      const autocompleteOptions = within(releaseField).queryByTestId('option');
+      expect(autocompleteOptions).toBeInTheDocument();
+      expect(autocompleteOptions?.[0]).toHaveTextContent('1.2.3');
 
       // Click on the suggested option
-      fireEvent.click(autocompleteOptions[0]);
+      fireEvent.click(autocompleteOptions?.[0]);
 
       // Button is still disabled
       const saveRuleButton = modal.getByRole('button', {name: 'Save Rule'});
-      expect(saveRuleButton).toBeTruthy();
+      expect(saveRuleButton).toBeInTheDocument();
       expect(saveRuleButton).toBeDisabled();
 
       // Fill sample rate field
       const sampleRateField = modal.getByPlaceholderText('\u0025');
-      expect(sampleRateField).toBeTruthy();
+      expect(sampleRateField).toBeInTheDocument();
       fireEvent.change(sampleRateField, {target: {value: 20}});
 
       // Save button is now enabled
@@ -1154,12 +1178,12 @@ describe('Filters and Sampling', function () {
       await waitForElementToBeRemoved(() => getByText('Add Error Sampling Rule'));
 
       // Error rules panel is updated
-      expect(queryByText('There are no error rules to display')).toBeFalsy();
-      const errorRules = queryAllByText('Errors only');
-      expect(errorRules).toHaveLength(1);
-      expect(getByText('Release')).toBeTruthy();
-      expect(getByText('1.2.3')).toBeTruthy();
-      expect(getByText('20%')).toBeTruthy();
+      expect(queryByText('There are no error rules to display')).not.toBeInTheDocument();
+      const errorRules = queryByText('Errors only');
+      expect(errorRules).toBeInTheDocument();
+      expect(getByText('Release')).toBeInTheDocument();
+      expect(getByText('1.2.3')).toBeInTheDocument();
+      expect(getByText('20%')).toBeInTheDocument();
     });
   });
 
@@ -1179,8 +1203,8 @@ describe('Filters and Sampling', function () {
       const modal = await renderModal(screen.getByText('Add transaction rule'), true);
 
       // Modal content
-      expect(modal.getByText('Add Transaction Sampling Rule')).toBeTruthy();
-      expect(modal.getByText('Tracing')).toBeTruthy();
+      expect(modal.getByText('Add Transaction Sampling Rule')).toBeInTheDocument();
+      expect(modal.getByText('Tracing')).toBeInTheDocument();
       expect(modal.getByRole('checkbox')).toBeChecked();
       expect(
         await findByTextContent(
@@ -1193,14 +1217,16 @@ describe('Filters and Sampling', function () {
           name: 'Learn more about tracing',
         })
       ).toHaveAttribute('href', DYNAMIC_SAMPLING_DOC_LINK);
-      expect(modal.getByText('Conditions')).toBeTruthy();
-      expect(modal.getByText('Add Condition')).toBeTruthy();
-      expect(modal.getByText('Apply sampling rate to all transactions')).toBeTruthy();
-      expect(modal.getByText('Sampling Rate \u0025')).toBeTruthy();
+      expect(modal.getByText('Conditions')).toBeInTheDocument();
+      expect(modal.getByText('Add Condition')).toBeInTheDocument();
+      expect(
+        modal.getByText('Apply sampling rate to all transactions')
+      ).toBeInTheDocument();
+      expect(modal.getByText('Sampling Rate \u0025')).toBeInTheDocument();
       expect(modal.getByPlaceholderText('\u0025')).toHaveValue(null);
-      expect(modal.getByRole('button', {name: 'Cancel'})).toBeTruthy();
+      expect(modal.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
       const saveRuleButton = modal.getByRole('button', {name: 'Save Rule'});
-      expect(saveRuleButton).toBeTruthy();
+      expect(saveRuleButton).toBeInTheDocument();
       expect(saveRuleButton).toBeDisabled();
 
       // Close Modal
@@ -1229,7 +1255,7 @@ describe('Filters and Sampling', function () {
       expect(conditionTracingOptions).toHaveLength(conditionTracingCategories.length);
 
       for (const conditionTracingOptionIndex in conditionTracingOptions) {
-        expect(conditionTracingOptions[conditionTracingOptionIndex].textContent).toEqual(
+        expect(conditionTracingOptions[conditionTracingOptionIndex]).toHaveTextContent(
           conditionTracingCategories[conditionTracingOptionIndex]
         );
       }
@@ -1245,7 +1271,7 @@ describe('Filters and Sampling', function () {
       expect(conditionOptions).toHaveLength(commonConditionCategories.length);
 
       for (const conditionOptionIndex in conditionOptions) {
-        expect(conditionOptions[conditionOptionIndex].textContent).toEqual(
+        expect(conditionOptions[conditionOptionIndex]).toHaveTextContent(
           commonConditionCategories[conditionOptionIndex]
         );
       }
@@ -1318,11 +1344,11 @@ describe('Filters and Sampling', function () {
         // Release Field
         await modal.findByTestId('autocomplete-release');
         const releaseField = modal.getByTestId('autocomplete-release');
-        expect(releaseField).toBeTruthy();
+        expect(releaseField).toBeInTheDocument();
 
         // Release field is empty
-        const releaseFieldValues = within(releaseField).queryAllByTestId('multivalue');
-        expect(releaseFieldValues).toHaveLength(0);
+        const releaseFieldValues = within(releaseField).queryByTestId('multivalue');
+        expect(releaseFieldValues).not.toBeInTheDocument();
 
         // Type into realease field
         fireEvent.change(within(releaseField).getByLabelText('Search or add a release'), {
@@ -1332,21 +1358,21 @@ describe('Filters and Sampling', function () {
         // Autocomplete suggests options
         const autocompleteOptions = within(
           modal.getByTestId('autocomplete-release')
-        ).queryAllByTestId('option');
-        expect(autocompleteOptions).toHaveLength(1);
-        expect(autocompleteOptions[0].textContent).toEqual('1.2.3');
+        ).queryByTestId('option');
+        expect(autocompleteOptions).toBeInTheDocument();
+        expect(autocompleteOptions?.[0]).toHaveTextContent('1.2.3');
 
         // Click on the suggested option
-        fireEvent.click(autocompleteOptions[0]);
+        fireEvent.click(autocompleteOptions?.[0]);
 
         // Button is still disabled
         const saveRuleButton = modal.getByRole('button', {name: 'Save Rule'});
-        expect(saveRuleButton).toBeTruthy();
+        expect(saveRuleButton).toBeInTheDocument();
         expect(saveRuleButton).toBeDisabled();
 
         // Fill sample rate field
         const sampleRateField = modal.getByPlaceholderText('\u0025');
-        expect(sampleRateField).toBeTruthy();
+        expect(sampleRateField).toBeInTheDocument();
         fireEvent.change(sampleRateField, {target: {value: 20}});
 
         // Save button is now enabled
@@ -1364,12 +1390,12 @@ describe('Filters and Sampling', function () {
         // Transaction rules panel is updated
         expect(
           screen.queryByText('There are no transaction rules to display')
-        ).toBeFalsy();
-        const transactionTraceRules = screen.queryAllByText('Transaction traces');
-        expect(transactionTraceRules).toHaveLength(1);
-        expect(screen.getByText('Release')).toBeTruthy();
-        expect(screen.getByText('1.2.3')).toBeTruthy();
-        expect(screen.getByText('20%')).toBeTruthy();
+        ).not.toBeInTheDocument();
+        const transactionTraceRules = screen.queryByText('Transaction traces');
+        expect(transactionTraceRules).toBeInTheDocument();
+        expect(screen.getByText('Release')).toBeInTheDocument();
+        expect(screen.getByText('1.2.3')).toBeInTheDocument();
+        expect(screen.getByText('20%')).toBeInTheDocument();
       });
 
       describe('individual transaction', function () {
@@ -1435,11 +1461,11 @@ describe('Filters and Sampling', function () {
           // Release Field
           await modal.findByTestId('autocomplete-release');
           const releaseField = modal.getByTestId('autocomplete-release');
-          expect(releaseField).toBeTruthy();
+          expect(releaseField).toBeInTheDocument();
 
           // Release field is empty
-          const releaseFieldValues = within(releaseField).queryAllByTestId('multivalue');
-          expect(releaseFieldValues).toHaveLength(0);
+          const releaseFieldValues = within(releaseField).queryByTestId('multivalue');
+          expect(releaseFieldValues).not.toBeInTheDocument();
 
           // Type into realease field
           fireEvent.change(
@@ -1452,21 +1478,21 @@ describe('Filters and Sampling', function () {
           // Autocomplete suggests options
           const autocompleteOptions = within(
             modal.getByTestId('autocomplete-release')
-          ).queryAllByTestId('option');
-          expect(autocompleteOptions).toHaveLength(1);
-          expect(autocompleteOptions[0].textContent).toEqual('1.2.3');
+          ).queryByTestId('option');
+          expect(autocompleteOptions).toBeInTheDocument();
+          expect(autocompleteOptions?.[0]).toHaveTextContent('1.2.3');
 
           // Click on the suggested option
-          fireEvent.click(autocompleteOptions[0]);
+          fireEvent.click(autocompleteOptions?.[0]);
 
           // Button is still disabled
           const saveRuleButton = modal.getByRole('button', {name: 'Save Rule'});
-          expect(saveRuleButton).toBeTruthy();
+          expect(saveRuleButton).toBeInTheDocument();
           expect(saveRuleButton).toBeDisabled();
 
           // Fill sample rate field
           const sampleRateField = modal.getByPlaceholderText('\u0025');
-          expect(sampleRateField).toBeTruthy();
+          expect(sampleRateField).toBeInTheDocument();
           fireEvent.change(sampleRateField, {target: {value: 20}});
 
           // Save button is now enabled
@@ -1484,14 +1510,14 @@ describe('Filters and Sampling', function () {
           // Transaction rules panel is updated
           expect(
             screen.queryByText('There are no transaction rules to display')
-          ).toBeFalsy();
-          const individualTransactionRules = screen.queryAllByText(
+          ).not.toBeInTheDocument();
+          const individualTransactionRules = screen.queryByText(
             'Individual transactions'
           );
-          expect(individualTransactionRules).toHaveLength(1);
-          expect(screen.getByText('Release')).toBeTruthy();
-          expect(screen.getByText('1.2.3')).toBeTruthy();
-          expect(screen.getByText('20%')).toBeTruthy();
+          expect(individualTransactionRules).toBeInTheDocument();
+          expect(screen.getByText('Release')).toBeInTheDocument();
+          expect(screen.getByText('1.2.3')).toBeInTheDocument();
+          expect(screen.getByText('20%')).toBeInTheDocument();
         });
 
         it('legacy browser', async function () {
@@ -1563,19 +1589,19 @@ describe('Filters and Sampling', function () {
           fireEvent.click(conditionOptions[6]);
 
           // Legacy Browsers
-          expect(modal.getByText('All browsers')).toBeTruthy();
+          expect(modal.getByText('All browsers')).toBeInTheDocument();
 
           const legacyBrowsers = Object.keys(LEGACY_BROWSER_LIST);
           for (const legacyBrowser of legacyBrowsers) {
             const {icon, title} = LEGACY_BROWSER_LIST[legacyBrowser];
-            expect(modal.getByText(title)).toBeTruthy();
-            expect(modal.queryAllByTestId(`icon-${icon}`)).toBeTruthy();
+            expect(modal.getByText(title)).toBeInTheDocument();
+            expect(modal.queryByTestId(`icon-${icon}`)).toBeInTheDocument();
           }
 
           expect(modal.queryAllByTestId('icon-internet-explorer')).toHaveLength(4);
           expect(modal.queryAllByTestId('icon-opera')).toHaveLength(2);
-          expect(modal.queryAllByTestId('icon-safari')).toHaveLength(1);
-          expect(modal.queryAllByTestId('icon-android')).toHaveLength(1);
+          expect(modal.queryByTestId('icon-safari')).toBeInTheDocument();
+          expect(modal.queryByTestId('icon-android')).toBeInTheDocument();
 
           const switchButtons = modal.queryAllByTestId('switch');
           expect(switchButtons).toHaveLength(legacyBrowsers.length + 1);
@@ -1595,12 +1621,12 @@ describe('Filters and Sampling', function () {
 
           // Button is still disabled
           const saveRuleButton = modal.getByRole('button', {name: 'Save Rule'});
-          expect(saveRuleButton).toBeTruthy();
+          expect(saveRuleButton).toBeInTheDocument();
           expect(saveRuleButton).toBeDisabled();
 
           // Fill sample rate field
           const sampleRateField = modal.getByPlaceholderText('\u0025');
-          expect(sampleRateField).toBeTruthy();
+          expect(sampleRateField).toBeInTheDocument();
           fireEvent.change(sampleRateField, {target: {value: 20}});
 
           // Save button is now enabled
@@ -1618,17 +1644,17 @@ describe('Filters and Sampling', function () {
           // Transaction rules panel is updated
           expect(
             screen.queryByText('There are no transaction rules to display')
-          ).toBeFalsy();
-          const individualTransactionRules = screen.queryAllByText(
+          ).not.toBeInTheDocument();
+          const individualTransactionRules = screen.queryByText(
             'Individual transactions'
           );
-          expect(individualTransactionRules).toHaveLength(1);
-          expect(screen.getByText('Legacy Browser')).toBeTruthy();
+          expect(individualTransactionRules).toBeInTheDocument();
+          expect(screen.getByText('Legacy Browser')).toBeInTheDocument();
           for (const legacyBrowser of legacyBrowsers) {
             const {title} = LEGACY_BROWSER_LIST[legacyBrowser];
-            expect(screen.getByText(title)).toBeTruthy();
+            expect(screen.getByText(title)).toBeInTheDocument();
           }
-          expect(screen.getByText('20%')).toBeTruthy();
+          expect(screen.getByText('20%')).toBeInTheDocument();
         });
       });
     });

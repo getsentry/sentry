@@ -9,7 +9,7 @@ describe('SimilarScoreCard', function () {
 
   it('renders', function () {
     const {container} = mountWithTheme(<SimilarScoreCard />);
-    expect(container.firstChild).toBeNull();
+    expect(container).toBeEmptyDOMElement();
   });
 
   it('renders with score list', function () {
