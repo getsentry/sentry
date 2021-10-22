@@ -1,4 +1,4 @@
-import React, {Fragment} from 'react';
+import React, {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
@@ -6,7 +6,7 @@ import Confirm from 'app/components/confirm';
 import DateTime from 'app/components/dateTime';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import Tooltip from 'app/components/tooltip';
-import {IconDelete} from 'app/icons';
+import {IconClose, IconDelete} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {AuthenticatorDevice} from 'app/types';
@@ -15,6 +15,7 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import Input from 'app/views/settings/components/forms/controls/input';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 type Props = {
   isEnrolled: boolean;
   id: string;
@@ -24,103 +25,143 @@ type Props = {
   className?: string;
 };
 
-type State = Record<string, string>;
+const U2fEnrolledDetails = props => {
+  const {className, isEnrolled, devices, id, onRemoveU2fDevice, onRenameU2fDevice} =
+    props;
 
-/**
- * List u2f devices w/ ability to remove a single device
- */
-class U2fEnrolledDetails extends React.Component<Props, State> {
-  render() {
-    const {className, isEnrolled, devices, id, onRemoveU2fDevice, onRenameU2fDevice} =
-      this.props;
+  if (id !== 'u2f' || !isEnrolled) {
+    return null;
+  }
 
-    if (id !== 'u2f' || !isEnrolled) {
-      return null;
-    }
+  const hasDevices = devices?.length;
+  // Note Tooltip doesn't work because of bootstrap(?) pointer events for disabled buttons
+  const isLastDevice = hasDevices === 1;
+  return (
+    <Panel className={className}>
+      <PanelHeader>{t('Device name')}</PanelHeader>
 
-    const hasDevices = devices?.length;
-    // Note Tooltip doesn't work because of bootstrap(?) pointer events for disabled buttons
-    const isLastDevice = hasDevices === 1;
+      <PanelBody>
+        {!hasDevices && (
+          <EmptyMessage>{t('You have not added any U2F devices')}</EmptyMessage>
+        )}
+        {hasDevices &&
+          devices?.map((device, i) => (
+            <Device
+              key={i}
+              onRenameU2fDevice={onRenameU2fDevice}
+              onRemoveU2fDevice={onRemoveU2fDevice}
+              device={device}
+              isLastDevice={isLastDevice}
+            />
+          ))}
+        <AddAnotherPanelItem>
+          <Button
+            type="button"
+            to="/settings/account/security/mfa/u2f/enroll/"
+            size="small"
+          >
+            {t('Add Another Device')}
+          </Button>
+        </AddAnotherPanelItem>
+      </PanelBody>
+    </Panel>
+  );
+};
+
+const Device = props => {
+  const {onRenameU2fDevice, onRemoveU2fDevice, device, isLastDevice} = props;
+  const [deviceName, setDeviceName] = useState(device.name);
+  const [isEditting, setEditting] = useState(false);
+
+  if (!isEditting) {
     return (
-      <Panel className={className}>
-        <PanelHeader>{t('Device name')}</PanelHeader>
-
-        <PanelBody>
-          {!hasDevices && (
-            <EmptyMessage>{t('You have not added any U2F devices')}</EmptyMessage>
-          )}
-          {hasDevices &&
-            devices?.map(device => (
-              <DevicePanelItem key={device.name}>
-                <DeviceInformation>
-                  <Name>{device.name}</Name>
-                  <FadedDateTime date={device.timestamp} />
-                </DeviceInformation>
-
-                <Actions>
-                  <Confirm
-                    onConfirm={() => {
-                      const deviceName = this.state[device.name];
-                      onRenameU2fDevice(device, deviceName);
-                    }}
-                    message={
-                      <Fragment>
-                        <ConfirmHeader>{t('Rename this U2F device')}</ConfirmHeader>
-                        <Input
-                          type="text"
-                          placeholder=""
-                          onChange={e => this.setState({[device.name]: e.target.value})}
-                        />
-                      </Fragment>
-                    }
-                  >
-                    <Button size="small">Rename Device</Button>
-                  </Confirm>
-                </Actions>
-
-                <Actions>
-                  <Confirm
-                    onConfirm={() => onRemoveU2fDevice(device)}
-                    disabled={isLastDevice}
-                    message={
-                      <Fragment>
-                        <ConfirmHeader>
-                          {t('Do you want to remove U2F device?')}
-                        </ConfirmHeader>
-                        <TextBlock>
-                          {t(
-                            `Are you sure you want to remove the U2F device "${device.name}"?`
-                          )}
-                        </TextBlock>
-                      </Fragment>
-                    }
-                  >
-                    <Button size="small" priority="danger">
-                      <Tooltip
-                        disabled={!isLastDevice}
-                        title={t('Can not remove last U2F device')}
-                      >
-                        <IconDelete size="xs" />
-                      </Tooltip>
-                    </Button>
-                  </Confirm>
-                </Actions>
-              </DevicePanelItem>
-            ))}
-          <AddAnotherPanelItem>
-            <Button
-              type="button"
-              to="/settings/account/security/mfa/u2f/enroll/"
-              size="small"
-            >
-              {t('Add Another Device')}
+      <DevicePanelItem key={device.name}>
+        <DeviceInformation>
+          <Name>{device.name}</Name>
+          <FadedDateTime date={device.timestamp} />
+        </DeviceInformation>
+        <Actions>
+          <Button
+            size="small"
+            onClick={() => {
+              setEditting(true);
+            }}
+          >
+            Rename Device
+          </Button>
+        </Actions>
+        <Actions>
+          <Confirm
+            onConfirm={() => onRemoveU2fDevice(device)}
+            disabled={isLastDevice}
+            message={
+              <Fragment>
+                <ConfirmHeader>{t('Do you want to remove U2F device?')}</ConfirmHeader>
+                <TextBlock>
+                  {t(`Are you sure you want to remove the U2F device "${device.name}"?`)}
+                </TextBlock>
+              </Fragment>
+            }
+          >
+            <Button size="small" priority="danger">
+              <Tooltip
+                disabled={!isLastDevice}
+                title={t('Can not remove last U2F device')}
+              >
+                <IconDelete size="xs" />
+              </Tooltip>
             </Button>
-          </AddAnotherPanelItem>
-        </PanelBody>
-      </Panel>
+          </Confirm>
+        </Actions>
+      </DevicePanelItem>
     );
   }
-}
+  return (
+    <DevicePanelItem key={device.name}>
+      <DeviceInformation>
+        <DeviceNameInput
+          type="text"
+          placeholder=""
+          value={deviceName}
+          onChange={e => {
+            setDeviceName(e.target.value);
+          }}
+        />
+        <FadedDateTime date={device.timestamp} />
+      </DeviceInformation>
+      <Actions>
+        <Button
+          priority="primary"
+          size="small"
+          onClick={() => {
+            onRenameU2fDevice(device, deviceName);
+            setEditting(false);
+          }}
+        >
+          Rename Device
+        </Button>
+      </Actions>
+
+      <Actions>
+        <Button
+          size="small"
+          title="Cancel rename"
+          onClick={() => {
+            setDeviceName(device.name);
+            setEditting(false);
+          }}
+        >
+          <IconClose size="xs" />
+        </Button>
+      </Actions>
+    </DevicePanelItem>
+  );
+};
+
+const DeviceNameInput = styled(Input)`
+  width: 50%;
+  margin-right: ${space(2)};
+`;
 
 const DevicePanelItem = styled(PanelItem)`
   padding: 0;
@@ -129,7 +170,9 @@ const DevicePanelItem = styled(PanelItem)`
 const DeviceInformation = styled('div')`
   display: flex;
   align-items: center;
-  flex: 1;
+  justify-content: space-between;
+  flex: 1 1;
+  height: 72px;
 
   padding: ${space(2)};
   padding-right: 0;
