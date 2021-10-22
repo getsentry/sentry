@@ -1,5 +1,6 @@
 import platform
 import tempfile
+from unittest.mock import patch
 
 import pytest
 import responses
@@ -8,7 +9,6 @@ from urllib3.util.connection import HAS_IPV6
 
 from sentry import http
 from sentry.testutils.helpers import override_blacklist
-from sentry.utils.compat.mock import patch
 
 
 @responses.activate

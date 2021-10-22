@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.core import mail
 
 from sentry.app import locks
@@ -13,7 +15,6 @@ from sentry.models import (
 )
 from sentry.tasks.commits import fetch_commits, handle_invalid_identity
 from sentry.testutils import TestCase
-from sentry.utils.compat.mock import patch
 from social_auth.models import UserSocialAuth
 
 

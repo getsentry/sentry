@@ -1,4 +1,5 @@
 import datetime
+from unittest import mock
 
 from django.conf import settings
 from django.core import mail
@@ -8,7 +9,6 @@ from django.utils import timezone
 from sentry.auth.authenticators import RecoveryCodeInterface, SmsInterface, TotpInterface
 from sentry.models import Authenticator, Organization, User
 from sentry.testutils import APITestCase
-from sentry.utils.compat import mock
 
 
 def get_auth(user: "User") -> Authenticator:

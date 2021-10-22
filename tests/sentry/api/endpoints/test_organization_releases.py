@@ -1,5 +1,6 @@
 from base64 import b64encode
 from datetime import datetime, timedelta
+from unittest.mock import patch
 
 import pytz
 from django.urls import reverse
@@ -43,7 +44,6 @@ from sentry.testutils import (
     SnubaTestCase,
     TestCase,
 )
-from sentry.utils.compat.mock import patch
 
 
 class OrganizationReleaseListTest(APITestCase, SnubaTestCase):

@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import responses
 from django.test import RequestFactory
 from exam import fixture
@@ -6,7 +8,6 @@ from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIn
 from sentry.models import ExternalIssue, Integration
 from sentry.testutils import TestCase
 from sentry.utils import json
-from sentry.utils.compat.mock import patch
 
 
 class GitHubEnterpriseIssueBasicTest(TestCase):

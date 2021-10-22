@@ -1,3 +1,5 @@
+from unittest.mock import MagicMock, patch
+
 from django.core.cache import cache
 from django.test import override_settings
 
@@ -17,7 +19,6 @@ from sentry.integrations.aws_lambda.utils import (
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.faux import Mock
-from sentry.utils.compat.mock import MagicMock, patch
 
 
 class ParseArnTest(TestCase):

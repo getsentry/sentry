@@ -1,3 +1,4 @@
+from unittest.mock import MagicMock
 from urllib.parse import urlencode, urlparse
 
 import responses
@@ -10,7 +11,6 @@ from sentry.models import Integration, OrganizationIntegration, Project, Reposit
 from sentry.plugins.base import plugins
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils import IntegrationTestCase
-from sentry.utils.compat.mock import MagicMock
 from tests.sentry.plugins.testutils import register_mock_plugins, unregister_mock_plugins
 
 

@@ -1,4 +1,5 @@
 from datetime import datetime
+from unittest.mock import patch
 from uuid import uuid4
 
 from rest_framework.exceptions import ErrorDetail
@@ -22,7 +23,6 @@ from sentry.models import (
 )
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.utils.compat.mock import patch
 
 
 class ReleaseSerializerTest(TestCase, SnubaTestCase):

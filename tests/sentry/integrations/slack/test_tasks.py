@@ -1,3 +1,4 @@
+from unittest.mock import patch
 from uuid import uuid4
 
 import responses
@@ -14,7 +15,6 @@ from sentry.models import Rule
 from sentry.receivers.rules import DEFAULT_RULE_LABEL
 from sentry.testutils.cases import TestCase
 from sentry.utils import json
-from sentry.utils.compat.mock import patch
 from tests.sentry.integrations.slack import install_slack
 
 

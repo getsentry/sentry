@@ -5,6 +5,7 @@ import logging
 import uuid
 from collections import OrderedDict
 from datetime import datetime, timedelta
+from unittest.mock import patch
 
 import pytz
 from django.utils import timezone
@@ -27,7 +28,6 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.utils import redis
 from sentry.utils.compat import map
-from sentry.utils.compat.mock import patch
 from sentry.utils.dates import to_timestamp
 
 # Use the default redis client as a cluster client in the similarity index

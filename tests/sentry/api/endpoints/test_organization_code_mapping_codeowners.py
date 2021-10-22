@@ -1,8 +1,9 @@
+from unittest.mock import patch
+
 from django.urls import reverse
 
 from sentry.models import Integration, Repository
 from sentry.testutils import APITestCase
-from sentry.utils.compat.mock import patch
 
 GITHUB_CODEOWNER = {
     "filepath": "CODEOWNERS",

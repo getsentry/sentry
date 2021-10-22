@@ -1,6 +1,6 @@
 import math
+from unittest.mock import Mock
 
-from sentry.utils.compat.mock import Mock
 from sentry.utils.cursors import Cursor, build_cursor
 
 

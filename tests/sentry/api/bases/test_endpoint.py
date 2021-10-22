@@ -1,8 +1,9 @@
+from unittest.mock import Mock
+
 from django.http import QueryDict
 
 from sentry.api.base import Endpoint
 from sentry.testutils import TestCase
-from sentry.utils.compat.mock import Mock
 
 
 class EndpointTest(TestCase):

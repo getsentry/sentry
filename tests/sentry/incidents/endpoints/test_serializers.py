@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import responses
 from exam import fixture
 from rest_framework import serializers
@@ -22,7 +24,6 @@ from sentry.models import ACTOR_TYPES, Environment, Integration
 from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
 from sentry.testutils import TestCase
 from sentry.utils import json
-from sentry.utils.compat.mock import patch
 
 
 class TestAlertRuleSerializer(TestCase):

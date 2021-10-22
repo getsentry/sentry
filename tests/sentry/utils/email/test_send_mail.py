@@ -1,5 +1,6 @@
+from unittest.mock import patch
+
 from sentry.testutils import TestCase
-from sentry.utils.compat.mock import patch
 from sentry.utils.email import send_mail
 
 

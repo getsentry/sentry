@@ -1,9 +1,9 @@
+from unittest.mock import patch
 from uuid import uuid4
 
 from django.urls import reverse
 
 from sentry.testutils import APITestCase
-from sentry.utils.compat.mock import patch
 
 
 class ProjectRuleTaskDetailsTest(APITestCase):

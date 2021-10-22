@@ -1,4 +1,5 @@
 import re
+from unittest.mock import Mock, patch
 from urllib.parse import parse_qsl
 
 import responses
@@ -7,7 +8,6 @@ from sentry.integrations.slack.unfurl import Handler, LinkType, make_type_coerce
 from sentry.models import Identity, IdentityProvider, IdentityStatus
 from sentry.testutils import APITestCase
 from sentry.utils import json
-from sentry.utils.compat.mock import Mock, patch
 from tests.sentry.integrations.slack import get_response_text, install_slack
 
 UNSET = object()

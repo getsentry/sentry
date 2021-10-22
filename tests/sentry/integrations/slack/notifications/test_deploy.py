@@ -1,9 +1,10 @@
+from unittest import mock
+
 import responses
 from django.utils import timezone
 
 from sentry.models import Activity, Deploy, Release
 from sentry.notifications.notifications.activity import ReleaseActivityNotification
-from sentry.utils.compat import mock
 
 from . import SlackActivityNotificationTest, get_attachment, send_notification
 

@@ -1,11 +1,10 @@
 __all__ = ["TaskRunner"]
 
 from contextlib import contextmanager
+from unittest.mock import patch
 
 from celery import current_app
 from django.conf import settings
-
-from sentry.utils.compat.mock import patch
 
 
 @contextmanager

@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.urls import reverse
 from django.utils import timezone
 
@@ -5,7 +7,6 @@ from sentry.constants import ObjectStatus
 from sentry.models import Commit, Integration, OrganizationOption, Repository, ScheduledDeletion
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import with_feature
-from sentry.utils.compat.mock import patch
 
 
 class OrganizationRepositoryDeleteTest(APITestCase):

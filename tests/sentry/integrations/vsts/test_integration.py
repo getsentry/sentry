@@ -1,3 +1,4 @@
+from unittest.mock import Mock, patch
 from urllib.parse import parse_qs, urlparse
 
 import pytest
@@ -15,7 +16,6 @@ from sentry.models import (
 from sentry.plugins.base import plugins
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationProviderError
 from sentry.testutils.helpers import with_feature
-from sentry.utils.compat.mock import Mock, patch
 from tests.sentry.plugins.testutils import (
     VstsPlugin,
     register_mock_plugins,

@@ -1,8 +1,9 @@
+from unittest.mock import patch
+
 from django.urls import NoReverseMatch, reverse
 
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.utils.compat.mock import patch
 
 
 class EventIdLookupEndpointTest(APITestCase, SnubaTestCase):

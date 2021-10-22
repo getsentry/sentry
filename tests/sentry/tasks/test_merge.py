@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from sentry import eventstore, eventstream
 from sentry.models import Group, GroupEnvironment, GroupMeta, GroupRedirect, UserReport
 from sentry.similarity import _make_index_backend
@@ -5,7 +7,6 @@ from sentry.tasks.merge import merge_groups
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils import redis
-from sentry.utils.compat.mock import patch
 
 # Use the default redis client as a cluster client in the similarity index
 index = _make_index_backend(redis.clusters.get("default").get_local_client(0))

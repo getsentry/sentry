@@ -1,5 +1,6 @@
 import itertools
 from datetime import datetime, timedelta
+from unittest import mock
 
 import pytest
 from django.utils import timezone
@@ -8,7 +9,6 @@ from sentry import tsdb
 from sentry.models import Group, GroupSnooze
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.utils.compat import mock
 
 
 class GroupSnoozeTest(TestCase, SnubaTestCase):

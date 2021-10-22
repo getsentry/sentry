@@ -1,4 +1,5 @@
 from datetime import timedelta
+from unittest.mock import patch
 
 import pytest
 from django.core.exceptions import ValidationError
@@ -8,7 +9,6 @@ from sentry.models import ScheduledJob
 from sentry.models.scheduledjob import schedule_jobs
 from sentry.tasks.scheduler import enqueue_scheduled_jobs
 from sentry.testutils import TestCase
-from sentry.utils.compat.mock import patch
 
 
 class EnqueueScheduledJobsTest(TestCase):

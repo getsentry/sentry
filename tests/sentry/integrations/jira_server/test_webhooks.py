@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import jwt
 import responses
 from requests.exceptions import ConnectionError
@@ -5,7 +7,6 @@ from requests.exceptions import ConnectionError
 from sentry.integrations.jira_server.integration import JiraServerIntegration
 from sentry.models import OrganizationIntegration
 from sentry.testutils import APITestCase
-from sentry.utils.compat.mock import patch
 
 from . import EXAMPLE_PAYLOAD, get_integration, link_group
 

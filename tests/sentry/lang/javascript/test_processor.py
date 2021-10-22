@@ -4,6 +4,7 @@ import unittest
 import zipfile
 from copy import deepcopy
 from io import BytesIO
+from unittest.mock import ANY, MagicMock, call, patch
 
 import pytest
 import responses
@@ -35,7 +36,6 @@ from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME, update_artifact_i
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
-from sentry.utils.compat.mock import ANY, MagicMock, call, patch
 from sentry.utils.strings import truncatechars
 
 base64_sourcemap = "data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiZ2VuZXJhdGVkLmpzIiwic291cmNlcyI6WyIvdGVzdC5qcyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiO0FBQUEiLCJzb3VyY2VzQ29udGVudCI6WyJjb25zb2xlLmxvZyhcImhlbGxvLCBXb3JsZCFcIikiXX0="

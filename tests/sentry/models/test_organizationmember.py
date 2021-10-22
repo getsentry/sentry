@@ -1,4 +1,5 @@
 from datetime import timedelta
+from unittest.mock import patch
 
 from django.core import mail
 from django.utils import timezone
@@ -6,7 +7,6 @@ from django.utils import timezone
 from sentry.auth import manager
 from sentry.models import INVITE_DAYS_VALID, InviteStatus, OrganizationMember
 from sentry.testutils import TestCase
-from sentry.utils.compat.mock import patch
 
 
 class OrganizationMemberTest(TestCase):

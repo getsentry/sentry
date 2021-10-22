@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.core.handlers.wsgi import WSGIHandler
 from django.core.signals import request_finished
 from django.http import HttpRequest
@@ -5,7 +7,6 @@ from django.utils import timezone
 
 from sentry import app
 from sentry.testutils import TestCase
-from sentry.utils.compat.mock import patch
 from sentry.utils.request_cache import clear_cache, request_cache
 
 

@@ -1,9 +1,10 @@
+from unittest.mock import patch
+
 from botocore.client import ClientError
 from exam import fixture
 
 from sentry.testutils import PluginTestCase
 from sentry.utils import json
-from sentry.utils.compat.mock import patch
 from sentry_plugins.amazon_sqs.plugin import AmazonSQSPlugin
 
 

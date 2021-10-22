@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.conf import settings
 from django.core.cache.backends.locmem import LocMemCache
 from exam import around, fixture
@@ -15,7 +17,6 @@ from sentry.options.manager import (
 )
 from sentry.options.store import OptionsStore
 from sentry.testutils import TestCase
-from sentry.utils.compat.mock import patch
 from sentry.utils.types import Int, String
 
 

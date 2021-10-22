@@ -1,4 +1,5 @@
 from time import time
+from unittest.mock import patch
 
 import responses
 
@@ -14,7 +15,6 @@ from sentry.models import (
     Integration,
 )
 from sentry.testutils import APITestCase
-from sentry.utils.compat.mock import patch
 from sentry.utils.http import absolute_uri
 
 from .testutils import (

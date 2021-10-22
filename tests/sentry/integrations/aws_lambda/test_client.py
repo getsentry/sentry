@@ -1,10 +1,11 @@
+from unittest.mock import MagicMock, patch
+
 import boto3
 
 from sentry.integrations.aws_lambda.client import gen_aws_client
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.faux import Mock
 from sentry.utils import json
-from sentry.utils.compat.mock import MagicMock, patch
 
 
 class AwsLambdaClientTest(TestCase):

@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from sentry.models import (
     Activity,
     GroupInbox,
@@ -7,7 +9,6 @@ from sentry.models import (
     remove_group_from_inbox,
 )
 from sentry.testutils import TestCase
-from sentry.utils.compat.mock import patch
 
 
 class GroupInboxTestCase(TestCase):

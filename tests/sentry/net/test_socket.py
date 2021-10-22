@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import pytest
 from django.core.exceptions import SuspiciousOperation
 from django.test import override_settings
@@ -10,7 +12,6 @@ from sentry.net.socket import (
 )
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import override_blacklist
-from sentry.utils.compat.mock import patch
 
 
 class SocketTest(TestCase):

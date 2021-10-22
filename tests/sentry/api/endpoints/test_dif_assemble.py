@@ -1,4 +1,5 @@
 from hashlib import sha1
+from unittest.mock import patch
 
 from django.core.files.base import ContentFile
 from django.urls import reverse
@@ -14,7 +15,6 @@ from sentry.tasks.assemble import (
     set_assemble_status,
 )
 from sentry.testutils import APITestCase
-from sentry.utils.compat.mock import patch
 
 
 class DifAssembleEndpoint(APITestCase):

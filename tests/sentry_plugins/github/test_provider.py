@@ -1,10 +1,11 @@
+from unittest.mock import patch
+
 import responses
 from exam import fixture
 
 from sentry.models import Integration, OrganizationIntegration, Repository
 from sentry.testutils import PluginTestCase
 from sentry.utils import json
-from sentry.utils.compat.mock import patch
 from sentry_plugins.github.client import GitHubAppsClient, GitHubClient
 from sentry_plugins.github.plugin import GitHubAppsRepositoryProvider, GitHubRepositoryProvider
 from sentry_plugins.github.testutils import (

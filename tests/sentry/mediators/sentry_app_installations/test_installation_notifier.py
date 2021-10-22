@@ -1,11 +1,11 @@
 from collections import namedtuple
+from unittest.mock import patch
 
 from sentry.coreapi import APIUnauthorized
 from sentry.mediators.sentry_app_installations import InstallationNotifier
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.faux import faux
 from sentry.utils import json
-from sentry.utils.compat.mock import patch
 from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
 
 

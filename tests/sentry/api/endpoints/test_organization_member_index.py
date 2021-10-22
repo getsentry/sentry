@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.core import mail
 from django.urls import reverse
 
@@ -12,7 +14,6 @@ from sentry.models import (
 )
 from sentry.testutils import APITestCase, TestCase
 from sentry.testutils.helpers import Feature
-from sentry.utils.compat.mock import patch
 
 
 class OrganizationMemberSerializerTest(TestCase):

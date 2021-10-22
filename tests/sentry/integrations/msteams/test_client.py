@@ -1,3 +1,4 @@
+from unittest.mock import patch
 from urllib.parse import urlencode
 
 import responses
@@ -5,7 +6,6 @@ import responses
 from sentry.integrations.msteams.client import MsTeamsClient
 from sentry.models import Integration
 from sentry.testutils import TestCase
-from sentry.utils.compat.mock import patch
 
 
 class MsTeamsClientTest(TestCase):

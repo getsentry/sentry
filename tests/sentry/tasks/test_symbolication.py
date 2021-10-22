@@ -1,3 +1,5 @@
+from unittest import mock
+
 import pytest
 
 from sentry.plugins.base.v2 import Plugin2
@@ -9,7 +11,6 @@ from sentry.tasks.symbolication import (
 )
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.task_runner import TaskRunner
-from sentry.utils.compat import mock
 
 EVENT_ID = "cc3e6c2bb6b6498097f336d1e6979f4b"
 

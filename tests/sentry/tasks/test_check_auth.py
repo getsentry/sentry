@@ -1,4 +1,5 @@
 from datetime import timedelta
+from unittest.mock import patch
 
 from django.utils import timezone
 
@@ -7,7 +8,6 @@ from sentry.auth.providers.dummy import DummyProvider
 from sentry.models import AuthIdentity, AuthProvider, OrganizationMember
 from sentry.tasks.check_auth import AUTH_CHECK_INTERVAL, check_auth, check_auth_identity
 from sentry.testutils import TestCase
-from sentry.utils.compat.mock import patch
 
 
 class CheckAuthTest(TestCase):

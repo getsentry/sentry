@@ -1,5 +1,6 @@
 import pickle
 from datetime import datetime
+from unittest import mock
 
 from django.utils import timezone
 from django.utils.encoding import force_text
@@ -7,7 +8,6 @@ from django.utils.encoding import force_text
 from sentry.buffer.redis import RedisBuffer
 from sentry.models import Group, Project
 from sentry.testutils import TestCase
-from sentry.utils.compat import mock
 
 
 class RedisBufferTest(TestCase):
@@ -104,7 +104,7 @@ class RedisBufferTest(TestCase):
         assert pickle.loads(f) == {"pk": 1, "datetime": now}
         assert pickle.loads(result.pop("e+datetime")) == now
         assert pickle.loads(result.pop("e+foo")) == "bar"
-        assert result == {"i+times_seen": b"1", "m": b"mock.mock.Mock"}
+        assert result == {"i+times_seen": b"1", "m": b"unittest.mock.Mock"}
 
         pending = client.zrange("b:p", 0, -1)
         assert pending == [b"foo"]
@@ -116,7 +116,7 @@ class RedisBufferTest(TestCase):
         assert pickle.loads(f) == {"pk": 1, "datetime": now}
         assert pickle.loads(result.pop("e+datetime")) == now
         assert pickle.loads(result.pop("e+foo")) == "baz"
-        assert result == {"i+times_seen": b"2", "m": b"mock.mock.Mock"}
+        assert result == {"i+times_seen": b"2", "m": b"unittest.mock.Mock"}
 
         pending = client.zrange("b:p", 0, -1)
         assert pending == [b"foo"]
@@ -176,30 +176,29 @@ class RedisBufferTest(TestCase):
             {
                 "f": '{"pk": ["i","1"]}',
                 "i+times_seen": "1",
-                "m": "sentry.utils.compat.mock.Mock",
+                "m": "unittest.mock.Mock",
                 "s": "1",
             },
         )
         self.buf.process("foo")
         process.assert_called_once_with(mock.Mock, {"times_seen": 1}, {"pk": 1}, {}, True)
 
-    """
-    @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
-    def test_incr_uses_signal_only(self):
-        now = datetime(2017, 5, 3, 6, 6, 6, tzinfo=timezone.utc)
-        client = self.buf.cluster.get_routing_client()
-        model = mock.Mock()
-        model.__name__ = "Mock"
-        columns = {"times_seen": 1}
-        filters = {"pk": 1, "datetime": now}
-        self.buf.incr(model, columns, filters, extra={"foo": "bar", "datetime": now}, signal_only=True)
-        result = client.hgetall("foo")
-        assert result == {
-            "e+foo": '["s","bar"]',
-            "e+datetime": '["d","1493791566.000000"]',
-            "f": '{"pk":["i","1"],"datetime":["d","1493791566.000000"]}',
-            "i+times_seen": "1",
-            "m": "mock.mock.Mock",
-            "s": "1"
-        }
-    """
+
+#    @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
+#    def test_incr_uses_signal_only(self):
+#        now = datetime(2017, 5, 3, 6, 6, 6, tzinfo=timezone.utc)
+#        client = self.buf.cluster.get_routing_client()
+#        model = mock.Mock()
+#        model.__name__ = "Mock"
+#        columns = {"times_seen": 1}
+#        filters = {"pk": 1, "datetime": now}
+#        self.buf.incr(model, columns, filters, extra={"foo": "bar", "datetime": now}, signal_only=True)
+#        result = client.hgetall("foo")
+#        assert result == {
+#            "e+foo": '["s","bar"]',
+#            "e+datetime": '["d","1493791566.000000"]',
+#            "f": '{"pk":["i","1"],"datetime":["d","1493791566.000000"]}',
+#            "i+times_seen": "1",
+#            "m": "mock.mock.Mock",
+#            "s": "1"
+#        }

@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.http import Http404
 
 from sentry.api.bases.sentryapps import (
@@ -9,7 +11,6 @@ from sentry.api.bases.sentryapps import (
 )
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.faux import Mock
-from sentry.utils.compat.mock import patch
 
 
 class SentryAppPermissionTest(TestCase):

@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from exam import fixture
 
 from sentry.models import (
@@ -10,7 +12,6 @@ from sentry.models import (
 )
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature
-from sentry.utils.compat.mock import patch
 
 
 class InviteRequestBase(APITestCase):

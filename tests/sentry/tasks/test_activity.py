@@ -1,8 +1,9 @@
+from unittest import mock
+
 from sentry.models import Activity
 from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.testutils import PluginTestCase
 from sentry.types.activity import ActivityType
-from sentry.utils.compat import mock
 
 
 class BasicPreprocessorPlugin(NotificationPlugin):

@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import pytz
 import requests
 from exam import fixture
@@ -10,7 +12,6 @@ from sentry.snuba.models import QueryDatasets
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils import json
-from sentry.utils.compat.mock import patch
 from tests.sentry.api.serializers.test_alert_rule import BaseAlertRuleSerializerTest
 
 

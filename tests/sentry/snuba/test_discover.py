@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from unittest.mock import patch
 
 import pytest
 from django.utils import timezone
@@ -27,7 +28,6 @@ from sentry.search.events.constants import (
 from sentry.snuba import discover
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.utils.compat.mock import patch
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import Dataset, get_array_column_alias
 

@@ -1,4 +1,5 @@
 import time
+from unittest.mock import patch
 
 import responses
 
@@ -12,7 +13,6 @@ from sentry.models import (
 )
 from sentry.testutils import TestCase
 from sentry.utils import json
-from sentry.utils.compat.mock import patch
 
 
 class MsTeamsIntegrationLinkIdentityTest(TestCase):

@@ -1,9 +1,10 @@
+from unittest import mock
+
 import pytest
 import responses
 
 from sentry.auth.providers.github.client import GitHubClient
 from sentry.auth.providers.github.constants import API_DOMAIN
-from sentry.utils.compat import mock
 
 
 @pytest.fixture

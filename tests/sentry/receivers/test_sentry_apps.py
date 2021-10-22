@@ -1,8 +1,9 @@
+from unittest.mock import patch
+
 from sentry.constants import SentryAppInstallationStatus
 from sentry.models import Commit, GroupAssignee, GroupLink, Release, Repository
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.faux import faux
-from sentry.utils.compat.mock import patch
 
 
 # This testcase needs to be an APITestCase because all of the logic to resolve

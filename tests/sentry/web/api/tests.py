@@ -1,9 +1,10 @@
+from unittest import mock
+
 from django.urls import reverse
 from exam import fixture
 
 from sentry.testutils import TestCase
 from sentry.utils import json
-from sentry.utils.compat import mock
 
 
 class CrossDomainXmlTest(TestCase):

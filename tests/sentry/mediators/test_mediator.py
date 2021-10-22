@@ -1,11 +1,11 @@
 import logging
 import types
+from unittest.mock import PropertyMock, patch
 
 from sentry.mediators import Mediator, Param
 from sentry.models import User
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.faux import faux
-from sentry.utils.compat.mock import PropertyMock, patch
 
 
 class Double:
