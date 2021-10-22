@@ -155,6 +155,12 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       'interval',
       'queries',
     ]);
+    // Only Table and Top N views need orderby
+    if (![DisplayType.TABLE, DisplayType.TOP_N].includes(widgetData.displayType)) {
+      widgetData.queries.forEach(query => {
+        query.orderby = '';
+      });
+    }
     try {
       await validateWidget(api, organization.slug, widgetData);
       if (typeof onUpdateWidget === 'function' && !!previousWidget) {
