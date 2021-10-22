@@ -19,13 +19,21 @@ type Props = {
   threads: Array<Thread>;
   activeThread: Thread;
   event: Event;
+  fullWidth?: boolean;
   exception?: Required<ExceptionType>;
   onChange?: (thread: Thread) => void;
 };
 
 const DROPDOWN_MAX_HEIGHT = 400;
 
-const ThreadSelector = ({threads, event, exception, activeThread, onChange}: Props) => {
+const ThreadSelector = ({
+  threads,
+  event,
+  exception,
+  activeThread,
+  onChange,
+  fullWidth = false,
+}: Props) => {
   const getDropDownItem = (thread: Thread) => {
     const {label, filename, crashedInfo} = filterThreadInfo(event, thread, exception);
     const threadInfo = {label, filename};
@@ -69,9 +77,13 @@ const ThreadSelector = ({threads, event, exception, activeThread, onChange}: Pro
           emptyMessage={t('You have no threads')}
           noResultsMessage={t('No threads found')}
           menuHeader={<Header />}
-          rootClassName={css`
-            width: 100%;
-          `}
+          rootClassName={
+            fullWidth
+              ? css`
+                  width: 100%;
+                `
+              : undefined
+          }
           closeOnSelect
           emptyHidesInput
         >
