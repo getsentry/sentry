@@ -1,5 +1,3 @@
-import time
-import uuid
 from datetime import datetime, timedelta
 from unittest.mock import patch
 
@@ -287,40 +285,6 @@ class BaseIncidentEventStatsTest(BaseIncidentsTest, BaseIncidentsValidation):
         )
 
 
-class BaseCrashRateAlertsTest(SnubaTestCase):
-    def setUp(self):
-        super().setUp()
-        self.session_release = "foo@1.0.0"
-        self.now = timezone.now().replace(minute=0, second=0, microsecond=0)
-
-    def make_session(
-        self,
-        received=None,
-        started=None,
-        status="ok",
-    ):
-        if received is None:
-            received = time.time()
-        if started is None:
-            started = time.time() // 60 * 60
-
-        return {
-            "session_id": str(uuid.uuid4()),
-            "distinct_id": str(uuid.uuid4()),
-            "status": status,
-            "seq": 0,
-            "release": self.session_release,
-            "environment": "prod",
-            "retention_days": 90,
-            "org_id": self.project.organization_id,
-            "project_id": self.project.id,
-            "duration": 60.0,
-            "errors": 0,
-            "started": started,
-            "received": received,
-        }
-
-
 @freeze_time()
 class GetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
     @fixture
@@ -402,7 +366,11 @@ class GetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
 
 
 @freeze_time()
-class GetIncidentSessionStatsTest(TestCase, BaseCrashRateAlertsTest, BaseIncidentsValidation):
+class GetIncidentSessionStatsTest(TestCase, SnubaTestCase, BaseIncidentsValidation):
+    def setUp(self):
+        super().setUp()
+        self.now = timezone.now().replace(minute=0, second=0, microsecond=0)
+
     def test_with_sessions(self):
         alert_rule = self.create_alert_rule(
             self.organization,
@@ -419,13 +387,13 @@ class GetIncidentSessionStatsTest(TestCase, BaseCrashRateAlertsTest, BaseInciden
             alert_rule=alert_rule,
         )
         for _ in range(3):
-            self.store_session(self.make_session(status="exited"))
-        self.store_session(self.make_session(status="crashed"))
+            self.store_session(self.build_session(status="exited"))
+        self.store_session(self.build_session(status="crashed"))
 
         self._6_min_ago_dt = datetime.utcnow() - timedelta(minutes=6)
         self._6_min_ago = self._6_min_ago_dt.timestamp()
         self.store_session(
-            self.make_session(status="crashed", received=self._6_min_ago, started=self._6_min_ago)
+            self.build_session(status="crashed", received=self._6_min_ago, started=self._6_min_ago)
         )
         result = get_incident_session_stats(incident, windowed_stats=False)
         self.validate_result(
@@ -451,11 +419,12 @@ class GetIncidentAggregatesTest(TestCase, BaseIncidentAggregatesTest):
         assert get_incident_aggregates(self.project_incident) == {"count": 4, "unique_users": 2}
 
 
-class GetCrashRateIncidentAggregatesTest(TestCase, BaseCrashRateAlertsTest):
+class GetCrashRateIncidentAggregatesTest(TestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
+        self.now = timezone.now().replace(minute=0, second=0, microsecond=0)
         for _ in range(2):
-            self.store_session(self.make_session(status="exited"))
+            self.store_session(self.build_session(status="exited"))
 
     def test_sessions(self):
         incident = self.create_incident(
@@ -498,15 +467,19 @@ class CreateEventStatTest(TestCase, BaseIncidentsTest):
 
 
 @freeze_time()
-class CreateSessionStatTest(TestCase, BaseCrashRateAlertsTest):
+class CreateSessionStatTest(TestCase, SnubaTestCase):
+    def setUp(self):
+        super().setUp()
+        self.now = timezone.now().replace(minute=0, second=0, microsecond=0)
+
     def test_simple(self):
         for _ in range(2):
-            self.store_session(self.make_session(status="exited"))
-        self.store_session(self.make_session(status="crashed"))
+            self.store_session(self.build_session(status="exited"))
+        self.store_session(self.build_session(status="crashed"))
         self._2_min_ago_dt = datetime.utcnow() - timedelta(minutes=2)
         self._2_min_ago = self._2_min_ago_dt.timestamp()
         self.store_session(
-            self.make_session(status="crashed", received=self._2_min_ago, started=self._2_min_ago)
+            self.build_session(status="crashed", received=self._2_min_ago, started=self._2_min_ago)
         )
 
         alert_rule = self.create_alert_rule(
