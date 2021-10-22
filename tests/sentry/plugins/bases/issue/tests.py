@@ -21,11 +21,11 @@ class GetAuthForUserTest(TestCase):
         user = self._get_mock_user()
         p = IssueTrackingPlugin()
         p.auth_provider = "test"
-        self.assertEquals(p.get_auth_for_user(user), None)
+        self.assertEqual(p.get_auth_for_user(user), None)
 
     def test_returns_identity(self):
         user = User.objects.create(username="test", email="test@example.com")
         auth = UserSocialAuth.objects.create(provider="test", user=user)
         p = IssueTrackingPlugin()
         p.auth_provider = "test"
-        self.assertEquals(p.get_auth_for_user(user), auth)
+        self.assertEqual(p.get_auth_for_user(user), auth)

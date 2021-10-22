@@ -224,14 +224,14 @@ class OrganizationTest(TestCase):
         update_tracked_data(inst)
         inst.name = "baz"
         self.assertTrue(has_changed(inst, "name"))
-        self.assertEquals(old_value(inst, "name"), "bar")
+        self.assertEqual(old_value(inst, "name"), "bar")
 
     def test_name_hasnt_changed_after_save(self):
         inst = Organization(id=1, name="bar")
         update_tracked_data(inst)
         inst.name = "baz"
         self.assertTrue(has_changed(inst, "name"))
-        self.assertEquals(old_value(inst, "name"), "bar")
+        self.assertEqual(old_value(inst, "name"), "bar")
         update_tracked_data(inst)
         models.signals.post_save.send(instance=inst, sender=type(inst), created=False)
         self.assertFalse(has_changed(inst, "name"))
