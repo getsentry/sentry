@@ -82,13 +82,9 @@ import logging
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Literal, Tuple, Union
 
 import redis
-
-if TYPE_CHECKING:
-    from typing_extensions import Literal
-
 import sentry_sdk
 from django.conf import settings
 
@@ -128,11 +124,11 @@ EVENT_MODELS_TO_MIGRATE = (models.EventAttachment, models.UserReport)
 CannotReprocessReason = Union[
     # Can have many reasons. The event is too old to be reprocessed (very
     # unlikely!) or was not a native event.
-    "Literal['unprocessed_event.not_found']",
+    Literal["unprocessed_event.not_found"],
     # The event does not exist.
-    "Literal['event.not_found']",
+    Literal["event.not_found"],
     # A required attachment, such as the original minidump, is missing.
-    "Literal['attachment.not_found']",
+    Literal["attachment.not_found"],
 ]
 
 

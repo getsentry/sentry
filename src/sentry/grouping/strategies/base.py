@@ -1,6 +1,5 @@
 import inspect
 from typing import (
-    TYPE_CHECKING,
     Any,
     Callable,
     Dict,
@@ -8,6 +7,7 @@ from typing import (
     Iterator,
     List,
     Optional,
+    Protocol,
     Sequence,
     Type,
     TypeVar,
@@ -40,27 +40,23 @@ DEFAULT_GROUPING_ENHANCEMENTS_BASE = "common:2019-03-23"
 ReturnedVariants = Dict[str, GroupingComponent]
 ConcreteInterface = TypeVar("ConcreteInterface", bound=Interface, contravariant=True)
 
-# TODO(3.8): This is a hack so we can get Protocols before 3.8
-if TYPE_CHECKING:
-    from typing_extensions import Protocol
 
-    # XXX(markus): Too hard to mock out Protocol at runtime for as long as
-    # we're not on 3.8, so let's just conditionally define all of our types.
-    class StrategyFunc(Protocol[ConcreteInterface]):
-        def __call__(
-            self,
-            interface: ConcreteInterface,
-            event: Event,
-            context: "GroupingContext",
-            **meta: Any,
-        ) -> ReturnedVariants:
-            ...
+class StrategyFunc(Protocol[ConcreteInterface]):
+    def __call__(
+        self,
+        interface: ConcreteInterface,
+        event: Event,
+        context: "GroupingContext",
+        **meta: Any,
+    ) -> ReturnedVariants:
+        ...
 
-    class VariantProcessor(Protocol):
-        def __call__(
-            self, variants: ReturnedVariants, context: "GroupingContext", **meta: Any
-        ) -> ReturnedVariants:
-            ...
+
+class VariantProcessor(Protocol):
+    def __call__(
+        self, variants: ReturnedVariants, context: "GroupingContext", **meta: Any
+    ) -> ReturnedVariants:
+        ...
 
 
 def strategy(

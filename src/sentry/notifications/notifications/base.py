@@ -1,8 +1,17 @@
 import abc
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Dict, Mapping, MutableMapping, Optional, Tuple, Type, Union
-
-from typing_extensions import Literal
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Literal,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+)
 
 from sentry import analytics
 from sentry.types.integrations import ExternalProviders
