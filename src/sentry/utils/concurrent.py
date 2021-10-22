@@ -92,8 +92,13 @@ class TimedFuture(Future):
 
     def set_result(self, *args, **kwargs):
         with self._condition:
-            self.__timing[1] = time()
-            result = super().set_result(*args, **kwargs)
+            previous_finish_time = self.__timing[1]
+            try:
+                self.__timing[1] = time()
+                result = super().set_result(*args, **kwargs)
+            except Exception:
+                self.__timing[1] = previous_finish_time
+                raise
             return result
 
     def set_exception(self, *args, **kwargs):
