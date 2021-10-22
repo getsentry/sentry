@@ -173,6 +173,7 @@ function Threads({
             });
           }}
           exception={exception}
+          fullWidth
         />
       );
     }
