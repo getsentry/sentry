@@ -252,7 +252,8 @@ class ResultsChartContainer extends Component<ContainerProps> {
         };
       });
     }
-    // Equations on World Map isn't supported
+    // Equations on World Map isn't supported on the events-geo endpoint
+    // Disabling equations as an option to prevent erroring out
     if (eventView.getDisplayMode() === DisplayModes.WORLDMAP) {
       yAxisOptions = yAxisOptions.filter(({value}) => !isEquation(value));
     }
