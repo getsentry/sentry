@@ -6,6 +6,7 @@ from sentry.models import DefaultFieldsModel
 
 class SentryAppInstallationForProvider(DefaultFieldsModel):
     """Connects a sentry app installation to an organization and a provider."""
+
     __include_in_export__ = False
 
     sentry_app_installation = FlexibleForeignKey("sentry.SentryAppInstallation")

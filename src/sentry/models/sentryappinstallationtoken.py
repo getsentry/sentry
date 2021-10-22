@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING, Optional
 
 from django.db.models import QuerySet
+
 from sentry.db.models import BaseManager, FlexibleForeignKey, Model
 
 if TYPE_CHECKING:
@@ -21,9 +22,7 @@ class SentryAppInstallationTokenManager(BaseManager):
 
     def _get_token(self, token: "ApiToken") -> Optional["SentryAppInstallationToken"]:
         try:
-            return self.select_related("sentry_app_installation").get(
-                api_token=token
-            )
+            return self.select_related("sentry_app_installation").get(api_token=token)
         except SentryAppInstallationToken.DoesNotExist:
             pass
         return None

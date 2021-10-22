@@ -35,7 +35,9 @@ class NotifyEventSentryAppAction(EventAction):  # type: ignore
 
     def get_custom_actions(self, project: Project) -> Sequence[Mapping[str, Any]]:
         action_list = []
-        for install in SentryAppInstallation.objects.get_installed_for_organization(project.organization_id):
+        for install in SentryAppInstallation.objects.get_installed_for_organization(
+            project.organization_id
+        ):
             component = install.prepare_sentry_app_components("alert-rule-action", project)
             if component:
                 kwargs = {

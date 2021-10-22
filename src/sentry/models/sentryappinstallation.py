@@ -5,7 +5,12 @@ from django.db.models import QuerySet
 from django.utils import timezone
 
 from sentry.constants import SentryAppInstallationStatus
-from sentry.db.models import BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, ParanoidModel
+from sentry.db.models import (
+    BaseManager,
+    BoundedPositiveIntegerField,
+    FlexibleForeignKey,
+    ParanoidModel,
+)
 
 
 def default_uuid():

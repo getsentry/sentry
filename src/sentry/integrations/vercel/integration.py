@@ -20,6 +20,7 @@ from sentry.models import (
     Project,
     ProjectKey,
     SentryAppInstallation,
+    SentryAppInstallationForProvider,
     SentryAppInstallationToken,
     User,
 )

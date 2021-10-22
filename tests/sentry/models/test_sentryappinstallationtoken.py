@@ -1,5 +1,11 @@
-from sentry.models import ApiApplication, ApiToken, SentryApp, SentryAppInstallation, SentryAppInstallationForProvider, \
-    SentryAppInstallationToken
+from sentry.models import (
+    ApiApplication,
+    ApiToken,
+    SentryApp,
+    SentryAppInstallation,
+    SentryAppInstallationForProvider,
+    SentryAppInstallationToken,
+)
 from sentry.testutils import TestCase
 
 
@@ -17,7 +23,9 @@ class SentryAppInstallationTokenTest(TestCase):
             webhook_url="http://example.com",
         )
 
-        self.install = SentryAppInstallation(sentry_app=self.sentry_app, organization=self.organization)
+        self.install = SentryAppInstallation(
+            sentry_app=self.sentry_app, organization=self.organization
+        )
         self.installation_for_provider = SentryAppInstallationForProvider.objects.create(
             organization=self.organization,
             provider=self.provider,
@@ -36,4 +44,3 @@ class SentryAppInstallationTokenTest(TestCase):
         )
         token = SentryAppInstallationToken.objects.get_token(self.organization.id, self.provider)
         assert token.token == api_token.token
-
