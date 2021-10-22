@@ -1,9 +1,10 @@
+from unittest import mock
+
 import responses
 
 from sentry.models import Activity
 from sentry.notifications.notifications.activity import NewProcessingIssuesActivityNotification
 from sentry.types.activity import ActivityType
-from sentry.utils.compat import mock
 
 from . import SlackActivityNotificationTest, get_attachment, send_notification
 
@@ -62,5 +63,5 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest):
         )
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=NewProcessingIssuesActivitySlack|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=NewProcessingIssuesActivitySlackUser|Notification Settings>"
         )

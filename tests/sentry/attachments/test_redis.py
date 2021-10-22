@@ -1,9 +1,9 @@
 import zlib
+from unittest import mock
 
 import pytest
 
 from sentry.cache.redis import RbCache, RedisClusterCache
-from sentry.utils.compat import mock
 from sentry.utils.imports import import_string
 
 KEY_FMT = "c:1:%s"

@@ -1,11 +1,11 @@
 from datetime import datetime
+from unittest.mock import patch
 from uuid import uuid4
 
 from django.utils import timezone
 
 from sentry.models import Commit, CommitAuthor, Integration, PullRequest, Repository
 from sentry.testutils import APITestCase
-from sentry.utils.compat.mock import patch
 
 from .testutils import (
     PULL_REQUEST_CLOSED_EVENT_EXAMPLE,

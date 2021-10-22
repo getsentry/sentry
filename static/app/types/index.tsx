@@ -449,7 +449,7 @@ export type ProjectSdkUpdates = {
   suggestions: SDKUpdatesSuggestion[];
 };
 
-export type EventsStatsData = [number, {count: number}[]][];
+export type EventsStatsData = [number, {count: number; comparisonCount?: number}[]][];
 
 // API response format for a single series
 export type EventsStats = {
@@ -726,8 +726,10 @@ export type Authenticator = {
   );
 
 export type ChallengeData = {
+  // will have only authenticateRequest or registerRequest
   authenticateRequests: u2f.SignRequest;
   registerRequests: u2f.RegisterRequest;
+  registeredKeys: u2f.RegisteredKey[];
 };
 
 export type EnrolledAuthenticator = {
@@ -2144,12 +2146,6 @@ export type SessionApiResponse = SeriesApi & {
   start: DateString;
   end: DateString;
   query: string;
-  intervals: string[];
-  groups: {
-    by: Record<string, string | number>;
-    totals: Record<string, number>;
-    series: Record<string, number[]>;
-  }[];
 };
 
 export enum SessionField {

@@ -1,5 +1,11 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, fireEvent, mountWithTheme, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  fireEvent,
+  mountWithTheme,
+  screen,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {
   addErrorMessage,
@@ -36,7 +42,7 @@ describe('Indicators', function () {
   it('has a loading indicator by default', function () {
     // when "type" is empty, we should treat it as loading state
     act(() => void IndicatorStore.add('Loading'));
-    expect(wrapper.getByTestId('loading-indicator')).toBeInTheDocument();
+    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
     expect(wrapper.container).toHaveTextContent('Loading');
   });
 
@@ -68,14 +74,14 @@ describe('Indicators', function () {
     addMessage('Loading', '', {duration: null});
     act(jest.runAllTimers);
     expect(wrapper.container).toHaveTextContent('Loading');
-    expect(wrapper.queryByTestId('loading-indicator')).toBeNull();
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
   });
 
   it('has a loading indicator when type is "loading"', function () {
     addMessage('Loading', 'loading', {duration: null});
     act(jest.runAllTimers);
     expect(wrapper.container).toHaveTextContent('Loading');
-    expect(wrapper.getByTestId('loading-indicator')).toBeInTheDocument();
+    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
   });
 
   it('adds and removes toast by calling action creators', function () {
@@ -88,7 +94,7 @@ describe('Indicators', function () {
     clearIndicators();
     act(jest.runAllTimers);
     expect(wrapper.container).toHaveTextContent('');
-    expect(wrapper.queryByTestId('loading-indicator')).toBeNull();
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
   });
 
   it('adds and replaces toast by calling action creators', function () {
@@ -100,7 +106,7 @@ describe('Indicators', function () {
     addMessage('success', 'success', {duration: null});
     act(jest.runAllTimers);
     expect(wrapper.container).toHaveTextContent('success');
-    expect(wrapper.queryByTestId('loading-indicator')).toBeNull();
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
   });
 
   it('adds and replaces toasts by calling action creators helpers', async function () {
@@ -121,50 +127,50 @@ describe('Indicators', function () {
   it('appends toasts', function () {
     addMessage('Loading', '', {append: true, duration: null});
     act(jest.runAllTimers);
-    expect(wrapper.getByTestId('toast')).toHaveTextContent('Loading');
+    expect(screen.getByTestId('toast')).toHaveTextContent('Loading');
 
     addMessage('Success', 'success', {append: true, duration: null});
     act(jest.runAllTimers);
     // Toasts get appended to the end
-    expect(wrapper.getByTestId('toast')).toHaveTextContent('Loading');
-    expect(wrapper.getByTestId('toast-success')).toHaveTextContent('Success');
+    expect(screen.getByTestId('toast')).toHaveTextContent('Loading');
+    expect(screen.getByTestId('toast-success')).toHaveTextContent('Success');
 
     addMessage('Error', 'error', {append: true, duration: null});
     act(jest.runAllTimers);
     // Toasts get appended to the end
-    expect(wrapper.getByTestId('toast')).toHaveTextContent('Loading');
-    expect(wrapper.getByTestId('toast-success')).toHaveTextContent('Success');
-    expect(wrapper.getByTestId('toast-error')).toHaveTextContent('Error');
+    expect(screen.getByTestId('toast')).toHaveTextContent('Loading');
+    expect(screen.getByTestId('toast-success')).toHaveTextContent('Success');
+    expect(screen.getByTestId('toast-error')).toHaveTextContent('Error');
 
     // clears all toasts
     clearIndicators();
     act(jest.runAllTimers);
     expect(wrapper.container).toHaveTextContent('');
-    expect(wrapper.queryByTestId('loading-indicator')).toBeNull();
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
   });
 
   it('dismisses on click', function () {
     addMessage('Loading', '', {append: true, duration: null});
     act(jest.runAllTimers);
-    expect(wrapper.getByTestId('toast')).toHaveTextContent('Loading');
+    expect(screen.getByTestId('toast')).toHaveTextContent('Loading');
 
-    fireEvent.click(wrapper.getByTestId('toast'));
+    fireEvent.click(screen.getByTestId('toast'));
     act(jest.runAllTimers);
     expect(wrapper.container).toHaveTextContent('');
-    expect(wrapper.queryByTestId('toast')).toBeNull();
+    expect(screen.queryByTestId('toast')).not.toBeInTheDocument();
   });
 
   it('hides after 10s', function () {
     addMessage('Duration', '', {append: true, duration: 10000});
     act(() => jest.advanceTimersByTime(9000));
-    expect(wrapper.getByTestId('toast')).toHaveTextContent('Duration');
+    expect(screen.getByTestId('toast')).toHaveTextContent('Duration');
 
     // Still visible
     act(() => jest.advanceTimersByTime(999));
-    expect(wrapper.getByTestId('toast')).toHaveTextContent('Duration');
+    expect(screen.getByTestId('toast')).toHaveTextContent('Duration');
 
     act(() => jest.advanceTimersByTime(2));
     expect(wrapper.container).toHaveTextContent('');
-    expect(wrapper.queryByTestId('toast')).toBeNull();
+    expect(screen.queryByTestId('toast')).not.toBeInTheDocument();
   });
 });

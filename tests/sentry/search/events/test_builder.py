@@ -203,7 +203,7 @@ class QueryBuilderTest(TestCase):
         project2 = self.create_project()
         # params is assumed to be validated at this point, so this query should be invalid
         self.params["project_id"] = [project2.id]
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             InvalidSearchQuery,
             re.escape(
                 f"Invalid query. Project(s) {str(project1.slug)} do not exist or are not actively selected."
@@ -371,3 +371,66 @@ class QueryBuilderTest(TestCase):
                     "",
                     selected_columns=[],
                 )
+
+    def test_array_combinator(self):
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            "",
+            selected_columns=["sumArray(measurements_value)"],
+            functions_acl=["sumArray"],
+        )
+        self.assertCountEqual(
+            query.columns,
+            [
+                Function(
+                    "sum",
+                    [Function("arrayJoin", [Column("measurements.value")])],
+                    "sumArray_measurements_value",
+                )
+            ],
+        )
+
+    def test_array_combinator_is_private(self):
+        with self.assertRaisesRegex(InvalidSearchQuery, "sum: no access to private function"):
+            QueryBuilder(
+                Dataset.Discover,
+                self.params,
+                "",
+                selected_columns=["sumArray(measurements_value)"],
+            )
+
+    def test_array_combinator_with_non_array_arg(self):
+        with self.assertRaisesRegex(InvalidSearchQuery, "stuff is not a valid array column"):
+            QueryBuilder(
+                Dataset.Discover,
+                self.params,
+                "",
+                selected_columns=["sumArray(stuff)"],
+                functions_acl=["sumArray"],
+            )
+
+    def test_spans_columns(self):
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            "",
+            selected_columns=[
+                "array_join(spans_op)",
+                "array_join(spans_group)",
+                "sumArray(spans_exclusive_time)",
+            ],
+            functions_acl=["array_join", "sumArray"],
+        )
+        self.assertCountEqual(
+            query.columns,
+            [
+                Function("arrayJoin", [Column("spans.op")], "array_join_spans_op"),
+                Function("arrayJoin", [Column("spans.group")], "array_join_spans_group"),
+                Function(
+                    "sum",
+                    [Function("arrayJoin", [Column("spans.exclusive_time")])],
+                    "sumArray_spans_exclusive_time",
+                ),
+            ],
+        )

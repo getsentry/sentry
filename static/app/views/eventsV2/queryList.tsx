@@ -12,6 +12,7 @@ import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import DropdownMenu from 'app/components/dropdownMenu';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
+import FeatureBadge from 'app/components/featureBadge';
 import MenuItem from 'app/components/menuItem';
 import Pagination from 'app/components/pagination';
 import TimeSince from 'app/components/timeSince';
@@ -20,13 +21,19 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, SavedQuery} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'app/utils/discover/eventView';
+import {DisplayModes} from 'app/utils/discover/types';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import {decodeList} from 'app/utils/queryString';
 import withApi from 'app/utils/withApi';
 import {WidgetQuery} from 'app/views/dashboardsV2/types';
 
-import {handleCreateQuery, handleDeleteQuery} from './savedQuery/utils';
+import {
+  displayModeToDisplayType,
+  handleCreateQuery,
+  handleDeleteQuery,
+} from './savedQuery/utils';
 import MiniGraph from './miniGraph';
 import QueryCard from './querycard';
 import {getPrebuiltQueries} from './utils';
@@ -95,12 +102,21 @@ class QueryList extends React.Component<Props> {
       event.preventDefault();
       event.stopPropagation();
 
+      const sort = eventView.sorts[0];
       const defaultWidgetQuery: WidgetQuery = {
         name: '',
-        fields: savedQuery?.yAxis ?? ['count()'],
+        fields:
+          typeof savedQuery?.yAxis === 'string'
+            ? [savedQuery?.yAxis]
+            : savedQuery?.yAxis ?? ['count()'],
         conditions: eventView.query,
-        orderby: '',
+        orderby: sort ? `${sort.kind === 'desc' ? '-' : ''}${sort.field}` : '',
       };
+
+      trackAdvancedAnalyticsEvent('discover_views.add_to_dashboard.modal_open', {
+        organization,
+        saved_query: !!savedQuery,
+      });
 
       openAddDashboardWidgetModal({
         organization,
@@ -113,6 +129,7 @@ class QueryList extends React.Component<Props> {
         defaultTitle:
           savedQuery?.name ??
           (eventView.name !== 'All Events' ? eventView.name : undefined),
+        displayType: displayModeToDisplayType(eventView.display as DisplayModes),
       });
     };
 
@@ -201,12 +218,12 @@ class QueryList extends React.Component<Props> {
                 return (
                   hasFeature && (
                     <ContextMenu>
-                      <MenuItem
+                      <StyledMenuItem
                         data-test-id="add-query-to-dashboard"
                         onClick={this.handleAddQueryToDashboard(eventView)}
                       >
-                        {t('Add to Dashboard')}
-                      </MenuItem>
+                        {t('Add to Dashboard')} <FeatureBadge type="beta" noTooltip />
+                      </StyledMenuItem>
                     </ContextMenu>
                   )
                 );
@@ -279,12 +296,12 @@ class QueryList extends React.Component<Props> {
               >
                 {({hasFeature}) =>
                   hasFeature && (
-                    <MenuItem
+                    <StyledMenuItem
                       data-test-id="add-query-to-dashboard"
                       onClick={this.handleAddQueryToDashboard(eventView, savedQuery)}
                     >
-                      {t('Add to Dashboard')}
-                    </MenuItem>
+                      {t('Add to Dashboard')} <FeatureBadge type="beta" noTooltip />
+                    </StyledMenuItem>
                   )
                 }
               </Feature>
@@ -401,6 +418,13 @@ const DropdownTarget = styled('div')`
 `;
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`
   grid-column: 1 / 4;
+`;
+
+const StyledMenuItem = styled(MenuItem)`
+  white-space: nowrap;
+  span {
+    align-items: baseline;
+  }
 `;
 
 export default withApi(QueryList);

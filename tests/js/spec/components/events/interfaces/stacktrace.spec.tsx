@@ -1,4 +1,4 @@
-import {fireEvent, mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
 import StacktraceContent from 'app/components/events/interfaces/stacktraceContent';
 import {StacktraceType} from 'app/types/stacktrace';
@@ -28,67 +28,67 @@ function renderedComponent(
 
 describe('StackTrace', function () {
   it('renders', function () {
-    const {getByTestId, container} = renderedComponent({});
+    const {container} = renderedComponent({});
 
     // stack trace content
-    const stackTraceContent = getByTestId('stack-trace-content');
-    expect(stackTraceContent).toBeTruthy();
+    const stackTraceContent = screen.getByTestId('stack-trace-content');
+    expect(stackTraceContent).toBeInTheDocument();
 
     // stack trace content has to have a platform icon and a frame list
     expect(stackTraceContent.children).toHaveLength(2);
 
     // platform icon
-    expect(getByTestId('platform-icon-python')).toBeTruthy();
+    expect(screen.getByTestId('platform-icon-python')).toBeInTheDocument();
 
     // frame list
-    const frames = getByTestId('frames');
+    const frames = screen.getByTestId('frames');
     expect(frames.children).toHaveLength(5);
 
     expect(container).toSnapshot();
   });
 
   it('renders the frame in the correct order', function () {
-    const {queryAllByTestId} = renderedComponent({});
+    renderedComponent({});
 
     // frame - filename
-    const frameFilenames = queryAllByTestId('filename');
+    const frameFilenames = screen.queryAllByTestId('filename');
     expect(frameFilenames).toHaveLength(5);
-    expect(frameFilenames[0].textContent).toEqual('raven/scripts/runner.py');
-    expect(frameFilenames[1].textContent).toEqual('raven/scripts/runner.py');
-    expect(frameFilenames[2].textContent).toEqual('raven/base.py');
-    expect(frameFilenames[3].textContent).toEqual('raven/base.py');
-    expect(frameFilenames[4].textContent).toEqual('raven/base.py');
+    expect(frameFilenames[0]).toHaveTextContent('raven/scripts/runner.py');
+    expect(frameFilenames[1]).toHaveTextContent('raven/scripts/runner.py');
+    expect(frameFilenames[2]).toHaveTextContent('raven/base.py');
+    expect(frameFilenames[3]).toHaveTextContent('raven/base.py');
+    expect(frameFilenames[4]).toHaveTextContent('raven/base.py');
 
     // frame - function
-    const frameFunction = queryAllByTestId('function');
+    const frameFunction = screen.queryAllByTestId('function');
     expect(frameFunction).toHaveLength(5);
-    expect(frameFunction[0].textContent).toEqual('main');
-    expect(frameFunction[1].textContent).toEqual('send_test_message');
-    expect(frameFunction[2].textContent).toEqual('captureMessage');
-    expect(frameFunction[3].textContent).toEqual('capture');
-    expect(frameFunction[4].textContent).toEqual('build_msg');
+    expect(frameFunction[0]).toHaveTextContent('main');
+    expect(frameFunction[1]).toHaveTextContent('send_test_message');
+    expect(frameFunction[2]).toHaveTextContent('captureMessage');
+    expect(frameFunction[3]).toHaveTextContent('capture');
+    expect(frameFunction[4]).toHaveTextContent('build_msg');
   });
 
   it('collapse/expand frames by clicking anywhere in the frame element', function () {
-    const {queryAllByTestId, getByTestId} = renderedComponent({});
+    renderedComponent({});
     // frame list
-    const frames = getByTestId('frames');
+    const frames = screen.getByTestId('frames');
     expect(frames.children).toHaveLength(5);
 
     // only one frame is expanded by default
-    expect(queryAllByTestId('toggle-button-expanded')).toHaveLength(1);
-    expect(queryAllByTestId('toggle-button-collapsed')).toHaveLength(4);
+    expect(screen.queryByTestId('toggle-button-expanded')).toBeInTheDocument();
+    expect(screen.queryAllByTestId('toggle-button-collapsed')).toHaveLength(4);
 
     // clickable list item element
-    const frameTitles = queryAllByTestId('title');
+    const frameTitles = screen.queryAllByTestId('title');
 
     // collapse the expanded frame (by default)
     fireEvent.mouseDown(frameTitles[0]);
     fireEvent.click(frameTitles[0]);
 
     // all frames are now collapsed
-    expect(queryAllByTestId('toggle-button-expanded')).toHaveLength(0);
-    expect(queryAllByTestId('toggle-button-collapsed')).toHaveLength(5);
+    expect(screen.queryByTestId('toggle-button-expanded')).not.toBeInTheDocument();
+    expect(screen.queryAllByTestId('toggle-button-collapsed')).toHaveLength(5);
 
     // expand penultimate and last frame
     fireEvent.mouseDown(frameTitles[frameTitles.length - 2]);
@@ -98,32 +98,32 @@ describe('StackTrace', function () {
     fireEvent.click(frameTitles[frameTitles.length - 1]);
 
     // two frames are now collapsed
-    expect(queryAllByTestId('toggle-button-expanded')).toHaveLength(2);
-    expect(queryAllByTestId('toggle-button-collapsed')).toHaveLength(3);
+    expect(screen.queryAllByTestId('toggle-button-expanded')).toHaveLength(2);
+    expect(screen.queryAllByTestId('toggle-button-collapsed')).toHaveLength(3);
   });
 
   it('collapse/expand frames by clicking on the toggle button', function () {
-    const {queryAllByTestId, getByTestId} = renderedComponent({});
+    renderedComponent({});
 
     // frame list
-    const frames = getByTestId('frames');
+    const frames = screen.getByTestId('frames');
     expect(frames.children).toHaveLength(5);
 
-    const expandedToggleButtons = queryAllByTestId('toggle-button-expanded');
+    const expandedToggleButtons = screen.getByTestId('toggle-button-expanded');
 
     // only one frame is expanded by default
-    expect(expandedToggleButtons).toHaveLength(1);
-    expect(queryAllByTestId('toggle-button-collapsed')).toHaveLength(4);
+    expect(expandedToggleButtons).toBeInTheDocument();
+    expect(screen.queryAllByTestId('toggle-button-collapsed')).toHaveLength(4);
 
     // collapse the expanded frame (by default)
-    fireEvent.mouseDown(expandedToggleButtons[0]);
-    fireEvent.click(expandedToggleButtons[0]);
+    fireEvent.mouseDown(expandedToggleButtons);
+    fireEvent.click(expandedToggleButtons);
 
     // all frames are now collapsed
-    expect(queryAllByTestId('toggle-button-expanded')).toHaveLength(0);
-    expect(queryAllByTestId('toggle-button-collapsed')).toHaveLength(5);
+    expect(screen.queryByTestId('toggle-button-expanded')).not.toBeInTheDocument();
+    expect(screen.queryAllByTestId('toggle-button-collapsed')).toHaveLength(5);
 
-    const collapsedToggleButtons = queryAllByTestId('toggle-button-collapsed');
+    const collapsedToggleButtons = screen.queryAllByTestId('toggle-button-collapsed');
 
     // expand penultimate and last frame
     fireEvent.mouseDown(collapsedToggleButtons[collapsedToggleButtons.length - 2]);
@@ -133,15 +133,15 @@ describe('StackTrace', function () {
     fireEvent.click(collapsedToggleButtons[collapsedToggleButtons.length - 1]);
 
     // two frames are now collapsed
-    expect(queryAllByTestId('toggle-button-expanded')).toHaveLength(2);
-    expect(queryAllByTestId('toggle-button-collapsed')).toHaveLength(3);
+    expect(screen.queryAllByTestId('toggle-button-expanded')).toHaveLength(2);
+    expect(screen.queryAllByTestId('toggle-button-collapsed')).toHaveLength(3);
   });
 
   it('if all in_app equals false, all the frames are showing by default', function () {
-    const {getByTestId} = renderedComponent({});
+    renderedComponent({});
 
     // frame list
-    const frames = getByTestId('frames');
+    const frames = screen.getByTestId('frames');
     expect(frames.children).toHaveLength(5);
   });
 
@@ -158,24 +158,22 @@ describe('StackTrace', function () {
         ],
       };
 
-      const {queryAllByTestId} = renderedComponent({
+      renderedComponent({
         data: newData,
         event: {...event, entries: [{...event.entries[0], stacktrace: newData.frames}]},
         includeSystemFrames: false,
       });
 
       // clickable list item element
-      const frameTitles = queryAllByTestId('title');
+      const frameTitles = screen.queryAllByTestId('title');
 
       // frame list - in app only
       expect(frameTitles).toHaveLength(2);
 
-      expect(frameTitles[0].textContent).toEqual(
+      expect(frameTitles[0]).toHaveTextContent(
         'Crashed in non-app: raven/scripts/runner.py in main at line 112'
       );
-      expect(frameTitles[1].textContent).toEqual(
-        'raven/base.py in build_msg at line 303'
-      );
+      expect(frameTitles[1]).toHaveTextContent('raven/base.py in build_msg at line 303');
     });
 
     it('displays called from only', function () {
@@ -191,22 +189,22 @@ describe('StackTrace', function () {
         ],
       };
 
-      const {queryAllByTestId} = renderedComponent({
+      renderedComponent({
         data: newData,
         event: {...event, entries: [{...event.entries[0], stacktrace: newData.frames}]},
         includeSystemFrames: false,
       });
 
       // clickable list item element
-      const frameTitles = queryAllByTestId('title');
+      const frameTitles = screen.queryAllByTestId('title');
 
       // frame list - in app only
       expect(frameTitles).toHaveLength(2);
 
-      expect(frameTitles[0].textContent).toEqual(
+      expect(frameTitles[0]).toHaveTextContent(
         'raven/scripts/runner.py in main at line 112'
       );
-      expect(frameTitles[1].textContent).toEqual(
+      expect(frameTitles[1]).toHaveTextContent(
         'Called from: raven/scripts/runner.py in send_test_message at line 77'
       );
     });
@@ -224,23 +222,23 @@ describe('StackTrace', function () {
         ],
       };
 
-      const {queryAllByTestId} = renderedComponent({
+      renderedComponent({
         data: newData,
         event: {...event, entries: [{...event.entries[0], stacktrace: newData.frames}]},
         includeSystemFrames: false,
       });
 
       // clickable list item element
-      const frameTitles = queryAllByTestId('title');
+      const frameTitles = screen.queryAllByTestId('title');
 
       // frame list - in app only
       expect(frameTitles).toHaveLength(3);
 
-      expect(frameTitles[0].textContent).toEqual(
+      expect(frameTitles[0]).toHaveTextContent(
         'Crashed in non-app: raven/scripts/runner.py in main at line 112'
       );
-      expect(frameTitles[1].textContent).toEqual('raven/base.py in capture at line 459');
-      expect(frameTitles[2].textContent).toEqual(
+      expect(frameTitles[1]).toHaveTextContent('raven/base.py in capture at line 459');
+      expect(frameTitles[2]).toHaveTextContent(
         'Called from: raven/base.py in build_msg at line 303'
       );
     });

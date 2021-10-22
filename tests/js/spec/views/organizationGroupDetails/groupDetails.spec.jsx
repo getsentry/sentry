@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, waitFor} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 import GroupStore from 'app/stores/groupStore';
@@ -116,13 +116,13 @@ describe('groupDetails', () => {
 
   it('renders', async function () {
     ProjectsStore.reset();
-    const {findByText, queryByText} = createWrapper();
+    createWrapper();
 
-    expect(queryByText(group.title)).toBeNull();
+    expect(screen.queryByText(group.title)).not.toBeInTheDocument();
 
     ProjectsStore.loadInitialData(organization.projects);
 
-    expect(await findByText(group.title, {exact: false})).toBeTruthy();
+    expect(await screen.findByText(group.title, {exact: false})).toBeInTheDocument();
   });
 
   it('renders error when issue is not found', async function () {
@@ -135,12 +135,12 @@ describe('groupDetails', () => {
       statusCode: 404,
     });
 
-    const {findByText, queryByTestId} = createWrapper();
+    createWrapper();
 
-    expect(queryByTestId('loading-indicator')).toBeNull();
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
     expect(
-      await findByText('The issue you were looking for was not found.')
-    ).toBeTruthy();
+      await screen.findByText('The issue you were looking for was not found.')
+    ).toBeInTheDocument();
   });
 
   it('renders MissingProjectMembership when trying to access issue in project the user does not belong to', async function () {
@@ -153,24 +153,24 @@ describe('groupDetails', () => {
       statusCode: 403,
     });
 
-    const {queryByTestId, findByText} = createWrapper();
+    createWrapper();
 
-    expect(queryByTestId('loading-indicator')).toBeNull();
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
     expect(
-      await findByText(
+      await screen.findByText(
         "You'll need to join a team with access before you can view this data."
       )
-    ).toBeTruthy();
+    ).toBeInTheDocument();
   });
 
   it('fetches issue details for a given environment', async function () {
-    const {queryByTestId, findByText} = createWrapper({
+    createWrapper({
       selection: {environments: ['staging']},
     });
 
-    expect(queryByTestId('loading-indicator')).toBeNull();
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
 
-    expect(await findByText('environment: staging')).toBeTruthy();
+    expect(await screen.findByText('environment: staging')).toBeInTheDocument();
   });
 
   /**
@@ -181,8 +181,8 @@ describe('groupDetails', () => {
       url: `/issues/${group.id}/`,
       body: {...group, id: 'new-id'},
     });
-    const {queryByText} = createWrapper();
-    expect(queryByText('Group Details Mock')).toBeNull();
+    createWrapper();
+    expect(screen.queryByText('Group Details Mock')).not.toBeInTheDocument();
     await waitFor(() => {
       expect(browserHistory.push).toHaveBeenCalledTimes(1);
       expect(browserHistory.push).toHaveBeenCalledWith(
@@ -196,8 +196,8 @@ describe('groupDetails', () => {
       url: `/issues/${group.id}/events/latest/`,
       statusCode: 404,
     });
-    const {findByText} = createWrapper();
-    expect(await findByText('eventError')).toBeTruthy();
+    createWrapper();
+    expect(await screen.findByText('eventError')).toBeInTheDocument();
   });
 
   it('renders for review reason', async function () {
@@ -213,27 +213,27 @@ describe('groupDetails', () => {
       },
     });
     ProjectsStore.reset();
-    const {findByText} = createWrapper();
+    createWrapper();
 
     ProjectsStore.loadInitialData(organization.projects);
 
-    expect(await findByText('New Issue')).toBeTruthy();
+    expect(await screen.findByText('New Issue')).toBeInTheDocument();
   });
 
   it('renders alert for sample event', async function () {
     const aProject = TestStubs.Project({firstEvent: false});
     ProjectsStore.reset();
     ProjectsStore.loadInitialData([aProject]);
-    const {findByText} = createWrapper();
+    createWrapper();
 
-    expect(await findByText(SAMPLE_EVENT_ALERT_TEXT)).toBeTruthy();
+    expect(await screen.findByText(SAMPLE_EVENT_ALERT_TEXT)).toBeInTheDocument();
   });
   it('does not render alert for non sample events', async function () {
     const aProject = TestStubs.Project({firstEvent: false});
     ProjectsStore.reset();
     ProjectsStore.loadInitialData([aProject]);
-    const {queryByText} = createWrapper();
+    createWrapper();
 
-    expect(await queryByText(SAMPLE_EVENT_ALERT_TEXT)).toBeNull();
+    expect(await screen.queryByText(SAMPLE_EVENT_ALERT_TEXT)).not.toBeInTheDocument();
   });
 });

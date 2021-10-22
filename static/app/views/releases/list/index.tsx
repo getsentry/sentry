@@ -18,9 +18,10 @@ import PageHeading from 'app/components/pageHeading';
 import Pagination from 'app/components/pagination';
 import SearchBar from 'app/components/searchBar';
 import SmartSearchBar from 'app/components/smartSearchBar';
-import {DEFAULT_STATS_PERIOD, RELEASE_ADOPTION_STAGES} from 'app/constants';
+import {ItemType} from 'app/components/smartSearchBar/types';
+import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
-import {desktop, mobile, PlatformKey, releaseHealth} from 'app/data/platformCategories';
+import {releaseHealth} from 'app/data/platformCategories';
 import {IconInfo} from 'app/icons';
 import {t} from 'app/locale';
 import ProjectsStore from 'app/stores/projectsStore';
@@ -32,10 +33,10 @@ import {
   Project,
   Release,
   ReleaseStatus,
-  SessionApiResponse,
   Tag,
 } from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {SEMVER_TAGS} from 'app/utils/discover/fields';
 import Projects from 'app/utils/projects';
 import routeTitleGen from 'app/utils/routeTitle';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
@@ -44,43 +45,15 @@ import withProjects from 'app/utils/withProjects';
 import AsyncView from 'app/views/asyncView';
 
 import ReleaseArchivedNotice from '../detail/overview/releaseArchivedNotice';
-import ReleaseHealthRequest from '../utils/releaseHealthRequest';
+import {isMobileRelease} from '../utils';
 
-import ReleaseAdoptionChart from './releaseAdoptionChart';
 import ReleaseCard from './releaseCard';
-import ReleaseDisplayOptions from './releaseDisplayOptions';
-import ReleaseListSortOptions from './releaseListSortOptions';
-import ReleaseListStatusOptions from './releaseListStatusOptions';
-import ReleasePromo from './releasePromo';
-import {DisplayOption, SortOption, StatusOption} from './utils';
-
-const supportedTags = {
-  'release.version': {
-    key: 'release.version',
-    name: 'release.version',
-  },
-  'release.build': {
-    key: 'release.build',
-    name: 'release.build',
-  },
-  'release.package': {
-    key: 'release.package',
-    name: 'release.package',
-  },
-  'release.stage': {
-    key: 'release.stage',
-    name: 'release.stage',
-    predefined: true,
-    values: RELEASE_ADOPTION_STAGES,
-  },
-  release: {
-    key: 'release',
-    name: 'release',
-  },
-};
-
-export const isProjectMobileForReleases = (projectPlatform: PlatformKey) =>
-  ([...mobile, ...desktop] as string[]).includes(projectPlatform);
+import ReleasesAdoptionChart from './releasesAdoptionChart';
+import ReleasesDisplayOptions, {ReleasesDisplayOption} from './releasesDisplayOptions';
+import ReleasesPromo from './releasesPromo';
+import ReleasesRequest from './releasesRequest';
+import ReleasesSortOptions, {ReleasesSortOption} from './releasesSortOptions';
+import ReleasesStatusOptions, {ReleasesStatusOption} from './releasesStatusOptions';
 
 type RouteParams = {
   orgId: string;
@@ -94,7 +67,6 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 
 type State = {
   releases: Release[];
-  hasSessions: boolean | null;
 } & AsyncView['state'];
 
 class ReleasesList extends AsyncView<Props, State> {
@@ -115,10 +87,10 @@ class ReleasesList extends AsyncView<Props, State> {
       ...pick(location.query, ['project', 'environment', 'cursor', 'query', 'sort']),
       summaryStatsPeriod: statsPeriod,
       per_page: 20,
-      flatten: activeSort === SortOption.DATE ? 0 : 1,
+      flatten: activeSort === ReleasesSortOption.DATE ? 0 : 1,
       adoptionStages: 1,
       status:
-        activeStatus === StatusOption.ARCHIVED
+        activeStatus === ReleasesStatusOption.ARCHIVED
           ? ReleaseStatus.Archived
           : ReleaseStatus.Active,
     };
@@ -135,18 +107,8 @@ class ReleasesList extends AsyncView<Props, State> {
     return endpoints;
   }
 
-  componentDidMount() {
-    if (this.props.location.query.project) {
-      this.fetchSessionsExistence();
-    }
-  }
-
   componentDidUpdate(prevProps: Props, prevState: State) {
     super.componentDidUpdate(prevProps, prevState);
-
-    if (prevProps.location.query.project !== this.props.location.query.project) {
-      this.fetchSessionsExistence();
-    }
 
     if (prevState.releases !== this.state.releases) {
       /**
@@ -168,42 +130,42 @@ class ReleasesList extends AsyncView<Props, State> {
     return typeof query === 'string' ? query : undefined;
   }
 
-  getSort(): SortOption {
+  getSort(): ReleasesSortOption {
     const {environments} = this.props.selection;
     const {sort} = this.props.location.query;
 
     // Require 1 environment for date adopted
-    if (sort === SortOption.ADOPTION && environments.length !== 1) {
-      return SortOption.DATE;
+    if (sort === ReleasesSortOption.ADOPTION && environments.length !== 1) {
+      return ReleasesSortOption.DATE;
     }
 
-    const sortExists = Object.values(SortOption).includes(sort);
+    const sortExists = Object.values(ReleasesSortOption).includes(sort);
     if (sortExists) {
       return sort;
     }
 
-    return SortOption.DATE;
+    return ReleasesSortOption.DATE;
   }
 
-  getDisplay(): DisplayOption {
+  getDisplay(): ReleasesDisplayOption {
     const {display} = this.props.location.query;
 
     switch (display) {
-      case DisplayOption.USERS:
-        return DisplayOption.USERS;
+      case ReleasesDisplayOption.USERS:
+        return ReleasesDisplayOption.USERS;
       default:
-        return DisplayOption.SESSIONS;
+        return ReleasesDisplayOption.SESSIONS;
     }
   }
 
-  getStatus(): StatusOption {
+  getStatus(): ReleasesStatusOption {
     const {status} = this.props.location.query;
 
     switch (status) {
-      case StatusOption.ARCHIVED:
-        return StatusOption.ARCHIVED;
+      case ReleasesStatusOption.ARCHIVED:
+        return ReleasesStatusOption.ARCHIVED;
       default:
-        return StatusOption.ACTIVE;
+        return ReleasesStatusOption.ACTIVE;
     }
   }
 
@@ -215,35 +177,8 @@ class ReleasesList extends AsyncView<Props, State> {
     return projects?.find(p => p.id === `${selectedProjectId}`);
   }
 
-  async fetchSessionsExistence() {
-    const {organization, location} = this.props;
-    const projectId = location.query.project;
-    if (!projectId) {
-      return;
-    }
-
-    this.setState({
-      hasSessions: null,
-    });
-
-    try {
-      const response: SessionApiResponse = await this.api.requestPromise(
-        `/organizations/${organization.slug}/sessions/`,
-        {
-          query: {
-            project: projectId,
-            field: 'sum(session)',
-            statsPeriod: '90d',
-            interval: '1d',
-          },
-        }
-      );
-      this.setState({
-        hasSessions: response.groups[0].totals['sum(session)'] > 0,
-      });
-    } catch {
-      // do nothing
-    }
+  get projectHasSessions() {
+    return this.getSelectedProject()?.hasSessions ?? null;
   }
 
   handleSearch = (query: string) => {
@@ -268,14 +203,26 @@ class ReleasesList extends AsyncView<Props, State> {
     const {location, router} = this.props;
 
     let sort = location.query.sort;
-    if (sort === SortOption.USERS_24_HOURS && display === DisplayOption.SESSIONS)
-      sort = SortOption.SESSIONS_24_HOURS;
-    else if (sort === SortOption.SESSIONS_24_HOURS && display === DisplayOption.USERS)
-      sort = SortOption.USERS_24_HOURS;
-    else if (sort === SortOption.CRASH_FREE_USERS && display === DisplayOption.SESSIONS)
-      sort = SortOption.CRASH_FREE_SESSIONS;
-    else if (sort === SortOption.CRASH_FREE_SESSIONS && display === DisplayOption.USERS)
-      sort = SortOption.CRASH_FREE_USERS;
+    if (
+      sort === ReleasesSortOption.USERS_24_HOURS &&
+      display === ReleasesDisplayOption.SESSIONS
+    )
+      sort = ReleasesSortOption.SESSIONS_24_HOURS;
+    else if (
+      sort === ReleasesSortOption.SESSIONS_24_HOURS &&
+      display === ReleasesDisplayOption.USERS
+    )
+      sort = ReleasesSortOption.USERS_24_HOURS;
+    else if (
+      sort === ReleasesSortOption.CRASH_FREE_USERS &&
+      display === ReleasesDisplayOption.SESSIONS
+    )
+      sort = ReleasesSortOption.CRASH_FREE_SESSIONS;
+    else if (
+      sort === ReleasesSortOption.CRASH_FREE_SESSIONS &&
+      display === ReleasesDisplayOption.USERS
+    )
+      sort = ReleasesSortOption.CRASH_FREE_USERS;
 
     router.push({
       ...location,
@@ -353,7 +300,7 @@ class ReleasesList extends AsyncView<Props, State> {
       );
     }
 
-    if (activeSort === SortOption.USERS_24_HOURS) {
+    if (activeSort === ReleasesSortOption.USERS_24_HOURS) {
       return (
         <EmptyStateWarning small>
           {t('There are no releases with active user data (users in the last 24 hours).')}
@@ -361,7 +308,7 @@ class ReleasesList extends AsyncView<Props, State> {
       );
     }
 
-    if (activeSort === SortOption.SESSIONS_24_HOURS) {
+    if (activeSort === ReleasesSortOption.SESSIONS_24_HOURS) {
       return (
         <EmptyStateWarning small>
           {t(
@@ -371,7 +318,10 @@ class ReleasesList extends AsyncView<Props, State> {
       );
     }
 
-    if (activeSort === SortOption.BUILD || activeSort === SortOption.SEMVER) {
+    if (
+      activeSort === ReleasesSortOption.BUILD ||
+      activeSort === ReleasesSortOption.SEMVER
+    ) {
       return (
         <EmptyStateWarning small>
           {t('There are no releases with semantic versioning.')}
@@ -379,7 +329,7 @@ class ReleasesList extends AsyncView<Props, State> {
       );
     }
 
-    if (activeSort !== SortOption.DATE) {
+    if (activeSort !== ReleasesSortOption.DATE) {
       const relativePeriod = getRelativeSummary(
         statsPeriod || DEFAULT_STATS_PERIOD
       ).toLowerCase();
@@ -391,7 +341,7 @@ class ReleasesList extends AsyncView<Props, State> {
       );
     }
 
-    if (activeStatus === StatusOption.ARCHIVED) {
+    if (activeStatus === ReleasesStatusOption.ARCHIVED) {
       return (
         <EmptyStateWarning small>
           {t('There are no archived releases.')}
@@ -400,7 +350,7 @@ class ReleasesList extends AsyncView<Props, State> {
     }
 
     return (
-      <ReleasePromo
+      <ReleasesPromo
         organization={organization}
         projectId={selection.projects.filter(p => p !== ALL_ACCESS_PROJECTS)[0]}
       />
@@ -409,11 +359,11 @@ class ReleasesList extends AsyncView<Props, State> {
 
   renderHealthCta() {
     const {organization} = this.props;
-    const {hasSessions, releases} = this.state;
+    const {releases} = this.state;
 
     const selectedProject = this.getSelectedProject();
 
-    if (!selectedProject || hasSessions !== false || !releases?.length) {
+    if (!selectedProject || this.projectHasSessions !== false || !releases?.length) {
       return null;
     }
 
@@ -450,9 +400,12 @@ class ReleasesList extends AsyncView<Props, State> {
     );
   }
 
-  renderInnerBody(activeDisplay: DisplayOption, showReleaseAdoptionStages: boolean) {
+  renderInnerBody(
+    activeDisplay: ReleasesDisplayOption,
+    showReleaseAdoptionStages: boolean
+  ) {
     const {location, selection, organization, router} = this.props;
-    const {hasSessions, releases, reloading, releasesPageLinks} = this.state;
+    const {releases, reloading, releasesPageLinks} = this.state;
 
     if (this.shouldShowLoadingIndicator()) {
       return <LoadingIndicator />;
@@ -463,7 +416,7 @@ class ReleasesList extends AsyncView<Props, State> {
     }
 
     return (
-      <ReleaseHealthRequest
+      <ReleasesRequest
         releases={releases.map(({version}) => version)}
         organization={organization}
         selection={selection}
@@ -478,14 +431,13 @@ class ReleasesList extends AsyncView<Props, State> {
             selection.projects[0] !== ALL_ACCESS_PROJECTS;
           const selectedProject = this.getSelectedProject();
           const isMobileProject =
-            selectedProject?.platform &&
-            isProjectMobileForReleases(selectedProject.platform);
+            selectedProject?.platform && isMobileRelease(selectedProject.platform);
 
           return (
             <Fragment>
-              {singleProjectSelected && hasSessions && isMobileProject && (
+              {singleProjectSelected && this.projectHasSessions && isMobileProject && (
                 <Feature features={['organizations:release-adoption-chart']}>
-                  <ReleaseAdoptionChart
+                  <ReleasesAdoptionChart
                     organization={organization}
                     selection={selection}
                     location={location}
@@ -514,7 +466,7 @@ class ReleasesList extends AsyncView<Props, State> {
             </Fragment>
           );
         }}
-      </ReleaseHealthRequest>
+      </ReleasesRequest>
     );
   }
 
@@ -531,7 +483,7 @@ class ReleasesList extends AsyncView<Props, State> {
     const hasAnyMobileProject = selection.projects
       .map(id => `${id}`)
       .map(ProjectsStore.getById)
-      .some(project => project?.platform && isProjectMobileForReleases(project.platform));
+      .some(project => project?.platform && isMobileRelease(project.platform));
     const showReleaseAdoptionStages =
       hasReleaseStages && hasAnyMobileProject && selection.environments.length === 1;
     const hasReleasesSetup = releases && releases.length > 0;
@@ -569,7 +521,14 @@ class ReleasesList extends AsyncView<Props, State> {
                       placeholder={t('Search by version, build, package, or stage')}
                       maxSearchItems={5}
                       hasRecentSearches={false}
-                      supportedTags={supportedTags}
+                      supportedTags={{
+                        ...SEMVER_TAGS,
+                        release: {
+                          key: 'release',
+                          name: 'release',
+                        },
+                      }}
+                      supportedTagType={ItemType.PROPERTY}
                       onSearch={this.handleSearch}
                       onGetTagValues={this.getTagValues}
                     />
@@ -583,18 +542,18 @@ class ReleasesList extends AsyncView<Props, State> {
                 />
               )}
               <DropdownsWrapper>
-                <ReleaseListStatusOptions
+                <ReleasesStatusOptions
                   selected={activeStatus}
                   onSelect={this.handleStatus}
                 />
-                <ReleaseListSortOptions
+                <ReleasesSortOptions
                   selected={activeSort}
                   selectedDisplay={activeDisplay}
                   onSelect={this.handleSortBy}
                   environments={selection.environments}
                   organization={organization}
                 />
-                <ReleaseDisplayOptions
+                <ReleasesDisplayOptions
                   selected={activeDisplay}
                   onSelect={this.handleDisplay}
                 />
@@ -602,7 +561,7 @@ class ReleasesList extends AsyncView<Props, State> {
             </SortAndFilterWrapper>
 
             {!reloading &&
-              activeStatus === StatusOption.ARCHIVED &&
+              activeStatus === ReleasesStatusOption.ARCHIVED &&
               !!releases?.length && <ReleaseArchivedNotice multi />}
 
             {error

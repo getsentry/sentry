@@ -1,5 +1,9 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
+import {
+  mountWithTheme,
+  screen,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 import {findByTextContent} from 'sentry-test/utils';
 
 import GlobalSelectionStore from 'app/stores/globalSelectionStore';
@@ -51,19 +55,19 @@ describe('ProjectDetail', function () {
 
       ProjectsStore.loadInitialData(projects);
 
-      const component = mountWithTheme(
+      mountWithTheme(
         <ProjectDetails organization={organization} {...router} params={params} />,
         {context: routerContext}
       );
 
-      await waitForElementToBeRemoved(() => component.getByText('Loading\u2026'));
+      await waitForElementToBeRemoved(() => screen.getByText('Loading\u2026'));
 
       expect(
-        component.queryByText(
+        screen.queryByText(
           'Event Processing for this project is currently degraded. Events may appear with larger delays than usual or get dropped.',
           {exact: false}
         )
-      ).toBe(null);
+      ).not.toBeInTheDocument();
     });
 
     it('renders alert', async function () {
@@ -90,16 +94,16 @@ describe('ProjectDetail', function () {
         data: projects[0],
       });
 
-      const component = mountWithTheme(
+      mountWithTheme(
         <ProjectDetails organization={organization} {...router} params={params} />,
         {context: routerContext}
       );
 
-      await waitForElementToBeRemoved(() => component.getByText('Loading\u2026'));
+      await waitForElementToBeRemoved(() => screen.getByText('Loading\u2026'));
 
       expect(
         await findByTextContent(
-          component,
+          screen,
           'Event Processing for this project is currently degraded. Events may appear with larger delays than usual or get dropped. Please check the Status page for a potential outage.'
         )
       ).toBeInTheDocument();

@@ -55,9 +55,11 @@ type Props = {
   onFilterSearch: (query: string) => void;
   alertType: AlertType;
   dataset: Dataset;
+  timeWindow: number;
   comparisonType: AlertRuleComparisonType;
   onComparisonTypeChange: (value: AlertRuleComparisonType) => void;
   onComparisonDeltaChange: (value: number) => void;
+  onTimeWindowChange: (value: number) => void;
   comparisonDelta?: number;
   allowChangeEventTypes?: boolean;
 };
@@ -107,7 +109,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
     }
 
     return Object.entries(options).map(([value, label]) => ({
-      value,
+      value: parseInt(value, 10),
       label,
     }));
   }
@@ -144,10 +146,13 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
       onFilterSearch,
       allowChangeEventTypes,
       alertType,
+      timeWindow,
       comparisonType,
       comparisonDelta,
+      onTimeWindowChange,
       onComparisonDeltaChange,
       onComparisonTypeChange,
+      dataset,
     } = this.props;
     const {environments} = this.state;
 
@@ -282,9 +287,9 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
                         : model.setValue('aggregate', DEFAULT_AGGREGATE);
 
                       // set the value of the dataset and event type from data source
-                      const {dataset, eventTypes} =
+                      const {dataset: datasetFromDataSource, eventTypes} =
                         DATA_SOURCE_TO_SET_AND_EVENT_TYPES[optionValue] ?? {};
-                      model.setValue('dataset', dataset);
+                      model.setValue('dataset', datasetFromDataSource);
                       model.setValue('eventTypes', eventTypes);
                     }}
                     options={dataSourceOptions}
@@ -337,27 +342,29 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
                   {...(this.searchSupportedTags
                     ? {supportedTags: this.searchSupportedTags}
                     : {})}
-                  hasRecentSearches={this.props.dataset !== Dataset.SESSIONS}
+                  hasRecentSearches={dataset !== Dataset.SESSIONS}
                 />
               </SearchContainer>
             )}
           </FormField>
         </FormRow>
-        <Feature features={['organizations:change-alerts']} organization={organization}>
-          <StyledListItem>{t('Select threshold type')}</StyledListItem>
-          <FormRow>
-            <RadioGroup
-              style={{flex: 1}}
-              choices={[
-                [AlertRuleComparisonType.COUNT, 'Count'],
-                [AlertRuleComparisonType.CHANGE, 'Percent Change'],
-              ]}
-              value={comparisonType}
-              label={t('Threshold Type')}
-              onChange={onComparisonTypeChange}
-            />
-          </FormRow>
-        </Feature>
+        {dataset !== Dataset.SESSIONS && (
+          <Feature features={['organizations:change-alerts']} organization={organization}>
+            <StyledListItem>{t('Select threshold type')}</StyledListItem>
+            <FormRow>
+              <RadioGroup
+                style={{flex: 1}}
+                choices={[
+                  [AlertRuleComparisonType.COUNT, 'Count'],
+                  [AlertRuleComparisonType.CHANGE, 'Percent Change'],
+                ]}
+                value={comparisonType}
+                label={t('Threshold Type')}
+                onChange={onComparisonTypeChange}
+              />
+            </FormRow>
+          </Feature>
+        )}
         <StyledListItem>
           <StyledListTitle>
             <div>{intervalLabelText}</div>
@@ -388,19 +395,20 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
             />
           )}
           {timeWindowText && <FormRowText>{timeWindowText}</FormRowText>}
-          <SelectField
+          <SelectControl
             name="timeWindow"
-            style={{
-              ...formElemBaseStyle,
-              flex: '0 150px 0',
-              minWidth: 130,
-              maxWidth: 300,
+            styles={{
+              control: (provided: {[x: string]: string | number | boolean}) => ({
+                ...provided,
+                minWidth: 130,
+                maxWidth: 300,
+              }),
             }}
             options={this.timeWindowOptions}
             required
             isDisabled={disabled}
-            getValue={value => Number(value)}
-            setValue={value => `${value}`}
+            value={timeWindow}
+            onChange={({value}) => onTimeWindowChange(value)}
             inline={false}
             flexibleControlStateSize
           />
@@ -408,15 +416,21 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
             {comparisonType === AlertRuleComparisonType.CHANGE && (
               <ComparisonContainer>
                 {t(' compared to ')}
-                <SelectField
+                <SelectControl
                   name="comparisonDelta"
-                  style={{
-                    ...formElemBaseStyle,
-                    minWidth: 500,
-                    maxWidth: 1000,
+                  styles={{
+                    container: (provided: {[x: string]: string | number | boolean}) => ({
+                      ...provided,
+                      marginLeft: space(1),
+                    }),
+                    control: (provided: {[x: string]: string | number | boolean}) => ({
+                      ...provided,
+                      minWidth: 500,
+                      maxWidth: 1000,
+                    }),
                   }}
                   value={comparisonDelta}
-                  onChange={onComparisonDeltaChange}
+                  onChange={({value}) => onComparisonDeltaChange(value)}
                   options={COMPARISON_DELTA_OPTIONS}
                   required={comparisonType === AlertRuleComparisonType.CHANGE}
                 />

@@ -1,3 +1,5 @@
+from unittest import mock
+from unittest.mock import patch
 from urllib.parse import parse_qs
 
 import responses
@@ -27,8 +29,6 @@ from sentry.plugins.base import Notification
 from sentry.tasks.digests import deliver_digest
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
-from sentry.utils.compat import mock
-from sentry.utils.compat.mock import patch
 
 from . import SlackActivityNotificationTest, get_attachment, send_notification
 
@@ -68,7 +68,7 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest):
         assert attachment["title"] == "Hello world"
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/alerts/?referrer=AlertRuleSlack|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/alerts/?referrer=AlertRuleSlackUser|Notification Settings>"
         )
 
     @responses.activate
@@ -105,7 +105,7 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest):
         assert attachment["title"] == "Hello world"
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/alerts/?referrer=AlertRuleSlack|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/alerts/?referrer=AlertRuleSlackUser|Notification Settings>"
         )
 
     @responses.activate
@@ -195,7 +195,7 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest):
         assert attachments[0]["title"] == "Hello world"
         assert (
             attachments[0]["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/{self.organization.slug}/teams/{self.team.slug}/notifications/?referrer=AlertRuleSlack|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/{self.organization.slug}/teams/{self.team.slug}/notifications/?referrer=AlertRuleSlackTeam|Notification Settings>"
         )
 
     @responses.activate
@@ -271,7 +271,7 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest):
         assert attachments[0]["title"] == "Hello world"
         assert (
             attachments[0]["footer"]
-            == f"{self.project.slug} | <http://example.com/settings/{self.organization.slug}/teams/{self.team.slug}/notifications/?referrer=AlertRuleSlack|Notification Settings>"
+            == f"{self.project.slug} | <http://example.com/settings/{self.organization.slug}/teams/{self.team.slug}/notifications/?referrer=AlertRuleSlackTeam|Notification Settings>"
         )
 
     @responses.activate
@@ -351,7 +351,7 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest):
         assert attachments[0]["title"] == "Hello world"
         assert (
             attachments[0]["footer"]
-            == f"{project2.slug} | <http://example.com/settings/{self.organization.slug}/teams/{self.team.slug}/notifications/?referrer=AlertRuleSlack|Notification Settings>"
+            == f"{project2.slug} | <http://example.com/settings/{self.organization.slug}/teams/{self.team.slug}/notifications/?referrer=AlertRuleSlackTeam|Notification Settings>"
         )
 
     @responses.activate
@@ -453,7 +453,7 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest):
         assert attachments[0]["title"] == "Hello world"
         assert (
             attachments[0]["footer"]
-            == f"{self.project.slug} | <http://example.com/settings/account/notifications/alerts/?referrer=AlertRuleSlack|Notification Settings>"
+            == f"{self.project.slug} | <http://example.com/settings/account/notifications/alerts/?referrer=AlertRuleSlackUser|Notification Settings>"
         )
 
         # check that user2 got a notification as well
@@ -465,7 +465,7 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest):
         assert attachments[0]["title"] == "Hello world"
         assert (
             attachments[0]["footer"]
-            == f"{self.project.slug} | <http://example.com/settings/account/notifications/alerts/?referrer=AlertRuleSlack|Notification Settings>"
+            == f"{self.project.slug} | <http://example.com/settings/account/notifications/alerts/?referrer=AlertRuleSlackUser|Notification Settings>"
         )
 
     @responses.activate

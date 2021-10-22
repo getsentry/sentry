@@ -4,7 +4,7 @@ import space from 'app/styles/space';
 
 const Sample = styled('div')`
   border-radius: ${p => p.theme.borderRadius};
-  border: dashed 1px ${p => p.theme.gray200};
+  border: dashed 1px ${p => p.theme.border};
   padding: ${space(1)} ${space(2)};
   margin: ${space(2)} 0;
 

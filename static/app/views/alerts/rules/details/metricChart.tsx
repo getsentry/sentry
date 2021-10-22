@@ -29,7 +29,10 @@ import space from 'app/styles/space';
 import {AvatarProject, DateString, Organization, Project} from 'app/types';
 import {ReactEchartsRef, Series} from 'app/types/echarts';
 import {getUtcDateString} from 'app/utils/dates';
-import {getCrashFreeRateSeries} from 'app/utils/sessions';
+import {
+  getCrashFreeRateSeries,
+  MINUTES_THRESHOLD_TO_DISPLAY_SECONDS,
+} from 'app/utils/sessions';
 import theme from 'app/utils/theme';
 import {alertDetailsLink} from 'app/views/alerts/details';
 import {makeDefaultCta} from 'app/views/alerts/incidentRules/incidentRulePresets';
@@ -102,7 +105,7 @@ function createStatusAreaSeries(
   yPosition: number
 ): LineChartSeries {
   return {
-    seriesName: 'Status Area',
+    seriesName: '',
     type: 'line',
     markLine: MarkLine({
       silent: true,
@@ -120,7 +123,8 @@ function createIncidentSeries(
   incidentTimestamp: number,
   incident: Incident,
   dataPoint?: LineChartSeries['data'][0],
-  seriesName?: string
+  seriesName?: string,
+  aggregate?: string
 ) {
   const series = {
     seriesName: 'Incident Line',
@@ -160,7 +164,15 @@ function createIncidentSeries(
         `<div class="tooltip-series"><div>`,
         `<span class="tooltip-label">${marker} <strong>${t('Alert')} #${
           incident.identifier
-        }</strong></span>${seriesName} ${dataPoint?.value?.toLocaleString()}`,
+        }</strong></span>${
+          dataPoint?.value
+            ? `${seriesName} ${alertTooltipValueFormatter(
+                dataPoint.value,
+                seriesName ?? '',
+                aggregate ?? ''
+              )}`
+            : ''
+        }`,
         `</div></div>`,
         `<div class="tooltip-date">${time}</div>`,
         `<div class="tooltip-arrow"></div>`,
@@ -274,16 +286,11 @@ class MetricChart extends React.PureComponent<Props, State> {
 
     const {buttonText, ...props} = makeDefaultCta(ctaOpts);
 
-    const resolvedPercent = (
+    const resolvedPercent =
       (100 * Math.max(totalDuration - criticalDuration - warningDuration, 0)) /
-      totalDuration
-    ).toFixed(2);
-    const criticalPercent = (100 * Math.min(criticalDuration / totalDuration, 1)).toFixed(
-      2
-    );
-    const warningPercent = (100 * Math.min(warningDuration / totalDuration, 1)).toFixed(
-      2
-    );
+      totalDuration;
+    const criticalPercent = 100 * Math.min(criticalDuration / totalDuration, 1);
+    const warningPercent = 100 * Math.min(warningDuration / totalDuration, 1);
 
     return (
       <ChartActions>
@@ -292,15 +299,15 @@ class MetricChart extends React.PureComponent<Props, State> {
           <SummaryStats>
             <StatItem>
               <IconCheckmark color="green300" isCircled />
-              <StatCount>{resolvedPercent}%</StatCount>
+              <StatCount>{resolvedPercent ? resolvedPercent.toFixed(2) : 0}%</StatCount>
             </StatItem>
             <StatItem>
               <IconWarning color="yellow300" />
-              <StatCount>{warningPercent}%</StatCount>
+              <StatCount>{warningPercent ? warningPercent.toFixed(2) : 0}%</StatCount>
             </StatItem>
             <StatItem>
               <IconFire color="red300" />
-              <StatCount>{criticalPercent}%</StatCount>
+              <StatCount>{criticalPercent ? criticalPercent.toFixed(2) : 0}%</StatCount>
             </StatItem>
           </SummaryStats>
         </ChartSummary>
@@ -315,7 +322,11 @@ class MetricChart extends React.PureComponent<Props, State> {
     );
   }
 
-  renderChart(loading: boolean, timeseriesData?: Series[]) {
+  renderChart(
+    loading: boolean,
+    timeseriesData?: Series[],
+    minutesThresholdToDisplaySeconds?: number
+  ) {
     const {
       router,
       selectedIncident,
@@ -361,8 +372,8 @@ class MetricChart extends React.PureComponent<Props, State> {
           ) / ALERT_CHART_MIN_MAX_BUFFER
         )
       : 0;
-    const firstPoint = moment(dataArr[0].name).valueOf();
-    const lastPoint = moment(dataArr[dataArr.length - 1].name).valueOf();
+    const firstPoint = moment(dataArr[0]?.name).valueOf();
+    const lastPoint = moment(dataArr[dataArr.length - 1]?.name).valueOf();
     const totalDuration = lastPoint - firstPoint;
     let criticalDuration = 0;
     let warningDuration = 0;
@@ -408,7 +419,7 @@ class MetricChart extends React.PureComponent<Props, State> {
             ? moment(incident.dateClosed).valueOf()
             : lastPoint;
           const incidentStartValue = dataArr.find(
-            point => point.name >= incidentStartDate
+            point => moment(point.name).valueOf() >= incidentStartDate
           );
           series.push(
             createIncidentSeries(
@@ -418,7 +429,8 @@ class MetricChart extends React.PureComponent<Props, State> {
               incidentStartDate,
               incident,
               incidentStartValue,
-              series[0].seriesName
+              series[0].seriesName,
+              aggregate
             )
           );
           const areaStart = Math.max(moment(incident.dateStarted).valueOf(), firstPoint);
@@ -493,14 +505,14 @@ class MetricChart extends React.PureComponent<Props, State> {
     }
 
     let maxThresholdValue = 0;
-    if (warningTrigger?.alertThreshold) {
+    if (!rule.comparisonDelta && warningTrigger?.alertThreshold) {
       const {alertThreshold} = warningTrigger;
       const warningThresholdLine = createThresholdSeries(theme.yellow300, alertThreshold);
       series.push(warningThresholdLine);
       maxThresholdValue = Math.max(maxThresholdValue, alertThreshold);
     }
 
-    if (criticalTrigger?.alertThreshold) {
+    if (!rule.comparisonDelta && criticalTrigger?.alertThreshold) {
       const {alertThreshold} = criticalTrigger;
       const criticalThresholdLine = createThresholdSeries(theme.red300, alertThreshold);
       series.push(criticalThresholdLine);
@@ -527,9 +539,10 @@ class MetricChart extends React.PureComponent<Props, State> {
                 {...zoomRenderProps}
                 isGroupedByDate
                 showTimeInTooltip
+                minutesThresholdToDisplaySeconds={minutesThresholdToDisplaySeconds}
                 forwardedRef={this.handleRef}
                 grid={{
-                  left: 0,
+                  left: space(0.25),
                   right: space(2),
                   top: space(2),
                   bottom: 0,
@@ -649,19 +662,26 @@ class MetricChart extends React.PureComponent<Props, State> {
         groupBy={['session.status']}
       >
         {({loading, response}) =>
-          this.renderChart(loading, [
-            {
-              seriesName:
-                AlertWizardAlertNames[
-                  getAlertTypeFromAggregateDataset({aggregate, dataset: Dataset.SESSIONS})
-                ],
-              data: getCrashFreeRateSeries(
-                response?.groups,
-                response?.intervals,
-                SESSION_AGGREGATE_TO_FIELD[aggregate]
-              ),
-            },
-          ])
+          this.renderChart(
+            loading,
+            [
+              {
+                seriesName:
+                  AlertWizardAlertNames[
+                    getAlertTypeFromAggregateDataset({
+                      aggregate,
+                      dataset: Dataset.SESSIONS,
+                    })
+                  ],
+                data: getCrashFreeRateSeries(
+                  response?.groups,
+                  response?.intervals,
+                  SESSION_AGGREGATE_TO_FIELD[aggregate]
+                ),
+              },
+            ],
+            MINUTES_THRESHOLD_TO_DISPLAY_SECONDS
+          )
         }
       </SessionsRequest>
     ) : (

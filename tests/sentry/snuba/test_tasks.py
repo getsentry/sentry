@@ -1,4 +1,5 @@
 import abc
+from unittest.mock import Mock, patch
 from uuid import uuid4
 
 import pytest
@@ -18,7 +19,6 @@ from sentry.snuba.tasks import (
 )
 from sentry.testutils import TestCase
 from sentry.utils import json
-from sentry.utils.compat.mock import Mock, patch
 from sentry.utils.snuba import _snuba_pool
 
 

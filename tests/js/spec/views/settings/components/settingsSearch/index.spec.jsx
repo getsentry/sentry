@@ -1,4 +1,4 @@
-import {fireEvent, mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
 import {navigateTo} from 'app/actionCreators/navigation';
 import FormSearchStore from 'app/stores/formSearchStore';
@@ -60,30 +60,25 @@ describe('SettingsSearch', function () {
   });
 
   it('renders', async function () {
-    const {getByPlaceholderText} = mountWithTheme(
-      <SettingsSearch params={{orgId: 'org-slug'}} />
-    );
+    mountWithTheme(<SettingsSearch params={{orgId: 'org-slug'}} />);
 
     // renders input
-    expect(getByPlaceholderText('Search')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Search')).toBeInTheDocument();
   });
 
   it('can focus when hotkey is pressed', function () {
-    const {getByPlaceholderText} = mountWithTheme(
-      <SettingsSearch params={{orgId: 'org-slug'}} />
-    );
+    mountWithTheme(<SettingsSearch params={{orgId: 'org-slug'}} />);
 
     fireEvent.keyDown(document, {code: 'Slash', key: '/', keyCode: 191});
-    expect(document.activeElement).toEqual(getByPlaceholderText('Search'));
+    expect(screen.getByPlaceholderText('Search')).toHaveFocus();
   });
 
   it('can search', async function () {
-    const {getByPlaceholderText, getAllByTestId} = mountWithTheme(
-      <SettingsSearch params={{orgId: 'org-slug'}} />,
-      {context: routerContext}
-    );
+    mountWithTheme(<SettingsSearch params={{orgId: 'org-slug'}} />, {
+      context: routerContext,
+    });
 
-    const input = getByPlaceholderText('Search');
+    const input = screen.getByPlaceholderText('Search');
     fireEvent.change(input, {target: {value: 'bil'}});
 
     await tick();
@@ -96,7 +91,7 @@ describe('SettingsSearch', function () {
       })
     );
 
-    const results = getAllByTestId('badge-display-name');
+    const results = screen.getAllByTestId('badge-display-name');
 
     const firstResult = results
       .filter(e => e.textContent === 'billy-org Dashboard')

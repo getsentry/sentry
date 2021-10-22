@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 
-import {Client} from 'app/api';
 import Card from 'app/components/card';
 import EventsRequest from 'app/components/charts/eventsRequest';
 import {HeaderTitle} from 'app/components/charts/styles';
@@ -35,7 +34,7 @@ import VitalsCardsDiscoverQuery, {
 } from 'app/utils/performance/vitals/vitalsCardsDiscoverQuery';
 import {decodeList} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
-import withApi from 'app/utils/withApi';
+import useApi from 'app/utils/useApi';
 
 import ColorBar from '../vitalDetail/colorBar';
 import {
@@ -130,7 +129,6 @@ const VitalBarContainer = styled('div')`
 `;
 
 type BaseCardsProps = {
-  api: Client;
   eventView: EventView;
   location: Location;
   organization: Organization;
@@ -141,7 +139,9 @@ type GenericCardsProps = BaseCardsProps & {
 };
 
 function GenericCards(props: GenericCardsProps) {
-  const {api, eventView: baseEventView, location, organization, functions} = props;
+  const api = useApi();
+
+  const {eventView: baseEventView, location, organization, functions} = props;
   const {query} = location;
   const eventView = baseEventView.withColumns(functions);
 
@@ -261,7 +261,7 @@ function _BackendCards(props: BaseCardsProps) {
   return <GenericCards {...props} functions={functions} />;
 }
 
-export const BackendCards = withApi(_BackendCards);
+export const BackendCards = _BackendCards;
 
 type MobileCardsProps = BaseCardsProps & {
   showStallPercentage: boolean;
@@ -297,7 +297,7 @@ function _MobileCards(props: MobileCardsProps) {
   return <GenericCards {...props} functions={functions} />;
 }
 
-export const MobileCards = withApi(_MobileCards);
+export const MobileCards = _MobileCards;
 
 type SparklineChartProps = {
   data: number[];
@@ -352,6 +352,8 @@ type VitalBarProps = {
   showStates?: boolean;
   showDurationDetail?: boolean;
   showVitalPercentNames?: boolean;
+  showDetail?: boolean;
+  barHeight?: number;
 };
 
 export function VitalBar(props: VitalBarProps) {
@@ -364,6 +366,8 @@ export function VitalBar(props: VitalBarProps) {
     showStates = false,
     showDurationDetail = false,
     showVitalPercentNames = false,
+    showDetail = true,
+    barHeight,
   } = props;
 
   if (isLoading) {
@@ -402,20 +406,23 @@ export function VitalBar(props: VitalBarProps) {
 
   return (
     <React.Fragment>
-      {showBar && <ColorBar colorStops={colorStops} />}
-      <BarDetail>
-        {showDurationDetail && p75 && (
-          <div data-test-id="vital-bar-p75">
-            {t('The p75 for all transactions is ')}
-            <strong>{p75}</strong>
-          </div>
-        )}
-        <VitalPercents
-          vital={vital}
-          percents={percents}
-          showVitalPercentNames={showVitalPercentNames}
-        />
-      </BarDetail>
+      {showBar && <ColorBar barHeight={barHeight} colorStops={colorStops} />}
+      {showDetail && (
+        <BarDetail>
+          {showDurationDetail && p75 && (
+            <div data-test-id="vital-bar-p75">
+              {t('The p75 for all transactions is ')}
+              <strong>{p75}</strong>
+            </div>
+          )}
+
+          <VitalPercents
+            vital={vital}
+            percents={percents}
+            showVitalPercentNames={showVitalPercentNames}
+          />
+        </BarDetail>
+      )}
     </React.Fragment>
   );
 }

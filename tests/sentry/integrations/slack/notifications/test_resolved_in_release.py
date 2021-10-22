@@ -1,9 +1,10 @@
+from unittest import mock
+
 import responses
 
 from sentry.models import Activity
 from sentry.notifications.notifications.activity import ResolvedInReleaseActivityNotification
 from sentry.types.activity import ActivityType
-from sentry.utils.compat import mock
 
 from . import SlackActivityNotificationTest, get_attachment, send_notification
 
@@ -32,5 +33,5 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest):
         assert text == f"Issue marked as resolved in {release_name} by {self.name}"
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=ResolvedInReleaseActivitySlack|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=ResolvedInReleaseActivitySlackUser|Notification Settings>"
         )

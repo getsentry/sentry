@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import responses
 from exam import fixture
 from rest_framework import serializers
@@ -22,7 +24,6 @@ from sentry.models import ACTOR_TYPES, Environment, Integration
 from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
 from sentry.testutils import TestCase
 from sentry.utils import json
-from sentry.utils.compat.mock import patch
 
 
 class TestAlertRuleSerializer(TestCase):
@@ -662,6 +663,26 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
             "trigger": self.trigger,
         }
 
+    @fixture
+    def sentry_app(self):
+        return self.create_sentry_app(
+            organization=self.organization,
+            published=True,
+            verify_install=False,
+            name="Super Awesome App",
+            schema={
+                "elements": [
+                    self.create_alert_rule_action_schema(),
+                ]
+            },
+        )
+
+    @fixture
+    def sentry_app_installation(self):
+        return self.create_sentry_app_installation(
+            slug=self.sentry_app.slug, organization=self.organization, user=self.user
+        )
+
     def run_fail_validation_test(self, params, errors):
         base_params = self.valid_params.copy()
         base_params.update(params)
@@ -887,3 +908,107 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
             AlertRuleTriggerAction.objects.filter(integration=integration)
         )
         assert len(alert_rule_trigger_actions) == 0
+
+    def test_sentry_app_action_missing_params(self):
+
+        self.run_fail_validation_test(
+            {
+                "type": AlertRuleTriggerAction.get_registered_type(
+                    AlertRuleTriggerAction.Type.SENTRY_APP
+                ).slug,
+                "target_type": action_target_type_to_string[
+                    AlertRuleTriggerAction.TargetType.SENTRY_APP
+                ],
+                "target_identifier": "123",
+                "sentry_app": self.sentry_app.id,
+                "sentry_app_config": {"tag": "asdfasdfads"},
+            },
+            {"sentryApp": ["Missing paramater: sentry_app_installation_uuid"]},
+        )
+
+    @responses.activate
+    def test_sentry_app_action_creator_fails(self):
+        responses.add(
+            method=responses.POST,
+            url="https://example.com/sentry/alert-rule",
+            status=400,
+            body="Invalid channel.",
+        )
+        self.run_fail_validation_test(
+            {
+                "type": AlertRuleTriggerAction.get_registered_type(
+                    AlertRuleTriggerAction.Type.SENTRY_APP
+                ).slug,
+                "target_type": action_target_type_to_string[
+                    AlertRuleTriggerAction.TargetType.SENTRY_APP
+                ],
+                "target_identifier": "1",
+                "sentry_app": self.sentry_app.id,
+                "sentry_app_config": {"channel": "#santry"},
+                "sentry_app_installation_uuid": self.sentry_app_installation.uuid,
+            },
+            {"sentryApp": ["Super Awesome App: Invalid channel."]},
+        )
+
+    @responses.activate
+    def test_create_and_update_sentry_app_action_success(self):
+        responses.add(
+            method=responses.POST,
+            url="https://example.com/sentry/alert-rule",
+            status=200,
+            json={},
+        )
+
+        serializer = AlertRuleTriggerActionSerializer(
+            context=self.context,
+            data={
+                "type": AlertRuleTriggerAction.get_registered_type(
+                    AlertRuleTriggerAction.Type.SENTRY_APP
+                ).slug,
+                "target_type": action_target_type_to_string[
+                    AlertRuleTriggerAction.TargetType.SENTRY_APP
+                ],
+                "target_identifier": "1",
+                "sentry_app": self.sentry_app.id,
+                "sentry_app_config": {"channel": "#general"},
+                "sentry_app_installation_uuid": self.sentry_app_installation.uuid,
+            },
+        )
+        assert serializer.is_valid()
+
+        # Create action
+        serializer.save()
+
+        # # Make sure the action was created.
+        alert_rule_trigger_actions = list(
+            AlertRuleTriggerAction.objects.filter(sentry_app=self.sentry_app)
+        )
+        assert len(alert_rule_trigger_actions) == 1
+
+        # Update action
+        serializer = AlertRuleTriggerActionSerializer(
+            context=self.context,
+            data={
+                "type": AlertRuleTriggerAction.get_registered_type(
+                    AlertRuleTriggerAction.Type.SENTRY_APP
+                ).slug,
+                "target_type": action_target_type_to_string[
+                    AlertRuleTriggerAction.TargetType.SENTRY_APP
+                ],
+                "target_identifier": "1",
+                "sentry_app": self.sentry_app.id,
+                "sentry_app_config": {"channel": "#announcements"},
+                "sentry_app_installation_uuid": self.sentry_app_installation.uuid,
+            },
+            instance=alert_rule_trigger_actions[0],
+        )
+
+        assert serializer.is_valid()
+
+        # Update action
+        serializer.save()
+
+        alert_rule_trigger_action = AlertRuleTriggerAction.objects.get(sentry_app=self.sentry_app)
+
+        # Make sure the changes got applied
+        assert alert_rule_trigger_action.sentry_app_config == {"channel": "#announcements"}

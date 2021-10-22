@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.urls import reverse
 
 from sentry.constants import SentryAppStatus
@@ -5,7 +7,6 @@ from sentry.models import OrganizationMember, SentryApp
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
 from sentry.utils import json
-from sentry.utils.compat.mock import patch
 
 
 class SentryAppDetailsTest(APITestCase):

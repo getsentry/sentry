@@ -28,7 +28,7 @@ import {formatPercentage, getDuration} from 'app/utils/formatters';
 import TrendsDiscoverQuery from 'app/utils/performance/trends/trendsDiscoverQuery';
 import {decodeScalar} from 'app/utils/queryString';
 import {MutableSearch} from 'app/utils/tokenizeSearch';
-import withApi from 'app/utils/withApi';
+import useApi from 'app/utils/useApi';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 import {RadioLineItem} from 'app/views/settings/components/forms/controls/radioGroup';
@@ -59,7 +59,6 @@ import {
 } from './utils';
 
 type Props = {
-  api: Client;
   organization: Organization;
   trendChangeType: TrendChangeType;
   previousTrendFunction?: TrendFunctionField;
@@ -202,7 +201,6 @@ function handleFilterDuration(location: Location, value: number, symbol: FilterS
 
 function ChangedTransactions(props: Props) {
   const {
-    api,
     location,
     trendChangeType,
     previousTrendFunction,
@@ -211,6 +209,8 @@ function ChangedTransactions(props: Props) {
     projects,
     setError,
   } = props;
+  const api = useApi();
+
   const trendView = props.trendView.clone();
   const chartTitle = getChartTitle(trendChangeType);
   modifyTrendView(trendView, location, trendChangeType);
@@ -486,7 +486,11 @@ function TrendsListItem(props: TrendsListItemProps) {
   );
 }
 
-const CompareDurations = ({transaction}: TrendsListItemProps) => {
+export const CompareDurations = ({
+  transaction,
+}: {
+  transaction: TrendsListItemProps['transaction'];
+}) => {
   const {fromSeconds, toSeconds, showDigits} = transformDeltaSpread(
     transaction.aggregate_range_1,
     transaction.aggregate_range_2
@@ -630,4 +634,4 @@ const StyledIconArrow = styled(IconArrow)`
   margin: 0 ${space(1)};
 `;
 
-export default withApi(withProjects(withOrganization(ChangedTransactions)));
+export default withProjects(withOrganization(ChangedTransactions));

@@ -16,9 +16,13 @@ import EventView from 'app/utils/discover/eventView';
 import getDynamicText from 'app/utils/getDynamicText';
 import {decodeList} from 'app/utils/queryString';
 import {Theme} from 'app/utils/theme';
-import {YAxis} from 'app/views/releases/detail/overview/chart/releaseChartControls';
 
-import {NormalizedTrendsTransaction, TrendChangeType, TrendsStats} from './types';
+import {
+  NormalizedTrendsTransaction,
+  TrendChangeType,
+  TrendFunctionField,
+  TrendsStats,
+} from './types';
 import {
   generateTrendFunctionAsString,
   getCurrentTrendFunction,
@@ -44,10 +48,15 @@ type Props = WithRouterProps &
     location: Location;
     organization: OrganizationSummary;
     trendChangeType: TrendChangeType;
+    trendFunctionField?: TrendFunctionField;
     transaction?: NormalizedTrendsTransaction;
     isLoading: boolean;
     statsData: TrendsStats;
     projects: Project[];
+    height?: number;
+    grid?: LineChart['props']['grid'];
+    disableXAxis?: boolean;
+    disableLegend?: boolean;
   };
 
 function transformEventStats(data: EventsStatsData, seriesName?: string): Series[] {
@@ -223,7 +232,7 @@ function getIntervalLine(
   return additionalLineSeries;
 }
 
-function Chart({
+export function Chart({
   trendChangeType,
   router,
   statsPeriod,
@@ -236,6 +245,11 @@ function Chart({
   projects,
   start: propsStart,
   end: propsEnd,
+  trendFunctionField,
+  disableXAxis,
+  disableLegend,
+  grid,
+  height,
 }: Props) {
   const theme = useTheme();
 
@@ -265,7 +279,7 @@ function Chart({
       : undefined;
   const data = events?.data ?? [];
 
-  const trendFunction = getCurrentTrendFunction(location);
+  const trendFunction = getCurrentTrendFunction(location, trendFunctionField);
   const trendParameter = getCurrentTrendParameter(location);
   const chartLabel = generateTrendFunctionAsString(
     trendFunction.field,
@@ -287,10 +301,12 @@ function Chart({
     selection[metric] = false;
     return selection;
   }, {});
-  const legend = {
-    ...getLegend(chartLabel),
-    selected: seriesSelection,
-  };
+  const legend = disableLegend
+    ? {show: false}
+    : {
+        ...getLegend(chartLabel),
+        selected: seriesSelection,
+      };
 
   const loading = isLoading;
   const reloading = isLoading;
@@ -315,7 +331,7 @@ function Chart({
 
   const queryExtra = {
     showTransactions: trendChangeType,
-    yAxis: YAxis.COUNT_DURATION,
+    yAxis: 'countDuration',
   };
 
   const chartOptions = {
@@ -380,6 +396,7 @@ function Chart({
                 {getDynamicText({
                   value: (
                     <LineChart
+                      height={height}
                       {...zoomRenderProps}
                       {...chartOptions}
                       onLegendSelectChanged={handleLegendSelectChanged}
@@ -391,12 +408,15 @@ function Chart({
                       toolBox={{
                         show: false,
                       }}
-                      grid={{
-                        left: '10px',
-                        right: '10px',
-                        top: '40px',
-                        bottom: '0px',
-                      }}
+                      grid={
+                        grid ?? {
+                          left: '10px',
+                          right: '10px',
+                          top: '40px',
+                          bottom: '0px',
+                        }
+                      }
+                      xAxis={disableXAxis ? {show: false} : undefined}
                     />
                   ),
                   fixed: 'Duration Chart',

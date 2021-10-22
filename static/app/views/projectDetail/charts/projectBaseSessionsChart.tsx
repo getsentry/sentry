@@ -19,6 +19,7 @@ import {t} from 'app/locale';
 import {GlobalSelection, Organization} from 'app/types';
 import {EChartEventHandler, Series} from 'app/types/echarts';
 import getDynamicText from 'app/utils/getDynamicText';
+import {MINUTES_THRESHOLD_TO_DISPLAY_SECONDS} from 'app/utils/sessions';
 import {Theme} from 'app/utils/theme';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import {displayCrashFreePercent} from 'app/views/releases/utils';
@@ -26,7 +27,7 @@ import {sessionTerm} from 'app/views/releases/utils/sessionTerm';
 
 import {DisplayModes} from '../projectCharts';
 
-import SessionsRequest from './sessionsRequest';
+import ProjectSessionsChartRequest from './projectSessionsChartRequest';
 
 type Props = {
   title: string;
@@ -64,7 +65,7 @@ function ProjectBaseSessionsChart({
         value: (
           <ChartZoom router={router} period={period} start={start} end={end} utc={utc}>
             {zoomRenderProps => (
-              <SessionsRequest
+              <ProjectSessionsChartRequest
                 api={api}
                 selection={selection}
                 organization={organization}
@@ -127,7 +128,7 @@ function ProjectBaseSessionsChart({
                     }}
                   </ReleaseSeries>
                 )}
-              </SessionsRequest>
+              </ProjectSessionsChartRequest>
             )}
           </ChartZoom>
         ),
@@ -301,6 +302,7 @@ class Chart extends Component<ChartProps, ChartState> {
         }
         previousPeriod={previousTimeSeries}
         onLegendSelectChanged={this.handleLegendSelectChanged}
+        minutesThresholdToDisplaySeconds={MINUTES_THRESHOLD_TO_DISPLAY_SECONDS}
         transformSinglePointToBar
       />
     );

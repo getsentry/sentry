@@ -129,6 +129,9 @@ class Team(Model):
 
     organization = FlexibleForeignKey("sentry.Organization")
     slug = models.SlugField()
+
+    # Only currently used in SCIM, use slug elsewhere as this isn't updated in the app.
+    # TODO: deprecate name in team API responses or keep it up to date with slug
     name = models.CharField(max_length=64)
     status = BoundedPositiveIntegerField(
         choices=(

@@ -581,6 +581,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.sentry_apps",
     "sentry.tasks.servicehooks",
     "sentry.tasks.store",
+    "sentry.tasks.symbolication",
     "sentry.tasks.unmerge",
     "sentry.tasks.update_user_reports",
     "sentry.tasks.user_report",
@@ -898,6 +899,7 @@ SENTRY_FEATURES = {
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
     # Enable obtaining and using API keys.
+    "organizations:alert-rule-ui-component": False,
     "organizations:api-keys": False,
     # Enable multiple Apple app-store-connect sources per project.
     "organizations:app-store-connect-multiple": False,
@@ -1026,11 +1028,6 @@ SENTRY_FEATURES = {
     "organizations:org-subdomains": False,
     # Display a global dashboard notification for this org
     "organizations:prompt-dashboards": False,
-    "organizations:prompt-additional-volume": False,
-    "organizations:prompt-additional-volume-on-demand": False,
-    "organizations:prompt-on-demand-orgs": False,
-    "organizations:prompt-release-health-adoption": False,
-    "organizations:prompt-upgrade-via-dashboards": False,
     # Enable views for ops breakdown
     "organizations:performance-ops-breakdown": False,
     # Enable views for tag explorer
@@ -1051,9 +1048,11 @@ SENTRY_FEATURES = {
     # https://github.com/getsentry/relay.
     "organizations:relay": True,
     # Enable Session Stats down to a minute resolution
-    "organizations:minute-resolution-sessions": False,
+    "organizations:minute-resolution-sessions": True,
     # Automatically opt IN users to receiving Slack notifications.
     "organizations:notification-slack-automatic": False,
+    # Enable the new native stack trace design
+    "organizations:native-stack-trace-v2": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
     # Enable sorting+filtering by semantic version of a release
@@ -1076,9 +1075,7 @@ SENTRY_FEATURES = {
     # Return unhandled information on the issue level
     "organizations:unhandled-issue-flag": True,
     # Enable percent-based conditions on issue rules
-    "organizations:issue-percent-filters": False,
-    # Enable the new alert details ux design
-    "organizations:alert-details-redesign": True,
+    "organizations:issue-percent-filters": True,
     # Enable the new images loaded design and features
     "organizations:images-loaded-v2": True,
     # Enable the mobile screenshots feature
@@ -1095,6 +1092,8 @@ SENTRY_FEATURES = {
     "organizations:release-comparison-performance": False,
     # Enable percent displays in issue stream
     "organizations:issue-percent-display": False,
+    # send organization request notifications through Slack
+    "organizations:slack-requests": False,
     # Enable team insights page
     "organizations:team-insights": False,
     # Adds additional filters and a new section to issue alert rules.
@@ -1762,24 +1761,17 @@ SENTRY_DEVSERVICES = {
     ),
     "zookeeper": lambda settings, options: (
         {
-            # On Apple arm64, we upgrade to version 6.x allows zookeeper to run properly on Apple's arm64
+            # On Apple arm64, we upgrade to version 6.x to allow zookeeper to run properly on Apple's arm64
             # See details https://github.com/confluentinc/kafka-images/issues/80#issuecomment-855511438
-            # I'm selectively upgrading the version on Apple's arm64 since there was a bug that only affects
-            # Intel machines. For more details see: https://github.com/getsentry/sentry/pull/28672
-            "image": "confluentinc/cp-zookeeper:6.2.0"
-            if APPLE_ARM64
-            else "confluentinc/cp-zookeeper:5.1.2",
+            "image": "confluentinc/cp-zookeeper:6.2.0",
             "environment": {"ZOOKEEPER_CLIENT_PORT": "2181"},
-            "volumes": {"zookeeper": {"bind": "/var/lib/zookeeper"}},
+            "volumes": {"zookeeper_6": {"bind": "/var/lib/zookeeper/data"}},
             "only_if": "kafka" in settings.SENTRY_EVENTSTREAM or settings.SENTRY_USE_RELAY,
         }
     ),
     "kafka": lambda settings, options: (
         {
-            # On Apple arm64, we upgrade to version 6.x to match zookeeper's version (I believe they both release together)
-            "image": "confluentinc/cp-kafka:6.2.0"
-            if APPLE_ARM64
-            else "confluentinc/cp-kafka:5.1.2",
+            "image": "confluentinc/cp-kafka:6.2.0",
             "ports": {"9092/tcp": 9092},
             "environment": {
                 "KAFKA_ZOOKEEPER_CONNECT": "{containers[zookeeper][name]}:2181",
@@ -1794,7 +1786,7 @@ SENTRY_DEVSERVICES = {
                 "KAFKA_MESSAGE_MAX_BYTES": "50000000",
                 "KAFKA_MAX_REQUEST_SIZE": "50000000",
             },
-            "volumes": {"kafka": {"bind": "/var/lib/kafka"}},
+            "volumes": {"kafka_6": {"bind": "/var/lib/kafka/data"}},
             "only_if": "kafka" in settings.SENTRY_EVENTSTREAM
             or settings.SENTRY_USE_RELAY
             or settings.SENTRY_DEV_PROCESS_SUBSCRIPTIONS,
@@ -1802,11 +1794,16 @@ SENTRY_DEVSERVICES = {
     ),
     "clickhouse": lambda settings, options: (
         {
-            "image": "yandex/clickhouse-server:20.3.9.70",
+            "image": "yandex/clickhouse-server:20.3.9.70" if not APPLE_ARM64
+            # altinity provides clickhouse support to other companies
+            # Official support: https://github.com/ClickHouse/ClickHouse/issues/22222
+            # This image is build with this script https://gist.github.com/filimonov/5f9732909ff66d5d0a65b8283382590d
+            else "altinity/clickhouse-server:21.6.1.6734-testing-arm",
             "pull": True,
             "ports": {"9000/tcp": 9000, "9009/tcp": 9009, "8123/tcp": 8123},
             "ulimits": [{"name": "nofile", "soft": 262144, "hard": 262144}],
-            "environment": {"MAX_MEMORY_USAGE_RATIO": "0.3"},
+            # The arm image does not properly load the MAX_MEMORY_USAGE_RATIO
+            # from the environment in loc_config.xml, thus, hard-coding it there
             "volumes": {
                 "clickhouse_dist"
                 if settings.SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES
@@ -2353,9 +2350,29 @@ SENTRY_SIMILARITY_GROUPING_CONFIGURATIONS_TO_INDEX = {
 
 SENTRY_USE_UWSGI = True
 
+# When copying attachments for to-be-reprocessed events into processing store,
+# how large is an individual file chunk? Each chunk is stored as Redis key.
 SENTRY_REPROCESSING_ATTACHMENT_CHUNK_SIZE = 2 ** 20
 
+# Which cluster is used to store auxiliary data for reprocessing. Note that
+# this cluster is not used to store attachments etc, that still happens on
+# rc-processing. This is just for buffering up event IDs and storing a counter
+# for synchronization/progress report.
 SENTRY_REPROCESSING_SYNC_REDIS_CLUSTER = "default"
+
+# How long can reprocessing take before we start deleting its Redis keys?
+SENTRY_REPROCESSING_SYNC_TTL = 3600 * 24
+
+# How many events to query for at once while paginating through an entire
+# issue. Note that this needs to be kept in sync with the time-limits on
+# `sentry.tasks.reprocessing2.reprocess_group`. That task is responsible for
+# copying attachments from filestore into redis and can easily take a couple of
+# seconds per event. Better play it safe!
+SENTRY_REPROCESSING_PAGE_SIZE = 10
+
+# How many event IDs to buffer up in Redis before sending them to Snuba. This
+# is about "remaining events" exclusively.
+SENTRY_REPROCESSING_REMAINING_EVENTS_BUF_SIZE = 500
 
 # Which backend to use for RealtimeMetricsStore.
 #
@@ -2376,7 +2393,11 @@ SENTRY_REALTIME_METRICS_OPTIONS = {
     # so that projects that exceed a reasonable rate can be sent to the low
     # priority queue. This setting determines how long we keep these rates
     # around.
-    "counter_time_window": 300,
+    #
+    # The LPQ selection is computed using the rate of the most recent events covered by this
+    # time window.  See sentry.tasks.low_priority_symbolication.excessive_event_rate for the
+    # exact implementation.
+    "counter_time_window": 10 * 60,
     # The bucket size of the processing duration histogram.
     #
     # The size (in seconds) of the buckets that events are sorted into.
@@ -2387,7 +2408,18 @@ SENTRY_REALTIME_METRICS_OPTIONS = {
     # so that projects that exceed a reasonable duration can be sent to the low
     # priority queue. This setting determines how long we keep these duration values
     # around.
-    "duration_time_window": 900,
+    #
+    # The LPQ selection is computed using the durations of the most recent events covered by
+    # this time window.  See
+    # sentry.tasks.low_priority_symbolication.excessive_event_duration for the exact
+    # implementation.
+    "duration_time_window": 3 * 60,
+    # Number of seconds to wait after a project is made eligible or ineligible for the LPQ
+    # before its eligibility can be changed again.
+    #
+    # This backoff is only applied to automatic changes to project eligibility, and has zero effect
+    # on any manually-triggered changes to a project's presence in the LPQ.
+    "backoff_timer": 5 * 60,
 }
 
 # XXX(meredith): Temporary metrics indexer
