@@ -281,7 +281,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
                     0,
                   ],
                 },
-              ] as any,
+              ],
             ],
           }),
           data: [],
