@@ -23,7 +23,7 @@ repos:
     - id: pyupgrade
       name: pyupgrade
       entry: pyupgrade
-      args: ['--py36-plus']
+      args: ['--py38-plus']
       language: system
       types: [python]
       # We can't change this mock to unittest.mock until Python 3.8,

@@ -26,16 +26,20 @@ export function GenericPerformanceWidget<T extends WidgetDataConstraint>(
   props: WidgetPropUnion<T>
 ) {
   const [widgetData, setWidgetData] = useState<T>({} as T);
+  const [nextWidgetData, setNextWidgetData] = useState<T>({} as T);
 
   const setWidgetDataForKey = useCallback(
     (dataKey: string, result?: WidgetDataResult) => {
       if (result) {
+        setNextWidgetData({...nextWidgetData, [dataKey]: result});
+      }
+      if (result?.hasData || result?.isErrored) {
         setWidgetData({...widgetData, [dataKey]: result});
       }
     },
-    [setWidgetData]
+    [widgetData, nextWidgetData, setWidgetData, setNextWidgetData]
   );
-  const widgetProps = {widgetData, setWidgetDataForKey};
+  const widgetProps = {widgetData, nextWidgetData, setWidgetDataForKey};
 
   const queries = Object.entries(props.Queries).map(([key, definition]) => ({
     ...definition,
@@ -43,6 +47,8 @@ export function GenericPerformanceWidget<T extends WidgetDataConstraint>(
   }));
 
   const api = useApi();
+
+  const totalHeight = props.Visualizations.reduce((acc, curr) => acc + curr.height, 0);
 
   return (
     <Fragment>
@@ -53,27 +59,33 @@ export function GenericPerformanceWidget<T extends WidgetDataConstraint>(
         queries={queries}
         api={api}
       />
-      <_DataDisplay<T> {...props} {...widgetProps} />
+      <_DataDisplay<T> {...props} {...widgetProps} totalHeight={totalHeight} />
     </Fragment>
   );
 }
 
 function _DataDisplay<T extends WidgetDataConstraint>(
-  props: GenericPerformanceWidgetProps<T> & WidgetDataProps<T>
+  props: GenericPerformanceWidgetProps<T> &
+    WidgetDataProps<T> & {nextWidgetData: T; totalHeight: number}
 ) {
-  const {Visualizations, chartHeight, containerType} = props;
+  const {Visualizations, chartHeight, totalHeight, containerType, EmptyComponent} = props;
 
   const Container = getPerformanceWidgetContainer({
     containerType,
   });
 
-  const missingDataKeys = !Object.values(props.widgetData).length;
+  const numberKeys = Object.keys(props.Queries).length;
+  const missingDataKeys = Object.values(props.widgetData).length !== numberKeys;
+  const missingNextDataKeys = Object.values(props.nextWidgetData).length !== numberKeys;
   const hasData =
     !missingDataKeys && Object.values(props.widgetData).every(d => !d || d.hasData);
   const isLoading =
-    !missingDataKeys && Object.values(props.widgetData).some(d => !d || d.isLoading);
+    !missingNextDataKeys &&
+    Object.values(props.nextWidgetData).some(d => !d || d.isLoading);
   const isErrored =
     !missingDataKeys && Object.values(props.widgetData).some(d => d && d.isErrored);
+
+  const paddingOffset = 32; // space(2) * 2;
 
   return (
     <Container data-test-id="performance-widget-container">
@@ -84,7 +96,7 @@ function _DataDisplay<T extends WidgetDataConstraint>(
         isLoading={isLoading}
         isErrored={isErrored}
         hasData={hasData}
-        errorComponent={<DefaultErrorComponent height={chartHeight} />}
+        errorComponent={<DefaultErrorComponent height={totalHeight - paddingOffset} />}
         dataComponents={Visualizations.map((Visualization, index) => (
           <ContentContainer
             key={index}
@@ -99,7 +111,14 @@ function _DataDisplay<T extends WidgetDataConstraint>(
             />
           </ContentContainer>
         ))}
-        emptyComponent={<Placeholder height={`${chartHeight}px`} />}
+        loadingComponent={<Placeholder height={`${totalHeight - paddingOffset}px`} />}
+        emptyComponent={
+          EmptyComponent ? (
+            <EmptyComponent />
+          ) : (
+            <Placeholder height={`${totalHeight - paddingOffset}px`} />
+          )
+        }
       />
     </Container>
   );

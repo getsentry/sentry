@@ -24,10 +24,8 @@ export function AllTransactionsView(props: BasePerformanceViewProps) {
       <DoubleChartRow
         {...props}
         allowedCharts={[
-          // TODO(k-fish): Temporarily adding extra charts here while trends widgets are in progress.
-          PerformanceWidgetSetting.TPM_AREA,
-          PerformanceWidgetSetting.TPM_AREA,
-          PerformanceWidgetSetting.TPM_AREA,
+          PerformanceWidgetSetting.MOST_RELATED_ERRORS,
+          PerformanceWidgetSetting.MOST_RELATED_ISSUES,
           PerformanceWidgetSetting.MOST_IMPROVED,
           PerformanceWidgetSetting.MOST_REGRESSED,
         ]}

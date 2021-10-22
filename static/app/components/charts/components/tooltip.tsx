@@ -201,7 +201,7 @@ function getFormatter({
           const formattedLabel = nameFormatter(
             truncationFormatter(s.seriesName ?? '', truncate)
           );
-          const value = valueFormatter(getSeriesValue(s, 1), s.seriesName);
+          const value = valueFormatter(getSeriesValue(s, 1), s.seriesName, s);
 
           const className = indentLabels.includes(formattedLabel)
             ? 'tooltip-label tooltip-label-indent'

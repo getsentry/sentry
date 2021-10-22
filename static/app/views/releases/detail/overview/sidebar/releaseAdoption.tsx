@@ -1,6 +1,7 @@
 import {withRouter, WithRouterProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {EChartOption} from 'echarts/lib/echarts';
 
 import Feature from 'app/components/acl/feature';
 import ChartZoom from 'app/components/charts/chartZoom';
@@ -22,7 +23,8 @@ import {
   SessionApiResponse,
   SessionField,
 } from 'app/types';
-import {getAdoptionSeries, getCount} from 'app/utils/sessions';
+import {formatAbbreviatedNumber} from 'app/utils/formatters';
+import {getAdoptionSeries, getCount, getCountAtIndex} from 'app/utils/sessions';
 
 import {
   ADOPTION_STAGE_LABELS,
@@ -32,6 +34,13 @@ import {
 } from '../../../utils';
 import {generateReleaseMarkLines, releaseMarkLinesLabels} from '../../utils';
 import {Wrapper} from '../styles';
+
+const sessionsAxisIndex = 0;
+const usersAxisIndex = 1;
+const axisIndexToSessionsField = {
+  [sessionsAxisIndex]: SessionField.SESSIONS,
+  [usersAxisIndex]: SessionField.USERS,
+};
 
 type Props = {
   release: ReleaseWithHealth;
@@ -44,7 +53,7 @@ type Props = {
   errored: boolean;
 } & WithRouterProps;
 
-function ReleaseComparisonChart({
+function ReleaseAdoption({
   release,
   project,
   environment,
@@ -72,17 +81,17 @@ function ReleaseComparisonChart({
       location,
       {
         hideLabel: true,
-        axisIndex: 0,
+        axisIndex: sessionsAxisIndex,
       }
     );
 
     const series = [
       ...sessionsMarkLines,
       {
-        seriesName: t('Sessions Adopted'),
+        seriesName: t('Sessions'),
         connectNulls: true,
-        yAxisIndex: 0,
-        xAxisIndex: 0,
+        yAxisIndex: sessionsAxisIndex,
+        xAxisIndex: sessionsAxisIndex,
         data: getAdoptionSeries(
           releaseSessions.groups,
           allSessions?.groups,
@@ -95,15 +104,15 @@ function ReleaseComparisonChart({
     if (hasUsers) {
       const usersMarkLines = generateReleaseMarkLines(release, project, theme, location, {
         hideLabel: true,
-        axisIndex: 1,
+        axisIndex: usersAxisIndex,
       });
 
       series.push(...usersMarkLines);
       series.push({
-        seriesName: t('Users Adopted'),
+        seriesName: t('Users'),
         connectNulls: true,
-        yAxisIndex: 1,
-        xAxisIndex: 1,
+        yAxisIndex: usersAxisIndex,
+        xAxisIndex: usersAxisIndex,
         data: getAdoptionSeries(
           releaseSessions.groups,
           allSessions?.groups,
@@ -154,7 +163,7 @@ function ReleaseComparisonChart({
     ],
     axisPointer: {
       // Link each x-axis together.
-      link: [{xAxisIndex: [0, 1]}],
+      link: [{xAxisIndex: [sessionsAxisIndex, usersAxisIndex]}],
     },
     xAxes: Array.from(new Array(2)).map((_i, index) => ({
       gridIndex: index,
@@ -163,13 +172,11 @@ function ReleaseComparisonChart({
     })),
     yAxes: [
       {
-        // sessions adopted
-        gridIndex: 0,
+        gridIndex: sessionsAxisIndex,
         ...axisLineConfig,
       },
       {
-        // users adopted
-        gridIndex: 1,
+        gridIndex: usersAxisIndex,
         ...axisLineConfig,
       },
     ],
@@ -180,13 +187,30 @@ function ReleaseComparisonChart({
     tooltip: {
       trigger: 'axis' as const,
       truncate: 80,
-      valueFormatter: (value: number, label?: string) =>
-        label && Object.values(releaseMarkLinesLabels).includes(label) ? '' : `${value}%`,
+      valueFormatter: (
+        value: number,
+        label?: string,
+        seriesParams?: EChartOption.Tooltip.Format
+      ) => {
+        const {axisIndex, dataIndex} =
+          (seriesParams as EChartOption.Tooltip.Format & {axisIndex: number}) || {};
+        const absoluteCount = getCountAtIndex(
+          releaseSessions?.groups,
+          axisIndexToSessionsField[axisIndex ?? 0],
+          dataIndex ?? 0
+        );
+
+        return label && Object.values(releaseMarkLinesLabels).includes(label)
+          ? ''
+          : `<span>${formatAbbreviatedNumber(absoluteCount)} <span style="color: ${
+              theme.white
+            };margin-left: ${space(0.5)}">${value}%</span></span>`;
+      },
       filter: (_, seriesParam) => {
         const {seriesName, axisIndex} = seriesParam;
         // do not display tooltips for "Users Adopted" marklines
         if (
-          axisIndex === 1 &&
+          axisIndex === usersAxisIndex &&
           Object.values(releaseMarkLinesLabels).includes(seriesName)
         ) {
           return false;
@@ -291,7 +315,7 @@ function ReleaseComparisonChart({
               start={start}
               end={end}
               usePageDate
-              xAxisIndex={[0, 1]}
+              xAxisIndex={[sessionsAxisIndex, usersAxisIndex]}
             >
               {zoomRenderProps => (
                 <LineChart {...chartOptions} {...zoomRenderProps} series={getSeries()} />
@@ -335,4 +359,4 @@ const ChartLabel = styled('div')<{top: string}>`
   right: 0;
 `;
 
-export default withRouter(ReleaseComparisonChart);
+export default withRouter(ReleaseAdoption);

@@ -581,6 +581,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.sentry_apps",
     "sentry.tasks.servicehooks",
     "sentry.tasks.store",
+    "sentry.tasks.symbolication",
     "sentry.tasks.unmerge",
     "sentry.tasks.update_user_reports",
     "sentry.tasks.user_report",
@@ -939,8 +940,6 @@ SENTRY_FEATURES = {
     "organizations:performance-view": True,
     # Enable multi project selection
     "organizations:global-views": False,
-    # Enable writing group history
-    "organizations:group-history": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
     "organizations:grouping-tree-ui": False,
     # Enable experimental new version of stacktrace component where additional
@@ -1052,6 +1051,8 @@ SENTRY_FEATURES = {
     "organizations:minute-resolution-sessions": True,
     # Automatically opt IN users to receiving Slack notifications.
     "organizations:notification-slack-automatic": False,
+    # Enable the new native stack trace design
+    "organizations:native-stack-trace-v2": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
     # Enable sorting+filtering by semantic version of a release

@@ -1,4 +1,5 @@
 from base64 import b64encode
+from unittest import mock
 
 import pytest
 from django.urls import reverse
@@ -28,7 +29,6 @@ from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils import json
-from sentry.utils.compat import mock, zip
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import QueryExecutionError, QueryIllegalTypeOfArgument, RateLimitExceeded
 
@@ -4278,6 +4278,38 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert (
             response.data["data"][0]["equation[0]"]
             == event_data["breakdowns"]["span_ops"]["ops.http"]["value"] / 3
+        )
+
+    def test_equation_sort(self):
+        event_data = load_data("transaction", timestamp=before_now(minutes=1))
+        event_data["breakdowns"]["span_ops"]["ops.http"]["value"] = 1500
+        self.store_event(data=event_data, project_id=self.project.id)
+
+        event_data2 = load_data("transaction", timestamp=before_now(minutes=1))
+        event_data2["breakdowns"]["span_ops"]["ops.http"]["value"] = 2000
+        self.store_event(data=event_data2, project_id=self.project.id)
+
+        query = {
+            "field": ["spans.http", "equation|spans.http / 3"],
+            "project": [self.project.id],
+            "orderby": "equation[0]",
+            "query": "event.type:transaction",
+        }
+        response = self.do_request(
+            query,
+            {
+                "organizations:discover-basic": True,
+            },
+        )
+        assert response.status_code == 200
+        assert len(response.data["data"]) == 2
+        assert (
+            response.data["data"][0]["equation[0]"]
+            == event_data["breakdowns"]["span_ops"]["ops.http"]["value"] / 3
+        )
+        assert (
+            response.data["data"][1]["equation[0]"]
+            == event_data2["breakdowns"]["span_ops"]["ops.http"]["value"] / 3
         )
 
     def test_equation_operation_limit(self):
