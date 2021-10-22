@@ -9,12 +9,12 @@ describe('Banner', function () {
 
     fireEvent.click(screen.getByLabelText('Close'));
 
-    expect(screen.queryByText('test')).toBeNull();
+    expect(screen.queryByText('test')).not.toBeInTheDocument();
     expect(localStorage.getItem('test-banner-dismissed')).toBe('true');
   });
 
   it('is not dismissable', function () {
     mountWithTheme(<Banner isDismissable={false} />);
-    expect(screen.queryByLabelText('Close')).toBeNull();
+    expect(screen.queryByLabelText('Close')).not.toBeInTheDocument();
   });
 });

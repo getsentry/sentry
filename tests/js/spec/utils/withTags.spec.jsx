@@ -41,6 +41,6 @@ describe('withTags HoC', function () {
     expect(renderedTag).toBeInTheDocument();
 
     // excludes issue tags by default
-    expect(screen.queryByText(/is\s/)).toBeNull();
+    expect(screen.queryByText(/is\s/)).not.toBeInTheDocument();
   });
 });

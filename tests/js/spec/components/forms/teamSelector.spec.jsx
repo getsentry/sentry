@@ -53,9 +53,9 @@ describe('Team Selector', function () {
     createWrapper();
     openSelectMenu();
 
-    expect(screen.getByText('#team1')).toBeTruthy();
-    expect(screen.getByText('#team2')).toBeTruthy();
-    expect(screen.getByText('#team3')).toBeTruthy();
+    expect(screen.getByText('#team1')).toBeInTheDocument();
+    expect(screen.getByText('#team2')).toBeInTheDocument();
+    expect(screen.getByText('#team3')).toBeInTheDocument();
   });
 
   it('selects an option', function () {
@@ -73,18 +73,18 @@ describe('Team Selector', function () {
     createWrapper({teamFilter});
     openSelectMenu();
 
-    expect(screen.getByText('#team1')).toBeTruthy();
+    expect(screen.getByText('#team1')).toBeInTheDocument();
 
     // These options should be filtered out
-    expect(screen.queryByText('#team2')).toBeFalsy();
-    expect(screen.queryByText('#team3')).toBeFalsy();
+    expect(screen.queryByText('#team2')).not.toBeInTheDocument();
+    expect(screen.queryByText('#team3')).not.toBeInTheDocument();
   });
 
   it('respects the project filter', async function () {
     createWrapper({project});
     openSelectMenu();
 
-    expect(screen.getByText('#team1')).toBeTruthy();
+    expect(screen.getByText('#team1')).toBeInTheDocument();
 
     // team2 and team3 should have add to project buttons
     expect(screen.getAllByRole('button').length).toBe(2);
@@ -95,10 +95,10 @@ describe('Team Selector', function () {
     createWrapper({teamFilter, project});
     openSelectMenu();
 
-    expect(screen.getByText('#team1')).toBeTruthy();
+    expect(screen.getByText('#team1')).toBeInTheDocument();
 
     // team3 should be filtered out
-    expect(screen.queryByText('#team3')).toBeFalsy();
+    expect(screen.queryByText('#team3')).not.toBeInTheDocument();
 
     // team2 should have add to project buttons
     expect(screen.getAllByRole('button').length).toBe(1);
@@ -108,7 +108,7 @@ describe('Team Selector', function () {
     createWrapper({project});
     openSelectMenu();
 
-    expect(screen.getByText('#team1')).toBeTruthy();
+    expect(screen.getByText('#team1')).toBeInTheDocument();
 
     // team2 and team3 should have add to project buttons
     const addToProjectButtons = screen.getAllByRole('button');

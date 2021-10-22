@@ -106,7 +106,7 @@ describe('Frame - Line', function () {
         <Line data={data} registers={{}} components={[]} event={event} isExpanded />
       );
 
-      expect(screen.queryByText('registers')).toBeFalsy();
+      expect(screen.queryByText('registers')).not.toBeInTheDocument();
     });
 
     it('should render context vars', () => {

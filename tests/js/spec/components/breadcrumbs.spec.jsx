@@ -38,7 +38,7 @@ describe('Breadcrumbs', () => {
   it('returns null when 0 crumbs', () => {
     const empty = mountWithTheme(<Breadcrumbs crumbs={[]} />);
 
-    expect(empty.container.firstChild).toBeNull();
+    expect(empty.container).toBeEmptyDOMElement();
   });
 
   it('renders crumbs with icon', () => {

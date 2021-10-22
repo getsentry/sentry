@@ -18,7 +18,7 @@ describe('TeamStability', () => {
     );
 
     await waitFor(() => {
-      expect(screen.queryByTestId('loading-placeholder')).toBeNull();
+      expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
     });
 
     expect(screen.getByText('project-slug')).toBeInTheDocument();
@@ -38,7 +38,7 @@ describe('TeamStability', () => {
     );
 
     await waitFor(() => {
-      expect(screen.queryByTestId('loading-placeholder')).toBeNull();
+      expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
     });
 
     expect(screen.getAllByText('\u2014')).toHaveLength(3);
@@ -49,6 +49,6 @@ describe('TeamStability', () => {
       <TeamStability projects={[]} organization={TestStubs.Organization()} period="7d" />
     );
 
-    expect(screen.getByText('There are no items to display')).toBeTruthy();
+    expect(screen.getByText('There are no items to display')).toBeInTheDocument();
   });
 });

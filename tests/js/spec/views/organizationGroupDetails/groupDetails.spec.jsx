@@ -118,11 +118,11 @@ describe('groupDetails', () => {
     ProjectsStore.reset();
     createWrapper();
 
-    expect(screen.queryByText(group.title)).toBeNull();
+    expect(screen.queryByText(group.title)).not.toBeInTheDocument();
 
     ProjectsStore.loadInitialData(organization.projects);
 
-    expect(await screen.findByText(group.title, {exact: false})).toBeTruthy();
+    expect(await screen.findByText(group.title, {exact: false})).toBeInTheDocument();
   });
 
   it('renders error when issue is not found', async function () {
@@ -137,10 +137,10 @@ describe('groupDetails', () => {
 
     createWrapper();
 
-    expect(screen.queryByTestId('loading-indicator')).toBeNull();
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
     expect(
       await screen.findByText('The issue you were looking for was not found.')
-    ).toBeTruthy();
+    ).toBeInTheDocument();
   });
 
   it('renders MissingProjectMembership when trying to access issue in project the user does not belong to', async function () {
@@ -155,12 +155,12 @@ describe('groupDetails', () => {
 
     createWrapper();
 
-    expect(screen.queryByTestId('loading-indicator')).toBeNull();
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
     expect(
       await screen.findByText(
         "You'll need to join a team with access before you can view this data."
       )
-    ).toBeTruthy();
+    ).toBeInTheDocument();
   });
 
   it('fetches issue details for a given environment', async function () {
@@ -168,9 +168,9 @@ describe('groupDetails', () => {
       selection: {environments: ['staging']},
     });
 
-    expect(screen.queryByTestId('loading-indicator')).toBeNull();
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
 
-    expect(await screen.findByText('environment: staging')).toBeTruthy();
+    expect(await screen.findByText('environment: staging')).toBeInTheDocument();
   });
 
   /**
@@ -182,7 +182,7 @@ describe('groupDetails', () => {
       body: {...group, id: 'new-id'},
     });
     createWrapper();
-    expect(screen.queryByText('Group Details Mock')).toBeNull();
+    expect(screen.queryByText('Group Details Mock')).not.toBeInTheDocument();
     await waitFor(() => {
       expect(browserHistory.push).toHaveBeenCalledTimes(1);
       expect(browserHistory.push).toHaveBeenCalledWith(
@@ -197,7 +197,7 @@ describe('groupDetails', () => {
       statusCode: 404,
     });
     createWrapper();
-    expect(await screen.findByText('eventError')).toBeTruthy();
+    expect(await screen.findByText('eventError')).toBeInTheDocument();
   });
 
   it('renders for review reason', async function () {
@@ -217,7 +217,7 @@ describe('groupDetails', () => {
 
     ProjectsStore.loadInitialData(organization.projects);
 
-    expect(await screen.findByText('New Issue')).toBeTruthy();
+    expect(await screen.findByText('New Issue')).toBeInTheDocument();
   });
 
   it('renders alert for sample event', async function () {
@@ -226,7 +226,7 @@ describe('groupDetails', () => {
     ProjectsStore.loadInitialData([aProject]);
     createWrapper();
 
-    expect(await screen.findByText(SAMPLE_EVENT_ALERT_TEXT)).toBeTruthy();
+    expect(await screen.findByText(SAMPLE_EVENT_ALERT_TEXT)).toBeInTheDocument();
   });
   it('does not render alert for non sample events', async function () {
     const aProject = TestStubs.Project({firstEvent: false});
@@ -234,6 +234,6 @@ describe('groupDetails', () => {
     ProjectsStore.loadInitialData([aProject]);
     createWrapper();
 
-    expect(await screen.queryByText(SAMPLE_EVENT_ALERT_TEXT)).toBeNull();
+    expect(await screen.queryByText(SAMPLE_EVENT_ALERT_TEXT)).not.toBeInTheDocument();
   });
 });
