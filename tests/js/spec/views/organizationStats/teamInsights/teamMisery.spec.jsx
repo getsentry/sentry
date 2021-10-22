@@ -105,11 +105,11 @@ describe('TeamMisery', () => {
     expect(periodMisery).toHaveBeenCalledTimes(1);
 
     // Should have 8 items, the rest are collapsed.
-    expect(screen.getAllByText(project.slug)).toHaveLength(8);
+    expect(screen.getAllByText(project.slug)).toHaveLength(5);
 
     expect(screen.getByText('10% better')).toBeInTheDocument();
     expect(screen.getByText('25% worse')).toBeInTheDocument();
-    expect(screen.getAllByText('0% change')).toHaveLength(6);
+    expect(screen.getAllByText('0% change')).toHaveLength(3);
 
     expect(screen.getByText('More')).toBeInTheDocument();
     fireEvent.click(screen.getByText('More'));
