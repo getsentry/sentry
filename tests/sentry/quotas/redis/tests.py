@@ -1,4 +1,5 @@
 import time
+from unittest import mock
 
 from exam import fixture, patcher
 
@@ -6,7 +7,7 @@ from sentry.constants import DataCategory
 from sentry.quotas.base import QuotaConfig, QuotaScope
 from sentry.quotas.redis import RedisQuota, is_rate_limited
 from sentry.testutils import TestCase
-from sentry.utils.compat import map, mock
+from sentry.utils.compat import map
 from sentry.utils.redis import clusters
 
 

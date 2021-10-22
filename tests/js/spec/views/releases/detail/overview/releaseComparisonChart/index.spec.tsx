@@ -35,10 +35,10 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
       {context: routerContext}
     );
 
-    expect(screen.getByLabelText('Chart Title').textContent).toBe(
+    expect(screen.getByLabelText('Chart Title')).toHaveTextContent(
       'Crash Free Session Rate'
     );
-    expect(screen.getByLabelText('Chart Value').textContent).toContain('95.006% 4.51%');
+    expect(screen.getByLabelText('Chart Value')).toHaveTextContent(/95\.006% 4\.51%/);
 
     expect(screen.getAllByRole('radio').length).toBe(3);
 
@@ -91,8 +91,10 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
       />
     );
 
-    expect(screen.getByLabelText('Chart Title').textContent).toBe('Crash Free User Rate');
-    expect(screen.getByLabelText('Chart Value').textContent).toContain('75% 24.908%');
+    expect(screen.getByLabelText('Chart Title')).toHaveTextContent(
+      'Crash Free User Rate'
+    );
+    expect(screen.getByLabelText('Chart Value')).toHaveTextContent(/75% 24\.908%/);
   });
 
   it('can expand row to show more charts', () => {

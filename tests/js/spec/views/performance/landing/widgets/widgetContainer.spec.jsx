@@ -190,6 +190,46 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
+  it('LCP Histogram Widget', async function () {
+    const data = initializeData();
+
+    const wrapper = mountWithTheme(
+      <WrappedComponent
+        data={data}
+        defaultChartSetting={PerformanceWidgetSetting.LCP_HISTOGRAM}
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+      'LCP Distribution'
+    );
+
+    // TODO(k-fish): Add histogram mock
+  });
+
+  it('FCP Histogram Widget', async function () {
+    const data = initializeData();
+
+    const wrapper = mountWithTheme(
+      <WrappedComponent
+        data={data}
+        defaultChartSetting={PerformanceWidgetSetting.FCP_HISTOGRAM}
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+      'FCP Distribution'
+    );
+
+    // TODO(k-fish): Add histogram mock
+  });
+
   it('Most errors widget', async function () {
     const data = initializeData();
 

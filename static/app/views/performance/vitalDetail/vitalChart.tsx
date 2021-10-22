@@ -303,8 +303,7 @@ function __VitalChart(props: _VitalChartProps) {
     },
     tooltip: {
       trigger: 'axis' as const,
-      valueFormatter: (value: number, seriesName?: string) =>
-        tooltipFormatter(value, seriesName),
+      valueFormatter: tooltipFormatter,
     },
     xAxis: {
       axisLine: {

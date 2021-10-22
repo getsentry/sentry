@@ -82,9 +82,9 @@ describe('Breadcrumbs', () => {
 
       fireEvent.change(searchInput, {target: {value: 'up'}});
 
-      expect(screen.queryByText('Sorry, no breadcrumbs match your search query')).toBe(
-        null
-      );
+      expect(
+        screen.queryByText('Sorry, no breadcrumbs match your search query')
+      ).not.toBeInTheDocument();
 
       expect(await findAllByTextContent(component, 'sup')).toHaveLength(3);
     });
@@ -133,7 +133,7 @@ describe('Breadcrumbs', () => {
 
       fireEvent.change(searchInput, {target: {value: 'sup'}});
 
-      expect(screen.queryAllByTestId('crumb')).toHaveLength(0);
+      expect(screen.queryByTestId('crumb')).not.toBeInTheDocument();
 
       expect(screen.getByTestId('last-crumb')).toBeInTheDocument();
     });
@@ -156,7 +156,7 @@ describe('Breadcrumbs', () => {
       mountWithTheme(<Breadcrumbs {...props} />);
 
       // data.values + virtual crumb
-      expect(screen.queryAllByTestId('crumb')).toHaveLength(1);
+      expect(screen.queryByTestId('crumb')).toBeInTheDocument();
 
       expect(screen.getByTestId('last-crumb')).toBeInTheDocument();
     });
