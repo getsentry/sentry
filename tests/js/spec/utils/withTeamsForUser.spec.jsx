@@ -9,6 +9,8 @@ describe('withUserTeams HoC', function () {
   const organization = TestStubs.Organization();
   delete organization.projects;
 
+  // console.log
+
   beforeEach(function () {
     MockApiClient.clearMockResponses();
     jest.spyOn(ProjectActions, 'loadProjects');
