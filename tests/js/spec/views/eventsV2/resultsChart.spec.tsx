@@ -113,4 +113,33 @@ describe('EventsV2 > ResultsChart', function () {
       }
     });
   });
+
+  it('disables equation y-axis options when in World Map display mode', async function () {
+    eventView.display = DisplayModes.WORLDMAP;
+    eventView.fields = [
+      {field: 'count()'},
+      {field: 'count_unique(user)'},
+      {field: 'equation|count() + 2'},
+    ];
+    const wrapper = mountWithTheme(
+      <ResultsChart
+        // @ts-expect-error
+        router={TestStubs.router()}
+        organization={organization}
+        eventView={eventView}
+        // @ts-expect-error
+        location={location}
+        onAxisChange={() => undefined}
+        onDisplayChange={() => undefined}
+        total={1}
+        confirmedQuery
+        yAxis={['count()']}
+      />,
+      initialData.routerContext
+    );
+    const yAxisOptions = wrapper.find('ChartFooter').props().yAxisOptions;
+    expect(yAxisOptions.length).toEqual(2);
+    expect(yAxisOptions[0].value).toEqual('count()');
+    expect(yAxisOptions[1].value).toEqual('count_unique(user)');
+  });
 });
