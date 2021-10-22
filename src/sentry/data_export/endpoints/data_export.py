@@ -93,7 +93,7 @@ class DataExportQuerySerializer(serializers.Serializer):
             try:
                 snuba_filter = get_filter(query_info["query"], processor.params)
                 if len(equations) > 0:
-                    resolved_equations, _, _, _ = resolve_equation_list(equations, fields)
+                    resolved_equations, _, _ = resolve_equation_list(equations, fields)
                 else:
                     resolved_equations = []
                 resolve_field_list(

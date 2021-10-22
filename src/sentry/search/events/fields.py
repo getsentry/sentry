@@ -2812,15 +2812,15 @@ class QueryFields(QueryBase):
         stripped_columns = [column.strip() for column in selected_columns]
 
         if equations:
-            _, _, parsed_equations, contains_function = resolve_equation_list(
+            _, _, parsed_equations = resolve_equation_list(
                 equations, stripped_columns, use_snql=True, **self.equation_config
             )
-            for index, (equation, is_function) in enumerate(
-                zip(parsed_equations, contains_function)
-            ):
-                resolved_equation = self.resolve_equation(equation, f"equation[{index}]")
+            for index, parsed_equation in enumerate(parsed_equations):
+                resolved_equation = self.resolve_equation(
+                    parsed_equation.equation, f"equation[{index}]"
+                )
                 resolved_columns.append(resolved_equation)
-                if is_function:
+                if parsed_equation.contains_functions:
                     self.aggregates.append(resolved_equation)
 
         # Add threshold config alias if there's a function that depends on it
