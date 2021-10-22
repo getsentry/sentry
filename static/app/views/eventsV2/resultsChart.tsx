@@ -17,6 +17,7 @@ import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import EventView from 'app/utils/discover/eventView';
+import {isEquation} from 'app/utils/discover/fields';
 import {
   DisplayModes,
   MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES,
@@ -250,6 +251,10 @@ class ResultsChartContainer extends Component<ContainerProps> {
           checkboxHidden: true,
         };
       });
+    }
+    // Equations on World Map isn't supported
+    if (eventView.getDisplayMode() === DisplayModes.WORLDMAP) {
+      yAxisOptions = yAxisOptions.filter(({value}) => !isEquation(value));
     }
 
     return (
