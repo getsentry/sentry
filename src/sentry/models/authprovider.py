@@ -70,7 +70,7 @@ class AuthProvider(Model):
         from sentry.models import SentryAppInstallationForProvider
 
         if self.flags.scim_enabled:
-            return SentryAppInstallationForProvider.get_token(
+            return SentryAppInstallationForProvider.objects.get_token(
                 self.organization, f"{self.provider}_scim"
             )
         else:

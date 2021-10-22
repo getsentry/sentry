@@ -1,14 +1,24 @@
 import uuid
 
 from django.db import models
+from django.db.models import QuerySet
 from django.utils import timezone
 
 from sentry.constants import SentryAppInstallationStatus
-from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, ParanoidModel
+from sentry.db.models import BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, ParanoidModel
 
 
 def default_uuid():
     return str(uuid.uuid4())
+
+
+class SentryAppInstallationForProviderManager(BaseManager):
+    def get_installed_for_organization(self, organization_id: int) -> QuerySet:
+        return self.filter(
+            organization_id=organization_id,
+            status=SentryAppInstallationStatus.INSTALLED,
+            date_deleted=None,
+        )
 
 
 class SentryAppInstallation(ParanoidModel):
@@ -56,6 +66,8 @@ class SentryAppInstallation(ParanoidModel):
     date_added = models.DateTimeField(default=timezone.now)
     date_updated = models.DateTimeField(default=timezone.now)
 
+    objects = SentryAppInstallationForProviderManager()
+
     class Meta:
         app_label = "sentry"
         db_table = "sentry_sentryappinstallation"
@@ -67,14 +79,6 @@ class SentryAppInstallation(ParanoidModel):
     def save(self, *args, **kwargs):
         self.date_updated = timezone.now()
         return super().save(*args, **kwargs)
-
-    @classmethod
-    def get_installed_for_org(cls, organization_id):
-        return cls.objects.filter(
-            organization_id=organization_id,
-            status=SentryAppInstallationStatus.INSTALLED,
-            date_deleted=None,
-        )
 
     def prepare_sentry_app_components(self, component_type, project=None):
         from sentry.coreapi import APIError

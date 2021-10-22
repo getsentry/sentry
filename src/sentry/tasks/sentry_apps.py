@@ -198,7 +198,7 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
 
     installations = filter(
         lambda i: event in i.sentry_app.events,
-        SentryAppInstallation.get_installed_for_org(org.id).select_related("sentry_app"),
+        SentryAppInstallation.objects.get_installed_for_organization(org.id).select_related("sentry_app"),
     )
 
     for installation in installations:

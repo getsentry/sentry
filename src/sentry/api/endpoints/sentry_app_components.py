@@ -37,7 +37,7 @@ class OrganizationSentryAppComponentsEndpoint(OrganizationEndpoint):
 
         components = []
 
-        for install in SentryAppInstallation.get_installed_for_org(organization.id):
+        for install in SentryAppInstallation.objects.get_installed_for_organization(organization.id):
             _components = SentryAppComponent.objects.filter(sentry_app_id=install.sentry_app_id)
 
             if "filter" in request.GET:
