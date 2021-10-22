@@ -212,8 +212,7 @@ describe('Filters and Sampling', function () {
       expect(
         screen.queryByText('There are no error rules to display')
       ).not.toBeInTheDocument();
-      const errorRules = screen.queryByText('Errors only');
-      expect(errorRules).toBeInTheDocument();
+      expect(screen.getByText('Errors only')).toBeInTheDocument();
 
       expect(screen.getByText('Add error rule')).toBeInTheDocument();
 
@@ -355,8 +354,7 @@ describe('Filters and Sampling', function () {
       expect(
         screen.queryByText('There are no error rules to display')
       ).not.toBeInTheDocument();
-      const errorRules = screen.queryByText('Errors only');
-      expect(errorRules).toBeInTheDocument();
+      expect(screen.getByText('Errors only')).toBeInTheDocument();
 
       // Transaction traces and individual transactions rules container
       expect(
@@ -383,7 +381,7 @@ describe('Filters and Sampling', function () {
       // Release field is not empty
       const releaseFieldValues = within(releaseField).queryByTestId('multivalue');
       expect(releaseFieldValues).toBeInTheDocument();
-      expect(releaseFieldValues?.[0]).toHaveTextContent('1*');
+      expect(releaseFieldValues).toHaveTextContent('1*');
 
       // Button is enabled - meaning the form is valid
       const saveRuleButton = modal.getByRole('button', {name: 'Save Rule'});
@@ -425,12 +423,12 @@ describe('Filters and Sampling', function () {
       // Autocomplete suggests options
       const autocompleteOptions = within(
         modal.getByTestId('autocomplete-release')
-      ).queryByTestId('option');
+      ).getByTestId('option');
       expect(autocompleteOptions).toBeInTheDocument();
-      expect(autocompleteOptions?.[0]).toHaveTextContent('[I3].[0-9]');
+      expect(autocompleteOptions).toHaveTextContent('[I3].[0-9]');
 
       // Click on the suggested option
-      fireEvent.click(autocompleteOptions?.[0]);
+      fireEvent.click(autocompleteOptions);
 
       expect(modal.getByRole('button', {name: 'Save Rule'})).toBeEnabled();
 
@@ -453,9 +451,8 @@ describe('Filters and Sampling', function () {
       await waitForElementToBeRemoved(() => screen.getByText('Edit Error Sampling Rule'));
 
       // Error rules panel is updated
-      expect(errorRules).toBeInTheDocument();
-
       expect(screen.getByText('Errors only')).toBeInTheDocument();
+
       expect(screen.queryAllByText('Release')).toHaveLength(2);
 
       // Old values
@@ -569,8 +566,7 @@ describe('Filters and Sampling', function () {
       expect(
         screen.queryByText('There are no error rules to display')
       ).not.toBeInTheDocument();
-      const errorRules = screen.queryByText('Errors only');
-      expect(errorRules).toBeInTheDocument();
+      expect(screen.getByText('Errors only')).toBeInTheDocument();
 
       // Transaction traces and individual transactions rules container
       expect(
@@ -598,7 +594,7 @@ describe('Filters and Sampling', function () {
       // Release field is not empty
       const releaseFieldValues = within(releaseField).queryByTestId('multivalue');
       expect(releaseFieldValues).toBeInTheDocument();
-      expect(releaseFieldValues?.[0]).toHaveTextContent('1.2.3');
+      expect(releaseFieldValues).toHaveTextContent('1.2.3');
 
       // Button is enabled - meaning the form is valid
       const saveRuleButton = modal.getByRole('button', {name: 'Save Rule'});
@@ -640,12 +636,12 @@ describe('Filters and Sampling', function () {
       // Autocomplete suggests options
       const autocompleteOptions = within(
         modal.getByTestId('autocomplete-release')
-      ).queryByTestId('option');
+      ).getByTestId('option');
       expect(autocompleteOptions).toBeInTheDocument();
-      expect(autocompleteOptions?.[0]).toHaveTextContent('[0-9]');
+      expect(autocompleteOptions).toHaveTextContent('[0-9]');
 
       // Click on the suggested option
-      fireEvent.click(autocompleteOptions?.[0]);
+      fireEvent.click(autocompleteOptions);
 
       expect(modal.getByRole('button', {name: 'Save Rule'})).toBeEnabled();
 
@@ -670,7 +666,7 @@ describe('Filters and Sampling', function () {
       );
 
       // Error rules panel is updated
-      expect(errorRules).toBeInTheDocument();
+      expect(screen.getByText('Errors only')).toBeInTheDocument();
 
       expect(screen.getByText('Transaction traces')).toBeInTheDocument();
       expect(screen.queryAllByText('Release')).toHaveLength(2);
@@ -786,8 +782,7 @@ describe('Filters and Sampling', function () {
       expect(
         screen.queryByText('There are no error rules to display')
       ).not.toBeInTheDocument();
-      const errorRules = screen.queryByText('Errors only');
-      expect(errorRules).toBeInTheDocument();
+      expect(screen.getByText('Errors only')).toBeInTheDocument();
 
       // Transaction traces and individual transactions rules container
       expect(
@@ -856,12 +851,12 @@ describe('Filters and Sampling', function () {
       // Autocomplete suggests options
       const autocompleteOptions = within(
         modal.getByTestId('autocomplete-release')
-      ).queryByTestId('option');
+      ).getByTestId('option');
       expect(autocompleteOptions).toBeInTheDocument();
-      expect(autocompleteOptions?.[0]).toHaveTextContent('[0-9]');
+      expect(autocompleteOptions).toHaveTextContent('[0-9]');
 
       // Click on the suggested option
-      fireEvent.click(autocompleteOptions?.[0]);
+      fireEvent.click(autocompleteOptions);
 
       expect(modal.getByRole('button', {name: 'Save Rule'})).toBeEnabled();
 
@@ -886,7 +881,7 @@ describe('Filters and Sampling', function () {
       );
 
       // Error rules panel is updated
-      expect(errorRules).toBeInTheDocument();
+      expect(screen.getByText('Errors only')).toBeInTheDocument();
 
       expect(screen.getByText('Individual transactions')).toBeInTheDocument();
       expect(screen.queryAllByText('Release')).toHaveLength(2);
@@ -982,8 +977,7 @@ describe('Filters and Sampling', function () {
       expect(
         screen.queryByText('There are no error rules to display')
       ).not.toBeInTheDocument();
-      const errorRules = screen.queryByText('Errors only');
-      expect(errorRules).toBeInTheDocument();
+      expect(screen.getByText('Errors only')).toBeInTheDocument();
 
       // Transaction traces and individual transactions rules container
       expect(
@@ -1150,12 +1144,12 @@ describe('Filters and Sampling', function () {
       });
 
       // Autocomplete suggests options
-      const autocompleteOptions = within(releaseField).queryByTestId('option');
+      const autocompleteOptions = within(releaseField).getByTestId('option');
       expect(autocompleteOptions).toBeInTheDocument();
-      expect(autocompleteOptions?.[0]).toHaveTextContent('1.2.3');
+      expect(autocompleteOptions).toHaveTextContent('1.2.3');
 
       // Click on the suggested option
-      fireEvent.click(autocompleteOptions?.[0]);
+      fireEvent.click(autocompleteOptions);
 
       // Button is still disabled
       const saveRuleButton = modal.getByRole('button', {name: 'Save Rule'});
@@ -1179,8 +1173,7 @@ describe('Filters and Sampling', function () {
 
       // Error rules panel is updated
       expect(queryByText('There are no error rules to display')).not.toBeInTheDocument();
-      const errorRules = queryByText('Errors only');
-      expect(errorRules).toBeInTheDocument();
+      expect(getByText('Errors only')).toBeInTheDocument();
       expect(getByText('Release')).toBeInTheDocument();
       expect(getByText('1.2.3')).toBeInTheDocument();
       expect(getByText('20%')).toBeInTheDocument();
@@ -1358,12 +1351,12 @@ describe('Filters and Sampling', function () {
         // Autocomplete suggests options
         const autocompleteOptions = within(
           modal.getByTestId('autocomplete-release')
-        ).queryByTestId('option');
+        ).getByTestId('option');
         expect(autocompleteOptions).toBeInTheDocument();
-        expect(autocompleteOptions?.[0]).toHaveTextContent('1.2.3');
+        expect(autocompleteOptions).toHaveTextContent('1.2.3');
 
         // Click on the suggested option
-        fireEvent.click(autocompleteOptions?.[0]);
+        fireEvent.click(autocompleteOptions);
 
         // Button is still disabled
         const saveRuleButton = modal.getByRole('button', {name: 'Save Rule'});
@@ -1478,12 +1471,12 @@ describe('Filters and Sampling', function () {
           // Autocomplete suggests options
           const autocompleteOptions = within(
             modal.getByTestId('autocomplete-release')
-          ).queryByTestId('option');
+          ).getByTestId('option');
           expect(autocompleteOptions).toBeInTheDocument();
-          expect(autocompleteOptions?.[0]).toHaveTextContent('1.2.3');
+          expect(autocompleteOptions).toHaveTextContent('1.2.3');
 
           // Click on the suggested option
-          fireEvent.click(autocompleteOptions?.[0]);
+          fireEvent.click(autocompleteOptions);
 
           // Button is still disabled
           const saveRuleButton = modal.getByRole('button', {name: 'Save Rule'});
@@ -1595,7 +1588,7 @@ describe('Filters and Sampling', function () {
           for (const legacyBrowser of legacyBrowsers) {
             const {icon, title} = LEGACY_BROWSER_LIST[legacyBrowser];
             expect(modal.getByText(title)).toBeInTheDocument();
-            expect(modal.queryByTestId(`icon-${icon}`)).toBeInTheDocument();
+            expect(modal.queryAllByTestId(`icon-${icon}`)[0]).toBeInTheDocument();
           }
 
           expect(modal.queryAllByTestId('icon-internet-explorer')).toHaveLength(4);

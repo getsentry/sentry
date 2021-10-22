@@ -109,15 +109,15 @@ describe('StackTrace', function () {
     const frames = screen.getByTestId('frames');
     expect(frames.children).toHaveLength(5);
 
-    const expandedToggleButtons = screen.queryByTestId('toggle-button-expanded');
+    const expandedToggleButtons = screen.getByTestId('toggle-button-expanded');
 
     // only one frame is expanded by default
     expect(expandedToggleButtons).toBeInTheDocument();
     expect(screen.queryAllByTestId('toggle-button-collapsed')).toHaveLength(4);
 
     // collapse the expanded frame (by default)
-    fireEvent.mouseDown(expandedToggleButtons?.[0]);
-    fireEvent.click(expandedToggleButtons?.[0]);
+    fireEvent.mouseDown(expandedToggleButtons);
+    fireEvent.click(expandedToggleButtons);
 
     // all frames are now collapsed
     expect(screen.queryByTestId('toggle-button-expanded')).not.toBeInTheDocument();
