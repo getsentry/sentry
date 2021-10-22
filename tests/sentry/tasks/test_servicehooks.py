@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import responses
 
 from sentry.tasks.servicehooks import get_payload_v0, process_service_hook
@@ -5,7 +7,6 @@ from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.faux import faux
 from sentry.utils import json
-from sentry.utils.compat.mock import patch
 
 
 class DictContaining:

@@ -16,7 +16,7 @@ jobs:
     strategy:
       matrix:
         os: [macos-11.0, ubuntu-20.04]
-        python-version: [3.6.13, 3.8.12]
+        python-version: [3.8.12]
       fail-fast: false
     env:
       PIP_DISABLE_PIP_VERSION_CHECK: on

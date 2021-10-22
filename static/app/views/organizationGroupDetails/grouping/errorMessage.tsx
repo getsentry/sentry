@@ -56,7 +56,7 @@ function ErrorMessage({
           action: (
             <Button
               priority="primary"
-              to={`/organizations/sentry/issues/${groupId}/merged/?${location.search}`}
+              to={`/organizations/${orgSlug}/issues/${groupId}/merged/?${location.search}`}
             >
               {t('Unmerge issue')}
             </Button>

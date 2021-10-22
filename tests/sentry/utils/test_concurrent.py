@@ -1,13 +1,12 @@
 import _thread
-import sys
 from concurrent.futures import CancelledError, Future
 from contextlib import contextmanager
 from queue import Full
 from threading import Event
+from unittest import mock
 
 import pytest
 
-from sentry.utils.compat import mock
 from sentry.utils.concurrent import (
     FutureSet,
     SynchronousExecutor,
@@ -108,7 +107,6 @@ def test_timed_future_success():
         assert future.get_timing() == (1.0, 2.0)
 
 
-@pytest.mark.skipif(sys.version_info[:2] < (3, 8), reason="doesn't apply to this python version")
 def test_time_is_not_overwritten_if_fail_to_set_result():
     future = TimedFuture()
 

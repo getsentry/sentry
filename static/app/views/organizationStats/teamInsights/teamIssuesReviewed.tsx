@@ -127,10 +127,13 @@ class TeamIssuesReviewed extends AsyncComponent<Props, State> {
                 {
                   seriesName: t('Reviewed'),
                   data: convertDaySeriesToWeeks(reviewedSeries),
-                },
+                  silent: true,
+                  // silent is not incldued in the type for BarSeries
+                } as any,
                 {
                   seriesName: t('Not Reviewed'),
                   data: convertDaySeriesToWeeks(notReviewedSeries),
+                  silent: true,
                 },
               ]}
             />

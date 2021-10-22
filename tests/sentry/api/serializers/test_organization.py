@@ -1,3 +1,5 @@
+from unittest import mock
+
 from django.conf import settings
 
 from sentry import features
@@ -5,7 +7,6 @@ from sentry.api.serializers import DetailedOrganizationSerializer, serialize
 from sentry.auth import access
 from sentry.features.base import OrganizationFeature
 from sentry.testutils import TestCase
-from sentry.utils.compat import mock
 
 
 class OrganizationSerializerTest(TestCase):

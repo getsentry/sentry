@@ -1,10 +1,10 @@
 import os
 from hashlib import md5
+from unittest import mock
 
 from django.conf import settings
 from sentry_sdk import Hub
 
-from sentry.utils.compat import mock
 from sentry.utils.warnings import UnsupportedBackend
 
 TEST_ROOT = os.path.normpath(
