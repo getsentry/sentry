@@ -11,10 +11,12 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization} from 'app/types';
 import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
+import {DisplayModes} from 'app/utils/discover/types';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import {Widget} from 'app/views/dashboardsV2/types';
 import {eventViewFromWidget} from 'app/views/dashboardsV2/utils';
+import {DisplayType} from 'app/views/dashboardsV2/widget/utils';
 import Input from 'app/views/settings/components/forms/controls/input';
 
 export type DashboardWidgetQuerySelectorModalOptions = {
@@ -45,6 +47,13 @@ class DashboardWidgetQuerySelectorModal extends React.Component<Props> {
       discoverLocation.query.yAxis = query.fields
         .filter(field => yAxisOptions.includes(field))
         .slice(0, 3);
+      switch (widget.displayType) {
+        case DisplayType.BAR:
+          discoverLocation.query.display = DisplayModes.BAR;
+          break;
+        default:
+          break;
+      }
       return (
         <React.Fragment key={index}>
           <QueryContainer>

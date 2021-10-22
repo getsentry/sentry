@@ -147,6 +147,9 @@ class WidgetCard extends React.Component<Props> {
             case DisplayType.WORLD_MAP:
               discoverLocation.query.display = DisplayModes.WORLDMAP;
               break;
+            case DisplayType.BAR:
+              discoverLocation.query.display = DisplayModes.BAR;
+              break;
             default:
               break;
           }
