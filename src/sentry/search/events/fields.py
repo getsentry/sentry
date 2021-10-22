@@ -11,7 +11,12 @@ from snuba_sdk.column import Column
 from snuba_sdk.function import CurriedFunction, Function
 from snuba_sdk.orderby import Direction, OrderBy
 
-from sentry.discover.arithmetic import Operation, OperationSideType, resolve_equation_list
+from sentry.discover.arithmetic import (
+    Operation,
+    OperationSideType,
+    is_equation_alias,
+    resolve_equation_list,
+)
 from sentry.discover.models import TeamKeyTransaction
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Project, ProjectTeam, ProjectTransactionThreshold
@@ -2448,6 +2453,9 @@ class QueryFields(QueryBase):
                     result_type_fn=reflective_result_type(),
                     default_result_type="duration",
                     redundant_grouping=True,
+                    combinators=[
+                        SnQLArrayCombinator("column", NumericColumn.numeric_array_columns)
+                    ],
                 ),
                 SnQLFunction(
                     "p50",
@@ -2660,6 +2668,9 @@ class QueryFields(QueryBase):
                     result_type_fn=reflective_result_type(),
                     default_result_type="duration",
                     redundant_grouping=True,
+                    combinators=[
+                        SnQLArrayCombinator("column", NumericColumn.numeric_array_columns)
+                    ],
                 ),
                 SnQLFunction(
                     "avg",
@@ -2894,7 +2905,7 @@ class QueryFields(QueryBase):
         """Equations are only ever functions, and shouldn't be literals so we
         need to check that the column is a Function
         """
-        return isinstance(column, CurriedFunction) and column.alias.startswith("equation[")
+        return isinstance(column, CurriedFunction) and is_equation_alias(column.alias)
 
     def resolve_orderby(self, orderby: Optional[Union[List[str], str]]) -> List[OrderBy]:
         """Given a list of public aliases, optionally prefixed by a `-` to
@@ -2916,7 +2927,10 @@ class QueryFields(QueryBase):
         for orderby in orderby_columns:
             bare_orderby = orderby.lstrip("-")
             try:
-                resolved_orderby = self.resolve_column(bare_orderby)
+                if is_equation_alias(bare_orderby):
+                    resolved_orderby = bare_orderby
+                else:
+                    resolved_orderby = self.resolve_column(bare_orderby)
             except NotImplementedError:
                 resolved_orderby = None
 
@@ -2940,7 +2954,8 @@ class QueryFields(QueryBase):
                     break
 
                 elif (
-                    isinstance(selected_column, Function) and selected_column.alias == bare_orderby
+                    isinstance(selected_column, CurriedFunction)
+                    and selected_column.alias == bare_orderby
                 ):
                     validated.append(OrderBy(selected_column, direction))
                     break

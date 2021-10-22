@@ -1,6 +1,7 @@
 import time
 import uuid
 from datetime import datetime, timedelta
+from unittest.mock import patch
 
 import pytest
 import pytz
@@ -86,7 +87,6 @@ from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQueryEven
 from sentry.testutils import BaseIncidentsTest, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils import json
-from sentry.utils.compat.mock import patch
 from sentry.utils.samples import load_data
 
 

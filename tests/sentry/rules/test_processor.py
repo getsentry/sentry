@@ -1,5 +1,6 @@
 from datetime import timedelta
 from unittest import mock
+from unittest.mock import patch
 
 from django.core.cache import cache
 from django.db import DEFAULT_DB_ALIAS, connections
@@ -12,7 +13,6 @@ from sentry.rules import init_registry
 from sentry.rules.filters.base import EventFilter
 from sentry.rules.processor import RuleProcessor
 from sentry.testutils import TestCase
-from sentry.utils.compat.mock import patch
 
 EMAIL_ACTION_DATA = {
     "id": "sentry.mail.actions.NotifyEmailAction",

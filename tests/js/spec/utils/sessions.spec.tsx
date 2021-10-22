@@ -2,6 +2,7 @@ import {SessionField, SessionStatus} from 'app/types';
 import {
   filterSessionsInTimeWindow,
   getCount,
+  getCountAtIndex,
   getCrashFreeRate,
   getSessionsInterval,
   getSessionStatusRate,
@@ -148,6 +149,16 @@ describe('utils/sessions', () => {
     });
   });
 
+  describe('getCountAtIndex', () => {
+    const groups = [sessionsApiResponse.groups[1], sessionsApiResponse.groups[2]];
+    it('returns sessions count', () => {
+      expect(getCountAtIndex(groups, SessionField.SESSIONS, 1)).toBe(35);
+    });
+    it('returns users count', () => {
+      expect(getCountAtIndex(groups, SessionField.USERS, 1)).toBe(16);
+    });
+  });
+
   describe('getCrashFreeRate', () => {
     const {groups} = sessionsApiResponse;
     it('returns crash free sessions', () => {
@@ -196,6 +207,15 @@ describe('utils/sessions', () => {
 
       it('less or equal to 30 minutes', () => {
         expect(getSessionsInterval({period: '30m'}, {highFidelity: true})).toBe('1m');
+      });
+
+      it('less or equal to 10 minutes', () => {
+        expect(
+          getSessionsInterval(
+            {start: '2021-10-08T12:00:00Z', end: '2021-10-08T12:05:00.000Z'},
+            {highFidelity: true}
+          )
+        ).toBe('10s');
       });
 
       it('ignores high fidelity flag if start is older than 30d', () => {

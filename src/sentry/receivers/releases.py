@@ -95,16 +95,10 @@ def resolved_in_commit(instance, created, **kwargs):
                 else:
                     user_list = ()
 
+                acting_user = None
+
                 if user_list:
                     acting_user = user_list[0]
-                    Activity.objects.create(
-                        project_id=group.project_id,
-                        group=group,
-                        type=Activity.SET_RESOLVED_IN_COMMIT,
-                        ident=instance.id,
-                        user=acting_user,
-                        data={"commit": instance.id},
-                    )
                     self_assign_issue = UserOption.objects.get_value(
                         user=acting_user, key="self_assign_issue", default="0"
                     )
@@ -120,18 +114,24 @@ def resolved_in_commit(instance, created, **kwargs):
                             user=user, group=group, reason=GroupSubscriptionReason.status_change
                         )
 
-                else:
-                    Activity.objects.create(
-                        project_id=group.project_id,
-                        group=group,
-                        type=Activity.SET_RESOLVED_IN_COMMIT,
-                        ident=instance.id,
-                        data={"commit": instance.id},
-                    )
+                Activity.objects.create(
+                    project_id=group.project_id,
+                    group=group,
+                    type=Activity.SET_RESOLVED_IN_COMMIT,
+                    ident=instance.id,
+                    user=acting_user,
+                    data={"commit": instance.id},
+                )
                 Group.objects.filter(id=group.id).update(
                     status=GroupStatus.RESOLVED, resolved_at=current_datetime
                 )
                 remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED)
+                record_group_history_from_activity_type(
+                    group,
+                    Activity.SET_RESOLVED_IN_COMMIT,
+                    actor=acting_user if acting_user else None,
+                )
+
         except IntegrityError:
             pass
         else:
@@ -189,30 +189,24 @@ def resolved_in_pull_request(instance, created, **kwargs):
                     user_list = list(instance.author.find_users())
                 else:
                     user_list = ()
+                acting_user = None
                 if user_list:
-                    Activity.objects.create(
-                        project_id=group.project_id,
-                        group=group,
-                        type=Activity.SET_RESOLVED_IN_PULL_REQUEST,
-                        ident=instance.id,
-                        user=user_list[0],
-                        data={"pull_request": instance.id},
-                    )
-                    record_group_history(
-                        group, GroupHistoryStatus.RESOLVED_IN_PULL_REQUEST, actor=user_list[0]
+                    acting_user = user_list[0]
+                    GroupAssignee.objects.assign(
+                        group=group, assigned_to=acting_user, acting_user=acting_user
                     )
 
-                    GroupAssignee.objects.assign(
-                        group=group, assigned_to=user_list[0], acting_user=user_list[0]
-                    )
-                else:
-                    Activity.objects.create(
-                        project_id=group.project_id,
-                        group=group,
-                        type=Activity.SET_RESOLVED_IN_PULL_REQUEST,
-                        ident=instance.id,
-                        data={"pull_request": instance.id},
-                    )
+                Activity.objects.create(
+                    project_id=group.project_id,
+                    group=group,
+                    type=Activity.SET_RESOLVED_IN_PULL_REQUEST,
+                    ident=instance.id,
+                    user=acting_user,
+                    data={"pull_request": instance.id},
+                )
+                record_group_history(
+                    group, GroupHistoryStatus.SET_RESOLVED_IN_PULL_REQUEST, actor=acting_user
+                )
         except IntegrityError:
             pass
         else:

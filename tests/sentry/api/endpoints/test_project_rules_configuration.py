@@ -1,6 +1,7 @@
+from unittest.mock import Mock, patch
+
 from sentry.rules.registry import RuleRegistry
 from sentry.testutils import APITestCase
-from sentry.utils.compat.mock import Mock, patch
 
 EMAIL_ACTION = "sentry.mail.actions.NotifyEmailAction"
 APP_ACTION = "sentry.rules.actions.notify_event_service.NotifyEventServiceAction"

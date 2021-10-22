@@ -24,10 +24,22 @@ const WrappedComponent = ({data, ...rest}) => {
 
 describe('Performance > Widgets > WidgetContainer', function () {
   let eventStatsMock;
+  let eventsV2Mock;
+  let eventsTrendsStats;
   beforeEach(function () {
     eventStatsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/events-stats/`,
+      body: [],
+    });
+    eventsV2Mock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/eventsv2/`,
+      body: [],
+    });
+    eventsTrendsStats = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: '/organizations/org-slug/events-trends-stats/',
       body: [],
     });
   });
@@ -129,6 +141,152 @@ describe('Performance > Widgets > WidgetContainer', function () {
           query: '',
           statsPeriod: '28d',
           yAxis: 'user_misery()',
+        }),
+      })
+    );
+  });
+
+  it('Most errors widget', async function () {
+    const data = initializeData();
+
+    const wrapper = mountWithTheme(
+      <WrappedComponent
+        data={data}
+        defaultChartSetting={PerformanceWidgetSetting.MOST_RELATED_ERRORS}
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+      'Most Related Errors'
+    );
+    expect(eventsV2Mock).toHaveBeenCalledTimes(1);
+    expect(eventsV2Mock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: [],
+          field: ['transaction', 'project.id', 'failure_count()'],
+          per_page: 3,
+          project: [],
+          query: '',
+          sort: '-failure_count()',
+          statsPeriod: '14d',
+        }),
+      })
+    );
+  });
+
+  it('Most related issues widget', async function () {
+    const data = initializeData();
+
+    const wrapper = mountWithTheme(
+      <WrappedComponent
+        data={data}
+        defaultChartSetting={PerformanceWidgetSetting.MOST_RELATED_ISSUES}
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+      'Most Related Issues'
+    );
+    expect(eventsV2Mock).toHaveBeenCalledTimes(1);
+    expect(eventsV2Mock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: [],
+          field: ['issue', 'transaction', 'title', 'project.id', 'count()'],
+          per_page: 3,
+          project: [],
+          query: 'event.type:error !tags[transaction]:""',
+          sort: '-count()',
+          statsPeriod: '14d',
+        }),
+      })
+    );
+  });
+
+  it('Most improved trends widget', async function () {
+    const data = initializeData();
+
+    const wrapper = mountWithTheme(
+      <WrappedComponent
+        data={data}
+        defaultChartSetting={PerformanceWidgetSetting.MOST_IMPROVED}
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+      'Most Improved'
+    );
+    expect(eventsTrendsStats).toHaveBeenCalledTimes(1);
+    expect(eventsTrendsStats).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: [],
+          field: ['transaction', 'project'],
+          interval: undefined,
+          middle: undefined,
+          per_page: 3,
+          project: [],
+          query:
+            'tpm():>0.01 count_percentage():>0.25 count_percentage():<4 trend_percentage():>0% confidence():>6',
+          sort: 'trend_percentage()',
+          statsPeriod: '14d',
+          trendFunction: 'avg(transaction.duration)',
+          trendType: 'improved',
+        }),
+      })
+    );
+  });
+
+  it('Most regressed trends widget', async function () {
+    const data = initializeData();
+
+    const wrapper = mountWithTheme(
+      <WrappedComponent
+        data={data}
+        defaultChartSetting={PerformanceWidgetSetting.MOST_REGRESSED}
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+      'Most Regressed'
+    );
+    expect(eventsTrendsStats).toHaveBeenCalledTimes(1);
+    expect(eventsTrendsStats).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: [],
+          field: ['transaction', 'project'],
+          interval: undefined,
+          middle: undefined,
+          per_page: 3,
+          project: [],
+          query:
+            'tpm():>0.01 count_percentage():>0.25 count_percentage():<4 trend_percentage():>0% confidence():>6',
+          sort: '-trend_percentage()',
+          statsPeriod: '14d',
+          trendFunction: 'avg(transaction.duration)',
+          trendType: 'regression',
         }),
       })
     );

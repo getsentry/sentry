@@ -29,6 +29,8 @@ import os.path
 import time
 from contextlib import contextmanager
 from datetime import datetime
+from unittest import mock
+from unittest.mock import patch
 from urllib.parse import urlencode
 from uuid import uuid4
 
@@ -84,8 +86,6 @@ from sentry.tagstore.snuba import SnubaTagStorage
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.utils import json
 from sentry.utils.auth import SSO_SESSION_KEY
-from sentry.utils.compat import mock
-from sentry.utils.compat.mock import patch
 from sentry.utils.pytest.selenium import Browser
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snuba import _snuba_pool
