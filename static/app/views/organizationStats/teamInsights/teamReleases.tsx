@@ -1,7 +1,6 @@
 import {ComponentType, Fragment} from 'react';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import chunk from 'lodash/chunk';
 import isEqual from 'lodash/isEqual';
 import round from 'lodash/round';
 import moment from 'moment';
@@ -19,6 +18,8 @@ import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {Color, Theme} from 'app/utils/theme';
+
+import {barAxisLabel, convertDaySeriesToWeeks} from './utils';
 
 type Props = AsyncComponent['props'] & {
   theme: Theme;
@@ -171,20 +172,13 @@ class TeamReleases extends AsyncComponent<Props, State> {
     const {projects, period, theme} = this.props;
     const {periodReleases} = this.state;
 
-    const data = Object.entries(periodReleases?.release_counts ?? {})
-      .map(([bucket, count]) => ({
+    const data = Object.entries(periodReleases?.release_counts ?? {}).map(
+      ([bucket, count]) => ({
         value: Math.ceil(count),
         name: new Date(bucket).getTime(),
-      }))
-      .sort((a, b) => a.name - b.name);
-
-    // Convert from days to 7 day groups
-    const seriesData = chunk(data, 7).map(week => {
-      return {
-        name: week[0].name,
-        value: week.reduce((total, currentData) => total + currentData.value, 0),
-      };
-    });
+      })
+    );
+    const seriesData = convertDaySeriesToWeeks(data);
 
     const averageValues = Object.values(periodReleases?.project_avgs ?? {});
     const projectAvgSum = averageValues.reduce(
@@ -203,20 +197,20 @@ class TeamReleases extends AsyncComponent<Props, State> {
             period="7d"
             legend={{right: 3, top: 0}}
             yAxis={{minInterval: 1}}
-            xAxis={{
-              type: 'time',
-            }}
+            xAxis={barAxisLabel(seriesData.length)}
             series={[
               {
                 seriesName: t('This Period'),
+                // @ts-expect-error silent missing from type
                 silent: true,
                 data: seriesData,
                 markLine: MarkLine({
                   silent: true,
                   lineStyle: {color: theme.gray200, type: 'dashed', width: 1},
-                  data: [{yAxis: totalPeriodAverage} as any],
+                  // @ts-expect-error yAxis type not correct
+                  data: [{yAxis: totalPeriodAverage}],
                 }),
-              } as any,
+              },
             ]}
             tooltip={{
               formatter: seriesParams => {
