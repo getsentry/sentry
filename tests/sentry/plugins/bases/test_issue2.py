@@ -1,10 +1,11 @@
+from unittest import mock
+
 from sentry.models import GroupMeta, User
 from sentry.plugins.base import plugins
 from sentry.plugins.bases import IssueTrackingPlugin2
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils import json
-from sentry.utils.compat import mock
 from social_auth.models import UserSocialAuth
 
 
@@ -61,14 +62,14 @@ class GetAuthForUserTest(TestCase):
         user = self._get_mock_user()
         p = IssueTrackingPlugin2()
         p.auth_provider = "test"
-        self.assertEquals(p.get_auth_for_user(user), None)
+        self.assertEqual(p.get_auth_for_user(user), None)
 
     def test_returns_identity(self):
         user = User.objects.create(username="test", email="test@example.com")
         auth = UserSocialAuth.objects.create(provider="test", user=user)
         p = IssueTrackingPlugin2()
         p.auth_provider = "test"
-        self.assertEquals(p.get_auth_for_user(user), auth)
+        self.assertEqual(p.get_auth_for_user(user), auth)
 
 
 class IssuePlugin2GroupActionTest(TestCase):

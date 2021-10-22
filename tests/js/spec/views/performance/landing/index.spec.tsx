@@ -104,6 +104,13 @@ describe('Performance > Landing > Index', function () {
     );
 
     expect(wrapper.find('Table')).toHaveLength(1);
+
+    const titles = wrapper.find('div[data-test-id="performance-widget-title"]');
+    expect(titles).toHaveLength(3);
+
+    expect(titles.at(0).text()).toEqual('p75 LCP');
+    expect(titles.at(1).text()).toEqual('LCP Distribution');
+    expect(titles.at(2).text()).toEqual('FCP Distribution');
   });
 
   it('renders frontend other view', async function () {
@@ -157,8 +164,8 @@ describe('Performance > Landing > Index', function () {
 
     expect(wrapper.find('Table').exists()).toBe(true);
 
-    expect(eventStatsMock).toHaveBeenCalledTimes(4); // Currently defaulting to 4 event stat charts on all transactions view + 1 event chart.
-    expect(eventsV2Mock).toHaveBeenCalledTimes(1);
+    expect(eventStatsMock).toHaveBeenCalledTimes(3); // Currently defaulting to 4 event stat charts on all transactions view + 1 event chart.
+    expect(eventsV2Mock).toHaveBeenCalledTimes(2);
 
     const titles = wrapper.find('div[data-test-id="performance-widget-title"]');
     expect(titles).toHaveLength(5);
@@ -166,7 +173,7 @@ describe('Performance > Landing > Index', function () {
     expect(titles.at(0).text()).toEqual('User Misery');
     expect(titles.at(1).text()).toEqual('Transactions Per Minute');
     expect(titles.at(2).text()).toEqual('Failure Rate');
-    expect(titles.at(3).text()).toEqual('Transactions Per Minute');
-    expect(titles.at(4).text()).toEqual('Most Related Errors');
+    expect(titles.at(3).text()).toEqual('Most Related Errors');
+    expect(titles.at(4).text()).toEqual('Most Related Issues');
   });
 });

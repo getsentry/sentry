@@ -305,8 +305,8 @@ const ContextWrapper = styled('div')`
 `;
 
 const StyledMenuItem = styled(MenuItem)`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
   :hover {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.textColor};
   }
 `;

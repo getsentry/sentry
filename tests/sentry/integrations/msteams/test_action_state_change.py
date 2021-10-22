@@ -1,4 +1,5 @@
 import time
+from unittest.mock import patch
 
 import responses
 from django.http import HttpResponse
@@ -21,7 +22,6 @@ from sentry.models import (
 from sentry.testutils import APITestCase
 from sentry.testutils.asserts import assert_mock_called_once_with_partial
 from sentry.utils import json
-from sentry.utils.compat.mock import patch
 
 
 class BaseEventTest(APITestCase):
