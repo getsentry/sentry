@@ -2,6 +2,7 @@ import os.path
 import zipfile
 from base64 import b64encode
 from io import BytesIO
+from unittest.mock import patch
 
 import responses
 from django.utils.encoding import force_bytes
@@ -11,7 +12,6 @@ from sentry.models.releasefile import update_artifact_index
 from sentry.testutils import RelayStoreHelper, SnubaTestCase, TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils import json
-from sentry.utils.compat.mock import patch
 
 BASE64_SOURCEMAP = "data:application/json;base64," + (
     b64encode(

@@ -1,3 +1,5 @@
+from unittest.mock import Mock, patch
+
 from django.http import QueryDict
 
 from sentry.api.helpers.group_index import (
@@ -9,7 +11,6 @@ from sentry.api.helpers.group_index import (
 from sentry.api.issue_search import parse_search_query
 from sentry.models import GroupInbox, GroupInboxReason, GroupStatus, add_group_to_inbox
 from sentry.testutils import TestCase
-from sentry.utils.compat.mock import Mock, patch
 from sentry.utils.hashlib import md5_text
 
 

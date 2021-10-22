@@ -2,6 +2,7 @@ import logging
 import uuid
 from datetime import datetime, timedelta
 from time import time
+from unittest import mock
 
 import pytest
 from django.utils import timezone
@@ -42,7 +43,6 @@ from sentry.models import (
 from sentry.spans.grouping.utils import hash_values
 from sentry.testutils import TestCase, assert_mock_called_once_with_partial
 from sentry.utils.cache import cache_key_for_event
-from sentry.utils.compat import mock
 from sentry.utils.outcomes import Outcome
 
 

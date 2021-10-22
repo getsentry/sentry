@@ -1,4 +1,5 @@
 from datetime import timedelta
+from unittest.mock import Mock, patch
 
 from django.contrib.auth.models import AnonymousUser
 from django.core import signing
@@ -22,7 +23,6 @@ from sentry.middleware.superuser import SuperuserMiddleware
 from sentry.models import User
 from sentry.testutils import TestCase
 from sentry.utils.auth import mark_sso_complete
-from sentry.utils.compat.mock import Mock, patch
 
 UNSET = object()
 
