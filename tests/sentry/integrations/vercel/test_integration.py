@@ -14,6 +14,7 @@ from sentry.models import (
     ScheduledDeletion,
     SentryAppInstallation,
     SentryAppInstallationForProvider,
+    SentryAppInstallationToken,
 )
 from sentry.testutils import IntegrationTestCase
 from sentry.utils import json
@@ -136,7 +137,7 @@ class VercelIntegrationTest(IntegrationTestCase):
         enabled_dsn = ProjectKey.get_default(project=Project.objects.get(id=project_id)).get_dsn(
             public=True
         )
-        sentry_auth_token = SentryAppInstallationForProvider.objects.get_token(org.id, "vercel")
+        sentry_auth_token = SentryAppInstallationToken.objects.get_token(org.id, "vercel")
 
         env_var_map = {
             "SENTRY_ORG": {"type": "encrypted", "value": org.slug},
@@ -228,7 +229,7 @@ class VercelIntegrationTest(IntegrationTestCase):
         enabled_dsn = ProjectKey.get_default(project=Project.objects.get(id=project_id)).get_dsn(
             public=True
         )
-        sentry_auth_token = SentryAppInstallationForProvider.objects.get_token(org.id, "vercel")
+        sentry_auth_token = SentryAppInstallationToken.objects.get_token(org.id, "vercel")
 
         env_var_map = {
             "SENTRY_ORG": {"type": "encrypted", "value": org.slug},

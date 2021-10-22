@@ -67,10 +67,10 @@ class AuthProvider(Model):
         return self.get_provider().name
 
     def get_scim_token(self):
-        from sentry.models import SentryAppInstallationForProvider
+        from sentry.models import SentryAppInstallationToken
 
         if self.flags.scim_enabled:
-            return SentryAppInstallationForProvider.objects.get_token(
+            return SentryAppInstallationToken.objects.get_token(
                 self.organization, f"{self.provider}_scim"
             )
         else:
