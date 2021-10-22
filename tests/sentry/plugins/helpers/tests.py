@@ -16,7 +16,7 @@ class SentryPluginTest(TestCase):
         with mock.patch("sentry.models.ProjectOption.objects.get_value") as get_value:
             project = mock.Mock()
             result = get_option("key", project)
-            self.assertEquals(result, get_value.return_value)
+            self.assertEqual(result, get_value.return_value)
 
             get_value.assert_called_once_with(project, "key", None)
 
