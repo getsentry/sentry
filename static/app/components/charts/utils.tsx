@@ -246,3 +246,14 @@ export const processTableResults = (tableResults?: TableDataWithTitle[]) => {
     }),
   };
 };
+
+export function getTooltipArrow(): string {
+  // Prevent arrow position from getting lost between renders
+  const arrows = document.querySelectorAll<HTMLDivElement>('.tooltip-arrow');
+  const arrowLeft = Array.from(arrows).find(arrow => arrow?.style.left.endsWith('px'))
+    ?.style.left;
+
+  return `<div class="tooltip-arrow" ${
+    arrowLeft ? `style="left: ${arrowLeft}"` : ''
+  }"></div>`;
+}

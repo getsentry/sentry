@@ -16,6 +16,7 @@ import EventsRequest from 'app/components/charts/eventsRequest';
 import LineChart, {LineChartSeries} from 'app/components/charts/lineChart';
 import SessionsRequest from 'app/components/charts/sessionsRequest';
 import {SectionHeading} from 'app/components/charts/styles';
+import {getTooltipArrow} from 'app/components/charts/utils';
 import {
   parseStatsPeriod,
   StatsPeriodType,
@@ -143,7 +144,7 @@ function createIncidentSeries(
       }`,
       `</div></div>`,
       `<div class="tooltip-date">${time}</div>`,
-      `<div class="tooltip-arrow"></div>`,
+      getTooltipArrow(),
     ].join('');
   };
 
@@ -609,7 +610,7 @@ class MetricChart extends React.PureComponent<Props, State> {
                       `<span class="tooltip-label">${title}</span>${value}`,
                       `</div></div>`,
                       `<div class="tooltip-date">${startTime} &mdash; ${endTime}</div>`,
-                      `<div class="tooltip-arrow"></div>`,
+                      getTooltipArrow(),
                     ].join('');
                   },
                 }}

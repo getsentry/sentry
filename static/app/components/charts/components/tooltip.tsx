@@ -6,7 +6,7 @@ import moment from 'moment';
 import BaseChart from 'app/components/charts/baseChart';
 import {getFormattedDate, getTimeFormat} from 'app/utils/dates';
 
-import {truncationFormatter} from '../utils';
+import {getTooltipArrow, truncationFormatter} from '../utils';
 
 type ChartProps = React.ComponentProps<typeof BaseChart>;
 
@@ -212,7 +212,7 @@ function getFormatter({
         .join(''),
       '</div>',
       `<div class="tooltip-date">${date}</div>`,
-      `<div class="tooltip-arrow"></div>`,
+      getTooltipArrow(),
     ].join('');
   };
 
@@ -297,6 +297,10 @@ export default function Tooltip({
         leftPos = chartLeft * -1 + 20;
         arrowPosition = `${Number(pos[0]) - leftPos}px`;
       }
+
+      // Unset other arrows
+      const arrows = document.querySelectorAll<HTMLDivElement>('.tooltip-arrow');
+      arrows.forEach(arrow => (arrow.style.left = ''));
 
       // Reposition the arrow.
       const arrow = dom.querySelector<HTMLDivElement>('.tooltip-arrow');
