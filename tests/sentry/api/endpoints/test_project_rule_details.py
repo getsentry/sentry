@@ -411,6 +411,7 @@ class UpdateProjectRuleTest(APITestCase):
         )
 
         actions[0]["channel"] = "#new_channel_name"
+        actions[0]["channel_id"] = "new_channel_id"
 
         url = reverse(
             "sentry-api-0-project-rule-details",
@@ -435,6 +436,13 @@ class UpdateProjectRuleTest(APITestCase):
             status=200,
             content_type="application/json",
             body=json.dumps(channels),
+        )
+        responses.add(
+            method=responses.GET,
+            url="https://slack.com/api/conversations.info",
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"ok": channels["ok"], "channel": channels["channels"][1]}),
         )
 
         response = self.client.put(
@@ -502,13 +510,19 @@ class UpdateProjectRuleTest(APITestCase):
                 {"name": "new_channel_name", "id": "new_channel_id"},
             ],
         }
-
         responses.add(
             method=responses.GET,
-            url="https://slack.com/api/channels.list",
+            url="https://slack.com/api/conversations.list",
             status=200,
             content_type="application/json",
             body=json.dumps(channels),
+        )
+        responses.add(
+            method=responses.GET,
+            url="https://slack.com/api/conversations.info",
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"ok": channels["ok"], "channel": channels["channels"][0]}),
         )
 
         response = self.client.put(
@@ -574,7 +588,7 @@ class UpdateProjectRuleTest(APITestCase):
                         "name": "Send a notification to the funinthesun Slack workspace to #team-team-team and show tags [] in notification",
                         "workspace": integration.id,
                         "channel": "#team-team-team",
-                        "input_channel_id": "CSVK0921",
+                        "channel_id": "CSVK0921",
                     }
                 ],
                 "conditions": [
