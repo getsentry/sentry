@@ -143,13 +143,25 @@ def test_timed_future_error():
     future = TimedFuture()
     assert future.get_timing() == (None, None)
 
-    with timestamp(1.0):
-        future.set_running_or_notify_cancel()
-        assert future.get_timing() == (1.0, None)
+    start_time, finish_time = expected_timing = (1.0, 2.0)
 
-    with timestamp(2.0):
+    callback_timings = []
+    callback = lambda future: callback_timings.append(future.get_timing())
+
+    future.add_done_callback(callback)
+
+    with timestamp(start_time):
+        future.set_running_or_notify_cancel()
+        assert future.get_timing() == (start_time, None)
+
+    assert len(callback_timings) == 0
+
+    with timestamp(finish_time):
         future.set_exception(None)
-        assert future.get_timing() == (1.0, 2.0)
+        assert future.get_timing() == expected_timing
+
+    assert len(callback_timings) == 1
+    assert callback_timings[0] == expected_timing
 
 
 def test_timed_future_cancel():
