@@ -92,7 +92,7 @@ class TimedFuture(Future):
             return super().cancel(*args, **kwargs)
 
     @contextmanager
-    def __set_finished_time_on_success(self) -> None:
+    def __set_finished_time_on_success(self):
         prev_value = self.__timing[1]
         self.__timing[1] = time()
         try:
