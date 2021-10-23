@@ -2,7 +2,7 @@ import collections
 import functools
 import logging
 import threading
-from concurrent.futures import Future
+from concurrent.futures import Future, InvalidStateError
 from concurrent.futures._base import FINISHED, RUNNING
 from contextlib import contextmanager
 from queue import Full, PriorityQueue
@@ -97,7 +97,7 @@ class TimedFuture(Future):
         self.__timing[1] = time()
         try:
             yield
-        except Exception:
+        except InvalidStateError:
             self.__timing[1] = prev_value
             raise
 
