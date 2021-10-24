@@ -24,7 +24,7 @@ type Props = {
   className?: string;
 };
 
-const TogglableAddress = ({
+function TogglableAddress({
   startingAddress,
   address,
   relativeAddressMaxlength,
@@ -34,7 +34,7 @@ const TogglableAddress = ({
   onToggle,
   isHoverPreviewed,
   className,
-}: Props) => {
+}: Props) {
   const convertAbsoluteAddressToRelative = () => {
     if (!startingAddress) {
       return '';
@@ -65,14 +65,14 @@ const TogglableAddress = ({
   };
 
   const relativeAddress = convertAbsoluteAddressToRelative();
-  const canBeConverted = !!(onToggle && relativeAddress);
+  const canBeConverted = !!relativeAddress;
   const formattedAddress = !relativeAddress || isAbsolute ? address : relativeAddress;
   const tooltipTitle = getAddressTooltip();
   const tooltipDelay = isHoverPreviewed ? STACKTRACE_PREVIEW_TOOLTIP_DELAY : undefined;
 
   return (
     <Wrapper className={className}>
-      {canBeConverted && (
+      {onToggle && canBeConverted && (
         <AddressIconTooltip
           title={isAbsolute ? t('Switch to relative') : t('Switch to absolute')}
           containerDisplayMode="inline-flex"
@@ -96,7 +96,7 @@ const TogglableAddress = ({
       </Tooltip>
     </Wrapper>
   );
-};
+}
 
 const AddressIconTooltip = styled(Tooltip)`
   align-items: center;

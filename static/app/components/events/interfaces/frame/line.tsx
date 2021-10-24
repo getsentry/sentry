@@ -10,9 +10,6 @@ import PackageLink from 'app/components/events/interfaces/packageLink';
 import PackageStatus, {
   PackageStatusIcon,
 } from 'app/components/events/interfaces/packageStatus';
-import TogglableAddress, {
-  AddressToggleIcon,
-} from 'app/components/events/interfaces/togglableAddress';
 import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
 import {STACKTRACE_PREVIEW_TOOLTIP_DELAY} from 'app/components/stacktracePreview';
 import StrictClick from 'app/components/strictClick';
@@ -29,6 +26,7 @@ import withSentryAppComponents from 'app/utils/withSentryAppComponents';
 import Context from './context';
 import DefaultTitle from './defaultTitle';
 import Symbol, {FunctionNameToggleIcon} from './symbol';
+import TogglableAddress, {AddressToggleIcon} from './togglableAddress';
 import {
   getPlatform,
   hasAssembly,

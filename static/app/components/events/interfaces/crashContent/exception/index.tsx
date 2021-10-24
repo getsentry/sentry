@@ -1,10 +1,10 @@
 import ErrorBoundary from 'app/components/errorBoundary';
-import RawExceptionContent from 'app/components/events/interfaces/rawExceptionContent';
 import {ExceptionType, Group, PlatformType, Project} from 'app/types';
 import {Event} from 'app/types/event';
 import {STACK_TYPE, STACK_VIEW} from 'app/types/stacktrace';
 
 import Content from './content';
+import RawContent from './rawContent';
 
 type Props = {
   stackType: STACK_TYPE;
@@ -30,7 +30,7 @@ const Exception = ({
 }: Props) => (
   <ErrorBoundary mini>
     {stackView === STACK_VIEW.RAW ? (
-      <RawExceptionContent
+      <RawContent
         eventId={event.id}
         projectId={projectId}
         type={stackType}

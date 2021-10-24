@@ -1,4 +1,4 @@
-import {MouseEvent, MouseEventHandler} from 'react';
+import {MouseEvent, MouseEventHandler, useContext} from 'react';
 import styled from '@emotion/styled';
 import scrollToElement from 'scroll-to-element';
 
@@ -7,6 +7,8 @@ import {combineStatus} from 'app/components/events/interfaces/debugMeta/utils';
 import PackageLink from 'app/components/events/interfaces/packageLink';
 import PackageStatus from 'app/components/events/interfaces/packageStatus';
 import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
+import {TraceEventDataSectionContext} from 'app/components/events/traceEventDataSection';
+import {DisplayOption} from 'app/components/events/traceEventDataSection/displayOptions';
 import {t} from 'app/locale';
 import {DebugMetaActions} from 'app/stores/debugMetaStore';
 import space from 'app/styles/space';
@@ -28,13 +30,9 @@ type Props = React.ComponentProps<typeof Expander> &
     onClick?: () => void;
     isFrameAfterLastNonApp?: boolean;
     includeSystemFrames?: boolean;
-    showingAbsoluteAddress?: boolean;
-    showCompleteFunctionName?: boolean;
     prevFrame?: Frame;
     image?: React.ComponentProps<typeof DebugImage>['image'];
     maxLengthOfRelativeAddress?: number;
-    onAddressToggle?: (event: React.MouseEvent<SVGElement>) => void;
-    onFunctionNameToggle?: (event: React.MouseEvent<SVGElement>) => void;
   };
 
 function Native({
@@ -42,12 +40,8 @@ function Native({
   isFrameAfterLastNonApp,
   isExpanded,
   isHoverPreviewed,
-  onAddressToggle,
   image,
   includeSystemFrames,
-  showingAbsoluteAddress,
-  showCompleteFunctionName,
-  onFunctionNameToggle,
   maxLengthOfRelativeAddress,
   platform,
   prevFrame,
@@ -58,6 +52,12 @@ function Native({
   onClick,
   ...props
 }: Props) {
+  const traceEventDataSectionContext = useContext(TraceEventDataSectionContext);
+
+  if (!traceEventDataSectionContext) {
+    return null;
+  }
+
   const {instructionAddr, trust, addrMode, symbolicatorStatus} = frame ?? {};
 
   function packageStatus() {
@@ -137,20 +137,26 @@ function Native({
           <TogglableAddress
             address={instructionAddr}
             startingAddress={image ? image.image_addr : null}
-            isAbsolute={!!showingAbsoluteAddress}
+            isAbsolute={traceEventDataSectionContext.activeDisplayOptions.includes(
+              DisplayOption.ABSOLUTE_ADDRESSES
+            )}
             isFoundByStackScanning={isFoundByStackScanning}
             isInlineFrame={!!isInlineFrame}
-            onToggle={onAddressToggle}
             relativeAddressMaxlength={maxLengthOfRelativeAddress}
             isHoverPreviewed={isHoverPreviewed}
           />
         )}
         <Symbol
           frame={frame}
-          showCompleteFunctionName={!!showCompleteFunctionName}
-          onFunctionNameToggle={onFunctionNameToggle}
+          showCompleteFunctionName={traceEventDataSectionContext.activeDisplayOptions.includes(
+            DisplayOption.VERBOSE_FUNCTION_NAMES
+          )}
+          absoluteFilePaths={traceEventDataSectionContext.activeDisplayOptions.includes(
+            DisplayOption.ABSOLUTE_FILE_PATHS
+          )}
           isHoverPreviewed={isHoverPreviewed}
           isUsedForGrouping={isUsedForGrouping}
+          nativeStackTraceV2
         />
       </NativeLineContent>
       <Expander

@@ -12,15 +12,16 @@ import {Thread} from 'app/types/events';
 import {STACK_TYPE, STACK_VIEW} from 'app/types/stacktrace';
 import {defined} from 'app/utils';
 
-import TraceEventDataSection from '../../traceEventDataSection';
-import {DisplayOption} from '../../traceEventDataSection/displayOptions';
-import Exception from '../crashContent/exception';
-import StackTrace from '../crashContent/stacktrace';
-import NoStackTraceMessage from '../noStackTraceMessage';
-import ThreadSelector from '../threads/threadSelector';
-import findBestThread from '../threads/threadSelector/findBestThread';
-import getThreadException from '../threads/threadSelector/getThreadException';
-import getThreadStacktrace from '../threads/threadSelector/getThreadStacktrace';
+import TraceEventDataSection from '../traceEventDataSection';
+import {DisplayOption} from '../traceEventDataSection/displayOptions';
+
+import Exception from './crashContent/exception';
+import StackTrace from './crashContent/stackTrace';
+import ThreadSelector from './threads/threadSelector';
+import findBestThread from './threads/threadSelector/findBestThread';
+import getThreadException from './threads/threadSelector/getThreadException';
+import getThreadStacktrace from './threads/threadSelector/getThreadStacktrace';
+import NoStackTraceMessage from './noStackTraceMessage';
 
 type ExceptionProps = React.ComponentProps<typeof Exception>;
 
@@ -193,6 +194,10 @@ function Threads({
       title={getTitle()}
       platform={platform}
       showPermalink={!hasMoreThanOneThread}
+      hasMinified={
+        !!exception?.values?.find(value => value.rawStacktrace) ||
+        (hasMoreThanOneThread ? !!activeThread?.rawStacktrace : false)
+      }
       wrapTitle={false}
     >
       {childrenProps => (

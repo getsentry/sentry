@@ -1,13 +1,16 @@
+import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 
+import {ButtonLabel} from 'app/components/button';
 import CheckboxFancy from 'app/components/checkboxFancy/checkboxFancy';
 import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl, {Content} from 'app/components/dropdownControl';
 import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
+import Tooltip from 'app/components/tooltip';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {SelectValue} from 'app/types';
+import {PlatformType, SelectValue} from 'app/types';
 
 export enum DisplayOption {
   UNSYMBOLICATED = 'unsymbolicated',
@@ -15,22 +18,35 @@ export enum DisplayOption {
   ABSOLUTE_FILE_PATHS = 'absolute-file-paths',
   VERBOSE_FUNCTION_NAMES = 'verbose-function-names',
   FULL_STACK_TRACE = 'full-stack-trace',
+  MINIFIED = 'minified',
 }
 
-const DISPLAY_OPTIONS: SelectValue<string>[] = [
-  {label: t('Unsymbolicated'), value: DisplayOption.UNSYMBOLICATED},
-  {label: t('Absolute Addresses'), value: DisplayOption.ABSOLUTE_ADDRESSES},
-  {label: t('Absolute File Paths'), value: DisplayOption.ABSOLUTE_FILE_PATHS},
-  {label: t('Verbose Function Names'), value: DisplayOption.VERBOSE_FUNCTION_NAMES},
-  {label: t('Full Stack Trace'), value: DisplayOption.FULL_STACK_TRACE},
-];
-
 type Props = {
+  platform: PlatformType;
   activeDisplayOptions: DisplayOption[];
   onChange: (activeDisplayOptions: DisplayOption[]) => void;
+  hasMinified: boolean;
 };
 
-function DisplayOptions({activeDisplayOptions, onChange}: Props) {
+function DisplayOptions({activeDisplayOptions, onChange, hasMinified, platform}: Props) {
+  const DISPLAY_OPTIONS: SelectValue<string>[] = [
+    {label: t('Unsymbolicated'), value: DisplayOption.UNSYMBOLICATED},
+    {label: t('Absolute Addresses'), value: DisplayOption.ABSOLUTE_ADDRESSES},
+    {label: t('Absolute File Paths'), value: DisplayOption.ABSOLUTE_FILE_PATHS},
+    {label: t('Verbose Function Names'), value: DisplayOption.VERBOSE_FUNCTION_NAMES},
+    {label: t('Full Stack Trace'), value: DisplayOption.FULL_STACK_TRACE},
+  ];
+
+  if (platform === 'javascript' || platform === 'node') {
+    // Replaces Unsymbolicated option
+    DISPLAY_OPTIONS[0] = {
+      label: t('Minified'),
+      value: DisplayOption.MINIFIED,
+      disabled: !hasMinified,
+      tooltip: !hasMinified ? t('Minified version not available') : undefined,
+    };
+  }
+
   function handleChange(value: DisplayOption) {
     const newActiveDisplayOptions = activeDisplayOptions.includes(value)
       ? activeDisplayOptions.filter(activeDisplayOption => activeDisplayOption !== value)
@@ -65,21 +81,28 @@ function DisplayOptions({activeDisplayOptions, onChange}: Props) {
           blendCorner
         >
           <StyledList>
-            {DISPLAY_OPTIONS.map(({label, value}) => {
+            {DISPLAY_OPTIONS.map(({label, value, disabled, tooltip}) => {
               const displayOption = value as DisplayOption;
+              const isDisabled = !!disabled;
               const isChecked = activeDisplayOptions.includes(displayOption);
               return (
-                <StyledListItem
-                  key={value}
-                  onClick={event => {
-                    event.stopPropagation();
-                    handleChange(displayOption);
-                  }}
-                  isChecked={isChecked}
-                >
-                  {label}
-                  <CheckboxFancy isChecked={isChecked} />
-                </StyledListItem>
+                <Tooltip key={value} title={tooltip} disabled={!tooltip}>
+                  <StyledListItem
+                    onClick={event => {
+                      event.stopPropagation();
+
+                      if (isDisabled) {
+                        return;
+                      }
+                      handleChange(displayOption);
+                    }}
+                    isDisabled={isDisabled}
+                    isChecked={isChecked}
+                  >
+                    {label}
+                    <CheckboxFancy isChecked={isChecked} isDisabled={isDisabled} />
+                  </StyledListItem>
+                </Tooltip>
               );
             })}
           </StyledList>
@@ -112,7 +135,7 @@ const Wrapper = styled(DropdownControl)`
 `;
 
 const StyledContent = styled(Content)`
-  top: calc(100% + ${space(0.5)} - 1px);
+  top: calc(100% + ${space(0.5)} - 2px);
   border-radius: ${p => p.theme.borderRadius};
   > ul:last-child {
     > li:last-child {
@@ -127,6 +150,10 @@ const StyledDropdownButton = styled(DropdownButton)`
   max-width: 200px;
   white-space: nowrap;
 
+  ${ButtonLabel} {
+    grid-template-columns: max-content 1fr max-content;
+  }
+
   ${p =>
     p.isOpen &&
     `
@@ -139,8 +166,8 @@ const StyledDropdownButton = styled(DropdownButton)`
         width: 16px;
         border: 8px solid transparent;
         transform: translateY(calc(50% + 2px));
-        right: 13px;
-        border-bottom-color: ${p.theme.backgroundSecondary};
+        right: 9px;
+        border-bottom-color: ${p.theme.white};
       }
 
       :before {
@@ -154,7 +181,7 @@ const StyledList = styled(List)`
   grid-gap: 0;
 `;
 
-const StyledListItem = styled(ListItem)<{isChecked: boolean}>`
+const StyledListItem = styled(ListItem)<{isChecked: boolean; isDisabled: boolean}>`
   display: grid;
   grid-template-columns: 1fr max-content;
   grid-column-gap: ${space(1)};
@@ -163,6 +190,10 @@ const StyledListItem = styled(ListItem)<{isChecked: boolean}>`
   align-items: center;
   cursor: pointer;
   font-size: ${p => p.theme.fontSizeMedium};
+
+  :last-child {
+    border-bottom: none;
+  }
 
   ${CheckboxFancy} {
     opacity: ${p => (p.isChecked ? 1 : 0.3)};
@@ -173,9 +204,18 @@ const StyledListItem = styled(ListItem)<{isChecked: boolean}>`
     ${CheckboxFancy} {
       opacity: 1;
     }
-    span {
-      color: ${p => p.theme.blue300};
-      text-decoration: underline;
-    }
   }
+
+  ${p =>
+    p.isDisabled &&
+    css`
+      color: ${p.theme.disabled};
+      cursor: not-allowed;
+
+      :hover {
+        ${CheckboxFancy} {
+          opacity: 0.3;
+        }
+      }
+    `}
 `;

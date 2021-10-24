@@ -1,6 +1,5 @@
 import {cloneElement, Fragment, MouseEvent, useState} from 'react';
 import styled from '@emotion/styled';
-import {PlatformIcon} from 'platformicons';
 
 import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
@@ -10,8 +9,8 @@ import {Frame, Group, PlatformType} from 'app/types';
 import {Event} from 'app/types/event';
 import {StacktraceType} from 'app/types/stacktrace';
 
-import Line from './frame/lineV2';
-import {getImageRange, parseAddress, stackTracePlatformIcon} from './utils';
+import Line from '../../frame/lineV2';
+import {getImageRange, parseAddress} from '../../utils';
 
 type Props = {
   data: StacktraceType;
@@ -60,11 +59,17 @@ function StackTraceContent({
   }
 
   function getClassName() {
-    if (includeSystemFrames) {
-      return `${className} traceback full-traceback`;
+    const classes = ['traceback'];
+
+    if (className) {
+      classes.push(className);
     }
 
-    return `${className} traceback in-app-traceback`;
+    if (includeSystemFrames) {
+      return [...classes, 'full-traceback'].join(' ');
+    }
+
+    return [...classes, 'in-app-traceback'].join(' ');
   }
 
   function isFrameUsedForGrouping(frame: Frame) {
@@ -198,13 +203,13 @@ function StackTraceContent({
           if (frameIndex === firstFrameOmitted) {
             return (
               <Fragment key={frameIndex}>
-                <Line {...lineProps} />
+                <Line {...lineProps} nativeV2 />
                 {renderOmittedFrames(firstFrameOmitted, lastFrameOmitted)}
               </Fragment>
             );
           }
 
-          return <Line key={frameIndex} {...lineProps} />;
+          return <Line key={frameIndex} nativeV2 {...lineProps} />;
         }
 
         if (!repeatedFrame) {
@@ -239,30 +244,20 @@ function StackTraceContent({
     return [...convertedFrames].reverse();
   }
 
-  return (
-    <Wrapper className={getClassName()}>
-      <StyledPlatformIcon
-        platform={stackTracePlatformIcon(platform, frames)}
-        size="20px"
-        style={{borderRadius: '3px 0 0 3px'}}
-      />
-      <StyledList>{renderConvertedFrames()}</StyledList>
-    </Wrapper>
-  );
+  return <StyledList className={getClassName()}>{renderConvertedFrames()}</StyledList>;
 }
 
 export default StackTraceContent;
 
-const Wrapper = styled('div')`
-  position: relative;
-`;
-
-const StyledPlatformIcon = styled(PlatformIcon)`
-  position: absolute;
-  margin-top: -1px;
-  left: -${space(3)};
-`;
-
 const StyledList = styled(List)`
   grid-gap: 0;
+  position: relative;
+  overflow: hidden;
+  box-shadow: ${p => p.theme.dropShadowLight};
+
+  && {
+    border-radius: ${p => p.theme.borderRadius};
+    border: 1px solid ${p => p.theme.gray200};
+    margin-bottom: ${space(3)};
+  }
 `;
