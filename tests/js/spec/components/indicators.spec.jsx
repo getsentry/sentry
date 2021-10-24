@@ -74,7 +74,7 @@ describe('Indicators', function () {
     addMessage('Loading', '', {duration: null});
     act(jest.runAllTimers);
     expect(wrapper.container).toHaveTextContent('Loading');
-    expect(screen.queryByTestId('loading-indicator')).toBeNull();
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
   });
 
   it('has a loading indicator when type is "loading"', function () {
@@ -94,7 +94,7 @@ describe('Indicators', function () {
     clearIndicators();
     act(jest.runAllTimers);
     expect(wrapper.container).toHaveTextContent('');
-    expect(screen.queryByTestId('loading-indicator')).toBeNull();
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
   });
 
   it('adds and replaces toast by calling action creators', function () {
@@ -106,7 +106,7 @@ describe('Indicators', function () {
     addMessage('success', 'success', {duration: null});
     act(jest.runAllTimers);
     expect(wrapper.container).toHaveTextContent('success');
-    expect(screen.queryByTestId('loading-indicator')).toBeNull();
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
   });
 
   it('adds and replaces toasts by calling action creators helpers', async function () {
@@ -146,7 +146,7 @@ describe('Indicators', function () {
     clearIndicators();
     act(jest.runAllTimers);
     expect(wrapper.container).toHaveTextContent('');
-    expect(screen.queryByTestId('loading-indicator')).toBeNull();
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
   });
 
   it('dismisses on click', function () {
@@ -157,7 +157,7 @@ describe('Indicators', function () {
     fireEvent.click(screen.getByTestId('toast'));
     act(jest.runAllTimers);
     expect(wrapper.container).toHaveTextContent('');
-    expect(screen.queryByTestId('toast')).toBeNull();
+    expect(screen.queryByTestId('toast')).not.toBeInTheDocument();
   });
 
   it('hides after 10s', function () {
@@ -171,6 +171,6 @@ describe('Indicators', function () {
 
     act(() => jest.advanceTimersByTime(2));
     expect(wrapper.container).toHaveTextContent('');
-    expect(screen.queryByTestId('toast')).toBeNull();
+    expect(screen.queryByTestId('toast')).not.toBeInTheDocument();
   });
 });

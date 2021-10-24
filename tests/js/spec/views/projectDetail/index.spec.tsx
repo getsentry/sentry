@@ -67,7 +67,7 @@ describe('ProjectDetail', function () {
           'Event Processing for this project is currently degraded. Events may appear with larger delays than usual or get dropped.',
           {exact: false}
         )
-      ).toBe(null);
+      ).not.toBeInTheDocument();
     });
 
     it('renders alert', async function () {

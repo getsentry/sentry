@@ -62,6 +62,7 @@ export type DashboardWidgetModalOptions = {
   defaultWidgetQuery?: WidgetQuery;
   defaultTableColumns?: readonly string[];
   defaultTitle?: string;
+  displayType?: DisplayType;
   fromDiscover?: boolean;
   start?: DateString;
   end?: DateString;
@@ -102,12 +103,11 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
 
-    const {widget, defaultWidgetQuery, defaultTitle, fromDiscover} = props;
-
+    const {widget, defaultWidgetQuery, defaultTitle, displayType, fromDiscover} = props;
     if (!widget) {
       this.state = {
         title: defaultTitle ?? '',
-        displayType: DisplayType.LINE,
+        displayType: displayType ?? DisplayType.LINE,
         interval: '5m',
         queries: [defaultWidgetQuery ? {...defaultWidgetQuery} : {...newQuery}],
         errors: undefined,
