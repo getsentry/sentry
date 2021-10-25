@@ -270,12 +270,12 @@ function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
     }
   }, [slugsRef.current, provideUserTeams]);
 
+  const isSuperuser = isActiveSuperuser();
   let filteredTeams = store.teams;
   if (slugs) {
     filteredTeams = filteredTeams.filter(t => slugs.includes(t.slug));
-  } else if (provideUserTeams) {
-    const isSuperuser = isActiveSuperuser();
-    filteredTeams = filteredTeams.filter(t => t.isMember || isSuperuser);
+  } else if (provideUserTeams && !isSuperuser) {
+    filteredTeams = filteredTeams.filter(t => t.isMember);
   }
 
   const result: Result = {
