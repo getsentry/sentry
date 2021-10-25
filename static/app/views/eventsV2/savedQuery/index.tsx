@@ -392,7 +392,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
         key="add-dashboard-widget-from-discover"
         onClick={this.handleAddDashboardWidget}
       >
-        {t('Add to Dashboard')} <StyledFeatureBadge type="beta" noTooltip />
+        {t('Add to Dashboard')} <StyledFeatureBadge type="new" noTooltip />
       </AddToDashboardButton>
     );
   }

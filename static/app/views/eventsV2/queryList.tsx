@@ -222,7 +222,7 @@ class QueryList extends React.Component<Props> {
                         data-test-id="add-query-to-dashboard"
                         onClick={this.handleAddQueryToDashboard(eventView)}
                       >
-                        {t('Add to Dashboard')} <FeatureBadge type="beta" noTooltip />
+                        {t('Add to Dashboard')} <FeatureBadge type="new" noTooltip />
                       </StyledMenuItem>
                     </ContextMenu>
                   )
@@ -300,7 +300,7 @@ class QueryList extends React.Component<Props> {
                       data-test-id="add-query-to-dashboard"
                       onClick={this.handleAddQueryToDashboard(eventView, savedQuery)}
                     >
-                      {t('Add to Dashboard')} <FeatureBadge type="beta" noTooltip />
+                      {t('Add to Dashboard')} <FeatureBadge type="new" noTooltip />
                     </StyledMenuItem>
                   )
                 }
