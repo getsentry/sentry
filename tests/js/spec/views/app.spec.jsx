@@ -48,10 +48,10 @@ describe('App', function () {
       </App>
     );
 
-    const node = await screen.findByText(
+    const updatesViaEmail = await screen.findByText(
       'Yes, I would like to receive updates via email'
     );
-    expect(node).toBeInTheDocument();
+    expect(updatesViaEmail).toBeInTheDocument();
 
     user.flags.newsletter_consent_prompt = false;
   });
@@ -67,9 +67,9 @@ describe('App', function () {
       </App>
     );
 
-    const node = await screen.findByText(
+    const completeSetup = await screen.findByText(
       'Complete setup by filling out the required configuration.'
     );
-    expect(node).toBeInTheDocument();
+    expect(completeSetup).toBeInTheDocument();
   });
 });
