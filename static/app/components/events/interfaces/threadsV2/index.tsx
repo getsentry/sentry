@@ -15,7 +15,7 @@ import {defined} from 'app/utils';
 import TraceEventDataSection from '../../traceEventDataSection';
 import {DisplayOption} from '../../traceEventDataSection/displayOptions';
 import Exception from '../crashContent/exception';
-import StackTrace from '../crashContent/stacktrace';
+import StackTrace from '../crashContent/stackTrace';
 import NoStackTraceMessage from '../noStackTraceMessage';
 import ThreadSelector from '../threads/threadSelector';
 import findBestThread from '../threads/threadSelector/findBestThread';
