@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Callable, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
 from parsimonious.exceptions import ParseError
 from sentry_relay import parse_release as parse_release_relay
@@ -1045,8 +1045,9 @@ class QueryFilter(QueryFields):
         params: ParamsType,
         auto_fields: bool = False,
         functions_acl: Optional[List[str]] = None,
+        equation_config: Optional[Dict[str, bool]] = None,
     ):
-        super().__init__(dataset, params, auto_fields, functions_acl)
+        super().__init__(dataset, params, auto_fields, functions_acl, equation_config)
 
         self.search_filter_converter: Mapping[
             str, Callable[[SearchFilter], Optional[WhereType]]

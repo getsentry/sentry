@@ -6,12 +6,13 @@ from datetime import timedelta
 from typing import Dict, Optional, Sequence
 
 import sentry_sdk
+from dateutil.parser import parse as parse_datetime
 
 from sentry import options
 from sentry.discover.arithmetic import categorize_columns, resolve_equation_list
 from sentry.models import Group
 from sentry.models.transaction_threshold import ProjectTransactionThreshold
-from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.builder import QueryBuilder, TimeseriesQueryBuilder
 from sentry.search.events.constants import CONFIGURABLE_AGGREGATES, DEFAULT_PROJECT_THRESHOLD
 from sentry.search.events.fields import (
     FIELD_ALIASES,
@@ -24,6 +25,7 @@ from sentry.search.events.fields import (
 from sentry.search.events.filter import get_filter
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 from sentry.utils.compat import filter
+from sentry.utils.dates import to_timestamp
 from sentry.utils.math import mean, nice_int
 from sentry.utils.snuba import (
     SNUBA_AND,
@@ -106,6 +108,9 @@ def zerofill(data, start, end, rollup, orderby):
     data_by_time = {}
 
     for obj in data:
+        # This is needed for SnQL, and was originally done in utils.snuba.get_snuba_translators
+        if isinstance(obj["time"], str):
+            obj["time"] = int(to_timestamp(parse_datetime(obj["time"])))
         if obj["time"] in data_by_time:
             data_by_time[obj["time"]].append(obj)
         else:
@@ -467,6 +472,7 @@ def timeseries_query(
     referrer: Optional[str] = None,
     zerofill_results: bool = True,
     comparison_delta: Optional[timedelta] = None,
+    use_snql: Optional[bool] = False,
 ):
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -490,6 +496,30 @@ def timeseries_query(
     query time-shifted back by comparison_delta, and compare the results to get the % change for each
     time bucket. Requires that we only pass
     """
+    sentry_sdk.set_tag("discover.use_snql", use_snql and comparison_delta is None)
+    if use_snql and comparison_delta is None:
+        # temporarily add snql to referrer
+        referrer = f"{referrer}.wip-snql"
+        equations, columns = categorize_columns(selected_columns)
+        builder = TimeseriesQueryBuilder(
+            Dataset.Discover,
+            params,
+            rollup,
+            query=query,
+            selected_columns=columns,
+            equations=equations,
+        )
+        snql_query = builder.get_snql_query()
+
+        query_results = raw_snql_query(snql_query, referrer)
+
+        result = (
+            zerofill(query_results["data"], params["start"], params["end"], rollup, "time")
+            if zerofill_results
+            else query_results["data"]
+        )
+        return SnubaTSResult({"data": result}, params["start"], params["end"], rollup)
+
     with sentry_sdk.start_span(
         op="discover.discover", description="timeseries.filter_transform"
     ) as span:

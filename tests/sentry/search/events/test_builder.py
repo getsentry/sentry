@@ -48,7 +48,7 @@ class QueryBuilderTest(TestCase):
             ],
         )
         self.assertCountEqual(
-            query.select,
+            query.columns,
             [
                 AliasedExpression(Column("email"), "user.email"),
                 Column("release"),
@@ -232,7 +232,7 @@ class QueryBuilderTest(TestCase):
             ],
         )
         self.assertCountEqual(
-            query.select,
+            query.columns,
             [
                 Function(
                     "transform",
@@ -268,7 +268,7 @@ class QueryBuilderTest(TestCase):
         )
         # Because of the condition on project there should only be 1 project in the transform
         self.assertCountEqual(
-            query.select,
+            query.columns,
             [
                 Function(
                     "transform",
