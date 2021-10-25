@@ -20,7 +20,7 @@ type Props = {
   platform: PlatformType;
   eventId: Event['id'];
   // XXX: Organization is NOT available for Shared Issues!
-  organization: Organization;
+  organization?: Organization;
 } & Pick<ExceptionType, 'values'>;
 
 type State = {
