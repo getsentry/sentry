@@ -508,21 +508,3 @@ def send_and_save_webhook_request(sentry_app, app_platform_event, url=None):
             )
 
         return resp
-
-
-# a = {'metric_alert':
-# {'id': '2', 'identifier': '1', 'organization_id': '4', 'projects': ['bar'], 'alert_rule':
-#     {'id': '2', 'name': 'Ideal Gnat', 'organization_id': '4', 'status': 0, 'dataset': 'events', 'query': 'level:error', 'aggregate': 'count()', 'threshold_type': 0, 'resolve_threshold': None, 'time_window': 10.0, 'environment': None, 'resolution': 1.0, 'threshold_period': 1,
-#         'triggers': [
-#             {'id': '2', 'alert_rule_id': '2', 'label': 'hi', 'threshold_type': 0, 'alert_threshold': 1000.0, 'resolve_threshold': None, 'date_created': datetime.datetime(2021, 10, 22, 8, 57, 1, 154374, tzinfo=<UTC>),
-#                 'actions': [
-#                     {'id': '2', 'alert_rule_trigger_id': '2', 'type': 'sentry_app', 'target_type': 'sentry_app', 'target_identifier': 2, 'input_channel_id': None, 'integration_id': None, 'sentry_app_id': 2, 'date_created': datetime.datetime(2021, 10, 22, 8, 57, 1, 154374, tzinfo=<UTC>), 'desc': 'Send a notification via foo', 'settings': {'channel': '#santry', 'workspace': 'santrysantrysantry', 'tag': 'triage', 'assignee': 'Nisanthan Nanthakumar'}
-#                     }
-#                 ]
-#             }
-#         ],
-#         'projects': ['bar'], 'include_all_projects': False, 'owner': None, 'original_alert_rule_id': None, 'comparison_delta': None, 'date_modified': FakeDatetime(2021, 10, 22, 8, 57, 1, 154374, tzinfo=<UTC>), 'date_created': FakeDatetime(2021, 10, 22, 8, 57, 1, 154374, tzinfo=<UTC>), 'created_by': None
-#         },
-#     'activities': None, 'seen_by': None, 'has_seen': None, 'status': 2, 'status_method': 3, 'type': 2, 'title': 'Game Marten', 'date_started': FakeDatetime(2021, 10, 22, 8, 57, 1, 154374, tzinfo=<UTC>), 'date_detected': FakeDatetime(2021, 10, 22, 8, 57, 1, 154374, tzinfo=<UTC>), 'date_created': FakeDatetime(2021, 10, 22, 8, 57, 1, 154374, tzinfo=<UTC>), 'date_closed': None
-# }, 'description_text': '1000 events in the last 10 minutes\nFilter: level:error', 'description_title': 'Resolved: Ideal Gnat', 'web_url': 'http://testserver/organizations/baz/alerts/1/'
-# }
