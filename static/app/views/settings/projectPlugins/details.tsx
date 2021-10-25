@@ -40,8 +40,8 @@ type State = {
  *    PluginsStore
  */
 class ProjectPluginDetails extends AsyncView<Props, State> {
-  componentDidUpdate(prevProps: Props, prevContext: any) {
-    super.componentDidUpdate(prevProps, prevContext);
+  componentDidUpdate(prevProps: Props, prevState: any) {
+    super.componentDidUpdate(prevProps, prevState);
     if (prevProps.params.pluginId !== this.props.params.pluginId) {
       this.recordDetailsViewed();
     }
