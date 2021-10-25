@@ -2,6 +2,7 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
+import ListItem from 'app/components/list/listItem';
 import StrictClick from 'app/components/strictClick';
 import {PlatformType, SentryAppComponent} from 'app/types';
 import {Event} from 'app/types/event';

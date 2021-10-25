@@ -190,6 +190,13 @@ function Threads({
       eventId={event.id}
       recentFirst={isStacktraceNewestFirst()}
       fullStackTrace={stackView === STACK_VIEW.FULL}
+      hasMinified={
+        exception
+          ? !!exception.values?.find(value => value.rawStacktrace)
+          : hasMoreThanOneThread
+          ? !!activeThread?.rawStacktrace
+          : false
+      }
       title={getTitle()}
       platform={platform}
       showPermalink={!hasMoreThanOneThread}
