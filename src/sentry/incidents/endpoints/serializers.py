@@ -221,11 +221,6 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
             action = create_alert_rule_trigger_action(
                 trigger=self.context["trigger"], **validated_data
             )
-        except InvalidTriggerActionError as e:
-            raise serializers.ValidationError(force_text(e))
-        except ApiRateLimitedError as e:
-            raise serializers.ValidationError(force_text(e))
-        else:
             analytics.record(
                 "metric_alert_with_ui_component.created",
                 user_id=self.context["user"].id,
@@ -233,6 +228,10 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                 organization_id=self.context["organization"].id,
             )
             return action
+        except InvalidTriggerActionError as e:
+            raise serializers.ValidationError(force_text(e))
+        except ApiRateLimitedError as e:
+            raise serializers.ValidationError(force_text(e))
 
     def update(self, instance, validated_data):
         if "id" in validated_data:
