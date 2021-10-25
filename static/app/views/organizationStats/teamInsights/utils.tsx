@@ -31,6 +31,16 @@ export function convertDayValueObjectToSeries(
   }));
 }
 
+/**
+ * Takes a sorted array of trend items and groups them by worst/better/no chagne
+ */
+export function groupByTrend<T extends {trend: number}>(data: T[]): T[] {
+  const worseItems = data.filter(x => Math.round(x.trend) < 0);
+  const betterItems = data.filter(x => Math.round(x.trend) > 0);
+  const zeroItems = data.filter(x => Math.round(x.trend) === 0);
+  return [...worseItems, ...betterItems, ...zeroItems];
+}
+
 export const barAxisLabel = (
   dataEntries: number
 ): React.ComponentProps<typeof BaseChart>['xAxis'] => {
