@@ -67,7 +67,7 @@ describe('Frame - Line', function () {
           isExpanded
         />
       );
-      expect(screen.queryByRole('list')).toSnapshot();
+      expect(screen.getByRole('list')).toSnapshot();
     });
 
     it('should render register values', () => {

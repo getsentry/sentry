@@ -2,7 +2,7 @@ import cloneDeep from 'lodash/cloneDeep';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import ExceptionStacktraceContent from 'app/components/events/interfaces/exceptionStacktraceContent';
+import ExceptionStacktraceContent from 'app/components/events/interfaces/crashContent/exception/stackTrace';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 describe('ExceptionStacktraceContent', () => {
