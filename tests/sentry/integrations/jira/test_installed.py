@@ -5,8 +5,8 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.atlassian_connect import get_query_hash
 from sentry.models import Integration
 from sentry.testutils import APITestCase
-from sentry.testutils.helpers.jwt import RS256_KEY, RS256_PUB_KEY
 from sentry.utils.http import absolute_uri
+from tests.sentry.utils.test_jwt import RS256_KEY, RS256_PUB_KEY
 
 
 class JiraInstalledTest(APITestCase):
