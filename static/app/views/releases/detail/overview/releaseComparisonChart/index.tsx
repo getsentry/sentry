@@ -144,7 +144,7 @@ function ReleaseComparisonChart({
     end,
     organization.slug,
     location.query.project,
-    location.query.environment,
+    location.query.environment?.toString(),
     release.version,
   ]);
 
