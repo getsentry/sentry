@@ -1,4 +1,4 @@
-from typing import Mapping, Sequence
+from typing import Mapping, Optional, Sequence
 
 from rest_framework import serializers, status
 from rest_framework.response import Response
@@ -24,8 +24,8 @@ from sentry.web.decorators import transaction_start
 
 def trigger_alert_rule_action_creators(
     actions: Sequence[Mapping[str, str]],
-) -> bool:
-    created = False
+) -> Optional[str]:
+    created = None
     for action in actions:
         # Only call creator for Sentry Apps with UI Components for alert rules.
         if not action.get("hasSchemaFormConfig"):
@@ -42,7 +42,7 @@ def trigger_alert_rule_action_creators(
                 {"sentry_app": f'{install.sentry_app.name}: {result["message"]}'}
             )
         else:
-            created = True
+            created = "alert-rule-action"
     return created
 
 
@@ -148,7 +148,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
                 rule_type="issue",
                 sender=self,
                 is_api_token=request.auth is not None,
-                has_alert_rule_ui_component=created_alert_rule_ui_component,
+                alert_rule_ui_component=created_alert_rule_ui_component,
             )
 
             return Response(serialize(rule, request.user))

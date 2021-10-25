@@ -289,7 +289,7 @@ def record_alert_rule_created(
     is_api_token,
     referrer=None,
     session_id=None,
-    has_alert_rule_ui_component=None,
+    alert_rule_ui_component=None,
     **kwargs,
 ):
     if rule_type == "issue" and rule.label == DEFAULT_RULE_LABEL and rule.data == DEFAULT_RULE_DATA:
@@ -316,7 +316,7 @@ def record_alert_rule_created(
         referrer=referrer,
         session_id=session_id,
         is_api_token=is_api_token,
-        has_alert_rule_ui_component=str(has_alert_rule_ui_component),
+        alert_rule_ui_component=alert_rule_ui_component,
     )
 
 
