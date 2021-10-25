@@ -193,7 +193,7 @@ class SuspectSpan:
             "project": self.project,
             "transaction": self.transaction,
             "op": self.op,
-            "group": self.group,
+            "group": zero_left_pad(self.group, 16),
             "frequency": self.frequency,
             "count": self.count,
             "sumExclusiveTime": self.sum_exclusive_time,
@@ -340,6 +340,7 @@ def get_example_transaction(
     span_op: str,
     span_group: str,
 ) -> ExampleTransaction:
+    span_group_id = int(span_group, 16)
     event = eventstore.get_event_by_id(project_id, transaction_id)
     data = event.data
 
@@ -359,7 +360,7 @@ def get_example_transaction(
     matching_spans = [
         span
         for span in chain([root_span], data.get("spans", []))
-        if span["op"] == span_op and span["hash"] == span_group
+        if span["op"] == span_op and int(span["hash"], 16) == span_group_id
     ]
 
     # get the first non-None description
@@ -417,3 +418,9 @@ def get_exclusive_time_windows(span: ExampleSpan, spans: List[Any]) -> List[Time
         TimeWindow(start=span.start_timestamp, end=span.finish_timestamp),
         non_overlapping_children_time_windows,
     )
+
+
+def zero_left_pad(val: str, length: int) -> str:
+    if len(val) < length:
+        return "0" * max(length - len(val), 0) + val
+    return val
