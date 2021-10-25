@@ -1,9 +1,4 @@
-import {
-  fireEvent,
-  mountWithTheme,
-  screen,
-  waitFor,
-} from 'sentry-test/reactTestingLibrary';
+import {fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
 import Breadcrumbs from 'app/components/breadcrumbs';
 
@@ -84,11 +79,10 @@ describe('Breadcrumbs', () => {
     );
     fireEvent.mouseOver(screen.getByText('dropdown crumb'));
 
-    await waitFor(() => {
-      expect(screen.getByText('item3')).toBeInTheDocument();
-    });
+    const item3 = await screen.findByText('item3');
+    expect(item3).toBeInTheDocument();
 
-    fireEvent.click(screen.getByText('item3'));
+    fireEvent.click(item3);
     expect(onSelect).toHaveBeenCalledWith(
       expect.objectContaining({label: 'item3'}),
       expect.anything(),

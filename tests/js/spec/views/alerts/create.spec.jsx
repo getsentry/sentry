@@ -166,9 +166,8 @@ describe('ProjectAlertsCreate', function () {
     it('loads default values', async function () {
       createWrapper();
 
-      await waitFor(() => {
-        expect(screen.getByDisplayValue('__all_environments__')).toBeInTheDocument();
-      });
+      const allEnvironments = await screen.findByDisplayValue('__all_environments__');
+      expect(allEnvironments).toBeInTheDocument();
       expect(screen.getByDisplayValue('all')).toBeInTheDocument();
       expect(screen.getByDisplayValue('30')).toBeInTheDocument();
     });
