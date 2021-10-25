@@ -85,10 +85,17 @@ export function generateTransactionLink(transactionName: string) {
   return (
     organization: Organization,
     tableRow: TableDataRow,
-    query: Query
+    query: Query,
+    hash?: string
   ): LocationDescriptor => {
     const eventSlug = generateEventSlug(tableRow);
-    return getTransactionDetailsUrl(organization, eventSlug, transactionName, query);
+    return getTransactionDetailsUrl(
+      organization,
+      eventSlug,
+      transactionName,
+      query,
+      hash
+    );
   };
 }
 

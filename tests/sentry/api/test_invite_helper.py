@@ -1,9 +1,10 @@
+from unittest.mock import patch
+
 from django.http import HttpRequest
 
 from sentry.api.invite_helper import ApiInviteHelper
 from sentry.models import AuthProvider, OrganizationMember
 from sentry.testutils import TestCase
-from sentry.utils.compat.mock import patch
 
 
 class ApiInviteHelperTest(TestCase):

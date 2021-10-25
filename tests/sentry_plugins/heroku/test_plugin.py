@@ -1,4 +1,5 @@
 from datetime import timedelta
+from unittest.mock import Mock, patch
 
 from django.utils import timezone
 
@@ -15,7 +16,6 @@ from sentry.models import (
     User,
 )
 from sentry.testutils import TestCase
-from sentry.utils.compat.mock import Mock, patch
 from sentry_plugins.heroku.plugin import HerokuReleaseHook
 
 

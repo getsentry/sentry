@@ -78,7 +78,6 @@ jobs:
           css-path: src/sentry/static/sentry/dist/entrypoints/sentry.css
 
       - name: Save snapshots
-        if: always()
         uses: getsentry/action-visual-snapshot@v2
         with:
           save-only: true
@@ -150,7 +149,7 @@ jobs:
     timeout-minutes: 20
     strategy:
       matrix:
-        python-version: [3.6.13, 3.8.12]
+        python-version: [3.8.12]
         # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
         instance: [0, 1, 2, 3]
     env:
@@ -189,7 +188,6 @@ jobs:
           tar xf dist.tar.gz
 
       - name: Run acceptance tests (#${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
-        if: always()
         run: |
           mkdir -p ${{ steps.setup.outputs.acceptance-dir }}
           mkdir -p ${{ steps.setup.outputs.acceptance-dir }}-mobile
@@ -200,7 +198,6 @@ jobs:
           USE_SNUBA: 1
 
       - name: Save snapshots
-        if: always()
         uses: getsentry/action-visual-snapshot@v2
         with:
           save-only: true
@@ -215,7 +212,7 @@ jobs:
     timeout-minutes: 30
     strategy:
       matrix:
-        python-version: [3.6.13, 3.8.12]
+        python-version: [3.8.12]
         # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
         instance: [0]
     env:
@@ -261,7 +258,6 @@ jobs:
           PYTEST_SNAPSHOTS_DIR: ${{ steps.setup.outputs.acceptance-dir }}
 
       - name: Save snapshots
-        if: always()
         uses: getsentry/action-visual-snapshot@v2
         with:
           save-only: true

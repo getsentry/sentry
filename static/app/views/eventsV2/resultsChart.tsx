@@ -6,7 +6,9 @@ import isEqual from 'lodash/isEqual';
 
 import {Client} from 'app/api';
 import AreaChart from 'app/components/charts/areaChart';
+import BarChart from 'app/components/charts/barChart';
 import EventsChart from 'app/components/charts/eventsChart';
+import {getInterval} from 'app/components/charts/utils';
 import WorldMapChart from 'app/components/charts/worldMapChart';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {Panel} from 'app/components/panels';
@@ -15,7 +17,12 @@ import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import EventView from 'app/utils/discover/eventView';
-import {DisplayModes, TOP_N} from 'app/utils/discover/types';
+import {isEquation} from 'app/utils/discover/fields';
+import {
+  DisplayModes,
+  MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES,
+  TOP_N,
+} from 'app/utils/discover/types';
 import getDynamicText from 'app/utils/getDynamicText';
 import {decodeScalar} from 'app/utils/queryString';
 import withApi from 'app/utils/withApi';
@@ -79,9 +86,23 @@ class ResultsChart extends Component<ResultsChartProps> {
     const chartComponent =
       display === DisplayModes.WORLDMAP
         ? WorldMapChart
+        : display === DisplayModes.BAR
+        ? BarChart
         : hasConnectDiscoverAndDashboards && yAxisValue.length > 1 && !isDaily
         ? AreaChart
         : undefined;
+    const interval =
+      display === DisplayModes.BAR
+        ? getInterval(
+            {
+              start,
+              end,
+              period: globalSelection.datetime.period,
+              utc: utc === 'true',
+            },
+            'low'
+          )
+        : eventView.interval;
 
     return (
       <Fragment>
@@ -102,7 +123,7 @@ class ResultsChart extends Component<ResultsChartProps> {
               disablePrevious={!isPrevious}
               disableReleases={!isPeriod}
               field={isTopEvents ? apiPayload.field : undefined}
-              interval={eventView.interval}
+              interval={interval}
               showDaily={isDaily}
               topEvents={isTopEvents ? topEvents : undefined}
               orderby={isTopEvents ? decodeScalar(apiPayload.sort) : undefined}
@@ -201,9 +222,7 @@ class ResultsChartContainer extends Component<ContainerProps> {
         }
         if (
           yAxis.length > 1 &&
-          ![DisplayModes.DEFAULT, DisplayModes.DAILY, DisplayModes.PREVIOUS].includes(
-            opt.value as DisplayModes
-          )
+          !MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES.includes(opt.value as DisplayModes)
         ) {
           return {
             ...opt,
@@ -217,6 +236,27 @@ class ResultsChartContainer extends Component<ContainerProps> {
       });
 
     const yAxisValue = hasConnectDiscoverAndDashboards ? yAxis : [eventView.getYAxis()];
+    let yAxisOptions = eventView.getYAxisOptions();
+    // Hide multi y axis checkbox when in an unsupported Display Mode
+    if (
+      !MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES.includes(
+        eventView.getDisplayMode() as DisplayModes
+      )
+    ) {
+      yAxisOptions = yAxisOptions.map(option => {
+        return {
+          ...option,
+          disabled: true,
+          tooltip: t('Multiple Y-Axis cannot be plotted on this Display mode.'),
+          checkboxHidden: true,
+        };
+      });
+    }
+    // Equations on World Map isn't supported on the events-geo endpoint
+    // Disabling equations as an option to prevent erroring out
+    if (eventView.getDisplayMode() === DisplayModes.WORLDMAP) {
+      yAxisOptions = yAxisOptions.filter(({value}) => !isEquation(value));
+    }
 
     return (
       <StyledPanel>
@@ -235,7 +275,7 @@ class ResultsChartContainer extends Component<ContainerProps> {
           organization={organization}
           total={total}
           yAxisValue={yAxisValue}
-          yAxisOptions={eventView.getYAxisOptions()}
+          yAxisOptions={yAxisOptions}
           onAxisChange={onAxisChange}
           displayOptions={displayOptions}
           displayMode={eventView.getDisplayMode()}

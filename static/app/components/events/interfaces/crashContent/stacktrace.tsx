@@ -1,10 +1,11 @@
 import ErrorBoundary from 'app/components/errorBoundary';
 import rawStacktraceContent from 'app/components/events/interfaces/rawStacktraceContent';
-import StacktraceContent from 'app/components/events/interfaces/stacktraceContent';
-import StacktraceContentV2 from 'app/components/events/interfaces/stacktraceContentV2';
 import {PlatformType} from 'app/types';
 import {Event} from 'app/types/event';
 import {STACK_VIEW, StacktraceType} from 'app/types/stacktrace';
+
+import StacktraceContent from '../stacktraceContent';
+import StacktraceContentV2 from '../stacktraceContentV2';
 
 type Props = Pick<
   React.ComponentProps<typeof StacktraceContentV2>,

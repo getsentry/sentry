@@ -36,7 +36,7 @@ describe('ErrorRobot', function () {
     it('Renders a button for creating an event', function () {
       createWrapper();
       const button = screen.getByRole('button', {name: 'Create a sample event'});
-      expect(button).not.toBeDisabled();
+      expect(button).toBeEnabled();
       expect(getIssues).toHaveBeenCalled();
     });
 
@@ -66,7 +66,7 @@ describe('ErrorRobot', function () {
 
     it('does not display install instructions', function () {
       createWrapper();
-      expect(screen.queryByText('Installation Instructions')).toBeNull();
+      expect(screen.queryByText('Installation Instructions')).not.toBeInTheDocument();
     });
   });
 });
