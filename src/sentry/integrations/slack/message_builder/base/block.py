@@ -1,16 +1,8 @@
 from abc import ABC
-from typing import TYPE_CHECKING, Any, Dict, List, MutableMapping, Optional, Sequence, Tuple
+from typing import Any, Dict, List, MutableMapping, Optional, Sequence, Tuple, TypedDict
 
 from sentry.integrations.slack.message_builder import SlackBlock, SlackBody
 from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
-
-# TODO(3.8): This is a hack so we can get TypedDicts before 3.8
-if TYPE_CHECKING:
-    from mypy_extensions import TypedDict
-else:
-
-    def TypedDict(*args, **kwargs):
-        pass
 
 
 class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
@@ -46,9 +38,10 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
 
     @staticmethod
     def get_action_block(actions: Sequence[Tuple[str, Optional[str], str]]) -> SlackBlock:
-        SlackBlockType = TypedDict(
-            "SlackBlockType", {"type": str, "elements": List[Dict[str, Any]]}
-        )
+        class SlackBlockType(TypedDict):
+            type: str
+            elements: List[Dict[str, Any]]
+
         action_block: SlackBlockType = {"type": "actions", "elements": []}
         for text, url, value in actions:
             button = {

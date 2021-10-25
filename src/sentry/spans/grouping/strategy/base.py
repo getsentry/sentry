@@ -1,35 +1,23 @@
 import re
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Sequence
+from typing import Any, Callable, Dict, Optional, Sequence, TypedDict
 from urllib.parse import urlparse
 
 from sentry.spans.grouping.utils import Hash, parse_fingerprint_var
 
-# TODO(3.8): This is a hack so we can get TypedDicts before 3.8
-if TYPE_CHECKING:
-    from mypy_extensions import TypedDict
-else:
 
-    def TypedDict(*args, **kwargs):
-        pass
-
-
-Span = TypedDict(
-    "Span",
-    {
-        "trace_id": str,
-        "parent_span_id": str,
-        "span_id": str,
-        "start_timestamp": float,
-        "timestamp": float,
-        "same_process_as_parent": bool,
-        "op": str,
-        "description": Optional[str],
-        "fingerprint": Optional[Sequence[str]],
-        "tags": Optional[Any],
-        "data": Optional[Any],
-    },
-)
+class Span(TypedDict):
+    trace_id: str
+    parent_span_id: str
+    span_id: str
+    start_timestamp: float
+    timestamp: float
+    same_process_as_parent: bool
+    op: str
+    description: Optional[str]
+    fingerprint: Optional[Sequence[str]]
+    tags: Optional[Any]
+    data: Optional[Any]
 
 
 # A callable strategy is a callable that when given a span, it tries to
