@@ -15,7 +15,7 @@ import {getFrameHint} from './utils';
 
 type Props = {
   frame: Frame;
-  absoluteFilePaths: boolean;
+  absoluteFilePaths?: boolean;
   showCompleteFunctionName?: boolean;
   nativeStackTraceV2?: boolean;
   isUsedForGrouping?: boolean;
