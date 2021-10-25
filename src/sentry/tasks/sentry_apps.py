@@ -473,7 +473,7 @@ def send_and_save_webhook_request(sentry_app, app_platform_event, url=None):
 
         resp.raise_for_status()
 
-        # On success, record BigQuery analytic event
+        # On success, record analytic event
         # Handle Metric Alerts
         if app_platform_event.resource == "metric_alert":
             # Loop through the triggers for the alert rule. For each trigger, check if an action is an alert rule UI Component
