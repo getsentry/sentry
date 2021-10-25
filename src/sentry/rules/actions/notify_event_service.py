@@ -6,6 +6,7 @@ import logging
 
 from django import forms
 
+from sentry import analytics
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.app_platform_event import AppPlatformEvent
 from sentry.api.serializers.models.incident import IncidentSerializer
@@ -70,18 +71,44 @@ def send_incident_alert_notification(action, incident, metric_value=None, method
             },
         )
         return
-
-    send_and_save_webhook_request(
-        sentry_app,
-        AppPlatformEvent(
+    try:
+        app_platform_event = AppPlatformEvent(
             resource="metric_alert",
             action=INCIDENT_STATUS[
                 incident_status_info(incident, metric_value, action, method)
             ].lower(),
             install=install,
             data=build_incident_attachment(action, incident, metric_value, method),
-        ),
-    )
+        )
+        send_and_save_webhook_request(
+            sentry_app,
+            app_platform_event,
+        )
+    except Exception as e:
+        raise e
+    else:
+        # On success, record analytic event for Metric Alert Rule UI Component
+        # Loop through the triggers for the alert rule. For each trigger, check if an action is an alert rule UI Component
+        alert_rule_ui_component_action = False
+        for trigger in app_platform_event.data["metric_alert"]["alert_rule"]["triggers"]:
+            alert_rule_ui_component_action = next(
+                iter(
+                    filter(
+                        lambda action: action["type"] == "sentry_app"
+                        and action["settings"] is not None,
+                        trigger["actions"],
+                    )
+                ),
+                None,
+            )
+
+        if alert_rule_ui_component_action:
+            analytics.record(
+                "alert_rule_ui_component_webhook.sent",
+                organization_id=organization.id,
+                sentry_app_id=sentry_app.id,
+                event=f"{app_platform_event.resource}.{app_platform_event.action}",
+            )
 
 
 class NotifyEventServiceForm(forms.Form):

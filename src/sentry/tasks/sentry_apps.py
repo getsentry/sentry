@@ -131,8 +131,19 @@ def send_alert_event(
     request_data = AppPlatformEvent(
         resource="event_alert", action="triggered", install=install, data=data
     )
-
-    send_and_save_webhook_request(sentry_app, request_data)
+    try:
+        send_and_save_webhook_request(sentry_app, request_data)
+    except Exception as e:
+        raise e
+    else:
+        # On success, record analytic event for Alert Rule UI Component
+        if request_data.data.get("issue_alert"):
+            analytics.record(
+                "alert_rule_ui_component_webhook.sent",
+                organization_id=organization.id,
+                sentry_app_id=sentry_app_id,
+                event=f"{request_data.resource}.{request_data.action}",
+            )
 
 
 def _process_resource_change(action, sender, instance_id, retryer=None, *args, **kwargs):
@@ -472,39 +483,4 @@ def send_and_save_webhook_request(sentry_app, app_platform_event, url=None):
             raise ClientError(resp.status_code, url, response=resp)
 
         resp.raise_for_status()
-
-        # On success, record analytic event
-        # Handle Metric Alerts
-        if app_platform_event.resource == "metric_alert":
-            # Loop through the triggers for the alert rule. For each trigger, check if an action is an alert rule UI Component
-            for trigger in app_platform_event.data["metric_alert"]["alert_rule"]["triggers"]:
-                alert_rule_ui_component_action = next(
-                    iter(
-                        filter(
-                            lambda action: action["type"] == "sentry_app"
-                            and action["settings"] is not None,
-                            trigger["actions"],
-                        )
-                    ),
-                    None,
-                )
-
-            if alert_rule_ui_component_action:
-                analytics.record(
-                    "alert_rule_ui_component_webhook.sent",
-                    organization_id=org_id,
-                    sentry_app_id=sentry_app.id,
-                    event=event,
-                )
-        # Handle Issue Alert
-        if app_platform_event.resource == "event_alert" and app_platform_event.data.get(
-            "issue_alert"
-        ):
-            analytics.record(
-                "alert_rule_ui_component_webhook.sent",
-                organization_id=org_id,
-                sentry_app_id=sentry_app.id,
-                event=event,
-            )
-
         return resp
