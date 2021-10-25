@@ -1,4 +1,4 @@
-import {mountWithTheme, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'app/stores/configStore';
 import App from 'app/views/app';
@@ -48,10 +48,10 @@ describe('App', function () {
       </App>
     );
 
-    await waitFor(() => {
-      const node = screen.getByText('Yes, I would like to receive updates via email');
-      return expect(node).toBeInTheDocument();
-    });
+    const node = await screen.findByText(
+      'Yes, I would like to receive updates via email'
+    );
+    expect(node).toBeInTheDocument();
 
     user.flags.newsletter_consent_prompt = false;
   });
@@ -67,11 +67,9 @@ describe('App', function () {
       </App>
     );
 
-    await waitFor(() => {
-      const node = screen.getByText(
-        'Complete setup by filling out the required configuration.'
-      );
-      return expect(node).toBeInTheDocument();
-    });
+    const node = await screen.findByText(
+      'Complete setup by filling out the required configuration.'
+    );
+    expect(node).toBeInTheDocument();
   });
 });
