@@ -103,7 +103,7 @@
     "prism-sentry": "^1.0.2",
     "process": "^0.11.10",
     "prop-types": "^15.6.0",
-    "pyright": "^1.1.178",
+    "pyright": "^1.1.181",
     "qrcode.react": "^1.0.1",
     "query-string": "7.0.1",
     "react": "17.0.2",
@@ -188,6 +188,7 @@
     "fsevents": "^2.3.2"
   },
   "resolutions": {
+    "**/ua-parser-js": "<=0.7.28",
     "**/is-svg": ">=4.2.2",
     "webpack": "5.48.0",
     "css-loader": "^5.2.6",
