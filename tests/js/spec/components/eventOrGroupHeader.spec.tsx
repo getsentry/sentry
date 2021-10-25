@@ -97,7 +97,7 @@ describe('EventOrGroupHeader', function () {
         {context: routerContext}
       );
 
-      expect(screen.getByText('metadata value')).toBeTruthy();
+      expect(screen.getByText('metadata value')).toBeInTheDocument();
     });
 
     it('renders location', async function () {

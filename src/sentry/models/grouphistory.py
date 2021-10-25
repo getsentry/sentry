@@ -1,12 +1,19 @@
+from typing import TYPE_CHECKING, Optional, Union
+
 from django.db import models
+from django.db.models import SET_NULL
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from sentry import features
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
+
+if TYPE_CHECKING:
+    from sentry.models import Group, Release, Team, User
 
 
 class GroupHistoryStatus:
+    # Note that we don't record the initial group creation unresolved here to save on creating a row
+    # for every group.
     UNRESOLVED = 0
     RESOLVED = 1
     SET_RESOLVED_IN_RELEASE = 11
@@ -34,6 +41,29 @@ ACTIONED_STATUSES = [
     GroupHistoryStatus.DELETED_AND_DISCARDED,
 ]
 
+UNRESOLVED_STATUSES = (GroupHistoryStatus.UNRESOLVED, GroupHistoryStatus.REGRESSED)
+RESOLVED_STATUSES = (
+    GroupHistoryStatus.RESOLVED,
+    GroupHistoryStatus.SET_RESOLVED_IN_RELEASE,
+    GroupHistoryStatus.SET_RESOLVED_IN_COMMIT,
+    GroupHistoryStatus.SET_RESOLVED_IN_PULL_REQUEST,
+    GroupHistoryStatus.AUTO_RESOLVED,
+)
+
+PREVIOUS_STATUSES = {
+    GroupHistoryStatus.UNRESOLVED: RESOLVED_STATUSES,
+    GroupHistoryStatus.RESOLVED: UNRESOLVED_STATUSES,
+    GroupHistoryStatus.SET_RESOLVED_IN_RELEASE: UNRESOLVED_STATUSES,
+    GroupHistoryStatus.SET_RESOLVED_IN_COMMIT: UNRESOLVED_STATUSES,
+    GroupHistoryStatus.SET_RESOLVED_IN_PULL_REQUEST: UNRESOLVED_STATUSES,
+    GroupHistoryStatus.AUTO_RESOLVED: UNRESOLVED_STATUSES,
+    GroupHistoryStatus.IGNORED: (GroupHistoryStatus.UNIGNORED,),
+    GroupHistoryStatus.UNIGNORED: (GroupHistoryStatus.IGNORED,),
+    GroupHistoryStatus.ASSIGNED: (GroupHistoryStatus.UNASSIGNED,),
+    GroupHistoryStatus.UNASSIGNED: (GroupHistoryStatus.ASSIGNED,),
+    GroupHistoryStatus.REGRESSED: RESOLVED_STATUSES,
+}
+
 
 class GroupHistory(Model):
     """
@@ -50,7 +80,7 @@ class GroupHistory(Model):
     group = FlexibleForeignKey("sentry.Group", db_constraint=False)
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
     release = FlexibleForeignKey("sentry.Release", null=True, db_constraint=False)
-    actor = FlexibleForeignKey("sentry.Actor", null=True)
+    actor = FlexibleForeignKey("sentry.Actor", null=True, on_delete=SET_NULL)
 
     status = BoundedPositiveIntegerField(
         default=0,
@@ -82,19 +112,31 @@ class GroupHistory(Model):
     class Meta:
         db_table = "sentry_grouphistory"
         app_label = "sentry"
-        index_together = (("project", "status", "release"),)
+        index_together = (("project", "status", "release"), ("group", "status"))
 
     __repr__ = sane_repr("group_id", "release_id")
 
 
-def get_prev_history(group):
-    prev_histories = GroupHistory.objects.filter(group=group).order_by("date_added")
-    if prev_histories.exists():
-        return prev_histories.first()
-    return None
+def get_prev_history(group, status):
+    """
+    Finds the most recent row that is the inverse of this history row, if one exists.
+    """
+    previous_statuses = PREVIOUS_STATUSES.get(status)
+    if not previous_statuses:
+        return
+
+    prev_histories = GroupHistory.objects.filter(
+        group=group, status__in=previous_statuses
+    ).order_by("-date_added")
+    return prev_histories.first()
 
 
-def record_group_history_from_activity_type(group, activity_type, actor=None, release=None):
+def record_group_history_from_activity_type(
+    group: "Group",
+    activity_type: int,
+    actor: Optional[Union["User", "Team"]] = None,
+    release: Optional["Release"] = None,
+):
     """
     Writes a `GroupHistory` row for an activity type if there's a relevant `GroupHistoryStatus` that
     maps to it
@@ -104,10 +146,13 @@ def record_group_history_from_activity_type(group, activity_type, actor=None, re
         return record_group_history(group, status, actor, release)
 
 
-def record_group_history(group, status, actor=None, release=None):
-    prev_history = get_prev_history(group)
-    if not features.has("organizations:group-history", group.organization):
-        return
+def record_group_history(
+    group: "Group",
+    status: int,
+    actor: Optional[Union["User", "Team"]] = None,
+    release: Optional["Release"] = None,
+):
+    prev_history = get_prev_history(group, status)
     return GroupHistory.objects.create(
         organization=group.project.organization,
         group=group,

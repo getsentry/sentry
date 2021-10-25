@@ -1,3 +1,4 @@
+import {ReactText} from 'react';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
 
@@ -59,6 +60,25 @@ export const LANDING_DISPLAYS = [
     badge: 'new' as const,
   },
 ];
+
+export function excludeTransaction(
+  transaction: string | ReactText,
+  props: {eventView: EventView; location: Location}
+) {
+  const {eventView, location} = props;
+
+  const searchConditions = new MutableSearch(eventView.query);
+  searchConditions.addFilterValues('!transaction', [`${transaction}`]);
+
+  browserHistory.push({
+    pathname: location.pathname,
+    query: {
+      ...location.query,
+      cursor: undefined,
+      query: searchConditions.formatString(),
+    },
+  });
+}
 
 export function getCurrentLandingDisplay(
   location: Location,

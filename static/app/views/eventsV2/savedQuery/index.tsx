@@ -17,7 +17,6 @@ import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
 import DropdownControl from 'app/components/dropdownControl';
 import FeatureBadge from 'app/components/featureBadge';
 import Hovercard from 'app/components/hovercard';
-import MenuItem from 'app/components/menuItem';
 import {IconDelete, IconStar} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -26,14 +25,19 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'app/utils/discover/eventView';
 import {getEquation, isEquation} from 'app/utils/discover/fields';
+import {DisplayModes} from 'app/utils/discover/types';
 import {getDiscoverLandingUrl} from 'app/utils/discover/urls';
 import withApi from 'app/utils/withApi';
 import withProjects from 'app/utils/withProjects';
 import {WidgetQuery} from 'app/views/dashboardsV2/types';
 import InputControl from 'app/views/settings/components/forms/controls/input';
 
-import DiscoverQueryMenu from './discoverQueryMenu';
-import {handleCreateQuery, handleDeleteQuery, handleUpdateQuery} from './utils';
+import {
+  displayModeToDisplayType,
+  handleCreateQuery,
+  handleDeleteQuery,
+  handleUpdateQuery,
+} from './utils';
 
 type DefaultProps = {
   disabled: boolean;
@@ -243,11 +247,12 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
       }
       return true;
     });
+    const sort = eventView.sorts[0];
     const defaultWidgetQuery: WidgetQuery = {
       name: '',
       fields: validYAxis && validYAxis.length > 0 ? validYAxis : ['count()'],
       conditions: eventView.query,
-      orderby: '',
+      orderby: sort ? `${sort.kind === 'desc' ? '-' : ''}${sort.field}` : '',
     };
 
     trackAdvancedAnalyticsEvent('discover_views.add_to_dashboard.modal_open', {
@@ -263,6 +268,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
       defaultTitle:
         savedQuery?.name ??
         (eventView.name !== 'All Events' ? eventView.name : undefined),
+      displayType: displayModeToDisplayType(eventView.display as DisplayModes),
     });
   };
 
@@ -380,17 +386,15 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     );
   }
 
-  renderDiscoverQueryMenu() {
-    const menuOptions: React.ReactNode[] = [];
-    menuOptions.push(
-      <StyledMenuItem
+  renderButtonAddToDashboard() {
+    return (
+      <AddToDashboardButton
         key="add-dashboard-widget-from-discover"
         onClick={this.handleAddDashboardWidget}
       >
-        {t('Add to Dashboard')} <FeatureBadge type="beta" noTooltip />
-      </StyledMenuItem>
+        {t('Add to Dashboard')} <StyledFeatureBadge type="beta" noTooltip />
+      </AddToDashboardButton>
     );
-    return <DiscoverQueryMenu>{menuOptions}</DiscoverQueryMenu>;
   }
 
   render() {
@@ -430,13 +434,13 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
         <Feature organization={organization} features={['incidents']}>
           {({hasFeature}) => hasFeature && this.renderButtonCreateAlert()}
         </Feature>
-        {renderQueryButton(disabled => this.renderButtonDelete(disabled))}
         <Feature
           organization={organization}
           features={['connect-discover-and-dashboards', 'dashboards-edit']}
         >
-          {({hasFeature}) => hasFeature && this.renderDiscoverQueryMenu()}
+          {({hasFeature}) => hasFeature && this.renderButtonAddToDashboard()}
         </Feature>
+        {renderQueryButton(disabled => this.renderButtonDelete(disabled))}
       </ResponsiveButtonBar>
     );
   }
@@ -469,11 +473,13 @@ const IconUpdate = styled('div')`
   background-color: ${p => p.theme.yellow300};
 `;
 
-const StyledMenuItem = styled(MenuItem)`
-  white-space: nowrap;
+const AddToDashboardButton = styled(Button)`
   span {
-    align-items: baseline;
+    height: 38px;
   }
 `;
 
+const StyledFeatureBadge = styled(FeatureBadge)`
+  overflow: auto;
+`;
 export default withProjects(withApi(SavedQueryButtonGroup));

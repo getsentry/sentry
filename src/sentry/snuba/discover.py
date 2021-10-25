@@ -109,6 +109,7 @@ def zerofill(data, start, end, rollup, orderby):
     data_by_time = {}
 
     for obj in data:
+        # This is needed for SnQL, and was originally done in utils.snuba.get_snuba_translators
         if isinstance(obj["time"], str):
             obj["time"] = int(to_timestamp(parse_datetime(obj["time"])))
         if obj["time"] in data_by_time:
@@ -336,7 +337,7 @@ def prepare_discover_query(
 
     with sentry_sdk.start_span(op="discover.discover", description="query.field_translations"):
         if equations is not None:
-            resolved_equations, _, _, _ = resolve_equation_list(equations, selected_columns)
+            resolved_equations, _, _ = resolve_equation_list(equations, selected_columns)
         else:
             resolved_equations = []
 
@@ -414,7 +415,7 @@ def get_timeseries_snuba_filter(selected_columns, query, params):
     equations, columns = categorize_columns(selected_columns)
 
     if len(equations) > 0:
-        resolved_equations, updated_columns, _, _ = resolve_equation_list(
+        resolved_equations, updated_columns, _ = resolve_equation_list(
             equations, columns, aggregates_only=True, auto_add=True
         )
     else:

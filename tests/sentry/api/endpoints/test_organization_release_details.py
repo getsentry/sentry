@@ -1,5 +1,6 @@
 import unittest
 from datetime import datetime, timedelta
+from unittest.mock import patch
 
 import pytz
 from django.urls import reverse
@@ -20,7 +21,6 @@ from sentry.models import (
     Repository,
 )
 from sentry.testutils import APITestCase
-from sentry.utils.compat.mock import patch
 
 
 class ReleaseDetailsTest(APITestCase):

@@ -13,10 +13,12 @@ jobs:
     timeout-minutes: 30
     strategy:
       matrix:
+        python-version: [3.8.12]
+        # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
         instance: [0, 1]
-        # TODO(joshuarli): Add 3.8.12.
-        python-version: [3.6.13]
     env:
+      # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
+      MATRIX_INSTANCE_TOTAL: 2
       USE_SNUBA: 1
       MIGRATIONS_TEST_MIGRATE: 1
       USE_INDEXER: 1
@@ -54,7 +56,7 @@ jobs:
           snuba: true
           kafka: true
 
-      - name: Run snuba test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
+      - name: Run snuba test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         if: steps.changes.outputs.backend == 'true'
         run: |
           make test-snuba

@@ -3,10 +3,10 @@ __all__ = ["Feature", "with_feature"]
 import logging
 from collections.abc import Mapping
 from contextlib import contextmanager
+from unittest.mock import patch
 
 import sentry.features
 from sentry.features.exceptions import FeatureNotRegistered
-from sentry.utils.compat.mock import patch
 
 logger = logging.getLogger(__name__)
 

@@ -12,8 +12,8 @@ from snuba_sdk.function import CurriedFunction, Function
 from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry.discover.arithmetic import (
+    OperandType,
     Operation,
-    OperationSideType,
     is_equation_alias,
     resolve_equation_list,
 )
@@ -2454,6 +2454,9 @@ class QueryFields(QueryBase):
                     result_type_fn=reflective_result_type(),
                     default_result_type="duration",
                     redundant_grouping=True,
+                    combinators=[
+                        SnQLArrayCombinator("column", NumericColumn.numeric_array_columns)
+                    ],
                 ),
                 SnQLFunction(
                     "p50",
@@ -2666,6 +2669,9 @@ class QueryFields(QueryBase):
                     result_type_fn=reflective_result_type(),
                     default_result_type="duration",
                     redundant_grouping=True,
+                    combinators=[
+                        SnQLArrayCombinator("column", NumericColumn.numeric_array_columns)
+                    ],
                 ),
                 SnQLFunction(
                     "avg",
@@ -2806,15 +2812,15 @@ class QueryFields(QueryBase):
         stripped_columns = [column.strip() for column in selected_columns]
 
         if equations:
-            _, _, parsed_equations, contains_function = resolve_equation_list(
+            _, _, parsed_equations = resolve_equation_list(
                 equations, stripped_columns, use_snql=True, **self.equation_config
             )
-            for index, (equation, is_function) in enumerate(
-                zip(parsed_equations, contains_function)
-            ):
-                resolved_equation = self.resolve_equation(equation, f"equation[{index}]")
+            for index, parsed_equation in enumerate(parsed_equations):
+                resolved_equation = self.resolve_equation(
+                    parsed_equation.equation, f"equation[{index}]"
+                )
                 resolved_columns.append(resolved_equation)
-                if is_function:
+                if parsed_equation.contains_functions:
                     self.aggregates.append(resolved_equation)
 
         # Add threshold config alias if there's a function that depends on it
@@ -2885,18 +2891,18 @@ class QueryFields(QueryBase):
 
     def resolve_equation(self, equation: Operation, alias: Optional[str] = None) -> SelectType:
         """Convert this tree of Operations to the equivalent snql functions"""
-        lhs = self._resolve_equation_side(equation.lhs)
-        rhs = self._resolve_equation_side(equation.rhs)
+        lhs = self._resolve_equation_operand(equation.lhs)
+        rhs = self._resolve_equation_operand(equation.rhs)
         result = Function(equation.operator, [lhs, rhs], alias)
         return result
 
-    def _resolve_equation_side(self, side: OperationSideType) -> Union[SelectType, float]:
-        if isinstance(side, Operation):
-            return self.resolve_equation(side)
-        elif isinstance(side, float):
-            return side
+    def _resolve_equation_operand(self, operand: OperandType) -> Union[SelectType, float]:
+        if isinstance(operand, Operation):
+            return self.resolve_equation(operand)
+        elif isinstance(operand, float):
+            return operand
         else:
-            return self.resolve_column(side)
+            return self.resolve_column(operand)
 
     def is_equation_column(self, column: SelectType) -> bool:
         """Equations are only ever functions, and shouldn't be literals so we

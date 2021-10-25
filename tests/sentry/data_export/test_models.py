@@ -1,5 +1,6 @@
 import tempfile
 from datetime import timedelta
+from unittest.mock import patch
 
 from django.core import mail
 from django.urls import reverse
@@ -10,7 +11,6 @@ from sentry.data_export.models import ExportedData
 from sentry.models import File
 from sentry.testutils import TestCase
 from sentry.utils import json
-from sentry.utils.compat.mock import patch
 from sentry.utils.http import absolute_uri
 
 
