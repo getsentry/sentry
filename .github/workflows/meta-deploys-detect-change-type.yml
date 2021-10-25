@@ -14,20 +14,4 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Check for file changes
-        uses: getsentry/paths-filter@master
-        id: changes
-        with:
-          list-files: shell
-          token: ${{ github.token }}
-          filters: .github/file-filters.yml
-
-      - name: Create GitHub job
-        uses: actions/github-script@v5
-        with:
-          script: |
-            require(`${process.env.GITHUB_WORKSPACE}/.github/workflows/scripts/deploy`).updateChangeType({
-              github,
-              context,
-              fileChanges: ${{ toJson(steps.changes.outputs) }}
-            });
+      - uses: getsentry/actions/sentry-what-changed@main
