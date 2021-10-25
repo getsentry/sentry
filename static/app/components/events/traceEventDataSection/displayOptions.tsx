@@ -1,4 +1,3 @@
-import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 
 import {ButtonLabel} from 'app/components/button';
@@ -208,7 +207,7 @@ const StyledListItem = styled(ListItem)<{isChecked: boolean; isDisabled: boolean
 
   ${p =>
     p.isDisabled &&
-    css`
+    `
       color: ${p.theme.disabled};
       cursor: not-allowed;
 
