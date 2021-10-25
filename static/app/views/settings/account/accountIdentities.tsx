@@ -101,18 +101,39 @@ class AccountIdentities extends AsyncView<Props, State> {
   };
 
   renderBody() {
+    const appIdentities = this.state.identities?.filter(
+      identity => identity.category !== UserIdentityCategory.ORG_IDENTITY
+    );
+    const orgIdentities = this.state.identities?.filter(
+      identity => identity.category === UserIdentityCategory.ORG_IDENTITY
+    );
+
     return (
       <div>
         <SettingsPageHeader title="Identities" />
+
         <Panel>
-          <PanelHeader>{t('Identities')}</PanelHeader>
+          <PanelHeader>{t('Application Identities')}</PanelHeader>
           <PanelBody>
-            {!this.state.identities?.length ? (
+            {!appIdentities?.length ? (
               <EmptyMessage>
-                {t('There are no identities associated with this account')}
+                {t('There are no application identities associated with this account')}
               </EmptyMessage>
             ) : (
-              this.state.identities.map(this.renderItem)
+              appIdentities.map(this.renderItem)
+            )}
+          </PanelBody>
+        </Panel>
+
+        <Panel>
+          <PanelHeader>{t('Organization Identities')}</PanelHeader>
+          <PanelBody>
+            {!orgIdentities?.length ? (
+              <EmptyMessage>
+                {t('There are no organization identities associated with this account')}
+              </EmptyMessage>
+            ) : (
+              orgIdentities.map(this.renderItem)
             )}
           </PanelBody>
         </Panel>
