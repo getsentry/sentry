@@ -138,7 +138,15 @@ function ReleaseComparisonChart({
       fetchEventsTotals();
       fetchIssuesTotals();
     }
-  }, [period, start, end, organization.slug, location]);
+  }, [
+    period,
+    start,
+    end,
+    organization.slug,
+    location.query.project,
+    location.query.environment?.toString(),
+    release.version,
+  ]);
 
   useEffect(() => {
     const chartInUrl = decodeScalar(location.query.chart) as ReleaseComparisonChartType;
