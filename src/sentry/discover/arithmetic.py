@@ -326,7 +326,6 @@ def resolve_equation_list(
     resolved_equations: List[JsonQueryType] = []
     parsed_equations: List[ParsedEquation] = []
     resolved_columns: List[str] = selected_columns[:]
-    contains_function: List[bool] = []
     for index, equation in enumerate(equations):
         parsed_equation, fields, functions = parse_arithmetic(equation, use_snql=use_snql)
 
