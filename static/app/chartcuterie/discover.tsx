@@ -7,6 +7,7 @@ import BarSeries from 'app/components/charts/series/barSeries';
 import LineSeries from 'app/components/charts/series/lineSeries';
 import MapSeries from 'app/components/charts/series/mapSeries';
 import {lightenHexToRgb} from 'app/components/charts/utils';
+import * as countryCodesMap from 'app/data/countryCodesMap';
 import {t} from 'app/locale';
 import {EventsGeoData, EventsStats} from 'app/types';
 import {lightTheme as theme} from 'app/utils/theme';
@@ -354,7 +355,6 @@ discoverCharts.push({
 discoverCharts.push({
   key: ChartType.SLACK_DISCOVER_WORLDMAP,
   getOption: (data: {seriesName: string; stats: {data: EventsGeoData}}) => {
-    const countryCodesMap = require('app/data/countryCodesMap');
     const mapSeries = MapSeries({
       map: 'sentryWorld',
       name: data.seriesName,
