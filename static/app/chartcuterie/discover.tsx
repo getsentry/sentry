@@ -1,8 +1,6 @@
 import {EChartOption} from 'echarts';
-import * as echarts from 'echarts';
 import isArray from 'lodash/isArray';
 
-import VisualMap from 'app/components/charts/components/visualMap';
 import XAxis from 'app/components/charts/components/xAxis';
 import AreaSeries from 'app/components/charts/series/areaSeries';
 import BarSeries from 'app/components/charts/series/barSeries';
@@ -23,10 +21,6 @@ const discoverxAxis = XAxis({
   isGroupedByDate: true,
   axisLabel: {fontSize: 11},
 });
-
-const worldMap = require('app/data/world.json');
-
-echarts.registerMap('sentryWorld', worldMap);
 
 export const discoverCharts: RenderDescriptor<ChartType>[] = [];
 
@@ -378,10 +372,10 @@ discoverCharts.push({
     return {
       backgroundColor: theme.background,
       visualMap: [
-        VisualMap({
+        {
           left: 'right',
           min: 0,
-          max: 10,
+          max: 50,
           inRange: {
             color: [theme.purple200, theme.purple300],
           },
@@ -389,8 +383,11 @@ discoverCharts.push({
           textStyle: {
             color: theme.textColor,
           },
+
+          // Whether show handles, which can be dragged to adjust "selected range".
+          // False because the handles are pretty ugly
           calculable: false,
-        }),
+        },
       ],
       series: [mapSeries],
     };
