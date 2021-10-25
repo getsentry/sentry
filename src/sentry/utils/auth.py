@@ -24,7 +24,7 @@ MFA_SESSION_KEY = "mfa"
 SSO_EXPIRY_TIME = timedelta(hours=20)
 
 
-class SSOSession:
+class SsoSession:
     """
     The value returned from to_dict is stored in the django session cookie, with the org id being the key.
     """
@@ -41,13 +41,13 @@ class SSOSession:
         return {self.SSO_LOGIN_TIMESTAMP: self.authenticated_at_time.timestamp()}
 
     @classmethod
-    def create(cls, organization_id: int) -> "SSOSession":
+    def create(cls, organization_id: int) -> "SsoSession":
         return cls(organization_id, datetime.now(tz=timezone.utc))
 
     @classmethod
     def from_django_session_value(
         cls, organization_id: int, session_value: Mapping[str, Any]
-    ) -> "SSOSession":
+    ) -> "SsoSession":
 
         return cls(
             organization_id,
@@ -61,7 +61,7 @@ class SSOSession:
 
     @staticmethod
     def django_session_key(organization_id: int) -> str:
-        return f"{SSOSession.SSO_SESSION_KEY}:{organization_id}"
+        return f"{SsoSession.SSO_SESSION_KEY}:{organization_id}"
 
 
 class AuthUserPasswordExpired(Exception):
@@ -178,7 +178,7 @@ def mark_sso_complete(request, organization_id):
     """
     # TODO(dcramer): this needs to be bound based on SSO options (e.g. changing
     # or enabling SSO invalidates this)
-    sso_session = SSOSession.create(organization_id)
+    sso_session = SsoSession.create(organization_id)
     request.session[sso_session.session_key] = sso_session.to_dict()
 
     metrics.incr("sso.session-added-success")
@@ -191,7 +191,7 @@ def has_completed_sso(request, organization_id):
     look for the org id under the sso session key, and check that the timestamp isn't past our expiry limit
     """
     sso_session_in_request = request.session.get(
-        SSOSession.django_session_key(organization_id), None
+        SsoSession.django_session_key(organization_id), None
     )
 
     if not sso_session_in_request:
@@ -206,7 +206,7 @@ def has_completed_sso(request, organization_id):
         )
         return has_sso_session_for_org
 
-    django_session_value = SSOSession.from_django_session_value(
+    django_session_value = SsoSession.from_django_session_value(
         organization_id, sso_session_in_request
     )
 

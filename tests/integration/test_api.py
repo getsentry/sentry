@@ -4,7 +4,7 @@ from django.urls import reverse
 
 from sentry.models import AuthIdentity, AuthProvider
 from sentry.testutils import AuthProviderTestCase
-from sentry.utils.auth import DEPRECATED_SSO_SESSION_KEY, SSO_EXPIRY_TIME, SSOSession
+from sentry.utils.auth import DEPRECATED_SSO_SESSION_KEY, SSO_EXPIRY_TIME, SsoSession
 from sentry.utils.linksign import generate_signed_link
 
 
@@ -56,14 +56,14 @@ class AuthenticationTest(AuthProviderTestCase):
         self._test_paths_with_status(200)
 
     def test_sso_with_expiry_valid(self):
-        sso_session = SSOSession.create(self.organization.id)
+        sso_session = SsoSession.create(self.organization.id)
         self.session[sso_session.session_key] = sso_session.to_dict()
         self.save_session()
 
         self._test_paths_with_status(200)
 
     def test_sso_with_expiry_expired(self):
-        sso_session_expired = SSOSession(
+        sso_session_expired = SsoSession(
             self.organization.id,
             datetime.now(tz=timezone.utc) - SSO_EXPIRY_TIME - timedelta(hours=1),
         )

@@ -83,7 +83,7 @@ from sentry.sentry_metrics import indexer
 from sentry.tagstore.snuba import SnubaTagStorage
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.utils import json
-from sentry.utils.auth import SSOSession
+from sentry.utils.auth import SsoSession
 from sentry.utils.compat import mock
 from sentry.utils.compat.mock import patch
 from sentry.utils.pytest.selenium import Browser
@@ -206,7 +206,7 @@ class BaseTestCase(Fixtures, Exam):
         # TODO(dcramer): ideally this would get abstracted
         if organization_ids:
             for o in organization_ids:
-                sso_session = SSOSession.create(o)
+                sso_session = SsoSession.create(o)
                 self.session[sso_session.session_key] = sso_session.to_dict()
 
         # logging in implicitly binds superuser, but for test cases we
