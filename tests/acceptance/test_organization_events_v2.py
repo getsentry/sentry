@@ -1,5 +1,6 @@
 import copy
 from datetime import timedelta
+from unittest.mock import patch
 from urllib.parse import urlencode
 
 import pytest
@@ -9,7 +10,6 @@ from selenium.webdriver.common.keys import Keys
 from sentry.discover.models import DiscoverSavedQuery
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format, timestamp_format
-from sentry.utils.compat.mock import patch
 from sentry.utils.samples import load_data
 
 FEATURE_NAMES = [

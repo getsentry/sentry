@@ -1,4 +1,5 @@
 import re
+from unittest.mock import patch
 
 from django.urls import reverse
 
@@ -15,7 +16,6 @@ from sentry.models.sentryapp import MASKED_VALUE
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
 from sentry.utils import json
-from sentry.utils.compat.mock import patch
 
 
 class SentryAppsTest(APITestCase):
@@ -474,7 +474,37 @@ class PostSentryAppsTest(SentryAppsTest):
         assert response.status_code == 400
         assert response.data == {"events": ["issue webhooks require the event:read permission."]}
 
+    def test_create_alert_rule_action_without_feature_flag(self):
+        self.login_as(user=self.user)
+
+        response = self._post(**{"schema": {"elements": [self.create_alert_rule_action_schema()]}})
+
+        assert response.status_code == 400
+        assert response.data == {
+            "schema": [
+                "Element has type 'alert-rule-action'. Type must be one of the following: ['issue-link', 'issue-media', 'stacktrace-link']"
+            ]
+        }
+
+    @with_feature("organizations:alert-rule-ui-component")
+    def test_create_alert_rule_action_with_feature_flag(self):
+        self.login_as(user=self.user)
+
+        response = self._post(**{"schema": {"elements": [self.create_alert_rule_action_schema()]}})
+
+        expected = {
+            "name": "MyApp",
+            "scopes": ["project:read", "event:read"],
+            "events": ["issue"],
+            "webhookUrl": "https://example.com",
+            "schema": {"elements": [self.create_alert_rule_action_schema()]},
+        }
+
+        assert response.status_code == 201, response.content
+        assert expected.items() <= json.loads(response.content).items()
+
     @patch("sentry.analytics.record")
+    @with_feature("organizations:alert-rule-ui-component")
     def test_wrong_schema_format(self, record):
         self.login_as(user=self.user)
         kwargs = {

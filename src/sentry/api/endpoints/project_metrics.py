@@ -113,7 +113,7 @@ class ProjectMetricsDataEndpoint(ProjectEndpoint):
             return Response(status=404)
 
         try:
-            query = QueryDefinition(request.GET, allow_minute_resolution=False)
+            query = QueryDefinition(request.GET)
             data = get_datasource(request).get_series(project, query)
         except (InvalidField, InvalidParams) as exc:
             raise (ParseError(detail=str(exc)))

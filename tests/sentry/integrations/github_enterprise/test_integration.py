@@ -1,3 +1,4 @@
+from unittest.mock import patch
 from urllib.parse import parse_qs, urlencode, urlparse
 
 import responses
@@ -11,7 +12,6 @@ from sentry.models import (
     OrganizationIntegration,
 )
 from sentry.testutils import IntegrationTestCase
-from sentry.utils.compat.mock import patch
 
 
 class GitHubEnterpriseIntegrationTest(IntegrationTestCase):

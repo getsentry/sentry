@@ -581,6 +581,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.sentry_apps",
     "sentry.tasks.servicehooks",
     "sentry.tasks.store",
+    "sentry.tasks.symbolication",
     "sentry.tasks.unmerge",
     "sentry.tasks.update_user_reports",
     "sentry.tasks.user_report",
@@ -898,6 +899,7 @@ SENTRY_FEATURES = {
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
     # Enable obtaining and using API keys.
+    "organizations:alert-rule-ui-component": False,
     "organizations:api-keys": False,
     # Enable multiple Apple app-store-connect sources per project.
     "organizations:app-store-connect-multiple": False,
@@ -938,8 +940,6 @@ SENTRY_FEATURES = {
     "organizations:performance-view": True,
     # Enable multi project selection
     "organizations:global-views": False,
-    # Enable writing group history
-    "organizations:group-history": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
     "organizations:grouping-tree-ui": False,
     # Enable experimental new version of stacktrace component where additional
@@ -1028,11 +1028,6 @@ SENTRY_FEATURES = {
     "organizations:org-subdomains": False,
     # Display a global dashboard notification for this org
     "organizations:prompt-dashboards": False,
-    "organizations:prompt-additional-volume": False,
-    "organizations:prompt-additional-volume-on-demand": False,
-    "organizations:prompt-on-demand-orgs": False,
-    "organizations:prompt-release-health-adoption": False,
-    "organizations:prompt-upgrade-via-dashboards": False,
     # Enable views for ops breakdown
     "organizations:performance-ops-breakdown": False,
     # Enable views for tag explorer
@@ -1056,6 +1051,8 @@ SENTRY_FEATURES = {
     "organizations:minute-resolution-sessions": True,
     # Automatically opt IN users to receiving Slack notifications.
     "organizations:notification-slack-automatic": False,
+    # Enable the new native stack trace design
+    "organizations:native-stack-trace-v2": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
     # Enable sorting+filtering by semantic version of a release
@@ -1079,8 +1076,6 @@ SENTRY_FEATURES = {
     "organizations:unhandled-issue-flag": True,
     # Enable percent-based conditions on issue rules
     "organizations:issue-percent-filters": True,
-    # Enable the new alert details ux design
-    "organizations:alert-details-redesign": True,
     # Enable the new images loaded design and features
     "organizations:images-loaded-v2": True,
     # Enable the mobile screenshots feature
@@ -1097,6 +1092,8 @@ SENTRY_FEATURES = {
     "organizations:release-comparison-performance": False,
     # Enable percent displays in issue stream
     "organizations:issue-percent-display": False,
+    # send organization request notifications through Slack
+    "organizations:slack-requests": False,
     # Enable team insights page
     "organizations:team-insights": False,
     # Adds additional filters and a new section to issue alert rules.
@@ -2396,7 +2393,11 @@ SENTRY_REALTIME_METRICS_OPTIONS = {
     # so that projects that exceed a reasonable rate can be sent to the low
     # priority queue. This setting determines how long we keep these rates
     # around.
-    "counter_time_window": 300,
+    #
+    # The LPQ selection is computed using the rate of the most recent events covered by this
+    # time window.  See sentry.tasks.low_priority_symbolication.excessive_event_rate for the
+    # exact implementation.
+    "counter_time_window": 10 * 60,
     # The bucket size of the processing duration histogram.
     #
     # The size (in seconds) of the buckets that events are sorted into.
@@ -2407,7 +2408,12 @@ SENTRY_REALTIME_METRICS_OPTIONS = {
     # so that projects that exceed a reasonable duration can be sent to the low
     # priority queue. This setting determines how long we keep these duration values
     # around.
-    "duration_time_window": 900,
+    #
+    # The LPQ selection is computed using the durations of the most recent events covered by
+    # this time window.  See
+    # sentry.tasks.low_priority_symbolication.excessive_event_duration for the exact
+    # implementation.
+    "duration_time_window": 3 * 60,
     # Number of seconds to wait after a project is made eligible or ineligible for the LPQ
     # before its eligibility can be changed again.
     #

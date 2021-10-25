@@ -208,8 +208,13 @@ class ReleaseHealthBackend(Service):  # type: ignore
         "get_project_releases_count",
         "get_project_release_stats",
         "get_project_sessions_count",
+        "is_metrics_based",
         "get_num_sessions_per_project",
+        "get_project_releases_by_stability",
     )
+
+    def is_metrics_based(self) -> bool:
+        return False
 
     def get_current_and_previous_crash_free_rates(
         self,
@@ -428,5 +433,19 @@ class ReleaseHealthBackend(Service):  # type: ignore
         """
         Returns the number of sessions for each project specified.
         Additionally
+        """
+        raise NotImplementedError()
+
+    def get_project_releases_by_stability(
+        self,
+        project_ids: Sequence[ProjectId],
+        offset: Optional[int],
+        limit: Optional[int],
+        scope: str,
+        stats_period: Optional[str] = None,
+        environments: Optional[Sequence[str]] = None,
+    ) -> Sequence[ProjectRelease]:
+        """Given some project IDs returns adoption rates that should be updated
+        on the postgres tables.
         """
         raise NotImplementedError()

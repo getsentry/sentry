@@ -1,3 +1,4 @@
+from unittest.mock import ANY, MagicMock, patch
 from urllib.parse import urlencode
 
 from botocore.exceptions import ClientError
@@ -11,7 +12,6 @@ from sentry.pipeline import PipelineView
 from sentry.testutils import IntegrationTestCase
 from sentry.testutils.helpers.faux import Mock
 from sentry.utils.compat import map
-from sentry.utils.compat.mock import ANY, MagicMock, patch
 
 arn = (
     "arn:aws:cloudformation:us-east-2:599817902985:stack/"

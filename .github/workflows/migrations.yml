@@ -41,8 +41,7 @@ jobs:
     timeout-minutes: 8
     strategy:
       matrix:
-        # TODO(joshuarli): Add 3.8.12.
-        python-version: [3.6.13]
+        python-version: [3.8.12]
     needs: did-migration-change
     if: ${{ needs.did-migration-change.outputs.added == 'true' }}
 
