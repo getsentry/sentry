@@ -37,9 +37,10 @@ def get_headers(notification: BaseNotification) -> Mapping[str, Any]:
 
 def build_subject_prefix(project: "Project") -> str:
     key = "mail:subject_prefix"
-    return force_text(
+    out: str = force_text(
         ProjectOption.objects.get_value(project, key) or options.get("mail.subject-prefix")
     )
+    return out
 
 
 def get_unsubscribe_link(
