@@ -675,6 +675,19 @@ def raw_snql_query(
     return _apply_cache_and_build_results([params], referrer=referrer, use_cache=use_cache)[0]
 
 
+def bulk_snql_query(
+    queries: List[Query],
+    referrer: Optional[str] = None,
+    use_cache: bool = False,
+) -> Mapping[str, Any]:
+    # XXX (evanh): This function does none of the extra processing that the
+    # other functions do here. It does not add any automatic conditions, format
+    # results, nothing. Use at your own risk.
+    metrics.incr("snql.sdk.api", tags={"referrer": referrer or "unknown"})
+    params: SnubaQuery = [(query, lambda x: x, lambda x: x) for query in queries]
+    return _apply_cache_and_build_results(params, referrer=referrer, use_cache=use_cache)
+
+
 def get_cache_key(query: SnubaQuery) -> str:
     if isinstance(query, Query):
         hashable = str(query)
