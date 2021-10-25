@@ -3,7 +3,7 @@ import {
   fireEvent,
   mountWithTheme,
   screen,
-  waitFor,
+  waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
 import TeamStore from 'app/stores/teamStore';
@@ -119,9 +119,7 @@ describe('TeamInsightsOverview', () => {
 
   it('defaults to first team', async () => {
     createWrapper();
-    await waitFor(() => {
-      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
-    });
+    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
     expect(screen.getByText('#frontend')).toBeInTheDocument();
     expect(screen.getByText('Key transaction')).toBeInTheDocument();
@@ -129,9 +127,7 @@ describe('TeamInsightsOverview', () => {
 
   it('allows team switching', async () => {
     createWrapper();
-    await waitFor(() => {
-      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
-    });
+    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
     fireEvent.mouseDown(screen.getByText('#frontend'));
     expect(screen.getByText('#backend')).toBeInTheDocument();
