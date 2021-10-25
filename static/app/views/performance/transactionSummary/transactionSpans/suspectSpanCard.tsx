@@ -161,20 +161,14 @@ type PercentileDurationProps = {
 function PercentileDuration(props: PercentileDurationProps) {
   const {sort, suspectSpan} = props;
 
+  const sortKey = PERCENTILE_LABELS.hasOwnProperty(sort.field)
+    ? sort.field
+    : SpanSortPercentiles.P75_EXCLUSIVE_TIME;
+
   return (
     <HeaderItem
-      label={
-        PERCENTILE_LABELS[sort.field] ??
-        PERCENTILE_LABELS[SpanSortPercentiles.P75_EXCLUSIVE_TIME]
-      }
-      value={
-        <PerformanceDuration
-          abbreviation
-          milliseconds={
-            suspectSpan[sort.field] ?? suspectSpan[SpanSortPercentiles.P75_EXCLUSIVE_TIME]
-          }
-        />
-      }
+      label={PERCENTILE_LABELS[sortKey]}
+      value={<PerformanceDuration abbreviation milliseconds={suspectSpan[sortKey]} />}
       align="right"
     />
   );
