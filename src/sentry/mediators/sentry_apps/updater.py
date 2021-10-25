@@ -171,5 +171,5 @@ class Updater(Mediator, SentryAppMixin):
             user_id=self.user.id,
             organization_id=self.sentry_app.owner_id,
             sentry_app=self.sentry_app.slug,
-            created_alert_rule_ui_component=str("alert-rule-action" in self.new_schema_elements),
+            created_alert_rule_ui_component="alert-rule-action" in self.new_schema_elements,
         )

@@ -132,5 +132,5 @@ class Creator(Mediator, SentryAppMixin):
             user_id=self.user.id,
             organization_id=self.organization.id,
             sentry_app=self.sentry_app.slug,
-            created_alert_rule_ui_component=str("alert-rule-action" in self.get_schema_types()),
+            created_alert_rule_ui_component="alert-rule-action" in self.get_schema_types(),
         )
