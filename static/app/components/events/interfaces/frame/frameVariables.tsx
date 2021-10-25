@@ -1,8 +1,9 @@
 import * as React from 'react';
 
-import KeyValueList from 'app/components/events/interfaces/keyValueList';
 import {getMeta} from 'app/components/events/meta/metaProxy';
 import {KeyValueListData} from 'app/types';
+
+import KeyValueList from '../keyValueList';
 
 type Props = {
   data: Record<string, string>;

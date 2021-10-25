@@ -3,7 +3,7 @@ import * as React from 'react';
 import {ExceptionType, ExceptionValue, PlatformType} from 'app/types';
 
 import Exception from './exception';
-import Stacktrace from './stacktrace';
+import Stacktrace from './stackTrace';
 
 type ExceptionProps = React.ComponentProps<typeof Exception>;
 type Props = Pick<

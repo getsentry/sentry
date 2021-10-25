@@ -5,7 +5,7 @@ type Props = {
   data: Record<string, any>;
 };
 
-function CSPContent({data}: Props) {
+function Content({data}: Props) {
   return (
     <div>
       <h4>
@@ -24,4 +24,4 @@ function CSPContent({data}: Props) {
   );
 }
 
-export default CSPContent;
+export default Content;

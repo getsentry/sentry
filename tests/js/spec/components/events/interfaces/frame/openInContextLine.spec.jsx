@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {OpenInContextLine} from 'app/components/events/interfaces/openInContextLine';
+import {OpenInContextLine} from 'app/components/events/interfaces/frame/openInContextLine';
 import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
 
 describe('OpenInContextLine', function () {

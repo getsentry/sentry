@@ -36,7 +36,7 @@ type State = {
   showCompleteFunctionName: boolean;
 };
 
-class StacktraceContent extends React.Component<Props, State> {
+class Content extends React.Component<Props, State> {
   static defaultProps: DefaultProps = {
     includeSystemFrames: true,
     expandFirstFrame: true,
@@ -272,7 +272,7 @@ class StacktraceContent extends React.Component<Props, State> {
   }
 }
 
-export default withOrganization(StacktraceContent);
+export default withOrganization(Content);
 
 const Wrapper = styled('div')`
   position: relative;

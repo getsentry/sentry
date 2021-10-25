@@ -3,19 +3,20 @@ import {Component} from 'react';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import EventDataSection from 'app/components/events/eventDataSection';
-import CSPContent from 'app/components/events/interfaces/cspContent';
-import CSPHelp from 'app/components/events/interfaces/cspHelp';
 import {t} from 'app/locale';
 import {Event} from 'app/types/event';
+
+import Content from './content';
+import Help from './help';
 
 function getView(view, data) {
   switch (view) {
     case 'report':
-      return <CSPContent data={data} />;
+      return <Content data={data} />;
     case 'raw':
       return <pre>{JSON.stringify({'csp-report': data}, null, 2)}</pre>;
     case 'help':
-      return <CSPHelp data={data} />;
+      return <Help data={data} />;
     default:
       throw new TypeError(`Invalid view: ${view}`);
   }
@@ -30,7 +31,7 @@ type State = {
   view: string;
 };
 
-export default class CspInterface extends Component<Props, State> {
+class CspInterface extends Component<Props, State> {
   state: State = {view: 'report'};
 
   toggleView = value => {
@@ -84,3 +85,5 @@ export default class CspInterface extends Component<Props, State> {
     );
   }
 }
+
+export default CspInterface;

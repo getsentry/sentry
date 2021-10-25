@@ -10,8 +10,8 @@ import {Frame, Group, PlatformType} from 'app/types';
 import {Event} from 'app/types/event';
 import {StacktraceType} from 'app/types/stacktrace';
 
-import Line from './frame/lineV2';
-import {getImageRange, parseAddress, stackTracePlatformIcon} from './utils';
+import Line from '../../frame/lineV2';
+import {getImageRange, parseAddress, stackTracePlatformIcon} from '../../utils';
 
 type Props = {
   data: StacktraceType;
@@ -25,7 +25,7 @@ type Props = {
   expandFirstFrame?: boolean;
 };
 
-function StackTraceContent({
+function Content({
   data,
   platform,
   event,
@@ -251,7 +251,7 @@ function StackTraceContent({
   );
 }
 
-export default StackTraceContent;
+export default Content;
 
 const Wrapper = styled('div')`
   position: relative;

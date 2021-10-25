@@ -1,13 +1,14 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import {formatAddress, parseAddress} from 'app/components/events/interfaces/utils';
 import {STACKTRACE_PREVIEW_TOOLTIP_DELAY} from 'app/components/stacktracePreview';
 import Tooltip from 'app/components/tooltip';
 import {IconFilter} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Theme} from 'app/utils/theme';
+
+import {formatAddress, parseAddress} from '../utils';
 
 type Props = {
   address: string;
@@ -24,7 +25,7 @@ type Props = {
   className?: string;
 };
 
-const TogglableAddress = ({
+function TogglableAddress({
   startingAddress,
   address,
   relativeAddressMaxlength,
@@ -34,7 +35,7 @@ const TogglableAddress = ({
   onToggle,
   isHoverPreviewed,
   className,
-}: Props) => {
+}: Props) {
   const convertAbsoluteAddressToRelative = () => {
     if (!startingAddress) {
       return '';
@@ -96,7 +97,7 @@ const TogglableAddress = ({
       </Tooltip>
     </Wrapper>
   );
-};
+}
 
 const AddressIconTooltip = styled(Tooltip)`
   align-items: center;
