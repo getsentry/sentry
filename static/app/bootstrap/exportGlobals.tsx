@@ -45,6 +45,7 @@ const SentryApp = {
   HookStore: require('app/stores/hookStore').default,
   Modal: require('app/actionCreators/modal'),
   getModalPortal: require('app/utils/getModalPortal').default,
+  Client: require('app/api').Client,
 };
 
 globals.SentryApp = SentryApp;
