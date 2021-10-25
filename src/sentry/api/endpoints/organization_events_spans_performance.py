@@ -193,7 +193,7 @@ class SuspectSpan:
             "project": self.project,
             "transaction": self.transaction,
             "op": self.op,
-            "group": zero_left_pad(self.group, 16),
+            "group": self.group.rjust(16, "0"),
             "frequency": self.frequency,
             "count": self.count,
             "sumExclusiveTime": self.sum_exclusive_time,
@@ -418,9 +418,3 @@ def get_exclusive_time_windows(span: ExampleSpan, spans: List[Any]) -> List[Time
         TimeWindow(start=span.start_timestamp, end=span.finish_timestamp),
         non_overlapping_children_time_windows,
     )
-
-
-def zero_left_pad(val: str, length: int) -> str:
-    if len(val) < length:
-        return "0" * max(length - len(val), 0) + val
-    return val
