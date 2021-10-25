@@ -100,13 +100,31 @@ class AccountIdentities extends AsyncView<Props, State> {
     disconnectIdentity(identity, this.reloadData);
   };
 
+  itemOrder = (a: UserIdentityConfig, b: UserIdentityConfig) => {
+    function categoryRank(c: UserIdentityConfig) {
+      return [
+        UserIdentityCategory.GLOBAL_IDENTITY,
+        UserIdentityCategory.SOCIAL_IDENTITY,
+        UserIdentityCategory.ORG_IDENTITY,
+      ].indexOf(c.category);
+    }
+
+    if (a.provider.name !== b.provider.name) {
+      return a.provider.name < b.provider.name ? -1 : 1;
+    } else if (a.category !== b.category) {
+      return categoryRank(a) - categoryRank(b);
+    } else if ((a.organization?.name ?? '') !== (b.organization?.name ?? '')) {
+      return (a.organization?.name ?? '') < (b.organization?.name ?? '') ? -1 : 1;
+    } else return 0;
+  };
+
   renderBody() {
-    const appIdentities = this.state.identities?.filter(
-      identity => identity.category !== UserIdentityCategory.ORG_IDENTITY
-    );
-    const orgIdentities = this.state.identities?.filter(
-      identity => identity.category === UserIdentityCategory.ORG_IDENTITY
-    );
+    const appIdentities = this.state.identities
+      ?.filter(identity => identity.category !== UserIdentityCategory.ORG_IDENTITY)
+      .sort(this.itemOrder);
+    const orgIdentities = this.state.identities
+      ?.filter(identity => identity.category === UserIdentityCategory.ORG_IDENTITY)
+      .sort(this.itemOrder);
 
     return (
       <div>
