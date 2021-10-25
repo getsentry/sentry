@@ -25,7 +25,7 @@ type Props = {
   expandFirstFrame?: boolean;
 };
 
-function StackTraceContent({
+function Content({
   data,
   platform,
   event,
@@ -251,7 +251,7 @@ function StackTraceContent({
   );
 }
 
-export default StackTraceContent;
+export default Content;
 
 const Wrapper = styled('div')`
   position: relative;

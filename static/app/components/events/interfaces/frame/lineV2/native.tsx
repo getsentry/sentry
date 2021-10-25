@@ -2,16 +2,16 @@ import {MouseEvent, MouseEventHandler} from 'react';
 import styled from '@emotion/styled';
 import scrollToElement from 'scroll-to-element';
 
-import DebugImage from 'app/components/events/interfaces/debugMeta/debugImage';
-import {combineStatus} from 'app/components/events/interfaces/debugMeta/utils';
-import PackageLink from 'app/components/events/interfaces/packageLink';
-import PackageStatus from 'app/components/events/interfaces/packageStatus';
-import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
 import {t} from 'app/locale';
 import {DebugMetaActions} from 'app/stores/debugMetaStore';
 import space from 'app/styles/space';
 import {Frame} from 'app/types';
 
+import DebugImage from '../../debugMeta/debugImage';
+import {combineStatus} from '../../debugMeta/utils';
+import {SymbolicatorStatus} from '../../types';
+import PackageLink from '../packageLink';
+import PackageStatus from '../packageStatus';
 import Symbol from '../symbol';
 import TogglableAddress from '../togglableAddress';
 import {getPlatform} from '../utils';

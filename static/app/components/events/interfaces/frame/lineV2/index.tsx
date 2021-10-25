@@ -2,14 +2,13 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import {PackageStatusIcon} from 'app/components/events/interfaces/packageStatus';
-import ListItem from 'app/components/list/listItem';
 import StrictClick from 'app/components/strictClick';
 import {PlatformType, SentryAppComponent} from 'app/types';
 import {Event} from 'app/types/event';
 import withSentryAppComponents from 'app/utils/withSentryAppComponents';
 
 import Context from '../context';
+import {PackageStatusIcon} from '../packageStatus';
 import {FunctionNameToggleIcon} from '../symbol';
 import {AddressToggleIcon} from '../togglableAddress';
 import {
