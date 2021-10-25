@@ -1,7 +1,6 @@
 import logging
 from collections import defaultdict, deque
 from typing import (
-    TYPE_CHECKING,
     Any,
     Callable,
     Deque,
@@ -13,6 +12,7 @@ from typing import (
     Sequence,
     Set,
     Tuple,
+    TypedDict,
     TypeVar,
     cast,
 )
@@ -35,14 +35,6 @@ from sentry.utils.validators import INVALID_ID_DETAILS, is_event_id
 
 logger: logging.Logger = logging.getLogger(__name__)
 MAX_TRACE_SIZE: int = 100
-
-# TODO(3.8): This is a hack so we can get TypedDicts before 3.8
-if TYPE_CHECKING:
-    from mypy_extensions import TypedDict
-else:
-
-    def TypedDict(*args, **kwargs):
-        pass
 
 
 _T = TypeVar("_T")
@@ -77,18 +69,18 @@ SnubaError = TypedDict(
         "project": str,
     },
 )
-TraceError = TypedDict(
-    "TraceError",
-    {
-        "event_id": str,
-        "issue_id": int,
-        "span": str,
-        "project_id": int,
-        "project_slug": str,
-        "title": str,
-        "level": str,
-    },
-)
+
+
+class TraceError(TypedDict):
+    event_id: str
+    issue_id: int
+    span: str
+    project_id: int
+    project_slug: str
+    title: str
+    level: str
+
+
 LightResponse = TypedDict(
     "LightResponse",
     {
