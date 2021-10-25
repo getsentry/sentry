@@ -12,9 +12,10 @@ module.exports = {
    * determine what Freight deploy we can use.
    */
   updateChangeType: async ({github, context, fileChanges}) => {
+    // Note that `fileChanges` bools and ints will get cast to strings
     const {frontend, backend} = fileChanges;
-    const frontendOnly = frontend && !backend;
-    const backendOnly = backend && !frontend;
+    const frontendOnly = frontend === 'true' && backend === 'false';
+    const backendOnly = backend === 'true' && frontend === 'false';
 
     const name = frontendOnly
       ? 'only frontend changes'
