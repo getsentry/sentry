@@ -92,7 +92,7 @@ class ReleasesDetail extends AsyncView<Props, State> {
     };
   }
 
-  componentDidUpdate(prevProps, prevContext: Record<string, any>) {
+  componentDidUpdate(prevProps: Props, prevState: State) {
     const {organization, params, location} = this.props;
 
     if (
@@ -103,7 +103,7 @@ class ReleasesDetail extends AsyncView<Props, State> {
         this.pickLocationQuery(location)
       )
     ) {
-      super.componentDidUpdate(prevProps, prevContext);
+      super.componentDidUpdate(prevProps, prevState);
     }
   }
 
@@ -227,9 +227,13 @@ class ReleasesDetail extends AsyncView<Props, State> {
   }
 }
 
+type ReleasesDetailContainerProps = Omit<Props, 'releaseMeta'>;
+type ReleasesDetailContainerState = {
+  releaseMeta: ReleaseMeta | null;
+} & AsyncComponent['state'];
 class ReleasesDetailContainer extends AsyncComponent<
-  Omit<Props, 'releaseMeta'>,
-  {releaseMeta: ReleaseMeta | null} & AsyncComponent['state']
+  ReleasesDetailContainerProps,
+  ReleasesDetailContainerState
 > {
   shouldReload = true;
 
@@ -250,7 +254,10 @@ class ReleasesDetailContainer extends AsyncComponent<
     this.removeGlobalDateTimeFromUrl();
   }
 
-  componentDidUpdate(prevProps, prevContext: Record<string, any>) {
+  componentDidUpdate(
+    prevProps: ReleasesDetailContainerProps,
+    prevState: ReleasesDetailContainerState
+  ) {
     const {organization, params} = this.props;
 
     this.removeGlobalDateTimeFromUrl();
@@ -258,7 +265,7 @@ class ReleasesDetailContainer extends AsyncComponent<
       prevProps.params.release !== params.release ||
       prevProps.organization.slug !== organization.slug
     ) {
-      super.componentDidUpdate(prevProps, prevContext);
+      super.componentDidUpdate(prevProps, prevState);
     }
   }
 
