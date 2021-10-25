@@ -3,9 +3,9 @@ import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
+import StacktraceContent from 'app/components/events/interfaces/crashContent/stackTrace/content';
+import StacktraceContentV2 from 'app/components/events/interfaces/crashContent/stackTrace/contentV2';
 import {isStacktraceNewestFirst} from 'app/components/events/interfaces/stacktrace';
-import StacktraceContent from 'app/components/events/interfaces/stacktraceContent';
-import StacktraceContentV2 from 'app/components/events/interfaces/stacktraceContentV2';
 import Hovercard, {Body} from 'app/components/hovercard';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {t} from 'app/locale';

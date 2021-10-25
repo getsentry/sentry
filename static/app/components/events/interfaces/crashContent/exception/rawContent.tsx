@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Client} from 'app/api';
 import Button from 'app/components/button';
 import ClippedBox from 'app/components/clippedBox';
-import rawStacktraceContent from 'app/components/events/interfaces/rawStacktraceContent';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {t} from 'app/locale';
@@ -12,6 +11,8 @@ import {ExceptionType, Organization, PlatformType, Project} from 'app/types';
 import {Event} from 'app/types/event';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
+
+import rawStacktraceContent from '../stackTrace/rawContent';
 
 type Props = {
   projectId: Project['id'];
@@ -29,7 +30,7 @@ type State = {
   crashReport: string;
 };
 
-class RawExceptionContent extends React.Component<Props, State> {
+class RawContent extends React.Component<Props, State> {
   state: State = {
     loading: false,
     error: false,
@@ -177,7 +178,7 @@ class RawExceptionContent extends React.Component<Props, State> {
   }
 }
 
-export default withApi(withOrganization(RawExceptionContent));
+export default withApi(withOrganization(RawContent));
 
 const DownloadBtnWrapper = styled('div')`
   display: flex;
