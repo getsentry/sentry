@@ -3,6 +3,7 @@ from typing import Mapping, Sequence
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
+from sentry import analytics
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import RuleSerializer
@@ -25,6 +26,7 @@ from sentry.web.decorators import transaction_start
 def trigger_alert_rule_action_creators(
     actions: Sequence[Mapping[str, str]],
 ) -> None:
+    created = False
     for action in actions:
         # Only call creator for Sentry Apps with UI Components for alert rules.
         if not action.get("hasSchemaFormConfig"):
@@ -40,6 +42,9 @@ def trigger_alert_rule_action_creators(
             raise serializers.ValidationError(
                 {"sentry_app": f'{install.sentry_app.name}: {result["message"]}'}
             )
+        else:
+            created = True
+    return created
 
 
 class ProjectRulesEndpoint(ProjectEndpoint):
@@ -122,7 +127,9 @@ class ProjectRulesEndpoint(ProjectEndpoint):
                 tasks.find_channel_id_for_rule.apply_async(kwargs=kwargs)
                 return Response(uuid_context, status=202)
 
-            trigger_alert_rule_action_creators(kwargs.get("actions"))
+            created_alert_rule_ui_component = trigger_alert_rule_action_creators(
+                kwargs.get("actions")
+            )
             rule = project_rules.Creator.run(request=request, **kwargs)
             RuleActivity.objects.create(
                 rule=rule, user=request.user, type=RuleActivityType.CREATED.value
@@ -143,7 +150,13 @@ class ProjectRulesEndpoint(ProjectEndpoint):
                 sender=self,
                 is_api_token=request.auth is not None,
             )
-
+            if created_alert_rule_ui_component:
+                analytics.record(
+                    "issue_alert_with_ui_component.created",
+                    user_id=request.user.id,
+                    rule_id=rule.id,
+                    organization_id=project.organization.id,
+                )
             return Response(serialize(rule, request.user))
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
