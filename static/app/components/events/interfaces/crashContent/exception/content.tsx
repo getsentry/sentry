@@ -1,33 +1,31 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import ExceptionMechanism from 'app/components/events/interfaces/exceptionMechanism';
 import Annotated from 'app/components/events/meta/annotated';
 import space from 'app/styles/space';
 import {ExceptionType} from 'app/types';
 import {Event} from 'app/types/event';
 import {STACK_TYPE} from 'app/types/stacktrace';
 
-import ExceptionStacktraceContent from './exceptionStacktraceContent';
-import ExceptionTitle from './exceptionTitle';
+import Mechanism from './mechanism';
+import StackTrace from './stackTrace';
+import ExceptionTitle from './title';
 
-type ExceptionStacktraceContentProps = React.ComponentProps<
-  typeof ExceptionStacktraceContent
->;
+type StackTraceProps = React.ComponentProps<typeof StackTrace>;
 
 type Props = {
   event: Event;
   type: STACK_TYPE;
-  platform: ExceptionStacktraceContentProps['platform'];
-  stackView?: ExceptionStacktraceContentProps['stackView'];
+  platform: StackTraceProps['platform'];
+  stackView?: StackTraceProps['stackView'];
   newestFirst?: boolean;
 } & Pick<ExceptionType, 'values'> &
   Pick<
-    React.ComponentProps<typeof ExceptionStacktraceContent>,
+    React.ComponentProps<typeof StackTrace>,
     'groupingCurrentLevel' | 'hasHierarchicalGrouping'
   >;
 
-const ExceptionContent = ({
+const Content = ({
   newestFirst,
   event,
   stackView,
@@ -47,8 +45,8 @@ const ExceptionContent = ({
       <Annotated object={exc} objectKey="value" required>
         {value => <StyledPre className="exc-message">{value}</StyledPre>}
       </Annotated>
-      {exc.mechanism && <ExceptionMechanism data={exc.mechanism} />}
-      <ExceptionStacktraceContent
+      {exc.mechanism && <Mechanism data={exc.mechanism} />}
+      <StackTrace
         data={
           type === STACK_TYPE.ORIGINAL
             ? exc.stacktrace
@@ -74,7 +72,7 @@ const ExceptionContent = ({
   return <div>{children}</div>;
 };
 
-export default ExceptionContent;
+export default Content;
 
 const StyledPre = styled('pre')`
   margin-bottom: ${space(1)};
