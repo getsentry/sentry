@@ -24,7 +24,7 @@ from sentry.web.decorators import transaction_start
 
 def trigger_alert_rule_action_creators(
     actions: Sequence[Mapping[str, str]],
-) -> None:
+) -> bool:
     created = False
     for action in actions:
         # Only call creator for Sentry Apps with UI Components for alert rules.
