@@ -30,6 +30,7 @@ display_modes: Mapping[str, ChartType] = {
     "previous": ChartType.SLACK_DISCOVER_PREVIOUS_PERIOD,
 }
 
+# All `multiPlotType: line` fields in /static/app/utils/discover/fields.tsx
 line_plot_fields = {
     "count_unique",
     "failure_count",
