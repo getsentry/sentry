@@ -41,8 +41,7 @@ def trigger_alert_rule_action_creators(
             raise serializers.ValidationError(
                 {"sentry_app": f'{install.sentry_app.name}: {result["message"]}'}
             )
-        else:
-            created = "alert-rule-action"
+        created = "alert-rule-action"
     return created
 
 
