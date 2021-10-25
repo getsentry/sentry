@@ -35,11 +35,11 @@ describe('AvatarList', () => {
     ];
 
     const {container} = renderComponent(users);
-    expect(screen.queryByText(users[0].name.charAt(0))).toBeInTheDocument();
-    expect(screen.queryByText(users[1].name.charAt(0))).toBeInTheDocument();
-    expect(screen.queryByText(users[2].name.charAt(0))).toBeInTheDocument();
-    expect(screen.queryByText(users[3].name.charAt(0))).toBeInTheDocument();
-    expect(screen.queryByText(users[4].name.charAt(0))).toBeInTheDocument();
+    expect(screen.getByText(users[0].name.charAt(0))).toBeInTheDocument();
+    expect(screen.getByText(users[1].name.charAt(0))).toBeInTheDocument();
+    expect(screen.getByText(users[2].name.charAt(0))).toBeInTheDocument();
+    expect(screen.getByText(users[3].name.charAt(0))).toBeInTheDocument();
+    expect(screen.getByText(users[4].name.charAt(0))).toBeInTheDocument();
     expect(screen.queryByText(users[5].name.charAt(0))).not.toBeInTheDocument();
     expect(screen.getByTestId('avatarList-collapsedusers')).toBeInTheDocument();
     expect(container).toSnapshot();

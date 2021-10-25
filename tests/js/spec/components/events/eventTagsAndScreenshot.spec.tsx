@@ -161,8 +161,8 @@ describe('EventTagsAndScreenshot ', function () {
       expect(screen.queryByText('Screenshot')).not.toBeInTheDocument();
 
       // Tags Container
-      expect(screen.queryByText('Tags')).toBeInTheDocument();
-      const contextItems = screen.queryAllByTestId('context-item');
+      expect(screen.getByText('Tags')).toBeInTheDocument();
+      const contextItems = screen.getAllByTestId('context-item');
       expect(contextItems).toHaveLength(Object.keys(contexts).length);
 
       // Context Item 1
@@ -188,7 +188,7 @@ describe('EventTagsAndScreenshot ', function () {
 
       // Tags
       const tagsContainer = within(screen.getByTestId('event-tags'));
-      expect(tagsContainer.queryAllByRole('listitem')).toHaveLength(tags.length);
+      expect(tagsContainer.getAllByRole('listitem')).toHaveLength(tags.length);
 
       expect(container).toSnapshot();
     });
@@ -211,7 +211,7 @@ describe('EventTagsAndScreenshot ', function () {
       expect(screen.queryByText('Screenshot')).not.toBeInTheDocument();
 
       // Tags Container
-      expect(screen.queryByText('Tags')).toBeInTheDocument();
+      expect(screen.getByText('Tags')).toBeInTheDocument();
 
       expect(container).toSnapshot();
     });
@@ -234,7 +234,7 @@ describe('EventTagsAndScreenshot ', function () {
       expect(screen.queryByText('Screenshot')).not.toBeInTheDocument();
 
       // Tags Container
-      expect(screen.queryByText('Tags')).toBeInTheDocument();
+      expect(screen.getByText('Tags')).toBeInTheDocument();
 
       expect(container).toSnapshot();
     });
@@ -258,7 +258,7 @@ describe('EventTagsAndScreenshot ', function () {
       expect(screen.queryByText('Tags')).not.toBeInTheDocument();
 
       // Screenshot Container
-      expect(screen.queryByText('Screenshot')).toBeInTheDocument();
+      expect(screen.getByText('Screenshot')).toBeInTheDocument();
       expect(screen.getByText('View screenshot')).toBeInTheDocument();
       expect(screen.getByRole('img')).toHaveAttribute(
         'src',
@@ -284,7 +284,7 @@ describe('EventTagsAndScreenshot ', function () {
       );
 
       // Screenshot Container
-      expect(screen.queryByText('Screenshot')).toBeInTheDocument();
+      expect(screen.getByText('Screenshot')).toBeInTheDocument();
       expect(screen.getByText('View screenshot')).toBeInTheDocument();
       expect(screen.getByRole('img')).toHaveAttribute(
         'src',
@@ -292,13 +292,13 @@ describe('EventTagsAndScreenshot ', function () {
       );
 
       // Tags Container
-      expect(screen.queryByText('Tags')).toBeInTheDocument();
-      const contextItems = screen.queryAllByTestId('context-item');
+      expect(screen.getByText('Tags')).toBeInTheDocument();
+      const contextItems = screen.getAllByTestId('context-item');
       expect(contextItems).toHaveLength(Object.keys(contexts).length);
 
       // Tags
       const tagsContainer = within(screen.getByTestId('event-tags'));
-      expect(tagsContainer.queryAllByRole('listitem')).toHaveLength(tags.length);
+      expect(tagsContainer.getAllByRole('listitem')).toHaveLength(tags.length);
 
       expect(container).toSnapshot();
     });
@@ -317,7 +317,7 @@ describe('EventTagsAndScreenshot ', function () {
       );
 
       // Screenshot Container
-      expect(screen.queryByText('Screenshot')).toBeInTheDocument();
+      expect(screen.getByText('Screenshot')).toBeInTheDocument();
       expect(screen.getByText('View screenshot')).toBeInTheDocument();
       expect(screen.getByRole('img')).toHaveAttribute(
         'src',
@@ -325,8 +325,8 @@ describe('EventTagsAndScreenshot ', function () {
       );
 
       // Tags Container
-      expect(screen.queryByText('Tags')).toBeInTheDocument();
-      const contextItems = screen.queryAllByTestId('context-item');
+      expect(screen.getByText('Tags')).toBeInTheDocument();
+      const contextItems = screen.getAllByTestId('context-item');
       expect(contextItems).toHaveLength(Object.keys(contexts).length);
 
       // Tags
@@ -350,7 +350,7 @@ describe('EventTagsAndScreenshot ', function () {
       );
 
       // Screenshot Container
-      expect(screen.queryByText('Screenshot')).toBeInTheDocument();
+      expect(screen.getByText('Screenshot')).toBeInTheDocument();
       expect(screen.getByText('View screenshot')).toBeInTheDocument();
       expect(screen.getByRole('img')).toHaveAttribute(
         'src',
@@ -358,13 +358,13 @@ describe('EventTagsAndScreenshot ', function () {
       );
 
       // Tags Container
-      expect(screen.queryByText('Tags')).toBeInTheDocument();
+      expect(screen.getByText('Tags')).toBeInTheDocument();
       const contextItems = screen.queryByTestId('context-item');
       expect(contextItems).not.toBeInTheDocument();
 
       // Tags
       const tagsContainer = within(screen.getByTestId('event-tags'));
-      expect(tagsContainer.queryAllByRole('listitem')).toHaveLength(tags.length);
+      expect(tagsContainer.getAllByRole('listitem')).toHaveLength(tags.length);
 
       expect(container).toSnapshot();
     });

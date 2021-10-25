@@ -119,7 +119,7 @@ describe('Breadcrumbs', () => {
       mountWithTheme(<Breadcrumbs {...props} />);
 
       // data.values + virtual crumb
-      expect(screen.queryAllByTestId('crumb')).toHaveLength(4);
+      expect(screen.getAllByTestId('crumb')).toHaveLength(4);
 
       expect(screen.getByTestId('last-crumb')).toBeInTheDocument();
     });
@@ -156,7 +156,7 @@ describe('Breadcrumbs', () => {
       mountWithTheme(<Breadcrumbs {...props} />);
 
       // data.values + virtual crumb
-      expect(screen.queryByTestId('crumb')).toBeInTheDocument();
+      expect(screen.getByTestId('crumb')).toBeInTheDocument();
 
       expect(screen.getByTestId('last-crumb')).toBeInTheDocument();
     });
