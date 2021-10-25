@@ -3,7 +3,6 @@ from typing import Mapping, Sequence
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
-from sentry import analytics
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import RuleSerializer
@@ -149,14 +148,9 @@ class ProjectRulesEndpoint(ProjectEndpoint):
                 rule_type="issue",
                 sender=self,
                 is_api_token=request.auth is not None,
+                has_alert_rule_ui_component=created_alert_rule_ui_component,
             )
-            if created_alert_rule_ui_component:
-                analytics.record(
-                    "issue_alert_with_ui_component.created",
-                    user_id=request.user.id,
-                    rule_id=rule.id,
-                    organization_id=project.organization.id,
-                )
+
             return Response(serialize(rule, request.user))
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

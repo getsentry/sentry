@@ -492,7 +492,7 @@ def send_and_save_webhook_request(sentry_app, app_platform_event, url=None):
             if alert_rule_ui_component_action:
                 analytics.record(
                     "alert_rule_ui_component_webhook.sent",
-                    installed_org_id=org_id,
+                    organization_id=org_id,
                     sentry_app_id=sentry_app.id,
                     event=event,
                 )
@@ -502,7 +502,7 @@ def send_and_save_webhook_request(sentry_app, app_platform_event, url=None):
         ):
             analytics.record(
                 "alert_rule_ui_component_webhook.sent",
-                installed_org_id=org_id,
+                organization_id=org_id,
                 sentry_app_id=sentry_app.id,
                 event=event,
             )

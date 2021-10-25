@@ -130,8 +130,8 @@ class Creator(Mediator):
             user_id=self.user.id,
             organization_id=self.organization.id,
             sentry_app=self.sentry_app.slug,
-            created_alert_rule_ui_component=True
+            created_alert_rule_ui_component="True"
             if "alert-rule-action"
             in [element["type"] for element in self.schema.get("elements", [])]
-            else False,
+            else "False",
         )
