@@ -92,7 +92,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                 {
                     "name": "errors",
                     "conditions": "event.type:error",
-                    "fields": ["equation|count() * 2"],
+                    "fields": ["equation|count()"],
                 }
             ],
         }
