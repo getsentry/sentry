@@ -1,8 +1,8 @@
 from rest_framework import status
 
 from sentry.integrations.slack.message_builder.disconnected import DISCONNECTED_MESSAGE
-from tests.sentry.integrations.slack import get_response_text
-from tests.sentry.integrations.slack.endpoints.commands import SlackCommandsTest
+from sentry.testutils.helpers import get_response_text
+from sentry.testutils.helpers.endpoints.commands import SlackCommandsTest
 
 
 class SlackCommandsPostTest(SlackCommandsTest):

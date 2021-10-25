@@ -6,9 +6,9 @@ from sentry.integrations.slack.views.unlink_identity import (
     SUCCESS_UNLINKED_MESSAGE,
     build_unlinking_url,
 )
+from sentry.testutils.helpers import get_response_text
+from sentry.testutils.helpers.endpoints.commands import SlackCommandsTest
 from sentry.utils import json
-from tests.sentry.integrations.slack import get_response_text
-from tests.sentry.integrations.slack.endpoints.commands import SlackCommandsTest
 
 
 class SlackCommandsLinkUserTest(SlackCommandsTest):

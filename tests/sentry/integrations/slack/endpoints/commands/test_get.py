@@ -1,6 +1,6 @@
 from rest_framework import status
 
-from tests.sentry.integrations.slack.endpoints.commands import SlackCommandsTest
+from sentry.testutils.helpers.endpoints.commands import SlackCommandsTest
 
 
 class SlackCommandsGetTest(SlackCommandsTest):

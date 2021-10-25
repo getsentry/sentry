@@ -9,9 +9,9 @@ from sentry.integrations.slack.endpoints.command import (
     TEAM_NOT_LINKED_MESSAGE,
 )
 from sentry.models import OrganizationIntegration
+from sentry.testutils.helpers import get_response_text, link_user
+from sentry.testutils.helpers.endpoints.commands import SlackCommandsTest
 from sentry.utils import json
-from tests.sentry.integrations.slack import get_response_text, link_user
-from tests.sentry.integrations.slack.endpoints.commands import SlackCommandsTest
 
 OTHER_SLACK_ID = "UXXXXXXX2"
 
