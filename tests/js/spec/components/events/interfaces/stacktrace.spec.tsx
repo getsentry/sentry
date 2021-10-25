@@ -51,7 +51,7 @@ describe('StackTrace', function () {
     renderedComponent({});
 
     // frame - filename
-    const frameFilenames = screen.queryAllByTestId('filename');
+    const frameFilenames = screen.getAllByTestId('filename');
     expect(frameFilenames).toHaveLength(5);
     expect(frameFilenames[0]).toHaveTextContent('raven/scripts/runner.py');
     expect(frameFilenames[1]).toHaveTextContent('raven/scripts/runner.py');
@@ -60,7 +60,7 @@ describe('StackTrace', function () {
     expect(frameFilenames[4]).toHaveTextContent('raven/base.py');
 
     // frame - function
-    const frameFunction = screen.queryAllByTestId('function');
+    const frameFunction = screen.getAllByTestId('function');
     expect(frameFunction).toHaveLength(5);
     expect(frameFunction[0]).toHaveTextContent('main');
     expect(frameFunction[1]).toHaveTextContent('send_test_message');
@@ -76,11 +76,11 @@ describe('StackTrace', function () {
     expect(frames.children).toHaveLength(5);
 
     // only one frame is expanded by default
-    expect(screen.queryByTestId('toggle-button-expanded')).toBeInTheDocument();
-    expect(screen.queryAllByTestId('toggle-button-collapsed')).toHaveLength(4);
+    expect(screen.getByTestId('toggle-button-expanded')).toBeInTheDocument();
+    expect(screen.getAllByTestId('toggle-button-collapsed')).toHaveLength(4);
 
     // clickable list item element
-    const frameTitles = screen.queryAllByTestId('title');
+    const frameTitles = screen.getAllByTestId('title');
 
     // collapse the expanded frame (by default)
     fireEvent.mouseDown(frameTitles[0]);
@@ -88,7 +88,7 @@ describe('StackTrace', function () {
 
     // all frames are now collapsed
     expect(screen.queryByTestId('toggle-button-expanded')).not.toBeInTheDocument();
-    expect(screen.queryAllByTestId('toggle-button-collapsed')).toHaveLength(5);
+    expect(screen.getAllByTestId('toggle-button-collapsed')).toHaveLength(5);
 
     // expand penultimate and last frame
     fireEvent.mouseDown(frameTitles[frameTitles.length - 2]);
@@ -98,8 +98,8 @@ describe('StackTrace', function () {
     fireEvent.click(frameTitles[frameTitles.length - 1]);
 
     // two frames are now collapsed
-    expect(screen.queryAllByTestId('toggle-button-expanded')).toHaveLength(2);
-    expect(screen.queryAllByTestId('toggle-button-collapsed')).toHaveLength(3);
+    expect(screen.getAllByTestId('toggle-button-expanded')).toHaveLength(2);
+    expect(screen.getAllByTestId('toggle-button-collapsed')).toHaveLength(3);
   });
 
   it('collapse/expand frames by clicking on the toggle button', function () {
@@ -113,7 +113,7 @@ describe('StackTrace', function () {
 
     // only one frame is expanded by default
     expect(expandedToggleButtons).toBeInTheDocument();
-    expect(screen.queryAllByTestId('toggle-button-collapsed')).toHaveLength(4);
+    expect(screen.getAllByTestId('toggle-button-collapsed')).toHaveLength(4);
 
     // collapse the expanded frame (by default)
     fireEvent.mouseDown(expandedToggleButtons);
@@ -121,9 +121,9 @@ describe('StackTrace', function () {
 
     // all frames are now collapsed
     expect(screen.queryByTestId('toggle-button-expanded')).not.toBeInTheDocument();
-    expect(screen.queryAllByTestId('toggle-button-collapsed')).toHaveLength(5);
+    expect(screen.getAllByTestId('toggle-button-collapsed')).toHaveLength(5);
 
-    const collapsedToggleButtons = screen.queryAllByTestId('toggle-button-collapsed');
+    const collapsedToggleButtons = screen.getAllByTestId('toggle-button-collapsed');
 
     // expand penultimate and last frame
     fireEvent.mouseDown(collapsedToggleButtons[collapsedToggleButtons.length - 2]);
@@ -133,8 +133,8 @@ describe('StackTrace', function () {
     fireEvent.click(collapsedToggleButtons[collapsedToggleButtons.length - 1]);
 
     // two frames are now collapsed
-    expect(screen.queryAllByTestId('toggle-button-expanded')).toHaveLength(2);
-    expect(screen.queryAllByTestId('toggle-button-collapsed')).toHaveLength(3);
+    expect(screen.getAllByTestId('toggle-button-expanded')).toHaveLength(2);
+    expect(screen.getAllByTestId('toggle-button-collapsed')).toHaveLength(3);
   });
 
   it('if all in_app equals false, all the frames are showing by default', function () {
@@ -165,7 +165,7 @@ describe('StackTrace', function () {
       });
 
       // clickable list item element
-      const frameTitles = screen.queryAllByTestId('title');
+      const frameTitles = screen.getAllByTestId('title');
 
       // frame list - in app only
       expect(frameTitles).toHaveLength(2);
@@ -196,7 +196,7 @@ describe('StackTrace', function () {
       });
 
       // clickable list item element
-      const frameTitles = screen.queryAllByTestId('title');
+      const frameTitles = screen.getAllByTestId('title');
 
       // frame list - in app only
       expect(frameTitles).toHaveLength(2);
@@ -229,7 +229,7 @@ describe('StackTrace', function () {
       });
 
       // clickable list item element
-      const frameTitles = screen.queryAllByTestId('title');
+      const frameTitles = screen.getAllByTestId('title');
 
       // frame list - in app only
       expect(frameTitles).toHaveLength(3);
