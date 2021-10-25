@@ -67,6 +67,7 @@ class OrganizationEventsSpansPerformanceEndpoint(OrganizationEventsEndpointBase)
             return Response(status=404)
 
         query = request.GET.get("query")
+        span_ops = request.GET.getlist("spanOp")
 
         direction, orderby_column = self.get_orderby_column(request)
 
@@ -75,7 +76,7 @@ class OrganizationEventsSpansPerformanceEndpoint(OrganizationEventsEndpointBase)
                 SPAN_PERFORMANCE_COLUMNS[orderby_column].suspect_op_group_column
             )
             orderby = direction + alias
-            suspects = query_suspect_span_groups(params, query, orderby, limit, offset)
+            suspects = query_suspect_span_groups(params, query, span_ops, orderby, limit, offset)
 
             alias = get_function_alias(
                 SPAN_PERFORMANCE_COLUMNS[orderby_column].suspect_example_column
@@ -114,8 +115,6 @@ class OrganizationEventsSpansPerformanceEndpoint(OrganizationEventsEndpointBase)
                 default_per_page=4,
                 max_per_page=4,
             )
-
-        return Response(status=200)
 
     def get_orderby_column(self, request: Request) -> Tuple[str, str]:
         orderbys = super().get_orderby(request)
@@ -219,6 +218,7 @@ class SuspectSpanWithExamples(SuspectSpan):
 def query_suspect_span_groups(
     params: ParamsType,
     query: Optional[str],
+    span_ops: Optional[List[str]],
     order_column: str,
     limit: int,
     offset: int,
@@ -243,6 +243,17 @@ def query_suspect_span_groups(
         offset=offset,
         functions_acl=["array_join", "sumArray", "percentileArray", "maxArray"],
     )
+
+    if span_ops:
+        builder.add_conditions(
+            [
+                Condition(
+                    builder.resolve_function("array_join(spans_op)"),
+                    Op.IN,
+                    Function("tuple", span_ops),
+                ),
+            ]
+        )
 
     snql_query = builder.get_snql_query()
     results = raw_snql_query(snql_query, "api.organization-events-spans-performance-suspects")
