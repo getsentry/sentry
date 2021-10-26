@@ -9,7 +9,5 @@ HIDDEN_PLUGINS = (
     "irc",
     "campfire",
     "youtrack",
-    "clubhouse",
     "pagerduty",
-    "teamwork",
 )

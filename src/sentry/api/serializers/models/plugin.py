@@ -9,8 +9,6 @@ from sentry.utils.http import absolute_uri
 
 # Dict with the plugin_name as the key, and enabling_feature_name as the value
 SHADOW_DEPRECATED_PLUGINS = {
-    "teamwork": "organizations:integrations-ignore-teamwork-deprecation",
-    "clubhouse": "organizations:integrations-ignore-clubhouse-deprecation",
     "vsts": "organizations:integrations-ignore-vsts-deprecation",
 }
 

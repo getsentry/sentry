@@ -12,8 +12,6 @@ const pathPrefix = '/settings/:orgId/projects/:projectId';
 
 // Object with the pluginId as the key, and enablingFeature as the value
 const SHADOW_DEPRECATED_PLUGINS = {
-  teamwork: 'integrations-ignore-teamwork-deprecation',
-  clubhouse: 'integrations-ignore-clubhouse-deprecation',
   vsts: 'integrations-ignore-vsts-deprecation',
 };
 

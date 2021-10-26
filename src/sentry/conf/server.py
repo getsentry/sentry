@@ -996,10 +996,6 @@ SENTRY_FEATURES = {
     "organizations:integrations-stacktrace-link": False,
     # Allow orgs to install a custom source code management integration
     "organizations:integrations-custom-scm": False,
-    # Allow orgs to use the deprecated Teamwork plugin
-    "organizations:integrations-ignore-teamwork-deprecation": False,
-    # Allow orgs to use the deprecated Clubhouse/Shortcut plugin
-    "organizations:integrations-ignore-clubhouse-deprecation": False,
     # Allow orgs to use the deprecated VSTS (Azure DevOps) plugin
     "organizations:integrations-ignore-vsts-deprecation": False,
     # Allow orgs to debug internal/unpublished sentry apps with logging
