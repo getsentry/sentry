@@ -43,6 +43,7 @@ export type RenderDescriptor<D extends string = string> = {
    * it produces a valid ECharts Option config.
    */
   getOption: (data: any) => RenderOption;
+  init?: (namespace: any, dom: HTMLCanvasElement) => echarts.ECharts;
 };
 
 /**
