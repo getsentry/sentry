@@ -314,6 +314,7 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
 }
 
 type FeatureRenderProps = {
+  hasFeature: boolean;
   renderShowAllButton?: (p: {
     canShowAllProjects: boolean;
     onButtonClick: () => void;
@@ -369,18 +370,25 @@ const SelectorFooterControls = ({
             hookName="feature-disabled:project-selector-all-projects"
             renderDisabled={false}
           >
-            {({renderShowAllButton}: FeatureRenderProps) =>
-              renderShowAllButton ? (
-                renderShowAllButton({
+            {({renderShowAllButton, hasFeature}: FeatureRenderProps) => {
+              // if our hook is adding renderShowAllButton, render that
+              if (renderShowAllButton) {
+                return renderShowAllButton({
                   onButtonClick: onProjectClick,
                   canShowAllProjects,
-                })
-              ) : (
+                });
+              }
+              // if no hook, render null if feature is disabled
+              if (!hasFeature) {
+                return null;
+              }
+              // otherwise render the buton
+              return (
                 <Button priority="default" size="xsmall" onClick={onProjectClick}>
                   {buttonText}
                 </Button>
-              )
-            }
+              );
+            }}
           </Feature>
         )}
 
