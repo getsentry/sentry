@@ -77,10 +77,6 @@ jobs:
           export PATH="$HOME/.volta/bin:$PATH"
           make setup-pyenv
           eval "$(pyenv init --path)"
-          # Not working for Linux. Switch at a later time
-          # exec "$SHELL"
-          set -x
-          [[ $(python -V) == $(cat .python-version) ]]
           python -m venv .venv
           source .venv/bin/activate
           make develop init-config
