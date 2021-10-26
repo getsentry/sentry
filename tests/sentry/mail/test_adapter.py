@@ -645,32 +645,6 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
         assert digests.add.call_count == 1
 
 
-class MailAdapterShouldNotifyTest(BaseMailAdapterTest):
-    def test_should_notify(self):
-        assert self.adapter.should_notify(ActionTargetType.ISSUE_OWNERS, self.group)
-        assert self.adapter.should_notify(ActionTargetType.MEMBER, self.group)
-
-    def test_should_not_notify_no_users(self):
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.NEVER,
-            user=self.user,
-            project=self.project,
-        )
-        assert not self.adapter.should_notify(ActionTargetType.ISSUE_OWNERS, self.group)
-
-    def test_should_always_notify_target_member(self):
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.NEVER,
-            user=self.user,
-            project=self.project,
-        )
-        assert self.adapter.should_notify(ActionTargetType.MEMBER, self.group)
-
-
 class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
     def test_assignment(self):
         NotificationSetting.objects.update_settings(
