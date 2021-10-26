@@ -81,7 +81,7 @@ class WorldMapChart extends React.Component<Props, State> {
         nameMap: this.state.countryToCodeMap ?? undefined,
         aspectScale: 0.85,
         zoom: fromDiscover ? 1.1 : fromDiscoverQueryList ? 0.9 : 1.3,
-        center: [10.97, fromDiscoverQueryList ? -15 : 9.71],
+        center: [10.97, fromDiscoverQueryList ? -12 : 9.71],
         itemStyle: {
           areaColor: theme.gray200,
           borderColor: theme.backgroundSecondary,
