@@ -112,3 +112,61 @@ class OrganizationEventsGeoEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.data
         assert len(response.data["data"]) == 1
         assert response.data["data"] == [{"count": 1, "geo.country_code": "CA"}]
+
+    def test_orderby(self):
+        mockData = [
+            {
+                "event_id": "a" * 32,
+                "environment": "staging",
+                "timestamp": self.min_ago,
+                "user": {
+                    "email": "foo@example.com",
+                    "id": "123",
+                    "ip_address": "127.0.0.1",
+                    "username": "foo",
+                    "geo": {"country_code": "CA", "region": "Canada"},
+                },
+            },
+            {
+                "event_id": "b" * 32,
+                "environment": "staging",
+                "timestamp": self.min_ago,
+                "user": {
+                    "email": "bar@example.com",
+                    "id": "124",
+                    "ip_address": "127.0.0.1",
+                    "username": "bar",
+                    "geo": {"country_code": "BR", "region": "Brazil"},
+                },
+            },
+            {
+                "event_id": "c" * 32,
+                "environment": "staging",
+                "timestamp": self.min_ago,
+                "user": {
+                    "email": "bar@example.com",
+                    "id": "124",
+                    "ip_address": "127.0.0.1",
+                    "username": "bar",
+                    "geo": {"country_code": "BR", "region": "Brazil"},
+                },
+            },
+        ]
+        self.store_event(data=mockData[0], project_id=self.project.id)
+        self.store_event(data=mockData[1], project_id=self.project.id)
+        self.store_event(data=mockData[2], project_id=self.project.id)
+
+        query = {
+            "project": [self.project.id],
+            "field": ["count()"],
+            "statsPeriod": "24h",
+            "sort": "-count",
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.data
+        assert len(response.data["data"]) == 2
+        assert response.data["data"] == [
+            {"count": 2, "geo.country_code": "BR"},
+            {"count": 1, "geo.country_code": "CA"},
+        ]
