@@ -36,10 +36,6 @@ class JiraInstalledEndpoint(Endpoint):
         if key_id:
             try:
                 decoded_claims = authenticate_asymmetric_jwt(token, key_id)
-            except AtlassianConnectValidationError:
-                return self.respond(status=status.HTTP_400_BAD_REQUEST)
-
-            try:
                 verify_claims(decoded_claims, request.path, request.GET, method="POST")
             except AtlassianConnectValidationError:
                 return self.respond(status=status.HTTP_400_BAD_REQUEST)
