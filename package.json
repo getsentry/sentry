@@ -69,7 +69,7 @@
     "core-js": "^3.15.2",
     "crypto-browserify": "^3.12.0",
     "crypto-js": "4.0.0",
-    "css-loader": "^5.2.6",
+    "css-loader": "^6.5.0",
     "css-minimizer-webpack-plugin": "^3.0.2",
     "diff": "5.0.0",
     "dompurify": "^2.3.1",
