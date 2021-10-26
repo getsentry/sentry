@@ -66,6 +66,7 @@ _append_to_startup_script() {
 
 append_to_config() {
   if [[ -n "$1" ]]; then
+    [ ! -f "$1" ] && touch "$1"
     if grep -qF "(pyenv init -)" "${1}"; then
       echo >&2 "!!! Please remove the old-style pyenv initialization and try again:"
       echo "sed -i.bak 's/(pyenv init -)/(pyenv init --path)/' ${1}"
