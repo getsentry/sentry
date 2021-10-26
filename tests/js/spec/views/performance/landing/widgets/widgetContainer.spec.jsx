@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeData} from 'sentry-test/performance/initializePerformanceData';
 
-import {CurrentPerformanceViewProvider} from 'app/utils/performance/contexts/currentPerformanceView';
+import {PerformanceDisplayProvider} from 'app/utils/performance/contexts/performanceDisplayContext';
 import {OrganizationContext} from 'app/views/organizationContext';
 import WidgetContainer from 'app/views/performance/landing/widgets/components/widgetContainer';
 import {PerformanceWidgetSetting} from 'app/views/performance/landing/widgets/widgetDefinitions';
@@ -9,9 +9,7 @@ import {PROJECT_PERFORMANCE_TYPE} from 'app/views/performance/utils';
 
 const WrappedComponent = ({data, ...rest}) => {
   return (
-    <CurrentPerformanceViewProvider
-      value={{performanceType: PROJECT_PERFORMANCE_TYPE.ANY}}
-    >
+    <PerformanceDisplayProvider value={{performanceType: PROJECT_PERFORMANCE_TYPE.ANY}}>
       <OrganizationContext.Provider value={data.organization}>
         <WidgetContainer
           {...data}
@@ -24,7 +22,7 @@ const WrappedComponent = ({data, ...rest}) => {
           forceDefaultChartSetting
         />
       </OrganizationContext.Provider>
-    </CurrentPerformanceViewProvider>
+    </PerformanceDisplayProvider>
   );
 };
 
