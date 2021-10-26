@@ -7,7 +7,6 @@
 # everything make bootstrap does and more (system dependencies and so on).
 
 # So just going to sprinkle returns everywhere.
-set -eu
 
 SCRIPTS_DIR="$(
     cd "$(dirname "${BASH_SOURCE[0]}")"
@@ -26,7 +25,6 @@ command -v direnv >/dev/null || {
     return 1
 }
 
-cd "$(git rev-parse --show-toplevel)" || return 1
 # This executes very quickly if the Python versions are already installed
 # This calling approach activates pyenv correctly -> eval "$(pyenv init --path)"
 . "$SCRIPTS_DIR/pyenv_setup.sh"
