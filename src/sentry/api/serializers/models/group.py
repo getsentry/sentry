@@ -462,7 +462,7 @@ class GroupSerializerBase(Serializer):
             and getattr(request.user, "is_sentry_app", False)
             and isinstance(request.auth, ApiToken)
         ):
-            is_valid_sentryapp = SentryAppInstallationToken.has_organization_access(
+            is_valid_sentryapp = SentryAppInstallationToken.objects.has_organization_access(
                 request.auth, obj.organization
             )
 
