@@ -4,10 +4,11 @@ import logging
 from typing import TYPE_CHECKING, Mapping, Sequence
 
 from sentry import features
+from sentry.models import Group, GroupAssignee, Project, User
 from sentry.tasks.integrations import sync_assignee_outbound
 
 if TYPE_CHECKING:
-    from sentry.models import Group, GroupAssignee, Integration, Organization, Project, User
+    from sentry.models import Integration, Organization
 
 
 def where_should_sync(
