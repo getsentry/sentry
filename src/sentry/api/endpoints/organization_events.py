@@ -124,7 +124,7 @@ class OrganizationEventsGeoEndpoint(OrganizationEventsV2EndpointBase):
                 limit=limit,
                 referrer=referrer,
                 use_aggregate_conditions=True,
-                orderby=self.get_orderby(request),
+                orderby=self.get_orderby(request) or maybe_aggregate,
             )
 
         with self.handle_query_errors():

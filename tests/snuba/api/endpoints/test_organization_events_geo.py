@@ -114,9 +114,9 @@ class OrganizationEventsGeoEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["data"] == [{"count": 1, "geo.country_code": "CA"}]
 
     def test_orderby(self):
-        mockData = [
-            {
-                "event_id": "a" * 32,
+        def get_mock_data(index, geo):
+            return {
+                "event_id": str(index) * 32,
                 "environment": "staging",
                 "timestamp": self.min_ago,
                 "user": {
@@ -124,37 +124,34 @@ class OrganizationEventsGeoEndpointTest(APITestCase, SnubaTestCase):
                     "id": "123",
                     "ip_address": "127.0.0.1",
                     "username": "foo",
-                    "geo": {"country_code": "CA", "region": "Canada"},
+                    "geo": geo,
                 },
-            },
-            {
-                "event_id": "b" * 32,
-                "environment": "staging",
-                "timestamp": self.min_ago,
-                "user": {
-                    "email": "bar@example.com",
-                    "id": "124",
-                    "ip_address": "127.0.0.1",
-                    "username": "bar",
-                    "geo": {"country_code": "BR", "region": "Brazil"},
-                },
-            },
-            {
-                "event_id": "c" * 32,
-                "environment": "staging",
-                "timestamp": self.min_ago,
-                "user": {
-                    "email": "bar@example.com",
-                    "id": "124",
-                    "ip_address": "127.0.0.1",
-                    "username": "bar",
-                    "geo": {"country_code": "BR", "region": "Brazil"},
-                },
-            },
-        ]
-        self.store_event(data=mockData[0], project_id=self.project.id)
-        self.store_event(data=mockData[1], project_id=self.project.id)
-        self.store_event(data=mockData[2], project_id=self.project.id)
+            }
+
+        self.store_event(
+            data=get_mock_data(0, {"country_code": "CA", "region": "Canada"}),
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data=get_mock_data(1, {"country_code": "BR", "region": "Brazil"}),
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data=get_mock_data(2, {"country_code": "BR", "region": "Brazil"}),
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data=get_mock_data(3, {"country_code": "BR", "region": "Brazil"}),
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data=get_mock_data(4, {"country_code": "JP", "region": "Japan"}),
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data=get_mock_data(5, {"country_code": "JP", "region": "Japan"}),
+            project_id=self.project.id,
+        )
 
         query = {
             "project": [self.project.id],
@@ -165,8 +162,24 @@ class OrganizationEventsGeoEndpointTest(APITestCase, SnubaTestCase):
 
         response = self.do_request(query)
         assert response.status_code == 200, response.data
-        assert len(response.data["data"]) == 2
+        assert len(response.data["data"]) == 3
         assert response.data["data"] == [
-            {"count": 2, "geo.country_code": "BR"},
+            {"count": 3, "geo.country_code": "BR"},
+            {"count": 2, "geo.country_code": "JP"},
             {"count": 1, "geo.country_code": "CA"},
+        ]
+
+        query = {
+            "project": [self.project.id],
+            "field": ["count()"],
+            "statsPeriod": "24h",
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.data
+        assert len(response.data["data"]) == 3
+        assert response.data["data"] == [
+            {"count": 1, "geo.country_code": "CA"},
+            {"count": 2, "geo.country_code": "JP"},
+            {"count": 3, "geo.country_code": "BR"},
         ]
