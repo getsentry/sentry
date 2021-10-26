@@ -80,6 +80,7 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
 
         context = self.get_context()
         for provider, recipients in participants_by_provider.items():
+            # TODO: use safe_excute
             notify(provider, self, recipients, context)
 
     def get_member(self, user: "User") -> "OrganizationMember":
