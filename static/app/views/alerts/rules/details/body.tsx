@@ -408,20 +408,25 @@ export default class DetailsBody extends React.Component<Props> {
                     </HeaderGrid>
                   </HeaderContainer>
 
-                  <MetricChart
-                    api={api}
-                    rule={rule}
-                    incidents={incidents}
-                    timePeriod={timePeriod}
-                    selectedIncident={selectedIncident}
-                    organization={organization}
-                    projects={projects}
-                    interval={this.getInterval()}
-                    filter={this.getFilter()}
-                    query={dataset === Dataset.SESSIONS ? query : queryWithTypeFilter}
-                    orgId={orgId}
-                    handleZoom={handleZoom}
-                  />
+                  {getDynamicText({
+                    value: (
+                      <MetricChart
+                        api={api}
+                        rule={rule}
+                        incidents={incidents}
+                        timePeriod={timePeriod}
+                        selectedIncident={selectedIncident}
+                        organization={organization}
+                        projects={projects}
+                        interval={this.getInterval()}
+                        filter={this.getFilter()}
+                        query={dataset === Dataset.SESSIONS ? query : queryWithTypeFilter}
+                        orgId={orgId}
+                        handleZoom={handleZoom}
+                      />
+                    ),
+                    fixed: <Placeholder height="200px" testId="skeleton-ui" />,
+                  })}
                   <DetailWrapper>
                     <ActivityWrapper>
                       {[Dataset.SESSIONS, Dataset.ERRORS].includes(dataset) && (
