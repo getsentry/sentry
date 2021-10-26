@@ -47,15 +47,6 @@ query-apple-m1() {
     query-mac && [[ $(uname -m) = 'arm64' ]]
 }
 
-get-pyenv-version() {
-    if [[ -n "${SENTRY_PYTHON_VERSION:-}" ]]; then
-        echo "${SENTRY_PYTHON_VERSION}"
-        return 0
-    fi
-
-    echo '3.8.12'
-}
-
 query-valid-python-version() {
     if [[ -n "${SENTRY_PYTHON_VERSION:-}" ]]; then
         python_version=$(python3 -V 2>&1 | awk '{print $2}')

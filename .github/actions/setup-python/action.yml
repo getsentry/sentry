@@ -38,7 +38,7 @@ runs:
       shell: bash
       run: |
         if [ "${{ inputs.python-version }}" == "" ]; then
-          echo "::set-output name=python-version::$(SENTRY_NO_VENV_CHECK=1 ./scripts/do.sh get-pyenv-version)"
+          echo "::set-output name=python-version::$(cat .python-versio)"
         else
           echo "::set-output name=python-version::${{ inputs.python-version }}"
         fi
