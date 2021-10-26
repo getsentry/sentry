@@ -38,6 +38,17 @@ const getContainerKey = (
   height: number
 ) => `landing-chart-container#${performanceType}#${height}#${index}`;
 
+function getWidgetStorageObject() {
+  const localObject = JSON.parse(
+    localStorage.getItem(getContainerLocalStorageObjectKey) || '{}'
+  );
+  return localObject;
+}
+
+function setWidgetStorageObject(localObject: Record<string, string>) {
+  localStorage.setItem(getContainerLocalStorageObjectKey, JSON.stringify(localObject));
+}
+
 const getChartSetting = (
   index: number,
   height: number,
@@ -49,9 +60,7 @@ const getChartSetting = (
     return defaultType;
   }
   const key = getContainerKey(index, performanceType, height);
-  const localObject = JSON.parse(
-    localStorage.getItem(getContainerLocalStorageObjectKey) || '{}'
-  );
+  const localObject = getWidgetStorageObject();
   const value = localObject?.[key];
 
   if (
@@ -70,12 +79,10 @@ const _setChartSetting = (
   setting: PerformanceWidgetSetting
 ) => {
   const key = getContainerKey(index, performanceType, height);
-  const localObject = JSON.parse(
-    localStorage.getItem(getContainerLocalStorageObjectKey) || '{}'
-  );
+  const localObject = getWidgetStorageObject();
   localObject[key] = setting;
 
-  localStorage.setItem(getContainerLocalStorageObjectKey, JSON.stringify(localObject));
+  setWidgetStorageObject(localObject);
 };
 
 const _WidgetContainer = (props: Props) => {
