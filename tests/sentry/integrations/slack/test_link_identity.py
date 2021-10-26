@@ -4,7 +4,7 @@ from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
 from sentry.models import Identity, IdentityStatus, OrganizationIntegration
 from sentry.testutils import TestCase
-from tests.sentry.integrations.slack import add_identity, install_slack
+from sentry.testutils.helpers import add_identity, install_slack
 
 
 class SlackIntegrationLinkIdentityTestBase(TestCase):

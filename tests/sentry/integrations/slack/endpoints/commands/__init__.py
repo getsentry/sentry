@@ -9,9 +9,9 @@ from sentry import options
 from sentry.integrations.slack.utils import set_signing_secret
 from sentry.models import Identity, IdentityProvider, Team
 from sentry.testutils import APITestCase, TestCase
+from sentry.testutils.helpers import find_identity, install_slack, link_team, link_user
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils import json
-from tests.sentry.integrations.slack import find_identity, install_slack, link_team, link_user
 
 
 class SlackCommandsTest(APITestCase, TestCase):

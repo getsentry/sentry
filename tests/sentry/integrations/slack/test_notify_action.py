@@ -6,8 +6,8 @@ from sentry.integrations.slack import SlackNotifyServiceAction
 from sentry.integrations.slack.utils import SLACK_RATE_LIMITED_MESSAGE
 from sentry.models import Integration
 from sentry.testutils.cases import RuleTestCase
+from sentry.testutils.helpers import install_slack
 from sentry.utils import json
-from tests.sentry.integrations.slack import install_slack
 
 
 class SlackNotifyActionTest(RuleTestCase):

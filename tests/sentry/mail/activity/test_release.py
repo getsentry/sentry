@@ -7,8 +7,8 @@ from sentry.notifications.types import (
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
+from sentry.testutils.cases import ActivityTestCase
 from sentry.types.integrations import ExternalProviders
-from tests.sentry.mail.activity import ActivityTestCase
 
 
 class ReleaseTestCase(ActivityTestCase):

@@ -14,8 +14,8 @@ from sentry.integrations.slack.utils import SLACK_RATE_LIMITED_MESSAGE
 from sentry.models import Rule
 from sentry.receivers.rules import DEFAULT_RULE_LABEL
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers import install_slack
 from sentry.utils import json
-from tests.sentry.integrations.slack import install_slack
 
 
 class SlackTasksTest(TestCase):
