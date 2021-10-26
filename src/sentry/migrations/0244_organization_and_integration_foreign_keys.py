@@ -28,7 +28,7 @@ class Migration(migrations.Migration):
     atomic = True
 
     dependencies = [
-        ("sentry", "0235_add_metricskeyindexer_table"),
+        ("sentry", "0243_delete_visualstudio_repo_data"),
     ]
 
     operations = [
