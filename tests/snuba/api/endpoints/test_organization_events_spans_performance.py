@@ -433,3 +433,31 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
             assert "sort=-sumExclusiveTime" in link
             # last page does not have a next page, only previous
             assert info["results"] == ("true" if info["rel"] == "previous" else "false")
+
+    @pytest.mark.skip("setting snuba config is too slow")
+    def test_span_group_prefixed_with_zeros(self):
+        self.update_snuba_config_ensure({"write_span_columns_projects": f"[{self.project.id}]"})
+
+        trace_context = {
+            "op": "http.server",
+            "hash": "00" + "ab" * 7,
+            "exclusive_time": 4.0,
+        }
+
+        event = self.create_event(trace_context=trace_context)
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={
+                    "project": self.project.id,
+                    "sort": "-p99ExclusiveTime",
+                    "per_page": 1,
+                },
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+        results = self.suspect_span_results("percentiles", event)
+        results["group"] = "00" + "ab" * 7
+        self.assert_suspect_span(response.data, [results])
