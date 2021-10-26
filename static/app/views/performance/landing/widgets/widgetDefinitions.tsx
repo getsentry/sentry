@@ -17,6 +17,7 @@ export interface BaseChartSetting {
 }
 
 export enum PerformanceWidgetSetting {
+  DURATION_HISTOGRAM = 'duration_histogram',
   LCP_HISTOGRAM = 'lcp_histogram',
   FCP_HISTOGRAM = 'fcp_histogram',
   FID_HISTOGRAM = 'fid_histogram',
@@ -43,6 +44,13 @@ export const WIDGET_DEFINITIONS: ({
 }: {
   organization: Organization;
 }) => ({
+  [PerformanceWidgetSetting.DURATION_HISTOGRAM]: {
+    title: t('Duration Distribution'),
+    titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.DURATION_DISTRIBUTION),
+    fields: ['transaction.duration'],
+    dataType: GenericPerformanceWidgetDataType.histogram,
+    chartColor: WIDGET_PALETTE[5],
+  },
   [PerformanceWidgetSetting.LCP_HISTOGRAM]: {
     title: t('LCP Distribution'),
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.DURATION_DISTRIBUTION),
