@@ -1,5 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {act} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'app/stores/projectsStore';
 import UserFeedback from 'app/views/userFeedback';
@@ -13,7 +14,7 @@ describe('UserFeedback', function () {
   const project = TestStubs.Project({isMember: true});
 
   beforeEach(function () {
-    ProjectsStore.loadInitialData([project]);
+    act(() => ProjectsStore.loadInitialData([project]));
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/user-feedback/',
@@ -28,7 +29,7 @@ describe('UserFeedback', function () {
   });
 
   afterEach(function () {
-    ProjectsStore.reset();
+    act(() => ProjectsStore.reset());
   });
 
   it('renders', async function () {
@@ -54,7 +55,7 @@ describe('UserFeedback', function () {
   });
 
   it('renders no project message', function () {
-    ProjectsStore.loadInitialData([]);
+    act(() => ProjectsStore.loadInitialData([]));
 
     const params = {
       organization: TestStubs.Organization(),

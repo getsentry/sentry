@@ -2,6 +2,7 @@ import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {act} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'app/stores/projectsStore';
 import Results from 'app/views/eventsV2/results';
@@ -152,7 +153,7 @@ describe('EventsV2 > Results', function () {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
-    ProjectsStore.reset();
+    act(() => ProjectsStore.reset());
   });
 
   it('loads data when moving from an invalid to valid EventView', async function () {
@@ -168,7 +169,7 @@ describe('EventsV2 > Results', function () {
       },
     });
 
-    ProjectsStore.loadInitialData([TestStubs.Project()]);
+    act(() => ProjectsStore.loadInitialData([TestStubs.Project()]));
 
     const wrapper = mountWithTheme(
       <Results
@@ -215,7 +216,7 @@ describe('EventsV2 > Results', function () {
       },
     });
 
-    ProjectsStore.loadInitialData([TestStubs.Project()]);
+    act(() => ProjectsStore.loadInitialData([TestStubs.Project()]));
 
     const wrapper = mountWithTheme(
       <Results
@@ -272,7 +273,7 @@ describe('EventsV2 > Results', function () {
       },
     });
 
-    ProjectsStore.loadInitialData([TestStubs.Project()]);
+    act(() => ProjectsStore.loadInitialData([TestStubs.Project()]));
 
     const wrapper = mountWithTheme(
       <Results
@@ -319,7 +320,7 @@ describe('EventsV2 > Results', function () {
       initialData.routerContext
     );
 
-    ProjectsStore.loadInitialData([TestStubs.Project()]);
+    act(() => ProjectsStore.loadInitialData([TestStubs.Project()]));
     await tick();
     wrapper.update();
 
@@ -355,7 +356,7 @@ describe('EventsV2 > Results', function () {
       },
     });
 
-    ProjectsStore.loadInitialData([TestStubs.Project()]);
+    act(() => ProjectsStore.loadInitialData([TestStubs.Project()]));
 
     const wrapper = mountWithTheme(
       <Results
@@ -632,7 +633,7 @@ describe('EventsV2 > Results', function () {
       },
     });
 
-    ProjectsStore.loadInitialData([TestStubs.Project()]);
+    act(() => ProjectsStore.loadInitialData([TestStubs.Project()]));
 
     const wrapper = mountWithTheme(
       <Results
@@ -692,7 +693,7 @@ describe('EventsV2 > Results', function () {
       },
     });
 
-    ProjectsStore.loadInitialData([TestStubs.Project()]);
+    act(() => ProjectsStore.loadInitialData([TestStubs.Project()]));
 
     const wrapper = mountWithTheme(
       <Results
@@ -752,7 +753,7 @@ describe('EventsV2 > Results', function () {
       },
     });
 
-    ProjectsStore.loadInitialData([TestStubs.Project()]);
+    act(() => ProjectsStore.loadInitialData([TestStubs.Project()]));
 
     const wrapper = mountWithTheme(
       <Results

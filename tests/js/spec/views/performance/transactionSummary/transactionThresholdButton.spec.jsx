@@ -1,4 +1,5 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {act} from 'sentry-test/reactTestingLibrary';
 
 import ModalActions from 'app/actions/modalActions';
 import ProjectsStore from 'app/stores/projectsStore';
@@ -35,7 +36,7 @@ describe('TransactionThresholdButton', function () {
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
-    ProjectsStore.loadInitialData([project]);
+    act(() => ProjectsStore.loadInitialData([project]));
   });
 
   it('renders element correctly', async function () {

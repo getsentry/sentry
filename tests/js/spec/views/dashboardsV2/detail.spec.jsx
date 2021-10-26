@@ -22,7 +22,7 @@ describe('Dashboards > Detail', function () {
     let initialData, mockVisit;
 
     beforeEach(function () {
-      ProjectsStore.loadInitialData(projects);
+      act(() => ProjectsStore.loadInitialData(projects));
       initialData = initializeOrg({organization});
 
       MockApiClient.addMockResponse({

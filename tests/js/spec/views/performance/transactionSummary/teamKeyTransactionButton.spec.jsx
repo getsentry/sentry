@@ -35,7 +35,7 @@ describe('TeamKeyTransactionButton', function () {
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
-    ProjectsStore.loadInitialData([project]);
+    act(() => ProjectsStore.loadInitialData([project]));
     act(() => void TeamStore.loadInitialData(teams));
   });
 

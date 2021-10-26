@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, mountWithTheme, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 import GroupStore from 'app/stores/groupStore';
@@ -73,7 +73,7 @@ describe('groupDetails', () => {
   };
 
   beforeEach(() => {
-    ProjectsStore.loadInitialData(organization.projects);
+    act(() => ProjectsStore.loadInitialData(organization.projects));
 
     MockApiClient.addMockResponse({
       url: `/issues/${group.id}/`,
@@ -108,19 +108,19 @@ describe('groupDetails', () => {
   });
 
   afterEach(() => {
-    ProjectsStore.reset();
+    act(() => ProjectsStore.reset());
     GroupStore.reset();
     GlobalSelectionStore.reset();
     MockApiClient.clearMockResponses();
   });
 
   it('renders', async function () {
-    ProjectsStore.reset();
+    act(() => ProjectsStore.reset());
     createWrapper();
 
     expect(screen.queryByText(group.title)).not.toBeInTheDocument();
 
-    ProjectsStore.loadInitialData(organization.projects);
+    act(() => ProjectsStore.loadInitialData(organization.projects));
 
     expect(await screen.findByText(group.title, {exact: false})).toBeInTheDocument();
   });
@@ -212,26 +212,26 @@ describe('groupDetails', () => {
         },
       },
     });
-    ProjectsStore.reset();
+    act(() => ProjectsStore.reset());
     createWrapper();
 
-    ProjectsStore.loadInitialData(organization.projects);
+    act(() => ProjectsStore.loadInitialData(organization.projects));
 
     expect(await screen.findByText('New Issue')).toBeInTheDocument();
   });
 
   it('renders alert for sample event', async function () {
     const aProject = TestStubs.Project({firstEvent: false});
-    ProjectsStore.reset();
-    ProjectsStore.loadInitialData([aProject]);
+    act(() => ProjectsStore.reset());
+    act(() => ProjectsStore.loadInitialData([aProject]));
     createWrapper();
 
     expect(await screen.findByText(SAMPLE_EVENT_ALERT_TEXT)).toBeInTheDocument();
   });
   it('does not render alert for non sample events', async function () {
     const aProject = TestStubs.Project({firstEvent: false});
-    ProjectsStore.reset();
-    ProjectsStore.loadInitialData([aProject]);
+    act(() => ProjectsStore.reset());
+    act(() => ProjectsStore.loadInitialData([aProject]));
     createWrapper();
 
     expect(await screen.queryByText(SAMPLE_EVENT_ALERT_TEXT)).not.toBeInTheDocument();

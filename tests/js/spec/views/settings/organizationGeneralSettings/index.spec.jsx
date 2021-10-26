@@ -3,6 +3,7 @@ import {browserHistory} from 'react-router';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
+import {act} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'app/stores/projectsStore';
 import OrganizationGeneralSettings from 'app/views/settings/organizationGeneralSettings';
@@ -117,7 +118,7 @@ describe('OrganizationGeneralSettings', function () {
   });
 
   it('can remove organization when org admin', async function () {
-    ProjectsStore.loadInitialData([TestStubs.Project({slug: 'project'})]);
+    act(() => ProjectsStore.loadInitialData([TestStubs.Project({slug: 'project'})]));
 
     const wrapper = mountWithTheme(
       <OrganizationGeneralSettings
