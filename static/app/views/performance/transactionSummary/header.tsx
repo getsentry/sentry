@@ -258,16 +258,13 @@ class TransactionHeader extends React.Component<Props> {
               {t('Overview')}
             </ListLink>
             {this.renderWebVitalsTab()}
-            <Feature features={['organizations:performance-tag-page']}>
-              <ListLink
-                to={tagsTarget}
-                isActive={() => currentTab === Tab.Tags}
-                onClick={this.trackTabClick(Tab.Tags)}
-              >
-                {t('Tags')}
-                <FeatureBadge type="new" noTooltip />
-              </ListLink>
-            </Feature>
+            <ListLink
+              to={tagsTarget}
+              isActive={() => currentTab === Tab.Tags}
+              onClick={this.trackTabClick(Tab.Tags)}
+            >
+              {t('Tags')}
+            </ListLink>
             <Feature features={['organizations:performance-events-page']}>
               <ListLink
                 to={eventsTarget}

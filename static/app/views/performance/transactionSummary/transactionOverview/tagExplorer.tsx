@@ -3,11 +3,9 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptorObject} from 'history';
 
-import Feature from 'app/components/acl/feature';
 import {GuideAnchor} from 'app/components/assistant/guideAnchor';
 import Button from 'app/components/button';
 import {SectionHeading} from 'app/components/charts/styles';
-import FeatureBadge from 'app/components/featureBadge';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumn,
@@ -352,18 +350,9 @@ class _TagExplorer extends React.Component<Props> {
         query: {...location.query, tagKey: dataRow.tags_key},
       });
       return (
-        <Feature features={['performance-tag-page']} organization={organization}>
-          {({hasFeature}) => {
-            if (hasFeature) {
-              return (
-                <Link to={target} onClick={() => this.onTagKeyClick()}>
-                  {dataRow.tags_key}
-                </Link>
-              );
-            }
-            return dataRow.tags_key;
-          }}
-        </Feature>
+        <Link to={target} onClick={() => this.onTagKeyClick()}>
+          {dataRow.tags_key}
+        </Link>
       );
     }
 
@@ -378,27 +367,7 @@ class _TagExplorer extends React.Component<Props> {
           handleCellAction={this.handleCellAction(column, dataRow.tags_value, actionRow)}
           allowActions={allowActions}
         >
-          <Feature features={['performance-tag-page']} organization={organization}>
-            {({hasFeature}) => {
-              if (hasFeature) {
-                return <div className="truncate">{dataRow.tags_value}</div>;
-              }
-              return (
-                <Link
-                  to=""
-                  onClick={() =>
-                    this.handleTagValueClick(
-                      location,
-                      dataRow.tags_key,
-                      dataRow.tags_value
-                    )
-                  }
-                >
-                  <TagValue row={dataRow} />
-                </Link>
-              );
-            }}
-          </Feature>
+          <div className="truncate">{dataRow.tags_value}</div>
         </CellAction>
       );
     }
@@ -560,18 +529,15 @@ function TagsHeader(props: HeaderProps) {
     <Header>
       <div>
         <SectionHeading>{t('Suspect Tags')}</SectionHeading>
-        <FeatureBadge type="new" />
       </div>
-      <Feature features={['performance-tag-page']} organization={organization}>
-        <Button
-          onClick={handleViewAllTagsClick}
-          to={viewAllTarget}
-          size="small"
-          data-test-id="tags-explorer-open-tags"
-        >
-          {t('View All Tags')}
-        </Button>
-      </Feature>
+      <Button
+        onClick={handleViewAllTagsClick}
+        to={viewAllTarget}
+        size="small"
+        data-test-id="tags-explorer-open-tags"
+      >
+        {t('View All Tags')}
+      </Button>
       <StyledPagination pageLinks={pageLinks} onCursor={handleCursor} size="small" />
     </Header>
   );

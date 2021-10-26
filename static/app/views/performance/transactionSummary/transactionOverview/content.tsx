@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import omit from 'lodash/omit';
 
-import Feature from 'app/components/acl/feature';
 import TransactionsList, {DropdownOption} from 'app/components/discover/transactionsList';
 import SearchBar from 'app/components/events/searchBar';
 import GlobalSdkUpdateAlert from 'app/components/globalSdkUpdateAlert';
@@ -349,19 +348,14 @@ class SummaryContent extends React.Component<Props> {
             })}
             forceLoading={isLoading}
           />
-          <Feature
-            requireAll={false}
-            features={['performance-tag-explorer', 'performance-tag-page']}
-          >
-            <TagExplorer
-              eventView={eventView}
-              organization={organization}
-              location={location}
-              projects={projects}
-              transactionName={transactionName}
-              currentFilter={spanOperationBreakdownFilter}
-            />
-          </Feature>
+          <TagExplorer
+            eventView={eventView}
+            organization={organization}
+            location={location}
+            projects={projects}
+            transactionName={transactionName}
+            currentFilter={spanOperationBreakdownFilter}
+          />
           <RelatedIssues
             organization={organization}
             location={location}
