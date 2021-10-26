@@ -103,7 +103,12 @@ def send_incident_alert_notification(action, incident, metric_value=None, method
 def find_alert_rule_action_ui_component(app_platform_event: AppPlatformEvent) -> Optional[bool]:
     # Loop through the triggers for the alert rule event. For each trigger, check if an action is an alert rule UI Component
     alert_rule_action_ui_component = False
-    for trigger in app_platform_event.data["metric_alert"]["alert_rule"]["triggers"]:
+    for trigger in (
+        app_platform_event.get("data", {})
+        .get("metric_alert", {})
+        .get("alert_rule", {})
+        .get("triggers", [])
+    ):
         alert_rule_action_ui_component = next(
             iter(
                 filter(
