@@ -113,7 +113,7 @@ class Pipeline:
         self.operations: MutableSequence[Callable[..., Any]] = []
         self.logs: MutableSequence[str] = []
 
-    def __call__(self, sequence: Sequence[Any]) -> Any:
+    def __call__(self, sequence: Sequence[Any]) -> Tuple[Any, Sequence[str]]:
         # Explicitly typing to satisfy mypy.
         func: Callable[[Any, Callable[[Any], Any]], Any] = lambda x, operation: operation(x)
         return reduce(func, self.operations, sequence), self.logs
@@ -228,10 +228,10 @@ def build_digest(
     project: "Project",
     records: Sequence[Record],
     state: Optional[Mapping[str, Any]] = None,
-) -> Optional[Any]:
+) -> Tuple[Optional[Any], Sequence[str]]:
     records = list(records)
     if not records:
-        return None
+        return None, []
 
     # XXX: This is a hack to allow generating a mock digest without actually
     # doing any real IO!
