@@ -550,8 +550,8 @@ const ChartContainer = styled('div')`
     width: 100% !important;
   }
 
-  .echarts-for-react tspan {
-    font-variant-numeric: tabular-nums;
+  .echarts-for-react text {
+    font-variant-numeric: tabular-nums !important;
   }
 
   /* Tooltip description styling */
