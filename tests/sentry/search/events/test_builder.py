@@ -454,3 +454,4 @@ class QueryBuilderTest(TestCase):
             ],
         )
         assert query.array_join == Column("spans.op")
+        query.get_snql_query().validate()
