@@ -359,59 +359,57 @@ const SelectorFooterControls = ({
     : t('Select My Projects');
 
   return (
-    <FooterContainer>
+    <FooterActions>
       {message && <FooterMessage>{message}</FooterMessage>}
+      {!disableMultipleProjectSelection && (
+        <Feature
+          features={['organizations:global-views']}
+          organization={organization}
+          hookName="feature-disabled:project-selector-all-projects"
+          renderDisabled={false}
+        >
+          {({renderShowAllButton, hasFeature}: FeatureRenderProps) => {
+            // if our hook is adding renderShowAllButton, render that
+            if (renderShowAllButton) {
+              return renderShowAllButton({
+                onButtonClick: onProjectClick,
+                canShowAllProjects,
+              });
+            }
+            // if no hook, render null if feature is disabled
+            if (!hasFeature) {
+              return null;
+            }
+            // otherwise render the buton
+            return (
+              <Button priority="default" size="xsmall" onClick={onProjectClick}>
+                {buttonText}
+              </Button>
+            );
+          }}
+        </Feature>
+      )}
 
-      <FooterActions>
-        {!disableMultipleProjectSelection && (
-          <Feature
-            features={['organizations:global-views']}
-            organization={organization}
-            hookName="feature-disabled:project-selector-all-projects"
-            renderDisabled={false}
-          >
-            {({renderShowAllButton, hasFeature}: FeatureRenderProps) => {
-              // if our hook is adding renderShowAllButton, render that
-              if (renderShowAllButton) {
-                return renderShowAllButton({
-                  onButtonClick: onProjectClick,
-                  canShowAllProjects,
-                });
-              }
-              // if no hook, render null if feature is disabled
-              if (!hasFeature) {
-                return null;
-              }
-              // otherwise render the buton
-              return (
-                <Button priority="default" size="xsmall" onClick={onProjectClick}>
-                  {buttonText}
-                </Button>
-              );
-            }}
-          </Feature>
-        )}
-
-        {hasChanges && (
-          <SubmitButton onClick={onApply} size="xsmall" priority="primary">
-            {t('Apply Filter')}
-          </SubmitButton>
-        )}
-      </FooterActions>
-    </FooterContainer>
+      {hasChanges && (
+        <SubmitButton onClick={onApply} size="xsmall" priority="primary">
+          {t('Apply Filter')}
+        </SubmitButton>
+      )}
+    </FooterActions>
   );
 };
 
 export default withRouter(MultipleProjectSelector);
 
-const FooterContainer = styled('div')`
-  padding: ${space(1)} 0;
-`;
 const FooterActions = styled('div')`
+  padding: ${space(1)} 0;
   display: flex;
   justify-content: flex-end;
   & > * {
     margin-left: ${space(0.5)};
+  }
+  &:empty {
+    display: none;
   }
 `;
 const SubmitButton = styled(Button)`
