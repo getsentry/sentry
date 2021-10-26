@@ -1,13 +1,14 @@
 import {Fragment} from 'react';
 import * as React from 'react';
 import {Link} from 'react-router';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
-import {DateTimeObject} from 'app/components/charts/utils';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import NotAvailable from 'app/components/notAvailable';
 import {PanelItem} from 'app/components/panels';
 import PanelTable from 'app/components/panels/panelTable';
 import {IconArrow, IconWarning} from 'app/icons';
@@ -23,17 +24,17 @@ import {
   MOBILE_VITAL_DETAILS,
   WEB_VITAL_DETAILS,
 } from 'app/utils/performance/vitals/constants';
-import type {Color} from 'app/utils/theme';
+import {PROJECT_PERFORMANCE_TYPE} from 'app/views/performance/utils';
 
 type PerformanceCardTableProps = {
   organization: Organization;
   location: Location;
   project: ReleaseProject;
-  allReleaseEventView: EventView;
+  allReleasesEventView: EventView;
   releaseEventView: EventView;
-  allReleaseTableData: TableData | null;
-  releaseTableData: TableData | null;
-  platformPerformance: string;
+  allReleasesTableData: TableData | null;
+  thisReleaseTableData: TableData | null;
+  performanceType: string;
   isLoading: boolean;
 };
 
@@ -42,38 +43,43 @@ function PerformanceCardTable({
   location,
   project,
   releaseEventView,
-  allReleaseTableData,
-  releaseTableData,
-  platformPerformance,
+  allReleasesTableData,
+  thisReleaseTableData,
+  performanceType,
   isLoading,
 }: PerformanceCardTableProps) {
   const discoverPath = `/organizations/${organization.slug}/discover/results/`;
 
   const miseryRenderer =
-    allReleaseTableData?.meta &&
-    getFieldRenderer('user_misery_300', allReleaseTableData.meta);
+    allReleasesTableData?.meta &&
+    getFieldRenderer('user_misery_300', allReleasesTableData.meta);
 
-  function renderChange(allReleaseScore: number, thisReleaseScore: number, meta: string) {
-    if (thisReleaseScore === undefined) {
-      return <SubText>{'\u2014'}</SubText>;
+  function renderChange(
+    allReleasesScore: number,
+    thisReleaseScore: number,
+    meta: string
+  ) {
+    if (allReleasesScore === undefined || thisReleaseScore === undefined) {
+      return <StyledNotAvailable />;
     }
 
-    const trend = allReleaseScore - thisReleaseScore;
-    const trendPercentage = (allReleaseScore - thisReleaseScore) * 100;
+    const trend = allReleasesScore - thisReleaseScore;
+    const trendSeconds = trend >= 1000 ? trend / 1000 : trend;
+    const trendPercentage = (allReleasesScore - thisReleaseScore) * 100;
     const valPercentage = Math.round(Math.abs(trendPercentage));
-    const val = trend.toFixed(2);
+    const val = trendSeconds.toFixed(2);
 
     if (trend === 0) {
       return <SubText>{`0${meta === 'duration' ? 'ms' : '%'}`}</SubText>;
     }
 
     return (
-      <TrendText color={trend >= 0 ? 'green300' : 'red300'}>
+      <TrendText color={trend >= 0 ? 'success' : 'error'}>
         {`${meta === 'duration' ? val : valPercentage}${
-          meta === 'duration' ? 'ms' : '%'
+          meta === 'duration' ? (trend >= 1000 ? 's' : 'ms') : '%'
         }`}
-        <IconArrow
-          color={trend >= 0 ? 'green300' : 'red300'}
+        <StyledIconArrow
+          color={trend >= 0 ? 'success' : 'error'}
           direction={trend >= 0 ? 'down' : 'up'}
           size="xs"
         />
@@ -82,12 +88,14 @@ function PerformanceCardTable({
   }
 
   function userMiseryTrend() {
+    const allReleasesUserMisery = allReleasesTableData?.data?.[0]?.user_misery_300;
+    const thisReleaseUserMisery = thisReleaseTableData?.data?.[0]?.user_misery_300;
     return (
       <StyledPanelItem>
         {renderChange(
-          allReleaseTableData?.data[0].user_misery_300 as number,
-          releaseTableData?.data[0].user_misery_300 as number,
-          allReleaseTableData?.meta?.user_misery_300 as string
+          allReleasesUserMisery as number,
+          thisReleaseUserMisery as number,
+          'number' as string
         )}
       </StyledPanelItem>
     );
@@ -123,13 +131,12 @@ function PerformanceCardTable({
 
     const webVitalsRenderer = webVitals.map(
       vital =>
-        allReleaseTableData?.meta &&
-        getFieldRenderer(vital.field, allReleaseTableData?.meta)
+        allReleasesTableData?.meta &&
+        getFieldRenderer(vital.field, allReleasesTableData?.meta)
     );
 
     const spans = [
       {title: 'HTTP', field: 'spans.http'},
-      {title: 'DB', field: 'spans.db'},
       {title: 'Browser', field: 'spans.browser'},
       {title: 'Resource', field: 'spans.resource'},
     ];
@@ -156,34 +163,58 @@ function PerformanceCardTable({
 
     const spansRenderer = spans.map(
       span =>
-        allReleaseTableData?.meta &&
-        getFieldRenderer(span.field, allReleaseTableData?.meta)
+        allReleasesTableData?.meta &&
+        getFieldRenderer(span.field, allReleasesTableData?.meta)
     );
 
     const webReleaseTrend = webVitals.map(vital => {
       return {
         allReleasesRow: {
-          data: allReleaseTableData?.data[0][vital.field],
-          meta: allReleaseTableData?.meta?.[vital.field],
+          data: allReleasesTableData?.data?.[0]?.[vital.field],
+          meta: allReleasesTableData?.meta?.[vital.field],
         },
         thisReleaseRow: {
-          data: releaseTableData?.data[0][vital.field],
-          meta: releaseTableData?.meta?.[vital.field],
+          data: thisReleaseTableData?.data?.[0]?.[vital.field],
+          meta: thisReleaseTableData?.meta?.[vital.field],
         },
       };
     });
     const spansReleaseTrend = spans.map(span => {
       return {
         allReleasesRow: {
-          data: allReleaseTableData?.data[0][span.field],
-          meta: allReleaseTableData?.meta?.[span.field],
+          data: allReleasesTableData?.data?.[0]?.[span.field],
+          meta: allReleasesTableData?.meta?.[span.field],
         },
         thisReleaseRow: {
-          data: releaseTableData?.data[0][span.field],
-          meta: releaseTableData?.meta?.[span.field],
+          data: thisReleaseTableData?.data?.[0]?.[span.field],
+          meta: thisReleaseTableData?.meta?.[span.field],
         },
       };
     });
+
+    const emptyFields = (
+      <div>
+        <SingleEmptySubText>
+          <StyledNotAvailable tooltip="No results found for your query" />
+        </SingleEmptySubText>
+        <StyledPanelItem>
+          <TitleSpace />
+          {webVitals.map((vital, index) => (
+            <MultipleEmptySubText key={vital[index]}>
+              {<StyledNotAvailable tooltip="No results found for your query" />}
+            </MultipleEmptySubText>
+          ))}
+        </StyledPanelItem>
+        <StyledPanelItem>
+          <TitleSpace />
+          {spans.map((span, index) => (
+            <MultipleEmptySubText key={span[index]}>
+              {<StyledNotAvailable tooltip="No results found for your query" />}
+            </MultipleEmptySubText>
+          ))}
+        </StyledPanelItem>
+      </div>
+    );
 
     return (
       <Fragment>
@@ -198,69 +229,73 @@ function PerformanceCardTable({
             {spanTitles}
           </StyledPanelItem>
         </div>
-        {allReleaseTableData?.data.map((dataRow, idx) => {
-          const allReleasesMisery = miseryRenderer?.(dataRow, {
-            organization,
-            location,
-          });
-          const allReleasesWebVitals = webVitalsRenderer?.map(renderer =>
-            renderer?.(dataRow, {organization, location})
-          );
-          const allReleasesSpans = spansRenderer?.map(renderer =>
-            renderer?.(dataRow, {organization, location})
-          );
+        {allReleasesTableData?.data.length === 0
+          ? emptyFields
+          : allReleasesTableData?.data.map((dataRow, idx) => {
+              const allReleasesMisery = miseryRenderer?.(dataRow, {
+                organization,
+                location,
+              });
+              const allReleasesWebVitals = webVitalsRenderer?.map(renderer =>
+                renderer?.(dataRow, {organization, location})
+              );
+              const allReleasesSpans = spansRenderer?.map(renderer =>
+                renderer?.(dataRow, {organization, location})
+              );
 
-          return (
-            <div key={idx}>
-              <UserMiseryPanelItem>{allReleasesMisery}</UserMiseryPanelItem>
-              <StyledPanelItem>
-                <TitleSpace />
-                {allReleasesWebVitals.map(webVital => webVital)}
-              </StyledPanelItem>
-              <StyledPanelItem>
-                <TitleSpace />
-                {allReleasesSpans.map(span => span)}
-              </StyledPanelItem>
-            </div>
-          );
-        })}
-        {releaseTableData?.data.map((dataRow, idx) => {
-          const thisReleasesMisery = miseryRenderer?.(dataRow, {
-            organization,
-            location,
-          });
-          const thisReleasesWebVitals = webVitalsRenderer?.map(renderer =>
-            renderer?.(dataRow, {organization, location})
-          );
-          const thisReleasesSpans = spansRenderer?.map(renderer =>
-            renderer?.(dataRow, {organization, location})
-          );
+              return (
+                <div key={idx}>
+                  <UserMiseryPanelItem>{allReleasesMisery}</UserMiseryPanelItem>
+                  <StyledPanelItem>
+                    <TitleSpace />
+                    {allReleasesWebVitals.map(webVital => webVital)}
+                  </StyledPanelItem>
+                  <StyledPanelItem>
+                    <TitleSpace />
+                    {allReleasesSpans.map(span => span)}
+                  </StyledPanelItem>
+                </div>
+              );
+            })}
+        {thisReleaseTableData?.data.length === 0
+          ? emptyFields
+          : thisReleaseTableData?.data.map((dataRow, idx) => {
+              const thisReleasesMisery = miseryRenderer?.(dataRow, {
+                organization,
+                location,
+              });
+              const thisReleasesWebVitals = webVitalsRenderer?.map(renderer =>
+                renderer?.(dataRow, {organization, location})
+              );
+              const thisReleasesSpans = spansRenderer?.map(renderer =>
+                renderer?.(dataRow, {organization, location})
+              );
 
-          return (
-            <div key={idx}>
-              <div>
-                <UserMiseryPanelItem>{thisReleasesMisery}</UserMiseryPanelItem>
-                <StyledPanelItem>
-                  <TitleSpace />
-                  {thisReleasesWebVitals.map(webVital => webVital)}
-                </StyledPanelItem>
-                <StyledPanelItem>
-                  <TitleSpace />
-                  {thisReleasesSpans.map(span => span)}
-                </StyledPanelItem>
-              </div>
-            </div>
-          );
-        })}
+              return (
+                <div key={idx}>
+                  <div>
+                    <UserMiseryPanelItem>{thisReleasesMisery}</UserMiseryPanelItem>
+                    <StyledPanelItem>
+                      <TitleSpace />
+                      {thisReleasesWebVitals.map(webVital => webVital)}
+                    </StyledPanelItem>
+                    <StyledPanelItem>
+                      <TitleSpace />
+                      {thisReleasesSpans.map(span => span)}
+                    </StyledPanelItem>
+                  </div>
+                </div>
+              );
+            })}
         <div>
           {userMiseryTrend()}
           <StyledPanelItem>
             <TitleSpace />
             {webReleaseTrend?.map(row =>
               renderChange(
-                row.allReleasesRow.data as number,
+                row.allReleasesRow?.data as number,
                 row.thisReleaseRow?.data as number,
-                row.allReleasesRow.meta as string
+                row.allReleasesRow?.meta as string
               )
             )}
           </StyledPanelItem>
@@ -306,28 +341,60 @@ function PerformanceCardTable({
     });
 
     const apdexRenderer =
-      allReleaseTableData?.meta &&
-      getFieldRenderer('apdex_300', allReleaseTableData.meta);
+      allReleasesTableData?.meta &&
+      getFieldRenderer('apdex_300', allReleasesTableData.meta);
 
     const spansRenderer = spans.map(
       span =>
-        allReleaseTableData?.meta &&
-        getFieldRenderer(span.field, allReleaseTableData?.meta)
+        allReleasesTableData?.meta &&
+        getFieldRenderer(span.field, allReleasesTableData?.meta)
     );
 
     const spansReleaseTrend = spans.map(span => {
       return {
         allReleasesRow: {
-          data: allReleaseTableData?.data[0][span.field],
-          meta: allReleaseTableData?.meta?.[span.field],
+          data: allReleasesTableData?.data?.[0]?.[span.field],
+          meta: allReleasesTableData?.meta?.[span.field],
         },
         thisReleaseRow: {
-          data: releaseTableData?.data[0][span.field],
-          meta: releaseTableData?.meta?.[span.field],
+          data: thisReleaseTableData?.data?.[0]?.[span.field],
+          meta: thisReleaseTableData?.meta?.[span.field],
         },
       };
     });
 
+    function apdexTrend() {
+      const allReleasesApdex = allReleasesTableData?.data?.[0]?.apdex_300;
+      const thisReleaseApdex = thisReleaseTableData?.data?.[0]?.apdex_300;
+      return (
+        <StyledPanelItem>
+          {renderChange(
+            allReleasesApdex as number,
+            thisReleaseApdex as number,
+            'string' as string
+          )}
+        </StyledPanelItem>
+      );
+    }
+
+    const emptyFields = (
+      <div>
+        <SingleEmptySubText>
+          <StyledNotAvailable tooltip="No results found for your query" />
+        </SingleEmptySubText>
+        <SingleEmptySubText>
+          <StyledNotAvailable tooltip="No results found for your query" />
+        </SingleEmptySubText>
+        <StyledPanelItem>
+          <TitleSpace />
+          {spans.map((span, index) => (
+            <MultipleEmptySubText key={span[index]}>
+              {<StyledNotAvailable tooltip="No results found for your query" />}
+            </MultipleEmptySubText>
+          ))}
+        </StyledPanelItem>
+      </div>
+    );
     return (
       <Fragment>
         <div>
@@ -340,67 +407,66 @@ function PerformanceCardTable({
             {spanTitles}
           </StyledPanelItem>
         </div>
-        {allReleaseTableData?.data.map((dataRow, idx) => {
-          const allReleasesMisery = miseryRenderer?.(dataRow, {
-            organization,
-            location,
-          });
-          const allReleasesApdex = apdexRenderer?.(dataRow, {organization, location});
+        {allReleasesTableData?.data.length === 0
+          ? emptyFields
+          : allReleasesTableData?.data.map((dataRow, idx) => {
+              const allReleasesMisery = miseryRenderer?.(dataRow, {
+                organization,
+                location,
+              });
+              const allReleasesApdex = apdexRenderer?.(dataRow, {organization, location});
+              const allReleasesSpans = spansRenderer?.map(renderer =>
+                renderer?.(dataRow, {organization, location})
+              );
 
-          const allReleasesSpans = spansRenderer?.map(renderer =>
-            renderer?.(dataRow, {organization, location})
-          );
+              return (
+                <div key={idx}>
+                  <UserMiseryPanelItem>{allReleasesMisery}</UserMiseryPanelItem>
+                  {!dataRow.apdex_300 ? (
+                    <SingleEmptySubText>{t('n/a')}</SingleEmptySubText>
+                  ) : (
+                    <ApdexPanelItem>{allReleasesApdex}</ApdexPanelItem>
+                  )}
+                  <StyledPanelItem>
+                    <TitleSpace />
+                    {allReleasesSpans.map(span => span)}
+                  </StyledPanelItem>
+                </div>
+              );
+            })}
+        {thisReleaseTableData?.data.length === 0
+          ? emptyFields
+          : thisReleaseTableData?.data.map((dataRow, idx) => {
+              const thisReleasesMisery = miseryRenderer?.(dataRow, {
+                organization,
+                location,
+              });
+              const thisReleasesApdex = apdexRenderer?.(dataRow, {
+                organization,
+                location,
+              });
+              const thisReleasesSpans = spansRenderer?.map(renderer =>
+                renderer?.(dataRow, {organization, location})
+              );
 
-          return (
-            <div key={idx}>
-              <UserMiseryPanelItem>{allReleasesMisery}</UserMiseryPanelItem>
-              {!dataRow.apdex_300 ? (
-                <ApdexSubText>{'n/a'}</ApdexSubText>
-              ) : (
-                <ApdexPanelItem>{allReleasesApdex}</ApdexPanelItem>
-              )}
-              <StyledPanelItem>
-                <TitleSpace />
-                {allReleasesSpans.map(span => span)}
-              </StyledPanelItem>
-            </div>
-          );
-        })}
-        {releaseTableData?.data.map((dataRow, idx) => {
-          const thisReleasesMisery = miseryRenderer?.(dataRow, {
-            organization,
-            location,
-          });
-          const thisReleasesApdex = apdexRenderer?.(dataRow, {organization, location});
-
-          const thisReleasesSpans = spansRenderer?.map(renderer =>
-            renderer?.(dataRow, {organization, location})
-          );
-
-          return (
-            <div key={idx}>
-              <UserMiseryPanelItem>{thisReleasesMisery}</UserMiseryPanelItem>
-              {!dataRow.apdex_300 ? (
-                <ApdexSubText>{'n/a'}</ApdexSubText>
-              ) : (
-                <ApdexPanelItem>{thisReleasesApdex}</ApdexPanelItem>
-              )}
-              <StyledPanelItem>
-                <TitleSpace />
-                {thisReleasesSpans.map(span => span)}
-              </StyledPanelItem>
-            </div>
-          );
-        })}
+              return (
+                <div key={idx}>
+                  <UserMiseryPanelItem>{thisReleasesMisery}</UserMiseryPanelItem>
+                  {!dataRow.apdex_300 ? (
+                    <SingleEmptySubText>{'n/a'}</SingleEmptySubText>
+                  ) : (
+                    <ApdexPanelItem>{thisReleasesApdex}</ApdexPanelItem>
+                  )}
+                  <StyledPanelItem>
+                    <TitleSpace />
+                    {thisReleasesSpans.map(span => span)}
+                  </StyledPanelItem>
+                </div>
+              );
+            })}
         <div>
           {userMiseryTrend()}
-          <StyledPanelItem>
-            {renderChange(
-              allReleaseTableData?.data[0].apdex_300 as number,
-              releaseTableData?.data[0].apdex_300 as number,
-              allReleaseTableData?.meta?.apdex_300 as string
-            )}
-          </StyledPanelItem>
+          {apdexTrend()}
           <StyledPanelItem>
             <TitleSpace />
             {spansReleaseTrend?.map(row =>
@@ -437,21 +503,34 @@ function PerformanceCardTable({
     ];
     const mobileVitalsRenderer = mobileVitalFields.map(
       field =>
-        allReleaseTableData?.meta && getFieldRenderer(field, allReleaseTableData?.meta)
+        allReleasesTableData?.meta && getFieldRenderer(field, allReleasesTableData?.meta)
     );
 
     const mobileReleaseTrend = mobileVitalFields.map(field => {
       return {
         allReleasesRow: {
-          data: allReleaseTableData?.data[0][field],
-          meta: allReleaseTableData?.meta?.[field],
+          data: allReleasesTableData?.data?.[0]?.[field],
+          meta: allReleasesTableData?.meta?.[field],
         },
         thisReleaseRow: {
-          data: releaseTableData?.data[0][field],
-          meta: releaseTableData?.meta?.[field],
+          data: thisReleaseTableData?.data?.[0]?.[field],
+          meta: thisReleaseTableData?.meta?.[field],
         },
       };
     });
+
+    const emptyFields = (
+      <div>
+        <SingleEmptySubText>
+          <StyledNotAvailable tooltip="No results found for your query" />
+        </SingleEmptySubText>
+        {mobileVitalFields.map((vital, index) => (
+          <SingleEmptySubText key={vital[index]}>
+            <StyledNotAvailable tooltip="No results found for your query" />
+          </SingleEmptySubText>
+        ))}
+      </div>
+    );
 
     return (
       <Fragment>
@@ -459,44 +538,46 @@ function PerformanceCardTable({
           <PanelItem>{t('User Misery')}</PanelItem>
           {mobileVitalTitles}
         </div>
-        {allReleaseTableData?.data.map((dataRow, idx) => {
-          const allReleasesMisery = miseryRenderer?.(dataRow, {
-            organization,
-            location,
-          });
+        {allReleasesTableData?.data.length === 0
+          ? emptyFields
+          : allReleasesTableData?.data.map((dataRow, idx) => {
+              const allReleasesMisery = miseryRenderer?.(dataRow, {
+                organization,
+                location,
+              });
+              const allReleasesMobile = mobileVitalsRenderer?.map(renderer =>
+                renderer?.(dataRow, {organization, location})
+              );
 
-          const allReleasesMobile = mobileVitalsRenderer?.map(renderer =>
-            renderer?.(dataRow, {organization, location})
-          );
+              return (
+                <div key={idx}>
+                  <UserMiseryPanelItem>{allReleasesMisery}</UserMiseryPanelItem>
+                  {allReleasesMobile.map((mobileVital, i) => (
+                    <StyledPanelItem key={i}>{mobileVital}</StyledPanelItem>
+                  ))}
+                </div>
+              );
+            })}
+        {thisReleaseTableData?.data.length === 0
+          ? emptyFields
+          : thisReleaseTableData?.data.map((dataRow, idx) => {
+              const thisReleasesMisery = miseryRenderer?.(dataRow, {
+                organization,
+                location,
+              });
+              const thisReleasesMobile = mobileVitalsRenderer?.map(renderer =>
+                renderer?.(dataRow, {organization, location})
+              );
 
-          return (
-            <div key={idx}>
-              <UserMiseryPanelItem>{allReleasesMisery}</UserMiseryPanelItem>
-              {allReleasesMobile.map((mobileVital, i) => (
-                <StyledPanelItem key={i}>{mobileVital}</StyledPanelItem>
-              ))}
-            </div>
-          );
-        })}
-        {releaseTableData?.data.map((dataRow, idx) => {
-          const thisReleasesMisery = miseryRenderer?.(dataRow, {
-            organization,
-            location,
-          });
-
-          const thisReleasesMobile = mobileVitalsRenderer?.map(renderer =>
-            renderer?.(dataRow, {organization, location})
-          );
-
-          return (
-            <div key={idx}>
-              <UserMiseryPanelItem>{thisReleasesMisery}</UserMiseryPanelItem>
-              {thisReleasesMobile.map((mobileVital, i) => (
-                <StyledPanelItem key={i}>{mobileVital}</StyledPanelItem>
-              ))}
-            </div>
-          );
-        })}
+              return (
+                <div key={idx}>
+                  <UserMiseryPanelItem>{thisReleasesMisery}</UserMiseryPanelItem>
+                  {thisReleasesMobile.map((mobileVital, i) => (
+                    <StyledPanelItem key={i}>{mobileVital}</StyledPanelItem>
+                  ))}
+                </div>
+              );
+            })}
         <div>
           {userMiseryTrend()}
           {mobileReleaseTrend?.map((row, idx) => (
@@ -514,35 +595,47 @@ function PerformanceCardTable({
   }
 
   function renderUnknownPerformance() {
+    const emptyFields = (
+      <div>
+        <SingleEmptySubText>
+          <StyledNotAvailable tooltip="No results found for your query" />
+        </SingleEmptySubText>
+      </div>
+    );
+
     return (
       <Fragment>
         <div>
           <PanelItem>{t('User Misery')}</PanelItem>
         </div>
-        {allReleaseTableData?.data.map((dataRow, idx) => {
-          const allReleasesMisery = miseryRenderer?.(dataRow, {
-            organization,
-            location,
-          });
+        {allReleasesTableData?.data.length === 0
+          ? emptyFields
+          : allReleasesTableData?.data.map((dataRow, idx) => {
+              const allReleasesMisery = miseryRenderer?.(dataRow, {
+                organization,
+                location,
+              });
 
-          return (
-            <div key={idx}>
-              <UserMiseryPanelItem>{allReleasesMisery}</UserMiseryPanelItem>
-            </div>
-          );
-        })}
-        {releaseTableData?.data.map((dataRow, idx) => {
-          const thisReleasesMisery = miseryRenderer?.(dataRow, {
-            organization,
-            location,
-          });
+              return (
+                <div key={idx}>
+                  <UserMiseryPanelItem>{allReleasesMisery}</UserMiseryPanelItem>
+                </div>
+              );
+            })}
+        {thisReleaseTableData?.data.length === 0
+          ? emptyFields
+          : thisReleaseTableData?.data.map((dataRow, idx) => {
+              const thisReleasesMisery = miseryRenderer?.(dataRow, {
+                organization,
+                location,
+              });
 
-          return (
-            <div key={idx}>
-              <UserMiseryPanelItem>{thisReleasesMisery}</UserMiseryPanelItem>
-            </div>
-          );
-        })}
+              return (
+                <div key={idx}>
+                  <UserMiseryPanelItem>{thisReleasesMisery}</UserMiseryPanelItem>
+                </div>
+              );
+            })}
         <div>{userMiseryTrend()}</div>
       </Fragment>
     );
@@ -550,37 +643,51 @@ function PerformanceCardTable({
 
   const loader = <LoadingIndicator style={{margin: '70px auto'}} />;
 
-  const title = platformPerformance.includes(t('frontend'))
-    ? t('Frontend Performance')
-    : platformPerformance.includes(t('backend'))
-    ? t('Backend Performance')
-    : platformPerformance.includes(t('mobile'))
-    ? t('Mobile Performance')
-    : t('[Unknown] Performance');
+  const platformPerformanceRender = {
+    [PROJECT_PERFORMANCE_TYPE.FRONTEND]: {
+      title: t('Frontend Performance'),
+      section: renderFrontendPerformance(),
+    },
+    [PROJECT_PERFORMANCE_TYPE.BACKEND]: {
+      title: t('Backend Performance'),
+      section: renderBackendPerformance(),
+    },
+    [PROJECT_PERFORMANCE_TYPE.MOBILE]: {
+      title: t('Mobile Performance'),
+      section: renderMobilePerformance(),
+    },
+    [PROJECT_PERFORMANCE_TYPE.ANY]: {
+      title: t('[Unknown] Performance'),
+      section: renderUnknownPerformance(),
+    },
+  };
 
-  const platformPerformanceRender = platformPerformance.includes(t('frontend'))
-    ? renderFrontendPerformance()
-    : platformPerformance.includes(t('backend'))
-    ? renderBackendPerformance()
-    : platformPerformance.includes(t('mobile'))
-    ? renderMobilePerformance()
-    : renderUnknownPerformance();
+  if (isLoading) {
+    if (!allReleasesTableData || !thisReleaseTableData) {
+      allReleasesTableData = {
+        data: [],
+        meta: {},
+      };
+    }
+  }
+
+  const isUnknownPlatform = performanceType === PROJECT_PERFORMANCE_TYPE.ANY;
 
   return (
     <Fragment>
-      <HeadCellContainer>{title}</HeadCellContainer>
-      {platformPerformance.includes(t('unknown')) ? (
+      <HeadCellContainer>
+        {platformPerformanceRender[performanceType].title}
+      </HeadCellContainer>
+      {isUnknownPlatform && (
         <StyledAlert type="warning" icon={<IconWarning size="md" />} system>
           For more performance metrics, specify which platform this project is using in{' '}
           <Link to={`/settings/${organization.slug}/projects/${project.slug}/`}>
             project settings.
           </Link>
         </StyledAlert>
-      ) : null}
+      )}
       <StyledPanelTable
         isLoading={isLoading}
-        isEmpty={false}
-        emptyMessage={t('No transactions found')}
         headers={[
           <Cell key="description" align="left">
             {t('Description')}
@@ -597,9 +704,9 @@ function PerformanceCardTable({
         ]}
         disablePadding
         loader={loader}
-        disableTopBorder={platformPerformance.includes(t('unknown'))}
+        disableTopBorder={isUnknownPlatform}
       >
-        {platformPerformanceRender}
+        {platformPerformanceRender[performanceType].section}
       </StyledPanelTable>
     </Fragment>
   );
@@ -607,47 +714,44 @@ function PerformanceCardTable({
 
 type Props = AsyncComponent['props'] & {
   organization: Organization;
-  allReleaseEventView: EventView;
+  allReleasesEventView: EventView;
   releaseEventView: EventView;
-  platformPerformance: string;
+  performanceType: string;
   project: ReleaseProject;
   location: Location;
-  period?: string;
-  start?: string;
-  end?: string;
-} & DateTimeObject;
+};
 
 function PerformanceCardTableWrapper({
   organization,
   project,
-  allReleaseEventView,
+  allReleasesEventView,
   releaseEventView,
-  platformPerformance,
+  performanceType,
   location,
 }: Props) {
   return (
     <DiscoverQuery
-      eventView={allReleaseEventView}
+      eventView={allReleasesEventView}
       orgSlug={organization.slug}
       location={location}
     >
-      {({isLoading, tableData: allReleaseTableData}) => (
+      {({isLoading, tableData: allReleasesTableData}) => (
         <DiscoverQuery
           eventView={releaseEventView}
           orgSlug={organization.slug}
           location={location}
         >
-          {({isLoading: isReleaseLoading, tableData: releaseTableData}) => (
+          {({isLoading: isReleaseLoading, tableData: thisReleaseTableData}) => (
             <PerformanceCardTable
               isLoading={isLoading || isReleaseLoading}
               organization={organization}
               location={location}
               project={project}
-              allReleaseEventView={allReleaseEventView}
+              allReleasesEventView={allReleasesEventView}
               releaseEventView={releaseEventView}
-              allReleaseTableData={allReleaseTableData}
-              releaseTableData={releaseTableData}
-              platformPerformance={platformPerformance}
+              allReleasesTableData={allReleasesTableData}
+              thisReleaseTableData={thisReleaseTableData}
+              performanceType={performanceType}
             />
           )}
         </DiscoverQuery>
@@ -657,6 +761,11 @@ function PerformanceCardTableWrapper({
 }
 
 export default PerformanceCardTableWrapper;
+
+const emptyFieldCss = p => css`
+  color: ${p.theme.chartOther};
+  text-align: right;
+`;
 
 const HeadCellContainer = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
@@ -699,10 +808,13 @@ const ApdexPanelItem = styled(PanelItem)`
   text-align: right;
 `;
 
-const ApdexSubText = styled(PanelItem)`
+const SingleEmptySubText = styled(PanelItem)`
   display: block;
-  color: ${p => p.theme.gray300};
-  text-align: right;
+  ${emptyFieldCss}
+`;
+
+const MultipleEmptySubText = styled('div')`
+  ${emptyFieldCss}
 `;
 
 const Cell = styled('div')<{align: 'left' | 'right'}>`
@@ -719,12 +831,21 @@ const StyledAlert = styled(Alert)`
   margin-bottom: 0;
 `;
 
+const StyledNotAvailable = styled(NotAvailable)`
+  text-align: right;
+`;
+
 const SubText = styled('div')`
   color: ${p => p.theme.subText};
   text-align: right;
 `;
 
-const TrendText = styled('div')<{color: Color}>`
+const TrendText = styled('div')<{color: string}>`
   color: ${p => p.theme[p.color]};
   text-align: right;
+`;
+
+const StyledIconArrow = styled(IconArrow)<{color: string}>`
+  color: ${p => p.theme[p.color]};
+  margin-left: ${space(0.5)};
 `;

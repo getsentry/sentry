@@ -17,7 +17,6 @@ import {getParams} from 'app/components/organizations/globalSelectionHeader/getP
 import {ChangeData} from 'app/components/organizations/timeRangeSelector';
 import PageTimeRangeSelector from 'app/components/pageTimeRangeSelector';
 import {DEFAULT_RELATIVE_PERIODS} from 'app/constants';
-import {backend, frontend, mobile, serverless} from 'app/data/platformCategories';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {
@@ -41,6 +40,10 @@ import AsyncView from 'app/views/asyncView';
 import {DisplayModes} from 'app/views/performance/transactionSummary/transactionOverview/charts';
 import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
 import {TrendChangeType, TrendView} from 'app/views/performance/trends/types';
+import {
+  platformToPerformanceType,
+  PROJECT_PERFORMANCE_TYPE,
+} from 'app/views/performance/utils';
 
 import {getReleaseParams, isReleaseArchived, ReleaseBounds} from '../../utils';
 import {ReleaseContext} from '..';
@@ -57,9 +60,6 @@ import ReleaseComparisonChart from './releaseComparisonChart';
 import ReleaseIssues from './releaseIssues';
 
 const RELEASE_PERIOD_KEY = 'release';
-const FRONTEND_PLATFORMS: string[] = [...frontend];
-const BACKEND_PLATFORMS: string[] = [...backend, ...serverless];
-const MOBILE_PLATFORMS: string[] = [...mobile];
 
 export enum TransactionsListOption {
   FAILURE_COUNT = 'failure_count',
@@ -188,51 +188,50 @@ class ReleaseOverview extends AsyncView<Props> {
   }
 
   getReleasePerformanceEventView(
-    project: ReleaseProject,
+    performanceType: string,
     baseQuery: NewQuery
   ): EventView {
-    let eventView;
-    FRONTEND_PLATFORMS.includes(project.platform as string)
-      ? (eventView = EventView.fromSavedQuery({
-          ...baseQuery,
-          fields: [
-            ...baseQuery.fields,
-            `p75(${WebVital.FCP})`,
-            `p75(${WebVital.FID})`,
-            `p75(${WebVital.LCP})`,
-            `p75(${WebVital.CLS})`,
-            'spans.http',
-            'spans.db',
-            'spans.browser',
-            'spans.resource',
-          ],
-        }) as EventView)
-      : BACKEND_PLATFORMS.includes(project.platform as string)
-      ? (eventView = EventView.fromSavedQuery({
-          ...baseQuery,
-          fields: [...baseQuery.fields, 'apdex_300', 'spans.http', 'spans.db'],
-        }) as EventView)
-      : MOBILE_PLATFORMS.includes(project.platform as string)
-      ? (eventView = EventView.fromSavedQuery({
-          ...baseQuery,
-          fields: [
-            ...baseQuery.fields,
-            `p75(${MobileVital.AppStartCold})`,
-            `p75(${MobileVital.AppStartWarm})`,
-            `p75(${MobileVital.FramesSlow})`,
-            `p75(${MobileVital.FramesFrozen})`,
-          ],
-        }) as EventView)
-      : (eventView = EventView.fromSavedQuery({
-          ...baseQuery,
-        }) as EventView);
+    const eventView =
+      performanceType === PROJECT_PERFORMANCE_TYPE.FRONTEND
+        ? (EventView.fromSavedQuery({
+            ...baseQuery,
+            fields: [
+              ...baseQuery.fields,
+              `p75(${WebVital.FCP})`,
+              `p75(${WebVital.FID})`,
+              `p75(${WebVital.LCP})`,
+              `p75(${WebVital.CLS})`,
+              'spans.http',
+              'spans.browser',
+              'spans.resource',
+            ],
+          }) as EventView)
+        : performanceType === PROJECT_PERFORMANCE_TYPE.BACKEND
+        ? (EventView.fromSavedQuery({
+            ...baseQuery,
+            fields: [...baseQuery.fields, 'apdex_300', 'spans.http', 'spans.db'],
+          }) as EventView)
+        : performanceType === PROJECT_PERFORMANCE_TYPE.MOBILE
+        ? (EventView.fromSavedQuery({
+            ...baseQuery,
+            fields: [
+              ...baseQuery.fields,
+              `p75(${MobileVital.AppStartCold})`,
+              `p75(${MobileVital.AppStartWarm})`,
+              `p75(${MobileVital.FramesSlow})`,
+              `p75(${MobileVital.FramesFrozen})`,
+            ],
+          }) as EventView)
+        : (EventView.fromSavedQuery({
+            ...baseQuery,
+          }) as EventView);
 
     return eventView;
   }
 
-  getAllReleasePerformanceView(
-    project: ReleaseProject,
+  getAllReleasesPerformanceView(
     projectId: number,
+    performanceType: string,
     releaseBounds: ReleaseBounds
   ) {
     const {selection, location} = this.props;
@@ -256,13 +255,13 @@ class ReleaseOverview extends AsyncView<Props> {
       end: end ? getUtcDateString(end) : undefined,
     };
 
-    return this.getReleasePerformanceEventView(project, baseQuery);
+    return this.getReleasePerformanceEventView(performanceType, baseQuery);
   }
 
   getReleasePerformanceView(
     version: string,
-    project: ReleaseProject,
     projectId: number,
+    performanceType: string,
     releaseBounds: ReleaseBounds
   ) {
     const {selection, location} = this.props;
@@ -286,7 +285,7 @@ class ReleaseOverview extends AsyncView<Props> {
       end: end ? getUtcDateString(end) : undefined,
     };
 
-    return this.getReleasePerformanceEventView(project, baseQuery);
+    return this.getReleasePerformanceEventView(performanceType, baseQuery);
   }
 
   get pageDateTime(): DateTimeObject {
@@ -375,7 +374,7 @@ class ReleaseOverview extends AsyncView<Props> {
             'release-comparison-performance'
           );
           const {environments} = selection;
-
+          const performanceType = platformToPerformanceType([project], [project.id]);
           const {selectedSort, sortOptions} = getTransactionsListSort(location);
           const releaseEventView = this.getReleaseEventView(
             version,
@@ -393,15 +392,15 @@ class ReleaseOverview extends AsyncView<Props> {
             releaseMeta.released,
             releaseBounds
           );
-          const allReleasePerformanceView = this.getAllReleasePerformanceView(
-            project,
+          const allReleasesPerformanceView = this.getAllReleasesPerformanceView(
             project.id,
+            performanceType,
             releaseBounds
           );
           const releasePerformanceView = this.getReleasePerformanceView(
             version,
-            project,
             project.id,
+            performanceType,
             releaseBounds
           );
 
@@ -414,15 +413,6 @@ class ReleaseOverview extends AsyncView<Props> {
             ),
           };
 
-          const platformPerformance = FRONTEND_PLATFORMS.includes(
-            project.platform as string
-          )
-            ? t('frontend')
-            : BACKEND_PLATFORMS.includes(project.platform as string)
-            ? t('backend')
-            : MOBILE_PLATFORMS.includes(project.platform as string)
-            ? t('mobile')
-            : t('unknown');
           const sessionsRequestProps: Omit<SessionsRequest['props'], 'children'> = {
             api,
             organization,
@@ -517,9 +507,9 @@ class ReleaseOverview extends AsyncView<Props> {
                                 organization={organization}
                                 project={project}
                                 location={location}
-                                allReleaseEventView={allReleasePerformanceView}
+                                allReleasesEventView={allReleasesPerformanceView}
                                 releaseEventView={releasePerformanceView}
-                                platformPerformance={platformPerformance}
+                                performanceType={performanceType}
                               />
                             ) : (
                               <TransactionsList
