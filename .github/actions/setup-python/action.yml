@@ -37,6 +37,7 @@ runs:
       id: python-version
       shell: bash
       run: |
+        echo "--${{ inputs.python-version }}--"
         if [ "${{ inputs.python-version }}" == "" ]; then
           echo "::set-output name=python-version::$(cat .python-versio)"
         else
