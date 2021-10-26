@@ -96,19 +96,6 @@ class MailAdapter:
         users = self.get_sendable_user_objects(project)
         return [user.id for user in users]
 
-    def should_notify(self, target_type, group):
-        metrics.incr("mail_adapter.should_notify")
-        # only notify if we have users to notify. We always want to notify if targeting
-        # a member directly.
-        return (
-            target_type
-            in [
-                ActionTargetType.MEMBER,
-                ActionTargetType.TEAM,
-            ]
-            or self.get_sendable_user_objects(group.project)
-        )
-
     @staticmethod
     def notify(notification, target_type, target_identifier=None, **kwargs):
         AlertRuleNotification(notification, target_type, target_identifier).send()
