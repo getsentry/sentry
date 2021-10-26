@@ -62,7 +62,7 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
 
         digest = build_digest(
             project, sort_records([event_to_record(event, (rule,)) for event in events])
-        )
+        )[0]
 
         events.pop(0)  # remove event with same group
         assert {e.event_id for e in get_event_from_groups_in_digest(digest)} == {
@@ -262,7 +262,7 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
             event_to_record(event, (rule,))
             for event in self.team1_events + self.team2_events + self.user4_events
         ]
-        digest = build_digest(self.project, sort_records(records))
+        digest = build_digest(self.project, sort_records(records))[0]
 
         expected_result = {
             self.user1.id: set(self.team1_events),
@@ -276,7 +276,7 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
         self.project_ownership.update(fallthrough=False)
         rule = self.project.rule_set.all()[0]
         records = [event_to_record(event, (rule,)) for event in self.team1_events]
-        digest = build_digest(self.project, sort_records(records))
+        digest = build_digest(self.project, sort_records(records))[0]
 
         expected_result = {self.user1.id: set(self.team1_events)}
         self.assert_get_personalized_digests(
@@ -298,7 +298,7 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
                 project, ["hello.py", "goodbye.py", "hola.py", "adios.py"]
             )
         ]
-        digest = build_digest(project, sort_records(records))
+        digest = build_digest(project, sort_records(records))[0]
         user_ids = [member.user_id for member in team.member_set]
         assert not user_ids
         for user_id, user_digest in get_personalized_digests(
@@ -312,7 +312,7 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
             self.project, ["hello.moz", "goodbye.moz", "hola.moz", "adios.moz"]
         )
         records = [event_to_record(event, (rule,)) for event in events]
-        digest = build_digest(self.project, sort_records(records))
+        digest = build_digest(self.project, sort_records(records))[0]
         expected_result = {
             self.user1.id: set(events),
             self.user2.id: set(events),
@@ -328,7 +328,7 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
             self.project, ["hello.moz", "goodbye.moz", "hola.moz", "adios.moz"]
         )
         records = [event_to_record(event, (rule,)) for event in events + self.team1_events]
-        digest = build_digest(self.project, sort_records(records))
+        digest = build_digest(self.project, sort_records(records))[0]
         expected_result = {
             self.user1.id: set(events + self.team1_events),
             self.user2.id: set(events),
