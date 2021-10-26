@@ -1,5 +1,5 @@
-import {CurrentPerformanceViewProvider} from 'app/utils/performance/contexts/currentPerformanceView';
 import {usePageError} from 'app/utils/performance/contexts/pageError';
+import {PerformanceDisplayProvider} from 'app/utils/performance/contexts/performanceDisplayContext';
 
 import Table from '../../table';
 import {PROJECT_PERFORMANCE_TYPE} from '../../utils';
@@ -11,7 +11,7 @@ import {BasePerformanceViewProps} from './types';
 
 export function FrontendPageloadView(props: BasePerformanceViewProps) {
   return (
-    <CurrentPerformanceViewProvider
+    <PerformanceDisplayProvider
       value={{performanceType: PROJECT_PERFORMANCE_TYPE.FRONTEND}}
     >
       <div data-test-id="frontend-pageload-view">
@@ -39,6 +39,6 @@ export function FrontendPageloadView(props: BasePerformanceViewProps) {
           setError={usePageError().setPageError}
         />
       </div>
-    </CurrentPerformanceViewProvider>
+    </PerformanceDisplayProvider>
   );
 }

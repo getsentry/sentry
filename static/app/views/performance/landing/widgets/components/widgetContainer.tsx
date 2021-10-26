@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import MenuItem from 'app/components/menuItem';
 import {Organization} from 'app/types';
 import localStorage from 'app/utils/localStorage';
-import {useCurrentPerformanceType} from 'app/utils/performance/contexts/currentPerformanceView';
+import {usePerformanceDisplayType} from 'app/utils/performance/contexts/performanceDisplayContext';
 import {useOrganization} from 'app/utils/useOrganization';
 import withOrganization from 'app/utils/withOrganization';
 import ContextMenu from 'app/views/dashboardsV2/contextMenu';
@@ -80,7 +80,7 @@ const _setChartSetting = (
 
 const _WidgetContainer = (props: Props) => {
   const {organization, index, chartHeight, allowedCharts, ...rest} = props;
-  const performanceType = useCurrentPerformanceType();
+  const performanceType = usePerformanceDisplayType();
   let _chartSetting = getChartSetting(
     index,
     chartHeight,

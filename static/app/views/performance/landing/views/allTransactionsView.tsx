@@ -1,5 +1,5 @@
-import {CurrentPerformanceViewProvider} from 'app/utils/performance/contexts/currentPerformanceView';
 import {usePageError} from 'app/utils/performance/contexts/pageError';
+import {PerformanceDisplayProvider} from 'app/utils/performance/contexts/performanceDisplayContext';
 
 import Table from '../../table';
 import {PROJECT_PERFORMANCE_TYPE} from '../../utils';
@@ -10,9 +10,7 @@ import {BasePerformanceViewProps} from './types';
 
 export function AllTransactionsView(props: BasePerformanceViewProps) {
   return (
-    <CurrentPerformanceViewProvider
-      value={{performanceType: PROJECT_PERFORMANCE_TYPE.ANY}}
-    >
+    <PerformanceDisplayProvider value={{performanceType: PROJECT_PERFORMANCE_TYPE.ANY}}>
       <div>
         <TripleChartRow
           {...props}
@@ -37,6 +35,6 @@ export function AllTransactionsView(props: BasePerformanceViewProps) {
         />
         <Table {...props} setError={usePageError().setPageError} />
       </div>
-    </CurrentPerformanceViewProvider>
+    </PerformanceDisplayProvider>
   );
 }

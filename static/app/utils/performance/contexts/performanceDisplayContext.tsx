@@ -6,13 +6,13 @@ type useCurrentPerformanceView = {
   performanceType: PROJECT_PERFORMANCE_TYPE;
 };
 
-const [CurrentPerformanceViewProvider, _useCurrentPerformanceType] =
+const [PerformanceDisplayProvider, _usePerformanceDisplayType] =
   createDefinedContext<useCurrentPerformanceView>({
     name: 'CurrentPerformanceViewContext',
   });
 
-export {CurrentPerformanceViewProvider};
+export {PerformanceDisplayProvider};
 
-export function useCurrentPerformanceType(): PROJECT_PERFORMANCE_TYPE {
-  return _useCurrentPerformanceType().performanceType;
+export function usePerformanceDisplayType(): PROJECT_PERFORMANCE_TYPE {
+  return _usePerformanceDisplayType().performanceType;
 }
