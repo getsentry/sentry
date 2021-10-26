@@ -382,7 +382,7 @@ def digest(request):
             state["event_counts"][group.id] = random.randint(10, 1e4)
             state["user_counts"][group.id] = random.randint(10, 1e4)
 
-    digest = build_digest(project, records, state)
+    digest = build_digest(project, records, state)[0]
     start, end, counts = get_digest_metadata(digest)
 
     context = {

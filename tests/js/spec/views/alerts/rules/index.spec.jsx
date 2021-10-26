@@ -1,5 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {act} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'app/stores/projectsStore';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
@@ -58,12 +59,12 @@ describe('OrganizationRuleList', () => {
       body: [TestStubs.Project({slug: 'earth', platform: 'javascript'})],
     });
 
-    ProjectsStore.loadInitialData([]);
+    act(() => ProjectsStore.loadInitialData([]));
   });
 
   afterEach(() => {
     wrapper.unmount();
-    ProjectsStore.reset();
+    act(() => ProjectsStore.reset());
     MockApiClient.clearMockResponses();
     trackAnalyticsEvent.mockClear();
   });

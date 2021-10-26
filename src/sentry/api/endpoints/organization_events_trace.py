@@ -1,7 +1,6 @@
 import logging
-from collections import OrderedDict, defaultdict, deque
+from collections import defaultdict, deque
 from typing import (
-    TYPE_CHECKING,
     Any,
     Callable,
     Deque,
@@ -13,6 +12,7 @@ from typing import (
     Sequence,
     Set,
     Tuple,
+    TypedDict,
     TypeVar,
     cast,
 )
@@ -35,14 +35,6 @@ from sentry.utils.validators import INVALID_ID_DETAILS, is_event_id
 
 logger: logging.Logger = logging.getLogger(__name__)
 MAX_TRACE_SIZE: int = 100
-
-# TODO(3.8): This is a hack so we can get TypedDicts before 3.8
-if TYPE_CHECKING:
-    from mypy_extensions import TypedDict
-else:
-
-    def TypedDict(*args, **kwargs):
-        pass
 
 
 _T = TypeVar("_T")
@@ -77,18 +69,18 @@ SnubaError = TypedDict(
         "project": str,
     },
 )
-TraceError = TypedDict(
-    "TraceError",
-    {
-        "event_id": str,
-        "issue_id": int,
-        "span": str,
-        "project_id": int,
-        "project_slug": str,
-        "title": str,
-        "level": str,
-    },
-)
+
+
+class TraceError(TypedDict):
+    event_id: str
+    issue_id: int
+    span: str
+    project_id: int
+    project_slug: str
+    title: str
+    level: str
+
+
 LightResponse = TypedDict(
     "LightResponse",
     {
@@ -561,10 +553,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         parent_map = self.construct_parent_map(transactions)
         error_map = self.construct_error_map(errors)
         parent_events: Dict[str, TraceEvent] = {}
-        # TODO(3.7): Dictionary ordering in py3.6 is an implementation detail, using an OrderedDict because this way
-        # we try to guarantee in py3.6 that the first item is the root. We can switch back to a normal dict when we're
-        # on python 3.7.
-        results_map: Dict[Optional[str], List[TraceEvent]] = OrderedDict()
+        results_map: Dict[Optional[str], List[TraceEvent]] = defaultdict(list)
         to_check: Deque[SnubaTransaction] = deque()
         # The root of the orphan tree we're currently navigating through
         orphan_root: Optional[SnubaTransaction] = None
@@ -596,11 +585,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
 
                     # Used to avoid removing the orphan from results entirely if we loop
                     orphan_root = current_event
-                    # not using a defaultdict here as a DefaultOrderedDict isn't worth the effort
-                    if parent_span_id in results_map:
-                        results_map[parent_span_id].append(previous_event)
-                    else:
-                        results_map[parent_span_id] = [previous_event]
+                    results_map[parent_span_id].append(previous_event)
                 else:
                     current_event = to_check.popleft()
                     previous_event = parent_events[current_event["id"]]

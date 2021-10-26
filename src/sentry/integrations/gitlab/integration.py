@@ -253,6 +253,7 @@ class InstallationGuideView(PipelineView):
                 "setup_values": [
                     {"label": "Name", "value": "Sentry"},
                     {"label": "Redirect URI", "value": absolute_uri("/extensions/gitlab/setup/")},
+                    {"label": "Expire access tokens", "value": "Unchecked"},
                     {"label": "Scopes", "value": "api"},
                 ],
             },
