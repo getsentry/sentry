@@ -111,14 +111,14 @@ def attach_state(
 class Pipeline:
     def __init__(self) -> None:
         self.operations: MutableSequence[Callable[..., Any]] = []
-        self.logs = []
+        self.logs: MutableSequence[str] = []
 
     def __call__(self, sequence: Sequence[Any]) -> Any:
         # Explicitly typing to satisfy mypy.
         func: Callable[[Any, Callable[[Any], Any]], Any] = lambda x, operation: operation(x)
         return reduce(func, self.operations, sequence), self.logs
 
-    def _log(self, message):
+    def _log(self, message: str) -> None:
         logger.debug(message)
         self.logs.append(message)
 
