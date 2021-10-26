@@ -90,6 +90,10 @@ describe('Performance > TransactionSummary', function () {
       url: '/prompts-activity/',
       body: {},
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-facets-performance/',
+      body: {},
+    });
 
     // Mock totals for the sidebar and other summary data
     MockApiClient.addMockResponse(
@@ -498,7 +502,7 @@ describe('Performance > TransactionSummary', function () {
     wrapper.update();
 
     const pagination = wrapper.find('Pagination');
-    expect(pagination).toHaveLength(1);
+    expect(pagination).toHaveLength(2);
 
     // Click the 'next' button'
     pagination.find('button[aria-label="Next"]').simulate('click');
