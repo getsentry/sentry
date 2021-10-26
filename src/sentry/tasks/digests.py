@@ -51,7 +51,7 @@ def deliver_digest(key, schedule_timestamp=None):
     with snuba.options_override({"consistent": True}):
         try:
             with digests.digest(key, minimum_delay=minimum_delay) as records:
-                digest = build_digest(project, records)
+                digest, logs = build_digest(project, records)
         except InvalidState as error:
             logger.info("Skipped digest delivery: %s", error, exc_info=True)
             return
@@ -65,5 +65,6 @@ def deliver_digest(key, schedule_timestamp=None):
                     "project": project.id,
                     "target_type": target_type.value,
                     "target_identifier": target_identifier,
+                    "build_digest_logs": logs,
                 },
             )

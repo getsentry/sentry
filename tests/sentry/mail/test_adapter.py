@@ -535,7 +535,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest):
         rule = project.rule_set.all()[0]
         digest = build_digest(
             project, (event_to_record(event, (rule,)), event_to_record(event2, (rule,)))
-        )
+        )[0]
 
         with self.tasks():
             self.adapter.notify_digest(project, digest, ActionTargetType.ISSUE_OWNERS)
@@ -551,7 +551,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest):
     def test_notify_digest_single_record(self, send_async, notify):
         event = self.store_event(data={}, project_id=self.project.id)
         rule = self.project.rule_set.all()[0]
-        digest = build_digest(self.project, (event_to_record(event, (rule,)),))
+        digest = build_digest(self.project, (event_to_record(event, (rule,)),))[0]
         self.adapter.notify_digest(self.project, digest, ActionTargetType.ISSUE_OWNERS)
         assert send_async.call_count == 1
         assert notify.call_count == 1
@@ -573,7 +573,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest):
 
         digest = build_digest(
             self.project, (event_to_record(event, (rule,)), event_to_record(event2, (rule,)))
-        )
+        )[0]
 
         with self.tasks():
             self.adapter.notify_digest(self.project, digest, ActionTargetType.ISSUE_OWNERS)
@@ -615,7 +615,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest):
 
         digest = build_digest(
             project, (event_to_record(event, (rule,)), event_to_record(event2, (rule,)))
-        )
+        )[0]
 
         with self.tasks():
             self.adapter.notify_digest(project, digest, ActionTargetType.MEMBER, 444)
