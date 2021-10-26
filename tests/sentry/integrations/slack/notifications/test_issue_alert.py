@@ -1,3 +1,5 @@
+from unittest import mock
+from unittest.mock import patch
 from urllib.parse import parse_qs
 
 import responses
@@ -25,12 +27,10 @@ from sentry.ownership.grammar import Rule as GrammarRule
 from sentry.ownership.grammar import dump_schema
 from sentry.plugins.base import Notification
 from sentry.tasks.digests import deliver_digest
+from sentry.testutils.cases import SlackActivityNotificationTest
+from sentry.testutils.helpers.slack import get_attachment, send_notification
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
-from sentry.utils.compat import mock
-from sentry.utils.compat.mock import patch
-
-from . import SlackActivityNotificationTest, get_attachment, send_notification
 
 
 class SlackUnassignedNotificationTest(SlackActivityNotificationTest):

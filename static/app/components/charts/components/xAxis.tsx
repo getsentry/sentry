@@ -2,10 +2,9 @@ import {EChartOption} from 'echarts';
 import merge from 'lodash/merge';
 
 import BaseChart from 'app/components/charts/baseChart';
+import {truncationFormatter, useShortInterval} from 'app/components/charts/utils';
 import {getFormattedDate, getTimeFormat} from 'app/utils/dates';
 import {Theme} from 'app/utils/theme';
-
-import {truncationFormatter, useShortInterval} from '../utils';
 
 type ChartProps = React.ComponentProps<typeof BaseChart>;
 type HelperProps =
@@ -16,9 +15,10 @@ type HelperProps =
   | 'period'
   | 'utc';
 
-type Props = ChartProps['xAxis'] & Pick<ChartProps, HelperProps> & {theme: Theme};
+type Props = ChartProps['xAxis'] &
+  Pick<ChartProps, HelperProps> & {theme: Theme; addSecondsToTimeFormat?: boolean};
 
-export default function XAxis({
+function XAxis({
   isGroupedByDate,
   useShortDate,
   theme,
@@ -27,21 +27,25 @@ export default function XAxis({
   end,
   period,
   utc,
+
+  addSecondsToTimeFormat = false,
   ...props
 }: Props): EChartOption.XAxis {
   const axisLabelFormatter = (value: string, index: number) => {
     if (isGroupedByDate) {
-      const timeFormat = getTimeFormat();
+      const timeFormat = getTimeFormat({displaySeconds: addSecondsToTimeFormat});
       const dateFormat = useShortDate ? 'MMM Do' : `MMM D ${timeFormat}`;
       const firstItem = index === 0;
       const format =
         useShortInterval({start, end, period}) && !firstItem ? timeFormat : dateFormat;
       return getFormattedDate(value, format, {local: !utc});
-    } else if (props.truncate) {
-      return truncationFormatter(value, props.truncate);
-    } else {
-      return undefined;
     }
+
+    if (props.truncate) {
+      return truncationFormatter(value, props.truncate);
+    }
+
+    return undefined;
   };
 
   return merge(
@@ -87,3 +91,5 @@ export default function XAxis({
     props
   );
 }
+
+export default XAxis;

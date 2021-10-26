@@ -1,10 +1,12 @@
+import {browserHistory} from 'react-router';
 import {Location, LocationDescriptor, Query} from 'history';
 
 import Duration from 'app/components/duration';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {backend, frontend, mobile} from 'app/data/platformCategories';
-import {GlobalSelection, OrganizationSummary, Project} from 'app/types';
+import {GlobalSelection, Organization, OrganizationSummary, Project} from 'app/types';
 import {defined} from 'app/utils';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {statsPeriodToDays} from 'app/utils/dates';
 import EventView from 'app/utils/discover/eventView';
 import {TRACING_FIELDS} from 'app/utils/discover/fields';
@@ -12,6 +14,8 @@ import {getDuration} from 'app/utils/formatters';
 import getCurrentSentryReactTransaction from 'app/utils/getCurrentSentryReactTransaction';
 import {decodeScalar} from 'app/utils/queryString';
 import {MutableSearch} from 'app/utils/tokenizeSearch';
+
+import {DEFAULT_MAX_DURATION} from './trends/utils';
 
 /**
  * Performance type can used to determine a default view or which specific field should be used by default on pages
@@ -117,6 +121,67 @@ export function getTransactionSearchQuery(location: Location, query: string = ''
   return decodeScalar(location.query.query, query).trim();
 }
 
+export function handleTrendsClick({
+  location,
+  organization,
+}: {
+  location: Location;
+  organization: Organization;
+}) {
+  trackAnalyticsEvent({
+    eventKey: 'performance_views.change_view',
+    eventName: 'Performance Views: Change View',
+    organization_id: parseInt(organization.id, 10),
+    view_name: 'TRENDS',
+  });
+
+  const target = trendsTargetRoute({location, organization});
+
+  browserHistory.push(target);
+}
+
+export function trendsTargetRoute({
+  location,
+  organization,
+  initialConditions,
+  additionalQuery,
+}: {
+  location: Location;
+  organization: Organization;
+  initialConditions?: MutableSearch;
+  additionalQuery?: {[x: string]: string};
+}) {
+  const newQuery = {
+    ...location.query,
+    ...additionalQuery,
+  };
+
+  const query = decodeScalar(location.query.query, '');
+  const conditions = new MutableSearch(query);
+
+  const modifiedConditions = initialConditions ?? new MutableSearch([]);
+
+  if (conditions.hasFilter('tpm()')) {
+    modifiedConditions.setFilterValues('tpm()', conditions.getFilterValues('tpm()'));
+  } else {
+    modifiedConditions.setFilterValues('tpm()', ['>0.01']);
+  }
+  if (conditions.hasFilter('transaction.duration')) {
+    modifiedConditions.setFilterValues(
+      'transaction.duration',
+      conditions.getFilterValues('transaction.duration')
+    );
+  } else {
+    modifiedConditions.setFilterValues('transaction.duration', [
+      '>0',
+      `<${DEFAULT_MAX_DURATION}`,
+    ]);
+  }
+  newQuery.query = modifiedConditions.formatString();
+
+  return {pathname: getPerformanceTrendsUrl(organization), query: {...newQuery}};
+}
+
 export function removeTracingKeysFromSearch(
   currentFilter: MutableSearch,
   options: {excludeTagKeys: Set<string>} = {
@@ -151,15 +216,21 @@ export function getTransactionDetailsUrl(
   organization: OrganizationSummary,
   eventSlug: string,
   transaction: string,
-  query: Query
+  query: Query,
+  hash?: string
 ): LocationDescriptor {
-  return {
+  const target = {
     pathname: `/organizations/${organization.slug}/performance/${eventSlug}/`,
     query: {
       ...query,
       transaction,
     },
+    hash,
   };
+  if (!defined(hash)) {
+    delete target.hash;
+  }
+  return target;
 }
 
 export function getTransactionComparisonUrl({

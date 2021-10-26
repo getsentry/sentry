@@ -1,5 +1,4 @@
 import time
-import uuid
 from datetime import datetime, timedelta
 
 import pytz
@@ -24,26 +23,6 @@ def make_24h_stats(ts):
     return _make_stats(datetime.utcfromtimestamp(ts).replace(tzinfo=pytz.utc), 3600, 24)
 
 
-def generate_session_default_args(session_dict):
-    session_dict_default = {
-        "session_id": str(uuid.uuid4()),
-        "distinct_id": str(uuid.uuid4()),
-        "status": "ok",
-        "seq": 0,
-        "release": "random@1.0",
-        "environment": "prod",
-        "retention_days": 90,
-        "org_id": 0,
-        "project_id": 0,
-        "duration": 60.0,
-        "errors": 0,
-        "started": time.time() // 60 * 60,
-        "received": time.time(),
-    }
-    session_dict_default.update(session_dict)
-    return session_dict_default
-
-
 class ReleaseHealthMetricsTestCase(SessionMetricsTestCase):
     backend = MetricsReleaseHealthBackend()
 
@@ -61,76 +40,52 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         session_2 = "5e910c1a-6941-460e-9843-24103fb6a63c"
         session_3 = "a148c0c5-06a2-423b-8901-6b43b812cf82"
         user_1 = "39887d89-13b2-4c84-8c23-5d13d2102666"
-        self.store_session(
-            {
-                "session_id": session_1,
-                "distinct_id": user_1,
-                "status": "exited",
-                "seq": 0,
-                "release": self.session_release,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
-        )
 
         self.store_session(
-            {
-                "session_id": session_2,
-                "distinct_id": user_1,
-                "status": "ok",
-                "seq": 0,
-                "release": self.session_release,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": None,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
+            self.build_session(
+                distinct_id=user_1,
+                session_id=session_1,
+                status="exited",
+                release=self.session_release,
+                environment="prod",
+                started=self.session_started,
+                received=self.received,
+            )
         )
-
         self.store_session(
-            {
-                "session_id": session_2,
-                "distinct_id": user_1,
-                "status": "exited",
-                "seq": 1,
-                "release": self.session_release,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 30.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
+            self.build_session(
+                distinct_id=user_1,
+                session_id=session_2,
+                release=self.session_release,
+                environment="prod",
+                duration=None,
+                started=self.session_started,
+                received=self.received,
+            )
         )
-
         self.store_session(
-            {
-                "session_id": session_3,
-                "distinct_id": user_1,
-                "status": "crashed",
-                "seq": 0,
-                "release": self.session_crashed_release,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
+            self.build_session(
+                distinct_id=user_1,
+                session_id=session_2,
+                seq=1,
+                duration=30,
+                status="exited",
+                release=self.session_release,
+                environment="prod",
+                started=self.session_started,
+                received=self.received,
+            )
+        )
+        self.store_session(
+            self.build_session(
+                distinct_id=user_1,
+                session_id=session_3,
+                status="crashed",
+                release=self.session_crashed_release,
+                environment="prod",
+                started=self.session_started,
+                received=self.received,
+            )
         )
 
     def test_get_oldest_health_data_for_releases(self):
@@ -167,8 +122,8 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
             (datetime.utcnow() - timedelta(days=100)).replace(tzinfo=pytz.utc)
         )
         self.store_session(
-            generate_session_default_args(
-                {
+            self.build_session(
+                **{
                     "started": date_100_days_ago // 60 * 60,
                     "received": date_100_days_ago,
                     "project_id": project2.id,
@@ -194,8 +149,12 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
             organization=self.organization,
         )
         self.store_session(
-            generate_session_default_args(
-                {"project_id": project2.id, "org_id": project2.organization_id, "status": "exited"}
+            self.build_session(
+                **{
+                    "project_id": project2.id,
+                    "org_id": project2.organization_id,
+                    "status": "exited",
+                }
             )
         )
         data = self.backend.check_has_health_data([self.project.id, project2.id])
@@ -209,21 +168,12 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         # Add an extra session with a different `distinct_id` so that sorting by users
         # is stable
         self.store_session(
-            {
-                "session_id": "5e910c1a-6941-460e-9843-24103fb6a63c",
-                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102665",
-                "status": "ok",
-                "seq": 0,
-                "release": self.session_release,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": None,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
+            self.build_session(
+                release=self.session_release,
+                environment="prod",
+                started=self.session_started,
+                received=self.received,
+            )
         )
 
         for scope in "sessions", "users":
@@ -244,21 +194,13 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
 
         # add another user to session_release to make sure that they are sorted correctly
         self.store_session(
-            {
-                "session_id": str(uuid.uuid4()),
-                "distinct_id": str(uuid.uuid4()),
-                "status": "exited",
-                "seq": 0,
-                "release": self.session_release,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
+            self.build_session(
+                status="exited",
+                release=self.session_release,
+                environment="prod",
+                started=self.session_started,
+                received=self.received,
+            )
         )
 
         for scope in "crash_free_sessions", "crash_free_users":
@@ -276,20 +218,13 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         returned on `users` and `crash_free_users` sorts
         """
         self.store_session(
-            {
-                "session_id": "bd1521fc-d27c-11eb-b8bc-0242ac130003",
-                "status": "ok",
-                "seq": 0,
-                "release": "release-with-no-users",
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": None,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
+            self.build_session(
+                distinct_id=None,
+                release="release-with-no-users",
+                environment="prod",
+                started=self.session_started,
+                received=self.received,
+            )
         )
         data = self.backend.get_project_releases_by_stability(
             [self.project.id], offset=0, limit=100, scope="users", stats_period="24h"
@@ -337,21 +272,13 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
 
     def test_get_release_adoption_lowered(self):
         self.store_session(
-            {
-                "session_id": "4574c381-acc5-4e05-b10b-f16cdc2f385a",
-                "distinct_id": "da50f094-10b4-40fb-89fb-cb3aa9014148",
-                "status": "crashed",
-                "seq": 0,
-                "release": self.session_crashed_release,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
+            self.build_session(
+                release=self.session_crashed_release,
+                environment="prod",
+                status="crashed",
+                started=self.session_started,
+                received=self.received,
+            )
         )
 
         data = self.backend.get_release_adoption(
@@ -497,39 +424,24 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         """
         # Same release session
         self.store_session(
-            {
-                "session_id": "5e910c1a-6941-460e-9843-24103fb6a63c",
-                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
-                "status": "exited",
-                "seq": 1,
-                "release": self.session_release,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 30.0,
-                "errors": 0,
-                "started": self.session_started - 3600 * 2,
-                "received": self.received - 3600 * 2,
-            }
+            self.build_session(
+                release=self.session_release,
+                environment="prod",
+                status="exited",
+                started=self.session_started - 3600 * 2,
+                received=self.received - 3600 * 2,
+            )
         )
+
         # Different release session
         self.store_session(
-            {
-                "session_id": "a148c0c5-06a2-423b-8901-6b43b812cf82",
-                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
-                "status": "crashed",
-                "seq": 0,
-                "release": self.session_crashed_release,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started - 3600 * 2,
-                "received": self.received - 3600 * 2,
-            }
+            self.build_session(
+                release=self.session_crashed_release,
+                environment="prod",
+                status="crashed",
+                started=self.session_started - 3600 * 2,
+                received=self.received - 3600 * 2,
+            )
         )
 
         if isinstance(self.backend, MetricsReleaseHealthBackend):
@@ -699,21 +611,13 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         _100h = 100 * 60 * 60  # 100 hours in seconds
         proj_id = self.project.id
         self.store_session(
-            {
-                "session_id": "f6a01ae0-7fa7-44df-afb9-ae32ef1c8102",
-                "distinct_id": "5849e12a-220a-4bda-8c72-4e35391c341f",
-                "status": "crashed",
-                "seq": 0,
-                "release": "foo@3.0.0",
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": proj_id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started - _100h,
-                "received": self.received - 3600 * 2,
-            }
+            self.build_session(
+                release="foo@3.0.0",
+                environment="prod",
+                status="crashed",
+                started=self.session_started - _100h,
+                received=self.received - 3600 * 2,
+            )
         )
 
         data = self.backend.get_changed_project_release_model_adoptions([proj_id])
@@ -724,21 +628,14 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         proj_id = self.project.id
         new_proj_id = proj_id + 1
         self.store_session(
-            {
-                "session_id": "f6a01ae0-7fa7-44df-afb9-ae32ef1c8102",
-                "distinct_id": "5849e12a-220a-4bda-8c72-4e35391c341f",
-                "status": "crashed",
-                "seq": 0,
-                "release": "foo@3.0.0",
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": new_proj_id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received - 3600 * 2,
-            }
+            self.build_session(
+                project_id=new_proj_id,
+                release="foo@3.0.0",
+                environment="prod",
+                status="crashed",
+                started=self.session_started,
+                received=self.received - 3600 * 2,
+            )
         )
 
         data = self.backend.get_changed_project_release_model_adoptions([proj_id, new_proj_id])
@@ -1034,8 +931,8 @@ class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
         # Project 1
         for _ in range(0, 2):
             self.store_session(
-                generate_session_default_args(
-                    {
+                self.build_session(
+                    **{
                         "project_id": self.project.id,
                         "org_id": self.project.organization_id,
                         "status": "exited",
@@ -1048,8 +945,8 @@ class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
             if idx == 2:
                 status = "crashed"
             self.store_session(
-                generate_session_default_args(
-                    {
+                self.build_session(
+                    **{
                         "project_id": self.project.id,
                         "org_id": self.project.organization_id,
                         "status": status,
@@ -1064,8 +961,8 @@ class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
             if i == 1:
                 status = "crashed"
             self.store_session(
-                generate_session_default_args(
-                    {
+                self.build_session(
+                    **{
                         "project_id": self.project2.id,
                         "org_id": self.project2.organization_id,
                         "status": status,
@@ -1079,8 +976,8 @@ class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
             if i == 4:
                 status = "crashed"
             self.store_session(
-                generate_session_default_args(
-                    {
+                self.build_session(
+                    **{
                         "project_id": self.project3.id,
                         "org_id": self.project3.organization_id,
                         "status": status,
@@ -1275,7 +1172,7 @@ class CheckNumberOfSessions(TestCase, SnubaTestCase):
         self.another_project = self.create_project()
         self.third_project = self.create_project()
 
-        self.now_dt = datetime.utcnow()
+        self.now_dt = datetime(2000, 3, 20, 17, 40, 0)
         self._5_min_ago_dt = self.now_dt - timedelta(minutes=5)
         self._30_min_ago_dt = self.now_dt - timedelta(minutes=30)
         self._1_h_ago_dt = self.now_dt - timedelta(hours=1)
@@ -1288,38 +1185,6 @@ class CheckNumberOfSessions(TestCase, SnubaTestCase):
         self._1_h_ago = self._1_h_ago_dt.timestamp()
         self._2_h_ago = self._2_h_ago_dt.timestamp()
         self._3_h_ago = self._3_h_ago_dt.timestamp()
-
-    def make_session(
-        self,
-        environment,
-        received=None,
-        started=None,
-        status="ok",
-        release="foo@1.0.0",
-        project=None,
-    ):
-        if received is None:
-            received = time.time()
-        if started is None:
-            started = received
-        if project is None:
-            project = self.project
-
-        return {
-            "session_id": str(uuid.uuid4()),
-            "distinct_id": str(uuid.uuid4()),
-            "status": status,
-            "seq": 0,
-            "release": release,
-            "environment": environment,
-            "retention_days": 90,
-            "org_id": self.project.organization_id,
-            "project_id": project.id,
-            "duration": 60.0,
-            "errors": 0,
-            "started": started,
-            "received": received,
-        }
 
     def test_no_sessions(self):
         """
@@ -1346,10 +1211,16 @@ class CheckNumberOfSessions(TestCase, SnubaTestCase):
 
         self.bulk_store_sessions(
             [
-                self.make_session(environment=dev, received=self._5_min_ago),
-                self.make_session(environment=prod, received=self._5_min_ago),
-                self.make_session(environment=prod, received=self._5_min_ago),
-                self.make_session(environment=prod, received=self._2_h_ago),
+                self.build_session(
+                    environment=dev, received=self._5_min_ago, started=self._5_min_ago
+                ),
+                self.build_session(
+                    environment=prod, received=self._5_min_ago, started=self._5_min_ago
+                ),
+                self.build_session(
+                    environment=prod, received=self._5_min_ago, started=self._5_min_ago
+                ),
+                self.build_session(environment=prod, received=self._2_h_ago, started=self._2_h_ago),
             ]
         )
 
@@ -1372,11 +1243,17 @@ class CheckNumberOfSessions(TestCase, SnubaTestCase):
 
         self.bulk_store_sessions(
             [
-                self.make_session(environment=dev, received=self._5_min_ago),
-                self.make_session(environment=prod, received=self._5_min_ago),
-                self.make_session(environment=prod, received=self._5_min_ago),
-                self.make_session(environment=prod, received=self._2_h_ago),
-                self.make_session(environment=dev, received=self._2_h_ago),
+                self.build_session(
+                    environment=dev, received=self._5_min_ago, started=self._5_min_ago
+                ),
+                self.build_session(
+                    environment=prod, received=self._5_min_ago, started=self._5_min_ago
+                ),
+                self.build_session(
+                    environment=prod, received=self._5_min_ago, started=self._5_min_ago
+                ),
+                self.build_session(environment=prod, received=self._2_h_ago, started=self._2_h_ago),
+                self.build_session(environment=dev, received=self._2_h_ago, started=self._2_h_ago),
             ]
         )
 
@@ -1399,10 +1276,17 @@ class CheckNumberOfSessions(TestCase, SnubaTestCase):
 
         self.bulk_store_sessions(
             [
-                self.make_session(environment=dev, received=self._5_min_ago),
-                self.make_session(environment=prod, received=self._5_min_ago),
-                self.make_session(
-                    environment=prod, received=self._5_min_ago, project=self.another_project
+                self.build_session(
+                    environment=dev, received=self._5_min_ago, started=self._5_min_ago
+                ),
+                self.build_session(
+                    environment=prod, received=self._5_min_ago, started=self._5_min_ago
+                ),
+                self.build_session(
+                    environment=prod,
+                    received=self._5_min_ago,
+                    project_id=self.another_project.id,
+                    started=self._5_min_ago,
                 ),
             ]
         )
@@ -1441,23 +1325,51 @@ class CheckNumberOfSessions(TestCase, SnubaTestCase):
         self.bulk_store_sessions(
             [
                 # counted in p1
-                self.make_session(environment=dev, received=self._5_min_ago),
-                self.make_session(environment=prod, received=self._5_min_ago),
-                self.make_session(environment=dev, received=self._30_min_ago),
+                self.build_session(
+                    environment=dev, received=self._5_min_ago, started=self._5_min_ago
+                ),
+                self.build_session(
+                    environment=prod, received=self._5_min_ago, started=self._5_min_ago
+                ),
+                self.build_session(
+                    environment=dev, received=self._30_min_ago, started=self._30_min_ago
+                ),
                 # ignored in p1
                 # ignored env
-                self.make_session(environment=test, received=self._30_min_ago),
+                self.build_session(
+                    environment=test, received=self._30_min_ago, started=self._30_min_ago
+                ),
                 # too old
-                self.make_session(environment=prod, received=self._3_h_ago),
+                self.build_session(environment=prod, received=self._3_h_ago, started=self._3_h_ago),
                 # counted in p2
-                self.make_session(environment=dev, received=self._5_min_ago, project=p2),
+                self.build_session(
+                    environment=dev,
+                    received=self._5_min_ago,
+                    project_id=p2.id,
+                    started=self._5_min_ago,
+                ),
                 # ignored in p2
                 # ignored env
-                self.make_session(environment=test, received=self._5_min_ago, project=p2),
+                self.build_session(
+                    environment=test,
+                    received=self._5_min_ago,
+                    project_id=p2.id,
+                    started=self._5_min_ago,
+                ),
                 # too old
-                self.make_session(environment=prod, received=self._3_h_ago, project=p2),
+                self.build_session(
+                    environment=prod,
+                    received=self._3_h_ago,
+                    project_id=p2.id,
+                    started=self._3_h_ago,
+                ),
                 # ignored p3
-                self.make_session(environment=dev, received=self._5_min_ago, project=p3),
+                self.build_session(
+                    environment=dev,
+                    received=self._5_min_ago,
+                    project_id=p3.id,
+                    started=self._5_min_ago,
+                ),
             ]
         )
 

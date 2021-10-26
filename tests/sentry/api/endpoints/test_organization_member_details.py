@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.core import mail
 from django.db.models import F
 from django.urls import reverse
@@ -14,7 +16,6 @@ from sentry.models import (
 )
 from sentry.testutils import APITestCase
 from sentry.utils.compat import map
-from sentry.utils.compat.mock import patch
 
 
 class OrganizationMemberTestBase(APITestCase):

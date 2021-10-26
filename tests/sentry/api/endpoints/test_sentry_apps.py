@@ -1,4 +1,5 @@
 import re
+from unittest.mock import patch
 
 from django.urls import reverse
 
@@ -15,7 +16,6 @@ from sentry.models.sentryapp import MASKED_VALUE
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
 from sentry.utils import json
-from sentry.utils.compat.mock import patch
 
 
 class SentryAppsTest(APITestCase):

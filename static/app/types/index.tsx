@@ -21,7 +21,7 @@ import {Field} from 'app/views/settings/components/forms/type';
 
 import {DynamicSamplingRules} from './dynamicSampling';
 import {Event} from './event';
-import {Mechanism, RawStacktrace, StacktraceType} from './stacktrace';
+import {RawStacktrace, StackTraceMechanism, StacktraceType} from './stacktrace';
 
 export enum SentryInitRenderReactComponent {
   INDICATORS = 'Indicators',
@@ -2046,7 +2046,7 @@ export type ExceptionValue = {
   threadId: number | null;
   stacktrace: StacktraceType | null;
   rawStacktrace: RawStacktrace;
-  mechanism: Mechanism | null;
+  mechanism: StackTraceMechanism | null;
   module: string | null;
   frames: Frame[] | null;
 };
@@ -2127,12 +2127,6 @@ export type SessionApiResponse = SeriesApi & {
   start: DateString;
   end: DateString;
   query: string;
-  intervals: string[];
-  groups: {
-    by: Record<string, string | number>;
-    totals: Record<string, number>;
-    series: Record<string, number[]>;
-  }[];
 };
 
 export enum SessionField {

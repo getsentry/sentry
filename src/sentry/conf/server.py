@@ -940,8 +940,6 @@ SENTRY_FEATURES = {
     "organizations:performance-view": True,
     # Enable multi project selection
     "organizations:global-views": False,
-    # Enable writing group history
-    "organizations:group-history": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
     "organizations:grouping-tree-ui": False,
     # Enable experimental new version of stacktrace component where additional
@@ -1094,6 +1092,8 @@ SENTRY_FEATURES = {
     "organizations:release-comparison-performance": False,
     # Enable percent displays in issue stream
     "organizations:issue-percent-display": False,
+    # send organization request notifications through Slack
+    "organizations:slack-requests": False,
     # Enable team insights page
     "organizations:team-insights": False,
     # Adds additional filters and a new section to issue alert rules.
@@ -1381,7 +1381,7 @@ SENTRY_METRICS_PREFIX = "sentry."
 SENTRY_METRICS_SKIP_INTERNAL_PREFIXES = []  # Order this by most frequent prefixes.
 
 # Metrics product
-SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.mock.MockIndexer"
+SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.postgres.PGStringIndexer"
 SENTRY_METRICS_INDEXER_OPTIONS = {}
 SENTRY_METRICS_INDEXER_CACHE_TTL = 3600 * 2
 
@@ -2456,7 +2456,7 @@ DEMO_DATA_QUICK_GEN_PARAMS = {}
 INJECTED_SCRIPT_ASSETS = []
 
 # Sentry post process forwarder use batching consumer
-SENTRY_POST_PROCESS_FORWARDER_BATCHING = False
+SENTRY_POST_PROCESS_FORWARDER_BATCHING = True
 
 # Whether badly behaving projects will be automatically
 # sent to the low priority queue

@@ -169,7 +169,11 @@ discoverCharts.push({
     }
 
     const stats = Object.values(data.stats);
-    const color = theme.charts.getColorPalette(stats.length - 2);
+    const hasOther = Object.keys(data.stats).includes('Other');
+    const color = theme.charts.getColorPalette(stats.length - 2 - (hasOther ? 1 : 0));
+    if (hasOther) {
+      color.push(theme.chartOther);
+    }
 
     const series = stats
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
@@ -182,6 +186,62 @@ discoverCharts.push({
           ]),
           lineStyle: {color: color?.[i], opacity: 1, width: 0.4},
           areaStyle: {color: color?.[i], opacity: 1},
+        })
+      );
+
+    return {
+      ...slackChartDefaults,
+      xAxis: discoverxAxis,
+      useUTC: true,
+      color,
+      series,
+    };
+  },
+  ...slackChartSize,
+});
+
+discoverCharts.push({
+  key: ChartType.SLACK_DISCOVER_TOP5_PERIOD_LINE,
+  getOption: (
+    data: {stats: Record<string, EventsStats>} | {seriesName?: string; stats: EventsStats}
+  ) => {
+    if (isArray(data.stats.data)) {
+      const color = theme.charts.getColorPalette(data.stats.data.length - 2);
+
+      const lineSeries = LineSeries({
+        data: data.stats.data.map(([timestamp, countsForTimestamp]) => [
+          timestamp * 1000,
+          countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
+        ]),
+        lineStyle: {color: color?.[0], opacity: 1},
+        itemStyle: {color: color?.[0]},
+      });
+
+      return {
+        ...slackChartDefaults,
+        useUTC: true,
+        color,
+        series: [lineSeries],
+      };
+    }
+
+    const stats = Object.values(data.stats);
+    const hasOther = Object.keys(data.stats).includes('Other');
+    const color = theme.charts.getColorPalette(stats.length - 2 - (hasOther ? 1 : 0));
+    if (hasOther) {
+      color.push(theme.chartOther);
+    }
+
+    const series = stats
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      .map((topSeries, i) =>
+        LineSeries({
+          data: topSeries.data.map(([timestamp, countsForTimestamp]) => [
+            timestamp * 1000,
+            countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
+          ]),
+          lineStyle: {color: color?.[i], opacity: 1},
+          itemStyle: {color: color?.[i]},
         })
       );
 
@@ -222,7 +282,11 @@ discoverCharts.push({
     }
 
     const stats = Object.values(data.stats);
-    const color = theme.charts.getColorPalette(stats.length - 2);
+    const hasOther = Object.keys(data.stats).includes('Other');
+    const color = theme.charts.getColorPalette(stats.length - 2 - (hasOther ? 1 : 0));
+    if (hasOther) {
+      color.push(theme.chartOther);
+    }
 
     const series = stats
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))

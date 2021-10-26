@@ -1,11 +1,12 @@
+from unittest import mock
+
 import responses
 
 from sentry.models import Activity
 from sentry.notifications.notifications.activity import UnassignedActivityNotification
+from sentry.testutils.cases import SlackActivityNotificationTest
+from sentry.testutils.helpers.slack import get_attachment, send_notification
 from sentry.types.activity import ActivityType
-from sentry.utils.compat import mock
-
-from . import SlackActivityNotificationTest, get_attachment, send_notification
 
 
 class SlackUnassignedNotificationTest(SlackActivityNotificationTest):

@@ -1,6 +1,7 @@
+from unittest import mock
+
 from sentry.plugins.helpers import get_option, set_option, unset_option
 from sentry.testutils import TestCase
-from sentry.utils.compat import mock
 
 
 class SentryPluginTest(TestCase):
@@ -15,7 +16,7 @@ class SentryPluginTest(TestCase):
         with mock.patch("sentry.models.ProjectOption.objects.get_value") as get_value:
             project = mock.Mock()
             result = get_option("key", project)
-            self.assertEquals(result, get_value.return_value)
+            self.assertEqual(result, get_value.return_value)
 
             get_value.assert_called_once_with(project, "key", None)
 

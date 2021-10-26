@@ -10,6 +10,7 @@ import {openDashboardWidgetQuerySelectorModal} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import {HeaderTitle} from 'app/components/charts/styles';
 import ErrorBoundary from 'app/components/errorBoundary';
+import FeatureBadge from 'app/components/featureBadge';
 import MenuItem from 'app/components/menuItem';
 import {isSelectionEqual} from 'app/components/organizations/globalSelectionHeader/utils';
 import {Panel} from 'app/components/panels';
@@ -19,12 +20,13 @@ import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
+import {DisplayModes} from 'app/utils/discover/types';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import {eventViewFromWidget} from 'app/views/dashboardsV2/utils';
+import {DisplayType} from 'app/views/dashboardsV2/widget/utils';
 
 import ContextMenu from './contextMenu';
 import {Widget} from './types';
@@ -120,14 +122,8 @@ class WidgetCard extends React.Component<Props> {
       (widget.displayType === 'table' || this.isAllowWidgetsToDiscover()) &&
       organization.features.includes('discover-basic')
     ) {
-      // Open table widget in Discover
-
+      // Open Widget in Discover
       if (widget.queries.length) {
-        trackAnalyticsEvent({
-          eventKey: 'dashboards2.tablewidget.open_in_discover',
-          eventName: 'Dashboards2: Table Widget - Open in Discover',
-          organization_id: parseInt(this.props.organization.id, 10),
-        });
         const eventView = eventViewFromWidget(
           widget.title,
           widget.queries[0],
@@ -141,11 +137,35 @@ class WidgetCard extends React.Component<Props> {
           discoverLocation.query.yAxis = widget.queries[0].fields
             .filter(field => yAxisOptions.includes(field))
             .slice(0, 3);
+          switch (widget.displayType) {
+            case DisplayType.WORLD_MAP:
+              discoverLocation.query.display = DisplayModes.WORLDMAP;
+              break;
+            case DisplayType.BAR:
+              discoverLocation.query.display = DisplayModes.BAR;
+              break;
+            default:
+              break;
+          }
         }
         if (widget.queries.length === 1) {
           menuOptions.push(
-            <Link key="open-discover-link" to={discoverLocation}>
-              <StyledMenuItem key="open-discover">{t('Open in Discover')}</StyledMenuItem>
+            <Link
+              key="open-discover-link"
+              to={discoverLocation}
+              onClick={() => {
+                trackAdvancedAnalyticsEvent('dashboards_views.open_in_discover.opened', {
+                  organization,
+                  widget_type: widget.displayType,
+                });
+              }}
+            >
+              <StyledMenuItem key="open-discover">
+                {t('Open in Discover')}
+                {widget.displayType !== DisplayType.TABLE && (
+                  <FeatureBadge type="new" noTooltip />
+                )}
+              </StyledMenuItem>
             </Link>
           );
         } else {
@@ -305,8 +325,9 @@ const ContextWrapper = styled('div')`
 `;
 
 const StyledMenuItem = styled(MenuItem)`
-  color: ${p => p.theme.gray500};
+  white-space: nowrap;
+  color: ${p => p.theme.textColor};
   :hover {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.textColor};
   }
 `;

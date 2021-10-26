@@ -17,6 +17,7 @@ import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import EventView from 'app/utils/discover/eventView';
+import {isEquation} from 'app/utils/discover/fields';
 import {
   DisplayModes,
   MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES,
@@ -236,22 +237,25 @@ class ResultsChartContainer extends Component<ContainerProps> {
 
     const yAxisValue = hasConnectDiscoverAndDashboards ? yAxis : [eventView.getYAxis()];
     let yAxisOptions = eventView.getYAxisOptions();
-    // Disable multi y axis options when in an unsupported Display Mode
+    // Hide multi y axis checkbox when in an unsupported Display Mode
     if (
       !MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES.includes(
         eventView.getDisplayMode() as DisplayModes
       )
     ) {
       yAxisOptions = yAxisOptions.map(option => {
-        if (option.value !== yAxisValue[0]) {
-          return {
-            ...option,
-            disabled: true,
-            tooltip: t('Multiple Y-Axis cannot be plotted on this Display mode.'),
-          };
-        }
-        return option;
+        return {
+          ...option,
+          disabled: true,
+          tooltip: t('Multiple Y-Axis cannot be plotted on this Display mode.'),
+          checkboxHidden: true,
+        };
       });
+    }
+    // Equations on World Map isn't supported on the events-geo endpoint
+    // Disabling equations as an option to prevent erroring out
+    if (eventView.getDisplayMode() === DisplayModes.WORLDMAP) {
+      yAxisOptions = yAxisOptions.filter(({value}) => !isEquation(value));
     }
 
     return (
