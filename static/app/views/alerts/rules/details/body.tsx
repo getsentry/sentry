@@ -227,7 +227,7 @@ export default class DetailsBody extends React.Component<Props> {
         </SidebarGroup>
 
         <SidebarGroup>
-          <Heading>{t('Thresholds and Actions')}</Heading>
+          <Heading>{t('Thresholds')}</Heading>
           {typeof criticalTrigger?.alertThreshold === 'number' &&
             this.renderTrigger(
               criticalTrigger.label,
@@ -601,6 +601,7 @@ const TriggerCondition = styled('div')`
 
 const TriggerText = styled('div')`
   color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const CreatedBy = styled('div')`
@@ -608,5 +609,5 @@ const CreatedBy = styled('div')`
 `;
 
 const StyledIconRectangle = styled(IconRectangle)`
-  margin-top: ${space(0.75)};
+  margin-top: 4px;
 `;
