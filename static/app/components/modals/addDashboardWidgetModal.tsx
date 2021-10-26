@@ -264,16 +264,14 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         }
 
         set(newState, 'queries', normalized);
-
-        if (fromDiscover) {
-          trackAdvancedAnalyticsEvent('dashboards_views.add_widget_modal.change', {
-            from: 'discoverv2',
-            field,
-            value: displayType,
-            organization,
-          });
-        }
       }
+
+      trackAdvancedAnalyticsEvent('dashboards_views.add_widget_modal.change', {
+        from: fromDiscover ? 'discoverv2' : 'dashboards',
+        field,
+        value,
+        organization,
+      });
 
       return {...newState, errors: undefined};
     });
