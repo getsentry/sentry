@@ -152,7 +152,6 @@ setup(
             "trello = sentry_plugins.trello.plugin:TrelloPlugin",
             "twilio = sentry_plugins.twilio.plugin:TwilioPlugin",
             "victorops = sentry_plugins.victorops.plugin:VictorOpsPlugin",
-            "vsts = sentry_plugins.vsts.plugin:VstsPlugin",
         ],
     },
     classifiers=[

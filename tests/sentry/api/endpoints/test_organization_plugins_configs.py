@@ -45,7 +45,6 @@ class OrganizationPluginsTest(APITestCase):
             "trello",
             "twilio",
             "victorops",
-            "vsts",
             "webhooks",
         ]
         for plugin in expected_plugins:

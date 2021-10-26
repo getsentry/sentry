@@ -1,6 +1,5 @@
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
@@ -25,9 +24,6 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
         """
         queryset = Repository.objects.filter(organization_id=organization.id)
 
-        if not features.has("organizations:integrations-ignore-vsts-deprecation", organization):
-            queryset = queryset.exclude(provider="visualstudio")
-
         status = request.GET.get("status", "active")
         if status == "active":
             queryset = queryset.filter(status=ObjectStatus.VISIBLE)
@@ -39,7 +35,7 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
             integrations = Integration.objects.filter(
                 organizationintegration__organization=organization,
                 organizationintegration__status=ObjectStatus.ACTIVE,
-                provider__in=("bitbucket", "github", "vsts"),
+                provider__in=("bitbucket", "github"),
                 status=ObjectStatus.ACTIVE,
             )
 
