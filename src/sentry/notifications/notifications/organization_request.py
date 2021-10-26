@@ -51,7 +51,7 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
         for member in members:
             self.set_member_in_cache(member)
         # convert members to users
-        return list(map(lambda member: member.user, members))
+        return map(lambda member: member.user, members)
 
     def determine_member_recipients(self) -> Iterable["OrganizationMember"]:
         """
@@ -66,7 +66,7 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
             available_providers = notification_providers()
 
         # TODO: need to read off notification settings
-        recipients = self.determine_recipients()
+        recipients = list(self.determine_recipients())
         output = {provider: recipients for provider in available_providers}
 
         return output
@@ -114,7 +114,8 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
         raise NotImplementedError
 
     def get_role_string(self, member: OrganizationMember) -> str:
-        return roles.get(member.role).name
+        role_string: str = roles.get(member.role).name
+        return role_string
 
     def build_notification_footer(self, recipient: Union["Team", "User"]) -> str:
         # not implemented for teams
