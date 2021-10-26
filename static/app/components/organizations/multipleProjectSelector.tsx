@@ -359,7 +359,7 @@ const SelectorFooterControls = ({
     : t('Select My Projects');
 
   return (
-    <FooterContainer>
+    <FooterContainer style={{justifyContent: message ? 'space-between' : 'flex-end'}}>
       {message && <FooterMessage>{message}</FooterMessage>}
       <FooterActions>
         {!disableMultipleProjectSelection && (
@@ -405,7 +405,6 @@ export default withRouter(MultipleProjectSelector);
 
 const FooterContainer = styled('div')`
   display: flex;
-  justify-content: space-between;
 `;
 
 const FooterActions = styled('div')`
