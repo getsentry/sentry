@@ -22,11 +22,12 @@ def get_digest_metadata(
 
         for group, records in groups.items():
             for record in records:
-                if start is None or record.datetime < start:
-                    start = record.datetime
+                if record.datetime:
+                    if start is None or record.datetime < start:
+                        start = record.datetime
 
-                if end is None or record.datetime > end:
-                    end = record.datetime
+                    if end is None or record.datetime > end:
+                        end = record.datetime
 
     return start, end, counts
 
