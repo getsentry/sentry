@@ -364,6 +364,29 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
             )
 
     @pytest.mark.skip("setting snuba config is too slow")
+    def test_op_filters(self):
+        event = self.create_event()
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={
+                    "project": self.project.id,
+                    "sort": "-count",
+                    "spanOp": "http.server",
+                },
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+        self.assert_suspect_span(
+            response.data,
+            # when sorting by -count, this should be the last of the 3 results
+            # but the spanOp filter means it should be the only result
+            [self.suspect_span_results("percentiles", event)],
+        )
+
+    @pytest.mark.skip("setting snuba config is too slow")
     def test_pagination_first_page(self):
         self.create_event()
 
