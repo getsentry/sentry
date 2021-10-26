@@ -88,7 +88,10 @@ def get_integration_from_jwt(
 
 
 def verify_claims(
-    claims: str, path: str, query_params: Optional[Mapping[str, str]], method: str
+    claims: Optional[Mapping[str, str]],
+    path: str,
+    query_params: Optional[Mapping[str, str]],
+    method: str,
 ) -> None:
     # Verify the query has not been tampered by Creating a Query Hash
     # and comparing it against the qsh claim on the verified token.
@@ -99,7 +102,7 @@ def verify_claims(
 
 def authenticate_asymmetric_jwt(token: Optional[str]) -> Optional[Mapping[str, str]]:
     """
-    Allows for Atlassian Connect installation lifecycle security improvments (i.e. verified senders)
+    Allows for Atlassian Connect installation lifecycle security improvements (i.e. verified senders)
     See: https://community.developer.atlassian.com/t/action-required-atlassian-connect-installation-lifecycle-security-improvements/49046
     """
     if token is None:
