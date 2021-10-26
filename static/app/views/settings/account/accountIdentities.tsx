@@ -41,17 +41,18 @@ class AccountIdentities extends AsyncView<Props, State> {
     return (
       <IdentityPanelItem key={`${identity.category}:${identity.id}`}>
         <PluginIcon pluginId={identity.provider.key} />
+        <div>{identity.provider.name}</div>
+        {identity.dateAdded && <div>{identity.dateAdded}</div>}
         <div>
-          {identity.category === UserIdentityCategory.SOCIAL_IDENTITY ? (
-            <span title={t('This identity links to an application.')}>&#x1F517;</span>
-          ) : (
-            <span title={t('This identity can be used to sign in.')}>&#x1F512;</span>
-          )}
+          {identity.category === UserIdentityCategory.SOCIAL_IDENTITY
+            ? t('App Integration')
+            : identity.category === UserIdentityCategory.GLOBAL_IDENTITY
+            ? t('Sign-In Identity')
+            : identity.category === UserIdentityCategory.ORG_IDENTITY
+            ? t('Organization Identity')
+            : null}
         </div>
-        <div>
-          {identity.provider.name}
-          {identity.organization && ` (${identity.organization.name})`}
-        </div>
+        {identity.organization && <div>{identity.organization.name}</div>}
 
         {this.renderButton(identity)}
       </IdentityPanelItem>

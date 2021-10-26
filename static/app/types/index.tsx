@@ -2083,6 +2083,7 @@ export type UserIdentityConfig = {
   provider: UserIdentityProvider;
   status: UserIdentityStatus;
   organization: Organization | null;
+  dateAdded: DateString;
 };
 
 // taken from https://stackoverflow.com/questions/46634876/how-can-i-change-a-readonly-property-in-typescript
