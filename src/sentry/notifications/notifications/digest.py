@@ -40,7 +40,12 @@ class DigestNotification(ProjectNotification):
         self.target_identifier = target_identifier
 
     def get_participants(self) -> Mapping[ExternalProviders, Iterable[Union["Team", "User"]]]:
-        event = [v for value in self.digest.values() for v in value.values()][0][0].value.event
+        event = [
+            record
+            for records_by_group in self.digest.values()
+            for records in records_by_group.values()
+            for record in records
+        ][0].value.event
         return get_send_to(
             project=self.project,
             target_type=self.target_type,
@@ -111,6 +116,14 @@ class DigestNotification(ProjectNotification):
         if not self.should_email():
             return
 
+        # Only calculate shared context once.
+        shared_context = self.get_context()
+
+        if should_send_as_alert_notification(shared_context):
+            return send_as_alert_notification(
+                shared_context, self.target_type, self.target_identifier
+            )
+
         participants_by_provider = self.get_participants()
         if not participants_by_provider:
             return
@@ -132,14 +145,6 @@ class DigestNotification(ProjectNotification):
                 "user_ids": user_ids,
             },
         )
-
-        # Only calculate shared context once.
-        shared_context = self.get_context()
-
-        if should_send_as_alert_notification(shared_context):
-            return send_as_alert_notification(
-                shared_context, self.target_type, self.target_identifier
-            )
 
         # Calculate the per-user context. It's fine that we're doing extra work
         # to get personalized digests for the non-email users.
