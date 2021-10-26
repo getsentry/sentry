@@ -7,8 +7,8 @@ import {STACK_VIEW} from 'app/types/stacktrace';
 import {defined} from 'app/utils';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
-import StacktraceContent from './stacktraceContent';
-import StacktraceContentV2 from './stacktraceContentV2';
+import StacktraceContent from '../stackTrace/content';
+import StacktraceContentV2 from '../stackTrace/contentV2';
 
 type Props = {
   data: ExceptionValue['stacktrace'];
@@ -23,7 +23,7 @@ type Props = {
   newestFirst?: boolean;
 };
 
-const ExceptionStacktraceContent = ({
+function StackTrace({
   stackView,
   stacktrace,
   chainedException,
@@ -34,7 +34,7 @@ const ExceptionStacktraceContent = ({
   data,
   expandFirstFrame,
   event,
-}: Props) => {
+}: Props) {
   if (!defined(stacktrace)) {
     return null;
   }
@@ -99,6 +99,6 @@ const ExceptionStacktraceContent = ({
       event={event}
     />
   );
-};
+}
 
-export default ExceptionStacktraceContent;
+export default StackTrace;

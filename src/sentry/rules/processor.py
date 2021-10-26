@@ -14,6 +14,7 @@ from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import safe_execute
 
 RuleFuture = namedtuple("RuleFuture", ["rule", "kwargs"])
+SLOW_CONDITION_MATCHES = ["event_frequency"]
 
 
 class RuleProcessor:
@@ -166,6 +167,13 @@ class RuleProcessor:
                 condition_list.append(rule_cond)
             else:
                 filter_list.append(rule_cond)
+
+        # Sort `condition_list` so that most expensive conditions run last.
+        condition_list.sort(
+            key=lambda condition: any(
+                condition_match in condition["id"] for condition_match in SLOW_CONDITION_MATCHES
+            )
+        )
 
         for predicate_list, match, name in (
             (filter_list, filter_match, "filter"),

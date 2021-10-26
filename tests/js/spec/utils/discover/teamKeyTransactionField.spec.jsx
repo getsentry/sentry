@@ -22,11 +22,8 @@ describe('TeamKeyTransactionField', function () {
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
-    ProjectsStore.loadInitialData([project]);
-
-    act(() => {
-      TeamStore.loadInitialData(teams);
-    });
+    act(() => ProjectsStore.loadInitialData([project]));
+    act(() => TeamStore.loadInitialData(teams));
   });
 
   it('renders with all teams checked', async function () {
