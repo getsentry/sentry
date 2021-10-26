@@ -11,8 +11,7 @@ type ConfigParams = {
 const pathPrefix = '/settings/:orgId/projects/:projectId';
 
 // Object with the pluginId as the key, and enablingFeature as the value
-const SHADOW_DEPRECATED_PLUGINS = {
-};
+const SHADOW_DEPRECATED_PLUGINS = {};
 
 const canViewPlugin = (pluginId: string, organization?: Organization) => {
   const isDeprecated = SHADOW_DEPRECATED_PLUGINS.hasOwnProperty(pluginId);
