@@ -199,7 +199,7 @@ class SubscriptionProcessor:
                 limit=1,
                 referrer="subscription_processor.comparison_query",
             )
-            comparison_aggregate = results["data"][0]["count"]
+            comparison_aggregate = list(results["data"][0].values())[0]
         except Exception:
             logger.exception("Failed to run comparison query")
             return
