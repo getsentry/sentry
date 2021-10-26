@@ -118,9 +118,6 @@ def pytest_configure(config):
         settings.SENTRY_TSDB = "sentry.tsdb.redissnuba.RedisSnubaTSDB"
         settings.SENTRY_EVENTSTREAM = "sentry.eventstream.snuba.SnubaEventStream"
 
-    if os.environ.get("USE_INDEXER", False):
-        settings.SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.postgres.PGStringIndexer"
-
     if os.environ.get("DISABLE_TEST_SDK", False):
         settings.SENTRY_SDK_CONFIG = {}
 

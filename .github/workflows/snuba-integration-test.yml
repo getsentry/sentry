@@ -21,7 +21,6 @@ jobs:
       MATRIX_INSTANCE_TOTAL: 2
       USE_SNUBA: 1
       MIGRATIONS_TEST_MIGRATE: 1
-      USE_INDEXER: 1
 
     steps:
       - uses: actions/checkout@v2

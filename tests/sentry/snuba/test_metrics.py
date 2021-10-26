@@ -6,6 +6,7 @@ import pytz
 from django.utils.datastructures import MultiValueDict
 from snuba_sdk import Column, Condition, Entity, Granularity, Limit, Offset, Op, Query
 
+from sentry.sentry_metrics.indexer.mock import MockIndexer
 from sentry.snuba.metrics import (
     MAX_POINTS,
     QueryDefinition,
@@ -24,10 +25,12 @@ class PseudoProject:
 MOCK_NOW = datetime(2021, 8, 25, 23, 59, tzinfo=pytz.utc)
 
 
+@mock.patch("sentry.snuba.metrics.indexer")
 @mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
 @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
-def test_build_snuba_query(mock_now, mock_now2):
+def test_build_snuba_query(mock_now, mock_now2, mock_indexer):
 
+    mock_indexer.resolve = MockIndexer().resolve
     # Your typical release health query querying everything
     query_params = MultiValueDict(
         {
@@ -86,9 +89,12 @@ def test_build_snuba_query(mock_now, mock_now2):
     }
 
 
+@mock.patch("sentry.snuba.metrics.indexer")
 @mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
 @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
-def test_translate_results(_1, _2):
+def test_translate_results(_1, _2, mock_indexer):
+    mock_indexer.reverse_resolve = MockIndexer().reverse_resolve
+
     query_params = MultiValueDict(
         {
             "groupBy": ["session.status"],
@@ -236,9 +242,11 @@ def test_translate_results(_1, _2):
     ]
 
 
+@mock.patch("sentry.snuba.metrics.indexer")
 @mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
 @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
-def test_translate_results_missing_slots(_1, _2):
+def test_translate_results_missing_slots(_1, _2, mock_indexer):
+    mock_indexer.reverse_resolve = MockIndexer().reverse_resolve
     query_params = MultiValueDict(
         {
             "field": [
