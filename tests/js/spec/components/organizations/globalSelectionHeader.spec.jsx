@@ -1031,7 +1031,7 @@ describe('GlobalSelectionHeader', function () {
       // My projects in the footer
       expect(
         projectSelector.find('SelectorFooterControls Button').first().text()
-      ).toEqual('Select My Projects');
+      ).toEqual('View My Projects');
     });
 
     it('shows "All Projects" button based on features', async function () {
@@ -1056,7 +1056,7 @@ describe('GlobalSelectionHeader', function () {
       // All projects in the footer
       expect(
         projectSelector.find('SelectorFooterControls Button').first().text()
-      ).toEqual('Select All Projects');
+      ).toEqual('View All Projects');
     });
 
     it('shows "All Projects" button based on role', async function () {
@@ -1081,7 +1081,7 @@ describe('GlobalSelectionHeader', function () {
       // All projects in the footer
       expect(
         projectSelector.find('SelectorFooterControls Button').first().text()
-      ).toEqual('Select All Projects');
+      ).toEqual('View All Projects');
     });
 
     it('shows "My Projects" when "all projects" is selected', async function () {
@@ -1106,7 +1106,7 @@ describe('GlobalSelectionHeader', function () {
       // My projects in the footer
       expect(
         projectSelector.find('SelectorFooterControls Button').first().text()
-      ).toEqual('Select My Projects');
+      ).toEqual('View My Projects');
     });
   });
 

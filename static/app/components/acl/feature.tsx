@@ -177,6 +177,7 @@ class Feature extends React.Component<Props> {
         customDisabledRender = hooks[0];
       }
     }
+
     const renderProps = {
       organization,
       project,
