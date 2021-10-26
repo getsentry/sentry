@@ -37,10 +37,10 @@ const U2fEnrolledDetails = props => {
           devices?.map((device, i) => (
             <Device
               key={i}
-              onRenameU2fDevice={onRenameU2fDevice}
-              onRemoveU2fDevice={onRemoveU2fDevice}
               device={device}
               isLastDevice={isLastDevice}
+              onRenameU2fDevice={onRenameU2fDevice}
+              onRemoveU2fDevice={onRemoveU2fDevice}
             />
           ))}
         <AddAnotherPanelItem>
@@ -58,11 +58,11 @@ const U2fEnrolledDetails = props => {
 };
 
 const Device = props => {
-  const {onRenameU2fDevice, onRemoveU2fDevice, device, isLastDevice} = props;
+  const {device, isLastDevice, onRenameU2fDevice, onRemoveU2fDevice} = props;
   const [deviceName, setDeviceName] = useState(device.name);
-  const [isEditting, setEditting] = useState(false);
+  const [isEditing, setEditting] = useState(false);
 
-  if (!isEditting) {
+  if (!isEditing) {
     return (
       <DevicePanelItem key={device.name}>
         <DeviceInformation>
@@ -70,13 +70,8 @@ const Device = props => {
           <FadedDateTime date={device.timestamp} />
         </DeviceInformation>
         <Actions>
-          <Button
-            size="small"
-            onClick={() => {
-              setEditting(true);
-            }}
-          >
-            Rename Device
+          <Button size="small" onClick={() => setEditting(true)}>
+            {t('Rename Device')}
           </Button>
         </Actions>
         <Actions>
@@ -105,12 +100,12 @@ const Device = props => {
       </DevicePanelItem>
     );
   }
+
   return (
     <DevicePanelItem key={device.name}>
       <DeviceInformation>
         <DeviceNameInput
           type="text"
-          placeholder=""
           value={deviceName}
           onChange={e => {
             setDeviceName(e.target.value);

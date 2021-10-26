@@ -72,6 +72,7 @@ class AccountSecurityDetails extends AsyncView<Props, State> {
     }
 
     // if the device is defined, it means that U2f is being removed
+    // reason for adding a trailing slash is a result of the endpoint on line 109 needing it but it can't be set there as if deviceId is None, the route will end with '//'
     const deviceId = device ? `${device.key_handle}/` : '';
     const deviceName = device ? device.name : t('Authenticator');
 
@@ -97,6 +98,7 @@ class AccountSecurityDetails extends AsyncView<Props, State> {
       return;
     }
     // if the device is defined, it means that U2f is being renamed
+    // reason for adding a trailing slash is a result of the endpoint on line 109 needing it but it can't be set there as if deviceId is None, the route will end with '//'
     const deviceId = device ? `${device.key_handle}/` : '';
 
     this.setState({loading: true});
