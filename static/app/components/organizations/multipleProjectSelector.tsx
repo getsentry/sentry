@@ -359,7 +359,7 @@ const SelectorFooterControls = ({
     : t('Select My Projects');
 
   return (
-    <FooterContainer style={{justifyContent: message ? 'space-between' : 'flex-end'}}>
+    <FooterContainer hasMessage={!!message}>
       {message && <FooterMessage>{message}</FooterMessage>}
       <FooterActions>
         {!disableMultipleProjectSelection && (
@@ -403,8 +403,9 @@ const SelectorFooterControls = ({
 
 export default withRouter(MultipleProjectSelector);
 
-const FooterContainer = styled('div')`
+const FooterContainer = styled('div')<{hasMessage: boolean}>`
   display: flex;
+  justify-content: ${p => (p.hasMessage ? 'space-between' : 'flex-end')};
 `;
 
 const FooterActions = styled('div')`
