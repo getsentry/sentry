@@ -292,7 +292,8 @@ class UnfurlTest(TestCase):
         )
         assert len(mock_generate_chart.mock_calls) == 1
 
-        assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_DISCOVER_TOP5_PERIOD
+        # Line chart expected since yAxis is count_unique(user)
+        assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_DISCOVER_TOP5_PERIOD_LINE
         chart_data = mock_generate_chart.call_args[0][1]
         assert chart_data["seriesName"] == "count_unique(user)"
         # 2 + 1 cause of Other
