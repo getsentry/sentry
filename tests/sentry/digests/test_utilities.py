@@ -337,3 +337,6 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
             self.user5.id: set(events),
         }
         self.assert_get_personalized_digests(self.project, digest, self.user_ids, expected_result)
+
+    def test_empty_records(self):
+        assert build_digest(self.project, []) == (None, [])
