@@ -81,6 +81,7 @@ export type ChartcuterieConfig = {
    * configuration.
    */
   version: string;
+  init: (namespace: any) => void;
 };
 
 /**
