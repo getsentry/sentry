@@ -76,6 +76,7 @@ jobs:
           export VOLTA_HOME="$HOME/.volta"
           export PATH="$HOME/.volta/bin:$PATH"
           make setup-pyenv
+          set -x
           eval "$(pyenv init --path)"
           # Not working for Linux. Switch at a later time
           # exec "$SHELL"
