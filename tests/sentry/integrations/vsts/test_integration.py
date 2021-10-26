@@ -10,10 +10,8 @@ from sentry.models import (
     Integration,
     IntegrationExternalProject,
     OrganizationIntegration,
-    Project,
     Repository,
 )
-from sentry.plugins.base import plugins
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationProviderError
 from sentry.testutils.helpers import with_feature
 
@@ -90,7 +88,6 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         assert Repository.objects.get(id=accessible_repo.id).integration_id == integration.id
 
         assert Repository.objects.get(id=inaccessible_repo.id).integration_id is None
-
 
     def test_accounts_list_failure(self):
         responses.replace(
