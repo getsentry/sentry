@@ -609,10 +609,11 @@ class ReleaseDetailsTest(APITestCase):
             "sentry-api-0-organization-release-details",
             kwargs={"organization_slug": self.organization.slug, "version": release1.version},
         )
-        response = self.client.get(f"{url}?adoptionStages=1", format="json")
-        assert response.status_code == 200, response.content
-        # Not returned because we don't have the feature.
-        assert "adoptionStages" not in response.data
+        with self.feature({"organizations:release-adoption-stage": False}):
+            response = self.client.get(f"{url}?adoptionStages=1", format="json")
+            assert response.status_code == 200, response.content
+            # Not returned because we don't have the feature.
+            assert "adoptionStages" not in response.data
 
         with self.feature("organizations:release-adoption-stage"):
             response = self.client.get(url, format="json")
