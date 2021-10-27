@@ -103,7 +103,7 @@
     "prism-sentry": "^1.0.2",
     "process": "^0.11.10",
     "prop-types": "^15.6.0",
-    "pyright": "^1.1.178",
+    "pyright": "^1.1.182",
     "qrcode.react": "^1.0.1",
     "query-string": "7.0.1",
     "react": "17.0.2",
