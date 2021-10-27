@@ -110,6 +110,8 @@ from .sentryapp import *  # NOQA
 from .sentryappavatar import *  # NOQA
 from .sentryappcomponent import *  # NOQA
 from .sentryappinstallation import *  # NOQA
+from .sentryappinstallationforprovider import *  # NOQA
+from .sentryappinstallationtoken import *  # NOQA
 from .servicehook import *  # NOQA
 from .team import *  # NOQA
 from .teamavatar import *  # NOQA

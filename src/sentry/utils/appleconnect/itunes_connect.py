@@ -284,7 +284,7 @@ class ITunesClient:
             self._session_id = start_login.headers["x-apple-id-session-id"]
             self._scnt = start_login.headers["scnt"]
             self.state = ClientState.AUTH_REQUESTED
-        elif start_login.status_code == http.HTTPStatus.UNAUTHORIZED:
+        elif start_login.status_code in [http.HTTPStatus.UNAUTHORIZED, http.HTTPStatus.FORBIDDEN]:
             raise InvalidUsernamePasswordError
         else:
             raise ITunesError(f"Unexpected status code form sign in: {start_login.status_code}")
