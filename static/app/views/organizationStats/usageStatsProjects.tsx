@@ -400,16 +400,16 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
 
     return (
       <Fragment>
-        <MarginBottom>
+        <Container>
           <SearchBar
             defaultQuery=""
             query={tableQuery}
             placeholder={t('Filter your projects')}
             onSearch={this.handleSearch}
           />
-        </MarginBottom>
+        </Container>
 
-        <MarginBottom>
+        <Container>
           <UsageTable
             isLoading={loading || loadingProjects}
             isError={error}
@@ -420,7 +420,7 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
             usageStats={tableStats}
           />
           <Pagination pageLinks={this.pageLink} />
-        </MarginBottom>
+        </Container>
       </Fragment>
     );
   }
@@ -428,6 +428,6 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
 
 export default withProjects(UsageStatsProjects);
 
-const MarginBottom = styled('div')`
+const Container = styled('div')`
   margin-bottom: ${space(2)};
 `;
