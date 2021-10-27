@@ -5,7 +5,7 @@ import GridEditable, {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 import SortLink from 'app/components/gridEditable/sortLink';
 import Link from 'app/components/links/link';
 import Tooltip from 'app/components/tooltip';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import {Organization} from 'app/types';
 import {defined} from 'app/utils';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
@@ -197,17 +197,20 @@ function SpanCount(props: HeaderItemProps & {totalCount?: number}) {
     );
   }
 
-  return (
-    <HeaderItem
-      label={t('Frequency')}
-      value={
-        defined(totalCount)
-          ? formatPercentage(suspectSpan.frequency / totalCount)
-          : String(suspectSpan.count)
-      }
-      align="right"
-    />
+  const value = defined(totalCount) ? (
+    <Tooltip
+      title={tct('[frequency] out of [total] transactions contain this span', {
+        frequency: suspectSpan.frequency,
+        total: totalCount,
+      })}
+    >
+      <span>{formatPercentage(suspectSpan.frequency / totalCount)}</span>
+    </Tooltip>
+  ) : (
+    String(suspectSpan.count)
   );
+
+  return <HeaderItem label={t('Frequency')} value={value} align="right" />;
 }
 
 function renderHeadCell(column: SuspectSpanTableColumn, _index: number): ReactNode {
