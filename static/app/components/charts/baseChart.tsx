@@ -112,6 +112,7 @@ type Props = {
         seriesParams?: EChartOption.Tooltip.Format
       ) => string | number;
       nameFormatter?: (name: string) => string;
+      markerFormatter?: (marker: string, label?: string) => string;
       /**
        * Array containing seriesNames that need to be indented
        */
