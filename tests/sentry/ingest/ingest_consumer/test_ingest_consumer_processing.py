@@ -92,6 +92,7 @@ def test_transactions_spawn_save_event(
     save_event_transaction,
     save_event_transaction_rate,
 ):
+    project_id = default_project.id
     now = datetime.datetime.now()
     event = {
         "type": "transaction",
@@ -111,7 +112,6 @@ def test_transactions_spawn_save_event(
     }
     payload = get_normalized_event(event, default_project)
     event_id = payload["event_id"]
-    project_id = default_project.id
     start_time = time.time() - 3600
 
     # Use the old way through preprocess_event
@@ -141,7 +141,6 @@ def test_transactions_spawn_save_event(
     save_event_transaction_rate(1.0)
     payload = get_normalized_event(event, default_project)
     event_id = payload["event_id"]
-    project_id = default_project.id
     start_time = time.time() - 3600
     process_event(
         {
@@ -160,7 +159,7 @@ def test_transactions_spawn_save_event(
         data=None,
         start_time=start_time,
         event_id=event_id,
-        project_id=2,
+        project_id=project_id,
     )
 
 
