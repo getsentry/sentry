@@ -27,7 +27,7 @@ export const DATASET_EVENT_TYPE_FILTERS = {
 } as const;
 
 export const DATASOURCE_EVENT_TYPE_FILTERS = {
-  [Datasource.ERROR_DEFAULT]: '(event.type:error OR event.type:default)',
+  [Datasource.ERROR_DEFAULT]: 'event.type:[error, default]',
   [Datasource.ERROR]: 'event.type:error',
   [Datasource.DEFAULT]: 'event.type:default',
   [Datasource.TRANSACTION]: 'event.type:transaction',
