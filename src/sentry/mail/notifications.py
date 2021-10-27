@@ -103,8 +103,10 @@ def send_notification_as_email(
             **get_builder_args(notification, recipient, shared_context, extra_context_by_user_id)
         )
         # TODO: find better way of handling this
+        add_users_kwargs = {}
         if isinstance(notification, ProjectNotification):
-            msg.add_users([recipient.id], project=notification.project)
+            add_users_kwargs["project"] = notification.project
+        msg.add_users([recipient.id], **add_users_kwargs)
         msg.send_async()
 
 
