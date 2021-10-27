@@ -222,7 +222,10 @@ def get_build_info(
             # we can fetch a maximum of 200 builds at once, so do that
             "&limit=200"
             # include related AppStore/PreRelease versions with the response
-            "&include=appStoreVersion,preReleaseVersion,buildBundles"
+            "&include=appStoreVersion,preReleaseVersion"
+            # include build bundles with the response, which contains metadata on debug (dSYM)
+            # resources
+            ",buildBundles"
             # sort newer releases first
             "&sort=-uploadedDate"
             # only include valid builds
