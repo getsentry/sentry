@@ -60,7 +60,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
-from sentry.api.bases.project import ProjectEndpoint, StrictProjectPermission
+from sentry.api.bases.project import ProjectEndpoint, ProjectPermission, StrictProjectPermission
 from sentry.api.exceptions import (
     AppConnectAuthenticationError,
     AppConnectMultipleSourcesError,
@@ -434,7 +434,7 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
       iTunes session since we know we need to fetch more dSYMs.
     """
 
-    permission_classes = [StrictProjectPermission]
+    permission_classes = [ProjectPermission]
 
     def get(self, request: Request, project: Project, credentials_id: str) -> Response:
         try:
