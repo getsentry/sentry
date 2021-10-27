@@ -355,6 +355,14 @@ class ReleaseOverview extends AsyncView<Props> {
                               ...DEFAULT_RELATIVE_PERIODS,
                             }}
                             defaultPeriod={RELEASE_PERIOD_KEY}
+                            defaultAbsolute={{
+                              start: moment(releaseBounds.releaseStart)
+                                .subtract(1, 'hour')
+                                .toDate(),
+                              end: releaseBounds.releaseEnd
+                                ? moment(releaseBounds.releaseEnd).add(1, 'hour').toDate()
+                                : undefined,
+                            }}
                           />
 
                           {(hasDiscover || hasPerformance || hasHealthData) && (
