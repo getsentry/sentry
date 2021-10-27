@@ -9,20 +9,20 @@ const fieldErrorMessageMapping = {
   appconnectIssuer: {
     issuer: {
       'Ensure this field has at least 36 characters.': t(
-        'Ensure this field has at least 36 characters.'
+        'This field should be exactly 36 characters.'
       ),
       'Ensure this field has no more than 36 characters.': t(
-        'Ensure this field has no more than 36 characters.'
+        'This field should be exactly 36 characters.'
       ),
     },
   },
   appconnectKey: {
     keyId: {
       'Ensure this field has at least 2 characters.': t(
-        'Ensure this field has at least 2 characters.'
+        'This field should be between 2 and 20 characters.'
       ),
       'Ensure this field has no more than 20 characters.': t(
-        'Ensure this field has no more than 20 characters.'
+        'This field should be between 2 and 20 characters.'
       ),
     },
   },
