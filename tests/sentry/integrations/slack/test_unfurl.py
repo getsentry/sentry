@@ -12,8 +12,8 @@ from sentry.integrations.slack.message_builder.incidents import build_incident_a
 from sentry.integrations.slack.message_builder.issues import build_group_attachment
 from sentry.integrations.slack.unfurl import LinkType, UnfurlableUrl, link_handlers, match_link
 from sentry.testutils import TestCase
+from sentry.testutils.helpers import install_slack
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from tests.sentry.integrations.slack import install_slack
 
 
 @pytest.mark.parametrize(
