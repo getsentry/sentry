@@ -236,8 +236,8 @@ class RedisBackend(Backend):
             # return it here.
             filtered_records = [record for record in records if record.value is not None]
             if len(records) != len(filtered_records):
-                logger.info(
-                    "Filtered out missing records",
+                logger.warning(
+                    "Filtered out missing records when fetching digest",
                     extra={
                         "key": key,
                         "record_count": len(records),
