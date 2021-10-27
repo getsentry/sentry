@@ -26,6 +26,7 @@ import {
 } from './styles';
 import {
   SpanSortOption,
+  SpanSortOthers,
   SpanSortPercentiles,
   SuspectSpanDataRow,
   SuspectSpanTableColumn,
@@ -111,7 +112,7 @@ export default function SuspectSpanEntry(props: Props) {
     <div data-test-id="suspect-card">
       <UpperPanel>
         <HeaderItem
-          label="Span Operation"
+          label={t('Span Operation')}
           value={<SpanLabel span={suspectSpan} />}
           align="left"
         />
@@ -119,17 +120,13 @@ export default function SuspectSpanEntry(props: Props) {
           sort={getSuspectSpanSortFromEventView(eventView)}
           suspectSpan={suspectSpan}
         />
-        <HeaderItem
-          label="Frequency"
-          value={
-            defined(totalCount)
-              ? formatPercentage(suspectSpan.frequency / totalCount)
-              : '\u2014'
-          }
-          align="right"
+        <SpanCount
+          sort={getSuspectSpanSortFromEventView(eventView)}
+          suspectSpan={suspectSpan}
+          totalCount={totalCount}
         />
         <HeaderItem
-          label="Total Cumulative Duration"
+          label={t('Total Cumulative Duration')}
           value={
             <PerformanceDuration
               abbreviation
@@ -159,6 +156,11 @@ export default function SuspectSpanEntry(props: Props) {
   );
 }
 
+type HeaderItemProps = {
+  sort: SpanSortOption;
+  suspectSpan: SuspectSpan;
+};
+
 const PERCENTILE_LABELS: Record<SpanSortPercentiles, string> = {
   [SpanSortPercentiles.P50_EXCLUSIVE_TIME]: t('p50 Duration'),
   [SpanSortPercentiles.P75_EXCLUSIVE_TIME]: t('p75 Duration'),
@@ -166,12 +168,7 @@ const PERCENTILE_LABELS: Record<SpanSortPercentiles, string> = {
   [SpanSortPercentiles.P99_EXCLUSIVE_TIME]: t('p99 Duration'),
 };
 
-type PercentileDurationProps = {
-  sort: SpanSortOption;
-  suspectSpan: SuspectSpan;
-};
-
-function PercentileDuration(props: PercentileDurationProps) {
+function PercentileDuration(props: HeaderItemProps) {
   const {sort, suspectSpan} = props;
 
   const sortKey = PERCENTILE_LABELS.hasOwnProperty(sort.field)
@@ -182,6 +179,32 @@ function PercentileDuration(props: PercentileDurationProps) {
     <HeaderItem
       label={PERCENTILE_LABELS[sortKey]}
       value={<PerformanceDuration abbreviation milliseconds={suspectSpan[sortKey]} />}
+      align="right"
+    />
+  );
+}
+
+function SpanCount(props: HeaderItemProps & {totalCount?: number}) {
+  const {sort, suspectSpan, totalCount} = props;
+
+  if (sort.field === SpanSortOthers.COUNT) {
+    return (
+      <HeaderItem
+        label={t('Occurrences')}
+        value={String(suspectSpan.count)}
+        align="right"
+      />
+    );
+  }
+
+  return (
+    <HeaderItem
+      label={t('Frequency')}
+      value={
+        defined(totalCount)
+          ? formatPercentage(suspectSpan.frequency / totalCount)
+          : String(suspectSpan.count)
+      }
       align="right"
     />
   );
