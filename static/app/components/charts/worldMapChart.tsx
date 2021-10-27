@@ -38,6 +38,13 @@ type State = {
   codeToCountryMap: JSONResult | null;
 };
 
+const DEFAULT_ZOOM = 1.3;
+const DISCOVER_ZOOM = 1.1;
+const DISCOVER_QUERY_LIST_ZOOM = 0.9;
+const DEFAULT_CENTER_X = 10.97;
+const DISCOVER_QUERY_LIST_CENTER_Y = -12;
+const DEFAULT_CENTER_Y = 9.71;
+
 class WorldMapChart extends React.Component<Props, State> {
   state: State = {
     countryToCodeMap: null,
@@ -80,8 +87,15 @@ class WorldMapChart extends React.Component<Props, State> {
         name: seriesName,
         nameMap: this.state.countryToCodeMap ?? undefined,
         aspectScale: 0.85,
-        zoom: fromDiscover ? 1.1 : fromDiscoverQueryList ? 0.9 : 1.3,
-        center: [10.97, fromDiscoverQueryList ? -12 : 9.71],
+        zoom: fromDiscover
+          ? DISCOVER_ZOOM
+          : fromDiscoverQueryList
+          ? DISCOVER_QUERY_LIST_ZOOM
+          : DEFAULT_ZOOM,
+        center: [
+          DEFAULT_CENTER_X,
+          fromDiscoverQueryList ? DISCOVER_QUERY_LIST_CENTER_Y : DEFAULT_CENTER_Y,
+        ],
         itemStyle: {
           areaColor: theme.gray200,
           borderColor: theme.backgroundSecondary,
