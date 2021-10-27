@@ -7,8 +7,10 @@ on:
       - 'requirements-*.txt'
 
 jobs:
+  # This workflow executes faster than the dev env one and focuses on changes
+  # to requirement files
   # This workflow makes sure that Python dependencies install correctly for
-  # a) our current version b) the next version we're targetting
+  # a) our current version
   python-deps:
     name: install
     runs-on: ${{ matrix.os }}
@@ -16,13 +18,9 @@ jobs:
     strategy:
       matrix:
         os: [macos-11.0, ubuntu-20.04]
-        python-version: [3.8.12]
       fail-fast: false
     env:
       PIP_DISABLE_PIP_VERSION_CHECK: on
-      # There's a check that prevents make install-py-dev to work if the developer has not
-      # explicitely set the intention to use a non-default Python version
-      SENTRY_PYTHON_VERSION: ${{ matrix.python-version }}
 
     steps:
       - uses: actions/checkout@v2

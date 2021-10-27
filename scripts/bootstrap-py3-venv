@@ -6,16 +6,14 @@
 # Eventually, the goal would be to have an idempotent single script that does
 # everything make bootstrap does and more (system dependencies and so on).
 
-# This... doesn't quite work.
-# set -e
-# trap "echo 'bootstrap FAILED.' && trap - ERR && return" ERR
-
 # So just going to sprinkle returns everywhere.
+
 SCRIPTS_DIR="$(
     cd "$(dirname "${BASH_SOURCE[0]}")"
     pwd -P
 )"
 source "${SCRIPTS_DIR}/lib.sh"
+configure-sentry-cli
 
 command -v pyenv >/dev/null || {
     echo "You need to install pyenv. https://develop.sentry.dev/environment/#python"
@@ -27,37 +25,60 @@ command -v direnv >/dev/null || {
     return 1
 }
 
-gitroot="$(git rev-parse --show-toplevel)"
-cd "$gitroot"
 # This executes very quickly if the Python versions are already installed
-make setup-pyenv
-export PYENV_VERSION=$(SENTRY_NO_VENV_CHECK=1 ${SCRIPTS_DIR}/do.sh get-pyenv-version)
+# This calling approach activates pyenv correctly -> eval "$(pyenv init --path)"
+. "$SCRIPTS_DIR/pyenv_setup.sh"
 venv_name="${PWD}/.venv"
 
 if [[ -f "${venv_name}/bin/activate" ]]; then
-    prompt_text="You have an existing virtualenv. This script will OVERWRITE it. Continue (y/N)?"
-
-    echo "$prompt_text"
+    echo "You have an existing virtualenv. This script will OVERWRITE it. Continue (y/N)?"
     read resp
     case "$resp" in
-      y|Y ) echo "Okay, let's do this." ;;
-      * ) echo "Aborted!"; return 1     ;;
+    y | Y) echo "Okay, let's do this." ;;
+    *)
+        echo "Aborted!"
+        return 1
+        ;;
     esac
 fi
 
 deactivate 2>/dev/null || true
 rm -rf "$venv_name"
 
-if [[ -z "$SENTRY_PYTHON_VERSION" ]] && ! query-valid-python-version; then
+if [ -z "${SENTRY_PYTHON_VERSION-}" ] && ! query-valid-python-version; then
     echo "Your python3 version isn't as expected. Please run: make setup-pyenv"
     return 1
 fi
 
-python3 -m pip install -U pip           || { echo "bootstrap failed!"; return 1; }
-python3 -m venv "${venv_name}"          || { echo "bootstrap failed!"; return 1; }
-source "${venv_name}/bin/activate"      || { echo "bootstrap failed!"; return 1; }
-python3 -m pip install -U pip wheel     || { echo "bootstrap failed!"; return 1; }
-make setup-git                          || { echo "bootstrap failed!"; return 1; }
-make install-py-dev                     || { echo "bootstrap failed!"; return 1; }
-deactivate                              || { echo "bootstrap failed!"; return 1; }
-direnv allow                            || { echo "bootstrap failed!"; return 1; }
+python3 -m pip install -U pip || {
+    echo "bootstrap failed!"
+    return 1
+}
+python3 -m venv "${venv_name}" || {
+    echo "bootstrap failed!"
+    return 1
+}
+source "${venv_name}/bin/activate" || {
+    echo "bootstrap failed!"
+    return 1
+}
+python3 -m pip install -U pip wheel || {
+    echo "bootstrap failed!"
+    return 1
+}
+make setup-git || {
+    echo "bootstrap failed!"
+    return 1
+}
+make install-py-dev || {
+    echo "bootstrap failed!"
+    return 1
+}
+deactivate || {
+    echo "bootstrap failed!"
+    return 1
+}
+direnv allow || {
+    echo "bootstrap failed!"
+    return 1
+}

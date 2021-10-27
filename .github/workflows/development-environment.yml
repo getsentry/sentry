@@ -14,7 +14,7 @@ on:
 
 jobs:
   dev-environment:
-    name: set up
+    name: dev docs set up
     runs-on: ${{ matrix.os }}
     timeout-minutes: 40
     strategy:
@@ -80,3 +80,18 @@ jobs:
           python -m venv .venv
           source .venv/bin/activate
           make develop init-config
+
+  bootstrap-script:
+    runs-on: macos-11
+    timeout-minutes: 45
+    env:
+      PIP_DISABLE_PIP_VERSION_CHECK: on
+      # Make the environment more similar to what Mac defaults to
+      SHELL: /bin/zsh
+
+    steps:
+      - name: Run bootstrap code
+        env:
+          STRAP_DEBUG: 1
+        run: |
+          bash <(curl -s https://raw.githubusercontent.com/getsentry/bootstrap-sentry/main/bootstrap.sh)
