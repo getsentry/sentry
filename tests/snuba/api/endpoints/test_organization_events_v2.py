@@ -4513,6 +4513,20 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert meta["percentile_measurements_frames_slow_rate_0_5"] == "percentage"
         assert meta["percentile_measurements_stall_percentage_0_5"] == "percentage"
 
+    def test_project_auto_fields(self):
+        project = self.create_project()
+        self.store_event(
+            data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.min_ago},
+            project_id=project.id,
+        )
+
+        query = {"field": ["environment"]}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["environment"] == "staging"
+        assert response.data["data"][0]["project.name"] == project.slug
+
 
 class OrganizationEventsV2EndpointTestWithSnql(OrganizationEventsV2EndpointTest):
     def setUp(self):
