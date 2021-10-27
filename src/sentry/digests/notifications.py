@@ -111,16 +111,21 @@ def attach_state(
 class Pipeline:
     def __init__(self) -> None:
         self.operations: MutableSequence[Callable[..., Any]] = []
+        self.logs: MutableSequence[str] = []
 
-    def __call__(self, sequence: Sequence[Any]) -> Any:
+    def __call__(self, sequence: Sequence[Any]) -> Tuple[Any, Sequence[str]]:
         # Explicitly typing to satisfy mypy.
         func: Callable[[Any, Callable[[Any], Any]], Any] = lambda x, operation: operation(x)
-        return reduce(func, self.operations, sequence)
+        return reduce(func, self.operations, sequence), self.logs
+
+    def _log(self, message: str) -> None:
+        logger.debug(message)
+        self.logs.append(message)
 
     def apply(self, function: Callable[[MutableMapping[str, Any]], Any]) -> "Pipeline":
         def operation(sequence: MutableMapping[str, Any]) -> Any:
             result = function(sequence)
-            logger.debug("%r applied to %s items.", function, len(sequence))
+            self._log(f"{function!r} applied to {len(sequence)} items.")
             return result
 
         self.operations.append(operation)
@@ -129,7 +134,7 @@ class Pipeline:
     def filter(self, function: Callable[[Record], bool]) -> "Pipeline":
         def operation(sequence: Sequence[Any]) -> Sequence[Any]:
             result = [s for s in sequence if function(s)]
-            logger.debug("%r filtered %s items to %s.", function, len(sequence), len(result))
+            self._log(f"{function!r} filtered {len(sequence)} items to {len(result)}.")
             return result
 
         self.operations.append(operation)
@@ -138,7 +143,7 @@ class Pipeline:
     def map(self, function: Callable[[Sequence[Any]], Any]) -> "Pipeline":
         def operation(sequence: Sequence[Any]) -> Sequence[Any]:
             result = [function(s) for s in sequence]
-            logger.debug("%r applied to %s items.", function, len(sequence))
+            self._log(f"{function!r} applied to {len(sequence)} items.")
             return result
 
         self.operations.append(operation)
@@ -149,7 +154,7 @@ class Pipeline:
     ) -> "Pipeline":
         def operation(sequence: Sequence[Any]) -> Any:
             result = reduce(function, sequence, initializer(sequence))
-            logger.debug("%r reduced %s items to %s.", function, len(sequence), len(result))
+            self._log(f"{function!r} reduced {len(sequence)} items to {len(result)}.")
             return result
 
         self.operations.append(operation)
@@ -223,10 +228,10 @@ def build_digest(
     project: "Project",
     records: Sequence[Record],
     state: Optional[Mapping[str, Any]] = None,
-) -> Optional[Any]:
+) -> Tuple[Optional[Any], Sequence[str]]:
     records = list(records)
     if not records:
-        return None
+        return None, []
 
     # XXX: This is a hack to allow generating a mock digest without actually
     # doing any real IO!

@@ -66,6 +66,13 @@ class SlackNotifyServiceForm(forms.Form):  # type: ignore
                     "channel_id": self.data.get("channel_id"),
                 },
             )
+            if not self.data.get("channel"):
+                raise forms.ValidationError(
+                    _(
+                        "Slack channel name is a required field.",
+                    ),
+                    code="invalid",
+                )
             # default to "#" if they have the channel name without the prefix
             channel_prefix = self.data["channel"][0] if self.data["channel"][0] == "@" else "#"
 
