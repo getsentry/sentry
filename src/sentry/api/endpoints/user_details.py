@@ -94,7 +94,7 @@ class UserSerializer(BaseUserSerializer):
         return super().validate(attrs)
 
 
-class SuperuserUserSerializer(BaseUserSerializer):
+class PrivilegedUserSerializer(BaseUserSerializer):
     isActive = serializers.BooleanField(source="is_active")
     isStaff = serializers.BooleanField(source="is_staff")
     isSuperuser = serializers.BooleanField(source="is_superuser")
@@ -140,8 +140,8 @@ class UserDetailsEndpoint(UserEndpoint):
         :auth: required
         """
 
-        if is_active_superuser(request):
-            serializer_cls = SuperuserUserSerializer
+        if is_active_superuser(request) and request.access.has_permission("users.admin"):
+            serializer_cls = PrivilegedUserSerializer
         else:
             serializer_cls = UserSerializer
         serializer = serializer_cls(user, data=request.data, partial=True)
