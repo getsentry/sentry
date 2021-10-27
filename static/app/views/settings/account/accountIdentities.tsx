@@ -73,16 +73,15 @@ class AccountIdentities extends AsyncView<Props, State> {
         onConfirm={() => this.handleDisconnect(identity)}
         priority="danger"
         confirmText={t('Disconnect')}
+        header={`Disconnect Your ${identity.provider.name} Identity?`}
         message={
-          <div>
-            <TextBlock>Disconnect your {identity.provider.name} identity?</TextBlock>
-            {identity.category !== UserIdentityCategory.SOCIAL_IDENTITY && (
-              <TextBlock>
-                After disconnecting, you will need to use a password or another identity
-                to sign in.
-              </TextBlock>
-            )}
-          </div>
+          <TextBlock>
+            {identity.category === UserIdentityCategory.SOCIAL_IDENTITY
+              ? t("This action can't be undone.")
+              : t(
+                  'After disconnecting, you will need to use a password or another identity to sign in.'
+                )}
+          </TextBlock>
         }
       >
         <Button>{t('Disconnect')}</Button>
