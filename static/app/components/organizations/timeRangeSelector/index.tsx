@@ -139,6 +139,11 @@ type Props = WithRouterProps & {
    * Small info icon with tooltip hint text
    */
   hint?: string;
+
+  /**
+   * Set an optional default value to prefill absolute date with
+   */
+  defaultAbsolute?: {start?: Date; end?: Date};
 } & Partial<typeof defaultProps>;
 
 type State = {
@@ -231,17 +236,19 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
   };
 
   handleAbsoluteClick = () => {
-    const {relative, onChange, defaultPeriod} = this.props;
+    const {relative, onChange, defaultPeriod, defaultAbsolute} = this.props;
 
     // Set default range to equivalent of last relative period,
     // or use default stats period
     const newDateTime: ChangeData = {
       relative: null,
-      start: getPeriodAgo(
-        'hours',
-        parsePeriodToHours(relative || defaultPeriod || DEFAULT_STATS_PERIOD)
-      ).toDate(),
-      end: new Date(),
+      start: defaultAbsolute?.start
+        ? defaultAbsolute.start
+        : getPeriodAgo(
+            'hours',
+            parsePeriodToHours(relative || defaultPeriod || DEFAULT_STATS_PERIOD)
+          ).toDate(),
+      end: defaultAbsolute?.end ? defaultAbsolute.end : new Date(),
     };
 
     if (defined(this.props.utc)) {
