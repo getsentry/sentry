@@ -33,14 +33,14 @@ SYMBOL_SOURCES_PROP_NAME = "sentry:symbol_sources"
 SYMBOL_SOURCE_TYPE_NAME = "appStoreConnect"
 
 
-class InvalidCredentialsError(Exception):
-    """Invalid credentials for the App Store Connect API."""
+class InvalidConfigError(Exception):
+    """Invalid configuration for the appStoreConnect symbol source."""
 
     pass
 
 
-class InvalidConfigError(Exception):
-    """Invalid configuration for the appStoreConnect symbol source."""
+class UnavailableDsymsError(Exception):
+    """dSYM url is currently unavailable."""
 
     pass
 
@@ -282,9 +282,9 @@ class BuildInfo:
 
     # The URL where we can download a zip file with dSYMs from.
     #
-    # If no dSYMs are needed this will be False, if they should be needed but not available
-    # yet this will be None.
-    dsyms_url: Optional[str]
+    # Empty string if no dSYMs exist, None if there are dSYMs but they're not immediately available,
+    # and is some string value if there are dSYMs and they're available.
+    dsym_url: Optional[str]
 
 
 class ITunesClient:
@@ -397,7 +397,19 @@ class AppConnectClient:
                     version=build["version"],
                     build_number=build["build_number"],
                     uploaded_date=build["uploaded_date"],
+                    dsym_url=build["dsym_url"],
                 )
             )
 
         return builds
+
+    def download_dsym(self, build: BuildInfo, path: pathlib.Path) -> None:
+        with sentry_sdk.start_span(op="dsym", description="Download dSYM"):
+            url = build.dsym_url
+            if url is None:
+                raise UnavailableDsymsError
+            elif url == "":
+                raise NoDsymsError
+
+            logger.debug("Fetching dSYM from: %s", url)
+            appstore_connect.download_dsym(self._session, self._api_credentials, url, path)

@@ -1,4 +1,6 @@
+import io
 import logging
+import pathlib
 import time
 from collections import namedtuple
 from http import HTTPStatus
@@ -6,9 +8,9 @@ from typing import Any, Dict, Generator, List, Mapping, NewType, Optional, Tuple
 
 import sentry_sdk
 from dateutil.parser import parse as parse_date
-from requests import Session
+from requests import Session, Timeout
 
-from sentry.utils import jwt, safe
+from sentry.utils import jwt, safe, sdk
 from sentry.utils.json import JSONData
 
 logger = logging.getLogger(__name__)
@@ -26,6 +28,12 @@ class RequestError(Exception):
 
 class UnauthorizedError(RequestError):
     """Unauthorised: invalid, expired or revoked authentication token."""
+
+    pass
+
+
+class ForbiddenError(RequestError):
+    """The App Store Connect session does not have access to the requested dSYM."""
 
     pass
 
@@ -177,9 +185,20 @@ class _IncludedRelations:
             # to be included.  However for each build there could be only one of these that
             # will have the data with type and id, the other will have None for data.
             return None
-        rel_type = _RelType(rel_ptr_data["type"])
-        rel_id = _RelId(rel_ptr_data["id"])
-        return self._items[(rel_type, rel_id)]
+        if isinstance(rel_ptr_data, list):
+            all_related = []
+            # buildBundles' data is a list
+            for relationship in rel_ptr_data:
+                rel_type = _RelType(relationship["type"])
+                rel_id = _RelId(relationship["id"])
+                related_item = self._items[(rel_type, rel_id)]
+                if related_item:
+                    all_related.append(related_item)
+            return all_related
+        else:
+            rel_type = _RelType(rel_ptr_data["type"])
+            rel_id = _RelId(rel_ptr_data["id"])
+            return self._items[(rel_type, rel_id)]
 
 
 def get_build_info(
@@ -203,11 +222,6 @@ def get_build_info(
             # we can fetch a maximum of 200 builds at once, so do that
             "&limit=200"
             # include related AppStore/PreRelease versions with the response
-            # NOTE: the `iris` web API has related `buildBundles` objects,
-            # which have very useful `includesSymbols` and `dSYMUrl` attributes,
-            # but this is sadly not available in the official API. :-(
-            # Open this in your browser when you are signed into AppStoreConnect:
-            # https://appstoreconnect.apple.com/iris/v1/builds?filter[processingState]=VALID&include=appStoreVersion,preReleaseVersion,buildBundles&limit=1&filter[app]=XYZ
             "&include=appStoreVersion,preReleaseVersion,buildBundles"
             # sort newer releases first
             "&sort=-uploadedDate"
@@ -215,14 +229,14 @@ def get_build_info(
             "&filter[processingState]=VALID"
             # and builds that have not expired yet
             "&filter[expired]=false"
+            # fetch the maximum number of build bundles
+            "&limit[buildBundles]=50"
         )
         pages = _get_appstore_info_paged(session, credentials, url)
-        result = []
+        build_info = []
 
         for page in pages:
-
             relations = _IncludedRelations(page)
-
             for build in page["data"]:
                 try:
                     related_appstore_version = relations.get_related(build, "appStoreVersion")
@@ -244,15 +258,30 @@ def get_build_info(
                     build_number = build["attributes"]["version"]
                     uploaded_date = parse_date(build["attributes"]["uploadedDate"])
 
-                    result = {
-                        "platform": platform,
-                        "version": version,
-                        "build_number": build_number,
-                        "uploaded_date": uploaded_date,
-                    }
+                    # https://developer.apple.com/documentation/appstoreconnectapi/build/relationships/buildbundles
                     build_bundles = relations.get_related(build, "buildBundles")
+                    dsym_url = ""
+                    # https://developer.apple.com/documentation/appstoreconnectapi/buildbundle/attributes
                     if build_bundles is not None:
-                        if len(build_bundles) != 1:
+                        has_symbols = [
+                            bundle
+                            for bundle in build_bundles
+                            # TODO: fastlane uses this check, but if we turn this on our sentry test
+                            # org has zero builds, making testing difficult. unsure what this field
+                            # even means. maybe all of our dsyms on our test app don't actually have
+                            # symbols?
+                            # if safe.get_path(bundle, "attributes", "includesSymbols", default=False)
+                            #
+                            # if we want to rely on just checking for the presence of dSYMUrl then
+                            # just transform build_bundles into a list of dSYMUrls instead.
+                            # later we should prioritize bundles with includesSymbols == true and
+                            # dSYMUrl being present
+                            if safe.get_path(bundle, "attributes", "dSYMUrl") is not None
+                        ]
+
+                        # No bundles is self-explanatory, but multiple dSYMs for a build currently
+                        # is unexpected.
+                        if len(has_symbols) != 1:
                             with sentry_sdk.push_scope() as scope:
                                 scope.set_context(
                                     "App Store Connect Build",
@@ -261,20 +290,30 @@ def get_build_info(
                                         "build_bundles": build_bundles,
                                     },
                                 )
-                            sentry_sdk.capture_message("len(buildBundles) != 1")
-                        if len(build_bundles) >= 1:
-                            bundle = build_bundles[0]
-                            url = bundle.get("dSYMUrl", None)
-                            if url:
-                                result["dsyms_url"] = url
+                            sentry_sdk.capture_message("len(buildBundlesWithdSYMs) != 1")
 
-                    result.append(result)
+                        if len(has_symbols) > 0:
+                            bundle = has_symbols[0]
+                            dsym_url = safe.get_path(bundle, "attributes", "dSYMUrl")
+
+                    # Literally a BuildInfo without the app id
+                    result = {
+                        "platform": platform,
+                        "version": version,
+                        "build_number": build_number,
+                        "uploaded_date": uploaded_date,
+                        "dsym_url": dsym_url,
+                    }
+
+                    build_info.append(result)
                 except Exception:
                     logger.error(
-                        "Failed to process AppStoreConnect build from API: %s", build, exc_info=True
+                        "Failed to process AppStoreConnect build from API: %s",
+                        build,
+                        exc_info=True,
                     )
 
-        return result
+        return build_info
 
 
 AppInfo = namedtuple("AppInfo", ["name", "bundle_id", "app_id"])
@@ -308,3 +347,37 @@ def get_apps(session: Session, credentials: AppConnectCredentials) -> Optional[L
     except ValueError:
         return None
     return ret_val
+
+
+def download_dsym(
+    session: Session, credentials: AppConnectCredentials, url: str, path: pathlib.Path
+) -> None:
+    """
+    Returns a stream obtained from a url to a dSYM.
+
+    :return: a stream of data corresponding to a dSYM file.
+    """
+
+    headers = _get_authorization_header(credentials)
+
+    with session.get(url, headers=headers, stream=True, timeout=15) as res:
+        status = res.status_code
+        if status == HTTPStatus.UNAUTHORIZED:
+            raise UnauthorizedError
+        elif status == HTTPStatus.FORBIDDEN:
+            raise ForbiddenError
+        elif status != HTTPStatus.OK:
+            raise RequestError(f"Bad status code downloading dSYM: {status}")
+
+        start = time.time()
+        bytes_count = 0
+        with open(path, "wb") as fp:
+            for chunk in res.iter_content(chunk_size=io.DEFAULT_BUFFER_SIZE):
+                # The 315s is just above how long it would take a 4MB/s connection to download
+                # 2GB.
+                if (time.time() - start) > 315:
+                    with sdk.configure_scope() as scope:
+                        scope.set_extra("dSYM.bytes_fetched", bytes_count)
+                    raise Timeout("Timeout during dSYM download")
+                bytes_count += len(chunk)
+                fp.write(chunk)
