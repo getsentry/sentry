@@ -353,9 +353,7 @@ def download_dsym(
     session: Session, credentials: AppConnectCredentials, url: str, path: pathlib.Path
 ) -> None:
     """
-    Returns a stream obtained from a url to a dSYM.
-
-    :return: a stream of data corresponding to a dSYM file.
+    Downloads a dSYM at `url` into `path`.
     """
 
     headers = _get_authorization_header(credentials)
