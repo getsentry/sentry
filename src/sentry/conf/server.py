@@ -2175,7 +2175,7 @@ INVALID_EMAIL_ADDRESS_PATTERN = re.compile(r"\@qq\.com$", re.I)
 
 # This is customizable for sentry.io, but generally should only be additive
 # (currently the values not used anymore so this is more for documentation purposes)
-SENTRY_USER_PERMISSIONS = ("broadcasts.admin",)
+SENTRY_USER_PERMISSIONS = ("broadcasts.admin", "users.admin")
 
 KAFKA_CLUSTERS = {
     "default": {
