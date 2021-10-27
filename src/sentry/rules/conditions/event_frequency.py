@@ -74,6 +74,7 @@ class EventFrequencyForm(forms.Form):
             msg = forms.ValidationError("comparisonInterval is required when comparing by percent")
             self.add_error("comparisonInterval", msg)
             return
+        return cleaned_data
 
 
 class BaseEventFrequencyCondition(EventCondition):
@@ -217,7 +218,17 @@ class EventFrequencyPercentForm(EventFrequencyForm):
             )
         ]
     )
-    value = forms.FloatField(widget=forms.TextInput(), min_value=0, max_value=100)
+    value = forms.FloatField(widget=forms.TextInput(), min_value=0)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if cleaned_data["comparisonType"] == COMPARISON_TYPE_COUNT and cleaned_data["value"] > 100:
+            self.add_error(
+                "value", forms.ValidationError("Ensure this value is less than or equal to 100")
+            )
+            return
+
+        return cleaned_data
 
 
 class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
