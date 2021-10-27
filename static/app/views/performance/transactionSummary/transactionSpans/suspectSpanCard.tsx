@@ -108,6 +108,8 @@ export default function SuspectSpanEntry(props: Props) {
     spans: example.spans,
   }));
 
+  const sort = getSuspectSpanSortFromEventView(eventView);
+
   return (
     <div data-test-id="suspect-card">
       <UpperPanel>
@@ -116,15 +118,8 @@ export default function SuspectSpanEntry(props: Props) {
           value={<SpanLabel span={suspectSpan} />}
           align="left"
         />
-        <PercentileDuration
-          sort={getSuspectSpanSortFromEventView(eventView)}
-          suspectSpan={suspectSpan}
-        />
-        <SpanCount
-          sort={getSuspectSpanSortFromEventView(eventView)}
-          suspectSpan={suspectSpan}
-          totalCount={totalCount}
-        />
+        <PercentileDuration sort={sort} suspectSpan={suspectSpan} />
+        <SpanCount sort={sort} suspectSpan={suspectSpan} totalCount={totalCount} />
         <HeaderItem
           label={t('Total Cumulative Duration')}
           value={
@@ -134,6 +129,7 @@ export default function SuspectSpanEntry(props: Props) {
             />
           }
           align="right"
+          isSortKey={sort.field === SpanSortOthers.SUM_EXCLUSIVE_TIME}
         />
       </UpperPanel>
       <LowerPanel data-test-id="suspect-card-lower">
@@ -180,6 +176,7 @@ function PercentileDuration(props: HeaderItemProps) {
       label={PERCENTILE_LABELS[sortKey]}
       value={<PerformanceDuration abbreviation milliseconds={suspectSpan[sortKey]} />}
       align="right"
+      isSortKey={sort.field === sortKey}
     />
   );
 }
@@ -193,6 +190,7 @@ function SpanCount(props: HeaderItemProps & {totalCount?: number}) {
         label={t('Occurrences')}
         value={String(suspectSpan.count)}
         align="right"
+        isSortKey
       />
     );
   }
