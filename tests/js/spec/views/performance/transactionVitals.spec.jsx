@@ -2,6 +2,7 @@ import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {act} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'app/stores/projectsStore';
 import TransactionVitals from 'app/views/performance/transactionSummary/transactionVitals';
@@ -29,7 +30,7 @@ function initialize({project, features, transaction, query} = {}) {
       },
     },
   });
-  ProjectsStore.loadInitialData(data.organization.projects);
+  act(() => ProjectsStore.loadInitialData(data.organization.projects));
   return data;
 }
 

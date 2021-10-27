@@ -1,6 +1,7 @@
 import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {act} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'app/stores/projectsStore';
 import ManageDashboards from 'app/views/dashboardsV2/manage';
@@ -21,7 +22,7 @@ describe('Dashboards > Detail', function () {
     features: FEATURES,
   });
   beforeEach(function () {
-    ProjectsStore.loadInitialData([TestStubs.Project()]);
+    act(() => ProjectsStore.loadInitialData([TestStubs.Project()]));
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -54,7 +55,7 @@ describe('Dashboards > Detail', function () {
   });
 
   it('denies access on no projects', function () {
-    ProjectsStore.loadInitialData([]);
+    act(() => ProjectsStore.loadInitialData([]));
 
     const wrapper = mountWithTheme(
       <ManageDashboards

@@ -1,4 +1,5 @@
 import re
+from dataclasses import dataclass
 from typing import Any, List, Optional, Tuple, Union
 
 from parsimonious.exceptions import ParseError
@@ -34,7 +35,7 @@ class ArithmeticValidationError(ArithmeticError):
     pass
 
 
-OperationSideType = Union["Operation", float, str]
+OperandType = Union["Operation", float, str]
 JsonQueryType = List[Union[str, float, List[Any]]]
 
 
@@ -44,12 +45,12 @@ class Operation:
     def __init__(
         self,
         operator: str,
-        lhs: Optional[OperationSideType] = None,
-        rhs: Optional[OperationSideType] = None,
+        lhs: Optional[OperandType] = None,
+        rhs: Optional[OperandType] = None,
     ) -> None:
         self.operator = operator
-        self.lhs: Optional[OperationSideType] = lhs
-        self.rhs: Optional[OperationSideType] = rhs
+        self.lhs: Optional[OperandType] = lhs
+        self.rhs: Optional[OperandType] = rhs
         self.validate()
 
     def validate(self) -> None:
@@ -74,6 +75,12 @@ class Operation:
 
     def __repr__(self) -> str:
         return repr([self.operator, self.lhs, self.rhs])
+
+
+@dataclass(frozen=True)
+class ParsedEquation:
+    equation: Operation
+    contains_functions: bool
 
 
 def flatten(remaining):
@@ -305,7 +312,7 @@ def resolve_equation_list(
     auto_add: Optional[bool] = False,
     plain_math: Optional[bool] = False,
     use_snql: Optional[bool] = False,
-) -> Tuple[List[JsonQueryType], List[str], List[Operation]]:
+) -> Tuple[List[JsonQueryType], List[str], List[Operation], List[bool]]:
     """Given a list of equation strings, resolve them to their equivalent snuba json query formats
     :param equations: list of equations strings that haven't been parsed yet
     :param selected_columns: list of public aliases from the endpoint, can be a mix of fields and aggregates
@@ -317,7 +324,7 @@ def resolve_equation_list(
     :param use_snql: Whether we're resolving for snql or not
     """
     resolved_equations: List[JsonQueryType] = []
-    parsed_equations: List[Operation] = []
+    parsed_equations: List[ParsedEquation] = []
     resolved_columns: List[str] = selected_columns[:]
     for index, equation in enumerate(equations):
         parsed_equation, fields, functions = parse_arithmetic(equation, use_snql=use_snql)
@@ -349,7 +356,7 @@ def resolve_equation_list(
         resolved_equations.append(parsed_equation.to_snuba_json(f"equation[{index}]"))
         # TODO: currently returning "resolved_equations" for the json syntax
         # once we're converted to SnQL this should only return parsed_equations
-        parsed_equations.append(parsed_equation)
+        parsed_equations.append(ParsedEquation(parsed_equation, len(functions) > 0))
     return resolved_equations, resolved_columns, parsed_equations
 
 

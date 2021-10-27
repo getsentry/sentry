@@ -1,4 +1,4 @@
-import rawStacktraceContent from 'app/components/events/interfaces/rawStacktraceContent';
+import rawStacktraceContent from 'app/components/events/interfaces/crashContent/stackTrace/rawContent';
 import {Event} from 'app/types/event';
 
 export default function getStacktraceBody(event: Event) {

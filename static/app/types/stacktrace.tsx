@@ -39,7 +39,7 @@ type MechanismMeta = {
   };
 };
 
-export type Mechanism = {
+export type StackTraceMechanism = {
   handled: boolean;
   synthetic: boolean;
   type: string;

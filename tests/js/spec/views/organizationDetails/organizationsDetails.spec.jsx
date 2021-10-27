@@ -1,19 +1,18 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {act, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationStore from 'app/stores/organizationStore';
 import ProjectsStore from 'app/stores/projectsStore';
 import OrganizationDetails from 'app/views/organizationDetails';
 
-let wrapper;
+jest.mock('app/components/sidebar', () => () => <div />);
 
 describe('OrganizationDetails', function () {
   let getTeamsMock;
   let getProjectsMock;
 
-  beforeEach(async function () {
+  beforeEach(function () {
     OrganizationStore.reset();
-    // wait for store reset changes to propagate
-    await tick();
+    act(() => ProjectsStore.reset());
 
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -34,39 +33,31 @@ describe('OrganizationDetails', function () {
     });
   });
 
-  afterEach(function () {
-    // necessary to unsubscribe successfully from org store
-    wrapper.unmount();
-  });
-
   it('can fetch projects and teams', async function () {
-    ProjectsStore.reset();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/',
       body: TestStubs.Organization({
         slug: 'org-slug',
       }),
     });
-    wrapper = mountWithTheme(
+
+    mountWithTheme(
       <OrganizationDetails
         params={{orgId: 'org-slug'}}
         location={{}}
         routes={[]}
         includeSidebar={false}
       >
-        {null}
+        <div />
       </OrganizationDetails>,
-      TestStubs.routerContext()
+      {context: TestStubs.routerContext()}
     );
-    await tick();
-    await tick();
-    await tick();
-    wrapper.update();
+
     expect(getTeamsMock).toHaveBeenCalled();
     expect(getProjectsMock).toHaveBeenCalled();
   });
 
-  describe('pending deletion', () => {
+  describe('deletion states', () => {
     it('should render a restoration prompt', async function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/',
@@ -78,18 +69,21 @@ describe('OrganizationDetails', function () {
           },
         }),
       });
-      wrapper = mountWithTheme(
-        <OrganizationDetails params={{orgId: 'org-slug'}} location={{}} routes={[]} />,
-        TestStubs.routerContext()
+
+      mountWithTheme(
+        <OrganizationDetails params={{orgId: 'org-slug'}} location={{}} routes={[]}>
+          <div />
+        </OrganizationDetails>,
+        {context: TestStubs.routerContext()}
       );
-      await tick();
-      await tick();
-      wrapper.update();
-      expect(wrapper.text()).toContain('Deletion Scheduled');
-      expect(wrapper.text()).toContain(
-        'Would you like to cancel this process and restore the organization back to the original state?'
-      );
-      expect(wrapper.find('button[aria-label="Restore Organization"]')).toHaveLength(1);
+
+      expect(await screen.findByText('Deletion Scheduled')).toBeInTheDocument();
+      expect(screen.getByLabelText('Restore Organization')).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          'Would you like to cancel this process and restore the organization back to the original state?'
+        )
+      ).toBeInTheDocument();
     });
 
     it('should render a restoration prompt without action for members', async function () {
@@ -104,49 +98,50 @@ describe('OrganizationDetails', function () {
           },
         }),
       });
-      wrapper = mountWithTheme(
-        <OrganizationDetails params={{orgId: 'org-slug'}} location={{}} routes={[]} />,
-        TestStubs.routerContext()
+
+      mountWithTheme(
+        <OrganizationDetails params={{orgId: 'org-slug'}} location={{}} routes={[]}>
+          <div />
+        </OrganizationDetails>,
+        {context: TestStubs.routerContext()}
       );
-      await tick();
-      await tick();
-      wrapper.update();
-      expect(wrapper.text()).toContain(
-        [
-          'The org-slug organization is currently scheduled for deletion.',
-          'If this is a mistake, contact an organization owner and ask them to restore this organization.',
-        ].join('')
+
+      expect(await screen.findByText('Deletion Scheduled')).toBeInTheDocument();
+
+      const mistakeText = screen.getByText(
+        'If this is a mistake, contact an organization owner and ask them to restore this organization.'
       );
-      expect(wrapper.find('button[aria-label="Restore Organization"]')).toHaveLength(0);
+
+      expect(mistakeText).toBeInTheDocument();
+      expect(screen.queryByLabelText('Restore Organization')).toBeNull();
     });
   });
 
-  describe('deletion in progress', () => {
-    beforeEach(() => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/',
-        body: TestStubs.Organization({
-          slug: 'org-slug',
-          status: {
-            id: 'deletion_in_progress',
-            name: 'deletion in progress',
-          },
-        }),
-      });
+  it('should render a deletion in progress prompt', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/',
+      body: TestStubs.Organization({
+        slug: 'org-slug',
+        status: {
+          id: 'deletion_in_progress',
+          name: 'deletion in progress',
+        },
+      }),
     });
 
-    it('should render a deletion in progress prompt', async function () {
-      wrapper = mountWithTheme(
-        <OrganizationDetails params={{orgId: 'org-slug'}} location={{}} routes={[]} />,
-        TestStubs.routerContext()
-      );
-      await tick();
-      await tick();
-      wrapper.update();
-      expect(wrapper.text()).toContain(
-        'The org-slug organization is currently in the process of being deleted from Sentry'
-      );
-      expect(wrapper.find('button[aria-label="Restore Organization"]')).toHaveLength(0);
-    });
+    mountWithTheme(
+      <OrganizationDetails params={{orgId: 'org-slug'}} location={{}} routes={[]}>
+        <div />
+      </OrganizationDetails>,
+      {context: TestStubs.routerContext()}
+    );
+
+    const inProgress = await screen.findByText(
+      'currently in the process of being deleted from Sentry.',
+      {exact: false}
+    );
+
+    expect(inProgress).toBeInTheDocument();
+    expect(screen.queryByLabelText('Restore Organization')).toBeNull();
   });
 });
