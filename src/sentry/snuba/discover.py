@@ -12,7 +12,7 @@ from sentry import options
 from sentry.discover.arithmetic import categorize_columns, resolve_equation_list
 from sentry.models import Group
 from sentry.models.transaction_threshold import ProjectTransactionThreshold
-from sentry.search.events.builder import QueryBuilder, TimeseriesQueryBuilder
+from sentry.search.events.builder import QueryBuilder, TimeseriesQueryBuilder, TopEventsQueryBuilder
 from sentry.search.events.constants import CONFIGURABLE_AGGREGATES, DEFAULT_PROJECT_THRESHOLD
 from sentry.search.events.fields import (
     FIELD_ALIASES,
@@ -666,6 +666,7 @@ def top_events_timeseries(
     allow_empty=True,
     zerofill_results=True,
     include_other=False,
+    use_snql=False,
 ):
     """
     High-level API for doing arbitrary user timeseries queries for a limited number of top events
@@ -701,7 +702,110 @@ def top_events_timeseries(
                 referrer=referrer,
                 auto_aggregations=True,
                 use_aggregate_conditions=True,
+                use_snql=use_snql,
             )
+
+    if use_snql:
+        # temporarily add snql to referrer
+        referrer = f"{referrer}.wip-snql"
+        top_events_builder = TopEventsQueryBuilder(
+            Dataset.Discover,
+            params,
+            rollup,
+            top_events["data"],
+            other=False,
+            query=user_query,
+            selected_columns=selected_columns,
+            timeseries_columns=timeseries_columns,
+            equations=equations,
+        )
+        if len(top_events["data"]) == limit and include_other:
+            other_events_builder = TopEventsQueryBuilder(
+                Dataset.Discover,
+                params,
+                rollup,
+                top_events["data"],
+                other=True,
+                query=user_query,
+                selected_columns=selected_columns,
+                timeseries_columns=timeseries_columns,
+                equations=equations,
+            )
+            result, other_result = bulk_snql_query(
+                [top_events_builder.get_snql_query(), other_events_builder.get_snql_query()],
+                referrer=referrer,
+            )
+        else:
+            result = raw_snql_query(top_events_builder.get_snql_query(), referrer=referrer)
+            other_result = {"data": []}
+        if (
+            not allow_empty
+            and not len(result.get("data", []))
+            and not len(other_result.get("data", []))
+        ):
+            return SnubaTSResult(
+                {
+                    "data": zerofill([], params["start"], params["end"], rollup, "time")
+                    if zerofill_results
+                    else [],
+                },
+                params["start"],
+                params["end"],
+                rollup,
+            )
+        with sentry_sdk.start_span(
+            op="discover.discover", description="top_events.transform_results"
+        ) as span:
+            span.set_data("result_count", len(result.get("data", [])))
+            translated_columns = top_events_builder.function_alias_map
+            result = transform_results(result, translated_columns, {}, None)
+
+            if "project" in selected_columns:
+                translated_columns["project_id"] = "project"
+
+            issues = {}
+            if "issue" in selected_columns:
+                issues = Group.issues_mapping(
+                    {event["issue.id"] for event in top_events["data"]},
+                    params["project_id"],
+                    organization,
+                )
+            translated_groupby = top_events_builder.translated_groupby
+
+            results = (
+                {OTHER_KEY: {"order": limit, "data": other_result["data"]}}
+                if len(other_result.get("data", []))
+                else {}
+            )
+            # Using the top events add the order to the results
+            for index, item in enumerate(top_events["data"]):
+                result_key = create_result_key(item, translated_groupby, issues)
+                results[result_key] = {"order": index, "data": []}
+            for row in result["data"]:
+                result_key = create_result_key(row, translated_groupby, issues)
+                if result_key in results:
+                    results[result_key]["data"].append(row)
+                else:
+                    logger.warning(
+                        "discover.top-events.timeseries.key-mismatch",
+                        extra={"result_key": result_key, "top_event_keys": list(results.keys())},
+                    )
+            for key, item in results.items():
+                results[key] = SnubaTSResult(
+                    {
+                        "data": zerofill(
+                            item["data"], params["start"], params["end"], rollup, "time"
+                        )
+                        if zerofill_results
+                        else item["data"],
+                        "order": item["order"],
+                    },
+                    params["start"],
+                    params["end"],
+                    rollup,
+                )
+
+        return results
 
     with sentry_sdk.start_span(
         op="discover.discover", description="top_events.filter_transform"
