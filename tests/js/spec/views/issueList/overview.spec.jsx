@@ -4,6 +4,7 @@ import range from 'lodash/range';
 
 import {mountWithTheme, shallow} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {act} from 'sentry-test/reactTestingLibrary';
 
 import StreamGroup from 'app/components/stream/group';
 import GroupStore from 'app/stores/groupStore';
@@ -1817,11 +1818,11 @@ describe('IssueList', function () {
     const {routerContext} = initializeOrg();
 
     beforeEach(function () {
-      ProjectsStore.reset();
+      act(() => ProjectsStore.reset());
     });
 
     it('does not render alert', function () {
-      ProjectsStore.loadInitialData([project]);
+      act(() => ProjectsStore.loadInitialData([project]));
 
       wrapper = mountWithTheme(<IssueListOverview {...props} />, routerContext);
 
@@ -1832,9 +1833,11 @@ describe('IssueList', function () {
 
     describe('renders alert', function () {
       it('for one project', function () {
-        ProjectsStore.loadInitialData([
-          {...project, eventProcessing: {symbolicationDegraded: true}},
-        ]);
+        act(() =>
+          ProjectsStore.loadInitialData([
+            {...project, eventProcessing: {symbolicationDegraded: true}},
+          ])
+        );
 
         wrapper = mountWithTheme(<IssueListOverview {...props} />, routerContext);
 
@@ -1853,18 +1856,20 @@ describe('IssueList', function () {
           slug: 'project-slug-bar',
         });
 
-        ProjectsStore.loadInitialData([
-          {
-            ...project,
-            slug: 'project-slug',
-            eventProcessing: {symbolicationDegraded: true},
-          },
-          {
-            ...projectBar,
-            slug: 'project-slug-bar',
-            eventProcessing: {symbolicationDegraded: true},
-          },
-        ]);
+        act(() =>
+          ProjectsStore.loadInitialData([
+            {
+              ...project,
+              slug: 'project-slug',
+              eventProcessing: {symbolicationDegraded: true},
+            },
+            {
+              ...projectBar,
+              slug: 'project-slug-bar',
+              eventProcessing: {symbolicationDegraded: true},
+            },
+          ])
+        );
 
         wrapper = mountWithTheme(
           <IssueListOverview

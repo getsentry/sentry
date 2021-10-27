@@ -2313,8 +2313,9 @@ class QueryFields(QueryBase):
         params: ParamsType,
         auto_fields: bool = False,
         functions_acl: Optional[List[str]] = None,
+        equation_config: Optional[Dict[str, bool]] = None,
     ):
-        super().__init__(dataset, params, auto_fields, functions_acl)
+        super().__init__(dataset, params, auto_fields, functions_acl, equation_config)
 
         self.function_alias_map: Dict[str, FunctionDetails] = {}
         self.field_alias_converter: Mapping[str, Callable[[str], SelectType]] = {
@@ -2812,14 +2813,15 @@ class QueryFields(QueryBase):
 
         if equations:
             _, _, parsed_equations = resolve_equation_list(
-                equations, stripped_columns, use_snql=True
+                equations, stripped_columns, use_snql=True, **self.equation_config
             )
-            resolved_columns.extend(
-                [
-                    self.resolve_equation(equation, f"equation[{index}]")
-                    for index, equation in enumerate(parsed_equations)
-                ]
-            )
+            for index, parsed_equation in enumerate(parsed_equations):
+                resolved_equation = self.resolve_equation(
+                    parsed_equation.equation, f"equation[{index}]"
+                )
+                resolved_columns.append(resolved_equation)
+                if parsed_equation.contains_functions:
+                    self.aggregates.append(resolved_equation)
 
         # Add threshold config alias if there's a function that depends on it
         # TODO: this should be replaced with an explicit request for the project_threshold_config as a column
@@ -2850,6 +2852,7 @@ class QueryFields(QueryBase):
             # are present.
             if not self.aggregates and "id" not in stripped_columns:
                 resolved_columns.append(self.resolve_column("id", alias=True))
+                stripped_columns.append("id")
             if "id" in stripped_columns and "project.id" not in stripped_columns:
                 resolved_columns.append(self.resolve_column("project.name", alias=True))
 

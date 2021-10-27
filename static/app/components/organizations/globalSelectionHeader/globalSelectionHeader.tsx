@@ -171,9 +171,6 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
     searchQuery: '',
   };
 
-  hasMultipleProjectSelection = () =>
-    new Set(this.props.organization.features).has('global-views');
-
   // Returns an options object for `update*` actions
   getUpdateOptions = () => ({
     save: true,
@@ -346,10 +343,7 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
                     value={this.state.projects || this.props.selection.projects}
                     onChange={this.handleChangeProjects}
                     onUpdate={this.handleUpdateProjects}
-                    multi={
-                      !disableMultipleProjectSelection &&
-                      this.hasMultipleProjectSelection()
-                    }
+                    disableMultipleProjectSelection={disableMultipleProjectSelection}
                     {...(loadingProjects ? paginatedProjectSelectorCallbacks : {})}
                     showIssueStreamLink={showIssueStreamLink}
                     showProjectSettingsLink={showProjectSettingsLink}

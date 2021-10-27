@@ -1,24 +1,28 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeData} from 'sentry-test/performance/initializePerformanceData';
 
+import {PerformanceDisplayProvider} from 'app/utils/performance/contexts/performanceDisplayContext';
 import {OrganizationContext} from 'app/views/organizationContext';
 import WidgetContainer from 'app/views/performance/landing/widgets/components/widgetContainer';
 import {PerformanceWidgetSetting} from 'app/views/performance/landing/widgets/widgetDefinitions';
+import {PROJECT_PERFORMANCE_TYPE} from 'app/views/performance/utils';
 
 const WrappedComponent = ({data, ...rest}) => {
   return (
-    <OrganizationContext.Provider value={data.organization}>
-      <WidgetContainer
-        {...data}
-        {...rest}
-        allowedCharts={[
-          PerformanceWidgetSetting.TPM_AREA,
-          PerformanceWidgetSetting.FAILURE_RATE_AREA,
-          PerformanceWidgetSetting.USER_MISERY_AREA,
-        ]}
-        forceDefaultChartSetting
-      />
-    </OrganizationContext.Provider>
+    <PerformanceDisplayProvider value={{performanceType: PROJECT_PERFORMANCE_TYPE.ANY}}>
+      <OrganizationContext.Provider value={data.organization}>
+        <WidgetContainer
+          {...data}
+          {...rest}
+          allowedCharts={[
+            PerformanceWidgetSetting.TPM_AREA,
+            PerformanceWidgetSetting.FAILURE_RATE_AREA,
+            PerformanceWidgetSetting.USER_MISERY_AREA,
+          ]}
+          forceDefaultChartSetting
+        />
+      </OrganizationContext.Provider>
+    </PerformanceDisplayProvider>
   );
 };
 
