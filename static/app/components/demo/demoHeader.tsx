@@ -24,10 +24,6 @@ export default function DemoHeader() {
 
   const collapsed = !!useLegacyStore(PreferencesStore).collapsed;
 
-  // Docs link: https://docs.sentry.io/extraQueryParameter(false)
-  // Request Demo: https://docs.sentry.io/extraQueryParameter(false)
-  // Get started: if saasOrgSlug, https://sentry.io/settings/${saasOrgSlug}/billing/checkout/
-  // else https://sentry.io/signup/emailQueryParameter()extraQueryParameter(true)
   return (
     <Wrapper collapsed={collapsed}>
       <StyledLogoSentry />
