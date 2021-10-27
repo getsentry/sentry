@@ -4,6 +4,7 @@ from datetime import datetime
 import pytz
 from django.conf import settings
 from django.contrib.auth import logout
+from django.db import transaction
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers, status
 from rest_framework.response import Response
@@ -19,6 +20,7 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.constants import LANGUAGES
 from sentry.models import Organization, OrganizationMember, OrganizationStatus, User, UserOption
 
+audit_logger = logging.getLogger("sentry.audit.user")
 delete_logger = logging.getLogger("sentry.deletions.api")
 
 
@@ -171,7 +173,18 @@ class UserDetailsEndpoint(UserEndpoint):
                     user=user, key=key_map.get(key, key), value=options_result.get(key)
                 )
 
-        user = serializer.save()
+        with transaction.atomic():
+            user = serializer.save()
+
+            if any(k in request.data for k in ("isStaff", "isSuperuser", "isActive")):
+                audit_logger.info(
+                    "user.edit",
+                    extra={
+                        "user_id": user.id,
+                        "actor_id": request.user.id,
+                        "form_data": request.data,
+                    },
+                )
 
         return Response(serialize(user, request.user, DetailedUserSerializer()))
 
