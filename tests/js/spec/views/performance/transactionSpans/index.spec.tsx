@@ -150,6 +150,11 @@ describe('Performance > Transaction Spans', function () {
     });
     // @ts-expect-error
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-meta/',
+      body: 100,
+    });
+    // @ts-expect-error
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-spans-performance/',
       body: spans.map(makeSuspectSpan),
     });
