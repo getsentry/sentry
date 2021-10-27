@@ -104,7 +104,7 @@ describe('Filters and Sampling', function () {
       ).toBeInTheDocument();
       expect(screen.getByText('Add transaction rule')).toBeInTheDocument();
 
-      const readDocsButtonLinks = screen.queryAllByRole('button', {
+      const readDocsButtonLinks = screen.getAllByRole('button', {
         name: 'Read the docs',
       });
       expect(readDocsButtonLinks).toHaveLength(2);
@@ -113,9 +113,9 @@ describe('Filters and Sampling', function () {
         expect(readDocsButtonLink).toHaveAttribute('href', DYNAMIC_SAMPLING_DOC_LINK);
       }
 
-      expect(screen.queryAllByText('Type')).toHaveLength(2);
-      expect(screen.queryAllByText('Conditions')).toHaveLength(2);
-      expect(screen.queryAllByText('Rate')).toHaveLength(2);
+      expect(screen.getAllByText('Type')).toHaveLength(2);
+      expect(screen.getAllByText('Conditions')).toHaveLength(2);
+      expect(screen.getAllByText('Rate')).toHaveLength(2);
 
       expect(container).toSnapshot();
     });
@@ -226,15 +226,15 @@ describe('Filters and Sampling', function () {
       expect(
         screen.queryByText('There are no transaction rules to display')
       ).not.toBeInTheDocument();
-      const transactionTraceRules = screen.queryByText('Transaction traces');
+      const transactionTraceRules = screen.getByText('Transaction traces');
       expect(transactionTraceRules).toBeInTheDocument();
 
-      const individualTransactionRules = screen.queryByText('Individual transactions');
+      const individualTransactionRules = screen.getByText('Individual transactions');
       expect(individualTransactionRules).toBeInTheDocument();
 
       expect(screen.getByText('Add transaction rule')).toBeInTheDocument();
 
-      const readDocsButtonLinks = screen.queryAllByRole('button', {
+      const readDocsButtonLinks = screen.getAllByRole('button', {
         name: 'Read the docs',
       });
       expect(readDocsButtonLinks).toHaveLength(2);
@@ -243,9 +243,9 @@ describe('Filters and Sampling', function () {
         expect(readDocsButtonLink).toHaveAttribute('href', DYNAMIC_SAMPLING_DOC_LINK);
       }
 
-      expect(screen.queryAllByText('Type')).toHaveLength(2);
-      expect(screen.queryAllByText('Conditions')).toHaveLength(2);
-      expect(screen.queryAllByText('Rate')).toHaveLength(2);
+      expect(screen.getAllByText('Type')).toHaveLength(2);
+      expect(screen.getAllByText('Conditions')).toHaveLength(2);
+      expect(screen.getAllByText('Rate')).toHaveLength(2);
 
       expect(container).toSnapshot();
     });
@@ -360,10 +360,10 @@ describe('Filters and Sampling', function () {
       expect(
         screen.queryByText('There are no transaction rules to display')
       ).not.toBeInTheDocument();
-      const transactionTraceRules = screen.queryByText('Transaction traces');
+      const transactionTraceRules = screen.getByText('Transaction traces');
       expect(transactionTraceRules).toBeInTheDocument();
 
-      const editRuleButtons = screen.queryAllByLabelText('Edit Rule');
+      const editRuleButtons = screen.getAllByLabelText('Edit Rule');
       expect(editRuleButtons).toHaveLength(2);
 
       // Open rule modal - edit error rule
@@ -379,7 +379,7 @@ describe('Filters and Sampling', function () {
       expect(releaseField).toBeInTheDocument();
 
       // Release field is not empty
-      const releaseFieldValues = within(releaseField).queryByTestId('multivalue');
+      const releaseFieldValues = within(releaseField).getByTestId('multivalue');
       expect(releaseFieldValues).toBeInTheDocument();
       expect(releaseFieldValues).toHaveTextContent('1*');
 
@@ -453,7 +453,7 @@ describe('Filters and Sampling', function () {
       // Error rules panel is updated
       expect(screen.getByText('Errors only')).toBeInTheDocument();
 
-      expect(screen.queryAllByText('Release')).toHaveLength(2);
+      expect(screen.getAllByText('Release')).toHaveLength(2);
 
       // Old values
       expect(screen.queryByText('1*')).not.toBeInTheDocument();
@@ -572,10 +572,10 @@ describe('Filters and Sampling', function () {
       expect(
         screen.queryByText('There are no transaction rules to display')
       ).not.toBeInTheDocument();
-      const transactionTraceRules = screen.queryByText('Transaction traces');
+      const transactionTraceRules = screen.getByText('Transaction traces');
       expect(transactionTraceRules).toBeInTheDocument();
 
-      const editRuleButtons = screen.queryAllByLabelText('Edit Rule');
+      const editRuleButtons = screen.getAllByLabelText('Edit Rule');
       expect(editRuleButtons).toHaveLength(2);
 
       // Open rule modal - edit transaction rule
@@ -583,7 +583,7 @@ describe('Filters and Sampling', function () {
 
       // Modal content
       expect(modal.getByText('Edit Transaction Sampling Rule')).toBeInTheDocument();
-      expect(modal.queryByText('Tracing')).toBeInTheDocument();
+      expect(modal.getByText('Tracing')).toBeInTheDocument();
       expect(modal.getByRole('checkbox')).toBeChecked();
 
       // Release Field
@@ -592,7 +592,7 @@ describe('Filters and Sampling', function () {
       expect(releaseField).toBeInTheDocument();
 
       // Release field is not empty
-      const releaseFieldValues = within(releaseField).queryByTestId('multivalue');
+      const releaseFieldValues = within(releaseField).getByTestId('multivalue');
       expect(releaseFieldValues).toBeInTheDocument();
       expect(releaseFieldValues).toHaveTextContent('1.2.3');
 
@@ -669,7 +669,7 @@ describe('Filters and Sampling', function () {
       expect(screen.getByText('Errors only')).toBeInTheDocument();
 
       expect(screen.getByText('Transaction traces')).toBeInTheDocument();
-      expect(screen.queryAllByText('Release')).toHaveLength(2);
+      expect(screen.getAllByText('Release')).toHaveLength(2);
 
       // Old values
       expect(screen.queryByText('1.2.3')).not.toBeInTheDocument();
@@ -788,10 +788,10 @@ describe('Filters and Sampling', function () {
       expect(
         screen.queryByText('There are no transaction rules to display')
       ).not.toBeInTheDocument();
-      const transactionTraceRules = screen.queryByText('Individual transactions');
+      const transactionTraceRules = screen.getByText('Individual transactions');
       expect(transactionTraceRules).toBeInTheDocument();
 
-      const editRuleButtons = screen.queryAllByLabelText('Edit Rule');
+      const editRuleButtons = screen.getAllByLabelText('Edit Rule');
       expect(editRuleButtons).toHaveLength(2);
 
       // Open rule modal - edit transaction rule
@@ -799,7 +799,7 @@ describe('Filters and Sampling', function () {
 
       // Modal content
       expect(modal.getByText('Edit Transaction Sampling Rule')).toBeInTheDocument();
-      expect(modal.queryByText('Tracing')).toBeInTheDocument();
+      expect(modal.getByText('Tracing')).toBeInTheDocument();
       expect(modal.getByRole('checkbox')).not.toBeChecked();
 
       // Release Field
@@ -808,7 +808,7 @@ describe('Filters and Sampling', function () {
       expect(releaseField).toBeInTheDocument();
 
       // Release field is not empty
-      const releaseFieldValues = within(releaseField).queryByTestId('multivalue');
+      const releaseFieldValues = within(releaseField).getByTestId('multivalue');
       expect(releaseFieldValues).toBeInTheDocument();
 
       // Button is enabled - meaning the form is valid
@@ -884,7 +884,7 @@ describe('Filters and Sampling', function () {
       expect(screen.getByText('Errors only')).toBeInTheDocument();
 
       expect(screen.getByText('Individual transactions')).toBeInTheDocument();
-      expect(screen.queryAllByText('Release')).toHaveLength(2);
+      expect(screen.getAllByText('Release')).toHaveLength(2);
 
       // Old values
       expect(screen.queryByText('1.2.3')).not.toBeInTheDocument();
@@ -983,10 +983,10 @@ describe('Filters and Sampling', function () {
       expect(
         screen.queryByText('There are no transaction rules to display')
       ).not.toBeInTheDocument();
-      const transactionTraceRules = screen.queryByText('Transaction traces');
+      const transactionTraceRules = screen.getByText('Transaction traces');
       expect(transactionTraceRules).toBeInTheDocument();
 
-      const deleteRuleButtons = screen.queryAllByLabelText('Delete Rule');
+      const deleteRuleButtons = screen.getAllByLabelText('Delete Rule');
       expect(deleteRuleButtons).toHaveLength(2);
 
       // Open deletion confirmation modal - delete error rule
@@ -996,7 +996,7 @@ describe('Filters and Sampling', function () {
         modal.getByText('Are you sure you wish to delete this dynamic sampling rule?')
       ).toBeInTheDocument();
 
-      const modalActionButtons = modal.queryAllByRole('button');
+      const modalActionButtons = modal.getAllByRole('button');
       expect(modalActionButtons).toHaveLength(2);
       expect(modalActionButtons[0]).toHaveTextContent('Cancel');
       expect(modalActionButtons[1]).toHaveTextContent('Confirm');
@@ -1010,9 +1010,7 @@ describe('Filters and Sampling', function () {
       );
 
       // Error rules panel is updated
-      expect(
-        screen.queryByText('There are no error rules to display')
-      ).toBeInTheDocument();
+      expect(screen.getByText('There are no error rules to display')).toBeInTheDocument();
 
       // There is still one transaction rule
       expect(transactionTraceRules).toBeInTheDocument();
@@ -1058,7 +1056,7 @@ describe('Filters and Sampling', function () {
       expect(autoCompleteList).toBeInTheDocument();
 
       // Condition Options
-      const conditionOptions = modal.queryAllByRole('presentation');
+      const conditionOptions = modal.getAllByRole('presentation');
       expect(conditionOptions).toHaveLength(commonConditionCategories.length);
 
       for (const conditionOptionIndex in conditionOptions) {
@@ -1124,7 +1122,7 @@ describe('Filters and Sampling', function () {
       expect(autoCompleteList).toBeInTheDocument();
 
       // Condition Options
-      const conditionOptions = modal.queryAllByRole('presentation');
+      const conditionOptions = modal.getAllByRole('presentation');
 
       // Click on the first condition option
       fireEvent.click(conditionOptions[0]);
@@ -1244,7 +1242,7 @@ describe('Filters and Sampling', function () {
       expect(autoCompleteList).toBeInTheDocument();
 
       // Trancing Condition Options
-      const conditionTracingOptions = modal.queryAllByRole('presentation');
+      const conditionTracingOptions = modal.getAllByRole('presentation');
       expect(conditionTracingOptions).toHaveLength(conditionTracingCategories.length);
 
       for (const conditionTracingOptionIndex in conditionTracingOptions) {
@@ -1260,7 +1258,7 @@ describe('Filters and Sampling', function () {
       fireEvent.click(modal.getByText('Add Condition'));
 
       // No Tracing Condition Options
-      const conditionOptions = modal.queryAllByRole('presentation');
+      const conditionOptions = modal.getAllByRole('presentation');
       expect(conditionOptions).toHaveLength(commonConditionCategories.length);
 
       for (const conditionOptionIndex in conditionOptions) {
@@ -1329,7 +1327,7 @@ describe('Filters and Sampling', function () {
         expect(autoCompleteList).toBeInTheDocument();
 
         // Condition Options
-        const conditionOptions = modal.queryAllByRole('presentation');
+        const conditionOptions = modal.getAllByRole('presentation');
 
         // Click on the first condition option
         fireEvent.click(conditionOptions[0]);
@@ -1384,7 +1382,7 @@ describe('Filters and Sampling', function () {
         expect(
           screen.queryByText('There are no transaction rules to display')
         ).not.toBeInTheDocument();
-        const transactionTraceRules = screen.queryByText('Transaction traces');
+        const transactionTraceRules = screen.getByText('Transaction traces');
         expect(transactionTraceRules).toBeInTheDocument();
         expect(screen.getByText('Release')).toBeInTheDocument();
         expect(screen.getByText('1.2.3')).toBeInTheDocument();
@@ -1446,7 +1444,7 @@ describe('Filters and Sampling', function () {
           expect(autoCompleteList).toBeInTheDocument();
 
           // Condition Options
-          const conditionOptions = modal.queryAllByRole('presentation');
+          const conditionOptions = modal.getAllByRole('presentation');
 
           // Click on the first condition option
           fireEvent.click(conditionOptions[0]);
@@ -1504,9 +1502,7 @@ describe('Filters and Sampling', function () {
           expect(
             screen.queryByText('There are no transaction rules to display')
           ).not.toBeInTheDocument();
-          const individualTransactionRules = screen.queryByText(
-            'Individual transactions'
-          );
+          const individualTransactionRules = screen.getByText('Individual transactions');
           expect(individualTransactionRules).toBeInTheDocument();
           expect(screen.getByText('Release')).toBeInTheDocument();
           expect(screen.getByText('1.2.3')).toBeInTheDocument();
@@ -1576,7 +1572,7 @@ describe('Filters and Sampling', function () {
           expect(autoCompleteList).toBeInTheDocument();
 
           // Condition Options
-          const conditionOptions = modal.queryAllByRole('presentation');
+          const conditionOptions = modal.getAllByRole('presentation');
 
           // Click on the seventh condition option
           fireEvent.click(conditionOptions[6]);
@@ -1588,15 +1584,15 @@ describe('Filters and Sampling', function () {
           for (const legacyBrowser of legacyBrowsers) {
             const {icon, title} = LEGACY_BROWSER_LIST[legacyBrowser];
             expect(modal.getByText(title)).toBeInTheDocument();
-            expect(modal.queryAllByTestId(`icon-${icon}`)[0]).toBeInTheDocument();
+            expect(modal.getAllByTestId(`icon-${icon}`)[0]).toBeInTheDocument();
           }
 
-          expect(modal.queryAllByTestId('icon-internet-explorer')).toHaveLength(4);
-          expect(modal.queryAllByTestId('icon-opera')).toHaveLength(2);
-          expect(modal.queryByTestId('icon-safari')).toBeInTheDocument();
-          expect(modal.queryByTestId('icon-android')).toBeInTheDocument();
+          expect(modal.getAllByTestId('icon-internet-explorer')).toHaveLength(4);
+          expect(modal.getAllByTestId('icon-opera')).toHaveLength(2);
+          expect(modal.getByTestId('icon-safari')).toBeInTheDocument();
+          expect(modal.getByTestId('icon-android')).toBeInTheDocument();
 
-          const switchButtons = modal.queryAllByTestId('switch');
+          const switchButtons = modal.getAllByTestId('switch');
           expect(switchButtons).toHaveLength(legacyBrowsers.length + 1);
 
           // All browsers are unchecked
@@ -1638,9 +1634,7 @@ describe('Filters and Sampling', function () {
           expect(
             screen.queryByText('There are no transaction rules to display')
           ).not.toBeInTheDocument();
-          const individualTransactionRules = screen.queryByText(
-            'Individual transactions'
-          );
+          const individualTransactionRules = screen.getByText('Individual transactions');
           expect(individualTransactionRules).toBeInTheDocument();
           expect(screen.getByText('Legacy Browser')).toBeInTheDocument();
           for (const legacyBrowser of legacyBrowsers) {

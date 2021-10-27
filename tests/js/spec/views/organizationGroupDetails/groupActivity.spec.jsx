@@ -1,5 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {act} from 'sentry-test/reactTestingLibrary';
 
 import NoteInput from 'app/components/activity/note/input';
 import ConfigStore from 'app/stores/configStore';
@@ -12,7 +13,7 @@ describe('GroupActivity', function () {
 
   beforeEach(function () {
     project = TestStubs.Project();
-    ProjectsStore.loadInitialData([project]);
+    act(() => ProjectsStore.loadInitialData([project]));
     jest.spyOn(ConfigStore, 'get').mockImplementation(key => {
       if (key === 'user') {
         return {

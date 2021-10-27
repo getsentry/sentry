@@ -1056,7 +1056,7 @@ SENTRY_FEATURES = {
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
     # Enable sorting+filtering by semantic version of a release
-    "organizations:semver": False,
+    "organizations:semver": True,
     # Enable basic SSO functionality, providing configurable single sign on
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.
@@ -1081,13 +1081,13 @@ SENTRY_FEATURES = {
     # Enable the mobile screenshots feature
     "organizations:mobile-screenshots": False,
     # Enable the adoption chart in the releases page
-    "organizations:release-adoption-chart": False,
+    "organizations:release-adoption-chart": True,
     # Enable the release adoption stage labels and sorting+filtering by them
-    "organizations:release-adoption-stage": False,
+    "organizations:release-adoption-stage": True,
     # Store release bundles as zip files instead of single files
     "organizations:release-archives": False,
     # Enable the new release details experience
-    "organizations:release-comparison": False,
+    "organizations:release-comparison": True,
     # Enable the release details performance section
     "organizations:release-comparison-performance": False,
     # Enable percent displays in issue stream
@@ -1381,7 +1381,7 @@ SENTRY_METRICS_PREFIX = "sentry."
 SENTRY_METRICS_SKIP_INTERNAL_PREFIXES = []  # Order this by most frequent prefixes.
 
 # Metrics product
-SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.mock.MockIndexer"
+SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.postgres.PGStringIndexer"
 SENTRY_METRICS_INDEXER_OPTIONS = {}
 SENTRY_METRICS_INDEXER_CACHE_TTL = 3600 * 2
 
@@ -2175,7 +2175,7 @@ INVALID_EMAIL_ADDRESS_PATTERN = re.compile(r"\@qq\.com$", re.I)
 
 # This is customizable for sentry.io, but generally should only be additive
 # (currently the values not used anymore so this is more for documentation purposes)
-SENTRY_USER_PERMISSIONS = ("broadcasts.admin",)
+SENTRY_USER_PERMISSIONS = ("broadcasts.admin", "users.admin")
 
 KAFKA_CLUSTERS = {
     "default": {
@@ -2456,7 +2456,7 @@ DEMO_DATA_QUICK_GEN_PARAMS = {}
 INJECTED_SCRIPT_ASSETS = []
 
 # Sentry post process forwarder use batching consumer
-SENTRY_POST_PROCESS_FORWARDER_BATCHING = False
+SENTRY_POST_PROCESS_FORWARDER_BATCHING = True
 
 # Whether badly behaving projects will be automatically
 # sent to the low priority queue

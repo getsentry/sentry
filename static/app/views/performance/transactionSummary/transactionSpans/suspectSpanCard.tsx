@@ -12,6 +12,7 @@ import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {ColumnType, fieldAlignment} from 'app/utils/discover/fields';
+import {formatPercentage} from 'app/utils/formatters';
 import {SuspectSpan} from 'app/utils/performance/suspectSpans/types';
 
 import {PerformanceDuration} from '../../utils';
@@ -79,10 +80,18 @@ type Props = {
     hash?: string
   ) => LocationDescriptor;
   eventView: EventView;
+  totalCount: number | undefined;
 };
 
 export default function SuspectSpanEntry(props: Props) {
-  const {location, organization, suspectSpan, generateTransactionLink, eventView} = props;
+  const {
+    location,
+    organization,
+    suspectSpan,
+    generateTransactionLink,
+    eventView,
+    totalCount,
+  } = props;
 
   const examples = suspectSpan.examples.map(example => ({
     id: example.id,
@@ -112,7 +121,11 @@ export default function SuspectSpanEntry(props: Props) {
         />
         <HeaderItem
           label="Frequency"
-          value={String(suspectSpan.frequency)}
+          value={
+            defined(totalCount)
+              ? formatPercentage(suspectSpan.frequency / totalCount)
+              : '\u2014'
+          }
           align="right"
         />
         <HeaderItem
@@ -161,20 +174,14 @@ type PercentileDurationProps = {
 function PercentileDuration(props: PercentileDurationProps) {
   const {sort, suspectSpan} = props;
 
+  const sortKey = PERCENTILE_LABELS.hasOwnProperty(sort.field)
+    ? sort.field
+    : SpanSortPercentiles.P75_EXCLUSIVE_TIME;
+
   return (
     <HeaderItem
-      label={
-        PERCENTILE_LABELS[sort.field] ??
-        PERCENTILE_LABELS[SpanSortPercentiles.P75_EXCLUSIVE_TIME]
-      }
-      value={
-        <PerformanceDuration
-          abbreviation
-          milliseconds={
-            suspectSpan[sort.field] ?? suspectSpan[SpanSortPercentiles.P75_EXCLUSIVE_TIME]
-          }
-        />
-      }
+      label={PERCENTILE_LABELS[sortKey]}
+      value={<PerformanceDuration abbreviation milliseconds={suspectSpan[sortKey]} />}
       align="right"
     />
   );

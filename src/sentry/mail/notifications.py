@@ -37,9 +37,10 @@ def get_headers(notification: BaseNotification) -> Mapping[str, Any]:
 
 def build_subject_prefix(project: "Project") -> str:
     key = "mail:subject_prefix"
-    return force_text(
+    out: str = force_text(
         ProjectOption.objects.get_value(project, key) or options.get("mail.subject-prefix")
     )
+    return out
 
 
 def get_unsubscribe_link(
@@ -102,8 +103,10 @@ def send_notification_as_email(
             **get_builder_args(notification, recipient, shared_context, extra_context_by_user_id)
         )
         # TODO: find better way of handling this
+        add_users_kwargs = {}
         if isinstance(notification, ProjectNotification):
-            msg.add_users([recipient.id], project=notification.project)
+            add_users_kwargs["project"] = notification.project
+        msg.add_users([recipient.id], **add_users_kwargs)
         msg.send_async()
 
 

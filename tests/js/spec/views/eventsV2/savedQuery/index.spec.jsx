@@ -485,20 +485,5 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
         'count() + failure_count()'
       );
     });
-
-    it('does not add equations to query fields if yAxis does not contain comprising functions', async () => {
-      const wrapper = generateWrappedComponent(
-        location,
-        organization,
-        errorsViewModified,
-        savedQuery,
-        [...yAxis, 'equation|count() + count_unique(user)']
-      );
-      wrapper.find('AddToDashboardButton').first().simulate('click');
-      await tick();
-      await tick();
-      const modal = await mountGlobalModal();
-      expect(modal.find('QueryField').length).toEqual(2);
-    });
   });
 });

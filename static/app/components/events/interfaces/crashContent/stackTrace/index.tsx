@@ -1,15 +1,13 @@
 import ErrorBoundary from 'app/components/errorBoundary';
-import rawStacktraceContent from 'app/components/events/interfaces/rawStacktraceContent';
-import StacktraceContent from 'app/components/events/interfaces/stacktraceContent';
-import StacktraceContentV2 from 'app/components/events/interfaces/stacktraceContentV2';
 import {PlatformType} from 'app/types';
 import {Event} from 'app/types/event';
 import {STACK_VIEW, StacktraceType} from 'app/types/stacktrace';
 
-type Props = Pick<
-  React.ComponentProps<typeof StacktraceContentV2>,
-  'groupingCurrentLevel'
-> & {
+import Content from './content';
+import ContentV2 from './contentV2';
+import rawStacktraceContent from './rawContent';
+
+type Props = Pick<React.ComponentProps<typeof ContentV2>, 'groupingCurrentLevel'> & {
   stacktrace: StacktraceType;
   event: Event;
   newestFirst: boolean;
@@ -34,7 +32,7 @@ const Stacktrace = ({
           {rawStacktraceContent(stacktrace, event.platform)}
         </pre>
       ) : hasHierarchicalGrouping ? (
-        <StacktraceContentV2
+        <ContentV2
           data={stacktrace}
           className="no-exception"
           includeSystemFrames={stackView === STACK_VIEW.FULL}
@@ -44,7 +42,7 @@ const Stacktrace = ({
           groupingCurrentLevel={groupingCurrentLevel}
         />
       ) : (
-        <StacktraceContent
+        <Content
           data={stacktrace}
           className="no-exception"
           includeSystemFrames={stackView === STACK_VIEW.FULL}

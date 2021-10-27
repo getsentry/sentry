@@ -1,17 +1,12 @@
 import * as React from 'react';
 
-import ProjectsStore from 'app/stores/projectsStore';
 import {Project} from 'app/types';
 import getDisplayName from 'app/utils/getDisplayName';
+import useProjects from 'app/utils/useProjects';
 
 type InjectedProjectsProps = {
   projects: Project[];
   loadingProjects?: boolean;
-};
-
-type State = {
-  projects: Project[];
-  loading: boolean;
 };
 
 /**
@@ -20,42 +15,17 @@ type State = {
 function withProjects<P extends InjectedProjectsProps>(
   WrappedComponent: React.ComponentType<P>
 ) {
-  class WithProjects extends React.Component<
-    Omit<P, keyof InjectedProjectsProps> & Partial<InjectedProjectsProps>,
-    State
-  > {
-    static displayName = `withProjects(${getDisplayName(WrappedComponent)})`;
+  type Props = Omit<P, keyof InjectedProjectsProps>;
 
-    state: State = {
-      projects: ProjectsStore.getAll(),
-      loading: ProjectsStore.isLoading(),
-    };
+  const Wrapper: React.FC<Props> = props => {
+    const {projects, loadingProjects} = useProjects();
 
-    componentWillUnmount() {
-      this.unsubscribe();
-    }
+    return <WrappedComponent {...(props as P)} {...{projects, loadingProjects}} />;
+  };
 
-    unsubscribe = ProjectsStore.listen(
-      () =>
-        this.setState({
-          projects: ProjectsStore.getAll(),
-          loading: ProjectsStore.isLoading(),
-        }),
-      undefined
-    );
+  Wrapper.displayName = `withProjects(${getDisplayName(WrappedComponent)})`;
 
-    render() {
-      return (
-        <WrappedComponent
-          {...(this.props as P)}
-          projects={this.state.projects}
-          loadingProjects={this.state.loading}
-        />
-      );
-    }
-  }
-
-  return WithProjects;
+  return Wrapper;
 }
 
 export default withProjects;
