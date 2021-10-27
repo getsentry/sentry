@@ -35,9 +35,9 @@ discover_geo = {
     "seriesName": "Discover total period",
     "stats": {
         "data": [
-            {"geo.country_code": "US", "count": 25},
+            {"geo.country_code": "US", "count": 1},
             {"geo.country_code": "GB", "count": 30},
-            {"geo.country_code": "AU", "count": 25},
+            {"geo.country_code": "AU", "count": 20},
         ],
     },
 }

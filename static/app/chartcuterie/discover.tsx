@@ -1,5 +1,6 @@
 import {EChartOption} from 'echarts';
 import isArray from 'lodash/isArray';
+import max from 'lodash/max';
 
 import XAxis from 'app/components/charts/components/xAxis';
 import AreaSeries from 'app/components/charts/series/areaSeries';
@@ -425,13 +426,17 @@ discoverCharts.push({
       } as any, // TODO(ts): Echarts types aren't correct for these colors as they don't allow for basic strings
     });
 
+    // For absolute values, we want min/max to based on min/max of series
+    // Otherwise it should be 0-100
+    const maxValue = max(data.stats.data.map(value => value.count)) || 1;
+
     return {
       backgroundColor: theme.background,
       visualMap: [
         {
           left: 'right',
           min: 0,
-          max: 50,
+          max: maxValue,
           inRange: {
             color: [theme.purple200, theme.purple300],
           },
