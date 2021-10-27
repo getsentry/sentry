@@ -234,7 +234,17 @@ class RedisBackend(Backend):
             # If the record value is `None`, this means the record data was
             # missing (it was presumably evicted by Redis) so we don't need to
             # return it here.
-            yield [record for record in records if record.value is not None]
+            filtered_records = [record for record in records if record.value is not None]
+            if len(records) != len(filtered_records):
+                logger.info(
+                    "Filtered out missing records",
+                    extra={
+                        "key": key,
+                        "record_count": len(records),
+                        "filtered_record_count": len(filtered_records),
+                    },
+                )
+            yield filtered_records
 
             script(
                 connection,
