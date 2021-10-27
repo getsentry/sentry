@@ -10,7 +10,6 @@ from sentry import features, search
 from sentry.api.event_search import SearchFilter
 from sentry.api.issue_search import convert_query_values, parse_search_query
 from sentry.api.serializers import serialize
-from sentry.app import ratelimiter
 from sentry.constants import DEFAULT_SORT_OPTION
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Environment, Group, Organization, Project, Release, User
@@ -169,19 +168,15 @@ def build_rate_limit_key(function: EndpointFunction, request: Request) -> str:
 def rate_limit_endpoint(limit: int = 1, window: int = 1) -> EndpointFunction:
     def inner(function: EndpointFunction) -> EndpointFunction:
         def wrapper(self: Any, request: Request, *args: Any, **kwargs: Any) -> Response:
-            if ratelimiter.is_limited(
-                build_rate_limit_key(function, request),
+            return function(
+                self,
+                request,
+                *args,
                 limit=limit,
                 window=window,
-            ):
-                return Response(
-                    {
-                        "detail": f"You are attempting to use this endpoint too quickly. Limit is {limit}/{window}s"
-                    },
-                    status=429,
-                )
-            else:
-                return function(self, request, *args, **kwargs)
+                enforce_limit=True,
+                **kwargs,
+            )
 
         return wrapper
 

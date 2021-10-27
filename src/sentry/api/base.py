@@ -15,6 +15,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from sentry import analytics, tsdb
+from sentry.app import ratelimiter
 from sentry.auth import access
 from sentry.models import Environment
 from sentry.utils import json
@@ -25,6 +26,7 @@ from sentry.utils.http import absolute_uri, is_valid_origin, origin_from_request
 from sentry.utils.sdk import capture_exception
 
 from .authentication import ApiKeyAuthentication, TokenAuthentication
+from .helpers.group_index import build_rate_limit_key
 from .paginator import BadPaginationError, Paginator
 from .permissions import NoPermission
 
@@ -269,6 +271,28 @@ class Endpoint(APIView):
                 else:
                     handler = self.http_method_not_allowed
 
+                limit = kwargs.pop("limit", 1)
+                window = kwargs.pop("window", 1)
+                should_enforce = kwargs.pop("enforce_limit", False)
+
+                rate_limit_key = build_rate_limit_key(handler, request)
+                rate_limit_payload = {
+                    "limited": False,
+                    "current": rate_limit_key,
+                    "limit": limit,
+                    "window": window,
+                }
+                if ratelimiter.is_limited(rate_limit_key, limit=limit, window=window):
+                    if should_enforce:
+                        return Response(
+                            {
+                                **rate_limit_payload,
+                                "limited": True,
+                                "detail": f"You are attempting to use this endpoint too quickly. Limit is {limit}/{window}s",
+                            },
+                            status=429,
+                        )
+
                 if getattr(request, "access", None) is None:
                     # setup default access
                     request.access = access.from_request(request)
@@ -284,6 +308,8 @@ class Endpoint(APIView):
 
         if origin:
             self.add_cors_headers(request, response)
+
+        response["X-Sentry-Current-Rate-Limit"] = rate_limit_payload
 
         self.response = self.finalize_response(request, response, *args, **kwargs)
 
