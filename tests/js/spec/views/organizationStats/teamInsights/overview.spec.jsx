@@ -1,16 +1,15 @@
-import {
-  act,
-  fireEvent,
-  mountWithTheme,
-  screen,
-  waitFor,
-} from 'sentry-test/reactTestingLibrary';
+import {fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
 import TeamStore from 'app/stores/teamStore';
+import {isActiveSuperuser} from 'app/utils/isActiveSuperuser';
 import localStorage from 'app/utils/localStorage';
-import {TeamInsightsOverview} from 'app/views/organizationStats/teamInsights/overview';
+import {OrganizationContext} from 'app/views/organizationContext';
+import TeamInsightsOverview from 'app/views/organizationStats/teamInsights/overview';
 
 jest.mock('app/utils/localStorage');
+jest.mock('app/utils/isActiveSuperuser', () => ({
+  isActiveSuperuser: jest.fn(),
+}));
 
 describe('TeamInsightsOverview', () => {
   const project1 = TestStubs.Project({id: '2', name: 'js', slug: 'js'});
@@ -20,12 +19,21 @@ describe('TeamInsightsOverview', () => {
     slug: 'frontend',
     name: 'frontend',
     projects: [project1],
+    isMember: true,
   });
   const team2 = TestStubs.Team({
     id: '3',
     slug: 'backend',
     name: 'backend',
     projects: [project2],
+    isMember: true,
+  });
+  const team3 = TestStubs.Team({
+    id: '4',
+    slug: 'internal',
+    name: 'internal',
+    projects: [],
+    isMember: false,
   });
   const mockRouter = {push: jest.fn()};
 
@@ -88,7 +96,6 @@ describe('TeamInsightsOverview', () => {
       url: `/teams/org-slug/${team1.slug}/release-count/`,
       body: [],
     });
-    act(() => void TeamStore.loadInitialData([team1, team2]));
   });
 
   afterEach(() => {
@@ -96,21 +103,16 @@ describe('TeamInsightsOverview', () => {
   });
 
   function createWrapper() {
-    const teams = [team1, team2];
+    const teams = [team1, team2, team3];
     const projects = [project1, project2];
     const organization = TestStubs.Organization({teams, projects});
     const context = TestStubs.routerContext([{organization}]);
+    TeamStore.loadInitialData(teams);
 
     return mountWithTheme(
-      <TeamInsightsOverview
-        api={new MockApiClient()}
-        loadingTeams={false}
-        error={null}
-        organization={organization}
-        teams={teams}
-        router={mockRouter}
-        location={{}}
-      />,
+      <OrganizationContext.Provider value={organization}>
+        <TeamInsightsOverview router={mockRouter} location={{}} />
+      </OrganizationContext.Provider>,
       {
         context,
       }
@@ -119,27 +121,35 @@ describe('TeamInsightsOverview', () => {
 
   it('defaults to first team', async () => {
     createWrapper();
-    await waitFor(() => {
-      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
-    });
 
-    expect(screen.getByText('#frontend')).toBeInTheDocument();
+    expect(screen.getByText('#backend')).toBeInTheDocument();
     expect(screen.getByText('Key transaction')).toBeInTheDocument();
   });
 
   it('allows team switching', async () => {
     createWrapper();
-    await waitFor(() => {
-      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
-    });
 
-    fireEvent.mouseDown(screen.getByText('#frontend'));
     expect(screen.getByText('#backend')).toBeInTheDocument();
-    fireEvent.click(screen.getByText('#backend'));
-    expect(mockRouter.push).toHaveBeenCalledWith({query: {team: team2.id}});
+    fireEvent.mouseDown(screen.getByText('#backend'));
+    expect(screen.getByText('#frontend')).toBeInTheDocument();
+    // Teams user is not a member of are hidden
+    expect(screen.queryByText('#internal')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText('#frontend'));
+    expect(mockRouter.push).toHaveBeenCalledWith({query: {team: team1.id}});
     expect(localStorage.setItem).toHaveBeenCalledWith(
       'teamInsightsSelectedTeamId:org-slug',
-      team2.id
+      team1.id
     );
+  });
+
+  it('superusers can switch to any team', async () => {
+    isActiveSuperuser.mockReturnValue(true);
+    createWrapper();
+
+    expect(screen.getByText('#backend')).toBeInTheDocument();
+    fireEvent.mouseDown(screen.getByText('#backend'));
+    expect(screen.getByText('#frontend')).toBeInTheDocument();
+    // User is not a member of internal team
+    expect(screen.getByText('#internal')).toBeInTheDocument();
   });
 });
