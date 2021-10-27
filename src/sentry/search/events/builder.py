@@ -29,6 +29,7 @@ class QueryBuilder(QueryFilter):
         auto_aggregations: bool = False,
         use_aggregate_conditions: bool = False,
         functions_acl: Optional[List[str]] = None,
+        array_join: Optional[str] = None,
         limit: Optional[int] = 50,
         offset: Optional[int] = 0,
         limitby: Optional[Tuple[str, int]] = None,
@@ -52,6 +53,7 @@ class QueryBuilder(QueryFilter):
 
         self.columns = self.resolve_select(selected_columns, equations)
         self.orderby = self.resolve_orderby(orderby)
+        self.array_join = None if array_join is None else self.resolve_column(array_join)
 
     def resolve_limitby(self, limitby: Optional[Tuple[str, int]]) -> Optional[LimitBy]:
         if limitby is None:
@@ -122,6 +124,7 @@ class QueryBuilder(QueryFilter):
             dataset=self.dataset.value,
             match=Entity(self.dataset.value),
             select=self.columns,
+            array_join=self.array_join,
             where=self.where,
             having=self.having,
             groupby=self.groupby,

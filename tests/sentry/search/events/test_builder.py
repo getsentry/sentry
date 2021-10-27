@@ -434,3 +434,24 @@ class QueryBuilderTest(TestCase):
                 ),
             ],
         )
+
+    def test_array_join_clause(self):
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            "",
+            selected_columns=[
+                "spans_op",
+                "count()",
+            ],
+            array_join="spans_op",
+        )
+        self.assertCountEqual(
+            query.columns,
+            [
+                AliasedExpression(Column("spans.op"), "spans_op"),
+                Function("count", [], "count"),
+            ],
+        )
+        assert query.array_join == Column("spans.op")
+        query.get_snql_query().validate()
