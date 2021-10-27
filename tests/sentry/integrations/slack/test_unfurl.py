@@ -12,8 +12,8 @@ from sentry.integrations.slack.message_builder.incidents import build_incident_a
 from sentry.integrations.slack.message_builder.issues import build_group_attachment
 from sentry.integrations.slack.unfurl import LinkType, UnfurlableUrl, link_handlers, match_link
 from sentry.testutils import TestCase
+from sentry.testutils.helpers import install_slack
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from tests.sentry.integrations.slack import install_slack
 
 
 @pytest.mark.parametrize(
@@ -292,7 +292,8 @@ class UnfurlTest(TestCase):
         )
         assert len(mock_generate_chart.mock_calls) == 1
 
-        assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_DISCOVER_TOP5_PERIOD
+        # Line chart expected since yAxis is count_unique(user)
+        assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_DISCOVER_TOP5_PERIOD_LINE
         chart_data = mock_generate_chart.call_args[0][1]
         assert chart_data["seriesName"] == "count_unique(user)"
         # 2 + 1 cause of Other

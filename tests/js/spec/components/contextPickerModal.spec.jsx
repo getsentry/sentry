@@ -1,4 +1,5 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {act} from 'sentry-test/reactTestingLibrary';
 import {selectByValue} from 'sentry-test/select-new';
 
 import ContextPickerModal from 'app/components/contextPickerModal';
@@ -12,7 +13,7 @@ describe('ContextPickerModal', function () {
   const onFinish = jest.fn();
 
   beforeEach(function () {
-    ProjectsStore.reset();
+    act(() => ProjectsStore.reset());
     MockApiClient.clearMockResponses();
     onFinish.mockReset();
 
@@ -29,7 +30,7 @@ describe('ContextPickerModal', function () {
   afterEach(async function () {
     OrganizationsStore.load([]);
     OrganizationStore.reset();
-    await tick();
+    await act(tick);
   });
 
   const getComponent = props => (
@@ -90,7 +91,7 @@ describe('ContextPickerModal', function () {
     expect(fetchProjectsForOrg).toHaveBeenCalled();
     expect(onFinish).not.toHaveBeenCalled();
 
-    await tick();
+    await act(tick);
     wrapper.update();
 
     expect(onFinish).toHaveBeenLastCalledWith('/test/org2/path/project2/');
@@ -170,7 +171,7 @@ describe('ContextPickerModal', function () {
       },
     ]);
 
-    await tick();
+    await act(tick);
     wrapper.unmount();
   });
 
@@ -246,7 +247,7 @@ describe('ContextPickerModal', function () {
 
     expect(onFinish).toHaveBeenCalledWith('/test/org2/path/project3/');
 
-    await tick();
+    await act(tick);
     wrapper.unmount();
   });
 

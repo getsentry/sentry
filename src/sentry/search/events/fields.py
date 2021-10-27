@@ -2852,6 +2852,7 @@ class QueryFields(QueryBase):
             # are present.
             if not self.aggregates and "id" not in stripped_columns:
                 resolved_columns.append(self.resolve_column("id", alias=True))
+                stripped_columns.append("id")
             if "id" in stripped_columns and "project.id" not in stripped_columns:
                 resolved_columns.append(self.resolve_column("project.name", alias=True))
 

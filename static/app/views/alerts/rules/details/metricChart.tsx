@@ -29,6 +29,7 @@ import space from 'app/styles/space';
 import {AvatarProject, DateString, Organization, Project} from 'app/types';
 import {ReactEchartsRef, Series} from 'app/types/echarts';
 import {getUtcDateString} from 'app/utils/dates';
+import getDynamicText from 'app/utils/getDynamicText';
 import {
   getCrashFreeRateSeries,
   MINUTES_THRESHOLD_TO_DISPLAY_SECONDS,
@@ -528,93 +529,101 @@ class MetricChart extends React.PureComponent<Props, State> {
             </ChartTitle>
             {query ? filter : null}
           </ChartHeader>
-          <ChartZoom
-            router={router}
-            start={start}
-            end={end}
-            onZoom={zoomArgs => handleZoom(zoomArgs.start, zoomArgs.end)}
-          >
-            {zoomRenderProps => (
-              <LineChart
-                {...zoomRenderProps}
-                isGroupedByDate
-                showTimeInTooltip
-                minutesThresholdToDisplaySeconds={minutesThresholdToDisplaySeconds}
-                forwardedRef={this.handleRef}
-                grid={{
-                  left: space(0.25),
-                  right: space(2),
-                  top: space(2),
-                  bottom: 0,
-                }}
-                yAxis={{
-                  axisLabel: {
-                    formatter: (value: number) =>
-                      alertAxisFormatter(
-                        value,
-                        timeseriesData[0].seriesName,
-                        rule.aggregate
-                      ),
-                  },
-                  max: maxThresholdValue > maxSeriesValue ? maxThresholdValue : undefined,
-                  min: minChartValue || undefined,
-                }}
-                series={[...series, ...areaSeries]}
-                graphic={Graphic({
-                  elements: this.getRuleChangeThresholdElements(timeseriesData),
-                })}
-                tooltip={{
-                  formatter: seriesParams => {
-                    // seriesParams can be object instead of array
-                    const pointSeries = Array.isArray(seriesParams)
-                      ? seriesParams
-                      : [seriesParams];
-                    const {marker, data: pointData, seriesName} = pointSeries[0];
-                    const [pointX, pointY] = pointData as [number, number];
-                    const pointYFormatted = alertTooltipValueFormatter(
-                      pointY,
-                      seriesName ?? '',
-                      rule.aggregate
-                    );
-                    const isModified =
-                      dateModified && pointX <= new Date(dateModified).getTime();
+          {getDynamicText({
+            value: (
+              <ChartZoom
+                router={router}
+                start={start}
+                end={end}
+                onZoom={zoomArgs => handleZoom(zoomArgs.start, zoomArgs.end)}
+              >
+                {zoomRenderProps => (
+                  <LineChart
+                    {...zoomRenderProps}
+                    isGroupedByDate
+                    showTimeInTooltip
+                    minutesThresholdToDisplaySeconds={minutesThresholdToDisplaySeconds}
+                    forwardedRef={this.handleRef}
+                    grid={{
+                      left: space(0.25),
+                      right: space(2),
+                      top: space(2),
+                      bottom: 0,
+                    }}
+                    yAxis={{
+                      axisLabel: {
+                        formatter: (value: number) =>
+                          alertAxisFormatter(
+                            value,
+                            timeseriesData[0].seriesName,
+                            rule.aggregate
+                          ),
+                      },
+                      max:
+                        maxThresholdValue > maxSeriesValue
+                          ? maxThresholdValue
+                          : undefined,
+                      min: minChartValue || undefined,
+                    }}
+                    series={[...series, ...areaSeries]}
+                    graphic={Graphic({
+                      elements: this.getRuleChangeThresholdElements(timeseriesData),
+                    })}
+                    tooltip={{
+                      formatter: seriesParams => {
+                        // seriesParams can be object instead of array
+                        const pointSeries = Array.isArray(seriesParams)
+                          ? seriesParams
+                          : [seriesParams];
+                        const {marker, data: pointData, seriesName} = pointSeries[0];
+                        const [pointX, pointY] = pointData as [number, number];
+                        const pointYFormatted = alertTooltipValueFormatter(
+                          pointY,
+                          seriesName ?? '',
+                          rule.aggregate
+                        );
+                        const isModified =
+                          dateModified && pointX <= new Date(dateModified).getTime();
 
-                    const startTime = formatTooltipDate(moment(pointX), 'MMM D LT');
-                    const {period, periodLength} = parseStatsPeriod(interval) ?? {
-                      periodLength: 'm',
-                      period: `${timeWindow}`,
-                    };
-                    const endTime = formatTooltipDate(
-                      moment(pointX).add(
-                        parseInt(period, 10),
-                        periodLength as StatsPeriodType
-                      ),
-                      'MMM D LT'
-                    );
-                    const title = isModified
-                      ? `<strong>${t('Alert Rule Modified')}</strong>`
-                      : `${marker} <strong>${seriesName}</strong>`;
-                    const value = isModified
-                      ? `${seriesName} ${pointYFormatted}`
-                      : pointYFormatted;
+                        const startTime = formatTooltipDate(moment(pointX), 'MMM D LT');
+                        const {period, periodLength} = parseStatsPeriod(interval) ?? {
+                          periodLength: 'm',
+                          period: `${timeWindow}`,
+                        };
+                        const endTime = formatTooltipDate(
+                          moment(pointX).add(
+                            parseInt(period, 10),
+                            periodLength as StatsPeriodType
+                          ),
+                          'MMM D LT'
+                        );
+                        const title = isModified
+                          ? `<strong>${t('Alert Rule Modified')}</strong>`
+                          : `${marker} <strong>${seriesName}</strong>`;
+                        const value = isModified
+                          ? `${seriesName} ${pointYFormatted}`
+                          : pointYFormatted;
 
-                    return [
-                      `<div class="tooltip-series"><div>`,
-                      `<span class="tooltip-label">${title}</span>${value}`,
-                      `</div></div>`,
-                      `<div class="tooltip-date">${startTime} &mdash; ${endTime}</div>`,
-                      `<div class="tooltip-arrow"></div>`,
-                    ].join('');
-                  },
-                }}
-                onFinished={() => {
-                  // We want to do this whenever the chart finishes re-rendering so that we can update the dimensions of
-                  // any graphics related to the triggers (e.g. the threshold areas + boundaries)
-                  this.updateDimensions();
-                }}
-              />
-            )}
-          </ChartZoom>
+                        return [
+                          `<div class="tooltip-series"><div>`,
+                          `<span class="tooltip-label">${title}</span>${value}`,
+                          `</div></div>`,
+                          `<div class="tooltip-date">${startTime} &mdash; ${endTime}</div>`,
+                          `<div class="tooltip-arrow"></div>`,
+                        ].join('');
+                      },
+                    }}
+                    onFinished={() => {
+                      // We want to do this whenever the chart finishes re-rendering so that we can update the dimensions of
+                      // any graphics related to the triggers (e.g. the threshold areas + boundaries)
+                      this.updateDimensions();
+                    }}
+                  />
+                )}
+              </ChartZoom>
+            ),
+            fixed: <Placeholder height="200px" testId="skeleton-ui" />,
+          })}
         </StyledPanelBody>
         {this.renderChartActions(totalDuration, criticalDuration, warningDuration)}
       </ChartPanel>

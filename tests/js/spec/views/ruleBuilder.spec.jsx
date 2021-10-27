@@ -1,4 +1,5 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {act} from 'sentry-test/reactTestingLibrary';
 import {findOption, openMenu, selectByValueAsync} from 'sentry-test/select-new';
 
 import MemberListStore from 'app/stores/memberListStore';
@@ -56,7 +57,7 @@ describe('RuleBuilder', function () {
       // Teams in project
       teams: [TEAM_1],
     });
-    ProjectsStore.loadInitialData([project]);
+    act(() => ProjectsStore.loadInitialData([project]));
     jest.spyOn(ProjectsStore, 'getBySlug').mockImplementation(() => project);
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
