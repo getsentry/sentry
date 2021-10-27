@@ -7,6 +7,7 @@ import Confirm from 'app/components/confirm';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
 import PluginIcon from 'app/plugins/components/pluginIcon';
+import space from 'app/styles/space';
 import {UserIdentityCategory, UserIdentityConfig, UserIdentityStatus} from 'app/types';
 import AsyncView from 'app/views/asyncView';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
@@ -43,16 +44,19 @@ class AccountIdentities extends AsyncView<Props, State> {
         <PluginIcon pluginId={identity.provider.key} />
         <div>{identity.provider.name}</div>
         {identity.dateAdded && <div>{identity.dateAdded}</div>}
-        <div>
-          {identity.category === UserIdentityCategory.SOCIAL_IDENTITY
-            ? t('App Integration')
-            : identity.category === UserIdentityCategory.GLOBAL_IDENTITY
-            ? t('Sign-In Identity')
-            : identity.category === UserIdentityCategory.ORG_IDENTITY
-            ? t('Organization Identity')
-            : null}
-        </div>
-        {identity.organization && <div>{identity.organization.name}</div>}
+        <Tag
+          isOrgName={false}
+          label={
+            identity.category === UserIdentityCategory.SOCIAL_IDENTITY
+              ? t('App Integration')
+              : identity.category === UserIdentityCategory.GLOBAL_IDENTITY
+              ? t('Sign-In Identity')
+              : identity.category === UserIdentityCategory.ORG_IDENTITY
+              ? t('Organization Identity')
+              : ''
+          }
+        />
+        {identity.organization && <Tag isOrgName label={identity.organization.slug} />}
 
         {this.renderButton(identity)}
       </IdentityPanelItem>
@@ -164,6 +168,29 @@ class AccountIdentities extends AsyncView<Props, State> {
 const IdentityPanelItem = styled(PanelItem)`
   align-items: center;
   justify-content: space-between;
+`;
+
+const Tag = styled(
+  ({
+    isOrgName: _isOrgName,
+    label,
+    ...p
+  }: {
+    label: string;
+    isOrgName: boolean;
+    theme?: any;
+  }) => <div {...p}>{label}</div>
+)`
+  display: flex;
+  flex-direction: row;
+  padding: 1px 10px;
+  background: ${p => (p.isOrgName ? p.theme.purple200 : p.theme.gray100)};
+  border-radius: 20px;
+  font-size: ${space(1.5)};
+  margin-right: ${space(1)};
+  line-height: ${space(3)};
+  text-align: center;
+  color: ${p => (p.isOrgName ? p.theme.white : p.theme.gray500)};
 `;
 
 export default AccountIdentities;
