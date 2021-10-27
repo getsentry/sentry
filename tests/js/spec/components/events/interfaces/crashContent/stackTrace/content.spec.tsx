@@ -1,6 +1,6 @@
 import {fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
-import StacktraceContent from 'app/components/events/interfaces/stacktraceContent';
+import StacktraceContent from 'app/components/events/interfaces/crashContent/stackTrace/content';
 import {StacktraceType} from 'app/types/stacktrace';
 
 // @ts-expect-error

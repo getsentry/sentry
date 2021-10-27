@@ -199,7 +199,7 @@ class MiniGraph extends React.Component<Props> {
           }
           const chartOptions = {
             colors: chartColors,
-            height: 100,
+            height: 150,
             series: [...data],
             xAxis: {
               show: false,
@@ -261,7 +261,7 @@ class MiniGraph extends React.Component<Props> {
 const StyledGraphContainer = styled(props => (
   <LoadingContainer {...props} maskBackgroundColor="transparent" />
 ))`
-  height: 100px;
+  height: 150px;
 
   display: flex;
   justify-content: center;

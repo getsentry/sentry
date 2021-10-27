@@ -1,5 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {act} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'app/stores/projectsStore';
 import EventView from 'app/utils/discover/eventView';
@@ -22,7 +23,7 @@ describe('EventsV2 > EventDetails', function () {
   );
 
   beforeEach(function () {
-    ProjectsStore.loadInitialData([TestStubs.Project()]);
+    act(() => ProjectsStore.loadInitialData([TestStubs.Project()]));
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
