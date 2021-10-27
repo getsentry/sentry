@@ -23,8 +23,8 @@ const renderConfig: RenderConfig<ChartType> = new Map();
  */
 const config: ChartcuterieConfig = {
   version: process.env.COMMIT_SHA!,
-  init: namespace => {
-    namespace.registerMap('sentryWorld', worldMap);
+  init: echarts => {
+    echarts.registerMap('sentryWorld', worldMap);
   },
   renderConfig,
 };
