@@ -83,7 +83,7 @@ jobs:
 
   bootstrap-script:
     runs-on: macos-11
-    timeout-minutes: 60
+    timeout-minutes: 45
     env:
       PIP_DISABLE_PIP_VERSION_CHECK: on
       # Make the environment more similar to what Mac defaults to
