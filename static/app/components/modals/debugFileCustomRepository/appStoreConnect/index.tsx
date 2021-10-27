@@ -32,7 +32,7 @@ import {
   StepThreeData,
   StepTwoData,
 } from './types';
-import {DetailedErrorResponse, getAppStoreErrorMessage} from './utils';
+import {getAppStoreErrorMessage, unexpectedErrorMessage} from './utils';
 
 type SessionContext = {
   auth_key: string;
@@ -116,6 +116,7 @@ function AppStoreConnect({
     issuer: initialData?.appconnectIssuer,
     keyId: initialData?.appconnectKey,
     privateKey: typeof initialData?.appconnectPrivateKey === 'object' ? undefined : '',
+    errors: undefined,
   });
 
   const [stepTwoData, setStepTwoData] = useState<StepTwoData>({
@@ -166,6 +167,7 @@ function AppStoreConnect({
 
   async function checkAppStoreConnectCredentials() {
     setIsLoading(true);
+
     try {
       const response = await api.requestPromise(
         `/projects/${orgSlug}/${projectSlug}/appstoreconnect/apps/`,
@@ -186,8 +188,13 @@ function AppStoreConnect({
       goNext();
     } catch (error) {
       setIsLoading(false);
-      // app-connect-authentication-error
-      addErrorMessage(getAppStoreErrorMessage(error));
+      const appStoreConnnectError = getAppStoreErrorMessage(error);
+      if (typeof appStoreConnnectError === 'string') {
+        // app-connect-authentication-error
+        addErrorMessage(appStoreConnnectError);
+        return;
+      }
+      setStepOneData({...stepOneData, errors: appStoreConnnectError});
     }
   }
 
@@ -220,8 +227,12 @@ function AppStoreConnect({
       goNext();
     } catch (error) {
       setIsLoading(false);
-      // itunes-2fa-required
-      addErrorMessage(getAppStoreErrorMessage(error));
+
+      const appStoreConnnectError = getAppStoreErrorMessage(error);
+      if (typeof appStoreConnnectError === 'string') {
+        // itunes-2fa-required
+        addErrorMessage(appStoreConnnectError);
+      }
     }
   }
 
@@ -264,16 +275,15 @@ function AppStoreConnect({
       onSubmit();
     } catch (error) {
       setIsLoading(false);
+      const appStoreConnnectError = getAppStoreErrorMessage(error);
 
-      if (
-        typeof error !== 'string' &&
-        (error as DetailedErrorResponse).responseJSON?.detail?.code ===
-          'app-connect-multiple-sources-error'
-      ) {
-        addErrorMessage(getAppStoreErrorMessage(error));
-        return;
+      if (typeof appStoreConnnectError === 'string') {
+        if (appStoreConnnectError === unexpectedErrorMessage) {
+          addErrorMessage(errorMessage);
+          return;
+        }
+        addErrorMessage(appStoreConnnectError);
       }
-      addErrorMessage(errorMessage);
     }
   }
 
@@ -281,9 +291,15 @@ function AppStoreConnect({
     switch (activeStep) {
       case 0:
         return Object.keys(stepOneData).some(key => {
+          if (key === 'errors') {
+            const errors = stepOneData[key] ?? {};
+            return Object.keys(errors).some(error => !!errors[error]);
+          }
+
           if (key === 'privateKey' && stepOneData[key] === undefined) {
             return false;
           }
+
           return !stepOneData[key];
         });
       case 1:
@@ -342,8 +358,13 @@ function AppStoreConnect({
       if (shouldGoNext) {
         setIsLoading(false);
       }
-      // itunes-authentication-error'
-      addErrorMessage(getAppStoreErrorMessage(error));
+
+      const appStoreConnnectError = getAppStoreErrorMessage(error);
+
+      if (typeof appStoreConnnectError === 'string') {
+        // itunes-authentication-error'
+        addErrorMessage(getAppStoreErrorMessage(appStoreConnnectError));
+      }
     }
   }
 
@@ -359,8 +380,12 @@ function AppStoreConnect({
       setSessionContext(response.sessionContext);
       addSuccessMessage(t("We've sent a SMS code to your phone"));
     } catch (error) {
-      // itunes-sms-blocked-error
-      addErrorMessage(getAppStoreErrorMessage(error));
+      const appStoreConnnectError = getAppStoreErrorMessage(error);
+
+      if (typeof appStoreConnnectError === 'string') {
+        // itunes-sms-blocked-error
+        addErrorMessage(appStoreConnnectError);
+      }
     }
   }
 

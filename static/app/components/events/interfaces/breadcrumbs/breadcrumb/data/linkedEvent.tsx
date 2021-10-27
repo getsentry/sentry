@@ -68,7 +68,7 @@ function LinkedEvent({orgSlug, eventId, route, router}: Props) {
       }
 
       addErrorMessage(
-        t('An error occured while fetching the data of the breadcrumb event link')
+        t('An error occurred while fetching the data of the breadcrumb event link')
       );
       Sentry.captureException(error);
 
@@ -97,7 +97,7 @@ function LinkedEvent({orgSlug, eventId, route, router}: Props) {
       }
 
       addErrorMessage(
-        t('An error occured while fetching the data of the breadcrumb event link')
+        t('An error occurred while fetching the data of the breadcrumb event link')
       );
       Sentry.captureException(error);
       // do nothing. The link won't be displayed
