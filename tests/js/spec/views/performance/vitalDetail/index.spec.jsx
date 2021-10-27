@@ -2,6 +2,7 @@ import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {act} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'app/stores/projectsStore';
 import {OrganizationContext} from 'app/views/organizationContext';
@@ -24,7 +25,7 @@ function initializeData({query} = {query: {}}) {
       },
     },
   });
-  ProjectsStore.loadInitialData(initialData.organization.projects);
+  act(() => ProjectsStore.loadInitialData(initialData.organization.projects));
   return initialData;
 }
 
@@ -172,7 +173,7 @@ describe('Performance > VitalDetail', function () {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
-    ProjectsStore.reset();
+    act(() => ProjectsStore.reset());
   });
 
   it('renders basic UI elements', async function () {

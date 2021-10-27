@@ -91,7 +91,7 @@ export function TrendsWidget(props: Props) {
   return (
     <GenericPerformanceWidget<TrendsWidgetDataType>
       {...rest}
-      subtitle={<Subtitle>{t('Trending Transactions')}</Subtitle>}
+      Subtitle={() => <Subtitle>{t('Trending Transactions')}</Subtitle>}
       HeaderActions={provided => <ContainerActions {...provided.widgetData.chart} />}
       Queries={Queries}
       Visualizations={[

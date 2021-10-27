@@ -12,15 +12,15 @@ import Pills from 'app/components/pills';
 import {IconInfo, IconOpen} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Mechanism} from 'app/types/stacktrace';
+import {StackTraceMechanism} from 'app/types/stacktrace';
 import {isUrl} from 'app/utils';
 import {Theme} from 'app/utils/theme';
 
 type Props = {
-  data: Mechanism;
+  data: StackTraceMechanism;
 };
 
-class ExceptionMechanism extends Component<Props> {
+class Mechanism extends Component<Props> {
   render() {
     const mechanism = this.props.data;
     const {type, description, help_link, handled, meta = {}, data = {}} = mechanism;
@@ -86,7 +86,7 @@ class ExceptionMechanism extends Component<Props> {
   }
 }
 
-export default ExceptionMechanism;
+export default Mechanism;
 
 const Wrapper = styled('div')`
   margin: ${space(2)} 0;

@@ -106,11 +106,13 @@ describe('Performance > Landing > Index', function () {
     expect(wrapper.find('Table')).toHaveLength(1);
 
     const titles = wrapper.find('div[data-test-id="performance-widget-title"]');
-    expect(titles).toHaveLength(3);
+    expect(titles).toHaveLength(5);
 
     expect(titles.at(0).text()).toEqual('p75 LCP');
     expect(titles.at(1).text()).toEqual('LCP Distribution');
     expect(titles.at(2).text()).toEqual('FCP Distribution');
+    expect(titles.at(3).text()).toEqual('Most Related Errors');
+    expect(titles.at(4).text()).toEqual('Most Related Issues');
   });
 
   it('renders frontend other view', async function () {

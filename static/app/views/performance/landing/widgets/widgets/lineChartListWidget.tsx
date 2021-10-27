@@ -153,7 +153,7 @@ export function LineChartListWidget(props: Props) {
   return (
     <GenericPerformanceWidget<DataType>
       {...props}
-      subtitle={<Subtitle>{t('Suggested transactions')}</Subtitle>}
+      Subtitle={() => <Subtitle>{t('Suggested transactions')}</Subtitle>}
       HeaderActions={provided => (
         <ContainerActions isLoading={provided.widgetData.list?.isLoading} />
       )}

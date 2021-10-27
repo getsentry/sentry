@@ -2,6 +2,7 @@ import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {act} from 'sentry-test/reactTestingLibrary';
 
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'app/constants';
 import ProjectsStore from 'app/stores/projectsStore';
@@ -246,7 +247,7 @@ describe('OrganizationStats', function () {
     const moreProjects = Array.from(Array(30).keys()).map(id =>
       TestStubs.Project({id, slug: `myProjectSlug-${id}`})
     );
-    ProjectsStore.loadInitialData(moreProjects);
+    act(() => ProjectsStore.loadInitialData(moreProjects));
 
     const wrapper = mountWithTheme(
       <OrganizationStats

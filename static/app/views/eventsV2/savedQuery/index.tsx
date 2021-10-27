@@ -25,13 +25,19 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'app/utils/discover/eventView';
 import {getEquation, isEquation} from 'app/utils/discover/fields';
+import {DisplayModes} from 'app/utils/discover/types';
 import {getDiscoverLandingUrl} from 'app/utils/discover/urls';
 import withApi from 'app/utils/withApi';
 import withProjects from 'app/utils/withProjects';
 import {WidgetQuery} from 'app/views/dashboardsV2/types';
 import InputControl from 'app/views/settings/components/forms/controls/input';
 
-import {handleCreateQuery, handleDeleteQuery, handleUpdateQuery} from './utils';
+import {
+  displayModeToDisplayType,
+  handleCreateQuery,
+  handleDeleteQuery,
+  handleUpdateQuery,
+} from './utils';
 
 type DefaultProps = {
   disabled: boolean;
@@ -262,6 +268,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
       defaultTitle:
         savedQuery?.name ??
         (eventView.name !== 'All Events' ? eventView.name : undefined),
+      displayType: displayModeToDisplayType(eventView.display as DisplayModes),
     });
   };
 
@@ -385,7 +392,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
         key="add-dashboard-widget-from-discover"
         onClick={this.handleAddDashboardWidget}
       >
-        {t('Add to Dashboard')} <StyledFeatureBadge type="beta" noTooltip />
+        {t('Add to Dashboard')} <StyledFeatureBadge type="new" noTooltip />
       </AddToDashboardButton>
     );
   }
