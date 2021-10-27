@@ -8,7 +8,6 @@ import {openAddDashboardWidgetModal} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
-import {parseArithmetic} from 'app/components/arithmeticInput/parser';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Banner from 'app/components/banner';
 import Button from 'app/components/button';
@@ -24,7 +23,6 @@ import {Organization, Project, SavedQuery} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'app/utils/discover/eventView';
-import {getEquation, isEquation} from 'app/utils/discover/fields';
 import {DisplayModes} from 'app/utils/discover/types';
 import {getDiscoverLandingUrl} from 'app/utils/discover/urls';
 import withApi from 'app/utils/withApi';
@@ -234,23 +232,10 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
 
   handleAddDashboardWidget = () => {
     const {organization, eventView, savedQuery, yAxis} = this.props;
-    // If a Y-Axis value is an equation, we need to check if functions used in the equation also exist in the Y-Axis list
-    const validYAxis = yAxis.filter(field => {
-      if (isEquation(field)) {
-        const parsed = parseArithmetic(getEquation(field));
-        return (
-          !parsed.error &&
-          parsed.tc.functions.every(
-            ({term}) => typeof term === 'string' && yAxis.includes(term)
-          )
-        );
-      }
-      return true;
-    });
     const sort = eventView.sorts[0];
     const defaultWidgetQuery: WidgetQuery = {
       name: '',
-      fields: validYAxis && validYAxis.length > 0 ? validYAxis : ['count()'],
+      fields: yAxis && yAxis.length > 0 ? yAxis : ['count()'],
       conditions: eventView.query,
       orderby: sort ? `${sort.kind === 'desc' ? '-' : ''}${sort.field}` : '',
     };

@@ -92,6 +92,45 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                 {
                     "name": "errors",
                     "conditions": "event.type:error",
+                    "fields": ["equation|count()"],
+                }
+            ],
+        }
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 400, response.data
+        assert "queries" in response.data, response.data
+
+    def test_valid_equation_line_widget(self):
+        data = {
+            "title": "Invalid query",
+            "displayType": "line",
+            "queries": [
+                {
+                    "name": "errors",
+                    "conditions": "event.type:error",
+                    "fields": ["equation|count() * 2"],
+                }
+            ],
+        }
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 200, response.data
+
+    def test_invalid_equation_table_widget(self):
+        data = {
+            "title": "Invalid query",
+            "displayType": "table",
+            "queries": [
+                {
+                    "name": "errors",
+                    "conditions": "event.type:error",
                     "fields": ["equation|count() * 2"],
                 }
             ],
