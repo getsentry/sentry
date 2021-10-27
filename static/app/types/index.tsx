@@ -2082,6 +2082,7 @@ export type UserIdentityConfig = {
   id: string;
   provider: UserIdentityProvider;
   status: UserIdentityStatus;
+  isLogin: boolean;
   organization: Organization | null;
   dateAdded: DateString;
 };

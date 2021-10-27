@@ -47,18 +47,15 @@ class AccountIdentities extends AsyncView<Props, State> {
           {identity.dateAdded && <IdentityDate>{identity.dateAdded}</IdentityDate>}
         </InternalContainer>
         <InternalContainer>
-          <Tag
-            isOrgName={false}
-            label={
-              identity.category === UserIdentityCategory.SOCIAL_IDENTITY
-                ? t('App Integration')
-                : identity.category === UserIdentityCategory.GLOBAL_IDENTITY
-                ? t('Sign-In Identity')
-                : identity.category === UserIdentityCategory.ORG_IDENTITY
-                ? t('Organization Identity')
-                : ''
-            }
-          />
+          {identity.category === UserIdentityCategory.SOCIAL_IDENTITY && (
+            <Tag isOrgName={false} label={t('Legacy')} />
+          )}
+          {identity.category !== UserIdentityCategory.ORG_IDENTITY && (
+            <Tag
+              isOrgName={false}
+              label={identity.isLogin ? t('Sign In') : t('Integration')}
+            />
+          )}
           {identity.organization && <Tag isOrgName label={identity.organization.slug} />}
         </InternalContainer>
 
@@ -76,11 +73,11 @@ class AccountIdentities extends AsyncView<Props, State> {
         header={`Disconnect Your ${identity.provider.name} Identity?`}
         message={
           <TextBlock>
-            {identity.category === UserIdentityCategory.SOCIAL_IDENTITY
-              ? t("This action can't be undone.")
-              : t(
+            {identity.isLogin
+              ? t(
                   'After disconnecting, you will need to use a password or another identity to sign in.'
-                )}
+                )
+              : t("This action can't be undone.")}
           </TextBlock>
         }
       >
