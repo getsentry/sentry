@@ -102,7 +102,11 @@ class QueryBuilder(QueryFilter):
                 )
 
     def validate_having_clause(self) -> None:
-        # No need to validate if auto aggregations and there's at least one aggregate
+        """Validate that the functions in having are selected columns
+
+        Skipped if auto_aggregations are enabled, and at least one other aggregate is selected
+        This is so we don't change grouping suddenly
+        """
         if self.auto_aggregations and self.aggregates:
             return
         error_extra = ", and could not be automatically added" if self.auto_aggregations else ""
