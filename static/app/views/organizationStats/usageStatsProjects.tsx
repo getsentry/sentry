@@ -10,6 +10,7 @@ import Pagination from 'app/components/pagination';
 import SearchBar from 'app/components/searchBar';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {DataCategory, Organization, Project} from 'app/types';
 import withProjects from 'app/utils/withProjects';
 
@@ -399,16 +400,16 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
 
     return (
       <Fragment>
-        <GridRow>
+        <MarginBottom>
           <SearchBar
             defaultQuery=""
             query={tableQuery}
             placeholder={t('Filter your projects')}
             onSearch={this.handleSearch}
           />
-        </GridRow>
+        </MarginBottom>
 
-        <GridRow>
+        <MarginBottom>
           <UsageTable
             isLoading={loading || loadingProjects}
             isError={error}
@@ -419,7 +420,7 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
             usageStats={tableStats}
           />
           <Pagination pageLinks={this.pageLink} />
-        </GridRow>
+        </MarginBottom>
       </Fragment>
     );
   }
@@ -427,6 +428,6 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
 
 export default withProjects(UsageStatsProjects);
 
-const GridRow = styled('div')`
-  grid-column: 1 / -1;
+const MarginBottom = styled('div')`
+  margin-bottom: ${space(2)};
 `;
