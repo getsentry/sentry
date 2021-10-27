@@ -12,6 +12,7 @@ import {loadOrganizationTags} from 'app/actionCreators/tags';
 import {Client} from 'app/api';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization} from 'app/types';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 
@@ -80,6 +81,10 @@ class Dashboard extends Component<Props> {
 
   handleStartAdd = () => {
     const {organization, dashboard, selection} = this.props;
+
+    trackAdvancedAnalyticsEvent('dashboards_views.add_widget_modal.opened', {
+      organization,
+    });
     openAddDashboardWidgetModal({
       organization,
       dashboard,
@@ -157,6 +162,10 @@ class Dashboard extends Component<Props> {
         },
       });
     }
+
+    trackAdvancedAnalyticsEvent('dashboards_views.edit_widget_modal.opened', {
+      organization,
+    });
 
     openAddDashboardWidgetModal({
       organization,
