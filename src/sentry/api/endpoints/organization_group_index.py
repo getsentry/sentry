@@ -15,7 +15,6 @@ from sentry.api.helpers.group_index import (
     calculate_stats_period,
     delete_groups,
     get_by_short_id,
-    rate_limit_endpoint,
     track_slo_response,
     update_groups,
 )
@@ -34,6 +33,7 @@ from sentry.models import (
     GroupStatus,
     Project,
 )
+from sentry.ratelimits import rate_limit_endpoint
 from sentry.search.events.constants import EQUALITY_OPERATORS
 from sentry.search.snuba.backend import assigned_or_suggested_filter
 from sentry.search.snuba.executors import get_search_filter

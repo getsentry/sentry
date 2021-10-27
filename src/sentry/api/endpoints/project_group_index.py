@@ -10,13 +10,13 @@ from sentry.api.helpers.group_index import (
     delete_groups,
     get_by_short_id,
     prep_search,
-    rate_limit_endpoint,
     track_slo_response,
     update_groups,
 )
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializer
 from sentry.models import QUERY_STATUS_LOOKUP, Environment, Group, GroupStatus
+from sentry.ratelimits import rate_limit_endpoint
 from sentry.search.events.constants import EQUALITY_OPERATORS
 from sentry.signals import advanced_search
 from sentry.utils.validators import normalize_event_id

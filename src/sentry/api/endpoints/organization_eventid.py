@@ -3,9 +3,9 @@ from rest_framework.response import Response
 from sentry import eventstore
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.helpers.group_index import rate_limit_endpoint
 from sentry.api.serializers import serialize
 from sentry.models import Project
+from sentry.ratelimits import rate_limit_endpoint
 from sentry.utils.validators import INVALID_ID_DETAILS, is_event_id
 
 

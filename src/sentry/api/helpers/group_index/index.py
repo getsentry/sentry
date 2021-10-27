@@ -18,7 +18,6 @@ from sentry.signals import advanced_search_feature_gated
 from sentry.utils import metrics
 from sentry.utils.compat import zip
 from sentry.utils.cursors import Cursor, CursorResult
-from sentry.utils.hashlib import md5_text
 
 from . import SEARCH_MAX_HITS
 from .validators import ValidationError
@@ -158,29 +157,6 @@ def track_slo_response(name: str) -> Callable[[EndpointFunction], EndpointFuncti
         return wrapper
 
     return inner_func
-
-
-def build_rate_limit_key(function: EndpointFunction, request: Request) -> str:
-    ip = request.META["REMOTE_ADDR"]
-    return f"rate_limit_endpoint:{md5_text(function.__qualname__).hexdigest()}:{ip}"
-
-
-def rate_limit_endpoint(limit: int = 1, window: int = 1) -> EndpointFunction:
-    def inner(function: EndpointFunction) -> EndpointFunction:
-        def wrapper(self: Any, request: Request, *args: Any, **kwargs: Any) -> Response:
-            return function(
-                self,
-                request,
-                *args,
-                limit=limit,
-                window=window,
-                enforce_limit=True,
-                **kwargs,
-            )
-
-        return wrapper
-
-    return inner
 
 
 def calculate_stats_period(

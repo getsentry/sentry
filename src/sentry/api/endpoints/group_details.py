@@ -14,7 +14,6 @@ from sentry.api.helpers.group_index import (
     delete_group_list,
     get_first_last_release,
     prep_search,
-    rate_limit_endpoint,
     update_groups,
 )
 from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serialize
@@ -23,6 +22,7 @@ from sentry.models import Activity, Group, GroupSeen, GroupSubscriptionManager, 
 from sentry.models.groupinbox import get_inbox_details
 from sentry.plugins.base import plugins
 from sentry.plugins.bases import IssueTrackingPlugin2
+from sentry.ratelimits import rate_limit_endpoint
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 

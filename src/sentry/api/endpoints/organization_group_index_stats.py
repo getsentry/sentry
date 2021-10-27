@@ -3,15 +3,12 @@ from rest_framework.response import Response
 
 from sentry.api.bases import OrganizationEventPermission, OrganizationEventsEndpointBase
 from sentry.api.endpoints.organization_group_index import ERR_INVALID_STATS_PERIOD
-from sentry.api.helpers.group_index import (
-    build_query_params_from_request,
-    calculate_stats_period,
-    rate_limit_endpoint,
-)
+from sentry.api.helpers.group_index import build_query_params_from_request, calculate_stats_period
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializerSnuba
 from sentry.api.utils import InvalidParams, get_date_range_from_params
 from sentry.models import Group
+from sentry.ratelimits import rate_limit_endpoint
 from sentry.utils.compat import map
 
 

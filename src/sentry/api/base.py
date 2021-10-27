@@ -25,8 +25,8 @@ from sentry.utils.dates import to_datetime
 from sentry.utils.http import absolute_uri, is_valid_origin, origin_from_request
 from sentry.utils.sdk import capture_exception
 
+from ..ratelimits.decorator import build_rate_limit_key
 from .authentication import ApiKeyAuthentication, TokenAuthentication
-from .helpers.group_index import build_rate_limit_key
 from .paginator import BadPaginationError, Paginator
 from .permissions import NoPermission
 

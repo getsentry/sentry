@@ -4,12 +4,12 @@ from django.http import QueryDict
 
 from sentry.api.helpers.group_index import (
     ValidationError,
-    build_rate_limit_key,
     update_groups,
     validate_search_filter_permissions,
 )
 from sentry.api.issue_search import parse_search_query
 from sentry.models import GroupInbox, GroupInboxReason, GroupStatus, add_group_to_inbox
+from sentry.ratelimits import build_rate_limit_key
 from sentry.testutils import TestCase
 from sentry.utils.hashlib import md5_text
 

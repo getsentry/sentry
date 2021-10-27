@@ -2,7 +2,8 @@ from rest_framework.response import Response
 
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
-from sentry.api.helpers.group_index import get_first_last_release, rate_limit_endpoint
+from sentry.api.helpers.group_index import get_first_last_release
+from sentry.ratelimits import rate_limit_endpoint
 
 
 class GroupFirstLastReleaseEndpoint(GroupEndpoint, EnvironmentMixin):
