@@ -5,7 +5,7 @@ import {Client} from 'app/api';
 import BaseChart from 'app/components/charts/baseChart';
 import TriggersChart from 'app/views/alerts/incidentRules/triggers/chart';
 
-jest.mock('app/components/charts/areaChart');
+jest.mock('app/components/charts/baseChart');
 
 describe('Incident Rules Create', () => {
   let eventStatsMock;
