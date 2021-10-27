@@ -563,7 +563,10 @@ class AppStoreConnectStartAuthEndpoint(ProjectEndpoint):  # type: ignore
         password = serializer.validated_data.get("itunesPassword")
         credentials_id = serializer.validated_data.get("id")
 
-        if credentials_id is not None:
+        no_new_password = not password or password == {"hidden-secret": True}
+        source_credentials_from_project = not user_name or no_new_password
+
+        if credentials_id is not None and source_credentials_from_project:
             try:
                 symbol_source_config = appconnect.AppStoreConnectConfig.from_project_config(
                     project, credentials_id
@@ -571,8 +574,8 @@ class AppStoreConnectStartAuthEndpoint(ProjectEndpoint):  # type: ignore
             except KeyError:
                 return Response("No credentials found.", status=400)
 
-            user_name = symbol_source_config.itunesUser
-            password = symbol_source_config.itunesPassword
+            user_name = symbol_source_config.itunesUser if not user_name else user_name
+            password = symbol_source_config.itunesPassword if no_new_password else password
 
         if user_name is None:
             return Response("No user name provided.", status=400)
