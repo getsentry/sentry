@@ -43,7 +43,6 @@ from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQueryEven
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.utils import json
-from sentry.utils.compat import map
 from sentry.utils.dates import to_timestamp
 
 EMPTY = object()

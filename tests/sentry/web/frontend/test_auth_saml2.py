@@ -13,7 +13,6 @@ from sentry.auth.providers.saml2.provider import HAS_SAML2, Attributes, SAML2Pro
 from sentry.models import AuditLogEntry, AuditLogEntryEvent, AuthProvider, Organization
 from sentry.testutils import AuthProviderTestCase
 from sentry.testutils.helpers import Feature
-from sentry.utils.compat import map
 
 dummy_provider_config = {
     "idp": {
@@ -134,7 +133,7 @@ class AuthSAML2Test(AuthProviderTestCase):
 
         auth = self.accept_auth(follow=True)
 
-        messages = map(lambda m: str(m), auth.context["messages"])
+        messages = list(map(lambda m: str(m), auth.context["messages"]))
 
         assert len(messages) == 2
         assert messages[0] == "You have successfully linked your account to your SSO provider."
@@ -158,7 +157,7 @@ class AuthSAML2Test(AuthProviderTestCase):
 
         assert auth.status_code == 200
 
-        messages = map(lambda m: str(m), auth.context["messages"])
+        messages = list(map(lambda m: str(m), auth.context["messages"]))
         assert len(messages) == 1
         assert messages[0] == "The organization does not exist or does not have SAML SSO enabled."
 
