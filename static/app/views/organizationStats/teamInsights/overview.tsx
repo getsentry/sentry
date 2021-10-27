@@ -9,6 +9,7 @@ import moment from 'moment';
 import {DateTimeObject} from 'app/components/charts/utils';
 import TeamSelector from 'app/components/forms/teamSelector';
 import * as Layout from 'app/components/layouts/thirds';
+import NoProjectMessage from 'app/components/noProjectMessage';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {ChangeData} from 'app/components/organizations/timeRangeSelector';
 import PageTimeRangeSelector from 'app/components/pageTimeRangeSelector';
@@ -162,6 +163,12 @@ function TeamInsightsOverview({location, router}: Props) {
     return {period: INSIGHTS_DEFAULT_STATS_PERIOD};
   }
   const {period, start, end, utc} = dataDatetime();
+
+  if (teams.length === 0) {
+    return (
+      <NoProjectMessage organization={organization} superuserNeedsToBeProjectMember />
+    );
+  }
 
   return (
     <Fragment>

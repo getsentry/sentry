@@ -1,5 +1,6 @@
 import {fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
+import ProjectsStore from 'app/stores/projectsStore';
 import TeamStore from 'app/stores/teamStore';
 import {isActiveSuperuser} from 'app/utils/isActiveSuperuser';
 import localStorage from 'app/utils/localStorage';
@@ -96,6 +97,23 @@ describe('TeamInsightsOverview', () => {
       url: `/teams/org-slug/${team1.slug}/release-count/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/teams/org-slug/${team2.slug}/alerts-triggered/`,
+      body: TestStubs.TeamAlertsTriggered(),
+    });
+    MockApiClient.addMockResponse({
+      url: `/teams/org-slug/${team2.slug}/time-to-resolution/`,
+      body: TestStubs.TeamResolutionTime(),
+    });
+    MockApiClient.addMockResponse({
+      url: `/teams/org-slug/${team2.slug}/issue-breakdown/`,
+      body: TestStubs.TeamIssuesReviewed(),
+    });
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/teams/org-slug/${team2.slug}/release-count/`,
+      body: [],
+    });
   });
 
   afterEach(() => {
@@ -119,14 +137,14 @@ describe('TeamInsightsOverview', () => {
     );
   }
 
-  it('defaults to first team', async () => {
+  it('defaults to first team', () => {
     createWrapper();
 
     expect(screen.getByText('#backend')).toBeInTheDocument();
     expect(screen.getByText('Key transaction')).toBeInTheDocument();
   });
 
-  it('allows team switching', async () => {
+  it('allows team switching', () => {
     createWrapper();
 
     expect(screen.getByText('#backend')).toBeInTheDocument();
@@ -142,7 +160,7 @@ describe('TeamInsightsOverview', () => {
     );
   });
 
-  it('superusers can switch to any team', async () => {
+  it('superusers can switch to any team', () => {
     isActiveSuperuser.mockReturnValue(true);
     createWrapper();
 
@@ -151,5 +169,13 @@ describe('TeamInsightsOverview', () => {
     expect(screen.getByText('#frontend')).toBeInTheDocument();
     // User is not a member of internal team
     expect(screen.getByText('#internal')).toBeInTheDocument();
+  });
+
+  it('shows users with no teams the join team button', () => {
+    createWrapper();
+    ProjectsStore.loadInitialData([{...project1, isMember: false}]);
+    TeamStore.loadInitialData([]);
+
+    expect(screen.getByText('Join a Team')).toBeInTheDocument();
   });
 });
