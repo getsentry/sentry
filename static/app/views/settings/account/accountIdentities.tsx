@@ -42,21 +42,25 @@ class AccountIdentities extends AsyncView<Props, State> {
     return (
       <IdentityPanelItem key={`${identity.category}:${identity.id}`}>
         <PluginIcon pluginId={identity.provider.key} />
-        <div>{identity.provider.name}</div>
-        {identity.dateAdded && <div>{identity.dateAdded}</div>}
-        <Tag
-          isOrgName={false}
-          label={
-            identity.category === UserIdentityCategory.SOCIAL_IDENTITY
-              ? t('App Integration')
-              : identity.category === UserIdentityCategory.GLOBAL_IDENTITY
-              ? t('Sign-In Identity')
-              : identity.category === UserIdentityCategory.ORG_IDENTITY
-              ? t('Organization Identity')
-              : ''
-          }
-        />
-        {identity.organization && <Tag isOrgName label={identity.organization.slug} />}
+        <InternalContainer>
+          <IdentityName>{identity.provider.name}</IdentityName>
+          {identity.dateAdded && <IdentityDate>{identity.dateAdded}</IdentityDate>}
+        </InternalContainer>
+        <InternalContainer>
+          <Tag
+            isOrgName={false}
+            label={
+              identity.category === UserIdentityCategory.SOCIAL_IDENTITY
+                ? t('App Integration')
+                : identity.category === UserIdentityCategory.GLOBAL_IDENTITY
+                ? t('Sign-In Identity')
+                : identity.category === UserIdentityCategory.ORG_IDENTITY
+                ? t('Organization Identity')
+                : ''
+            }
+          />
+          {identity.organization && <Tag isOrgName label={identity.organization.slug} />}
+        </InternalContainer>
 
         {this.renderButton(identity)}
       </IdentityPanelItem>
@@ -168,6 +172,22 @@ class AccountIdentities extends AsyncView<Props, State> {
 const IdentityPanelItem = styled(PanelItem)`
   align-items: center;
   justify-content: space-between;
+`;
+
+const InternalContainer = styled('div')`
+  display: flex;
+  padding: 0 ${space(2)};
+`;
+
+const IdentityName = styled('div')`
+  font-weight: bold;
+`;
+
+const IdentityDate = styled('div')`
+  display: flex;
+  align-items: center;
+  margin-top: 6px;
+  font-size: 0.8em;
 `;
 
 const Tag = styled(
