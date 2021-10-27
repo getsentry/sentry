@@ -80,3 +80,16 @@ jobs:
           python -m venv .venv
           source .venv/bin/activate
           make develop init-config
+
+  bootstrap-code:
+    runs-on: macos-11
+    timeout-minutes: 60
+    env:
+      PIP_DISABLE_PIP_VERSION_CHECK: on
+      # Make the environment more similar to what Mac defaults to
+      SHELL: /bin/zsh
+
+    steps:
+      - name: Run bootstrap code
+        run: |
+          bash <(curl -s https://raw.githubusercontent.com/getsentry/bootstrap-sentry/main/bootstrap.sh)
