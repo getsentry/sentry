@@ -515,7 +515,7 @@ class UnfurlTest(TestCase):
             project_id=self.project.id,
         )
 
-        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?display=worldmap&field=count()&name=All+Events&project={self.project.id}&query=&sort=-timestamp&statsPeriod=24h"
+        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?display=worldmap&field=count()&name=All+Events&project={self.project.id}&query=&statsPeriod=24h"
         link_type, args = match_link(url)
 
         if not args or not link_type:
