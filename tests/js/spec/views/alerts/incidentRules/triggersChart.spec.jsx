@@ -2,10 +2,10 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {Client} from 'app/api';
-import BaseChart from 'app/components/charts/baseChart';
+import AreaChart from 'app/components/charts/areaChart';
 import TriggersChart from 'app/views/alerts/incidentRules/triggers/chart';
 
-jest.mock('app/components/charts/baseChart');
+jest.mock('app/components/charts/areaChart');
 
 describe('Incident Rules Create', () => {
   let eventStatsMock;
@@ -14,7 +14,7 @@ describe('Incident Rules Create', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    BaseChart.default = jest.fn(() => null);
+    AreaChart.default = jest.fn(() => null);
     api = new Client();
     eventStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
@@ -73,7 +73,7 @@ describe('Incident Rules Create', () => {
       })
     );
 
-    expect(BaseChart).toHaveBeenCalledWith(
+    expect(AreaChart).toHaveBeenCalledWith(
       expect.objectContaining({
         series: [{data: expect.objectContaining({length: 1}), seriesName: 'count()'}],
       }),
@@ -137,15 +137,15 @@ describe('Incident Rules Create', () => {
     );
 
     // "series" accessed directly to assist with jest diff
-    expect(BaseChart.mock.calls[0][0].series).toEqual([
+    expect(AreaChart.mock.calls[0][0].series).toEqual([
       {data: expect.anything(), seriesName: 'count()'},
       {data: expect.anything(), seriesName: 'Minimum'},
       {data: expect.anything(), seriesName: 'Average'},
       {data: expect.anything(), seriesName: 'Maximum'},
     ]);
-    expect(BaseChart.mock.calls[0][0].series[0].data).toHaveLength(1199);
-    expect(BaseChart.mock.calls[0][0].series[1].data).toHaveLength(239);
-    expect(BaseChart.mock.calls[0][0].series[2].data).toHaveLength(239);
-    expect(BaseChart.mock.calls[0][0].series[3].data).toHaveLength(239);
+    expect(AreaChart.mock.calls[0][0].series[0].data).toHaveLength(1199);
+    expect(AreaChart.mock.calls[0][0].series[1].data).toHaveLength(239);
+    expect(AreaChart.mock.calls[0][0].series[2].data).toHaveLength(239);
+    expect(AreaChart.mock.calls[0][0].series[3].data).toHaveLength(239);
   });
 });
