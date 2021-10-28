@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
-  fireEvent,
   mountWithTheme,
   screen,
   userEvent,
@@ -401,7 +400,7 @@ describe('Filters and Sampling', function () {
       );
 
       // Clear release field
-      fireEvent.keyDown(releaseFieldInput, {key: 'Backspace'});
+      userEvent.type(releaseFieldInput, '{Backspace}');
 
       // Release field is now empty
       const newReleaseFieldValues = within(
@@ -411,20 +410,11 @@ describe('Filters and Sampling', function () {
 
       expect(modal.getByRole('button', {name: 'Save Rule'})).toBeDisabled();
 
-      // Type into realease field
-      fireEvent.change(
-        within(modal.getByTestId('autocomplete-release')).getByLabelText(
-          'Search or add a release'
-        ),
-        {
-          target: {value: '[I3].[0-9]'},
-        }
-      );
-
       // Autocomplete suggests options
       const autocompleteOptions = within(
         modal.getByTestId('autocomplete-release')
       ).getByTestId('option');
+
       expect(autocompleteOptions).toBeInTheDocument();
       expect(autocompleteOptions).toHaveTextContent('[I3].[0-9]');
 
@@ -434,12 +424,12 @@ describe('Filters and Sampling', function () {
       expect(modal.getByRole('button', {name: 'Save Rule'})).toBeEnabled();
 
       // Clear sample rate field
-      fireEvent.change(sampleRateField, {target: {value: null}});
+      userEvent.type(sampleRateField, '{Backspace}{Backspace}');
 
       expect(modal.getByRole('button', {name: 'Save Rule'})).toBeDisabled();
 
       // Update sample rate field
-      fireEvent.change(sampleRateField, {target: {value: 50}});
+      userEvent.type(sampleRateField, '50');
 
       // Save button is now enabled
       const saveRuleButtonEnabled = modal.getByRole('button', {name: 'Save Rule'});
@@ -614,7 +604,7 @@ describe('Filters and Sampling', function () {
       );
 
       // Clear release field
-      fireEvent.keyDown(releaseFieldInput, {key: 'Backspace'});
+      userEvent.type(releaseFieldInput, '{Backspace}');
 
       // Release field is now empty
       const newReleaseFieldValues = within(
@@ -625,13 +615,11 @@ describe('Filters and Sampling', function () {
       expect(modal.getByRole('button', {name: 'Save Rule'})).toBeDisabled();
 
       // Type into realease field
-      fireEvent.change(
+      userEvent.type(
         within(modal.getByTestId('autocomplete-release')).getByLabelText(
           'Search or add a release'
         ),
-        {
-          target: {value: '[0-9]'},
-        }
+        '[0-9]'
       );
 
       // Autocomplete suggests options
@@ -647,12 +635,15 @@ describe('Filters and Sampling', function () {
       expect(modal.getByRole('button', {name: 'Save Rule'})).toBeEnabled();
 
       // Clear sample rate field
-      fireEvent.change(sampleRateField, {target: {value: null}});
+      userEvent.type(
+        sampleRateField,
+        '{Backspace}{Backspace}{Backspace}{Backspace}{Backspace}'
+      );
 
       expect(modal.getByRole('button', {name: 'Save Rule'})).toBeDisabled();
 
       // Update sample rate field
-      fireEvent.change(sampleRateField, {target: {value: 60}});
+      userEvent.type(sampleRateField, '60');
 
       // Save button is now enabled
       const saveRuleButtonEnabled = modal.getByRole('button', {name: 'Save Rule'});
@@ -829,7 +820,7 @@ describe('Filters and Sampling', function () {
       );
 
       // Clear release field
-      fireEvent.keyDown(releaseFieldInput, {key: 'Backspace'});
+      userEvent.type(releaseFieldInput, '{Backspace}');
 
       // Release field is now empty
       const newReleaseFieldValues = within(
@@ -840,13 +831,11 @@ describe('Filters and Sampling', function () {
       expect(modal.getByRole('button', {name: 'Save Rule'})).toBeDisabled();
 
       // Type into realease field
-      fireEvent.change(
+      userEvent.type(
         within(modal.getByTestId('autocomplete-release')).getByLabelText(
           'Search or add a release'
         ),
-        {
-          target: {value: '[0-9]'},
-        }
+        '[0-9]'
       );
 
       // Autocomplete suggests options
@@ -862,12 +851,15 @@ describe('Filters and Sampling', function () {
       expect(modal.getByRole('button', {name: 'Save Rule'})).toBeEnabled();
 
       // Clear sample rate field
-      fireEvent.change(sampleRateField, {target: {value: null}});
+      userEvent.type(
+        sampleRateField,
+        '{Backspace}{Backspace}{Backspace}{Backspace}{Backspace}'
+      );
 
       expect(modal.getByRole('button', {name: 'Save Rule'})).toBeDisabled();
 
       // Update sample rate field
-      fireEvent.change(sampleRateField, {target: {value: 60}});
+      userEvent.type(sampleRateField, '60');
 
       // Save button is now enabled
       const saveRuleButtonEnabled = modal.getByRole('button', {name: 'Save Rule'});
@@ -1138,9 +1130,10 @@ describe('Filters and Sampling', function () {
       expect(releaseFieldValues).not.toBeInTheDocument();
 
       // Type into realease field
-      fireEvent.change(within(releaseField).getByLabelText('Search or add a release'), {
-        target: {value: '1.2.3'},
-      });
+      userEvent.type(
+        within(releaseField).getByLabelText('Search or add a release'),
+        '1.2.3'
+      );
 
       // Autocomplete suggests options
       const autocompleteOptions = within(releaseField).getByTestId('option');
@@ -1158,7 +1151,7 @@ describe('Filters and Sampling', function () {
       // Fill sample rate field
       const sampleRateField = modal.getByPlaceholderText('\u0025');
       expect(sampleRateField).toBeInTheDocument();
-      fireEvent.change(sampleRateField, {target: {value: 20}});
+      userEvent.type(sampleRateField, '20');
 
       // Save button is now enabled
       const saveRuleButtonEnabled = modal.getByRole('button', {name: 'Save Rule'});
@@ -1343,9 +1336,10 @@ describe('Filters and Sampling', function () {
         expect(releaseFieldValues).not.toBeInTheDocument();
 
         // Type into realease field
-        fireEvent.change(within(releaseField).getByLabelText('Search or add a release'), {
-          target: {value: '1.2.3'},
-        });
+        userEvent.type(
+          within(releaseField).getByLabelText('Search or add a release'),
+          '1.2.3'
+        );
 
         // Autocomplete suggests options
         const autocompleteOptions = within(
@@ -1365,7 +1359,7 @@ describe('Filters and Sampling', function () {
         // Fill sample rate field
         const sampleRateField = modal.getByPlaceholderText('\u0025');
         expect(sampleRateField).toBeInTheDocument();
-        fireEvent.change(sampleRateField, {target: {value: 20}});
+        userEvent.type(sampleRateField, '20');
 
         // Save button is now enabled
         const saveRuleButtonEnabled = modal.getByRole('button', {name: 'Save Rule'});
@@ -1460,11 +1454,9 @@ describe('Filters and Sampling', function () {
           expect(releaseFieldValues).not.toBeInTheDocument();
 
           // Type into realease field
-          fireEvent.change(
+          userEvent.type(
             within(releaseField).getByLabelText('Search or add a release'),
-            {
-              target: {value: '1.2.3'},
-            }
+            '1.2.3'
           );
 
           // Autocomplete suggests options
@@ -1485,7 +1477,7 @@ describe('Filters and Sampling', function () {
           // Fill sample rate field
           const sampleRateField = modal.getByPlaceholderText('\u0025');
           expect(sampleRateField).toBeInTheDocument();
-          fireEvent.change(sampleRateField, {target: {value: 20}});
+          userEvent.type(sampleRateField, '20');
 
           // Save button is now enabled
           const saveRuleButtonEnabled = modal.getByRole('button', {name: 'Save Rule'});
@@ -1617,7 +1609,7 @@ describe('Filters and Sampling', function () {
           // Fill sample rate field
           const sampleRateField = modal.getByPlaceholderText('\u0025');
           expect(sampleRateField).toBeInTheDocument();
-          fireEvent.change(sampleRateField, {target: {value: 20}});
+          userEvent.type(sampleRateField, '20');
 
           // Save button is now enabled
           const saveRuleButtonEnabled = modal.getByRole('button', {name: 'Save Rule'});

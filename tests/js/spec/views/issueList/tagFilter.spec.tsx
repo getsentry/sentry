@@ -1,13 +1,7 @@
 import {
-  fireEvent,
   mountWithTheme,
   screen,
-<<<<<<< HEAD
   waitForElementToBeRemoved,
-=======
-  userEvent,
-  waitFor,
->>>>>>> c1195e100f (ref(react-testing-library): Introduce user-events)
 } from 'sentry-test/reactTestingLibrary';
 
 import IssueListTagFilter from 'app/views/issueList/tagFilter';

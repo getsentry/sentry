@@ -1,4 +1,4 @@
-import {act, fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {act, mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {addTeamToProject} from 'app/actionCreators/projects';
 import {TeamSelector} from 'app/components/forms/teamSelector';
@@ -43,12 +43,8 @@ function createWrapper(props = {}) {
 }
 
 function openSelectMenu() {
-  const keyDownEvent = {
-    key: 'ArrowDown',
-  };
-
   const placeholder = screen.getByText('Select...');
-  fireEvent.keyDown(placeholder, keyDownEvent);
+  userEvent.type(placeholder, '{keyDown}');
 }
 
 describe('Team Selector', function () {
@@ -71,7 +67,7 @@ describe('Team Selector', function () {
     openSelectMenu();
 
     const option = screen.getByText('#team1');
-    fireEvent.click(option);
+    userEvent.click(option);
     expect(onChangeMock).toHaveBeenCalledWith(
       expect.objectContaining({value: 'team1'}),
       expect.anything()
@@ -125,7 +121,7 @@ describe('Team Selector', function () {
 
     await act(async () => {
       // add team2 to project
-      fireEvent.click(addToProjectButtons[0]);
+      userEvent.click(addToProjectButtons[0]);
       await tick();
     });
 
