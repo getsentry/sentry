@@ -4,7 +4,7 @@ from celery.task import current
 from django.urls import reverse
 from requests.exceptions import ConnectionError, RequestException, Timeout
 
-from sentry import features
+from sentry import analytics, features
 from sentry.api.serializers import AppPlatformEvent, serialize
 from sentry.constants import SentryAppInstallationStatus
 from sentry.eventstore.models import Event
@@ -131,8 +131,19 @@ def send_alert_event(
     request_data = AppPlatformEvent(
         resource="event_alert", action="triggered", install=install, data=data
     )
-
-    send_and_save_webhook_request(sentry_app, request_data)
+    try:
+        send_and_save_webhook_request(sentry_app, request_data)
+    except Exception as e:
+        raise e
+    else:
+        # On success, record analytic event for Alert Rule UI Component
+        if request_data.data.get("issue_alert"):
+            analytics.record(
+                "alert_rule_ui_component_webhook.sent",
+                organization_id=organization.id,
+                sentry_app_id=sentry_app_id,
+                event=f"{request_data.resource}.{request_data.action}",
+            )
 
 
 def _process_resource_change(action, sender, instance_id, retryer=None, *args, **kwargs):
@@ -406,7 +417,6 @@ def send_and_save_webhook_request(sentry_app, app_platform_event, url=None):
     event = f"{app_platform_event.resource}.{app_platform_event.action}"
     slug = sentry_app.slug_for_metrics
     url = url or sentry_app.webhook_url
-
     try:
         resp = safe_urlopen(
             url=url, data=app_platform_event.body, headers=app_platform_event.headers, timeout=5
@@ -473,5 +483,4 @@ def send_and_save_webhook_request(sentry_app, app_platform_event, url=None):
             raise ClientError(resp.status_code, url, response=resp)
 
         resp.raise_for_status()
-
         return resp

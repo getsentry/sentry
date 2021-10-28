@@ -23,6 +23,7 @@ class AlertRuleDetailsBase(AlertRuleBase):
             context={
                 "organization": self.organization,
                 "access": OrganizationGlobalAccess(self.organization),
+                "user": self.user,
             },
             data=data,
         )
