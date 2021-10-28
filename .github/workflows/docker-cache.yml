@@ -25,10 +25,24 @@ jobs:
       #     # XXX: Think through how to prevent the cache from overgrowing
       #     key: docker-cache
 
-      - name: Pull images
+      - name: Remove images
         run: |
           # Removing images to keep the cache small
           docker system prune -f
+          docker images -a
+
+      - uses: satackey/action-docker-layer-caching@v0.0.11
+        name: Docker Cache
+        continue-on-error: true
+        with:
+          # Note: You must include {hash} in the key input. ({hash} is replaced
+          # by the hash value of the Docker image when the action is executed.)
+          key: docker-cache-{hash}
+          restore-keys: |
+            docker-cache-
+
+      - name: Pull images
+        run: |
           docker images -a
           # XXX: Ideally we have a script that iterates SENTRY_DEVSERVICES
           # XXX: If using docker-compose, would we be able to pull in parallel
@@ -44,17 +58,3 @@ jobs:
           # docker pull us.gcr.io/sentryio/relay:nightly
           # docker pull us.gcr.io/sentryio/chartcuterie:nightly
           docker images -a
-
-      # In this step, the action saves existing images,
-      # the cache is created without them in the post run.
-      # It also restores the cache if it exists.
-      # Finally, "Post Run satackey/action-docker-layer-caching@v0.0.11",
-      # which is the process of saving the cache
-      - uses: satackey/action-docker-layer-caching@v0.0.11
-        name: Docker Cache
-        # Ignore the failure of a step and avoid terminating the job.
-        continue-on-error: true
-        with:
-          key: docker-cache-{hash}
-          restore-keys: |
-            docker-cache-
