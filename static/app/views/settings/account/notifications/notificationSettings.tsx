@@ -84,12 +84,12 @@ class NotificationSettings extends AsyncComponent<Props, State> {
   };
 
   get notificationSettingsType() {
-    const hasApprovalFeautreFlag =
+    const hasApprovalFeatureFlag =
       this.props.organizations.filter(org => org.features?.includes('slack-requests'))
         .length > 0;
     // filter out approvals if the feature flag isn't set
     return NOTIFICATION_SETTINGS_TYPES.filter(
-      type => type !== 'approval' || hasApprovalFeautreFlag
+      type => type !== 'approval' || hasApprovalFeatureFlag
     );
   }
 

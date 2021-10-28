@@ -41,7 +41,7 @@ class NotificationSettingTypes(Enum):
     # Notifications for changes in assignment, resolution, comments, etc.
     WORKFLOW = 30
 
-    # Notifications for approval notifications like a request to invite a member
+    # Notifications that require approval like a request to invite a member
     APPROVAL = 40
 
 

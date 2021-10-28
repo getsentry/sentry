@@ -58,6 +58,7 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
 
             if type(recipient) == User:
                 results[recipient]["organizations"] = user.get_orgs()
+
         return results
 
     def serialize(
@@ -121,4 +122,5 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
 
             # Override the notification settings.
             data[n.type_str][n.scope_str][n.scope_identifier][n.provider_str] = n.value_str
+
         return data
