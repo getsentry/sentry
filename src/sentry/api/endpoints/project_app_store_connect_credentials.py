@@ -44,7 +44,7 @@ To create and manage these credentials, several API endpoints exist:
    returns the entire symbol source JSON config to be saved in project details.  See
    :class:`AppStoreConnectUpdateCredentialsEndpoint`.
 
-7. ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/validate/{id}/``
+7. ``GET projects/{org_slug}/{proj_slug}/appstoreconnect/validate/{id}/``
 
    Validate if an existing iTunes session is still active or if a new one needs to be
    initiated by steps 2-4.  See :class:`AppStoreConnectCredentialsValidateEndpoint`.
@@ -405,7 +405,7 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
 class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: ignore
     """Validates both API credentials and if the stored ITunes session is still active.
 
-    ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/validate/{id}/``
+    ``GET projects/{org_slug}/{proj_slug}/appstoreconnect/validate/{id}/``
 
     See :class:`AppStoreConnectCreateCredentialsEndpoint` aka
     ``projects/{org_slug}/{proj_slug}/appstoreconnect/`` for how to retrieve the ``id``.
