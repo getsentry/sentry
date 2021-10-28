@@ -29,6 +29,7 @@ export const NOTIFICATION_SETTINGS_TYPES = [
   'alerts',
   'workflow',
   'deploy',
+  'approval',
   'reports',
   'email',
 ];
