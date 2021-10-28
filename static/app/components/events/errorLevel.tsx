@@ -18,7 +18,7 @@ const ErrorLevel = styled('span')<Props>`
   display: inline-block;
   border-radius: 50%;
   flex-shrink: 0;
-  background-color: ${p => p.theme.level[p.level] ?? p.theme.level.error};
+  background-color: ${p => (p.level ? p.theme.level[p.level] : p.theme.level.error)};
 `;
 
 export default ErrorLevel;
