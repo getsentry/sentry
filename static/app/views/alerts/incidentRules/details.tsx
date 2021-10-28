@@ -1,8 +1,7 @@
 import {RouteComponentProps} from 'react-router';
 
-import {Organization, Project, Team} from 'app/types';
+import {Organization, Project} from 'app/types';
 import {metric} from 'app/utils/analytics';
-import withTeams from 'app/utils/withTeams';
 import RuleForm from 'app/views/alerts/incidentRules/ruleForm';
 import {IncidentRule} from 'app/views/alerts/incidentRules/types';
 import AsyncView from 'app/views/asyncView';
@@ -17,7 +16,7 @@ type Props = {
   organization: Organization;
   onChangeTitle: (data: string) => void;
   project: Project;
-  teams: Team[];
+  userTeamIds: string[];
 } & RouteComponentProps<RouteParams, {}>;
 
 type State = {
@@ -54,11 +53,8 @@ class IncidentRulesDetails extends AsyncView<Props, State> {
   };
 
   renderBody() {
-    const {teams} = this.props;
     const {ruleId} = this.props.params;
     const {rule} = this.state;
-
-    const userTeamIds = teams.filter(({isMember}) => isMember).map(({id}) => id);
 
     return (
       <RuleForm
@@ -66,10 +62,9 @@ class IncidentRulesDetails extends AsyncView<Props, State> {
         ruleId={ruleId}
         rule={rule}
         onSubmitSuccess={this.handleSubmitSuccess}
-        userTeamIds={userTeamIds}
       />
     );
   }
 }
 
-export default withTeams(IncidentRulesDetails);
+export default IncidentRulesDetails;
