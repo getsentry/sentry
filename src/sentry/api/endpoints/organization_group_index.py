@@ -1,6 +1,6 @@
 import functools
 from datetime import datetime, timedelta
-from typing import List, Mapping, Optional, Sequence
+from typing import Any, List, Mapping, Optional, Sequence
 
 from django.utils import timezone
 from rest_framework.exceptions import ParseError, PermissionDenied
@@ -155,7 +155,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
     @track_slo_response("workflow")
     @rate_limit_endpoint(limit=10, window=1)
-    def get(self, request, organization):
+    def get(self, request, organization, **kwargs: Any):
         """
         List an Organization's Issues
         `````````````````````````````
