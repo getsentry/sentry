@@ -120,13 +120,13 @@ class Matcher(namedtuple("Matcher", "type pattern")):
 
     def test_frames(self, data, keys):
         for frame in _iter_frames(data):
-            value = next((frame.get(key) for key in keys if frame.get(key)), None)
+            for key in keys:
+                value = frame.get(key)
+                if not value:
+                    continue
 
-            if not value:
-                continue
-
-            if glob_match(value, self.pattern, ignorecase=True, path_normalize=True):
-                return True
+                if glob_match(value, self.pattern, ignorecase=True, path_normalize=True):
+                    return True
 
         return False
 

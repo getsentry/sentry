@@ -127,6 +127,25 @@ def test_matcher_test_exception():
     assert not Matcher("path", "*.py").test({})
 
 
+def test_matcher_file_abs_path_same_frame():
+    data = {
+        "exception": {
+            "values": [
+                {
+                    "stacktrace": {
+                        "frames": [
+                            {"filename": "foo/file.py", "abs_path": "/usr/local/src/other/app.py"},
+                        ]
+                    }
+                }
+            ]
+        }
+    }
+
+    assert Matcher("path", "/usr/local/src/*/app.py").test(data)
+    assert Matcher("path", "*local/src/*").test(data)
+
+
 def test_matcher_test_stacktrace():
     data = {
         "stacktrace": {
