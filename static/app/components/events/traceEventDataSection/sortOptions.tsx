@@ -31,7 +31,7 @@ function SortOptions({activeSortOption, onChange, disabled}: Props) {
         prefix: t('Sort By'),
         size: 'small',
         disabled,
-        title: disabled ? t('Stack trace only contains 1 frame') : undefined,
+        title: disabled ? t('Stack trace contains only 1 frame') : undefined,
       }}
       label={currentLabel}
     >

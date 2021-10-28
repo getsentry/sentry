@@ -10,7 +10,7 @@ import Generic from 'app/components/events/interfaces/generic';
 import Message from 'app/components/events/interfaces/message';
 import Request from 'app/components/events/interfaces/request';
 import Spans from 'app/components/events/interfaces/spans';
-import StackTrace from 'app/components/events/interfaces/stackTrace';
+import StackTrace from 'app/components/events/interfaces/stacktrace';
 import StackTraceV2 from 'app/components/events/interfaces/stackTraceV2';
 import Template from 'app/components/events/interfaces/template';
 import Threads from 'app/components/events/interfaces/threads';
