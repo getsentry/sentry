@@ -44,7 +44,7 @@ To create and manage these credentials, several API endpoints exist:
    returns the entire symbol source JSON config to be saved in project details.  See
    :class:`AppStoreConnectUpdateCredentialsEndpoint`.
 
-7. ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/validate/{id}/``
+7. ``GET projects/{org_slug}/{proj_slug}/appstoreconnect/validate/{id}/``
 
    Validate if an existing iTunes session is still active or if a new one needs to be
    initiated by steps 2-4.  See :class:`AppStoreConnectCredentialsValidateEndpoint`.
@@ -60,7 +60,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
-from sentry.api.bases.project import ProjectEndpoint, StrictProjectPermission
+from sentry.api.bases.project import ProjectEndpoint, ProjectPermission, StrictProjectPermission
 from sentry.api.exceptions import (
     AppConnectAuthenticationError,
     AppConnectMultipleSourcesError,
@@ -405,7 +405,7 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
 class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: ignore
     """Validates both API credentials and if the stored ITunes session is still active.
 
-    ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/validate/{id}/``
+    ``GET projects/{org_slug}/{proj_slug}/appstoreconnect/validate/{id}/``
 
     See :class:`AppStoreConnectCreateCredentialsEndpoint` aka
     ``projects/{org_slug}/{proj_slug}/appstoreconnect/`` for how to retrieve the ``id``.
@@ -434,7 +434,7 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
       iTunes session since we know we need to fetch more dSYMs.
     """
 
-    permission_classes = [StrictProjectPermission]
+    permission_classes = [ProjectPermission]
 
     def get(self, request: Request, project: Project, credentials_id: str) -> Response:
         try:
