@@ -378,7 +378,10 @@ const level = {
   sample: colors.purple300,
   info: colors.blue300,
   warning: colors.yellow300,
-  error: colors.pink300,
+  // Hardcoded legacy color (orange400). We no longer use orange anywhere
+  // else in the app (except for the chart palette). This needs to be harcoded
+  // here because existing users may still associate orange with the "error" level.
+  error: '#FF7738',
   fatal: colors.red300,
   default: colors.gray300,
 };
