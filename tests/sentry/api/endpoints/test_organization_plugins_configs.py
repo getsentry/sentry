@@ -27,7 +27,6 @@ class OrganizationPluginsTest(APITestCase):
             "amazon-sqs",
             "asana",
             "bitbucket",
-            "clubhouse",
             "github",
             "gitlab",
             "heroku",
@@ -42,11 +41,9 @@ class OrganizationPluginsTest(APITestCase):
             "sessionstack",
             "slack",
             "splunk",
-            "teamwork",
             "trello",
             "twilio",
             "victorops",
-            "vsts",
             "webhooks",
         ]
         for plugin in expected_plugins:

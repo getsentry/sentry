@@ -21,8 +21,6 @@ class Migrator(Mediator):
                     self.disable_for_all_projects(plugin)
 
     def all_repos_migrated(self, provider):
-        provider = "visualstudio" if provider == "vsts" else provider
-
         return all(r.integration_id is not None for r in self.repos_for_provider(provider))
 
     def disable_for_all_projects(self, plugin):
