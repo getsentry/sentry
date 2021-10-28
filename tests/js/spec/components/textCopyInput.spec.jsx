@@ -1,10 +1,10 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
 
 describe('TextCopyInput', function () {
   it('renders', function () {
-    const wrapper = mountWithTheme(<TextCopyInput>Text to Copy</TextCopyInput>);
-    expect(wrapper).toSnapshot();
+    mountWithTheme(<TextCopyInput>Text to Copy</TextCopyInput>);
+    expect(screen.getByDisplayValue('Text to Copy')).toBeInTheDocument();
   });
 });
