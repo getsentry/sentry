@@ -264,7 +264,6 @@ def _path_to_regex(pattern: str) -> Pattern[str]:
     SOFTWARE.
     """
     regex = ""
-
     # Special case backslash can match a backslash file or directory
     if pattern[0] == "\\":
         return re.compile(r"\\(?:\Z|/)")
@@ -277,10 +276,9 @@ def _path_to_regex(pattern: str) -> Pattern[str]:
     matches_dir = pattern[-1] == "/"
     if matches_dir:
         pattern = pattern.rstrip("/")
-
     # patterns ending with "/*" are special. They only match items directly in the directory
     # not deeper
-    trailing_slash_star = pattern[-1] == "*" and len(pattern) > 1 and pattern[-2] == "/"
+    trailing_slash_star = pattern[-1] == "*" and pattern[-2] == "/" if len(pattern) > 1 else False
 
     iterator = enumerate(pattern)
 

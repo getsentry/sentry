@@ -536,6 +536,30 @@ def test_codeowners_match_backslash(path_details, expected):
     _assert_matcher(Matcher("codeowners", "\\filename"), path_details, expected)
 
 
+@pytest.mark.parametrize(
+    "path_details, expected",
+    [
+        ([{"filename": "foo/"}, {"abs_path": "/usr/local/src/foo/"}], True),
+        (
+            [
+                {"filename": "/foo/subdir/"},
+                {"abs_path": "/usr/local/src/foo/subdir/"},
+            ],
+            True,
+        ),
+        (
+            [
+                {"filename": "config/subdir/test.py"},
+                {"abs_path": "/usr/local/src/config/subdir/test.py"},
+            ],
+            True,
+        ),
+    ],
+)
+def test_codeowners_match_fowardslash(path_details, expected):
+    _assert_matcher(Matcher("codeowners", "/"), path_details, expected)
+
+
 def test_parse_code_owners():
     assert parse_code_owners(codeowners_fixture_data) == (
         ["@getsentry/frontend", "@getsentry/docs", "@getsentry/ecosystem"],
