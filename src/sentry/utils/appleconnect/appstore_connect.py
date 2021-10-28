@@ -357,7 +357,7 @@ def get_build_info(
                         if len(build_bundles) > 0:
                             bundle = build_bundles[0]
                             dsym_url = safe.get_path(
-                                bundle, "attributes", "dSYMUrl", NoDsymUrl.PENDING
+                                bundle, "attributes", "dSYMUrl", default=NoDsymUrl.PENDING
                             )
 
                     build_info.append(
