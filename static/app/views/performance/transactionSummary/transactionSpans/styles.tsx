@@ -10,7 +10,7 @@ import space from 'app/styles/space';
 export const Actions = styled('div')`
   display: grid;
   grid-gap: ${space(2)};
-  grid-template-columns: 1fr min-content;
+  grid-template-columns: min-content 1fr min-content;
   align-items: center;
 `;
 
