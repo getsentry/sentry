@@ -1,6 +1,6 @@
 import pytest
 import requests
-import responses as responses_mod
+import responses as responses_mod  # type: ignore
 
 from sentry.utils.appleconnect import appstore_connect
 

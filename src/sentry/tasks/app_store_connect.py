@@ -61,7 +61,7 @@ def inner_dsym_download(project_id: int, config_id: str) -> None:
                 client.download_dsym(build, pathlib.Path(dsyms_zip.name))
             except appconnect.NoDsymsError:
                 logger.debug("No dSYMs for build %s", build)
-            except appconnect.UnavailableDsymsError:
+            except appconnect.PendingDsymsError:
                 logger.debug("dSYM url currently unavailable for build %s", build)
                 # Moving on to the next build so we don't check off fetched. This url will
                 # eventuallyTM be populated, so revisit it at a later time.

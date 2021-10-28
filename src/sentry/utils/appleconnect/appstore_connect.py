@@ -1,10 +1,13 @@
+import dataclasses
+import datetime
+import enum
 import io
 import logging
 import pathlib
 import time
 from collections import namedtuple
 from http import HTTPStatus
-from typing import Any, Dict, Generator, List, Mapping, NewType, Optional, Tuple
+from typing import Any, Dict, Generator, List, Mapping, NewType, Optional, Tuple, Union
 
 import sentry_sdk
 from dateutil.parser import parse as parse_date
@@ -36,6 +39,50 @@ class ForbiddenError(RequestError):
     """The App Store Connect session does not have access to the requested dSYM."""
 
     pass
+
+
+class NoDsymUrl(enum.Enum):
+    """Indicates the reason of absense of a dSYM URL from :class:`BuildInfo`."""
+
+    PENDING = enum.auto()
+    NOT_NEEDED = enum.auto()
+
+
+@dataclasses.dataclass(frozen=True)
+class BuildInfo:
+    """Information about an App Store Connect build.
+
+    A build is identified by the tuple of (app_id, platform, version, build_number), though
+    Apple mostly names these differently.
+    """
+
+    # The app ID
+    app_id: str
+
+    # A platform identifier, e.g. iOS, TvOS etc.
+    #
+    # These are not always human-readable and can be some opaque string supplied by Apple.
+    platform: str
+
+    # The human-readable version, e.g. "7.2.0".
+    #
+    # Each version can have multiple builds, Apple naming is a little confusing and calls
+    # this "bundle_short_version".
+    version: str
+
+    # The build number, typically just a monotonically increasing number.
+    #
+    # Apple naming calls this the "bundle_version".
+    build_number: str
+
+    # The date and time the build was uploaded to App Store Connect.
+    uploaded_date: datetime.datetime
+
+    # The URL where we can download a zip file with dSYMs from.
+    #
+    # Empty string if no dSYMs exist, None if there are dSYMs but they're not immediately available,
+    # and is some string value if there are dSYMs and they're available.
+    dsym_url: Union[NoDsymUrl, str]
 
 
 def _get_authorization_header(
@@ -219,7 +266,7 @@ class _IncludedRelations:
 
 def get_build_info(
     session: Session, credentials: AppConnectCredentials, app_id: str
-) -> List[Dict[str, Any]]:
+) -> List[BuildInfo]:
     """Returns the build infos for an application.
 
     The release build version information has the following structure:
@@ -278,29 +325,22 @@ def get_build_info(
                     uploaded_date = parse_date(build["attributes"]["uploadedDate"])
 
                     # https://developer.apple.com/documentation/appstoreconnectapi/build/relationships/buildbundles
-                    build_bundles = relations.get_related(build, "buildBundles")
-                    dsym_url = ""
                     # https://developer.apple.com/documentation/appstoreconnectapi/buildbundle/attributes
+                    # If you ever write code for this here you probably will find an
+                    # includesSymbols attribute in the buildBundles and wonder why we ignore
+                    # it.  Then you'll look at it and wonder why it doesn't match anything
+                    # to do with whether dSYMs can be downloaded or not.  This is because
+                    # the includesSymbols only indicates whether App Store Connect has full
+                    # symbol names or not, it does not have anything to do with whether it
+                    # was a bitcode upload or a native upload.  And whether dSYMs are
+                    # available for download only depends on whether it was a bitcode
+                    # upload.
+                    build_bundles = relations.get_multiple_related(build, "buildBundles")
+                    dsym_url = NoDsymUrl.NOT_NEEDED
                     if build_bundles is not None:
-                        has_symbols = [
-                            bundle
-                            for bundle in build_bundles
-                            # TODO: fastlane uses this check, but if we turn this on our sentry test
-                            # org has zero builds, making testing difficult. unsure what this field
-                            # even means. maybe all of our dsyms on our test app don't actually have
-                            # symbols?
-                            # if safe.get_path(bundle, "attributes", "includesSymbols", default=False)
-                            #
-                            # if we want to rely on just checking for the presence of dSYMUrl then
-                            # just transform build_bundles into a list of dSYMUrls instead.
-                            # later we should prioritize bundles with includesSymbols == true and
-                            # dSYMUrl being present
-                            if safe.get_path(bundle, "attributes", "dSYMUrl") is not None
-                        ]
-
-                        # No bundles is self-explanatory, but multiple dSYMs for a build currently
-                        # is unexpected.
-                        if len(has_symbols) != 1:
+                        if len(build_bundles) != 1:
+                            # We currently do not know how to handle these, we'll carry on
+                            # with the first bundle but report this as an error.
                             with sentry_sdk.push_scope() as scope:
                                 scope.set_context(
                                     "App Store Connect Build",
@@ -309,22 +349,34 @@ def get_build_info(
                                         "build_bundles": build_bundles,
                                     },
                                 )
-                                sentry_sdk.capture_message("len(buildBundlesWithdSYMs) != 1")
+                                sentry_sdk.capture_message("len(buildBundles) != 1")
 
-                        if len(has_symbols) > 0:
-                            bundle = has_symbols[0]
+                        # Because we only ask for processingState=VALID builds we expect the
+                        # builds to be finished and if there are no dSYMs that means the
+                        # build doesn't need dSYMs, i.e. it not a bitcode build.
+
+                        # TODO: verify this, it might be that a buildBundle should ALWAYS
+                        # have a dSYMUrl.  I am tempted to capture an error if there is no
+                        # dSYMUrl instead of this logic.
+                        bundles_with_dsyms = [
+                            bundle
+                            for bundle in build_bundles
+                            if safe.get_path(bundle, "attributes", "dSYMUrl") is not None
+                        ]
+                        if len(bundles_with_dsyms) > 0:
+                            bundle = bundles_with_dsyms[0]
                             dsym_url = safe.get_path(bundle, "attributes", "dSYMUrl")
 
-                    # Literally a BuildInfo without the app id
-                    result = {
-                        "platform": platform,
-                        "version": version,
-                        "build_number": build_number,
-                        "uploaded_date": uploaded_date,
-                        "dsym_url": dsym_url,
-                    }
-
-                    build_info.append(result)
+                    build_info.append(
+                        BuildInfo(
+                            app_id=app_id,
+                            platform=platform,
+                            version=version,
+                            build_number=build_number,
+                            uploaded_date=uploaded_date,
+                            dsym_url=dsym_url,
+                        )
+                    )
                 except Exception:
                     logger.error(
                         "Failed to process AppStoreConnect build from API: %s",

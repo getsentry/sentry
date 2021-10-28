@@ -8,7 +8,7 @@ import dataclasses
 import logging
 import pathlib
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import dateutil
 import jsonschema
@@ -22,6 +22,10 @@ from sentry.utils import json
 from sentry.utils.appleconnect import appstore_connect, itunes_connect
 
 logger = logging.getLogger(__name__)
+
+# This might be odd, but it convinces mypy that this is part of this module's API.
+BuildInfo = appstore_connect.BuildInfo
+NoDsymUrl = appstore_connect.NoDsymUrl
 
 
 # The key in the project options under which all symbol sources are stored.
@@ -37,7 +41,7 @@ class InvalidConfigError(Exception):
     pass
 
 
-class UnavailableDsymsError(Exception):
+class PendingDsymsError(Exception):
     """dSYM url is currently unavailable."""
 
     pass
@@ -248,43 +252,6 @@ class AppStoreConnectConfig:
         return all_sources
 
 
-@dataclasses.dataclass(frozen=True)
-class BuildInfo:
-    """Information about an App Store Connect build.
-
-    A build is identified by the tuple of (app_id, platform, version, build_number), though
-    Apple mostly names these differently.
-    """
-
-    # The app ID
-    app_id: str
-
-    # A platform identifier, e.g. iOS, TvOS etc.
-    #
-    # These are not always human-readable and can be some opaque string supplied by Apple.
-    platform: str
-
-    # The human-readable version, e.g. "7.2.0".
-    #
-    # Each version can have multiple builds, Apple naming is a little confusing and calls
-    # this "bundle_short_version".
-    version: str
-
-    # The build number, typically just a monotonically increasing number.
-    #
-    # Apple naming calls this the "bundle_version".
-    build_number: str
-
-    # The date and time the build was uploaded to App Store Connect.
-    uploaded_date: datetime
-
-    # The URL where we can download a zip file with dSYMs from.
-    #
-    # Empty string if no dSYMs exist, None if there are dSYMs but they're not immediately available,
-    # and is some string value if there are dSYMs and they're available.
-    dsym_url: Optional[str]
-
-
 class AppConnectClient:
     """Client to interact with a single app from App Store Connect.
 
@@ -296,15 +263,11 @@ class AppConnectClient:
     def __init__(
         self,
         api_credentials: appstore_connect.AppConnectCredentials,
-        itunes_cookie: str,
-        itunes_org: itunes_connect.PublicProviderId,
         app_id: str,
     ) -> None:
         """Internal init, use one of the classmethods instead."""
         self._api_credentials = api_credentials
         self._session = requests.Session()
-        self._itunes_cookie = itunes_cookie
-        self._itunes_org = itunes_org
         self._app_id = app_id
 
     @classmethod
@@ -332,37 +295,22 @@ class AppConnectClient:
         )
         return cls(
             api_credentials=api_credentials,
-            itunes_cookie=config.itunesSession,
-            itunes_org=config.orgPublicId,
             app_id=config.appId,
         )
 
     def list_builds(self) -> List[BuildInfo]:
         """Returns the available AppStore builds."""
-        builds = []
-        all_results = appstore_connect.get_build_info(
-            self._session, self._api_credentials, self._app_id
-        )
-        for build in all_results:
-            builds.append(
-                BuildInfo(
-                    app_id=self._app_id,
-                    platform=build["platform"],
-                    version=build["version"],
-                    build_number=build["build_number"],
-                    uploaded_date=build["uploaded_date"],
-                    dsym_url=build["dsym_url"],
-                )
-            )
-
-        return builds
+        return appstore_connect.get_build_info(self._session, self._api_credentials, self._app_id)
 
     def download_dsym(self, build: BuildInfo, path: pathlib.Path) -> None:
         with sentry_sdk.start_span(op="dsym", description="Download dSYM"):
-            if build.dsym_url is None:
-                raise UnavailableDsymsError
-            elif not build.dsym_url:
-                raise NoDsymsError
+            if isinstance(build.dsym_url, NoDsymUrl):
+                if build.dsym_url is NoDsymUrl.NOT_NEEDED:
+                    raise NoDsymsError
+                elif build.dsym_url is NoDsymUrl.PENDING:
+                    raise PendingDsymsError
+                else:
+                    raise ValueError(f"dSYM URL missing: {build.dsym_url}")
 
             logger.debug("Fetching dSYM from: %s", build.dsym_url)
             appstore_connect.download_dsym(
