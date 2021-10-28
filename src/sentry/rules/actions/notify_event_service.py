@@ -3,7 +3,6 @@ Used for notifying a *specific* plugin/sentry app with a generic webhook payload
 """
 
 import logging
-from typing import Optional
 
 from django import forms
 
@@ -100,26 +99,23 @@ def send_incident_alert_notification(action, incident, metric_value=None, method
         )
 
 
-def find_alert_rule_action_ui_component(app_platform_event: AppPlatformEvent) -> Optional[bool]:
+def find_alert_rule_action_ui_component(app_platform_event: AppPlatformEvent) -> bool:
     # Loop through the triggers for the alert rule event. For each trigger, check if an action is an alert rule UI Component
-    alert_rule_action_ui_component = False
-    for trigger in (
-        app_platform_event.get("data", {})
+    triggers = (
+        getattr(app_platform_event, "data", {})
         .get("metric_alert", {})
         .get("alert_rule", {})
         .get("triggers", [])
-    ):
-        alert_rule_action_ui_component = next(
-            iter(
-                filter(
-                    lambda action: action["type"] == "sentry_app"
-                    and action["settings"] is not None,
-                    trigger["actions"],
-                )
-            ),
-            None,
-        )
-    return alert_rule_action_ui_component
+    )
+
+    actions = [
+        action
+        for trigger in triggers
+        for action in trigger["actions"]
+        if (action["type"] == "sentry_app" and action["settings"] is not None)
+    ]
+
+    return True if len(actions) else False
 
 
 class NotifyEventServiceForm(forms.Form):
