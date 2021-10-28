@@ -93,7 +93,7 @@ function DisplayOptions({
   return (
     <Wrapper
       button={({isOpen, getActorProps}) => (
-        <StyledDropdownButton
+        <OptionsButton
           {...getActorProps()}
           isOpen={isOpen}
           prefix={t('Options')}
@@ -103,7 +103,7 @@ function DisplayOptions({
           {tct('[activeOptionsQuantity] Active', {
             activeOptionsQuantity: activeDisplayOptions.length,
           })}
-        </StyledDropdownButton>
+        </OptionsButton>
       )}
     >
       {({getMenuProps, isOpen}) => (
@@ -115,13 +115,13 @@ function DisplayOptions({
           blendWithActor
           blendCorner
         >
-          <StyledList>
+          <OptionList>
             {DISPLAY_OPTIONS.map(({label, value, disabled, tooltip}) => {
               const displayOption = value as DisplayOption;
               const isDisabled = !!disabled;
               const isChecked = activeDisplayOptions.includes(displayOption);
               return (
-                <StyledListItem
+                <Option
                   key={value}
                   onClick={event => {
                     event.stopPropagation();
@@ -132,16 +132,16 @@ function DisplayOptions({
                     handleChange(displayOption);
                   }}
                 >
-                  <FullWidthTooltip title={tooltip} disabled={!tooltip}>
+                  <OptionTooltip title={tooltip} disabled={!tooltip}>
                     <ItemContent isDisabled={isDisabled} isChecked={isChecked}>
                       {label}
                       <CheckboxFancy isChecked={isChecked} isDisabled={isDisabled} />
                     </ItemContent>
-                  </FullWidthTooltip>
-                </StyledListItem>
+                  </OptionTooltip>
+                </Option>
               );
             })}
-          </StyledList>
+          </OptionList>
         </DropdownMenu>
       )}
     </Wrapper>
@@ -189,7 +189,7 @@ const DropdownMenu = styled(Content)`
   }
 `;
 
-const StyledDropdownButton = styled(DropdownButton)`
+const OptionsButton = styled(DropdownButton)`
   z-index: ${p => p.theme.zIndex.dropdownAutocomplete.actor};
   white-space: nowrap;
 
@@ -226,7 +226,7 @@ const StyledDropdownButton = styled(DropdownButton)`
   }
 `;
 
-const StyledList = styled(List)`
+const OptionList = styled(List)`
   grid-gap: 0;
 `;
 
@@ -264,10 +264,10 @@ const ItemContent = styled('div')<{isChecked: boolean; isDisabled: boolean}>`
   `}
 `;
 
-const StyledListItem = styled(ListItem)`
+const Option = styled(ListItem)`
   border-bottom: 1px solid ${p => p.theme.border};
 `;
 
-const FullWidthTooltip = styled(Tooltip)`
+const OptionTooltip = styled(Tooltip)`
   width: 100%;
 `;
