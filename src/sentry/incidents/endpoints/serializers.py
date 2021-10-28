@@ -228,9 +228,9 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
         else:
             analytics.record(
                 "metric_alert_with_ui_component.created",
-                user_id=self.context["user"].id,
-                alert_rule_id=self.context["alert_rule"].id,
-                organization_id=self.context["organization"].id,
+                user_id=getattr(self.context["user"], "id", None),
+                alert_rule_id=getattr(self.context["alert_rule"], "id"),
+                organization_id=getattr(self.context["organization"], "id"),
             )
             return action
 
