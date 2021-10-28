@@ -282,7 +282,7 @@ def query_example_transactions(
     query: Optional[str],
     order_column: str,
     suspects: List[SuspectSpan],
-    per_suspect: int = 3,
+    per_suspect: int = 5,
 ) -> Dict[Tuple[str, str], List[str]]:
     # there aren't any suspects, early return to save an empty query
     if not suspects:
