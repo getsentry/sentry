@@ -20,7 +20,7 @@ describe('TeamInsightsContainer', () => {
       {context}
     );
 
-    expect(screen.queryByText('test')).toBeNull();
+    expect(screen.queryByText('test')).not.toBeInTheDocument();
   });
   it('allows access for orgs with flag', () => {
     ProjectsStore.loadInitialData([
@@ -38,7 +38,7 @@ describe('TeamInsightsContainer', () => {
       {context}
     );
 
-    expect(screen.getByText('test')).toBeTruthy();
+    expect(screen.getByText('test')).toBeInTheDocument();
   });
   it('shows message for users with no teams', () => {
     ProjectsStore.loadInitialData([]);
@@ -50,6 +50,6 @@ describe('TeamInsightsContainer', () => {
 
     expect(
       screen.getByText('You need at least one project to use this view')
-    ).toBeTruthy();
+    ).toBeInTheDocument();
   });
 });

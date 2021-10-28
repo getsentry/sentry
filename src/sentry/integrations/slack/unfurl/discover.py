@@ -10,6 +10,7 @@ from sentry import analytics, features
 from sentry.api import client
 from sentry.charts import generate_chart
 from sentry.charts.types import ChartType
+from sentry.discover.arithmetic import is_equation
 from sentry.integrations.slack.message_builder.discover import build_discover_attachment
 from sentry.models import ApiKey, Integration
 from sentry.models.user import User
@@ -24,13 +25,35 @@ display_modes: Mapping[str, ChartType] = {
     "default": ChartType.SLACK_DISCOVER_TOTAL_PERIOD,
     "daily": ChartType.SLACK_DISCOVER_TOTAL_DAILY,
     "top5": ChartType.SLACK_DISCOVER_TOP5_PERIOD,
+    "top5line": ChartType.SLACK_DISCOVER_TOP5_PERIOD_LINE,
     "dailytop5": ChartType.SLACK_DISCOVER_TOP5_DAILY,
     "previous": ChartType.SLACK_DISCOVER_PREVIOUS_PERIOD,
+}
+
+# All `multiPlotType: line` fields in /static/app/utils/discover/fields.tsx
+line_plot_fields = {
+    "count_unique",
+    "failure_count",
+    "min",
+    "max",
+    "p50",
+    "p75",
+    "p95",
+    "p99",
+    "p100",
+    "percentile",
+    "avg",
+    "apdex",
+    "user_misery",
+    "failure_rate",
 }
 
 TOP_N = 5
 MAX_PERIOD_DAYS_INCLUDE_PREVIOUS = 45
 DEFAULT_PERIOD = "14d"
+DEFAULT_AXIS_OPTION = "count()"
+AGGREGATE_PATTERN = r"^(\w+)\((.*)?\)$"
+AGGREGATE_BASE = r"(\w+)\((.*)?\)"
 
 
 def get_double_period(period: str) -> str:
@@ -42,6 +65,25 @@ def get_double_period(period: str) -> str:
     value = int(value)
 
     return f"{value * 2}{unit}"
+
+
+def get_top5_display_mode(field: str) -> str:
+    if is_equation(field):
+        return "top5line"
+
+    return "top5line" if field.split("(")[0] in line_plot_fields else "top5"
+
+
+def is_aggregate(field: str) -> bool:
+    field_match = re.match(AGGREGATE_PATTERN, field)
+    if field_match:
+        return True
+
+    equation_match = re.match(AGGREGATE_BASE, field) and is_equation(field)
+    if equation_match:
+        return True
+
+    return False
 
 
 def unfurl_discover(
@@ -90,8 +132,13 @@ def unfurl_discover(
             or (to_list(saved_query.get("orderby")) if saved_query.get("orderby") else []),
         )
         params.setlist("name", params.getlist("name") or to_list(saved_query.get("name")))
+
+        fields = params.getlist("field") or to_list(saved_query.get("fields"))
+        # Mimic Discover to pick the first aggregate as the yAxis option if
+        # one isn't specified.
+        axis_options = [field for field in fields if is_aggregate(field)] + [DEFAULT_AXIS_OPTION]
         params.setlist(
-            "yAxis", params.getlist("yAxis") or to_list(saved_query.get("yAxis", "count()"))
+            "yAxis", params.getlist("yAxis") or to_list(saved_query.get("yAxis", axis_options[0]))
         )
         params.setlist("field", params.getlist("field") or to_list(saved_query.get("fields")))
 
@@ -120,6 +167,10 @@ def unfurl_discover(
                 )
             else:
                 params.setlist("topEvents", [f"{TOP_N}"])
+
+            y_axis = params.getlist("yAxis")[0]
+            display_mode = get_top5_display_mode(y_axis)
+
         else:
             # topEvents param persists in the URL in some cases, we want to discard
             # it if it's not a top n display type.

@@ -5,7 +5,6 @@ from freezegun import freeze_time
 
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.utils.compat import map
 
 
 class GroupEventsTest(APITestCase, SnubaTestCase):
@@ -350,4 +349,4 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
             response = self.client.get(url, format="json")
             assert response.status_code == 200, response.content
             assert len(response.data) == 1, response.data
-            assert map(lambda x: x["eventID"], response.data) == [str(event.event_id)]
+            assert list(map(lambda x: x["eventID"], response.data)) == [str(event.event_id)]

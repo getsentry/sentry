@@ -4,7 +4,7 @@ from typing import Any, Iterable, Mapping, MutableMapping, Optional, Union
 import pytz
 
 from sentry.models import Team, User, UserOption
-from sentry.notifications.notifications.base import BaseNotification
+from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import ActionTargetType
 from sentry.notifications.utils import (
     get_commits,
@@ -23,9 +23,10 @@ from sentry.utils import metrics
 logger = logging.getLogger(__name__)
 
 
-class AlertRuleNotification(BaseNotification):
+class AlertRuleNotification(ProjectNotification):
     fine_tuning_key = "alerts"
     is_message_issue_unfurl = True
+    metrics_key = "issue_alert"
 
     def __init__(
         self,

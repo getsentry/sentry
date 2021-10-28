@@ -9,7 +9,11 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 
-import {convertDaySeriesToWeeks, convertDayValueObjectToSeries} from './utils';
+import {
+  barAxisLabel,
+  convertDaySeriesToWeeks,
+  convertDayValueObjectToSeries,
+} from './utils';
 
 type AlertsTriggered = Record<string, number>;
 
@@ -86,15 +90,15 @@ class TeamAlertsTriggered extends AsyncComponent<Props, State> {
             period="7d"
             legend={{right: 0, top: 0}}
             yAxis={{minInterval: 1}}
-            xAxis={{
-              type: 'time',
-            }}
+            xAxis={barAxisLabel(seriesData.length)}
             series={[
               {
                 seriesName: t('Alerts Triggered'),
                 data: seriesData,
+                // @ts-expect-error silent does not exist in bar series type
+                silent: true,
               },
-            ].reverse()}
+            ]}
           />
         )}
       </ChartWrapper>

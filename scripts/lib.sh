@@ -24,6 +24,10 @@ require() {
 }
 
 configure-sentry-cli() {
+    # XXX: For version 1.70.1 there's a bug hitting SENTRY_CLI_NO_EXIT_TRAP: unbound variable
+    # We can remove this after it's fixed
+    # https://github.com/getsentry/sentry-cli/pull/1059
+    export SENTRY_CLI_NO_EXIT_TRAP=${SENTRY_CLI_NO_EXIT_TRAP-0}
     if [ -n "${SENTRY_DSN+x}" ] && [ -z "${SENTRY_DEVENV_NO_REPORT+x}" ]; then
         if ! require sentry-cli; then
             curl -sL https://sentry.io/get-cli/ | bash
@@ -45,20 +49,6 @@ query-big-sur() {
 
 query-apple-m1() {
     query-mac && [[ $(uname -m) = 'arm64' ]]
-}
-
-get-pyenv-version() {
-    if [[ -n "${SENTRY_PYTHON_VERSION:-}" ]]; then
-        echo "${SENTRY_PYTHON_VERSION}"
-        return 0
-    fi
-
-    local PYENV_VERSION
-    PYENV_VERSION=3.6.13
-    if query-apple-m1; then
-        PYENV_VERSION=3.8.12
-    fi
-    echo "${PYENV_VERSION}"
 }
 
 query-valid-python-version() {
@@ -87,23 +77,11 @@ EOF
     minor=$(echo "${python_version}" | sed 's/[0-9]*\.\([0-9]*\)\.\([0-9]*\)/\1/')
     patch=$(echo "${python_version}" | sed 's/[0-9]*\.\([0-9]*\)\.\([0-9]*\)/\2/')
 
-    # For Apple M1, we only allow 3.8 and at least patch version 10
-    if query-apple-m1; then
-        if [ "$minor" -ne 8 ] || [ "$patch" -lt 10 ]; then
-            cat <<EOF
-${red}${bold}
-ERROR: You're running a virtualenv with Python ${python_version}.
-On Apple M1 machines, we only support >= 3.8.10 < 3.9.
-Either run "rm -rf ${venv_name} && direnv allow" to
-OR set SENTRY_PYTHON_VERSION=${python_version} to an .env file to bypass this check."
-EOF
-            return 1
-        fi
-    elif [ "$minor" -ne 6 ] && [ "$minor" -ne 8 ]; then
+    if [ "$minor" -ne 8 ] || [ "$patch" -lt 10 ]; then
         cat <<EOF
 ${red}${bold}
 ERROR: You're running a virtualenv with Python ${python_version}.
-We only support 3.6 or 3.8.
+We only support >= 3.8.10, < 3.9.
 Either run "rm -rf ${venv_name} && direnv allow" to
 OR set SENTRY_PYTHON_VERSION=${python_version} to an .env file to bypass this check."
 EOF

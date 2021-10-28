@@ -1,4 +1,5 @@
 from base64 import b64encode
+from unittest import mock
 
 import pytest
 from django.urls import reverse
@@ -28,7 +29,6 @@ from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils import json
-from sentry.utils.compat import mock, zip
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import QueryExecutionError, QueryIllegalTypeOfArgument, RateLimitExceeded
 
@@ -41,10 +41,12 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         self.min_ago = iso_format(before_now(minutes=1))
         self.two_min_ago = iso_format(before_now(minutes=2))
         self.transaction_data = load_data("transaction", timestamp=before_now(minutes=1))
+        self.features = {}
 
     def do_request(self, query, features=None):
         if features is None:
             features = {"organizations:discover-basic": True}
+        features.update(self.features)
         self.login_as(user=self.user)
         url = reverse(
             "sentry-api-0-organization-eventsv2",
@@ -133,8 +135,10 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         )
 
     @mock.patch("sentry.snuba.discover.raw_query")
-    def test_handling_snuba_errors(self, mock_query):
+    @mock.patch("sentry.snuba.discover.raw_snql_query")
+    def test_handling_snuba_errors(self, mock_snql_query, mock_query):
         mock_query.side_effect = RateLimitExceeded("test")
+        mock_snql_query.side_effect = RateLimitExceeded("test")
 
         project = self.create_project()
 
@@ -148,6 +152,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.data["detail"] == TIMEOUT_ERROR_MESSAGE
 
         mock_query.side_effect = QueryExecutionError("test")
+        mock_snql_query.side_effect = QueryExecutionError("test")
 
         query = {"field": ["id", "timestamp"], "orderby": ["-timestamp", "-id"]}
         response = self.do_request(query)
@@ -155,6 +160,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.data["detail"] == "Internal error. Your query failed to run."
 
         mock_query.side_effect = QueryIllegalTypeOfArgument("test")
+        mock_snql_query.side_effect = QueryIllegalTypeOfArgument("test")
 
         query = {"field": ["id", "timestamp"], "orderby": ["-timestamp", "-id"]}
         response = self.do_request(query)
@@ -1412,6 +1418,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "transaction",
                 "user_misery()",
             ],
+            "orderby": "user_misery()",
             "query": "event.type:transaction",
             "project": [project.id],
         }
@@ -1422,8 +1429,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data["data"]) == 3
         data = response.data["data"]
         assert abs(data[0]["user_misery"] - 0.04916) < 0.0001
-        assert abs(data[1]["user_misery"] - 0.06586) < 0.0001
-        assert abs(data[2]["user_misery"] - 0.05751) < 0.0001
+        assert abs(data[1]["user_misery"] - 0.05751) < 0.0001
+        assert abs(data[2]["user_misery"] - 0.06586) < 0.0001
 
         query["query"] = "event.type:transaction user_misery():>0.050"
 
@@ -1434,8 +1441,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 2
         data = response.data["data"]
-        assert abs(data[0]["user_misery"] - 0.06586) < 0.0001
-        assert abs(data[1]["user_misery"] - 0.05751) < 0.0001
+        assert abs(data[0]["user_misery"] - 0.05751) < 0.0001
+        assert abs(data[1]["user_misery"] - 0.06586) < 0.0001
 
     def test_user_misery_alias_field_with_transaction_threshold(self):
         project = self.create_project()
@@ -3166,14 +3173,14 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         event2.group.delete()
 
         features = {"organizations:discover-basic": True, "organizations:global-views": True}
-        query = {"field": ["issue", "count()"], "sort": "issue"}
+        query = {"field": ["issue", "count()"], "sort": "count()"}
         response = self.do_request(query, features=features)
 
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 2
-        assert data[0]["issue"] == event1.group.qualified_short_id
-        assert data[1]["issue"] == "unknown"
+        assert data[0]["issue"] == "unknown"
+        assert data[1]["issue"] == event1.group.qualified_short_id
 
     def test_last_seen_negative_duration(self):
         project = self.create_project()
@@ -4273,6 +4280,38 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             == event_data["breakdowns"]["span_ops"]["ops.http"]["value"] / 3
         )
 
+    def test_equation_sort(self):
+        event_data = load_data("transaction", timestamp=before_now(minutes=1))
+        event_data["breakdowns"]["span_ops"]["ops.http"]["value"] = 1500
+        self.store_event(data=event_data, project_id=self.project.id)
+
+        event_data2 = load_data("transaction", timestamp=before_now(minutes=1))
+        event_data2["breakdowns"]["span_ops"]["ops.http"]["value"] = 2000
+        self.store_event(data=event_data2, project_id=self.project.id)
+
+        query = {
+            "field": ["spans.http", "equation|spans.http / 3"],
+            "project": [self.project.id],
+            "orderby": "equation[0]",
+            "query": "event.type:transaction",
+        }
+        response = self.do_request(
+            query,
+            {
+                "organizations:discover-basic": True,
+            },
+        )
+        assert response.status_code == 200
+        assert len(response.data["data"]) == 2
+        assert (
+            response.data["data"][0]["equation[0]"]
+            == event_data["breakdowns"]["span_ops"]["ops.http"]["value"] / 3
+        )
+        assert (
+            response.data["data"][1]["equation[0]"]
+            == event_data2["breakdowns"]["span_ops"]["ops.http"]["value"] / 3
+        )
+
     def test_equation_operation_limit(self):
         query = {
             "field": ["spans.http", f"equation|spans.http{' * 2' * 11}"],
@@ -4473,3 +4512,23 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert meta["p75_measurements_stall_percentage"] == "percentage"
         assert meta["percentile_measurements_frames_slow_rate_0_5"] == "percentage"
         assert meta["percentile_measurements_stall_percentage_0_5"] == "percentage"
+
+    def test_project_auto_fields(self):
+        project = self.create_project()
+        self.store_event(
+            data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.min_ago},
+            project_id=project.id,
+        )
+
+        query = {"field": ["environment"]}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["environment"] == "staging"
+        assert response.data["data"][0]["project.name"] == project.slug
+
+
+class OrganizationEventsV2EndpointTestWithSnql(OrganizationEventsV2EndpointTest):
+    def setUp(self):
+        super().setUp()
+        self.features["organizations:discover-use-snql"] = True

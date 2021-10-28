@@ -29,6 +29,7 @@ from sentry.utils.http import absolute_uri
 logger = logging.getLogger(__name__)
 
 INCIDENTS_SNUBA_SUBSCRIPTION_TYPE = "incidents"
+SUBSCRIPTION_LOAD_TEST_SUBSCRIPTION_TYPE = "load_test_sessions_subscription"
 INCIDENT_SNAPSHOT_BATCH_SIZE = 50
 
 
@@ -117,6 +118,14 @@ def handle_snuba_query_update(subscription_update, subscription):
     # noinspection SpellCheckingInspection
     with metrics.timer("incidents.subscription_procesor.process_update"):
         SubscriptionProcessor(subscription).process_update(subscription_update)
+
+
+@register_subscriber(SUBSCRIPTION_LOAD_TEST_SUBSCRIPTION_TYPE)
+def handle_load_test_snuba_fake_query_update(subscription_update, subscription):
+    # ToDo(ahmed): Remove this handler. This is only added as part of a load test for crash rate
+    #  alerts. In this case, we don't really care about the actual subscriptions as much as the
+    #  load crash rate alerts will have on our infra, and so we just drop the updates here
+    metrics.incr("incidents.crash_rate_alerts.load_test")
 
 
 @instrumented_task(

@@ -5,6 +5,7 @@ import sentry_sdk
 from sentry import analytics, features
 from sentry.app import locks
 from sentry.exceptions import PluginError
+from sentry.killswitches import killswitch_matches_context
 from sentry.signals import event_processed, issue_unignored, transaction_processed
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
@@ -82,43 +83,63 @@ def handle_owner_assignment(project, group, event):
     from sentry.models import GroupAssignee, ProjectOwnership
 
     with metrics.timer("post_process.handle_owner_assignment"):
-        owner_key = "owner_exists:1:%s" % group.id
-        owners_exists = cache.get(owner_key)
-        if owners_exists is None:
-            owners_exists = group.groupowner_set.exists()
-            # Cache for an hour if it's assigned. We don't need to move that fast.
-            cache.set(owner_key, owners_exists, 3600 if owners_exists else 60)
+        with sentry_sdk.start_span(op="post_process.handle_owner_assignment.cache_set_owner"):
+            owner_key = "owner_exists:1:%s" % group.id
+            owners_exists = cache.get(owner_key)
+            if owners_exists is None:
+                owners_exists = group.groupowner_set.exists()
+                # Cache for an hour if it's assigned. We don't need to move that fast.
+                cache.set(owner_key, owners_exists, 3600 if owners_exists else 60)
 
-        # Is the issue already assigned to a team or user?
-        assignee_key = "assignee_exists:1:%s" % group.id
-        assignees_exists = cache.get(assignee_key)
-        if assignees_exists is None:
-            assignees_exists = group.assignee_set.exists()
-            # Cache for an hour if it's assigned. We don't need to move that fast.
-            cache.set(assignee_key, assignees_exists, 3600 if assignees_exists else 60)
+        with sentry_sdk.start_span(op="post_process.handle_owner_assignment.cache_set_assignee"):
+            # Is the issue already assigned to a team or user?
+            assignee_key = "assignee_exists:1:%s" % group.id
+            assignees_exists = cache.get(assignee_key)
+            if assignees_exists is None:
+                assignees_exists = group.assignee_set.exists()
+                # Cache for an hour if it's assigned. We don't need to move that fast.
+                cache.set(assignee_key, assignees_exists, 3600 if assignees_exists else 60)
 
         if owners_exists and assignees_exists:
             return
 
-        auto_assignment, owners, assigned_by_codeowners = ProjectOwnership.get_autoassign_owners(
-            group.project_id, event.data
-        )
+        with sentry_sdk.start_span(op="post_process.handle_owner_assignment.get_autoassign_owners"):
+            if killswitch_matches_context(
+                "post_process.get-autoassign-owners",
+                {
+                    "project_id": project.id,
+                },
+            ):
+                # see ProjectOwnership.get_autoassign_owners
+                auto_assignment = False
+                owners = []
+                assigned_by_codeowners = False
+            else:
+                (
+                    auto_assignment,
+                    owners,
+                    assigned_by_codeowners,
+                ) = ProjectOwnership.get_autoassign_owners(group.project_id, event.data)
 
-        if auto_assignment and owners and not assignees_exists:
-            assignment = GroupAssignee.objects.assign(group, owners[0])
-            if assignment["new_assignment"] or assignment["updated_assignment"]:
-                analytics.record(
-                    "codeowners.assignment" if assigned_by_codeowners else "issueowners.assignment",
-                    organization_id=project.organization_id,
-                    project_id=project.id,
-                    group_id=group.id,
-                )
+        with sentry_sdk.start_span(op="post_process.handle_owner_assignment.analytics_record"):
+            if auto_assignment and owners and not assignees_exists:
+                assignment = GroupAssignee.objects.assign(group, owners[0])
+                if assignment["new_assignment"] or assignment["updated_assignment"]:
+                    analytics.record(
+                        "codeowners.assignment"
+                        if assigned_by_codeowners
+                        else "issueowners.assignment",
+                        organization_id=project.organization_id,
+                        project_id=project.id,
+                        group_id=group.id,
+                    )
 
-        if owners and not owners_exists:
-            try:
-                handle_group_owners(project, group, owners)
-            except Exception:
-                logger.exception("Failed to store group owners")
+        with sentry_sdk.start_span(op="post_process.handle_owner_assignment.handle_group_owners"):
+            if owners and not owners_exists:
+                try:
+                    handle_group_owners(project, group, owners)
+                except Exception:
+                    logger.exception("Failed to store group owners")
 
 
 def handle_group_owners(project, group, owners):
@@ -131,45 +152,51 @@ def handle_group_owners(project, group, owners):
     from sentry.models.team import Team
     from sentry.models.user import User
 
-    with metrics.timer("post_process.handle_group_owners"):
-        current_group_owners = GroupOwner.objects.filter(
-            group=group, type=GroupOwnerType.OWNERSHIP_RULE.value
-        )
-        new_owners = {(type(owner), owner.id) for owner in owners}
-        # Owners already in the database that we'll keep
-        keeping_owners = set()
-        for owner in current_group_owners:
-            lookup_key = (
-                (Team, owner.team_id) if owner.team_id is not None else (User, owner.user_id)
+    lock = locks.get(f"groupowner-bulk:{group.id}", duration=10)
+    try:
+        with metrics.timer("post_process.handle_group_owners"), sentry_sdk.start_span(
+            op="post_process.handle_group_owners"
+        ), lock.acquire():
+            current_group_owners = GroupOwner.objects.filter(
+                group=group, type=GroupOwnerType.OWNERSHIP_RULE.value
             )
-            if lookup_key not in new_owners:
-                owner.delete()
-            else:
-                keeping_owners.add(lookup_key)
-
-        new_group_owners = []
-
-        for key in new_owners:
-            if key not in keeping_owners:
-                owner_type, owner_id = key
-                user_id = None
-                team_id = None
-                if owner_type is User:
-                    user_id = owner_id
-                if owner_type is Team:
-                    team_id = owner_id
-                new_group_owners.append(
-                    GroupOwner(
-                        group=group,
-                        type=GroupOwnerType.OWNERSHIP_RULE.value,
-                        user_id=user_id,
-                        team_id=team_id,
-                        project=project,
-                        organization=project.organization,
-                    )
+            new_owners = {(type(owner), owner.id) for owner in owners}
+            # Owners already in the database that we'll keep
+            keeping_owners = set()
+            for owner in current_group_owners:
+                lookup_key = (
+                    (Team, owner.team_id) if owner.team_id is not None else (User, owner.user_id)
                 )
-        if new_group_owners:
-            GroupOwner.objects.bulk_create(new_group_owners)
+                if lookup_key not in new_owners:
+                    owner.delete()
+                else:
+                    keeping_owners.add(lookup_key)
+
+            new_group_owners = []
+
+            for key in new_owners:
+                if key not in keeping_owners:
+                    owner_type, owner_id = key
+                    user_id = None
+                    team_id = None
+                    if owner_type is User:
+                        user_id = owner_id
+                    if owner_type is Team:
+                        team_id = owner_id
+                    new_group_owners.append(
+                        GroupOwner(
+                            group=group,
+                            type=GroupOwnerType.OWNERSHIP_RULE.value,
+                            user_id=user_id,
+                            team_id=team_id,
+                            project=project,
+                            organization=project.organization,
+                        )
+                    )
+            if new_group_owners:
+                GroupOwner.objects.bulk_create(new_group_owners)
+    except UnableToAcquireLock:
+        logger.exception("Failed to acquire lock at post_process.handle_group_owners")
 
 
 def update_existing_attachments(event):

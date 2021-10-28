@@ -48,7 +48,7 @@ class QueryBuilderTest(TestCase):
             ],
         )
         self.assertCountEqual(
-            query.select,
+            query.columns,
             [
                 AliasedExpression(Column("email"), "user.email"),
                 Column("release"),
@@ -203,7 +203,7 @@ class QueryBuilderTest(TestCase):
         project2 = self.create_project()
         # params is assumed to be validated at this point, so this query should be invalid
         self.params["project_id"] = [project2.id]
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             InvalidSearchQuery,
             re.escape(
                 f"Invalid query. Project(s) {str(project1.slug)} do not exist or are not actively selected."
@@ -232,7 +232,7 @@ class QueryBuilderTest(TestCase):
             ],
         )
         self.assertCountEqual(
-            query.select,
+            query.columns,
             [
                 Function(
                     "transform",
@@ -268,7 +268,7 @@ class QueryBuilderTest(TestCase):
         )
         # Because of the condition on project there should only be 1 project in the transform
         self.assertCountEqual(
-            query.select,
+            query.columns,
             [
                 Function(
                     "transform",
@@ -392,7 +392,7 @@ class QueryBuilderTest(TestCase):
         )
 
     def test_array_combinator_is_private(self):
-        with self.assertRaisesRegexp(InvalidSearchQuery, "sum: no access to private function"):
+        with self.assertRaisesRegex(InvalidSearchQuery, "sum: no access to private function"):
             QueryBuilder(
                 Dataset.Discover,
                 self.params,
@@ -401,7 +401,7 @@ class QueryBuilderTest(TestCase):
             )
 
     def test_array_combinator_with_non_array_arg(self):
-        with self.assertRaisesRegexp(InvalidSearchQuery, "stuff is not a valid array column"):
+        with self.assertRaisesRegex(InvalidSearchQuery, "stuff is not a valid array column"):
             QueryBuilder(
                 Dataset.Discover,
                 self.params,
@@ -434,3 +434,24 @@ class QueryBuilderTest(TestCase):
                 ),
             ],
         )
+
+    def test_array_join_clause(self):
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            "",
+            selected_columns=[
+                "spans_op",
+                "count()",
+            ],
+            array_join="spans_op",
+        )
+        self.assertCountEqual(
+            query.columns,
+            [
+                AliasedExpression(Column("spans.op"), "spans_op"),
+                Function("count", [], "count"),
+            ],
+        )
+        assert query.array_join == Column("spans.op")
+        query.get_snql_query().validate()

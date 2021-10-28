@@ -1,6 +1,8 @@
 import {createContext} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import {Location} from 'history';
+import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
 import Alert from 'app/components/alert';
@@ -10,7 +12,7 @@ import NoProjectMessage from 'app/components/noProjectMessage';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import PickProjectToContinue from 'app/components/pickProjectToContinue';
-import {URL_PARAM} from 'app/constants/globalSelectionHeader';
+import {PAGE_URL_PARAM, URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {IconInfo, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
@@ -34,7 +36,7 @@ import AsyncView from 'app/views/asyncView';
 
 import {getReleaseBounds, ReleaseBounds} from '../utils';
 
-import ReleaseHeader from './releaseHeader';
+import ReleaseHeader from './header/releaseHeader';
 
 type ReleaseContextType = {
   release: ReleaseWithHealth;
@@ -90,6 +92,21 @@ class ReleasesDetail extends AsyncView<Props, State> {
     };
   }
 
+  componentDidUpdate(prevProps: Props, prevState: State) {
+    const {organization, params, location} = this.props;
+
+    if (
+      prevProps.params.release !== params.release ||
+      prevProps.organization.slug !== organization.slug ||
+      !isEqual(
+        this.pickLocationQuery(prevProps.location),
+        this.pickLocationQuery(location)
+      )
+    ) {
+      super.componentDidUpdate(prevProps, prevState);
+    }
+  }
+
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization, location, params, releaseMeta} = this.props;
 
@@ -104,7 +121,7 @@ class ReleasesDetail extends AsyncView<Props, State> {
         {
           query: {
             adoptionStages: 1,
-            ...getParams(pick(location.query, [...Object.values(URL_PARAM)])),
+            ...getParams(this.pickLocationQuery(location)),
           },
         },
       ],
@@ -131,6 +148,13 @@ class ReleasesDetail extends AsyncView<Props, State> {
     ]);
 
     return endpoints;
+  }
+
+  pickLocationQuery(location: Location) {
+    return pick(location.query, [
+      ...Object.values(URL_PARAM),
+      ...Object.values(PAGE_URL_PARAM),
+    ]);
   }
 
   renderError(...args) {
@@ -203,9 +227,13 @@ class ReleasesDetail extends AsyncView<Props, State> {
   }
 }
 
+type ReleasesDetailContainerProps = Omit<Props, 'releaseMeta'>;
+type ReleasesDetailContainerState = {
+  releaseMeta: ReleaseMeta | null;
+} & AsyncComponent['state'];
 class ReleasesDetailContainer extends AsyncComponent<
-  Omit<Props, 'releaseMeta'>,
-  {releaseMeta: ReleaseMeta | null} & AsyncComponent['state']
+  ReleasesDetailContainerProps,
+  ReleasesDetailContainerState
 > {
   shouldReload = true;
 
@@ -226,9 +254,19 @@ class ReleasesDetailContainer extends AsyncComponent<
     this.removeGlobalDateTimeFromUrl();
   }
 
-  componentDidUpdate(prevProps, prevContext: Record<string, any>) {
-    super.componentDidUpdate(prevProps, prevContext);
+  componentDidUpdate(
+    prevProps: ReleasesDetailContainerProps,
+    prevState: ReleasesDetailContainerState
+  ) {
+    const {organization, params} = this.props;
+
     this.removeGlobalDateTimeFromUrl();
+    if (
+      prevProps.params.release !== params.release ||
+      prevProps.organization.slug !== organization.slug
+    ) {
+      super.componentDidUpdate(prevProps, prevState);
+    }
   }
 
   removeGlobalDateTimeFromUrl() {

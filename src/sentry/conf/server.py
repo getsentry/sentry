@@ -546,6 +546,7 @@ CELERY_IMPORTS = (
     "sentry.data_export.tasks",
     "sentry.discover.tasks",
     "sentry.incidents.tasks",
+    "sentry.sentry_metrics.indexer.tasks",
     "sentry.snuba.tasks",
     "sentry.tasks.app_store_connect",
     "sentry.tasks.assemble",
@@ -581,6 +582,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.sentry_apps",
     "sentry.tasks.servicehooks",
     "sentry.tasks.store",
+    "sentry.tasks.symbolication",
     "sentry.tasks.unmerge",
     "sentry.tasks.update_user_reports",
     "sentry.tasks.user_report",
@@ -616,6 +618,7 @@ CELERY_QUEUES = [
         routing_key="events.reprocessing.symbolicate_event_low_priority",
     ),
     Queue("events.save_event", routing_key="events.save_event"),
+    Queue("events.save_event_transaction", routing_key="events.save_event_transaction"),
     Queue("events.symbolicate_event", routing_key="events.symbolicate_event"),
     Queue(
         "events.symbolicate_event_low_priority", routing_key="events.symbolicate_event_low_priority"
@@ -638,6 +641,7 @@ CELERY_QUEUES = [
     Queue("reports.deliver", routing_key="reports.deliver"),
     Queue("reports.prepare", routing_key="reports.prepare"),
     Queue("search", routing_key="search"),
+    Queue("sentry_metrics.indexer", routing_key="sentry_metrics.indexer"),
     Queue("similarity.index", routing_key="similarity.index"),
     Queue("sleep", routing_key="sleep"),
     Queue("stats", routing_key="stats"),
@@ -939,8 +943,6 @@ SENTRY_FEATURES = {
     "organizations:performance-view": True,
     # Enable multi project selection
     "organizations:global-views": False,
-    # Enable writing group history
-    "organizations:group-history": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
     "organizations:grouping-tree-ui": False,
     # Enable experimental new version of stacktrace component where additional
@@ -997,12 +999,6 @@ SENTRY_FEATURES = {
     "organizations:integrations-stacktrace-link": False,
     # Allow orgs to install a custom source code management integration
     "organizations:integrations-custom-scm": False,
-    # Allow orgs to use the deprecated Teamwork plugin
-    "organizations:integrations-ignore-teamwork-deprecation": False,
-    # Allow orgs to use the deprecated Clubhouse/Shortcut plugin
-    "organizations:integrations-ignore-clubhouse-deprecation": False,
-    # Allow orgs to use the deprecated VSTS (Azure DevOps) plugin
-    "organizations:integrations-ignore-vsts-deprecation": False,
     # Allow orgs to debug internal/unpublished sentry apps with logging
     "organizations:sentry-app-debugging": False,
     # Temporary safety measure, turned on for specific orgs only if
@@ -1052,10 +1048,12 @@ SENTRY_FEATURES = {
     "organizations:minute-resolution-sessions": True,
     # Automatically opt IN users to receiving Slack notifications.
     "organizations:notification-slack-automatic": False,
+    # Enable the new native stack trace design
+    "organizations:native-stack-trace-v2": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
     # Enable sorting+filtering by semantic version of a release
-    "organizations:semver": False,
+    "organizations:semver": True,
     # Enable basic SSO functionality, providing configurable single sign on
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.
@@ -1080,17 +1078,19 @@ SENTRY_FEATURES = {
     # Enable the mobile screenshots feature
     "organizations:mobile-screenshots": False,
     # Enable the adoption chart in the releases page
-    "organizations:release-adoption-chart": False,
+    "organizations:release-adoption-chart": True,
     # Enable the release adoption stage labels and sorting+filtering by them
-    "organizations:release-adoption-stage": False,
+    "organizations:release-adoption-stage": True,
     # Store release bundles as zip files instead of single files
     "organizations:release-archives": False,
     # Enable the new release details experience
-    "organizations:release-comparison": False,
+    "organizations:release-comparison": True,
     # Enable the release details performance section
     "organizations:release-comparison-performance": False,
     # Enable percent displays in issue stream
     "organizations:issue-percent-display": False,
+    # send organization request notifications through Slack
+    "organizations:slack-requests": False,
     # Enable team insights page
     "organizations:team-insights": False,
     # Adds additional filters and a new section to issue alert rules.
@@ -1378,7 +1378,7 @@ SENTRY_METRICS_PREFIX = "sentry."
 SENTRY_METRICS_SKIP_INTERNAL_PREFIXES = []  # Order this by most frequent prefixes.
 
 # Metrics product
-SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.mock.MockIndexer"
+SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.postgres.PGStringIndexer"
 SENTRY_METRICS_INDEXER_OPTIONS = {}
 SENTRY_METRICS_INDEXER_CACHE_TTL = 3600 * 2
 
@@ -1874,7 +1874,7 @@ SENTRY_DEVSERVICES = {
     ),
     "chartcuterie": lambda settings, options: (
         {
-            "image": "us.gcr.io/sentryio/chartcuterie:nightly",
+            "image": "us.gcr.io/sentryio/chartcuterie:latest",
             "pull": True,
             "volumes": {settings.CHARTCUTERIE_CONFIG_DIR: {"bind": "/etc/chartcuterie"}},
             "environment": {
@@ -2172,7 +2172,7 @@ INVALID_EMAIL_ADDRESS_PATTERN = re.compile(r"\@qq\.com$", re.I)
 
 # This is customizable for sentry.io, but generally should only be additive
 # (currently the values not used anymore so this is more for documentation purposes)
-SENTRY_USER_PERMISSIONS = ("broadcasts.admin",)
+SENTRY_USER_PERMISSIONS = ("broadcasts.admin", "users.admin")
 
 KAFKA_CLUSTERS = {
     "default": {
@@ -2390,7 +2390,11 @@ SENTRY_REALTIME_METRICS_OPTIONS = {
     # so that projects that exceed a reasonable rate can be sent to the low
     # priority queue. This setting determines how long we keep these rates
     # around.
-    "counter_time_window": 300,
+    #
+    # The LPQ selection is computed using the rate of the most recent events covered by this
+    # time window.  See sentry.tasks.low_priority_symbolication.excessive_event_rate for the
+    # exact implementation.
+    "counter_time_window": 10 * 60,
     # The bucket size of the processing duration histogram.
     #
     # The size (in seconds) of the buckets that events are sorted into.
@@ -2401,7 +2405,12 @@ SENTRY_REALTIME_METRICS_OPTIONS = {
     # so that projects that exceed a reasonable duration can be sent to the low
     # priority queue. This setting determines how long we keep these duration values
     # around.
-    "duration_time_window": 900,
+    #
+    # The LPQ selection is computed using the durations of the most recent events covered by
+    # this time window.  See
+    # sentry.tasks.low_priority_symbolication.excessive_event_duration for the exact
+    # implementation.
+    "duration_time_window": 3 * 60,
     # Number of seconds to wait after a project is made eligible or ineligible for the LPQ
     # before its eligibility can be changed again.
     #
@@ -2444,7 +2453,7 @@ DEMO_DATA_QUICK_GEN_PARAMS = {}
 INJECTED_SCRIPT_ASSETS = []
 
 # Sentry post process forwarder use batching consumer
-SENTRY_POST_PROCESS_FORWARDER_BATCHING = False
+SENTRY_POST_PROCESS_FORWARDER_BATCHING = True
 
 # Whether badly behaving projects will be automatically
 # sent to the low priority queue

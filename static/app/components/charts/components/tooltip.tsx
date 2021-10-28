@@ -15,6 +15,7 @@ function defaultFormatAxisLabel(
   isTimestamp: boolean,
   utc: boolean,
   showTimeInTooltip: boolean,
+  addSecondsToTimeFormat: boolean,
   bucketSize?: number
 ) {
   if (!isTimestamp) {
@@ -22,7 +23,9 @@ function defaultFormatAxisLabel(
   }
 
   if (!bucketSize) {
-    const format = `MMM D, YYYY ${showTimeInTooltip ? getTimeFormat() : ''}`.trim();
+    const format = `MMM D, YYYY ${
+      showTimeInTooltip ? getTimeFormat({displaySeconds: addSecondsToTimeFormat}) : ''
+    }`.trim();
     return getFormattedDate(value, format, {local: !utc});
   }
 
@@ -34,10 +37,10 @@ function defaultFormatAxisLabel(
   const showEndDate = bucketStart.date() !== bucketEnd.date();
 
   const formatStart = `MMM D${showYear ? ', YYYY' : ''} ${
-    showTimeInTooltip ? getTimeFormat() : ''
+    showTimeInTooltip ? getTimeFormat({displaySeconds: addSecondsToTimeFormat}) : ''
   }`.trim();
   const formatEnd = `${showEndDate ? `MMM D${showYear ? ', YYYY' : ''} ` : ''}${
-    showTimeInTooltip ? getTimeFormat() : ''
+    showTimeInTooltip ? getTimeFormat({displaySeconds: addSecondsToTimeFormat}) : ''
   }`.trim();
 
   return `${getFormattedDate(bucketStart, formatStart, {
@@ -54,6 +57,10 @@ function defaultValueFormatter(value: string | number) {
 }
 
 function defaultNameFormatter(value: string) {
+  return value;
+}
+
+function defaultMarkerFormatter(value: string) {
   return value;
 }
 
@@ -78,7 +85,8 @@ type TooltipFormatters =
   | 'filter'
   | 'formatAxisLabel'
   | 'valueFormatter'
-  | 'nameFormatter';
+  | 'nameFormatter'
+  | 'markerFormatter';
 
 type FormatterOptions = Pick<NonNullable<ChartProps['tooltip']>, TooltipFormatters> &
   Pick<ChartProps, NeededChartProps> & {
@@ -86,6 +94,10 @@ type FormatterOptions = Pick<NonNullable<ChartProps['tooltip']>, TooltipFormatte
      * Array containing seriesNames that need to be indented
      */
     indentLabels?: string[];
+    /**
+     * If true seconds will be added to the Axis label time format
+     */
+    addSecondsToTimeFormat?: boolean;
   };
 
 function getFormatter({
@@ -98,7 +110,9 @@ function getFormatter({
   bucketSize,
   valueFormatter = defaultValueFormatter,
   nameFormatter = defaultNameFormatter,
+  markerFormatter = defaultMarkerFormatter,
   indentLabels = [],
+  addSecondsToTimeFormat = false,
 }: FormatterOptions) {
   const getFilter = (seriesParam: EChartOption.Tooltip.Format) => {
     // Series do not necessarily have `data` defined, e.g. releases don't have `data`, but rather
@@ -134,6 +148,7 @@ function getFormatter({
         !!isGroupedByDate,
         !!utc,
         !!showTimeInTooltip,
+        addSecondsToTimeFormat,
         bucketSize
       );
       // eCharts sets seriesName as null when `componentType` !== 'series'
@@ -180,6 +195,7 @@ function getFormatter({
         !!isGroupedByDate,
         !!utc,
         !!showTimeInTooltip,
+        addSecondsToTimeFormat,
         bucketSize
       );
 
@@ -191,13 +207,15 @@ function getFormatter({
           const formattedLabel = nameFormatter(
             truncationFormatter(s.seriesName ?? '', truncate)
           );
-          const value = valueFormatter(getSeriesValue(s, 1), s.seriesName);
+          const value = valueFormatter(getSeriesValue(s, 1), s.seriesName, s);
+
+          const marker = markerFormatter(s.marker ?? '', s.seriesName);
 
           const className = indentLabels.includes(formattedLabel)
             ? 'tooltip-label tooltip-label-indent'
             : 'tooltip-label';
 
-          return `<div><span class="${className}">${s.marker} <strong>${formattedLabel}</strong></span> ${value}</div>`;
+          return `<div><span class="${className}">${marker} <strong>${formattedLabel}</strong></span> ${value}</div>`;
         })
         .join(''),
       '</div>',
@@ -209,12 +227,15 @@ function getFormatter({
   return formatter;
 }
 
-type Props = ChartProps['tooltip'] & Pick<ChartProps, NeededChartProps>;
+type Props = ChartProps['tooltip'] &
+  Pick<ChartProps, NeededChartProps> &
+  Pick<FormatterOptions, 'addSecondsToTimeFormat'>;
 
 export default function Tooltip({
   filter,
   isGroupedByDate,
   showTimeInTooltip,
+  addSecondsToTimeFormat,
   formatter,
   truncate,
   utc,
@@ -222,6 +243,7 @@ export default function Tooltip({
   formatAxisLabel,
   valueFormatter,
   nameFormatter,
+  markerFormatter,
   hideDelay,
   indentLabels,
   ...props
@@ -232,12 +254,14 @@ export default function Tooltip({
       filter,
       isGroupedByDate,
       showTimeInTooltip,
+      addSecondsToTimeFormat,
       truncate,
       utc,
       bucketSize,
       formatAxisLabel,
       valueFormatter,
       nameFormatter,
+      markerFormatter,
       indentLabels,
     });
 

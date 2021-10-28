@@ -6,12 +6,13 @@ from datetime import timedelta
 from typing import Dict, Optional, Sequence
 
 import sentry_sdk
+from dateutil.parser import parse as parse_datetime
 
 from sentry import options
 from sentry.discover.arithmetic import categorize_columns, resolve_equation_list
 from sentry.models import Group
 from sentry.models.transaction_threshold import ProjectTransactionThreshold
-from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.builder import QueryBuilder, TimeseriesQueryBuilder
 from sentry.search.events.constants import CONFIGURABLE_AGGREGATES, DEFAULT_PROJECT_THRESHOLD
 from sentry.search.events.fields import (
     FIELD_ALIASES,
@@ -24,6 +25,7 @@ from sentry.search.events.fields import (
 from sentry.search.events.filter import get_filter
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 from sentry.utils.compat import filter
+from sentry.utils.dates import to_timestamp
 from sentry.utils.math import mean, nice_int
 from sentry.utils.snuba import (
     SNUBA_AND,
@@ -32,6 +34,7 @@ from sentry.utils.snuba import (
     SnubaQueryParams,
     SnubaTSResult,
     bulk_raw_query,
+    bulk_snql_query,
     get_array_column_alias,
     get_array_column_field,
     get_measurement_name,
@@ -106,6 +109,9 @@ def zerofill(data, start, end, rollup, orderby):
     data_by_time = {}
 
     for obj in data:
+        # This is needed for SnQL, and was originally done in utils.snuba.get_snuba_translators
+        if isinstance(obj["time"], str):
+            obj["time"] = int(to_timestamp(parse_datetime(obj["time"])))
         if obj["time"] in data_by_time:
             data_by_time[obj["time"]].append(obj)
         else:
@@ -240,6 +246,7 @@ def query(
             params,
             query=query,
             selected_columns=selected_columns,
+            equations=equations,
             orderby=orderby,
             auto_fields=auto_fields,
             auto_aggregations=auto_aggregations,
@@ -330,7 +337,7 @@ def prepare_discover_query(
 
     with sentry_sdk.start_span(op="discover.discover", description="query.field_translations"):
         if equations is not None:
-            resolved_equations, _ = resolve_equation_list(equations, selected_columns)
+            resolved_equations, _, _ = resolve_equation_list(equations, selected_columns)
         else:
             resolved_equations = []
 
@@ -408,7 +415,7 @@ def get_timeseries_snuba_filter(selected_columns, query, params):
     equations, columns = categorize_columns(selected_columns)
 
     if len(equations) > 0:
-        resolved_equations, updated_columns = resolve_equation_list(
+        resolved_equations, updated_columns, _ = resolve_equation_list(
             equations, columns, aggregates_only=True, auto_add=True
         )
     else:
@@ -466,6 +473,7 @@ def timeseries_query(
     referrer: Optional[str] = None,
     zerofill_results: bool = True,
     comparison_delta: Optional[timedelta] = None,
+    use_snql: Optional[bool] = False,
 ):
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -489,6 +497,73 @@ def timeseries_query(
     query time-shifted back by comparison_delta, and compare the results to get the % change for each
     time bucket. Requires that we only pass
     """
+    sentry_sdk.set_tag("discover.use_snql", use_snql)
+    if use_snql:
+        with sentry_sdk.start_span(
+            op="discover.discover", description="timeseries.filter_transform"
+        ) as span:
+            # temporarily add snql to referrer
+            referrer = f"{referrer}.wip-snql"
+            equations, columns = categorize_columns(selected_columns)
+            base_builder = TimeseriesQueryBuilder(
+                Dataset.Discover,
+                params,
+                rollup,
+                query=query,
+                selected_columns=columns,
+                equations=equations,
+            )
+            query_list = [base_builder]
+            if comparison_delta:
+                if len(base_builder.aggregates) != 1:
+                    raise InvalidSearchQuery(
+                        "Only one column can be selected for comparison queries"
+                    )
+                comp_query_params = deepcopy(params)
+                comp_query_params["start"] -= comparison_delta
+                comp_query_params["end"] -= comparison_delta
+                comparison_builder = TimeseriesQueryBuilder(
+                    Dataset.Discover,
+                    comp_query_params,
+                    rollup,
+                    query=query,
+                    selected_columns=columns,
+                    equations=equations,
+                )
+                query_list.append(comparison_builder)
+
+            query_results = bulk_snql_query(
+                [query.get_snql_query() for query in query_list], referrer
+            )
+
+        with sentry_sdk.start_span(
+            op="discover.discover", description="timeseries.transform_results"
+        ) as span:
+            results = []
+            for snql_query, result in zip(query_list, query_results):
+                results.append(
+                    zerofill(
+                        result["data"],
+                        snql_query.params["start"],
+                        snql_query.params["end"],
+                        rollup,
+                        "time",
+                    )
+                    if zerofill_results
+                    else result["data"]
+                )
+
+        if len(results) == 2 and comparison_delta:
+            col_name = base_builder.aggregates[0].alias
+            # If we have two sets of results then we're doing a comparison queries. Divide the primary
+            # results by the comparison results.
+            for result, cmp_result in zip(results[0], results[1]):
+                cmp_result_val = cmp_result.get(col_name, 0)
+                result["comparisonCount"] = cmp_result_val
+
+        result = results[0]
+        return SnubaTSResult({"data": result}, params["start"], params["end"], rollup)
+
     with sentry_sdk.start_span(
         op="discover.discover", description="timeseries.filter_transform"
     ) as span:

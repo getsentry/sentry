@@ -17,6 +17,8 @@ import {getCrashFreeRate} from 'app/utils/sessions';
 import {Color} from 'app/utils/theme';
 import {displayCrashFreePercent} from 'app/views/releases/utils';
 
+import {groupByTrend} from './utils';
+
 type Props = AsyncComponent['props'] & {
   organization: Organization;
   projects: Project[];
@@ -171,6 +173,12 @@ class TeamStability extends AsyncComponent<Props, State> {
   renderBody() {
     const {projects, period} = this.props;
 
+    const sortedProjects = projects
+      .map(project => ({project, trend: this.getTrend(Number(project.id)) ?? 0}))
+      .sort((a, b) => Math.abs(b.trend) - Math.abs(a.trend));
+
+    const groupedProjects = groupByTrend(sortedProjects);
+
     return (
       <StyledPanelTable
         isEmpty={projects.length === 0}
@@ -181,7 +189,7 @@ class TeamStability extends AsyncComponent<Props, State> {
           <RightAligned key="diff">{t('Difference')}</RightAligned>,
         ]}
       >
-        {projects.map(project => (
+        {groupedProjects.map(({project}) => (
           <Fragment key={project.id}>
             <ProjectBadgeContainer>
               <ProjectBadge avatarSize={18} project={project} />

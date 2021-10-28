@@ -20,6 +20,8 @@ import type {Color} from 'app/utils/theme';
 
 import {transactionSummaryRouteWithQuery} from '../../performance/transactionSummary/utils';
 
+import {groupByTrend} from './utils';
+
 type TeamMiseryProps = {
   organization: Organization;
   location: Location;
@@ -31,7 +33,7 @@ type TeamMiseryProps = {
 };
 
 /** The number of elements to display before collapsing */
-const COLLAPSE_COUNT = 8;
+const COLLAPSE_COUNT = 5;
 
 function TeamMisery({
   organization,
@@ -69,10 +71,7 @@ function TeamMisery({
     .filter(x => x.trend !== null)
     .sort((a, b) => Math.abs(b.trend) - Math.abs(a.trend));
 
-  const worseItems = sortedTableData.filter(x => Math.round(x.trend) < 0);
-  const betterItems = sortedTableData.filter(x => Math.round(x.trend) > 0);
-  const zeroItems = sortedTableData.filter(x => Math.round(x.trend) === 0);
-  const groupedData = [...worseItems, ...betterItems, ...zeroItems];
+  const groupedData = groupByTrend(sortedTableData);
 
   return (
     <Fragment>

@@ -21,6 +21,7 @@ import {
   ReactEchartsRef,
   Series,
 } from 'app/types/echarts';
+import {defined} from 'app/utils';
 import {Theme} from 'app/utils/theme';
 
 import Grid from './components/grid';
@@ -29,7 +30,7 @@ import Tooltip from './components/tooltip';
 import XAxis from './components/xAxis';
 import YAxis from './components/yAxis';
 import LineSeries from './series/lineSeries';
-import {getDimensionValue, lightenHexToRgb} from './utils';
+import {getDiffInMinutes, getDimensionValue, lightenHexToRgb} from './utils';
 
 // TODO(ts): What is the series type? EChartOption.Series's data cannot have
 // `onClick` since it's typically an array.
@@ -69,6 +70,11 @@ type Props = {
    */
   series?: EChartOption.Series[];
   /**
+   * Additional Chart Series
+   * This is to pass series to BaseChart bypassing the wrappers like LineChart, AreaChart etc.
+   */
+  additionalSeries?: EChartOption.SeriesLine[];
+  /**
    * Array of color codes to use in charts. May also take a function which is
    * provided with the current theme
    */
@@ -105,8 +111,13 @@ type Props = {
         utc: boolean,
         showTimeInTooltip: boolean
       ) => string;
-      valueFormatter?: (value: number, label?: string) => string | number;
+      valueFormatter?: (
+        value: number,
+        label?: string,
+        seriesParams?: EChartOption.Tooltip.Format
+      ) => string | number;
       nameFormatter?: (name: string) => string;
+      markerFormatter?: (marker: string, label?: string) => string;
       /**
        * Array containing seriesNames that need to be indented
        */
@@ -199,6 +210,10 @@ type Props = {
    */
   isGroupedByDate?: boolean;
   /**
+   * optional, threshold in minutes used to add seconds to the xAxis datetime format if `isGroupedByDate == true`
+   */
+  minutesThresholdToDisplaySeconds?: number;
+  /**
    * Format timestamp with date AND time
    */
   showTimeInTooltip?: boolean;
@@ -250,6 +265,7 @@ function BaseChartUnwrapped({
   echartsTheme,
   devicePixelRatio,
 
+  minutesThresholdToDisplaySeconds,
   showTimeInTooltip,
   useShortDate,
   start,
@@ -273,6 +289,7 @@ function BaseChartUnwrapped({
 
   options = {},
   series = [],
+  additionalSeries = [],
   yAxis = {},
   xAxis = {},
 
@@ -327,8 +344,8 @@ function BaseChartUnwrapped({
     ) ?? [];
 
   const resolvedSeries = !previousPeriod
-    ? transformedSeries
-    : [...transformedSeries, ...transformedPreviousPeriod];
+    ? [...transformedSeries, ...additionalSeries]
+    : [...transformedSeries, ...transformedPreviousPeriod, ...additionalSeries];
 
   const defaultAxesProps = {theme};
 
@@ -340,6 +357,14 @@ function BaseChartUnwrapped({
     ? yAxes.map(axis => YAxis({...axis, theme}))
     : [YAxis(defaultAxesProps), YAxis(defaultAxesProps)];
 
+  /**
+   * If true seconds will be added to the time format in the tooltips and chart xAxis
+   */
+  const addSecondsToTimeFormat =
+    isGroupedByDate && defined(minutesThresholdToDisplaySeconds)
+      ? getDiffInMinutes({start, end, period}) <= minutesThresholdToDisplaySeconds
+      : false;
+
   const xAxisOrCustom = !xAxes
     ? xAxis !== null
       ? XAxis({
@@ -350,12 +375,23 @@ function BaseChartUnwrapped({
           end,
           period,
           isGroupedByDate,
+          addSecondsToTimeFormat,
           utc,
         })
       : undefined
     : Array.isArray(xAxes)
     ? xAxes.map(axis =>
-        XAxis({...axis, theme, useShortDate, start, end, period, isGroupedByDate, utc})
+        XAxis({
+          ...axis,
+          theme,
+          useShortDate,
+          start,
+          end,
+          period,
+          isGroupedByDate,
+          addSecondsToTimeFormat,
+          utc,
+        })
       )
     : [XAxis(defaultAxesProps), XAxis(defaultAxesProps)];
 
@@ -370,6 +406,7 @@ function BaseChartUnwrapped({
       ? Tooltip({
           showTimeInTooltip,
           isGroupedByDate,
+          addSecondsToTimeFormat,
           utc,
           bucketSize,
           ...tooltip,
@@ -536,6 +573,7 @@ const ChartContainer = styled('div')`
 const BaseChart = forwardRef<ReactEchartsRef, Props>((props, ref) => (
   <BaseChartUnwrapped forwardedRef={ref} {...props} />
 ));
+
 BaseChart.displayName = 'forwardRef(BaseChart)';
 
 export default BaseChart;

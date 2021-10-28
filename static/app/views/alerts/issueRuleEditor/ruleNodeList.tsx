@@ -12,14 +12,14 @@ import {
   IssueAlertRuleCondition,
   IssueAlertRuleConditionTemplate,
 } from 'app/types/alerts';
-import {EVENT_FREQUENCY_PERCENT_CONDITION} from 'app/views/projectInstall/issueAlertOptions';
-
 import {
   CHANGE_ALERT_CONDITION_IDS,
   COMPARISON_INTERVAL_CHOICES,
   COMPARISON_TYPE_CHOICE_VALUES,
   COMPARISON_TYPE_CHOICES,
-} from './constants/changeAlerts';
+} from 'app/views/alerts/changeAlerts/constants';
+import {EVENT_FREQUENCY_PERCENT_CONDITION} from 'app/views/projectInstall/issueAlertOptions';
+
 import RuleNode from './ruleNode';
 
 type Props = {
@@ -55,7 +55,7 @@ class RuleNodeList extends React.Component<Props> {
     | IssueAlertRuleConditionTemplate
     | null
     | undefined => {
-    const {nodes, items, organization} = this.props;
+    const {nodes, items, organization, onPropertyChange} = this.props;
     const node = nodes ? nodes.find(n => n.id === id) : null;
 
     if (!node) {
@@ -95,6 +95,13 @@ class RuleNodeList extends React.Component<Props> {
       };
 
       if (item.comparisonType === 'percent') {
+        if (!item.comparisonInterval) {
+          // comparisonInterval value in IssueRuleEditor state
+          // is undefined even if initial value is defined
+          // can't directly call onPropertyChange, because
+          // getNode is called during render
+          setTimeout(() => onPropertyChange(itemIdx, 'comparisonInterval', '1w'));
+        }
         changeAlertNode = {
           ...changeAlertNode,
           formFields: {
@@ -102,8 +109,7 @@ class RuleNodeList extends React.Component<Props> {
             comparisonInterval: {
               type: 'choice',
               choices: COMPARISON_INTERVAL_CHOICES,
-              // comparisonInterval initial value isn't on the item, so it needs to be selected by user
-              initial: 'select',
+              initial: '1w',
             },
           },
         };

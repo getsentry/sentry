@@ -62,6 +62,7 @@ export type DashboardWidgetModalOptions = {
   defaultWidgetQuery?: WidgetQuery;
   defaultTableColumns?: readonly string[];
   defaultTitle?: string;
+  displayType?: DisplayType;
   fromDiscover?: boolean;
   start?: DateString;
   end?: DateString;
@@ -102,12 +103,11 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
 
-    const {widget, defaultWidgetQuery, defaultTitle, fromDiscover} = props;
-
+    const {widget, defaultWidgetQuery, defaultTitle, displayType, fromDiscover} = props;
     if (!widget) {
       this.state = {
         title: defaultTitle ?? '',
-        displayType: DisplayType.LINE,
+        displayType: displayType ?? DisplayType.LINE,
         interval: '5m',
         queries: [defaultWidgetQuery ? {...defaultWidgetQuery} : {...newQuery}],
         errors: undefined,
@@ -155,6 +155,12 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       'interval',
       'queries',
     ]);
+    // Only Table and Top N views need orderby
+    if (![DisplayType.TABLE, DisplayType.TOP_N].includes(widgetData.displayType)) {
+      widgetData.queries.forEach(query => {
+        query.orderby = '';
+      });
+    }
     try {
       await validateWidget(api, organization.slug, widgetData);
       if (typeof onUpdateWidget === 'function' && !!previousWidget) {
@@ -264,16 +270,14 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         }
 
         set(newState, 'queries', normalized);
-
-        if (fromDiscover) {
-          trackAdvancedAnalyticsEvent('dashboards_views.add_widget_modal.change', {
-            from: 'discoverv2',
-            field,
-            value: displayType,
-            organization,
-          });
-        }
       }
+
+      trackAdvancedAnalyticsEvent('dashboards_views.add_widget_modal.change', {
+        from: fromDiscover ? 'discoverv2' : 'dashboards',
+        field,
+        value,
+        organization,
+      });
 
       return {...newState, errors: undefined};
     });

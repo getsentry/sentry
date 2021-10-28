@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.core import mail
 
 from sentry.constants import ObjectStatus
@@ -5,7 +7,6 @@ from sentry.exceptions import PluginError
 from sentry.models import Commit, Repository, ScheduledDeletion
 from sentry.tasks.deletion import run_deletion
 from sentry.testutils import TransactionTestCase
-from sentry.utils.compat.mock import patch
 
 
 class DeleteRepositoryTest(TransactionTestCase):

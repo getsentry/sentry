@@ -27,6 +27,7 @@ const WrappedComponent = ({data}) => {
 
 describe('Performance > Landing > Index', function () {
   let eventStatsMock: any;
+  let eventsV2Mock: any;
   beforeEach(function () {
     // @ts-expect-error
     MockApiClient.addMockResponse({
@@ -60,6 +61,12 @@ describe('Performance > Landing > Index', function () {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/events-trends-stats/`,
+      body: [],
+    });
+    // @ts-expect-error
+    eventsV2Mock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/eventsv2/`,
       body: [],
     });
   });
@@ -97,6 +104,15 @@ describe('Performance > Landing > Index', function () {
     );
 
     expect(wrapper.find('Table')).toHaveLength(1);
+
+    const titles = wrapper.find('div[data-test-id="performance-widget-title"]');
+    expect(titles).toHaveLength(5);
+
+    expect(titles.at(0).text()).toEqual('p75 LCP');
+    expect(titles.at(1).text()).toEqual('LCP Distribution');
+    expect(titles.at(2).text()).toEqual('FCP Distribution');
+    expect(titles.at(3).text()).toEqual('Most Related Errors');
+    expect(titles.at(4).text()).toEqual('Most Related Issues');
   });
 
   it('renders frontend other view', async function () {
@@ -150,7 +166,8 @@ describe('Performance > Landing > Index', function () {
 
     expect(wrapper.find('Table').exists()).toBe(true);
 
-    expect(eventStatsMock).toHaveBeenCalledTimes(5); // Currently defaulting to 5 event stat charts on all transactions view.
+    expect(eventStatsMock).toHaveBeenCalledTimes(3); // Currently defaulting to 4 event stat charts on all transactions view + 1 event chart.
+    expect(eventsV2Mock).toHaveBeenCalledTimes(2);
 
     const titles = wrapper.find('div[data-test-id="performance-widget-title"]');
     expect(titles).toHaveLength(5);
@@ -158,7 +175,7 @@ describe('Performance > Landing > Index', function () {
     expect(titles.at(0).text()).toEqual('User Misery');
     expect(titles.at(1).text()).toEqual('Transactions Per Minute');
     expect(titles.at(2).text()).toEqual('Failure Rate');
-    expect(titles.at(3).text()).toEqual('Transactions Per Minute');
-    expect(titles.at(4).text()).toEqual('Transactions Per Minute');
+    expect(titles.at(3).text()).toEqual('Most Related Errors');
+    expect(titles.at(4).text()).toEqual('Most Related Issues');
   });
 });

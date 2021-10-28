@@ -14,7 +14,11 @@ import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {formatPercentage} from 'app/utils/formatters';
 
-import {convertDaySeriesToWeeks, convertDayValueObjectToSeries} from './utils';
+import {
+  barAxisLabel,
+  convertDaySeriesToWeeks,
+  convertDayValueObjectToSeries,
+} from './utils';
 
 type IssuesBreakdown = Record<string, Record<string, {reviewed: number; total: number}>>;
 
@@ -110,8 +114,12 @@ class TeamIssuesReviewed extends AsyncComponent<Props, State> {
       }
     }
 
-    const reviewedSeries = convertDayValueObjectToSeries(allReviewedByDay);
-    const notReviewedSeries = convertDayValueObjectToSeries(allNotReviewedByDay);
+    const reviewedSeries = convertDaySeriesToWeeks(
+      convertDayValueObjectToSeries(allReviewedByDay)
+    );
+    const notReviewedSeries = convertDaySeriesToWeeks(
+      convertDayValueObjectToSeries(allNotReviewedByDay)
+    );
 
     return (
       <Fragment>
@@ -122,15 +130,21 @@ class TeamIssuesReviewed extends AsyncComponent<Props, State> {
               style={{height: 200}}
               stacked
               isGroupedByDate
+              useShortDate
               legend={{right: 0, top: 0}}
+              xAxis={barAxisLabel(reviewedSeries.length)}
+              yAxis={{minInterval: 1}}
               series={[
                 {
                   seriesName: t('Reviewed'),
-                  data: convertDaySeriesToWeeks(reviewedSeries),
-                },
+                  data: reviewedSeries,
+                  silent: true,
+                  // silent is not incldued in the type for BarSeries
+                } as any,
                 {
                   seriesName: t('Not Reviewed'),
-                  data: convertDaySeriesToWeeks(notReviewedSeries),
+                  data: notReviewedSeries,
+                  silent: true,
                 },
               ]}
             />

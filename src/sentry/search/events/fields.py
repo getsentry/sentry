@@ -11,6 +11,12 @@ from snuba_sdk.column import Column
 from snuba_sdk.function import CurriedFunction, Function
 from snuba_sdk.orderby import Direction, OrderBy
 
+from sentry.discover.arithmetic import (
+    OperandType,
+    Operation,
+    is_equation_alias,
+    resolve_equation_list,
+)
 from sentry.discover.models import TeamKeyTransaction
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Project, ProjectTeam, ProjectTransactionThreshold
@@ -2307,8 +2313,9 @@ class QueryFields(QueryBase):
         params: ParamsType,
         auto_fields: bool = False,
         functions_acl: Optional[List[str]] = None,
+        equation_config: Optional[Dict[str, bool]] = None,
     ):
-        super().__init__(dataset, params, auto_fields, functions_acl)
+        super().__init__(dataset, params, auto_fields, functions_acl, equation_config)
 
         self.function_alias_map: Dict[str, FunctionDetails] = {}
         self.field_alias_converter: Mapping[str, Callable[[str], SelectType]] = {
@@ -2447,6 +2454,9 @@ class QueryFields(QueryBase):
                     result_type_fn=reflective_result_type(),
                     default_result_type="duration",
                     redundant_grouping=True,
+                    combinators=[
+                        SnQLArrayCombinator("column", NumericColumn.numeric_array_columns)
+                    ],
                 ),
                 SnQLFunction(
                     "p50",
@@ -2659,6 +2669,9 @@ class QueryFields(QueryBase):
                     result_type_fn=reflective_result_type(),
                     default_result_type="duration",
                     redundant_grouping=True,
+                    combinators=[
+                        SnQLArrayCombinator("column", NumericColumn.numeric_array_columns)
+                    ],
                 ),
                 SnQLFunction(
                     "avg",
@@ -2785,15 +2798,30 @@ class QueryFields(QueryBase):
         for alias, name in FUNCTION_ALIASES.items():
             self.function_converter[alias] = self.function_converter[name].alias_as(alias)
 
-    def resolve_select(self, selected_columns: Optional[List[str]]) -> List[SelectType]:
+    def resolve_select(
+        self, selected_columns: Optional[List[str]], equations: Optional[List[str]]
+    ) -> List[SelectType]:
         """Given a public list of discover fields, construct the corresponding
         list of Snql Columns or Functions. Duplicate columns are ignored
         """
+
         if selected_columns is None:
             return []
 
         resolved_columns = []
         stripped_columns = [column.strip() for column in selected_columns]
+
+        if equations:
+            _, _, parsed_equations = resolve_equation_list(
+                equations, stripped_columns, use_snql=True, **self.equation_config
+            )
+            for index, parsed_equation in enumerate(parsed_equations):
+                resolved_equation = self.resolve_equation(
+                    parsed_equation.equation, f"equation[{index}]"
+                )
+                resolved_columns.append(resolved_equation)
+                if parsed_equation.contains_functions:
+                    self.aggregates.append(resolved_equation)
 
         # Add threshold config alias if there's a function that depends on it
         # TODO: this should be replaced with an explicit request for the project_threshold_config as a column
@@ -2824,6 +2852,7 @@ class QueryFields(QueryBase):
             # are present.
             if not self.aggregates and "id" not in stripped_columns:
                 resolved_columns.append(self.resolve_column("id", alias=True))
+                stripped_columns.append("id")
             if "id" in stripped_columns and "project.id" not in stripped_columns:
                 resolved_columns.append(self.resolve_column("project.name", alias=True))
 
@@ -2860,6 +2889,27 @@ class QueryFields(QueryBase):
         else:
             raise InvalidSearchQuery(f"Invalid characters in field {field}")
 
+    def resolve_equation(self, equation: Operation, alias: Optional[str] = None) -> SelectType:
+        """Convert this tree of Operations to the equivalent snql functions"""
+        lhs = self._resolve_equation_operand(equation.lhs)
+        rhs = self._resolve_equation_operand(equation.rhs)
+        result = Function(equation.operator, [lhs, rhs], alias)
+        return result
+
+    def _resolve_equation_operand(self, operand: OperandType) -> Union[SelectType, float]:
+        if isinstance(operand, Operation):
+            return self.resolve_equation(operand)
+        elif isinstance(operand, float):
+            return operand
+        else:
+            return self.resolve_column(operand)
+
+    def is_equation_column(self, column: SelectType) -> bool:
+        """Equations are only ever functions, and shouldn't be literals so we
+        need to check that the column is a Function
+        """
+        return isinstance(column, CurriedFunction) and is_equation_alias(column.alias)
+
     def resolve_orderby(self, orderby: Optional[Union[List[str], str]]) -> List[OrderBy]:
         """Given a list of public aliases, optionally prefixed by a `-` to
         represent direction, construct a list of Snql Orderbys
@@ -2880,7 +2930,10 @@ class QueryFields(QueryBase):
         for orderby in orderby_columns:
             bare_orderby = orderby.lstrip("-")
             try:
-                resolved_orderby = self.resolve_column(bare_orderby)
+                if is_equation_alias(bare_orderby):
+                    resolved_orderby = bare_orderby
+                else:
+                    resolved_orderby = self.resolve_column(bare_orderby)
             except NotImplementedError:
                 resolved_orderby = None
 
@@ -2904,7 +2957,8 @@ class QueryFields(QueryBase):
                     break
 
                 elif (
-                    isinstance(selected_column, Function) and selected_column.alias == bare_orderby
+                    isinstance(selected_column, CurriedFunction)
+                    and selected_column.alias == bare_orderby
                 ):
                     validated.append(OrderBy(selected_column, direction))
                     break

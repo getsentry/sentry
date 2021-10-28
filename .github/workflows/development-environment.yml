@@ -14,16 +14,15 @@ on:
 
 jobs:
   dev-environment:
-    name: set up
+    name: dev docs set up
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 40
+    timeout-minutes: 90
     strategy:
       matrix:
         # Using Ubuntu 18 until I figure out this error:
         # -> ImportError: libffi.so.6: cannot open shared object file: No such file or directory
         os: [macos-11.0, ubuntu-18.04]
-        # TODO(joshuarli): Add 3.8.12.
-        python-version: [3.6.13]
+        python-version: [3.8.12]
       fail-fast: false
     env:
       PIP_DISABLE_PIP_VERSION_CHECK: on
@@ -81,3 +80,18 @@ jobs:
           python -m venv .venv
           source .venv/bin/activate
           make develop init-config
+
+  bootstrap-script:
+    runs-on: macos-11
+    timeout-minutes: 90
+    env:
+      PIP_DISABLE_PIP_VERSION_CHECK: on
+      # Make the environment more similar to what Mac defaults to
+      SHELL: /bin/zsh
+
+    steps:
+      - name: Run bootstrap code
+        env:
+          STRAP_DEBUG: 1
+        run: |
+          bash <(curl -s https://raw.githubusercontent.com/getsentry/bootstrap-sentry/main/bootstrap.sh)

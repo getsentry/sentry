@@ -7,9 +7,11 @@ import isEqual from 'lodash/isEqual';
 import {Client} from 'app/api';
 import AreaChart from 'app/components/charts/areaChart';
 import BarChart from 'app/components/charts/barChart';
+import EventsGeoRequest from 'app/components/charts/eventsGeoRequest';
 import EventsRequest from 'app/components/charts/eventsRequest';
 import LineChart from 'app/components/charts/lineChart';
-import {getInterval} from 'app/components/charts/utils';
+import {getInterval, processTableResults} from 'app/components/charts/utils';
+import WorldMapChart from 'app/components/charts/worldMapChart';
 import LoadingContainer from 'app/components/loading/loadingContainer';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {IconWarning} from 'app/icons';
@@ -63,7 +65,8 @@ class MiniGraph extends React.Component<Props> {
     const field = isTopEvents ? apiPayload.field : undefined;
     const topEvents = isTopEvents ? TOP_N : undefined;
     const orderby = isTopEvents ? decodeScalar(apiPayload.sort) : undefined;
-    const interval = isDaily ? '1d' : getInterval({start, end, period}, 'high');
+    const intervalFidelity = display === 'bar' ? 'low' : 'high';
+    const interval = isDaily ? '1d' : getInterval({start, end, period}, intervalFidelity);
 
     return {
       organization,
@@ -82,6 +85,7 @@ class MiniGraph extends React.Component<Props> {
       showDaily: isDaily,
       expired: eventView.expired,
       name: eventView.name,
+      display,
     };
   }
 
@@ -131,8 +135,56 @@ class MiniGraph extends React.Component<Props> {
       showDaily,
       expired,
       name,
+      display,
     } = this.getRefreshProps(this.props);
 
+    if (display === DisplayModes.WORLDMAP) {
+      return (
+        <EventsGeoRequest
+          api={api}
+          organization={organization}
+          yAxis={yAxis}
+          query={query}
+          orderby={orderby}
+          projects={project as number[]}
+          period={period}
+          start={start}
+          end={end}
+          environments={environment as string[]}
+          referrer={referrer}
+        >
+          {({errored, loading, tableData}) => {
+            if (errored) {
+              return (
+                <StyledGraphContainer>
+                  <IconWarning color="gray300" size="md" />
+                </StyledGraphContainer>
+              );
+            }
+            if (loading) {
+              return (
+                <StyledGraphContainer>
+                  <LoadingIndicator mini />
+                </StyledGraphContainer>
+              );
+            }
+            const {data, title} = processTableResults(tableData);
+            const chartOptions = {
+              height: 100,
+              series: [
+                {
+                  seriesName: title,
+                  data,
+                },
+              ],
+              fromDiscoverQueryList: true,
+            };
+
+            return <WorldMapChart {...chartOptions} />;
+          }}
+        </EventsGeoRequest>
+      );
+    }
     return (
       <EventsRequest
         organization={organization}
@@ -171,11 +223,14 @@ class MiniGraph extends React.Component<Props> {
           }
 
           const allSeries = timeseriesData ?? results ?? [];
-          const chartType = this.getChartType({
-            showDaily,
-            yAxis: Array.isArray(yAxis) ? yAxis[0] : yAxis,
-            timeseriesData: allSeries,
-          });
+          const chartType =
+            display === 'bar'
+              ? display
+              : this.getChartType({
+                  showDaily,
+                  yAxis: Array.isArray(yAxis) ? yAxis[0] : yAxis,
+                  timeseriesData: allSeries,
+                });
           const data = allSeries.map(series => ({
             ...series,
             lineStyle: {
@@ -193,7 +248,7 @@ class MiniGraph extends React.Component<Props> {
           }
           const chartOptions = {
             colors: chartColors,
-            height: 100,
+            height: 150,
             series: [...data],
             xAxis: {
               show: false,
@@ -255,7 +310,7 @@ class MiniGraph extends React.Component<Props> {
 const StyledGraphContainer = styled(props => (
   <LoadingContainer {...props} maskBackgroundColor="transparent" />
 ))`
-  height: 100px;
+  height: 150px;
 
   display: flex;
   justify-content: center;

@@ -1,4 +1,5 @@
 from typing import Any, Mapping, Optional, Union
+from unittest import mock
 
 from django.conf import settings
 
@@ -6,7 +7,6 @@ from sentry import features
 from sentry.features import Feature
 from sentry.models import User
 from sentry.testutils import TestCase
-from sentry.utils.compat import mock
 
 
 class MockBatchHandler(features.BatchFeatureHandler):

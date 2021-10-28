@@ -63,6 +63,9 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
                 auto_fields=True,
                 auto_aggregations=True,
                 use_aggregate_conditions=True,
+                use_snql=features.has(
+                    "organizations:discover-use-snql", organization, actor=request.user
+                ),
             )
 
         with self.handle_query_errors():
@@ -121,6 +124,7 @@ class OrganizationEventsGeoEndpoint(OrganizationEventsV2EndpointBase):
                 limit=limit,
                 referrer=referrer,
                 use_aggregate_conditions=True,
+                orderby=self.get_orderby(request) or maybe_aggregate,
             )
 
         with self.handle_query_errors():

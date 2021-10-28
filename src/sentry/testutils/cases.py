@@ -1,3 +1,5 @@
+import responses
+
 from sentry.utils.compat import zip
 
 __all__ = (
@@ -29,6 +31,8 @@ import os.path
 import time
 from contextlib import contextmanager
 from datetime import datetime
+from unittest import mock
+from unittest.mock import patch
 from urllib.parse import urlencode
 from uuid import uuid4
 
@@ -65,27 +69,40 @@ from sentry.auth.superuser import ORG_ID as SU_ORG_ID
 from sentry.auth.superuser import Superuser
 from sentry.constants import MODULE_ROOT
 from sentry.eventstream.snuba import SnubaEventStream
+from sentry.mail import mail_adapter
 from sentry.models import AuthProvider as AuthProviderModel
 from sentry.models import (
+    Commit,
+    CommitAuthor,
     Dashboard,
     DashboardWidget,
     DashboardWidgetDisplayTypes,
     DashboardWidgetQuery,
     DeletedOrganization,
+    Deploy,
     GroupMeta,
+    Identity,
+    IdentityProvider,
+    IdentityStatus,
+    NotificationSetting,
     Organization,
     ProjectOption,
+    Release,
+    ReleaseCommit,
     Repository,
+    UserEmail,
+    UserOption,
 )
+from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.plugins.base import plugins
 from sentry.rules import EventState
 from sentry.sentry_metrics import indexer
 from sentry.tagstore.snuba import SnubaTagStorage
 from sentry.testutils.helpers.datetime import iso_format
+from sentry.testutils.helpers.slack import install_slack
+from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.auth import SSO_SESSION_KEY
-from sentry.utils.compat import mock
-from sentry.utils.compat.mock import patch
 from sentry.utils.pytest.selenium import Browser
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snuba import _snuba_pool
@@ -1336,3 +1353,99 @@ class SCIMAzureTestCase(SCIMTestCase):
         auth.register(ACTIVE_DIRECTORY_PROVIDER_NAME, DummyProvider)
         super().setUp(provider=ACTIVE_DIRECTORY_PROVIDER_NAME)
         self.addCleanup(auth.unregister, ACTIVE_DIRECTORY_PROVIDER_NAME, DummyProvider)
+
+
+class ActivityTestCase(TestCase):
+    def another_user(self, email_string, team=None, alt_email_string=None):
+        user = self.create_user(email_string)
+        if alt_email_string:
+            UserEmail.objects.create(email=alt_email_string, user=user)
+
+            assert UserEmail.objects.filter(user=user, email=alt_email_string).update(
+                is_verified=True
+            )
+
+        assert UserEmail.objects.filter(user=user, email=user.email).update(is_verified=True)
+
+        self.create_member(user=user, organization=self.org, teams=[team] if team else None)
+
+        return user
+
+    def another_commit(self, order, name, user, repository, alt_email_string=None):
+        commit = Commit.objects.create(
+            key=name * 40,
+            repository_id=repository.id,
+            organization_id=self.org.id,
+            author=CommitAuthor.objects.create(
+                organization_id=self.org.id,
+                name=user.name,
+                email=alt_email_string or user.email,
+            ),
+        )
+        ReleaseCommit.objects.create(
+            organization_id=self.org.id,
+            release=self.release,
+            commit=commit,
+            order=order,
+        )
+
+        return commit
+
+    def another_release(self, name):
+        release = Release.objects.create(
+            version=name * 40,
+            organization_id=self.project.organization_id,
+            date_released=timezone.now(),
+        )
+        release.add_project(self.project)
+        release.add_project(self.project2)
+        deploy = Deploy.objects.create(
+            release=release, organization_id=self.org.id, environment_id=self.environment.id
+        )
+
+        return release, deploy
+
+
+class SlackActivityNotificationTest(ActivityTestCase):
+    @fixture
+    def adapter(self):
+        return mail_adapter
+
+    def setUp(self):
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.SLACK,
+            NotificationSettingTypes.WORKFLOW,
+            NotificationSettingOptionValues.ALWAYS,
+            user=self.user,
+        )
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.SLACK,
+            NotificationSettingTypes.DEPLOY,
+            NotificationSettingOptionValues.ALWAYS,
+            user=self.user,
+        )
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.SLACK,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.ALWAYS,
+            user=self.user,
+        )
+        UserOption.objects.create(user=self.user, key="self_notifications", value="1")
+        self.integration = install_slack(self.organization)
+        self.idp = IdentityProvider.objects.create(type="slack", external_id="TXXXXXXX1", config={})
+        self.identity = Identity.objects.create(
+            external_id="UXXXXXXX1",
+            idp=self.idp,
+            user=self.user,
+            status=IdentityStatus.VALID,
+            scopes=[],
+        )
+        responses.add(
+            method=responses.POST,
+            url="https://slack.com/api/chat.postMessage",
+            body='{"ok": true}',
+            status=200,
+            content_type="application/json",
+        )
+        self.name = self.user.get_display_name()
+        self.short_id = self.group.qualified_short_id

@@ -1,10 +1,11 @@
 from typing import List, Optional, Tuple
 
 from snuba_sdk.column import Column
+from snuba_sdk.conditions import Condition
 from snuba_sdk.entity import Entity
-from snuba_sdk.expressions import Limit, Offset
+from snuba_sdk.expressions import Granularity, Limit, Offset
 from snuba_sdk.function import CurriedFunction
-from snuba_sdk.orderby import LimitBy
+from snuba_sdk.orderby import Direction, LimitBy, OrderBy
 from snuba_sdk.query import Query
 
 from sentry.search.events.fields import InvalidSearchQuery
@@ -22,11 +23,13 @@ class QueryBuilder(QueryFilter):
         params: ParamsType,
         query: Optional[str] = None,
         selected_columns: Optional[List[str]] = None,
+        equations: Optional[List[str]] = None,
         orderby: Optional[List[str]] = None,
         auto_fields: bool = False,
         auto_aggregations: bool = False,
         use_aggregate_conditions: bool = False,
         functions_acl: Optional[List[str]] = None,
+        array_join: Optional[str] = None,
         limit: Optional[int] = 50,
         offset: Optional[int] = 0,
         limitby: Optional[Tuple[str, int]] = None,
@@ -48,12 +51,9 @@ class QueryBuilder(QueryFilter):
         # params depends on parse_query, and conditions being resolved first since there may be projects in conditions
         self.where += self.resolve_params()
 
-        self.columns = self.resolve_select(selected_columns)
+        self.columns = self.resolve_select(selected_columns, equations)
         self.orderby = self.resolve_orderby(orderby)
-
-    @property
-    def select(self) -> Optional[List[SelectType]]:
-        return self.columns
+        self.array_join = None if array_join is None else self.resolve_column(array_join)
 
     def resolve_limitby(self, limitby: Optional[Tuple[str, int]]) -> Optional[LimitBy]:
         if limitby is None:
@@ -73,7 +73,11 @@ class QueryBuilder(QueryFilter):
     def groupby(self) -> Optional[List[SelectType]]:
         if self.aggregates:
             self.validate_aggregate_arguments()
-            return [c for c in self.columns if c not in self.aggregates]
+            return [
+                c
+                for c in self.columns
+                if c not in self.aggregates and not self.is_equation_column(c)
+            ]
         else:
             return []
 
@@ -110,13 +114,17 @@ class QueryBuilder(QueryFilter):
                     )
                 )
 
+    def add_conditions(self, conditions: List[Condition]) -> None:
+        self.where += conditions
+
     def get_snql_query(self) -> Query:
         self.validate_having_clause()
 
         return Query(
             dataset=self.dataset.value,
             match=Entity(self.dataset.value),
-            select=self.select,
+            select=self.columns,
+            array_join=self.array_join,
             where=self.where,
             having=self.having,
             groupby=self.groupby,
@@ -124,4 +132,54 @@ class QueryBuilder(QueryFilter):
             limit=self.limit,
             offset=self.offset,
             limitby=self.limitby,
+        )
+
+
+class TimeseriesQueryBuilder(QueryFilter):
+    time_column = Column("time")
+
+    def __init__(
+        self,
+        dataset: Dataset,
+        params: ParamsType,
+        granularity: int,
+        query: Optional[str] = None,
+        selected_columns: Optional[List[str]] = None,
+        equations: Optional[List[str]] = None,
+        limit: Optional[int] = 10000,
+    ):
+        super().__init__(
+            dataset,
+            params,
+            auto_fields=False,
+            functions_acl=[],
+            equation_config={"auto_add": True, "aggregates_only": True},
+        )
+        self.where, self.having = self.resolve_conditions(query, use_aggregate_conditions=True)
+
+        self.limit = None if limit is None else Limit(limit)
+
+        # params depends on parse_query, and conditions being resolved first since there may be projects in conditions
+        self.where += self.resolve_params()
+        self.columns = self.resolve_select(selected_columns, equations)
+        self.granularity = Granularity(granularity)
+
+    @property
+    def select(self) -> List[SelectType]:
+        if not self.aggregates:
+            raise InvalidSearchQuery("Cannot query a timeseries without a Y-Axis")
+        return self.aggregates
+
+    def get_snql_query(self) -> Query:
+        return Query(
+            dataset=self.dataset.value,
+            match=Entity(self.dataset.value),
+            select=self.select,
+            where=self.where,
+            having=self.having,
+            # This is a timeseries, the groupby will always be time
+            groupby=[self.time_column],
+            orderby=[OrderBy(self.time_column, Direction.ASC)],
+            granularity=self.granularity,
+            limit=self.limit,
         )
