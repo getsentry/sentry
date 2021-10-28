@@ -254,7 +254,7 @@ const Operator = styled('span')`
   border-left: none;
   border-right: none;
   margin: -1px 0;
-  color: ${p => p.theme.orange400};
+  color: ${p => p.theme.pink300};
 `;
 
 const Value = styled('span')`
@@ -320,7 +320,7 @@ const LogicGroup = styled(({children, ...props}) => (
     &:before {
       position: absolute;
       top: -5px;
-      color: ${p => p.theme.orange400};
+      color: ${p => p.theme.pink300};
       font-size: 16px;
       font-weight: bold;
     }

@@ -103,7 +103,7 @@ function getCrumbDescriptionAndColor(
 
     case BreadcrumbType.WARNING:
       return {
-        color: 'orange400',
+        color: 'yellow300',
         description: t('Warning'),
       };
     case BreadcrumbType.QUERY:
@@ -118,7 +118,7 @@ function getCrumbDescriptionAndColor(
       };
     case BreadcrumbType.SESSION:
       return {
-        color: 'orange300',
+        color: 'pink300',
         description: t('Session'),
       };
     case BreadcrumbType.TRANSACTION:
