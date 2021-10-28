@@ -12,39 +12,39 @@ export type AreaChartSeries = Series & Omit<EChartOption.SeriesLine, 'data' | 'n
 
 type Props = Omit<ChartProps, 'series'> & {
   series: AreaChartSeries[];
-  additionalSeries?: EChartOption.SeriesLine[];
   stacked?: boolean;
 };
 
 class AreaChart extends React.Component<Props> {
   render() {
-    const {series: _series, additionalSeries, stacked, colors, ...props} = this.props;
+    const {series, stacked, colors, ...props} = this.props;
 
-    const series = [
-      ..._series.map(({seriesName, data, ...otherSeriesProps}, i) =>
-        AreaSeries({
-          stack: stacked ? 'area' : undefined,
-          name: seriesName,
-          data: data.map(({name, value}) => [name, value]),
-          lineStyle: {
-            color: colors?.[i],
-            opacity: 1,
-            width: 0.4,
-          },
-          areaStyle: {
-            color: colors?.[i],
-            opacity: 1.0,
-          },
-          animation: false,
-          animationThreshold: 1,
-          animationDuration: 0,
-          ...otherSeriesProps,
-        })
-      ),
-      ...(additionalSeries || []),
-    ];
-
-    return <BaseChart {...props} colors={colors} series={series} />;
+    return (
+      <BaseChart
+        {...props}
+        colors={colors}
+        series={series.map(({seriesName, data, ...otherSeriesProps}, i) =>
+          AreaSeries({
+            stack: stacked ? 'area' : undefined,
+            name: seriesName,
+            data: data.map(({name, value}) => [name, value]),
+            lineStyle: {
+              color: colors?.[i],
+              opacity: 1,
+              width: 0.4,
+            },
+            areaStyle: {
+              color: colors?.[i],
+              opacity: 1.0,
+            },
+            animation: false,
+            animationThreshold: 1,
+            animationDuration: 0,
+            ...otherSeriesProps,
+          })
+        )}
+      />
+    );
   }
 }
 
