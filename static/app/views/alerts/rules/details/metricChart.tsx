@@ -594,7 +594,7 @@ class MetricChart extends React.PureComponent<Props, State> {
                       min: minChartValue || undefined,
                     }}
                     series={[...series, ...areaSeries]}
-                    lineSeries={[
+                    additionalSeries={[
                       ...(comparisonTimeseriesData || []).map(
                         ({data: _data, ...otherSeriesProps}) =>
                           LineSeries({
