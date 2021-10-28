@@ -172,6 +172,10 @@ runs:
       run: |
         sentry init
 
+        # Checkout output to see if we are actually pulling from the cache
+        # I need to verify that docker-py takes advantage of the cache
+        docker pull redis:5.0-alpine
+        docker pull postgres:9.6-alpine
         # redis, postgres are needed for almost every code path.
         sentry devservices up redis postgres
 
