@@ -280,14 +280,29 @@ class UserDetailsDeleteTest(UserDetailsTest):
         # Cannot hard delete your own account
         self.get_valid_response(self.user.id, hardDelete=True, organizations=[], status_code=403)
 
-    def test_hard_delete_account(self):
+    def test_hard_delete_account_without_permission(self):
+        self.user.update(is_superuser=True)
         user2 = self.create_user(email="user2@example.com")
 
         # failed authorization, user does not have permissions to delete another user
         self.get_valid_response(user2.id, hardDelete=True, organizations=[], status_code=403)
 
         # Reauthenticate as super user to hard delete an account
+        self.login_as(user=self.user, superuser=True)
+
+        self.get_valid_response(user2.id, hardDelete=True, organizations=[], status_code=403)
+
+        assert User.objects.filter(id=user2.id).exists()
+
+    def test_hard_delete_account_with_permission(self):
         self.user.update(is_superuser=True)
+        user2 = self.create_user(email="user2@example.com")
+
+        # failed authorization, user does not have permissions to delete another user
+        self.get_valid_response(user2.id, hardDelete=True, organizations=[], status_code=403)
+
+        # Reauthenticate as super user to hard delete an account
+        UserPermission.objects.create(user=self.user, permission="users.admin")
         self.login_as(user=self.user, superuser=True)
 
         self.get_valid_response(user2.id, hardDelete=True, organizations=[], status_code=204)

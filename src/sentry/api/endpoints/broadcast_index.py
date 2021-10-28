@@ -10,7 +10,7 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPerm
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import AdminBroadcastSerializer, BroadcastSerializer, serialize
 from sentry.api.validators import AdminBroadcastValidator, BroadcastValidator
-from sentry.auth.superuser import is_active_superuser
+from sentry.auth.superuser import has_superuser_permission
 from sentry.db.models.query import in_icontains
 from sentry.models import Broadcast, BroadcastSeen
 from sentry.search.utils import tokenize_query
@@ -22,7 +22,7 @@ class BroadcastIndexEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationPermission,)
 
     def _get_serializer(self, request):
-        if is_active_superuser(request):
+        if has_superuser_permission(request, "broadcasts.admin"):
             return AdminBroadcastSerializer
         return BroadcastSerializer
 
@@ -41,10 +41,8 @@ class BroadcastIndexEndpoint(OrganizationEndpoint):
         return (args, kwargs)
 
     def get(self, request, organization=None):
-        if (
-            request.GET.get("show") == "all"
-            and is_active_superuser(request)
-            and request.access.has_permission("broadcasts.admin")
+        if request.GET.get("show") == "all" and has_superuser_permission(
+            request, "broadcasts.admin"
         ):
             # superusers can slice and dice
             queryset = Broadcast.objects.all().order_by("-date_added")
@@ -141,7 +139,7 @@ class BroadcastIndexEndpoint(OrganizationEndpoint):
         return self.respond(result)
 
     def post(self, request):
-        if not (is_active_superuser(request) and request.access.has_permission("broadcasts.admin")):
+        if not has_superuser_permission(request, "broadcasts.admin"):
             return self.respond(status=401)
 
         validator = AdminBroadcastValidator(data=request.data)
