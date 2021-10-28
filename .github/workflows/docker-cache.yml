@@ -27,13 +27,34 @@ jobs:
 
       - name: Pull images
         run: |
+          # Removing images to keep the cache small
+          docker system prune -f
           docker images -a
-          docker pull getsentry/snuba:nightly
+          # XXX: Ideally we have a script that iterates SENTRY_DEVSERVICES
+          # XXX: If using docker-compose, would we be able to pull in parallel
+          docker pull redis:5.0-alpine
+          docker pull postgres:9.6-alpine
+          docker pull confluentinc/cp-zookeeper:6.2.0
+          docker pull confluentinc/cp-kafka:6.2.0
+          # docker pull getsentry/snuba:nightly
+          # docker pull yandex/clickhouse-server:20.3.9.70
+          # # Skipping bigtable
+          # docker pull memcached:1.5-alpine
+          # docker pull us.gcr.io/sentryio/symbolicator:nightly
+          # docker pull us.gcr.io/sentryio/relay:nightly
+          # docker pull us.gcr.io/sentryio/chartcuterie:nightly
           docker images -a
 
-      # In this step, this action saves a list of existing images,
+      # In this step, the action saves existing images,
       # the cache is created without them in the post run.
       # It also restores the cache if it exists.
+      # Finally, "Post Run satackey/action-docker-layer-caching@v0.0.11",
+      # which is the process of saving the cache
       - uses: satackey/action-docker-layer-caching@v0.0.11
+        name: Docker Cache
         # Ignore the failure of a step and avoid terminating the job.
         continue-on-error: true
+        with:
+          key: docker-cache-{hash}
+          restore-keys: |
+            docker-cache-
