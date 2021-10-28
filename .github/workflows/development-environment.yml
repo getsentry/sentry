@@ -16,7 +16,7 @@ jobs:
   dev-environment:
     name: dev docs set up
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 40
+    timeout-minutes: 90
     strategy:
       matrix:
         # Using Ubuntu 18 until I figure out this error:
@@ -83,7 +83,7 @@ jobs:
 
   bootstrap-script:
     runs-on: macos-11
-    timeout-minutes: 45
+    timeout-minutes: 90
     env:
       PIP_DISABLE_PIP_VERSION_CHECK: on
       # Make the environment more similar to what Mac defaults to

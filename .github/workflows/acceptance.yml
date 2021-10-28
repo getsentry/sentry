@@ -17,7 +17,7 @@ jobs:
   frontend:
     name: frontend tests
     runs-on: ubuntu-20.04
-    timeout-minutes: 20
+    timeout-minutes: 90
     strategy:
       matrix:
         # XXX: When updating this, make sure you also update CI_NODE_TOTAL.
@@ -89,7 +89,7 @@ jobs:
   webpack:
     name: create frontend bundle
     runs-on: ubuntu-20.04
-    timeout-minutes: 10
+    timeout-minutes: 90
     outputs:
       dist-path: ${{ steps.config.outputs.dist-path }}
 
@@ -146,7 +146,7 @@ jobs:
   acceptance:
     name: acceptance
     runs-on: ubuntu-20.04
-    timeout-minutes: 20
+    timeout-minutes: 90
     strategy:
       matrix:
         python-version: [3.8.12]
@@ -209,7 +209,7 @@ jobs:
   chartcuterie:
     name: chartcuterie integration
     runs-on: ubuntu-20.04
-    timeout-minutes: 30
+    timeout-minutes: 90
     strategy:
       matrix:
         python-version: [3.8.12]

@@ -14,7 +14,7 @@ jobs:
   python-deps:
     name: install
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
+    timeout-minutes: 90
     strategy:
       matrix:
         os: [macos-11.0, ubuntu-20.04]

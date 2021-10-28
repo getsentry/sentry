@@ -9,7 +9,7 @@ jobs:
   lint:
     name: backend lint
     runs-on: ubuntu-20.04
-    timeout-minutes: 10
+    timeout-minutes: 90
     strategy:
       matrix:
         python-version: [3.8.12]

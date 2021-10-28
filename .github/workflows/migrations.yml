@@ -5,7 +5,7 @@ jobs:
   did-migration-change:
     name: check if any migration changes
     runs-on: ubuntu-20.04
-    timeout-minutes: 3
+    timeout-minutes: 90
     # Map a step output to a job output
     outputs:
       added: ${{ steps.changes.outputs.migrations_added }}
@@ -24,7 +24,7 @@ jobs:
   modified-migration:
     name: check if modified migration
     runs-on: ubuntu-20.04
-    timeout-minutes: 4
+    timeout-minutes: 90
     needs: did-migration-change
     if: ${{ needs.did-migration-change.outputs.modified == 'true' }}
 
@@ -38,7 +38,7 @@ jobs:
   sql:
     name: Generate SQL
     runs-on: ubuntu-20.04
-    timeout-minutes: 8
+    timeout-minutes: 90
     strategy:
       matrix:
         python-version: [3.8.12]
