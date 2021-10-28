@@ -1,5 +1,6 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
+import capitalize from 'lodash/capitalize';
 import chunk from 'lodash/chunk';
 import maxBy from 'lodash/maxBy';
 import minBy from 'lodash/minBy';
@@ -31,6 +32,7 @@ import {
 } from 'app/utils/sessions';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
+import {COMPARISON_DELTA_OPTIONS} from 'app/views/alerts/incidentRules/constants';
 import {isSessionAggregate, SESSION_AGGREGATE_TO_FIELD} from 'app/views/alerts/utils';
 import {AlertWizardAlertNames} from 'app/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'app/views/alerts/wizard/utils';
@@ -218,6 +220,13 @@ class TriggersChart extends React.PureComponent<Props, State> {
     return period;
   };
 
+  get comparisonSeriesName() {
+    return capitalize(
+      COMPARISON_DELTA_OPTIONS.find(({value}) => value === this.props.comparisonDelta)
+        ?.label || ''
+    );
+  }
+
   getComparisonMarkLines(
     timeseriesData: Series[] = [],
     comparisonTimeseriesData: Series[] = []
@@ -362,6 +371,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
     timeseriesData: Series[] = [],
     isLoading: boolean,
     isReloading: boolean,
+    comparisonData?: Series[],
     comparisonMarkLines?: LineChartSeries[],
     minutesThresholdToDisplaySeconds?: number
   ) {
@@ -389,6 +399,8 @@ class TriggersChart extends React.PureComponent<Props, State> {
             minValue={minBy(timeseriesData[0]?.data, ({value}) => value)?.value}
             maxValue={maxBy(timeseriesData[0]?.data, ({value}) => value)?.value}
             data={timeseriesData}
+            comparisonData={comparisonData ?? []}
+            comparisonSeriesName={this.comparisonSeriesName}
             comparisonMarkLines={comparisonMarkLines ?? []}
             hideThresholdLines={comparisonType === AlertRuleComparisonType.CHANGE}
             triggers={triggers}
@@ -475,6 +487,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
             loading,
             reloading,
             undefined,
+            undefined,
             MINUTES_THRESHOLD_TO_DISPLAY_SECONDS
           );
         }}
@@ -490,7 +503,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
               environment={environment ? [environment] : undefined}
               project={projects.map(({id}) => Number(id))}
               interval={`${timeWindow}m`}
-              comparisonDelta={comparisonDelta}
+              comparisonDelta={comparisonDelta && comparisonDelta * 60}
               period={period}
               yAxis={aggregate}
               includePrevious={false}
@@ -544,6 +557,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
                   timeseriesData,
                   loading,
                   reloading,
+                  comparisonTimeseriesData,
                   comparisonMarkLines
                 );
               }}

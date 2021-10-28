@@ -70,6 +70,11 @@ type Props = {
    */
   series?: EChartOption.Series[];
   /**
+   * Additional Chart Series
+   * This is to pass series to BaseChart bypassing the wrappers like LineChart, AreaChart etc.
+   */
+  additionalSeries?: EChartOption.SeriesLine[];
+  /**
    * Array of color codes to use in charts. May also take a function which is
    * provided with the current theme
    */
@@ -112,6 +117,7 @@ type Props = {
         seriesParams?: EChartOption.Tooltip.Format
       ) => string | number;
       nameFormatter?: (name: string) => string;
+      markerFormatter?: (marker: string, label?: string) => string;
       /**
        * Array containing seriesNames that need to be indented
        */
@@ -283,6 +289,7 @@ function BaseChartUnwrapped({
 
   options = {},
   series = [],
+  additionalSeries = [],
   yAxis = {},
   xAxis = {},
 
@@ -337,8 +344,8 @@ function BaseChartUnwrapped({
     ) ?? [];
 
   const resolvedSeries = !previousPeriod
-    ? transformedSeries
-    : [...transformedSeries, ...transformedPreviousPeriod];
+    ? [...transformedSeries, ...additionalSeries]
+    : [...transformedSeries, ...transformedPreviousPeriod, ...additionalSeries];
 
   const defaultAxesProps = {theme};
 
