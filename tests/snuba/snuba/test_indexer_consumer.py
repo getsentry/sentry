@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime, timezone
+from unittest import mock
 from unittest.mock import MagicMock, Mock, patch
 from uuid import uuid4
 
@@ -15,6 +16,7 @@ from sentry.sentry_metrics.indexer.indexer_consumer import (
 )
 from sentry.sentry_metrics.indexer.postgres import PGStringIndexer
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.utils import json, kafka_config
 from sentry.utils.batching_kafka_consumer import wait_for_topics
 
@@ -34,6 +36,19 @@ payload = {
     "org_id": 1,
     "project_id": 3,
 }
+
+
+def translate_payload():
+
+    parsed = payload.copy()
+    parsed["tags"] = {
+        PGStringIndexer().resolve(string=k): PGStringIndexer().resolve(string=str(v))
+        for k, v in payload["tags"].items()
+    }
+    parsed["metric_id"] = PGStringIndexer().resolve(string=payload["name"])
+    # hard-coded retention days added in by the consumer
+    parsed["retention_days"] = 90
+    return parsed
 
 
 class MetricsIndexerWorkerTest(TestCase):
@@ -118,7 +133,8 @@ class MetricsIndexerConsumerTest(TestCase):
         self.admin_client.delete_topics([self.ingest_topic, self.snuba_topic])
 
     @pytest.mark.django_db
-    def test_metrics_consumer(self):
+    @mock.patch("sentry.sentry_metrics.indexer.indexer_consumer.process_indexed_metrics")
+    def test_metrics_consumer(self, mock_task):
         ingest_producer = self._get_producer(self.ingest_topic)
         message = json.dumps(payload).encode()
 
@@ -140,14 +156,19 @@ class MetricsIndexerConsumerTest(TestCase):
         msg = batching_consumer.consumer.poll(5)
         assert msg
 
-        # _handle_message calls worker's process_message
-        # and then we flush() to make sure we call flush_batch
-        batching_consumer._handle_message(msg)
-        batching_consumer._flush()
+        with TaskRunner():
+            # _handle_message calls worker's process_message
+            # and then we flush() to make sure we call flush_batch
+            batching_consumer._handle_message(msg)
+            batching_consumer._flush()
 
-        # make sure we produced the message during flush_batch
-        snuba_producer = batching_consumer.worker._MetricsIndexerWorker__producer
-        assert snuba_producer.flush() == 0
+            # make sure we produced the message during flush_batch
+            snuba_producer = batching_consumer.worker._MetricsIndexerWorker__producer
+            assert snuba_producer.flush() == 0
+
+            translated_msg = translate_payload()
+            expected_msg = {k: translated_msg[k] for k in ["tags", "name", "org_id"]}
+            mock_task.apply_async.assert_called_once_with(kwargs={"messages": [expected_msg]})
 
         # in order to test that the message we produced to the dummy
         # snuba-metrics topic was the message we expected, we make a
@@ -168,8 +189,7 @@ class MetricsIndexerConsumerTest(TestCase):
 
         # finally test the payload of the translated message
         parsed = json.loads(translated_msg.value(), use_rapid_json=True)
-        assert parsed["tags"] == {
-            str(PGStringIndexer().resolve(string=k)): PGStringIndexer().resolve(string=str(v))
-            for k, v in payload["tags"].items()
-        }
-        assert parsed["metric_id"] == PGStringIndexer().resolve(string=payload["name"])
+        expected = translate_payload()
+        # loading the json converts the keys to strings e.g. {"tags": {1: 3}} --> {"tags": {"1": 3}}
+        assert parsed["tags"] == {str(k): v for k, v in expected["tags"].items()}
+        assert parsed["metric_id"] == expected["metric_id"]
