@@ -289,14 +289,14 @@ def get_build_info(
             # include related AppStore/PreRelease versions with the response as well as
             # buildBundles which contains metadata on the debug resources (dSYMs)
             "&include=appStoreVersion,preReleaseVersion,buildBundles"
+            # fetch the maximum number of build bundles
+            "&limit[buildBundles]=50"
             # sort newer releases first
             "&sort=-uploadedDate"
             # only include valid builds
             "&filter[processingState]=VALID"
             # and builds that have not expired yet
             "&filter[expired]=false"
-            # fetch the maximum number of build bundles
-            "&limit[buildBundles]=50"
         )
         pages = _get_appstore_info_paged(session, credentials, url)
         build_info = []
