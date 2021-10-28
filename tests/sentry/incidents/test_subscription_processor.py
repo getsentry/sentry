@@ -43,7 +43,6 @@ from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQueryEven
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.utils import json
-from sentry.utils.compat import map
 from sentry.utils.dates import to_timestamp
 
 EMPTY = object()
@@ -1686,17 +1685,19 @@ class TestUpdateAlertRuleStats(TestCase):
         date = datetime.utcnow().replace(tzinfo=pytz.utc)
         update_alert_rule_stats(alert_rule, sub, date, {3: 20, 4: 3}, {3: 10, 4: 15})
         client = get_redis_client()
-        results = map(
-            int,
-            client.mget(
-                [
-                    "{alert_rule:1:project:2}:last_update",
-                    "{alert_rule:1:project:2}:trigger:3:alert_triggered",
-                    "{alert_rule:1:project:2}:trigger:3:resolve_triggered",
-                    "{alert_rule:1:project:2}:trigger:4:alert_triggered",
-                    "{alert_rule:1:project:2}:trigger:4:resolve_triggered",
-                ]
-            ),
+        results = list(
+            map(
+                int,
+                client.mget(
+                    [
+                        "{alert_rule:1:project:2}:last_update",
+                        "{alert_rule:1:project:2}:trigger:3:alert_triggered",
+                        "{alert_rule:1:project:2}:trigger:3:resolve_triggered",
+                        "{alert_rule:1:project:2}:trigger:4:alert_triggered",
+                        "{alert_rule:1:project:2}:trigger:4:resolve_triggered",
+                    ]
+                ),
+            )
         )
 
         assert results == [int(to_timestamp(date)), 20, 10, 3, 15]

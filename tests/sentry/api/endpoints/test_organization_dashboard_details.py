@@ -8,7 +8,6 @@ from sentry.models import (
     DashboardWidgetQuery,
 )
 from sentry.testutils import OrganizationDashboardWidgetTestCase
-from sentry.utils.compat import zip
 
 
 class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):

@@ -27,7 +27,6 @@ from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.utils import redis
-from sentry.utils.compat import map
 from sentry.utils.dates import to_timestamp
 
 # Use the default redis client as a cluster client in the similarity index
@@ -304,11 +303,11 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         assert source.id != destination.id
         assert source.project == destination.project
 
-        destination_event_ids = map(lambda event: event.event_id, list(events.values())[1])
+        destination_event_ids = set(map(lambda event: event.event_id, list(events.values())[1]))
 
-        assert set(
+        assert destination_event_ids == set(
             UserReport.objects.filter(group_id=source.id).values_list("event_id", flat=True)
-        ) == set(destination_event_ids)
+        )
 
         assert list(
             GroupHash.objects.filter(group_id=source.id).values_list("hash", flat=True)
@@ -327,13 +326,13 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             )
         } == {("red", 4), ("green", 3), ("blue", 3)}
 
-        destination_event_ids = map(
-            lambda event: event.event_id, list(events.values())[0] + list(events.values())[2]
+        destination_event_ids = set(
+            map(lambda event: event.event_id, list(events.values())[0] + list(events.values())[2])
         )
 
-        assert set(
+        assert destination_event_ids == set(
             UserReport.objects.filter(group_id=destination.id).values_list("event_id", flat=True)
-        ) == set(destination_event_ids)
+        )
 
         assert set(
             GroupHash.objects.filter(group_id=destination.id).values_list("hash", flat=True)

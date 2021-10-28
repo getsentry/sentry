@@ -2,7 +2,6 @@ from django.urls import reverse
 
 from sentry.models import Project, Rule
 from sentry.testutils import APITestCase
-from sentry.utils.compat import map
 
 
 class TeamProjectIndexTest(APITestCase):
