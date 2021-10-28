@@ -1,4 +1,9 @@
-import {fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {
+  fireEvent,
+  mountWithTheme,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
 
 import StackTraceContent from 'app/components/events/interfaces/crashContent/stackTrace/content';
 import {StacktraceType} from 'app/types/stacktrace';
@@ -82,7 +87,7 @@ describe('StackTrace', function () {
 
     // collapse the expanded frame (by default)
     fireEvent.mouseDown(frameTitles[0]);
-    fireEvent.click(frameTitles[0]);
+    userEvent.click(frameTitles[0]);
 
     // all frames are now collapsed
     expect(screen.queryByTestId('toggle-button-expanded')).not.toBeInTheDocument();
@@ -90,10 +95,10 @@ describe('StackTrace', function () {
 
     // expand penultimate and last frame
     fireEvent.mouseDown(frameTitles[frameTitles.length - 2]);
-    fireEvent.click(frameTitles[frameTitles.length - 2]);
+    userEvent.click(frameTitles[frameTitles.length - 2]);
 
     fireEvent.mouseDown(frameTitles[frameTitles.length - 1]);
-    fireEvent.click(frameTitles[frameTitles.length - 1]);
+    userEvent.click(frameTitles[frameTitles.length - 1]);
 
     // two frames are now collapsed
     expect(screen.getAllByTestId('toggle-button-expanded')).toHaveLength(2);
@@ -115,7 +120,7 @@ describe('StackTrace', function () {
 
     // collapse the expanded frame (by default)
     fireEvent.mouseDown(expandedToggleButtons);
-    fireEvent.click(expandedToggleButtons);
+    userEvent.click(expandedToggleButtons);
 
     // all frames are now collapsed
     expect(screen.queryByTestId('toggle-button-expanded')).not.toBeInTheDocument();
@@ -125,10 +130,10 @@ describe('StackTrace', function () {
 
     // expand penultimate and last frame
     fireEvent.mouseDown(collapsedToggleButtons[collapsedToggleButtons.length - 2]);
-    fireEvent.click(collapsedToggleButtons[collapsedToggleButtons.length - 2]);
+    userEvent.click(collapsedToggleButtons[collapsedToggleButtons.length - 2]);
 
     fireEvent.mouseDown(collapsedToggleButtons[collapsedToggleButtons.length - 1]);
-    fireEvent.click(collapsedToggleButtons[collapsedToggleButtons.length - 1]);
+    userEvent.click(collapsedToggleButtons[collapsedToggleButtons.length - 1]);
 
     // two frames are now collapsed
     expect(screen.getAllByTestId('toggle-button-expanded')).toHaveLength(2);

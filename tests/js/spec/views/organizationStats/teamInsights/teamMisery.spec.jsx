@@ -1,7 +1,6 @@
 import range from 'lodash/range';
 
 import {
-  fireEvent,
   mountWithTheme,
   screen,
   waitForElementToBeRemoved,
@@ -110,7 +109,7 @@ describe('TeamMisery', () => {
     expect(screen.getAllByText('0% change')).toHaveLength(3);
 
     expect(screen.getByText('More')).toBeInTheDocument();
-    fireEvent.click(screen.getByText('More'));
+    userEvent.click(screen.getByText('More'));
     expect(screen.getAllByText('0% change')).toHaveLength(noChangeItems);
   });
 

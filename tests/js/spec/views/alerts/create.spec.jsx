@@ -7,6 +7,7 @@ import {
   fireEvent,
   mountWithTheme,
   screen,
+  userEvent,
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
@@ -200,7 +201,7 @@ describe('ProjectAlertsCreate', function () {
         'A new issue is created',
       ]);
 
-      fireEvent.click(screen.getByLabelText('Delete Node'));
+      userEvent.click(screen.getByLabelText('Delete Node'));
 
       expect(trackAnalyticsEvent).toHaveBeenCalledWith({
         eventKey: 'edit_alert_rule.add_row',
@@ -216,15 +217,15 @@ describe('ProjectAlertsCreate', function () {
         'The issue is {comparison_type} than {value} {time}',
       ]);
 
-      fireEvent.click(screen.getByLabelText('Delete Node'));
+      userEvent.click(screen.getByLabelText('Delete Node'));
 
       // Add an action and remove it
       await selectEvent.select(screen.getByText('Add action...'), [
         'Send a notification (for all legacy integrations)',
       ]);
-      fireEvent.click(screen.getByLabelText('Delete Node'));
+      userEvent.click(screen.getByLabelText('Delete Node'));
 
-      fireEvent.click(screen.getByText('Save Rule'));
+      userEvent.click(screen.getByText('Save Rule'));
 
       await waitFor(() => {
         expect(mock).toHaveBeenCalledWith(
@@ -302,7 +303,7 @@ describe('ProjectAlertsCreate', function () {
       // Update action interval
       await selectEvent.select(screen.getByText('30 minutes'), ['60 minutes']);
 
-      fireEvent.click(screen.getByText('Save Rule'));
+      userEvent.click(screen.getByText('Save Rule'));
 
       await waitFor(() => {
         expect(mock).toHaveBeenCalledWith(

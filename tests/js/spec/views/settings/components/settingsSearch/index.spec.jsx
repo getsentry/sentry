@@ -1,4 +1,9 @@
-import {fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {
+  fireEvent,
+  mountWithTheme,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
 
 import {navigateTo} from 'app/actionCreators/navigation';
 import FormSearchStore from 'app/stores/formSearchStore';
@@ -99,7 +104,7 @@ describe('SettingsSearch', function () {
 
     expect(firstResult).toBeDefined();
 
-    fireEvent.click(firstResult);
+    userEvent.click(firstResult);
     expect(navigateTo).toHaveBeenCalledWith('/billy-org/', expect.anything(), undefined);
   });
 });
