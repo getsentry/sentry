@@ -293,7 +293,7 @@ def get_build_info(
                                         "build_bundles": build_bundles,
                                     },
                                 )
-                            sentry_sdk.capture_message("len(buildBundlesWithdSYMs) != 1")
+                                sentry_sdk.capture_message("len(buildBundlesWithdSYMs) != 1")
 
                         if len(has_symbols) > 0:
                             bundle = has_symbols[0]
