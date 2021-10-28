@@ -278,10 +278,7 @@ def _path_to_regex(pattern: str) -> Pattern[str]:
         pattern = pattern.rstrip("/")
     # patterns ending with "/*" are special. They only match items directly in the directory
     # not deeper
-    try:
-        trailing_slash_star = pattern[-1] == "*" and len(pattern) > 1 and pattern[-2] == "/"
-    except IndexError:
-        trailing_slash_star = False
+    trailing_slash_star = pattern[-1] == "*" and pattern[-2] == "/" if len(pattern) > 1 else False
 
     iterator = enumerate(pattern)
 
