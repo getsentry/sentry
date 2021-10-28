@@ -1307,6 +1307,7 @@ class QueryFilter(QueryFields):
             operator = Op.IS_NULL if aggregate_filter.operator == "=" else Op.IS_NOT_NULL
             return Condition(name, operator)
 
+        # When resolving functions in conditions we don't want to add them to the list of aggregates
         function = self.resolve_function(name, resolve_only=True)
 
         return Condition(function, Op(aggregate_filter.operator), value)
