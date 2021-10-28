@@ -761,3 +761,20 @@ def save_event(
     **kwargs: Any,
 ) -> None:
     _do_save_event(cache_key, data, start_time, event_id, project_id, **kwargs)
+
+
+@instrumented_task(  # type: ignore
+    name="sentry.tasks.store.save_event_transaction",
+    queue="events.save_event_transaction",
+    time_limit=65,
+    soft_time_limit=60,
+)
+def save_event_transaction(
+    cache_key: Optional[str] = None,
+    data: Optional[Event] = None,
+    start_time: Optional[int] = None,
+    event_id: Optional[str] = None,
+    project_id: Optional[int] = None,
+    **kwargs: Any,
+) -> None:
+    _do_save_event(cache_key, data, start_time, event_id, project_id, **kwargs)
