@@ -37,7 +37,6 @@ import {
   MINUTES_THRESHOLD_TO_DISPLAY_SECONDS,
 } from 'app/utils/sessions';
 import theme from 'app/utils/theme';
-import {getComparisonMarkLines} from 'app/views/alerts/changeAlerts/comparisonMarklines';
 import {alertDetailsLink} from 'app/views/alerts/details';
 import {COMPARISON_DELTA_OPTIONS} from 'app/views/alerts/incidentRules/constants';
 import {makeDefaultCta} from 'app/views/alerts/incidentRules/incidentRulePresets';
@@ -351,10 +350,6 @@ class MetricChart extends React.PureComponent<Props, State> {
       return this.renderEmpty();
     }
 
-    const renderComparisonStats = Boolean(
-      organization.features.includes('change-alerts') && rule.comparisonDelta
-    );
-
     const criticalTrigger = rule.triggers.find(({label}) => label === 'critical');
     const warningTrigger = rule.triggers.find(({label}) => label === 'warning');
 
@@ -388,13 +383,11 @@ class MetricChart extends React.PureComponent<Props, State> {
     let criticalDuration = 0;
     let warningDuration = 0;
 
-    if (!renderComparisonStats) {
-      series.push(
-        createStatusAreaSeries(theme.green300, firstPoint, lastPoint, minChartValue)
-      );
-    }
+    series.push(
+      createStatusAreaSeries(theme.green300, firstPoint, lastPoint, minChartValue)
+    );
 
-    if (incidents && !renderComparisonStats) {
+    if (incidents) {
       // select incidents that fall within the graph range
       const periodStart = moment.utc(firstPoint);
 
@@ -532,17 +525,6 @@ class MetricChart extends React.PureComponent<Props, State> {
       maxThresholdValue = Math.max(maxThresholdValue, alertThreshold);
     }
 
-    let comparisonMarkLines: LineChartSeries[] = [];
-    if (renderComparisonStats && comparisonTimeseriesData) {
-      comparisonMarkLines = getComparisonMarkLines(
-        timeseriesData,
-        comparisonTimeseriesData,
-        0,
-        rule.triggers,
-        rule.thresholdType
-      );
-    }
-
     const comparisonSeriesName = capitalize(
       COMPARISON_DELTA_OPTIONS.find(({value}) => value === rule.comparisonDelta)?.label ||
         ''
@@ -605,14 +587,6 @@ class MetricChart extends React.PureComponent<Props, State> {
                             animationThreshold: 1,
                             animationDuration: 0,
                             ...otherSeriesProps,
-                          })
-                      ),
-                      ...comparisonMarkLines.map(
-                        ({seriesName, data: _data, ...seriesProps}) =>
-                          LineSeries({
-                            name: seriesName,
-                            data: _data.map(({name, value}) => [name, value]),
-                            ...seriesProps,
                           })
                       ),
                     ]}
