@@ -3,11 +3,9 @@ import color from 'color';
 import debounce from 'lodash/debounce';
 import flatten from 'lodash/flatten';
 
-import {AreaChartSeries} from 'app/components/charts/areaChart';
-import BaseChart from 'app/components/charts/baseChart';
+import AreaChart, {AreaChartSeries} from 'app/components/charts/areaChart';
 import Graphic from 'app/components/charts/components/graphic';
 import {LineChartSeries} from 'app/components/charts/lineChart';
-import AreaSeries from 'app/components/charts/series/areaSeries';
 import LineSeries from 'app/components/charts/series/lineSeries';
 import space from 'app/styles/space';
 import {GlobalSelection} from 'app/types';
@@ -363,7 +361,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
     };
 
     return (
-      <BaseChart
+      <AreaChart
         isGroupedByDate
         showTimeInTooltip
         minutesThresholdToDisplaySeconds={minutesThresholdToDisplaySeconds}
@@ -380,25 +378,8 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
             ])
           ),
         })}
-        series={[
-          ...dataWithoutRecentBucket.map(
-            ({seriesName, data: _data, ...otherSeriesProps}) =>
-              AreaSeries({
-                name: seriesName,
-                data: _data.map(({name, value}) => [name, value]),
-                lineStyle: {
-                  opacity: 1,
-                  width: 0.4,
-                },
-                areaStyle: {
-                  opacity: 1.0,
-                },
-                animation: false,
-                animationThreshold: 1,
-                animationDuration: 0,
-                ...otherSeriesProps,
-              })
-          ),
+        series={[...dataWithoutRecentBucket, ...comparisonMarkLines]}
+        additionalSeries={[
           ...comparisonDataWithoutRecentBucket.map(({data: _data, ...otherSeriesProps}) =>
             LineSeries({
               name: comparisonSeriesName,
@@ -408,13 +389,6 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
               animationThreshold: 1,
               animationDuration: 0,
               ...otherSeriesProps,
-            })
-          ),
-          ...comparisonMarkLines.map(({seriesName, data: _data, ...seriesProps}) =>
-            LineSeries({
-              name: seriesName,
-              data: _data.map(({name, value}) => [name, value]),
-              ...seriesProps,
             })
           ),
         ]}
