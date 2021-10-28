@@ -154,7 +154,7 @@ runs:
 
     - uses: getsentry/action-docker-layer-caching@v0.0.11
       name: Docker Cache
-      continue-on-error: true
+      # continue-on-error: true
       with:
         # Note: You must include {hash} in the key input. ({hash} is replaced
         # by the hash value of the Docker image when the action is executed.)
