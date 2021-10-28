@@ -304,7 +304,7 @@ class AppConnectClient:
 
     def download_dsym(self, build: BuildInfo, path: pathlib.Path) -> None:
         with sentry_sdk.start_span(op="dsym", description="Download dSYM"):
-            if isinstance(build.dsym_url, NoDsymUrl):
+            if not isinstance(build.dsym_url, str):
                 if build.dsym_url is NoDsymUrl.NOT_NEEDED:
                     raise NoDsymsError
                 elif build.dsym_url is NoDsymUrl.PENDING:
