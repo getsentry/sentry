@@ -1,37 +1,21 @@
 name: docker cache
 on:
+  # XXX: Make this run on a frequency OR on master
+  # XXX: I wonder if caches can be shared across repositories
   pull_request:
 
 jobs:
+  # This job pull devservices images that are needed by our various workflows
+  # We could potentially make this only run on
   docker-cache:
-    name: populate docker cache
+    name: Warm Docker cache
     runs-on: ubuntu-20.04
-    timeout-minutes: 40
-    # env:
-    # Docker buildkit allows storing Docker layers as artifacts
-    # in an arbitrary directory
-    # DOCKER_BUILDKIT: 1
+    timeout-minutes: 30
     steps:
       - name: Checkout sentry
         uses: actions/checkout@v2
 
-      # - name: Set up Docker Buildx
-      #   uses: docker/setup-buildx-action@v1
-
-      # - name: Cache Docker layers
-      #   uses: actions/cache@v2
-      #   with:
-      #     path: /tmp/.buildx-cache
-      #     # XXX: Think through how to prevent the cache from overgrowing
-      #     key: docker-cache
-
-      - name: Remove images
-        run: |
-          # Removing images to keep the cache small
-          docker system prune -f
-          docker images -a
-
-      - uses: satackey/action-docker-layer-caching@v0.0.11
+      - uses: getsentry/action-docker-layer-caching@v0.0.11
         name: Docker Cache
         continue-on-error: true
         with:
@@ -41,20 +25,18 @@ jobs:
           restore-keys: |
             docker-cache-
 
+      # See setup-sentry action and server.py
       - name: Pull images
         run: |
-          docker images -a
           # XXX: Ideally we have a script that iterates SENTRY_DEVSERVICES
-          # XXX: If using docker-compose, would we be able to pull in parallel
           docker pull redis:5.0-alpine
           docker pull postgres:9.6-alpine
           docker pull confluentinc/cp-zookeeper:6.2.0
           docker pull confluentinc/cp-kafka:6.2.0
-          # docker pull getsentry/snuba:nightly
-          # docker pull yandex/clickhouse-server:20.3.9.70
-          # # Skipping bigtable
-          # docker pull memcached:1.5-alpine
-          # docker pull us.gcr.io/sentryio/symbolicator:nightly
-          # docker pull us.gcr.io/sentryio/relay:nightly
-          # docker pull us.gcr.io/sentryio/chartcuterie:nightly
-          docker images -a
+          docker pull getsentry/snuba:nightly
+          docker pull yandex/clickhouse-server:20.3.9.70
+          docker pull us.gcr.io/sentryio/cbtemulator:23c02d92c7a1747068eb1fc57dddbad23907d614
+          # Images used as part of integration tests
+          docker pull us.gcr.io/sentryio/symbolicator:nightly
+          docker pull us.gcr.io/sentryio/relay:nightly
+          docker pull us.gcr.io/sentryio/chartcuterie:nightly
