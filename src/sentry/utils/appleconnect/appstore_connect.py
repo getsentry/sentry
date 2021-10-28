@@ -181,24 +181,40 @@ class _IncludedRelations:
         """
         rel_ptr_data = safe.get_path(data, "relationships", relation, "data")
         if rel_ptr_data is None:
+            # Because the related information was requested in the query does not mean a
+            # relation of that type did exist.
             # E.g. a query asks for both the appStoreVersion and preReleaseVersion relations
             # to be included.  However for each build there could be only one of these that
             # will have the data with type and id, the other will have None for data.
             return None
-        if isinstance(rel_ptr_data, list):
-            all_related = []
-            # buildBundles' data is a list
-            for relationship in rel_ptr_data:
-                rel_type = _RelType(relationship["type"])
-                rel_id = _RelId(relationship["id"])
-                related_item = self._items[(rel_type, rel_id)]
-                if related_item:
-                    all_related.append(related_item)
-            return all_related
-        else:
-            rel_type = _RelType(rel_ptr_data["type"])
-            rel_id = _RelId(rel_ptr_data["id"])
-            return self._items[(rel_type, rel_id)]
+        assert isinstance(rel_ptr_data, dict)
+        rel_type = _RelType(rel_ptr_data["type"])
+        rel_id = _RelId(rel_ptr_data["id"])
+        return self._items[(rel_type, rel_id)]
+
+    def get_multiple_related(self, data: JSONData, relation: str) -> Optional[List[JSONData]]:
+        """Returns a list of all the related objects of the named relation type.
+
+        This is like :meth:`get_related` but is for relation types which have a list of
+        related objects instead of exactly one.  An example of this is a ``build`` can have
+        multiple ``buildBundles`` related to it.
+
+        Having this as a separate method makes it easier to handle the type checking.
+        """
+        rel_ptr_data = safe.get_path(data, "relationships", relation, "data")
+        if rel_ptr_data is None:
+            # Because the related information was requested in the query does not mean a
+            # relation of that type did exist.
+            return None
+        assert isinstance(rel_ptr_data, list)
+        all_related = []
+        for relationship in rel_ptr_data:
+            rel_type = _RelType(relationship["type"])
+            rel_id = _RelId(relationship["id"])
+            related_item = self._items[(rel_type, rel_id)]
+            if related_item:
+                all_related.append(related_item)
+        return all_related
 
 
 def get_build_info(
@@ -218,14 +234,14 @@ def get_build_info(
     ):
         # https://developer.apple.com/documentation/appstoreconnectapi/list_builds
         url = (
-            f"v1/builds?filter[app]={app_id}"
+            "v1/builds"
+            # filter for this app only, our API key may give us access to more than one app
+            f"?filter[app]={app_id}"
             # we can fetch a maximum of 200 builds at once, so do that
             "&limit=200"
-            # include related AppStore/PreRelease versions with the response
-            "&include=appStoreVersion,preReleaseVersion"
-            # include build bundles with the response, which contains metadata on debug (dSYM)
-            # resources
-            ",buildBundles"
+            # include related AppStore/PreRelease versions with the response as well as
+            # buildBundles which contains metadata on the debug resources (dSYMs)
+            "&include=appStoreVersion,preReleaseVersion,buildBundles"
             # sort newer releases first
             "&sort=-uploadedDate"
             # only include valid builds

@@ -359,11 +359,12 @@ class AppConnectClient:
 
     def download_dsym(self, build: BuildInfo, path: pathlib.Path) -> None:
         with sentry_sdk.start_span(op="dsym", description="Download dSYM"):
-            url = build.dsym_url
-            if url is None:
+            if build.dsym_url is None:
                 raise UnavailableDsymsError
-            elif url == "":
+            elif not build.dsym_url:
                 raise NoDsymsError
 
-            logger.debug("Fetching dSYM from: %s", url)
-            appstore_connect.download_dsym(self._session, self._api_credentials, url, path)
+            logger.debug("Fetching dSYM from: %s", build.dsym_url)
+            appstore_connect.download_dsym(
+                self._session, self._api_credentials, build.dsym_url, path
+            )
