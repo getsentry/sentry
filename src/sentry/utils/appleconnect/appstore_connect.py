@@ -354,18 +354,11 @@ def get_build_info(
                         # Because we only ask for processingState=VALID builds we expect the
                         # builds to be finished and if there are no dSYMs that means the
                         # build doesn't need dSYMs, i.e. it not a bitcode build.
-
-                        # TODO: verify this, it might be that a buildBundle should ALWAYS
-                        # have a dSYMUrl.  I am tempted to capture an error if there is no
-                        # dSYMUrl instead of this logic.
-                        bundles_with_dsyms = [
-                            bundle
-                            for bundle in build_bundles
-                            if safe.get_path(bundle, "attributes", "dSYMUrl") is not None
-                        ]
-                        if len(bundles_with_dsyms) > 0:
-                            bundle = bundles_with_dsyms[0]
-                            dsym_url = safe.get_path(bundle, "attributes", "dSYMUrl")
+                        if len(build_bundles) > 0:
+                            bundle = build_bundles[0]
+                            dsym_url = safe.get_path(
+                                bundle, "attributes", "dSYMUrl", NoDsymUrl.PENDING
+                            )
 
                     build_info.append(
                         BuildInfo(
