@@ -1874,7 +1874,7 @@ SENTRY_DEVSERVICES = {
     ),
     "chartcuterie": lambda settings, options: (
         {
-            "image": "us.gcr.io/sentryio/chartcuterie:nightly",
+            "image": "us.gcr.io/sentryio/chartcuterie:latest",
             "pull": True,
             "volumes": {settings.CHARTCUTERIE_CONFIG_DIR: {"bind": "/etc/chartcuterie"}},
             "environment": {
