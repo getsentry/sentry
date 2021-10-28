@@ -1,0 +1,21 @@
+name: docker cache
+on:
+  pull_request:
+
+jobs:
+  docker-cache:
+    name: populate docker cache
+    runs-on: ubuntu-20.04
+    timeout-minutes: 40
+    steps:
+      - name: Checkout sentry
+        uses: actions/checkout@v2
+
+      - name: Cache (docker)
+        uses: actions/cache@v2
+        with:
+          key: docker-cache
+
+      - name: Pull sentry
+        run: |
+          docker pull getsentry/snuba
