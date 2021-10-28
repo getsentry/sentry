@@ -2,6 +2,7 @@ import * as React from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import color from 'color';
+import capitalize from 'lodash/capitalize';
 import moment from 'moment';
 import momentTimezone from 'moment-timezone';
 
@@ -14,6 +15,7 @@ import MarkArea from 'app/components/charts/components/markArea';
 import MarkLine from 'app/components/charts/components/markLine';
 import EventsRequest from 'app/components/charts/eventsRequest';
 import LineChart, {LineChartSeries} from 'app/components/charts/lineChart';
+import LineSeries from 'app/components/charts/series/lineSeries';
 import SessionsRequest from 'app/components/charts/sessionsRequest';
 import {SectionHeading} from 'app/components/charts/styles';
 import {
@@ -36,6 +38,7 @@ import {
 } from 'app/utils/sessions';
 import theme from 'app/utils/theme';
 import {alertDetailsLink} from 'app/views/alerts/details';
+import {COMPARISON_DELTA_OPTIONS} from 'app/views/alerts/incidentRules/constants';
 import {makeDefaultCta} from 'app/views/alerts/incidentRules/incidentRulePresets';
 import {Dataset, IncidentRule} from 'app/views/alerts/incidentRules/types';
 import {AlertWizardAlertNames} from 'app/views/alerts/wizard/options';
@@ -326,7 +329,8 @@ class MetricChart extends React.PureComponent<Props, State> {
   renderChart(
     loading: boolean,
     timeseriesData?: Series[],
-    minutesThresholdToDisplaySeconds?: number
+    minutesThresholdToDisplaySeconds?: number,
+    comparisonTimeseriesData?: Series[]
   ) {
     const {
       router,
@@ -382,6 +386,7 @@ class MetricChart extends React.PureComponent<Props, State> {
     series.push(
       createStatusAreaSeries(theme.green300, firstPoint, lastPoint, minChartValue)
     );
+
     if (incidents) {
       // select incidents that fall within the graph range
       const periodStart = moment.utc(firstPoint);
@@ -520,6 +525,11 @@ class MetricChart extends React.PureComponent<Props, State> {
       maxThresholdValue = Math.max(maxThresholdValue, alertThreshold);
     }
 
+    const comparisonSeriesName = capitalize(
+      COMPARISON_DELTA_OPTIONS.find(({value}) => value === rule.comparisonDelta)?.label ||
+        ''
+    );
+
     return (
       <ChartPanel>
         <StyledPanelBody withPadding>
@@ -566,6 +576,20 @@ class MetricChart extends React.PureComponent<Props, State> {
                       min: minChartValue || undefined,
                     }}
                     series={[...series, ...areaSeries]}
+                    additionalSeries={[
+                      ...(comparisonTimeseriesData || []).map(
+                        ({data: _data, ...otherSeriesProps}) =>
+                          LineSeries({
+                            name: comparisonSeriesName,
+                            data: _data.map(({name, value}) => [name, value]),
+                            lineStyle: {color: theme.gray200, type: 'dashed', width: 1},
+                            animation: false,
+                            animationThreshold: 1,
+                            animationDuration: 0,
+                            ...otherSeriesProps,
+                          })
+                      ),
+                    ]}
                     graphic={Graphic({
                       elements: this.getRuleChangeThresholdElements(timeseriesData),
                     })}
@@ -582,6 +606,19 @@ class MetricChart extends React.PureComponent<Props, State> {
                           seriesName ?? '',
                           rule.aggregate
                         );
+
+                        const comparisonSeries = pointSeries.find(
+                          ({seriesName: _seriesName}) =>
+                            _seriesName === comparisonSeriesName
+                        );
+                        const comparisonPointY = comparisonSeries
+                          ? alertTooltipValueFormatter(
+                              comparisonSeries.data[1],
+                              seriesName ?? '',
+                              rule.aggregate
+                            )
+                          : null;
+
                         const isModified =
                           dateModified && pointX <= new Date(dateModified).getTime();
 
@@ -600,17 +637,26 @@ class MetricChart extends React.PureComponent<Props, State> {
                         const title = isModified
                           ? `<strong>${t('Alert Rule Modified')}</strong>`
                           : `${marker} <strong>${seriesName}</strong>`;
+
                         const value = isModified
                           ? `${seriesName} ${pointYFormatted}`
                           : pointYFormatted;
 
+                        const comparisonTitle = isModified
+                          ? `<span>${comparisonSeriesName}</span>`
+                          : `<span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;background-color:transparent;"></span><strong>${comparisonSeriesName}</strong>`;
+
                         return [
-                          `<div class="tooltip-series"><div>`,
-                          `<span class="tooltip-label">${title}</span>${value}`,
-                          `</div></div>`,
+                          `<div class="tooltip-series">`,
+                          `<div><span class="tooltip-label">${title}</span>${value}</div>`,
+                          comparisonSeries &&
+                            `<div><span class="tooltip-label">${comparisonTitle}</span>${comparisonPointY}</div>`,
+                          `</div>`,
                           `<div class="tooltip-date">${startTime} &mdash; ${endTime}</div>`,
                           `<div class="tooltip-arrow"></div>`,
-                        ].join('');
+                        ]
+                          .filter(e => e)
+                          .join('');
                       },
                     }}
                     onFinished={() => {
@@ -703,6 +749,7 @@ class MetricChart extends React.PureComponent<Props, State> {
           .filter(p => p && p.slug)
           .map(project => Number(project.id))}
         interval={interval}
+        comparisonDelta={rule.comparisonDelta ? rule.comparisonDelta * 60 : undefined}
         start={viableStartDate}
         end={viableEndDate}
         yAxis={aggregate}
@@ -711,7 +758,9 @@ class MetricChart extends React.PureComponent<Props, State> {
         partial={false}
         referrer="api.alerts.alert-rule-chart"
       >
-        {({loading, timeseriesData}) => this.renderChart(loading, timeseriesData)}
+        {({loading, timeseriesData, comparisonTimeseriesData}) =>
+          this.renderChart(loading, timeseriesData, undefined, comparisonTimeseriesData)
+        }
       </EventsRequest>
     );
   }
