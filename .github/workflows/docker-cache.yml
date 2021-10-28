@@ -11,11 +11,13 @@ jobs:
       - name: Checkout sentry
         uses: actions/checkout@v2
 
-      - name: Cache (docker)
+      - name: Cache Docker layers
         uses: actions/cache@v2
         with:
+          path: /tmp/.docker-cache
           key: docker-cache
 
       - name: Pull sentry
         run: |
           docker pull getsentry/snuba
+          ls -l /tmp/.docker-cache
