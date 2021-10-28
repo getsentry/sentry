@@ -459,8 +459,6 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
 
     @pytest.mark.skip("setting snuba config is too slow")
     def test_span_group_prefixed_with_zeros(self):
-        self.update_snuba_config_ensure({"write_span_columns_projects": f"[{self.project.id}]"})
-
         trace_context = {
             "op": "http.server",
             "hash": "00" + "ab" * 7,
