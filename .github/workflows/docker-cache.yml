@@ -5,12 +5,11 @@ on:
   pull_request:
 
 jobs:
-  # This job pull devservices images that are needed by our various workflows
-  # We could potentially make this only run on
+  # This job pulls development images that are needed by our various workflows
   docker-cache:
     name: Warm Docker cache
     runs-on: ubuntu-20.04
-    timeout-minutes: 30
+    timeout-minutes: 15
     steps:
       - name: Checkout sentry
         uses: actions/checkout@v2
