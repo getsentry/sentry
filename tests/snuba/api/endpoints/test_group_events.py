@@ -349,4 +349,4 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
             response = self.client.get(url, format="json")
             assert response.status_code == 200, response.content
             assert len(response.data) == 1, response.data
-            assert map(lambda x: x["eventID"], response.data) == [str(event.event_id)]
+            assert list(map(lambda x: x["eventID"], response.data)) == [str(event.event_id)]
