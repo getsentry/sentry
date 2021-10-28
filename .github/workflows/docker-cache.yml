@@ -7,10 +7,10 @@ jobs:
     name: populate docker cache
     runs-on: ubuntu-20.04
     timeout-minutes: 40
-    env:
-      # Docker buildkit allows storing Docker layers as artifacts
-      # in an arbitrary directory
-      # DOCKER_BUILDKIT: 1
+    # env:
+    # Docker buildkit allows storing Docker layers as artifacts
+    # in an arbitrary directory
+    # DOCKER_BUILDKIT: 1
     steps:
       - name: Checkout sentry
         uses: actions/checkout@v2
