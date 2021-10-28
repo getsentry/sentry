@@ -12,14 +12,14 @@ import {
   IssueAlertRuleCondition,
   IssueAlertRuleConditionTemplate,
 } from 'app/types/alerts';
-import {EVENT_FREQUENCY_PERCENT_CONDITION} from 'app/views/projectInstall/issueAlertOptions';
-
 import {
   CHANGE_ALERT_CONDITION_IDS,
   COMPARISON_INTERVAL_CHOICES,
   COMPARISON_TYPE_CHOICE_VALUES,
   COMPARISON_TYPE_CHOICES,
-} from './constants/changeAlerts';
+} from 'app/views/alerts/changeAlerts/constants';
+import {EVENT_FREQUENCY_PERCENT_CONDITION} from 'app/views/projectInstall/issueAlertOptions';
+
 import RuleNode from './ruleNode';
 
 type Props = {

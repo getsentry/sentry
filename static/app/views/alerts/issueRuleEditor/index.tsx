@@ -44,7 +44,7 @@ import withTeams from 'app/utils/withTeams';
 import {
   CHANGE_ALERT_CONDITION_IDS,
   CHANGE_ALERT_PLACEHOLDERS_LABELS,
-} from 'app/views/alerts/issueRuleEditor/constants/changeAlerts';
+} from 'app/views/alerts/changeAlerts/constants';
 import AsyncView from 'app/views/asyncView';
 import Input from 'app/views/settings/components/forms/controls/input';
 import Field from 'app/views/settings/components/forms/field';
