@@ -2,17 +2,14 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import Line from 'app/components/events/interfaces/frame/line';
-import {
-  getImageRange,
-  parseAddress,
-  stackTracePlatformIcon,
-} from 'app/components/events/interfaces/utils';
 import {t} from 'app/locale';
 import {Frame, Organization, PlatformType} from 'app/types';
 import {Event} from 'app/types/event';
 import {StacktraceType} from 'app/types/stacktrace';
 import withOrganization from 'app/utils/withOrganization';
+
+import Line from '../../frame/line';
+import {getImageRange, parseAddress, stackTracePlatformIcon} from '../../utils';
 
 const defaultProps = {
   includeSystemFrames: true,

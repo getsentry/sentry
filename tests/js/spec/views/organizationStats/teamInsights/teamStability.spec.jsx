@@ -1,4 +1,4 @@
-import {mountWithTheme, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
 import TeamStability from 'app/views/organizationStats/teamInsights/teamStability';
 
@@ -17,10 +17,6 @@ describe('TeamStability', () => {
       />
     );
 
-    await waitFor(() => {
-      expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
-    });
-
     expect(screen.getByText('project-slug')).toBeInTheDocument();
     expect(screen.getAllByText('90%')).toHaveLength(2);
     expect(screen.getByText('0%')).toBeInTheDocument(2);
@@ -36,10 +32,6 @@ describe('TeamStability', () => {
         period="7d"
       />
     );
-
-    await waitFor(() => {
-      expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
-    });
 
     expect(screen.getAllByText('\u2014')).toHaveLength(3);
   });

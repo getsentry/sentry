@@ -6,22 +6,22 @@ import {LocationDescriptorObject} from 'history';
 import pick from 'lodash/pick';
 import moment from 'moment';
 
-import {Client} from 'app/api';
 import {DateTimeObject} from 'app/components/charts/utils';
 import TeamSelector from 'app/components/forms/teamSelector';
 import * as Layout from 'app/components/layouts/thirds';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import NoProjectMessage from 'app/components/noProjectMessage';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {ChangeData} from 'app/components/organizations/timeRangeSelector';
 import PageTimeRangeSelector from 'app/components/pageTimeRangeSelector';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {DateString, Organization, RelativePeriod, TeamWithProjects} from 'app/types';
+import {DateString, RelativePeriod, TeamWithProjects} from 'app/types';
 import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
+import {isActiveSuperuser} from 'app/utils/isActiveSuperuser';
 import localStorage from 'app/utils/localStorage';
-import withApi from 'app/utils/withApi';
-import withOrganization from 'app/utils/withOrganization';
-import withTeamsForUser from 'app/utils/withTeamsForUser';
+import {useOrganization} from 'app/utils/useOrganization';
+import useTeams from 'app/utils/useTeams';
 
 import Header from '../header';
 
@@ -48,22 +48,14 @@ const PAGE_QUERY_PARAMS = [
   'team',
 ];
 
-type Props = {
-  api: Client;
-  organization: Organization;
-  teams: TeamWithProjects[];
-  loadingTeams: boolean;
-  error: Error | null;
-} & RouteComponentProps<{orgId: string}, {}>;
+type Props = {} & RouteComponentProps<{orgId: string}, {}>;
 
-function TeamInsightsOverview({
-  organization,
-  teams,
-  loadingTeams,
-  location,
-  router,
-}: Props) {
+function TeamInsightsOverview({location, router}: Props) {
+  const isSuperuser = isActiveSuperuser();
+  const organization = useOrganization();
+  const {teams, initiallyLoaded} = useTeams({provideUserTeams: true});
   const theme = useTheme();
+
   const query = location?.query ?? {};
   const localStorageKey = `teamInsightsSelectedTeamId:${organization.slug}`;
 
@@ -73,7 +65,9 @@ function TeamInsightsOverview({
     localTeamId = null;
   }
   const currentTeamId = localTeamId ?? teams[0]?.id;
-  const currentTeam = teams.find(team => team.id === currentTeamId);
+  const currentTeam = teams.find(team => team.id === currentTeamId) as
+    | TeamWithProjects
+    | undefined;
   const projects = currentTeam?.projects ?? [];
 
   useEffect(() => {
@@ -171,22 +165,27 @@ function TeamInsightsOverview({
   }
   const {period, start, end, utc} = dataDatetime();
 
+  if (teams.length === 0) {
+    return (
+      <NoProjectMessage organization={organization} superuserNeedsToBeProjectMember />
+    );
+  }
+
   return (
     <Fragment>
       <Header organization={organization} activeTab="team" />
 
       <Body>
-        {loadingTeams && <LoadingIndicator />}
-        {!loadingTeams && (
+        {!initiallyLoaded && <LoadingIndicator />}
+        {initiallyLoaded && (
           <Layout.Main fullWidth>
             <ControlsWrapper>
               <StyledTeamSelector
                 name="select-team"
                 inFieldLabel={t('Team: ')}
                 value={currentTeam?.slug}
-                isLoading={loadingTeams}
                 onChange={choice => handleChangeTeam(choice.actor.id)}
-                teamFilter={filterTeam => filterTeam.isMember}
+                teamFilter={isSuperuser ? undefined : filterTeam => filterTeam.isMember}
                 styles={{
                   singleValue(provided: any) {
                     const custom = {
@@ -339,8 +338,7 @@ function TeamInsightsOverview({
   );
 }
 
-export {TeamInsightsOverview};
-export default withApi(withOrganization(withTeamsForUser(TeamInsightsOverview)));
+export default TeamInsightsOverview;
 
 const Body = styled(Layout.Body)`
   margin-bottom: -20px;

@@ -127,6 +127,25 @@ def test_matcher_test_exception():
     assert not Matcher("path", "*.py").test({})
 
 
+def test_matcher_file_abs_path_same_frame():
+    data = {
+        "exception": {
+            "values": [
+                {
+                    "stacktrace": {
+                        "frames": [
+                            {"filename": "foo/file.py", "abs_path": "/usr/local/src/other/app.py"},
+                        ]
+                    }
+                }
+            ]
+        }
+    }
+
+    assert Matcher("path", "/usr/local/src/*/app.py").test(data)
+    assert Matcher("path", "*local/src/*").test(data)
+
+
 def test_matcher_test_stacktrace():
     data = {
         "stacktrace": {
@@ -515,6 +534,30 @@ def test_codeowners_match_wildcard_extension(path_details, expected):
 def test_codeowners_match_backslash(path_details, expected):
     """\\ should ignore anything after the backslash and only match with files named '\'"""
     _assert_matcher(Matcher("codeowners", "\\filename"), path_details, expected)
+
+
+@pytest.mark.parametrize(
+    "path_details, expected",
+    [
+        ([{"filename": "foo/"}, {"abs_path": "/usr/local/src/foo/"}], True),
+        (
+            [
+                {"filename": "/foo/subdir/"},
+                {"abs_path": "/usr/local/src/foo/subdir/"},
+            ],
+            True,
+        ),
+        (
+            [
+                {"filename": "config/subdir/test.py"},
+                {"abs_path": "/usr/local/src/config/subdir/test.py"},
+            ],
+            True,
+        ),
+    ],
+)
+def test_codeowners_match_fowardslash(path_details, expected):
+    _assert_matcher(Matcher("codeowners", "/"), path_details, expected)
 
 
 def test_parse_code_owners():
