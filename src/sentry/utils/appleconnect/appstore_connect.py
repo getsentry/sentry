@@ -328,13 +328,11 @@ def get_build_info(
                     build_bundles = relations.get_multiple_related(build, "buildBundles")
                     with sentry_sdk.push_scope() as scope:
                         scope.set_context(
-                            scope.set_context(
-                                "App Store Connect Build",
-                                {
-                                    "build": build,
-                                    "build_bundles": build_bundles,
-                                },
-                            )
+                            "App Store Connect Build",
+                            {
+                                "build": build,
+                                "build_bundles": build_bundles,
+                            },
                         )
                         dsym_url = _get_dsym_url(build_bundles)
 
