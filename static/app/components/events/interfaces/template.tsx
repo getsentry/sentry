@@ -1,8 +1,10 @@
-import EventDataSection from 'app/components/events/eventDataSection';
-import Line from 'app/components/events/interfaces/frame/line';
 import {t} from 'app/locale';
 import {Frame} from 'app/types';
 import {Event} from 'app/types/event';
+
+import EventDataSection from '../../events/eventDataSection';
+
+import Line from './frame/line';
 
 type Props = {
   type: string;
