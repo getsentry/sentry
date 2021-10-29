@@ -1822,7 +1822,7 @@ SENTRY_DEVSERVICES = {
         {
             "image": "getsentry/snuba:nightly" if not APPLE_ARM64
             # We cross-build arm64 images on GH's Apple Intel runners
-            else "ghcr.io/getsentry/snuba-ci:dee35135b6259aea343f0228b15adccb41547d2e:latest",
+            else "ghcr.io/getsentry/snuba-ci:latest",
             "pull": True,
             "ports": {"1218/tcp": 1218},
             "command": ["devserver"],
