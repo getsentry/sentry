@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import itertools
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Counter, Mapping, Optional
+from typing import TYPE_CHECKING, Any, Counter, Mapping
 
 from django.utils import dateformat
 
@@ -11,7 +13,7 @@ if TYPE_CHECKING:
     from sentry.models import Group
 
 
-def get_digest_subject(group: "Group", counts: Counter["Group"], date: datetime) -> str:
+def get_digest_subject(group: Group, counts: Counter[Group], date: datetime) -> str:
     return "{short_id} - {count} new {noun} since {date}".format(
         short_id=group.qualified_short_id,
         count=len(counts),
@@ -38,7 +40,7 @@ def get_timestamp(record_param: Any) -> float:
 def send_as_alert_notification(
     context: Mapping[str, Any],
     target_type: ActionTargetType,
-    target_identifier: Optional[int] = None,
+    target_identifier: int | None = None,
 ) -> None:
     """If there is more than one record for a group, just choose the most recent one."""
     from sentry.mail import mail_adapter
