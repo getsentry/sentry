@@ -212,9 +212,12 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
         if version == 2:
             if len(query["fields"]) < 1:
                 raise serializers.ValidationError("You must include at least one field.")
-            if "yAxis" in query and len(query["yAxis"]) < 1:
-                sentry_sdk.set_tag("discover.missing-yaxis", 1)
-                raise serializers.ValidationError("You must include at least one yAxis.")
+            if "yAxis" in query:
+                if len(query["yAxis"]) < 1:
+                    sentry_sdk.set_tag("discover.missing-yaxis", 1)
+                    raise serializers.ValidationError("You must include at least one yAxis.")
+                elif len(query["yAxis"]) > 3:
+                    raise serializers.ValidationError("Only a maximum of 3 yAxis can be selected")
 
         if data["projects"] == ALL_ACCESS_PROJECTS:
             data["projects"] = []
