@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 # This might be odd, but it convinces mypy that this is part of this module's API.
 BuildInfo = appstore_connect.BuildInfo
 NoDsymUrl = appstore_connect.NoDsymUrl
+PublicProviderId = itunes_connect.PublicProviderId
 
 
 # The key in the project options under which all symbol sources are stored.
@@ -116,7 +117,7 @@ class AppStoreConnectConfig:
     #
     # An iTunes session can have multiple organisations and needs this ID to be able to
     # select the correct organisation to operate on.
-    orgPublicId: itunes_connect.PublicProviderId
+    orgPublicId: PublicProviderId
 
     # The name of an organisation, as supplied by iTunes.
     orgName: str
@@ -303,6 +304,11 @@ class AppConnectClient:
         return appstore_connect.get_build_info(self._session, self._api_credentials, self._app_id)
 
     def download_dsyms(self, build: BuildInfo, path: pathlib.Path) -> None:
+        """Downloads the dSYMs from the build into the filename given by `path`.
+
+        The dSYMs are downloaded as a zipfile so when this call succeeds the file at `path`
+        will contain a zipfile.
+        """
         with sentry_sdk.start_span(op="dsym", description="Download dSYMs"):
             if not isinstance(build.dsym_url, str):
                 if build.dsym_url is NoDsymUrl.NOT_NEEDED:

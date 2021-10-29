@@ -438,10 +438,7 @@ def get_apps(session: Session, credentials: AppConnectCredentials) -> Optional[L
 def download_dsyms(
     session: Session, credentials: AppConnectCredentials, url: str, path: pathlib.Path
 ) -> None:
-    """
-    Downloads dSYMs at `url` into `path`.
-    """
-
+    """Downloads dSYMs at `url` into `path` which must be a filename."""
     headers = _get_authorization_header(credentials)
 
     with session.get(url, headers=headers, stream=True, timeout=15) as res:
