@@ -38,10 +38,8 @@ jobs:
         run: |
           make prerequisites
 
-      - name: Setup Python ${{ matrix.python-version }}
+      - name: Setup Python
         uses: ./.github/actions/setup-python
-      #   with:
-      #     python-version: ${{ matrix.python-version }}
 
       - name: Cache (pyenv)
         uses: actions/cache@v2
