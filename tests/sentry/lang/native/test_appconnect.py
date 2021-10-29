@@ -213,7 +213,7 @@ class TestDownloadDsyms:
     def path(self):
         return pathlib.Path("/")
 
-    def build_with_url(url: Any) -> appconnect.BuildInfo:
+    def build_with_url(self, url: Any) -> appconnect.BuildInfo:
         return appconnect.BuildInfo(
             app_id="honk",
             platform="macOS",
