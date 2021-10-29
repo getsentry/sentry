@@ -59,12 +59,16 @@ def inner_dsym_download(project_id: int, config_id: str) -> None:
         with tempfile.NamedTemporaryFile() as dsyms_zip:
             try:
                 client.download_dsyms(build, pathlib.Path(dsyms_zip.name))
+            # For no dSYMs and unusable url, let the build be marked as fetched so they're not
+            # repeatedly re-checked every time this task is run.
             except appconnect.NoDsymsError:
                 logger.debug("No dSYMs for build %s", build)
+            except ValueError:
+                logger.debug('Unusable URL to fetch dSYMs at: "%s"', build)
+            # Moves on to the next build so we don't check off fetched. This url will
+            # eventuallyTM be populated, so revisit it at a later time.
             except appconnect.PendingDsymsError:
                 logger.debug("dSYM url currently unavailable for build %s", build)
-                # Moving on to the next build so we don't check off fetched. This url will
-                # eventuallyTM be populated, so revisit it at a later time.
                 continue
             # early-return in unauthorized and forbidden to avoid trying all the other builds
             # as well, since an expired token will error for all of them.
@@ -94,8 +98,6 @@ def inner_dsym_download(project_id: int, config_id: str) -> None:
                 create_difs_from_dsyms_zip(dsyms_zip.name, project)
                 logger.debug("Uploaded dSYMs for build %s", build)
 
-        # If we either downloaded, or didn't need to download the dSYMs
-        # (there was no dSYM url), we check off this build.
         build_state.fetched = True
         build_state.save()
 
