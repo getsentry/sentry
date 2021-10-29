@@ -236,6 +236,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
         position: [yAxisSize, position],
         shape: {y1: 1, y2: 1, x1: graphAreaMargin, x2: graphAreaWidth},
         style: LINE_STYLE,
+        z: 100,
       },
 
       // Shaded area for incident/resolutions to show user when they can expect to be alerted
