@@ -269,7 +269,6 @@ class TestGetDsymUrl:
             appstore_connect._get_dsym_url(bundles)
 
     def test_one_bundle_no_url(self) -> None:
-        # TODO: can dSYMUrl really be None?
         bundles = [
             {
                 "type": "buildBundles",
@@ -297,7 +296,6 @@ class TestGetDsymUrl:
         assert appstore_connect._get_dsym_url(bundles) == url
 
     def test_multi_bundle_no_url(self) -> None:
-        # TODO: can dSYMUrl really be None?
         bundles = [
             {
                 "type": "buildBundles",
@@ -336,9 +334,10 @@ class TestGetDsymUrl:
                 },
             },
         ]
+        assert appstore_connect._get_dsym_url(bundles) is first_url
 
-        # We really don't know what's preferred here, so keep the assert loose
-        assert appstore_connect._get_dsym_url(bundles) in [first_url, second_url]
+        bundles.reverse()
+        assert appstore_connect._get_dsym_url(bundles) is second_url
 
     def test_multi_bundle_mixed_urls(self) -> None:
         url = "http://iosapps.itunes.apple.com/itunes-assets/very-real-url"
