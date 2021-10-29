@@ -369,16 +369,13 @@ def _get_dsym_url(bundles: Optional[List[JSONData]]) -> Union[NoDsymUrl, str]:
     # was a bitcode upload or a native upload.  And whether dSYMs are
     # available for download only depends on whether it was a bitcode
     # upload.
-    if bundles is None:
+    if bundles is None or len(bundles) == 0:
         return NoDsymUrl.NOT_NEEDED
 
-    if len(bundles) != 1:
+    if len(bundles) > 1:
         # We currently do not know how to handle these, we'll carry on
         # with the first bundle but report this as an error.
         sentry_sdk.capture_message("len(buildBundles) != 1")
-
-    if len(bundles) == 0:
-        return NoDsymUrl.NOT_NEEDED
 
     # Because we only ask for processingState=VALID builds we expect the
     # builds to be finished and if there are no dSYMs that means the
