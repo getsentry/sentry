@@ -1821,12 +1821,8 @@ SENTRY_DEVSERVICES = {
     "snuba": lambda settings, options: (
         {
             "image": "getsentry/snuba:nightly" if not APPLE_ARM64
-            # We don't yet have a way to produce a Snuba arm64 image as part of our release process
-            # The following image was built on an Intel MBP like this:
-            # > docker buildx create --name mybuilder --use
-            # > docker auth
-            # > docker buildx build --platform linux/arm64 -t armenzg/snuba:buildx-latest --push .
-            else "armenzg/snuba:buildx-latest",
+            # We cross-build arm64 images on GH's Apple Intel runners
+            else "ghcr.io/getsentry/snuba-ci:dee35135b6259aea343f0228b15adccb41547d2e:latest",
             "pull": True,
             "ports": {"1218/tcp": 1218},
             "command": ["devserver"],
