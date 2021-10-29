@@ -18,6 +18,8 @@ export type RawSpanType = {
   status?: string;
   data: Object;
   tags?: {[key: string]: string};
+  hash?: string;
+  exclusive_time?: number;
 };
 
 export const rawSpanKeys: Set<keyof RawSpanType> = new Set([
@@ -32,6 +34,8 @@ export const rawSpanKeys: Set<keyof RawSpanType> = new Set([
   'status',
   'data',
   'tags',
+  'hash',
+  'exclusive_time',
 ]);
 
 export type OrphanSpanType = {
@@ -119,6 +123,8 @@ export type ParsedTraceType = {
   traceEndTimestamp: number;
   spans: SpanType[];
   description?: string;
+  hash?: string;
+  exclusiveTime?: number;
 };
 
 export enum TickAlignment {
@@ -135,6 +141,8 @@ export type TraceContextType = {
   parent_span_id?: string;
   description?: string;
   status?: string;
+  hash?: string;
+  exclusive_time?: number;
 };
 
 type SpanTreeDepth = number;

@@ -191,6 +191,8 @@ export function generateRootSpan(trace: ParsedTraceType): RawSpanType {
     description: trace.description,
     data: {},
     status: trace.rootSpanStatus,
+    hash: trace.hash,
+    exclusive_time: trace.exclusiveTime,
   };
 
   return rootSpan;
@@ -293,6 +295,8 @@ export function parseTrace(event: Readonly<EventTransaction>): ParsedTraceType {
   const description = traceContext && traceContext.description;
   const parentSpanID = traceContext && traceContext.parent_span_id;
   const rootSpanStatus = traceContext && traceContext.status;
+  const hash = traceContext && traceContext.hash;
+  const exclusiveTime = traceContext && traceContext.exclusive_time;
 
   if (!spanEntry || spans.length <= 0) {
     return {
@@ -306,6 +310,8 @@ export function parseTrace(event: Readonly<EventTransaction>): ParsedTraceType {
       parentSpanID,
       spans: [],
       description,
+      hash,
+      exclusiveTime,
     };
   }
 
@@ -332,6 +338,8 @@ export function parseTrace(event: Readonly<EventTransaction>): ParsedTraceType {
     parentSpanID,
     spans,
     description,
+    hash,
+    exclusiveTime,
   };
 
   const reduced: ParsedTraceType = spans.reduce((acc, inputSpan) => {

@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import map from 'lodash/map';
 
 import {Client} from 'app/api';
+import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import DateTime from 'app/components/dateTime';
@@ -32,6 +33,7 @@ import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {EventTransaction} from 'app/types/event';
 import {assert} from 'app/types/utils';
+import {defined} from 'app/utils';
 import EventView from 'app/utils/discover/eventView';
 import {generateEventSlug} from 'app/utils/discover/urls';
 import getDynamicText from 'app/utils/getDynamicText';
@@ -372,6 +374,19 @@ class SpanDetail extends React.Component<Props, State> {
                   ? String(span.same_process_as_parent)
                   : null}
               </Row>
+              <Feature
+                organization={organization}
+                features={['organizations:performance-suspect-spans-view']}
+              >
+                <Row title="Span Group">
+                  {defined(span.hash) ? String(span.hash) : null}
+                </Row>
+                <Row title="Span Exclusive Time">
+                  {defined(span.exclusive_time)
+                    ? `${Number(span.exclusive_time.toFixed(3)).toLocaleString()}ms`
+                    : null}
+                </Row>
+              </Feature>
               <Tags span={span} />
               {allZeroSizes && (
                 <TextTr>
