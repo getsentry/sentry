@@ -35,12 +35,11 @@ jobs:
           echo "::set-output name=yarn-cache-dir::$(yarn cache dir)"
 
       - name: Install prerequisites
-        continue-on-error: true
         run: |
           make prerequisites
 
-      # - name: Setup Python ${{ matrix.python-version }}
-      #   uses: ./.github/actions/setup-python
+      - name: Setup Python ${{ matrix.python-version }}
+        uses: ./.github/actions/setup-python
       #   with:
       #     python-version: ${{ matrix.python-version }}
 

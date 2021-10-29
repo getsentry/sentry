@@ -237,7 +237,7 @@ prerequisites() {
     if [ -z "${CI+x}" ]; then
         brew update -q && brew bundle -q
     else
-        HOMEBREW_NO_AUTO_UPDATE=on brew install libxmlsec1
+        HOMEBREW_NO_AUTO_UPDATE=on brew install libxmlsec1 pyenv
     fi
 }
 
