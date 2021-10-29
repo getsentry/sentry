@@ -101,6 +101,14 @@ upgrade-pip() {
     pip install --upgrade "pip==21.1.2" "wheel==0.36.2"
 }
 
+upgrade() {
+    # If our cerfiticates fall out-of-date, you can face issues when commiting as pre-commit this the network
+    # ssl.SSLCertVerificationError: [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1131)
+    brew upgrade ca-certificates
+    # This solves `SessionNotCreatedException: Message: session not created: This version of ChromeDriver only supports Chrome version XX`
+    brew upgrade --cask chromedriver
+}
+
 install-py-dev() {
     upgrade-pip
     # It places us within top src dir to be at the same path as setup.py
