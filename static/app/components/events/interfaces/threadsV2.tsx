@@ -71,7 +71,6 @@ function Threads({
   const platform = (event.platform ?? 'other') as PlatformType;
   const hasMoreThanOneThread = threads.length > 1;
   const exception = getThreadException(event, activeThread);
-
   const stackView = activeThread ? getIntendedStackView(activeThread, event) : undefined;
 
   function renderPills() {

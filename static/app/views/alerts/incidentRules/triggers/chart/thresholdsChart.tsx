@@ -5,6 +5,8 @@ import flatten from 'lodash/flatten';
 
 import AreaChart, {AreaChartSeries} from 'app/components/charts/areaChart';
 import Graphic from 'app/components/charts/components/graphic';
+import {LineChartSeries} from 'app/components/charts/lineChart';
+import LineSeries from 'app/components/charts/series/lineSeries';
 import space from 'app/styles/space';
 import {GlobalSelection} from 'app/types';
 import {ReactEchartsRef, Series} from 'app/types/echarts';
@@ -21,7 +23,8 @@ import {AlertRuleThresholdType, IncidentRule, Trigger} from '../../types';
 
 type DefaultProps = {
   data: Series[];
-  comparisonMarkLines: AreaChartSeries[];
+  comparisonData: Series[];
+  comparisonMarkLines: LineChartSeries[];
 };
 
 type Props = DefaultProps & {
@@ -33,6 +36,7 @@ type Props = DefaultProps & {
   minutesThresholdToDisplaySeconds?: number;
   maxValue?: number;
   minValue?: number;
+  comparisonSeriesName?: string;
 } & Partial<GlobalSelection['datetime']>;
 
 type State = {
@@ -63,6 +67,7 @@ const COLOR = {
 export default class ThresholdsChart extends PureComponent<Props, State> {
   static defaultProps: DefaultProps = {
     data: [],
+    comparisonData: [],
     comparisonMarkLines: [],
   };
 
@@ -81,6 +86,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
     if (
       this.props.triggers !== prevProps.triggers ||
       this.props.data !== prevProps.data ||
+      this.props.comparisonData !== prevProps.comparisonData ||
       this.props.comparisonMarkLines !== prevProps.comparisonMarkLines
     ) {
       this.handleUpdateChartAxis();
@@ -230,6 +236,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
         position: [yAxisSize, position],
         shape: {y1: 1, y2: 1, x1: graphAreaMargin, x2: graphAreaWidth},
         style: LINE_STYLE,
+        z: 100,
       },
 
       // Shaded area for incident/resolutions to show user when they can expect to be alerted
@@ -295,11 +302,20 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
       triggers,
       period,
       aggregate,
+      comparisonData,
+      comparisonSeriesName,
       comparisonMarkLines,
       minutesThresholdToDisplaySeconds,
     } = this.props;
 
     const dataWithoutRecentBucket: AreaChartSeries[] = data?.map(
+      ({data: eventData, ...restOfData}) => ({
+        ...restOfData,
+        data: eventData.slice(0, -1),
+      })
+    );
+
+    const comparisonDataWithoutRecentBucket = comparisonData?.map(
       ({data: eventData, ...restOfData}) => ({
         ...restOfData,
         data: eventData.slice(0, -1),
@@ -323,8 +339,17 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
 
     const chartOptions = {
       tooltip: {
-        valueFormatter: (value: number, seriesName?: string) =>
-          alertTooltipValueFormatter(value, seriesName ?? '', aggregate),
+        // use the main aggregate for all series (main, min, max, avg, comparison)
+        // to format all values similarly
+        valueFormatter: (value: number) =>
+          alertTooltipValueFormatter(value, aggregate, aggregate),
+
+        markerFormatter: (marker: string, seriesName?: string) => {
+          if (seriesName === comparisonSeriesName) {
+            return '<span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;background-color:transparent;"></span>';
+          }
+          return marker;
+        },
       },
       yAxis: {
         min: this.state.yAxisMin ?? undefined,
@@ -355,6 +380,19 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
           ),
         })}
         series={[...dataWithoutRecentBucket, ...comparisonMarkLines]}
+        additionalSeries={[
+          ...comparisonDataWithoutRecentBucket.map(({data: _data, ...otherSeriesProps}) =>
+            LineSeries({
+              name: comparisonSeriesName,
+              data: _data.map(({name, value}) => [name, value]),
+              lineStyle: {color: theme.gray200, type: 'dashed', width: 1},
+              animation: false,
+              animationThreshold: 1,
+              animationDuration: 0,
+              ...otherSeriesProps,
+            })
+          ),
+        ]}
         onFinished={() => {
           // We want to do this whenever the chart finishes re-rendering so that we can update the dimensions of
           // any graphics related to the triggers (e.g. the threshold areas + boundaries)

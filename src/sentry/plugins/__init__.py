@@ -3,13 +3,10 @@ HIDDEN_PLUGINS = (
     "gitlab",
     "github",
     "slack",
-    "vsts",
     "jira",
     "flowdock",
     "irc",
     "campfire",
     "youtrack",
-    "clubhouse",
     "pagerduty",
-    "teamwork",
 )

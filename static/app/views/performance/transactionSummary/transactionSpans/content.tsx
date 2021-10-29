@@ -1,8 +1,10 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import {browserHistory} from 'react-router';
+import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 import omit from 'lodash/omit';
 
+import {fetchTotalCount} from 'app/actionCreators/events';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import SearchBar from 'app/components/events/searchBar';
 import * as Layout from 'app/components/layouts/thirds';
@@ -13,6 +15,7 @@ import {Organization} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import SuspectSpansQuery from 'app/utils/performance/suspectSpans/suspectSpansQuery';
 import {decodeScalar} from 'app/utils/queryString';
+import useApi from 'app/utils/useApi';
 
 import {SetStateAction} from '../types';
 import {generateTransactionLink} from '../utils';
@@ -32,6 +35,17 @@ type Props = {
 function SpansContent(props: Props) {
   const {location, organization, eventView, setError, transactionName} = props;
   const query = decodeScalar(location.query.query, '');
+
+  const api = useApi();
+
+  const [totalCount, setTotalCount] = useState<number | undefined>(undefined);
+
+  useEffect(() => {
+    const payload = eventView.getEventsAPIPayload(location);
+    fetchTotalCount(api, organization.slug, payload)
+      .then(setTotalCount)
+      .catch(Sentry.captureException);
+  }, [api, organization.slug, eventView, location]);
 
   function handleChange(key: string) {
     return function (value: string) {
@@ -108,6 +122,7 @@ function SpansContent(props: Props) {
                   suspectSpan={suspectSpan}
                   generateTransactionLink={generateTransactionLink(transactionName)}
                   eventView={eventView}
+                  totalCount={totalCount}
                 />
               ))}
               <Pagination pageLinks={pageLinks} />

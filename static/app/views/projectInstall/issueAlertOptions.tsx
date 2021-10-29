@@ -115,12 +115,11 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
     };
   }
 
-  getAvailableMetricChoices() {
+  getAvailableMetricOptions() {
     return [
-      [MetricValues.ERRORS, t('occurrences of')],
-      [MetricValues.USERS, t('users affected by')],
-    ].filter(valueDescriptionPair => {
-      const [value] = valueDescriptionPair;
+      {value: MetricValues.ERRORS, label: t('occurrences of')},
+      {value: MetricValues.USERS, label: t('users affected by')},
+    ].filter(({value}) => {
       return this.state.conditions?.some?.(
         object => object?.id === METRIC_CONDITION_MAP[value]
       );
@@ -163,14 +162,17 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
           />
           <InlineSelectControl
             value={this.state.metric}
-            choices={this.getAvailableMetricChoices()}
+            options={this.getAvailableMetricOptions()}
             onChange={metric => this.setStateAndUpdateParents({metric: metric.value})}
             data-test-id="metric-select-control"
           />
           {t('a unique error in')}
           <InlineSelectControl
             value={this.state.interval}
-            choices={this.state.intervalChoices}
+            options={this.state.intervalChoices?.map(([value, label]) => ({
+              value,
+              label,
+            }))}
             onChange={interval =>
               this.setStateAndUpdateParents({interval: interval.value})
             }
