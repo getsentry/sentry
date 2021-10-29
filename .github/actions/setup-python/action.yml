@@ -54,18 +54,14 @@ runs:
       with:
         python-version: ${{ steps.python-version.outputs.python-version }}
 
-    - name: Install pip
-      shell: bash
-      env:
-        WORKDIR: ${{ inputs.workdir }}
-      run: |
-        source "$WORKDIR/scripts/lib.sh" && upgrade-pip
-
     - name: Get pip cache dir & version
       id: pip-info
       shell: bash
+      env:
+        WORKDIR: ${{ inputs.workdir }}
       # pip versions before 20.1 do not have `pip cache`, `make upgrade-pip` ensures that version as a minimum
       run: |
+        source "$WORKDIR/scripts/lib.sh" && upgrade-pip
         echo "::set-output name=pip-cache-dir::$(pip cache dir)"
         echo "::set-output name=pip-version::$(pip -V | awk -F ' ' '{print $2}')"
 
