@@ -398,6 +398,24 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
         assert data["display"] == "releases"
         assert data["version"] == 2
 
+    def test_no_yaxis(self):
+        with self.feature(self.feature_name):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "new query",
+                    "projects": self.project_ids,
+                    "fields": ["title", "count()", "project"],
+                    "environment": ["dev"],
+                    "query": "event.type:error browser.name:Firefox",
+                    "range": "24h",
+                    "yAxis": [],
+                    "display": "releases",
+                    "version": 2,
+                },
+            )
+        assert response.status_code == 400, response.content
+
     def test_post_all_projects(self):
         with self.feature(self.feature_name):
             response = self.client.post(

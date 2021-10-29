@@ -1,6 +1,7 @@
 import re
 from typing import Sequence
 
+import sentry_sdk
 from django.db.models import Count, Max
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
@@ -211,6 +212,9 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
         if version == 2:
             if len(query["fields"]) < 1:
                 raise serializers.ValidationError("You must include at least one field.")
+            if "yAxis" in query and len(query["yAxis"]) < 1:
+                sentry_sdk.set_tag("discover.missing-yaxis", 1)
+                raise serializers.ValidationError("You must include at least one yAxis.")
 
         if data["projects"] == ALL_ACCESS_PROJECTS:
             data["projects"] = []
