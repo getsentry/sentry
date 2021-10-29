@@ -10,7 +10,8 @@ import Generic from 'app/components/events/interfaces/generic';
 import Message from 'app/components/events/interfaces/message';
 import Request from 'app/components/events/interfaces/request';
 import Spans from 'app/components/events/interfaces/spans';
-import Stacktrace from 'app/components/events/interfaces/stacktrace';
+import StackTrace from 'app/components/events/interfaces/stackTrace';
+import StackTraceV2 from 'app/components/events/interfaces/stackTraceV2';
 import Template from 'app/components/events/interfaces/template';
 import Threads from 'app/components/events/interfaces/threads';
 import ThreadsV2 from 'app/components/events/interfaces/threadsV2';
@@ -77,8 +78,17 @@ function EventEntry({
     }
     case EntryType.STACKTRACE: {
       const {data, type} = entry;
-      return (
-        <Stacktrace
+      return hasNativeStackTraceV2 ? (
+        <StackTraceV2
+          type={type}
+          event={event}
+          data={data}
+          projectId={projectSlug}
+          groupingCurrentLevel={groupingCurrentLevel}
+          hasHierarchicalGrouping={hasHierarchicalGrouping}
+        />
+      ) : (
+        <StackTrace
           type={type}
           event={event}
           data={data}

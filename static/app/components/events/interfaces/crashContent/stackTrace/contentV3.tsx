@@ -253,6 +253,7 @@ const StyledList = styled(List)`
   grid-gap: 0;
   position: relative;
   overflow: hidden;
+  z-index: 1;
   box-shadow: ${p => p.theme.dropShadowLight};
 
   && {

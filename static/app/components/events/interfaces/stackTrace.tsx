@@ -5,31 +5,12 @@ import CrashContent from 'app/components/events/interfaces/crashContent';
 import CrashActions from 'app/components/events/interfaces/crashHeader/crashActions';
 import CrashTitle from 'app/components/events/interfaces/crashHeader/crashTitle';
 import {t} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
 import {Group, Project} from 'app/types';
 import {Event} from 'app/types/event';
 import {STACK_TYPE, STACK_VIEW} from 'app/types/stacktrace';
 
 import NoStackTraceMessage from './noStackTraceMessage';
-
-export function isStacktraceNewestFirst() {
-  const user = ConfigStore.get('user');
-  // user may not be authenticated
-
-  if (!user) {
-    return true;
-  }
-
-  switch (user.options.stacktraceOrder) {
-    case 2:
-      return true;
-    case 1:
-      return false;
-    case -1:
-    default:
-      return true;
-  }
-}
+import {isStacktraceNewestFirst} from './utils';
 
 type CrashContentProps = React.ComponentProps<typeof CrashContent>;
 

@@ -17,15 +17,24 @@ const SORT_OPTIONS: SelectValue<string>[] = [
 type Props = {
   activeSortOption: SortOption;
   onChange: (sortOption: SortOption) => void;
+  disabled: boolean;
 };
 
-function SortOptions({activeSortOption, onChange}: Props) {
+function SortOptions({activeSortOption, onChange, disabled}: Props) {
   const {label: currentLabel, value: currentValue} =
     SORT_OPTIONS.find(sortOption => sortOption.value === activeSortOption) ??
     SORT_OPTIONS[0];
 
   return (
-    <Wrapper buttonProps={{prefix: t('Sort By'), size: 'small'}} label={currentLabel}>
+    <Wrapper
+      buttonProps={{
+        prefix: t('Sort By'),
+        size: 'small',
+        disabled,
+        title: disabled ? t('Stack trace contains only 1 frame') : undefined,
+      }}
+      label={currentLabel}
+    >
       {SORT_OPTIONS.map(({label, value}) => (
         <DropdownItem
           key={value}
