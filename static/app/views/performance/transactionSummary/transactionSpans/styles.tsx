@@ -1,8 +1,10 @@
 import {ReactNode} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {SectionHeading as _SectionHeading} from 'app/components/charts/styles';
 import {Panel} from 'app/components/panels';
+import {IconArrow} from 'app/icons';
 import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
@@ -44,13 +46,23 @@ type HeaderItemProps = {
   label: string;
   value: ReactNode;
   align: 'left' | 'right';
+  isSortKey?: boolean;
 };
 
 export function HeaderItem(props: HeaderItemProps) {
-  const {label, value, align} = props;
+  const {label, value, align, isSortKey} = props;
+  const theme = useTheme();
 
   return (
     <HeaderItemContainer align={align}>
+      {isSortKey && (
+        <IconArrow
+          data-test-id="span-sort-arrow"
+          size="xs"
+          color={theme.subText as any}
+          direction="down"
+        />
+      )}
       <SectionHeading>{label}</SectionHeading>
       <SectionValue>{value}</SectionValue>
     </HeaderItemContainer>
@@ -66,7 +78,7 @@ export const HeaderItemContainer = styled('div')<{align: 'left' | 'right'}>`
 `;
 
 const SectionHeading = styled(_SectionHeading)`
-  margin: 0;
+  margin: 0px 0px 0px ${space(0.5)};
 `;
 
 const SectionValue = styled('h1')`

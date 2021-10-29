@@ -236,6 +236,10 @@ describe('Performance > Transaction Spans', function () {
         expect(
           await within(card).findByText('Total Cumulative Duration')
         ).toBeInTheDocument();
+
+        const arrow = await within(card).findByTestId('span-sort-arrow');
+        expect(arrow).toBeInTheDocument();
+        expect(await within(arrow.closest('div')!).findByText(label)).toBeInTheDocument();
       }
     });
   });
@@ -261,6 +265,12 @@ describe('Performance > Transaction Spans', function () {
       expect(await within(card).findByText('Occurrences')).toBeInTheDocument();
       expect(
         await within(card).findByText('Total Cumulative Duration')
+      ).toBeInTheDocument();
+
+      const arrow = await within(card).findByTestId('span-sort-arrow');
+      expect(arrow).toBeInTheDocument();
+      expect(
+        await within(arrow.closest('div')!).findByText('Occurrences')
       ).toBeInTheDocument();
     }
   });
