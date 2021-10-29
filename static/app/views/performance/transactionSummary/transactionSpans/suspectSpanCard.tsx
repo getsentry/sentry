@@ -5,7 +5,7 @@ import GridEditable, {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 import SortLink from 'app/components/gridEditable/sortLink';
 import Link from 'app/components/links/link';
 import Tooltip from 'app/components/tooltip';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import {Organization} from 'app/types';
 import {defined} from 'app/utils';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
@@ -26,6 +26,7 @@ import {
 } from './styles';
 import {
   SpanSortOption,
+  SpanSortOthers,
   SpanSortPercentiles,
   SuspectSpanDataRow,
   SuspectSpanTableColumn,
@@ -111,7 +112,7 @@ export default function SuspectSpanEntry(props: Props) {
     <div data-test-id="suspect-card">
       <UpperPanel>
         <HeaderItem
-          label="Span Operation"
+          label={t('Span Operation')}
           value={<SpanLabel span={suspectSpan} />}
           align="left"
         />
@@ -119,17 +120,13 @@ export default function SuspectSpanEntry(props: Props) {
           sort={getSuspectSpanSortFromEventView(eventView)}
           suspectSpan={suspectSpan}
         />
-        <HeaderItem
-          label="Frequency"
-          value={
-            defined(totalCount)
-              ? formatPercentage(suspectSpan.frequency / totalCount)
-              : '\u2014'
-          }
-          align="right"
+        <SpanCount
+          sort={getSuspectSpanSortFromEventView(eventView)}
+          suspectSpan={suspectSpan}
+          totalCount={totalCount}
         />
         <HeaderItem
-          label="Total Cumulative Duration"
+          label={t('Total Cumulative Duration')}
           value={
             <PerformanceDuration
               abbreviation
@@ -159,6 +156,11 @@ export default function SuspectSpanEntry(props: Props) {
   );
 }
 
+type HeaderItemProps = {
+  sort: SpanSortOption;
+  suspectSpan: SuspectSpan;
+};
+
 const PERCENTILE_LABELS: Record<SpanSortPercentiles, string> = {
   [SpanSortPercentiles.P50_EXCLUSIVE_TIME]: t('p50 Duration'),
   [SpanSortPercentiles.P75_EXCLUSIVE_TIME]: t('p75 Duration'),
@@ -166,12 +168,7 @@ const PERCENTILE_LABELS: Record<SpanSortPercentiles, string> = {
   [SpanSortPercentiles.P99_EXCLUSIVE_TIME]: t('p99 Duration'),
 };
 
-type PercentileDurationProps = {
-  sort: SpanSortOption;
-  suspectSpan: SuspectSpan;
-};
-
-function PercentileDuration(props: PercentileDurationProps) {
+function PercentileDuration(props: HeaderItemProps) {
   const {sort, suspectSpan} = props;
 
   const sortKey = PERCENTILE_LABELS.hasOwnProperty(sort.field)
@@ -185,6 +182,35 @@ function PercentileDuration(props: PercentileDurationProps) {
       align="right"
     />
   );
+}
+
+function SpanCount(props: HeaderItemProps & {totalCount?: number}) {
+  const {sort, suspectSpan, totalCount} = props;
+
+  if (sort.field === SpanSortOthers.COUNT) {
+    return (
+      <HeaderItem
+        label={t('Occurrences')}
+        value={String(suspectSpan.count)}
+        align="right"
+      />
+    );
+  }
+
+  const value = defined(totalCount) ? (
+    <Tooltip
+      title={tct('[frequency] out of [total] transactions contain this span', {
+        frequency: suspectSpan.frequency,
+        total: totalCount,
+      })}
+    >
+      <span>{formatPercentage(suspectSpan.frequency / totalCount)}</span>
+    </Tooltip>
+  ) : (
+    String(suspectSpan.count)
+  );
+
+  return <HeaderItem label={t('Frequency')} value={value} align="right" />;
 }
 
 function renderHeadCell(column: SuspectSpanTableColumn, _index: number): ReactNode {
