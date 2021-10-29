@@ -51,7 +51,7 @@ jobs:
         uses: actions/cache@v1 # We are explicitly using v1 due to perf reasons
         with:
           path: ${{ steps.info.outputs.yarn-cache-dir }}
-          key: devenv-${{ matrix.os }}-v2-yarn-${{ hashFiles('yarn.lock') }}
+          key: devenv-${{ matrix.os }}-v1-yarn-${{ hashFiles('yarn.lock') }}
 
       - name: Set up development environment (mostly as per docs)
         run: |
@@ -61,8 +61,6 @@ jobs:
           make setup-pyenv
           [[ $(which python) != "${HOME}/.pyenv/shims/python" ]]
           source ~/.zprofile
-          [[ $(which python) == "${HOME}/.pyenv/shims/python" ]]
-          eval "$(pyenv init --path)"
           [[ $(which python) == "${HOME}/.pyenv/shims/python" ]]
           [[ $(python -V) == "Python $(cat .python-version)" ]]
           python -m venv .venv
