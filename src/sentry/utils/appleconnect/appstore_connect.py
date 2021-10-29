@@ -413,11 +413,11 @@ def get_apps(session: Session, credentials: AppConnectCredentials) -> Optional[L
     return ret_val
 
 
-def download_dsym(
+def download_dsyms(
     session: Session, credentials: AppConnectCredentials, url: str, path: pathlib.Path
 ) -> None:
     """
-    Downloads a dSYM at `url` into `path`.
+    Downloads dSYMs at `url` into `path`.
     """
 
     headers = _get_authorization_header(credentials)

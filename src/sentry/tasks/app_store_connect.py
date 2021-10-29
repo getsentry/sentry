@@ -58,7 +58,7 @@ def inner_dsym_download(project_id: int, config_id: str) -> None:
             scope.set_context("dsym_downloads", {"total": len(builds), "completed": i})
         with tempfile.NamedTemporaryFile() as dsyms_zip:
             try:
-                client.download_dsym(build, pathlib.Path(dsyms_zip.name))
+                client.download_dsyms(build, pathlib.Path(dsyms_zip.name))
             except appconnect.NoDsymsError:
                 logger.debug("No dSYMs for build %s", build)
             except appconnect.PendingDsymsError:

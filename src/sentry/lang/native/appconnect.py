@@ -302,8 +302,8 @@ class AppConnectClient:
         """Returns the available AppStore builds."""
         return appstore_connect.get_build_info(self._session, self._api_credentials, self._app_id)
 
-    def download_dsym(self, build: BuildInfo, path: pathlib.Path) -> None:
-        with sentry_sdk.start_span(op="dsym", description="Download dSYM"):
+    def download_dsyms(self, build: BuildInfo, path: pathlib.Path) -> None:
+        with sentry_sdk.start_span(op="dsym", description="Download dSYMs"):
             if not isinstance(build.dsym_url, str):
                 if build.dsym_url is NoDsymUrl.NOT_NEEDED:
                     raise NoDsymsError
@@ -312,7 +312,7 @@ class AppConnectClient:
                 else:
                     raise ValueError(f"dSYM URL missing: {build.dsym_url}")
 
-            logger.debug("Fetching dSYM from: %s", build.dsym_url)
-            appstore_connect.download_dsym(
+            logger.debug("Fetching dSYMs from: %s", build.dsym_url)
+            appstore_connect.download_dsyms(
                 self._session, self._api_credentials, build.dsym_url, path
             )
