@@ -1,7 +1,9 @@
 import pytest
 import requests
-import responses as responses_mod  # type: ignore
+import responses as responses_mod
 
+from sentry.lang.native.appconnect import NoDsymUrl  # type: ignore
+from sentry.utils import json
 from sentry.utils.appleconnect import appstore_connect
 
 
@@ -243,3 +245,166 @@ def test_builds(responses, monkeypatch):
     assert builds
     print(builds)
     1 / 0
+
+
+class TestGetDsymUrl:
+    @pytest.fixture
+    def build(self):
+        return json.loads(
+            """
+{
+    'type': 'builds',
+    'id': '6a7e77a3-f3ee-4e97-a454-4c1f264fe2b1',
+    'relationships': {
+        'buildBundles': {
+            'meta': {
+                'paging': {
+                    'total': 1,
+                    'limit': 10
+                }
+            },
+            'data': [{
+                'type': 'buildBundles',
+                'id': 'd6ea2a82-4294-4bb0-a85b-d8f223137d0f'
+            }]
+        },
+}
+            """
+        )
+
+    def test_none_bundles(build):
+        assert appstore_connect._get_dsym_url(build, None) is NoDsymUrl.NOT_NEEDED
+
+    def test_empty_bundle_list(build):
+        assert appstore_connect._get_dsym_url(build, []) is NoDsymUrl.NOT_NEEDED
+
+    def test_one_bundle_no_url(build):
+        bundles = [
+            {
+                "type": "buildBundles",
+                "id": "59467f37-371e-4755-afcd-0116775a6eab",
+                "attributes": {
+                    "includesSymbols": False,
+                    "dSYMUrl": None,
+                },
+            }
+        ]
+
+        assert appstore_connect._get_dsym_url(build, bundles) is NoDsymUrl.PENDING
+
+    def test_one_bundle_has_url(build):
+        url = "http://iosapps.itunes.apple.com/itunes-assets/very-real-url"
+        bundles = [
+            {
+                "type": "buildBundles",
+                "id": "59467f37-371e-4755-afcd-0116775a6eab",
+                "attributes": {
+                    "includesSymbols": False,
+                    "dSYMUrl": url,
+                },
+            }
+        ]
+
+        assert appstore_connect._get_dsym_url(build, bundles) is url
+
+    def test_multi_bundle_no_url(build):
+        bundles = [
+            {
+                "type": "buildBundles",
+                "id": "59467f37-371e-4755-afcd-0116775a6eab",
+                "attributes": {
+                    "includesSymbols": False,
+                    "dSYMUrl": None,
+                },
+            },
+            {
+                "type": "buildBundles",
+                "id": "5e231f58-31c6-47cc-b4f8-56952d44a158",
+                "attributes": {
+                    "includesSymbols": False,
+                    "dSYMUrl": None,
+                },
+            },
+        ]
+
+        assert appstore_connect._get_dsym_url(build, bundles) is NoDsymUrl.PENDING
+
+    def test_multi_bundle_has_url(build):
+        first_url = "http://iosapps.itunes.apple.com/itunes-assets/very-real-url"
+        second_url = "http://iosapps.itunes.apple.com/itunes-assets/very-fake-url"
+        bundles = [
+            {
+                "type": "buildBundles",
+                "id": "59467f37-371e-4755-afcd-0116775a6eab",
+                "attributes": {
+                    "includesSymbols": False,
+                    "dSYMUrl": first_url,
+                },
+            },
+            {
+                "type": "buildBundles",
+                "id": "5e231f58-31c6-47cc-b4f8-56952d44a158",
+                "attributes": {
+                    "includesSymbols": False,
+                    "dSYMUrl": second_url,
+                },
+            },
+        ]
+        assert appstore_connect._get_dsym_url(build, bundles) is first_url
+
+        bundles.reverse()
+        assert appstore_connect._get_dsym_url(build, bundles) is second_url
+
+    def test_multi_bundle_mixed_urls(build):
+        url = "http://iosapps.itunes.apple.com/itunes-assets/very-real-url"
+        bundles = [
+            {
+                "type": "buildBundles",
+                "id": "59467f37-371e-4755-afcd-0116775a6eab",
+                "attributes": {
+                    "includesSymbols": False,
+                    "dSYMUrl": url,
+                },
+            },
+            {
+                "type": "buildBundles",
+                "id": "5e231f58-31c6-47cc-b4f8-56952d44a158",
+                "attributes": {
+                    "includesSymbols": False,
+                    "dSYMUrl": None,
+                },
+            },
+        ]
+
+        assert appstore_connect._get_dsym_url(build, bundles) is url
+
+        bundles.reverse()
+        assert appstore_connect._get_dsym_url(build, bundles) is NoDsymUrl.PENDING
+
+    def test_multi_bundle_includes_symbols(build):
+        # includes_symbols shouldn't affect which url gets returned
+
+        url = "http://iosapps.itunes.apple.com/itunes-assets/very-real-url"
+        bundles = [
+            {
+                "type": "buildBundles",
+                "id": "59467f37-371e-4755-afcd-0116775a6eab",
+                "attributes": {
+                    "includesSymbols": False,
+                    "dSYMUrl": url,
+                },
+            },
+            {
+                "type": "buildBundles",
+                "id": "5e231f58-31c6-47cc-b4f8-56952d44a158",
+                "attributes": {
+                    "includesSymbols": True,
+                    "dSYMUrl": None,
+                },
+            },
+        ]
+
+        assert appstore_connect._get_dsym_url(build, bundles) is url
+
+        bundles.reverse()
+        assert appstore_connect._get_dsym_url(build, bundles) is NoDsymUrl.PENDING

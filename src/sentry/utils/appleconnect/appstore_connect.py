@@ -324,41 +324,8 @@ def get_build_info(
                     build_number = build["attributes"]["version"]
                     uploaded_date = parse_date(build["attributes"]["uploadedDate"])
 
-                    # https://developer.apple.com/documentation/appstoreconnectapi/build/relationships/buildbundles
-                    # https://developer.apple.com/documentation/appstoreconnectapi/buildbundle/attributes
-                    # If you ever write code for this here you probably will find an
-                    # includesSymbols attribute in the buildBundles and wonder why we ignore
-                    # it.  Then you'll look at it and wonder why it doesn't match anything
-                    # to do with whether dSYMs can be downloaded or not.  This is because
-                    # the includesSymbols only indicates whether App Store Connect has full
-                    # symbol names or not, it does not have anything to do with whether it
-                    # was a bitcode upload or a native upload.  And whether dSYMs are
-                    # available for download only depends on whether it was a bitcode
-                    # upload.
                     build_bundles = relations.get_multiple_related(build, "buildBundles")
-                    dsym_url = NoDsymUrl.NOT_NEEDED
-                    if build_bundles is not None:
-                        if len(build_bundles) != 1:
-                            # We currently do not know how to handle these, we'll carry on
-                            # with the first bundle but report this as an error.
-                            with sentry_sdk.push_scope() as scope:
-                                scope.set_context(
-                                    "App Store Connect Build",
-                                    {
-                                        "build": build,
-                                        "build_bundles": build_bundles,
-                                    },
-                                )
-                                sentry_sdk.capture_message("len(buildBundles) != 1")
-
-                        # Because we only ask for processingState=VALID builds we expect the
-                        # builds to be finished and if there are no dSYMs that means the
-                        # build doesn't need dSYMs, i.e. it not a bitcode build.
-                        if len(build_bundles) > 0:
-                            bundle = build_bundles[0]
-                            dsym_url = safe.get_path(
-                                bundle, "attributes", "dSYMUrl", default=NoDsymUrl.PENDING
-                            )
+                    dsym_url = _get_dsym_url(build, build_bundles)
 
                     build_info.append(
                         BuildInfo(
@@ -378,6 +345,47 @@ def get_build_info(
                     )
 
         return build_info
+
+
+# TODO: if the build really need to be passed in, maybe make bundles a lambda that takes
+# in a build and returns bundles
+def _get_dsym_url(build: JSONData, bundles: Optional[List[JSONData]]) -> NoDsymUrl:
+    # https://developer.apple.com/documentation/appstoreconnectapi/build/relationships/buildbundles
+    # https://developer.apple.com/documentation/appstoreconnectapi/buildbundle/attributes
+    # If you ever write code for this here you probably will find an
+    # includesSymbols attribute in the buildBundles and wonder why we ignore
+    # it.  Then you'll look at it and wonder why it doesn't match anything
+    # to do with whether dSYMs can be downloaded or not.  This is because
+    # the includesSymbols only indicates whether App Store Connect has full
+    # symbol names or not, it does not have anything to do with whether it
+    # was a bitcode upload or a native upload.  And whether dSYMs are
+    # available for download only depends on whether it was a bitcode
+    # upload.
+    if bundles is None:
+        return NoDsymUrl.NOT_NEEDED
+
+    if len(bundles) != 1:
+        # We currently do not know how to handle these, we'll carry on
+        # with the first bundle but report this as an error.
+        with sentry_sdk.push_scope() as scope:
+            scope.set_context(
+                "App Store Connect Build",
+                {
+                    # TODO: what really needs to be included here? the entire build?
+                    "build": build,
+                    "build_bundles": bundles,
+                },
+            )
+            sentry_sdk.capture_message("len(buildBundles) != 1")
+
+    if len(bundles) == 0:
+        return NoDsymUrl.NOT_NEEDED
+
+    # Because we only ask for processingState=VALID builds we expect the
+    # builds to be finished and if there are no dSYMs that means the
+    # build doesn't need dSYMs, i.e. it not a bitcode build.
+    bundle = bundles[0]
+    return safe.get_path(bundle, "attributes", "dSYMUrl", default=NoDsymUrl.PENDING)
 
 
 AppInfo = namedtuple("AppInfo", ["name", "bundle_id", "app_id"])
