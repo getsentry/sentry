@@ -33,7 +33,7 @@ ScheduleEntry = namedtuple("ScheduleEntry", "key timestamp")
 
 OPTIONS = frozenset(("increment_delay", "maximum_delay", "minimum_delay"))
 
-Digest = MutableMapping[Rule, MutableMapping[Group, List[Record]]]
+Digest = MutableMapping["Rule", MutableMapping["Group", List[Record]]]
 
 
 def get_option_key(plugin: str, option: str) -> str:
