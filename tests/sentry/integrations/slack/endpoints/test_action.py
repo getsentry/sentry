@@ -24,8 +24,8 @@ from sentry.models import (
     OrganizationMember,
 )
 from sentry.testutils import APITestCase
+from sentry.testutils.helpers import add_identity, install_slack
 from sentry.utils import json
-from tests.sentry.integrations.slack import add_identity, install_slack
 
 
 class BaseEventTest(APITestCase):

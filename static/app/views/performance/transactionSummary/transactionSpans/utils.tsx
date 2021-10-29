@@ -72,7 +72,7 @@ export const SPAN_SORT_OPTIONS: SpanSortOption[] = [
   },
 ];
 
-const DEFAULT_SORT = SpanSortPercentiles.P75_EXCLUSIVE_TIME;
+const DEFAULT_SORT = SpanSortOthers.SUM_EXCLUSIVE_TIME;
 
 function getSuspectSpanSort(sort: string): SpanSortOption {
   const selected = SPAN_SORT_OPTIONS.find(option => option.field === sort);

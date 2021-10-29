@@ -136,7 +136,7 @@ const tagColors = {
   url: theme.green200,
   path: theme.purple300,
   tag: theme.blue300,
-  codeowners: theme.orange300,
+  codeowners: theme.pink300,
 };
 
 const CommitIcon = styled(IconCommit)`
