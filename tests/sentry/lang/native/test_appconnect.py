@@ -114,7 +114,7 @@ class TestAppStoreConnectConfigUpdateProjectSymbolSource:
             appName="My App",
             appId="123",
             bundleId="com.example.app",
-            orgPublicId=appconnect.PublicProviderId("71105f98-7743-4844-ab70-2c901e2ea13d"),
+            orgPublicId="71105f98-7743-4844-ab70-2c901e2ea13d",
             orgName="Example Com",
         )
 
