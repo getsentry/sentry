@@ -81,7 +81,7 @@ class EventDataSection extends React.Component<Props> {
                   {titleNode}
                 </Permalink>
               ) : (
-                <div>{titleNode}</div>
+                titleNode
               )}
             </Title>
             {type === 'extra' && (
@@ -123,6 +123,7 @@ const StyledIconAnchor = styled(IconAnchor)`
 `;
 
 const Permalink = styled('a')`
+  width: 100%;
   :hover ${StyledIconAnchor} {
     display: block;
     color: ${p => p.theme.gray300};
