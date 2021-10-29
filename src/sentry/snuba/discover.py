@@ -23,6 +23,7 @@ from sentry.search.events.fields import (
     resolve_field_list,
 )
 from sentry.search.events.filter import get_filter
+from sentry.search.events.types import ParamsType
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 from sentry.utils.compat import filter
 from sentry.utils.dates import to_timestamp
@@ -915,7 +916,13 @@ def get_id(result):
         return result[1]
 
 
-def get_facets(query, params, limit=10, referrer=None):
+def get_facets(
+    query: str,
+    params: ParamsType,
+    limit: Optional[int] = 10,
+    referrer: Optional[str] = None,
+    use_snql: Optional[bool] = False,
+):
     """
     High-level API for getting 'facet map' results.
 
@@ -930,6 +937,127 @@ def get_facets(query, params, limit=10, referrer=None):
 
     Returns Sequence[FacetResult]
     """
+    sentry_sdk.set_tag("discover.use_snql", use_snql)
+    if use_snql:
+        # temporarily add snql to referrer
+        referrer = f"{referrer}.wip-snql"
+        sample = len(params["project_id"]) > 2
+
+        key_name_builder = QueryBuilder(
+            Dataset.Discover,
+            params,
+            # Exclude tracing tags as they are noisy and generally not helpful.
+            # TODO(markus): Tracing tags are no longer written but may still reside in DB.
+            query=(query if query is not None else "")
+            + " !tags_key:[trace,trace.ctx,trace.span,project]",
+            selected_columns=["tags_key", "count()"],
+            orderby=["-count()", "tags_key"],
+            turbo=sample,
+        )
+        key_names = raw_snql_query(key_name_builder.get_snql_query(), referrer=referrer)
+        # Sampling keys for multi-project results as we don't need accuracy
+        # with that much data.
+        top_tags = [r["tags_key"] for r in key_names["data"]]
+        if not top_tags:
+            return []
+
+        sample_rate = 0.1 if (key_names["data"][0]["count"] > 10000) else None
+        # Rescale the results if we're sampling
+        multiplier = 1 / sample_rate if sample_rate is not None else 1
+
+        fetch_projects = False
+        if len(params.get("project_id", [])) > 1:
+            if len(top_tags) == limit:
+                top_tags.pop()
+            fetch_projects = True
+
+        results = []
+        if fetch_projects:
+            with sentry_sdk.start_span(op="discover.discover", description="facets.projects"):
+                project_value_builder = QueryBuilder(
+                    Dataset.Discover,
+                    params,
+                    query=query,
+                    selected_columns=["count()", "project_id"],
+                    orderby=["-count()"],
+                    turbo=sample,
+                    sample_rate=sample_rate,
+                )
+                project_values = raw_snql_query(
+                    project_value_builder.get_snql_query(), referrer=referrer
+                )
+                results.extend(
+                    [
+                        FacetResult("project", r["project_id"], int(r["count"]) * multiplier)
+                        for r in project_values["data"]
+                    ]
+                )
+
+        # Get tag counts for our top tags. Fetching them individually
+        # allows snuba to leverage promoted tags better and enables us to get
+        # the value count we want.
+        max_aggregate_tags = options.get("discover2.max_tags_to_combine")
+        individual_tags = []
+        aggregate_tags = []
+        for i, tag in enumerate(top_tags):
+            if tag == "environment":
+                # Add here tags that you want to be individual
+                individual_tags.append(tag)
+            elif i >= len(top_tags) - max_aggregate_tags:
+                aggregate_tags.append(tag)
+            else:
+                individual_tags.append(tag)
+
+        with sentry_sdk.start_span(
+            op="discover.discover", description="facets.individual_tags"
+        ) as span:
+            span.set_data("tag_count", len(individual_tags))
+            for tag_name in individual_tags:
+                tag = f"tags[{tag_name}]"
+                tag_value_builder = QueryBuilder(
+                    Dataset.Discover,
+                    params,
+                    query=query,
+                    selected_columns=["count()", tag],
+                    orderby=["-count()"],
+                    limit=TOP_VALUES_DEFAULT_LIMIT,
+                    turbo=sample,
+                    sample_rate=sample_rate,
+                )
+                tag_values = raw_snql_query(tag_value_builder.get_snql_query(), referrer=referrer)
+                results.extend(
+                    [
+                        FacetResult(tag_name, r[tag], int(r["count"]) * multiplier)
+                        for r in tag_values["data"]
+                    ]
+                )
+
+        if aggregate_tags:
+            with sentry_sdk.start_span(op="discover.discover", description="facets.aggregate_tags"):
+                aggregate_value_builder = QueryBuilder(
+                    Dataset.Discover,
+                    params,
+                    query=(query if query is not None else "")
+                    + f" tags_key:[{','.join(aggregate_tags)}]",
+                    selected_columns=["count()", "tags_key", "tags_value"],
+                    orderby=["tags_key", "-count()"],
+                    limitby=["tags_key", TOP_VALUES_DEFAULT_LIMIT],
+                    turbo=sample_rate is not None,
+                    # Ensures Snuba will not apply FINAL
+                    sample_rate=sample_rate,
+                )
+                aggregate_values = raw_snql_query(
+                    aggregate_value_builder.get_snql_query(), referrer=referrer
+                )
+                results.extend(
+                    [
+                        FacetResult(r["tags_key"], r["tags_value"], int(r["count"]) * multiplier)
+                        for r in aggregate_values["data"]
+                    ]
+                )
+
+        return results
+
     with sentry_sdk.start_span(
         op="discover.discover", description="facets.filter_transform"
     ) as span:
