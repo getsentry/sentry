@@ -251,27 +251,18 @@ from sentry.utils.appleconnect import appstore_connect
 class TestGetDsymUrl:
     @pytest.fixture  # type: ignore
     def build(self) -> json.JSONData:
-        return json.loads(
-            """
-{
-    'type': 'builds',
-    'id': '6a7e77a3-f3ee-4e97-a454-4c1f264fe2b1',
-    'relationships': {
-        'buildBundles': {
-            'meta': {
-                'paging': {
-                    'total': 1,
-                    'limit': 10
-                }
+        return {
+            "type": "builds",
+            "id": "6a7e77a3-f3ee-4e97-a454-4c1f264fe2b1",
+            "relationships": {
+                "buildBundles": {
+                    "meta": {"paging": {"total": 1, "limit": 10}},
+                    "data": [
+                        {"type": "buildBundles", "id": "d6ea2a82-4294-4bb0-a85b-d8f223137d0f"}
+                    ],
+                },
             },
-            'data': [{
-                'type': 'buildBundles',
-                'id': 'd6ea2a82-4294-4bb0-a85b-d8f223137d0f'
-            }]
-        },
-}
-            """
-        )
+        }
 
     def test_none_bundles(build) -> None:
         assert appstore_connect._get_dsym_url(build, None) is NoDsymUrl.NOT_NEEDED
