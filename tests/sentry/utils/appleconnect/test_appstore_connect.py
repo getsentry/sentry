@@ -2,7 +2,7 @@ import pytest
 import requests
 import responses as responses_mod
 
-from sentry.lang.native.appconnect import NoDsymUrl  # type: ignore
+from sentry.lang.native.appconnect import NoDsymUrl
 from sentry.utils import json
 from sentry.utils.appleconnect import appstore_connect
 
@@ -248,8 +248,8 @@ def test_builds(responses, monkeypatch):
 
 
 class TestGetDsymUrl:
-    @pytest.fixture
-    def build(self):
+    @pytest.fixture  # type: ignore
+    def build(self) -> json.JSONData:
         return json.loads(
             """
 {
@@ -272,13 +272,13 @@ class TestGetDsymUrl:
             """
         )
 
-    def test_none_bundles(build):
+    def test_none_bundles(build) -> None:
         assert appstore_connect._get_dsym_url(build, None) is NoDsymUrl.NOT_NEEDED
 
-    def test_empty_bundle_list(build):
+    def test_empty_bundle_list(build) -> None:
         assert appstore_connect._get_dsym_url(build, []) is NoDsymUrl.NOT_NEEDED
 
-    def test_one_bundle_no_url(build):
+    def test_one_bundle_no_url(build) -> None:
         bundles = [
             {
                 "type": "buildBundles",
@@ -292,7 +292,7 @@ class TestGetDsymUrl:
 
         assert appstore_connect._get_dsym_url(build, bundles) is NoDsymUrl.PENDING
 
-    def test_one_bundle_has_url(build):
+    def test_one_bundle_has_url(build) -> None:
         url = "http://iosapps.itunes.apple.com/itunes-assets/very-real-url"
         bundles = [
             {
@@ -307,7 +307,7 @@ class TestGetDsymUrl:
 
         assert appstore_connect._get_dsym_url(build, bundles) is url
 
-    def test_multi_bundle_no_url(build):
+    def test_multi_bundle_no_url(build) -> None:
         bundles = [
             {
                 "type": "buildBundles",
@@ -329,7 +329,7 @@ class TestGetDsymUrl:
 
         assert appstore_connect._get_dsym_url(build, bundles) is NoDsymUrl.PENDING
 
-    def test_multi_bundle_has_url(build):
+    def test_multi_bundle_has_url(build) -> None:
         first_url = "http://iosapps.itunes.apple.com/itunes-assets/very-real-url"
         second_url = "http://iosapps.itunes.apple.com/itunes-assets/very-fake-url"
         bundles = [
@@ -355,7 +355,7 @@ class TestGetDsymUrl:
         bundles.reverse()
         assert appstore_connect._get_dsym_url(build, bundles) is second_url
 
-    def test_multi_bundle_mixed_urls(build):
+    def test_multi_bundle_mixed_urls(build) -> None:
         url = "http://iosapps.itunes.apple.com/itunes-assets/very-real-url"
         bundles = [
             {
@@ -381,7 +381,7 @@ class TestGetDsymUrl:
         bundles.reverse()
         assert appstore_connect._get_dsym_url(build, bundles) is NoDsymUrl.PENDING
 
-    def test_multi_bundle_includes_symbols(build):
+    def test_multi_bundle_includes_symbols(build) -> None:
         # includes_symbols shouldn't affect which url gets returned
 
         url = "http://iosapps.itunes.apple.com/itunes-assets/very-real-url"

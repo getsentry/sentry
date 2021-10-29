@@ -349,7 +349,7 @@ def get_build_info(
 
 # TODO: if the build really need to be passed in, maybe make bundles a lambda that takes
 # in a build and returns bundles
-def _get_dsym_url(build: JSONData, bundles: Optional[List[JSONData]]) -> NoDsymUrl:
+def _get_dsym_url(build: JSONData, bundles: Optional[List[JSONData]]) -> Union[NoDsymUrl, str]:
     # https://developer.apple.com/documentation/appstoreconnectapi/build/relationships/buildbundles
     # https://developer.apple.com/documentation/appstoreconnectapi/buildbundle/attributes
     # If you ever write code for this here you probably will find an
@@ -385,7 +385,21 @@ def _get_dsym_url(build: JSONData, bundles: Optional[List[JSONData]]) -> NoDsymU
     # builds to be finished and if there are no dSYMs that means the
     # build doesn't need dSYMs, i.e. it not a bitcode build.
     bundle = bundles[0]
-    return safe.get_path(bundle, "attributes", "dSYMUrl", default=NoDsymUrl.PENDING)
+    url = safe.get_path(bundle, "attributes", "dSYMUrl", default=NoDsymUrl.PENDING)
+
+    if isinstance(url, (NoDsymUrl, str)):
+        return url
+    else:
+        with sentry_sdk.configure_scope() as scope:
+            scope.set_context(
+                "App Store Connect Build",
+                {
+                    # TODO: what really needs to be included here? the entire build?
+                    "build": build,
+                    "build_bundles": bundles,
+                },
+            )
+            raise ValueError(f"Unexpected value in build bundle's dSYMUrl: {url}")
 
 
 AppInfo = namedtuple("AppInfo", ["name", "bundle_id", "app_id"])
