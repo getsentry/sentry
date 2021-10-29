@@ -36,7 +36,7 @@ class TestGetDsymUrl:
             }
         ]
 
-        assert appstore_connect._get_dsym_url(bundles) is NoDsymUrl.PENDING
+        assert appstore_connect._get_dsym_url(bundles) is NoDsymUrl.NOT_NEEDED
 
     def test_one_bundle_has_url(self) -> None:
         url = "http://iosapps.itunes.apple.com/itunes-assets/very-real-url"
