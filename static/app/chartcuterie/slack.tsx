@@ -12,6 +12,11 @@ export const slackChartSize = {
   width: 450,
 };
 
+export const slackGeoChartSize = {
+  height: 200,
+  width: 450,
+};
+
 /**
  * Default echarts option config for slack charts
  */

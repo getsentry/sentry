@@ -28,6 +28,7 @@ display_modes: Mapping[str, ChartType] = {
     "top5line": ChartType.SLACK_DISCOVER_TOP5_PERIOD_LINE,
     "dailytop5": ChartType.SLACK_DISCOVER_TOP5_DAILY,
     "previous": ChartType.SLACK_DISCOVER_PREVIOUS_PERIOD,
+    "worldmap": ChartType.SLACK_DISCOVER_WORLDMAP,
 }
 
 # All `multiPlotType: line` fields in /static/app/utils/discover/fields.tsx
@@ -183,17 +184,20 @@ def unfurl_discover(
                 stats_period = get_double_period(stats_period)
                 params.setlist("statsPeriod", [stats_period])
 
+        endpoint = "events-stats/"
+        if "worldmap" in display_mode:
+            endpoint = "events-geo/"
+
         try:
             resp = client.get(
                 auth=ApiKey(organization=org, scope_list=["org:read"]),
                 user=user,
-                path=f"/organizations/{org_slug}/events-stats/",
+                path=f"/organizations/{org_slug}/{endpoint}",
                 params=params,
             )
         except Exception as exc:
             logger.error(
-                "Failed to load events-stats for unfurl: %s",
-                str(exc),
+                f"Failed to load {endpoint} for unfurl: {exc}",
                 exc_info=True,
             )
             continue
