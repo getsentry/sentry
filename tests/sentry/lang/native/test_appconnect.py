@@ -1,7 +1,10 @@
+import pathlib
 import uuid
 from datetime import datetime
+from unittest import mock
 
 import pytest
+from django.utils import timezone
 
 from sentry.lang.native import appconnect
 from sentry.utils import json
@@ -191,3 +194,119 @@ class TestAppStoreConnectConfigUpdateProjectSymbolSource:
 
         with pytest.raises(ValueError):
             updated.update_project_symbol_source(default_project, allow_multiple=False)
+
+
+class TestDownloadDsyms:
+    @pytest.fixture
+    def client(self):
+        return appconnect.AppConnectClient(
+            app_id="honk",
+            api_credentials=appconnect.appstore_connect.AppConnectCredentials(
+                key_id="beep",
+                key="honkbeep",
+                issuer_id="beeper",
+            ),
+        )
+
+    @pytest.fixture
+    def build_info(self):
+        return appconnect.BuildInfo(
+            app_id="honk",
+            platform="macOS",
+            version="3.1.0",
+            build_number="20101010",
+            uploaded_date=timezone.now(),
+            dsym_url=appconnect.NoDsymUrl.NOT_NEEDED,
+        )
+
+    @pytest.fixture
+    def path(self):
+        return pathlib.Path("/")
+
+    def test_empty_string_url(self, client, path):
+        build_info = appconnect.BuildInfo(
+            app_id="honk",
+            platform="macOS",
+            version="3.1.0",
+            build_number="20101010",
+            uploaded_date=timezone.now(),
+            dsym_url="",
+        )
+
+        with mock.patch(
+            "sentry.utils.appleconnect.appstore_connect.download_dsyms"
+        ) as mock_api_download_dsyms:
+            client.download_dsyms(build_info, path)
+
+            assert mock_api_download_dsyms.call_count == 1
+
+    def test_none_url(self, client, path):
+        build_info = appconnect.BuildInfo(
+            app_id="honk",
+            platform="macOS",
+            version="3.1.0",
+            build_number="20101010",
+            uploaded_date=timezone.now(),
+            dsym_url=None,
+        )
+
+        with mock.patch(
+            "sentry.utils.appleconnect.appstore_connect.download_dsyms"
+        ) as mock_api_download_dsyms:
+            with pytest.raises(ValueError):
+                client.download_dsyms(build_info, path)
+
+            assert mock_api_download_dsyms.call_count == 0
+
+    def test_no_dsyms(self, client, path):
+        build_info = appconnect.BuildInfo(
+            app_id="honk",
+            platform="macOS",
+            version="3.1.0",
+            build_number="20101010",
+            uploaded_date=timezone.now(),
+            dsym_url=appconnect.NoDsymUrl.NOT_NEEDED,
+        )
+
+        with mock.patch(
+            "sentry.utils.appleconnect.appstore_connect.download_dsyms"
+        ) as mock_api_download_dsyms:
+            with pytest.raises(appconnect.NoDsymsError):
+                client.download_dsyms(build_info, path)
+
+            assert mock_api_download_dsyms.call_count == 0
+
+    def test_no_unfetched(self, client, path):
+        build_info = appconnect.BuildInfo(
+            app_id="honk",
+            platform="macOS",
+            version="3.1.0",
+            build_number="20101010",
+            uploaded_date=timezone.now(),
+            dsym_url=appconnect.NoDsymUrl.PENDING,
+        )
+
+        with mock.patch(
+            "sentry.utils.appleconnect.appstore_connect.download_dsyms"
+        ) as mock_api_download_dsyms:
+            with pytest.raises(appconnect.PendingDsymsError):
+                client.download_dsyms(build_info, path)
+
+            assert mock_api_download_dsyms.call_count == 0
+
+    def test_valid_url(self, client, path):
+        build_info = appconnect.BuildInfo(
+            app_id="honk",
+            platform="macOS",
+            version="3.1.0",
+            build_number="20101010",
+            uploaded_date=timezone.now(),
+            dsym_url="http://iosapps.itunes.apple.com/itunes-assets/very-real-url",
+        )
+
+        with mock.patch(
+            "sentry.utils.appleconnect.appstore_connect.download_dsyms"
+        ) as mock_api_download_dsyms:
+            client.download_dsyms(build_info, path)
+
+            assert mock_api_download_dsyms.call_count == 1
