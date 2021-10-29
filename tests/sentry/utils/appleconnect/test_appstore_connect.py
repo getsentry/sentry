@@ -278,6 +278,21 @@ class TestGetDsymUrl:
     def test_empty_bundle_list(build) -> None:
         assert appstore_connect._get_dsym_url(build, []) is NoDsymUrl.NOT_NEEDED
 
+    def test_one_bundle_strange_url(build) -> None:
+        bundles = [
+            {
+                "type": "buildBundles",
+                "id": "59467f37-371e-4755-afcd-0116775a6eab",
+                "attributes": {
+                    "includesSymbols": False,
+                    "dSYMUrl": 1,
+                },
+            }
+        ]
+
+        with pytest.raises(ValueError):
+            appstore_connect._get_dsym_url(build, bundles)
+
     def test_one_bundle_no_url(build) -> None:
         bundles = [
             {
