@@ -1,4 +1,9 @@
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  mountWithTheme,
+  screen,
+  userEvent,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'app/stores/projectsStore';
 import TeamStore from 'app/stores/teamStore';
