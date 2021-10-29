@@ -16,33 +16,10 @@ import space, {ValidSize} from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import withApi from 'app/utils/withApi';
 
-import StepFifth from './stepFifth';
-import StepFour from './stepFour';
 import StepOne from './stepOne';
-import StepThree from './stepThree';
 import StepTwo from './stepTwo';
-import {
-  AppleStoreOrg,
-  AppStoreApp,
-  StepFifthData,
-  StepFourData,
-  StepOneData,
-  StepThreeData,
-  StepTwoData,
-} from './types';
+import {AppStoreApp, StepOneData, StepTwoData} from './types';
 import {getAppStoreErrorMessage, unexpectedErrorMessage} from './utils';
-
-type SessionContext = {
-  auth_key: string;
-  scnt: string;
-  session_id: string;
-};
-
-type ItunesRevalidationSessionContext = SessionContext & {
-  itunes_created: string;
-  itunes_person_id: string;
-  itunes_session: string;
-};
 
 type InitialData = {
   type: string;
@@ -55,16 +32,7 @@ type InitialData = {
   };
   bundleId: string;
   id: string;
-  itunesCreated: string;
-  itunesPassword: {
-    'hidden-secret': boolean;
-  };
-  itunesPersonId: string;
-  itunesSession: string;
-  itunesUser: string;
   name: string;
-  orgPublicId: number;
-  orgName: string;
 };
 
 type Props = Pick<ModalRenderProps, 'Header' | 'Body' | 'Footer'> & {
@@ -76,13 +44,7 @@ type Props = Pick<ModalRenderProps, 'Header' | 'Body' | 'Footer'> & {
   initialData?: InitialData;
 };
 
-const steps = [
-  t('App Store Connect credentials'),
-  t('Choose an application'),
-  t('Enter iTunes credentials'),
-  t('Enter authentication code'),
-  t('Choose an organization'),
-];
+const steps = [t('App Store Connect credentials'), t('Choose an application')];
 
 function AppStoreConnect({
   Header,
@@ -100,10 +62,6 @@ function AppStoreConnect({
   const [isLoading, setIsLoading] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
   const [appStoreApps, setAppStoreApps] = useState<AppStoreApp[]>([]);
-  const [appleStoreOrgs, setAppleStoreOrgs] = useState<AppleStoreOrg[]>([]);
-  const [sessionContext, setSessionContext] = useState<SessionContext | undefined>(
-    undefined
-  );
 
   const [stepOneData, setStepOneData] = useState<StepOneData>({
     issuer: initialData?.appconnectIssuer,
@@ -120,22 +78,6 @@ function AppStoreConnect({
             name: initialData.appName,
             bundleId: initialData.bundleId,
           }
-        : undefined,
-  });
-
-  const [stepThreeData, setStepThreeData] = useState<StepThreeData>({
-    username: initialData?.itunesUser,
-    password: typeof initialData?.itunesPassword === 'object' ? undefined : '',
-  });
-
-  const [stepFourData, setStepFourData] = useState<StepFourData>({
-    authenticationCode: undefined,
-  });
-
-  const [stepFifthData, setStepFifthData] = useState<StepFifthData>({
-    org:
-      initialData?.orgPublicId && initialData?.name
-        ? {organizationId: initialData.orgPublicId, name: initialData.name}
         : undefined,
   });
 
@@ -172,46 +114,8 @@ function AppStoreConnect({
     }
   }
 
-  async function startTwoFactorAuthentication(shouldJumpNext = false) {
-    setIsLoading(true);
-
-    try {
-      const response = await api.requestPromise(
-        `/projects/${orgSlug}/${projectSlug}/appstoreconnect/2fa/`,
-        {
-          method: 'POST',
-          data: {
-            code: stepFourData.authenticationCode,
-            sessionContext,
-          },
-        }
-      );
-
-      const {organizations, sessionContext: newSessionContext} = response;
-
-      if (shouldJumpNext) {
-        persistData(newSessionContext);
-        return;
-      }
-
-      setSessionContext(newSessionContext);
-      setAppleStoreOrgs(organizations);
-      setStepFifthData({org: organizations[0]});
-      setIsLoading(false);
-      goNext();
-    } catch (error) {
-      setIsLoading(false);
-
-      const appStoreConnnectError = getAppStoreErrorMessage(error);
-      if (typeof appStoreConnnectError === 'string') {
-        // itunes-2fa-required
-        addErrorMessage(appStoreConnnectError);
-      }
-    }
-  }
-
-  async function persistData(newSessionContext?: ItunesRevalidationSessionContext) {
-    if (!stepTwoData.app || !stepFifthData.org || !stepThreeData.username) {
+  async function persistData() {
+    if (!stepTwoData.app) {
       return;
     }
 
@@ -231,17 +135,12 @@ function AppStoreConnect({
       await api.requestPromise(endpoint, {
         method: 'POST',
         data: {
-          itunesUser: stepThreeData.username,
-          itunesPassword: stepThreeData.password,
           appconnectIssuer: stepOneData.issuer,
           appconnectKey: stepOneData.keyId,
           appconnectPrivateKey: stepOneData.privateKey,
           appName: stepTwoData.app.name,
           appId: stepTwoData.app.appId,
           bundleId: stepTwoData.app.bundleId,
-          orgId: stepFifthData.org.organizationId,
-          orgName: stepFifthData.org.name,
-          sessionContext: newSessionContext ?? sessionContext,
         },
       });
 
@@ -278,20 +177,6 @@ function AppStoreConnect({
         });
       case 1:
         return Object.keys(stepTwoData).some(key => !stepTwoData[key]);
-      case 2: {
-        return Object.keys(stepThreeData).some(key => {
-          if (key === 'password' && stepThreeData[key] === undefined) {
-            return false;
-          }
-          return !stepThreeData[key];
-        });
-      }
-      case 3: {
-        return Object.keys(stepFourData).some(key => !stepFourData[key]);
-      }
-      case 4: {
-        return Object.keys(stepFifthData).some(key => !stepFifthData[key]);
-      }
       default:
         return false;
     }
@@ -301,80 +186,8 @@ function AppStoreConnect({
     setActiveStep(activeStep + 1);
   }
 
-  async function handleStartItunesAuthentication(shouldGoNext = true) {
-    if (shouldGoNext) {
-      setIsLoading(true);
-    }
-
-    try {
-      const response = await api.requestPromise(
-        `/projects/${orgSlug}/${projectSlug}/appstoreconnect/start/`,
-        {
-          method: 'POST',
-          data: {
-            id: stepThreeData.password !== undefined ? undefined : initialData?.id,
-            itunesUser: stepThreeData.username,
-            itunesPassword: stepThreeData.password,
-          },
-        }
-      );
-
-      setSessionContext(response.sessionContext);
-
-      if (shouldGoNext) {
-        setIsLoading(false);
-        goNext();
-        return;
-      }
-
-      addSuccessMessage(t('An iTunes verification code has been sent'));
-    } catch (error) {
-      if (shouldGoNext) {
-        setIsLoading(false);
-      }
-
-      const appStoreConnnectError = getAppStoreErrorMessage(error);
-
-      if (typeof appStoreConnnectError === 'string') {
-        // itunes-authentication-error'
-        addErrorMessage(getAppStoreErrorMessage(appStoreConnnectError));
-      }
-    }
-  }
-
-  async function handleStartSmsAuthentication() {
-    try {
-      const response = await api.requestPromise(
-        `/projects/${orgSlug}/${projectSlug}/appstoreconnect/requestSms/`,
-        {
-          method: 'POST',
-          data: {sessionContext},
-        }
-      );
-      setSessionContext(response.sessionContext);
-      addSuccessMessage(t("We've sent a SMS code to your phone"));
-    } catch (error) {
-      const appStoreConnnectError = getAppStoreErrorMessage(error);
-
-      if (typeof appStoreConnnectError === 'string') {
-        // itunes-sms-blocked-error
-        addErrorMessage(appStoreConnnectError);
-      }
-    }
-  }
-
   function handleGoBack() {
     const newActiveStep = activeStep - 1;
-
-    switch (newActiveStep) {
-      case 3:
-        handleStartItunesAuthentication(false);
-        setStepFourData({authenticationCode: undefined});
-        break;
-      default:
-        break;
-    }
-
     setActiveStep(newActiveStep);
   }
 
@@ -384,15 +197,6 @@ function AppStoreConnect({
         checkAppStoreConnectCredentials();
         break;
       case 1:
-        goNext();
-        break;
-      case 2:
-        handleStartItunesAuthentication();
-        break;
-      case 3:
-        startTwoFactorAuthentication();
-        break;
-      case 4:
         persistData();
         break;
       default:
@@ -410,27 +214,6 @@ function AppStoreConnect({
             appStoreApps={appStoreApps}
             stepTwoData={stepTwoData}
             onSetStepTwoData={setStepTwoData}
-          />
-        );
-      case 2:
-        return (
-          <StepThree stepThreeData={stepThreeData} onSetStepOneData={setStepThreeData} />
-        );
-      case 3:
-        return (
-          <StepFour
-            stepFourData={stepFourData}
-            onSetStepFourData={setStepFourData}
-            onStartItunesAuthentication={handleStartItunesAuthentication}
-            onStartSmsAuthentication={handleStartSmsAuthentication}
-          />
-        );
-      case 4:
-        return (
-          <StepFifth
-            appleStoreOrgs={appleStoreOrgs}
-            stepFifthData={stepFifthData}
-            onSetStepFifthData={setStepFifthData}
           />
         );
       default:
