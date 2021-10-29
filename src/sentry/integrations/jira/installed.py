@@ -9,6 +9,7 @@ from sentry.integrations.atlassian_connect import (
 )
 from sentry.integrations.pipeline import ensure_integration
 from sentry.tasks.integrations import sync_metadata
+from sentry.utils import jwt
 
 from .integration import JiraIntegrationProvider
 
@@ -31,15 +32,13 @@ class JiraInstalledEndpoint(Endpoint):
         if not state:
             return self.respond(status=status.HTTP_400_BAD_REQUEST)
 
-        try:
-            decoded_claims = authenticate_asymmetric_jwt(token)
-        except AtlassianConnectValidationError:
-            return self.respond(status=status.HTTP_400_BAD_REQUEST)
-
-        try:
-            verify_claims(decoded_claims, request.path, request.GET, method="POST")
-        except AtlassianConnectValidationError:
-            return self.respond(status=status.HTTP_400_BAD_REQUEST)
+        key_id = jwt.peek_header(token).get("kid")
+        if key_id:
+            try:
+                decoded_claims = authenticate_asymmetric_jwt(token, key_id)
+                verify_claims(decoded_claims, request.path, request.GET, method="POST")
+            except AtlassianConnectValidationError:
+                return self.respond(status=status.HTTP_400_BAD_REQUEST)
 
         data = JiraIntegrationProvider().build_integration(state)
         integration = ensure_integration("jira", data)
