@@ -44,6 +44,7 @@ class ForbiddenError(RequestError):
 class NoDsymUrl(enum.Enum):
     """Indicates the reason of absense of a dSYM URL from :class:`BuildInfo`."""
 
+    # Currently unused because we haven't seen scenarios where this can happen yet.
     PENDING = enum.auto()
     NOT_NEEDED = enum.auto()
 
@@ -385,7 +386,7 @@ def _get_dsym_url(bundles: Optional[List[JSONData]]) -> Union[NoDsymUrl, str]:
     # builds to be finished and if there are no dSYMs that means the
     # build doesn't need dSYMs, i.e. it not a bitcode build.
     bundle = bundles[0]
-    url = safe.get_path(bundle, "attributes", "dSYMUrl", default=NoDsymUrl.PENDING)
+    url = safe.get_path(bundle, "attributes", "dSYMUrl", default=NoDsymUrl.NOT_NEEDED)
 
     if isinstance(url, (NoDsymUrl, str)):
         return url

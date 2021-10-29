@@ -313,7 +313,7 @@ class TestGetDsymUrl:
             },
         ]
 
-        assert appstore_connect._get_dsym_url(bundles) is NoDsymUrl.PENDING
+        assert appstore_connect._get_dsym_url(bundles) is NoDsymUrl.NOT_NEEDED
 
     def test_multi_bundle_has_url(self) -> None:
         first_url = "http://iosapps.itunes.apple.com/itunes-assets/very-real-url"
@@ -358,8 +358,7 @@ class TestGetDsymUrl:
             },
         ]
 
-        # TODO: What do we really want in this case?  is None even ever possible?
         assert appstore_connect._get_dsym_url(bundles) is url
 
         bundles.reverse()
-        assert appstore_connect._get_dsym_url(bundles) is NoDsymUrl.PENDING
+        assert appstore_connect._get_dsym_url(bundles) is NoDsymUrl.NOT_NEEDED
