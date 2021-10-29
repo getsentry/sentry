@@ -143,6 +143,15 @@ class AlertRuleNotification(ProjectNotification):
 
         participants_by_provider = self.get_participants()
         if not participants_by_provider:
+            logger.info(
+                "notifications.notificaton.rules.alertrulenotification.skip.no_participants",
+                extra={
+                    "target_type": self.target_type.value,
+                    "target_identifier": self.target_identifier,
+                    "group": self.group.id,
+                    "project_id": self.project.id,
+                },
+            )
             return
 
         # Only calculate shared context once.
