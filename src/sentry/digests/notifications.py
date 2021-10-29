@@ -1,18 +1,11 @@
+from __future__ import annotations
+
 import functools
 import itertools
 import logging
 from collections import OrderedDict, defaultdict, namedtuple
 from functools import reduce
-from typing import (
-    Any,
-    Callable,
-    Mapping,
-    MutableMapping,
-    MutableSequence,
-    Optional,
-    Sequence,
-    Tuple,
-)
+from typing import Any, Callable, Mapping, MutableMapping, MutableSequence, Sequence
 
 from sentry.app import tsdb
 from sentry.digests import Record
@@ -26,7 +19,7 @@ logger = logging.getLogger("sentry.digests")
 Notification = namedtuple("Notification", "event rules")
 
 
-def split_key(key: str) -> Tuple["Project", "ActionTargetType", Optional[str]]:
+def split_key(key: str) -> tuple[Project, ActionTargetType, str | None]:
     key_parts = key.split(":", 4)
     project_id = key_parts[2]
     # XXX: We transitioned to new style keys (len == 5) a while ago on sentry.io. But
@@ -42,7 +35,7 @@ def split_key(key: str) -> Tuple["Project", "ActionTargetType", Optional[str]]:
 
 
 def unsplit_key(
-    project: "Project", target_type: ActionTargetType, target_identifier: Optional[str]
+    project: Project, target_type: ActionTargetType, target_identifier: str | None
 ) -> str:
     return "mail:p:{}:{}:{}".format(
         project.id, target_type.value, target_identifier if target_identifier is not None else ""
@@ -60,7 +53,7 @@ def event_to_record(event: Event, rules: Sequence[Rule]) -> Record:
     )
 
 
-def fetch_state(project: "Project", records: Sequence[Record]) -> Mapping[str, Any]:
+def fetch_state(project: Project, records: Sequence[Record]) -> Mapping[str, Any]:
     # This reads a little strange, but remember that records are returned in
     # reverse chronological order, and we query the database in chronological
     # order.
@@ -83,8 +76,8 @@ def fetch_state(project: "Project", records: Sequence[Record]) -> Mapping[str, A
 
 
 def attach_state(
-    project: "Project",
-    groups: MutableMapping[int, "Group"],
+    project: Project,
+    groups: MutableMapping[int, Group],
     rules: Mapping[int, Rule],
     event_counts: Mapping[int, int],
     user_counts: Mapping[int, int],
@@ -113,7 +106,7 @@ class Pipeline:
         self.operations: MutableSequence[Callable[..., Any]] = []
         self.logs: MutableSequence[str] = []
 
-    def __call__(self, sequence: Sequence[Any]) -> Tuple[Any, Sequence[str]]:
+    def __call__(self, sequence: Sequence[Any]) -> tuple[Any, Sequence[str]]:
         # Explicitly typing to satisfy mypy.
         func: Callable[[Any, Callable[[Any], Any]], Any] = lambda x, operation: operation(x)
         return reduce(func, self.operations, sequence), self.logs
@@ -122,7 +115,7 @@ class Pipeline:
         logger.debug(message)
         self.logs.append(message)
 
-    def apply(self, function: Callable[[MutableMapping[str, Any]], Any]) -> "Pipeline":
+    def apply(self, function: Callable[[MutableMapping[str, Any]], Any]) -> Pipeline:
         def operation(sequence: MutableMapping[str, Any]) -> Any:
             result = function(sequence)
             self._log(f"{function!r} applied to {len(sequence)} items.")
@@ -131,7 +124,7 @@ class Pipeline:
         self.operations.append(operation)
         return self
 
-    def filter(self, function: Callable[[Record], bool]) -> "Pipeline":
+    def filter(self, function: Callable[[Record], bool]) -> Pipeline:
         def operation(sequence: Sequence[Any]) -> Sequence[Any]:
             result = [s for s in sequence if function(s)]
             self._log(f"{function!r} filtered {len(sequence)} items to {len(result)}.")
@@ -140,7 +133,7 @@ class Pipeline:
         self.operations.append(operation)
         return self
 
-    def map(self, function: Callable[[Sequence[Any]], Any]) -> "Pipeline":
+    def map(self, function: Callable[[Sequence[Any]], Any]) -> Pipeline:
         def operation(sequence: Sequence[Any]) -> Sequence[Any]:
             result = [function(s) for s in sequence]
             self._log(f"{function!r} applied to {len(sequence)} items.")
@@ -151,7 +144,7 @@ class Pipeline:
 
     def reduce(
         self, function: Callable[[Any, Any], Any], initializer: Callable[[Sequence[Any]], Any]
-    ) -> "Pipeline":
+    ) -> Pipeline:
         def operation(sequence: Sequence[Any]) -> Any:
             result = reduce(function, sequence, initializer(sequence))
             self._log(f"{function!r} reduced {len(sequence)} items to {len(result)}.")
@@ -163,10 +156,10 @@ class Pipeline:
 
 def rewrite_record(
     record: Record,
-    project: "Project",
-    groups: Mapping[int, "Group"],
+    project: Project,
+    groups: Mapping[int, Group],
     rules: Mapping[str, Rule],
-) -> Optional[Record]:
+) -> Record | None:
     event = record.value.event
 
     # Reattach the group to the event.
@@ -199,8 +192,8 @@ def group_records(
 
 
 def sort_group_contents(
-    rules: MutableMapping[str, Mapping["Group", Sequence[Record]]]
-) -> Mapping[str, Mapping["Group", Sequence[Record]]]:
+    rules: MutableMapping[str, Mapping[Group, Sequence[Record]]]
+) -> Mapping[str, Mapping[Group, Sequence[Record]]]:
     for key, groups in rules.items():
         rules[key] = OrderedDict(
             sorted(
@@ -225,10 +218,10 @@ def sort_rule_groups(rules: Mapping[str, Rule]) -> Mapping[str, Rule]:
 
 
 def build_digest(
-    project: "Project",
+    project: Project,
     records: Sequence[Record],
-    state: Optional[Mapping[str, Any]] = None,
-) -> Tuple[Optional[Any], Sequence[str]]:
+    state: Mapping[str, Any] | None = None,
+) -> tuple[Any | None, Sequence[str]]:
     records = list(records)
     if not records:
         return None, []
