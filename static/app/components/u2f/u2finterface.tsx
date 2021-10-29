@@ -49,6 +49,26 @@ class U2fInterface extends React.Component<Props, State> {
     }
   }
 
+  bufferToBase64url(buffer: ArrayBuffer): Base64urlString {
+    // Buffer to binary string
+    const byteView = new Uint8Array(buffer);
+    let str = '';
+    for (const charCode of byteView) {
+      str += String.fromCharCode(charCode);
+    }
+
+    // Binary string to base64
+    const base64String = btoa(str);
+
+    // Base64 to base64url
+    // We assume that the base64url string is well-formed.
+    const base64urlString = base64String
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=/g, '');
+    return base64urlString;
+  }
+
   submitU2fResponse(promise) {
     promise
       .then(data => {
@@ -57,7 +77,16 @@ class U2fInterface extends React.Component<Props, State> {
             hasBeenTapped: true,
           },
           () => {
-            const u2fResponse = JSON.stringify(data);
+            let u2fResponse = JSON.stringify(data);
+            // below is to check if its a webauthn returned object which is a AuthenticatorAssertionResponse
+            if (typeof data.response !== 'undefined') {
+              const authenticatorData = {
+                keyHandle: data.id,
+                clientData: this.bufferToBase64url(data.response.clientDataJSON),
+                signatureData: this.bufferToBase64url(data.response.signature),
+              };
+              u2fResponse = JSON.stringify(authenticatorData);
+            }
             const challenge = JSON.stringify(this.props.challengeData);
 
             if (this.state.responseElement) {
@@ -111,18 +140,62 @@ class U2fInterface extends React.Component<Props, State> {
       });
   }
 
+  base64urlToBuffer(baseurl64String: Base64urlString): ArrayBuffer {
+    // Base64url to Base64
+    const padding = '=='.slice(0, (4 - (baseurl64String.length % 4)) % 4);
+    const base64String = baseurl64String.replace(/-/g, '+').replace(/_/g, '/') + padding;
+
+    // Base64 to binary string
+    const str = atob(base64String);
+
+    // Binary string to buffer
+    const buffer = new ArrayBuffer(str.length);
+    const byteView = new Uint8Array(buffer);
+    for (let i = 0; i < str.length; i++) {
+      byteView[i] = str.charCodeAt(i);
+    }
+    return buffer;
+  }
+
+  testWebAuthn(authRequest) {
+    const publicKeyCredentialRequestOptions = {
+      // rpId: 'richardmasentry.ngrok.io',
+      // challenge: Uint8Array.from(authRequest[0].challenge, c => c.charCodeAt(0)).buffer,
+      challenge: this.base64urlToBuffer(authRequest[0].challenge),
+      allowCredentials: [
+        {
+          // id: Uint8Array.from(authRequest[0].keyHandle, c => c.charCodeAt(0)).buffer,
+          id: this.base64urlToBuffer(authRequest[0].keyHandle),
+          type: 'public-key' as type,
+          transports: ['usb', 'ble', 'nfc'] as transports,
+        },
+      ],
+      userVerification: 'discouraged' as userVerification,
+      extensions: {
+        appid: authRequest[0].appId,
+      },
+    };
+
+    const promise = navigator.credentials.get({
+      publicKey: publicKeyCredentialRequestOptions,
+    });
+    this.submitU2fResponse(promise);
+  }
+
   invokeU2fFlow() {
     let promise: Promise<u2f.SignResponse | u2f.RegisterResponse>;
 
     if (this.props.flowMode === 'sign') {
-      promise = u2f.sign(this.props.challengeData.authenticateRequests);
+      // promise = u2f.sign(this.props.challengeData.authenticateRequests);
+      this.testWebAuthn(this.props.challengeData.authenticateRequests);
     } else if (this.props.flowMode === 'enroll') {
       const {registerRequests, registeredKeys} = this.props.challengeData;
       promise = u2f.register(registerRequests as any, registeredKeys as any);
+      this.submitU2fResponse(promise);
     } else {
       throw new Error(`Unsupported flow mode '${this.props.flowMode}'`);
     }
-    this.submitU2fResponse(promise);
+    // this.submitU2fResponse(promise);
   }
 
   onTryAgain = () => {
