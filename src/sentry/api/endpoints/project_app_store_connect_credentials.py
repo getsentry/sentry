@@ -208,14 +208,9 @@ class AppStoreCreateCredentialsSerializer(serializers.Serializer):  # type: igno
     appconnectKey = serializers.CharField(max_length=20, min_length=2, required=True)
     # 512 should fit a private key
     appconnectPrivateKey = serializers.CharField(max_length=512, required=True)
-    itunesUser = serializers.CharField(max_length=100, min_length=1, required=True)
-    itunesPassword = serializers.CharField(max_length=512, min_length=1, required=True)
     appName = serializers.CharField(max_length=512, min_length=1, required=True)
     appId = serializers.CharField(min_length=1, required=True)
     bundleId = serializers.CharField(min_length=1, required=True)
-    orgId = serializers.CharField(max_length=36, min_length=36, required=True)
-    orgName = serializers.CharField(max_length=100, required=True)
-    sessionContext = CreateSessionContextSerializer(required=True)
 
 
 class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
@@ -243,21 +238,19 @@ class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
         config = serializer.validated_data
-        session_context = config.pop("sessionContext")
-        try:
-            itunes_client = itunes_connect.ITunesClient.from_json(session_context["client_state"])
-        except Exception:
-            return Response({"session_context": ["Invalid client_state"]}, status=400)
 
         config["type"] = "appStoreConnect"
         config["id"] = uuid4().hex
         config["name"] = config["appName"]
-        config["itunesCreated"] = session_context["itunes_created"]
-        config["itunesSession"] = itunes_client.session_cookie()
 
-        # This field is renamed in the backend to represent its actual value, for the UI it
-        # is just an opaque value.
-        config["orgPublicId"] = config.pop("orgId")
+        # Deprecated fields. Needs to be removed alongside a migration, so this uses
+        # placeholders as a temporary workaround until that migration happens.
+        config["itunesCreated"] = datetime.datetime.now()
+        config["itunesSession"] = "deprecated-field-do-not-use"
+        config["orgPublicId"] = "deprecated-field-please-do-not-use--"
+        config["orgName"] = "deprecated-field-do-not-use"
+        config["itunesUser"] = "deprecated-field-do-not-use"
+        config["itunesPassword"] = "deprecated-field-do-not-use"
 
         try:
             validated_config = appconnect.AppStoreConnectConfig.from_json(config)
@@ -303,25 +296,14 @@ class AppStoreUpdateCredentialsSerializer(serializers.Serializer):  # type: igno
     # about 10 chars
     appconnectKey = serializers.CharField(max_length=20, min_length=2, required=False)
     appconnectPrivateKey = SecretField(required=False)
-    itunesUser = serializers.CharField(max_length=100, min_length=1, required=False)
-    itunesPassword = SecretField(required=False)
     appName = serializers.CharField(max_length=512, min_length=1, required=False)
     appId = serializers.CharField(min_length=1, required=False)
     bundleId = serializers.CharField(min_length=1, required=False)
-    sessionContext = UpdateSessionContextSerializer(required=False)
-    # this is the ITunes organization the user is a member of ( known as providers in Itunes terminology)
-    orgId = serializers.CharField(max_length=36, min_length=36, required=False)
-    orgName = serializers.CharField(max_length=100, required=False)
 
     def validate_appconnectPrivateKey(
         self, private_key_json: Optional[Union[str, Dict[str, bool]]]
     ) -> Optional[json.JSONData]:
         return validate_secret(private_key_json)
-
-    def validate_itunesPassword(
-        self, password_json: Optional[Union[str, Dict[str, bool]]]
-    ) -> Optional[json.JSONData]:
-        return validate_secret(password_json)
 
 
 class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
@@ -344,11 +326,6 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
         data = serializer.validated_data
-        session_context = data.pop("sessionContext")
-        try:
-            itunes_client = itunes_connect.ITunesClient.from_json(session_context["client_state"])
-        except Exception:
-            return Response({"session_context": ["Invalid client_state"]}, status=400)
 
         # get the existing credentials
         try:
@@ -358,15 +335,14 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
         except KeyError:
             return Response(status=404)
 
-        # get the new credentials
-        if session_context:
-            data["itunesCreated"] = session_context.get("itunes_created")
-            data["itunesSession"] = itunes_client.session_cookie()
-
-        if "orgId" in data:
-            # This field is renamed in the backend to represent its actual value, for the UI
-            # it is just an opaque value.
-            data["orgPublicId"] = data.pop("orgId")
+        # Deprecated fields. Needs to be removed alongside a migration, so this uses
+        # placeholders as a temporary workaround until that migration happens.
+        data["itunesCreated"] = datetime.datetime.now()
+        data["itunesSession"] = "deprecated-field-do-not-use"
+        data["orgPublicId"] = "deprecated-field-please-do-not-use--"
+        data["orgName"] = "deprecated-field-do-not-use"
+        data["itunesUser"] = "deprecated-field-do-not-use"
+        data["itunesPassword"] = "deprecated-field-do-not-use"
 
         # Any secrets set to None during validation are meant to be no-ops, so remove them to avoid
         # erasing the existing values
