@@ -1,6 +1,7 @@
 import functools
 import logging
 import posixpath
+import time
 from copy import deepcopy
 from threading import Lock
 
@@ -133,7 +134,10 @@ class _RedisCluster:
             else:
                 host = hosts[0].copy()
                 host["decode_responses"] = True
-                return StrictRedis(**host)
+                if host.get("use_retrying_redis", False):
+                    return RetryingRedis(**host)
+                else:
+                    return StrictRedis(**host)
 
         return SimpleLazyObject(cluster_factory)
 
@@ -311,3 +315,60 @@ class SentryScript(Script):
         super().__init__(registered_client, script)
         if isinstance(self.registered_client, self.FakeEncoderClient):
             self.registered_client = None
+
+
+class RetryingRedis(StrictRedis):
+    """
+    This is a basic implementation of a Redis client that does retries on connection errors
+    and timeouts. It can be removed as soon as "redis-py" starts supporting retries/backoffs out of the
+    box (most likely starting from version 4.0.0).
+
+    Exponential backoff is used. Number of attempts, multiplier, minimum and maximum timeouts can all be configured.
+    """
+
+    def __init__(
+        self,
+        *args,
+        rr_retry_attempts=5,
+        rr_backoff_timeout_min=0.1,
+        rr_backoff_timeout_max=1,
+        rr_backoff_multiplier=1.5,
+        **kwargs,
+    ):
+        self.rr_retry_attempts = rr_retry_attempts
+        if self.rr_retry_attempts < 0:
+            raise ValueError(f"Invalid number of attempts: {self.rr_retry_attempts}")
+
+        self.rr_backoff_multiplier = rr_backoff_multiplier
+        if self.rr_backoff_multiplier <= 0:
+            raise ValueError(f"Invalid backoff multiplier: {self.rr_backoff_multiplier}")
+
+        self.rr_backoff_timeout_min = rr_backoff_timeout_min
+        if self.rr_backoff_timeout_min < 0:
+            raise ValueError(f"Invalid minimal timeout: {self.rr_backoff_timeout_min}")
+
+        self.rr_backoff_timeout_max = rr_backoff_timeout_max
+        if self.rr_backoff_timeout_max is None:
+            # Essentially, fixed timeout
+            self.backoff_timeout_max = self.backoff_timeout_min
+        if self.rr_backoff_timeout_max < 0:
+            raise ValueError(f"Invalid minimal timeout: {self.rr_backoff_timeout_max}")
+
+        super().__init__(*args, **kwargs)
+
+    def execute_command(self, *args, **kwargs):
+        retries = self.rr_retry_attempts
+        timeout = self.rr_backoff_timeout_min
+
+        while retries >= 0:
+            try:
+                return super().execute_command(*args, **kwargs)
+            except (ConnectionError, TimeoutError):
+                if retries == 0:
+                    raise
+
+                time.sleep(timeout)
+                retries -= 1
+                timeout *= self.rr_backoff_multiplier
+                if timeout >= self.rr_backoff_timeout_max:
+                    timeout = self.rr_backoff_timeout_max
