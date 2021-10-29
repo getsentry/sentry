@@ -28,7 +28,13 @@ type Props = {
   eventId: Event['id'];
   stackType: STACK_TYPE;
   platform: PlatformType;
+  hasVerboseFunctionNames: boolean;
   hasMinified: boolean;
+  hasAbsoluteFilePaths: boolean;
+  hasAbsoluteAddresses: boolean;
+  hasAppOnlyFrames: boolean;
+  hasNewestFirst: boolean;
+  stackTraceNotFound: boolean;
   wrapTitle?: boolean;
   showPermalink?: boolean;
 };
@@ -51,7 +57,13 @@ function TraceEventDataSection({
   platform,
   showPermalink,
   wrapTitle,
+  hasVerboseFunctionNames,
   hasMinified,
+  hasAbsoluteFilePaths,
+  hasAbsoluteAddresses,
+  hasAppOnlyFrames,
+  hasNewestFirst,
+  stackTraceNotFound,
   ...defaultStateProps
 }: Props) {
   const api = useApi();
@@ -103,47 +115,56 @@ function TraceEventDataSection({
           ) : (
             title
           )}
-          <RawToggler
-            name="raw-stack-trace"
-            label={t('Raw')}
-            hideControlState
-            value={raw}
-            onChange={() => setState({...state, raw: !raw})}
-          />
-          {raw ? (
-            isNativePlatform(platform) && (
-              <Button
-                size="small"
-                href={getDownloadHref()}
-                title={t('Download raw stack trace file')}
-              >
-                {t('Download')}
-              </Button>
-            )
-          ) : (
+          {!stackTraceNotFound && (
             <Fragment>
-              <SortOptions
-                activeSortOption={
-                  recentFirst ? SortOption.RECENT_FIRST : SortOption.RECENT_LAST
-                }
-                onChange={newSortOption =>
-                  setState({
-                    ...state,
-                    recentFirst: newSortOption === SortOption.RECENT_FIRST,
-                  })
-                }
+              <RawToggler
+                name="raw-stack-trace"
+                label={t('Raw')}
+                hideControlState
+                value={raw}
+                onChange={() => setState({...state, raw: !raw})}
               />
-              <DisplayOptions
-                platform={platform}
-                hasMinified={hasMinified}
-                activeDisplayOptions={activeDisplayOptions}
-                onChange={newActiveDisplayOptions =>
-                  setState({
-                    ...state,
-                    activeDisplayOptions: newActiveDisplayOptions,
-                  })
-                }
-              />
+              {raw ? (
+                isNativePlatform(platform) && (
+                  <Button
+                    size="small"
+                    href={getDownloadHref()}
+                    title={t('Download raw stack trace file')}
+                  >
+                    {t('Download')}
+                  </Button>
+                )
+              ) : (
+                <Fragment>
+                  <SortOptions
+                    disabled={!hasNewestFirst}
+                    activeSortOption={
+                      recentFirst ? SortOption.RECENT_FIRST : SortOption.RECENT_LAST
+                    }
+                    onChange={newSortOption =>
+                      setState({
+                        ...state,
+                        recentFirst: newSortOption === SortOption.RECENT_FIRST,
+                      })
+                    }
+                  />
+                  <DisplayOptions
+                    platform={platform}
+                    hasAppOnlyFrames={hasAppOnlyFrames}
+                    hasAbsoluteAddresses={hasAbsoluteAddresses}
+                    hasAbsoluteFilePaths={hasAbsoluteFilePaths}
+                    hasVerboseFunctionNames={hasVerboseFunctionNames}
+                    hasMinified={hasMinified}
+                    activeDisplayOptions={activeDisplayOptions}
+                    onChange={newActiveDisplayOptions =>
+                      setState({
+                        ...state,
+                        activeDisplayOptions: newActiveDisplayOptions,
+                      })
+                    }
+                  />
+                </Fragment>
+              )}
             </Fragment>
           )}
         </Header>
@@ -163,7 +184,7 @@ export default TraceEventDataSection;
 
 const Header = styled('div')<{raw: boolean}>`
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: 1fr max-content;
   grid-template-rows: repeat(3, 1fr);
   grid-gap: ${space(2)};
   flex: 1;
@@ -171,6 +192,7 @@ const Header = styled('div')<{raw: boolean}>`
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-rows: repeat(2, 1fr);
+    grid-template-columns: repeat(2, 1fr);
   }
 
   @media (min-width: ${p => p.theme.breakpoints[3]}) {
@@ -188,6 +210,7 @@ const RawToggler = styled(BooleanField)`
   grid-template-columns: repeat(2, max-content);
   grid-gap: ${space(1)};
   border-bottom: none;
+  justify-content: flex-end;
 
   && {
     > * {

@@ -25,7 +25,7 @@ type Props = {
     'groupingCurrentLevel' | 'hasHierarchicalGrouping'
   >;
 
-const Content = ({
+function Content({
   newestFirst,
   event,
   stackView,
@@ -34,7 +34,7 @@ const Content = ({
   platform,
   values,
   type,
-}: Props) => {
+}: Props) {
   if (!values) {
     return null;
   }
@@ -70,7 +70,7 @@ const Content = ({
   }
 
   return <div>{children}</div>;
-};
+}
 
 export default Content;
 

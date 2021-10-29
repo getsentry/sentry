@@ -2,7 +2,6 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import isNil from 'lodash/isNil';
 
-import {isStacktraceNewestFirst} from 'app/components/events/interfaces/stacktrace';
 import Pill from 'app/components/pill';
 import Pills from 'app/components/pills';
 import {t} from 'app/locale';
@@ -22,6 +21,7 @@ import findBestThread from './threads/threadSelector/findBestThread';
 import getThreadException from './threads/threadSelector/getThreadException';
 import getThreadStacktrace from './threads/threadSelector/getThreadStacktrace';
 import NoStackTraceMessage from './noStackTraceMessage';
+import {isStacktraceNewestFirst} from './utils';
 
 type ExceptionProps = React.ComponentProps<typeof Exception>;
 
@@ -35,7 +35,6 @@ type Props = Pick<ExceptionProps, 'groupingCurrentLevel' | 'hasHierarchicalGroup
 };
 
 type State = {
-  stackType: STACK_TYPE;
   activeThread?: Thread;
 };
 
@@ -62,18 +61,12 @@ function Threads({
 }: Props) {
   const [state, setState] = useState<State>(() => {
     const thread = defined(data.values) ? findBestThread(data.values) : undefined;
-    return {
-      activeThread: thread,
-      stackType: STACK_TYPE.ORIGINAL,
-    };
+    return {activeThread: thread};
   });
 
-  if (!data.values) {
-    return null;
-  }
-
-  const threads = data.values;
-  const {stackType, activeThread} = state;
+  const threads = data.values ?? [];
+  const stackTraceNotFound = !threads.length;
+  const {activeThread} = state;
 
   const platform = (event.platform ?? 'other') as PlatformType;
   const hasMoreThanOneThread = threads.length > 1;
@@ -106,6 +99,10 @@ function Threads({
     raw,
     activeDisplayOptions,
   }: Parameters<React.ComponentProps<typeof TraceEventDataSection>['children']>[0]) {
+    const stackType = activeDisplayOptions.includes(DisplayOption.MINIFIED)
+      ? STACK_TYPE.MINIFIED
+      : STACK_TYPE.ORIGINAL;
+
     if (exception) {
       return (
         <Exception
@@ -128,15 +125,15 @@ function Threads({
       );
     }
 
-    const stacktrace = getThreadStacktrace(
+    const stackTrace = getThreadStacktrace(
       stackType !== STACK_TYPE.ORIGINAL,
       activeThread
     );
 
-    if (stacktrace) {
+    if (stackTrace) {
       return (
         <StackTrace
-          stacktrace={stacktrace}
+          stacktrace={stackTrace}
           stackView={
             raw
               ? STACK_VIEW.RAW
@@ -149,6 +146,7 @@ function Threads({
           platform={platform}
           groupingCurrentLevel={groupingCurrentLevel}
           hasHierarchicalGrouping={hasHierarchicalGrouping}
+          nativeV2
         />
       );
     }
@@ -171,7 +169,6 @@ function Threads({
             setState({
               ...state,
               activeThread: thread,
-              stackType: STACK_TYPE.ORIGINAL,
             });
           }}
           exception={exception}
@@ -186,7 +183,7 @@ function Threads({
   return (
     <TraceEventDataSection
       type={type}
-      stackType={stackType}
+      stackType={STACK_TYPE.ORIGINAL}
       projectId={projectId}
       eventId={event.id}
       recentFirst={isStacktraceNewestFirst()}
@@ -198,6 +195,57 @@ function Threads({
         !!exception?.values?.find(value => value.rawStacktrace) ||
         (hasMoreThanOneThread ? !!activeThread?.rawStacktrace : false)
       }
+      hasVerboseFunctionNames={
+        !!exception?.values?.find(
+          value =>
+            !!value.stacktrace?.frames?.find(
+              frame =>
+                defined(frame.rawFunction) &&
+                defined(frame.function) &&
+                frame.rawFunction !== frame.function
+            )
+        ) ||
+        (hasMoreThanOneThread
+          ? !!activeThread?.stacktrace?.frames?.find(
+              frame =>
+                defined(frame.rawFunction) &&
+                defined(frame.function) &&
+                frame.rawFunction !== frame.function
+            )
+          : false)
+      }
+      hasAbsoluteFilePaths={
+        !!exception?.values?.find(
+          value => !!value.stacktrace?.frames?.find(frame => defined(frame.filename))
+        ) ||
+        (hasMoreThanOneThread
+          ? !!activeThread?.stacktrace?.frames?.find(frame => defined(frame.filename))
+          : false)
+      }
+      hasAbsoluteAddresses={
+        !!exception?.values?.find(
+          value =>
+            !!value.stacktrace?.frames?.find(frame => defined(frame.instructionAddr))
+        ) ||
+        (hasMoreThanOneThread
+          ? !!activeThread?.stacktrace?.frames?.find(frame =>
+              defined(frame.instructionAddr)
+            )
+          : false)
+      }
+      hasAppOnlyFrames={
+        !!exception?.values?.find(
+          value => !!value.stacktrace?.frames?.find(frame => !!frame.inApp)
+        ) ||
+        (hasMoreThanOneThread
+          ? !!activeThread?.stacktrace?.frames?.find(frame => !!frame.inApp)
+          : false)
+      }
+      hasNewestFirst={
+        !!exception?.values?.find(value => (value.stacktrace?.frames ?? []).length > 1) ||
+        (activeThread?.stacktrace?.frames ?? []).length > 1
+      }
+      stackTraceNotFound={stackTraceNotFound}
       wrapTitle={false}
     >
       {childrenProps => (
