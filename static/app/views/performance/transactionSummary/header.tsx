@@ -288,6 +288,7 @@ class TransactionHeader extends React.Component<Props> {
                 onClick={this.trackTabClick(Tab.Spans)}
               >
                 {t('Spans')}
+                <FeatureBadge type="alpha" noTooltip />
               </ListLink>
             </Feature>
           </StyledNavTabs>
