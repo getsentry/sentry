@@ -10,6 +10,7 @@ export type FineTuneField = {
   defaultFieldName?: string;
 };
 
+// TODO: clean up unused fields
 export const ACCOUNT_NOTIFICATION_FIELDS: Record<string, FineTuneField> = {
   alerts: {
     title: 'Project Alerts',
