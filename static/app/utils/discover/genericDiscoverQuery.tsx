@@ -54,6 +54,11 @@ type BaseDiscoverQueryProps = {
    * on the OrganizationEventsV2Endpoint view.
    */
   referrer?: string;
+  /**
+   * Disables the pagination capabilities of a discover query so the results will always
+   * be from the first page.
+   */
+  disablePagination?: boolean;
 };
 
 export type DiscoverQueryPropsWithContext = BaseDiscoverQueryProps & OptionalContextProps;
@@ -138,10 +143,15 @@ class _GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>>
   }
 
   getPayload(props: Props<T, P>) {
-    if (this.props.getRequestPayload) {
-      return this.props.getRequestPayload(props);
+    const payload = this.props.getRequestPayload
+      ? this.props.getRequestPayload(props)
+      : props.eventView.getEventsAPIPayload(props.location);
+
+    if (this.props.disablePagination) {
+      delete payload.cursor;
     }
-    return props.eventView.getEventsAPIPayload(props.location);
+
+    return payload;
   }
 
   _shouldRefetchData = (prevProps: Props<T, P>): boolean => {
