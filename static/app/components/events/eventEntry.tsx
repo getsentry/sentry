@@ -5,6 +5,7 @@ import Csp from 'app/components/events/interfaces/csp';
 import DebugMeta from 'app/components/events/interfaces/debugMeta';
 import DebugMetaV2 from 'app/components/events/interfaces/debugMeta-v2';
 import Exception from 'app/components/events/interfaces/exception';
+import ExceptionV2 from 'app/components/events/interfaces/exceptionV2';
 import Generic from 'app/components/events/interfaces/generic';
 import Message from 'app/components/events/interfaces/message';
 import Request from 'app/components/events/interfaces/request';
@@ -46,7 +47,16 @@ function EventEntry({
   switch (entry.type) {
     case EntryType.EXCEPTION: {
       const {data, type} = entry;
-      return (
+      return hasNativeStackTraceV2 ? (
+        <ExceptionV2
+          type={type}
+          event={event}
+          data={data}
+          projectId={projectSlug}
+          groupingCurrentLevel={groupingCurrentLevel}
+          hasHierarchicalGrouping={hasHierarchicalGrouping}
+        />
+      ) : (
         <Exception
           type={type}
           event={event}

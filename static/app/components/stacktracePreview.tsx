@@ -3,8 +3,8 @@ import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
-import StacktraceContent from 'app/components/events/interfaces/crashContent/stackTrace/content';
-import StacktraceContentV2 from 'app/components/events/interfaces/crashContent/stackTrace/contentV2';
+import StackTraceContent from 'app/components/events/interfaces/crashContent/stackTrace/content';
+import StackTraceContentV2 from 'app/components/events/interfaces/crashContent/stackTrace/contentV2';
 import {isStacktraceNewestFirst} from 'app/components/events/interfaces/stacktrace';
 import Hovercard, {Body} from 'app/components/hovercard';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -146,7 +146,7 @@ class StacktracePreview extends React.Component<Props, State> {
       return (
         <div onClick={this.handleStacktracePreviewClick}>
           {!!organization.features?.includes('grouping-stacktrace-ui') ? (
-            <StacktraceContentV2
+            <StackTraceContentV2
               data={stacktrace}
               expandFirstFrame={false}
               includeSystemFrames={(stacktrace.frames ?? []).every(frame => !frame.inApp)}
@@ -157,7 +157,7 @@ class StacktracePreview extends React.Component<Props, State> {
               isHoverPreviewed
             />
           ) : (
-            <StacktraceContent
+            <StackTraceContent
               data={stacktrace}
               expandFirstFrame={false}
               includeSystemFrames={(stacktrace.frames ?? []).every(frame => !frame.inApp)}
