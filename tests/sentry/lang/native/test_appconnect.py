@@ -1,6 +1,7 @@
 import pathlib
 import uuid
 from datetime import datetime
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -209,29 +210,21 @@ class TestDownloadDsyms:
         )
 
     @pytest.fixture
-    def build_info(self):
+    def path(self):
+        return pathlib.Path("/")
+
+    def build_with_url(url: Any) -> appconnect.BuildInfo:
         return appconnect.BuildInfo(
             app_id="honk",
             platform="macOS",
             version="3.1.0",
             build_number="20101010",
             uploaded_date=timezone.now(),
-            dsym_url=appconnect.NoDsymUrl.NOT_NEEDED,
+            dsym_url=url,
         )
-
-    @pytest.fixture
-    def path(self):
-        return pathlib.Path("/")
 
     def test_empty_string_url(self, client, path):
-        build_info = appconnect.BuildInfo(
-            app_id="honk",
-            platform="macOS",
-            version="3.1.0",
-            build_number="20101010",
-            uploaded_date=timezone.now(),
-            dsym_url="",
-        )
+        build_info = self.build_with_url("")
 
         with mock.patch(
             "sentry.utils.appleconnect.appstore_connect.download_dsyms"
@@ -241,14 +234,7 @@ class TestDownloadDsyms:
             assert mock_api_download_dsyms.call_count == 1
 
     def test_none_url(self, client, path):
-        build_info = appconnect.BuildInfo(
-            app_id="honk",
-            platform="macOS",
-            version="3.1.0",
-            build_number="20101010",
-            uploaded_date=timezone.now(),
-            dsym_url=None,
-        )
+        build_info = self.build_with_url(None)
 
         with mock.patch(
             "sentry.utils.appleconnect.appstore_connect.download_dsyms"
@@ -259,14 +245,7 @@ class TestDownloadDsyms:
             assert mock_api_download_dsyms.call_count == 0
 
     def test_no_dsyms(self, client, path):
-        build_info = appconnect.BuildInfo(
-            app_id="honk",
-            platform="macOS",
-            version="3.1.0",
-            build_number="20101010",
-            uploaded_date=timezone.now(),
-            dsym_url=appconnect.NoDsymUrl.NOT_NEEDED,
-        )
+        build_info = self.build_with_url(appconnect.NoDsymUrl.NOT_NEEDED)
 
         with mock.patch(
             "sentry.utils.appleconnect.appstore_connect.download_dsyms"
@@ -277,14 +256,7 @@ class TestDownloadDsyms:
             assert mock_api_download_dsyms.call_count == 0
 
     def test_no_unfetched(self, client, path):
-        build_info = appconnect.BuildInfo(
-            app_id="honk",
-            platform="macOS",
-            version="3.1.0",
-            build_number="20101010",
-            uploaded_date=timezone.now(),
-            dsym_url=appconnect.NoDsymUrl.PENDING,
-        )
+        build_info = self.build_with_url(appconnect.NoDsymUrl.PENDING)
 
         with mock.patch(
             "sentry.utils.appleconnect.appstore_connect.download_dsyms"
@@ -295,13 +267,8 @@ class TestDownloadDsyms:
             assert mock_api_download_dsyms.call_count == 0
 
     def test_valid_url(self, client, path):
-        build_info = appconnect.BuildInfo(
-            app_id="honk",
-            platform="macOS",
-            version="3.1.0",
-            build_number="20101010",
-            uploaded_date=timezone.now(),
-            dsym_url="http://iosapps.itunes.apple.com/itunes-assets/very-real-url",
+        build_info = self.build_with_url(
+            "http://iosapps.itunes.apple.com/itunes-assets/very-real-url"
         )
 
         with mock.patch(
