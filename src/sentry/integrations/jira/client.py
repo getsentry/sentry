@@ -135,11 +135,12 @@ class JiraApiClient(ApiClient):
         return self.get(self.ISSUE_URL % (issue_id,))
 
     def search_issues(self, query):
+        q = query.replace('"', '\\"')
         # check if it looks like an issue id
         if ISSUE_KEY_RE.match(query):
-            jql = 'id="%s"' % query.replace('"', '\\"')
+            jql = f'id="{q}"'
         else:
-            jql = 'text ~ "%s"' % query.replace('"', '\\"')
+            jql = f'text ~ "{q}"'
         return self.get(self.SEARCH_URL, params={"jql": jql})
 
     def create_comment(self, issue_key, comment):

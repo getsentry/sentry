@@ -31,8 +31,7 @@ class VstsSearchEndpoint(IntegrationEndpoint):  # type: ignore
             return Response(
                 [
                     {
-                        "label": "(%s) %s"
-                        % (i["fields"]["system.id"], i["fields"]["system.title"]),
+                        "label": f'({i["fields"]["system.id"]}) {i["fields"]["system.title"]}',
                         "value": i["fields"]["system.id"],
                     }
                     for i in resp.get("results", [])
