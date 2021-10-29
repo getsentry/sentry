@@ -4,13 +4,14 @@ on:
     paths:
       - '.pre-commit-config.yaml'
       - 'Makefile'
-      - '.github/actions/*'
+      - '.github/actions/setup-python'
       - '.github/workflows/development-environment.yml'
       - '.envrc'
       - 'Brewfile'
       - 'scripts/*'
       - 'src/sentry/runner/commands/devserver.py'
       - 'src/sentry/runner/commands/devservices.py'
+      - 'requirements-*.txt'
 
 jobs:
   dev-environment:
@@ -66,6 +67,7 @@ jobs:
           python -m venv .venv
           source .venv/bin/activate
           make develop init-config
+          pre-commit
 
   bootstrap-script:
     runs-on: macos-11
