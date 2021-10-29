@@ -37,14 +37,13 @@ def split_key(key: str) -> tuple[Project, ActionTargetType, str | None]:
 def unsplit_key(
     project: Project, target_type: ActionTargetType, target_identifier: str | None
 ) -> str:
-    return "mail:p:{}:{}:{}".format(
-        project.id, target_type.value, target_identifier if target_identifier is not None else ""
-    )
+    target_str = target_identifier if target_identifier is not None else ""
+    return f"mail:p:{project.id}:{target_type.value}:{target_str}"
 
 
 def event_to_record(event: Event, rules: Sequence[Rule]) -> Record:
     if not rules:
-        logger.warning("Creating record for %r that does not contain any rules!", event)
+        logger.warning(f"Creating record for {event} that does not contain any rules!")
 
     return Record(
         event.event_id,
@@ -167,7 +166,7 @@ def rewrite_record(
     if group is not None:
         event.group = group
     else:
-        logger.debug("%r could not be associated with a group.", record)
+        logger.debug(f"{record} could not be associated with a group.")
         return None
 
     return Record(
@@ -183,7 +182,7 @@ def group_records(
     group = record.value.event.group
     rules = record.value.rules
     if not rules:
-        logger.debug("%r has no associated rules, and will not be added to any groups.", record)
+        logger.debug(f"{record} has no associated rules, and will not be added to any groups.")
 
     for rule in rules:
         groups[rule][group].append(record)

@@ -125,7 +125,7 @@ def convert_actors_to_users(
         elif actor.type == User:
             events_by_user[actor.id].update(events)
         else:
-            raise ValueError("Unknown Actor type: %s" % actor.type)
+            raise ValueError(f"Unknown Actor type: {actor.type}")
     return events_by_user
 
 
