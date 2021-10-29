@@ -1,7 +1,8 @@
-import {Fragment, useEffect, useState} from 'react';
+import {createContext, Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
+import {IconAnchor} from 'app/icons/iconAnchor';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {PlatformType, Project} from 'app/types';
@@ -27,6 +28,7 @@ type Props = {
   eventId: Event['id'];
   stackType: STACK_TYPE;
   platform: PlatformType;
+  hasMinified: boolean;
   wrapTitle?: boolean;
   showPermalink?: boolean;
 };
@@ -36,6 +38,8 @@ type State = {
   recentFirst: boolean;
   activeDisplayOptions: DisplayOption[];
 };
+
+const TraceEventDataSectionContext = createContext<State | undefined>(undefined);
 
 function TraceEventDataSection({
   title,
@@ -47,6 +51,7 @@ function TraceEventDataSection({
   platform,
   showPermalink,
   wrapTitle,
+  hasMinified,
   ...defaultStateProps
 }: Props) {
   const api = useApi();
@@ -81,12 +86,23 @@ function TraceEventDataSection({
     return `${api.baseUrl}${endpoint}&download=1`;
   }
 
+  const childProps = {recentFirst, raw, activeDisplayOptions};
+
   return (
     <EventDataSection
       type={type}
       title={
-        <Header>
-          {title}
+        <Header raw={raw}>
+          {showPermalink ? (
+            <div>
+              <Permalink href={'#' + type} className="permalink">
+                <StyledIconAnchor />
+                {title}
+              </Permalink>
+            </div>
+          ) : (
+            title
+          )}
           <RawToggler
             name="raw-stack-trace"
             label={t('Raw')}
@@ -96,7 +112,11 @@ function TraceEventDataSection({
           />
           {raw ? (
             isNativePlatform(platform) && (
-              <Button size="small" href={getDownloadHref()}>
+              <Button
+                size="small"
+                href={getDownloadHref()}
+                title={t('Download raw stack trace file')}
+              >
                 {t('Download')}
               </Button>
             )
@@ -114,6 +134,8 @@ function TraceEventDataSection({
                 }
               />
               <DisplayOptions
+                platform={platform}
+                hasMinified={hasMinified}
                 activeDisplayOptions={activeDisplayOptions}
                 onChange={newActiveDisplayOptions =>
                   setState({
@@ -126,17 +148,20 @@ function TraceEventDataSection({
           )}
         </Header>
       }
-      showPermalink={showPermalink}
+      showPermalink={false}
       wrapTitle={wrapTitle}
     >
-      {children({recentFirst, raw, activeDisplayOptions})}
+      <TraceEventDataSectionContext.Provider value={childProps}>
+        {children(childProps)}
+      </TraceEventDataSectionContext.Provider>
     </EventDataSection>
   );
 }
 
+export {TraceEventDataSectionContext};
 export default TraceEventDataSection;
 
-const Header = styled('div')`
+const Header = styled('div')<{raw: boolean}>`
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   grid-template-rows: repeat(3, 1fr);
@@ -149,7 +174,10 @@ const Header = styled('div')`
   }
 
   @media (min-width: ${p => p.theme.breakpoints[3]}) {
-    grid-template-columns: 1fr repeat(3, max-content);
+    grid-template-columns: ${p =>
+      p.raw
+        ? '1fr repeat(2, max-content)'
+        : '1fr max-content minmax(159px, auto) minmax(140px, auto)'};
     grid-template-rows: 1fr;
   }
 `;
@@ -166,5 +194,21 @@ const RawToggler = styled(BooleanField)`
       padding: 0;
       width: auto;
     }
+  }
+`;
+
+const StyledIconAnchor = styled(IconAnchor)`
+  display: none;
+  position: absolute;
+  top: 4px;
+  left: -22px;
+`;
+
+const Permalink = styled('a')`
+  display: inline-flex;
+  justify-content: flex-start;
+  :hover ${StyledIconAnchor} {
+    display: block;
+    color: ${p => p.theme.gray300};
   }
 `;

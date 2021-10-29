@@ -2,6 +2,7 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
+import ListItem from 'app/components/list/listItem';
 import StrictClick from 'app/components/strictClick';
 import {PlatformType, SentryAppComponent} from 'app/types';
 import {Event} from 'app/types/event';
@@ -22,6 +23,7 @@ import {
 
 import Default from './default';
 import Native from './native';
+import NativeV2 from './nativeV2';
 
 type Props = Omit<
   React.ComponentProps<typeof Native>,
@@ -36,6 +38,7 @@ type Props = Omit<
     components: Array<SentryAppComponent>;
     emptySourceNotation?: boolean;
     isOnlyFrame?: boolean;
+    nativeV2?: boolean;
   };
 
 function Line({
@@ -61,6 +64,7 @@ function Line({
    * Is the stack trace being previewed in a hovercard?
    */
   isHoverPreviewed = false,
+  nativeV2 = false,
   ...props
 }: Props) {
   /* Prioritize the frame platform but fall back to the platform
@@ -91,11 +95,26 @@ function Line({
   function renderLine() {
     switch (platform) {
       case 'objc':
-      // fallthrough
       case 'cocoa':
-      // fallthrough
       case 'native':
-        return (
+        return nativeV2 ? (
+          <NativeV2
+            leadsToApp={leadsToApp}
+            frame={frame}
+            prevFrame={prevFrame}
+            nextFrame={nextFrame}
+            isHoverPreviewed={isHoverPreviewed}
+            platform={platform}
+            isExpanded={isExpanded}
+            isExpandable={expandable}
+            includeSystemFrames={includeSystemFrames}
+            isFrameAfterLastNonApp={isFrameAfterLastNonApp}
+            onToggleContext={toggleContext}
+            image={image}
+            maxLengthOfRelativeAddress={maxLengthOfRelativeAddress}
+            isUsedForGrouping={isUsedForGrouping}
+          />
+        ) : (
           <Native
             leadsToApp={leadsToApp}
             frame={frame}
@@ -146,7 +165,7 @@ function Line({
   });
 
   return (
-    <StyledLi className={className}>
+    <StyleListItem className={className}>
       <StrictClick onClick={expandable ? toggleContext : undefined}>
         {renderLine()}
       </StrictClick>
@@ -163,14 +182,18 @@ function Line({
         expandable={expandable}
         isExpanded={isExpanded}
       />
-    </StyledLi>
+    </StyleListItem>
   );
 }
 
 export default withSentryAppComponents(Line, {componentType: 'stacktrace-link'});
 
-const StyledLi = styled('li')`
+const StyleListItem = styled(ListItem)`
   overflow: hidden;
+
+  :first-child {
+    border-top: none;
+  }
 
   ${PackageStatusIcon} {
     flex-shrink: 0;

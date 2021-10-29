@@ -6,6 +6,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {Error} from 'app/components/events/errors';
 import EventEntries from 'app/components/events/eventEntries';
 import {EntryType, Event} from 'app/types/event';
+import {OrganizationContext} from 'app/views/organizationContext';
 
 const {organization, project} = initializeOrg();
 
@@ -14,13 +15,15 @@ const api = new MockApiClient();
 
 async function renderComponent(event: Event, errors?: Array<Error>) {
   const wrapper = mountWithTheme(
-    <EventEntries
-      organization={organization}
-      event={{...event, errors: errors ?? event.errors}}
-      project={project}
-      location={location}
-      api={api}
-    />
+    <OrganizationContext.Provider value={organization}>
+      <EventEntries
+        organization={organization}
+        event={{...event, errors: errors ?? event.errors}}
+        project={project}
+        location={location}
+        api={api}
+      />
+    </OrganizationContext.Provider>
   );
 
   // @ts-expect-error

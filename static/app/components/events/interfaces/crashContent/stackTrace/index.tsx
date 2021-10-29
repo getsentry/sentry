@@ -16,7 +16,7 @@ type Props = Pick<React.ComponentProps<typeof ContentV2>, 'groupingCurrentLevel'
   stackView?: STACK_VIEW;
 };
 
-const Stacktrace = ({
+function StackTrace({
   stackView,
   stacktrace,
   event,
@@ -24,7 +24,7 @@ const Stacktrace = ({
   platform,
   hasHierarchicalGrouping,
   groupingCurrentLevel,
-}: Props) => {
+}: Props) {
   return (
     <ErrorBoundary mini>
       {stackView === STACK_VIEW.RAW ? (
@@ -53,6 +53,6 @@ const Stacktrace = ({
       )}
     </ErrorBoundary>
   );
-};
+}
 
-export default Stacktrace;
+export default StackTrace;

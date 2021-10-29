@@ -5,10 +5,12 @@ import {ExceptionValue, Group, PlatformType} from 'app/types';
 import {Event} from 'app/types/event';
 import {STACK_VIEW} from 'app/types/stacktrace';
 import {defined} from 'app/utils';
+import {useOrganization} from 'app/utils/useOrganization';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
-import StacktraceContent from '../stackTrace/content';
+import StackTraceContent from '../stackTrace/content';
 import StacktraceContentV2 from '../stackTrace/contentV2';
+import StacktraceContentV3 from '../stackTrace/contentV3';
 
 type Props = {
   data: ExceptionValue['stacktrace'];
@@ -35,6 +37,8 @@ function StackTrace({
   expandFirstFrame,
   event,
 }: Props) {
+  const organization = useOrganization();
+
   if (!defined(stacktrace)) {
     return null;
   }
@@ -75,6 +79,20 @@ function StackTrace({
    * It is easier to fix the UI logic to show a non-empty stack trace for chained exceptions
    */
 
+  if (!!organization.features?.includes('native-stack-trace-v2')) {
+    return (
+      <StacktraceContentV3
+        data={data}
+        expandFirstFrame={expandFirstFrame}
+        includeSystemFrames={includeSystemFrames}
+        groupingCurrentLevel={groupingCurrentLevel}
+        platform={platform}
+        newestFirst={newestFirst}
+        event={event}
+      />
+    );
+  }
+
   if (hasHierarchicalGrouping) {
     return (
       <StacktraceContentV2
@@ -90,7 +108,7 @@ function StackTrace({
   }
 
   return (
-    <StacktraceContent
+    <StackTraceContent
       data={data}
       expandFirstFrame={expandFirstFrame}
       includeSystemFrames={includeSystemFrames}
