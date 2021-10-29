@@ -184,36 +184,23 @@ def unfurl_discover(
                 stats_period = get_double_period(stats_period)
                 params.setlist("statsPeriod", [stats_period])
 
+        endpoint = "events-stats/"
         if "worldmap" in display_mode:
-            try:
-                resp = client.get(
-                    auth=ApiKey(organization=org, scope_list=["org:read"]),
-                    user=user,
-                    path=f"/organizations/{org_slug}/events-geo/",
-                    params=params,
-                )
-            except Exception as exc:
-                logger.error(
-                    "Failed to load events-geo for unfurl: %s",
-                    str(exc),
-                    exc_info=True,
-                )
-                continue
-        else:
-            try:
-                resp = client.get(
-                    auth=ApiKey(organization=org, scope_list=["org:read"]),
-                    user=user,
-                    path=f"/organizations/{org_slug}/events-stats/",
-                    params=params,
-                )
-            except Exception as exc:
-                logger.error(
-                    "Failed to load events-stats for unfurl: %s",
-                    str(exc),
-                    exc_info=True,
-                )
-                continue
+            endpoint = "events-geo/"
+
+        try:
+            resp = client.get(
+                auth=ApiKey(organization=org, scope_list=["org:read"]),
+                user=user,
+                path=f"/organizations/{org_slug}/{endpoint}",
+                params=params,
+            )
+        except Exception as exc:
+            logger.error(
+                f"Failed to load {endpoint} for unfurl: {exc}",
+                exc_info=True,
+            )
+            continue
 
         chart_data = {"seriesName": params.get("yAxis"), "stats": resp.data}
 
