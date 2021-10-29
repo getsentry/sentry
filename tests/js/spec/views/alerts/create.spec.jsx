@@ -4,7 +4,6 @@ import selectEvent from 'react-select-event';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mockRouterPush} from 'sentry-test/mockRouterPush';
 import {
-  fireEvent,
   mountWithTheme,
   screen,
   userEvent,
@@ -192,9 +191,7 @@ describe('ProjectAlertsCreate', function () {
       });
 
       // Change name of alert rule
-      fireEvent.change(screen.getByPlaceholderText('My Rule Name'), {
-        target: {value: 'My Rule Name'},
-      });
+      userEvent.type(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
 
       // Add a condition and remove it
       await selectEvent.select(screen.getByText('Add optional condition...'), [
@@ -270,30 +267,23 @@ describe('ProjectAlertsCreate', function () {
       await selectEvent.select(screen.getAllByText('all')[0], ['any']);
 
       // Change name of alert rule
-      fireEvent.change(screen.getByPlaceholderText('My Rule Name'), {
-        target: {value: 'My Rule Name'},
-      });
+      userEvent.type(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
 
       // Add another condition
       await selectEvent.select(screen.getByText('Add optional condition...'), [
         "An event's tags match {key} {match} {value}",
       ]);
       // Edit new Condition
-      fireEvent.change(screen.getByPlaceholderText('key'), {
-        target: {value: 'conditionKey'},
-      });
-      fireEvent.change(screen.getByPlaceholderText('value'), {
-        target: {value: 'conditionValue'},
-      });
+      userEvent.type(screen.getByPlaceholderText('key'), 'conditionKey');
+
+      userEvent.type(screen.getByPlaceholderText('value'), 'conditionValue');
       await selectEvent.select(screen.getByText('equals'), ['does not equal']);
 
       // Add a new filter
       await selectEvent.select(screen.getByText('Add optional filter...'), [
         'The issue is {comparison_type} than {value} {time}',
       ]);
-      fireEvent.change(screen.getByPlaceholderText('10'), {
-        target: {value: '12'},
-      });
+      userEvent.type(screen.getByPlaceholderText('10'), '12');
 
       // Add a new action
       await selectEvent.select(screen.getByText('Add action...'), [
