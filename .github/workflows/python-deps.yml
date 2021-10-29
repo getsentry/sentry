@@ -26,11 +26,9 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Install prerequisites
-        env:
-          HOMEBREW_NO_AUTO_UPDATE: on
         # Necessary packages for some Python deps
         run: |
-          brew install libxmlsec1
+          make prerequisites
 
       - name: Setup Python
         uses: ./.github/actions/setup-python
