@@ -1352,9 +1352,9 @@ class QueryFilter(QueryFields):
                 )
             elif name in ARRAY_FIELDS and search_filter.value.raw_value == "":
                 return Condition(
-                    Function("hasAny", [self.column(name), []]),
-                    Op.EQ if search_filter.operator == "=" else Op.NEQ,
-                    1,
+                    Function("notEmpty", [self.column(name)]),
+                    Op.EQ,
+                    1 if search_filter.operator == "!=" else 0,
                 )
 
         # timestamp{,.to_{hour,day}} need a datetime string
