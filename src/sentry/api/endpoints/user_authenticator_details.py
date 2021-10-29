@@ -13,6 +13,38 @@ from sentry.security import capture_security_activity
 class UserAuthenticatorDetailsEndpoint(UserEndpoint):
     permission_classes = (OrganizationUserPermission,)
 
+    def _get_device_for_rename(self, authenticator, interface_device_id):
+        devices = authenticator.config
+        for device in devices["devices"]:
+            if device["binding"]["keyHandle"] == interface_device_id:
+                return device
+        return None
+
+    def _rename_device(self, authenticator, interface_device_id, new_name):
+        device = self._get_device_for_rename(authenticator, interface_device_id)
+        if not device:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        device["name"] = new_name
+        authenticator.save()
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def _regenerate_recovery_code(self, authenticator, request, user):
+        interface = authenticator.interface
+
+        if interface.interface_id == "recovery":
+            interface.regenerate_codes()
+
+            capture_security_activity(
+                account=user,
+                type="recovery-codes-regenerated",
+                actor=request.user,
+                ip_address=request.META["REMOTE_ADDR"],
+                context={"authenticator": authenticator},
+                send_email=True,
+            )
+        return Response(serialize(interface))
+
     @sudo_required
     def get(self, request, user, auth_id):
         """
@@ -52,7 +84,7 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
         return Response(response)
 
     @sudo_required
-    def put(self, request, user, auth_id):
+    def put(self, request, user, auth_id, interface_device_id=None):
         """
         Modify authenticator interface
         ``````````````````````````````
@@ -64,26 +96,16 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
 
         :auth required:
         """
-
+        # TODO temporary solution for both renaming and regenerating recovery code. Need to find new home for regenerating recovery codes as it doesn't really do what put is supposed to do
         try:
             authenticator = Authenticator.objects.get(user=user, id=auth_id)
         except (ValueError, Authenticator.DoesNotExist):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        interface = authenticator.interface
-
-        if interface.interface_id == "recovery":
-            interface.regenerate_codes()
-
-            capture_security_activity(
-                account=user,
-                type="recovery-codes-regenerated",
-                actor=request.user,
-                ip_address=request.META["REMOTE_ADDR"],
-                context={"authenticator": authenticator},
-                send_email=True,
-            )
-        return Response(serialize(interface))
+        if request.data.get("name"):
+            return self._rename_device(authenticator, interface_device_id, request.data.get("name"))
+        else:
+            return self._regenerate_recovery_code(authenticator, request, user)
 
     @sudo_required
     def delete(self, request, user, auth_id, interface_device_id=None):
