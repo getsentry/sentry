@@ -6,9 +6,7 @@ from sentry.utils import json
 
 class TestAppStoreUpdateCredentialsSerializer:
     def test_validate_secrets_magic_object_true(self):
-        payload_json = """{
-            "appconnectPrivateKey": { "hidden-secret": true },
-        }"""
+        payload_json = """{"appconnectPrivateKey": {"hidden-secret": true}}"""
 
         payload = json.loads(payload_json)
         serializer = AppStoreUpdateCredentialsSerializer(data=payload)
@@ -19,9 +17,7 @@ class TestAppStoreUpdateCredentialsSerializer:
         assert data["appconnectPrivateKey"] is None
 
     def test_validate_secrets_magic_object_false(self):
-        payload_json = """{
-            "appconnectPrivateKey": { "hidden-secret": false },
-        }"""
+        payload_json = """{"appconnectPrivateKey": {"hidden-secret": false}}"""
 
         payload = json.loads(payload_json)
         serializer = AppStoreUpdateCredentialsSerializer(data=payload)
@@ -30,9 +26,7 @@ class TestAppStoreUpdateCredentialsSerializer:
         assert serializer.errors["appconnectPrivateKey"][0].code == "invalid"
 
     def test_validate_secrets_null(self):
-        payload_json = """{
-            "appconnectPrivateKey": null,
-        }"""
+        payload_json = """{"appconnectPrivateKey": null}"""
 
         payload = json.loads(payload_json)
         serializer = AppStoreUpdateCredentialsSerializer(data=payload)
@@ -45,9 +39,7 @@ class TestAppStoreUpdateCredentialsSerializer:
     #    "appconnectPrivateKey": undefined,
     # }
     def test_validate_secrets_absent(self):
-        payload_json = """{
-            "appId": "honk"
-        }"""
+        payload_json = """{"appId": "honk"}"""
 
         payload = json.loads(payload_json)
         serializer = AppStoreUpdateCredentialsSerializer(data=payload)
@@ -59,9 +51,7 @@ class TestAppStoreUpdateCredentialsSerializer:
         assert "appconnectPrivateKey" not in data
 
     def test_validate_secrets_empty_string(self):
-        payload_json = """{
-            "appconnectPrivateKey": "",
-        }"""
+        payload_json = """{"appconnectPrivateKey": ""}"""
 
         payload = json.loads(payload_json)
         serializer = AppStoreUpdateCredentialsSerializer(data=payload)
@@ -72,9 +62,7 @@ class TestAppStoreUpdateCredentialsSerializer:
         assert serializer.errors["appconnectPrivateKey"][0].code == "blank"
 
     def test_validate_secrets_string(self):
-        payload_json = """{
-            "appconnectPrivateKey": "honk",
-        }"""
+        payload_json = """{"appconnectPrivateKey": "honk"}"""
 
         payload = json.loads(payload_json)
         serializer = AppStoreUpdateCredentialsSerializer(data=payload)
