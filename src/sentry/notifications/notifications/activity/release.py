@@ -1,4 +1,6 @@
-from typing import Any, Iterable, List, Mapping, MutableMapping, Optional, Set, Union
+from __future__ import annotations
+
+from typing import Any, Iterable, Mapping, MutableMapping
 
 from sentry_relay import parse_release
 
@@ -28,15 +30,15 @@ class ReleaseActivityNotification(ActivityNotification):
     def __init__(self, activity: Activity) -> None:
         super().__init__(activity)
         self.group = None
-        self.user_id_team_lookup: Optional[Mapping[int, List[int]]] = None
-        self.email_list: Set[str] = set()
-        self.user_ids: Set[int] = set()
+        self.user_id_team_lookup: Mapping[int, list[int]] | None = None
+        self.email_list: set[str] = set()
+        self.user_ids: set[int] = set()
         self.deploy = get_deploy(activity)
         self.release = get_release(activity, self.organization)
 
         if not self.release:
             self.repos: Iterable[Mapping[str, Any]] = set()
-            self.projects: Set[Project] = set()
+            self.projects: set[Project] = set()
             self.version = "unknown"
             self.version_parsed = self.version
             return
@@ -61,7 +63,7 @@ class ReleaseActivityNotification(ActivityNotification):
     ) -> Mapping[ExternalProviders, Mapping[User, int]]:
         return get_participants_for_release(self.projects, self.organization, self.user_ids)
 
-    def get_users_by_teams(self) -> Mapping[int, List[int]]:
+    def get_users_by_teams(self) -> Mapping[int, list[int]]:
         if not self.user_id_team_lookup:
             self.user_id_team_lookup = get_users_by_teams(self.organization)
         return self.user_id_team_lookup
@@ -81,7 +83,7 @@ class ReleaseActivityNotification(ActivityNotification):
             "version_parsed": self.version_parsed,
         }
 
-    def get_projects(self, recipient: Union["Team", "User"]) -> Set[Project]:
+    def get_projects(self, recipient: Team | User) -> set[Project]:
         if isinstance(recipient, User):
             if recipient.is_superuser or self.organization.flags.allow_joinleave:
                 return self.projects
@@ -91,7 +93,7 @@ class ReleaseActivityNotification(ActivityNotification):
         return get_projects(self.projects, team_ids)
 
     def get_recipient_context(
-        self, recipient: Union["Team", "User"], extra_context: Mapping[str, Any]
+        self, recipient: Team | User, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
         projects = self.get_projects(recipient)
         release_links = [
@@ -108,7 +110,7 @@ class ReleaseActivityNotification(ActivityNotification):
             "project_count": len(projects),
         }
 
-    def get_subject(self, context: Optional[Mapping[str, Any]] = None) -> str:
+    def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
         return f"Deployed version {self.version_parsed} to {self.environment}"
 
     def get_title(self) -> str:

@@ -57,7 +57,7 @@ def get_unsubscribe_link(
 
 def log_message(notification: BaseNotification, recipient: Union["Team", "User"]) -> None:
     extra = notification.get_log_params(recipient)
-    logger.info("mail.adapter.notify.mail_user", extra=extra)
+    logger.info("mail.adapter.notify.mail_user", extra={**extra})
 
 
 def get_context(
