@@ -415,7 +415,10 @@ discoverCharts.push({
     const mapSeries = MapSeries({
       map: 'sentryWorld',
       name: data.seriesName,
-      data: data.stats.data.map(x => ({name: x['geo.country_code'], value: x.count})),
+      data: data.stats.data.map(country => ({
+        name: country['geo.country_code'],
+        value: country.count,
+      })),
       nameMap: countryCodesMap.default,
       aspectScale: 0.85,
       zoom: 1.1,
