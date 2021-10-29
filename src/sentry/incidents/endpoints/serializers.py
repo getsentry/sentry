@@ -7,6 +7,7 @@ from django.utils import timezone
 from django.utils.encoding import force_text
 from rest_framework import serializers
 
+from sentry import analytics
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.serializers.rest_framework.environment import EnvironmentField
 from sentry.api.serializers.rest_framework.project import ProjectField
@@ -82,6 +83,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
      - `alert_rule`: The alert_rule related to this action.
      - `organization`: The organization related to this action.
      - `access`: An access object (from `request.access`)
+     - `user`: The user from `request.user`
     """
 
     id = serializers.IntegerField(required=False)
@@ -216,13 +218,21 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
 
     def create(self, validated_data):
         try:
-            return create_alert_rule_trigger_action(
+            action = create_alert_rule_trigger_action(
                 trigger=self.context["trigger"], **validated_data
             )
         except InvalidTriggerActionError as e:
             raise serializers.ValidationError(force_text(e))
         except ApiRateLimitedError as e:
             raise serializers.ValidationError(force_text(e))
+        else:
+            analytics.record(
+                "metric_alert_with_ui_component.created",
+                user_id=getattr(self.context["user"], "id", None),
+                alert_rule_id=getattr(self.context["alert_rule"], "id"),
+                organization_id=getattr(self.context["organization"], "id"),
+            )
+            return action
 
     def update(self, instance, validated_data):
         if "id" in validated_data:
@@ -241,6 +251,7 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
      - `alert_rule`: The alert_rule related to this trigger.
      - `organization`: The organization related to this trigger.
      - `access`: An access object (from `request.access`)
+     - `user`: The user from `request.user`
     """
 
     id = serializers.IntegerField(required=False)
@@ -304,6 +315,7 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
                         "trigger": alert_rule_trigger,
                         "organization": self.context["organization"],
                         "access": self.context["access"],
+                        "user": self.context["user"],
                         "use_async_lookup": self.context.get("use_async_lookup"),
                         "validate_channel_id": self.context.get("validate_channel_id"),
                         "input_channel_id": action_data.pop("input_channel_id", None),
@@ -333,6 +345,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
     Serializer for creating/updating an alert rule. Required context:
      - `organization`: The organization related to this alert rule.
      - `access`: An access object (from `request.access`)
+     - `user`: The user from `request.user`
     """
 
     environment = EnvironmentField(required=False, allow_null=True)
@@ -672,6 +685,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                         "alert_rule": alert_rule,
                         "organization": self.context["organization"],
                         "access": self.context["access"],
+                        "user": self.context["user"],
                         "use_async_lookup": self.context.get("use_async_lookup"),
                         "input_channel_id": self.context.get("input_channel_id"),
                         "validate_channel_id": self.context.get("validate_channel_id"),

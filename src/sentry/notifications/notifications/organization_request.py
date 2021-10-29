@@ -2,7 +2,7 @@ import abc
 import logging
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequence, Type, Union
 
-from sentry import analytics, features
+from sentry import analytics, features, roles
 from sentry.integrations.slack.utils.notifications import get_settings_url
 from sentry.models import OrganizationMember, Team
 from sentry.notifications.notifications.base import BaseNotification, MessageAction
@@ -66,10 +66,8 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
             available_providers = notification_providers()
 
         # TODO: need to read off notification settings
-        recipients = self.determine_recipients()
-        output = {
-            provider: [recipient for recipient in recipients] for provider in available_providers
-        }
+        recipients = list(self.determine_recipients())
+        output = {provider: recipients for provider in available_providers}
 
         return output
 
@@ -82,6 +80,7 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
 
         context = self.get_context()
         for provider, recipients in participants_by_provider.items():
+            # TODO: use safe_excute
             notify(provider, self, recipients, context)
 
     def get_member(self, user: "User") -> "OrganizationMember":
@@ -98,6 +97,10 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
         """
         self.member_by_user_id[member.user_id] = member
 
+    def get_notification_title(self) -> str:
+        # purposely use empty string for the notification title
+        return ""
+
     def build_attachment_title(self) -> str:
         raise NotImplementedError
 
@@ -110,14 +113,20 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
     def get_message_actions(self) -> Sequence[MessageAction]:
         raise NotImplementedError
 
+    def get_role_string(self, member: OrganizationMember) -> str:
+        role_string: str = roles.get(member.role).name
+        return role_string
+
     def build_notification_footer(self, recipient: Union["Team", "User"]) -> str:
         # not implemented for teams
         if isinstance(recipient, Team):
             raise NotImplementedError
         recipient_member = self.get_member(recipient)
         settings_url = get_settings_url(self, recipient)
-        return f"""You are receiving this notification because you're listed
-                    as an organization {recipient_member.role} | <{settings_url}|Notification Settings>"""
+        return (
+            "You are receiving this notification because you're listed as an organization "
+            f"{self.get_role_string(recipient_member)} | <{settings_url}|Notification Settings>"
+        )
 
     def record_notification_sent(
         self, recipient: Union["Team", "User"], provider: ExternalProviders

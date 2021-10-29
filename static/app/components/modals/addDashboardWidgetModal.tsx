@@ -155,6 +155,12 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       'interval',
       'queries',
     ]);
+    // Only Table and Top N views need orderby
+    if (![DisplayType.TABLE, DisplayType.TOP_N].includes(widgetData.displayType)) {
+      widgetData.queries.forEach(query => {
+        query.orderby = '';
+      });
+    }
     try {
       await validateWidget(api, organization.slug, widgetData);
       if (typeof onUpdateWidget === 'function' && !!previousWidget) {
@@ -264,16 +270,14 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         }
 
         set(newState, 'queries', normalized);
-
-        if (fromDiscover) {
-          trackAdvancedAnalyticsEvent('dashboards_views.add_widget_modal.change', {
-            from: 'discoverv2',
-            field,
-            value: displayType,
-            organization,
-          });
-        }
       }
+
+      trackAdvancedAnalyticsEvent('dashboards_views.add_widget_modal.change', {
+        from: fromDiscover ? 'discoverv2' : 'dashboards',
+        field,
+        value,
+        organization,
+      });
 
       return {...newState, errors: undefined};
     });
