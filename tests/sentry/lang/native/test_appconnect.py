@@ -15,6 +15,8 @@ if TYPE_CHECKING:
 
 
 class TestAppStoreConnectConfig:
+    # TODO(itunes): Update suite when iTunes fields are removed
+
     @pytest.fixture  # type: ignore
     def now(self) -> datetime:
         # Fixture so we can have one "now" for the entire test and its fixtures.
@@ -98,6 +100,7 @@ class TestAppStoreConnectConfig:
 
 
 class TestAppStoreConnectConfigUpdateProjectSymbolSource:
+    # TODO(itunes): Update when iTunes fields are removed
     @pytest.fixture  # type: ignore
     def config(self) -> appconnect.AppStoreConnectConfig:
         return appconnect.AppStoreConnectConfig(
@@ -153,6 +156,7 @@ class TestAppStoreConnectConfigUpdateProjectSymbolSource:
         new_sources.append(cfg.to_json())
         assert stored_sources == new_sources
 
+    # TODO(itunes): Update when iTunes fields are removed
     @pytest.mark.django_db  # type: ignore
     def test_update(
         self, default_project: "Project", config: appconnect.AppStoreConnectConfig
@@ -182,6 +186,7 @@ class TestAppStoreConnectConfigUpdateProjectSymbolSource:
         current = appconnect.AppStoreConnectConfig.from_project_config(default_project, config.id)
         assert current.itunesSession == "A NEW COOKIE"
 
+    # TODO(itunes): Update when iTunes fields are removed
     @pytest.mark.django_db  # type: ignore
     def test_update_no_matching_id(
         self, default_project: "Project", config: appconnect.AppStoreConnectConfig

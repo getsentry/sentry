@@ -119,6 +119,7 @@ class AppStoreConnectConfig:
         :raises InvalidConfigError: if the data does not contain a valid App Store Connect
            symbol source configuration.
         """
+        # TODO(itunes): Remove logic related to iTunes fields when the fields are removed
         if isinstance(data["itunesCreated"], datetime):
             data["itunesCreated"] = data["itunesCreated"].isoformat()
         try:
@@ -176,6 +177,7 @@ class AppStoreConnectConfig:
         data = dict()
         for field in dataclasses.fields(self):
             value = getattr(self, field.name)
+            # TODO(itunes): Remove logic related to iTunes fields when the fields are removed
             if field.name == "itunesCreated":
                 value = value.isoformat()
             data[field.name] = value
