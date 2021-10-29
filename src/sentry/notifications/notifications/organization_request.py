@@ -7,7 +7,7 @@ from sentry.integrations.slack.utils.notifications import get_settings_url
 from sentry.models import OrganizationMember, Team
 from sentry.notifications.notifications.base import BaseNotification, MessageAction
 from sentry.notifications.notify import notification_providers
-from sentry.types.integrations import ExternalProviders
+from sentry.types.integrations import ExternalProviders, get_provider_name
 
 if TYPE_CHECKING:
     from sentry.integrations.slack.message_builder.organization_requests import (
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 class OrganizationRequestNotification(BaseNotification, abc.ABC):
     analytics_event: str = ""
-    referrer: str = ""
+    referrer_base: str = ""
     member_by_user_id: MutableMapping[int, OrganizationMember] = {}
 
     def __init__(self, organization: "Organization", requester: "User") -> None:
@@ -41,9 +41,12 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
     def get_context(self) -> MutableMapping[str, Any]:
         return {}
 
-    @property
-    def sentry_query_params(self) -> str:
-        return "?referrer=" + self.referrer
+    def get_referrer(self, provider: ExternalProviders) -> str:
+        # referrer needs the provider as well
+        return f"{self.referrer_base}-{get_provider_name(provider)}"
+
+    def get_sentry_query_params(self, provider: ExternalProviders) -> str:
+        return f"?referrer={self.get_referrer(provider)}"
 
     def determine_recipients(self) -> Iterable[Union["Team", "User"]]:
         members = self.determine_member_recipients()
