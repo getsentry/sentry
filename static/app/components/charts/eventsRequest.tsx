@@ -38,6 +38,7 @@ type LoadingStatus = {
    * Whether there was an error retrieving data
    */
   errored: boolean;
+  errorMessage: null | string;
 };
 
 export type RenderProps = LoadingStatus &
@@ -186,6 +187,7 @@ export type EventsRequestProps = DefaultProps &
 type EventsRequestState = {
   reloading: boolean;
   errored: boolean;
+  errorMessage: null | string;
   timeseriesData: null | EventsStats | MultiSeriesEventsStats;
   fetchedWithPrevious: boolean;
 };
@@ -210,6 +212,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
   state: EventsRequestState = {
     reloading: !!this.props.loading,
     errored: false,
+    errorMessage: null,
     timeseriesData: null,
     fetchedWithPrevious: false,
   };
@@ -242,31 +245,37 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
     this.setState(state => ({
       reloading: state.timeseriesData !== null,
       errored: false,
+      errorMessage: null,
     }));
 
+    let errorMessage;
     if (expired) {
-      addErrorMessage(
-        t('%s has an invalid date range. Please try a more recent date range.', name),
-        {append: true}
+      errorMessage = t(
+        '%s has an invalid date range. Please try a more recent date range.',
+        name
       );
+      addErrorMessage(errorMessage, {append: true});
 
       this.setState({
         errored: true,
+        errorMessage,
       });
     } else {
       try {
         api.clear();
         timeseriesData = await doEventsRequest(api, props);
       } catch (resp) {
+        if (resp && resp.responseJSON && resp.responseJSON.detail) {
+          errorMessage = resp.responseJSON.detail;
+        } else {
+          errorMessage = t('Error loading chart data');
+        }
         if (!hideError) {
-          if (resp && resp.responseJSON && resp.responseJSON.detail) {
-            addErrorMessage(resp.responseJSON.detail);
-          } else {
-            addErrorMessage(t('Error loading chart data'));
-          }
+          addErrorMessage(errorMessage);
         }
         this.setState({
           errored: true,
+          errorMessage,
         });
       }
     }
@@ -448,7 +457,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
 
   render() {
     const {children, showLoading, ...props} = this.props;
-    const {timeseriesData, reloading, errored} = this.state;
+    const {timeseriesData, reloading, errored, errorMessage} = this.state;
     // Is "loading" if data is null
     const loading = this.props.loading || timeseriesData === null;
 
@@ -495,6 +504,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
         loading,
         reloading,
         errored,
+        errorMessage,
         results,
         timeframe,
         previousTimeseriesData,
@@ -519,6 +529,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
         loading,
         reloading,
         errored,
+        errorMessage,
         // timeseries data
         timeseriesData: transformedTimeseriesData,
         comparisonTimeseriesData: transformedComparisonTimeseriesData,
@@ -539,6 +550,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
       loading,
       reloading,
       errored,
+      errorMessage,
       ...props,
     });
   }
