@@ -1,4 +1,9 @@
-import {fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {
+  fireEvent,
+  mountWithTheme,
+  screen,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'app/stores/projectsStore';
 import TeamStore from 'app/stores/teamStore';
@@ -137,15 +142,17 @@ describe('TeamInsightsOverview', () => {
     );
   }
 
-  it('defaults to first team', () => {
+  it('defaults to first team', async () => {
     createWrapper();
+    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
     expect(screen.getByText('#backend')).toBeInTheDocument();
     expect(screen.getByText('Key transaction')).toBeInTheDocument();
   });
 
-  it('allows team switching', () => {
+  it('allows team switching', async () => {
     createWrapper();
+    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
     expect(screen.getByText('#backend')).toBeInTheDocument();
     fireEvent.mouseDown(screen.getByText('#backend'));

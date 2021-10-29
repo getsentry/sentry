@@ -5,6 +5,7 @@ import sentry_sdk
 from sentry import analytics, features
 from sentry.app import locks
 from sentry.exceptions import PluginError
+from sentry.killswitches import killswitch_matches_context
 from sentry.signals import event_processed, issue_unignored, transaction_processed
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
@@ -103,11 +104,22 @@ def handle_owner_assignment(project, group, event):
             return
 
         with sentry_sdk.start_span(op="post_process.handle_owner_assignment.get_autoassign_owners"):
-            (
-                auto_assignment,
-                owners,
-                assigned_by_codeowners,
-            ) = ProjectOwnership.get_autoassign_owners(group.project_id, event.data)
+            if killswitch_matches_context(
+                "post_process.get-autoassign-owners",
+                {
+                    "project_id": project.id,
+                },
+            ):
+                # see ProjectOwnership.get_autoassign_owners
+                auto_assignment = False
+                owners = []
+                assigned_by_codeowners = False
+            else:
+                (
+                    auto_assignment,
+                    owners,
+                    assigned_by_codeowners,
+                ) = ProjectOwnership.get_autoassign_owners(group.project_id, event.data)
 
         with sentry_sdk.start_span(op="post_process.handle_owner_assignment.analytics_record"):
             if auto_assignment and owners and not assignees_exists:

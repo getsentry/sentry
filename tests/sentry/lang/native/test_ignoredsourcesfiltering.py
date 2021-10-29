@@ -2,7 +2,6 @@ import pytest
 
 from sentry.lang.native.symbolicator import filter_ignored_sources
 from sentry.testutils.helpers import override_options
-from sentry.utils.compat import map
 
 
 class TestIgnoredSourcesFiltering:
@@ -55,7 +54,7 @@ class TestIgnoredSourcesFiltering:
     def test_sources_ignored_unset(self, sources):
         sources = filter_ignored_sources(sources)
 
-        source_ids = map(lambda s: s["id"], sources)
+        source_ids = list(map(lambda s: s["id"], sources))
         assert source_ids == [
             "sentry:microsoft",
             "sentry:electron",
@@ -69,7 +68,7 @@ class TestIgnoredSourcesFiltering:
         with override_options({"symbolicator.ignored_sources": []}):
             sources = filter_ignored_sources(sources)
 
-            source_ids = map(lambda s: s["id"], sources)
+            source_ids = list(map(lambda s: s["id"], sources))
             assert source_ids == [
                 "sentry:microsoft",
                 "sentry:electron",
@@ -83,7 +82,7 @@ class TestIgnoredSourcesFiltering:
         with override_options({"symbolicator.ignored_sources": ["sentry:microsoft"]}):
             sources = filter_ignored_sources(sources)
 
-            source_ids = map(lambda s: s["id"], sources)
+            source_ids = list(map(lambda s: s["id"], sources))
             assert source_ids == [
                 "sentry:electron",
                 "sentry:ios-source",
@@ -96,7 +95,7 @@ class TestIgnoredSourcesFiltering:
         with override_options({"symbolicator.ignored_sources": ["sentry:ios"]}):
             sources = filter_ignored_sources(sources, reversed_alias_map)
 
-            source_ids = map(lambda s: s["id"], sources)
+            source_ids = list(map(lambda s: s["id"], sources))
             assert source_ids == ["sentry:microsoft", "sentry:electron", "custom"]
 
     @pytest.mark.django_db
@@ -104,7 +103,7 @@ class TestIgnoredSourcesFiltering:
         with override_options({"symbolicator.ignored_sources": ["sentry:ios-source"]}):
             sources = filter_ignored_sources(sources, reversed_alias_map)
 
-            source_ids = map(lambda s: s["id"], sources)
+            source_ids = list(map(lambda s: s["id"], sources))
             assert source_ids == [
                 "sentry:microsoft",
                 "sentry:electron",
@@ -117,7 +116,7 @@ class TestIgnoredSourcesFiltering:
         with override_options({"symbolicator.ignored_sources": ["custom"]}):
             sources = filter_ignored_sources(sources)
 
-            source_ids = map(lambda s: s["id"], sources)
+            source_ids = list(map(lambda s: s["id"], sources))
             assert source_ids == [
                 "sentry:microsoft",
                 "sentry:electron",
@@ -130,7 +129,7 @@ class TestIgnoredSourcesFiltering:
         with override_options({"symbolicator.ignored_sources": ["honk"]}):
             sources = filter_ignored_sources(sources)
 
-            source_ids = map(lambda s: s["id"], sources)
+            source_ids = list(map(lambda s: s["id"], sources))
             assert source_ids == [
                 "sentry:microsoft",
                 "sentry:electron",

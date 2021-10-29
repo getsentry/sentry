@@ -412,8 +412,8 @@ const RepeatedFrames = styled('div')`
   margin-left: ${space(1)};
   border-width: thin;
   border-style: solid;
-  border-color: ${p => p.theme.orange500};
-  color: ${p => p.theme.orange500};
+  border-color: ${p => p.theme.pink200};
+  color: ${p => p.theme.pink300};
   background-color: ${p => p.theme.backgroundSecondary};
   white-space: nowrap;
 `;

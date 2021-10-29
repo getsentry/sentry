@@ -546,6 +546,7 @@ CELERY_IMPORTS = (
     "sentry.data_export.tasks",
     "sentry.discover.tasks",
     "sentry.incidents.tasks",
+    "sentry.sentry_metrics.indexer.tasks",
     "sentry.snuba.tasks",
     "sentry.tasks.app_store_connect",
     "sentry.tasks.assemble",
@@ -640,6 +641,7 @@ CELERY_QUEUES = [
     Queue("reports.deliver", routing_key="reports.deliver"),
     Queue("reports.prepare", routing_key="reports.prepare"),
     Queue("search", routing_key="search"),
+    Queue("sentry_metrics.indexer", routing_key="sentry_metrics.indexer"),
     Queue("similarity.index", routing_key="similarity.index"),
     Queue("sleep", routing_key="sleep"),
     Queue("stats", routing_key="stats"),
@@ -997,12 +999,6 @@ SENTRY_FEATURES = {
     "organizations:integrations-stacktrace-link": False,
     # Allow orgs to install a custom source code management integration
     "organizations:integrations-custom-scm": False,
-    # Allow orgs to use the deprecated Teamwork plugin
-    "organizations:integrations-ignore-teamwork-deprecation": False,
-    # Allow orgs to use the deprecated Clubhouse/Shortcut plugin
-    "organizations:integrations-ignore-clubhouse-deprecation": False,
-    # Allow orgs to use the deprecated VSTS (Azure DevOps) plugin
-    "organizations:integrations-ignore-vsts-deprecation": False,
     # Allow orgs to debug internal/unpublished sentry apps with logging
     "organizations:sentry-app-debugging": False,
     # Temporary safety measure, turned on for specific orgs only if
@@ -1878,7 +1874,7 @@ SENTRY_DEVSERVICES = {
     ),
     "chartcuterie": lambda settings, options: (
         {
-            "image": "us.gcr.io/sentryio/chartcuterie:nightly",
+            "image": "us.gcr.io/sentryio/chartcuterie:latest",
             "pull": True,
             "volumes": {settings.CHARTCUTERIE_CONFIG_DIR: {"bind": "/etc/chartcuterie"}},
             "environment": {
