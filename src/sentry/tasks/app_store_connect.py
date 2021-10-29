@@ -59,12 +59,10 @@ def inner_dsym_download(project_id: int, config_id: str) -> None:
         with tempfile.NamedTemporaryFile() as dsyms_zip:
             try:
                 client.download_dsyms(build, pathlib.Path(dsyms_zip.name))
-            # For no dSYMs and unusable url, let the build be marked as fetched so they're not
+            # For no dSYMs, let the build be marked as fetched so they're not
             # repeatedly re-checked every time this task is run.
             except appconnect.NoDsymsError:
                 logger.debug("No dSYMs for build %s", build)
-            except ValueError:
-                logger.debug('Unusable URL to fetch dSYMs at: "%s"', build)
             # Moves on to the next build so we don't check off fetched. This url will
             # eventuallyTM be populated, so revisit it at a later time.
             except appconnect.PendingDsymsError:
@@ -86,6 +84,10 @@ def inner_dsym_download(project_id: int, config_id: str) -> None:
                     level="info",
                 )
                 return
+            # Don't let malformed URLs abort all pending downloads in case it's an isolated instance
+            except ValueError as e:
+                sdk.capture_exception(e)
+                continue
             # Assume request errors are a server side issue and do not abort all the
             # pending downloads.
             except appstoreconnect_api.RequestError as e:
