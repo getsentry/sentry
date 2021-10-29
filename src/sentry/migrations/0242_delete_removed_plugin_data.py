@@ -7,7 +7,7 @@ from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 def delete_removed_plugin_data(apps, schema_editor):
     """
-    Delete the rows in ProjectOption that relate to plugins we've deleted.
+    Delete the rows in the ProjectOption table that relate to plugins we've deleted.
     """
     ProjectOption = apps.get_model("sentry", "ProjectOption")
     for project_option in RangeQuerySetWrapperWithProgressBar(ProjectOption.objects.all()):
