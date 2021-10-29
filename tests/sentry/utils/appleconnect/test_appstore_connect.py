@@ -1,7 +1,6 @@
 import pytest
 
 from sentry.lang.native.appconnect import NoDsymUrl
-from sentry.utils import json
 from sentry.utils.appleconnect import appstore_connect
 
 # import requests
@@ -249,78 +248,61 @@ from sentry.utils.appleconnect import appstore_connect
 
 
 class TestGetDsymUrl:
-    @pytest.fixture  # type: ignore
-    def build(self) -> json.JSONData:
-        return {
-            "type": "builds",
-            "id": "6a7e77a3-f3ee-4e97-a454-4c1f264fe2b1",
-            "relationships": {
-                "buildBundles": {
-                    "meta": {"paging": {"total": 1, "limit": 10}},
-                    "data": [
-                        {"type": "buildBundles", "id": "d6ea2a82-4294-4bb0-a85b-d8f223137d0f"}
-                    ],
-                },
-            },
-        }
+    def test_none_bundles(self) -> None:
+        assert appstore_connect._get_dsym_url(None) is NoDsymUrl.NOT_NEEDED
 
-    def test_none_bundles(build) -> None:
-        assert appstore_connect._get_dsym_url(build, None) is NoDsymUrl.NOT_NEEDED
+    def test_empty_bundle_list(self) -> None:
+        assert appstore_connect._get_dsym_url([]) is NoDsymUrl.NOT_NEEDED
 
-    def test_empty_bundle_list(build) -> None:
-        assert appstore_connect._get_dsym_url(build, []) is NoDsymUrl.NOT_NEEDED
-
-    def test_one_bundle_strange_url(build) -> None:
+    def test_one_bundle_strange_url(self) -> None:
         bundles = [
             {
                 "type": "buildBundles",
                 "id": "59467f37-371e-4755-afcd-0116775a6eab",
                 "attributes": {
-                    "includesSymbols": False,
                     "dSYMUrl": 1,
                 },
             }
         ]
 
         with pytest.raises(ValueError):
-            appstore_connect._get_dsym_url(build, bundles)
+            appstore_connect._get_dsym_url(bundles)
 
-    def test_one_bundle_no_url(build) -> None:
+    def test_one_bundle_no_url(self) -> None:
+        # TODO: can dSYMUrl really be None?
         bundles = [
             {
                 "type": "buildBundles",
                 "id": "59467f37-371e-4755-afcd-0116775a6eab",
                 "attributes": {
-                    "includesSymbols": False,
                     "dSYMUrl": None,
                 },
             }
         ]
 
-        assert appstore_connect._get_dsym_url(build, bundles) is NoDsymUrl.PENDING
+        assert appstore_connect._get_dsym_url(bundles) is NoDsymUrl.PENDING
 
-    def test_one_bundle_has_url(build) -> None:
+    def test_one_bundle_has_url(self) -> None:
         url = "http://iosapps.itunes.apple.com/itunes-assets/very-real-url"
         bundles = [
             {
                 "type": "buildBundles",
                 "id": "59467f37-371e-4755-afcd-0116775a6eab",
                 "attributes": {
-                    "includesSymbols": False,
                     "dSYMUrl": url,
                 },
             }
         ]
 
-        assert appstore_connect._get_dsym_url(build, bundles) is url
+        assert appstore_connect._get_dsym_url(bundles) == url
 
-    def test_multi_bundle_no_url(build) -> None:
+    def test_multi_bundle_no_url(self) -> None:
+        # TODO: can dSYMUrl really be None?
         bundles = [
             {
                 "type": "buildBundles",
                 "id": "59467f37-371e-4755-afcd-0116775a6eab",
                 "attributes": {
-                    "includesSymbols": False,
                     "dSYMUrl": None,
                 },
             },
@@ -328,15 +310,14 @@ class TestGetDsymUrl:
                 "type": "buildBundles",
                 "id": "5e231f58-31c6-47cc-b4f8-56952d44a158",
                 "attributes": {
-                    "includesSymbols": False,
                     "dSYMUrl": None,
                 },
             },
         ]
 
-        assert appstore_connect._get_dsym_url(build, bundles) is NoDsymUrl.PENDING
+        assert appstore_connect._get_dsym_url(bundles) is NoDsymUrl.PENDING
 
-    def test_multi_bundle_has_url(build) -> None:
+    def test_multi_bundle_has_url(self) -> None:
         first_url = "http://iosapps.itunes.apple.com/itunes-assets/very-real-url"
         second_url = "http://iosapps.itunes.apple.com/itunes-assets/very-fake-url"
         bundles = [
@@ -344,7 +325,6 @@ class TestGetDsymUrl:
                 "type": "buildBundles",
                 "id": "59467f37-371e-4755-afcd-0116775a6eab",
                 "attributes": {
-                    "includesSymbols": False,
                     "dSYMUrl": first_url,
                 },
             },
@@ -352,24 +332,21 @@ class TestGetDsymUrl:
                 "type": "buildBundles",
                 "id": "5e231f58-31c6-47cc-b4f8-56952d44a158",
                 "attributes": {
-                    "includesSymbols": False,
                     "dSYMUrl": second_url,
                 },
             },
         ]
-        assert appstore_connect._get_dsym_url(build, bundles) is first_url
 
-        bundles.reverse()
-        assert appstore_connect._get_dsym_url(build, bundles) is second_url
+        # We really don't know what's preferred here, so keep the assert loose
+        assert appstore_connect._get_dsym_url(bundles) in [first_url, second_url]
 
-    def test_multi_bundle_mixed_urls(build) -> None:
+    def test_multi_bundle_mixed_urls(self) -> None:
         url = "http://iosapps.itunes.apple.com/itunes-assets/very-real-url"
         bundles = [
             {
                 "type": "buildBundles",
                 "id": "59467f37-371e-4755-afcd-0116775a6eab",
                 "attributes": {
-                    "includesSymbols": False,
                     "dSYMUrl": url,
                 },
             },
@@ -377,41 +354,13 @@ class TestGetDsymUrl:
                 "type": "buildBundles",
                 "id": "5e231f58-31c6-47cc-b4f8-56952d44a158",
                 "attributes": {
-                    "includesSymbols": False,
                     "dSYMUrl": None,
                 },
             },
         ]
 
-        assert appstore_connect._get_dsym_url(build, bundles) is url
+        # TODO: What do we really want in this case?  is None even ever possible?
+        assert appstore_connect._get_dsym_url(bundles) is url
 
         bundles.reverse()
-        assert appstore_connect._get_dsym_url(build, bundles) is NoDsymUrl.PENDING
-
-    def test_multi_bundle_includes_symbols(build) -> None:
-        # includes_symbols shouldn't affect which url gets returned
-
-        url = "http://iosapps.itunes.apple.com/itunes-assets/very-real-url"
-        bundles = [
-            {
-                "type": "buildBundles",
-                "id": "59467f37-371e-4755-afcd-0116775a6eab",
-                "attributes": {
-                    "includesSymbols": False,
-                    "dSYMUrl": url,
-                },
-            },
-            {
-                "type": "buildBundles",
-                "id": "5e231f58-31c6-47cc-b4f8-56952d44a158",
-                "attributes": {
-                    "includesSymbols": True,
-                    "dSYMUrl": None,
-                },
-            },
-        ]
-
-        assert appstore_connect._get_dsym_url(build, bundles) is url
-
-        bundles.reverse()
-        assert appstore_connect._get_dsym_url(build, bundles) is NoDsymUrl.PENDING
+        assert appstore_connect._get_dsym_url(bundles) is NoDsymUrl.PENDING

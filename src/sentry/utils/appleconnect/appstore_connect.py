@@ -325,7 +325,17 @@ def get_build_info(
                     uploaded_date = parse_date(build["attributes"]["uploadedDate"])
 
                     build_bundles = relations.get_multiple_related(build, "buildBundles")
-                    dsym_url = _get_dsym_url(build, build_bundles)
+                    with sentry_sdk.push_scope() as scope:
+                        scope.set_context(
+                            scope.set_context(
+                                "App Store Connect Build",
+                                {
+                                    "build": build,
+                                    "build_bundles": build_bundles,
+                                },
+                            )
+                        )
+                        dsym_url = _get_dsym_url(build_bundles)
 
                     build_info.append(
                         BuildInfo(
@@ -347,9 +357,8 @@ def get_build_info(
         return build_info
 
 
-# TODO: if the build really need to be passed in, maybe make bundles a lambda that takes
-# in a build and returns bundles
-def _get_dsym_url(build: JSONData, bundles: Optional[List[JSONData]]) -> Union[NoDsymUrl, str]:
+def _get_dsym_url(bundles: Optional[List[JSONData]]) -> Union[NoDsymUrl, str]:
+    """Returns the dSYMs URL from the extracted from the build bundles."""
     # https://developer.apple.com/documentation/appstoreconnectapi/build/relationships/buildbundles
     # https://developer.apple.com/documentation/appstoreconnectapi/buildbundle/attributes
     # If you ever write code for this here you probably will find an
@@ -367,16 +376,7 @@ def _get_dsym_url(build: JSONData, bundles: Optional[List[JSONData]]) -> Union[N
     if len(bundles) != 1:
         # We currently do not know how to handle these, we'll carry on
         # with the first bundle but report this as an error.
-        with sentry_sdk.push_scope() as scope:
-            scope.set_context(
-                "App Store Connect Build",
-                {
-                    # TODO: what really needs to be included here? the entire build?
-                    "build": build,
-                    "build_bundles": bundles,
-                },
-            )
-            sentry_sdk.capture_message("len(buildBundles) != 1")
+        sentry_sdk.capture_message("len(buildBundles) != 1")
 
     if len(bundles) == 0:
         return NoDsymUrl.NOT_NEEDED
@@ -390,16 +390,7 @@ def _get_dsym_url(build: JSONData, bundles: Optional[List[JSONData]]) -> Union[N
     if isinstance(url, (NoDsymUrl, str)):
         return url
     else:
-        with sentry_sdk.configure_scope() as scope:
-            scope.set_context(
-                "App Store Connect Build",
-                {
-                    # TODO: what really needs to be included here? the entire build?
-                    "build": build,
-                    "build_bundles": bundles,
-                },
-            )
-            raise ValueError(f"Unexpected value in build bundle's dSYMUrl: {url}")
+        raise ValueError(f"Unexpected value in build bundle's dSYMUrl: {url}")
 
 
 AppInfo = namedtuple("AppInfo", ["name", "bundle_id", "app_id"])
