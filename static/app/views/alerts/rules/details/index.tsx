@@ -206,7 +206,11 @@ class AlertRuleDetails extends Component<Props, State> {
     const {params} = this.props;
     const timePeriod = this.getTimePeriod();
 
-    return !hasError ? (
+    if (hasError) {
+      return this.renderError();
+    }
+
+    return (
       <Fragment>
         <DetailsHeader
           hasIncidentRuleDetailsError={hasError}
@@ -223,8 +227,6 @@ class AlertRuleDetails extends Component<Props, State> {
           handleZoom={this.handleZoom}
         />
       </Fragment>
-    ) : (
-      this.renderError()
     );
   }
 }
