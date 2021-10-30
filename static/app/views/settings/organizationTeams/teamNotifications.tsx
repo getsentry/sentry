@@ -2,6 +2,7 @@ import * as React from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
@@ -11,7 +12,7 @@ import Tooltip from 'app/components/tooltip';
 import {IconDelete} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {Integration, Organization, Team} from 'app/types';
+import {ExternalTeam, Integration, Organization, Team} from 'app/types';
 import {toTitleCase} from 'app/utils';
 import withOrganization from 'app/utils/withOrganization';
 import AsyncView from 'app/views/asyncView';
@@ -52,6 +53,20 @@ class TeamNotificationSettings extends AsyncView<Props, State> {
       ],
     ];
   }
+
+  handleDelete = async (mapping: ExternalTeam) => {
+    try {
+      const {organization, team} = this.props;
+      const endpoint = `/teams/${organization.slug}/${team.slug}/external-teams/${mapping.id}/`;
+      await this.api.requestPromise(endpoint, {
+        method: 'DELETE',
+      });
+      addSuccessMessage(t('Deletion successful'));
+      this.fetchData();
+    } catch {
+      addErrorMessage(t('An error occurred'));
+    }
+  };
 
   renderBody() {
     return (
@@ -132,7 +147,7 @@ class TeamNotificationSettings extends AsyncView<Props, State> {
           >
             <Confirm
               disabled={!hasAccess}
-              onConfirm={() => alert('Time to delete it!')}
+              onConfirm={() => this.handleDelete(externalTeam)}
               message={t('Are you sure you want to remove this Slack team link?')}
             >
               <Button
