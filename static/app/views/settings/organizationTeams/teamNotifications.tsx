@@ -4,8 +4,10 @@ import styled from '@emotion/styled';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
+import Confirm from 'app/components/confirm';
 import ExternalLink from 'app/components/links/externalLink';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import Tooltip from 'app/components/tooltip';
 import {IconDelete} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
@@ -61,6 +63,7 @@ class TeamNotificationSettings extends AsyncView<Props, State> {
   }
 
   renderPanelBody() {
+    const {organization} = this.props;
     const {teamDetails, integrations} = this.state;
 
     const notificationIntegrations = integrations.filter(integration =>
@@ -96,6 +99,9 @@ class TeamNotificationSettings extends AsyncView<Props, State> {
       notificationIntegrations.map(integration => [integration.id, integration])
     );
 
+    const access = new Set(organization.access);
+    const hasAccess = access.has('team:write');
+
     return externalTeams.map(externalTeam => (
       <FormFieldWrapper key={externalTeam.id}>
         <StyledFormField
@@ -118,12 +124,25 @@ class TeamNotificationSettings extends AsyncView<Props, State> {
           value={externalTeam.externalName}
         />
         <DeleteButtonWrapper>
-          <Button
-            size="small"
-            icon={<IconDelete size="md" />}
-            label={t('delete')}
-            disabled={false}
-          />
+          <Tooltip
+            title={t(
+              "You must have the 'team:write' permission to remove a Slack team link"
+            )}
+            disabled={hasAccess}
+          >
+            <Confirm
+              disabled={!hasAccess}
+              onConfirm={() => alert('Time to delete it!')}
+              message={t('Are you sure you want to remove this Slack team link?')}
+            >
+              <Button
+                size="small"
+                icon={<IconDelete size="md" />}
+                label={t('delete')}
+                disabled={!hasAccess}
+              />
+            </Confirm>
+          </Tooltip>
         </DeleteButtonWrapper>
       </FormFieldWrapper>
     ));
