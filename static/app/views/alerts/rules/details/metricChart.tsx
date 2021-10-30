@@ -584,6 +584,7 @@ class MetricChart extends React.PureComponent<Props, State> {
                             name: comparisonSeriesName,
                             data: _data.map(({name, value}) => [name, value]),
                             lineStyle: {color: theme.gray200, type: 'dashed', width: 1},
+                            itemStyle: {color: theme.gray200},
                             animation: false,
                             animationThreshold: 1,
                             animationDuration: 0,
@@ -623,8 +624,6 @@ class MetricChart extends React.PureComponent<Props, State> {
                           ),
                           'MMM D LT'
                         );
-
-                        const markerPlaceHolder = `<span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;background-color:transparent;"></span>`;
 
                         const comparisonSeries =
                           pointSeries.length > 1
@@ -674,7 +673,7 @@ class MetricChart extends React.PureComponent<Props, State> {
                             )}</strong></span></div>`,
                           `<div><span class="tooltip-label">${marker} <strong>${seriesName}</strong></span>${pointYFormatted}</div>`,
                           comparisonSeries &&
-                            `<div><span class="tooltip-label">${markerPlaceHolder} <strong>${comparisonSeriesName}</strong></span>${comparisonPointYFormatted}</div>`,
+                            `<div><span class="tooltip-label">${comparisonSeries.marker} <strong>${comparisonSeriesName}</strong></span>${comparisonPointYFormatted}</div>`,
                           `</div>`,
                           `<div class="tooltip-date">`,
                           `<span>${startTime} &mdash; ${endTime}</span>`,
