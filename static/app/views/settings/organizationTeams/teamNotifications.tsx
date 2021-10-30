@@ -1,9 +1,12 @@
+import * as React from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import AsyncComponent from 'app/components/asyncComponent';
+import Button from 'app/components/button';
 import ExternalLink from 'app/components/links/externalLink';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {IconDelete} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Integration, Organization, Team} from 'app/types';
@@ -94,26 +97,35 @@ class TeamNotificationSettings extends AsyncView<Props, State> {
     );
 
     return externalTeams.map(externalTeam => (
-      <TextField
-        disabled
-        key={externalTeam.id}
-        label={
-          <div>
-            <NotDisabledText>
-              {toTitleCase(externalTeam.provider)}:
-              {integrationsById[externalTeam.integrationId].name}
-            </NotDisabledText>
-            <NotDisabledSubText>
-              {tct('Unlink this channel in Slack with [code]. [link].', {
-                code: <code>/sentry unlink team</code>,
-                link: <ExternalLink href={DOCS_LINK}>{t('Learn more')}</ExternalLink>,
-              })}
-            </NotDisabledSubText>
-          </div>
-        }
-        name="externalName"
-        value={externalTeam.externalName}
-      />
+      <FormFieldWrapper key={externalTeam.id}>
+        <StyledFormField
+          disabled
+          label={
+            <div>
+              <NotDisabledText>
+                {toTitleCase(externalTeam.provider)}:
+                {integrationsById[externalTeam.integrationId].name}
+              </NotDisabledText>
+              <NotDisabledSubText>
+                {tct('Unlink this channel in Slack with [code]. [link].', {
+                  code: <code>/sentry unlink team</code>,
+                  link: <ExternalLink href={DOCS_LINK}>{t('Learn more')}</ExternalLink>,
+                })}
+              </NotDisabledSubText>
+            </div>
+          }
+          name="externalName"
+          value={externalTeam.externalName}
+        />
+        <DeleteButtonWrapper>
+          <Button
+            size="small"
+            icon={<IconDelete size="md" />}
+            label={t('delete')}
+            disabled={false}
+          />
+        </DeleteButtonWrapper>
+      </FormFieldWrapper>
     ));
   }
 }
@@ -128,4 +140,16 @@ const NotDisabledSubText = styled('div')`
   font-size: ${p => p.theme.fontSizeRelativeSmall};
   line-height: 1.4;
   margin-top: ${space(1)};
+`;
+const FormFieldWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+`;
+const StyledFormField = styled(TextField)`
+  flex: 1;
+`;
+const DeleteButtonWrapper = styled('div')`
+  margin-right: ${space(4)};
+  padding-right: ${space(0.5)};
 `;
