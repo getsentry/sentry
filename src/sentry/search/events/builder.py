@@ -190,6 +190,45 @@ class TimeseriesQueryBuilder(QueryFilter):
 
 
 class TopEventsQueryBuilder(TimeseriesQueryBuilder):
+    """Create one of two top events queries, which is used for the Top Period &
+    Top Daily displays
+
+    This builder requires a Snuba response dictionary that already contains
+    the top events for the parameters being queried. eg.
+    `[{transaction: foo, count: 100}, {transaction: bar, count:50}]`
+
+    Two types of queries can be constructed through this builder:
+
+    First getting each timeseries for each top event (other=False). Which
+    roughly results in a query like the one below. The Groupby allow us to
+    get additional rows per time window for each transaction. And the Where
+    clause narrows the results to those in the top events:
+    ```
+        SELECT
+            transaction, count(), time
+        FROM
+            discover
+        GROUP BY
+            transaction, time
+        WHERE
+            transaction IN ['foo', 'bar']
+    ```
+
+    Secondly This builder can also be used for getting a single timeseries
+    for all events not in the top (other=True). Which is done by taking the
+    previous query, dropping the groupby, and negating the condition eg.
+    ```
+        SELECT
+            count(), time
+        FROM
+            discover
+        GROUP BY
+            time
+        WHERE
+            transaction NOT IN ['foo', 'bar']
+    ```
+    """
+
     def __init__(
         self,
         dataset: Dataset,

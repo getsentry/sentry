@@ -757,11 +757,7 @@ def top_events_timeseries(
             op="discover.discover", description="top_events.transform_results"
         ) as span:
             span.set_data("result_count", len(result.get("data", [])))
-            translated_columns = top_events_builder.function_alias_map
-            result = transform_results(result, translated_columns, {}, None)
-
-            if "project" in selected_columns:
-                translated_columns["project_id"] = "project"
+            result = transform_results(result, top_events_builder.function_alias_map, {}, None)
 
             issues = {}
             if "issue" in selected_columns:
