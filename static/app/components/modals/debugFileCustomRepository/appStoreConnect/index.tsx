@@ -1,12 +1,10 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import Alert from 'app/components/alert';
-import AlertLink from 'app/components/alertLink';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -74,7 +72,6 @@ type Props = Pick<ModalRenderProps, 'Header' | 'Body' | 'Footer'> & {
   orgSlug: Organization['slug'];
   projectSlug: Project['slug'];
   onSubmit: () => void;
-  location: Location;
   appStoreConnectContext?: AppStoreConnectContextProps;
   initialData?: InitialData;
 };
@@ -96,16 +93,12 @@ function AppStoreConnect({
   orgSlug,
   projectSlug,
   onSubmit,
-  location,
   appStoreConnectContext,
 }: Props) {
   const {updateAlertMessage} = appStoreConnectContext ?? {};
 
-  const [revalidateItunesSession, setRevalidateItunesSession] = useState(
-    location.query.revalidateItunesSession
-  );
   const [isLoading, setIsLoading] = useState(false);
-  const [activeStep, setActiveStep] = useState(revalidateItunesSession ? 3 : 0);
+  const [activeStep, setActiveStep] = useState(0);
   const [appStoreApps, setAppStoreApps] = useState<AppStoreApp[]>([]);
   const [appleStoreOrgs, setAppleStoreOrgs] = useState<AppleStoreOrg[]>([]);
   const [sessionContext, setSessionContext] = useState<SessionContext | undefined>(
@@ -145,25 +138,6 @@ function AppStoreConnect({
         ? {organizationId: initialData.orgPublicId, name: initialData.name}
         : undefined,
   });
-
-  useEffect(() => {
-    if (location.query.revalidateItunesSession && !revalidateItunesSession) {
-      setIsLoading(true);
-      setRevalidateItunesSession(location.query.revalidateItunesSession);
-    }
-  }, [location.query]);
-
-  useEffect(() => {
-    if (revalidateItunesSession) {
-      handleStartItunesAuthentication(false);
-      if (activeStep !== 3) {
-        setActiveStep(3);
-      }
-      setIsLoading(false);
-      return;
-    }
-    setIsLoading(false);
-  }, [revalidateItunesSession]);
 
   async function checkAppStoreConnectCredentials() {
     setIsLoading(true);
@@ -471,18 +445,6 @@ function AppStoreConnect({
   function getAlerts() {
     const alerts: React.ReactElement[] = [];
 
-    if (revalidateItunesSession) {
-      if (!updateAlertMessage && revalidateItunesSession) {
-        alerts.push(
-          <StyledAlert type="warning" icon={<IconWarning />}>
-            {t('Your iTunes session has already been re-validated.')}
-          </StyledAlert>
-        );
-      }
-
-      return alerts;
-    }
-
     if (activeStep !== 0) {
       return alerts;
     }
@@ -494,24 +456,6 @@ function AppStoreConnect({
             'Your App Store Connect credentials are invalid. To reconnect, update your credentials.'
           )}
         </StyledAlert>
-      );
-    }
-
-    if (updateAlertMessage === appStoreConnectAlertMessage.iTunesSessionInvalid) {
-      alerts.push(
-        <AlertLink
-          withoutMarginBottom
-          icon={<IconWarning />}
-          to={{
-            pathname: location.pathname,
-            query: {
-              ...location.query,
-              revalidateItunesSession: true,
-            },
-          }}
-        >
-          {t('Your iTunes session has expired. To reconnect, revalidate the session.')}
-        </AlertLink>
       );
     }
 
@@ -537,26 +481,6 @@ function AppStoreConnect({
 
   if (initialData && !appStoreConnectContext) {
     return <LoadingIndicator />;
-  }
-
-  if (revalidateItunesSession) {
-    return (
-      <Fragment>
-        <Header closeButton>
-          <HeaderContentTitle>{t('Revalidate iTunes session')}</HeaderContentTitle>
-        </Header>
-        <Body>{renderBodyContent()}</Body>
-        <Footer>
-          <StyledButton
-            priority="primary"
-            onClick={() => startTwoFactorAuthentication(true)}
-            disabled={isLoading || isFormInvalid()}
-          >
-            {t('Revalidate')}
-          </StyledButton>
-        </Footer>
-      </Fragment>
-    );
   }
 
   return (

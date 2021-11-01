@@ -13,7 +13,7 @@ import {customRepoTypeLabel} from './utils';
 type Props = {
   repository: CustomRepo;
   onDelete: (repositoryId: string) => void;
-  onEdit: (repositoryId: string, revalidateItunesSession?: boolean) => void;
+  onEdit: (repositoryId: string) => void;
 };
 
 function Repository({repository, onDelete, onEdit}: Props) {
@@ -26,11 +26,7 @@ function Repository({repository, onDelete, onEdit}: Props) {
       <TypeAndStatus>
         {customRepoTypeLabel[type]}
         {repository.type === CustomRepoType.APP_STORE_CONNECT && (
-          <Status
-            details={repository.details}
-            onEditRepository={() => onEdit(id)}
-            onRevalidateItunesSession={() => onEdit(id, true)}
-          />
+          <Status details={repository.details} onEditRepository={() => onEdit(id)} />
         )}
       </TypeAndStatus>
       <CustomRepositoryActions

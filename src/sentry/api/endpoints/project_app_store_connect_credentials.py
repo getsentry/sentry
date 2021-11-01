@@ -414,7 +414,6 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
     ```json
     {
         "appstoreCredentialsValid": true,
-        "promptItunesSession": false,
         "pendingDownloads": 123,
         "latestBuildVersion: "9.8.7" | null,
         "latestBuildNumber": "987000" | null,
@@ -429,9 +428,6 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
 
     * ``lastCheckedBuilds`` is when sentry last checked for new builds, regardless
       of whether there were any or no builds in App Store Connect at the time.
-
-    * ``promptItunesSession`` indicates whether the user should be prompted to refresh the
-      iTunes session since we know we need to fetch more dSYMs.
     """
 
     permission_classes = [ProjectPermission]
@@ -452,14 +448,6 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
 
         session = requests.Session()
         apps = appstore_connect.get_apps(session, credentials)
-
-        try:
-            itunes_client = itunes_connect.ITunesClient.from_session_cookie(
-                symbol_source_cfg.itunesSession
-            )
-            itunes_session_info = itunes_client.request_session_info()
-        except itunes_connect.SessionExpiredError:
-            itunes_session_info = None
 
         pending_downloads = AppConnectBuild.objects.filter(project=project, fetched=False).count()
 
@@ -493,7 +481,6 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
                 "latestBuildVersion": latestBuildVersion,
                 "latestBuildNumber": latestBuildNumber,
                 "lastCheckedBuilds": last_checked_builds,
-                "promptItunesSession": bool(pending_downloads and itunes_session_info is None),
             },
             status=200,
         )
