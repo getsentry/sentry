@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import math
 import re
@@ -7,7 +9,7 @@ from datetime import timedelta
 from enum import Enum
 from functools import reduce
 from operator import or_
-from typing import TYPE_CHECKING, List, Mapping, Optional, Sequence, Set, Union
+from typing import TYPE_CHECKING, Mapping, Sequence
 
 from django.core.cache import cache
 from django.db import models
@@ -36,7 +38,7 @@ from sentry.utils.numbers import base32_decode, base32_encode
 from sentry.utils.strings import strip, truncatechars
 
 if TYPE_CHECKING:
-    from sentry.models import Integration, Team, User
+    from sentry.models import Integration, Organization, Team, User
 
 logger = logging.getLogger(__name__)
 
@@ -180,7 +182,7 @@ class EventOrdering(Enum):
 
 def get_oldest_or_latest_event_for_environments(
     ordering, environments=(), issue_id=None, project_id=None
-) -> Optional[Event]:
+) -> Event | None:
     conditions = []
 
     if len(environments) > 0:
@@ -207,7 +209,7 @@ class GroupManager(BaseManager):
     def by_qualified_short_id(self, organization_id: int, short_id: str):
         return self.by_qualified_short_id_bulk(organization_id, [short_id])[0]
 
-    def by_qualified_short_id_bulk(self, organization_id: int, short_ids: List[str]):
+    def by_qualified_short_id_bulk(self, organization_id: int, short_ids: list[str]):
         short_ids = [parse_short_id(short_id) for short_id in short_ids]
         if not short_ids or any(short_id is None for short_id in short_ids):
             raise Group.DoesNotExist()
@@ -224,7 +226,7 @@ class GroupManager(BaseManager):
             ],
         )
 
-        groups: List[Group] = list(
+        groups: list[Group] = list(
             Group.objects.exclude(
                 status__in=[
                     GroupStatus.PENDING_DELETION,
@@ -233,7 +235,7 @@ class GroupManager(BaseManager):
                 ]
             ).filter(short_id_lookup, project__organization=organization_id)
         )
-        group_lookup: Set[int] = {group.short_id for group in groups}
+        group_lookup: set[int] = {group.short_id for group in groups}
         for short_id in short_ids:
             if short_id.short_id not in group_lookup:
                 raise Group.DoesNotExist()
@@ -288,24 +290,28 @@ class GroupManager(BaseManager):
 
     def get_groups_by_external_issue(
         self,
-        integration: "Integration",
+        integration: Integration,
+        organizations: Sequence[Organization],
         external_issue_key: str,
     ) -> QuerySet:
         from sentry.models import ExternalIssue, GroupLink
 
+        external_issue_subquery = ExternalIssue.objects.get_for_integration(
+            integration, external_issue_key
+        ).values_list("id", flat=True)
+
+        group_link_subquery = GroupLink.objects.filter(
+            linked_id__in=external_issue_subquery
+        ).values_list("group_id", flat=True)
+
         return self.filter(
-            id__in=GroupLink.objects.filter(
-                linked_id__in=ExternalIssue.objects.filter(
-                    key=external_issue_key,
-                    integration_id=integration.id,
-                    organization_id__in=integration.organizations.values_list("id", flat=True),
-                ).values_list("id", flat=True)
-            ).values_list("group_id", flat=True),
-            project__organization_id__in=integration.organizations.values_list("id", flat=True),
-        )
+            id__in=group_link_subquery,
+            project__organization__in=organizations,
+            project__organization__organizationintegration__integration=integration,
+        ).select_related("project")
 
     def update_group_status(
-        self, groups: Sequence["Group"], status: GroupStatus, activity_type: ActivityType
+        self, groups: Sequence[Group], status: GroupStatus, activity_type: ActivityType
     ) -> None:
         """For each groups, update status to `status` and create an Activity."""
         from sentry.models import Activity
@@ -318,7 +324,7 @@ class GroupManager(BaseManager):
                 Activity.objects.create_group_activity(group, activity_type)
                 record_group_history_from_activity_type(group, activity_type)
 
-    def from_share_id(self, share_id: str) -> "Group":
+    def from_share_id(self, share_id: str) -> Group:
         if not share_id or len(share_id) != 32:
             raise Group.DoesNotExist
 
@@ -417,9 +423,9 @@ class Group(Model):
 
     def get_absolute_url(
         self,
-        params: Optional[Mapping[str, str]] = None,
-        event_id: Optional[int] = None,
-        organization_slug: Optional[str] = None,
+        params: Mapping[str, str] | None = None,
+        event_id: int | None = None,
+        organization_slug: str | None = None,
     ) -> str:
         # Built manually in preference to django.urls.reverse,
         # because reverse has a measured performance impact.
@@ -489,7 +495,7 @@ class Group(Model):
     def get_score(self):
         return type(self).calculate_score(self.times_seen, self.last_seen)
 
-    def get_latest_event(self) -> Optional[Event]:
+    def get_latest_event(self) -> Event | None:
         if not hasattr(self, "_latest_event"):
             self._latest_event = self.get_latest_event_for_environments()
 
@@ -612,7 +618,7 @@ class Group(Model):
             )
         }
 
-    def get_assignee(self) -> Optional[Union["Team", "User"]]:
+    def get_assignee(self) -> Team | User | None:
         from sentry.models import GroupAssignee
 
         try:

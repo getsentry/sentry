@@ -1,14 +1,38 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from django.db import models
+from django.db.models import QuerySet
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.db.models import (
+    BaseManager,
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     JSONField,
     Model,
     sane_repr,
 )
+
+if TYPE_CHECKING:
+    from sentry.models import Group
+
+
+class GroupLinkManager(BaseManager):
+    def get_group_issues(self, group: Group, external_issue_id: str | None = None) -> QuerySet:
+        """TODO(mgaeta): Migrate the model to use FlexibleForeignKey."""
+        kwargs = dict(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.issue,
+            relationship=GroupLink.Relationship.references,
+        )
+
+        if external_issue_id is not None:
+            kwargs["linked_id"] = external_issue_id
+        return self.filter(**kwargs)
 
 
 class GroupLink(Model):
@@ -46,6 +70,8 @@ class GroupLink(Model):
     )
     data = JSONField()
     datetime = models.DateTimeField(default=timezone.now, db_index=True)
+
+    objects = GroupLinkManager()
 
     class Meta:
         app_label = "sentry"

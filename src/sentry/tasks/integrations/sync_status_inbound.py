@@ -1,6 +1,6 @@
 from typing import Any, Mapping
 
-from sentry.models import Group, GroupStatus, Integration
+from sentry.models import Group, GroupStatus, Integration, Organization
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
 from sentry.types.activity import ActivityType
 
@@ -19,12 +19,10 @@ def sync_status_inbound(
     from sentry.integrations.issues import ResolveSyncAction
 
     integration = Integration.objects.get(id=integration_id)
-    affected_groups = list(
-        Group.objects.get_groups_by_external_issue(integration, issue_key)
-        .filter(project__organization_id=organization_id)
-        .select_related("project")
+    organizations = Organization.objects.filter(id=organization_id)
+    affected_groups = Group.objects.get_groups_by_external_issue(
+        integration, organizations, issue_key
     )
-
     if not affected_groups:
         return
 

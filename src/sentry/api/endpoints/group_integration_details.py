@@ -270,13 +270,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             return Response(status=404)
 
         with transaction.atomic():
-            GroupLink.objects.filter(
-                group_id=group.id,
-                project_id=group.project_id,
-                linked_type=GroupLink.LinkedType.issue,
-                linked_id=external_issue_id,
-                relationship=GroupLink.Relationship.references,
-            ).delete()
+            GroupLink.objects.get_group_issues(group, external_issue_id).delete()
 
             # check if other groups reference this external issue
             # and delete if not
