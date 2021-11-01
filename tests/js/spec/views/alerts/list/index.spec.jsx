@@ -1,5 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {act} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'app/stores/projectsStore';
 import TeamStore from 'app/stores/teamStore';
@@ -84,12 +85,12 @@ describe('IncidentsList', function () {
 
   afterEach(function () {
     wrapper.unmount();
-    ProjectsStore.reset();
+    act(() => ProjectsStore.reset());
     MockApiClient.clearMockResponses();
   });
 
   it('displays list', async function () {
-    ProjectsStore.loadInitialData(projects);
+    act(() => ProjectsStore.loadInitialData(projects));
     wrapper = await createWrapper();
     await tick();
     await tick();
@@ -201,7 +202,7 @@ describe('IncidentsList', function () {
   });
 
   it('filters by opened issues', async function () {
-    ProjectsStore.loadInitialData(projects);
+    act(() => ProjectsStore.loadInitialData(projects));
     wrapper = await createWrapper();
 
     wrapper.find('[data-test-id="filter-button"]').at(1).simulate('click');

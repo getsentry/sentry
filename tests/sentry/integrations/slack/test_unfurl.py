@@ -12,8 +12,8 @@ from sentry.integrations.slack.message_builder.incidents import build_incident_a
 from sentry.integrations.slack.message_builder.issues import build_group_attachment
 from sentry.integrations.slack.unfurl import LinkType, UnfurlableUrl, link_handlers, match_link
 from sentry.testutils import TestCase
+from sentry.testutils.helpers import install_slack
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from tests.sentry.integrations.slack import install_slack
 
 
 @pytest.mark.parametrize(
@@ -292,7 +292,8 @@ class UnfurlTest(TestCase):
         )
         assert len(mock_generate_chart.mock_calls) == 1
 
-        assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_DISCOVER_TOP5_PERIOD
+        # Line chart expected since yAxis is count_unique(user)
+        assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_DISCOVER_TOP5_PERIOD_LINE
         chart_data = mock_generate_chart.call_args[0][1]
         assert chart_data["seriesName"] == "count_unique(user)"
         # 2 + 1 cause of Other
@@ -493,3 +494,52 @@ class UnfurlTest(TestCase):
         chart_data = mock_generate_chart.call_args[0][1]
         assert chart_data["seriesName"] == "count()"
         assert len(chart_data["stats"]["data"]) == 288
+
+    @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
+    def test_unfurl_world_map(self, mock_generate_chart):
+        min_ago = iso_format(before_now(minutes=1))
+        self.store_event(
+            data={
+                "fingerprint": ["group2"],
+                "timestamp": min_ago,
+                "user": {"geo": {"country_code": "CA", "region": "Canada"}},
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "fingerprint": ["group2"],
+                "timestamp": min_ago,
+                "user": {"geo": {"country_code": "AU", "region": "Australia"}},
+            },
+            project_id=self.project.id,
+        )
+
+        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?display=worldmap&field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All+Events&project={self.project.id}&query=&sort=-timestamp&statsPeriod=24h&yAxis=count%28%29"
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise Exception("Missing link_type/args")
+
+        links = [
+            UnfurlableUrl(url=url, args=args),
+        ]
+
+        with self.feature(
+            [
+                "organizations:discover-basic",
+                "organizations:chart-unfurls",
+            ]
+        ):
+            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+
+        assert unfurls[url] == build_discover_attachment(
+            title=args["query"].get("name"), chart_url="chart-url"
+        )
+        assert len(mock_generate_chart.mock_calls) == 1
+
+        assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_DISCOVER_WORLDMAP
+        chart_data = mock_generate_chart.call_args[0][1]
+        assert chart_data["seriesName"] == "count()"
+        assert len(chart_data["stats"]["data"]) == 2
+        assert sorted(x["geo.country_code"] for x in chart_data["stats"]["data"]) == ["AU", "CA"]

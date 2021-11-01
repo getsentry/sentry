@@ -20,7 +20,7 @@ type Props = Pick<
   stacktrace?: ExceptionValue['stacktrace'];
 };
 
-const CrashContent = ({
+function CrashContent({
   event,
   stackView,
   stackType,
@@ -30,7 +30,7 @@ const CrashContent = ({
   hasHierarchicalGrouping,
   exception,
   stacktrace,
-}: Props) => {
+}: Props) {
   const platform = (event.platform ?? 'other') as PlatformType;
 
   if (exception) {
@@ -64,6 +64,6 @@ const CrashContent = ({
   }
 
   return null;
-};
+}
 
 export default CrashContent;

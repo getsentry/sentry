@@ -40,11 +40,10 @@ import {isActiveSuperuser} from 'app/utils/isActiveSuperuser';
 import recreateRoute from 'app/utils/recreateRoute';
 import routeTitleGen from 'app/utils/routeTitle';
 import withOrganization from 'app/utils/withOrganization';
-import withTeams from 'app/utils/withTeams';
 import {
   CHANGE_ALERT_CONDITION_IDS,
   CHANGE_ALERT_PLACEHOLDERS_LABELS,
-} from 'app/views/alerts/issueRuleEditor/constants/changeAlerts';
+} from 'app/views/alerts/changeAlerts/constants';
 import AsyncView from 'app/views/asyncView';
 import Input from 'app/views/settings/components/forms/controls/input';
 import Field from 'app/views/settings/components/forms/field';
@@ -101,7 +100,7 @@ type RuleTaskResponse = {
 type Props = {
   project: Project;
   organization: Organization;
-  teams: Team[];
+  userTeamIds: string[];
   onChangeTitle?: (data: string) => void;
 } & RouteComponentProps<{orgId: string; projectId: string; ruleId?: string}, {}>;
 
@@ -138,7 +137,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   }
 
   getDefaultState() {
-    const {teams, project} = this.props;
+    const {userTeamIds, project} = this.props;
     const defaultState = {
       ...super.getDefaultState(),
       configs: null,
@@ -149,9 +148,8 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     };
 
     const projectTeamIds = new Set(project.teams.map(({id}) => id));
-    const userTeam =
-      teams.find(({isMember, id}) => !!isMember && projectTeamIds.has(id)) ?? null;
-    defaultState.rule.owner = userTeam && `team:${userTeam.id}`;
+    const userTeamId = userTeamIds.find(id => projectTeamIds.has(id)) ?? null;
+    defaultState.rule.owner = userTeamId && `team:${userTeamId}`;
 
     return defaultState;
   }
@@ -546,7 +544,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const {project, organization, teams} = this.props;
+    const {project, organization, userTeamIds} = this.props;
     const {environments} = this.state;
     const environmentOptions = [
       {
@@ -563,10 +561,10 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     const environment =
       !rule || !rule.environment ? ALL_ENVIRONMENTS_KEY : rule.environment;
 
-    const userTeams = teams.filter(({isMember}) => isMember).map(({id}) => id);
     const ownerId = rule?.owner?.split(':')[1];
     // check if superuser or if user is on the alert's team
-    const canEdit = isActiveSuperuser() || (ownerId ? userTeams.includes(ownerId) : true);
+    const canEdit =
+      isActiveSuperuser() || (ownerId ? userTeamIds.includes(ownerId) : true);
 
     // Note `key` on `<Form>` below is so that on initial load, we show
     // the form with a loading mask on top of it, but force a re-render by using
@@ -895,7 +893,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   }
 }
 
-export default withOrganization(withTeams(IssueRuleEditor));
+export default withOrganization(IssueRuleEditor);
 
 // TODO(ts): Understand why styled is not correctly inheriting props here
 const StyledForm = styled(Form)<Form['props']>`
