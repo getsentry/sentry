@@ -119,8 +119,7 @@ def unfurl_discover(
 
             except Exception as exc:
                 logger.error(
-                    "Failed to load saved query for unfurl: %s",
-                    str(exc),
+                    f"Failed to load saved query for unfurl: {exc}",
                     exc_info=True,
                 )
             else:
@@ -152,7 +151,9 @@ def unfurl_discover(
         # Only override if key doesn't exist since we want to account for
         # an intermediate state where the query could have been cleared
         if "query" not in params:
-            params.setlist("query", params.getlist("query") or to_list(saved_query.get("query")))
+            params.setlist(
+                "query", params.getlist("query") or to_list(saved_query.get("query", ""))
+            )
 
         display_mode = str(params.get("display") or saved_query.get("display", "default"))
 
@@ -187,6 +188,8 @@ def unfurl_discover(
         endpoint = "events-stats/"
         if "worldmap" in display_mode:
             endpoint = "events-geo/"
+            params.setlist("field", params.getlist("yAxis"))
+            params.pop("sort", None)
 
         try:
             resp = client.get(
@@ -210,8 +213,7 @@ def unfurl_discover(
             url = generate_chart(style, chart_data)
         except RuntimeError as exc:
             logger.error(
-                "Failed to generate chart for discover unfurl: %s",
-                str(exc),
+                f"Failed to generate chart for discover unfurl: {exc}",
                 exc_info=True,
             )
             continue

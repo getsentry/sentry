@@ -23,7 +23,7 @@ from sentry.models import (
 )
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, metrics, sdk
-from sentry.utils.appleconnect import itunes_connect
+from sentry.utils.appleconnect import appstore_connect as appstoreconnect_api
 
 logger = logging.getLogger(__name__)
 
@@ -51,55 +51,55 @@ def inner_dsym_download(project_id: int, config_id: str) -> None:
     builds = process_builds(project=project, config=config, to_process=listed_builds)
 
     if not builds:
-        # No point in trying to see if we have valid iTunes credentials.
         return
-    try:
-        itunes_client = client.itunes_client()
-    except itunes_connect.SessionExpiredError:
-        logger.debug("No valid iTunes session, can not download dSYMs")
-        metrics.incr(
-            "sentry.tasks.app_store_connect.itunes_session.needed",
-            tags={"valid": "false"},
-            sample_rate=1,
-        )
-        return
-    else:
-        metrics.incr(
-            "sentry.tasks.app_store_connect.itunes_session.needed",
-            tags={"valid": "true"},
-            sample_rate=1,
-        )
+
     for i, (build, build_state) in enumerate(builds):
         with sdk.configure_scope() as scope:
             scope.set_context("dsym_downloads", {"total": len(builds), "completed": i})
         with tempfile.NamedTemporaryFile() as dsyms_zip:
             try:
-                itunes_client.download_dsyms(build, pathlib.Path(dsyms_zip.name))
+                client.download_dsyms(build, pathlib.Path(dsyms_zip.name))
+            # For no dSYMs, let the build be marked as fetched so they're not
+            # repeatedly re-checked every time this task is run.
             except appconnect.NoDsymsError:
                 logger.debug("No dSYMs for build %s", build)
-            except itunes_connect.SessionExpiredError:
-                logger.debug("Error fetching dSYMs: expired iTunes session")
-                # we early-return here to avoid trying all the other builds
-                # as well, since an expired token will error for all of them.
-                # we also swallow the error and not report it because this is
-                # a totally expected error and not actionable.
-                return
-            except itunes_connect.ForbiddenError:
+            # Moves on to the next build so we don't check off fetched. This url will
+            # eventuallyTM be populated, so revisit it at a later time.
+            except appconnect.PendingDsymsError:
+                logger.debug("dSYM url currently unavailable for build %s", build)
+                continue
+            # early-return in unauthorized and forbidden to avoid trying all the other builds
+            # as well, since an expired token will error for all of them.
+            # the error is also swallowed unreported because this is an expected and actionable
+            # error.
+            except appstoreconnect_api.UnauthorizedError:
                 sentry_sdk.capture_message(
-                    "Forbidden iTunes dSYM download, probably switched to wrong org", level="info"
+                    "Not authorized to download dSYM using current App Store Connect credentials",
+                    level="info",
                 )
                 return
+            except appstoreconnect_api.ForbiddenError:
+                sentry_sdk.capture_message(
+                    "Forbidden from downloading dSYM using current App Store Connect credentials",
+                    level="info",
+                )
+                return
+            # Don't let malformed URLs abort all pending downloads in case it's an isolated instance
+            except ValueError as e:
+                sdk.capture_exception(e)
+                continue
+            # Assume request errors are a server side issue and do not abort all the
+            # pending downloads.
+            except appstoreconnect_api.RequestError as e:
+                sdk.capture_exception(e)
+                continue
             except requests.RequestException as e:
-                # Assume these are errors with the server side and do not abort all the
-                # pending downloads.
                 sdk.capture_exception(e)
                 continue
             else:
                 create_difs_from_dsyms_zip(dsyms_zip.name, project)
                 logger.debug("Uploaded dSYMs for build %s", build)
 
-        # If we either downloaded, or didn't need to download the dSYMs
-        # (there was no dSYM url), we check off this build.
         build_state.fetched = True
         build_state.save()
 

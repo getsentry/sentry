@@ -161,9 +161,7 @@ class RedisBackend(Backend):
                     yield ScheduleEntry(key.decode("utf-8"), float(timestamp))
             except Exception as error:
                 logger.error(
-                    "Failed to perform scheduling for partition %r due to error: %r",
-                    host,
-                    error,
+                    f"Failed to perform scheduling for partition {host} due to error: {error}",
                     exc_info=True,
                 )
 
@@ -183,9 +181,7 @@ class RedisBackend(Backend):
                 self.__maintenance_partition(host, deadline, timestamp)
             except Exception as error:
                 logger.error(
-                    "Failed to perform maintenance on digest partition %r due to error: %r",
-                    host,
-                    error,
+                    f"Failed to perform maintenance on digest partition {host} due to error: {error}",
                     exc_info=True,
                 )
 

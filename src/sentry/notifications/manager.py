@@ -1,15 +1,7 @@
+from __future__ import annotations
+
 from collections import defaultdict
-from typing import (
-    TYPE_CHECKING,
-    Dict,
-    Iterable,
-    List,
-    Mapping,
-    MutableSet,
-    Optional,
-    Sequence,
-    Union,
-)
+from typing import TYPE_CHECKING, Iterable, Mapping, MutableMapping, MutableSet, Sequence
 
 from django.db import transaction
 from django.db.models import Q, QuerySet
@@ -48,10 +40,10 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         self,
         provider: ExternalProviders,
         type: NotificationSettingTypes,
-        user: Optional["User"] = None,
-        team: Optional["Team"] = None,
-        project: Optional["Project"] = None,
-        organization: Optional["Organization"] = None,
+        user: User | None = None,
+        team: Team | None = None,
+        project: Project | None = None,
+        organization: Organization | None = None,
     ) -> NotificationSettingOptionValues:
         """
         One and only one of (user, team, project, or organization)
@@ -100,10 +92,10 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         provider: ExternalProviders,
         type: NotificationSettingTypes,
         value: NotificationSettingOptionValues,
-        user: Optional["User"] = None,
-        team: Optional["Team"] = None,
-        project: Optional["Project"] = None,
-        organization: Optional["Organization"] = None,
+        user: User | None = None,
+        team: Team | None = None,
+        project: Project | None = None,
+        organization: Organization | None = None,
     ) -> None:
         """
         Save a target's notification preferences.
@@ -140,10 +132,10 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         self,
         provider: ExternalProviders,
         type: NotificationSettingTypes,
-        user: Optional["User"] = None,
-        team: Optional["Team"] = None,
-        project: Optional["Project"] = None,
-        organization: Optional["Organization"] = None,
+        user: User | None = None,
+        team: Team | None = None,
+        project: Project | None = None,
+        organization: Organization | None = None,
     ) -> None:
         """
         We don't anticipate this function will be used by the API but is useful
@@ -154,14 +146,14 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
 
     def _filter(
         self,
-        provider: Optional[ExternalProviders] = None,
-        type: Optional[NotificationSettingTypes] = None,
-        scope_type: Optional[NotificationScopeType] = None,
-        scope_identifier: Optional[int] = None,
-        target_ids: Optional[Iterable[int]] = None,
+        provider: ExternalProviders | None = None,
+        type: NotificationSettingTypes | None = None,
+        scope_type: NotificationScopeType | None = None,
+        scope_identifier: int | None = None,
+        target_ids: Iterable[int] | None = None,
     ) -> QuerySet:
         """Wrapper for .filter that translates types to actual attributes to column types."""
-        filters: Dict[str, Union[int, Iterable[int]]] = {}
+        filters: MutableMapping[str, int | Iterable[int]] = {}
         if provider:
             filters["provider"] = provider.value
 
@@ -179,23 +171,21 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
 
         return self.filter(**filters)
 
-    def remove_for_user(
-        self, user: "User", type: Optional[NotificationSettingTypes] = None
-    ) -> None:
+    def remove_for_user(self, user: User, type: NotificationSettingTypes | None = None) -> None:
         """Bulk delete all Notification Settings for a USER, optionally by type."""
         self._filter(target_ids=[user.actor_id], type=type).delete()
 
     def remove_for_team(
         self,
-        team: "Team",
-        type: Optional[NotificationSettingTypes] = None,
-        provider: Optional[ExternalProviders] = None,
+        team: Team,
+        type: NotificationSettingTypes | None = None,
+        provider: ExternalProviders | None = None,
     ) -> None:
         """Bulk delete all Notification Settings for a TEAM, optionally by type."""
         self._filter(target_ids=[team.actor_id], provider=provider, type=type).delete()
 
     def remove_for_project(
-        self, project: "Project", type: Optional[NotificationSettingTypes] = None
+        self, project: Project, type: NotificationSettingTypes | None = None
     ) -> None:
         """Bulk delete all Notification Settings for a PROJECT, optionally by type."""
         self._filter(
@@ -205,7 +195,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         ).delete()
 
     def remove_for_organization(
-        self, organization: "Organization", type: Optional[NotificationSettingTypes] = None
+        self, organization: Organization, type: NotificationSettingTypes | None = None
     ) -> None:
         """Bulk delete all Notification Settings for an ENTIRE ORGANIZATION, optionally by type."""
         self._filter(
@@ -218,10 +208,10 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         self,
         provider: ExternalProviders,
         type: NotificationSettingTypes,
-        user: Optional["User"] = None,
-        team: Optional["Team"] = None,
-        project: Optional["Project"] = None,
-        organization: Optional["Organization"] = None,
+        user: User | None = None,
+        team: Team | None = None,
+        project: Project | None = None,
+        organization: Organization | None = None,
     ) -> QuerySet:
         """Wrapper for .filter that translates object parameters to scopes and targets."""
         scope_type, scope_identifier = get_scope(user, team, project, organization)
@@ -231,8 +221,8 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
     def get_for_user_by_projects(
         self,
         type: NotificationSettingTypes,
-        user: "User",
-        parents: List[Union["Organization", "Project"]],
+        user: User,
+        parents: list[Organization | Project],
     ) -> QuerySet:
         """
         Find all of a user's notification settings for a list of projects or
@@ -255,8 +245,8 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
     def get_for_recipient_by_parent(
         self,
         type_: NotificationSettingTypes,
-        parent: Union["Organization", "Project"],
-        recipients: Iterable[Union["Team", "User"]],
+        parent: Organization | Project,
+        recipients: Iterable[Team | User],
     ) -> QuerySet:
         from sentry.models import Team, User
 
@@ -299,9 +289,9 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
 
     def filter_to_accepting_recipients(
         self,
-        project: "Project",
-        recipients: Iterable[Union["Team", "User"]],
-    ) -> Mapping[ExternalProviders, Iterable[Union["Team", "User"]]]:
+        project: Project,
+        recipients: Iterable[Team | User],
+    ) -> Mapping[ExternalProviders, Iterable[Team | User]]:
         """
         Filters a list of teams or users down to the recipients by provider who
         are subscribed to alerts. We check both the project level settings and
@@ -326,8 +316,8 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         return mapping
 
     def get_notification_recipients(
-        self, project: "Project"
-    ) -> Mapping[ExternalProviders, Iterable[Union["Team", "User"]]]:
+        self, project: Project
+    ) -> Mapping[ExternalProviders, Iterable[Team | User]]:
         """
         Return a set of users that should receive Issue Alert emails for a given
         project. To start, we get the set of all users. Then we fetch all of
@@ -343,9 +333,9 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
 
     def update_settings_bulk(
         self,
-        notification_settings: Sequence["NotificationSetting"],
-        user: Optional["User"] = None,
-        team: Optional["Team"] = None,
+        notification_settings: Sequence[NotificationSetting],
+        user: User | None = None,
+        team: Team | None = None,
     ) -> None:
         """
         Given a list of _valid_ notification settings as tuples of column
@@ -367,7 +357,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         )
 
     def remove_parent_settings_for_organization(
-        self, organization: "Organization", provider: Optional[ExternalProviders] = None
+        self, organization: Organization, provider: ExternalProviders | None = None
     ) -> None:
         """Delete all parent-specific notification settings referencing this organization."""
         kwargs = {}
@@ -385,7 +375,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         ).delete()
 
     def disable_settings_for_users(
-        self, provider: ExternalProviders, users: Sequence["User"]
+        self, provider: ExternalProviders, users: Sequence[User]
     ) -> None:
         """
         Given a list of users, overwrite all of their parent-independent
