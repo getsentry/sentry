@@ -125,6 +125,9 @@ class OrganizationEventsGeoEndpoint(OrganizationEventsV2EndpointBase):
                 referrer=referrer,
                 use_aggregate_conditions=True,
                 orderby=self.get_orderby(request) or maybe_aggregate,
+                use_snql=features.has(
+                    "organizations:discover-use-snql", organization, actor=request.user
+                ),
             )
 
         with self.handle_query_errors():

@@ -8,10 +8,12 @@ class OrganizationEventsGeoEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
         self.min_ago = iso_format(before_now(minutes=1))
+        self.features = {}
 
     def do_request(self, query, features=None):
         if features is None:
             features = {"organizations:dashboards-basic": True}
+        features.update(self.features)
         self.login_as(user=self.user)
         url = reverse(
             "sentry-api-0-organization-events-geo",
@@ -183,3 +185,9 @@ class OrganizationEventsGeoEndpointTest(APITestCase, SnubaTestCase):
             {"count": 2, "geo.country_code": "JP"},
             {"count": 3, "geo.country_code": "BR"},
         ]
+
+
+class OrganizationEventsGeoEndpointTestWithSnql(OrganizationEventsGeoEndpointTest):
+    def setUp(self):
+        super().setUp()
+        self.features["organizations:discover-use-snql"] = True
