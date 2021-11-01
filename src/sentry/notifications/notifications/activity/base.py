@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import re
 from abc import ABC
-from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Mapping, MutableMapping
 from urllib.parse import urlparse, urlunparse
 
 from django.utils.html import escape
@@ -21,7 +23,7 @@ class ActivityNotification(ProjectNotification, ABC):
     fine_tuning_key = "workflow"
     metrics_key = "activity"
 
-    def __init__(self, activity: "Activity") -> None:
+    def __init__(self, activity: Activity) -> None:
         super().__init__(activity.project)
         self.activity = activity
 
@@ -42,7 +44,7 @@ class ActivityNotification(ProjectNotification, ABC):
         }
 
     def get_recipient_context(
-        self, recipient: Union["Team", "User"], extra_context: Mapping[str, Any]
+        self, recipient: Team | User, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
         return get_reason_context(extra_context)
 
@@ -57,7 +59,7 @@ class ActivityNotification(ProjectNotification, ABC):
 
     def get_participants_with_group_subscription_reason(
         self,
-    ) -> Mapping[ExternalProviders, Mapping["User", int]]:
+    ) -> Mapping[ExternalProviders, Mapping[User, int]]:
         raise NotImplementedError
 
     def send(self) -> None:
@@ -67,14 +69,14 @@ class ActivityNotification(ProjectNotification, ABC):
 class GroupActivityNotification(ActivityNotification, ABC):
     is_message_issue_unfurl = True
 
-    def __init__(self, activity: "Activity") -> None:
+    def __init__(self, activity: Activity) -> None:
         super().__init__(activity)
         self.group = activity.group
 
     def get_activity_name(self) -> str:
         raise NotImplementedError
 
-    def get_description(self) -> Tuple[str, Mapping[str, Any], Mapping[str, Any]]:
+    def get_description(self) -> tuple[str, Mapping[str, Any], Mapping[str, Any]]:
         raise NotImplementedError
 
     def get_title(self) -> str:
@@ -86,14 +88,14 @@ class GroupActivityNotification(ActivityNotification, ABC):
 
     def get_participants_with_group_subscription_reason(
         self,
-    ) -> Mapping[ExternalProviders, Mapping["User", int]]:
+    ) -> Mapping[ExternalProviders, Mapping[User, int]]:
         """This is overridden by the activity subclasses."""
         return get_participants_for_group(self.group, self.activity.user)
 
-    def get_reply_reference(self) -> Optional[Any]:
+    def get_reply_reference(self) -> Any | None:
         return self.group
 
-    def get_unsubscribe_key(self) -> Optional[Tuple[str, int, Optional[str]]]:
+    def get_unsubscribe_key(self) -> tuple[str, int, str | None] | None:
         return "issue", self.group.id, None
 
     def get_base_context(self) -> MutableMapping[str, Any]:
@@ -134,11 +136,11 @@ class GroupActivityNotification(ActivityNotification, ABC):
         description, params, _ = self.get_description()
         return self.description_as_text(description, params, True)
 
-    def get_subject(self, context: Optional[Mapping[str, Any]] = None) -> str:
+    def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
         return f"{self.group.qualified_short_id} - {self.group.title}"
 
     def description_as_text(
-        self, description: str, params: Mapping[str, Any], url: Optional[bool] = False
+        self, description: str, params: Mapping[str, Any], url: bool | None = False
     ) -> str:
         user = self.activity.user
         if user:

@@ -2676,7 +2676,7 @@ class QueryFields(QueryBase):
                 SnQLFunction(
                     "avg",
                     required_args=[NumericColumn("column")],
-                    snql_aggregate=lambda args, alias: Function("max", [args["column"]], alias),
+                    snql_aggregate=lambda args, alias: Function("avg", [args["column"]], alias),
                     result_type_fn=reflective_result_type(),
                     default_result_type="duration",
                     redundant_grouping=True,
@@ -2910,6 +2910,9 @@ class QueryFields(QueryBase):
         """
         return isinstance(column, CurriedFunction) and is_equation_alias(column.alias)
 
+    def is_column_function(self, column: SelectType) -> bool:
+        return isinstance(column, CurriedFunction) and column not in self.aggregates
+
     def resolve_orderby(self, orderby: Optional[Union[List[str], str]]) -> List[OrderBy]:
         """Given a list of public aliases, optionally prefixed by a `-` to
         represent direction, construct a list of Snql Orderbys
@@ -2985,9 +2988,15 @@ class QueryFields(QueryBase):
         """ "Given a public field, check if it's a supported function"""
         return function in self.function_converter
 
-    def resolve_function(self, function: str, match: Optional[Match[str]] = None) -> SelectType:
-        """Given a public function, resolve to the corresponding Snql
-        function
+    def resolve_function(
+        self, function: str, match: Optional[Match[str]] = None, resolve_only=False
+    ) -> SelectType:
+        """Given a public function, resolve to the corresponding Snql function
+
+
+        :param function: the public alias for a function eg. "p50(transaction.duration)"
+        :param match: the Match so we don't have to run the regex twice
+        :param resolve_only: whether we should add the aggregate to self.aggregates
         """
         if match is None:
             match = is_function(function)
@@ -3028,7 +3037,8 @@ class QueryFields(QueryBase):
             raise InvalidSearchQuery("Invalid combinator: Arguments passed were incompatible")
 
         if snql_function.snql_aggregate is not None:
-            self.aggregates.append(snql_function.snql_aggregate(arguments, alias))
+            if not resolve_only:
+                self.aggregates.append(snql_function.snql_aggregate(arguments, alias))
             return snql_function.snql_aggregate(arguments, alias)
 
         return snql_function.snql_column(arguments, alias)

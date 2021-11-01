@@ -28,6 +28,7 @@ class QueryBase:
 
         # Function is a subclass of CurriedFunction
         self.where: List[WhereType] = []
+        # The list of aggregates to be selected
         self.aggregates: List[CurriedFunction] = []
         self.columns: List[SelectType] = []
         self.orderby: List[OrderBy] = []
