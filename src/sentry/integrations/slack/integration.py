@@ -66,7 +66,7 @@ metadata = IntegrationMetadata(
 )
 
 
-class SlackIntegration(IntegrationInstallation, SlackNotifyBasicMixin):  # type: ignore
+class SlackIntegration(SlackNotifyBasicMixin, IntegrationInstallation):  # type: ignore
     def get_config_data(self) -> Mapping[str, str]:
         metadata_ = self.model.metadata
         # Classic bots had a user_access_token in the metadata.

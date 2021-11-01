@@ -387,3 +387,11 @@ class IntegrationInstallation:
         task.
         """
         pass
+
+    # NotifyBasicMixin noops
+
+    def notify_remove_external_team(self, *args, **kwargs):
+        pass
+
+    def remove_notification_settings(self, *args, **kwargs):
+        pass
