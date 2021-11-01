@@ -2676,7 +2676,7 @@ class QueryFields(QueryBase):
                 SnQLFunction(
                     "avg",
                     required_args=[NumericColumn("column")],
-                    snql_aggregate=lambda args, alias: Function("max", [args["column"]], alias),
+                    snql_aggregate=lambda args, alias: Function("avg", [args["column"]], alias),
                     result_type_fn=reflective_result_type(),
                     default_result_type="duration",
                     redundant_grouping=True,
@@ -2909,6 +2909,9 @@ class QueryFields(QueryBase):
         need to check that the column is a Function
         """
         return isinstance(column, CurriedFunction) and is_equation_alias(column.alias)
+
+    def is_column_function(self, column: SelectType) -> bool:
+        return isinstance(column, CurriedFunction) and column not in self.aggregates
 
     def resolve_orderby(self, orderby: Optional[Union[List[str], str]]) -> List[OrderBy]:
         """Given a list of public aliases, optionally prefixed by a `-` to
