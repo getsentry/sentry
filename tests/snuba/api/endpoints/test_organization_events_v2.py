@@ -1777,6 +1777,45 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["transaction"] == event.transaction
         assert data[0]["p95"] == 3000
 
+    def test_auto_aggregations(self):
+        project = self.create_project()
+        data = load_data(
+            "transaction",
+            timestamp=before_now(minutes=1),
+            start_timestamp=before_now(minutes=1, seconds=5),
+        )
+        data["transaction"] = "/aggregates/1"
+        self.store_event(data, project_id=project.id)
+
+        data = load_data(
+            "transaction",
+            timestamp=before_now(minutes=1),
+            start_timestamp=before_now(minutes=1, seconds=3),
+        )
+        data["transaction"] = "/aggregates/2"
+        event = self.store_event(data, project_id=project.id)
+
+        query = {
+            "field": ["transaction", "p75()"],
+            "query": "event.type:transaction p95():<4000",
+            "orderby": ["transaction"],
+        }
+        response = self.do_request(query)
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        assert data[0]["transaction"] == event.transaction
+
+        query = {
+            "field": ["transaction"],
+            "query": "event.type:transaction p95():<4000",
+            "orderby": ["transaction"],
+        }
+        response = self.do_request(query)
+
+        assert response.status_code == 400, response.content
+
     def test_aggregation_comparison_with_conditions(self):
         project = self.create_project()
         self.store_event(

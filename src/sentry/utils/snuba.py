@@ -1,6 +1,7 @@
 import functools
 import logging
 import os
+import random
 import re
 import time
 from collections import OrderedDict, namedtuple
@@ -766,15 +767,28 @@ def _bulk_snuba_query(
         # This is confusing because this function is overloaded right now with two cases:
         # 1. A SnQL query of a legacy query (_legacy_snql_query)
         # 2. A direct SnQL query using the new SDK (_snql_query)
-        query_fn, query_type = _legacy_snql_query, "translated"
+        query_fn = _legacy_snql_query
         if isinstance(snuba_param_list[0][0], Query):
-            query_fn, query_type = _snql_query, "snql"
+            query_fn = _snql_query
 
-        metrics.incr(
-            "snuba.snql.query.type",
-            tags={"type": query_type, "referrer": query_referrer},
-        )
-        span.set_tag("snuba.query.type", query_type)
+        with sentry_sdk.configure_scope() as scope:
+            if scope.transaction:
+                # XXX(evanh): There seems to be a bug where the parent API is attributed to
+                # the wrong referrer. For one example of this, log a warning so I can capture
+                # the stack trace and try to figure out if this is a bug or not.
+                parent_api = scope.transaction.name
+                referrer = headers.get("referer", "<unknown>")
+                if (
+                    referrer == "tsdb-modelid:500"
+                    and parent_api
+                    != "/api/0/projects/{organization_slug}/{project_slug}/keys/{key_id}/stats/"
+                    and random.random() < 0.1
+                ):
+                    logger.warning(
+                        "unthreaded referrer attributed to incorrect parent api",
+                        stack_info=True,
+                        extra={"parent_api": parent_api},
+                    )
 
         if len(snuba_param_list) > 1:
             query_results = list(
@@ -874,6 +888,21 @@ def _raw_snql_query(
             scope = thread_hub.scope
             if scope.transaction:
                 query = query.set_parent_api(scope.transaction.name)
+
+                # XXX(evanh): There seems to be a bug where the parent API is attributed to
+                # the wrong referrer. For one example of this, log a warning so I can capture
+                # the stack trace and try to figure out if this is a bug or not.
+                if (
+                    referrer == "tsdb-modelid:500"
+                    and query.parent_api.name
+                    != "/api/0/projects/{organization_slug}/{project_slug}/keys/{key_id}/stats/"
+                    and random.random() < 0.1
+                ):
+                    logger.warning(
+                        "referrer attributed to incorrect parent api",
+                        stack_info=True,
+                        extra={"parent_api": query.parent_api.name},
+                    )
 
             metrics.incr(
                 "snuba.parent_api",
