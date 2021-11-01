@@ -41,7 +41,7 @@ function IconBusinessComponent({
         <stop offset="100%" stopColor="rgba(255, 255, 255, 0)" />
       </linearGradient>
       <rect
-        fill={gradient ? `url(#${gradientId})` : 'currentColor'}
+        fill={gradient ? `url(#${gradientId})` : 'inherit'}
         mask={`url(#${maskId})`}
         height="100%"
         width="100%"
