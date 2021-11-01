@@ -357,6 +357,45 @@ describe('EventsV2 -> ColumnEditModal', function () {
         'Maximum operators exceeded'
       );
     });
+
+    it('resets required field to previous value if cleared', function () {
+      const initialColumnVal = '0.6';
+      const newWrapper = mountModal(
+        {
+          columns: [
+            {
+              kind: 'function',
+              function: [
+                'percentile',
+                'transaction.duration',
+                initialColumnVal,
+                undefined,
+              ],
+            },
+          ],
+          onApply,
+          tagKeys,
+        },
+        initialData
+      );
+
+      const field = newWrapper.find('QueryField input[name="refinement"]');
+      changeInputValue(field, '');
+      newWrapper.update();
+      field.simulate('blur');
+
+      expect(newWrapper.find('QueryField input[name="refinement"]').prop('value')).toBe(
+        initialColumnVal
+      );
+
+      newWrapper.find('Button[priority="primary"]').simulate('click');
+      expect(onApply).toHaveBeenCalledWith([
+        {
+          kind: 'function',
+          function: ['percentile', 'transaction.duration', initialColumnVal, undefined],
+        },
+      ]);
+    });
   });
 
   describe('equation automatic update', function () {

@@ -676,7 +676,11 @@ class BufferedInput extends React.Component<InputProps, InputState> {
   }
 
   handleBlur = () => {
-    if (this.isValid) {
+    if (this.props.required && this.state.value === '') {
+      // Handle empty strings separately because we don't pass required
+      // to input elements, causing isValid to return true
+      this.setState({value: this.props.value});
+    } else if (this.isValid) {
       this.props.onUpdate(this.state.value);
     } else {
       this.setState({value: this.props.value});
