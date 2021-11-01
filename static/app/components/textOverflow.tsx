@@ -24,7 +24,7 @@ const TextOverflow = styled(
 )`
   ${p => (p.ellipsisDirection === 'right' ? overflowEllipsis : overflowEllipsisLeft)};
   width: auto;
-  line-height: 1.1;
+  line-height: 1.2;
 `;
 
 TextOverflow.defaultProps = {
