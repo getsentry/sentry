@@ -1668,6 +1668,10 @@ SENTRY_ATTACHMENT_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
 # store. MUST be a power of two.
 SENTRY_CHUNK_UPLOAD_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
 
+# This flag tell DEVSERVICES to start the ingest-metrics-consumer in order to work on
+# metrics in the development environment. Note: this is "metrics" the product
+SENTRY_USE_METRICS_DEV = False
+
 # This flags activates the Change Data Capture backend in the development environment
 SENTRY_USE_CDC_DEV = False
 
