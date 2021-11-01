@@ -10,7 +10,6 @@ from sentry.web.decorators import transaction_start
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
 
-from ..utils import send_confirmation
 from . import build_linking_url as base_build_linking_url
 from . import never_cache, render_error_page
 
@@ -90,11 +89,13 @@ class SlackUnlinkTeamView(BaseView):  # type: ignore
         for external_team in external_teams:
             external_team.delete()
 
-        return send_confirmation(
-            integration,
-            channel_id,
-            SUCCESS_UNLINKED_TITLE,
-            SUCCESS_UNLINKED_MESSAGE.format(team=team.slug),
+        return render_to_response(
             "sentry/integrations/slack/unlinked-team.html",
-            request,
+            request=request,
+            context={
+                "heading_text": SUCCESS_UNLINKED_TITLE,
+                "body_text": SUCCESS_UNLINKED_MESSAGE.format(team=team.slug),
+                "channel_id": channel_id,
+                "team_id": integration.external_id,
+            },
         )

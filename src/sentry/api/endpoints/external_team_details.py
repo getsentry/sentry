@@ -66,8 +66,5 @@ class ExternalTeamDetailsEndpoint(TeamEndpoint, ExternalActorEndpointMixin):  # 
         self.assert_has_feature(request, team.organization)
 
         external_team.delete()
-        integration = external_team.integration
-        install = integration.get_installation(external_team.organization_id)
-        install.notify_remove_external_team(external_team=external_team, team=team)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
