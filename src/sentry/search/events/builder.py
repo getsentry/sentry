@@ -36,7 +36,6 @@ class QueryBuilder(QueryFilter):
     ):
         super().__init__(dataset, params, auto_fields, functions_acl)
 
-        # TODO: implement this in `resolve_select`
         self.auto_aggregations = auto_aggregations
 
         self.limit = None if limit is None else Limit(limit)
@@ -102,7 +101,14 @@ class QueryBuilder(QueryFilter):
                     f"A single field cannot be used both inside and outside a function in the same query. To use {column.alias} you must first remove the function(s): {function_msg}"
                 )
 
-    def validate_having_clause(self):
+    def validate_having_clause(self) -> None:
+        """Validate that the functions in having are selected columns
+
+        Skipped if auto_aggregations are enabled, and at least one other aggregate is selected
+        This is so we don't change grouping suddenly
+        """
+        if self.auto_aggregations and self.aggregates:
+            return
         error_extra = ", and could not be automatically added" if self.auto_aggregations else ""
         for condition in self.having:
             lhs = condition.lhs

@@ -943,4 +943,26 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(wrapper.find('SelectPicker').at(1).props().value.value).toEqual('bar');
     wrapper.unmount();
   });
+
+  it('correctly defaults fields and orderby when in Top N display', async function () {
+    const wrapper = mountModal({
+      initialData,
+      onAddWidget: () => undefined,
+      onUpdateWidget: () => undefined,
+      fromDiscover: true,
+      displayType: types.DisplayType.TOP_N,
+      defaultWidgetQuery: {fields: ['count_unique(user)'], orderby: '-count_unique_user'},
+      defaultTableColumns: ['title', 'count()', 'count_unique(user)'],
+    });
+
+    expect(wrapper.find('SelectPicker').at(1).props().value.value).toEqual('top_n');
+    expect(wrapper.find('WidgetQueriesForm').props().queries[0].fields).toEqual([
+      'title',
+      'count_unique(user)',
+    ]);
+    expect(wrapper.find('WidgetQueriesForm').props().queries[0].orderby).toEqual(
+      '-count_unique_user'
+    );
+    wrapper.unmount();
+  });
 });

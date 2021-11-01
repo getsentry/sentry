@@ -1,13 +1,15 @@
+from __future__ import annotations
+
 import abc
 import logging
-from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequence, Type, Union
+from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequence
 
 from sentry import analytics, features, roles
 from sentry.integrations.slack.utils.notifications import get_settings_url
 from sentry.models import OrganizationMember, Team
 from sentry.notifications.notifications.base import BaseNotification, MessageAction
 from sentry.notifications.notify import notification_providers
-from sentry.types.integrations import ExternalProviders
+from sentry.types.integrations import ExternalProviders, get_provider_name
 
 if TYPE_CHECKING:
     from sentry.integrations.slack.message_builder.organization_requests import (
@@ -20,15 +22,15 @@ logger = logging.getLogger(__name__)
 
 class OrganizationRequestNotification(BaseNotification, abc.ABC):
     analytics_event: str = ""
-    referrer: str = ""
+    referrer_base: str = ""
     member_by_user_id: MutableMapping[int, OrganizationMember] = {}
 
-    def __init__(self, organization: "Organization", requester: "User") -> None:
+    def __init__(self, organization: Organization, requester: User) -> None:
         super().__init__(organization)
         self.requester = requester
 
     @property
-    def SlackMessageBuilderClass(self) -> Type["SlackOrganizationRequestMessageBuilder"]:
+    def SlackMessageBuilderClass(self) -> type[SlackOrganizationRequestMessageBuilder]:
         from sentry.integrations.slack.message_builder.organization_requests import (
             SlackOrganizationRequestMessageBuilder,
         )
@@ -41,11 +43,14 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
     def get_context(self) -> MutableMapping[str, Any]:
         return {}
 
-    @property
-    def sentry_query_params(self) -> str:
-        return "?referrer=" + self.referrer
+    def get_referrer(self, provider: ExternalProviders) -> str:
+        # referrer needs the provider as well
+        return f"{self.referrer_base}-{get_provider_name(provider)}"
 
-    def determine_recipients(self) -> Iterable[Union["Team", "User"]]:
+    def get_sentry_query_params(self, provider: ExternalProviders) -> str:
+        return f"?referrer={self.get_referrer(provider)}"
+
+    def determine_recipients(self) -> Iterable[Team | User]:
         members = self.determine_member_recipients()
         # store the members in our cache
         for member in members:
@@ -53,14 +58,14 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
         # convert members to users
         return map(lambda member: member.user, members)
 
-    def determine_member_recipients(self) -> Iterable["OrganizationMember"]:
+    def determine_member_recipients(self) -> Iterable[OrganizationMember]:
         """
         Depending on the type of request this might be all organization owners,
         a specific person, or something in between.
         """
         raise NotImplementedError
 
-    def get_participants(self) -> Mapping[ExternalProviders, Iterable[Union["Team", "User"]]]:
+    def get_participants(self) -> Mapping[ExternalProviders, Iterable[Team | User]]:
         available_providers: Iterable[ExternalProviders] = {ExternalProviders.EMAIL}
         if features.has("organizations:slack-requests", self.organization):
             available_providers = notification_providers()
@@ -83,7 +88,7 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
             # TODO: use safe_excute
             notify(provider, self, recipients, context)
 
-    def get_member(self, user: "User") -> "OrganizationMember":
+    def get_member(self, user: User) -> OrganizationMember:
         # cache the result
         if user.id not in self.member_by_user_id:
             self.member_by_user_id[user.id] = OrganizationMember.objects.get(
@@ -117,7 +122,7 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
         role_string: str = roles.get(member.role).name
         return role_string
 
-    def build_notification_footer(self, recipient: Union["Team", "User"]) -> str:
+    def build_notification_footer(self, recipient: Team | User) -> str:
         # not implemented for teams
         if isinstance(recipient, Team):
             raise NotImplementedError
@@ -128,9 +133,7 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
             f"{self.get_role_string(recipient_member)} | <{settings_url}|Notification Settings>"
         )
 
-    def record_notification_sent(
-        self, recipient: Union["Team", "User"], provider: ExternalProviders
-    ) -> None:
+    def record_notification_sent(self, recipient: Team | User, provider: ExternalProviders) -> None:
         # this event is meant to work for multiple providers but architecture
         # limitations mean we will fire individual for each provider
         analytics.record(

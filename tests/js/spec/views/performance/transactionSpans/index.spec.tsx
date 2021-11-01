@@ -9,6 +9,10 @@ import {
   SuspectSpan,
 } from 'app/utils/performance/suspectSpans/types';
 import TransactionSpans from 'app/views/performance/transactionSummary/transactionSpans';
+import {
+  SpanSortOthers,
+  SpanSortPercentiles,
+} from 'app/views/performance/transactionSummary/transactionSpans/types';
 
 function initializeData({query} = {query: {}}) {
   const features = ['performance-view', 'performance-suspect-spans-view'];
@@ -127,6 +131,8 @@ const spans = [
 ];
 
 describe('Performance > Transaction Spans', function () {
+  let eventsMetaMock;
+  let eventsSpansPerformanceMock;
   beforeEach(function () {
     // @ts-expect-error
     MockApiClient.addMockResponse({
@@ -149,12 +155,12 @@ describe('Performance > Transaction Spans', function () {
       body: {measurements: false},
     });
     // @ts-expect-error
-    MockApiClient.addMockResponse({
+    eventsMetaMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-meta/',
       body: 100,
     });
     // @ts-expect-error
-    MockApiClient.addMockResponse({
+    eventsSpansPerformanceMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-spans-performance/',
       body: spans.map(makeSuspectSpan),
     });
@@ -167,7 +173,9 @@ describe('Performance > Transaction Spans', function () {
   });
 
   it('renders basic UI elements', async function () {
-    const initialData = initializeData();
+    const initialData = initializeData({
+      query: {sort: SpanSortOthers.SUM_EXCLUSIVE_TIME},
+    });
     mountWithTheme(
       <TransactionSpans
         organization={initialData.organization}
@@ -194,6 +202,76 @@ describe('Performance > Transaction Spans', function () {
           await within(card).findByText(getShortEventId(example.id))
         ).toBeInTheDocument();
       }
+    }
+
+    expect(eventsMetaMock).toHaveBeenCalledTimes(1);
+    expect(eventsSpansPerformanceMock).toHaveBeenCalledTimes(1);
+  });
+
+  [
+    {sort: SpanSortPercentiles.P50_EXCLUSIVE_TIME, label: 'p50 Duration'},
+    {sort: SpanSortPercentiles.P75_EXCLUSIVE_TIME, label: 'p75 Duration'},
+    {sort: SpanSortPercentiles.P95_EXCLUSIVE_TIME, label: 'p95 Duration'},
+    {sort: SpanSortPercentiles.P99_EXCLUSIVE_TIME, label: 'p99 Duration'},
+  ].forEach(({sort, label}) => {
+    it('renders the right percentile header', async function () {
+      const initialData = initializeData({query: {sort}});
+      mountWithTheme(
+        <TransactionSpans
+          organization={initialData.organization}
+          location={initialData.router.location}
+        />,
+        {context: initialData.routerContext}
+      );
+
+      const cards = await screen.findAllByTestId('suspect-card');
+      expect(cards).toHaveLength(2);
+      for (let i = 0; i < cards.length; i++) {
+        const card = cards[i];
+
+        // these headers should be present by default
+        expect(await within(card).findByText('Span Operation')).toBeInTheDocument();
+        expect(await within(card).findByText(label)).toBeInTheDocument();
+        expect(await within(card).findByText('Frequency')).toBeInTheDocument();
+        expect(
+          await within(card).findByText('Total Cumulative Duration')
+        ).toBeInTheDocument();
+
+        const arrow = await within(card).findByTestId('span-sort-arrow');
+        expect(arrow).toBeInTheDocument();
+        expect(await within(arrow.closest('div')!).findByText(label)).toBeInTheDocument();
+      }
+    });
+  });
+
+  it('renders the right count header', async function () {
+    const initialData = initializeData({query: {sort: SpanSortOthers.COUNT}});
+    mountWithTheme(
+      <TransactionSpans
+        organization={initialData.organization}
+        location={initialData.router.location}
+      />,
+      {context: initialData.routerContext}
+    );
+
+    const cards = await screen.findAllByTestId('suspect-card');
+    expect(cards).toHaveLength(2);
+    for (let i = 0; i < cards.length; i++) {
+      const card = cards[i];
+
+      // these headers should be present by default
+      expect(await within(card).findByText('Span Operation')).toBeInTheDocument();
+      expect(await within(card).findByText('p75 Duration')).toBeInTheDocument();
+      expect(await within(card).findByText('Occurrences')).toBeInTheDocument();
+      expect(
+        await within(card).findByText('Total Cumulative Duration')
+      ).toBeInTheDocument();
+
+      const arrow = await within(card).findByTestId('span-sort-arrow');
+      expect(arrow).toBeInTheDocument();
+      expect(
+        await within(arrow.closest('div')!).findByText('Occurrences')
+      ).toBeInTheDocument();
     }
   });
 });
