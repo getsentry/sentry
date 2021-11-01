@@ -162,7 +162,7 @@ class SettingsIndex extends React.Component<Props> {
             <GridPanel>
               <HomePanelHeader>
                 <ExternalHomeLink isCentered href={LINKS.DOCUMENTATION}>
-                  <HomeIcon color="orange400">
+                  <HomeIcon color="pink300">
                     <IconDocs size="lg" />
                   </HomeIcon>
                 </ExternalHomeLink>

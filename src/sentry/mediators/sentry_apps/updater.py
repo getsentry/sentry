@@ -1,4 +1,5 @@
 from collections.abc import Iterable
+from typing import Set
 
 from django.db.models import Q
 from django.utils import timezone
@@ -11,8 +12,10 @@ from sentry.mediators.param import if_param
 from sentry.models import ApiToken, SentryAppComponent, SentryAppInstallation, ServiceHook
 from sentry.models.sentryapp import REQUIRED_EVENT_PERMISSIONS
 
+from .mixin import SentryAppMixin
 
-class Updater(Mediator):
+
+class Updater(Mediator, SentryAppMixin):
     sentry_app = Param("sentry.models.SentryApp")
     name = Param((str,), required=False)
     status = Param((str,), required=False)
@@ -143,8 +146,15 @@ class Updater(Mediator):
     @if_param("schema")
     def _update_schema(self):
         self.sentry_app.schema = self.schema
+        self.new_schema_elements = self._get_new_schema_elements()
         self._delete_old_ui_components()
         self._create_ui_components()
+
+    def _get_new_schema_elements(self) -> Set[str]:
+        current = SentryAppComponent.objects.filter(sentry_app=self.sentry_app).values_list(
+            "type", flat=True
+        )
+        return self.get_schema_types() - set(current)
 
     def _delete_old_ui_components(self):
         SentryAppComponent.objects.filter(sentry_app_id=self.sentry_app.id).delete()
@@ -157,5 +167,9 @@ class Updater(Mediator):
 
     def record_analytics(self):
         analytics.record(
-            "sentry_app.updated", user_id=self.user.id, sentry_app=self.sentry_app.slug
+            "sentry_app.updated",
+            user_id=self.user.id,
+            organization_id=self.sentry_app.owner_id,
+            sentry_app=self.sentry_app.slug,
+            created_alert_rule_ui_component="alert-rule-action" in (self.new_schema_elements or {}),
         )

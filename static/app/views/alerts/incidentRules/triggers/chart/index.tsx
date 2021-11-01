@@ -1,5 +1,6 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
+import capitalize from 'lodash/capitalize';
 import chunk from 'lodash/chunk';
 import maxBy from 'lodash/maxBy';
 import minBy from 'lodash/minBy';
@@ -7,7 +8,6 @@ import minBy from 'lodash/minBy';
 import {fetchTotalCount} from 'app/actionCreators/events';
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
-import MarkLine from 'app/components/charts/components/markLine';
 import EventsRequest from 'app/components/charts/eventsRequest';
 import {LineChartSeries} from 'app/components/charts/lineChart';
 import OptionSelector from 'app/components/charts/optionSelector';
@@ -24,20 +24,19 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {Series, SeriesDataUnit} from 'app/types/echarts';
-import {MINUTE} from 'app/utils/formatters';
 import {
   getCrashFreeRateSeries,
   MINUTES_THRESHOLD_TO_DISPLAY_SECONDS,
 } from 'app/utils/sessions';
-import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
+import {getComparisonMarkLines} from 'app/views/alerts/changeAlerts/comparisonMarklines';
+import {COMPARISON_DELTA_OPTIONS} from 'app/views/alerts/incidentRules/constants';
 import {isSessionAggregate, SESSION_AGGREGATE_TO_FIELD} from 'app/views/alerts/utils';
 import {AlertWizardAlertNames} from 'app/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'app/views/alerts/wizard/utils';
 
 import {
   AlertRuleComparisonType,
-  AlertRuleThresholdType,
   Dataset,
   IncidentRule,
   SessionsAggregate,
@@ -218,78 +217,11 @@ class TriggersChart extends React.PureComponent<Props, State> {
     return period;
   };
 
-  getComparisonMarkLines(
-    timeseriesData: Series[] = [],
-    comparisonTimeseriesData: Series[] = []
-  ): LineChartSeries[] {
-    const {timeWindow} = this.props;
-    const changeStatuses: {name: number | string; status: string}[] = [];
-
-    if (
-      timeseriesData?.[0]?.data !== undefined &&
-      timeseriesData[0].data.length > 1 &&
-      comparisonTimeseriesData?.[0]?.data !== undefined &&
-      comparisonTimeseriesData[0].data.length > 1
-    ) {
-      const changeData = comparisonTimeseriesData[0].data;
-      const baseData = timeseriesData[0].data;
-
-      if (
-        this.props.triggers.some(({alertThreshold}) => typeof alertThreshold === 'number')
-      ) {
-        const lastPointLimit =
-          (baseData[changeData.length - 1].name as number) - timeWindow * MINUTE;
-        changeData.forEach(({name, value: comparisonValue}, idx) => {
-          const baseValue = baseData[idx].value;
-          const comparisonPercentage =
-            comparisonValue === 0
-              ? baseValue === 0
-                ? 0
-                : Infinity
-              : ((baseValue - comparisonValue) / comparisonValue) * 100;
-          const status = this.checkChangeStatus(comparisonPercentage);
-          if (
-            idx === 0 ||
-            idx === changeData.length - 1 ||
-            status !== changeStatuses[changeStatuses.length - 1].status
-          ) {
-            changeStatuses.push({name, status});
-          }
-        });
-
-        return changeStatuses.slice(0, -1).map(({name, status}, idx) => ({
-          seriesName: t('status'),
-          type: 'line',
-          markLine: MarkLine({
-            silent: true,
-            lineStyle: {
-              color:
-                status === 'critical'
-                  ? theme.red300
-                  : status === 'warning'
-                  ? theme.yellow300
-                  : theme.green300,
-              type: 'solid',
-              width: 4,
-            },
-            data: [
-              [
-                {coord: [name, 0]},
-                {
-                  coord: [
-                    Math.min(changeStatuses[idx + 1].name as number, lastPointLimit),
-                    0,
-                  ],
-                },
-              ] as any,
-            ],
-          }),
-          data: [],
-        }));
-      }
-    }
-
-    return [];
+  get comparisonSeriesName() {
+    return capitalize(
+      COMPARISON_DELTA_OPTIONS.find(({value}) => value === this.props.comparisonDelta)
+        ?.label || ''
+    );
   }
 
   async fetchTotalCount() {
@@ -309,59 +241,11 @@ class TriggersChart extends React.PureComponent<Props, State> {
     }
   }
 
-  checkChangeStatus(value: number): string {
-    const {thresholdType, triggers} = this.props;
-    const criticalTrigger = triggers?.find(trig => trig.label === 'critical');
-    const warningTrigger = triggers?.find(trig => trig.label === 'warning');
-    const criticalTriggerAlertThreshold =
-      typeof criticalTrigger?.alertThreshold === 'number'
-        ? criticalTrigger.alertThreshold
-        : undefined;
-    const warningTriggerAlertThreshold =
-      typeof warningTrigger?.alertThreshold === 'number'
-        ? warningTrigger.alertThreshold
-        : undefined;
-
-    // Need to catch the critical threshold cases before warning threshold cases
-    if (
-      thresholdType === AlertRuleThresholdType.ABOVE &&
-      criticalTriggerAlertThreshold &&
-      value >= criticalTriggerAlertThreshold
-    ) {
-      return 'critical';
-    }
-    if (
-      thresholdType === AlertRuleThresholdType.ABOVE &&
-      warningTriggerAlertThreshold &&
-      value >= warningTriggerAlertThreshold
-    ) {
-      return 'warning';
-    }
-    // When threshold is below(lower than in comparison alerts) the % diff value is negative
-    // It crosses the threshold if its abs value is greater than threshold
-    // -80% change crosses below 60% threshold -1 * (-80) > 60
-    if (
-      thresholdType === AlertRuleThresholdType.BELOW &&
-      criticalTriggerAlertThreshold &&
-      -1 * value >= criticalTriggerAlertThreshold
-    ) {
-      return 'critical';
-    }
-    if (
-      thresholdType === AlertRuleThresholdType.BELOW &&
-      warningTriggerAlertThreshold &&
-      -1 * value >= warningTriggerAlertThreshold
-    ) {
-      return 'warning';
-    }
-
-    return '';
-  }
-
   renderChart(
     timeseriesData: Series[] = [],
     isLoading: boolean,
     isReloading: boolean,
+    comparisonData?: Series[],
     comparisonMarkLines?: LineChartSeries[],
     minutesThresholdToDisplaySeconds?: number
   ) {
@@ -389,6 +273,8 @@ class TriggersChart extends React.PureComponent<Props, State> {
             minValue={minBy(timeseriesData[0]?.data, ({value}) => value)?.value}
             maxValue={maxBy(timeseriesData[0]?.data, ({value}) => value)?.value}
             data={timeseriesData}
+            comparisonData={comparisonData ?? []}
+            comparisonSeriesName={this.comparisonSeriesName}
             comparisonMarkLines={comparisonMarkLines ?? []}
             hideThresholdLines={comparisonType === AlertRuleComparisonType.CHANGE}
             triggers={triggers}
@@ -436,11 +322,14 @@ class TriggersChart extends React.PureComponent<Props, State> {
       aggregate,
       environment,
       comparisonDelta,
+      triggers,
+      thresholdType,
     } = this.props;
 
     const period = this.getStatsPeriod();
-    const renderComparisonStats =
-      organization.features.includes('change-alerts') && comparisonDelta;
+    const renderComparisonStats = Boolean(
+      organization.features.includes('change-alerts') && comparisonDelta
+    );
 
     return isSessionAggregate(aggregate) ? (
       <SessionsRequest
@@ -475,6 +364,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
             loading,
             reloading,
             undefined,
+            undefined,
             MINUTES_THRESHOLD_TO_DISPLAY_SECONDS
           );
         }}
@@ -490,7 +380,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
               environment={environment ? [environment] : undefined}
               project={projects.map(({id}) => Number(id))}
               interval={`${timeWindow}m`}
-              comparisonDelta={comparisonDelta}
+              comparisonDelta={comparisonDelta && comparisonDelta * 60}
               period={period}
               yAxis={aggregate}
               includePrevious={false}
@@ -500,9 +390,12 @@ class TriggersChart extends React.PureComponent<Props, State> {
               {({loading, reloading, timeseriesData, comparisonTimeseriesData}) => {
                 let comparisonMarkLines: LineChartSeries[] = [];
                 if (renderComparisonStats && comparisonTimeseriesData) {
-                  comparisonMarkLines = this.getComparisonMarkLines(
+                  comparisonMarkLines = getComparisonMarkLines(
                     timeseriesData,
-                    comparisonTimeseriesData
+                    comparisonTimeseriesData,
+                    timeWindow,
+                    triggers,
+                    thresholdType
                   );
                 }
 
@@ -544,6 +437,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
                   timeseriesData,
                   loading,
                   reloading,
+                  comparisonTimeseriesData,
                   comparisonMarkLines
                 );
               }}

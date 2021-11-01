@@ -53,7 +53,7 @@ default_manager.add("organizations:create")
 # Organization scoped features
 default_manager.add("organizations:advanced-search", OrganizationFeature)
 default_manager.add("organizations:alert-filters", OrganizationFeature)
-default_manager.add("organizations:alert-rule-ui-component", OrganizationFeature)
+default_manager.add("organizations:alert-rule-ui-component", OrganizationFeature, True)
 default_manager.add("organizations:api-keys", OrganizationFeature)
 default_manager.add("organizations:app-store-connect-multiple", OrganizationFeature, False)
 default_manager.add("organizations:boolean-search", OrganizationFeature)
@@ -97,13 +97,6 @@ default_manager.add("organizations:integrations-issue-sync", OrganizationFeature
 default_manager.add("organizations:integrations-stacktrace-link", OrganizationFeature)
 default_manager.add("organizations:integrations-ticket-rules", OrganizationFeature, True)
 default_manager.add("organizations:integrations-vsts-limited-scopes", OrganizationFeature)
-default_manager.add(
-    "organizations:integrations-ignore-teamwork-deprecation", OrganizationFeature, True
-)
-default_manager.add(
-    "organizations:integrations-ignore-clubhouse-deprecation", OrganizationFeature, True
-)
-default_manager.add("organizations:integrations-ignore-vsts-deprecation", OrganizationFeature, True)
 default_manager.add("organizations:invite-members", OrganizationFeature)
 default_manager.add("organizations:invite-members-rate-limits", OrganizationFeature)
 default_manager.add("organizations:issue-list-trend-sort", OrganizationFeature, True)
