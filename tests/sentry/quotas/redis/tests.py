@@ -7,7 +7,6 @@ from sentry.constants import DataCategory
 from sentry.quotas.base import QuotaConfig, QuotaScope
 from sentry.quotas.redis import RedisQuota, is_rate_limited
 from sentry.testutils import TestCase
-from sentry.utils.compat import map
 from sentry.utils.redis import clusters
 
 
@@ -74,9 +73,9 @@ def test_is_rate_limited_script():
     # increment
     is_rate_limited(client, ("orange", "baz"), (1, now + 60))
     # test that it's rate limited without refund
-    assert map(bool, is_rate_limited(client, ("orange", "baz"), (1, now + 60))) == [True]
+    assert list(map(bool, is_rate_limited(client, ("orange", "baz"), (1, now + 60)))) == [True]
     # test that refund key is used
-    assert map(bool, is_rate_limited(client, ("orange", "apple"), (1, now + 60))) == [False]
+    assert list(map(bool, is_rate_limited(client, ("orange", "apple"), (1, now + 60)))) == [False]
 
 
 class RedisQuotaTest(TestCase):

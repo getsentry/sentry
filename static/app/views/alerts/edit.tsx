@@ -3,11 +3,13 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import * as Layout from 'app/components/layouts/thirds';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
+import Teams from 'app/utils/teams';
 import BuilderBreadCrumbs from 'app/views/alerts/builder/builderBreadCrumbs';
 import IncidentRulesDetails from 'app/views/alerts/incidentRules/details';
 import IssueEditor from 'app/views/alerts/issueRuleEditor';
@@ -83,20 +85,32 @@ class ProjectAlertsEditor extends Component<Props, State> {
         </Layout.Header>
         <EditConditionsBody>
           <Layout.Main fullWidth>
-            {(!hasMetricAlerts || alertType === 'issue') && (
-              <IssueEditor
-                {...this.props}
-                project={project}
-                onChangeTitle={this.handleChangeTitle}
-              />
-            )}
-            {hasMetricAlerts && alertType === 'metric' && (
-              <IncidentRulesDetails
-                {...this.props}
-                project={project}
-                onChangeTitle={this.handleChangeTitle}
-              />
-            )}
+            <Teams provideUserTeams>
+              {({teams, initiallyLoaded}) =>
+                initiallyLoaded ? (
+                  <Fragment>
+                    {(!hasMetricAlerts || alertType === 'issue') && (
+                      <IssueEditor
+                        {...this.props}
+                        project={project}
+                        onChangeTitle={this.handleChangeTitle}
+                        userTeamIds={teams.map(({id}) => id)}
+                      />
+                    )}
+                    {hasMetricAlerts && alertType === 'metric' && (
+                      <IncidentRulesDetails
+                        {...this.props}
+                        project={project}
+                        onChangeTitle={this.handleChangeTitle}
+                        userTeamIds={teams.map(({id}) => id)}
+                      />
+                    )}
+                  </Fragment>
+                ) : (
+                  <LoadingIndicator />
+                )
+              }
+            </Teams>
           </Layout.Main>
         </EditConditionsBody>
       </Fragment>

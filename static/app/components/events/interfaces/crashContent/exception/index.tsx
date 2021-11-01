@@ -17,7 +17,7 @@ type Props = {
   stackView?: STACK_VIEW;
 } & Pick<ExceptionType, 'values'>;
 
-const Exception = ({
+function Exception({
   stackView,
   stackType,
   projectId,
@@ -27,29 +27,31 @@ const Exception = ({
   hasHierarchicalGrouping,
   groupingCurrentLevel,
   platform = 'other',
-}: Props) => (
-  <ErrorBoundary mini>
-    {stackView === STACK_VIEW.RAW ? (
-      <RawContent
-        eventId={event.id}
-        projectId={projectId}
-        type={stackType}
-        values={values}
-        platform={platform}
-      />
-    ) : (
-      <Content
-        type={stackType}
-        stackView={stackView}
-        values={values}
-        platform={platform}
-        newestFirst={newestFirst}
-        event={event}
-        hasHierarchicalGrouping={hasHierarchicalGrouping}
-        groupingCurrentLevel={groupingCurrentLevel}
-      />
-    )}
-  </ErrorBoundary>
-);
+}: Props) {
+  return (
+    <ErrorBoundary mini>
+      {stackView === STACK_VIEW.RAW ? (
+        <RawContent
+          eventId={event.id}
+          projectId={projectId}
+          type={stackType}
+          values={values}
+          platform={platform}
+        />
+      ) : (
+        <Content
+          type={stackType}
+          stackView={stackView}
+          values={values}
+          platform={platform}
+          newestFirst={newestFirst}
+          event={event}
+          hasHierarchicalGrouping={hasHierarchicalGrouping}
+          groupingCurrentLevel={groupingCurrentLevel}
+        />
+      )}
+    </ErrorBoundary>
+  );
+}
 
 export default Exception;
