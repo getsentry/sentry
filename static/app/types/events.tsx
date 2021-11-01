@@ -5,6 +5,6 @@ export interface Thread {
   crashed: boolean;
   current: boolean;
   rawStacktrace: RawStacktrace;
-  stacktrace: StacktraceType;
+  stacktrace: StacktraceType | null;
   name?: string;
 }
