@@ -496,6 +496,8 @@ def timeseries_query(
     comparison_delta: A timedelta used to convert this into a comparison query. We make a second
     query time-shifted back by comparison_delta, and compare the results to get the % change for each
     time bucket. Requires that we only pass
+    use_snql (bool) Whether to directly build the query in snql, instead of using the older
+                    json construction
     """
     sentry_sdk.set_tag("discover.use_snql", use_snql)
     if use_snql:
@@ -689,6 +691,8 @@ def top_events_timeseries(
     top_events (dict|None) A dictionary with a 'data' key containing a list of dictionaries that
                     represent the top events matching the query. Useful when you have found
                     the top events earlier and want to save a query.
+    use_snql (bool) Whether to directly build the query in snql, instead of using the older
+                    json construction
     """
     if top_events is None:
         with sentry_sdk.start_span(op="discover.discover", description="top_events.fetch_events"):
