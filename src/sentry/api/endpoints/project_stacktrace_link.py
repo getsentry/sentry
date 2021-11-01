@@ -1,3 +1,5 @@
+from typing import Optional, Tuple
+
 from rest_framework.response import Response
 from sentry_sdk import configure_scope
 
@@ -6,22 +8,32 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.integrations import IntegrationFeatures
 from sentry.models import Integration, RepositoryProjectPathConfig
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.compat import filter
 
 
-def get_link(config, filepath, default, version=None):
+def get_link(
+    config: RepositoryProjectPathConfig, filepath: str, default: str, version: Optional[str] = None
+) -> Tuple[Optional[str], Optional[str], Optional[str]]:
     oi = config.organization_integration
     integration = oi.integration
     install = integration.get_installation(oi.organization_id)
 
     formatted_path = filepath.replace(config.stack_root, config.source_root, 1)
 
-    attempted_url = None
-    link = install.get_stacktrace_link(config.repository, formatted_path, default, version)
+    link, attempted_url, error = None, None, None
+    try:
+        link = install.get_stacktrace_link(config.repository, formatted_path, default, version)
+    except ApiError as e:
+        if e.code != 403:
+            raise
+        error = "integration_link_forbidden"
 
+    # If the link was not found, attach the URL that we attempted.
     if not link:
+        error = error or "file_not_found"
         attempted_url = install.format_source_url(config.repository, formatted_path, default)
-    return (link, attempted_url)
+    return link, attempted_url, error
 
 
 class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
@@ -78,7 +90,9 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                     result["error"] = "stack_root_mismatch"
                     continue
 
-                link, attempted_url = get_link(config, filepath, config.default_branch, commitId)
+                link, attempted_url, error = get_link(
+                    config, filepath, config.default_branch, commitId
+                )
 
                 # it's possible for the link to be None, and in that
                 # case it means we could not find a match for the
@@ -87,7 +101,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                 if not link:
                     scope.set_tag("stacktrace_link.found", False)
                     scope.set_tag("stacktrace_link.error", "file_not_found")
-                    result["error"] = "file_not_found"
+                    result["error"] = error
                     result["attemptedUrl"] = attempted_url
                 else:
                     scope.set_tag("stacktrace_link.found", True)
