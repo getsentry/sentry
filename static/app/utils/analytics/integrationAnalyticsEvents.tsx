@@ -1,4 +1,4 @@
-import {StacktraceErrorMessage} from 'app/components/events/interfaces/stacktraceLink';
+import {StacktraceErrorMessage} from 'app/components/events/interfaces/frame/stacktraceLink';
 import {IntegrationType, PlatformType, SentryAppStatus} from 'app/types';
 
 // define the various event payloads

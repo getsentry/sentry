@@ -284,7 +284,7 @@ class BaseApiClient(TrackResponseMixin):
     def delete(self, *args, **kwargs):
         return self.request("DELETE", *args, **kwargs)
 
-    def _get_cached(self, method: str, path: str, *args, **kwargs):
+    def _get_cached(self, path: str, method: str, *args, **kwargs):
         query = ""
         if kwargs.get("params", None):
             query = json.dumps(kwargs.get("params"), sort_keys=True)
