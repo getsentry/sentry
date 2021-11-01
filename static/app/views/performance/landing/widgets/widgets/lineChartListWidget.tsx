@@ -14,10 +14,12 @@ import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
+import {getAggregateAlias} from 'app/utils/discover/fields';
 import {MutableSearch} from 'app/utils/tokenizeSearch';
 import withApi from 'app/utils/withApi';
 import _DurationChart from 'app/views/performance/charts/chart';
 import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
+import {getPerformanceDuration} from 'app/views/performance/utils';
 
 import {excludeTransaction} from '../../utils';
 import {GenericPerformanceWidget} from '../components/performanceWidget';
@@ -56,6 +58,16 @@ export function LineChartListWidget(props: Props) {
     );
   }
 
+  const slowList = [
+    PerformanceWidgetSetting.SLOW_HTTP_OPS,
+    PerformanceWidgetSetting.SLOW_DB_OPS,
+    PerformanceWidgetSetting.SLOW_BROWSER_OPS,
+    PerformanceWidgetSetting.SLOW_RESOURCE_OPS,
+    PerformanceWidgetSetting.MOST_SLOW_FRAMES,
+    PerformanceWidgetSetting.MOST_FROZEN_FRAMES,
+  ];
+  const isSlowestType = slowList.includes(props.chartSetting);
+
   const Queries = {
     list: useMemo<QueryDefinition<DataType, WidgetDataResult>>(
       () => ({
@@ -76,7 +88,16 @@ export function LineChartListWidget(props: Props) {
             const mutableSearch = new MutableSearch(eventView.query);
             mutableSearch.removeFilter('transaction.duration');
             eventView.query = mutableSearch.formatString();
+          } else if (isSlowestType) {
+            eventView.additionalConditions.setFilterValues('epm()', ['>0.01']);
+            eventView.fields = [
+              {field: 'transaction'},
+              {field: 'project.id'},
+              {field: 'epm()'},
+              {field: props.fields[0]},
+            ];
           } else {
+            // Most related errors
             eventView.fields = [
               {field: 'transaction'},
               {field: 'project.id'},
@@ -167,6 +188,7 @@ export function LineChartListWidget(props: Props) {
               disableMultiAxis
               disableXAxis
               chartColors={props.chartColor ? [props.chartColor] : undefined}
+              isLineChart
             />
           ),
           height: 160,
@@ -178,17 +200,50 @@ export function LineChartListWidget(props: Props) {
               setSelectedIndex={setSelectListIndex}
               items={provided.widgetData.list.data.map(listItem => () => {
                 const transaction = listItem.transaction as string;
+
+                const additionalQuery: Record<string, string> = {};
+
+                if (props.chartSetting === PerformanceWidgetSetting.SLOW_HTTP_OPS) {
+                  additionalQuery.breakdown = 'http';
+                  additionalQuery.display = 'latency';
+                } else if (props.chartSetting === PerformanceWidgetSetting.SLOW_DB_OPS) {
+                  additionalQuery.breakdown = 'db';
+                  additionalQuery.display = 'latency';
+                } else if (
+                  props.chartSetting === PerformanceWidgetSetting.SLOW_BROWSER_OPS
+                ) {
+                  additionalQuery.breakdown = 'browser';
+                  additionalQuery.display = 'latency';
+                } else if (
+                  props.chartSetting === PerformanceWidgetSetting.SLOW_RESOURCE_OPS
+                ) {
+                  additionalQuery.breakdown = 'resource';
+                  additionalQuery.display = 'latency';
+                }
+
                 const transactionTarget = transactionSummaryRouteWithQuery({
                   orgSlug: props.organization.slug,
                   projectID: listItem['project.id'] as string,
                   transaction,
                   query: props.eventView.getGlobalSelectionQuery(),
+                  additionalQuery,
                 });
+
+                const fieldString = getAggregateAlias(props.fields[0]);
+
+                const valueMap = {
+                  [PerformanceWidgetSetting.MOST_RELATED_ERRORS]: listItem.failure_count,
+                  [PerformanceWidgetSetting.MOST_RELATED_ISSUES]: listItem.issue,
+                  slowest: getPerformanceDuration(listItem[fieldString] as number),
+                };
+                const rightValue =
+                  valueMap[isSlowestType ? 'slowest' : props.chartSetting];
+
                 switch (props.chartSetting) {
                   case PerformanceWidgetSetting.MOST_RELATED_ISSUES:
                     return (
                       <Fragment>
-                        <GrowLink to={transactionTarget}>
+                        <GrowLink to={transactionTarget} className="truncate">
                           <Truncate value={transaction} maxLength={40} />
                         </GrowLink>
                         <RightAlignedCell>
@@ -196,7 +251,7 @@ export function LineChartListWidget(props: Props) {
                             <Link
                               to={`/organizations/${props.organization.slug}/issues/${listItem['issue.id']}/`}
                             >
-                              {listItem.issue}
+                              {rightValue}
                             </Link>
                           </Tooltip>
                         </RightAlignedCell>
@@ -212,10 +267,10 @@ export function LineChartListWidget(props: Props) {
                   default:
                     return (
                       <Fragment>
-                        <GrowLink to={transactionTarget}>
+                        <GrowLink to={transactionTarget} className="truncate">
                           <Truncate value={transaction} maxLength={40} />
                         </GrowLink>
-                        <RightAlignedCell>{listItem.failure_count}</RightAlignedCell>
+                        <RightAlignedCell>{rightValue}</RightAlignedCell>
                         <CloseContainer>
                           <StyledIconClose
                             onClick={() =>
