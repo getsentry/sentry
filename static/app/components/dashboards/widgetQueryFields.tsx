@@ -94,11 +94,16 @@ function WidgetQueryFields({
     });
   }
 
-  function handleTopNChangeField(value: QueryFieldValue, fieldIndex: number) {
-    const aggregateFields = getAggregateFields();
-    const otherFields = fields.filter(field => !!!aggregateFields.includes(field));
-    aggregateFields[fieldIndex] = value;
-    const newFields = [...otherFields, ...aggregateFields];
+  function handleTopNChangeField(value: QueryFieldValue) {
+    const fieldValue = fields
+      .slice()
+      .reverse()
+      .find(field => {
+        const fieldStr = generateFieldAsString(field);
+        return isAggregateField(fieldStr) || isAggregateEquation(fieldStr);
+      }) as QueryFieldValue;
+    const newFields = [...fields];
+    newFields[newFields.findIndex(field => field === fieldValue)] = value;
     onChange(newFields);
   }
 
@@ -228,7 +233,7 @@ function WidgetQueryFields({
             <QueryField
               fieldValue={fieldValue}
               fieldOptions={generateFieldOptions({organization})}
-              onChange={value => handleTopNChangeField(value, 0)}
+              onChange={value => handleTopNChangeField(value)}
               filterPrimaryOptions={filterPrimaryOptions}
               filterAggregateParameters={filterAggregateParameters(fieldValue)}
             />
