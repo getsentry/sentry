@@ -68,107 +68,116 @@ export function LineChartListWidget(props: Props) {
   ];
   const isSlowestType = slowList.includes(props.chartSetting);
 
-  const Queries = {
-    list: useMemo<QueryDefinition<DataType, WidgetDataResult>>(
-      () => ({
-        fields: props.fields[0],
-        component: provided => {
-          const eventView = provided.eventView.clone();
-          eventView.sorts = [{kind: 'desc', field: props.fields[0]}];
-          if (props.chartSetting === PerformanceWidgetSetting.MOST_RELATED_ISSUES) {
-            eventView.fields = [
-              {field: 'issue'},
-              {field: 'transaction'},
-              {field: 'title'},
-              {field: 'project.id'},
-              {field: props.fields[0]},
-            ];
-            eventView.additionalConditions.setFilterValues('event.type', ['error']);
-            eventView.additionalConditions.setFilterValues('!tags[transaction]', ['']);
-            const mutableSearch = new MutableSearch(eventView.query);
-            mutableSearch.removeFilter('transaction.duration');
-            eventView.query = mutableSearch.formatString();
-          } else if (isSlowestType) {
-            eventView.additionalConditions.setFilterValues('epm()', ['>0.01']);
-            eventView.fields = [
-              {field: 'transaction'},
-              {field: 'project.id'},
-              {field: 'epm()'},
-              {field: props.fields[0]},
-            ];
-          } else {
-            // Most related errors
-            eventView.fields = [
-              {field: 'transaction'},
-              {field: 'project.id'},
-              {field: props.fields[0]},
-            ];
-          }
-          return <DiscoverQuery {...provided} eventView={eventView} limit={3} />;
-        },
-        transform: transformDiscoverToList,
-      }),
-      [props.eventView, props.fields, props.chartSetting, props.organization.slug]
-    ),
-    chart: useMemo<QueryDefinition<DataType, WidgetDataResult>>(
-      () => ({
-        enabled: widgetData => {
-          return !!widgetData?.list?.data?.length;
-        },
-        fields: props.fields[0],
-        component: provided => {
-          const eventView = provided.eventView.clone();
-          eventView.additionalConditions.setFilterValues('transaction', [
-            provided.widgetData.list.data[selectedListIndex].transaction as string,
+  const eventView = props.eventView.clone();
+
+  const listQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
+    () => ({
+      fields: props.fields[0],
+      component: provided => {
+        eventView.sorts = [{kind: 'desc', field: props.fields[0]}];
+        if (props.chartSetting === PerformanceWidgetSetting.MOST_RELATED_ISSUES) {
+          eventView.fields = [
+            {field: 'issue'},
+            {field: 'transaction'},
+            {field: 'title'},
+            {field: 'project.id'},
+            {field: props.fields[0]},
+          ];
+          eventView.additionalConditions.setFilterValues('event.type', ['error']);
+          eventView.additionalConditions.setFilterValues('!tags[transaction]', ['']);
+          const mutableSearch = new MutableSearch(eventView.query);
+          mutableSearch.removeFilter('transaction.duration');
+          eventView.query = mutableSearch.formatString();
+        } else if (isSlowestType) {
+          eventView.additionalConditions.setFilterValues('epm()', ['>0.01']);
+          eventView.fields = [
+            {field: 'transaction'},
+            {field: 'project.id'},
+            {field: 'epm()'},
+            {field: props.fields[0]},
+          ];
+        } else {
+          // Most related errors
+          eventView.fields = [
+            {field: 'transaction'},
+            {field: 'project.id'},
+            {field: props.fields[0]},
+          ];
+        }
+        return (
+          <DiscoverQuery
+            {...provided}
+            eventView={eventView}
+            location={props.location}
+            limit={3}
+          />
+        );
+      },
+      transform: transformDiscoverToList,
+    }),
+    [props.eventView.query, props.fields[0], props.organization.slug]
+  );
+
+  const chartQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(() => {
+    return {
+      enabled: widgetData => {
+        return !!widgetData?.list?.data?.length;
+      },
+      fields: props.fields[0],
+      component: provided => {
+        eventView.additionalConditions.setFilterValues('transaction', [
+          provided.widgetData.list.data[selectedListIndex].transaction as string,
+        ]);
+        if (props.chartSetting === PerformanceWidgetSetting.MOST_RELATED_ISSUES) {
+          eventView.fields = [
+            {field: 'issue'},
+            {field: 'issue.id'},
+            {field: 'transaction'},
+            {field: props.fields[0]},
+          ];
+          eventView.additionalConditions.setFilterValues('issue', [
+            provided.widgetData.list.data[selectedListIndex].issue as string,
           ]);
-          if (props.chartSetting === PerformanceWidgetSetting.MOST_RELATED_ISSUES) {
-            eventView.fields = [
-              {field: 'issue'},
-              {field: 'issue.id'},
-              {field: 'transaction'},
-              {field: props.fields[0]},
-            ];
-            eventView.additionalConditions.setFilterValues('issue', [
-              provided.widgetData.list.data[selectedListIndex].issue as string,
-            ]);
-            eventView.additionalConditions.setFilterValues('event.type', ['error']);
-            eventView.additionalConditions.setFilterValues('!tags[transaction]', ['']);
-            const mutableSearch = new MutableSearch(eventView.query);
-            mutableSearch.removeFilter('transaction.duration');
-            eventView.query = mutableSearch.formatString();
-          } else {
-            eventView.fields = [{field: 'transaction'}, {field: props.fields[0]}];
-          }
-          return (
-            <EventsRequest
-              {...provided}
-              limit={1}
-              includePrevious
-              includeTransformedData
-              partial
-              currentSeriesNames={[props.fields[0]]}
-              query={eventView.getQueryWithAdditionalConditions()}
-              interval={getInterval(
-                {
-                  start: provided.start,
-                  end: provided.end,
-                  period: provided.period,
-                },
-                'medium'
-              )}
-            />
-          );
-        },
-        transform: transformEventsRequestToArea,
-      }),
-      [
-        props.eventView,
-        props.fields,
-        props.organization.slug,
-        props.chartSetting,
-        selectedListIndex,
-      ]
-    ),
+          eventView.additionalConditions.setFilterValues('event.type', ['error']);
+          eventView.additionalConditions.setFilterValues('!tags[transaction]', ['']);
+          const mutableSearch = new MutableSearch(eventView.query);
+          mutableSearch.removeFilter('transaction.duration');
+          eventView.query = mutableSearch.formatString();
+        } else {
+          eventView.fields = [{field: 'transaction'}, {field: props.fields[0]}];
+        }
+        return (
+          <EventsRequest
+            {...provided}
+            limit={1}
+            includePrevious
+            includeTransformedData
+            partial
+            currentSeriesNames={[props.fields[0]]}
+            query={eventView.getQueryWithAdditionalConditions()}
+            interval={getInterval(
+              {
+                start: provided.start,
+                end: provided.end,
+                period: provided.period,
+              },
+              'medium'
+            )}
+          />
+        );
+      },
+      transform: transformEventsRequestToArea,
+    };
+  }, [
+    props.eventView.query,
+    props.fields[0],
+    props.organization.slug,
+    selectedListIndex,
+  ]);
+
+  const Queries = {
+    list: listQuery,
+    chart: chartQuery,
   };
 
   return (

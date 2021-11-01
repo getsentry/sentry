@@ -57,7 +57,7 @@ export function SingleFieldAreaWidget(props: Props) {
         transform: transformEventsRequestToArea,
       },
     };
-  }, [props.eventView, props.fields, props.organization.slug]);
+  }, [props.eventView.query, props.fields[0], props.organization.slug]);
 
   return (
     <GenericPerformanceWidget<AreaDataType>
