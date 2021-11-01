@@ -1352,8 +1352,8 @@ class QueryFilter(QueryFields):
                 )
             elif name in ARRAY_FIELDS and search_filter.value.raw_value == "":
                 return Condition(
-                    Function("hasAny", [self.column(name), []]),
-                    Op.EQ if search_filter.operator == "=" else Op.NEQ,
+                    Function("notEmpty", [self.column(name)]),
+                    Op.EQ if search_filter.operator == "!=" else Op.NEQ,
                     1,
                 )
 

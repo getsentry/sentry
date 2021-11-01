@@ -2190,6 +2190,44 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             assert len(data[0]["stack.filename"]) == len(expected_filenames)
             assert sorted(data[0]["stack.filename"]) == expected_filenames
 
+    @pytest.mark.skip("setting snuba config is too slow")
+    def test_spans_op_array_field(self):
+        trace_context = {
+            "parent_span_id": "8988cec7cc0779c1",
+            "type": "trace",
+            "op": "http.server",
+            "trace_id": "a7d67cf796774551a95be6543cacd459",
+            "span_id": "babaae0d4b7512d9",
+            "status": "ok",
+            "hash": "a" * 16,
+            "exclusive_time": 1.2345,
+        }
+        data = load_data(
+            "transaction", timestamp=before_now(minutes=10), trace_context=trace_context, spans=[]
+        )
+        self.store_event(data=data, project_id=self.project.id)
+
+        queries = [
+            ("has:spans_op", 1),
+            ("!has:spans_op", 0),
+        ]
+
+        for use_snql in [False, True]:
+            for query, expected_len in queries:
+                result = discover.query(
+                    selected_columns=["spans_op"],
+                    query=query,
+                    params={
+                        "organization_id": self.organization.id,
+                        "project_id": [self.project.id],
+                        "start": before_now(minutes=12),
+                        "end": before_now(minutes=8),
+                    },
+                    use_snql=use_snql,
+                )
+                data = result["data"]
+                assert len(data) == expected_len, use_snql
+
     def test_orderby_field_alias(self):
         data = load_data("android-ndk", timestamp=before_now(minutes=10))
         events = (
