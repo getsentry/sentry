@@ -12,22 +12,24 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils import json, metrics
 
+from .views.unlink_team import SUCCESS_UNLINKED_MESSAGE
+
 logger = logging.getLogger("sentry.notifications")
 SLACK_TIMEOUT = 5
 
 
 class SlackNotifyBasicMixin(NotifyBasicMixin):
-    def notify_remove_external_actor(self, external_actor: ExternalActor, message: str):
+    def notify_remove_external_team(self, external_team: ExternalActor, team: Team):
         client = SlackClient()
-        integration = external_actor.integrtation
+        integration = external_team.integration
         token = (
             integration.metadata.get("user_access_token") or integration.metadata["access_token"]
         )
         headers = {"Authorization": f"Bearer {token}"}
         payload = {
             "token": token,
-            "channel": external_actor.external_id,
-            "text": message,
+            "channel": external_team.external_id,
+            "text": SUCCESS_UNLINKED_MESSAGE.format(team=team.slug),
         }
         try:
             client.post("/chat.postMessage", headers=headers, data=payload, json=True)
