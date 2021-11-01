@@ -40,56 +40,57 @@ function openContextMenu(wrapper, cellIndex) {
 }
 
 describe('Performance > Table', function () {
-  const project1 = TestStubs.Project();
-  const project2 = TestStubs.Project();
-  const projects = [project1, project2];
-  const eventView = new EventView({
-    id: '1',
-    name: 'my query',
-    fields: [
-      {
-        field: 'team_key_transaction',
-      },
-      {
-        field: 'transaction',
-      },
-      {
-        field: 'project',
-      },
-      {
-        field: 'tpm()',
-      },
-      {
-        field: 'p50()',
-      },
-      {
-        field: 'p95()',
-      },
-      {
-        field: 'failure_rate()',
-      },
-      {
-        field: 'apdex()',
-      },
-      {
-        field: 'count_unique(user)',
-      },
-      {
-        field: 'count_miserable(user)',
-      },
-      {
-        field: 'user_misery()',
-      },
-    ],
-    sorts: [{field: 'tpm  ', kind: 'desc'}],
-    query: '',
-    project: [project1.id, project2.id],
-    start: '2019-10-01T00:00:00',
-    end: '2019-10-02T00:00:00',
-    statsPeriod: '14d',
-    environment: [],
-  });
+  let project1, project2, projects, eventView;
   beforeEach(function () {
+    project1 = TestStubs.Project();
+    project2 = TestStubs.Project();
+    projects = [project1, project2];
+    eventView = new EventView({
+      id: '1',
+      name: 'my query',
+      fields: [
+        {
+          field: 'team_key_transaction',
+        },
+        {
+          field: 'transaction',
+        },
+        {
+          field: 'project',
+        },
+        {
+          field: 'tpm()',
+        },
+        {
+          field: 'p50()',
+        },
+        {
+          field: 'p95()',
+        },
+        {
+          field: 'failure_rate()',
+        },
+        {
+          field: 'apdex()',
+        },
+        {
+          field: 'count_unique(user)',
+        },
+        {
+          field: 'count_miserable(user)',
+        },
+        {
+          field: 'user_misery()',
+        },
+      ],
+      sorts: [{field: 'tpm  ', kind: 'desc'}],
+      query: 'event.type:transaction transaction:/api*',
+      project: [project1.id, project2.id],
+      start: '2019-10-01T00:00:00',
+      end: '2019-10-02T00:00:00',
+      statsPeriod: '14d',
+      environment: [],
+    });
     browserHistory.push = jest.fn();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/eventsv2/',
@@ -150,11 +151,12 @@ describe('Performance > Table', function () {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
-    ProjectsStore.reset();
   });
 
   it('renders correct cell actions without feature', async function () {
-    const data = initializeData(projects, {query: 'event.type:transaction'});
+    const data = initializeData(projects, {
+      query: 'event.type:transaction transaction:/api*',
+    });
 
     const wrapper = mountWithTheme(
       <Table
@@ -170,6 +172,24 @@ describe('Performance > Table', function () {
     await tick();
     wrapper.update();
     const firstRow = wrapper.find('GridBody').find('GridRow').at(0);
+    const transactionCell = firstRow.find('GridBodyCell').at(1);
+    expect(transactionCell.find('Link').prop('to')).toEqual({
+      pathname: '/organizations/org-slug/performance/summary/',
+      query: {
+        transaction: '/apple/cart',
+        project: '2',
+        environment: [],
+        statsPeriod: '14d',
+        start: '2019-10-01T00:00:00',
+        end: '2019-10-02T00:00:00',
+        query: 'event.type:transaction', // drops 'transaction:/api*' from the query
+        unselectedSeries: 'p100()',
+        showTransactions: undefined,
+        display: undefined,
+        trendFunction: undefined,
+        trendColumn: undefined,
+      },
+    });
     const userMiseryCell = firstRow.find('GridBodyCell').at(9);
     const cellAction = userMiseryCell.find('CellAction');
 
