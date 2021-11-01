@@ -370,13 +370,18 @@ def _get_dsym_url(bundles: Optional[List[JSONData]]) -> Union[NoDsymUrl, str]:
     # available for download only depends on whether it was a bitcode
     # upload.
 
+    if bundles is None:
+        bundles = []
+
     # Remove all bundles associated with app clips, those don't have dSYMS or really any useful
     # data since they're not apps themselves
-    app_bundles = filter(
-        lambda b: safe.get_path(bundle, "attributes", "bundleType", default="APP") != "APP_CLIP"
-    )
+    app_bundles = [
+        app_bundle
+        for app_bundle in bundles
+        if safe.get_path(app_bundle, "attributes", "bundleType", default="APP") != "APP_CLIP"
+    ]
 
-    if bundles is None or len(bundles) == 0:
+    if len(bundles) == 0:
         return NoDsymUrl.NOT_NEEDED
 
     if len(app_bundles) > 1:
