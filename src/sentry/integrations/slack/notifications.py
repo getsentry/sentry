@@ -2,6 +2,7 @@ import logging
 from collections import defaultdict
 from typing import Any, Iterable, Mapping, MutableMapping, Optional, Union
 
+from sentry.integrations.notifications import NotifyBasicMixin
 from sentry.integrations.slack.client import SlackClient  # NOQA
 from sentry.integrations.slack.message_builder.notifications import build_notification_attachment
 from sentry.models import ExternalActor, Identity, Integration, Organization, Team, User
@@ -13,6 +14,27 @@ from sentry.utils import json, metrics
 
 logger = logging.getLogger("sentry.notifications")
 SLACK_TIMEOUT = 5
+
+
+class SlackNotifyBasicMixin(NotifyBasicMixin):
+    def notify_remove_external_actor(self, external_actor: ExternalActor, message: str):
+        client = SlackClient()
+        integration = external_actor.integrtation
+        token = (
+            integration.metadata.get("user_access_token") or integration.metadata["access_token"]
+        )
+        headers = {"Authorization": f"Bearer {token}"}
+        payload = {
+            "token": token,
+            "channel": external_actor.external_id,
+            "text": message,
+        }
+        try:
+            client.post("/chat.postMessage", headers=headers, data=payload, json=True)
+        except ApiError as e:
+            message = str(e)
+            if message != "Expired url":
+                logger.error("slack.slash-notify.response-error", extra={"error": message})
 
 
 def get_context(

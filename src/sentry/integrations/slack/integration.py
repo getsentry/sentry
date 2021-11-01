@@ -21,6 +21,7 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.json import JSONData
 
 from .client import SlackClient
+from .notifications import SlackNotifyBasicMixin
 from .utils import logger
 
 Channel = namedtuple("Channel", ["name", "id"])
@@ -65,7 +66,7 @@ metadata = IntegrationMetadata(
 )
 
 
-class SlackIntegration(IntegrationInstallation):  # type: ignore
+class SlackIntegration(IntegrationInstallation, SlackNotifyBasicMixin):  # type: ignore
     def get_config_data(self) -> Mapping[str, str]:
         metadata_ = self.model.metadata
         # Classic bots had a user_access_token in the metadata.
