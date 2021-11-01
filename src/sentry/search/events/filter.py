@@ -1461,24 +1461,17 @@ class QueryFilter(QueryFields):
             operator = Op.EQ if search_filter.operator == "=" else Op.NEQ
             return Condition(Function("equals", [self.column("message"), value]), operator, 1)
         else:
-            # https://clickhouse.yandex/docs/en/query_language/functions/string_search_functions/#position-haystack-needle
-            # positionCaseInsensitive returns 0 if not found and an index of 1 or more if found
-            # so we should flip the operator here
-            operator = Op.NEQ if search_filter.operator in EQUALITY_OPERATORS else Op.EQ
             if search_filter.is_in_filter:
                 return Condition(
-                    Function(
-                        "multiSearchFirstPositionCaseInsensitive",
-                        [self.column("message"), value],
-                    ),
-                    operator,
-                    0,
+                    self.column("message"),
+                    Op(search_filter.operator),
+                    value,
                 )
 
             # make message search case insensitive
             return Condition(
                 Function("positionCaseInsensitive", [self.column("message"), value]),
-                operator,
+                Op.NEQ if search_filter.operator in EQUALITY_OPERATORS else Op.EQ,
                 0,
             )
 

@@ -112,6 +112,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                     allow_empty=False,
                     zerofill_results=zerofill_results,
                     include_other=self.has_top_events(organization, request),
+                    use_snql=self.has_discover_snql(organization, request),
                 )
             return discover.timeseries_query(
                 selected_columns=query_columns,
