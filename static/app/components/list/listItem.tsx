@@ -7,15 +7,18 @@ type Props = {
   children?: React.ReactNode;
   symbol?: React.ReactElement;
   onClick?: (event: React.MouseEvent) => void;
+  'aria-label'?: string;
   className?: string;
 };
 
-const ListItem = styled(({children, className, symbol, onClick}: Props) => (
-  <li className={className} onClick={onClick}>
-    {symbol && <Symbol>{symbol}</Symbol>}
-    {children}
-  </li>
-))`
+const ListItem = styled(
+  ({children, className, symbol, onClick, 'aria-label': ariaLabel}: Props) => (
+    <li className={className} onClick={onClick} aria-label={ariaLabel}>
+      {symbol && <Symbol>{symbol}</Symbol>}
+      {children}
+    </li>
+  )
+)`
   position: relative;
   ${p => p.symbol && `padding-left: ${space(4)};`}
 `;

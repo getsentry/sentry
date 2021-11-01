@@ -101,6 +101,7 @@ type Props<T> = typeof defaultProps & {
     e?: React.MouseEvent | React.KeyboardEvent
   ) => void;
   onMenuOpen?: () => void;
+  'data-test-id'?: string;
 };
 
 class AutoComplete<T extends Item> extends React.Component<Props<T>, State<T>> {

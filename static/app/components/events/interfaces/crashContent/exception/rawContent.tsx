@@ -171,7 +171,7 @@ class RawContent extends React.Component<Props, State> {
             return null;
           }
           return (
-            <div key={excIdx}>
+            <div key={excIdx} aria-label={t('Raw stack trace')}>
               {!hasNativeStackTraceV2 ? downloadButton : null}
               <pre className="traceback plain">{content}</pre>
             </div>

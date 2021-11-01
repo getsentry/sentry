@@ -158,11 +158,12 @@ export type Measurement = {value: number};
 export type EventTag = {key: string; value: string};
 
 export type EventUser = {
-  username?: string;
-  name?: string;
+  username?: string | null;
+  name?: string | null;
   ip_address?: string;
   email?: string;
   id?: string;
+  data?: string | null;
 };
 
 type EventBase = {
@@ -186,7 +187,7 @@ type EventBase = {
   projectID: string;
   tags: EventTag[];
   size: number;
-  location: string;
+  location: string | null;
   groupingConfig: {
     id: string;
     enhancements: string;
@@ -228,7 +229,13 @@ export type EventTransaction = Omit<EventBase, 'entries' | 'type'> & {
 };
 
 export type EventError = Omit<EventBase, 'entries' | 'type'> & {
-  entries: (EntryException | EntryStacktrace | EntryRequest | EntryThreads)[];
+  entries: (
+    | EntryException
+    | EntryStacktrace
+    | EntryRequest
+    | EntryThreads
+    | EntryDebugMeta
+  )[];
   type: EventOrGroupType.ERROR;
 };
 

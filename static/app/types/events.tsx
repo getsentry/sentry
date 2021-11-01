@@ -6,5 +6,5 @@ export interface Thread {
   current: boolean;
   rawStacktrace: RawStacktrace;
   stacktrace: StacktraceType | null;
-  name?: string;
+  name?: string | null;
 }
