@@ -100,7 +100,7 @@ class WorldMapChart extends React.Component<Props, State> {
           areaColor: theme.gray200,
           borderColor: theme.backgroundSecondary,
           emphasis: {
-            areaColor: theme.orange300,
+            areaColor: theme.pink300,
           },
         } as any, // TODO(ts): Echarts types aren't correct for these colors as they don't allow for basic strings
         label: {

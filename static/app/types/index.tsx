@@ -450,6 +450,7 @@ export type ProjectSdkUpdates = {
 };
 
 export type EventsStatsData = [number, {count: number; comparisonCount?: number}[]][];
+export type EventsGeoData = {'geo.country_code': string; count: number}[];
 
 // API response format for a single series
 export type EventsStats = {

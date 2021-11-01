@@ -1,9 +1,11 @@
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import moment from 'moment';
 
 import {disconnectIdentity} from 'app/actionCreators/account';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
+import DateTime from 'app/components/dateTime';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
 import PluginIcon from 'app/plugins/components/pluginIcon';
@@ -41,25 +43,31 @@ class AccountIdentities extends AsyncView<Props, State> {
   renderItem = (identity: UserIdentityConfig) => {
     return (
       <IdentityPanelItem key={`${identity.category}:${identity.id}`}>
-        <PluginIcon pluginId={identity.provider.key} />
         <InternalContainer>
-          <IdentityName>{identity.provider.name}</IdentityName>
-          {identity.dateAdded && <IdentityDate>{identity.dateAdded}</IdentityDate>}
+          <PluginIcon pluginId={identity.provider.key} size={36} />
+          <IdentityText>
+            <IdentityName>{identity.provider.name}</IdentityName>
+            {identity.dateAdded && <IdentityDateTime date={moment(identity.dateAdded)} />}
+          </IdentityText>
         </InternalContainer>
         <InternalContainer>
-          {identity.category === UserIdentityCategory.SOCIAL_IDENTITY && (
-            <Tag isOrgName={false} label={t('Legacy')} />
-          )}
-          {identity.category !== UserIdentityCategory.ORG_IDENTITY && (
-            <Tag
-              isOrgName={false}
-              label={identity.isLogin ? t('Sign In') : t('Integration')}
-            />
-          )}
-          {identity.organization && <Tag isOrgName label={identity.organization.slug} />}
-        </InternalContainer>
+          <TagWrapper>
+            {identity.category === UserIdentityCategory.SOCIAL_IDENTITY && (
+              <Tag isOrgName={false} label={t('Legacy')} />
+            )}
+            {identity.category !== UserIdentityCategory.ORG_IDENTITY && (
+              <Tag
+                isOrgName={false}
+                label={identity.isLogin ? t('Sign In') : t('Integration')}
+              />
+            )}
+            {identity.organization && (
+              <Tag isOrgName label={identity.organization.slug} />
+            )}
+          </TagWrapper>
 
-        {this.renderButton(identity)}
+          {this.renderButton(identity)}
+        </InternalContainer>
       </IdentityPanelItem>
     );
   };
@@ -172,18 +180,31 @@ const IdentityPanelItem = styled(PanelItem)`
 
 const InternalContainer = styled('div')`
   display: flex;
-  padding: 0 ${space(2)};
+  flex-direction: row;
+  justify-content: center;
 `;
 
+const IdentityText = styled('div')`
+  height: 36px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  margin-left: ${space(1.5)};
+`;
 const IdentityName = styled('div')`
   font-weight: bold;
 `;
+const IdentityDateTime = styled(DateTime)`
+  font-size: ${p => p.theme.fontSizeRelativeSmall};
+  color: ${p => p.theme.gray300};
+`;
 
-const IdentityDate = styled('div')`
+const TagWrapper = styled('div')`
   display: flex;
   align-items: center;
-  margin-top: 6px;
-  font-size: 0.8em;
+  justify-content: flex-start;
+  flex-grow: 1;
+  margin-right: ${space(1)};
 `;
 
 const Tag = styled(
@@ -197,8 +218,6 @@ const Tag = styled(
     theme?: any;
   }) => <div {...p}>{label}</div>
 )`
-  display: flex;
-  flex-direction: row;
   padding: 1px 10px;
   background: ${p => (p.isOrgName ? p.theme.purple200 : p.theme.gray100)};
   border-radius: 20px;

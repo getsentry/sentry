@@ -127,6 +127,7 @@ class WidgetQueries extends React.Component<Props, State> {
   };
 
   componentDidMount() {
+    this._isMounted = true;
     this.fetchData();
   }
 
@@ -192,6 +193,12 @@ class WidgetQueries extends React.Component<Props, State> {
     }
   }
 
+  componentWillUnmount() {
+    this._isMounted = false;
+  }
+
+  private _isMounted: boolean = false;
+
   fetchEventData(queryFetchID: symbol) {
     const {selection, api, organization, widget} = this.props;
 
@@ -242,6 +249,10 @@ class WidgetQueries extends React.Component<Props, State> {
         // Overwrite the local var to work around state being stale in tests.
         tableResults = [...tableResults, tableData];
 
+        if (!this._isMounted) {
+          return;
+        }
+
         this.setState(prevState => {
           if (prevState.queryFetchID !== queryFetchID) {
             // invariant: a different request was initiated after this request
@@ -258,6 +269,9 @@ class WidgetQueries extends React.Component<Props, State> {
         this.setState({errorMessage});
       } finally {
         completed++;
+        if (!this._isMounted) {
+          return;
+        }
         this.setState(prevState => {
           if (prevState.queryFetchID !== queryFetchID) {
             // invariant: a different request was initiated after this request
@@ -330,6 +344,9 @@ class WidgetQueries extends React.Component<Props, State> {
     promises.forEach(async (promise, i) => {
       try {
         const rawResults = await promise;
+        if (!this._isMounted) {
+          return;
+        }
         this.setState(prevState => {
           if (prevState.queryFetchID !== queryFetchID) {
             // invariant: a different request was initiated after this request
@@ -354,6 +371,9 @@ class WidgetQueries extends React.Component<Props, State> {
         this.setState({errorMessage});
       } finally {
         completed++;
+        if (!this._isMounted) {
+          return;
+        }
         this.setState(prevState => {
           if (prevState.queryFetchID !== queryFetchID) {
             // invariant: a different request was initiated after this request
