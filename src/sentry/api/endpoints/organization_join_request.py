@@ -9,8 +9,8 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.validators import AllowedEmailField
 from sentry.app import ratelimiter
 from sentry.models import AuthProvider, InviteStatus, OrganizationMember
+from sentry.notifications.notifications.invitations.join_request import JoinRequestNotification
 from sentry.signals import join_request_created
-from sentry.tasks.members import send_invite_request_notification_email
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +71,8 @@ class OrganizationJoinRequestEndpoint(OrganizationEndpoint):
         member = create_organization_join_request(organization, email, ip_address)
 
         if member:
-            send_invite_request_notification_email.delay(member.id)
+            JoinRequestNotification(member, request.user).send()
+            # legacy analytics
             join_request_created.send_robust(sender=self, member=member)
 
         return Response(status=204)

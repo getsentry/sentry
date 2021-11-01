@@ -1,5 +1,6 @@
-from typing import Any, Dict, Mapping
+from typing import Any, Dict, Mapping, Union
 
+from django.urls import reverse
 from requests import post
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -14,9 +15,18 @@ from sentry.integrations.slack.requests.action import SlackActionRequest
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
-from sentry.models import Group, Identity, IdentityProvider, Integration, Project
+from sentry.models import (
+    Group,
+    Identity,
+    IdentityProvider,
+    Integration,
+    InviteStatus,
+    OrganizationMember,
+    Project,
+)
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
+from sentry.utils.http import absolute_uri
 from sentry.web.decorators import transaction_start
 
 from ..message_builder import SlackBody
@@ -79,7 +89,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
     def api_error(
         self,
         slack_request: SlackActionRequest,
-        group: Group,
+        group: Union[Group, None],
         identity: Identity,
         error: ApiClient.ApiError,
         action_type: str,
@@ -220,7 +230,10 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
 
         # Actions list may be empty when receiving a dialog response
         action_list = data.get("actions", [])
-        action_option = action_list and action_list[0].get("value", "")
+        action_option = slack_request.action_option
+
+        if action_option in ["approve_member", "reject_member"]:
+            return self.handle_member_approval(slack_request)
 
         # if a user is just clicking our auto response in the messages tab we just return a 200
         if action_option == "sentry_docs_link_clicked":
@@ -336,5 +349,74 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
 
         attachment = build_group_attachment(group, identity=identity, actions=action_list)
         body = self.construct_reply(attachment, is_message=self.is_message(data))
+
+        return self.respond(body)
+
+    def handle_member_approval(self, slack_request: SlackActionRequest):
+        try:
+            identity = slack_request.get_identity()
+        except IdentityProvider.DoesNotExist:
+            return self.respond(status=403)
+
+        member_id = slack_request.callback_data["member_id"]
+        try:
+            # endpoint will check to make sure member is still in a state to be invited a
+            member = OrganizationMember.objects.get(id=member_id)
+        except OrganizationMember.DoesNotExist:
+            return self.respond(status=404)
+
+        org_slug = member.organization.slug
+        url = reverse(
+            "sentry-api-0-organization-invite-request-detail",
+            args=[org_slug, member_id],
+        )
+
+        approve_member = slack_request.action_option == "approve_member"
+
+        # payload and endpoint differ if we reject or accept
+        action_data = {}
+        method = "DELETE"
+        if approve_member:
+            method = "PUT"
+            action_data = {
+                "approve": 1,
+            }
+
+        member_email = member.email
+        original_status = member.invite_status
+
+        try:
+            client.request(
+                method,
+                path=url,
+                data=action_data,
+                user=identity.user,
+            )
+        except client.ApiError as error:
+            return self.api_error(slack_request, None, identity, error, "status_dialog")
+
+        event_name = (
+            "integrations.slack.approve_member_invitation"
+            if approve_member
+            else "integrations.slack.reject_member_invitation"
+        )
+        invite_type = (
+            "Invite" if original_status == InviteStatus.REQUESTED_TO_BE_INVITED.value else "Join"
+        )
+        analytics.record(
+            event_name,
+            actor_id=identity.user_id,
+            organization_id=member.organization_id,
+            invitation_type=invite_type.lower(),
+        )
+
+        verb = "approved" if approve_member else "rejected"
+
+        manage_url = absolute_uri(reverse("sentry-organization-members", args=[org_slug]))
+        attachment = {
+            "text": f"{invite_type} request for {member_email} has been {verb}. <{manage_url}|See Members and Requests>.",
+        }
+
+        body = self.construct_reply(attachment)
 
         return self.respond(body)

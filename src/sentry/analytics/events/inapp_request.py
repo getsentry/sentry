@@ -15,4 +15,9 @@ class InviteRequestSentEvent(InAppRequestSentEvent):
     type = "invite_request.sent"
 
 
+class JoinRequestSentEvent(InAppRequestSentEvent):
+    type = "join_request.sent"
+
+
 analytics.register(InviteRequestSentEvent)
+analytics.register(JoinRequestSentEvent)

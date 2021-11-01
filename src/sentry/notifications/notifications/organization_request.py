@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 class OrganizationRequestNotification(BaseNotification, abc.ABC):
     analytics_event: str = ""
     referrer_base: str = ""
+    entity_name: str = ""
     member_by_user_id: MutableMapping[int, OrganizationMember] = {}
 
     def __init__(self, organization: "Organization", requester: "User") -> None:
@@ -34,6 +35,10 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
         )
 
         return SlackOrganizationRequestMessageBuilder
+
+    @property
+    def entity_id(self) -> str:
+        raise NotImplementedError
 
     def get_reference(self) -> Any:
         return self.organization

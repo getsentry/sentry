@@ -47,8 +47,24 @@ class IntegrationSlackLinkIdentity(analytics.Event):  # type: ignore
     )
 
 
+class IntegrationSlackApproveMemberInvitation(analytics.Event):  # type: ignore
+    type = "integrations.slack.approve_member_invitation"
+
+    attributes = (
+        analytics.Attribute("organization_id"),
+        analytics.Attribute("actor_id"),
+        analytics.Attribute("invitation_type"),
+    )
+
+
+class IntegrationSlackRejectMemberInvitation(IntegrationSlackApproveMemberInvitation):
+    type = "integrations.slack.reject_member_invitation"
+
+
 analytics.register(SlackIntegrationAssign)
 analytics.register(SlackIntegrationNotificationSent)
 analytics.register(SlackIntegrationStatus)
 analytics.register(IntegrationSlackChartUnfurl)
 analytics.register(IntegrationSlackLinkIdentity)
+analytics.register(IntegrationSlackApproveMemberInvitation)
+analytics.register(IntegrationSlackRejectMemberInvitation)

@@ -21,8 +21,11 @@ if TYPE_CHECKING:
 @dataclass
 class MessageAction:
     label: str
-    url: str
+    url: Optional[str] = None
     style: Optional[Literal["primary", "danger", "default"]] = None
+    action_id: Optional[str] = None
+    value: Optional[Any] = None
+    confirm: Optional[Mapping[str, Any]] = None
 
     def as_slack(self) -> Mapping[str, Any]:
         return {
@@ -31,6 +34,9 @@ class MessageAction:
             "url": self.url,
             "style": self.style,
             "type": "button",
+            "value": self.value,
+            "action_id": self.action_id,
+            "confirm": self.confirm,
         }
 
 
@@ -51,7 +57,13 @@ class BaseNotification:
 
     @property
     def org_slug(self) -> str:
-        return str(self.organization.slug)
+        slug: str = self.organization.slug
+        return slug
+
+    @property
+    def org_name(self) -> str:
+        name: str = self.organization.name
+        return name
 
     def get_filename(self) -> str:
         raise NotImplementedError
