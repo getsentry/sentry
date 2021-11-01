@@ -2852,6 +2852,7 @@ class QueryFields(QueryBase):
             # are present.
             if not self.aggregates and "id" not in stripped_columns:
                 resolved_columns.append(self.resolve_column("id", alias=True))
+                stripped_columns.append("id")
             if "id" in stripped_columns and "project.id" not in stripped_columns:
                 resolved_columns.append(self.resolve_column("project.name", alias=True))
 
@@ -2984,9 +2985,15 @@ class QueryFields(QueryBase):
         """ "Given a public field, check if it's a supported function"""
         return function in self.function_converter
 
-    def resolve_function(self, function: str, match: Optional[Match[str]] = None) -> SelectType:
-        """Given a public function, resolve to the corresponding Snql
-        function
+    def resolve_function(
+        self, function: str, match: Optional[Match[str]] = None, resolve_only=False
+    ) -> SelectType:
+        """Given a public function, resolve to the corresponding Snql function
+
+
+        :param function: the public alias for a function eg. "p50(transaction.duration)"
+        :param match: the Match so we don't have to run the regex twice
+        :param resolve_only: whether we should add the aggregate to self.aggregates
         """
         if match is None:
             match = is_function(function)
@@ -3027,7 +3034,8 @@ class QueryFields(QueryBase):
             raise InvalidSearchQuery("Invalid combinator: Arguments passed were incompatible")
 
         if snql_function.snql_aggregate is not None:
-            self.aggregates.append(snql_function.snql_aggregate(arguments, alias))
+            if not resolve_only:
+                self.aggregates.append(snql_function.snql_aggregate(arguments, alias))
             return snql_function.snql_aggregate(arguments, alias)
 
         return snql_function.snql_column(arguments, alias)

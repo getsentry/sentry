@@ -1307,7 +1307,8 @@ class QueryFilter(QueryFields):
             operator = Op.IS_NULL if aggregate_filter.operator == "=" else Op.IS_NOT_NULL
             return Condition(name, operator)
 
-        function = self.resolve_function(name)
+        # When resolving functions in conditions we don't want to add them to the list of aggregates
+        function = self.resolve_function(name, resolve_only=True)
 
         return Condition(function, Op(aggregate_filter.operator), value)
 
@@ -1352,8 +1353,8 @@ class QueryFilter(QueryFields):
                 )
             elif name in ARRAY_FIELDS and search_filter.value.raw_value == "":
                 return Condition(
-                    Function("hasAny", [self.column(name), []]),
-                    Op.EQ if search_filter.operator == "=" else Op.NEQ,
+                    Function("notEmpty", [self.column(name)]),
+                    Op.EQ if search_filter.operator == "!=" else Op.NEQ,
                     1,
                 )
 

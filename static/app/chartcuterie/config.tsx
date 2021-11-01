@@ -8,6 +8,8 @@
  * into the configuration file loaded by the service.
  */
 
+import * as worldMap from 'app/data/world.json';
+
 import {discoverCharts} from './discover';
 import {ChartcuterieConfig, ChartType, RenderConfig, RenderDescriptor} from './types';
 
@@ -21,6 +23,9 @@ const renderConfig: RenderConfig<ChartType> = new Map();
  */
 const config: ChartcuterieConfig = {
   version: process.env.COMMIT_SHA!,
+  init: echarts => {
+    echarts.registerMap('sentryWorld', worldMap);
+  },
   renderConfig,
 };
 

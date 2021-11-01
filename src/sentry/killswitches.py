@@ -99,6 +99,17 @@ ALL_KILLSWITCH_OPTIONS = {
             "project_id": "A project ID to filter events by.",
         },
     ),
+    "post_process.get-autoassign-owners": KillswitchInfo(
+        description="""
+        Prevent project from running ProjectOwnership._matching_ownership_rules.
+
+        In case project has too many ownership rules, spike of events from that
+        project can cause post_process tasks backlog.
+        """,
+        fields={
+            "project_id": "A project ID to filter events by.",
+        },
+    ),
 }
 
 

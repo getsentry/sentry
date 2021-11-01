@@ -58,6 +58,10 @@ def is_active_superuser(request):
     return su.is_active
 
 
+def has_superuser_permission(request, permission):
+    return is_active_superuser(request) and request.access.has_permission(permission)
+
+
 class Superuser:
     allowed_ips = [ipaddress.ip_network(str(v), strict=False) for v in ALLOWED_IPS]
 
