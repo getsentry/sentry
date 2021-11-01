@@ -3,7 +3,7 @@ from typing import List, Optional, Tuple
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition
 from snuba_sdk.entity import Entity
-from snuba_sdk.expressions import Granularity, Limit, Offset
+from snuba_sdk.expressions import Granularity, Limit, Offset, Turbo
 from snuba_sdk.function import CurriedFunction
 from snuba_sdk.orderby import Direction, LimitBy, OrderBy
 from snuba_sdk.query import Query
@@ -45,7 +45,7 @@ class QueryBuilder(QueryFilter):
         self.offset = None if offset is None else Offset(offset)
 
         self.limitby = self.resolve_limitby(limitby)
-        self.turbo = turbo
+        self.turbo = Turbo(turbo)
         self.sample_rate = sample_rate
 
         self.where, self.having = self.resolve_conditions(
@@ -136,6 +136,7 @@ class QueryBuilder(QueryFilter):
             limit=self.limit,
             offset=self.offset,
             limitby=self.limitby,
+            turbo=self.turbo,
         )
 
 
