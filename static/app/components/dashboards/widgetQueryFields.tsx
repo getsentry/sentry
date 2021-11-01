@@ -104,7 +104,7 @@ function WidgetQueryFields({
 
   function handleTopNColumnChange(columns: QueryFieldValue[]) {
     const aggregateFields = getAggregateFields();
-    const newFields = [...columns, ...aggregateFields];
+    const newFields = [...columns, aggregateFields[aggregateFields.length - 1]];
     onChange(newFields);
   }
 
@@ -186,9 +186,14 @@ function WidgetQueryFields({
   };
 
   if (displayType === 'top_n') {
-    const aggregateFields = getAggregateFields();
-    const otherFields = fields.filter(field => !!!aggregateFields.includes(field));
-    const fieldValue = aggregateFields[0];
+    const fieldValue = fields
+      .slice()
+      .reverse()
+      .find(field => {
+        const fieldStr = generateFieldAsString(field);
+        return isAggregateField(fieldStr) || isAggregateEquation(fieldStr);
+      }) as QueryFieldValue;
+    const columns = fields.filter(field => field !== fieldValue);
 
     return (
       <React.Fragment>
@@ -203,7 +208,7 @@ function WidgetQueryFields({
           required
         >
           <StyledColumnEditCollection
-            columns={otherFields}
+            columns={columns}
             onChange={handleTopNColumnChange}
             fieldOptions={fieldOptions}
             organization={organization}
@@ -219,7 +224,7 @@ function WidgetQueryFields({
           required
           stacked
         >
-          <QueryFieldWrapper key={`${aggregateFields[0]}:0`}>
+          <QueryFieldWrapper key={`${fieldValue}:0`}>
             <QueryField
               fieldValue={fieldValue}
               fieldOptions={generateFieldOptions({organization})}

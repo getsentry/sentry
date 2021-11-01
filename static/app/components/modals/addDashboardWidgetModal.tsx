@@ -27,7 +27,6 @@ import {
   TagCollection,
 } from 'app/types';
 import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
-import {Aggregation, parseFunction} from 'app/utils/discover/fields';
 import Measurements from 'app/utils/measurements/measurements';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
@@ -260,13 +259,8 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
             query.fields = [...defaultTableColumns];
           });
         } else if (displayType === DisplayType.TOP_N) {
-          // Function columns not valid group bys for TOP_N display
-          const topNFields = [
-            ...defaultTableColumns.filter(column => !parseFunction(column)),
-            ...defaultWidgetQuery.fields,
-          ];
           normalized.forEach(query => {
-            query.fields = [...topNFields];
+            query.fields = [...defaultTableColumns];
             query.orderby = defaultWidgetQuery.orderby;
           });
         } else {
@@ -460,14 +454,6 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         measurementKeys,
       });
 
-    const topNFieldOptions = (measurementKeys: string[]) =>
-      generateFieldOptions({
-        organization,
-        tagKeys: Object.values(tags).map(({key}) => key),
-        measurementKeys,
-        aggregations: {} as Record<string, Aggregation>,
-      });
-
     const isUpdatingWidget = typeof onUpdateWidget === 'function' && !!previousWidget;
 
     return (
@@ -526,12 +512,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
           <Measurements organization={organization}>
             {({measurements}) => {
               const measurementKeys = Object.values(measurements).map(({key}) => key);
-              let amendedFieldOptions;
-              if (state.displayType === 'top_n') {
-                amendedFieldOptions = topNFieldOptions(measurementKeys);
-              } else {
-                amendedFieldOptions = fieldOptions(measurementKeys);
-              }
+              const amendedFieldOptions = fieldOptions(measurementKeys);
               return (
                 <WidgetQueriesForm
                   organization={organization}
