@@ -1,12 +1,15 @@
+import * as React from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
 import {disconnectIdentity} from 'app/actionCreators/account';
+import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import DateTime from 'app/components/dateTime';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import {IconFlag} from 'app/icons';
 import {t} from 'app/locale';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import space from 'app/styles/space';
@@ -78,15 +81,19 @@ class AccountIdentities extends AsyncView<Props, State> {
         onConfirm={() => this.handleDisconnect(identity)}
         priority="danger"
         confirmText={t('Disconnect')}
-        header={`Disconnect Your ${identity.provider.name} Identity?`}
         message={
-          <TextBlock>
-            {identity.isLogin
-              ? t(
-                  'After disconnecting, you will need to use a password or another identity to sign in.'
-                )
-              : t("This action can't be undone.")}
-          </TextBlock>
+          <React.Fragment>
+            <Alert type="error" icon={<IconFlag size="md" />}>
+              {t(`Disconnect Your ${identity.provider.name} Identity?`)}
+            </Alert>
+            <TextBlock>
+              {identity.isLogin
+                ? t(
+                    'After disconnecting, you will need to use a password or another identity to sign in.'
+                  )
+                : t("This action can't be undone.")}
+            </TextBlock>
+          </React.Fragment>
         }
       >
         <Button>{t('Disconnect')}</Button>
