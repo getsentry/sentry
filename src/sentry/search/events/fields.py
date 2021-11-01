@@ -2968,7 +2968,7 @@ class QueryFields(QueryBase):
 
         # TODO: This is no longer true, can order by fields that aren't selected, keeping
         # for now so we're consistent with the existing functionality
-        raise InvalidSearchQuery("Cannot order by a field that is not selected.")
+        raise InvalidSearchQuery("Cannot sort by a field that is not selected.")
 
     def is_field_alias(self, field: str) -> bool:
         """Given a public field, check if it's a field alias"""
