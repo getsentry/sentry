@@ -74,7 +74,8 @@ def get_event_from_groups_in_digest(digest: Digest) -> Iterable[Event]:
 
 
 def build_custom_digest(original_digest: Digest, events: Iterable[Event]) -> Digest:
-    user_digest = OrderedDict()
+    """Given a digest and a set of events, filter the digest to only records that include the events."""
+    user_digest: Digest = OrderedDict()
     for rule, rule_groups in original_digest.items():
         user_rule_groups = OrderedDict()
         for group, group_records in rule_groups.items():
