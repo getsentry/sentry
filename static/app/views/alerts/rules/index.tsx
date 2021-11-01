@@ -1,5 +1,5 @@
 import {Component} from 'react';
-import {RouteComponentProps} from 'react-router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import flatten from 'lodash/flatten';
 
@@ -242,7 +242,21 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
               }
             </Projects>
           </StyledPanelTable>
-          <Pagination pageLinks={ruleListPageLinks} />
+          <Pagination
+            pageLinks={ruleListPageLinks}
+            onCursor={(cursor, path, _direction) => {
+              let team = currentQuery.team;
+              // Keep team parameter, but empty to remove parameters
+              if (!team || team.length === 0) {
+                team = '';
+              }
+
+              browserHistory.push({
+                pathname: path,
+                query: {...currentQuery, team, cursor},
+              });
+            }}
+          />
         </Layout.Main>
       </StyledLayoutBody>
     );
