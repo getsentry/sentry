@@ -54,11 +54,6 @@ type BaseDiscoverQueryProps = {
    * on the OrganizationEventsV2Endpoint view.
    */
   referrer?: string;
-  /**
-   * Disables the pagination capabilities of a discover query so the results will always
-   * be from the first page.
-   */
-  disablePagination?: boolean;
 };
 
 export type DiscoverQueryPropsWithContext = BaseDiscoverQueryProps & OptionalContextProps;
@@ -143,12 +138,22 @@ class _GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>>
   }
 
   getPayload(props: Props<T, P>) {
+    const {cursor, limit, noPagination, referrer} = props;
     const payload = this.props.getRequestPayload
       ? this.props.getRequestPayload(props)
       : props.eventView.getEventsAPIPayload(props.location);
 
-    if (this.props.disablePagination) {
-      delete payload.cursor;
+    if (cursor) {
+      payload.cursor = cursor;
+    }
+    if (limit) {
+      payload.per_page = limit;
+    }
+    if (noPagination) {
+      payload.noPagination = noPagination;
+    }
+    if (referrer) {
+      payload.referrer = referrer;
     }
 
     return payload;
@@ -167,20 +172,8 @@ class _GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>>
   };
 
   fetchData = async () => {
-    const {
-      api,
-      beforeFetch,
-      afterFetch,
-      didFetch,
-      eventView,
-      orgSlug,
-      route,
-      limit,
-      cursor,
-      setError,
-      noPagination,
-      referrer,
-    } = this.props;
+    const {api, beforeFetch, afterFetch, didFetch, eventView, orgSlug, route, setError} =
+      this.props;
 
     if (!eventView.isValid()) {
       return;
@@ -193,19 +186,6 @@ class _GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>>
     this.setState({isLoading: true, tableFetchID});
 
     setError?.(undefined);
-
-    if (limit) {
-      apiPayload.per_page = limit;
-    }
-    if (noPagination) {
-      apiPayload.noPagination = noPagination;
-    }
-    if (cursor) {
-      apiPayload.cursor = cursor;
-    }
-    if (referrer) {
-      apiPayload.referrer = referrer;
-    }
 
     beforeFetch?.(api);
 

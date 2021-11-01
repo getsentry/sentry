@@ -85,7 +85,8 @@ function SpansContent(props: Props) {
         orgSlug={organization.slug}
         location={location}
         referrer="api.performance.transaction-spans"
-        disablePagination
+        cursor="0:0:1"
+        noPagination
       >
         {({tableData}) => {
           const totals: SpansTotalValues | null = tableData?.data?.[0] ?? null;
@@ -155,7 +156,9 @@ function getTotalsView(eventView: EventView): EventView {
 
   // filter out any aggregate conditions
   Object.keys(conditions.filters).forEach(field => {
-    if (isAggregateField(field)) conditions.removeFilter(field);
+    if (isAggregateField(field)) {
+      conditions.removeFilter(field);
+    }
   });
 
   totalsView.query = conditions.formatString();
