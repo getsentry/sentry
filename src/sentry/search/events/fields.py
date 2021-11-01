@@ -748,7 +748,7 @@ def resolve_orderby(orderby, fields, aggregations, equations):
     if len(validated) == len(orderby):
         return validated
 
-    raise InvalidSearchQuery("Cannot order by a field that is not selected.")
+    raise InvalidSearchQuery("Cannot sort by a field that is not selected.")
 
 
 def resolve_field(field, params=None, functions_acl=None):
