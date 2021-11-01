@@ -40,57 +40,56 @@ function openContextMenu(wrapper, cellIndex) {
 }
 
 describe('Performance > Table', function () {
-  let project1, project2, projects, eventView;
+  const project1 = TestStubs.Project();
+  const project2 = TestStubs.Project();
+  const projects = [project1, project2];
+  const eventView = new EventView({
+    id: '1',
+    name: 'my query',
+    fields: [
+      {
+        field: 'team_key_transaction',
+      },
+      {
+        field: 'transaction',
+      },
+      {
+        field: 'project',
+      },
+      {
+        field: 'tpm()',
+      },
+      {
+        field: 'p50()',
+      },
+      {
+        field: 'p95()',
+      },
+      {
+        field: 'failure_rate()',
+      },
+      {
+        field: 'apdex()',
+      },
+      {
+        field: 'count_unique(user)',
+      },
+      {
+        field: 'count_miserable(user)',
+      },
+      {
+        field: 'user_misery()',
+      },
+    ],
+    sorts: [{field: 'tpm  ', kind: 'desc'}],
+    query: 'event.type:transaction transaction:/api*',
+    project: [project1.id, project2.id],
+    start: '2019-10-01T00:00:00',
+    end: '2019-10-02T00:00:00',
+    statsPeriod: '14d',
+    environment: [],
+  });
   beforeEach(function () {
-    project1 = TestStubs.Project();
-    project2 = TestStubs.Project();
-    projects = [project1, project2];
-    eventView = new EventView({
-      id: '1',
-      name: 'my query',
-      fields: [
-        {
-          field: 'team_key_transaction',
-        },
-        {
-          field: 'transaction',
-        },
-        {
-          field: 'project',
-        },
-        {
-          field: 'tpm()',
-        },
-        {
-          field: 'p50()',
-        },
-        {
-          field: 'p95()',
-        },
-        {
-          field: 'failure_rate()',
-        },
-        {
-          field: 'apdex()',
-        },
-        {
-          field: 'count_unique(user)',
-        },
-        {
-          field: 'count_miserable(user)',
-        },
-        {
-          field: 'user_misery()',
-        },
-      ],
-      sorts: [{field: 'tpm  ', kind: 'desc'}],
-      query: 'event.type:transaction transaction:/api*',
-      project: [project1.id, project2.id],
-      start: '2019-10-01T00:00:00',
-      end: '2019-10-02T00:00:00',
-      statsPeriod: '14d',
-      environment: [],
-    });
     browserHistory.push = jest.fn();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/eventsv2/',
