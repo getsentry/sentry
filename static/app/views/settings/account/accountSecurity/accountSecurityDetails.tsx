@@ -72,6 +72,7 @@ class AccountSecurityDetails extends AsyncView<Props, State> {
     }
 
     // if the device is defined, it means that U2f is being removed
+    // reason for adding a trailing slash is a result of the endpoint on line 109 needing it but it can't be set there as if deviceId is None, the route will end with '//'
     const deviceId = device ? `${device.key_handle}/` : '';
     const deviceName = device ? device.name : t('Authenticator');
 
@@ -87,6 +88,34 @@ class AccountSecurityDetails extends AsyncView<Props, State> {
       // Error deleting authenticator
       this.setState({loading: false});
       addErrorMessage(t('Error removing %s', deviceName));
+    }
+  };
+
+  handleRename = async (device: AuthenticatorDevice, deviceName: string) => {
+    const {authenticator} = this.state;
+
+    if (!authenticator?.authId) {
+      return;
+    }
+    // if the device is defined, it means that U2f is being renamed
+    // reason for adding a trailing slash is a result of the endpoint on line 109 needing it but it can't be set there as if deviceId is None, the route will end with '//'
+    const deviceId = device ? `${device.key_handle}/` : '';
+
+    this.setState({loading: true});
+    const data = {
+      name: deviceName,
+    };
+
+    try {
+      await this.api.requestPromise(`${ENDPOINT}${authenticator.authId}/${deviceId}`, {
+        method: 'PUT',
+        data,
+      });
+      this.props.router.push(`/settings/account/security/mfa/${authenticator.authId}`);
+      addSuccessMessage(t('Device was renamed'));
+    } catch {
+      this.setState({loading: false});
+      addErrorMessage(t('Error renaming the device'));
     }
   };
 
@@ -143,6 +172,7 @@ class AccountSecurityDetails extends AsyncView<Props, State> {
           id={authenticator.id}
           devices={authenticator.devices}
           onRemoveU2fDevice={this.handleRemove}
+          onRenameU2fDevice={this.handleRename}
         />
 
         {authenticator.isEnrolled && authenticator.phone && (

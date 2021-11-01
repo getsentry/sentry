@@ -71,12 +71,14 @@ def get_integration_from_jwt(
     # alg field.  We only need the token + shared secret and do not want to provide an
     # audience to the JWT validation that is require to match.  Bitbucket does give us an
     # audience claim however, so disable verification of this.
+    key_id = headers.get("kid")
     try:
         # We only authenticate asymmetrically (through the CDN) if the event provides a key ID
         # in its JWT headers. This should only appear for install/uninstall events.
+
         decoded_claims = (
-            authenticate_asymmetric_jwt(token)
-            if headers.get("kid")
+            authenticate_asymmetric_jwt(token, key_id)
+            if key_id
             else jwt.decode(token, integration.metadata["shared_secret"], audience=False)
         )
     except InvalidSignatureError:
@@ -100,7 +102,7 @@ def verify_claims(
         raise AtlassianConnectValidationError("Query hash mismatch")
 
 
-def authenticate_asymmetric_jwt(token: Optional[str]) -> Optional[Mapping[str, str]]:
+def authenticate_asymmetric_jwt(token: Optional[str], key_id: str) -> Optional[Mapping[str, str]]:
     """
     Allows for Atlassian Connect installation lifecycle security improvements (i.e. verified senders)
     See: https://community.developer.atlassian.com/t/action-required-atlassian-connect-installation-lifecycle-security-improvements/49046
@@ -108,7 +110,6 @@ def authenticate_asymmetric_jwt(token: Optional[str]) -> Optional[Mapping[str, s
     if token is None:
         raise AtlassianConnectValidationError("No token parameter")
     headers = jwt.peek_header(token)
-    key_id = headers.get("kid")
     key_response = requests.get(f"https://connect-install-keys.atlassian.com/{key_id}")
     public_key = key_response.content.decode("utf-8").strip()
     decoded_claims = jwt.decode(
