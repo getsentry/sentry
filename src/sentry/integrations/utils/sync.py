@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import logging
-from typing import TYPE_CHECKING, Mapping, Optional, Sequence
+from typing import TYPE_CHECKING, Mapping, Sequence
 
 from sentry import features
 from sentry.models import GroupAssignee
@@ -7,14 +9,13 @@ from sentry.tasks.integrations import sync_assignee_outbound
 
 if TYPE_CHECKING:
     from sentry.models import Group, Integration, Organization
-    from sentry.models import Group, GroupLink, Integration, Organization, Project, User
 
 
 def where_should_sync(
-    integration: "Integration",
+    integration: Integration,
     key: str,
-    organization_id: Optional[int] = None,
-) -> Sequence["Organization"]:
+    organization_id: int | None = None,
+) -> Sequence[Organization]:
     """
     Given an integration, get the list of organizations where the sync type in
     `key` is enabled. If an optional `organization_id` is passed, then only
@@ -32,7 +33,7 @@ def where_should_sync(
     ]
 
 
-def get_user_id(projects_by_user: Mapping[int, Sequence[int]], group: "Group") -> Optional[int]:
+def get_user_id(projects_by_user: Mapping[int, Sequence[int]], group: Group) -> int | None:
     user_ids = [
         user_id
         for user_id, project_ids in projects_by_user.items()
@@ -45,11 +46,11 @@ def get_user_id(projects_by_user: Mapping[int, Sequence[int]], group: "Group") -
 
 
 def sync_group_assignee_inbound(
-    integration: "Integration",
-    email: Optional[str],
+    integration: Integration,
+    email: str | None,
     external_issue_key: str,
     assign: bool = True,
-) -> Sequence["Group"]:
+) -> Sequence[Group]:
     """
     Given an integration, user email address and an external issue key,
     assign linked groups to matching users. Checks project membership.
@@ -96,9 +97,7 @@ def sync_group_assignee_inbound(
     return groups_assigned
 
 
-def sync_group_assignee_outbound(
-    group: "Group", user_id: Optional[int], assign: bool = True
-) -> None:
+def sync_group_assignee_outbound(group: Group, user_id: int | None, assign: bool = True) -> None:
     from sentry.models import GroupLink
 
     external_issue_ids = GroupLink.objects.filter(
