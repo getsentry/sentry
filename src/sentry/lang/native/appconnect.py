@@ -5,10 +5,8 @@ this.
 """
 
 import dataclasses
-import io
 import logging
 import pathlib
-import time
 from datetime import datetime
 from typing import Any, Dict, List
 
@@ -20,10 +18,15 @@ from django.db import transaction
 
 from sentry.lang.native.symbolicator import APP_STORE_CONNECT_SCHEMA, secret_fields
 from sentry.models import Project
-from sentry.utils import json, sdk
+from sentry.utils import json
 from sentry.utils.appleconnect import appstore_connect, itunes_connect
 
 logger = logging.getLogger(__name__)
+
+# This might be odd, but it convinces mypy that this is part of this module's API.
+BuildInfo = appstore_connect.BuildInfo
+NoDsymUrl = appstore_connect.NoDsymUrl
+PublicProviderId = itunes_connect.PublicProviderId
 
 
 # The key in the project options under which all symbol sources are stored.
@@ -33,14 +36,14 @@ SYMBOL_SOURCES_PROP_NAME = "sentry:symbol_sources"
 SYMBOL_SOURCE_TYPE_NAME = "appStoreConnect"
 
 
-class InvalidCredentialsError(Exception):
-    """Invalid credentials for the App Store Connect API."""
+class InvalidConfigError(Exception):
+    """Invalid configuration for the appStoreConnect symbol source."""
 
     pass
 
 
-class InvalidConfigError(Exception):
-    """Invalid configuration for the appStoreConnect symbol source."""
+class PendingDsymsError(Exception):
+    """dSYM url is currently unavailable."""
 
     pass
 
@@ -114,7 +117,7 @@ class AppStoreConnectConfig:
     #
     # An iTunes session can have multiple organisations and needs this ID to be able to
     # select the correct organisation to operate on.
-    orgPublicId: itunes_connect.PublicProviderId
+    orgPublicId: PublicProviderId
 
     # The name of an organisation, as supplied by iTunes.
     orgName: str
@@ -250,74 +253,6 @@ class AppStoreConnectConfig:
         return all_sources
 
 
-@dataclasses.dataclass(frozen=True)
-class BuildInfo:
-    """Information about an App Store Connect build.
-
-    A build is identified by the tuple of (app_id, platform, version, build_number), though
-    Apple mostly names these differently.
-    """
-
-    # The app ID
-    app_id: str
-
-    # A platform identifier, e.g. iOS, TvOS etc.
-    #
-    # These are not always human-readable and can be some opaque string supplied by Apple.
-    platform: str
-
-    # The human-readable version, e.g. "7.2.0".
-    #
-    # Each version can have multiple builds, Apple naming is a little confusing and calls
-    # this "bundle_short_version".
-    version: str
-
-    # The build number, typically just a monotonically increasing number.
-    #
-    # Apple naming calls this the "bundle_version".
-    build_number: str
-
-    # The date and time the build was uploaded to App Store Connect.
-    uploaded_date: datetime
-
-
-class ITunesClient:
-    """A client for the legacy iTunes API.
-
-    Create this by calling :class:`AppConnectClient.itunes_client()`.
-
-    On creation this will contact iTunes and will fail if it does not have a valid iTunes
-    session.
-    """
-
-    def __init__(self, itunes_cookie: str, itunes_org: itunes_connect.PublicProviderId):
-        self._client = itunes_connect.ITunesClient.from_session_cookie(itunes_cookie)
-        self._client.set_provider(itunes_org)
-
-    def download_dsyms(self, build: BuildInfo, path: pathlib.Path) -> None:
-        with sentry_sdk.start_span(op="dsyms", description="Download dSYMs"):
-            url = self._client.get_dsym_url(
-                build.app_id, build.version, build.build_number, build.platform
-            )
-            if not url:
-                raise NoDsymsError
-            logger.debug("Fetching dSYM from: %s", url)
-            # The 315s is just above how long it would take a 4MB/s connection to download
-            # 2GB.
-            with requests.get(url, stream=True, timeout=15) as req:
-                req.raise_for_status()
-                start = time.time()
-                bytes_count = 0
-                with open(path, "wb") as fp:
-                    for chunk in req.iter_content(chunk_size=io.DEFAULT_BUFFER_SIZE):
-                        if (time.time() - start) > 315:
-                            with sdk.configure_scope() as scope:
-                                scope.set_extra("dSYM.bytes_fetched", bytes_count)
-                            raise requests.Timeout("Timeout during dSYM download")
-                        bytes_count += len(chunk)
-                        fp.write(chunk)
-
-
 class AppConnectClient:
     """Client to interact with a single app from App Store Connect.
 
@@ -329,15 +264,11 @@ class AppConnectClient:
     def __init__(
         self,
         api_credentials: appstore_connect.AppConnectCredentials,
-        itunes_cookie: str,
-        itunes_org: itunes_connect.PublicProviderId,
         app_id: str,
     ) -> None:
         """Internal init, use one of the classmethods instead."""
         self._api_credentials = api_credentials
         self._session = requests.Session()
-        self._itunes_cookie = itunes_cookie
-        self._itunes_org = itunes_org
         self._app_id = app_id
 
     @classmethod
@@ -365,33 +296,29 @@ class AppConnectClient:
         )
         return cls(
             api_credentials=api_credentials,
-            itunes_cookie=config.itunesSession,
-            itunes_org=config.orgPublicId,
             app_id=config.appId,
         )
 
-    def itunes_client(self) -> ITunesClient:
-        """Returns an iTunes client capable of downloading dSYMs.
-
-        :raises itunes_connect.SessionExpired: if the session cookie is expired.
-        """
-        return ITunesClient(itunes_cookie=self._itunes_cookie, itunes_org=self._itunes_org)
-
     def list_builds(self) -> List[BuildInfo]:
         """Returns the available AppStore builds."""
-        builds = []
-        all_results = appstore_connect.get_build_info(
-            self._session, self._api_credentials, self._app_id
-        )
-        for build in all_results:
-            builds.append(
-                BuildInfo(
-                    app_id=self._app_id,
-                    platform=build["platform"],
-                    version=build["version"],
-                    build_number=build["build_number"],
-                    uploaded_date=build["uploaded_date"],
-                )
-            )
+        return appstore_connect.get_build_info(self._session, self._api_credentials, self._app_id)
 
-        return builds
+    def download_dsyms(self, build: BuildInfo, path: pathlib.Path) -> None:
+        """Downloads the dSYMs from the build into the filename given by `path`.
+
+        The dSYMs are downloaded as a zipfile so when this call succeeds the file at `path`
+        will contain a zipfile.
+        """
+        with sentry_sdk.start_span(op="dsym", description="Download dSYMs"):
+            if not isinstance(build.dsym_url, str):
+                if build.dsym_url is NoDsymUrl.NOT_NEEDED:
+                    raise NoDsymsError
+                elif build.dsym_url is NoDsymUrl.PENDING:
+                    raise PendingDsymsError
+                else:
+                    raise ValueError(f"dSYM URL missing: {build.dsym_url}")
+
+            logger.debug("Fetching dSYMs from: %s", build.dsym_url)
+            appstore_connect.download_dsyms(
+                self._session, self._api_credentials, build.dsym_url, path
+            )

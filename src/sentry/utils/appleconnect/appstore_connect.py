@@ -1,14 +1,19 @@
+import dataclasses
+import datetime
+import enum
+import io
 import logging
+import pathlib
 import time
 from collections import namedtuple
 from http import HTTPStatus
-from typing import Any, Dict, Generator, List, Mapping, NewType, Optional, Tuple
+from typing import Any, Dict, Generator, List, Mapping, NewType, Optional, Tuple, Union
 
 import sentry_sdk
 from dateutil.parser import parse as parse_date
-from requests import Session
+from requests import Session, Timeout
 
-from sentry.utils import jwt, safe
+from sentry.utils import jwt, safe, sdk
 from sentry.utils.json import JSONData
 
 logger = logging.getLogger(__name__)
@@ -28,6 +33,57 @@ class UnauthorizedError(RequestError):
     """Unauthorised: invalid, expired or revoked authentication token."""
 
     pass
+
+
+class ForbiddenError(RequestError):
+    """The App Store Connect session does not have access to the requested dSYM."""
+
+    pass
+
+
+class NoDsymUrl(enum.Enum):
+    """Indicates the reason of absense of a dSYM URL from :class:`BuildInfo`."""
+
+    # Currently unused because we haven't seen scenarios where this can happen yet.
+    PENDING = enum.auto()
+    NOT_NEEDED = enum.auto()
+
+
+@dataclasses.dataclass(frozen=True)
+class BuildInfo:
+    """Information about an App Store Connect build.
+
+    A build is identified by the tuple of (app_id, platform, version, build_number), though
+    Apple mostly names these differently.
+    """
+
+    # The app ID
+    app_id: str
+
+    # A platform identifier, e.g. iOS, TvOS etc.
+    #
+    # These are not always human-readable and can be some opaque string supplied by Apple.
+    platform: str
+
+    # The human-readable version, e.g. "7.2.0".
+    #
+    # Each version can have multiple builds, Apple naming is a little confusing and calls
+    # this "bundle_short_version".
+    version: str
+
+    # The build number, typically just a monotonically increasing number.
+    #
+    # Apple naming calls this the "bundle_version".
+    build_number: str
+
+    # The date and time the build was uploaded to App Store Connect.
+    uploaded_date: datetime.datetime
+
+    # The URL where we can download a zip file with dSYMs from.
+    #
+    # Empty string if no dSYMs exist, None if there are dSYMs but they're not immediately available,
+    # and is some string value if there are dSYMs and they're available.
+    dsym_url: Union[NoDsymUrl, str]
 
 
 def _get_authorization_header(
@@ -173,18 +229,45 @@ class _IncludedRelations:
         """
         rel_ptr_data = safe.get_path(data, "relationships", relation, "data")
         if rel_ptr_data is None:
+            # Because the related information was requested in the query does not mean a
+            # relation of that type did exist.
             # E.g. a query asks for both the appStoreVersion and preReleaseVersion relations
             # to be included.  However for each build there could be only one of these that
             # will have the data with type and id, the other will have None for data.
             return None
+        assert isinstance(rel_ptr_data, dict)
         rel_type = _RelType(rel_ptr_data["type"])
         rel_id = _RelId(rel_ptr_data["id"])
         return self._items[(rel_type, rel_id)]
 
+    def get_multiple_related(self, data: JSONData, relation: str) -> Optional[List[JSONData]]:
+        """Returns a list of all the related objects of the named relation type.
+
+        This is like :meth:`get_related` but is for relation types which have a list of
+        related objects instead of exactly one.  An example of this is a ``build`` can have
+        multiple ``buildBundles`` related to it.
+
+        Having this as a separate method makes it easier to handle the type checking.
+        """
+        rel_ptr_data = safe.get_path(data, "relationships", relation, "data")
+        if rel_ptr_data is None:
+            # Because the related information was requested in the query does not mean a
+            # relation of that type did exist.
+            return None
+        assert isinstance(rel_ptr_data, list)
+        all_related = []
+        for relationship in rel_ptr_data:
+            rel_type = _RelType(relationship["type"])
+            rel_id = _RelId(relationship["id"])
+            related_item = self._items[(rel_type, rel_id)]
+            if related_item:
+                all_related.append(related_item)
+        return all_related
+
 
 def get_build_info(
     session: Session, credentials: AppConnectCredentials, app_id: str
-) -> List[Dict[str, Any]]:
+) -> List[BuildInfo]:
     """Returns the build infos for an application.
 
     The release build version information has the following structure:
@@ -199,16 +282,16 @@ def get_build_info(
     ):
         # https://developer.apple.com/documentation/appstoreconnectapi/list_builds
         url = (
-            f"v1/builds?filter[app]={app_id}"
+            "v1/builds"
+            # filter for this app only, our API key may give us access to more than one app
+            f"?filter[app]={app_id}"
             # we can fetch a maximum of 200 builds at once, so do that
             "&limit=200"
-            # include related AppStore/PreRelease versions with the response
-            # NOTE: the `iris` web API has related `buildBundles` objects,
-            # which have very useful `includesSymbols` and `dSYMUrl` attributes,
-            # but this is sadly not available in the official API. :-(
-            # Open this in your browser when you are signed into AppStoreConnect:
-            # https://appstoreconnect.apple.com/iris/v1/builds?filter[processingState]=VALID&include=appStoreVersion,preReleaseVersion,buildBundles&limit=1&filter[app]=XYZ
-            "&include=appStoreVersion,preReleaseVersion"
+            # include related AppStore/PreRelease versions with the response as well as
+            # buildBundles which contains metadata on the debug resources (dSYMs)
+            "&include=appStoreVersion,preReleaseVersion,buildBundles"
+            # fetch the maximum number of build bundles
+            "&limit[buildBundles]=50"
             # sort newer releases first
             "&sort=-uploadedDate"
             # only include valid builds
@@ -217,12 +300,10 @@ def get_build_info(
             "&filter[expired]=false"
         )
         pages = _get_appstore_info_paged(session, credentials, url)
-        result = []
+        build_info = []
 
         for page in pages:
-
             relations = _IncludedRelations(page)
-
             for build in page["data"]:
                 try:
                     related_appstore_version = relations.get_related(build, "appStoreVersion")
@@ -244,20 +325,68 @@ def get_build_info(
                     build_number = build["attributes"]["version"]
                     uploaded_date = parse_date(build["attributes"]["uploadedDate"])
 
-                    result.append(
-                        {
-                            "platform": platform,
-                            "version": version,
-                            "build_number": build_number,
-                            "uploaded_date": uploaded_date,
-                        }
+                    build_bundles = relations.get_multiple_related(build, "buildBundles")
+                    with sentry_sdk.push_scope() as scope:
+                        scope.set_context(
+                            "App Store Connect Build",
+                            {
+                                "build": build,
+                                "build_bundles": build_bundles,
+                            },
+                        )
+                        dsym_url = _get_dsym_url(build_bundles)
+
+                    build_info.append(
+                        BuildInfo(
+                            app_id=app_id,
+                            platform=platform,
+                            version=version,
+                            build_number=build_number,
+                            uploaded_date=uploaded_date,
+                            dsym_url=dsym_url,
+                        )
                     )
                 except Exception:
                     logger.error(
-                        "Failed to process AppStoreConnect build from API: %s", build, exc_info=True
+                        "Failed to process AppStoreConnect build from API: %s",
+                        build,
+                        exc_info=True,
                     )
 
-        return result
+        return build_info
+
+
+def _get_dsym_url(bundles: Optional[List[JSONData]]) -> Union[NoDsymUrl, str]:
+    """Returns the dSYMs URL from the extracted from the build bundles."""
+    # https://developer.apple.com/documentation/appstoreconnectapi/build/relationships/buildbundles
+    # https://developer.apple.com/documentation/appstoreconnectapi/buildbundle/attributes
+    # If you ever write code for this here you probably will find an
+    # includesSymbols attribute in the buildBundles and wonder why we ignore
+    # it.  Then you'll look at it and wonder why it doesn't match anything
+    # to do with whether dSYMs can be downloaded or not.  This is because
+    # the includesSymbols only indicates whether App Store Connect has full
+    # symbol names or not, it does not have anything to do with whether it
+    # was a bitcode upload or a native upload.  And whether dSYMs are
+    # available for download only depends on whether it was a bitcode
+    # upload.
+    if bundles is None or len(bundles) == 0:
+        return NoDsymUrl.NOT_NEEDED
+
+    if len(bundles) > 1:
+        # We currently do not know how to handle these, we'll carry on
+        # with the first bundle but report this as an error.
+        sentry_sdk.capture_message("len(buildBundles) != 1")
+
+    # Because we only ask for processingState=VALID builds we expect the
+    # builds to be finished and if there are no dSYMs that means the
+    # build doesn't need dSYMs, i.e. it not a bitcode build.
+    bundle = bundles[0]
+    url = safe.get_path(bundle, "attributes", "dSYMUrl", default=NoDsymUrl.NOT_NEEDED)
+
+    if isinstance(url, (NoDsymUrl, str)):
+        return url
+    else:
+        raise ValueError(f"Unexpected value in build bundle's dSYMUrl: {url}")
 
 
 AppInfo = namedtuple("AppInfo", ["name", "bundle_id", "app_id"])
@@ -291,3 +420,32 @@ def get_apps(session: Session, credentials: AppConnectCredentials) -> Optional[L
     except ValueError:
         return None
     return ret_val
+
+
+def download_dsyms(
+    session: Session, credentials: AppConnectCredentials, url: str, path: pathlib.Path
+) -> None:
+    """Downloads dSYMs at `url` into `path` which must be a filename."""
+    headers = _get_authorization_header(credentials)
+
+    with session.get(url, headers=headers, stream=True, timeout=15) as res:
+        status = res.status_code
+        if status == HTTPStatus.UNAUTHORIZED:
+            raise UnauthorizedError
+        elif status == HTTPStatus.FORBIDDEN:
+            raise ForbiddenError
+        elif status != HTTPStatus.OK:
+            raise RequestError(f"Bad status code downloading dSYM: {status}")
+
+        start = time.time()
+        bytes_count = 0
+        with open(path, "wb") as fp:
+            for chunk in res.iter_content(chunk_size=io.DEFAULT_BUFFER_SIZE):
+                # The 315s is just above how long it would take a 4MB/s connection to download
+                # 2GB.
+                if (time.time() - start) > 315:
+                    with sdk.configure_scope() as scope:
+                        scope.set_extra("dSYM.bytes_fetched", bytes_count)
+                    raise Timeout("Timeout during dSYM download")
+                bytes_count += len(chunk)
+                fp.write(chunk)
