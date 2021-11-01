@@ -18,8 +18,17 @@ export enum TransactionFilterOptions {
   RECENT = 'recent',
 }
 
+const TRANSACTION_FILTER_PATTERN = /^transaction:.*/;
+
 export function generateTransactionSummaryRoute({orgSlug}: {orgSlug: String}): string {
   return `/organizations/${orgSlug}/performance/summary/`;
+}
+
+function removeTransactionFilters(query: string): string {
+  const filterParams = query.split(' ');
+  return filterParams
+    .filter(filterParam => !!!filterParam.match(TRANSACTION_FILTER_PATTERN))
+    .join(' ');
 }
 
 export function transactionSummaryRouteWithQuery({
@@ -47,6 +56,13 @@ export function transactionSummaryRouteWithQuery({
     orgSlug,
   });
 
+  let searchFilter: typeof query.query;
+  if (typeof query.query === 'string') {
+    searchFilter = removeTransactionFilters(query.query);
+  } else {
+    searchFilter = query.query;
+  }
+
   return {
     pathname,
     query: {
@@ -56,7 +72,7 @@ export function transactionSummaryRouteWithQuery({
       statsPeriod: query.statsPeriod,
       start: query.start,
       end: query.end,
-      query: query.query,
+      query: searchFilter,
       unselectedSeries,
       showTransactions,
       display,
