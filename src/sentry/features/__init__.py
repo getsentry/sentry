@@ -53,7 +53,7 @@ default_manager.add("organizations:create")
 # Organization scoped features
 default_manager.add("organizations:advanced-search", OrganizationFeature)
 default_manager.add("organizations:alert-filters", OrganizationFeature)
-default_manager.add("organizations:alert-rule-ui-component", OrganizationFeature)
+default_manager.add("organizations:alert-rule-ui-component", OrganizationFeature, True)
 default_manager.add("organizations:api-keys", OrganizationFeature)
 default_manager.add("organizations:app-store-connect-multiple", OrganizationFeature, False)
 default_manager.add("organizations:boolean-search", OrganizationFeature)
