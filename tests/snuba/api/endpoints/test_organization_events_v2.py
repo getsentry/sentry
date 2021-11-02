@@ -744,7 +744,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         query = {"field": ["id"], "sort": "garbage"}
         response = self.do_request(query)
         assert response.status_code == 400
-        assert "order by" in response.data["detail"]
+        assert "sort by" in response.data["detail"]
 
     def test_latest_release_alias(self):
         project = self.create_project()
