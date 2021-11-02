@@ -19,17 +19,14 @@ SLACK_TIMEOUT = 5
 
 
 class SlackNotifyBasicMixin(NotifyBasicMixin):
-    def notify_remove_external_team(self, external_team: ExternalActor, team: Team):
+    def send_message(self, channel_id: str, message: str) -> None:
         client = SlackClient()
-        integration = external_team.integration
-        token = (
-            integration.metadata.get("user_access_token") or integration.metadata["access_token"]
-        )
+        token = self.metadata.get("user_access_token") or self.metadata["access_token"]
         headers = {"Authorization": f"Bearer {token}"}
         payload = {
             "token": token,
-            "channel": external_team.external_id,
-            "text": SUCCESS_UNLINKED_MESSAGE.format(team=team.slug),
+            "channel": channel_id,
+            "text": message,
         }
         try:
             client.post("/chat.postMessage", headers=headers, data=payload, json=True)
@@ -37,6 +34,13 @@ class SlackNotifyBasicMixin(NotifyBasicMixin):
             message = str(e)
             if message != "Expired url":
                 logger.error("slack.slash-notify.response-error", extra={"error": message})
+        return
+
+    def notify_remove_external_team(self, external_team: ExternalActor, team: Team):
+        self.send_message(
+            channel_id=external_team.external_id,
+            message=SUCCESS_UNLINKED_MESSAGE.format(team=team.slug),
+        )
 
 
 def get_context(

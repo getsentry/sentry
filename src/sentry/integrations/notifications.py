@@ -7,6 +7,12 @@ logger = logging.getLogger("sentry.integrations.notifications")
 
 
 class NotifyBasicMixin:
+    def send_message(self, message: str):
+        """
+        Send a message through the integration.
+        """
+        raise NotImplementedError
+
     def notify_remove_external_team(self, external_team: ExternalActor, team: Team) -> None:
         """
         Notify through the integration that an external team has been removed.
