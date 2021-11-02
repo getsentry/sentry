@@ -7,7 +7,7 @@ logger = logging.getLogger("sentry.integrations.notifications")
 
 
 class NotifyBasicMixin:
-    def send_message(self, message: str):
+    def send_message(self, channel_id: str, message: str) -> None:
         """
         Send a message through the integration.
         """
