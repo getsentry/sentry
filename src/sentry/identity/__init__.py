@@ -17,6 +17,8 @@ get = default_manager.get
 exists = default_manager.exists
 register = default_manager.register
 unregister = default_manager.unregister
+register_login_provider = default_manager.register_login_provider
+is_login_provider = default_manager.is_login_provider
 
 # TODO(epurkhiser): Should this be moved into it's own plugin, it should be
 # initialized there.

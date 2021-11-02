@@ -2458,7 +2458,3 @@ SENTRY_POST_PROCESS_FORWARDER_BATCHING = True
 # Whether badly behaving projects will be automatically
 # sent to the low priority queue
 SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE = False
-
-# Providers from the IdentityProvider model that are used for login
-# (compare to AuthIdentity)
-SENTRY_LOGIN_IDENTITY_PROVIDERS = {}
