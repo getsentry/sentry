@@ -3,6 +3,9 @@ from time import time
 from cryptography.exceptions import InvalidKey, InvalidSignature
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
+
+# from fido2.client import Fido2Client
+from fido2.server import Fido2Server, U2FFido2Server
 from u2flib_server import u2f
 from u2flib_server.model import DeviceRegistration
 
@@ -99,6 +102,13 @@ class U2fInterface(AuthenticatorInterface):
 
     def activate(self, request):
         challenge = dict(u2f.begin_authentication(self.u2f_app_id, self.get_u2f_devices()))
+
+        # TODO change rp to host id
+        # server = U2FFido2Server(
+        #     app_id=self.u2f_app_id, rp={"id": self.u2f_app_id, "name": "Example RP"}
+        # )
+        # challenge = server.authenticate_begin()
+        # breakpoint()
         # XXX: Upgrading python-u2flib-server to 5.0.0 changes the response
         # format. Our current js u2f library expects the old format, so
         # massaging the data to include the old `authenticateRequests` key here.
@@ -118,7 +128,13 @@ class U2fInterface(AuthenticatorInterface):
 
     def validate_response(self, request, challenge, response):
         try:
+            breakpoint()
             u2f.complete_authentication(challenge, response, self.u2f_facets)
+
+            # U2FFido2Server.authenticate_complete(app_id=challenge["app_id"])
+            # Fido2Server.authenticate_complete(
+            #     challenge, challenge.registeredKeys, credential_id ,client_data=response.clientData, auth_data=response., signature=response.signatureData
+            # )
         except (InvalidSignature, InvalidKey, StopIteration):
             return False
         return True

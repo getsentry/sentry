@@ -162,6 +162,7 @@ class U2fInterface extends React.Component<Props, State> {
       // rpId: 'richardmasentry.ngrok.io',
       // challenge: Uint8Array.from(authRequest[0].challenge, c => c.charCodeAt(0)).buffer,
       challenge: this.base64urlToBuffer(authRequest[0].challenge),
+      // TODO make sure it inputs every keyhandle
       allowCredentials: [
         {
           // id: Uint8Array.from(authRequest[0].keyHandle, c => c.charCodeAt(0)).buffer,
