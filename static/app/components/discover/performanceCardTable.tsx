@@ -52,7 +52,7 @@ function PerformanceCardTable({
 
   const miseryRenderer =
     allReleasesTableData?.meta &&
-    getFieldRenderer('user_misery_300', allReleasesTableData.meta);
+    getFieldRenderer('user_misery', allReleasesTableData.meta);
 
   function renderChange(
     allReleasesScore: number,
@@ -67,7 +67,7 @@ function PerformanceCardTable({
     const trendSeconds = trend >= 1000 ? trend / 1000 : trend;
     const trendPercentage = (allReleasesScore - thisReleaseScore) * 100;
     const valPercentage = Math.round(Math.abs(trendPercentage));
-    const val = trendSeconds.toFixed(2);
+    const val = Math.abs(trendSeconds).toFixed(2);
 
     if (trend === 0) {
       return <SubText>{`0${meta === 'duration' ? 'ms' : '%'}`}</SubText>;
@@ -88,8 +88,8 @@ function PerformanceCardTable({
   }
 
   function userMiseryTrend() {
-    const allReleasesUserMisery = allReleasesTableData?.data?.[0]?.user_misery_300;
-    const thisReleaseUserMisery = thisReleaseTableData?.data?.[0]?.user_misery_300;
+    const allReleasesUserMisery = allReleasesTableData?.data?.[0]?.user_misery;
+    const thisReleaseUserMisery = thisReleaseTableData?.data?.[0]?.user_misery;
     return (
       <StyledPanelItem>
         {renderChange(
@@ -108,6 +108,13 @@ function PerformanceCardTable({
       {title: WebVital.LCP, field: 'p75_measurements_lcp'},
       {title: WebVital.CLS, field: 'p75_measurements_cls'},
     ];
+
+    const spans = [
+      {title: 'HTTP', column: 'p75(spans.http)', field: 'p75_spans_http'},
+      {title: 'Browser', column: 'p75(spans.browser)', field: 'p75_spans_browser'},
+      {title: 'Resource', column: 'p75(spans.resource)', field: 'p75_spans_resource'},
+    ];
+
     const webVitalTitles = webVitals.map((vital, idx) => {
       return (
         <SubTitle key={idx}>
@@ -115,7 +122,7 @@ function PerformanceCardTable({
             to={{
               pathname: discoverPath,
               query: {
-                query: `event.type:transaction ${releaseEventView.query}`,
+                query: `${releaseEventView.query}`,
                 project: `${releaseEventView.project}`,
                 field: `p75(${vital.title})`,
                 statsPeriod: `${releaseEventView.statsPeriod}`,
@@ -129,18 +136,6 @@ function PerformanceCardTable({
       );
     });
 
-    const webVitalsRenderer = webVitals.map(
-      vital =>
-        allReleasesTableData?.meta &&
-        getFieldRenderer(vital.field, allReleasesTableData?.meta)
-    );
-
-    const spans = [
-      {title: 'HTTP', field: 'spans.http'},
-      {title: 'Browser', field: 'spans.browser'},
-      {title: 'Resource', field: 'spans.resource'},
-    ];
-
     const spanTitles = spans.map((span, idx) => {
       return (
         <SubTitle key={idx}>
@@ -148,9 +143,9 @@ function PerformanceCardTable({
             to={{
               pathname: discoverPath,
               query: {
-                query: `event.type:transaction ${releaseEventView.query}`,
+                query: `${releaseEventView.query}`,
                 project: `${releaseEventView.project}`,
-                field: `${span.field}`,
+                field: `${span.column}`,
                 statsPeriod: `${releaseEventView.statsPeriod}`,
               },
             }}
@@ -160,6 +155,12 @@ function PerformanceCardTable({
         </SubTitle>
       );
     });
+
+    const webVitalsRenderer = webVitals.map(
+      vital =>
+        allReleasesTableData?.meta &&
+        getFieldRenderer(vital.field, allReleasesTableData?.meta)
+    );
 
     const spansRenderer = spans.map(
       span =>
@@ -192,16 +193,16 @@ function PerformanceCardTable({
       };
     });
 
-    const emptyFields = (
+    const emptyColumn = (
       <div>
         <SingleEmptySubText>
-          <StyledNotAvailable tooltip="No results found for your query" />
+          <StyledNotAvailable tooltip="No results found" />
         </SingleEmptySubText>
         <StyledPanelItem>
           <TitleSpace />
           {webVitals.map((vital, index) => (
             <MultipleEmptySubText key={vital[index]}>
-              {<StyledNotAvailable tooltip="No results found for your query" />}
+              {<StyledNotAvailable tooltip="No results found" />}
             </MultipleEmptySubText>
           ))}
         </StyledPanelItem>
@@ -209,7 +210,7 @@ function PerformanceCardTable({
           <TitleSpace />
           {spans.map((span, index) => (
             <MultipleEmptySubText key={span[index]}>
-              {<StyledNotAvailable tooltip="No results found for your query" />}
+              {<StyledNotAvailable tooltip="No results found" />}
             </MultipleEmptySubText>
           ))}
         </StyledPanelItem>
@@ -230,7 +231,7 @@ function PerformanceCardTable({
           </StyledPanelItem>
         </div>
         {allReleasesTableData?.data.length === 0
-          ? emptyFields
+          ? emptyColumn
           : allReleasesTableData?.data.map((dataRow, idx) => {
               const allReleasesMisery = miseryRenderer?.(dataRow, {
                 organization,
@@ -258,7 +259,7 @@ function PerformanceCardTable({
               );
             })}
         {thisReleaseTableData?.data.length === 0
-          ? emptyFields
+          ? emptyColumn
           : thisReleaseTableData?.data.map((dataRow, idx) => {
               const thisReleasesMisery = miseryRenderer?.(dataRow, {
                 organization,
@@ -316,8 +317,8 @@ function PerformanceCardTable({
 
   function renderBackendPerformance() {
     const spans = [
-      {title: 'HTTP', field: 'spans.http'},
-      {title: 'DB', field: 'spans.db'},
+      {title: 'HTTP', column: 'p75(spans.http)', field: 'p75_spans_http'},
+      {title: 'DB', column: 'p75(spans.db)', field: 'p75_spans_db'},
     ];
 
     const spanTitles = spans.map((span, idx) => {
@@ -327,9 +328,9 @@ function PerformanceCardTable({
             to={{
               pathname: discoverPath,
               query: {
-                query: `event.type:transaction ${releaseEventView.query}`,
+                query: `${releaseEventView.query}`,
                 project: `${releaseEventView.project}`,
-                field: `${span.field}`,
+                field: `${span.column}`,
                 statsPeriod: `${releaseEventView.statsPeriod}`,
               },
             }}
@@ -341,8 +342,7 @@ function PerformanceCardTable({
     });
 
     const apdexRenderer =
-      allReleasesTableData?.meta &&
-      getFieldRenderer('apdex_300', allReleasesTableData.meta);
+      allReleasesTableData?.meta && getFieldRenderer('apdex', allReleasesTableData.meta);
 
     const spansRenderer = spans.map(
       span =>
@@ -364,8 +364,8 @@ function PerformanceCardTable({
     });
 
     function apdexTrend() {
-      const allReleasesApdex = allReleasesTableData?.data?.[0]?.apdex_300;
-      const thisReleaseApdex = thisReleaseTableData?.data?.[0]?.apdex_300;
+      const allReleasesApdex = allReleasesTableData?.data?.[0]?.apdex;
+      const thisReleaseApdex = thisReleaseTableData?.data?.[0]?.apdex;
       return (
         <StyledPanelItem>
           {renderChange(
@@ -377,19 +377,19 @@ function PerformanceCardTable({
       );
     }
 
-    const emptyFields = (
+    const emptyColumn = (
       <div>
         <SingleEmptySubText>
-          <StyledNotAvailable tooltip="No results found for your query" />
+          <StyledNotAvailable tooltip="No results found" />
         </SingleEmptySubText>
         <SingleEmptySubText>
-          <StyledNotAvailable tooltip="No results found for your query" />
+          <StyledNotAvailable tooltip="No results found" />
         </SingleEmptySubText>
         <StyledPanelItem>
           <TitleSpace />
           {spans.map((span, index) => (
             <MultipleEmptySubText key={span[index]}>
-              {<StyledNotAvailable tooltip="No results found for your query" />}
+              {<StyledNotAvailable tooltip="No results found" />}
             </MultipleEmptySubText>
           ))}
         </StyledPanelItem>
@@ -408,7 +408,7 @@ function PerformanceCardTable({
           </StyledPanelItem>
         </div>
         {allReleasesTableData?.data.length === 0
-          ? emptyFields
+          ? emptyColumn
           : allReleasesTableData?.data.map((dataRow, idx) => {
               const allReleasesMisery = miseryRenderer?.(dataRow, {
                 organization,
@@ -422,11 +422,7 @@ function PerformanceCardTable({
               return (
                 <div key={idx}>
                   <UserMiseryPanelItem>{allReleasesMisery}</UserMiseryPanelItem>
-                  {!dataRow.apdex_300 ? (
-                    <SingleEmptySubText>{t('n/a')}</SingleEmptySubText>
-                  ) : (
-                    <ApdexPanelItem>{allReleasesApdex}</ApdexPanelItem>
-                  )}
+                  <ApdexPanelItem>{allReleasesApdex}</ApdexPanelItem>
                   <StyledPanelItem>
                     <TitleSpace />
                     {allReleasesSpans.map(span => span)}
@@ -435,7 +431,7 @@ function PerformanceCardTable({
               );
             })}
         {thisReleaseTableData?.data.length === 0
-          ? emptyFields
+          ? emptyColumn
           : thisReleaseTableData?.data.map((dataRow, idx) => {
               const thisReleasesMisery = miseryRenderer?.(dataRow, {
                 organization,
@@ -452,11 +448,7 @@ function PerformanceCardTable({
               return (
                 <div key={idx}>
                   <UserMiseryPanelItem>{thisReleasesMisery}</UserMiseryPanelItem>
-                  {!dataRow.apdex_300 ? (
-                    <SingleEmptySubText>{'n/a'}</SingleEmptySubText>
-                  ) : (
-                    <ApdexPanelItem>{thisReleasesApdex}</ApdexPanelItem>
-                  )}
+                  <ApdexPanelItem>{thisReleasesApdex}</ApdexPanelItem>
                   <StyledPanelItem>
                     <TitleSpace />
                     {thisReleasesSpans.map(span => span)}
@@ -519,14 +511,14 @@ function PerformanceCardTable({
       };
     });
 
-    const emptyFields = (
+    const emptyColumn = (
       <div>
         <SingleEmptySubText>
-          <StyledNotAvailable tooltip="No results found for your query" />
+          <StyledNotAvailable tooltip="No results found" />
         </SingleEmptySubText>
         {mobileVitalFields.map((vital, index) => (
           <SingleEmptySubText key={vital[index]}>
-            <StyledNotAvailable tooltip="No results found for your query" />
+            <StyledNotAvailable tooltip="No results found" />
           </SingleEmptySubText>
         ))}
       </div>
@@ -539,7 +531,7 @@ function PerformanceCardTable({
           {mobileVitalTitles}
         </div>
         {allReleasesTableData?.data.length === 0
-          ? emptyFields
+          ? emptyColumn
           : allReleasesTableData?.data.map((dataRow, idx) => {
               const allReleasesMisery = miseryRenderer?.(dataRow, {
                 organization,
@@ -559,7 +551,7 @@ function PerformanceCardTable({
               );
             })}
         {thisReleaseTableData?.data.length === 0
-          ? emptyFields
+          ? emptyColumn
           : thisReleaseTableData?.data.map((dataRow, idx) => {
               const thisReleasesMisery = miseryRenderer?.(dataRow, {
                 organization,
@@ -595,10 +587,10 @@ function PerformanceCardTable({
   }
 
   function renderUnknownPerformance() {
-    const emptyFields = (
+    const emptyColumn = (
       <div>
         <SingleEmptySubText>
-          <StyledNotAvailable tooltip="No results found for your query" />
+          <StyledNotAvailable tooltip="No results found" />
         </SingleEmptySubText>
       </div>
     );
@@ -609,7 +601,7 @@ function PerformanceCardTable({
           <PanelItem>{t('User Misery')}</PanelItem>
         </div>
         {allReleasesTableData?.data.length === 0
-          ? emptyFields
+          ? emptyColumn
           : allReleasesTableData?.data.map((dataRow, idx) => {
               const allReleasesMisery = miseryRenderer?.(dataRow, {
                 organization,
@@ -623,7 +615,7 @@ function PerformanceCardTable({
               );
             })}
         {thisReleaseTableData?.data.length === 0
-          ? emptyFields
+          ? emptyColumn
           : thisReleaseTableData?.data.map((dataRow, idx) => {
               const thisReleasesMisery = miseryRenderer?.(dataRow, {
                 organization,
@@ -661,15 +653,6 @@ function PerformanceCardTable({
       section: renderUnknownPerformance(),
     },
   };
-
-  if (isLoading) {
-    if (!allReleasesTableData || !thisReleaseTableData) {
-      allReleasesTableData = {
-        data: [],
-        meta: {},
-      };
-    }
-  }
 
   const isUnknownPlatform = performanceType === PROJECT_PERFORMANCE_TYPE.ANY;
 

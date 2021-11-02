@@ -201,15 +201,15 @@ class ReleaseOverview extends AsyncView<Props> {
               `p75(${WebVital.FID})`,
               `p75(${WebVital.LCP})`,
               `p75(${WebVital.CLS})`,
-              'spans.http',
-              'spans.browser',
-              'spans.resource',
+              'p75(spans.http)',
+              'p75(spans.browser)',
+              'p75(spans.resource)',
             ],
           }) as EventView)
         : performanceType === PROJECT_PERFORMANCE_TYPE.BACKEND
         ? (EventView.fromSavedQuery({
             ...baseQuery,
-            fields: [...baseQuery.fields, 'apdex_300', 'spans.http', 'spans.db'],
+            fields: [...baseQuery.fields, 'apdex()', 'p75(spans.http)', 'p75(spans.db)'],
           }) as EventView)
         : performanceType === PROJECT_PERFORMANCE_TYPE.MOBILE
         ? (EventView.fromSavedQuery({
@@ -246,8 +246,8 @@ class ReleaseOverview extends AsyncView<Props> {
       id: undefined,
       version: 2,
       name: 'All Releases',
-      query: '',
-      fields: ['user_misery(300)'],
+      query: 'event.type:transaction',
+      fields: ['user_misery()'],
       range: statsPeriod || undefined,
       environment: environments,
       projects: [projectId],
@@ -276,8 +276,8 @@ class ReleaseOverview extends AsyncView<Props> {
       id: undefined,
       version: 2,
       name: `Release:${version}`,
-      query: `release:${version}`,
-      fields: ['user_misery(300)'],
+      query: `event.type:transaction release:${version}`,
+      fields: ['user_misery()'],
       range: statsPeriod || undefined,
       environment: environments,
       projects: [projectId],
