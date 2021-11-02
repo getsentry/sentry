@@ -1,4 +1,6 @@
-from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Optional, Sequence, Union
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequence
 
 from django.urls import reverse
 
@@ -17,7 +19,7 @@ if TYPE_CHECKING:
 class AbstractInviteRequestNotification(OrganizationRequestNotification):
     entity_name = "member_id"
 
-    def __init__(self, pending_member: OrganizationMember, requester: "User"):
+    def __init__(self, pending_member: OrganizationMember, requester: User):
         super().__init__(pending_member.organization, requester)
         self.pending_member = pending_member
 
@@ -48,11 +50,11 @@ class AbstractInviteRequestNotification(OrganizationRequestNotification):
         )
         return members
 
-    def get_subject(self, context: Optional[Mapping[str, Any]] = None) -> str:
+    def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
         return f"Access request to {self.org_name}"
 
     def get_recipient_context(
-        self, recipient: Union["Team", "User"], extra_context: Mapping[str, Any]
+        self, recipient: Team | User, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
         context = super().get_recipient_context(recipient, extra_context)
         context["organization_name"] = self.org_name
@@ -85,9 +87,7 @@ class AbstractInviteRequestNotification(OrganizationRequestNotification):
             ),
         ]
 
-    def record_notification_sent(
-        self, recipient: Union["Team", "User"], provider: ExternalProviders
-    ) -> None:
+    def record_notification_sent(self, recipient: Team | User, provider: ExternalProviders) -> None:
         analytics.record(
             self.analytics_event,
             organization_id=self.organization.id,

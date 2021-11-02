@@ -1,4 +1,6 @@
-from typing import Any, Dict, Mapping, Union
+from __future__ import annotations
+
+from typing import Any, Mapping
 
 from django.urls import reverse
 from requests import post
@@ -89,7 +91,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
     def api_error(
         self,
         slack_request: SlackActionRequest,
-        group: Union[Group, None],
+        group: Group | None,
         identity: Identity,
         error: ApiClient.ApiError,
         action_type: str,
@@ -218,7 +220,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
 
     @transaction_start("SlackActionEndpoint")
     def post(self, request: Request) -> Response:
-        logging_data: Dict[str, str] = {}
+        logging_data: dict[str, str] = {}
 
         try:
             slack_request = SlackActionRequest(request)
