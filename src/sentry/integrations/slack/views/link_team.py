@@ -21,7 +21,7 @@ from sentry.web.decorators import transaction_start
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
 
-from ..utils import is_valid_role, logger, send_confirmation
+from ..utils import is_valid_role, logger
 from . import build_linking_url as base_build_linking_url
 from . import never_cache, render_error_page
 
@@ -124,6 +124,7 @@ class SlackLinkTeamView(BaseView):  # type: ignore
         if not Identity.objects.filter(idp=idp, external_id=params["slack_id"]).exists():
             return render_error_page(request, body_text="HTTP 403: User identity does not exist")
 
+        install = integration.get_installation(team.organization.id)
         external_team, created = ExternalActor.objects.get_or_create(
             actor_id=team.actor_id,
             organization=team.organization,
@@ -136,13 +137,17 @@ class SlackLinkTeamView(BaseView):  # type: ignore
         )
 
         if not created:
-            return send_confirmation(
-                integration,
-                channel_id,
-                ALREADY_LINKED_TITLE,
-                ALREADY_LINKED_MESSAGE.format(slug=team.slug),
+            message = ALREADY_LINKED_MESSAGE.format(slug=team.slug)
+            install.send_message(channel_id=channel_id, message=message)
+            return render_to_response(
                 "sentry/integrations/slack/post-linked-team.html",
-                request,
+                request=request,
+                context={
+                    "heading_text": ALREADY_LINKED_TITLE,
+                    "body_text": message,
+                    "channel_id": channel_id,
+                    "team_id": integration.external_id,
+                },
             )
 
         # Turn on notifications for all of a team's projects.
@@ -152,11 +157,15 @@ class SlackLinkTeamView(BaseView):  # type: ignore
             NotificationSettingOptionValues.ALWAYS,
             team=team,
         )
-        return send_confirmation(
-            integration,
-            channel_id,
-            SUCCESS_LINKED_TITLE,
-            SUCCESS_LINKED_MESSAGE.format(slug=team.slug, channel_name=channel_name),
+        message = SUCCESS_LINKED_MESSAGE.format(slug=team.slug, channel_name=channel_name)
+        install.send_message(channel_id=channel_id, message=message)
+        return render_to_response(
             "sentry/integrations/slack/post-linked-team.html",
-            request,
+            request=request,
+            context={
+                "heading_text": SUCCESS_LINKED_TITLE,
+                "body_text": message,
+                "channel_id": channel_id,
+                "team_id": integration.external_id,
+            },
         )

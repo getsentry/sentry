@@ -8,7 +8,6 @@ __all__ = (
     "get_channel_id_with_timeout",
     "is_valid_role",
     "logger",
-    "send_confirmation",
     "send_incident_alert_notification",
     "send_slack_response",
     "strip_channel_name",
@@ -30,7 +29,6 @@ from .channel import (
 )
 from .notifications import (
     build_notification_footer,
-    send_confirmation,
     send_incident_alert_notification,
     send_slack_response,
 )
