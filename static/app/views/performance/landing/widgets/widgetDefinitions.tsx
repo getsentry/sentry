@@ -118,7 +118,7 @@ export const WIDGET_DEFINITIONS: ({
   },
   [PerformanceWidgetSetting.P75_DURATION_AREA]: {
     title: t('p75 Duration'),
-    titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.P50),
+    titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.P75),
     fields: ['p75(transaction.duration)'], // TODO(k-fish): Check
     dataType: GenericPerformanceWidgetDataType.area,
     chartColor: WIDGET_PALETTE[3],
