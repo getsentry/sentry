@@ -38,7 +38,7 @@ type LoadingStatus = {
    * Whether there was an error retrieving data
    */
   errored: boolean;
-  errorMessage: null | string;
+  errorMessage?: string;
 };
 
 export type RenderProps = LoadingStatus &
@@ -187,7 +187,7 @@ export type EventsRequestProps = DefaultProps &
 type EventsRequestState = {
   reloading: boolean;
   errored: boolean;
-  errorMessage: null | string;
+  errorMessage?: string;
   timeseriesData: null | EventsStats | MultiSeriesEventsStats;
   fetchedWithPrevious: boolean;
 };
@@ -212,7 +212,6 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
   state: EventsRequestState = {
     reloading: !!this.props.loading,
     errored: false,
-    errorMessage: null,
     timeseriesData: null,
     fetchedWithPrevious: false,
   };
@@ -245,7 +244,6 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
     this.setState(state => ({
       reloading: state.timeseriesData !== null,
       errored: false,
-      errorMessage: null,
     }));
 
     let errorMessage;
