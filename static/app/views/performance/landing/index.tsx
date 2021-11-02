@@ -4,7 +4,6 @@ import {Location} from 'history';
 
 import Button from 'app/components/button';
 import SearchBar from 'app/components/events/searchBar';
-import FeatureBadge from 'app/components/featureBadge';
 import GlobalSdkUpdateAlert from 'app/components/globalSdkUpdateAlert';
 import * as Layout from 'app/components/layouts/thirds';
 import NavTabs from 'app/components/navTabs';
@@ -101,14 +100,13 @@ function _PerformanceLanding(props: Props) {
         </Layout.HeaderActions>
 
         <StyledNavTabs>
-          {shownLandingDisplays.map(({badge, label, field}) => (
+          {shownLandingDisplays.map(({label, field}) => (
             <li
               key={label}
               className={currentLandingDisplay.field === field ? 'active' : ''}
             >
               <a href="#" onClick={() => handleLandingDisplayChange(field, location)}>
                 {t(label)}
-                {badge && <FeatureBadge type={badge} />}
               </a>
             </li>
           ))}
