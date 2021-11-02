@@ -1205,7 +1205,7 @@ class ResolveFieldListTest(unittest.TestCase):
         fields = ["message"]
         with pytest.raises(InvalidSearchQuery) as err:
             resolve_field_list(fields, eventstore.Filter(orderby="timestamp"))
-        assert "Cannot order" in str(err)
+        assert "Cannot sort" in str(err)
 
     def test_orderby_basic_field(self):
         fields = ["message"]
