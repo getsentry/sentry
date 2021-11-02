@@ -120,7 +120,7 @@ class AccountIdentities extends AsyncView<Props, State> {
   }
 
   handleDisconnect = (identity: UserIdentityConfig) => {
-    disconnectIdentity(identity, this.reloadData);
+    disconnectIdentity(identity, () => this.reloadData());
   };
 
   itemOrder = (a: UserIdentityConfig, b: UserIdentityConfig) => {

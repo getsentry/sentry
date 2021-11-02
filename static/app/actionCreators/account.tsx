@@ -16,10 +16,16 @@ export async function disconnectIdentity(
         method: 'DELETE',
       }
     );
-    addSuccessMessage(`Disconnected ${identity.provider.name}`);
-    onSuccess();
   } catch {
     addErrorMessage('Error disconnecting identity');
+    return;
+  }
+
+  addSuccessMessage(`Disconnected ${identity.provider.name}`);
+  try {
+    onSuccess();
+  } catch {
+    addErrorMessage('Error: Please refresh');
   }
 }
 
