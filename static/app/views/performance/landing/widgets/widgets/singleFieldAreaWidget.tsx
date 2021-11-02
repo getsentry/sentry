@@ -51,6 +51,7 @@ export function SingleFieldAreaWidget(props: Props) {
             includeTransformedData
             partial
             currentSeriesName={props.fields[0]}
+            eventView={props.eventView}
             query={props.eventView.getQueryWithAdditionalConditions()}
           />
         ),
