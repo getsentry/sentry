@@ -12,12 +12,14 @@ NOTIFICATION_SETTINGS_ALL_SOMETIMES = {
     NotificationSettingTypes.DEPLOY: NotificationSettingOptionValues.COMMITTED_ONLY,
     NotificationSettingTypes.ISSUE_ALERTS: NotificationSettingOptionValues.ALWAYS,
     NotificationSettingTypes.WORKFLOW: NotificationSettingOptionValues.SUBSCRIBE_ONLY,
+    NotificationSettingTypes.APPROVAL: NotificationSettingOptionValues.ALWAYS,
 }
 
 NOTIFICATION_SETTINGS_ALL_NEVER = {
     NotificationSettingTypes.DEPLOY: NotificationSettingOptionValues.NEVER,
     NotificationSettingTypes.ISSUE_ALERTS: NotificationSettingOptionValues.NEVER,
     NotificationSettingTypes.WORKFLOW: NotificationSettingOptionValues.NEVER,
+    NotificationSettingTypes.APPROVAL: NotificationSettingOptionValues.NEVER,
 }
 
 NOTIFICATION_SETTING_DEFAULTS = {

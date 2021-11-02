@@ -168,7 +168,7 @@ class AccountNotificationFineTuning extends AsyncView<Props, State> {
     const {params} = this.props;
     const {fineTuneType} = params;
 
-    if (['alerts', 'deploy', 'workflow'].includes(fineTuneType)) {
+    if (['alerts', 'deploy', 'workflow', 'approval'].includes(fineTuneType)) {
       return <NotificationSettingsByType notificationType={fineTuneType} />;
     }
 

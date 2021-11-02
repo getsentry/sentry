@@ -56,6 +56,16 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, NotificationSettingFiel
       ['email+slack', t('Send to Email and Slack')],
     ],
   },
+  approval: {
+    name: 'approval',
+    type: 'select',
+    label: t('Approvals'),
+    choices: [
+      ['always', t('On')],
+      ['never', t('Off')],
+    ],
+    help: t('Notifications from teammates that require review or approval.'),
+  },
   reports: {
     name: 'weekly reports',
     type: 'blank',
