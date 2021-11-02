@@ -341,7 +341,7 @@ class WidgetQueries extends React.Component<Props, State> {
     });
 
     let completed = 0;
-    promises.forEach(async (promise, i) => {
+    promises.forEach(async (promise, requestIndex) => {
       try {
         const rawResults = await promise;
         if (!this._isMounted) {
@@ -353,12 +353,19 @@ class WidgetQueries extends React.Component<Props, State> {
             return prevState;
           }
 
-          const timeseriesResults = (prevState.timeseriesResults ?? []).concat(
-            transformResult(widget.queries[i], rawResults)
+          const timeseriesResults = [...(prevState.timeseriesResults ?? [])];
+          const transformedResult = transformResult(
+            widget.queries[requestIndex],
+            rawResults
           );
+          // We insert at a specific index instead of just pushing to timeseriesResults since we need to preserve the order of results because order determines color
+          transformedResult.forEach((result, resultIndex) => {
+            timeseriesResults[requestIndex * transformedResult.length + resultIndex] =
+              result;
+          });
 
           const rawResultsClone = cloneDeep(prevState.rawResults ?? []);
-          rawResultsClone[i] = rawResults;
+          rawResultsClone[requestIndex] = rawResults;
 
           return {
             ...prevState,
