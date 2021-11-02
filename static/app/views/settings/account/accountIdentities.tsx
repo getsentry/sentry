@@ -158,7 +158,9 @@ class AccountIdentities extends AsyncView<Props, State> {
           <PanelBody>
             {!appIdentities?.length ? (
               <EmptyMessage>
-                {t('There are no application identities associated with this account')}
+                {t(
+                  'There are no application identities associated with your Sentry account'
+                )}
               </EmptyMessage>
             ) : (
               appIdentities.map(this.renderItem)
@@ -171,7 +173,9 @@ class AccountIdentities extends AsyncView<Props, State> {
           <PanelBody>
             {!orgIdentities?.length ? (
               <EmptyMessage>
-                {t('There are no organization identities associated with this account')}
+                {t(
+                  'There are no organization identities associated with your Sentry account'
+                )}
               </EmptyMessage>
             ) : (
               orgIdentities.map(this.renderItem)
