@@ -52,6 +52,7 @@ export enum PERFORMANCE_TERM {
   STALL_PERCENTAGE = 'stallPercentage',
   MOST_ISSUES = 'mostIssues',
   MOST_ERRORS = 'mostErrors',
+  SLOW_HTTP_SPANS = 'slowHTTPSpans',
 }
 
 export type TooltipOption = SelectValue<string> & {
@@ -361,6 +362,7 @@ export const PERFORMANCE_TERMS: Record<PERFORMANCE_TERM, TermFormatter> = {
   frozenFrames: () => t('The count of the number of frozen frames in the transaction.'),
   mostErrors: () => t('Transactions with the most associated errors.'),
   mostIssues: () => t('The most instances of an issue for a related transaction.'),
+  slowHTTPSpans: () => t('The transactions with the slowest spans of a certain type.'),
   stallPercentage: () =>
     t(
       'The percentage of the transaction duration in which the application is in a stalled state.'

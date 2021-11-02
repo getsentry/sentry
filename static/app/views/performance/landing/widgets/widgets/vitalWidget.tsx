@@ -57,7 +57,7 @@ export function VitalWidget(props: Props) {
       () => ({
         fields: props.fields[0],
         component: provided => {
-          const _eventView = provided.eventView.clone();
+          const _eventView = props.eventView.clone();
 
           const fieldFromProps = props.fields.map(field => ({
             field,
@@ -73,7 +73,14 @@ export function VitalWidget(props: Props) {
           ];
           const mutableSearch = new MutableSearch(_eventView.query);
           _eventView.query = mutableSearch.formatString();
-          return <DiscoverQuery {...provided} eventView={_eventView} limit={3} />;
+          return (
+            <DiscoverQuery
+              {...provided}
+              eventView={_eventView}
+              location={props.location}
+              limit={3}
+            />
+          );
         },
         transform: transformDiscoverToList,
       }),

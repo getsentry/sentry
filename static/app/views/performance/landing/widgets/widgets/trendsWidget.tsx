@@ -86,7 +86,7 @@ export function TrendsWidget(props: Props) {
         transform: transformTrendsDiscover,
       },
     };
-  }, [_eventView, trendChangeType]);
+  }, [eventView.query, eventView.fields, trendChangeType]);
 
   return (
     <GenericPerformanceWidget<TrendsWidgetDataType>

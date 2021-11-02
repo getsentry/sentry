@@ -51,13 +51,14 @@ export function SingleFieldAreaWidget(props: Props) {
             includeTransformedData
             partial
             currentSeriesName={props.fields[0]}
+            eventView={props.eventView}
             query={props.eventView.getQueryWithAdditionalConditions()}
           />
         ),
         transform: transformEventsRequestToArea,
       },
     };
-  }, [props.eventView, props.fields, props.organization.slug]);
+  }, [props.eventView.query, props.fields[0], props.organization.slug]);
 
   return (
     <GenericPerformanceWidget<AreaDataType>
