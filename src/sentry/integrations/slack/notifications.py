@@ -18,7 +18,7 @@ logger = logging.getLogger("sentry.notifications")
 SLACK_TIMEOUT = 5
 
 
-class SlackNotifyBasicMixin(NotifyBasicMixin):
+class SlackNotifyBasicMixin(NotifyBasicMixin):  # type: ignore
     def send_message(self, channel_id: str, message: str) -> None:
         client = SlackClient()
         token = self.metadata.get("user_access_token") or self.metadata["access_token"]
@@ -36,7 +36,7 @@ class SlackNotifyBasicMixin(NotifyBasicMixin):
                 logger.error("slack.slash-notify.response-error", extra={"error": message})
         return
 
-    def notify_remove_external_team(self, external_team: ExternalActor, team: Team):
+    def notify_remove_external_team(self, external_team: ExternalActor, team: Team) -> None:
         self.send_message(
             channel_id=external_team.external_id,
             message=SUCCESS_UNLINKED_MESSAGE.format(team=team.slug),

@@ -19,10 +19,12 @@ from sentry.db.models.manager import M
 from sentry.exceptions import InvalidIdentity
 from sentry.models import (
     AuditLogEntryEvent,
+    ExternalActor,
     Identity,
     Integration,
     Organization,
     OrganizationIntegration,
+    Team,
 )
 from sentry.pipeline import PipelineProvider
 from sentry.shared_integrations.constants import (
@@ -390,8 +392,8 @@ class IntegrationInstallation:
 
     # NotifyBasicMixin noops
 
-    def notify_remove_external_team(self, *args, **kwargs):
+    def notify_remove_external_team(self, external_team: ExternalActor, team: Team) -> None:
         pass
 
-    def remove_notification_settings(self, *args, **kwargs):
+    def remove_notification_settings(self, actor_id: int, provider: str) -> None:
         pass
