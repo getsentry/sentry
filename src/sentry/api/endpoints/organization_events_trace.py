@@ -209,7 +209,7 @@ def query_trace_data(
 ) -> Tuple[Sequence[SnubaTransaction], Sequence[SnubaError]]:
     if use_snql:
         transaction_query = QueryBuilder(
-            Dataset.Discover,
+            Dataset.Transactions,
             params,
             query=f"trace:{trace_id}",
             selected_columns=[
