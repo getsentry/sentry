@@ -29,16 +29,19 @@ function createProvider(contextDefs: Record<string, any>) {
 function makeAllTheProviders({context, organization}: ProviderOptions) {
   return function ({children}: {children?: React.ReactNode}) {
     const ContextProvider = context ? createProvider(context) : Fragment;
+
     return (
       <ContextProvider>
         <CacheProvider value={cache}>
-          {organization ? (
-            <OrganizationContext.Provider value={organization}>
-              <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>
-            </OrganizationContext.Provider>
-          ) : (
-            <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>
-          )}
+          <ThemeProvider theme={lightTheme}>
+            {organization ? (
+              <OrganizationContext.Provider value={organization}>
+                {children}
+              </OrganizationContext.Provider>
+            ) : (
+              children
+            )}
+          </ThemeProvider>
         </CacheProvider>
       </ContextProvider>
     );
