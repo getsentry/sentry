@@ -297,7 +297,7 @@ export function PerformanceDuration(props: PerformanceDurationProps) {
     <Duration
       abbreviation={props.abbreviation}
       seconds={normalizedSeconds}
-      fixedDigits={normalizedSeconds > 1 ? 2 : 0}
+      fixedDigits={2}
     />
   );
 }

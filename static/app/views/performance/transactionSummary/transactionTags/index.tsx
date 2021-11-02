@@ -50,6 +50,10 @@ function getDocumentTitle(transactionName: string): string {
 function generateEventView(location: Location, transactionName: string): EventView {
   const query = decodeScalar(location.query.query, '');
   const conditions = new MutableSearch(query);
+  conditions
+    .setFilterValues('event.type', ['transaction'])
+    .setFilterValues('transaction', [transactionName]);
+
   const eventView = EventView.fromNewQueryWithLocation(
     {
       id: undefined,
@@ -62,8 +66,6 @@ function generateEventView(location: Location, transactionName: string): EventVi
     location
   );
 
-  eventView.additionalConditions.setFilterValues('event.type', ['transaction']);
-  eventView.additionalConditions.setFilterValues('transaction', [transactionName]);
   return eventView;
 }
 

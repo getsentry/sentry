@@ -5,7 +5,6 @@ import {Location} from 'history';
 
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import SearchBar from 'app/components/events/searchBar';
-import FeatureBadge from 'app/components/featureBadge';
 import * as TeamKeyTransactionManager from 'app/components/performance/teamKeyTransactionsManager';
 import {MAX_QUERY_LENGTH} from 'app/constants';
 import {t} from 'app/locale';
@@ -296,7 +295,7 @@ class LandingContent extends Component<Props, State> {
           >
             {LANDING_DISPLAYS.filter(
               ({isShown}) => !isShown || isShown(organization)
-            ).map(({badge, label, field}) => (
+            ).map(({label, field}) => (
               <DropdownItem
                 key={field}
                 onSelect={this.handleLandingDisplayChange}
@@ -305,7 +304,6 @@ class LandingContent extends Component<Props, State> {
                 isActive={field === currentLandingDisplay.field}
               >
                 {label}
-                {badge && <FeatureBadge type={badge} noTooltip />}
               </DropdownItem>
             ))}
           </DropdownControl>
