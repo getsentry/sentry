@@ -1,4 +1,4 @@
-from typing import List, Mapping, Optional, Set
+from typing import Dict, List, Mapping, Optional, Set
 
 from django.utils.functional import cached_property
 from snuba_sdk.aliased_expression import AliasedExpression
@@ -18,14 +18,17 @@ class QueryBase:
         params: ParamsType,
         auto_fields: bool = False,
         functions_acl: Optional[List[str]] = None,
+        equation_config: Optional[Dict[str, bool]] = None,
     ):
         self.dataset = dataset
         self.params = params
         self.auto_fields = auto_fields
         self.functions_acl = set() if functions_acl is None else functions_acl
+        self.equation_config = equation_config if equation_config is not None else {}
 
         # Function is a subclass of CurriedFunction
         self.where: List[WhereType] = []
+        # The list of aggregates to be selected
         self.aggregates: List[CurriedFunction] = []
         self.columns: List[SelectType] = []
         self.orderby: List[OrderBy] = []

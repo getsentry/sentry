@@ -67,6 +67,7 @@ class OrganizationEventsSpansPerformanceEndpoint(OrganizationEventsEndpointBase)
             return Response(status=404)
 
         query = request.GET.get("query")
+        span_ops = request.GET.getlist("spanOp")
 
         direction, orderby_column = self.get_orderby_column(request)
 
@@ -75,7 +76,7 @@ class OrganizationEventsSpansPerformanceEndpoint(OrganizationEventsEndpointBase)
                 SPAN_PERFORMANCE_COLUMNS[orderby_column].suspect_op_group_column
             )
             orderby = direction + alias
-            suspects = query_suspect_span_groups(params, query, orderby, limit, offset)
+            suspects = query_suspect_span_groups(params, query, span_ops, orderby, limit, offset)
 
             alias = get_function_alias(
                 SPAN_PERFORMANCE_COLUMNS[orderby_column].suspect_example_column
@@ -114,8 +115,6 @@ class OrganizationEventsSpansPerformanceEndpoint(OrganizationEventsEndpointBase)
                 default_per_page=4,
                 max_per_page=4,
             )
-
-        return Response(status=200)
 
     def get_orderby_column(self, request: Request) -> Tuple[str, str]:
         orderbys = super().get_orderby(request)
@@ -193,7 +192,7 @@ class SuspectSpan:
             "project": self.project,
             "transaction": self.transaction,
             "op": self.op,
-            "group": self.group,
+            "group": self.group.rjust(16, "0"),
             "frequency": self.frequency,
             "count": self.count,
             "sumExclusiveTime": self.sum_exclusive_time,
@@ -219,6 +218,7 @@ class SuspectSpanWithExamples(SuspectSpan):
 def query_suspect_span_groups(
     params: ParamsType,
     query: Optional[str],
+    span_ops: Optional[List[str]],
     order_column: str,
     limit: int,
     offset: int,
@@ -243,6 +243,17 @@ def query_suspect_span_groups(
         offset=offset,
         functions_acl=["array_join", "sumArray", "percentileArray", "maxArray"],
     )
+
+    if span_ops:
+        builder.add_conditions(
+            [
+                Condition(
+                    builder.resolve_function("array_join(spans_op)"),
+                    Op.IN,
+                    Function("tuple", span_ops),
+                ),
+            ]
+        )
 
     snql_query = builder.get_snql_query()
     results = raw_snql_query(snql_query, "api.organization-events-spans-performance-suspects")
@@ -271,7 +282,7 @@ def query_example_transactions(
     query: Optional[str],
     order_column: str,
     suspects: List[SuspectSpan],
-    per_suspect: int = 3,
+    per_suspect: int = 5,
 ) -> Dict[Tuple[str, str], List[str]]:
     # there aren't any suspects, early return to save an empty query
     if not suspects:
@@ -288,8 +299,6 @@ def query_example_transactions(
         ],
         query=query,
         orderby=get_function_alias(order_column),
-        auto_aggregations=True,
-        use_aggregate_conditions=True,
         # we want only `per_suspect` examples for each suspect
         limit=len(suspects) * per_suspect,
         functions_acl=["array_join", "sumArray", "percentileArray", "maxArray"],
@@ -342,6 +351,7 @@ def get_example_transaction(
     span_op: str,
     span_group: str,
 ) -> ExampleTransaction:
+    span_group_id = int(span_group, 16)
     event = eventstore.get_event_by_id(project_id, transaction_id)
     data = event.data
 
@@ -361,7 +371,7 @@ def get_example_transaction(
     matching_spans = [
         span
         for span in chain([root_span], data.get("spans", []))
-        if span["op"] == span_op and span["hash"] == span_group
+        if span["op"] == span_op and int(span["hash"], 16) == span_group_id
     ]
 
     # get the first non-None description

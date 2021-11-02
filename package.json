@@ -188,6 +188,7 @@
     "fsevents": "^2.3.2"
   },
   "resolutions": {
+    "**/ua-parser-js": "<=0.7.28",
     "**/is-svg": ">=4.2.2",
     "webpack": "5.48.0",
     "css-loader": "^5.2.6",

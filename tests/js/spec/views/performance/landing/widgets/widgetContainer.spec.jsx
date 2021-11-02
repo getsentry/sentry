@@ -1,24 +1,28 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeData} from 'sentry-test/performance/initializePerformanceData';
 
+import {PerformanceDisplayProvider} from 'app/utils/performance/contexts/performanceDisplayContext';
 import {OrganizationContext} from 'app/views/organizationContext';
 import WidgetContainer from 'app/views/performance/landing/widgets/components/widgetContainer';
 import {PerformanceWidgetSetting} from 'app/views/performance/landing/widgets/widgetDefinitions';
+import {PROJECT_PERFORMANCE_TYPE} from 'app/views/performance/utils';
 
 const WrappedComponent = ({data, ...rest}) => {
   return (
-    <OrganizationContext.Provider value={data.organization}>
-      <WidgetContainer
-        {...data}
-        {...rest}
-        allowedCharts={[
-          PerformanceWidgetSetting.TPM_AREA,
-          PerformanceWidgetSetting.FAILURE_RATE_AREA,
-          PerformanceWidgetSetting.USER_MISERY_AREA,
-        ]}
-        forceDefaultChartSetting
-      />
-    </OrganizationContext.Provider>
+    <PerformanceDisplayProvider value={{performanceType: PROJECT_PERFORMANCE_TYPE.ANY}}>
+      <OrganizationContext.Provider value={data.organization}>
+        <WidgetContainer
+          {...data}
+          {...rest}
+          allowedCharts={[
+            PerformanceWidgetSetting.TPM_AREA,
+            PerformanceWidgetSetting.FAILURE_RATE_AREA,
+            PerformanceWidgetSetting.USER_MISERY_AREA,
+          ]}
+          forceDefaultChartSetting
+        />
+      </OrganizationContext.Provider>
+    </PerformanceDisplayProvider>
   );
 };
 
@@ -144,6 +148,90 @@ describe('Performance > Widgets > WidgetContainer', function () {
         }),
       })
     );
+  });
+
+  it('Worst LCP widget', async function () {
+    const data = initializeData();
+
+    const wrapper = mountWithTheme(
+      <WrappedComponent
+        data={data}
+        defaultChartSetting={PerformanceWidgetSetting.WORST_LCP_VITALS}
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+      'Worst LCP Web Vitals'
+    );
+    expect(wrapper.find('a[data-test-id="view-all-button"]').text()).toEqual('View All');
+    expect(eventsV2Mock).toHaveBeenCalledTimes(1);
+    expect(eventsV2Mock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: [],
+          field: [
+            'transaction',
+            'title',
+            'project.id',
+            'count_if(measurements.lcp,greaterOrEquals,4000)',
+            'count_if(measurements.lcp,greaterOrEquals,2500)',
+            'count_if(measurements.lcp,greaterOrEquals,0)',
+            'equation|count_if(measurements.lcp,greaterOrEquals,2500) - count_if(measurements.lcp,greaterOrEquals,4000)',
+            'equation|count_if(measurements.lcp,greaterOrEquals,0) - count_if(measurements.lcp,greaterOrEquals,2500)',
+          ],
+          per_page: 3,
+          project: [],
+          query: '',
+          sort: '-count_if(measurements.lcp,greaterOrEquals,4000)',
+          statsPeriod: '14d',
+        }),
+      })
+    );
+  });
+
+  it('LCP Histogram Widget', async function () {
+    const data = initializeData();
+
+    const wrapper = mountWithTheme(
+      <WrappedComponent
+        data={data}
+        defaultChartSetting={PerformanceWidgetSetting.LCP_HISTOGRAM}
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+      'LCP Distribution'
+    );
+
+    // TODO(k-fish): Add histogram mock
+  });
+
+  it('FCP Histogram Widget', async function () {
+    const data = initializeData();
+
+    const wrapper = mountWithTheme(
+      <WrappedComponent
+        data={data}
+        defaultChartSetting={PerformanceWidgetSetting.FCP_HISTOGRAM}
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+      'FCP Distribution'
+    );
+
+    // TODO(k-fish): Add histogram mock
   });
 
   it('Most errors widget', async function () {

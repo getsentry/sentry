@@ -1,5 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {act} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'app/stores/projectsStore';
 import ReleasesList from 'app/views/releases/list/';
@@ -34,7 +35,7 @@ describe('ReleasesList', function () {
   let wrapper, endpointMock, sessionApiMock;
 
   beforeEach(async function () {
-    ProjectsStore.loadInitialData(organization.projects);
+    act(() => ProjectsStore.loadInitialData(organization.projects));
     endpointMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
       body: [
@@ -71,7 +72,7 @@ describe('ReleasesList', function () {
 
   afterEach(function () {
     wrapper.unmount();
-    ProjectsStore.reset();
+    act(() => ProjectsStore.reset());
     MockApiClient.clearMockResponses();
   });
 

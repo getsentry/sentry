@@ -8,7 +8,6 @@ import {openAddDashboardWidgetModal} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
-import {parseArithmetic} from 'app/components/arithmeticInput/parser';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Banner from 'app/components/banner';
 import Button from 'app/components/button';
@@ -24,14 +23,19 @@ import {Organization, Project, SavedQuery} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'app/utils/discover/eventView';
-import {getEquation, isEquation} from 'app/utils/discover/fields';
+import {DisplayModes} from 'app/utils/discover/types';
 import {getDiscoverLandingUrl} from 'app/utils/discover/urls';
 import withApi from 'app/utils/withApi';
 import withProjects from 'app/utils/withProjects';
 import {WidgetQuery} from 'app/views/dashboardsV2/types';
 import InputControl from 'app/views/settings/components/forms/controls/input';
 
-import {handleCreateQuery, handleDeleteQuery, handleUpdateQuery} from './utils';
+import {
+  displayModeToDisplayType,
+  handleCreateQuery,
+  handleDeleteQuery,
+  handleUpdateQuery,
+} from './utils';
 
 type DefaultProps = {
   disabled: boolean;
@@ -228,24 +232,12 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
 
   handleAddDashboardWidget = () => {
     const {organization, eventView, savedQuery, yAxis} = this.props;
-    // If a Y-Axis value is an equation, we need to check if functions used in the equation also exist in the Y-Axis list
-    const validYAxis = yAxis.filter(field => {
-      if (isEquation(field)) {
-        const parsed = parseArithmetic(getEquation(field));
-        return (
-          !parsed.error &&
-          parsed.tc.functions.every(
-            ({term}) => typeof term === 'string' && yAxis.includes(term)
-          )
-        );
-      }
-      return true;
-    });
+    const sort = eventView.sorts[0];
     const defaultWidgetQuery: WidgetQuery = {
       name: '',
-      fields: validYAxis && validYAxis.length > 0 ? validYAxis : ['count()'],
+      fields: yAxis && yAxis.length > 0 ? yAxis : ['count()'],
       conditions: eventView.query,
-      orderby: '',
+      orderby: sort ? `${sort.kind === 'desc' ? '-' : ''}${sort.field}` : '',
     };
 
     trackAdvancedAnalyticsEvent('discover_views.add_to_dashboard.modal_open', {
@@ -261,6 +253,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
       defaultTitle:
         savedQuery?.name ??
         (eventView.name !== 'All Events' ? eventView.name : undefined),
+      displayType: displayModeToDisplayType(eventView.display as DisplayModes),
     });
   };
 
@@ -384,7 +377,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
         key="add-dashboard-widget-from-discover"
         onClick={this.handleAddDashboardWidget}
       >
-        {t('Add to Dashboard')} <StyledFeatureBadge type="beta" noTooltip />
+        {t('Add to Dashboard')} <StyledFeatureBadge type="new" noTooltip />
       </AddToDashboardButton>
     );
   }

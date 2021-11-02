@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from urllib.parse import urlparse
 
 from django import forms
@@ -14,6 +16,7 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.repositories import RepositoryMixin
+from sentry.models import Repository
 from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.hashlib import sha1_text
@@ -110,7 +113,7 @@ class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic, RepositoryMix
         resp = self.get_client().search_group_projects(group, query)
         return [{"identifier": repo["id"], "name": repo["name_with_namespace"]} for repo in resp]
 
-    def format_source_url(self, repo, filepath, branch):
+    def format_source_url(self, repo: Repository, filepath: str, branch: str) -> str:
         base_url = self.model.metadata["base_url"]
         repo_name = repo.config["path"]
 
@@ -248,11 +251,11 @@ class InstallationGuideView(PipelineView):
         return render_to_response(
             template="sentry/integrations/gitlab-config.html",
             context={
-                "next_url": "%s%s"
-                % (absolute_uri("extensions/gitlab/setup/"), "?completed_installation_guide"),
+                "next_url": f'{absolute_uri("extensions/gitlab/setup/")}?completed_installation_guide',
                 "setup_values": [
                     {"label": "Name", "value": "Sentry"},
                     {"label": "Redirect URI", "value": absolute_uri("/extensions/gitlab/setup/")},
+                    {"label": "Expire access tokens", "value": "Unchecked"},
                     {"label": "Scopes", "value": "api"},
                 ],
             },

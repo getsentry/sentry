@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Callable, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
 from parsimonious.exceptions import ParseError
 from sentry_relay import parse_release as parse_release_relay
@@ -1045,8 +1045,9 @@ class QueryFilter(QueryFields):
         params: ParamsType,
         auto_fields: bool = False,
         functions_acl: Optional[List[str]] = None,
+        equation_config: Optional[Dict[str, bool]] = None,
     ):
-        super().__init__(dataset, params, auto_fields, functions_acl)
+        super().__init__(dataset, params, auto_fields, functions_acl, equation_config)
 
         self.search_filter_converter: Mapping[
             str, Callable[[SearchFilter], Optional[WhereType]]
@@ -1306,7 +1307,8 @@ class QueryFilter(QueryFields):
             operator = Op.IS_NULL if aggregate_filter.operator == "=" else Op.IS_NOT_NULL
             return Condition(name, operator)
 
-        function = self.resolve_function(name)
+        # When resolving functions in conditions we don't want to add them to the list of aggregates
+        function = self.resolve_function(name, resolve_only=True)
 
         return Condition(function, Op(aggregate_filter.operator), value)
 
@@ -1351,8 +1353,8 @@ class QueryFilter(QueryFields):
                 )
             elif name in ARRAY_FIELDS and search_filter.value.raw_value == "":
                 return Condition(
-                    Function("hasAny", [self.column(name), []]),
-                    Op.EQ if search_filter.operator == "=" else Op.NEQ,
+                    Function("notEmpty", [self.column(name)]),
+                    Op.EQ if search_filter.operator == "!=" else Op.NEQ,
                     1,
                 )
 
@@ -1459,24 +1461,17 @@ class QueryFilter(QueryFields):
             operator = Op.EQ if search_filter.operator == "=" else Op.NEQ
             return Condition(Function("equals", [self.column("message"), value]), operator, 1)
         else:
-            # https://clickhouse.yandex/docs/en/query_language/functions/string_search_functions/#position-haystack-needle
-            # positionCaseInsensitive returns 0 if not found and an index of 1 or more if found
-            # so we should flip the operator here
-            operator = Op.NEQ if search_filter.operator in EQUALITY_OPERATORS else Op.EQ
             if search_filter.is_in_filter:
                 return Condition(
-                    Function(
-                        "multiSearchFirstPositionCaseInsensitive",
-                        [self.column("message"), value],
-                    ),
-                    operator,
-                    0,
+                    self.column("message"),
+                    Op(search_filter.operator),
+                    value,
                 )
 
             # make message search case insensitive
             return Condition(
                 Function("positionCaseInsensitive", [self.column("message"), value]),
-                operator,
+                Op.NEQ if search_filter.operator in EQUALITY_OPERATORS else Op.EQ,
                 0,
             )
 

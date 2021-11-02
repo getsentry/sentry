@@ -4,7 +4,7 @@ import {
   fireEvent,
   mountWithTheme,
   screen,
-  waitFor,
+  waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
 import TeamMisery from 'app/views/organizationStats/teamInsights/teamMisery';
@@ -97,19 +97,17 @@ describe('TeamMisery', () => {
       {context: routerContext}
     );
 
-    await waitFor(() => {
-      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
-    });
+    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
     expect(weekMisery).toHaveBeenCalledTimes(1);
     expect(periodMisery).toHaveBeenCalledTimes(1);
 
     // Should have 8 items, the rest are collapsed.
-    expect(screen.getAllByText(project.slug)).toHaveLength(8);
+    expect(screen.getAllByText(project.slug)).toHaveLength(5);
 
     expect(screen.getByText('10% better')).toBeInTheDocument();
     expect(screen.getByText('25% worse')).toBeInTheDocument();
-    expect(screen.getAllByText('0% change')).toHaveLength(6);
+    expect(screen.getAllByText('0% change')).toHaveLength(3);
 
     expect(screen.getByText('More')).toBeInTheDocument();
     fireEvent.click(screen.getByText('More'));
@@ -128,10 +126,6 @@ describe('TeamMisery', () => {
       {context: routerContext}
     );
 
-    await waitFor(() => {
-      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
-    });
-
-    expect(screen.getByText('There are no items to display')).toBeTruthy();
+    expect(screen.getByText('There are no items to display')).toBeInTheDocument();
   });
 });

@@ -44,7 +44,7 @@ To create and manage these credentials, several API endpoints exist:
    returns the entire symbol source JSON config to be saved in project details.  See
    :class:`AppStoreConnectUpdateCredentialsEndpoint`.
 
-7. ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/validate/{id}/``
+7. ``GET projects/{org_slug}/{proj_slug}/appstoreconnect/validate/{id}/``
 
    Validate if an existing iTunes session is still active or if a new one needs to be
    initiated by steps 2-4.  See :class:`AppStoreConnectCredentialsValidateEndpoint`.
@@ -60,7 +60,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
-from sentry.api.bases.project import ProjectEndpoint, StrictProjectPermission
+from sentry.api.bases.project import ProjectEndpoint, ProjectPermission, StrictProjectPermission
 from sentry.api.exceptions import (
     AppConnectAuthenticationError,
     AppConnectMultipleSourcesError,
@@ -405,7 +405,7 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
 class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: ignore
     """Validates both API credentials and if the stored ITunes session is still active.
 
-    ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/validate/{id}/``
+    ``GET projects/{org_slug}/{proj_slug}/appstoreconnect/validate/{id}/``
 
     See :class:`AppStoreConnectCreateCredentialsEndpoint` aka
     ``projects/{org_slug}/{proj_slug}/appstoreconnect/`` for how to retrieve the ``id``.
@@ -414,7 +414,6 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
     ```json
     {
         "appstoreCredentialsValid": true,
-        "promptItunesSession": false,
         "pendingDownloads": 123,
         "latestBuildVersion: "9.8.7" | null,
         "latestBuildNumber": "987000" | null,
@@ -429,12 +428,9 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
 
     * ``lastCheckedBuilds`` is when sentry last checked for new builds, regardless
       of whether there were any or no builds in App Store Connect at the time.
-
-    * ``promptItunesSession`` indicates whether the user should be prompted to refresh the
-      iTunes session since we know we need to fetch more dSYMs.
     """
 
-    permission_classes = [StrictProjectPermission]
+    permission_classes = [ProjectPermission]
 
     def get(self, request: Request, project: Project, credentials_id: str) -> Response:
         try:
@@ -452,14 +448,6 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
 
         session = requests.Session()
         apps = appstore_connect.get_apps(session, credentials)
-
-        try:
-            itunes_client = itunes_connect.ITunesClient.from_session_cookie(
-                symbol_source_cfg.itunesSession
-            )
-            itunes_session_info = itunes_client.request_session_info()
-        except itunes_connect.SessionExpiredError:
-            itunes_session_info = None
 
         pending_downloads = AppConnectBuild.objects.filter(project=project, fetched=False).count()
 
@@ -493,7 +481,6 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
                 "latestBuildVersion": latestBuildVersion,
                 "latestBuildNumber": latestBuildNumber,
                 "lastCheckedBuilds": last_checked_builds,
-                "promptItunesSession": bool(pending_downloads and itunes_session_info is None),
             },
             status=200,
         )
@@ -563,7 +550,10 @@ class AppStoreConnectStartAuthEndpoint(ProjectEndpoint):  # type: ignore
         password = serializer.validated_data.get("itunesPassword")
         credentials_id = serializer.validated_data.get("id")
 
-        if credentials_id is not None:
+        no_new_password = not password or password == {"hidden-secret": True}
+        source_credentials_from_project = not user_name or no_new_password
+
+        if credentials_id is not None and source_credentials_from_project:
             try:
                 symbol_source_config = appconnect.AppStoreConnectConfig.from_project_config(
                     project, credentials_id
@@ -571,8 +561,8 @@ class AppStoreConnectStartAuthEndpoint(ProjectEndpoint):  # type: ignore
             except KeyError:
                 return Response("No credentials found.", status=400)
 
-            user_name = symbol_source_config.itunesUser
-            password = symbol_source_config.itunesPassword
+            user_name = symbol_source_config.itunesUser if not user_name else user_name
+            password = symbol_source_config.itunesPassword if no_new_password else password
 
         if user_name is None:
             return Response("No user name provided.", status=400)

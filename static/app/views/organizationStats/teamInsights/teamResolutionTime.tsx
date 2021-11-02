@@ -10,7 +10,7 @@ import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {getDuration} from 'app/utils/formatters';
 
-import {convertDaySeriesToWeeks} from './utils';
+import {barAxisLabel, convertDaySeriesToWeeks} from './utils';
 
 type TimeToResolution = Record<string, {count: number; avg: number}>;
 
@@ -90,9 +90,7 @@ class TeamResolutionTime extends AsyncComponent<Props, State> {
             },
           }}
           legend={{right: 0, top: 0}}
-          xAxis={{
-            type: 'time',
-          }}
+          xAxis={barAxisLabel(seriesData.length)}
           series={[
             {
               seriesName: t('Time to Resolution'),

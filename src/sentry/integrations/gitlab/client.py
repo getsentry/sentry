@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 from urllib.parse import quote
 
 from django.urls import reverse
 
 from sentry.integrations.client import ApiClient
+from sentry.models import Repository
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
 from sentry.utils.http import absolute_uri
 
@@ -252,7 +255,7 @@ class GitLabApiClient(ApiClient):
         path = GitLabApiClientPath.diff.format(project=project_id, sha=sha)
         return self.get(path)
 
-    def check_file(self, repo, path, ref):
+    def check_file(self, repo: Repository, path: str, ref: str) -> str | None:
         """Fetch a file for stacktrace linking
 
         See https://docs.gitlab.com/ee/api/repository_files.html#get-file-from-repository

@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 import logging
-from typing import Any, Iterable, Mapping, MutableMapping, Optional, Union
+from typing import Any, Iterable, Mapping, MutableMapping
 
 import pytz
 
 from sentry.models import Team, User, UserOption
-from sentry.notifications.notifications.base import BaseNotification
+from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import ActionTargetType
 from sentry.notifications.utils import (
     get_commits,
@@ -23,15 +25,16 @@ from sentry.utils import metrics
 logger = logging.getLogger(__name__)
 
 
-class AlertRuleNotification(BaseNotification):
+class AlertRuleNotification(ProjectNotification):
     fine_tuning_key = "alerts"
     is_message_issue_unfurl = True
+    metrics_key = "issue_alert"
 
     def __init__(
         self,
         notification: Notification,
         target_type: ActionTargetType,
-        target_identifier: Optional[int] = None,
+        target_identifier: int | None = None,
     ) -> None:
         event = notification.event
         group = event.group
@@ -43,7 +46,7 @@ class AlertRuleNotification(BaseNotification):
         self.target_identifier = target_identifier
         self.rules = notification.rules
 
-    def get_participants(self) -> Mapping[ExternalProviders, Iterable[Union["Team", "User"]]]:
+    def get_participants(self) -> Mapping[ExternalProviders, Iterable[Team | User]]:
         return get_send_to(
             project=self.project,
             target_type=self.target_type,
@@ -57,14 +60,14 @@ class AlertRuleNotification(BaseNotification):
     def get_category(self) -> str:
         return "issue_alert_email"
 
-    def get_subject(self, context: Optional[Mapping[str, Any]] = None) -> str:
+    def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
         return str(self.event.get_email_subject())
 
     def get_reference(self) -> Any:
         return self.group
 
     def get_recipient_context(
-        self, recipient: Union["Team", "User"], extra_context: Mapping[str, Any]
+        self, recipient: Team | User, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
         parent_context = super().get_recipient_context(recipient, extra_context)
         user_context = {"timezone": pytz.timezone("UTC"), **parent_context}

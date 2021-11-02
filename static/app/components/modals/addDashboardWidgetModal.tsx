@@ -27,7 +27,7 @@ import {
   TagCollection,
 } from 'app/types';
 import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
-import {Aggregation} from 'app/utils/discover/fields';
+import {Aggregation, parseFunction} from 'app/utils/discover/fields';
 import Measurements from 'app/utils/measurements/measurements';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
@@ -62,6 +62,7 @@ export type DashboardWidgetModalOptions = {
   defaultWidgetQuery?: WidgetQuery;
   defaultTableColumns?: readonly string[];
   defaultTitle?: string;
+  displayType?: DisplayType;
   fromDiscover?: boolean;
   start?: DateString;
   end?: DateString;
@@ -102,12 +103,11 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
 
-    const {widget, defaultWidgetQuery, defaultTitle, fromDiscover} = props;
-
+    const {widget, defaultWidgetQuery, defaultTitle, displayType, fromDiscover} = props;
     if (!widget) {
       this.state = {
         title: defaultTitle ?? '',
-        displayType: DisplayType.LINE,
+        displayType: displayType ?? DisplayType.LINE,
         interval: '5m',
         queries: [defaultWidgetQuery ? {...defaultWidgetQuery} : {...newQuery}],
         errors: undefined,
@@ -133,6 +133,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
   componentDidMount() {
     const {fromDiscover} = this.props;
     if (fromDiscover) this.fetchDashboards();
+    this.handleDefaultFields();
   }
 
   handleSubmit = async (event: React.FormEvent) => {
@@ -155,6 +156,12 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       'interval',
       'queries',
     ]);
+    // Only Table and Top N views need orderby
+    if (![DisplayType.TABLE, DisplayType.TOP_N].includes(widgetData.displayType)) {
+      widgetData.queries.forEach(query => {
+        query.orderby = '';
+      });
+    }
     try {
       await validateWidget(api, organization.slug, widgetData);
       if (typeof onUpdateWidget === 'function' && !!previousWidget) {
@@ -239,44 +246,60 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     }
   };
 
-  handleFieldChange = (field: string) => (value: string) => {
-    const {defaultWidgetQuery, defaultTableColumns, fromDiscover, organization} =
-      this.props;
+  handleDefaultFields = () => {
+    const {defaultWidgetQuery, defaultTableColumns} = this.props;
     this.setState(prevState => {
       const newState = cloneDeep(prevState);
-      set(newState, field, value);
+      const displayType = prevState.displayType as Widget['displayType'];
+      const normalized = normalizeQueries(displayType, prevState.queries);
 
-      if (field === 'displayType') {
-        const displayType = value as Widget['displayType'];
-        const normalized = normalizeQueries(displayType, prevState.queries);
-
-        // If switching to Table visualization, use saved query fields for Y-Axis if user has not made query changes
-        if (defaultWidgetQuery && defaultTableColumns && !prevState.userHasModified) {
-          if (displayType === DisplayType.TABLE) {
-            normalized.forEach(query => {
-              query.fields = [...defaultTableColumns];
-            });
-          } else {
-            normalized.forEach(query => {
-              query.fields = [...defaultWidgetQuery.fields];
-            });
-          }
-        }
-
-        set(newState, 'queries', normalized);
-
-        if (fromDiscover) {
-          trackAdvancedAnalyticsEvent('dashboards_views.add_widget_modal.change', {
-            from: 'discoverv2',
-            field,
-            value: displayType,
-            organization,
+      // If switching to Table visualization, use saved query fields for Y-Axis if user has not made query changes
+      if (defaultWidgetQuery && defaultTableColumns && !prevState.userHasModified) {
+        if (displayType === DisplayType.TABLE) {
+          normalized.forEach(query => {
+            query.fields = [...defaultTableColumns];
+          });
+        } else if (displayType === DisplayType.TOP_N) {
+          // Function columns not valid group bys for TOP_N display
+          const topNFields = [
+            ...defaultTableColumns.filter(column => !parseFunction(column)),
+            ...defaultWidgetQuery.fields,
+          ];
+          normalized.forEach(query => {
+            query.fields = [...topNFields];
+            query.orderby = defaultWidgetQuery.orderby;
+          });
+        } else {
+          normalized.forEach(query => {
+            query.fields = [...defaultWidgetQuery.fields];
           });
         }
       }
 
+      set(newState, 'queries', normalized);
       return {...newState, errors: undefined};
     });
+  };
+
+  handleFieldChange = (field: string) => (value: string) => {
+    const {fromDiscover, organization} = this.props;
+    this.setState(prevState => {
+      const newState = cloneDeep(prevState);
+      set(newState, field, value);
+
+      trackAdvancedAnalyticsEvent('dashboards_views.add_widget_modal.change', {
+        from: fromDiscover ? 'discoverv2' : 'dashboards',
+        field,
+        value,
+        organization,
+      });
+
+      return {...newState, errors: undefined};
+    });
+
+    if (field === 'displayType') {
+      this.handleDefaultFields();
+    }
   };
 
   handleQueryChange = (widgetQuery: WidgetQuery, index: number) => {

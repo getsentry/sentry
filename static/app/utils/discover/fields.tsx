@@ -402,7 +402,7 @@ export const AGGREGATIONS = {
     ],
     outputType: 'number',
     isSortable: true,
-    multiPlotType: 'area',
+    multiPlotType: 'line',
   },
   failure_rate: {
     parameters: [],

@@ -21,7 +21,7 @@ import {Field} from 'app/views/settings/components/forms/type';
 
 import {DynamicSamplingRules} from './dynamicSampling';
 import {Event} from './event';
-import {Mechanism, RawStacktrace, StacktraceType} from './stacktrace';
+import {RawStacktrace, StackTraceMechanism, StacktraceType} from './stacktrace';
 
 export enum SentryInitRenderReactComponent {
   INDICATORS = 'Indicators',
@@ -450,6 +450,7 @@ export type ProjectSdkUpdates = {
 };
 
 export type EventsStatsData = [number, {count: number; comparisonCount?: number}[]][];
+export type EventsGeoData = {'geo.country_code': string; count: number}[];
 
 // API response format for a single series
 export type EventsStats = {
@@ -2046,7 +2047,7 @@ export type ExceptionValue = {
   threadId: number | null;
   stacktrace: StacktraceType | null;
   rawStacktrace: RawStacktrace;
-  mechanism: Mechanism | null;
+  mechanism: StackTraceMechanism | null;
   module: string | null;
   frames: Frame[] | null;
 };

@@ -94,11 +94,14 @@ type HeaderActions<T> = FunctionComponent<{
   widgetData: T;
 }>;
 
+type Subtitle<T> = FunctionComponent<{
+  widgetData: T;
+}>;
+
 export type GenericPerformanceWidgetProps<T extends WidgetDataConstraint> = {
   // Header;
   title: string;
   titleTooltip: string;
-  subtitle?: JSX.Element;
 
   fields: string[];
   chartHeight: number;
@@ -109,6 +112,7 @@ export type GenericPerformanceWidgetProps<T extends WidgetDataConstraint> = {
   organization: Organization;
 
   // Components
+  Subtitle?: Subtitle<T>;
   HeaderActions?: HeaderActions<T>;
   EmptyComponent?: FunctionComponent<{height?: number}>;
 

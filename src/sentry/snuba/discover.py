@@ -6,12 +6,13 @@ from datetime import timedelta
 from typing import Dict, Optional, Sequence
 
 import sentry_sdk
+from dateutil.parser import parse as parse_datetime
 
 from sentry import options
 from sentry.discover.arithmetic import categorize_columns, resolve_equation_list
 from sentry.models import Group
 from sentry.models.transaction_threshold import ProjectTransactionThreshold
-from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.builder import QueryBuilder, TimeseriesQueryBuilder, TopEventsQueryBuilder
 from sentry.search.events.constants import CONFIGURABLE_AGGREGATES, DEFAULT_PROJECT_THRESHOLD
 from sentry.search.events.fields import (
     FIELD_ALIASES,
@@ -24,6 +25,7 @@ from sentry.search.events.fields import (
 from sentry.search.events.filter import get_filter
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 from sentry.utils.compat import filter
+from sentry.utils.dates import to_timestamp
 from sentry.utils.math import mean, nice_int
 from sentry.utils.snuba import (
     SNUBA_AND,
@@ -32,6 +34,7 @@ from sentry.utils.snuba import (
     SnubaQueryParams,
     SnubaTSResult,
     bulk_raw_query,
+    bulk_snql_query,
     get_array_column_alias,
     get_array_column_field,
     get_measurement_name,
@@ -106,6 +109,9 @@ def zerofill(data, start, end, rollup, orderby):
     data_by_time = {}
 
     for obj in data:
+        # This is needed for SnQL, and was originally done in utils.snuba.get_snuba_translators
+        if isinstance(obj["time"], str):
+            obj["time"] = int(to_timestamp(parse_datetime(obj["time"])))
         if obj["time"] in data_by_time:
             data_by_time[obj["time"]].append(obj)
         else:
@@ -467,6 +473,7 @@ def timeseries_query(
     referrer: Optional[str] = None,
     zerofill_results: bool = True,
     comparison_delta: Optional[timedelta] = None,
+    use_snql: Optional[bool] = False,
 ):
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -489,7 +496,76 @@ def timeseries_query(
     comparison_delta: A timedelta used to convert this into a comparison query. We make a second
     query time-shifted back by comparison_delta, and compare the results to get the % change for each
     time bucket. Requires that we only pass
+    use_snql (bool) Whether to directly build the query in snql, instead of using the older
+                    json construction
     """
+    sentry_sdk.set_tag("discover.use_snql", use_snql)
+    if use_snql:
+        with sentry_sdk.start_span(
+            op="discover.discover", description="timeseries.filter_transform"
+        ) as span:
+            # temporarily add snql to referrer
+            referrer = f"{referrer}.wip-snql"
+            equations, columns = categorize_columns(selected_columns)
+            base_builder = TimeseriesQueryBuilder(
+                Dataset.Discover,
+                params,
+                rollup,
+                query=query,
+                selected_columns=columns,
+                equations=equations,
+            )
+            query_list = [base_builder]
+            if comparison_delta:
+                if len(base_builder.aggregates) != 1:
+                    raise InvalidSearchQuery(
+                        "Only one column can be selected for comparison queries"
+                    )
+                comp_query_params = deepcopy(params)
+                comp_query_params["start"] -= comparison_delta
+                comp_query_params["end"] -= comparison_delta
+                comparison_builder = TimeseriesQueryBuilder(
+                    Dataset.Discover,
+                    comp_query_params,
+                    rollup,
+                    query=query,
+                    selected_columns=columns,
+                    equations=equations,
+                )
+                query_list.append(comparison_builder)
+
+            query_results = bulk_snql_query(
+                [query.get_snql_query() for query in query_list], referrer
+            )
+
+        with sentry_sdk.start_span(
+            op="discover.discover", description="timeseries.transform_results"
+        ) as span:
+            results = []
+            for snql_query, result in zip(query_list, query_results):
+                results.append(
+                    zerofill(
+                        result["data"],
+                        snql_query.params["start"],
+                        snql_query.params["end"],
+                        rollup,
+                        "time",
+                    )
+                    if zerofill_results
+                    else result["data"]
+                )
+
+        if len(results) == 2 and comparison_delta:
+            col_name = base_builder.aggregates[0].alias
+            # If we have two sets of results then we're doing a comparison queries. Divide the primary
+            # results by the comparison results.
+            for result, cmp_result in zip(results[0], results[1]):
+                cmp_result_val = cmp_result.get(col_name, 0)
+                result["comparisonCount"] = cmp_result_val
+
+        result = results[0]
+        return SnubaTSResult({"data": result}, params["start"], params["end"], rollup)
+
     with sentry_sdk.start_span(
         op="discover.discover", description="timeseries.filter_transform"
     ) as span:
@@ -592,6 +668,7 @@ def top_events_timeseries(
     allow_empty=True,
     zerofill_results=True,
     include_other=False,
+    use_snql=False,
 ):
     """
     High-level API for doing arbitrary user timeseries queries for a limited number of top events
@@ -614,6 +691,8 @@ def top_events_timeseries(
     top_events (dict|None) A dictionary with a 'data' key containing a list of dictionaries that
                     represent the top events matching the query. Useful when you have found
                     the top events earlier and want to save a query.
+    use_snql (bool) Whether to directly build the query in snql, instead of using the older
+                    json construction
     """
     if top_events is None:
         with sentry_sdk.start_span(op="discover.discover", description="top_events.fetch_events"):
@@ -627,7 +706,106 @@ def top_events_timeseries(
                 referrer=referrer,
                 auto_aggregations=True,
                 use_aggregate_conditions=True,
+                use_snql=use_snql,
             )
+
+    if use_snql:
+        # temporarily add snql to referrer
+        referrer = f"{referrer}.wip-snql"
+        top_events_builder = TopEventsQueryBuilder(
+            Dataset.Discover,
+            params,
+            rollup,
+            top_events["data"],
+            other=False,
+            query=user_query,
+            selected_columns=selected_columns,
+            timeseries_columns=timeseries_columns,
+            equations=equations,
+        )
+        if len(top_events["data"]) == limit and include_other:
+            other_events_builder = TopEventsQueryBuilder(
+                Dataset.Discover,
+                params,
+                rollup,
+                top_events["data"],
+                other=True,
+                query=user_query,
+                selected_columns=selected_columns,
+                timeseries_columns=timeseries_columns,
+                equations=equations,
+            )
+            result, other_result = bulk_snql_query(
+                [top_events_builder.get_snql_query(), other_events_builder.get_snql_query()],
+                referrer=referrer,
+            )
+        else:
+            result = raw_snql_query(top_events_builder.get_snql_query(), referrer=referrer)
+            other_result = {"data": []}
+        if (
+            not allow_empty
+            and not len(result.get("data", []))
+            and not len(other_result.get("data", []))
+        ):
+            return SnubaTSResult(
+                {
+                    "data": zerofill([], params["start"], params["end"], rollup, "time")
+                    if zerofill_results
+                    else [],
+                },
+                params["start"],
+                params["end"],
+                rollup,
+            )
+        with sentry_sdk.start_span(
+            op="discover.discover", description="top_events.transform_results"
+        ) as span:
+            span.set_data("result_count", len(result.get("data", [])))
+            result = transform_results(result, top_events_builder.function_alias_map, {}, None)
+
+            issues = {}
+            if "issue" in selected_columns:
+                issues = Group.issues_mapping(
+                    {event["issue.id"] for event in top_events["data"]},
+                    params["project_id"],
+                    organization,
+                )
+            translated_groupby = top_events_builder.translated_groupby
+
+            results = (
+                {OTHER_KEY: {"order": limit, "data": other_result["data"]}}
+                if len(other_result.get("data", []))
+                else {}
+            )
+            # Using the top events add the order to the results
+            for index, item in enumerate(top_events["data"]):
+                result_key = create_result_key(item, translated_groupby, issues)
+                results[result_key] = {"order": index, "data": []}
+            for row in result["data"]:
+                result_key = create_result_key(row, translated_groupby, issues)
+                if result_key in results:
+                    results[result_key]["data"].append(row)
+                else:
+                    logger.warning(
+                        "discover.top-events.timeseries.key-mismatch",
+                        extra={"result_key": result_key, "top_event_keys": list(results.keys())},
+                    )
+            for key, item in results.items():
+                results[key] = SnubaTSResult(
+                    {
+                        "data": zerofill(
+                            item["data"], params["start"], params["end"], rollup, "time"
+                        )
+                        if zerofill_results
+                        else item["data"],
+                        "order": item["order"],
+                    },
+                    params["start"],
+                    params["end"],
+                    rollup,
+                )
+
+        return results
 
     with sentry_sdk.start_span(
         op="discover.discover", description="top_events.filter_transform"
