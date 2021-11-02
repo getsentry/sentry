@@ -311,7 +311,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         )
         for recipient in recipients:
             providers = where_should_recipient_be_notified(
-                notification_settings_by_recipient, recipient, should_use_slack_automatic
+                notification_settings_by_recipient, recipient, should_use_slack_automatic, type
             )
             for provider in providers:
                 mapping[provider].add(recipient)
