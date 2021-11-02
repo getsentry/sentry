@@ -48,7 +48,7 @@ class AccountIdentities extends AsyncView<Props, State> {
       <IdentityPanelItem key={`${identity.category}:${identity.id}`}>
         <InternalContainer>
           <PluginIcon pluginId={identity.provider.key} size={36} />
-          <IdentityText>
+          <IdentityText isSingleLine={!identity.dateAdded}>
             <IdentityName>{identity.provider.name}</IdentityName>
             {identity.dateAdded && <IdentityDateTime date={moment(identity.dateAdded)} />}
           </IdentityText>
@@ -150,7 +150,7 @@ class AccountIdentities extends AsyncView<Props, State> {
       .sort(this.itemOrder);
 
     return (
-      <div>
+      <React.Fragment>
         <SettingsPageHeader title="Identities" />
 
         <Panel>
@@ -182,7 +182,7 @@ class AccountIdentities extends AsyncView<Props, State> {
             )}
           </PanelBody>
         </Panel>
-      </div>
+      </React.Fragment>
     );
   }
 }
@@ -198,11 +198,11 @@ const InternalContainer = styled('div')`
   justify-content: center;
 `;
 
-const IdentityText = styled('div')`
+const IdentityText = styled('div')<{isSingleLine?: boolean}>`
   height: 36px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: ${p => (p.isSingleLine ? 'center' : 'space-between')};
   margin-left: ${space(1.5)};
 `;
 const IdentityName = styled('div')`
