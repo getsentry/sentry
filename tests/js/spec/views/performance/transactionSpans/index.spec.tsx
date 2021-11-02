@@ -132,6 +132,7 @@ const spans = [
 
 describe('Performance > Transaction Spans', function () {
   let eventsV2Mock;
+  let eventsSpanOpsMock;
   let eventsSpansPerformanceMock;
   beforeEach(function () {
     // @ts-expect-error
@@ -158,6 +159,11 @@ describe('Performance > Transaction Spans', function () {
     eventsV2Mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/eventsv2/',
       body: 100,
+    });
+    // @ts-expect-error
+    eventsSpanOpsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-span-ops/',
+      body: [],
     });
     // @ts-expect-error
     eventsSpansPerformanceMock = MockApiClient.addMockResponse({
@@ -205,6 +211,7 @@ describe('Performance > Transaction Spans', function () {
     }
 
     expect(eventsV2Mock).toHaveBeenCalledTimes(1);
+    expect(eventsSpanOpsMock).toHaveBeenCalledTimes(1);
     expect(eventsSpansPerformanceMock).toHaveBeenCalledTimes(1);
   });
 

@@ -10,6 +10,7 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import Pagination from 'app/components/pagination';
 import {Organization} from 'app/types';
+import {defined} from 'app/utils';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
 import {isAggregateField} from 'app/utils/discover/fields';
@@ -20,6 +21,7 @@ import {MutableSearch} from 'app/utils/tokenizeSearch';
 import {SetStateAction} from '../types';
 import {generateTransactionLink} from '../utils';
 
+import OpsFilter from './opsFilter';
 import {Actions} from './styles';
 import SuspectSpanCard from './suspectSpanCard';
 import {SpansTotalValues} from './types';
@@ -38,14 +40,18 @@ function SpansContent(props: Props) {
   const query = decodeScalar(location.query.query, '');
 
   function handleChange(key: string) {
-    return function (value: string) {
+    return function (value: string | undefined) {
       const queryParams = getParams({
         ...(location.query || {}),
         [key]: value,
       });
 
       // do not propagate pagination when making a new search
-      const searchQueryParams = omit(queryParams, 'cursor');
+      const toOmit = ['cursor'];
+      if (!defined(value)) {
+        toOmit.push(key);
+      }
+      const searchQueryParams = omit(queryParams, toOmit);
 
       browserHistory.push({
         ...location,
@@ -54,12 +60,20 @@ function SpansContent(props: Props) {
     };
   }
 
+  const spanOp = decodeScalar(location.query.spanOp);
   const sort = getSuspectSpanSortFromEventView(eventView);
   const totalsView = getTotalsView(eventView);
 
   return (
     <Layout.Main fullWidth>
       <Actions>
+        <OpsFilter
+          location={location}
+          eventView={eventView}
+          organization={organization}
+          handleOpChange={handleChange('spanOp')}
+          transactionName={transactionName}
+        />
         <SearchBar
           organization={organization}
           projectIds={eventView.project}
@@ -96,6 +110,7 @@ function SpansContent(props: Props) {
               location={location}
               orgSlug={organization.slug}
               eventView={eventView}
+              spanOps={defined(spanOp) ? [spanOp] : []}
             >
               {({suspectSpans, isLoading, error, pageLinks}) => {
                 if (error) {
