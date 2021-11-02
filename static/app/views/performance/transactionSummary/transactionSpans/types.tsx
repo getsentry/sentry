@@ -23,6 +23,7 @@ export type SpanSortOption = {
 export type SuspectSpanTableColumnKeys =
   | 'id'
   | 'timestamp'
+  | 'transactionDuration'
   | 'spanDuration'
   | 'repeated'
   | 'cumulativeDuration'
