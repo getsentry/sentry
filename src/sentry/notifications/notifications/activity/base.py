@@ -59,7 +59,7 @@ class ActivityNotification(ProjectNotification, ABC):
 
     def get_participants_with_group_subscription_reason(
         self,
-    ) -> Mapping[ExternalProviders, Mapping[User, int]]:
+    ) -> Mapping[ExternalProviders, Mapping[Team | User, int]]:
         raise NotImplementedError
 
     def send(self) -> None:
@@ -88,7 +88,7 @@ class GroupActivityNotification(ActivityNotification, ABC):
 
     def get_participants_with_group_subscription_reason(
         self,
-    ) -> Mapping[ExternalProviders, Mapping[User, int]]:
+    ) -> Mapping[ExternalProviders, Mapping[Team | User, int]]:
         """This is overridden by the activity subclasses."""
         return get_participants_for_group(self.group, self.activity.user)
 
@@ -176,3 +176,13 @@ class GroupActivityNotification(ActivityNotification, ABC):
         context.update(params)
 
         return mark_safe(description.format(**context))
+
+    def get_title_link(self) -> str | None:
+        from sentry.integrations.slack.message_builder.issues import get_title_link
+
+        return get_title_link(self.group, None, False, True, self)
+
+    def build_attachment_title(self) -> str:
+        from sentry.integrations.slack.message_builder.issues import build_attachment_title
+
+        return build_attachment_title(self.group)

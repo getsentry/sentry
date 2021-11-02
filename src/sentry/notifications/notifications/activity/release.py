@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from typing import Any, Iterable, Mapping, MutableMapping
+from typing import Any, Iterable, Mapping, MutableMapping, Sequence
 
 from sentry_relay import parse_release
 
 from sentry.models import Activity, CommitFileChange, Project, Team, User
+from sentry.notifications.notifications.base import MessageAction
 from sentry.notifications.utils import (
     get_commits_for_release,
     get_deploy,
@@ -60,7 +61,7 @@ class ReleaseActivityNotification(ActivityNotification):
 
     def get_participants_with_group_subscription_reason(
         self,
-    ) -> Mapping[ExternalProviders, Mapping[User, int]]:
+    ) -> Mapping[ExternalProviders, Mapping[Team | User, int]]:
         return get_participants_for_release(self.projects, self.organization, self.user_ids)
 
     def get_users_by_teams(self) -> Mapping[int, list[int]]:
@@ -129,3 +130,24 @@ class ReleaseActivityNotification(ActivityNotification):
 
     def get_category(self) -> str:
         return "release_activity_email"
+
+    def get_message_actions(self) -> Sequence[MessageAction]:
+        if self.release:
+            release = get_release(self.activity, self.project.organization)
+            if release:
+                return [
+                    MessageAction(
+                        label=project.slug,
+                        url=absolute_uri(
+                            f"/organizations/{project.organization.slug}/releases/{release.version}/?project={project.id}&unselectedSeries=Healthy/"
+                        ),
+                    )
+                    for project in self.release.projects.all()
+                ]
+        return []
+
+    def build_attachment_title(self) -> str:
+        return ""
+
+    def get_title_link(self) -> str:
+        return ""

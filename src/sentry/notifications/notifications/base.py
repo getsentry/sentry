@@ -2,19 +2,14 @@ from __future__ import annotations
 
 import abc
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Literal, Mapping, MutableMapping
+from typing import TYPE_CHECKING, Any, Literal, Mapping, MutableMapping, Sequence
+from typing_extensions import Literal
 
 from sentry import analytics
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
-
-    from sentry.integrations.slack.message_builder import SlackAttachment
-    from sentry.integrations.slack.message_builder.notifications import (
-        SlackNotificationsMessageBuilder,
-        SlackProjectNotificationsMessageBuilder,
-    )
     from sentry.models import Organization, Project, Team, User
 
 
@@ -24,30 +19,14 @@ class MessageAction:
     url: str
     style: Literal["primary", "danger", "default"] | None = None
 
-    def as_slack(self) -> Mapping[str, Any]:
-        return {
-            "text": self.label,
-            "name": self.label,
-            "url": self.url,
-            "style": self.style,
-            "type": "button",
-        }
-
 
 class BaseNotification:
+    message_builder = "SlackNotificationsMessageBuilder"
     fine_tuning_key: str | None = None
     metrics_key: str = ""
 
     def __init__(self, organization: Organization):
         self.organization = organization
-
-    @property
-    def SlackMessageBuilderClass(self) -> type[SlackNotificationsMessageBuilder]:
-        from sentry.integrations.slack.message_builder.notifications import (
-            SlackNotificationsMessageBuilder,
-        )
-
-        return SlackNotificationsMessageBuilder
 
     @property
     def org_slug(self) -> str:
@@ -90,6 +69,15 @@ class BaseNotification:
     def get_notification_title(self) -> str:
         raise NotImplementedError
 
+    def get_title_link(self) -> str | None:
+        raise NotImplementedError
+
+    def build_attachment_title(self) -> str:
+        raise NotImplementedError
+
+    def build_notification_footer(self, recipient: Team | User) -> str:
+        raise NotImplementedError
+
     def get_message_description(self) -> Any:
         context = getattr(self, "context", None)
         return context["text_description"] if context else None
@@ -100,11 +88,6 @@ class BaseNotification:
     def get_unsubscribe_key(self) -> tuple[str, int, str | None] | None:
         return None
 
-    def build_slack_attachment(
-        self, context: Mapping[str, Any], recipient: Team | User
-    ) -> SlackAttachment:
-        return self.SlackMessageBuilderClass(self, context, recipient).build()
-
     def record_notification_sent(self, recipient: Team | User, provider: ExternalProviders) -> None:
         raise NotImplementedError
 
@@ -114,21 +97,14 @@ class BaseNotification:
             "actor_id": recipient.actor_id,
         }
 
+    def get_message_actions(self) -> Sequence[MessageAction]:
+        return []
+
 
 class ProjectNotification(BaseNotification, abc.ABC):
-    is_message_issue_unfurl = False
-
     def __init__(self, project: Project) -> None:
         self.project = project
         super().__init__(project.organization)
-
-    @property
-    def SlackMessageBuilderClass(self) -> type[SlackProjectNotificationsMessageBuilder]:
-        from sentry.integrations.slack.message_builder.notifications import (
-            SlackProjectNotificationsMessageBuilder,
-        )
-
-        return SlackProjectNotificationsMessageBuilder
 
     def get_project_link(self) -> str:
         return str(absolute_uri(f"/{self.organization.slug}/{self.project.slug}/"))
@@ -168,3 +144,8 @@ class ProjectNotification(BaseNotification, abc.ABC):
 
         prefix = build_subject_prefix(self.project)
         return f"{prefix}{self.get_subject(context)}".encode()
+
+    def build_notification_footer(self, recipient: Team | User) -> str:
+        from sentry.integrations.slack.utils.notifications import build_notification_footer
+
+        return build_notification_footer(self, recipient)

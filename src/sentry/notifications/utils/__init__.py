@@ -1,19 +1,8 @@
+from __future__ import annotations
+
 import logging
 from collections import defaultdict
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Iterable,
-    List,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Sequence,
-    Set,
-    Tuple,
-    Union,
-    cast,
-)
+from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequence, cast
 
 from django.db.models import Count
 from django.utils.safestring import mark_safe
@@ -54,7 +43,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def get_projects(projects: Iterable[Project], team_ids: Iterable[int]) -> Set[Project]:
+def get_projects(projects: Iterable[Project], team_ids: Iterable[int]) -> set[Project]:
     team_projects = set(
         ProjectTeam.objects.filter(team_id__in=team_ids)
         .values_list("project_id", flat=True)
@@ -63,8 +52,8 @@ def get_projects(projects: Iterable[Project], team_ids: Iterable[int]) -> Set[Pr
     return {p for p in projects if p.id in team_projects}
 
 
-def get_users_by_teams(organization: Organization) -> Mapping[int, List[int]]:
-    user_teams: MutableMapping[int, List[int]] = defaultdict(list)
+def get_users_by_teams(organization: Organization) -> Mapping[int, list[int]]:
+    user_teams: MutableMapping[int, list[int]] = defaultdict(list)
     queryset = User.objects.filter(
         sentry_orgmember_set__organization_id=organization.id
     ).values_list("id", "sentry_orgmember_set__teams")
@@ -73,14 +62,14 @@ def get_users_by_teams(organization: Organization) -> Mapping[int, List[int]]:
     return user_teams
 
 
-def get_deploy(activity: Activity) -> Optional[Deploy]:
+def get_deploy(activity: Activity) -> Deploy | None:
     try:
         return Deploy.objects.get(id=activity.data["deploy_id"])
     except Deploy.DoesNotExist:
         return None
 
 
-def get_release(activity: Activity, organization: Organization) -> Optional[Release]:
+def get_release(activity: Activity, organization: Organization) -> Release | None:
     try:
         return Release.objects.get(
             organization_id=organization.id, version=activity.data["version"]
@@ -123,7 +112,7 @@ def get_users_by_emails(emails: Iterable[str], organization: Organization) -> Ma
 
 def get_repos(
     commits: Iterable[Commit], users_by_email: Mapping[str, User], organization: Organization
-) -> Iterable[Mapping[str, Union[str, Iterable[Tuple[Commit, Optional[User]]]]]]:
+) -> Iterable[Mapping[str, str | Iterable[tuple[Commit, User | None]]]]:
     repos = {
         r_id: {"name": r_name, "commits": []}
         for r_id, r_name in Repository.objects.filter(
@@ -138,7 +127,7 @@ def get_repos(
     return list(repos.values())
 
 
-def get_commits_for_release(release: Release) -> Set[Commit]:
+def get_commits_for_release(release: Release) -> set[Commit]:
     return {
         rc.commit
         for rc in ReleaseCommit.objects.filter(release=release).select_related(
@@ -147,7 +136,7 @@ def get_commits_for_release(release: Release) -> Set[Commit]:
     }
 
 
-def get_environment_for_deploy(deploy: Optional[Deploy]) -> str:
+def get_environment_for_deploy(deploy: Deploy | None) -> str:
     if deploy:
         environment = Environment.objects.get(id=deploy.environment_id)
         if environment and environment.name:
@@ -173,7 +162,7 @@ def summarize_issues(
     return rv
 
 
-def get_link(group: Group, environment: Optional[str]) -> str:
+def get_link(group: Group, environment: str | None) -> str:
     query_params = {"referrer": "alert_email"}
     if environment:
         query_params["environment"] = environment
@@ -181,23 +170,23 @@ def get_link(group: Group, environment: Optional[str]) -> str:
 
 
 def get_integration_link(organization: Organization, integration_slug: str) -> str:
-    return str(
-        absolute_uri(
-            f"/settings/{organization.slug}/integrations/{integration_slug}/?referrer=alert_email"
-        )
+    # Explicitly typing to satisfy mypy.
+    integration_link: str = absolute_uri(
+        f"/settings/{organization.slug}/integrations/{integration_slug}/?referrer=alert_email"
     )
+    return integration_link
 
 
 def get_rules(
     rules: Sequence[Rule], organization: Organization, project: Project
-) -> Sequence[Tuple[str, str]]:
+) -> Sequence[tuple[str, str]]:
     return [
         (rule.label, f"/organizations/{organization.slug}/alerts/rules/{project.slug}/{rule.id}/")
         for rule in rules
     ]
 
 
-def get_commits(project: Project, event: "Event") -> Sequence[Mapping[str, Any]]:
+def get_commits(project: Project, event: Event) -> Sequence[Mapping[str, Any]]:
     # lets identify possibly suspect commits and owners
     commits: MutableMapping[int, Mapping[str, Any]] = {}
     try:
@@ -248,7 +237,7 @@ def has_alert_integration(project: Project) -> bool:
     return any(plugin.get_plugin_type() == "notification" for plugin in project_plugins)
 
 
-def get_interface_list(event: "Event") -> Sequence[Tuple[str, str, str]]:
+def get_interface_list(event: Event) -> Sequence[tuple[str, str, str]]:
     interface_list = []
     for interface in event.interfaces.values():
         body = interface.to_email_html(event)
@@ -259,9 +248,7 @@ def get_interface_list(event: "Event") -> Sequence[Tuple[str, str, str]]:
     return interface_list
 
 
-def send_activity_notification(
-    notification: Union["ActivityNotification", "UserReportNotification"]
-) -> None:
+def send_activity_notification(notification: ActivityNotification | UserReportNotification) -> None:
     if not notification.should_email():
         return
 

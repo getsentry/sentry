@@ -10,7 +10,7 @@ from sentry.models import NotificationSetting, OrganizationMember, Team
 from sentry.notifications.notifications.base import BaseNotification, MessageAction
 from sentry.notifications.notify import notification_providers
 from sentry.notifications.types import NotificationSettingTypes
-from sentry.types.integrations import ExternalProviders, get_provider_name
+from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 
 if TYPE_CHECKING:
     from sentry.models import Organization, User
@@ -35,7 +35,7 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
 
     def get_referrer(self, provider: ExternalProviders) -> str:
         # referrer needs the provider as well
-        return f"{self.referrer_base}-{get_provider_name(provider)}"
+        return f"{self.referrer_base}-{EXTERNAL_PROVIDERS[provider]}"
 
     def get_sentry_query_params(self, provider: ExternalProviders) -> str:
         return f"?referrer={self.get_referrer(provider)}"
@@ -80,7 +80,7 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
 
         context = self.get_context()
         for provider, recipients in participants_by_provider.items():
-            # TODO: use safe_excute
+            # TODO: use safe_execute
             notify(provider, self, recipients, context)
 
     def get_member(self, user: User) -> OrganizationMember:
@@ -106,9 +106,6 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
 
     def get_message_description(self) -> str:
         raise NotImplementedError
-
-    def get_actions(self) -> Sequence[Mapping[str, str]]:
-        return [message_action.as_slack() for message_action in self.get_message_actions()]
 
     def get_message_actions(self) -> Sequence[MessageAction]:
         raise NotImplementedError
@@ -138,3 +135,6 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
             target_user_id=recipient.id,
             providers=provider,
         )
+
+    def get_title_link(self) -> str | None:
+        return None
