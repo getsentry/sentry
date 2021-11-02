@@ -67,7 +67,7 @@ class ActivityNotification(ProjectNotification, ABC):
 
 
 class GroupActivityNotification(ActivityNotification, ABC):
-    is_message_issue_unfurl = True
+    message_builder = "IssueNotificationMessageBuilder"
 
     def __init__(self, activity: Activity) -> None:
         super().__init__(activity)

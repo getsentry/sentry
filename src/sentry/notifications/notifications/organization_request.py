@@ -13,9 +13,6 @@ from sentry.notifications.types import NotificationSettingTypes
 from sentry.types.integrations import ExternalProviders, get_provider_name
 
 if TYPE_CHECKING:
-    from sentry.integrations.slack.message_builder.organization_requests import (
-        SlackOrganizationRequestMessageBuilder,
-    )
     from sentry.models import Organization, User
 
 logger = logging.getLogger(__name__)
@@ -29,14 +26,6 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
     def __init__(self, organization: Organization, requester: User) -> None:
         super().__init__(organization)
         self.requester = requester
-
-    @property
-    def SlackMessageBuilderClass(self) -> type[SlackOrganizationRequestMessageBuilder]:
-        from sentry.integrations.slack.message_builder.organization_requests import (
-            SlackOrganizationRequestMessageBuilder,
-        )
-
-        return SlackOrganizationRequestMessageBuilder
 
     def get_reference(self) -> Any:
         return self.organization
