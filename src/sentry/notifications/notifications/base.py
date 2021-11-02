@@ -27,7 +27,6 @@ class MessageAction:
     style: Literal["primary", "danger", "default"] | None = None
     action_id: str | None = None
     value: Any | None = None
-    confirm: Mapping[str, Any] | None = None
 
     def as_slack(self) -> Mapping[str, Any]:
         return {
@@ -38,7 +37,6 @@ class MessageAction:
             "type": "button",
             "value": self.value,
             "action_id": self.action_id,
-            "confirm": self.confirm,
         }
 
 
