@@ -12,8 +12,6 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils import json, metrics
 
-from .views.unlink_team import SUCCESS_UNLINKED_MESSAGE
-
 logger = logging.getLogger("sentry.notifications")
 SLACK_TIMEOUT = 5
 
@@ -35,12 +33,6 @@ class SlackNotifyBasicMixin(NotifyBasicMixin):  # type: ignore
             if message != "Expired url":
                 logger.error("slack.slash-notify.response-error", extra={"error": message})
         return
-
-    def notify_remove_external_team(self, external_team: ExternalActor, team: Team) -> None:
-        self.send_message(
-            channel_id=external_team.external_id,
-            message=SUCCESS_UNLINKED_MESSAGE.format(team=team.slug),
-        )
 
 
 def get_context(

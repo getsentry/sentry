@@ -2,6 +2,10 @@ from django.core.signing import BadSignature, SignatureExpired
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.integrations.notifications import (
+    SUCCESS_UNLINKED_TEAM_MESSAGE,
+    SUCCESS_UNLINKED_TEAM_TITLE,
+)
 from sentry.integrations.utils import get_identity_or_404
 from sentry.models import ExternalActor, Identity, Integration
 from sentry.types.integrations import ExternalProviders
@@ -12,11 +16,6 @@ from sentry.web.helpers import render_to_response
 
 from . import build_linking_url as base_build_linking_url
 from . import never_cache, render_error_page
-
-SUCCESS_UNLINKED_TITLE = "Team unlinked"
-SUCCESS_UNLINKED_MESSAGE = (
-    "This channel will no longer receive issue alert notifications for the {team} team."
-)
 
 
 def build_team_unlinking_url(
@@ -93,8 +92,8 @@ class SlackUnlinkTeamView(BaseView):  # type: ignore
             "sentry/integrations/slack/unlinked-team.html",
             request=request,
             context={
-                "heading_text": SUCCESS_UNLINKED_TITLE,
-                "body_text": SUCCESS_UNLINKED_MESSAGE.format(team=team.slug),
+                "heading_text": SUCCESS_UNLINKED_TEAM_TITLE,
+                "body_text": SUCCESS_UNLINKED_TEAM_MESSAGE.format(team=team.slug),
                 "channel_id": channel_id,
                 "team_id": integration.external_id,
             },

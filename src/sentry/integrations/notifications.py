@@ -5,6 +5,11 @@ from sentry.types.integrations import ExternalProviders
 
 logger = logging.getLogger("sentry.integrations.notifications")
 
+SUCCESS_UNLINKED_TEAM_TITLE = "Team unlinked"
+SUCCESS_UNLINKED_TEAM_MESSAGE = (
+    "This channel will no longer receive issue alert notifications for the {team} team."
+)
+
 
 class NotifyBasicMixin:
     def send_message(self, channel_id: str, message: str) -> None:
@@ -17,7 +22,10 @@ class NotifyBasicMixin:
         """
         Notify through the integration that an external team has been removed.
         """
-        raise NotImplementedError
+        self.send_message(
+            channel_id=external_team.external_id,
+            message=SUCCESS_UNLINKED_TEAM_MESSAGE.format(team=team.slug),
+        )
 
     def remove_notification_settings(self, actor_id: int, provider: str) -> None:
         """
