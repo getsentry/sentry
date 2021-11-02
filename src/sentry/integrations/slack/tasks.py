@@ -328,7 +328,7 @@ def link_slack_user_identities(integration: Integration, organization: Organizat
 # TODO: add retry logic
 @instrumented_task(name="sentry.integrations.slack.post_message", queue="integrations", max_retries=0)  # type: ignore
 def post_message(
-    payload: Mapping[str, any], log_error_message: str, log_params: Mapping[str, any]
+    payload: Mapping[str, Any], log_error_message: str, log_params: Mapping[str, Any]
 ) -> None:
     client = SlackClient()
     try:
