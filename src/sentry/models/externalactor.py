@@ -41,7 +41,9 @@ class ExternalActor(DefaultFieldsModel):
         install = self.integration.get_installation(self.organization_id)
 
         install.notify_remove_external_team(external_team=self, team=self.actor.resolve())
-        install.remove_notification_settings(actor_id=self.actor_id, provider=self.provider)
+        install.remove_notification_settings(
+            actor_id=self.actor_id, provider=ExternalProviders(self.provider)
+        )
 
         return super().delete(**kwargs)
 
