@@ -28,9 +28,10 @@ from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.serializers.models.event import get_tags_with_meta
 from sentry.eventstore.models import Event
 from sentry.models import Organization
+from sentry.search.events.builder import QueryBuilder
 from sentry.snuba import discover
 from sentry.utils.numbers import format_grouped_length
-from sentry.utils.snuba import Dataset, SnubaQueryParams, bulk_raw_query
+from sentry.utils.snuba import Dataset, SnubaQueryParams, bulk_raw_query, bulk_snql_query
 from sentry.utils.validators import INVALID_ID_DETAILS, is_event_id
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -204,8 +205,61 @@ def child_sort_key(item: TraceEvent) -> List[int]:
 
 
 def query_trace_data(
-    trace_id: str, params: Mapping[str, str]
+    trace_id: str, params: Mapping[str, str], use_snql: bool = False
 ) -> Tuple[Sequence[SnubaTransaction], Sequence[SnubaError]]:
+    if use_snql:
+        transaction_query = QueryBuilder(
+            Dataset.Transactions,
+            params,
+            query=f"trace:{trace_id}",
+            selected_columns=[
+                "id",
+                "transaction.status",
+                "transaction.op",
+                "transaction.duration",
+                "transaction",
+                "timestamp",
+                "project",
+                "project.id",
+                "trace.span",
+                "trace.parent_span",
+                'to_other(trace.parent_span, "", 0, 1) AS root',
+            ],
+            # We want to guarantee at least getting the root, and hopefully events near it with timestamp
+            # id is just for consistent results
+            orderby=["-root", "timestamp", "id"],
+        )
+        error_query = QueryBuilder(
+            Dataset.Events,
+            params,
+            query=f"trace:{trace_id}",
+            selected_columns=[
+                "id",
+                "project",
+                "project.id",
+                "timestamp",
+                "trace.span",
+                "transaction",
+                "issue",
+                "title",
+                "tags[level]",
+            ],
+            # Don't add timestamp to this orderby as snuba will have to split the time range up and make multiple queries
+            orderby=["id"],
+            auto_fields=False,
+        )
+        results = bulk_snql_query(
+            [transaction_query.get_snql_query(), error_query.get_snql_query()],
+            referrer="api.trace-view.get-events",
+        )
+        transformed_results = [
+            discover.transform_results(result, query.function_alias_map, {}, None)["data"]
+            for result, query in zip(results, [transaction_query, error_query])
+        ]
+        return cast(Sequence[SnubaTransaction], transformed_results[0]), cast(
+            Sequence[SnubaError], transformed_results[1]
+        )
+
     transaction_query = discover.prepare_discover_query(
         selected_columns=[
             "id",
@@ -278,6 +332,11 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):  # 
     def has_feature(self, organization: Organization, request: HttpRequest) -> bool:
         return bool(
             features.has("organizations:performance-view", organization, actor=request.user)
+        )
+
+    def has_snql_feature(self, organization: Organization, request: HttpRequest) -> bool:
+        return bool(
+            features.has("organizations:performance-use-snql", organization, actor=request.user)
         )
 
     @staticmethod
@@ -356,7 +415,9 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):  # 
             return Response({"detail": INVALID_ID_DETAILS.format("Event ID")}, status=400)
 
         with self.handle_query_errors():
-            transactions, errors = query_trace_data(trace_id, params)
+            transactions, errors = query_trace_data(
+                trace_id, params, self.has_snql_feature(organization, request)
+            )
             if len(transactions) == 0:
                 return Response(status=404)
             self.record_analytics(transactions, trace_id, self.request.user.id, organization.id)
@@ -707,6 +768,7 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsTraceEndpointBase):
                 query=f"trace:{trace_id}",
                 limit=1,
                 referrer="api.trace-view.get-meta",
+                use_snql=self.has_snql_feature(organization, request),
             )
             if len(result["data"]) == 0:
                 return Response(status=404)
