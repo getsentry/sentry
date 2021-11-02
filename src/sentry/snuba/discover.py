@@ -1023,8 +1023,8 @@ def get_id(result):
 def get_facets(
     query: str,
     params: ParamsType,
+    referrer: str = None,
     limit: Optional[int] = 10,
-    referrer: Optional[str] = None,
     use_snql: Optional[bool] = False,
 ):
     """
@@ -1037,7 +1037,7 @@ def get_facets(
     query (str) Filter query string to create conditions from.
     params (Dict[str, str]) Filtering parameters with start, end, project_id, environment
     limit (int) The number of records to fetch.
-    referrer (str|None) A referrer string to help locate the origin of this query.
+    referrer (str) A referrer string to help locate the origin of this query.
 
     Returns Sequence[FacetResult]
     """
@@ -1047,23 +1047,23 @@ def get_facets(
         referrer = f"{referrer}.wip-snql"
         sample = len(params["project_id"]) > 2
 
-        key_name_builder = QueryBuilder(
-            Dataset.Discover,
-            params,
-            # Exclude tracing tags as they are noisy and generally not helpful.
-            # TODO(markus): Tracing tags are no longer written but may still reside in DB.
-            query=(query if query is not None else "")
-            + " !tags_key:[trace,trace.ctx,trace.span,project]",
-            selected_columns=["tags_key", "count()"],
-            orderby=["-count()", "tags_key"],
-            turbo=sample,
-        )
-        key_names = raw_snql_query(key_name_builder.get_snql_query(), referrer=referrer)
-        # Sampling keys for multi-project results as we don't need accuracy
-        # with that much data.
-        top_tags = [r["tags_key"] for r in key_names["data"]]
-        if not top_tags:
-            return []
+        with sentry_sdk.start_span(op="discover.discover", description="facets.frequent_tags"):
+            key_name_builder = QueryBuilder(
+                Dataset.Discover,
+                params,
+                # Exclude tracing tags as they are noisy and generally not helpful.
+                query=query,
+                selected_columns=["tags_key", "count()"],
+                orderby=["-count()", "tags_key"],
+                limit=limit,
+                turbo=sample,
+            )
+            key_names = raw_snql_query(key_name_builder.get_snql_query(), referrer=referrer)
+            # Sampling keys for multi-project results as we don't need accuracy
+            # with that much data.
+            top_tags = [r["tags_key"] for r in key_names["data"]]
+            if not top_tags:
+                return []
 
         sample_rate = 0.1 if (key_names["data"][0]["count"] > 10000) else None
         # Rescale the results if we're sampling
@@ -1084,7 +1084,8 @@ def get_facets(
                     query=query,
                     selected_columns=["count()", "project_id"],
                     orderby=["-count()"],
-                    turbo=sample,
+                    # Ensures Snuba will not apply FINAL
+                    turbo=sample_rate is not None,
                     sample_rate=sample_rate,
                 )
                 project_values = raw_snql_query(
@@ -1100,14 +1101,13 @@ def get_facets(
         # Get tag counts for our top tags. Fetching them individually
         # allows snuba to leverage promoted tags better and enables us to get
         # the value count we want.
-        max_aggregate_tags = options.get("discover2.max_tags_to_combine")
         individual_tags = []
         aggregate_tags = []
         for i, tag in enumerate(top_tags):
             if tag == "environment":
                 # Add here tags that you want to be individual
                 individual_tags.append(tag)
-            elif i >= len(top_tags) - max_aggregate_tags:
+            elif i >= len(top_tags) - 10:
                 aggregate_tags.append(tag)
             else:
                 individual_tags.append(tag)
@@ -1125,7 +1125,8 @@ def get_facets(
                     selected_columns=["count()", tag],
                     orderby=["-count()"],
                     limit=TOP_VALUES_DEFAULT_LIMIT,
-                    turbo=sample,
+                    # Ensures Snuba will not apply FINAL
+                    turbo=sample_rate is not None,
                     sample_rate=sample_rate,
                 )
                 tag_values = raw_snql_query(tag_value_builder.get_snql_query(), referrer=referrer)
@@ -1146,8 +1147,8 @@ def get_facets(
                     selected_columns=["count()", "tags_key", "tags_value"],
                     orderby=["tags_key", "-count()"],
                     limitby=["tags_key", TOP_VALUES_DEFAULT_LIMIT],
-                    turbo=sample_rate is not None,
                     # Ensures Snuba will not apply FINAL
+                    turbo=sample_rate is not None,
                     sample_rate=sample_rate,
                 )
                 aggregate_values = raw_snql_query(
@@ -1227,7 +1228,7 @@ def get_facets(
                 orderby="-count",
                 dataset=Dataset.Discover,
                 referrer=referrer,
-                sample=sample_rate,
+                sample_rate=sample_rate,
                 # Ensures Snuba will not apply FINAL
                 turbo=sample_rate is not None,
             )
@@ -1298,7 +1299,7 @@ def get_facets(
                 sample=sample_rate,
                 # Ensures Snuba will not apply FINAL
                 turbo=sample_rate is not None,
-                limitby=[TOP_VALUES_DEFAULT_LIMIT, "tags_key"],
+                limitby=(TOP_VALUES_DEFAULT_LIMIT, "tags_key"),
             )
             results.extend(
                 [
