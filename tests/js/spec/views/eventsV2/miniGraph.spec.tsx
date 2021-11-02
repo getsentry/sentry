@@ -59,6 +59,14 @@ describe('EventsV2 > MiniGraph', function () {
     });
     // @ts-expect-error
     eventView = EventView.fromSavedQueryOrLocation(undefined, location);
+
+    // @ts-expect-error
+    MockApiClient.clearMockResponses();
+    // @ts-expect-error
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      statusCode: 200,
+    });
   });
 
   it('makes an EventsRequest with all selected multi y axis', async function () {
@@ -117,5 +125,38 @@ describe('EventsV2 > MiniGraph', function () {
         seriesName: 'Country',
       },
     ]);
+  });
+
+  it('renders error message', async function () {
+    const errorMessage = 'something went wrong';
+    // @ts-expect-error
+    const api = new MockApiClient();
+    // @ts-expect-error
+    MockApiClient.clearMockResponses();
+    // @ts-expect-error
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: {
+        detail: errorMessage,
+      },
+      statusCode: 400,
+    });
+
+    const wrapper = mountWithTheme(
+      <MiniGraph
+        // @ts-expect-error
+        location={location}
+        eventView={eventView}
+        organization={organization}
+        api={api}
+      />,
+      initialData.routerContext
+    );
+
+    // @ts-expect-error
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('MiniGraph').text()).toBe(errorMessage);
   });
 });
