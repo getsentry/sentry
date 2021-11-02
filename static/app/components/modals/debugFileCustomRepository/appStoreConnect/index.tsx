@@ -12,7 +12,7 @@ import {AppStoreConnectContextProps} from 'app/components/projects/appStoreConne
 import {appStoreConnectAlertMessage} from 'app/components/projects/appStoreConnectContext/utils';
 import {IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
-import space, {ValidSize} from 'app/styles/space';
+import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import withApi from 'app/utils/withApi';
 
@@ -99,7 +99,14 @@ function AppStoreConnect({
       );
 
       setAppStoreApps(response.apps);
-      setStepTwoData({app: response.apps[0]});
+
+      if (
+        stepTwoData.app?.appId &&
+        !response.apps.find(app => app.appId === stepTwoData.app?.appId)
+      ) {
+        setStepTwoData({app: response.apps[0]});
+      }
+
       setIsLoading(false);
       goNext();
     } catch (error) {
@@ -251,7 +258,7 @@ function AppStoreConnect({
     return (
       <Fragment>
         {!!alerts.length && (
-          <Alerts marginBottom={activeStep === 3 ? 1.5 : 3}>
+          <Alerts>
             {alerts.map((alert, index) => (
               <Fragment key={index}>{alert}</Fragment>
             ))}
@@ -353,10 +360,10 @@ const StyledButton = styled(Button)`
   position: relative;
 `;
 
-const Alerts = styled('div')<{marginBottom: ValidSize}>`
+const Alerts = styled('div')`
   display: grid;
   grid-gap: ${space(1.5)};
-  margin-bottom: ${p => space(p.marginBottom)};
+  margin-bottom: ${space(3)};
 `;
 
 const StyledAlert = styled(Alert)`

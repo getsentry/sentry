@@ -3,6 +3,7 @@ export type AppStoreApp = {
   appId: string;
   bundleId: string;
 };
+
 export type StepOneData = {
   issuer?: string;
   keyId?: string;
