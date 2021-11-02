@@ -381,7 +381,7 @@ def _get_dsym_url(bundles: Optional[List[JSONData]]) -> Union[NoDsymUrl, str]:
         if safe.get_path(app_bundle, "attributes", "bundleType", default="APP") != "APP_CLIP"
     ]
 
-    if len(bundles) == 0:
+    if len(app_bundles) == 0:
         return NoDsymUrl.NOT_NEEDED
 
     if len(app_bundles) > 1:
