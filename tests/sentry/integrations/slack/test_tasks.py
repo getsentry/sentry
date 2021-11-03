@@ -1,4 +1,5 @@
 from unittest.mock import patch
+from urllib.parse import parse_qs
 from uuid import uuid4
 
 import responses
@@ -9,6 +10,7 @@ from sentry.integrations.slack.tasks import (
     RedisRuleStatus,
     find_channel_id_for_alert_rule,
     find_channel_id_for_rule,
+    post_message,
 )
 from sentry.integrations.slack.utils import SLACK_RATE_LIMITED_MESSAGE
 from sentry.models import Rule
@@ -328,3 +330,47 @@ class SlackTasksTest(TestCase):
         trigger_action = AlertRuleTriggerAction.objects.get(integration=self.integration.id)
         assert trigger_action.target_identifier == "chan-id"
         assert AlertRule.objects.get(id=alert_rule.id)
+
+    @responses.activate
+    @patch("sentry.integrations.slack.tasks.logger.info")
+    def test_post_message_success(self, mock_log_info):
+        responses.add(
+            responses.POST,
+            "https://slack.com/api/chat.postMessage",
+            json={"ok": True},
+            status=200,
+        )
+        with self.tasks():
+            post_message.apply_async(
+                kwargs={
+                    "payload": {"key": ["val"]},
+                    "log_error_message": "my_message",
+                    "log_params": {"log_key": "log_value"},
+                }
+            )
+        data = parse_qs(responses.calls[0].request.body)
+        assert data == {"key": ["val"]}
+        assert mock_log_info.call_count == 0
+
+    @responses.activate
+    @patch("sentry.integrations.slack.tasks.logger.info")
+    def test_post_message_failure(self, mock_log_info):
+        responses.add(
+            responses.POST,
+            "https://slack.com/api/chat.postMessage",
+            json={"ok": False, "error": "my_error"},
+            status=200,
+        )
+        with self.tasks():
+            post_message.apply_async(
+                kwargs={
+                    "payload": {"key": ["val"]},
+                    "log_error_message": "my_message",
+                    "log_params": {"log_key": "log_value"},
+                }
+            )
+        data = parse_qs(responses.calls[0].request.body)
+        assert data == {"key": ["val"]}
+        mock_log_info.assert_called_once_with(
+            "my_message", extra={"log_key": "log_value", "error": "my_error"}
+        )
