@@ -2034,7 +2034,7 @@ urlpatterns = [
                     name="sentry-api-0-project-appstoreconnect-credentials-update",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/status/(?P<credentials_id>[^\/]+)$",
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/status$",
                     AppStoreConnectStatusEndpoint.as_view(),
                     name="sentry-api-0-project-appstoreconnect-status",
                 ),
