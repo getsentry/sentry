@@ -687,7 +687,7 @@ class MetricChart extends React.PureComponent<Props, State> {
                             }${
                               Math.abs(changePercentage) === Infinity
                                 ? `&#8734`
-                                : Math.abs(changePercentage)
+                                : Math.abs(changePercentage).toFixed(2)
                             }%</span>`,
                           `</div>`,
                           `<div class="tooltip-arrow"></div>`,
