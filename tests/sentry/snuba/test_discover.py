@@ -6212,12 +6212,16 @@ class GetFacetsTest(SnubaTestCase, TestCase):
     def test_invalid_query(self):
         with pytest.raises(InvalidSearchQuery):
             discover.get_facets(
-                "\n", {"project_id": [self.project.id], "end": self.min_ago, "start": self.day_ago}
+                "\n",
+                {"project_id": [self.project.id], "end": self.min_ago, "start": self.day_ago},
+                "testing.get-facets-test",
             )
 
     def test_no_results(self):
         results = discover.get_facets(
-            "", {"project_id": [self.project.id], "end": self.min_ago, "start": self.day_ago}
+            "",
+            {"project_id": [self.project.id], "end": self.min_ago, "start": self.day_ago},
+            "testing.get-facets-test",
         )
         assert results == []
 
@@ -6241,7 +6245,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
             project_id=self.project.id,
         )
         params = {"project_id": [self.project.id], "start": self.day_ago, "end": self.min_ago}
-        result = discover.get_facets("", params)
+        result = discover.get_facets("", params, "testing.get-facets-test")
         assert len(result) == 5
         assert {r.key for r in result} == {"color", "paying", "level"}
         assert {r.value for r in result} == {"red", "blue", "1", "0", "error"}
@@ -6268,7 +6272,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
             project_id=other_project.id,
         )
         params = {"project_id": [self.project.id], "start": self.day_ago, "end": self.min_ago}
-        result = discover.get_facets("", params)
+        result = discover.get_facets("", params, "testing.get-facets-test")
         keys = {r.key for r in result}
         assert keys == {"color", "level"}
 
@@ -6278,7 +6282,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
             "start": self.day_ago,
             "end": self.min_ago,
         }
-        result = discover.get_facets("", params)
+        result = discover.get_facets("", params, "testing.get-facets-test")
         keys = {r.key for r in result}
         assert keys == {"level", "toy", "color", "project"}
 
@@ -6297,7 +6301,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
                 project_id=self.project.id,
             )
         params = {"project_id": [self.project.id], "start": self.day_ago, "end": self.min_ago}
-        result = discover.get_facets("", params)
+        result = discover.get_facets("", params, "testing.get-facets-test")
         keys = {r.key for r in result}
         assert keys == {"environment", "level"}
         assert {None, "prod", "staging"} == {f.value for f in result if f.key == "environment"}
@@ -6323,12 +6327,12 @@ class GetFacetsTest(SnubaTestCase, TestCase):
             project_id=self.project.id,
         )
         params = {"project_id": [self.project.id], "start": self.day_ago, "end": self.min_ago}
-        result = discover.get_facets("bad", params)
+        result = discover.get_facets("bad", params, "testing.get-facets-test")
         keys = {r.key for r in result}
         assert "color" in keys
         assert "toy" not in keys
 
-        result = discover.get_facets("color:red", params)
+        result = discover.get_facets("color:red", params, "testing.get-facets-test")
         keys = {r.key for r in result}
         assert "color" in keys
         assert "toy" not in keys
@@ -6353,12 +6357,12 @@ class GetFacetsTest(SnubaTestCase, TestCase):
             project_id=self.project.id,
         )
         params = {"project_id": [self.project.id], "start": self.day_ago, "end": self.min_ago}
-        result = discover.get_facets("bad", params)
+        result = discover.get_facets("bad", params, "testing.get-facets-test")
         keys = {r.key for r in result}
         assert "color" in keys
         assert "toy" not in keys
 
-        result = discover.get_facets("color:red p95():>1", params)
+        result = discover.get_facets("color:red p95():>1", params, "testing.get-facets-test")
         keys = {r.key for r in result}
         assert "color" in keys
         assert "toy" not in keys
@@ -6383,7 +6387,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
             project_id=self.project.id,
         )
         params = {"project_id": [self.project.id], "start": self.day_ago, "end": self.min_ago}
-        result = discover.get_facets("", params)
+        result = discover.get_facets("", params, "testing.get-facets-test")
         keys = {r.key for r in result}
         assert "color" in keys
         assert "toy" not in keys

@@ -32,7 +32,9 @@ class Columns(Enum):
     TAGS_KEY = Column("events.tags.key", "tags.key", "tags.key", "tags.key", "tags.key")
     TAGS_VALUE = Column("events.tags.value", "tags.value", "tags.value", "tags.value", "tags.value")
     TAGS_KEYS = Column("events.tags_key", "tags_key", "tags_key", "tags_key", "tags_key")
-    TAGS_VALUES = Column("events.tags_value", "tags_value", "tags_value", None, "tags_value")
+    TAGS_VALUES = Column(
+        "events.tags_value", "tags_value", "tags_value", "tags_value", "tags_value"
+    )
     TRANSACTION = Column(
         "events.transaction", "transaction", "transaction_name", "transaction", "transaction"
     )
