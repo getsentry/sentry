@@ -705,6 +705,14 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
     user = User.objects.get(id=user_id)
 
     if not user_subscribed_to_organization_reports(user, organization):
+        if features.has("organizations:weekly-report-debugging", organization):
+            logger.info(
+                "reports.user.unsubscribed",
+                extra={
+                    "user": user.id,
+                    "organization_id": organization.id,
+                },
+            )
         logger.debug(
             "Skipping report for %r to %r, user is not subscribed to reports.", organization, user
         )
@@ -715,6 +723,14 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
         projects.update(Project.objects.get_for_user(team, user, _skip_team_check=True))
 
     if not projects:
+        if features.has("organizations:weekly-report-debugging", organization):
+            logger.info(
+                "reports.user.no_projects",
+                extra={
+                    "user": user.id,
+                    "organization_id": organization.id,
+                },
+            )
         logger.debug(
             "Skipping report for %r to %r, user is not associated with any projects.",
             organization,
@@ -738,6 +754,14 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
     )
 
     if not reports:
+        if features.has("organizations:weekly-report-debugging", organization):
+            logger.info(
+                "reports.user.no_reports",
+                extra={
+                    "user": user.id,
+                    "organization_id": organization.id,
+                },
+            )
         logger.debug(
             "Skipping report for %r to %r, no qualifying reports to deliver.", organization, user
         )
