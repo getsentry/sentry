@@ -10505,10 +10505,10 @@ mobx-react@~7.2.0:
   dependencies:
     mobx-react-lite "^3.2.0"
 
-mobx@^6.3.2:
-  version "6.3.2"
-  resolved "https://registry.yarnpkg.com/mobx/-/mobx-6.3.2.tgz#125590961f702a572c139ab69392bea416d2e51b"
-  integrity sha512-xGPM9dIE1qkK9Nrhevp0gzpsmELKU4MFUJRORW/jqxVFIHHWIoQrjDjL8vkwoJYY3C2CeVJqgvl38hgKTalTWg==
+mobx@^6.3.6:
+  version "6.3.6"
+  resolved "https://registry.yarnpkg.com/mobx/-/mobx-6.3.6.tgz#3192dea21ae8213d04a0df5c98a5ca164ed29ecd"
+  integrity sha512-TeCp8BTco5cmXKY7Zt5VSL5fHBEAHTSA6xs+KWmcxi3cFN1C+Xqs2m3giyGT/e6TSjtdDysVX5+cCZZhEyiJmA==
 
 mockdate@3.0.5:
   version "3.0.5"
@@ -13827,10 +13827,10 @@ stylehacks@^5.0.1:
     browserslist "^4.16.0"
     postcss-selector-parser "^6.0.4"
 
-stylelint-config-prettier@^8.0.2:
-  version "8.0.2"
-  resolved "https://registry.yarnpkg.com/stylelint-config-prettier/-/stylelint-config-prettier-8.0.2.tgz#da9de33da4c56893cbe7e26df239a7374045e14e"
-  integrity sha512-TN1l93iVTXpF9NJstlvP7nOu9zY2k+mN0NSFQ/VEGz15ZIP9ohdDZTtCWHs5LjctAhSAzaILULGbgiM0ItId3A==
+stylelint-config-prettier@^9.0.3:
+  version "9.0.3"
+  resolved "https://registry.yarnpkg.com/stylelint-config-prettier/-/stylelint-config-prettier-9.0.3.tgz#0dccebeff359dcc393c9229184408b08964d561c"
+  integrity sha512-5n9gUDp/n5tTMCq1GLqSpA30w2sqWITSSEiAWQlpxkKGAUbjcemQ0nbkRvRUa0B1LgD3+hCvdL7B1eTxy1QHJg==
 
 stylelint-config-recommended@^5.0.0:
   version "5.0.0"
