@@ -514,6 +514,8 @@ def start_group_reprocessing(
         referrer="reprocessing2.start_group_reprocessing",
     )["data"][0]["times_seen"]
 
+    sentry_sdk.set_extra("event_count", event_count)
+
     if max_events is not None:
         event_count = min(max_events, event_count)
 
