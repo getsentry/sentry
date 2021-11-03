@@ -94,9 +94,9 @@ class Match:
     def _from_config_structure(obj, version):
         val = obj
         if val.startswith("|[") and val.endswith("]"):
-            return CalleeMatch(Match._from_config_structure(val[2:-1]))
+            return CalleeMatch(Match._from_config_structure(val[2:-1], version))
         if val.startswith("[") and val.endswith("]|"):
-            return CallerMatch(Match._from_config_structure(val[1:-2]))
+            return CallerMatch(Match._from_config_structure(val[1:-2], version))
 
         if val.startswith("!"):
             negated = True
