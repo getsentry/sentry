@@ -1023,7 +1023,7 @@ def get_id(result):
 def get_facets(
     query: str,
     params: ParamsType,
-    referrer: str = None,
+    referrer: str,
     limit: Optional[int] = 10,
     use_snql: Optional[bool] = False,
 ):
@@ -1036,8 +1036,8 @@ def get_facets(
 
     query (str) Filter query string to create conditions from.
     params (Dict[str, str]) Filtering parameters with start, end, project_id, environment
-    limit (int) The number of records to fetch.
     referrer (str) A referrer string to help locate the origin of this query.
+    limit (int) The number of records to fetch.
 
     Returns Sequence[FacetResult]
     """
@@ -1051,7 +1051,6 @@ def get_facets(
             key_name_builder = QueryBuilder(
                 Dataset.Discover,
                 params,
-                # Exclude tracing tags as they are noisy and generally not helpful.
                 query=query,
                 selected_columns=["tags_key", "count()"],
                 orderby=["-count()", "tags_key"],
@@ -1065,6 +1064,10 @@ def get_facets(
             if not top_tags:
                 return []
 
+        # TODO: Make the sampling rate scale based on the result size and scaling factor in
+        # sentry.options. To test the lowest acceptable sampling rate, we use 0.1 which
+        # is equivalent to turbo. We don't use turbo though as we need to re-scale data, and
+        # using turbo could cause results to be wrong if the value of turbo is changed in snuba.
         sample_rate = 0.1 if (key_names["data"][0]["count"] > 10000) else None
         # Rescale the results if we're sampling
         multiplier = 1 / sample_rate if sample_rate is not None else 1
@@ -1107,7 +1110,7 @@ def get_facets(
             if tag == "environment":
                 # Add here tags that you want to be individual
                 individual_tags.append(tag)
-            elif i >= len(top_tags) - 10:
+            elif i >= len(top_tags) - (TOP_VALUES_DEFAULT_LIMIT + 1):
                 aggregate_tags.append(tag)
             else:
                 individual_tags.append(tag)
@@ -1146,7 +1149,7 @@ def get_facets(
                     + f" tags_key:[{','.join(aggregate_tags)}]",
                     selected_columns=["count()", "tags_key", "tags_value"],
                     orderby=["tags_key", "-count()"],
-                    limitby=["tags_key", TOP_VALUES_DEFAULT_LIMIT],
+                    limitby=("tags_key", TOP_VALUES_DEFAULT_LIMIT),
                     # Ensures Snuba will not apply FINAL
                     turbo=sample_rate is not None,
                     sample_rate=sample_rate,
@@ -1228,7 +1231,7 @@ def get_facets(
                 orderby="-count",
                 dataset=Dataset.Discover,
                 referrer=referrer,
-                sample_rate=sample_rate,
+                sample=sample_rate,
                 # Ensures Snuba will not apply FINAL
                 turbo=sample_rate is not None,
             )
@@ -1299,7 +1302,7 @@ def get_facets(
                 sample=sample_rate,
                 # Ensures Snuba will not apply FINAL
                 turbo=sample_rate is not None,
-                limitby=(TOP_VALUES_DEFAULT_LIMIT, "tags_key"),
+                limitby=[TOP_VALUES_DEFAULT_LIMIT, "tags_key"],
             )
             results.extend(
                 [
