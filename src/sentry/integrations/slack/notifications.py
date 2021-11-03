@@ -2,14 +2,11 @@ import logging
 from collections import defaultdict
 from typing import Any, Iterable, Mapping, MutableMapping, Optional, Union
 
-from sentry.integrations.slack.client import SlackClient  # NOQA
-from sentry.integrations.slack.message_builder.notifications import build_notification_attachment
 from sentry.models import ExternalActor, Identity, Integration, Organization, Team, User
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notify import register_notification_provider
-from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.notifications")
 SLACK_TIMEOUT = 5
@@ -114,48 +111,6 @@ def send_notification_as_slack(
     extra_context_by_user_id: Optional[Mapping[int, Mapping[str, Any]]],
 ) -> None:
     """Send an "activity" or "alert rule" notification to a Slack user or team."""
-    client = SlackClient()
-    data = get_channel_and_token_by_recipient(notification.organization, recipients)
-
-    for recipient, tokens_by_channel in data.items():
-        is_multiple = True if len([token for token in tokens_by_channel]) > 1 else False
-        if is_multiple:
-            logger.info(
-                "notification.multiple.slack_post",
-                extra={
-                    "notification": notification,
-                    "recipient": recipient.id,
-                },
-            )
-        extra_context = (extra_context_by_user_id or {}).get(recipient.id, {})
-        context = get_context(notification, recipient, shared_context, extra_context)
-        attachment = [build_notification_attachment(notification, context, recipient)]
-        for channel, token in tokens_by_channel.items():
-            # unfurl_links and unfurl_media are needed to preserve the intended message format
-            # and prevent the app from replying with help text to the unfurl
-            payload = {
-                "token": token,
-                "channel": channel,
-                "link_names": 1,
-                "unfurl_links": False,
-                "unfurl_media": False,
-                "text": notification.get_notification_title(),
-                "attachments": json.dumps(attachment),
-            }
-            try:
-                client.post("/chat.postMessage", data=payload, timeout=5)
-            except ApiError as e:
-                logger.info(
-                    "notification.fail.slack_post",
-                    extra={
-                        "error": str(e),
-                        "notification": notification,
-                        "recipient": recipient.id,
-                        "channel_id": channel,
-                        "is_multiple": is_multiple,
-                    },
-                )
-            notification.record_notification_sent(recipient, ExternalProviders.SLACK)
 
     key = notification.metrics_key
     metrics.incr(
