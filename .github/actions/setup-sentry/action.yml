@@ -152,6 +152,20 @@ runs:
         pip install -U -e ".[dev]"
         cd -
 
+    - name: Docker Cache
+      id: docker-cache
+      uses: actions/cache@v2
+      with:
+        path: /tmp/docker-cache
+        # Manual bump for now. Should create a cache key based on image checksums.
+        key: docker-cache-1
+
+    - name: Load Images from Docker Cache
+      if: steps.docker-cache.outputs.cache-hit == 'true'
+      shell: bash
+      run: |
+        docker load -i /tmp/docker-cache/snapshot.tar || true
+
     - name: Start devservices
       shell: bash
       env:
@@ -206,3 +220,12 @@ runs:
         fi
 
         docker ps -a
+
+    - name: Save Images to Docker Cache
+      if: steps.docker-cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        docker image save \
+        $(docker image ls --format='{{.ID}}' | sort | uniq) \
+        -o /tmp/docker-cache/snapshot.tar && \
+        ls -lh /tmp/docker-cache
