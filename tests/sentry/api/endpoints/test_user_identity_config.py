@@ -20,18 +20,18 @@ class UserIdentityConfigTest(APITestCase):
         self.login_as(self.user)
 
 
-def mock_supports_login_effect(obj: Identity) -> bool:
+def mock_is_login_provider_effect(provider_key: str) -> bool:
     # Mimics behavior from getsentry repo
-    return obj.idp.type in ("github", "vsts", "google")
+    return provider_key in ("github", "vsts", "google")
 
 
 class UserIdentityConfigEndpointTest(UserIdentityConfigTest):
     endpoint = "sentry-api-0-user-identity-config"
     method = "get"
 
-    @mock.patch("sentry.api.serializers.models.user_identity_config.supports_login")
-    def test_simple(self, mock_supports_login):
-        mock_supports_login.side_effect = mock_supports_login_effect
+    @mock.patch("sentry.api.serializers.models.user_identity_config.is_login_provider")
+    def test_simple(self, mock_is_login_provider):
+        mock_is_login_provider.side_effect = mock_is_login_provider_effect
 
         UserSocialAuth.objects.create(provider="github", user=self.user)
         Identity.objects.create(user=self.user, idp=self.github_idp)
@@ -63,9 +63,9 @@ class UserIdentityConfigEndpointTest(UserIdentityConfigTest):
         assert org_ident["isLogin"] is True
         assert org_ident["organization"]["id"] == str(self.organization.id)
 
-    @mock.patch("sentry.api.serializers.models.user_identity_config.supports_login")
-    def test_identity_needed_for_global_auth(self, mock_supports_login):
-        mock_supports_login.side_effect = mock_supports_login_effect
+    @mock.patch("sentry.api.serializers.models.user_identity_config.is_login_provider")
+    def test_identity_needed_for_global_auth(self, mock_is_login_provider):
+        mock_is_login_provider.side_effect = mock_is_login_provider_effect
 
         self.user.update(password="")
         identity = Identity.objects.create(user=self.user, idp=self.github_idp)
@@ -229,9 +229,9 @@ class UserIdentityConfigDetailsEndpointDeleteTest(UserIdentityConfigTest):
         self.get_error_response(self.user.id, "org-identity", str(ident_obj.id), status_code=405)
         assert AuthIdentity.objects.get(id=ident_obj.id)
 
-    @mock.patch("sentry.api.serializers.models.user_identity_config.supports_login")
-    def test_enforces_global_ident_needed_for_login(self, mock_supports_login):
-        mock_supports_login.side_effect = mock_supports_login_effect
+    @mock.patch("sentry.api.serializers.models.user_identity_config.is_login_provider")
+    def test_enforces_global_ident_needed_for_login(self, mock_is_login_provider):
+        mock_is_login_provider.side_effect = mock_is_login_provider_effect
 
         self.user.update(password="")
         self.login_as(self.user)
