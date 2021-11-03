@@ -5,7 +5,6 @@ import logging
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequence
 
 from sentry import analytics, features, roles
-from sentry.integrations.slack.utils.notifications import get_settings_url
 from sentry.models import NotificationSetting, OrganizationMember, Team
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notify import notification_providers
@@ -116,6 +115,8 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
         return role_string
 
     def build_notification_footer(self, recipient: Team | User) -> str:
+        from sentry.integrations.slack.utils.notifications import get_settings_url
+
         # not implemented for teams
         if isinstance(recipient, Team):
             raise NotImplementedError
