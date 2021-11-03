@@ -1196,6 +1196,9 @@ SENTRY_SUSPECT_COMMITS_APM_SAMPLING = 0
 # sample rate for post_process_group task
 SENTRY_POST_PROCESS_GROUP_APM_SAMPLING = 0
 
+# sample rate for all reprocessing tasks (except for the per-event ones)
+SENTRY_REPROCESSING_APM_SAMPLING = 0
+
 # ----
 # end APM config
 # ----
