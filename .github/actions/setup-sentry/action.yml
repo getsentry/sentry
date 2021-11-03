@@ -225,7 +225,10 @@ runs:
       if: steps.docker-cache.outputs.cache-hit != 'true'
       shell: bash
       run: |
+        mkdir /tmp/docker-cache
+
         docker image save \
         $(docker image ls --format='{{.ID}}' | sort | uniq) \
-        -o /tmp/docker-cache/snapshot.tar && \
+        -o /tmp/docker-cache/snapshot.tar
+
         ls -lh /tmp/docker-cache
