@@ -1,4 +1,4 @@
-import {act, mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {addTeamToProject} from 'app/actionCreators/projects';
 import {TeamSelector} from 'app/components/forms/teamSelector';
@@ -42,19 +42,14 @@ function createWrapper(props = {}) {
   );
 }
 
-function openSelectMenu() {
-  const placeholder = screen.getByText('Select...');
-  userEvent.type(placeholder, '{keyDown}');
-}
-
 describe('Team Selector', function () {
   beforeEach(function () {
-    act(() => void TeamStore.loadInitialData(teams));
+    TeamStore.loadInitialData(teams);
   });
 
   it('renders options', function () {
     createWrapper();
-    openSelectMenu();
+    userEvent.type(screen.getByText('Select...'), '{keyDown}');
 
     expect(screen.getByText('#team1')).toBeInTheDocument();
     expect(screen.getByText('#team2')).toBeInTheDocument();
@@ -64,7 +59,7 @@ describe('Team Selector', function () {
   it('selects an option', function () {
     const onChangeMock = jest.fn();
     createWrapper({onChange: onChangeMock});
-    openSelectMenu();
+    userEvent.type(screen.getByText('Select...'), '{keyDown}');
 
     const option = screen.getByText('#team1');
     userEvent.click(option);
@@ -77,7 +72,8 @@ describe('Team Selector', function () {
   it('respects the team filter', async function () {
     const teamFilter = team => team.slug === 'team1';
     createWrapper({teamFilter});
-    openSelectMenu();
+
+    userEvent.type(screen.getByText('Select...'), '{keyDown}');
 
     expect(screen.getByText('#team1')).toBeInTheDocument();
 
@@ -88,7 +84,7 @@ describe('Team Selector', function () {
 
   it('respects the project filter', async function () {
     createWrapper({project});
-    openSelectMenu();
+    userEvent.type(screen.getByText('Select...'), '{keyDown}');
 
     expect(screen.getByText('#team1')).toBeInTheDocument();
 
@@ -99,7 +95,7 @@ describe('Team Selector', function () {
   it('respects the team and project filter', async function () {
     const teamFilter = team => team.slug === 'team1' || team.slug === 'team2';
     createWrapper({teamFilter, project});
-    openSelectMenu();
+    userEvent.type(screen.getByText('Select...'), '{keyDown}');
 
     expect(screen.getByText('#team1')).toBeInTheDocument();
 
@@ -112,18 +108,14 @@ describe('Team Selector', function () {
 
   it('allows you to add teams outside of project', async function () {
     createWrapper({project});
-    openSelectMenu();
+    userEvent.type(screen.getByText('Select...'), '{keyDown}');
 
     expect(screen.getByText('#team1')).toBeInTheDocument();
 
     // team2 and team3 should have add to project buttons
     const addToProjectButtons = screen.getAllByRole('button');
 
-    await act(async () => {
-      // add team2 to project
-      userEvent.click(addToProjectButtons[0]);
-      await tick();
-    });
+    userEvent.click(addToProjectButtons[0]);
 
     expect(addTeamToProject).toHaveBeenCalled();
   });

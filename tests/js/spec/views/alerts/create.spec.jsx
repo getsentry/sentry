@@ -168,8 +168,7 @@ describe('ProjectAlertsCreate', function () {
     it('loads default values', async function () {
       createWrapper();
 
-      const allEnvironments = await screen.findByDisplayValue('__all_environments__');
-      expect(allEnvironments).toBeInTheDocument();
+      expect(await screen.findByDisplayValue('__all_environments__')).toBeInTheDocument();
       expect(screen.getByDisplayValue('all')).toBeInTheDocument();
       expect(screen.getByDisplayValue('30')).toBeInTheDocument();
     });
@@ -220,6 +219,7 @@ describe('ProjectAlertsCreate', function () {
       await selectEvent.select(screen.getByText('Add action...'), [
         'Send a notification (for all legacy integrations)',
       ]);
+
       userEvent.click(screen.getByLabelText('Delete Node'));
 
       userEvent.click(screen.getByText('Save Rule'));
@@ -267,23 +267,23 @@ describe('ProjectAlertsCreate', function () {
       await selectEvent.select(screen.getAllByText('all')[0], ['any']);
 
       // Change name of alert rule
-      userEvent.type(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
+      userEvent.paste(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
 
       // Add another condition
       await selectEvent.select(screen.getByText('Add optional condition...'), [
         "An event's tags match {key} {match} {value}",
       ]);
       // Edit new Condition
-      userEvent.type(screen.getByPlaceholderText('key'), 'conditionKey');
+      userEvent.paste(screen.getByPlaceholderText('key'), 'conditionKey');
 
-      userEvent.type(screen.getByPlaceholderText('value'), 'conditionValue');
+      userEvent.paste(screen.getByPlaceholderText('value'), 'conditionValue');
       await selectEvent.select(screen.getByText('equals'), ['does not equal']);
 
       // Add a new filter
       await selectEvent.select(screen.getByText('Add optional filter...'), [
         'The issue is {comparison_type} than {value} {time}',
       ]);
-      userEvent.type(screen.getByPlaceholderText('10'), '12');
+      userEvent.paste(screen.getByPlaceholderText('10'), '12');
 
       // Add a new action
       await selectEvent.select(screen.getByText('Add action...'), [
