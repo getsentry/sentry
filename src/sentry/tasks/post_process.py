@@ -196,7 +196,7 @@ def handle_group_owners(project, group, owners):
             if new_group_owners:
                 GroupOwner.objects.bulk_create(new_group_owners)
     except UnableToAcquireLock:
-        logger.exception("Failed to acquire lock at post_process.handle_group_owners")
+        pass
 
 
 def update_existing_attachments(event):

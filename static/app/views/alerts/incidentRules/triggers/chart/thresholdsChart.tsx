@@ -1,16 +1,19 @@
 import {PureComponent} from 'react';
 import color from 'color';
+import {EChartOption} from 'echarts';
 import debounce from 'lodash/debounce';
 import flatten from 'lodash/flatten';
 
 import AreaChart, {AreaChartSeries} from 'app/components/charts/areaChart';
 import Graphic from 'app/components/charts/components/graphic';
+import {defaultFormatAxisLabel} from 'app/components/charts/components/tooltip';
 import {LineChartSeries} from 'app/components/charts/lineChart';
 import LineSeries from 'app/components/charts/series/lineSeries';
 import space from 'app/styles/space';
 import {GlobalSelection} from 'app/types';
 import {ReactEchartsRef, Series} from 'app/types/echarts';
 import theme from 'app/utils/theme';
+import {checkChangeStatus} from 'app/views/alerts/changeAlerts/comparisonMarklines';
 import {
   ALERT_CHART_MIN_MAX_BUFFER,
   alertAxisFormatter,
@@ -306,6 +309,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
       comparisonSeriesName,
       comparisonMarkLines,
       minutesThresholdToDisplaySeconds,
+      thresholdType,
     } = this.props;
 
     const dataWithoutRecentBucket: AreaChartSeries[] = data?.map(
@@ -344,11 +348,72 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
         valueFormatter: (value: number) =>
           alertTooltipValueFormatter(value, aggregate, aggregate),
 
-        markerFormatter: (marker: string, seriesName?: string) => {
-          if (seriesName === comparisonSeriesName) {
-            return '<span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;background-color:transparent;"></span>';
+        formatAxisLabel: (
+          value: number,
+          isTimestamp: boolean,
+          utc: boolean,
+          showTimeInTooltip: boolean,
+          addSecondsToTimeFormat: boolean,
+          bucketSize: number | undefined,
+          seriesParamsOrParam: EChartOption.Tooltip.Format | EChartOption.Tooltip.Format[]
+        ) => {
+          const date = defaultFormatAxisLabel(
+            value,
+            isTimestamp,
+            utc,
+            showTimeInTooltip,
+            addSecondsToTimeFormat,
+            bucketSize
+          );
+
+          const seriesParams = Array.isArray(seriesParamsOrParam)
+            ? seriesParamsOrParam
+            : [seriesParamsOrParam];
+
+          const pointY = (
+            seriesParams.length > 1 ? seriesParams[0].data[1] : undefined
+          ) as number | undefined;
+
+          const comparisonSeries =
+            seriesParams.length > 1
+              ? seriesParams.find(({seriesName: _sn}) => _sn === comparisonSeriesName)
+              : undefined;
+
+          const comparisonPointY = comparisonSeries?.data[1] as number | undefined;
+
+          if (comparisonPointY === undefined || pointY === undefined) {
+            return `<span>${date}</span>`;
           }
-          return marker;
+
+          const changePercentage =
+            comparisonPointY === 0 && pointY === 0
+              ? 0
+              : ((pointY - comparisonPointY) * 100) / comparisonPointY;
+
+          const changeStatus = checkChangeStatus(
+            changePercentage,
+            thresholdType,
+            triggers
+          );
+
+          const changeStatusColor =
+            changeStatus === 'critical'
+              ? theme.red300
+              : changeStatus === 'warning'
+              ? theme.yellow300
+              : theme.green300;
+
+          return `<span>${date}<span style="color:${changeStatusColor};margin-left:10px;">${
+            Math.sign(changePercentage) === 1
+              ? '+'
+              : Math.sign(changePercentage) === -1
+              ? '-'
+              : ''
+          }${
+            Math.abs(changePercentage) === Infinity
+              ? `&#8734`
+              : Math.abs(changePercentage)
+          }%</span></span>`;
         },
       },
       yAxis: {
@@ -386,6 +451,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
               name: comparisonSeriesName,
               data: _data.map(({name, value}) => [name, value]),
               lineStyle: {color: theme.gray200, type: 'dashed', width: 1},
+              itemStyle: {color: theme.gray200},
               animation: false,
               animationThreshold: 1,
               animationDuration: 0,

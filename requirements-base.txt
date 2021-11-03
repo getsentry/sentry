@@ -91,7 +91,3 @@ phabricator==0.7.0
 # sentry.utils.pytest and sentry.testutils are moved to tests/
 selenium==3.141.0
 sqlparse==0.2.4
-
-# this is already a transitive dependency via structlog, and we started
-# implicitly relying on it because of that. Can probably be removed with 3.8
-typing-extensions==3.10.0.2

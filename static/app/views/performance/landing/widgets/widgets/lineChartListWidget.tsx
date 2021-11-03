@@ -5,6 +5,7 @@ import {Location} from 'history';
 
 import _EventsRequest from 'app/components/charts/eventsRequest';
 import {getInterval} from 'app/components/charts/utils';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Link from 'app/components/links/link';
 import Tooltip from 'app/components/tooltip';
 import Truncate from 'app/components/truncate';
@@ -48,6 +49,15 @@ type DataType = {
   list: WidgetDataResult & ReturnType<typeof transformDiscoverToList>;
 };
 
+const slowList = [
+  PerformanceWidgetSetting.SLOW_HTTP_OPS,
+  PerformanceWidgetSetting.SLOW_DB_OPS,
+  PerformanceWidgetSetting.SLOW_BROWSER_OPS,
+  PerformanceWidgetSetting.SLOW_RESOURCE_OPS,
+  PerformanceWidgetSetting.MOST_SLOW_FRAMES,
+  PerformanceWidgetSetting.MOST_FROZEN_FRAMES,
+];
+
 export function LineChartListWidget(props: Props) {
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const {ContainerActions} = props;
@@ -57,31 +67,24 @@ export function LineChartListWidget(props: Props) {
       `Line chart list widget can only accept a single field (${props.fields})`
     );
   }
+  const field = props.fields[0];
 
-  const slowList = [
-    PerformanceWidgetSetting.SLOW_HTTP_OPS,
-    PerformanceWidgetSetting.SLOW_DB_OPS,
-    PerformanceWidgetSetting.SLOW_BROWSER_OPS,
-    PerformanceWidgetSetting.SLOW_RESOURCE_OPS,
-    PerformanceWidgetSetting.MOST_SLOW_FRAMES,
-    PerformanceWidgetSetting.MOST_FROZEN_FRAMES,
-  ];
   const isSlowestType = slowList.includes(props.chartSetting);
 
   const eventView = props.eventView.clone();
 
   const listQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
     () => ({
-      fields: props.fields[0],
+      fields: field,
       component: provided => {
-        eventView.sorts = [{kind: 'desc', field: props.fields[0]}];
+        eventView.sorts = [{kind: 'desc', field}];
         if (props.chartSetting === PerformanceWidgetSetting.MOST_RELATED_ISSUES) {
           eventView.fields = [
             {field: 'issue'},
             {field: 'transaction'},
             {field: 'title'},
             {field: 'project.id'},
-            {field: props.fields[0]},
+            {field},
           ];
           eventView.additionalConditions.setFilterValues('event.type', ['error']);
           eventView.additionalConditions.setFilterValues('!tags[transaction]', ['']);
@@ -90,19 +93,16 @@ export function LineChartListWidget(props: Props) {
           eventView.query = mutableSearch.formatString();
         } else if (isSlowestType) {
           eventView.additionalConditions.setFilterValues('epm()', ['>0.01']);
+          eventView.additionalConditions.setFilterValues(field, ['>0']);
           eventView.fields = [
             {field: 'transaction'},
             {field: 'project.id'},
             {field: 'epm()'},
-            {field: props.fields[0]},
+            {field},
           ];
         } else {
           // Most related errors
-          eventView.fields = [
-            {field: 'transaction'},
-            {field: 'project.id'},
-            {field: props.fields[0]},
-          ];
+          eventView.fields = [{field: 'transaction'}, {field: 'project.id'}, {field}];
         }
         return (
           <DiscoverQuery
@@ -115,7 +115,7 @@ export function LineChartListWidget(props: Props) {
       },
       transform: transformDiscoverToList,
     }),
-    [props.eventView.query, props.fields[0], props.organization.slug]
+    [props.eventView.query, field, props.organization.slug]
   );
 
   const chartQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(() => {
@@ -123,7 +123,7 @@ export function LineChartListWidget(props: Props) {
       enabled: widgetData => {
         return !!widgetData?.list?.data?.length;
       },
-      fields: props.fields[0],
+      fields: field,
       component: provided => {
         eventView.additionalConditions.setFilterValues('transaction', [
           provided.widgetData.list.data[selectedListIndex].transaction as string,
@@ -133,7 +133,7 @@ export function LineChartListWidget(props: Props) {
             {field: 'issue'},
             {field: 'issue.id'},
             {field: 'transaction'},
-            {field: props.fields[0]},
+            {field},
           ];
           eventView.additionalConditions.setFilterValues('issue', [
             provided.widgetData.list.data[selectedListIndex].issue as string,
@@ -144,7 +144,7 @@ export function LineChartListWidget(props: Props) {
           mutableSearch.removeFilter('transaction.duration');
           eventView.query = mutableSearch.formatString();
         } else {
-          eventView.fields = [{field: 'transaction'}, {field: props.fields[0]}];
+          eventView.fields = [{field: 'transaction'}, {field}];
         }
         return (
           <EventsRequest
@@ -153,7 +153,7 @@ export function LineChartListWidget(props: Props) {
             includePrevious
             includeTransformedData
             partial
-            currentSeriesNames={[props.fields[0]]}
+            currentSeriesNames={[field]}
             query={eventView.getQueryWithAdditionalConditions()}
             interval={getInterval(
               {
@@ -168,12 +168,7 @@ export function LineChartListWidget(props: Props) {
       },
       transform: transformEventsRequestToArea,
     };
-  }, [
-    props.eventView.query,
-    props.fields[0],
-    props.organization.slug,
-    selectedListIndex,
-  ]);
+  }, [props.eventView.query, field, props.organization.slug, selectedListIndex]);
 
   const Queries = {
     list: listQuery,
@@ -186,6 +181,9 @@ export function LineChartListWidget(props: Props) {
       Subtitle={() => <Subtitle>{t('Suggested transactions')}</Subtitle>}
       HeaderActions={provided => (
         <ContainerActions isLoading={provided.widgetData.list?.isLoading} />
+      )}
+      EmptyComponent={() => (
+        <StyledEmptyStateWarning small>{t('No results')}</StyledEmptyStateWarning>
       )}
       Queries={Queries}
       Visualizations={[
@@ -238,7 +236,7 @@ export function LineChartListWidget(props: Props) {
                   additionalQuery,
                 });
 
-                const fieldString = getAggregateAlias(props.fields[0]);
+                const fieldString = getAggregateAlias(field);
 
                 const valueMap = {
                   [PerformanceWidgetSetting.MOST_RELATED_ERRORS]: listItem.failure_count,
@@ -324,4 +322,9 @@ const StyledIconClose = styled(IconClose)`
   &:hover {
     color: ${p => p.theme.gray300};
   }
+`;
+
+const StyledEmptyStateWarning = styled(EmptyStateWarning)`
+  min-height: 300px;
+  justify-content: center;
 `;

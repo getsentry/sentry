@@ -1,7 +1,5 @@
 from datetime import datetime
-from typing import Mapping, Optional, Sequence, Set, Tuple, TypeVar, Union
-
-from typing_extensions import Literal, TypedDict
+from typing import Literal, Mapping, Optional, Sequence, Set, Tuple, TypedDict, TypeVar, Union
 
 from sentry.snuba.sessions_v2 import QueryDefinition
 from sentry.utils.services import Service
