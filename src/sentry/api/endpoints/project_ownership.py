@@ -8,7 +8,7 @@ from sentry.models import ProjectOwnership
 from sentry.ownership.grammar import CODEOWNERS, create_schema_from_issue_owners
 from sentry.signals import ownership_rule_created
 
-MAX_RAW_LENGTH = 300000
+MAX_RAW_LENGTH = 100000
 
 
 class ProjectOwnershipSerializer(serializers.Serializer):
