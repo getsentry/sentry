@@ -2,9 +2,6 @@ import re
 from typing import Mapping, Union
 from urllib.parse import urljoin
 
-from django.http import HttpResponse
-from rest_framework.request import Request
-
 from sentry.constants import ObjectStatus
 from sentry.incidents.models import AlertRuleTriggerAction, Incident
 from sentry.integrations.slack.client import SlackClient
@@ -15,7 +12,6 @@ from sentry.notifications.notifications.base import BaseNotification, ProjectNot
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
-from sentry.web.helpers import render_to_response
 
 from . import logger
 
@@ -50,42 +46,6 @@ def send_incident_alert_notification(
         client.post("/chat.postMessage", data=payload, timeout=5)
     except ApiError as e:
         logger.info("rule.fail.slack_post", extra={"error": str(e)})
-
-
-def send_confirmation(
-    integration: Integration,
-    channel_id: str,
-    heading: str,
-    text: str,
-    template: str,
-    request: Request,
-) -> HttpResponse:
-    client = SlackClient()
-    token = integration.metadata.get("user_access_token") or integration.metadata["access_token"]
-    payload = {
-        "token": token,
-        "channel": channel_id,
-        "text": text,
-    }
-
-    headers = {"Authorization": f"Bearer {token}"}
-    try:
-        client.post("/chat.postMessage", headers=headers, data=payload, json=True)
-    except ApiError as e:
-        message = str(e)
-        if message != "Expired url":
-            logger.error("slack.slash-notify.response-error", extra={"error": message})
-    else:
-        return render_to_response(
-            template,
-            request=request,
-            context={
-                "heading_text": heading,
-                "body_text": text,
-                "channel_id": channel_id,
-                "team_id": integration.external_id,
-            },
-        )
 
 
 def get_referrer_qstring(notification: BaseNotification, recipient: Union["Team", "User"]) -> str:
