@@ -10,7 +10,7 @@ import Confirm from 'app/components/confirm';
 import DateTime from 'app/components/dateTime';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {IconFlag} from 'app/icons';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import space from 'app/styles/space';
 import {UserIdentityCategory, UserIdentityConfig, UserIdentityStatus} from 'app/types';
@@ -84,7 +84,9 @@ class AccountIdentities extends AsyncView<Props, State> {
         message={
           <Fragment>
             <Alert type="error" icon={<IconFlag size="md" />}>
-              {t(`Disconnect Your ${identity.provider.name} Identity?`)}
+              {tct('Disconnect Your [provider] Identity?', {
+                provider: identity.provider.name,
+              })}
             </Alert>
             <TextBlock>
               {identity.isLogin
