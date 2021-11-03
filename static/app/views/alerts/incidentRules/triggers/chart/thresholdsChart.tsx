@@ -385,10 +385,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
             return `<span>${date}</span>`;
           }
 
-          const changePercentage =
-            comparisonPointY === 0 && pointY === 0
-              ? 0
-              : ((pointY - comparisonPointY) * 100) / comparisonPointY;
+          const changePercentage = (pointY - comparisonPointY) * 100 / comparisonPointY;
 
           const changeStatus = checkChangeStatus(
             changePercentage,
@@ -397,23 +394,21 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
           );
 
           const changeStatusColor =
-            changeStatus === 'critical'
-              ? theme.red300
-              : changeStatus === 'warning'
-              ? theme.yellow300
-              : theme.green300;
+            Math.abs(changePercentage) === Infinity || isNaN(changePercentage) ?
+              theme.gray300
+              : changeStatus === 'critical'
+                ? theme.red300
+                : changeStatus === 'warning'
+                  ? theme.yellow300
+                  : theme.green300;
+
 
           return `<span>${date}<span style="color:${changeStatusColor};margin-left:10px;">${
-            Math.sign(changePercentage) === 1
-              ? '+'
-              : Math.sign(changePercentage) === -1
-              ? '-'
-              : ''
-          }${
-            Math.abs(changePercentage) === Infinity
-              ? `&#8734`
-              : Math.abs(changePercentage).toFixed(2)
-          }%</span></span>`;
+            Math.abs(changePercentage) === Infinity || isNaN(changePercentage)
+              ? 'n/a'
+              : (`${Math.sign(changePercentage) === 1 
+                ? '+' 
+                : '-'}${Math.abs(changePercentage).toFixed(2)}%`)}</span></span>`;
         },
       },
       yAxis: {
