@@ -334,12 +334,11 @@ class GitlabIntegrationProvider(IntegrationProvider):
         data = state["identity"]["data"]
 
         # Gitlab requires the client_id and client_secret for refreshing the access tokens
-        client_id = state.get("oauth_config_information", {}).get("client_id")
-        client_secret = state.get("oauth_config_information", {}).get("client_secret")
+        oauth_config = state.get("oauth_config_information", {})
         oauth_data = {
             **get_oauth_data(data),
-            "client_id": client_id,
-            "client_secret": client_secret,
+            "client_id": oauth_config.get("client_id"),
+            "client_secret": oauth_config.get("client_secret"),
         }
 
         user = get_user_info(data["access_token"], state["installation_data"])
