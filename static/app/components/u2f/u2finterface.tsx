@@ -84,6 +84,9 @@ class U2fInterface extends React.Component<Props, State> {
                 keyHandle: data.id,
                 clientData: this.bufferToBase64url(data.response.clientDataJSON),
                 signatureData: this.bufferToBase64url(data.response.signature),
+                authenticatorData: this.bufferToBase64url(
+                  data.response.authenticatorData
+                ),
               };
               u2fResponse = JSON.stringify(authenticatorData);
             }
