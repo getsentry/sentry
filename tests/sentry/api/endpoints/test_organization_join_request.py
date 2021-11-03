@@ -152,7 +152,6 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest):
             {
                 "text": "Approve",
                 "name": "Approve",
-                "url": None,
                 "style": "primary",
                 "type": "button",
                 "value": "approve_member",
@@ -161,7 +160,6 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest):
             {
                 "text": "Reject",
                 "name": "Reject",
-                "url": None,
                 "style": "danger",
                 "type": "button",
                 "value": "reject_member",
@@ -171,9 +169,6 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest):
                 "text": "See Members & Requests",
                 "name": "See Members & Requests",
                 "url": "http://testserver/settings/baz/members/?referrer=join_request-slack",
-                "style": None,
                 "type": "button",
-                "value": None,
-                "action_id": None,
             },
         ]

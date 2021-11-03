@@ -28,16 +28,18 @@ class MessageAction:
     action_id: str | None = None
     value: Any | None = None
 
-    def as_slack(self) -> Mapping[str, Any]:
-        return {
+    def as_slack(self) -> MutableMapping[str, Any]:
+        out = {
             "text": self.label,
             "name": self.label,
-            "url": self.url,
-            "style": self.style,
             "type": "button",
-            "value": self.value,
-            "action_id": self.action_id,
         }
+        # add in optional fields
+        for field_name in ["value", "action_id", "url", "style"]:
+            val = getattr(self, field_name)
+            if val is not None:
+                out[field_name] = val
+        return out
 
 
 class BaseNotification:
