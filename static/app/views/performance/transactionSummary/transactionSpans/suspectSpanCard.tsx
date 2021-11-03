@@ -21,6 +21,7 @@ import {
   emptyValue,
   HeaderItem,
   LowerPanel,
+  SpanDurationBar,
   SpanLabelContainer,
   UpperPanel,
 } from './styles';
@@ -97,8 +98,9 @@ export default function SuspectSpanEntry(props: Props) {
   const examples = suspectSpan.examples.map(example => ({
     id: example.id,
     project: suspectSpan.project,
-    // finish timestamp is in seconds but want milliseconds
+    // timestamps are in seconds but want them in milliseconds
     timestamp: example.finishTimestamp * 1000,
+    transactionDuration: (example.finishTimestamp - example.startTimestamp) * 1000,
     spanDuration: example.nonOverlappingExclusiveTime,
     repeated: example.spans.length,
     cumulativeDuration: example.spans.reduce(
@@ -142,7 +144,8 @@ export default function SuspectSpanEntry(props: Props) {
             renderBodyCell: renderBodyCellWithMeta(
               location,
               organization,
-              generateTransactionLink
+              generateTransactionLink,
+              suspectSpan
             ),
           }}
           location={location}
@@ -232,9 +235,21 @@ function renderBodyCellWithMeta(
     tableData: TableDataRow,
     query: Query,
     hash?: string
-  ) => LocationDescriptor
+  ) => LocationDescriptor,
+  suspectSpan: SuspectSpan
 ) {
   return (column: SuspectSpanTableColumn, dataRow: SuspectSpanDataRow): ReactNode => {
+    // if the transaction duration is falsey, then just render the span duration on its own
+    if (column.key === 'spanDuration' && dataRow.transactionDuration) {
+      return (
+        <SpanDurationBar
+          spanOp={suspectSpan.op}
+          spanDuration={dataRow.spanDuration}
+          transactionDuration={dataRow.transactionDuration}
+        />
+      );
+    }
+
     const fieldRenderer = getFieldRenderer(column.key, SPANS_TABLE_COLUMN_TYPE);
     let rendered = fieldRenderer(dataRow, {location, organization});
 

@@ -508,7 +508,6 @@ class EventView {
       'sorts',
       'project',
       'environment',
-      'display',
       'topEvents',
     ];
 
@@ -547,6 +546,13 @@ class EventView {
       return false;
     }
 
+    // compare Display Mode selections
+    // undefined Display Mode values default to "default"
+    const currentDisplayMode = this.display ?? DisplayModes.DEFAULT;
+    const otherDisplayMode = other.display ?? DisplayModes.DEFAULT;
+    if (!isEqual(currentDisplayMode, otherDisplayMode)) {
+      return false;
+    }
     return true;
   }
 

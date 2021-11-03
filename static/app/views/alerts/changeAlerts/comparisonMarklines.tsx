@@ -6,7 +6,7 @@ import {MINUTE} from 'app/utils/formatters';
 import theme from 'app/utils/theme';
 import {AlertRuleThresholdType, Trigger} from 'app/views/alerts/incidentRules/types';
 
-const checkChangeStatus = (
+export const checkChangeStatus = (
   value: number,
   thresholdType: AlertRuleThresholdType,
   triggers: Trigger[]

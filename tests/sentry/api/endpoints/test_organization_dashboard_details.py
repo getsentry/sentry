@@ -515,7 +515,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         }
         response = self.do_request("put", self.url(self.dashboard.id), data=data)
         assert response.status_code == 400, response.data
-        assert b"Cannot order by a field" in response.content
+        assert b"Cannot sort by a field" in response.content
 
     def test_remove_widget_and_add_new(self):
         # Remove a widget from the middle of the set and put a new widget there
