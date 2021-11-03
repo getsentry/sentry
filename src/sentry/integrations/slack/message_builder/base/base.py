@@ -1,13 +1,29 @@
 from __future__ import annotations
 
 from abc import ABC
-from typing import Any, Sequence
+from typing import Any, Mapping, MutableMapping, Sequence
 
 from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR, SlackBody
 from sentry.integrations.slack.message_builder.base import AbstractMessageBuilder
-from sentry.notifications.notifications.base import MessageAction
+from sentry.notifications.utils.actions import MessageAction
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
+
+
+def get_slack_button(action: MessageAction) -> Mapping[str, Any]:
+    kwargs: MutableMapping[str, Any] = {
+        "text": action.name or action.label,
+        "name": action.name,
+        "url": action.url,
+        "style": action.style,
+        "type": action.type,
+    }
+
+    if action.type == "select":
+        kwargs["selected_options"] = action.selected_options or []
+        kwargs["option_groups"] = action.option_groups or []
+
+    return kwargs
 
 
 class SlackMessageBuilder(AbstractMessageBuilder, ABC):
@@ -49,16 +65,7 @@ class SlackMessageBuilder(AbstractMessageBuilder, ABC):
                 kwargs["title_link"] = title_link
 
         if actions:
-            kwargs["actions"] = [
-                {
-                    "text": action.label,
-                    "name": action.label,
-                    "url": action.url,
-                    "style": action.style or "default",
-                    "type": "button",
-                }
-                for action in actions
-            ]
+            kwargs["actions"] = [get_slack_button(action) for action in actions]
 
         return [
             {

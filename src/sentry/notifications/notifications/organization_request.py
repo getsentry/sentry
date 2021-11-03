@@ -7,9 +7,10 @@ from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequen
 from sentry import analytics, features, roles
 from sentry.integrations.slack.utils.notifications import get_settings_url
 from sentry.models import NotificationSetting, OrganizationMember, Team
-from sentry.notifications.notifications.base import BaseNotification, MessageAction
+from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notify import notification_providers
 from sentry.notifications.types import NotificationSettingTypes
+from sentry.notifications.utils.actions import MessageAction
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 
 if TYPE_CHECKING:

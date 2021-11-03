@@ -5,7 +5,6 @@ from typing import Any, Iterable, Mapping, MutableMapping, Sequence
 from sentry_relay import parse_release
 
 from sentry.models import Activity, CommitFileChange, Project, Team, User
-from sentry.notifications.notifications.base import MessageAction
 from sentry.notifications.utils import (
     get_commits_for_release,
     get_deploy,
@@ -17,6 +16,7 @@ from sentry.notifications.utils import (
     get_users_by_emails,
     get_users_by_teams,
 )
+from sentry.notifications.utils.actions import MessageAction
 from sentry.notifications.utils.participants import get_participants_for_release
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.compat import zip
@@ -137,7 +137,7 @@ class ReleaseActivityNotification(ActivityNotification):
             if release:
                 return [
                     MessageAction(
-                        label=project.slug,
+                        name=project.slug,
                         url=absolute_uri(
                             f"/organizations/{project.organization.slug}/releases/{release.version}/?project={project.id}&unselectedSeries=Healthy/"
                         ),

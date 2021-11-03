@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import Any, Callable, Mapping, MutableMapping, Sequence
+from typing import Any, Callable, Mapping, Sequence
 
 from django.core.cache import cache
 
@@ -22,6 +22,7 @@ from sentry.models import (
 )
 from sentry.notifications.notifications.base import BaseNotification, ProjectNotification
 from sentry.notifications.notifications.rules import AlertRuleNotification
+from sentry.notifications.utils.actions import MessageAction
 from sentry.utils import json
 from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
@@ -206,52 +207,59 @@ def build_actions(
     project: Project,
     text: str,
     color: str,
-    actions: Sequence[Any] | None = None,
+    actions: Sequence[MessageAction] | None = None,
     identity: Identity | None = None,
-) -> tuple[Sequence[Any], str, str]:
+) -> tuple[Sequence[MessageAction], str, str]:
     """Having actions means a button will be shown on the Slack message e.g. ignore, resolve, assign."""
     if actions:
         text += get_action_text(text, actions, identity)
         return [], text, "_actioned_issue"
 
-    ASSIGN_BUTTON: MutableMapping[str, Any] = {
-        "name": "assign",
-        "text": "Select Assignee...",
-        "type": "select",
-    }
-    IGNORE_BUTTON = {
-        "name": "status",
-        "type": "button",
-        "text": "Ignore",
-        "value": "ignored",
-    }
-    RESOLVE_BUTTON = {
-        "name": "resolve_dialog",
-        "text": "Resolve...",
-        "type": "button",
-        "value": "resolve_dialog",
-    }
+    ignore_button = MessageAction(
+        name="status",
+        label="Ignore",
+        value="ignored",
+    )
+
+    resolve_button = MessageAction(
+        name="resolve_dialog",
+        label="Resolve...",
+        value="resolve_dialog",
+    )
 
     status = group.get_status()
 
     if not has_releases(project):
-        RESOLVE_BUTTON.update({"name": "status", "text": "Resolve", "value": "resolved"})
+        resolve_button = MessageAction(
+            name="status",
+            label="Resolve",
+            value="resolved",
+        )
 
     if status == GroupStatus.RESOLVED:
-        RESOLVE_BUTTON.update({"name": "status", "text": "Unresolve", "value": "unresolved"})
+        resolve_button = MessageAction(
+            name="status",
+            label="Unresolve",
+            value="unresolved",
+        )
 
     if status == GroupStatus.IGNORED:
-        IGNORE_BUTTON.update({"text": "Stop Ignoring", "value": "unresolved"})
+        ignore_button = MessageAction(
+            name="status",
+            label="Stop Ignoring",
+            value="unresolved",
+        )
 
     assignee = group.get_assignee()
-    ASSIGN_BUTTON.update(
-        {
-            "selected_options": format_actor_options([assignee]) if assignee else [],
-            "option_groups": get_option_groups(group),
-        }
+    assign_button = MessageAction(
+        name="assign",
+        label="Select Assignee...",
+        type="select",
+        selected_options=format_actor_options([assignee]) if assignee else [],
+        option_groups=get_option_groups(group),
     )
 
-    return [RESOLVE_BUTTON, IGNORE_BUTTON, ASSIGN_BUTTON], text, color
+    return [resolve_button, ignore_button, assign_button], text, color
 
 
 def get_title_link(
@@ -299,7 +307,7 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
         event: Event | None = None,
         tags: set[str] | None = None,
         identity: Identity | None = None,
-        actions: Sequence[Any] | None = None,
+        actions: Sequence[MessageAction] | None = None,
         rules: list[Rule] | None = None,
         link_to_event: bool = False,
         issue_details: bool = False,
@@ -360,7 +368,7 @@ def build_group_attachment(
     event: Event | None = None,
     tags: set[str] | None = None,
     identity: Identity | None = None,
-    actions: Sequence[Any] | None = None,
+    actions: Sequence[MessageAction] | None = None,
     rules: list[Rule] | None = None,
     link_to_event: bool = False,
     issue_details: bool = False,

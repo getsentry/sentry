@@ -1,23 +1,15 @@
 from __future__ import annotations
 
 import abc
-from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Literal, Mapping, MutableMapping, Sequence
-from typing_extensions import Literal
+from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Sequence
 
 from sentry import analytics
+from sentry.notifications.utils.actions import MessageAction
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
     from sentry.models import Organization, Project, Team, User
-
-
-@dataclass
-class MessageAction:
-    label: str
-    url: str
-    style: Literal["primary", "danger", "default"] | None = None
 
 
 class BaseNotification:
