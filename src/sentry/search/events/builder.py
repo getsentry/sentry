@@ -4,7 +4,7 @@ from snuba_sdk.aliased_expression import AliasedExpression
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import And, Condition, Op, Or
 from snuba_sdk.entity import Entity
-from snuba_sdk.expressions import Granularity, Limit, Offset
+from snuba_sdk.expressions import Granularity, Limit, Offset, Turbo
 from snuba_sdk.function import CurriedFunction, Function
 from snuba_sdk.orderby import Direction, LimitBy, OrderBy
 from snuba_sdk.query import Query
@@ -35,6 +35,8 @@ class QueryBuilder(QueryFilter):
         limit: Optional[int] = 50,
         offset: Optional[int] = 0,
         limitby: Optional[Tuple[str, int]] = None,
+        turbo: Optional[bool] = False,
+        sample_rate: Optional[float] = None,
     ):
         super().__init__(dataset, params, auto_fields, functions_acl)
 
@@ -44,6 +46,8 @@ class QueryBuilder(QueryFilter):
         self.offset = None if offset is None else Offset(offset)
 
         self.limitby = self.resolve_limitby(limitby)
+        self.turbo = Turbo(turbo)
+        self.sample_rate = sample_rate
 
         self.where, self.having = self.resolve_conditions(
             query, use_aggregate_conditions=use_aggregate_conditions
@@ -130,7 +134,7 @@ class QueryBuilder(QueryFilter):
 
         return Query(
             dataset=self.dataset.value,
-            match=Entity(self.dataset.value),
+            match=Entity(self.dataset.value, sample=self.sample_rate),
             select=self.columns,
             array_join=self.array_join,
             where=self.where,
@@ -140,6 +144,7 @@ class QueryBuilder(QueryFilter):
             limit=self.limit,
             offset=self.offset,
             limitby=self.limitby,
+            turbo=self.turbo,
         )
 
 

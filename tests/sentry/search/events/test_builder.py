@@ -455,3 +455,33 @@ class QueryBuilderTest(TestCase):
         )
         assert query.array_join == Column("spans.op")
         query.get_snql_query().validate()
+
+    def test_sample_rate(self):
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            "",
+            selected_columns=[
+                "count()",
+            ],
+            sample_rate=0.1,
+        )
+        assert query.sample_rate == 0.1
+        snql_query = query.get_snql_query()
+        snql_query.validate()
+        assert snql_query.match.sample == 0.1
+
+    def test_turbo(self):
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            "",
+            selected_columns=[
+                "count()",
+            ],
+            turbo=True,
+        )
+        assert query.turbo.value
+        snql_query = query.get_snql_query()
+        snql_query.validate()
+        assert snql_query.turbo.value
