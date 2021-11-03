@@ -74,6 +74,7 @@ FacetResult = namedtuple("FacetResult", ["key", "value", "count"])
 resolve_discover_column = resolve_column(Dataset.Discover)
 
 OTHER_KEY = "Other"
+TOP_KEYS_DEFAULT_LIMIT = 10
 
 
 def is_real_column(col):
@@ -1024,7 +1025,7 @@ def get_facets(
     query: str,
     params: ParamsType,
     referrer: str,
-    limit: Optional[int] = 10,
+    limit: Optional[int] = TOP_KEYS_DEFAULT_LIMIT,
     use_snql: Optional[bool] = False,
 ):
     """
@@ -1110,7 +1111,7 @@ def get_facets(
             if tag == "environment":
                 # Add here tags that you want to be individual
                 individual_tags.append(tag)
-            elif i >= len(top_tags) - (TOP_VALUES_DEFAULT_LIMIT + 1):
+            elif i >= len(top_tags) - TOP_KEYS_DEFAULT_LIMIT:
                 aggregate_tags.append(tag)
             else:
                 individual_tags.append(tag)
