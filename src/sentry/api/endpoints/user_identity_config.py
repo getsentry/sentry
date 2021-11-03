@@ -7,7 +7,11 @@ from rest_framework.response import Response
 
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.user_identity_config import Status, UserIdentityConfig
+from sentry.api.serializers.models.user_identity_config import (
+    Status,
+    UserIdentityConfig,
+    supports_login,
+)
 from sentry.models import AuthIdentity, Identity, User
 from social_auth.models import UserSocialAuth
 
@@ -23,30 +27,27 @@ def get_identities(user: User) -> Iterable[UserIdentityConfig]:
 
     has_password = user.has_usable_password()
     global_identity_objs = list(Identity.objects.filter(user=user))
+    global_login_id_count = sum(1 for obj in global_identity_objs if supports_login(obj))
 
-    def get_social_identities() -> Iterable[UserIdentityConfig]:
+    def get_global_identity_status(obj: Identity) -> Status:
+        if not supports_login(obj):
+            return Status.CAN_DISCONNECT
+
+        # Allow global login IDs to be deleted if the user has a
+        # password or at least one other login ID to fall back on.
+        # AuthIdentities don't count, because we don't want to risk
+        # the user getting locked out of their profile if they're
+        # kicked from the organization.
         return (
-            UserIdentityConfig.wrap(obj, Status.CAN_DISCONNECT)
-            for obj in UserSocialAuth.objects.filter(user=user)
-        )
-
-    def get_global_identities() -> Iterable[UserIdentityConfig]:
-        # Allow global auth credentials to be deleted if the user has a
-        # password or at least one other global identity to fall back on.
-        # AuthIdentities don't count, because we don't want to risk the
-        # user getting locked out of their profile if they're kicked from
-        # the organization.
-        global_id_status = (
             Status.CAN_DISCONNECT
-            if (has_password or len(global_identity_objs) > 1)
+            if has_password or global_login_id_count > 1
             else Status.NEEDED_FOR_GLOBAL_AUTH
         )
-        return (UserIdentityConfig.wrap(obj, global_id_status) for obj in global_identity_objs)
 
     def get_org_identity_status(obj: AuthIdentity) -> Status:
         if not obj.auth_provider.flags.allow_unlinked:
             return Status.NEEDED_FOR_ORG_AUTH
-        elif has_password or len(global_identity_objs) > 0:
+        elif has_password or global_login_id_count > 0:
             return Status.CAN_DISCONNECT
         else:
             # Assume the user has only this AuthIdentity as their
@@ -55,17 +56,20 @@ def get_identities(user: User) -> Iterable[UserIdentityConfig]:
             # and weird that we don't care.)
             return Status.NEEDED_FOR_GLOBAL_AUTH
 
-    def get_org_identities() -> Iterable[UserIdentityConfig]:
-        return (
-            UserIdentityConfig.wrap(obj, get_org_identity_status(obj))
-            for obj in AuthIdentity.objects.filter(user=user)
-        )
-
-    return itertools.chain(
-        get_social_identities(),
-        get_global_identities(),
-        get_org_identities(),
+    social_identities = (
+        UserIdentityConfig.wrap(obj, Status.CAN_DISCONNECT)
+        for obj in UserSocialAuth.objects.filter(user=user)
     )
+    global_identities = (
+        UserIdentityConfig.wrap(obj, get_global_identity_status(obj))
+        for obj in global_identity_objs
+    )
+    org_identities = (
+        UserIdentityConfig.wrap(obj, get_org_identity_status(obj))
+        for obj in AuthIdentity.objects.filter(user=user)
+    )
+
+    return itertools.chain(social_identities, global_identities, org_identities)
 
 
 class UserIdentityConfigEndpoint(UserEndpoint):

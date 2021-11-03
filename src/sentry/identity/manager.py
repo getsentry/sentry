@@ -7,6 +7,7 @@ from sentry.exceptions import NotRegistered
 class IdentityManager:
     def __init__(self):
         self.__values = {}
+        self._login_providers = {}
 
     def __iter__(self):
         return iter(self.all())
@@ -27,8 +28,10 @@ class IdentityManager:
     def exists(self, key):
         return key in self.__values
 
-    def register(self, cls):
+    def register(self, cls, login_provider_cls=None):
         self.__values[cls.key] = cls
+        if login_provider_cls:
+            self._login_providers[login_provider_cls.key] = cls
 
     def unregister(self, cls):
         try:
@@ -39,3 +42,6 @@ class IdentityManager:
             # we gracefully handle a missing provider
             return
         del self.__values[cls.key]
+
+    def is_login_provider(self, key) -> bool:
+        return key in self._login_providers
