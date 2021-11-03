@@ -57,7 +57,8 @@ import {
 
 import {TimePeriodType} from './constants';
 
-const X_AXIS_BOUNDARY_GAP = 20;
+const LEFT_PADDING = 30;
+const RIGHT_PADDING = 17;
 const VERTICAL_PADDING = 22;
 
 type Props = WithRouterProps & {
@@ -243,9 +244,9 @@ class MetricChart extends React.PureComponent<Props, State> {
       return [];
     }
 
-    const chartWidth = width - X_AXIS_BOUNDARY_GAP;
+    const chartWidth = width - (LEFT_PADDING + RIGHT_PADDING);
     const position =
-      X_AXIS_BOUNDARY_GAP +
+      LEFT_PADDING +
       Math.round((chartWidth * (ruleChanged - seriesStart)) / (seriesEnd - seriesStart));
 
     return [
@@ -261,10 +262,10 @@ class MetricChart extends React.PureComponent<Props, State> {
       {
         type: 'rect',
         draggable: false,
-        position: [X_AXIS_BOUNDARY_GAP, 0],
+        position: [LEFT_PADDING, 0],
         shape: {
           // +1 makes the gray area go midway onto the dashed line above
-          width: position - X_AXIS_BOUNDARY_GAP + 1,
+          width: position - LEFT_PADDING + 1,
           height: height - VERTICAL_PADDING,
         },
         style: {
