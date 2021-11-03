@@ -293,6 +293,9 @@ class GitlabIntegrationTest(IntegrationTestCase):
             installation.get_stacktrace_link(repo, "README.md", ref, version)
         except Exception as e:
             assert e.code == 401
+        else:
+            # check that the call throws.
+            assert False
 
     @responses.activate
     def test_get_stacktrace_link_use_default_if_version_404(self):
