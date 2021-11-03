@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events.fields import DateArg, parse_function
 from sentry.search.utils import InvalidQuery, parse_datetime_string
 from sentry.snuba import discover
@@ -211,7 +212,10 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
         params["aliases"] = self.get_function_aliases(trend_type)
 
         trend_function = request.GET.get("trendFunction", "p50()")
-        function, columns, alias = parse_function(trend_function)
+        try:
+            function, columns, _ = parse_function(trend_function)
+        except InvalidSearchQuery as error:
+            raise ParseError(detail=error)
         if len(columns) == 0:
             # Default to duration
             column = "transaction.duration"
