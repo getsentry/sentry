@@ -220,7 +220,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
 
     @transaction_start("SlackActionEndpoint")
     def post(self, request: Request) -> Response:
-        logging_data: dict[str, str] = {}
+        logging_data: Mapping[str, str] = {}
 
         try:
             slack_request = SlackActionRequest(request)
