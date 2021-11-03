@@ -109,7 +109,10 @@ type Props = {
         value: number,
         isTimestamp: boolean,
         utc: boolean,
-        showTimeInTooltip: boolean
+        showTimeInTooltip: boolean,
+        addSecondsToTimeFormat: boolean,
+        bucketSize: number | undefined,
+        seriesParamsOrParam: EChartOption.Tooltip.Format | EChartOption.Tooltip.Format[]
       ) => string;
       valueFormatter?: (
         value: number,

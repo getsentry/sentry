@@ -37,6 +37,7 @@ import {
   MINUTES_THRESHOLD_TO_DISPLAY_SECONDS,
 } from 'app/utils/sessions';
 import theme from 'app/utils/theme';
+import {checkChangeStatus} from 'app/views/alerts/changeAlerts/comparisonMarklines';
 import {alertDetailsLink} from 'app/views/alerts/details';
 import {COMPARISON_DELTA_OPTIONS} from 'app/views/alerts/incidentRules/constants';
 import {makeDefaultCta} from 'app/views/alerts/incidentRules/incidentRulePresets';
@@ -583,6 +584,7 @@ class MetricChart extends React.PureComponent<Props, State> {
                             name: comparisonSeriesName,
                             data: _data.map(({name, value}) => [name, value]),
                             lineStyle: {color: theme.gray200, type: 'dashed', width: 1},
+                            itemStyle: {color: theme.gray200},
                             animation: false,
                             animationThreshold: 1,
                             animationDuration: 0,
@@ -607,18 +609,6 @@ class MetricChart extends React.PureComponent<Props, State> {
                           rule.aggregate
                         );
 
-                        const comparisonSeries = pointSeries.find(
-                          ({seriesName: _seriesName}) =>
-                            _seriesName === comparisonSeriesName
-                        );
-                        const comparisonPointY = comparisonSeries
-                          ? alertTooltipValueFormatter(
-                              comparisonSeries.data[1],
-                              seriesName ?? '',
-                              rule.aggregate
-                            )
-                          : null;
-
                         const isModified =
                           dateModified && pointX <= new Date(dateModified).getTime();
 
@@ -634,25 +624,72 @@ class MetricChart extends React.PureComponent<Props, State> {
                           ),
                           'MMM D LT'
                         );
-                        const title = isModified
-                          ? `<strong>${t('Alert Rule Modified')}</strong>`
-                          : `${marker} <strong>${seriesName}</strong>`;
 
-                        const value = isModified
-                          ? `${seriesName} ${pointYFormatted}`
-                          : pointYFormatted;
+                        const comparisonSeries =
+                          pointSeries.length > 1
+                            ? pointSeries.find(
+                                ({seriesName: _sn}) => _sn === comparisonSeriesName
+                              )
+                            : undefined;
 
-                        const comparisonTitle = isModified
-                          ? `<span>${comparisonSeriesName}</span>`
-                          : `<span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;background-color:transparent;"></span><strong>${comparisonSeriesName}</strong>`;
+                        const comparisonPointY = comparisonSeries?.data[1] as
+                          | number
+                          | undefined;
+                        const comparisonPointYFormatted =
+                          comparisonPointY !== undefined
+                            ? alertTooltipValueFormatter(
+                                comparisonPointY,
+                                seriesName ?? '',
+                                rule.aggregate
+                              )
+                            : undefined;
+
+                        const changePercentage =
+                          comparisonPointY === undefined
+                            ? undefined
+                            : (comparisonPointY === 0 && pointY === 0
+                                ? 0
+                                : (pointY - comparisonPointY) / comparisonPointY) * 100;
+                        const changeStatus =
+                          changePercentage === undefined
+                            ? undefined
+                            : checkChangeStatus(
+                                changePercentage,
+                                rule.thresholdType,
+                                rule.triggers
+                              );
+                        const changeStatusColor =
+                          changeStatus === 'critical'
+                            ? theme.red300
+                            : changeStatus === 'warning'
+                            ? theme.yellow300
+                            : theme.green300;
 
                         return [
                           `<div class="tooltip-series">`,
-                          `<div><span class="tooltip-label">${title}</span>${value}</div>`,
+                          isModified &&
+                            `<div><span class="tooltip-label"><strong>${t(
+                              'Alert Rule Modified'
+                            )}</strong></span></div>`,
+                          `<div><span class="tooltip-label">${marker} <strong>${seriesName}</strong></span>${pointYFormatted}</div>`,
                           comparisonSeries &&
-                            `<div><span class="tooltip-label">${comparisonTitle}</span>${comparisonPointY}</div>`,
+                            `<div><span class="tooltip-label">${comparisonSeries.marker} <strong>${comparisonSeriesName}</strong></span>${comparisonPointYFormatted}</div>`,
                           `</div>`,
-                          `<div class="tooltip-date">${startTime} &mdash; ${endTime}</div>`,
+                          `<div class="tooltip-date">`,
+                          `<span>${startTime} &mdash; ${endTime}</span>`,
+                          changePercentage !== undefined &&
+                            `<span style="color:${changeStatusColor};margin-left:10px;">${
+                              Math.sign(changePercentage) === 1
+                                ? '+'
+                                : Math.sign(changePercentage) === -1
+                                ? '-'
+                                : ''
+                            }${
+                              Math.abs(changePercentage) === Infinity
+                                ? `&#8734`
+                                : Math.abs(changePercentage)
+                            }%</span>`,
+                          `</div>`,
                           `<div class="tooltip-arrow"></div>`,
                         ]
                           .filter(e => e)
