@@ -40,47 +40,62 @@ function DisplayOptions({
   hasAppOnlyFrames,
   platform,
 }: Props) {
-  const DISPLAY_OPTIONS: SelectValue<string>[] = [
-    {
-      label: t('Unsymbolicated'),
-      value: DisplayOption.MINIFIED,
-      disabled: !hasMinified,
-      tooltip: !hasMinified ? t('Unsymbolicated version not available') : undefined,
-    },
-    {
-      label: t('Absolute Addresses'),
-      value: DisplayOption.ABSOLUTE_ADDRESSES,
-      disabled: !hasAbsoluteAddresses,
-      tooltip: !hasAbsoluteAddresses ? t('Absolute Addresses not available') : undefined,
-    },
-    {
-      label: t('Absolute File Paths'),
-      value: DisplayOption.ABSOLUTE_FILE_PATHS,
-      disabled: !hasAbsoluteFilePaths,
-      tooltip: !hasAbsoluteFilePaths ? t('Absolute File Paths not available') : undefined,
-    },
-    {
-      label: t('Verbose Function Names'),
-      value: DisplayOption.VERBOSE_FUNCTION_NAMES,
-      disabled: !hasVerboseFunctionNames,
-      tooltip: !hasVerboseFunctionNames
-        ? t('Verbose Function Names not available')
-        : undefined,
-    },
-    {
-      label: t('Full Stack Trace'),
-      value: DisplayOption.FULL_STACK_TRACE,
-      disabled: !hasAppOnlyFrames,
-      tooltip: !hasAppOnlyFrames ? t('Only full version available') : undefined,
-    },
-  ];
+  function getDisplayOptions(): SelectValue<string>[] {
+    if (platform === 'objc' || platform === 'native' || platform === 'cocoa') {
+      return [
+        {
+          label: t('Unsymbolicated'),
+          value: DisplayOption.MINIFIED,
+          disabled: !hasMinified,
+          tooltip: !hasMinified ? t('Unsymbolicated version not available') : undefined,
+        },
+        {
+          label: t('Absolute Addresses'),
+          value: DisplayOption.ABSOLUTE_ADDRESSES,
+          disabled: !hasAbsoluteAddresses,
+          tooltip: !hasAbsoluteAddresses
+            ? t('Absolute Addresses not available')
+            : undefined,
+        },
+        {
+          label: t('Absolute File Paths'),
+          value: DisplayOption.ABSOLUTE_FILE_PATHS,
+          disabled: !hasAbsoluteFilePaths,
+          tooltip: !hasAbsoluteFilePaths
+            ? t('Absolute File Paths not available')
+            : undefined,
+        },
+        {
+          label: t('Verbose Function Names'),
+          value: DisplayOption.VERBOSE_FUNCTION_NAMES,
+          disabled: !hasVerboseFunctionNames,
+          tooltip: !hasVerboseFunctionNames
+            ? t('Verbose Function Names not available')
+            : undefined,
+        },
+        {
+          label: t('Full Stack Trace'),
+          value: DisplayOption.FULL_STACK_TRACE,
+          disabled: !hasAppOnlyFrames,
+          tooltip: !hasAppOnlyFrames ? t('Only full version available') : undefined,
+        },
+      ];
+    }
 
-  if (platform === 'javascript' || platform === 'node') {
-    // Replaces Unsymbolicated option
-    DISPLAY_OPTIONS[0].label = t('Minified');
-    DISPLAY_OPTIONS[0].tooltip = !hasMinified
-      ? t('Minified version not available')
-      : undefined;
+    return [
+      {
+        label: t('Minified'),
+        value: DisplayOption.MINIFIED,
+        disabled: !hasMinified,
+        tooltip: !hasMinified ? t('Minified version not available') : undefined,
+      },
+      {
+        label: t('Full Stack Trace'),
+        value: DisplayOption.FULL_STACK_TRACE,
+        disabled: !hasAppOnlyFrames,
+        tooltip: !hasAppOnlyFrames ? t('Only full version available') : undefined,
+      },
+    ];
   }
 
   function handleChange(value: DisplayOption) {
@@ -90,6 +105,9 @@ function DisplayOptions({
 
     onChange(newActiveDisplayOptions);
   }
+
+  const displayOptions = getDisplayOptions();
+
   return (
     <Wrapper
       button={({isOpen, getActorProps}) => (
@@ -109,14 +127,13 @@ function DisplayOptions({
       {({getMenuProps, isOpen}) => (
         <DropdownMenu
           {...getMenuProps()}
-          data-test-id="filter-dropdown-menu"
           alignMenu="right"
           isOpen={isOpen}
           blendWithActor
           blendCorner
         >
           <OptionList>
-            {DISPLAY_OPTIONS.map(({label, value, disabled, tooltip}) => {
+            {displayOptions.map(({label, value, disabled, tooltip}) => {
               const displayOption = value as DisplayOption;
               const isDisabled = !!disabled;
               const isChecked = activeDisplayOptions.includes(displayOption);
@@ -131,6 +148,7 @@ function DisplayOptions({
                     }
                     handleChange(displayOption);
                   }}
+                  aria-label={t('Display option')}
                 >
                   <OptionTooltip title={tooltip} disabled={!tooltip}>
                     <ItemContent isDisabled={isDisabled} isChecked={isChecked}>

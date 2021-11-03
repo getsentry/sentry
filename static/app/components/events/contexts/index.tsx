@@ -16,7 +16,7 @@ function Contexts({event, group}: Props) {
 
   return (
     <Fragment>
-      {!objectIsEmpty(user) && (
+      {user && !objectIsEmpty(user) && (
         <Chunk
           key="user"
           type="user"

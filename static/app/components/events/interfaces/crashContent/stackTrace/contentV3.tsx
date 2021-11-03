@@ -46,16 +46,20 @@ function StackTraceContent({
   ) {
     const images = event.entries.find(entry => entry.type === 'debugmeta')?.data?.images;
 
-    return images && address
-      ? images.find((img, idx) => {
-          if (!addrMode || addrMode === 'abs') {
-            const [startAddress, endAddress] = getImageRange(img);
-            return address >= (startAddress as any) && address < (endAddress as any);
-          }
+    if (!images || !address) {
+      return null;
+    }
 
-          return addrMode === `rel:${idx}`;
-        })
-      : null;
+    const image = images.find((img, idx) => {
+      if (!addrMode || addrMode === 'abs') {
+        const [startAddress, endAddress] = getImageRange(img);
+        return address >= (startAddress as any) && address < (endAddress as any);
+      }
+
+      return addrMode === `rel:${idx}`;
+    });
+
+    return image;
   }
 
   function getClassName() {
@@ -244,7 +248,11 @@ function StackTraceContent({
     return [...convertedFrames].reverse();
   }
 
-  return <StyledList className={getClassName()}>{renderConvertedFrames()}</StyledList>;
+  return (
+    <StyledList className={getClassName()} data-test-id="stack-trace">
+      {renderConvertedFrames()}
+    </StyledList>
+  );
 }
 
 export default StackTraceContent;

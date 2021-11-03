@@ -158,11 +158,12 @@ export type Measurement = {value: number};
 export type EventTag = {key: string; value: string};
 
 export type EventUser = {
-  username?: string;
-  name?: string;
+  username?: string | null;
+  name?: string | null;
   ip_address?: string;
   email?: string;
   id?: string;
+  data?: string | null;
 };
 
 type EventBase = {
@@ -179,24 +180,25 @@ type EventBase = {
   dist: string | null;
   metadata: EventMetadata;
   contexts: EventContexts;
-  user: EventUser;
+  user: EventUser | null;
   message: string;
   entries: Entry[];
   errors: any[];
-  projectSlug: string;
   projectID: string;
   tags: EventTag[];
   size: number;
-  location: string;
-  oldestEventID: string | null;
-  latestEventID: string | null;
+  location: string | null;
   groupingConfig: {
     id: string;
     enhancements: string;
   };
   crashFile: IssueAttachment | null;
-  previousEventID?: string;
-  nextEventID?: string;
+  fingerprints: string[];
+  projectSlug?: string;
+  oldestEventID?: string | null;
+  latestEventID?: string | null;
+  previousEventID?: string | null;
+  nextEventID?: string | null;
   groupID?: string;
   context?: Record<string, any>;
   dateCreated?: string;
@@ -209,10 +211,10 @@ type EventBase = {
   sdk?: {
     name: string;
     version: string;
-  };
+  } | null;
   sdkUpdates?: Array<SDKUpdatesSuggestion>;
   measurements?: Record<string, Measurement>;
-  release?: Release;
+  release?: Release | null;
 };
 
 export type EventTransaction = Omit<EventBase, 'entries' | 'type'> & {
@@ -227,7 +229,13 @@ export type EventTransaction = Omit<EventBase, 'entries' | 'type'> & {
 };
 
 export type EventError = Omit<EventBase, 'entries' | 'type'> & {
-  entries: (EntryException | EntryStacktrace | EntryRequest)[];
+  entries: (
+    | EntryException
+    | EntryStacktrace
+    | EntryRequest
+    | EntryThreads
+    | EntryDebugMeta
+  )[];
   type: EventOrGroupType.ERROR;
 };
 

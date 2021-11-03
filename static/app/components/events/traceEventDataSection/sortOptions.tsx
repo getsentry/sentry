@@ -10,8 +10,14 @@ export enum SortOption {
 }
 
 const SORT_OPTIONS: SelectValue<string>[] = [
-  {label: t('Recent first'), value: SortOption.RECENT_FIRST},
-  {label: t('Recent last'), value: SortOption.RECENT_LAST},
+  {
+    label: t('Recent first'),
+    value: SortOption.RECENT_FIRST,
+  },
+  {
+    label: t('Recent last'),
+    value: SortOption.RECENT_LAST,
+  },
 ];
 
 type Props = {
@@ -41,6 +47,7 @@ function SortOptions({activeSortOption, onChange, disabled}: Props) {
           eventKey={value}
           isActive={value === currentValue}
           onSelect={(sortOption: SortOption) => onChange(sortOption)}
+          aria-label={t('Sort option')}
         >
           {label}
         </DropdownItem>

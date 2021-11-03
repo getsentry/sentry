@@ -38,7 +38,7 @@ const ContextSummaryUser = ({data}: Props) => {
   const renderUserDetails = (key: 'id' | 'username') => {
     const userDetails: UserDetails = {
       subject: t('Username:'),
-      value: user.username,
+      value: user.username ?? '',
       meta: getMeta(data, 'username'),
     };
 

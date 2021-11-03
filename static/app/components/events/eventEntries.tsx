@@ -358,7 +358,7 @@ const EventEntries = memo(
     }
 
     const hasMobileScreenshotsFeature = orgFeatures.includes('mobile-screenshots');
-    const hasContext = !objectIsEmpty(event.user) || !objectIsEmpty(event.contexts);
+    const hasContext = !objectIsEmpty(event.user ?? {}) || !objectIsEmpty(event.contexts);
     const hasErrors = !objectIsEmpty(event.errors) || !!proGuardErrors.length;
 
     return (

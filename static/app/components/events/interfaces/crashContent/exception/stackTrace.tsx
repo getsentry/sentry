@@ -79,7 +79,7 @@ function StackTrace({
    * It is easier to fix the UI logic to show a non-empty stack trace for chained exceptions
    */
 
-  if (!!organization.features?.includes('native-stack-trace-v2')) {
+  if (!!organization?.features?.includes('native-stack-trace-v2')) {
     return (
       <StacktraceContentV3
         data={data}

@@ -292,7 +292,7 @@ class SpanDetail extends React.Component<Props, State> {
           <InlineDocs
             platform={event.sdk?.name || ''}
             orgSlug={organization.slug}
-            projectSlug={event.projectSlug}
+            projectSlug={event?.projectSlug ?? ''}
           />
         </SpanDetails>
       );
