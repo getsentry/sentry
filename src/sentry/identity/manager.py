@@ -28,8 +28,10 @@ class IdentityManager:
     def exists(self, key):
         return key in self.__values
 
-    def register(self, cls):
+    def register(self, cls, login_provider_cls=None):
         self.__values[cls.key] = cls
+        if login_provider_cls:
+            self._login_providers[login_provider_cls.key] = cls
 
     def unregister(self, cls):
         try:
@@ -40,10 +42,6 @@ class IdentityManager:
             # we gracefully handle a missing provider
             return
         del self.__values[cls.key]
-
-    def register_login_provider(self, login_cls, provider_cls):
-        self.register(login_cls)
-        self._login_providers[provider_cls.key] = login_cls
 
     def is_login_provider(self, key) -> bool:
         return key in self._login_providers
