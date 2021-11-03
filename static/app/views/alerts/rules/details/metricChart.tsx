@@ -647,7 +647,7 @@ class MetricChart extends React.PureComponent<Props, State> {
                         const changePercentage =
                           comparisonPointY === undefined
                             ? NaN
-                            : (pointY - comparisonPointY) * 100 / comparisonPointY ;
+                            : ((pointY - comparisonPointY) * 100) / comparisonPointY;
 
                         const changeStatus = checkChangeStatus(
                           changePercentage,
@@ -656,13 +656,11 @@ class MetricChart extends React.PureComponent<Props, State> {
                         );
 
                         const changeStatusColor =
-                          Math.abs(changePercentage) === Infinity || isNaN(changePercentage) ?
-                            theme.gray300
-                            : changeStatus === 'critical'
-                              ? theme.red300
-                              : changeStatus === 'warning'
-                              ? theme.yellow300
-                              : theme.green300;
+                          changeStatus === 'critical'
+                            ? theme.red300
+                            : changeStatus === 'warning'
+                            ? theme.yellow300
+                            : theme.green300;
 
                         return [
                           `<div class="tooltip-series">`,
@@ -677,11 +675,11 @@ class MetricChart extends React.PureComponent<Props, State> {
                           `<div class="tooltip-date">`,
                           `<span>${startTime} &mdash; ${endTime}</span>`,
                           comparisonPointY !== undefined &&
+                            Math.abs(changePercentage) !== Infinity &&
+                            !isNaN(changePercentage) &&
                             `<span style="color:${changeStatusColor};margin-left:10px;">${
-                              Math.abs(changePercentage) === Infinity || isNaN(changePercentage) ?
-                                'n/a' :
-                                `${Math.sign(changePercentage) === 1 ? '+' : '-'}${Math.abs(changePercentage).toFixed(2)}%`
-                            }</span>`,
+                              Math.sign(changePercentage) === 1 ? '+' : '-'
+                            }${Math.abs(changePercentage).toFixed(2)}%</span>`,
                           `</div>`,
                           `<div class="tooltip-arrow"></div>`,
                         ]
