@@ -455,7 +455,11 @@ GROUP_URLS = [
         GroupingLevelNewIssuesEndpoint.as_view(),
     ),
     url(r"^(?P<issue_id>[^\/]+)/hashes/split/$", GroupHashesSplitEndpoint.as_view()),
-    url(r"^(?P<issue_id>[^\/]+)/reprocessing/$", GroupReprocessingEndpoint.as_view()),
+    url(
+        r"^(?P<issue_id>[^\/]+)/reprocessing/$",
+        GroupReprocessingEndpoint.as_view(),
+        name="sentry-api-0-issues-reprocessing",
+    ),
     url(r"^(?P<issue_id>[^\/]+)/stats/$", GroupStatsEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/tags/$", GroupTagsEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/tags/(?P<key>[^/]+)/$", GroupTagKeyDetailsEndpoint.as_view()),
