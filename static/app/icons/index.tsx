@@ -57,6 +57,7 @@ export {IconMarkdown} from './iconMarkdown';
 export {IconMegaphone} from './iconMegaphone';
 export {IconMenu} from './iconMenu';
 export {IconMobile} from './iconMobile';
+export {IconMoon} from './iconMoon';
 export {IconMute} from './iconMute';
 export {IconNext} from './iconNext';
 export {IconNot} from './iconNot';
