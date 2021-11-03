@@ -266,19 +266,45 @@ describe('Performance > Transaction Spans', function () {
     for (let i = 0; i < cards.length; i++) {
       const card = cards[i];
 
+      // need to narrow the search to the upper half of the card because `Occurrences` appears in the table header as well
+      const upper = await within(card).findByTestId('suspect-card-upper');
       // these headers should be present by default
-      expect(await within(card).findByText('Span Operation')).toBeInTheDocument();
-      expect(await within(card).findByText('p75 Duration')).toBeInTheDocument();
-      expect(await within(card).findByText('Occurrences')).toBeInTheDocument();
+      expect(await within(upper).findByText('Span Operation')).toBeInTheDocument();
+      expect(await within(upper).findByText('p75 Duration')).toBeInTheDocument();
+      expect(await within(upper).findByText('Occurrences')).toBeInTheDocument();
       expect(
-        await within(card).findByText('Total Cumulative Duration')
+        await within(upper).findByText('Total Cumulative Duration')
       ).toBeInTheDocument();
 
-      const arrow = await within(card).findByTestId('span-sort-arrow');
+      const arrow = await within(upper).findByTestId('span-sort-arrow');
       expect(arrow).toBeInTheDocument();
       expect(
         await within(arrow.closest('div')!).findByText('Occurrences')
       ).toBeInTheDocument();
+    }
+  });
+
+  it('renders the right table headers', async function () {
+    const initialData = initializeData();
+    mountWithTheme(
+      <TransactionSpans
+        organization={initialData.organization}
+        location={initialData.router.location}
+      />,
+      {context: initialData.routerContext}
+    );
+
+    const cards = await screen.findAllByTestId('suspect-card');
+    expect(cards).toHaveLength(2);
+    for (let i = 0; i < cards.length; i++) {
+      const card = cards[i];
+      const lower = await within(card).findByTestId('suspect-card-lower');
+
+      expect(await within(lower).findByText('Example Transaction')).toBeInTheDocument();
+      expect(await within(lower).findByText('Timestamp')).toBeInTheDocument();
+      expect(await within(lower).findByText('Span Duration')).toBeInTheDocument();
+      expect(await within(lower).findByText('Occurrences')).toBeInTheDocument();
+      expect(await within(lower).findByText('Cumulative Duration')).toBeInTheDocument();
     }
   });
 });
