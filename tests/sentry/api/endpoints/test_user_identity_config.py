@@ -219,7 +219,10 @@ class UserIdentityConfigDetailsEndpointDeleteTest(UserIdentityConfigTest):
         self.get_error_response(self.user.id, "org-identity", str(ident_obj.id), status_code=405)
         assert AuthIdentity.objects.get(id=ident_obj.id)
 
-    def test_enforces_global_ident_needed_for_login(self):
+    @mock.patch("sentry.api.serializers.models.user_identity_config.supports_login")
+    def test_enforces_global_ident_needed_for_login(self, mock_supports_login):
+        mock_supports_login.side_effect = mock_supports_login_effect
+
         self.user.update(password="")
         self.login_as(self.user)
 
