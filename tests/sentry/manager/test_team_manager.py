@@ -1,13 +1,5 @@
-from sentry.models import Group, Team, User
+from sentry.models import Team, User
 from sentry.testutils import TestCase
-
-
-class SentryManagerTest(TestCase):
-    def test_valid_only_message(self):
-        event = Group.objects.from_kwargs(1, message="foo")
-        self.assertEqual(event.group.last_seen, event.datetime)
-        self.assertEqual(event.message, "foo")
-        self.assertEqual(event.project_id, 1)
 
 
 class TeamManagerTest(TestCase):

@@ -1,6 +1,6 @@
 import {fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
-import StacktraceContent from 'app/components/events/interfaces/crashContent/stackTrace/content';
+import StackTraceContent from 'app/components/events/interfaces/crashContent/stackTrace/content';
 import {StacktraceType} from 'app/types/stacktrace';
 
 // @ts-expect-error
@@ -11,10 +11,10 @@ const event = TestStubs.Event({entries: [eventEntryStacktrace]});
 const data = eventEntryStacktrace.data as Required<StacktraceType>;
 
 function renderedComponent(
-  props: Partial<React.ComponentProps<typeof StacktraceContent>>
+  props: Partial<React.ComponentProps<typeof StackTraceContent>>
 ) {
   return mountWithTheme(
-    <StacktraceContent
+    <StackTraceContent
       data={data}
       className="no-exception"
       platform="other"

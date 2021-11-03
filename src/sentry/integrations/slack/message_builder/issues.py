@@ -1,5 +1,16 @@
 import re
-from typing import Any, List, Mapping, Optional, Sequence, Set, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Union,
+)
 
 from django.core.cache import cache
 
@@ -10,10 +21,8 @@ from sentry.integrations.slack.message_builder.base.base import SlackMessageBuil
 from sentry.models import (
     ActorTuple,
     Group,
-    GroupAssignee,
     GroupStatus,
     Identity,
-    OrganizationMember,
     Project,
     ReleaseProject,
     Rule,
@@ -28,6 +37,13 @@ from sentry.utils.http import absolute_uri
 
 from ..utils import build_notification_footer
 
+STATUSES = {"resolved": "resolved", "ignored": "ignored", "unresolved": "re-opened"}
+
+
+def format_actor_options(actors: Sequence[Union["Team", "User"]]) -> Sequence[Mapping[str, str]]:
+    sort_func: Callable[[Mapping[str, str]], Any] = lambda actor: actor["text"]
+    return sorted((format_actor_option(actor) for actor in actors), key=sort_func)
+
 
 def format_actor_option(actor: Union["Team", "User"]) -> Mapping[str, str]:
     if isinstance(actor, User):
@@ -36,38 +52,6 @@ def format_actor_option(actor: Union["Team", "User"]) -> Mapping[str, str]:
         return {"text": f"#{actor.slug}", "value": f"team:{actor.id}"}
 
     raise NotImplementedError
-
-
-def get_member_assignees(group: Group) -> Sequence[Mapping[str, str]]:
-    queryset = (
-        OrganizationMember.objects.filter(
-            user__is_active=True,
-            organization=group.organization,
-            teams__in=group.project.teams.all(),
-        )
-        .distinct()
-        .select_related("user")
-    )
-
-    members = sorted(queryset, key=lambda u: u.user.get_display_name())  # type: ignore
-
-    return [format_actor_option(u.user) for u in members]
-
-
-def get_team_assignees(group: Group) -> Sequence[Mapping[str, str]]:
-    return [format_actor_option(u) for u in group.project.teams.all()]
-
-
-def get_assignee(group: Group) -> Optional[Mapping[str, str]]:
-    try:
-        assigned_actor = GroupAssignee.objects.get(group=group).assigned_actor()
-    except GroupAssignee.DoesNotExist:
-        return None
-
-    try:
-        return format_actor_option(assigned_actor.resolve())
-    except assigned_actor.type.DoesNotExist:
-        return None
 
 
 def build_attachment_title(obj: Union[Group, Event]) -> str:
@@ -124,22 +108,18 @@ def build_assigned_text(identity: Identity, assignee: str) -> Optional[str]:
     return f"*Issue assigned to {assignee_text} by <@{identity.external_id}>*"
 
 
-def build_action_text(group: Group, identity: Identity, action: Mapping[str, Any]) -> Optional[str]:
+def build_action_text(identity: Identity, action: Mapping[str, Any]) -> Optional[str]:
     if action["name"] == "assign":
         return build_assigned_text(identity, action["selected_options"][0]["value"])
-
-    statuses = {"resolved": "resolved", "ignored": "ignored", "unresolved": "re-opened"}
 
     # Resolve actions have additional 'parameters' after ':'
     status = action["value"].split(":", 1)[0]
 
     # Action has no valid action text, ignore
-    if status not in statuses:
+    if status not in STATUSES:
         return None
 
-    return "*Issue {status} by <@{user_id}>*".format(
-        status=statuses[status], user_id=identity.external_id
-    )
+    return f"*Issue {STATUSES[status]} by <@{identity.external_id}>*"
 
 
 def build_rule_url(rule: Any, group: Group, project: Project) -> str:
@@ -186,6 +166,50 @@ def build_tag_fields(
     return fields
 
 
+def get_option_groups(group: Group) -> Sequence[Mapping[str, Any]]:
+    members = User.objects.get_from_group(group).distinct()
+    teams = group.project.teams.all()
+
+    option_groups = []
+    if teams:
+        option_groups.append({"text": "Teams", "options": format_actor_options(teams)})
+
+    if members:
+        option_groups.append({"text": "People", "options": format_actor_options(members)})
+
+    return option_groups
+
+
+def has_releases(project: Project) -> bool:
+    cache_key = f"has_releases:2:{project.id}"
+    has_releases_option: Optional[bool] = cache.get(cache_key)
+    if has_releases_option is None:
+        has_releases_option = ReleaseProject.objects.filter(project_id=project.id).exists()
+        if has_releases_option:
+            cache.set(cache_key, True, 3600)
+        else:
+            cache.set(cache_key, False, 60)
+    return has_releases_option
+
+
+def get_action_text(
+    text: str,
+    actions: Sequence[Any],
+    identity: Optional[Identity] = None,
+) -> str:
+    return (
+        text
+        + "\n"
+        + "\n".join(
+            [
+                action_text
+                for action_text in [build_action_text(identity, action) for action in actions]
+                if action_text
+            ]
+        )
+    )
+
+
 def build_actions(
     group: Group,
     project: Project,
@@ -194,73 +218,49 @@ def build_actions(
     actions: Optional[Sequence[Any]] = None,
     identity: Optional[Identity] = None,
 ) -> Tuple[Sequence[Any], str, str]:
-    """
-    Having actions means a button will be shown on the Slack message e.g. ignore, resolve, assign
-    """
-    status = group.get_status()
-    members = get_member_assignees(group)
-    teams = get_team_assignees(group)
+    """Having actions means a button will be shown on the Slack message e.g. ignore, resolve, assign."""
+    if actions:
+        text += get_action_text(text, actions, identity)
+        return [], text, "_actioned_issue"
 
-    if actions is None:
-        actions = []
-
-    assignee = get_assignee(group)
-
-    resolve_button = {
-        "name": "resolve_dialog",
-        "value": "resolve_dialog",
+    ASSIGN_BUTTON: MutableMapping[str, Any] = {
+        "name": "assign",
+        "text": "Select Assignee...",
+        "type": "select",
+    }
+    IGNORE_BUTTON = {
+        "name": "status",
         "type": "button",
+        "text": "Ignore",
+        "value": "ignored",
+    }
+    RESOLVE_BUTTON = {
+        "name": "resolve_dialog",
         "text": "Resolve...",
+        "type": "button",
+        "value": "resolve_dialog",
     }
 
-    ignore_button = {"name": "status", "value": "ignored", "type": "button", "text": "Ignore"}
+    status = group.get_status()
 
-    cache_key = f"has_releases:2:{project.id}"
-    has_releases = cache.get(cache_key)
-    if has_releases is None:
-        has_releases = ReleaseProject.objects.filter(project_id=project.id).exists()
-        if has_releases:
-            cache.set(cache_key, True, 3600)
-        else:
-            cache.set(cache_key, False, 60)
-
-    if not has_releases:
-        resolve_button.update({"name": "status", "text": "Resolve", "value": "resolved"})
+    if not has_releases(project):
+        RESOLVE_BUTTON.update({"name": "status", "text": "Resolve", "value": "resolved"})
 
     if status == GroupStatus.RESOLVED:
-        resolve_button.update({"name": "status", "text": "Unresolve", "value": "unresolved"})
+        RESOLVE_BUTTON.update({"name": "status", "text": "Unresolve", "value": "unresolved"})
 
     if status == GroupStatus.IGNORED:
-        ignore_button.update({"text": "Stop Ignoring", "value": "unresolved"})
+        IGNORE_BUTTON.update({"text": "Stop Ignoring", "value": "unresolved"})
 
-    option_groups = []
-
-    if teams:
-        option_groups.append({"text": "Teams", "options": teams})
-
-    if members:
-        option_groups.append({"text": "People", "options": members})
-
-    payload_actions = [
-        resolve_button,
-        ignore_button,
+    assignee = group.get_assignee()
+    ASSIGN_BUTTON.update(
         {
-            "name": "assign",
-            "text": "Select Assignee...",
-            "type": "select",
-            "selected_options": [assignee],
-            "option_groups": option_groups,
-        },
-    ]
+            "selected_options": format_actor_options([assignee]) if assignee else [],
+            "option_groups": get_option_groups(group),
+        }
+    )
 
-    if actions:
-        action_texts = [_f for _f in [build_action_text(group, identity, a) for a in actions] if _f]
-        text += "\n" + "\n".join(action_texts)
-
-        color = "_actioned_issue"
-        payload_actions = []
-
-    return payload_actions, text, color
+    return [RESOLVE_BUTTON, IGNORE_BUTTON, ASSIGN_BUTTON], text, color
 
 
 def get_title_link(

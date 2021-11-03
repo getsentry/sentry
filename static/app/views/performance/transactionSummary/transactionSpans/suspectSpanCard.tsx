@@ -5,7 +5,7 @@ import GridEditable, {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 import SortLink from 'app/components/gridEditable/sortLink';
 import Link from 'app/components/links/link';
 import Tooltip from 'app/components/tooltip';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import {Organization} from 'app/types';
 import {defined} from 'app/utils';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
@@ -21,11 +21,13 @@ import {
   emptyValue,
   HeaderItem,
   LowerPanel,
+  SpanDurationBar,
   SpanLabelContainer,
   UpperPanel,
 } from './styles';
 import {
   SpanSortOption,
+  SpanSortOthers,
   SpanSortPercentiles,
   SuspectSpanDataRow,
   SuspectSpanTableColumn,
@@ -96,8 +98,9 @@ export default function SuspectSpanEntry(props: Props) {
   const examples = suspectSpan.examples.map(example => ({
     id: example.id,
     project: suspectSpan.project,
-    // finish timestamp is in seconds but want milliseconds
+    // timestamps are in seconds but want them in milliseconds
     timestamp: example.finishTimestamp * 1000,
+    transactionDuration: (example.finishTimestamp - example.startTimestamp) * 1000,
     spanDuration: example.nonOverlappingExclusiveTime,
     repeated: example.spans.length,
     cumulativeDuration: example.spans.reduce(
@@ -107,29 +110,20 @@ export default function SuspectSpanEntry(props: Props) {
     spans: example.spans,
   }));
 
+  const sort = getSuspectSpanSortFromEventView(eventView);
+
   return (
     <div data-test-id="suspect-card">
       <UpperPanel>
         <HeaderItem
-          label="Span Operation"
+          label={t('Span Operation')}
           value={<SpanLabel span={suspectSpan} />}
           align="left"
         />
-        <PercentileDuration
-          sort={getSuspectSpanSortFromEventView(eventView)}
-          suspectSpan={suspectSpan}
-        />
+        <PercentileDuration sort={sort} suspectSpan={suspectSpan} />
+        <SpanCount sort={sort} suspectSpan={suspectSpan} totalCount={totalCount} />
         <HeaderItem
-          label="Frequency"
-          value={
-            defined(totalCount)
-              ? formatPercentage(suspectSpan.frequency / totalCount)
-              : '\u2014'
-          }
-          align="right"
-        />
-        <HeaderItem
-          label="Total Cumulative Duration"
+          label={t('Total Cumulative Duration')}
           value={
             <PerformanceDuration
               abbreviation
@@ -137,6 +131,7 @@ export default function SuspectSpanEntry(props: Props) {
             />
           }
           align="right"
+          isSortKey={sort.field === SpanSortOthers.SUM_EXCLUSIVE_TIME}
         />
       </UpperPanel>
       <LowerPanel data-test-id="suspect-card-lower">
@@ -149,7 +144,8 @@ export default function SuspectSpanEntry(props: Props) {
             renderBodyCell: renderBodyCellWithMeta(
               location,
               organization,
-              generateTransactionLink
+              generateTransactionLink,
+              suspectSpan
             ),
           }}
           location={location}
@@ -159,6 +155,11 @@ export default function SuspectSpanEntry(props: Props) {
   );
 }
 
+type HeaderItemProps = {
+  sort: SpanSortOption;
+  suspectSpan: SuspectSpan;
+};
+
 const PERCENTILE_LABELS: Record<SpanSortPercentiles, string> = {
   [SpanSortPercentiles.P50_EXCLUSIVE_TIME]: t('p50 Duration'),
   [SpanSortPercentiles.P75_EXCLUSIVE_TIME]: t('p75 Duration'),
@@ -166,12 +167,7 @@ const PERCENTILE_LABELS: Record<SpanSortPercentiles, string> = {
   [SpanSortPercentiles.P99_EXCLUSIVE_TIME]: t('p99 Duration'),
 };
 
-type PercentileDurationProps = {
-  sort: SpanSortOption;
-  suspectSpan: SuspectSpan;
-};
-
-function PercentileDuration(props: PercentileDurationProps) {
+function PercentileDuration(props: HeaderItemProps) {
   const {sort, suspectSpan} = props;
 
   const sortKey = PERCENTILE_LABELS.hasOwnProperty(sort.field)
@@ -183,8 +179,39 @@ function PercentileDuration(props: PercentileDurationProps) {
       label={PERCENTILE_LABELS[sortKey]}
       value={<PerformanceDuration abbreviation milliseconds={suspectSpan[sortKey]} />}
       align="right"
+      isSortKey={sort.field === sortKey}
     />
   );
+}
+
+function SpanCount(props: HeaderItemProps & {totalCount?: number}) {
+  const {sort, suspectSpan, totalCount} = props;
+
+  if (sort.field === SpanSortOthers.COUNT) {
+    return (
+      <HeaderItem
+        label={t('Occurrences')}
+        value={String(suspectSpan.count)}
+        align="right"
+        isSortKey
+      />
+    );
+  }
+
+  const value = defined(totalCount) ? (
+    <Tooltip
+      title={tct('[frequency] out of [total] transactions contain this span', {
+        frequency: suspectSpan.frequency,
+        total: totalCount,
+      })}
+    >
+      <span>{formatPercentage(suspectSpan.frequency / totalCount)}</span>
+    </Tooltip>
+  ) : (
+    String(suspectSpan.count)
+  );
+
+  return <HeaderItem label={t('Frequency')} value={value} align="right" />;
 }
 
 function renderHeadCell(column: SuspectSpanTableColumn, _index: number): ReactNode {
@@ -208,9 +235,21 @@ function renderBodyCellWithMeta(
     tableData: TableDataRow,
     query: Query,
     hash?: string
-  ) => LocationDescriptor
+  ) => LocationDescriptor,
+  suspectSpan: SuspectSpan
 ) {
   return (column: SuspectSpanTableColumn, dataRow: SuspectSpanDataRow): ReactNode => {
+    // if the transaction duration is falsey, then just render the span duration on its own
+    if (column.key === 'spanDuration' && dataRow.transactionDuration) {
+      return (
+        <SpanDurationBar
+          spanOp={suspectSpan.op}
+          spanDuration={dataRow.spanDuration}
+          transactionDuration={dataRow.transactionDuration}
+        />
+      );
+    }
+
     const fieldRenderer = getFieldRenderer(column.key, SPANS_TABLE_COLUMN_TYPE);
     let rendered = fieldRenderer(dataRow, {location, organization});
 

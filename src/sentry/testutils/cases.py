@@ -392,7 +392,7 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
             query_string = urlencode(params.pop("qs_params"), doseq=True)
             url = f"{url}?{query_string}"
 
-        method = params.pop("method", self.method)
+        method = params.pop("method", self.method).lower()
 
         return getattr(self.client, method)(url, format="json", data=params)
 
