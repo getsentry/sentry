@@ -4,15 +4,21 @@ import styled from '@emotion/styled';
 
 import {SectionHeading as _SectionHeading} from 'app/components/charts/styles';
 import {Panel} from 'app/components/panels';
+import {DurationPill, RowRectangle} from 'app/components/performance/waterfall/rowBar';
+import {pickBarColor, toPercent} from 'app/components/performance/waterfall/utils';
+import Tooltip from 'app/components/tooltip';
 import {IconArrow} from 'app/icons';
 import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
+import {formatPercentage} from 'app/utils/formatters';
+
+import {PerformanceDuration} from '../../utils';
 
 export const Actions = styled('div')`
   display: grid;
   grid-gap: ${space(2)};
-  grid-template-columns: 1fr min-content;
+  grid-template-columns: min-content 1fr min-content;
   align-items: center;
 `;
 
@@ -98,3 +104,49 @@ const EmptyValueContainer = styled('span')`
 `;
 
 export const emptyValue = <EmptyValueContainer>{t('n/a')}</EmptyValueContainer>;
+
+const DurationBar = styled('div')`
+  position: relative;
+  display: flex;
+  top: ${space(0.5)};
+  background-color: ${p => p.theme.gray100};
+`;
+
+const DurationBarSection = styled(RowRectangle)`
+  position: relative;
+  width: 100%;
+  top: 0;
+`;
+
+type SpanDurationBarProps = {
+  spanOp: string;
+  spanDuration: number;
+  transactionDuration: number;
+};
+
+export function SpanDurationBar(props: SpanDurationBarProps) {
+  const {spanOp, spanDuration, transactionDuration} = props;
+  const widthPercentage = spanDuration / transactionDuration;
+  const position = widthPercentage < 0.7 ? 'right' : 'inset';
+
+  return (
+    <DurationBar>
+      <div style={{width: toPercent(widthPercentage)}}>
+        <Tooltip title={formatPercentage(widthPercentage)} containerDisplayMode="block">
+          <DurationBarSection
+            spanBarHatch={false}
+            style={{backgroundColor: pickBarColor(spanOp)}}
+          >
+            <DurationPill
+              durationDisplay={position}
+              showDetail={false}
+              spanBarHatch={false}
+            >
+              <PerformanceDuration abbreviation milliseconds={spanDuration} />
+            </DurationPill>
+          </DurationBarSection>
+        </Tooltip>
+      </div>
+    </DurationBar>
+  );
+}

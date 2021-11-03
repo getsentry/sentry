@@ -1,3 +1,4 @@
+import {StacktraceErrorMessage} from 'app/components/events/interfaces/frame/stacktraceLink';
 import {IntegrationType, PlatformType, SentryAppStatus} from 'app/types';
 
 // define the various event payloads
@@ -41,7 +42,7 @@ type IntegrationStacktraceLinkEventParams = {
   provider?: string;
   platform?: PlatformType;
   setup_type?: 'automatic' | 'manual';
-  error_reason?: 'file_not_found' | 'stack_root_mismatch';
+  error_reason?: StacktraceErrorMessage;
 } & View;
 
 type IntegrationServerlessFunctionsViewedParams = {
