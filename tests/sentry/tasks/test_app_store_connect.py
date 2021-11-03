@@ -39,6 +39,7 @@ class TestUpdateDsyms:
             version="3.1.5",
             build_number="20200220",
             uploaded_date=timezone.now(),
+            dsym_url="http://iosapps.itunes.apple.com/itunes-assets/Purple116/v4/20/ba/a0/20baa026-2410-b32f-1fde-b227bc2ea7ae/appDsyms.zip?accessKey=very-cool-key",
         )
 
     @pytest.mark.django_db
@@ -86,6 +87,7 @@ class TestUpdateDsyms:
             version="3.1.9",
             build_number="20200224",
             uploaded_date=timezone.now(),
+            dsym_url="http://iosapps.itunes.apple.com/itunes-assets/Purple116/v4/20/ba/a0/20baa026-2410-b32f-1fde-b227bc2ea7ae/appDsyms.zip?accessKey=very-cool-key",
         )
 
         pending = process_builds(

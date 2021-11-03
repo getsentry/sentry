@@ -5,12 +5,11 @@ import re
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from datetime import datetime, timedelta
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Protocol, Tuple, Union
 
 from snuba_sdk import And, Column, Condition, Entity, Granularity, Limit, Offset, Op, Or, Query
 from snuba_sdk.conditions import BooleanCondition
 from snuba_sdk.query import SelectableExpression
-from typing_extensions import Protocol
 
 from sentry.models import Project
 from sentry.sentry_metrics import indexer

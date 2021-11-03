@@ -204,13 +204,15 @@ class MiniGraph extends React.Component<Props> {
         expired={expired}
         name={name}
         referrer={referrer}
+        hideError
         partial
       >
-        {({loading, timeseriesData, results, errored}) => {
+        {({loading, timeseriesData, results, errored, errorMessage}) => {
           if (errored) {
             return (
               <StyledGraphContainer>
                 <IconWarning color="gray300" size="md" />
+                <StyledErrorMessage>{errorMessage}</StyledErrorMessage>
               </StyledGraphContainer>
             );
           }
@@ -315,6 +317,11 @@ const StyledGraphContainer = styled(props => (
   display: flex;
   justify-content: center;
   align-items: center;
+`;
+
+const StyledErrorMessage = styled('div')`
+  color: ${p => p.theme.gray300};
+  margin-left: 4px;
 `;
 
 export default withApi(withTheme(MiniGraph));

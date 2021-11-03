@@ -4,28 +4,25 @@ on:
     paths:
       - '.pre-commit-config.yaml'
       - 'Makefile'
-      - '.github/actions/*'
+      - '.github/actions/setup-python'
       - '.github/workflows/development-environment.yml'
       - '.envrc'
       - 'Brewfile'
       - 'scripts/*'
       - 'src/sentry/runner/commands/devserver.py'
       - 'src/sentry/runner/commands/devservices.py'
+      - 'requirements-*.txt'
 
 jobs:
   dev-environment:
     name: dev docs set up
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 90
+    timeout-minutes: 40
     strategy:
       matrix:
-        # Using Ubuntu 18 until I figure out this error:
-        # -> ImportError: libffi.so.6: cannot open shared object file: No such file or directory
-        os: [macos-11.0, ubuntu-18.04]
-        python-version: [3.8.12]
+        os: [macos-11.0, ubuntu-20.04]
       fail-fast: false
     env:
-      PIP_DISABLE_PIP_VERSION_CHECK: on
       # Make the environment more similar to what Mac defaults to
       SHELL: /bin/zsh
 
@@ -36,27 +33,14 @@ jobs:
       - name: Set variables for caches
         id: info
         run: |
-          echo "::set-output name=brew-cache-dir::$(brew --cache)"
           echo "::set-output name=yarn-cache-dir::$(yarn cache dir)"
 
-      - name: Cache (brew)
-        uses: actions/cache@v2
-        with:
-          path: ${{ steps.info.outputs.brew-cache-dir }}
-          key: devenv-${{ runner.os }}-brew-${{ hashFiles('Brewfile') }}
-          restore-keys: devenv-${{ runner.os }}-brew
-
       - name: Install prerequisites
-        # brew can be finicky but it does not always means that the rest of the job will fail
-        # Xcode CLI & brew are already installed, thus, no need to call xcode-select install
-        continue-on-error: true
         run: |
           make prerequisites
 
-      - name: Setup Python ${{ matrix.python-version }}
+      - name: Setup Python
         uses: ./.github/actions/setup-python
-        with:
-          python-version: ${{ matrix.python-version }}
 
       - name: Cache (pyenv)
         uses: actions/cache@v2
@@ -68,7 +52,7 @@ jobs:
         uses: actions/cache@v1 # We are explicitly using v1 due to perf reasons
         with:
           path: ${{ steps.info.outputs.yarn-cache-dir }}
-          key: devenv-${{ matrix.os }}-v2-yarn-${{ hashFiles('yarn.lock') }}
+          key: devenv-${{ matrix.os }}-v1-yarn-${{ hashFiles('yarn.lock') }}
 
       - name: Set up development environment (mostly as per docs)
         run: |
@@ -76,16 +60,19 @@ jobs:
           export VOLTA_HOME="$HOME/.volta"
           export PATH="$HOME/.volta/bin:$PATH"
           make setup-pyenv
-          eval "$(pyenv init --path)"
+          [[ $(which python) != "${HOME}/.pyenv/shims/python" ]]
+          source ~/.zprofile
+          [[ $(which python) == "${HOME}/.pyenv/shims/python" ]]
+          [[ $(python -V) == "Python $(cat .python-version)" ]]
           python -m venv .venv
           source .venv/bin/activate
           make develop init-config
+          pre-commit
 
   bootstrap-script:
     runs-on: macos-11
-    timeout-minutes: 90
+    timeout-minutes: 40
     env:
-      PIP_DISABLE_PIP_VERSION_CHECK: on
       # Make the environment more similar to what Mac defaults to
       SHELL: /bin/zsh
 

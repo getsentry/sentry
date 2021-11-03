@@ -71,7 +71,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           environment: [],
-          interval: '1d',
+          interval: '1h',
           partial: '1',
           project: [],
           query: '',
@@ -105,7 +105,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           environment: [],
-          interval: '1d',
+          interval: '1h',
           partial: '1',
           project: [],
           query: '',
@@ -139,7 +139,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           environment: [],
-          interval: '1d',
+          interval: '1h',
           partial: '1',
           project: [],
           query: '',
@@ -378,6 +378,48 @@ describe('Performance > Widgets > WidgetContainer', function () {
         }),
       })
     );
+  });
+
+  it('Most slow frames widget', async function () {
+    const data = initializeData();
+
+    const wrapper = mountWithTheme(
+      <WrappedComponent
+        data={data}
+        defaultChartSetting={PerformanceWidgetSetting.MOST_SLOW_FRAMES}
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+      'Most Slow Frames'
+    );
+
+    expect(eventsV2Mock).toHaveBeenCalledTimes(1);
+    expect(eventsV2Mock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: [],
+          field: [
+            'transaction',
+            'project.id',
+            'epm()',
+            'p75(measurements.frames_slow_rate)',
+          ],
+          per_page: 3,
+          project: [],
+          query: 'epm():>0.01 p75(measurements.frames_slow_rate):>0',
+          sort: '-p75(measurements.frames_slow_rate)',
+          statsPeriod: '14d',
+        }),
+      })
+    );
+
+    expect(wrapper.find('div[data-test-id="empty-message"]').exists()).toBe(true);
   });
 
   it('Able to change widget type from menu', async function () {
