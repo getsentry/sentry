@@ -411,3 +411,86 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
             },
             status=200,
         )
+
+
+class AppStoreConnectStatusEndpoint(ProjectEndpoint):  # type: ignore
+    """Returns a summary of the project's App Store Connect configuration
+    and builds.
+
+    ``GET projects/{org_slug}/{proj_slug}/appstoreconnect/status/{id}/``
+
+    Response:
+    ```json
+    {
+        "appstoreCredentialsValid": true,
+        "pendingDownloads": 123,
+        "latestBuildVersion: "9.8.7" | null,
+        "latestBuildNumber": "987000" | null,
+        "lastCheckedBuilds": "YYYY-MM-DDTHH:MM:SS.SSSSSSZ" | null
+    }
+    ```
+
+    * ``pendingDownloads`` is the number of pending build dSYM downloads.
+
+    * ``latestBuildVersion`` and ``latestBuildNumber`` together form a unique identifier for
+      the latest build recognized by Sentry.
+
+    * ``lastCheckedBuilds`` is when sentry last checked for new builds, regardless
+      of whether there were any or no builds in App Store Connect at the time.
+    """
+
+    permission_classes = [ProjectPermission]
+
+    def get(self, request: Request, project: Project, credentials_id: str) -> Response:
+        try:
+            symbol_source_cfg = appconnect.AppStoreConnectConfig.from_project_config(
+                project, credentials_id
+            )
+        except KeyError:
+            return Response(status=404)
+
+        credentials = appstore_connect.AppConnectCredentials(
+            key_id=symbol_source_cfg.appconnectKey,
+            key=symbol_source_cfg.appconnectPrivateKey,
+            issuer_id=symbol_source_cfg.appconnectIssuer,
+        )
+
+        session = requests.Session()
+
+        apps = appstore_connect.get_apps(session, credentials)
+
+        pending_downloads = AppConnectBuild.objects.filter(project=project, fetched=False).count()
+
+        latest_build = (
+            AppConnectBuild.objects.filter(project=project, bundle_id=symbol_source_cfg.bundleId)
+            .order_by("-uploaded_to_appstore")
+            .first()
+        )
+        if latest_build is None:
+            latestBuildVersion = None
+            latestBuildNumber = None
+        else:
+            latestBuildVersion = latest_build.bundle_short_version
+            latestBuildNumber = latest_build.bundle_version
+
+        try:
+            check_entry = LatestAppConnectBuildsCheck.objects.get(
+                project=project, source_id=symbol_source_cfg.id
+            )
+        # If the source was only just created then it's possible that sentry hasn't checked for any
+        # new builds for it yet.
+        except LatestAppConnectBuildsCheck.DoesNotExist:
+            last_checked_builds = None
+        else:
+            last_checked_builds = check_entry.last_checked
+
+        return Response(
+            {
+                "appstoreCredentialsStatus": apps is not None,
+                "pendingDownloads": pending_downloads,
+                "latestBuildVersion": latestBuildVersion,
+                "latestBuildNumber": latestBuildNumber,
+                "lastCheckedBuilds": last_checked_builds,
+            },
+            status=200,
+        )
