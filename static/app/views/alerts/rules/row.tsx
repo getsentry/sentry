@@ -39,28 +39,28 @@ type Props = {
   userTeams: Set<string>;
 };
 
-type State = {};
+/**
+ * Memoized function to find a project from a list of projects
+ */
+const getProject = memoize((slug: string, projects: Project[]) =>
+  projects.find(project => project.slug === slug)
+);
 
-class RuleListRow extends React.Component<Props, State> {
-  /**
-   * Memoized function to find a project from a list of projects
-   */
-  getProject = memoize((slug: string, projects: Project[]) =>
-    projects.find(project => project.slug === slug)
-  );
-
-  activeIncident() {
-    const {rule} = this.props;
-    return (
-      rule.latestIncident?.status !== undefined &&
-      [IncidentStatus.CRITICAL, IncidentStatus.WARNING].includes(
-        rule.latestIncident.status
-      )
+function RuleListRow({
+  rule,
+  projectsLoaded,
+  projects,
+  orgId,
+  onDelete,
+  userTeams,
+}: Props) {
+  const activeIncident =
+    rule.latestIncident?.status !== undefined &&
+    [IncidentStatus.CRITICAL, IncidentStatus.WARNING].includes(
+      rule.latestIncident.status
     );
-  }
 
-  renderLastIncidentDate(): React.ReactNode {
-    const {rule} = this.props;
+  function renderLastIncidentDate(): React.ReactNode {
     if (isIssueAlert(rule)) {
       return null;
     }
@@ -69,7 +69,7 @@ class RuleListRow extends React.Component<Props, State> {
       return '-';
     }
 
-    if (this.activeIncident()) {
+    if (activeIncident) {
       return (
         <div>
           {t('Triggered ')}
@@ -86,14 +86,11 @@ class RuleListRow extends React.Component<Props, State> {
     );
   }
 
-  renderAlertRuleStatus(): React.ReactNode {
-    const {rule} = this.props;
-
+  function renderAlertRuleStatus(): React.ReactNode {
     if (isIssueAlert(rule)) {
       return null;
     }
 
-    const activeIncident = this.activeIncident();
     const criticalTrigger = rule.triggers.find(({label}) => label === 'critical');
     const warningTrigger = rule.triggers.find(({label}) => label === 'warning');
     const resolvedTrigger = rule.resolveThreshold;
@@ -138,131 +135,107 @@ class RuleListRow extends React.Component<Props, State> {
     );
   }
 
-  render() {
-    const {rule, projectsLoaded, projects, orgId, onDelete, userTeams} = this.props;
-    const slug = rule.projects[0];
-    const editLink = `/organizations/${orgId}/alerts/${
-      isIssueAlert(rule) ? 'rules' : 'metric-rules'
-    }/${slug}/${rule.id}/`;
+  const slug = rule.projects[0];
+  const editLink = `/organizations/${orgId}/alerts/${
+    isIssueAlert(rule) ? 'rules' : 'metric-rules'
+  }/${slug}/${rule.id}/`;
 
-    const detailsLink = `/organizations/${orgId}/alerts/rules/details/${rule.id}/`;
+  const detailsLink = `/organizations/${orgId}/alerts/rules/details/${rule.id}/`;
 
-    const ownerId = rule.owner?.split(':')[1];
-    const teamActor = ownerId
-      ? {type: 'team' as Actor['type'], id: ownerId, name: ''}
-      : null;
+  const ownerId = rule.owner?.split(':')[1];
+  const teamActor = ownerId
+    ? {type: 'team' as Actor['type'], id: ownerId, name: ''}
+    : null;
 
-    const canEdit = ownerId ? userTeams.has(ownerId) : true;
-    const alertLink = isIssueAlert(rule) ? (
-      rule.name
-    ) : (
-      <TitleLink to={isIssueAlert(rule) ? editLink : detailsLink}>{rule.name}</TitleLink>
-    );
+  const canEdit = ownerId ? userTeams.has(ownerId) : true;
+  const alertLink = isIssueAlert(rule) ? (
+    rule.name
+  ) : (
+    <TitleLink to={isIssueAlert(rule) ? editLink : detailsLink}>{rule.name}</TitleLink>
+  );
 
-    const IssueStatusText: Record<IncidentStatus, string> = {
-      [IncidentStatus.CRITICAL]: t('Critical'),
-      [IncidentStatus.WARNING]: t('Warning'),
-      [IncidentStatus.CLOSED]: t('Resolved'),
-      [IncidentStatus.OPENED]: t('Resolved'),
-    };
+  const IssueStatusText: Record<IncidentStatus, string> = {
+    [IncidentStatus.CRITICAL]: t('Critical'),
+    [IncidentStatus.WARNING]: t('Warning'),
+    [IncidentStatus.CLOSED]: t('Resolved'),
+    [IncidentStatus.OPENED]: t('Resolved'),
+  };
 
-    return (
-      <ErrorBoundary>
-        <AlertNameWrapper isIssueAlert={isIssueAlert(rule)}>
-          <FlexCenter>
-            <Tooltip
-              title={
-                isIssueAlert(rule)
-                  ? t('Issue Alert')
-                  : tct('Metric Alert Status: [status]', {
-                      status:
-                        IssueStatusText[
-                          rule?.latestIncident?.status ?? IncidentStatus.CLOSED
-                        ],
-                    })
-              }
-            >
-              <AlertBadge
-                status={rule?.latestIncident?.status}
-                isIssue={isIssueAlert(rule)}
-                hideText
-              />
-            </Tooltip>
-          </FlexCenter>
-          <AlertNameAndStatus>
-            <AlertName>{alertLink}</AlertName>
-            {!isIssueAlert(rule) && this.renderLastIncidentDate()}
-          </AlertNameAndStatus>
-        </AlertNameWrapper>
-        <FlexCenter>{this.renderAlertRuleStatus()}</FlexCenter>
-
+  return (
+    <ErrorBoundary>
+      <AlertNameWrapper isIssueAlert={isIssueAlert(rule)}>
         <FlexCenter>
-          <ProjectBadgeContainer>
-            <ProjectBadge
-              avatarSize={18}
-              project={!projectsLoaded ? {slug} : this.getProject(slug, projects)}
+          <Tooltip
+            title={
+              isIssueAlert(rule)
+                ? t('Issue Alert')
+                : tct('Metric Alert Status: [status]', {
+                    status:
+                      IssueStatusText[
+                        rule?.latestIncident?.status ?? IncidentStatus.CLOSED
+                      ],
+                  })
+            }
+          >
+            <AlertBadge
+              status={rule?.latestIncident?.status}
+              isIssue={isIssueAlert(rule)}
+              hideText
             />
-          </ProjectBadgeContainer>
+          </Tooltip>
         </FlexCenter>
+        <AlertNameAndStatus>
+          <AlertName>{alertLink}</AlertName>
+          {!isIssueAlert(rule) && renderLastIncidentDate()}
+        </AlertNameAndStatus>
+      </AlertNameWrapper>
+      <FlexCenter>{renderAlertRuleStatus()}</FlexCenter>
 
-        <FlexCenter>
-          {teamActor ? <ActorAvatar actor={teamActor} size={24} /> : '-'}
-        </FlexCenter>
-
-        <FlexCenter>
-          <StyledDateTime
-            date={getDynamicText({
-              value: rule.dateCreated,
-              fixed: new Date('2021-04-20'),
-            })}
-            format="ll"
+      <FlexCenter>
+        <ProjectBadgeContainer>
+          <ProjectBadge
+            avatarSize={18}
+            project={!projectsLoaded ? {slug} : getProject(slug, projects)}
           />
-        </FlexCenter>
-        <ActionsRow>
-          <Access access={['alerts:write']}>
-            {({hasAccess}) => (
-              <React.Fragment>
-                <StyledDropdownLink>
-                  <DropdownLink
-                    anchorRight
-                    caret={false}
-                    title={
-                      <Button
-                        tooltipProps={{
-                          containerDisplayMode: 'flex',
-                        }}
-                        size="small"
-                        type="button"
-                        aria-label={t('Show more')}
-                        icon={<IconEllipsis size="xs" />}
-                      />
-                    }
-                  >
-                    <li>
-                      <Link to={editLink}>{t('Edit')}</Link>
-                    </li>
-                    <Confirm
-                      disabled={!hasAccess || !canEdit}
-                      message={tct(
-                        "Are you sure you want to delete [name]? You won't be able to view the history of this alert once it's deleted.",
-                        {
-                          name: rule.name,
-                        }
-                      )}
-                      header={t('Delete Alert Rule?')}
-                      priority="danger"
-                      confirmText={t('Delete Rule')}
-                      onConfirm={() => onDelete(slug, rule)}
-                    >
-                      <MenuItemActionLink title={t('Delete')}>
-                        {t('Delete')}
-                      </MenuItemActionLink>
-                    </Confirm>
-                  </DropdownLink>
-                </StyledDropdownLink>
+        </ProjectBadgeContainer>
+      </FlexCenter>
 
-                {/* Small screen actions */}
-                <StyledButtonBar gap={1}>
+      <FlexCenter>
+        {teamActor ? <ActorAvatar actor={teamActor} size={24} /> : '-'}
+      </FlexCenter>
+
+      <FlexCenter>
+        <StyledDateTime
+          date={getDynamicText({
+            value: rule.dateCreated,
+            fixed: new Date('2021-04-20'),
+          })}
+          format="ll"
+        />
+      </FlexCenter>
+      <ActionsRow>
+        <Access access={['alerts:write']}>
+          {({hasAccess}) => (
+            <React.Fragment>
+              <StyledDropdownLink>
+                <DropdownLink
+                  anchorRight
+                  caret={false}
+                  title={
+                    <Button
+                      tooltipProps={{
+                        containerDisplayMode: 'flex',
+                      }}
+                      size="small"
+                      type="button"
+                      aria-label={t('Show more')}
+                      icon={<IconEllipsis size="xs" />}
+                    />
+                  }
+                >
+                  <li>
+                    <Link to={editLink}>{t('Edit')}</Link>
+                  </li>
                   <Confirm
                     disabled={!hasAccess || !canEdit}
                     message={tct(
@@ -276,29 +249,50 @@ class RuleListRow extends React.Component<Props, State> {
                     confirmText={t('Delete Rule')}
                     onConfirm={() => onDelete(slug, rule)}
                   >
-                    <Button
-                      type="button"
-                      icon={<IconDelete />}
-                      size="small"
-                      title={t('Delete')}
-                    />
+                    <MenuItemActionLink title={t('Delete')}>
+                      {t('Delete')}
+                    </MenuItemActionLink>
                   </Confirm>
-                  <Tooltip title={t('Edit')}>
-                    <Button
-                      size="small"
-                      type="button"
-                      icon={<IconSettings />}
-                      to={editLink}
-                    />
-                  </Tooltip>
-                </StyledButtonBar>
-              </React.Fragment>
-            )}
-          </Access>
-        </ActionsRow>
-      </ErrorBoundary>
-    );
-  }
+                </DropdownLink>
+              </StyledDropdownLink>
+
+              {/* Small screen actions */}
+              <StyledButtonBar gap={1}>
+                <Confirm
+                  disabled={!hasAccess || !canEdit}
+                  message={tct(
+                    "Are you sure you want to delete [name]? You won't be able to view the history of this alert once it's deleted.",
+                    {
+                      name: rule.name,
+                    }
+                  )}
+                  header={t('Delete Alert Rule?')}
+                  priority="danger"
+                  confirmText={t('Delete Rule')}
+                  onConfirm={() => onDelete(slug, rule)}
+                >
+                  <Button
+                    type="button"
+                    icon={<IconDelete />}
+                    size="small"
+                    title={t('Delete')}
+                  />
+                </Confirm>
+                <Tooltip title={t('Edit')}>
+                  <Button
+                    size="small"
+                    type="button"
+                    icon={<IconSettings />}
+                    to={editLink}
+                  />
+                </Tooltip>
+              </StyledButtonBar>
+            </React.Fragment>
+          )}
+        </Access>
+      </ActionsRow>
+    </ErrorBoundary>
+  );
 }
 
 const TitleLink = styled(Link)`
