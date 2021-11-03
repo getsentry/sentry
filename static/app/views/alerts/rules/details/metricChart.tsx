@@ -2,6 +2,7 @@ import * as React from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import color from 'color';
+import capitalize from 'lodash/capitalize';
 import moment from 'moment';
 import momentTimezone from 'moment-timezone';
 
@@ -14,6 +15,7 @@ import MarkArea from 'app/components/charts/components/markArea';
 import MarkLine from 'app/components/charts/components/markLine';
 import EventsRequest from 'app/components/charts/eventsRequest';
 import LineChart, {LineChartSeries} from 'app/components/charts/lineChart';
+import LineSeries from 'app/components/charts/series/lineSeries';
 import SessionsRequest from 'app/components/charts/sessionsRequest';
 import {SectionHeading} from 'app/components/charts/styles';
 import {
@@ -35,7 +37,9 @@ import {
   MINUTES_THRESHOLD_TO_DISPLAY_SECONDS,
 } from 'app/utils/sessions';
 import theme from 'app/utils/theme';
+import {checkChangeStatus} from 'app/views/alerts/changeAlerts/comparisonMarklines';
 import {alertDetailsLink} from 'app/views/alerts/details';
+import {COMPARISON_DELTA_OPTIONS} from 'app/views/alerts/incidentRules/constants';
 import {makeDefaultCta} from 'app/views/alerts/incidentRules/incidentRulePresets';
 import {Dataset, IncidentRule} from 'app/views/alerts/incidentRules/types';
 import {AlertWizardAlertNames} from 'app/views/alerts/wizard/options';
@@ -326,7 +330,8 @@ class MetricChart extends React.PureComponent<Props, State> {
   renderChart(
     loading: boolean,
     timeseriesData?: Series[],
-    minutesThresholdToDisplaySeconds?: number
+    minutesThresholdToDisplaySeconds?: number,
+    comparisonTimeseriesData?: Series[]
   ) {
     const {
       router,
@@ -382,6 +387,7 @@ class MetricChart extends React.PureComponent<Props, State> {
     series.push(
       createStatusAreaSeries(theme.green300, firstPoint, lastPoint, minChartValue)
     );
+
     if (incidents) {
       // select incidents that fall within the graph range
       const periodStart = moment.utc(firstPoint);
@@ -520,6 +526,11 @@ class MetricChart extends React.PureComponent<Props, State> {
       maxThresholdValue = Math.max(maxThresholdValue, alertThreshold);
     }
 
+    const comparisonSeriesName = capitalize(
+      COMPARISON_DELTA_OPTIONS.find(({value}) => value === rule.comparisonDelta)?.label ||
+        ''
+    );
+
     return (
       <ChartPanel>
         <StyledPanelBody withPadding>
@@ -566,6 +577,21 @@ class MetricChart extends React.PureComponent<Props, State> {
                       min: minChartValue || undefined,
                     }}
                     series={[...series, ...areaSeries]}
+                    additionalSeries={[
+                      ...(comparisonTimeseriesData || []).map(
+                        ({data: _data, ...otherSeriesProps}) =>
+                          LineSeries({
+                            name: comparisonSeriesName,
+                            data: _data.map(({name, value}) => [name, value]),
+                            lineStyle: {color: theme.gray200, type: 'dashed', width: 1},
+                            itemStyle: {color: theme.gray200},
+                            animation: false,
+                            animationThreshold: 1,
+                            animationDuration: 0,
+                            ...otherSeriesProps,
+                          })
+                      ),
+                    ]}
                     graphic={Graphic({
                       elements: this.getRuleChangeThresholdElements(timeseriesData),
                     })}
@@ -582,6 +608,7 @@ class MetricChart extends React.PureComponent<Props, State> {
                           seriesName ?? '',
                           rule.aggregate
                         );
+
                         const isModified =
                           dateModified && pointX <= new Date(dateModified).getTime();
 
@@ -597,20 +624,76 @@ class MetricChart extends React.PureComponent<Props, State> {
                           ),
                           'MMM D LT'
                         );
-                        const title = isModified
-                          ? `<strong>${t('Alert Rule Modified')}</strong>`
-                          : `${marker} <strong>${seriesName}</strong>`;
-                        const value = isModified
-                          ? `${seriesName} ${pointYFormatted}`
-                          : pointYFormatted;
+
+                        const comparisonSeries =
+                          pointSeries.length > 1
+                            ? pointSeries.find(
+                                ({seriesName: _sn}) => _sn === comparisonSeriesName
+                              )
+                            : undefined;
+
+                        const comparisonPointY = comparisonSeries?.data[1] as
+                          | number
+                          | undefined;
+                        const comparisonPointYFormatted =
+                          comparisonPointY !== undefined
+                            ? alertTooltipValueFormatter(
+                                comparisonPointY,
+                                seriesName ?? '',
+                                rule.aggregate
+                              )
+                            : undefined;
+
+                        const changePercentage =
+                          comparisonPointY === undefined
+                            ? undefined
+                            : (comparisonPointY === 0 && pointY === 0
+                                ? 0
+                                : (pointY - comparisonPointY) / comparisonPointY) * 100;
+                        const changeStatus =
+                          changePercentage === undefined
+                            ? undefined
+                            : checkChangeStatus(
+                                changePercentage,
+                                rule.thresholdType,
+                                rule.triggers
+                              );
+                        const changeStatusColor =
+                          changeStatus === 'critical'
+                            ? theme.red300
+                            : changeStatus === 'warning'
+                            ? theme.yellow300
+                            : theme.green300;
 
                         return [
-                          `<div class="tooltip-series"><div>`,
-                          `<span class="tooltip-label">${title}</span>${value}`,
-                          `</div></div>`,
-                          `<div class="tooltip-date">${startTime} &mdash; ${endTime}</div>`,
+                          `<div class="tooltip-series">`,
+                          isModified &&
+                            `<div><span class="tooltip-label"><strong>${t(
+                              'Alert Rule Modified'
+                            )}</strong></span></div>`,
+                          `<div><span class="tooltip-label">${marker} <strong>${seriesName}</strong></span>${pointYFormatted}</div>`,
+                          comparisonSeries &&
+                            `<div><span class="tooltip-label">${comparisonSeries.marker} <strong>${comparisonSeriesName}</strong></span>${comparisonPointYFormatted}</div>`,
+                          `</div>`,
+                          `<div class="tooltip-date">`,
+                          `<span>${startTime} &mdash; ${endTime}</span>`,
+                          changePercentage !== undefined &&
+                            `<span style="color:${changeStatusColor};margin-left:10px;">${
+                              Math.sign(changePercentage) === 1
+                                ? '+'
+                                : Math.sign(changePercentage) === -1
+                                ? '-'
+                                : ''
+                            }${
+                              Math.abs(changePercentage) === Infinity
+                                ? `&#8734`
+                                : Math.abs(changePercentage)
+                            }%</span>`,
+                          `</div>`,
                           `<div class="tooltip-arrow"></div>`,
-                        ].join('');
+                        ]
+                          .filter(e => e)
+                          .join('');
                       },
                     }}
                     onFinished={() => {
@@ -703,6 +786,7 @@ class MetricChart extends React.PureComponent<Props, State> {
           .filter(p => p && p.slug)
           .map(project => Number(project.id))}
         interval={interval}
+        comparisonDelta={rule.comparisonDelta ? rule.comparisonDelta * 60 : undefined}
         start={viableStartDate}
         end={viableEndDate}
         yAxis={aggregate}
@@ -711,7 +795,9 @@ class MetricChart extends React.PureComponent<Props, State> {
         partial={false}
         referrer="api.alerts.alert-rule-chart"
       >
-        {({loading, timeseriesData}) => this.renderChart(loading, timeseriesData)}
+        {({loading, timeseriesData, comparisonTimeseriesData}) =>
+          this.renderChart(loading, timeseriesData, undefined, comparisonTimeseriesData)
+        }
       </EventsRequest>
     );
   }

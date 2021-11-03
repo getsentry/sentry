@@ -62,6 +62,9 @@ ARRAY_FIELDS = {
     "stack.module",
     "stack.package",
     "stack.stack_level",
+    "spans_op",
+    "spans_group",
+    "spans_exclusive_time",
 }
 
 CONFIGURABLE_AGGREGATES = {

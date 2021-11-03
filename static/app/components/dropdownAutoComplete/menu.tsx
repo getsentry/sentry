@@ -171,6 +171,7 @@ type Props = {
   rootClassName?: string;
 
   css?: any;
+  'data-test-id'?: string;
 } & Pick<
   ListProps,
   'virtualizedHeight' | 'virtualizedLabelHeight' | 'itemSize' | 'onScroll'
@@ -210,6 +211,7 @@ const Menu = ({
   onClose,
   css,
   closeOnSelect,
+  'data-test-id': dataTestId,
   ...props
 }: Props) => (
   <AutoComplete
@@ -275,6 +277,7 @@ const Menu = ({
           {...getRootProps()}
           className={rootClassName}
           disabled={disabled}
+          data-test-id={dataTestId}
         >
           {children({
             getInputProps,

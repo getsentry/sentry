@@ -1,4 +1,4 @@
-import {mountWithTheme, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
 import TeamAlertsTriggered from 'app/views/organizationStats/teamInsights/teamAlertsTriggered';
 
@@ -13,10 +13,6 @@ describe('TeamAlertsTriggered', () => {
     mountWithTheme(
       <TeamAlertsTriggered organization={organization} teamSlug={team.slug} period="8w" />
     );
-
-    await waitFor(() => {
-      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
-    });
 
     expect(alertsTriggeredApi).toHaveBeenCalledTimes(1);
   });

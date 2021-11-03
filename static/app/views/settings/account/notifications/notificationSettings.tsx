@@ -5,6 +5,8 @@ import AsyncComponent from 'app/components/asyncComponent';
 import Link from 'app/components/links/link';
 import {IconMail} from 'app/icons';
 import {t} from 'app/locale';
+import {Organization} from 'app/types';
+import withOrganizations from 'app/utils/withOrganizations';
 import {
   CONFIRMATION_MESSAGE,
   NOTIFICATION_SETTINGS_TYPES,
@@ -26,7 +28,9 @@ import {FieldObject} from 'app/views/settings/components/forms/type';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 
-type Props = AsyncComponent['props'];
+type Props = AsyncComponent['props'] & {
+  organizations: Organization[];
+};
 
 type State = {
   notificationSettings: NotificationSettingsObject;
@@ -79,11 +83,21 @@ class NotificationSettings extends AsyncComponent<Props, State> {
     return updatedNotificationSettings;
   };
 
+  get notificationSettingsType() {
+    const hasApprovalFeatureFlag =
+      this.props.organizations.filter(org => org.features?.includes('slack-requests'))
+        .length > 0;
+    // filter out approvals if the feature flag isn't set
+    return NOTIFICATION_SETTINGS_TYPES.filter(
+      type => type !== 'approval' || hasApprovalFeatureFlag
+    );
+  }
+
   getInitialData(): {[key: string]: string} {
     const {notificationSettings} = this.state;
 
     return Object.fromEntries(
-      NOTIFICATION_SETTINGS_TYPES.map(notificationType => [
+      this.notificationSettingsType.map(notificationType => [
         notificationType,
         decideDefault(notificationType, notificationSettings),
       ])
@@ -94,7 +108,7 @@ class NotificationSettings extends AsyncComponent<Props, State> {
     const {notificationSettings} = this.state;
 
     const fields: FieldObject[] = [];
-    for (const notificationType of NOTIFICATION_SETTINGS_TYPES) {
+    for (const notificationType of this.notificationSettingsType) {
       const field = Object.assign({}, NOTIFICATION_SETTING_FIELDS[notificationType], {
         getData: data => this.getStateToPutForDefault(data, notificationType),
         help: (
@@ -162,4 +176,4 @@ class NotificationSettings extends AsyncComponent<Props, State> {
   }
 }
 
-export default NotificationSettings;
+export default withOrganizations(NotificationSettings);

@@ -2,6 +2,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 
 import EventView from 'app/utils/discover/eventView';
+import {DisplayModes} from 'app/utils/discover/types';
 import DiscoverBanner from 'app/views/eventsV2/banner';
 import {ALL_VIEWS} from 'app/views/eventsV2/data';
 import SavedQueryButtonGroup from 'app/views/eventsV2/savedQuery';
@@ -49,6 +50,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
   const errorsQuery = {
     ...ALL_VIEWS.find(view => view.name === 'Errors by Title'),
     yAxis: 'count()',
+    display: DisplayModes.DEFAULT,
   };
   const errorsView = EventView.fromSavedQuery(errorsQuery);
 
@@ -443,9 +445,9 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
       await tick();
       await tick();
       const modal = await mountGlobalModal();
-      expect(modal.find('AddDashboardWidgetModal').find('h4').children().html()).toEqual(
-        'Add Widget to Dashboard'
-      );
+      expect(
+        modal.find('AddDashboardWidgetModal').find('h4').children().at(0).html()
+      ).toEqual('Add Widget to Dashboard');
     });
 
     it('populates dashboard widget modal with saved query data if created from discover', async () => {
@@ -484,21 +486,6 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
       expect(modal.find('QueryField').at(2).props().fieldValue.field).toEqual(
         'count() + failure_count()'
       );
-    });
-
-    it('does not add equations to query fields if yAxis does not contain comprising functions', async () => {
-      const wrapper = generateWrappedComponent(
-        location,
-        organization,
-        errorsViewModified,
-        savedQuery,
-        [...yAxis, 'equation|count() + count_unique(user)']
-      );
-      wrapper.find('AddToDashboardButton').first().simulate('click');
-      await tick();
-      await tick();
-      const modal = await mountGlobalModal();
-      expect(modal.find('QueryField').length).toEqual(2);
     });
   });
 });

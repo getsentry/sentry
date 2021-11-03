@@ -395,6 +395,7 @@ export type EventMetadata = {
   current_tree_label?: TreeLabelPart[];
   finest_tree_label?: TreeLabelPart[];
   current_level?: number;
+  display_title_with_tree_label?: boolean;
 };
 
 // endpoint: /api/0/issues/:issueId/attachments/?limit=50
@@ -450,6 +451,7 @@ export type ProjectSdkUpdates = {
 };
 
 export type EventsStatsData = [number, {count: number; comparisonCount?: number}[]][];
+export type EventsGeoData = {'geo.country_code': string; count: number}[];
 
 // API response format for a single series
 export type EventsStats = {
@@ -2048,7 +2050,7 @@ export type ExceptionValue = {
   rawStacktrace: RawStacktrace;
   mechanism: StackTraceMechanism | null;
   module: string | null;
-  frames: Frame[] | null;
+  frames?: Frame[] | null;
 };
 
 export type ExceptionType = {

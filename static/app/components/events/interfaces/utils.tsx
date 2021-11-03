@@ -5,6 +5,7 @@ import uniq from 'lodash/uniq';
 import * as qs from 'query-string';
 
 import {FILTER_MASK} from 'app/constants';
+import ConfigStore from 'app/stores/configStore';
 import {Frame, PlatformType} from 'app/types';
 import {EntryRequest} from 'app/types/event';
 import {defined} from 'app/utils';
@@ -210,4 +211,23 @@ export function stackTracePlatformIcon(platform: PlatformType, frames: Frame[]) 
   }
 
   return platform;
+}
+
+export function isStacktraceNewestFirst() {
+  const user = ConfigStore.get('user');
+  // user may not be authenticated
+
+  if (!user) {
+    return true;
+  }
+
+  switch (user.options.stacktraceOrder) {
+    case 2:
+      return true;
+    case 1:
+      return false;
+    case -1:
+    default:
+      return true;
+  }
 }

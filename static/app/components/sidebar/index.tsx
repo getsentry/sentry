@@ -299,7 +299,6 @@ function Sidebar({location, organization}: Props) {
         label={t('Dashboards')}
         to={`/organizations/${organization.slug}/dashboards/`}
         id="customizable-dashboards"
-        isNew
       />
     </Feature>
   );

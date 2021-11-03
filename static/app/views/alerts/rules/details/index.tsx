@@ -4,9 +4,12 @@ import {Location} from 'history';
 import moment from 'moment';
 
 import {fetchOrgMembers} from 'app/actionCreators/members';
-import {Client} from 'app/api';
+import {Client, ResponseMeta} from 'app/api';
+import Alert from 'app/components/alert';
 import DateTime from 'app/components/dateTime';
+import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
+import {PageContent} from 'app/styles/organization';
 import {DateString, Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {getUtcDateString} from 'app/utils/dates';
@@ -30,13 +33,14 @@ type Props = {
 type State = {
   isLoading: boolean;
   hasError: boolean;
+  error: ResponseMeta | null;
   rule?: IncidentRule;
   incidents?: Incident[];
   selectedIncident?: Incident | null;
 };
 
 class AlertRuleDetails extends Component<Props, State> {
-  state: State = {isLoading: false, hasError: false};
+  state: State = {isLoading: false, hasError: false, error: null};
 
   componentDidMount() {
     const {api, params} = this.props;
@@ -158,8 +162,8 @@ class AlertRuleDetails extends Component<Props, State> {
       this.setState({incidents});
 
       this.setState({isLoading: false, hasError: false});
-    } catch (_err) {
-      this.setState({isLoading: false, hasError: true});
+    } catch (error) {
+      this.setState({isLoading: false, hasError: true, error});
     }
   };
 
@@ -183,10 +187,28 @@ class AlertRuleDetails extends Component<Props, State> {
     });
   };
 
+  renderError() {
+    const {error} = this.state;
+
+    return (
+      <PageContent>
+        <Alert type="error" icon={<IconWarning />}>
+          {error?.status === 404
+            ? t('This alert rule could not be found.')
+            : t('An error occurred while fetching the alert rule.')}
+        </Alert>
+      </PageContent>
+    );
+  }
+
   render() {
     const {rule, incidents, hasError, selectedIncident} = this.state;
     const {params} = this.props;
     const timePeriod = this.getTimePeriod();
+
+    if (hasError) {
+      return this.renderError();
+    }
 
     return (
       <Fragment>

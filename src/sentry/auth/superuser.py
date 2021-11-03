@@ -127,7 +127,7 @@ class Superuser:
                     "superuser.missing-cookie-token",
                     extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
                 )
-            return False
+            return
         elif not data:
             logger.warning(
                 "superuser.missing-session-data",
