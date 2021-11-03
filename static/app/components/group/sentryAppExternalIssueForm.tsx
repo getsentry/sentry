@@ -33,9 +33,8 @@ export class SentryAppExternalIssueForm extends Component<Props> {
 
     if (contentArr && contentArr.length > 0) {
       return '\n\n```\n' + contentArr[0] + '\n```';
-    } else {
-      return '';
     }
+    return '';
   }
 
   getFieldDefault(field: FieldFromSchema) {

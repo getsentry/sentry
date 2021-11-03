@@ -487,7 +487,8 @@ class IssueActions extends PluginComponentBase<Props, State> {
           </a>
         </div>
       );
-    } else if (error.error_type === 'config') {
+    }
+    if (error.error_type === 'config') {
       return (
         <div className="alert alert-block">
           {!error.has_auth_configured ? (
@@ -515,13 +516,15 @@ class IssueActions extends PluginComponentBase<Props, State> {
           )}
         </div>
       );
-    } else if (error.error_type === 'validation') {
+    }
+    if (error.error_type === 'validation') {
       const errors: React.ReactElement[] = [];
       for (const name in error.errors) {
         errors.push(<p key={name}>{error.errors[name]}</p>);
       }
       return <div className="alert alert-error alert-block">{errors}</div>;
-    } else if (error.message) {
+    }
+    if (error.message) {
       return (
         <div className="alert alert-error alert-block">
           <p>{error.message}</p>
