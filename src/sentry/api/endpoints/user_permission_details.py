@@ -1,7 +1,6 @@
 from django.db import IntegrityError, transaction
 
 from sentry.api.bases.user import UserEndpoint
-from sentry.auth.superuser import has_superuser_permission
 from sentry.models import UserPermission
 
 
@@ -11,7 +10,7 @@ class UserPermissionDetailsEndpoint(UserEndpoint):
         return self.respond(status=204 if has_perm else 404)
 
     def post(self, request, user, permission_name):
-        if not has_superuser_permission(request, "users.admin"):
+        if not request.access.has_permission("users.admin"):
             return self.respond(status=403)
 
         try:
@@ -24,7 +23,7 @@ class UserPermissionDetailsEndpoint(UserEndpoint):
         return self.respond(status=201)
 
     def delete(self, request, user, permission_name):
-        if not has_superuser_permission(request, "users.admin"):
+        if not request.access.has_permission("users.admin"):
             return self.respond(status=403)
 
         deleted, _ = UserPermission.objects.filter(user=user, permission=permission_name).delete()
