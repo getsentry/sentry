@@ -155,50 +155,20 @@ runs:
     - name: Start devservices
       shell: bash
       env:
+        NEED_REDIS: "1"
+        NEED_POSTGRES: "1"
         NEED_KAFKA: ${{ inputs.kafka }}
         NEED_SNUBA: ${{ inputs.snuba }}
         NEED_CLICKHOUSE: ${{ inputs.clickhouse }}
         NEED_CHARTCUTERIE: ${{ inputs.chartcuterie }}
       run: |
-        sentry init
+        pip install "pyyaml==5.4"
+        python docker-compose.py up
 
-        # redis, postgres are needed for almost every code path.
-        sentry devservices up redis postgres
+        sentry init
 
         if [ "$BIGTABLE_EMULATOR_HOST" ]; then
           sentry devservices up --skip-only-if bigtable
-        fi
-
-        # TODO: Use devservices kafka. See https://github.com/getsentry/sentry/pull/20986#issuecomment-704510570
-        if [ "$NEED_KAFKA" = "true" ]; then
-          # This is *not* the production version. Unclear reason as to why this was chosen
-          # https://github.com/getsentry/ops/blob/c823e62f930ecc6c97bb08898c71e49edc7232f6/cookbooks/getsentry/attributes/default.rb#L631
-          docker run \
-            --name sentry_zookeeper \
-            -d --network host \
-            -e ZOOKEEPER_CLIENT_PORT=2181 \
-            confluentinc/cp-zookeeper:4.1.0
-
-          # This is the production version; do not change w/o changing it there as well
-          # https://github.com/getsentry/ops/blob/c823e62f930ecc6c97bb08898c71e49edc7232f6/cookbooks/getsentry/attributes/default.rb#L643
-          docker run \
-            --name sentry_kafka \
-            -d --network host \
-            -e KAFKA_ZOOKEEPER_CONNECT=127.0.0.1:2181 \
-            -e KAFKA_LISTENERS=INTERNAL://0.0.0.0:9093,EXTERNAL://0.0.0.0:9092 \
-            -e KAFKA_ADVERTISED_LISTENERS=INTERNAL://127.0.0.1:9093,EXTERNAL://127.0.0.1:9092 \
-            -e KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT \
-            -e KAFKA_INTER_BROKER_LISTENER_NAME=INTERNAL \
-            -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 \
-            confluentinc/cp-kafka:5.1.2
-        fi
-
-        if [ "$NEED_SNUBA" = "true" ]; then
-          sentry devservices up clickhouse snuba
-        fi
-
-        if [ "$NEED_CLICKHOUSE" = "true" ]; then
-          sentry devservices up clickhouse
         fi
 
         if [ "$NEED_CHARTCUTERIE" = "true" ]; then
