@@ -23,6 +23,7 @@ export type SpanSortOption = {
 export type SuspectSpanTableColumnKeys =
   | 'id'
   | 'timestamp'
+  | 'transactionDuration'
   | 'spanDuration'
   | 'repeated'
   | 'cumulativeDuration'
@@ -31,3 +32,8 @@ export type SuspectSpanTableColumnKeys =
 export type SuspectSpanTableColumn = GridColumnOrder<SuspectSpanTableColumnKeys>;
 
 export type SuspectSpanDataRow = Record<SuspectSpanTableColumnKeys, any>;
+
+export type SpansTotalValues = {
+  count: number;
+  sum_transaction_duration: number;
+};

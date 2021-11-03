@@ -21,6 +21,7 @@ import {
   emptyValue,
   HeaderItem,
   LowerPanel,
+  SpanDurationBar,
   SpanLabelContainer,
   UpperPanel,
 } from './styles';
@@ -28,6 +29,7 @@ import {
   SpanSortOption,
   SpanSortOthers,
   SpanSortPercentiles,
+  SpansTotalValues,
   SuspectSpanDataRow,
   SuspectSpanTableColumn,
   SuspectSpanTableColumnKeys,
@@ -81,7 +83,7 @@ type Props = {
     hash?: string
   ) => LocationDescriptor;
   eventView: EventView;
-  totalCount: number | undefined;
+  totals: SpansTotalValues | null;
 };
 
 export default function SuspectSpanEntry(props: Props) {
@@ -91,14 +93,15 @@ export default function SuspectSpanEntry(props: Props) {
     suspectSpan,
     generateTransactionLink,
     eventView,
-    totalCount,
+    totals,
   } = props;
 
   const examples = suspectSpan.examples.map(example => ({
     id: example.id,
     project: suspectSpan.project,
-    // finish timestamp is in seconds but want milliseconds
+    // timestamps are in seconds but want them in milliseconds
     timestamp: example.finishTimestamp * 1000,
+    transactionDuration: (example.finishTimestamp - example.startTimestamp) * 1000,
     spanDuration: example.nonOverlappingExclusiveTime,
     repeated: example.spans.length,
     cumulativeDuration: example.spans.reduce(
@@ -118,19 +121,9 @@ export default function SuspectSpanEntry(props: Props) {
           value={<SpanLabel span={suspectSpan} />}
           align="left"
         />
-        <PercentileDuration sort={sort} suspectSpan={suspectSpan} />
-        <SpanCount sort={sort} suspectSpan={suspectSpan} totalCount={totalCount} />
-        <HeaderItem
-          label={t('Total Cumulative Duration')}
-          value={
-            <PerformanceDuration
-              abbreviation
-              milliseconds={suspectSpan.sumExclusiveTime}
-            />
-          }
-          align="right"
-          isSortKey={sort.field === SpanSortOthers.SUM_EXCLUSIVE_TIME}
-        />
+        <PercentileDuration sort={sort} suspectSpan={suspectSpan} totals={totals} />
+        <SpanCount sort={sort} suspectSpan={suspectSpan} totals={totals} />
+        <TotalCumulativeDuration sort={sort} suspectSpan={suspectSpan} totals={totals} />
       </UpperPanel>
       <LowerPanel data-test-id="suspect-card-lower">
         <GridEditable
@@ -142,7 +135,8 @@ export default function SuspectSpanEntry(props: Props) {
             renderBodyCell: renderBodyCellWithMeta(
               location,
               organization,
-              generateTransactionLink
+              generateTransactionLink,
+              suspectSpan
             ),
           }}
           location={location}
@@ -155,6 +149,7 @@ export default function SuspectSpanEntry(props: Props) {
 type HeaderItemProps = {
   sort: SpanSortOption;
   suspectSpan: SuspectSpan;
+  totals: SpansTotalValues | null;
 };
 
 const PERCENTILE_LABELS: Record<SpanSortPercentiles, string> = {
@@ -181,8 +176,8 @@ function PercentileDuration(props: HeaderItemProps) {
   );
 }
 
-function SpanCount(props: HeaderItemProps & {totalCount?: number}) {
-  const {sort, suspectSpan, totalCount} = props;
+function SpanCount(props: HeaderItemProps) {
+  const {sort, suspectSpan, totals} = props;
 
   if (sort.field === SpanSortOthers.COUNT) {
     return (
@@ -195,20 +190,57 @@ function SpanCount(props: HeaderItemProps & {totalCount?: number}) {
     );
   }
 
-  const value = defined(totalCount) ? (
+  const value = defined(totals?.count) ? (
     <Tooltip
       title={tct('[frequency] out of [total] transactions contain this span', {
         frequency: suspectSpan.frequency,
-        total: totalCount,
+        total: totals!.count,
       })}
     >
-      <span>{formatPercentage(suspectSpan.frequency / totalCount)}</span>
+      <span>{formatPercentage(suspectSpan.frequency / totals!.count)}</span>
     </Tooltip>
   ) : (
     String(suspectSpan.count)
   );
 
   return <HeaderItem label={t('Frequency')} value={value} align="right" />;
+}
+
+function TotalCumulativeDuration(props: HeaderItemProps) {
+  const {sort, suspectSpan, totals} = props;
+
+  let value = (
+    <PerformanceDuration abbreviation milliseconds={suspectSpan.sumExclusiveTime} />
+  );
+
+  if (defined(totals?.sum_transaction_duration)) {
+    value = (
+      <Tooltip
+        title={tct('[percentage] of the total transaction duration of [duration]', {
+          percentage: formatPercentage(
+            suspectSpan.sumExclusiveTime / totals!.sum_transaction_duration
+          ),
+          duration: (
+            <PerformanceDuration
+              abbreviation
+              milliseconds={totals!.sum_transaction_duration}
+            />
+          ),
+        })}
+      >
+        {value}
+      </Tooltip>
+    );
+  }
+
+  return (
+    <HeaderItem
+      label={t('Total Cumulative Duration')}
+      value={value}
+      align="right"
+      isSortKey={sort.field === SpanSortOthers.SUM_EXCLUSIVE_TIME}
+    />
+  );
 }
 
 function renderHeadCell(column: SuspectSpanTableColumn, _index: number): ReactNode {
@@ -232,9 +264,21 @@ function renderBodyCellWithMeta(
     tableData: TableDataRow,
     query: Query,
     hash?: string
-  ) => LocationDescriptor
+  ) => LocationDescriptor,
+  suspectSpan: SuspectSpan
 ) {
   return (column: SuspectSpanTableColumn, dataRow: SuspectSpanDataRow): ReactNode => {
+    // if the transaction duration is falsey, then just render the span duration on its own
+    if (column.key === 'spanDuration' && dataRow.transactionDuration) {
+      return (
+        <SpanDurationBar
+          spanOp={suspectSpan.op}
+          spanDuration={dataRow.spanDuration}
+          transactionDuration={dataRow.transactionDuration}
+        />
+      );
+    }
+
     const fieldRenderer = getFieldRenderer(column.key, SPANS_TABLE_COLUMN_TYPE);
     let rendered = fieldRenderer(dataRow, {location, organization});
 

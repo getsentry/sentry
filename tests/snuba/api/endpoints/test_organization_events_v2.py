@@ -744,7 +744,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         query = {"field": ["id"], "sort": "garbage"}
         response = self.do_request(query)
         assert response.status_code == 400
-        assert "order by" in response.data["detail"]
+        assert "sort by" in response.data["detail"]
 
     def test_latest_release_alias(self):
         project = self.create_project()
@@ -3415,7 +3415,9 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         self.run_test_in_query(
             "user.display:[foo@example.com, hello@example.com]", [event_1, event_3], [event_2]
         )
-        self.run_test_in_query("message:[group2, group1]", [event_1, event_2], [event_3])
+        self.run_test_in_query(
+            'message:["group2 src/app/group2.py in ?", group1]', [event_1, event_2], [event_3]
+        )
 
         self.run_test_in_query(
             f"issue.id:[{event_1.group_id},{event_2.group_id}]", [event_1, event_2]

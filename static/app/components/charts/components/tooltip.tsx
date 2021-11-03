@@ -10,7 +10,7 @@ import {truncationFormatter} from '../utils';
 
 type ChartProps = React.ComponentProps<typeof BaseChart>;
 
-function defaultFormatAxisLabel(
+export function defaultFormatAxisLabel(
   value: number,
   isTimestamp: boolean,
   utc: boolean,
@@ -149,7 +149,8 @@ function getFormatter({
         !!utc,
         !!showTimeInTooltip,
         addSecondsToTimeFormat,
-        bucketSize
+        bucketSize,
+        seriesParamsOrParam
       );
       // eCharts sets seriesName as null when `componentType` !== 'series'
       const truncatedName = truncationFormatter(
@@ -196,7 +197,8 @@ function getFormatter({
         !!utc,
         !!showTimeInTooltip,
         addSecondsToTimeFormat,
-        bucketSize
+        bucketSize,
+        seriesParamsOrParam
       );
 
     return [

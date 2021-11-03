@@ -68,6 +68,7 @@ const ThreadSelector = ({
     <ClassNames>
       {({css}) => (
         <StyledDropdownAutoComplete
+          data-test-id="thread-selector"
           items={getItems()}
           onSelect={item => {
             handleChange(item.thread);
