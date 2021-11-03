@@ -169,6 +169,10 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
             headers={[
               <StyledSortLink
                 key="name"
+                role="columnheader"
+                aria-sort={
+                  sort.field !== 'name' ? 'none' : sort.asc ? 'ascending' : 'descending'
+                }
                 to={{
                   pathname: location.pathname,
                   query: {
@@ -184,6 +188,10 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
 
               <StyledSortLink
                 key="status"
+                role="columnheader"
+                aria-sort={
+                  !isAlertRuleSort ? 'none' : sort.asc ? 'ascending' : 'descending'
+                }
                 to={{
                   pathname: location.pathname,
                   query: {
@@ -200,6 +208,14 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
               t('Team'),
               <StyledSortLink
                 key="dateAdded"
+                role="columnheader"
+                aria-sort={
+                  sort.field !== 'date_added'
+                    ? 'none'
+                    : sort.asc
+                    ? 'ascending'
+                    : 'descending'
+                }
                 to={{
                   pathname: location.pathname,
                   query: {
