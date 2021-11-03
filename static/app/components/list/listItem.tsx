@@ -13,13 +13,20 @@ type Props = {
 };
 
 const ListItem = styled(
-  ({children, className, symbol, onClick, 'aria-label': ariaLabel, ...props}: Props) => (
+  ({
+    children,
+    className,
+    symbol,
+    onClick,
+    'aria-label': ariaLabel,
+    'data-test-id': dataTestId,
+  }: Props) => (
     <li
       className={className}
       onClick={onClick}
       role={onClick ? 'button' : undefined}
       aria-label={onClick ? ariaLabel : undefined}
-      {...props}
+      data-test-id={dataTestId}
     >
       {symbol && <Symbol>{symbol}</Symbol>}
       {children}
