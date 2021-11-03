@@ -412,7 +412,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           ],
           per_page: 3,
           project: [],
-          query: 'epm():>0.01',
+          query: 'epm():>0.01 p75(measurements.frames_slow_rate):>0',
           sort: '-p75(measurements.frames_slow_rate)',
           statsPeriod: '14d',
         }),
