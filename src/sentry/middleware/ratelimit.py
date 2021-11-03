@@ -18,12 +18,16 @@ def get_rate_limit_key(view_func: EndpointFunction, request: Request):
 
 
 def get_default_rate_limit() -> tuple[int, int]:
-    """Read a config file to the get the default rate limit based on the request property"""
+    """
+    Read the rate limit from the view function to be used for the rate limit check
+    """
+
+    # TODO: Remove hard coded value with actual function logic
     return 100, 1
 
 
 def above_rate_limit_check(key, limit=None, window=None):
-    if limit is None and window is None:
+    if limit is None:
         limit, window = get_default_rate_limit()
 
     return ratelimiter.is_limited(key, limit=limit, window=window)
