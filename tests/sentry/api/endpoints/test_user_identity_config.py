@@ -1,3 +1,5 @@
+from unittest import mock
+
 from sentry.models import AuthIdentity, AuthProvider, Identity, IdentityProvider
 from sentry.testutils import APITestCase
 from social_auth.models import UserSocialAuth
@@ -7,8 +9,9 @@ class UserIdentityConfigTest(APITestCase):
     def setUp(self):
         super().setUp()
 
-        self.slack_idp = IdentityProvider.objects.create(type="slack", external_id="S", config={})
-        self.github_idp = IdentityProvider.objects.create(type="github", external_id="G", config={})
+        self.slack_idp = IdentityProvider.objects.create(type="slack", external_id="A", config={})
+        self.github_idp = IdentityProvider.objects.create(type="github", external_id="B", config={})
+        self.google_idp = IdentityProvider.objects.create(type="google", external_id="C", config={})
 
         self.org_provider = AuthProvider.objects.create(
             organization=self.organization, provider="dummy"
@@ -17,54 +20,83 @@ class UserIdentityConfigTest(APITestCase):
         self.login_as(self.user)
 
 
+def mock_supports_login_effect(obj: Identity) -> bool:
+    # Mimics behavior from getsentry repo
+    return obj.idp.type in ("github", "vsts", "google")
+
+
 class UserIdentityConfigEndpointTest(UserIdentityConfigTest):
     endpoint = "sentry-api-0-user-identity-config"
     method = "get"
 
-    def test_simple(self):
+    @mock.patch("sentry.api.serializers.models.user_identity_config.supports_login")
+    def test_simple(self, mock_supports_login):
+        mock_supports_login.side_effect = mock_supports_login_effect
+
         UserSocialAuth.objects.create(provider="github", user=self.user)
         Identity.objects.create(user=self.user, idp=self.github_idp)
+        Identity.objects.create(user=self.user, idp=self.slack_idp)
         AuthIdentity.objects.create(user=self.user, auth_provider=self.org_provider)
 
         response = self.get_success_response(self.user.id, status_code=200)
 
         identities = {(obj["category"], obj["provider"]["key"]): obj for obj in response.data}
-        assert len(identities) == 3
+        assert len(identities) == 4
 
         social_ident = identities[("social-identity", "github")]
         assert social_ident["status"] == "can_disconnect"
+        assert social_ident["isLogin"] is False
         assert social_ident["organization"] is None
 
-        global_ident = identities[("global-identity", "github")]
-        assert global_ident["status"] == "can_disconnect"
-        assert global_ident["organization"] is None
+        github_ident = identities[("global-identity", "github")]
+        assert github_ident["status"] == "can_disconnect"
+        assert github_ident["isLogin"] is True
+        assert github_ident["organization"] is None
+
+        slack_ident = identities[("global-identity", "slack")]
+        assert slack_ident["status"] == "can_disconnect"
+        assert slack_ident["isLogin"] is False
+        assert slack_ident["organization"] is None
 
         org_ident = identities[("org-identity", "dummy")]
         assert org_ident["status"] == "needed_for_org_auth"
+        assert org_ident["isLogin"] is True
         assert org_ident["organization"]["id"] == str(self.organization.id)
 
-    def test_identity_needed_for_global_auth(self):
+    @mock.patch("sentry.api.serializers.models.user_identity_config.supports_login")
+    def test_identity_needed_for_global_auth(self, mock_supports_login):
+        mock_supports_login.side_effect = mock_supports_login_effect
+
         self.user.update(password="")
-        ident = Identity.objects.create(user=self.user, idp=self.github_idp)
+        identity = Identity.objects.create(user=self.user, idp=self.github_idp)
         self.login_as(self.user)
 
         response = self.get_success_response(self.user.id, status_code=200)
-        (identity,) = response.data
-        assert identity["status"] == "needed_for_global_auth"
+        (response_obj,) = response.data
+        assert response_obj["status"] == "needed_for_global_auth"
 
-        # A second identity should flip both to can_disconnect
-        another_ident = Identity.objects.create(user=self.user, idp=self.slack_idp)
+        # A non-login identity should not change the status
+        Identity.objects.create(user=self.user, idp=self.slack_idp)
         response = self.get_success_response(self.user.id, status_code=200)
         assert len(response.data) == 2
-        for identity in response.data:
-            assert identity["status"] == "can_disconnect"
+        response_idents = {obj["provider"]["key"]: obj for obj in response.data}
+        assert response_idents[self.slack_idp.type]["status"] == "can_disconnect"
+        assert response_idents[self.github_idp.type]["status"] == "needed_for_global_auth"
+
+        # A second login identity should flip both to can_disconnect
+        Identity.objects.create(user=self.user, idp=self.google_idp)
+        response = self.get_success_response(self.user.id, status_code=200)
+        assert len(response.data) == 3
+        for response_obj in response.data:
+            assert response_obj["status"] == "can_disconnect"
 
         # Deleting the first should flip the second to needed
-        ident.delete()
+        identity.delete()
         response = self.get_success_response(self.user.id, status_code=200)
-        (identity,) = response.data
-        assert identity["id"] == str(another_ident.id)
-        assert identity["status"] == "needed_for_global_auth"
+        assert len(response.data) == 2
+        response_idents = {obj["provider"]["key"]: obj for obj in response.data}
+        assert response_idents[self.slack_idp.type]["status"] == "can_disconnect"
+        assert response_idents[self.google_idp.type]["status"] == "needed_for_global_auth"
 
     def test_org_identity_can_be_deleted_if_not_required(self):
         self.org_provider.flags.allow_unlinked = True

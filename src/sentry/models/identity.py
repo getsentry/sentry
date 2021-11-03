@@ -57,11 +57,6 @@ class IdentityProvider(Model):
 
         return get(self.type)
 
-    def supports_login(self) -> bool:
-        from sentry.identity import is_login_provider
-
-        return is_login_provider(self.type)
-
 
 class IdentityManager(BaseManager):
     def reattach(

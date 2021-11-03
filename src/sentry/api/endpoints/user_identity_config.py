@@ -7,7 +7,11 @@ from rest_framework.response import Response
 
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.user_identity_config import Status, UserIdentityConfig
+from sentry.api.serializers.models.user_identity_config import (
+    Status,
+    UserIdentityConfig,
+    supports_login,
+)
 from sentry.models import AuthIdentity, Identity, User
 from social_auth.models import UserSocialAuth
 
@@ -23,10 +27,10 @@ def get_identities(user: User) -> Iterable[UserIdentityConfig]:
 
     has_password = user.has_usable_password()
     global_identity_objs = list(Identity.objects.filter(user=user))
-    global_login_id_count = sum(1 for obj in global_identity_objs if obj.idp.supports_login())
+    global_login_id_count = sum(1 for obj in global_identity_objs if supports_login(obj))
 
     def get_global_identity_status(obj: Identity) -> Status:
-        if not obj.idp.supports_login():
+        if not supports_login(obj):
             return Status.CAN_DISCONNECT
 
         # Allow global login IDs to be deleted if the user has a
