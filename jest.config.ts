@@ -95,7 +95,6 @@ const config: Config.InitialOptions = {
   ],
 
   testRunner: 'jest-circus/runner',
-  testTimeout: 10000,
 
   testEnvironment: '<rootDir>/tests/js/instrumentedEnv',
   testEnvironmentOptions: {
