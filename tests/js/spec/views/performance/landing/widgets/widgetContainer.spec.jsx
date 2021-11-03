@@ -71,7 +71,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           environment: [],
-          interval: '1d',
+          interval: '1h',
           partial: '1',
           project: [],
           query: '',
@@ -105,7 +105,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           environment: [],
-          interval: '1d',
+          interval: '1h',
           partial: '1',
           project: [],
           query: '',
@@ -139,7 +139,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           environment: [],
-          interval: '1d',
+          interval: '1h',
           partial: '1',
           project: [],
           query: '',

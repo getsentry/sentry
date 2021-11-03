@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import _EventsRequest from 'app/components/charts/eventsRequest';
+import {getInterval} from 'app/components/charts/utils';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
@@ -53,6 +54,14 @@ export function SingleFieldAreaWidget(props: Props) {
             currentSeriesName={props.fields[0]}
             eventView={props.eventView}
             query={props.eventView.getQueryWithAdditionalConditions()}
+            interval={getInterval(
+              {
+                start: provided.start,
+                end: provided.end,
+                period: provided.period,
+              },
+              'medium'
+            )}
           />
         ),
         transform: transformEventsRequestToArea,
