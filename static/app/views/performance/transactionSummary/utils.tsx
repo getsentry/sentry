@@ -5,6 +5,7 @@ import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import {generateEventSlug} from 'app/utils/discover/urls';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import {getTraceDetailsUrl} from 'app/views/performance/traceDetails/utils';
 
 import {getTransactionDetailsUrl} from '../utils';
@@ -18,17 +19,14 @@ export enum TransactionFilterOptions {
   RECENT = 'recent',
 }
 
-const TRANSACTION_FILTER_PATTERN = /^transaction:.*/;
-
 export function generateTransactionSummaryRoute({orgSlug}: {orgSlug: String}): string {
   return `/organizations/${orgSlug}/performance/summary/`;
 }
 
 function removeTransactionFilters(query: string): string {
-  const filterParams = query.split(' ');
-  return filterParams
-    .filter(filterParam => !!!filterParam.match(TRANSACTION_FILTER_PATTERN))
-    .join(' ');
+  const filterParams = new MutableSearch(query);
+  filterParams.removeFilter('transaction');
+  return filterParams.formatString();
 }
 
 export function transactionSummaryRouteWithQuery({
