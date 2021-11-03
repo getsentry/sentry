@@ -2,6 +2,7 @@ import React, {memo, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {Location} from 'history';
+import uniq from 'lodash/uniq';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
@@ -40,7 +41,7 @@ import {Entry, EntryType, Event} from 'app/types/event';
 import {Thread} from 'app/types/events';
 import {isNotSharedOrganization} from 'app/types/utils';
 import {defined, objectIsEmpty} from 'app/utils';
-import {analytics} from 'app/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import {projectProcessingIssuesMessages} from 'app/views/settings/project/projectProcessingIssues';
@@ -113,14 +114,14 @@ const EventEntries = memo(
       const errorTypes = errors.map(errorEntries => errorEntries.type);
       const errorMessages = errors.map(errorEntries => errorEntries.message);
 
-      const orgId = organization.id;
       const platform = project.platform;
 
-      analytics('issue_error_banner.viewed', {
-        org_id: orgId ? parseInt(orgId, 10) : null,
+      // uniquify the array types
+      trackAdvancedAnalyticsEvent('issue_error_banner.viewed', {
+        organization: organization as Organization,
         group: event?.groupID,
-        error_type: errorTypes,
-        error_message: errorMessages,
+        error_type: uniq(errorTypes),
+        error_message: uniq(errorMessages),
         ...(platform && {platform}),
       });
     }

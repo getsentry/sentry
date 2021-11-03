@@ -44,7 +44,7 @@ import {
   TagCollection,
 } from 'app/types';
 import {defined} from 'app/utils';
-import {analytics, trackAnalyticsEvent} from 'app/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import CursorPoller from 'app/utils/cursorPoller';
 import {getUtcDateString} from 'app/utils/dates';
@@ -510,10 +510,8 @@ class IssueListOverview extends React.Component<Props, State> {
         ([tabQuery]) => currentTabQuery === tabQuery
       )?.[1];
       if (tab && !endpointParams.cursor) {
-        trackAnalyticsEvent({
-          eventKey: 'issues_tab.viewed',
-          eventName: 'Viewed Issues Tab',
-          organization_id: organization.id,
+        trackAdvancedAnalyticsEvent('issues_tab.viewed', {
+          organization,
           tab: tab.analyticsName,
           num_issues: queryCounts[currentTabQuery].count,
         });
@@ -613,10 +611,8 @@ class IssueListOverview extends React.Component<Props, State> {
         });
       },
       error: err => {
-        trackAnalyticsEvent({
-          eventKey: 'issue_search.failed',
-          eventName: 'Issue Search: Failed',
-          organization_id: this.props.organization.id,
+        trackAdvancedAnalyticsEvent('issue_search.failed', {
+          organization: this.props.organization,
           search_type: 'issues',
           search_source: 'main_search',
           error: parseApiError(err),
@@ -696,8 +692,8 @@ class IssueListOverview extends React.Component<Props, State> {
   }
 
   onIssueListSidebarSearch = (query: string) => {
-    analytics('search.searched', {
-      org_id: this.props.organization.id,
+    trackAdvancedAnalyticsEvent('search.searched', {
+      organization: this.props.organization,
       query,
       search_type: 'issues',
       search_source: 'search_builder',
@@ -747,8 +743,8 @@ class IssueListOverview extends React.Component<Props, State> {
       isSidebarVisible: !this.state.isSidebarVisible,
       renderSidebar: true,
     });
-    analytics('issue.search_sidebar_clicked', {
-      org_id: parseInt(organization.id, 10),
+    trackAdvancedAnalyticsEvent('issue.search_sidebar_clicked', {
+      organization,
     });
   };
 
@@ -910,14 +906,11 @@ class IssueListOverview extends React.Component<Props, State> {
   };
 
   onSavedSearchSelect = (savedSearch: SavedSearch) => {
-    trackAnalyticsEvent({
-      eventKey: 'organization_saved_search.selected',
-      eventName: 'Organization Saved Search: Selected saved search',
-      organization_id: this.props.organization.id,
+    trackAdvancedAnalyticsEvent('organization_saved_search.selected', {
+      organization: this.props.organization,
       search_type: 'issues',
       id: savedSearch.id ? parseInt(savedSearch.id, 10) : -1,
     });
-
     this.setState({issuesLoading: true}, () => this.transitionTo(undefined, savedSearch));
   };
 
