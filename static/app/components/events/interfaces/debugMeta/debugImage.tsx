@@ -200,19 +200,19 @@ const DebugImage = React.memo(
                   <ImageProp>{t('Availability')}</ImageProp>:
                   <DebugFileFeature
                     feature="symtab"
-                    available={image.features.has_symbols}
+                    available={image.features?.has_symbols}
                   />
                   <DebugFileFeature
                     feature="debug"
-                    available={image.features.has_debug_info}
+                    available={image.features?.has_debug_info}
                   />
                   <DebugFileFeature
                     feature="unwind"
-                    available={image.features.has_unwind_info}
+                    available={image.features?.has_unwind_info}
                   />
                   <DebugFileFeature
                     feature="sources"
-                    available={image.features.has_sources}
+                    available={image.features?.has_sources}
                   />
                 </ImageSubtext>
               )}
