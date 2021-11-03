@@ -332,7 +332,16 @@ class GitlabIntegrationProvider(IntegrationProvider):
 
     def build_integration(self, state):
         data = state["identity"]["data"]
-        oauth_data = get_oauth_data(data)
+
+        # Gitlab requires the client_id and client_secret for refreshing the access tokens
+        client_id = state.get("oauth_config_information", {}).get("client_id")
+        client_secret = state.get("oauth_config_information", {}).get("client_secret")
+        oauth_data = {
+            **get_oauth_data(data),
+            "client_id": client_id,
+            "client_secret": client_secret,
+        }
+
         user = get_user_info(data["access_token"], state["installation_data"])
         group = self.get_group_info(data["access_token"], state["installation_data"])
         include_subgroups = state["installation_data"]["include_subgroups"]
