@@ -32,6 +32,7 @@ export function transactionSummaryRouteWithQuery({
   trendFunction,
   trendColumn,
   showTransactions,
+  additionalQuery,
 }: {
   orgSlug: string;
   transaction: string;
@@ -42,6 +43,7 @@ export function transactionSummaryRouteWithQuery({
   unselectedSeries?: string | string[];
   projectID?: string | string[];
   showTransactions?: TransactionFilterOptions;
+  additionalQuery?: Record<string, string>;
 }) {
   const pathname = generateTransactionSummaryRoute({
     orgSlug,
@@ -62,6 +64,7 @@ export function transactionSummaryRouteWithQuery({
       display,
       trendFunction,
       trendColumn,
+      ...additionalQuery,
     },
   };
 }

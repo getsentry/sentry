@@ -61,11 +61,6 @@ export type AppStoreConnectValidationData = {
    * fetched. This will be null if no builds can be found.
    */
   latestBuildVersion: string | null;
-  /**
-   * Whether the UI should show an alert indicating we need the user to refresh
-   * their iTunes session.
-   */
-  promptItunesSession: boolean;
   lastCheckedBuilds: string | null;
   updateAlertMessage?: string;
 };

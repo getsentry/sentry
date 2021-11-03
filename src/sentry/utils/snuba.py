@@ -784,6 +784,8 @@ def _bulk_snuba_query(
                     != "/api/0/projects/{organization_slug}/{project_slug}/keys/{key_id}/stats/"
                     and random.random() < 0.1
                 ):
+                    span.set_tag("parent_api_mismatch", f"{referrer}||{parent_api}")
+                    sentry_sdk.set_tag("parent_api_mismatch", f"{referrer}||{parent_api}")
                     logger.warning(
                         "unthreaded referrer attributed to incorrect parent api",
                         stack_info=True,
@@ -888,21 +890,6 @@ def _raw_snql_query(
             scope = thread_hub.scope
             if scope.transaction:
                 query = query.set_parent_api(scope.transaction.name)
-
-                # XXX(evanh): There seems to be a bug where the parent API is attributed to
-                # the wrong referrer. For one example of this, log a warning so I can capture
-                # the stack trace and try to figure out if this is a bug or not.
-                if (
-                    referrer == "tsdb-modelid:500"
-                    and query.parent_api.name
-                    != "/api/0/projects/{organization_slug}/{project_slug}/keys/{key_id}/stats/"
-                    and random.random() < 0.1
-                ):
-                    logger.warning(
-                        "referrer attributed to incorrect parent api",
-                        stack_info=True,
-                        extra={"parent_api": query.parent_api.name},
-                    )
 
             metrics.incr(
                 "snuba.parent_api",

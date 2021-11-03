@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import {css} from '@emotion/react';
-import {Location} from 'history';
 
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import {AppStoreConnectContextProps} from 'app/components/projects/appStoreConnectContext';
@@ -51,7 +50,6 @@ function DebugFileCustomRepository({
   sourceConfig,
   sourceType,
   params: {orgId, projectId: projectSlug},
-  location,
   appStoreConnectContext,
   closeModal,
 }: Props) {
@@ -77,7 +75,6 @@ function DebugFileCustomRepository({
         projectSlug={projectSlug}
         onSubmit={handleSave}
         initialData={sourceConfig as AppStoreConnectInitialData}
-        location={location as Location}
         appStoreConnectContext={appStoreConnectContext}
       />
     );
