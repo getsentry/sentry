@@ -362,7 +362,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
 
         member_id = slack_request.callback_data["member_id"]
         try:
-            # endpoint will check to make sure member is still in a state to be invited a
+            # endpoint will check to make sure member is still in a state to be invited
             member = OrganizationMember.objects.get(id=member_id)
         except OrganizationMember.DoesNotExist:
             return self.respond(status=404)

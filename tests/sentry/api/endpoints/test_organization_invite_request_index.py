@@ -68,12 +68,12 @@ class OrganizationInviteRequestCreateTest(APITestCase, SlackActivityNotification
     def setUp(self):
         self.organization = self.create_organization()
 
-        # SlackActivityNotificationTest needs the manager as self.user to create the ideentity
+        # SlackActivityNotificationTest needs the manager as self.user to create the identity
         self.user = self.create_user(email="manager@localhost")
         self.create_member(user=self.user, organization=self.organization, role="manager")
         super().setUp()
 
-        # different user ffor logging in
+        # different user for logging in
         self.user = self.create_user("foo@localhost")
         self.team = self.create_team(organization=self.organization)
         self.member = self.create_member(
