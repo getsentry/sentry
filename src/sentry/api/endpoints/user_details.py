@@ -16,7 +16,6 @@ from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.user import DetailedUserSerializer
 from sentry.api.serializers.rest_framework import ListField
-from sentry.auth.superuser import has_superuser_permission
 from sentry.constants import LANGUAGES
 from sentry.models import Organization, OrganizationMember, OrganizationStatus, User, UserOption
 
@@ -142,7 +141,7 @@ class UserDetailsEndpoint(UserEndpoint):
         :auth: required
         """
 
-        if has_superuser_permission(request, "users.admin"):
+        if request.access.has_permission("users.admin"):
             serializer_cls = PrivilegedUserSerializer
         else:
             serializer_cls = UserSerializer
@@ -246,7 +245,7 @@ class UserDetailsEndpoint(UserEndpoint):
         hard_delete = serializer.validated_data.get("hardDelete", False)
 
         # Only active superusers can hard delete accounts
-        if hard_delete and not has_superuser_permission(request, "users.admin"):
+        if hard_delete and not request.access.has_permission("users.admin"):
             return Response(
                 {"detail": "Missing required permission to hard delete account."},
                 status=status.HTTP_403_FORBIDDEN,

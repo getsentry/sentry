@@ -179,21 +179,23 @@ class BaseTestCase(Fixtures, Exam):
         self.client.cookies[name] = value
         self.client.cookies[name].update({k.replace("_", "-"): v for k, v in params.items()})
 
-    def make_request(self, user=None, auth=None, method=None):
+    def make_request(self, user=None, auth=None, method=None, is_superuser=False):
         request = HttpRequest()
         if method:
             request.method = method
         request.META["REMOTE_ADDR"] = "127.0.0.1"
         request.META["SERVER_NAME"] = "testserver"
         request.META["SERVER_PORT"] = 80
-        request.GET = {}
-        request.POST = {}
 
         # order matters here, session -> user -> other things
         request.session = self.session
         request.auth = auth
         request.user = user or AnonymousUser()
+        # must happen after request.user/request.session is populated
         request.superuser = Superuser(request)
+        if is_superuser:
+            # XXX: this is gross, but its a one off and apis change only once in a great while
+            request.superuser.set_logged_in(user)
         request.is_superuser = lambda: request.superuser.is_active
         request.successful_authenticator = None
         return request

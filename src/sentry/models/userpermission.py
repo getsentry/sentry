@@ -4,6 +4,12 @@ from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 
 
 class UserPermission(Model):
+    """
+    Permissions are applied to administrative users and control explicit scope-like permissions within the API.
+
+    Generally speaking, they should only apply to active superuser sessions.
+    """
+
     __include_in_export__ = True
 
     user = FlexibleForeignKey("sentry.User")
