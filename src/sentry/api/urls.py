@@ -428,6 +428,8 @@ from .endpoints.user_notification_settings_details import UserNotificationSettin
 from .endpoints.user_organizationintegrations import UserOrganizationIntegrationsEndpoint
 from .endpoints.user_organizations import UserOrganizationsEndpoint
 from .endpoints.user_password import UserPasswordEndpoint
+from .endpoints.user_permission_details import UserPermissionDetailsEndpoint
+from .endpoints.user_permissions import UserPermissionsEndpoint
 from .endpoints.user_social_identities_index import UserSocialIdentitiesIndexEndpoint
 from .endpoints.user_social_identity_details import UserSocialIdentityDetailsEndpoint
 from .endpoints.user_subscriptions import UserSubscriptionsEndpoint
@@ -453,7 +455,11 @@ GROUP_URLS = [
         GroupingLevelNewIssuesEndpoint.as_view(),
     ),
     url(r"^(?P<issue_id>[^\/]+)/hashes/split/$", GroupHashesSplitEndpoint.as_view()),
-    url(r"^(?P<issue_id>[^\/]+)/reprocessing/$", GroupReprocessingEndpoint.as_view()),
+    url(
+        r"^(?P<issue_id>[^\/]+)/reprocessing/$",
+        GroupReprocessingEndpoint.as_view(),
+        name="sentry-api-0-issues-reprocessing",
+    ),
     url(r"^(?P<issue_id>[^\/]+)/stats/$", GroupStatsEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/tags/$", GroupTagsEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/tags/(?P<key>[^/]+)/$", GroupTagKeyDetailsEndpoint.as_view()),
@@ -685,6 +691,16 @@ urlpatterns = [
                     r"^(?P<user_id>[^\/]+)/password/$",
                     UserPasswordEndpoint.as_view(),
                     name="sentry-api-0-user-password",
+                ),
+                url(
+                    r"^(?P<user_id>[^\/]+)/permissions/$",
+                    UserPermissionsEndpoint.as_view(),
+                    name="sentry-api-0-user-permissions",
+                ),
+                url(
+                    r"^(?P<user_id>[^\/]+)/permissions/(?P<permission_name>[^\/]+)/$",
+                    UserPermissionDetailsEndpoint.as_view(),
+                    name="sentry-api-0-user-permission-details",
                 ),
                 url(
                     r"^(?P<user_id>[^\/]+)/social-identities/$",

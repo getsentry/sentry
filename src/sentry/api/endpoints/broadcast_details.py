@@ -9,7 +9,6 @@ from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import AdminBroadcastSerializer, BroadcastSerializer, serialize
 from sentry.api.validators import AdminBroadcastValidator, BroadcastValidator
-from sentry.auth.superuser import has_superuser_permission
 from sentry.models import Broadcast, BroadcastSeen
 
 logger = logging.getLogger("sentry")
@@ -19,7 +18,7 @@ class BroadcastDetailsEndpoint(Endpoint):
     permission_classes = (IsAuthenticated,)
 
     def _get_broadcast(self, request, broadcast_id):
-        if has_superuser_permission(request, "broadcasts.admin"):
+        if request.access.has_permission("broadcasts.admin"):
             queryset = Broadcast.objects.all()
         else:
             queryset = Broadcast.objects.filter(
@@ -31,12 +30,12 @@ class BroadcastDetailsEndpoint(Endpoint):
             raise ResourceDoesNotExist
 
     def _get_validator(self, request):
-        if has_superuser_permission(request, "broadcasts.admin"):
+        if request.access.has_permission("broadcasts.admin"):
             return AdminBroadcastValidator
         return BroadcastValidator
 
     def _get_serializer(self, request):
-        if has_superuser_permission(request, "broadcasts.admin"):
+        if request.access.has_permission("broadcasts.admin"):
             return AdminBroadcastSerializer
         return BroadcastSerializer
 

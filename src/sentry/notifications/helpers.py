@@ -41,8 +41,9 @@ def _get_notification_setting_default(
     """
     In order to increase engagement, we automatically opt users into receiving
     Slack notifications if they install Slack and link their identity.
+    Approval notifications always default to Slack being on.
     """
-    if should_use_slack_automatic:
+    if should_use_slack_automatic or type == NotificationSettingTypes.APPROVAL:
         return NOTIFICATION_SETTINGS_ALL_SOMETIMES[type]
     return NOTIFICATION_SETTING_DEFAULTS[provider][type]
 
@@ -86,6 +87,7 @@ def where_should_recipient_be_notified(
     ],
     recipient: Team | User,
     should_use_slack_automatic: bool = False,
+    type: NotificationSettingTypes = NotificationSettingTypes.ISSUE_ALERTS,
 ) -> list[ExternalProviders]:
     """
     Given a mapping of default and specific notification settings by user,
@@ -94,7 +96,7 @@ def where_should_recipient_be_notified(
     mapping = _get_setting_mapping_from_mapping(
         notification_settings_by_recipient,
         recipient,
-        NotificationSettingTypes.ISSUE_ALERTS,
+        type,
         should_use_slack_automatic=should_use_slack_automatic,
     )
     return [
@@ -241,13 +243,13 @@ def validate(type: NotificationSettingTypes, value: NotificationSettingOptionVal
 
 def get_scope_type(type: NotificationSettingTypes) -> NotificationScopeType:
     """In which scope (proj or org) can a user set more specific settings?"""
-    if type in [NotificationSettingTypes.DEPLOY]:
+    if type in [NotificationSettingTypes.DEPLOY, NotificationSettingTypes.APPROVAL]:
         return NotificationScopeType.ORGANIZATION
 
     if type in [NotificationSettingTypes.WORKFLOW, NotificationSettingTypes.ISSUE_ALERTS]:
         return NotificationScopeType.PROJECT
 
-    raise Exception(f"type {type}, must be alerts, deploy, or workflow")
+    raise Exception(f"type {type}, must be alerts, deploy, workflow, or approval")
 
 
 def get_scope(

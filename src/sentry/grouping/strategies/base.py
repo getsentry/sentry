@@ -1,6 +1,5 @@
 import inspect
 from typing import (
-    TYPE_CHECKING,
     Any,
     Callable,
     Dict,
@@ -8,6 +7,7 @@ from typing import (
     Iterator,
     List,
     Optional,
+    Protocol,
     Sequence,
     Type,
     TypeVar,
@@ -40,34 +40,30 @@ DEFAULT_GROUPING_ENHANCEMENTS_BASE = "common:2019-03-23"
 ReturnedVariants = Dict[str, GroupingComponent]
 ConcreteInterface = TypeVar("ConcreteInterface", bound=Interface, contravariant=True)
 
-# TODO(3.8): This is a hack so we can get Protocols before 3.8
-if TYPE_CHECKING:
-    from typing_extensions import Protocol
 
-    # XXX(markus): Too hard to mock out Protocol at runtime for as long as
-    # we're not on 3.8, so let's just conditionally define all of our types.
-    class StrategyFunc(Protocol[ConcreteInterface]):
-        def __call__(
-            self,
-            interface: ConcreteInterface,
-            event: Event,
-            context: "GroupingContext",
-            **meta: Any,
-        ) -> ReturnedVariants:
-            ...
+class StrategyFunc(Protocol[ConcreteInterface]):
+    def __call__(
+        self,
+        interface: ConcreteInterface,
+        event: Event,
+        context: "GroupingContext",
+        **meta: Any,
+    ) -> ReturnedVariants:
+        ...
 
-    class VariantProcessor(Protocol):
-        def __call__(
-            self, variants: ReturnedVariants, context: "GroupingContext", **meta: Any
-        ) -> ReturnedVariants:
-            ...
+
+class VariantProcessor(Protocol):
+    def __call__(
+        self, variants: ReturnedVariants, context: "GroupingContext", **meta: Any
+    ) -> ReturnedVariants:
+        ...
 
 
 def strategy(
     ids: Sequence[str],
     interface: Type[Interface],
     score: Optional[int] = None,
-) -> Callable[["StrategyFunc[ConcreteInterface]"], "Strategy[ConcreteInterface]"]:
+) -> Callable[[StrategyFunc[ConcreteInterface]], "Strategy[ConcreteInterface]"]:
     """
     Registers a strategy
 
@@ -83,7 +79,7 @@ def strategy(
     if not ids:
         raise TypeError("no ids given")
 
-    def decorator(f: "StrategyFunc[ConcreteInterface]") -> Strategy[ConcreteInterface]:
+    def decorator(f: StrategyFunc[ConcreteInterface]) -> Strategy[ConcreteInterface]:
         rv: Optional[Strategy[ConcreteInterface]] = None
 
         for id in ids:
@@ -169,7 +165,7 @@ class Strategy(Generic[ConcreteInterface]):
         name: str,
         interface: str,
         score: Optional[int],
-        func: "StrategyFunc[ConcreteInterface]",
+        func: StrategyFunc[ConcreteInterface],
     ):
         self.id = id
         self.strategy_class = id.split(":", 1)[0]
@@ -177,7 +173,7 @@ class Strategy(Generic[ConcreteInterface]):
         self.interface = interface
         self.score = score
         self.func = func
-        self.variant_processor_func: Optional["VariantProcessor"] = None
+        self.variant_processor_func: Optional[VariantProcessor] = None
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} id={self.id!r}>"
@@ -194,7 +190,7 @@ class Strategy(Generic[ConcreteInterface]):
     def __call__(self, *args: Any, **kwargs: Any) -> ReturnedVariants:
         return self._invoke(self.func, *args, **kwargs)
 
-    def variant_processor(self, func: "VariantProcessor") -> "VariantProcessor":
+    def variant_processor(self, func: VariantProcessor) -> VariantProcessor:
         """Registers a variant reducer function that can be used to postprocess
         all variants created from this strategy.
         """
@@ -399,7 +395,7 @@ def create_strategy_configuration(
 
 def produces_variants(
     variants: Sequence[str],
-) -> Callable[["StrategyFunc[ConcreteInterface]"], "StrategyFunc[ConcreteInterface]"]:
+) -> Callable[[StrategyFunc[ConcreteInterface]], StrategyFunc[ConcreteInterface]]:
     """
     A grouping strategy can either:
 
@@ -429,7 +425,7 @@ def produces_variants(
         @produces_variants(["!system", "app"])
     """
 
-    def decorator(f: "StrategyFunc[ConcreteInterface]") -> "StrategyFunc[ConcreteInterface]":
+    def decorator(f: StrategyFunc[ConcreteInterface]) -> StrategyFunc[ConcreteInterface]:
         def inner(*args: Any, **kwargs: Any) -> ReturnedVariants:
             return call_with_variants(f, variants, *args, **kwargs)
 

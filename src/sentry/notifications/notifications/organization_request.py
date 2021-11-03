@@ -6,9 +6,10 @@ from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequen
 
 from sentry import analytics, features, roles
 from sentry.integrations.slack.utils.notifications import get_settings_url
-from sentry.models import OrganizationMember, Team
+from sentry.models import NotificationSetting, OrganizationMember, Team
 from sentry.notifications.notifications.base import BaseNotification, MessageAction
 from sentry.notifications.notify import notification_providers
+from sentry.notifications.types import NotificationSettingTypes
 from sentry.types.integrations import ExternalProviders, get_provider_name
 
 if TYPE_CHECKING:
@@ -70,11 +71,16 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
         if features.has("organizations:slack-requests", self.organization):
             available_providers = notification_providers()
 
-        # TODO: need to read off notification settings
         recipients = list(self.determine_recipients())
-        output = {provider: recipients for provider in available_providers}
+        recipients_by_provider = NotificationSetting.objects.filter_to_accepting_recipients(
+            self.organization, recipients, NotificationSettingTypes.APPROVAL
+        )
 
-        return output
+        return {
+            provider: recipients_of_provider
+            for provider, recipients_of_provider in recipients_by_provider.items()
+            if provider in available_providers
+        }
 
     def send(self) -> None:
         from sentry.notifications.notify import notify

@@ -10,12 +10,14 @@ from typing import (
     Any,
     Generator,
     List,
+    Literal,
     Mapping,
     MutableMapping,
     Optional,
     Sequence,
     Set,
     Tuple,
+    TypedDict,
     Union,
     cast,
 )
@@ -25,7 +27,6 @@ from snuba_sdk.expressions import Granularity
 from snuba_sdk.function import Function
 from snuba_sdk.legacy import json_to_snql
 from snuba_sdk.query import SelectableExpression
-from typing_extensions import Literal, TypedDict
 
 from sentry.release_health.base import (
     GroupByFieldName,

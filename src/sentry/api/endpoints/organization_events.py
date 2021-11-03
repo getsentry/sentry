@@ -20,6 +20,7 @@ ALLOWED_EVENTS_V2_REFERRERS = {
     "api.performance.vitals-cards",
     "api.performance.landing-table",
     "api.performance.transaction-summary",
+    "api.performance.transaction-spans",
     "api.performance.status-breakdown",
     "api.performance.vital-detail",
     "api.performance.durationpercentilechart",
