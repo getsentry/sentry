@@ -111,6 +111,7 @@ default_manager.add("organizations:minute-resolution-sessions", OrganizationFeat
 default_manager.add("organizations:mobile-screenshots", OrganizationFeature, True)
 default_manager.add("organizations:monitors", OrganizationFeature)
 default_manager.add("organizations:notification-slack-automatic", OrganizationFeature, True)
+default_manager.add("organizations:notification-all-recipients", OrganizationFeature, True)
 default_manager.add("organizations:native-stack-trace-v2", OrganizationFeature, True)
 default_manager.add("organizations:onboarding", OrganizationFeature)
 default_manager.add("organizations:org-subdomains", OrganizationFeature)
