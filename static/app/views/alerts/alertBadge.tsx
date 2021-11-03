@@ -32,7 +32,7 @@ function AlertBadge({status, hideText = false, isIssue}: Props) {
   }
 
   return (
-    <Wrapper displayFlex={!hideText}>
+    <Wrapper data-test-id="alert-badge" displayFlex={!hideText}>
       <AlertIconWrapper color={color} icon={Icon}>
         <Icon color="white" />
       </AlertIconWrapper>
