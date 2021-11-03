@@ -131,11 +131,14 @@ class AccountIdentities extends AsyncView<Props, State> {
 
     if (a.provider.name !== b.provider.name) {
       return a.provider.name < b.provider.name ? -1 : 1;
-    } else if (a.category !== b.category) {
+    }
+    if (a.category !== b.category) {
       return categoryRank(a) - categoryRank(b);
-    } else if ((a.organization?.name ?? '') !== (b.organization?.name ?? '')) {
+    }
+    if ((a.organization?.name ?? '') !== (b.organization?.name ?? '')) {
       return (a.organization?.name ?? '') < (b.organization?.name ?? '') ? -1 : 1;
-    } else return 0;
+    }
+    return 0;
   };
 
   renderBody() {
