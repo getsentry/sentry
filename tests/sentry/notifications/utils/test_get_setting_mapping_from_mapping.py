@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from sentry.notifications.helpers import _get_setting_mapping_from_mapping
 from sentry.notifications.types import (
     NotificationScopeType,
@@ -10,7 +8,7 @@ from sentry.testutils import TestCase
 from sentry.types.integrations import ExternalProviders
 
 
-class NotificationHelpersTest(TestCase):
+class GetSettingMappingFromMappingTest(TestCase):
     def test_get_setting_mapping_from_mapping_issue_alerts(self):
         notification_settings = {
             self.user: {
