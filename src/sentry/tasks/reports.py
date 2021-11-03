@@ -714,7 +714,7 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
                 },
             )
         logger.debug(
-            "Skipping report for %r to %r, user is not subscribed to reports.", organization, user
+            f"Skipping report for {organization} to {user}, user is not subscribed to reports."
         )
         return Skipped.NotSubscribed
 
@@ -732,9 +732,7 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
                 },
             )
         logger.debug(
-            "Skipping report for %r to %r, user is not associated with any projects.",
-            organization,
-            user,
+            f"Skipping report for {organization} to {user}, user is not associated with any projects."
         )
         return Skipped.NoProjects
 
@@ -763,7 +761,7 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
                 },
             )
         logger.debug(
-            "Skipping report for %r to %r, no qualifying reports to deliver.", organization, user
+            f"Skipping report for {organization} to {user}, no qualifying reports to deliver."
         )
         return Skipped.NoReports
 
