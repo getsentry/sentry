@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import moment from 'moment';
@@ -82,7 +82,7 @@ class AccountIdentities extends AsyncView<Props, State> {
         priority="danger"
         confirmText={t('Disconnect')}
         message={
-          <React.Fragment>
+          <Fragment>
             <Alert type="error" icon={<IconFlag size="md" />}>
               {t(`Disconnect Your ${identity.provider.name} Identity?`)}
             </Alert>
@@ -93,7 +93,7 @@ class AccountIdentities extends AsyncView<Props, State> {
                   )
                 : t("This action can't be undone.")}
             </TextBlock>
-          </React.Fragment>
+          </Fragment>
         }
       >
         <Button>{t('Disconnect')}</Button>
@@ -150,7 +150,7 @@ class AccountIdentities extends AsyncView<Props, State> {
       .sort(this.itemOrder);
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SettingsPageHeader title="Identities" />
 
         <Panel>
@@ -182,7 +182,7 @@ class AccountIdentities extends AsyncView<Props, State> {
             )}
           </PanelBody>
         </Panel>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }
