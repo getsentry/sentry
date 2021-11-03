@@ -5,6 +5,7 @@ import {Location} from 'history';
 
 import _EventsRequest from 'app/components/charts/eventsRequest';
 import {getInterval} from 'app/components/charts/utils';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Link from 'app/components/links/link';
 import Tooltip from 'app/components/tooltip';
 import Truncate from 'app/components/truncate';
@@ -187,6 +188,9 @@ export function LineChartListWidget(props: Props) {
       HeaderActions={provided => (
         <ContainerActions isLoading={provided.widgetData.list?.isLoading} />
       )}
+      EmptyComponent={() => (
+        <StyledEmptyStateWarning small>{t('No results')}</StyledEmptyStateWarning>
+      )}
       Queries={Queries}
       Visualizations={[
         {
@@ -324,4 +328,9 @@ const StyledIconClose = styled(IconClose)`
   &:hover {
     color: ${p => p.theme.gray300};
   }
+`;
+
+const StyledEmptyStateWarning = styled(EmptyStateWarning)`
+  min-height: 300px;
+  justify-content: center;
 `;
