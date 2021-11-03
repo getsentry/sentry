@@ -67,11 +67,9 @@ class SlackMessageBuilder(AbstractMessageBuilder, ABC):
         if actions:
             kwargs["actions"] = [get_slack_button(action) for action in actions]
 
-        return [
-            {
-                "text": text,
-                "mrkdwn_in": ["text"],
-                "color": LEVEL_TO_COLOR[color or "info"],
-                **kwargs,
-            }
-        ]
+        return {
+            "text": text,
+            "mrkdwn_in": ["text"],
+            "color": LEVEL_TO_COLOR[color or "info"],
+            **kwargs,
+        }

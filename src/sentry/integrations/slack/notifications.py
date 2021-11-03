@@ -5,7 +5,7 @@ from collections import defaultdict
 from typing import Any, Iterable, Mapping, MutableMapping
 
 from sentry.integrations.notifications import NotifyBasicMixin
-from sentry.integrations.slack.client import SlackClient  # NOQA
+from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder import SlackBody
 from sentry.integrations.slack.message_builder.notifications import get_message_builder
 from sentry.models import ExternalActor, Identity, Integration, Organization, Team, User
@@ -44,7 +44,10 @@ def get_attachments(
     context: Mapping[str, Any],
 ) -> SlackBody:
     klass = get_message_builder(notification.message_builder)
-    return klass(notification, context, recipient).build()
+    attachments = klass(notification, context, recipient).build()
+    if isinstance(attachments, dict):
+        return [attachments]
+    return attachments
 
 
 def get_context(

@@ -100,18 +100,22 @@ def build_assigned_text(identity: Identity, assignee: str) -> str | None:
     return f"*Issue assigned to {assignee_text} by <@{identity.external_id}>*"
 
 
-def build_action_text(identity: Identity, action: Mapping[str, Any]) -> str | None:
-    if action["name"] == "assign":
-        return build_assigned_text(identity, action["selected_options"][0]["value"])
+def build_action_text(identity: Identity, action: MessageAction) -> str | None:
+    if action.name == "assign":
+        selected_options = action.selected_options or []
+        if not len(selected_options):
+            return None
+        assignee = selected_options[0].get("value")
+        return build_assigned_text(identity, assignee)
 
     # Resolve actions have additional 'parameters' after ':'
-    status = action["value"].split(":", 1)[0]
+    status = STATUSES.get((action.value or "").split(":", 1)[0])
 
     # Action has no valid action text, ignore
-    if status not in STATUSES:
+    if not status:
         return None
 
-    return f"*Issue {STATUSES[status]} by <@{identity.external_id}>*"
+    return f"*Issue {status} by <@{identity.external_id}>*"
 
 
 def build_rule_url(rule: Any, group: Group, project: Project) -> str:

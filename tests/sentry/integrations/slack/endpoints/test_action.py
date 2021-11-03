@@ -405,7 +405,12 @@ class StatusActionTest(BaseEventTest):
             "team": {"id": "TXXXXXXX1", "domain": "example.com"},
             "user": {"id": self.external_id, "domain": "example"},
             "type": "block_actions",
-            "actions": [{"value": "sentry_docs_link_clicked"}],
+            "actions": [
+                {
+                    "name": "",
+                    "value": "sentry_docs_link_clicked",
+                }
+            ],
         }
 
         payload = {"payload": json.dumps(payload)}
