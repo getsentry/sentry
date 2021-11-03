@@ -7,13 +7,20 @@ type Props = {
   children?: React.ReactNode;
   symbol?: React.ReactElement;
   onClick?: (event: React.MouseEvent) => void;
+  'data-test-id'?: string;
   'aria-label'?: string;
   className?: string;
 };
 
 const ListItem = styled(
-  ({children, className, symbol, onClick, 'aria-label': ariaLabel}: Props) => (
-    <li className={className} onClick={onClick} aria-label={ariaLabel}>
+  ({children, className, symbol, onClick, 'aria-label': ariaLabel, ...props}: Props) => (
+    <li
+      className={className}
+      onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      aria-label={onClick ? ariaLabel : undefined}
+      {...props}
+    >
       {symbol && <Symbol>{symbol}</Symbol>}
       {children}
     </li>

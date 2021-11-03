@@ -249,7 +249,7 @@ function StackTraceContent({
   }
 
   return (
-    <StyledList className={getClassName()} aria-label={t('Stack trace')}>
+    <StyledList className={getClassName()} data-test-id="stack-trace">
       {renderConvertedFrames()}
     </StyledList>
   );

@@ -37,7 +37,7 @@ function StackTrace({
   groupingCurrentLevel,
 }: Props) {
   function getPlatform(): PlatformType {
-    const framePlatform = data.frames?.find(frame => !!frame.filename);
+    const framePlatform = data.frames?.find(frame => !!frame.platform);
     return framePlatform?.platform ?? event.platform ?? 'other';
   }
 

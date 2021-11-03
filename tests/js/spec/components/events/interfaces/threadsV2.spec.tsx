@@ -227,10 +227,8 @@ describe('ThreadsV2', function () {
         ).toBeInTheDocument();
         expect(screen.getByText('divided by 0')).toBeInTheDocument();
 
-        expect(screen.getByRole('list', {name: 'Stack trace'})).toBeInTheDocument();
-        expect(
-          screen.queryAllByRole('listitem', {name: 'Stack trace frame'})
-        ).toHaveLength(4);
+        expect(screen.getByTestId('stack-trace')).toBeInTheDocument();
+        expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(4);
 
         expect(container).toSnapshot();
       });
@@ -252,16 +250,16 @@ describe('ThreadsV2', function () {
 
         // Raw content is displayed
         expect(screen.queryByRole('list', {name: 'Stack trace'})).not.toBeInTheDocument();
-        expect(screen.queryAllByLabelText('Raw stack trace')).toHaveLength(1);
+        expect(screen.getByTestId('raw-stack-trace')).toBeInTheDocument();
       });
 
       it('toggle sort by', function () {
         mountWithTheme(<ThreadsV2 {...props} />, {organization: org});
 
         expect(
-          within(
-            screen.queryAllByRole('listitem', {name: 'Stack trace frame'})[0]
-          ).getByText('app/controllers/welcome_controller.rb')
+          within(screen.queryAllByTestId('stack-trace-frame')[0]).getByText(
+            'app/controllers/welcome_controller.rb'
+          )
         ).toBeInTheDocument();
 
         fireEvent.click(screen.getByRole('button', {name: 'Sort By Recent first'}));
@@ -281,9 +279,9 @@ describe('ThreadsV2', function () {
         ).toBeInTheDocument();
 
         expect(
-          within(
-            screen.queryAllByRole('listitem', {name: 'Stack trace frame'})[0]
-          ).getByText('puma (3.12.6) lib/puma/thread_pool.rb')
+          within(screen.queryAllByTestId('stack-trace-frame')[0]).getByText(
+            'puma (3.12.6) lib/puma/thread_pool.rb'
+          )
         ).toBeInTheDocument();
 
         fireEvent.click(screen.getByRole('button', {name: 'Sort By Recent last'}));
@@ -301,6 +299,7 @@ describe('ThreadsV2', function () {
         expect(
           screen.getByRole('button', {name: 'Options 1 Active'})
         ).toBeInTheDocument();
+
         fireEvent.click(screen.getByRole('button', {name: 'Options 1 Active'}));
 
         expect(screen.queryAllByLabelText('Display option')).toHaveLength(2);
@@ -327,10 +326,8 @@ describe('ThreadsV2', function () {
           'false'
         );
 
-        expect(screen.queryByRole('list', {name: 'Stack trace'})).toBeInTheDocument();
-        expect(
-          screen.queryAllByRole('listitem', {name: 'Stack trace frame'})
-        ).toHaveLength(4);
+        expect(screen.getByTestId('stack-trace')).toBeInTheDocument();
+        expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(4);
 
         // Uncheck Full Stack Trace
         fireEvent.click(screen.queryAllByLabelText('Display option')[1]);
@@ -339,9 +336,7 @@ describe('ThreadsV2', function () {
         ).not.toBeChecked();
 
         // Display less frames
-        expect(
-          screen.queryAllByRole('listitem', {name: 'Stack trace frame'})
-        ).toHaveLength(3);
+        expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
       });
     });
   });
@@ -889,10 +884,8 @@ describe('ThreadsV2', function () {
           )
         ).toBeInTheDocument();
 
-        expect(screen.getByRole('list', {name: 'Stack trace'})).toBeInTheDocument();
-        expect(
-          screen.queryAllByRole('listitem', {name: 'Stack trace frame'})
-        ).toHaveLength(4);
+        expect(screen.getByTestId('stack-trace')).toBeInTheDocument();
+        expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(4);
 
         expect(container).toSnapshot();
       });
@@ -913,17 +906,17 @@ describe('ThreadsV2', function () {
         ).not.toBeInTheDocument();
 
         // Raw content is displayed
-        expect(screen.queryByRole('list', {name: 'Stack trace'})).not.toBeInTheDocument();
-        expect(screen.queryAllByLabelText('Raw stack trace')).toHaveLength(1);
+        expect(screen.queryByTestId('stack-trace')).not.toBeInTheDocument();
+        expect(screen.getByTestId('raw-stack-trace')).toBeInTheDocument();
       });
 
       it('toggle sort by', function () {
         mountWithTheme(<ThreadsV2 {...props} />, {organization: org});
 
         expect(
-          within(
-            screen.queryAllByRole('listitem', {name: 'Stack trace frame'})[0]
-          ).getByText('-[SentryClient crash]')
+          within(screen.queryAllByTestId('stack-trace-frame')[0]).getByText(
+            '-[SentryClient crash]'
+          )
         ).toBeInTheDocument();
 
         fireEvent.click(screen.getByRole('button', {name: 'Sort By Recent first'}));
@@ -943,9 +936,9 @@ describe('ThreadsV2', function () {
         ).toBeInTheDocument();
 
         expect(
-          within(
-            screen.queryAllByRole('listitem', {name: 'Stack trace frame'})[0]
-          ).getByText('__44-[SentryBreadcrumbTracker swizzleSendAction]_block_invoke_2')
+          within(screen.queryAllByTestId('stack-trace-frame')[0]).getByText(
+            '__44-[SentryBreadcrumbTracker swizzleSendAction]_block_invoke_2'
+          )
         ).toBeInTheDocument();
 
         fireEvent.click(screen.getByRole('button', {name: 'Sort By Recent last'}));
@@ -1007,32 +1000,28 @@ describe('ThreadsV2', function () {
           'false'
         );
 
-        expect(screen.queryByRole('list', {name: 'Stack trace'})).toBeInTheDocument();
-        expect(
-          screen.queryAllByRole('listitem', {name: 'Stack trace frame'})
-        ).toHaveLength(4);
+        expect(screen.getByTestId('stack-trace')).toBeInTheDocument();
+        expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(4);
 
         // Check Verbose Function Names
         expect(
-          within(
-            screen.queryAllByRole('listitem', {name: 'Stack trace frame'})[1]
-          ).getByText('ViewController.causeCrash')
+          within(screen.queryAllByTestId('stack-trace-frame')[1]).getByText(
+            'ViewController.causeCrash'
+          )
         ).toBeInTheDocument();
 
         fireEvent.click(screen.queryAllByLabelText('Display option')[3]);
         expect(within(displayOption3).getByRole('checkbox')).toBeChecked();
 
         expect(
-          within(
-            screen.queryAllByRole('listitem', {name: 'Stack trace frame'})[1]
-          ).getByText('ViewController.causeCrash(Any) -> ()')
+          within(screen.queryAllByTestId('stack-trace-frame')[1]).getByText(
+            'ViewController.causeCrash(Any) -> ()'
+          )
         ).toBeInTheDocument();
 
         // Check Absolute Path Names
         expect(
-          within(
-            screen.queryAllByRole('listitem', {name: 'Stack trace frame'})[1]
-          ).getByText('+0x085ac')
+          within(screen.queryAllByTestId('stack-trace-frame')[1]).getByText('+0x085ac')
         ).toBeInTheDocument();
 
         fireEvent.click(screen.queryAllByLabelText('Display option')[1]);
@@ -1041,9 +1030,7 @@ describe('ThreadsV2', function () {
         ).toBeChecked();
 
         expect(
-          within(
-            screen.queryAllByRole('listitem', {name: 'Stack trace frame'})[1]
-          ).getByText('0x10008c5ac')
+          within(screen.queryAllByTestId('stack-trace-frame')[1]).getByText('0x10008c5ac')
         ).toBeInTheDocument();
 
         // Uncheck Full Stack Trace
@@ -1053,9 +1040,7 @@ describe('ThreadsV2', function () {
         ).not.toBeChecked();
 
         // Display less frames
-        expect(
-          screen.queryAllByRole('listitem', {name: 'Stack trace frame'})
-        ).toHaveLength(3);
+        expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
       });
     });
   });

@@ -4,7 +4,6 @@ import classNames from 'classnames';
 
 import ListItem from 'app/components/list/listItem';
 import StrictClick from 'app/components/strictClick';
-import {t} from 'app/locale';
 import {PlatformType, SentryAppComponent} from 'app/types';
 import {Event} from 'app/types/event';
 import withSentryAppComponents from 'app/utils/withSentryAppComponents';
@@ -166,7 +165,7 @@ function Line({
   });
 
   return (
-    <StyleListItem className={className} aria-label={t('Stack trace frame')}>
+    <StyleListItem className={className} data-test-id="stack-trace-frame">
       <StrictClick onClick={expandable ? toggleContext : undefined}>
         {renderLine()}
       </StrictClick>

@@ -5,7 +5,7 @@ import isNil from 'lodash/isNil';
 import Pill from 'app/components/pill';
 import Pills from 'app/components/pills';
 import {t} from 'app/locale';
-import {PlatformType, Project} from 'app/types';
+import {Frame, PlatformType, Project} from 'app/types';
 import {Event} from 'app/types/event';
 import {Thread} from 'app/types/events';
 import {STACK_TYPE, STACK_VIEW} from 'app/types/stacktrace';
@@ -74,18 +74,17 @@ function Threads({
   const stackView = activeThread ? getIntendedStackView(activeThread, event) : undefined;
 
   function getPlatform(): PlatformType {
-    const exceptionValue = exception?.values?.find(
-      value => !!value.stacktrace?.frames?.find(frame => !!frame.platform)
-    );
+    let exceptionFramePlatform: Frame | undefined = undefined;
 
-    if (exceptionValue) {
-      const exceptionFramePlatform = exceptionValue.stacktrace?.frames?.find(
-        frame => !!frame.platform
-      );
-
-      if (exceptionFramePlatform?.platform) {
-        return exceptionFramePlatform.platform;
+    for (const value of exception?.values ?? []) {
+      exceptionFramePlatform = value.stacktrace?.frames?.find(frame => !!frame.platform);
+      if (exceptionFramePlatform) {
+        break;
       }
+    }
+
+    if (exceptionFramePlatform?.platform) {
+      return exceptionFramePlatform.platform;
     }
 
     const threadFramePlatform = activeThread?.stacktrace?.frames?.find(
