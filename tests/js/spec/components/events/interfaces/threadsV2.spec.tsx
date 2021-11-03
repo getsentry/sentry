@@ -265,10 +265,10 @@ describe('ThreadsV2', function () {
         fireEvent.click(screen.getByRole('button', {name: 'Sort By Recent first'}));
 
         expect(screen.queryAllByLabelText('Sort option')).toHaveLength(2);
-        expect(screen.queryAllByLabelText('Sort option')[0].textContent).toBe(
+        expect(screen.queryAllByLabelText('Sort option')[0]).toHaveTextContent(
           'Recent first'
         );
-        expect(screen.queryAllByLabelText('Sort option')[1].textContent).toBe(
+        expect(screen.queryAllByLabelText('Sort option')[1]).toHaveTextContent(
           'Recent last'
         );
 
@@ -305,7 +305,7 @@ describe('ThreadsV2', function () {
         expect(screen.queryAllByLabelText('Display option')).toHaveLength(2);
 
         const displayOption0 = screen.queryAllByLabelText('Display option')[0];
-        expect(displayOption0.textContent).toBe('Minified');
+        expect(displayOption0).toHaveTextContent('Minified');
         expect(within(displayOption0).getByRole('checkbox')).not.toBeChecked();
         expect(within(displayOption0).getByRole('checkbox')).toHaveAttribute(
           'aria-disabled',
@@ -319,7 +319,7 @@ describe('ThreadsV2', function () {
         ).toBeInTheDocument();
 
         const displayOption1 = screen.queryAllByLabelText('Display option')[1];
-        expect(displayOption1.textContent).toBe('Full Stack Trace');
+        expect(displayOption1).toHaveTextContent('Full Stack Trace');
         expect(within(displayOption1).getByRole('checkbox')).toBeChecked();
         expect(within(displayOption1).getByRole('checkbox')).toHaveAttribute(
           'aria-disabled',
@@ -922,10 +922,10 @@ describe('ThreadsV2', function () {
         fireEvent.click(screen.getByRole('button', {name: 'Sort By Recent first'}));
 
         expect(screen.queryAllByLabelText('Sort option')).toHaveLength(2);
-        expect(screen.queryAllByLabelText('Sort option')[0].textContent).toBe(
+        expect(screen.queryAllByLabelText('Sort option')[0]).toHaveTextContent(
           'Recent first'
         );
-        expect(screen.queryAllByLabelText('Sort option')[1].textContent).toBe(
+        expect(screen.queryAllByLabelText('Sort option')[1]).toHaveTextContent(
           'Recent last'
         );
 
@@ -961,7 +961,7 @@ describe('ThreadsV2', function () {
         expect(screen.queryAllByLabelText('Display option')).toHaveLength(5);
 
         const displayOption0 = screen.queryAllByLabelText('Display option')[0];
-        expect(displayOption0.textContent).toBe('Unsymbolicated');
+        expect(displayOption0).toHaveTextContent('Unsymbolicated');
         expect(within(displayOption0).getByRole('checkbox')).not.toBeChecked();
         expect(within(displayOption0).getByRole('checkbox')).toHaveAttribute(
           'aria-disabled',
@@ -969,7 +969,7 @@ describe('ThreadsV2', function () {
         );
 
         const displayOption1 = screen.queryAllByLabelText('Display option')[1];
-        expect(displayOption1.textContent).toBe('Absolute Addresses');
+        expect(displayOption1).toHaveTextContent('Absolute Addresses');
         expect(within(displayOption1).getByRole('checkbox')).not.toBeChecked();
         expect(within(displayOption1).getByRole('checkbox')).toHaveAttribute(
           'aria-disabled',
@@ -977,7 +977,7 @@ describe('ThreadsV2', function () {
         );
 
         const displayOption2 = screen.queryAllByLabelText('Display option')[2];
-        expect(displayOption2.textContent).toBe('Absolute File Paths');
+        expect(displayOption2).toHaveTextContent('Absolute File Paths');
         expect(within(displayOption2).getByRole('checkbox')).not.toBeChecked();
         expect(within(displayOption2).getByRole('checkbox')).toHaveAttribute(
           'aria-disabled',
@@ -985,7 +985,7 @@ describe('ThreadsV2', function () {
         );
 
         const displayOption3 = screen.queryAllByLabelText('Display option')[3];
-        expect(displayOption3.textContent).toBe('Verbose Function Names');
+        expect(displayOption3).toHaveTextContent('Verbose Function Names');
         expect(within(displayOption3).getByRole('checkbox')).not.toBeChecked();
         expect(within(displayOption3).getByRole('checkbox')).toHaveAttribute(
           'aria-disabled',
@@ -993,7 +993,7 @@ describe('ThreadsV2', function () {
         );
 
         const displayOption4 = screen.queryAllByLabelText('Display option')[4];
-        expect(displayOption4.textContent).toBe('Full Stack Trace');
+        expect(displayOption4).toHaveTextContent('Full Stack Trace');
         expect(within(displayOption4).getByRole('checkbox')).toBeChecked();
         expect(within(displayOption4).getByRole('checkbox')).toHaveAttribute(
           'aria-disabled',
