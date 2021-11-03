@@ -73,30 +73,40 @@ class UserIdentityConfigEndpointTest(UserIdentityConfigTest):
 
         response = self.get_success_response(self.user.id, status_code=200)
         (response_obj,) = response.data
-        assert response_obj["status"] == "needed_for_global_auth"
+        assert response_obj["status"] == "needed_for_global_auth", "Lone login identity"
 
         # A non-login identity should not change the status
         Identity.objects.create(user=self.user, idp=self.slack_idp)
         response = self.get_success_response(self.user.id, status_code=200)
         assert len(response.data) == 2
         response_idents = {obj["provider"]["key"]: obj for obj in response.data}
-        assert response_idents[self.slack_idp.type]["status"] == "can_disconnect"
-        assert response_idents[self.github_idp.type]["status"] == "needed_for_global_auth"
+        assert (
+            response_idents[self.slack_idp.type]["status"] == "can_disconnect"
+        ), "Non-login identity (1)"
+        assert (
+            response_idents[self.github_idp.type]["status"] == "needed_for_global_auth"
+        ), "Login identity unaffected"
 
         # A second login identity should flip both to can_disconnect
         Identity.objects.create(user=self.user, idp=self.google_idp)
         response = self.get_success_response(self.user.id, status_code=200)
         assert len(response.data) == 3
         for response_obj in response.data:
-            assert response_obj["status"] == "can_disconnect"
+            assert (
+                response_obj["status"] == "can_disconnect"
+            ), f'Can disconnect {response_obj["provider"]["key"]}'
 
         # Deleting the first should flip the second to needed
         identity.delete()
         response = self.get_success_response(self.user.id, status_code=200)
         assert len(response.data) == 2
         response_idents = {obj["provider"]["key"]: obj for obj in response.data}
-        assert response_idents[self.slack_idp.type]["status"] == "can_disconnect"
-        assert response_idents[self.google_idp.type]["status"] == "needed_for_global_auth"
+        assert (
+            response_idents[self.slack_idp.type]["status"] == "can_disconnect"
+        ), "Non-login identity (2)"
+        assert (
+            response_idents[self.google_idp.type]["status"] == "needed_for_global_auth"
+        ), "Remaining login identity"
 
     def test_org_identity_can_be_deleted_if_not_required(self):
         self.org_provider.flags.allow_unlinked = True
