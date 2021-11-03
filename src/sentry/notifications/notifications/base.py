@@ -2,9 +2,7 @@ from __future__ import annotations
 
 import abc
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Mapping, MutableMapping
-
-from typing_extensions import Literal
+from typing import TYPE_CHECKING, Any, Literal, Mapping, MutableMapping
 
 from sentry import analytics
 from sentry.types.integrations import ExternalProviders

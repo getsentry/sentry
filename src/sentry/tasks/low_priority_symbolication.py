@@ -10,9 +10,9 @@ This has three major tasks, executed in the following general order:
 
 import logging
 import time
+from typing import Literal
 
 import sentry_sdk
-from typing_extensions import Literal
 
 from sentry import options
 from sentry.killswitches import normalize_value
