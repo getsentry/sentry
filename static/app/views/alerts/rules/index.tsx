@@ -138,6 +138,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
       location: {query},
       organization,
       teams,
+      router,
     } = this.props;
     const {loading, ruleList = [], ruleListPageLinks} = this.state;
 
@@ -258,7 +259,21 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
               }
             </Projects>
           </StyledPanelTable>
-          <Pagination pageLinks={ruleListPageLinks} />
+          <Pagination
+            pageLinks={ruleListPageLinks}
+            onCursor={(cursor, path, _direction) => {
+              let team = currentQuery.team;
+              // Keep team parameter, but empty to remove parameters
+              if (!team || team.length === 0) {
+                team = '';
+              }
+
+              router.push({
+                pathname: path,
+                query: {...currentQuery, team, cursor},
+              });
+            }}
+          />
         </Layout.Main>
       </StyledLayoutBody>
     );
