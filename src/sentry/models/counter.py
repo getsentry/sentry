@@ -43,6 +43,8 @@ def increment_project_counter(project, delta=1, using="default"):
             if settings.SENTRY_PROJECT_COUNTER_STATEMENT_TIMEOUT:
                 # WARNING: This is not a proper fix and should be removed once
                 #          we have better way of generating next_short_id.
+                cur.execute("show statement_timeout")
+                statement_timeout = cur.fetchone()[0]
                 cur.execute(
                     "set local statement_timeout = %s",
                     [settings.SENTRY_PROJECT_COUNTER_STATEMENT_TIMEOUT],
@@ -64,7 +66,16 @@ def increment_project_counter(project, delta=1, using="default"):
                     [project.id, delta],
                 )
 
-            return cur.fetchone()[0]
+            project_counter = cur.fetchone()[0]
+
+            if settings.SENTRY_PROJECT_COUNTER_STATEMENT_TIMEOUT:
+                cur.execute(
+                    "set local statement_timeout = %s",
+                    [statement_timeout],
+                )
+
+            return project_counter
+
         finally:
             cur.close()
 
