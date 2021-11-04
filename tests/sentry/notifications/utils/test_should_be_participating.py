@@ -74,7 +74,6 @@ class WhereShouldBeParticipatingTest(TestCase):
         assert providers == [ExternalProviders.EMAIL, ExternalProviders.SLACK]
 
     def test_subscription_null(self):
-        self.user = User(id=1)
         notification_settings = {
             self.user: {
                 NotificationScopeType.USER: {
