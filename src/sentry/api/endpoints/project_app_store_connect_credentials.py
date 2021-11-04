@@ -494,11 +494,6 @@ class AppStoreConnectStatusEndpoint(ProjectEndpoint):  # type: ignore
                         "code": AppConnectAuthenticationError.code,
                     }
 
-            asc_credentials = {
-                "status": "invalid",
-                "code": AppConnectAuthenticationError().code,
-            }
-
             pending_downloads = AppConnectBuild.objects.filter(
                 project=project, fetched=False
             ).count()
