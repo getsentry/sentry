@@ -1,15 +1,17 @@
 import styled from '@emotion/styled';
 
-import {isStacktraceNewestFirst} from 'app/components/events/interfaces/stacktrace';
 import {t} from 'app/locale';
 import {ExceptionType, Group, PlatformType, Project} from 'app/types';
 import {Event} from 'app/types/event';
 import {STACK_TYPE, STACK_VIEW} from 'app/types/stacktrace';
+import {defined} from 'app/utils';
 
 import TraceEventDataSection from '../traceEventDataSection';
 import {DisplayOption} from '../traceEventDataSection/displayOptions';
 
 import CrashContentException from './crashContent/exception';
+import NoStackTraceMessage from './noStackTraceMessage';
+import {isStacktraceNewestFirst} from './utils';
 
 type Props = {
   event: Event;
@@ -38,7 +40,24 @@ function Exception({
     return null;
   }
 
-  const platform = (event.platform ?? 'other') as PlatformType;
+  function getPlatform(): PlatformType {
+    const dataValue = data.values?.find(
+      value => !!value.stacktrace?.frames?.find(frame => !!frame.platform)
+    );
+
+    if (dataValue) {
+      const framePlatform = dataValue.stacktrace?.frames?.find(frame => !!frame.platform);
+
+      if (framePlatform?.platform) {
+        return framePlatform.platform;
+      }
+    }
+
+    return event.platform ?? 'other';
+  }
+
+  const stackTraceNotFound = !(data.values ?? []).length;
+  const platform = getPlatform();
 
   return (
     <TraceEventDataSection
@@ -51,33 +70,67 @@ function Exception({
       fullStackTrace={!data.hasSystemFrames}
       platform={platform}
       hasMinified={!!data.values?.find(value => value.rawStacktrace)}
+      hasVerboseFunctionNames={
+        !!data.values?.find(
+          value =>
+            !!value.stacktrace?.frames?.find(
+              frame =>
+                defined(frame.rawFunction) &&
+                defined(frame.function) &&
+                frame.rawFunction !== frame.function
+            )
+        )
+      }
+      hasAbsoluteFilePaths={
+        !!data.values?.find(
+          value => !!value.stacktrace?.frames?.find(frame => defined(frame.filename))
+        )
+      }
+      hasAbsoluteAddresses={
+        !!data.values?.find(
+          value =>
+            !!value.stacktrace?.frames?.find(frame => defined(frame.instructionAddr))
+        )
+      }
+      hasAppOnlyFrames={
+        !!data.values?.find(
+          value => !!value.stacktrace?.frames?.find(frame => defined(frame.inApp))
+        )
+      }
+      hasNewestFirst={
+        !!data.values?.find(value => (value.stacktrace?.frames ?? []).length > 1)
+      }
+      stackTraceNotFound={stackTraceNotFound}
       showPermalink
       wrapTitle={false}
     >
-      {({raw, recentFirst, activeDisplayOptions}) => (
-        <CrashContentException
-          stackType={
-            activeDisplayOptions.includes(DisplayOption.MINIFIED) ||
-            activeDisplayOptions.includes(DisplayOption.UNSYMBOLICATED)
-              ? STACK_TYPE.MINIFIED
-              : STACK_TYPE.ORIGINAL
-          }
-          stackView={
-            raw
-              ? STACK_VIEW.RAW
-              : activeDisplayOptions.includes(DisplayOption.FULL_STACK_TRACE)
-              ? STACK_VIEW.FULL
-              : STACK_VIEW.APP
-          }
-          projectId={projectId}
-          newestFirst={recentFirst}
-          event={event}
-          platform={platform}
-          values={data.values}
-          groupingCurrentLevel={groupingCurrentLevel}
-          hasHierarchicalGrouping={hasHierarchicalGrouping}
-        />
-      )}
+      {({raw, recentFirst, activeDisplayOptions}) =>
+        stackTraceNotFound ? (
+          <NoStackTraceMessage />
+        ) : (
+          <CrashContentException
+            stackType={
+              activeDisplayOptions.includes(DisplayOption.MINIFIED)
+                ? STACK_TYPE.MINIFIED
+                : STACK_TYPE.ORIGINAL
+            }
+            stackView={
+              raw
+                ? STACK_VIEW.RAW
+                : activeDisplayOptions.includes(DisplayOption.FULL_STACK_TRACE)
+                ? STACK_VIEW.FULL
+                : STACK_VIEW.APP
+            }
+            projectId={projectId}
+            newestFirst={recentFirst}
+            event={event}
+            platform={platform}
+            values={data.values}
+            groupingCurrentLevel={groupingCurrentLevel}
+            hasHierarchicalGrouping={hasHierarchicalGrouping}
+          />
+        )
+      }
     </TraceEventDataSection>
   );
 }

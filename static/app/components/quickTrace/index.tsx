@@ -179,7 +179,8 @@ export default function QuickTrace({
                   {currentNode}
                 </React.Fragment>
               );
-            } else if (FRONTEND_PLATFORMS.includes(project.platform as string)) {
+            }
+            if (FRONTEND_PLATFORMS.includes(project.platform as string)) {
               return (
                 <React.Fragment>
                   {currentNode}
@@ -309,7 +310,8 @@ function EventNodeSelector({
 
   if (events.length + errors.length === 0) {
     return <EventNode type={type}>{text}</EventNode>;
-  } else if (events.length + errors.length === 1) {
+  }
+  if (events.length + errors.length === 1) {
     /**
      * When there is only 1 event, clicking the node should take the user directly to
      * the event without additional steps.
@@ -337,100 +339,99 @@ function EventNodeSelector({
         shouldOffset={hasErrors}
       />
     );
-  } else {
-    /**
-     * When there is more than 1 event, clicking the node should expand a dropdown to
-     * allow the user to select which event to go to.
-     */
-    const hoverText = tct('View [eventPrefix] [eventType]', {
-      eventPrefix: TOOLTIP_PREFIX[nodeKey],
-      eventType:
-        errors.length && events.length
-          ? 'events'
-          : events.length
-          ? 'transactions'
-          : 'errors',
-    });
-    return (
-      <DropdownContainer>
-        <DropdownLink
-          caret={false}
-          title={
-            <StyledEventNode
-              text={text}
-              hoverText={hoverText}
-              type={type}
-              shouldOffset={hasErrors}
-            />
-          }
-          anchorRight={anchor === 'right'}
-        >
-          {errors.length > 0 && (
-            <DropdownMenuHeader first>
-              {tn('Related Error', 'Related Errors', errors.length)}
-            </DropdownMenuHeader>
-          )}
-          {errors.slice(0, numEvents).map(error => {
-            const target = generateSingleErrorTarget(
-              error,
-              organization,
-              location,
-              errorDest
-            );
-            return (
-              <DropdownNodeItem
-                key={error.event_id}
-                event={error}
-                to={target}
-                allowDefaultEvent
-                onSelect={() => handleDropdownItem(nodeKey, organization, false)}
-                organization={organization}
-                anchor={anchor}
-              />
-            );
-          })}
-          {events.length > 0 && (
-            <DropdownMenuHeader first={errors.length === 0}>
-              {tn('Transaction', 'Transactions', events.length)}
-            </DropdownMenuHeader>
-          )}
-          {events.slice(0, numEvents).map(event => {
-            const target = generateSingleTransactionTarget(
-              event,
-              organization,
-              location,
-              transactionDest
-            );
-            return (
-              <DropdownNodeItem
-                key={event.event_id}
-                event={event}
-                to={target}
-                onSelect={() => handleDropdownItem(nodeKey, organization, false)}
-                allowDefaultEvent
-                organization={organization}
-                subtext={getDuration(
-                  event['transaction.duration'] / 1000,
-                  event['transaction.duration'] < 1000 ? 0 : 2,
-                  true
-                )}
-                anchor={anchor}
-              />
-            );
-          })}
-          {(errors.length > numEvents || events.length > numEvents) && (
-            <DropdownItem
-              to={generateTraceTarget(currentEvent, organization)}
-              allowDefaultEvent
-              onSelect={() => handleDropdownItem(nodeKey, organization, true)}
-            >
-              {t('View all events')}
-            </DropdownItem>
-          )}
-        </DropdownLink>
-      </DropdownContainer>
-    );
   }
+  /**
+   * When there is more than 1 event, clicking the node should expand a dropdown to
+   * allow the user to select which event to go to.
+   */
+  const hoverText = tct('View [eventPrefix] [eventType]', {
+    eventPrefix: TOOLTIP_PREFIX[nodeKey],
+    eventType:
+      errors.length && events.length
+        ? 'events'
+        : events.length
+        ? 'transactions'
+        : 'errors',
+  });
+  return (
+    <DropdownContainer>
+      <DropdownLink
+        caret={false}
+        title={
+          <StyledEventNode
+            text={text}
+            hoverText={hoverText}
+            type={type}
+            shouldOffset={hasErrors}
+          />
+        }
+        anchorRight={anchor === 'right'}
+      >
+        {errors.length > 0 && (
+          <DropdownMenuHeader first>
+            {tn('Related Error', 'Related Errors', errors.length)}
+          </DropdownMenuHeader>
+        )}
+        {errors.slice(0, numEvents).map(error => {
+          const target = generateSingleErrorTarget(
+            error,
+            organization,
+            location,
+            errorDest
+          );
+          return (
+            <DropdownNodeItem
+              key={error.event_id}
+              event={error}
+              to={target}
+              allowDefaultEvent
+              onSelect={() => handleDropdownItem(nodeKey, organization, false)}
+              organization={organization}
+              anchor={anchor}
+            />
+          );
+        })}
+        {events.length > 0 && (
+          <DropdownMenuHeader first={errors.length === 0}>
+            {tn('Transaction', 'Transactions', events.length)}
+          </DropdownMenuHeader>
+        )}
+        {events.slice(0, numEvents).map(event => {
+          const target = generateSingleTransactionTarget(
+            event,
+            organization,
+            location,
+            transactionDest
+          );
+          return (
+            <DropdownNodeItem
+              key={event.event_id}
+              event={event}
+              to={target}
+              onSelect={() => handleDropdownItem(nodeKey, organization, false)}
+              allowDefaultEvent
+              organization={organization}
+              subtext={getDuration(
+                event['transaction.duration'] / 1000,
+                event['transaction.duration'] < 1000 ? 0 : 2,
+                true
+              )}
+              anchor={anchor}
+            />
+          );
+        })}
+        {(errors.length > numEvents || events.length > numEvents) && (
+          <DropdownItem
+            to={generateTraceTarget(currentEvent, organization)}
+            allowDefaultEvent
+            onSelect={() => handleDropdownItem(nodeKey, organization, true)}
+          >
+            {t('View all events')}
+          </DropdownItem>
+        )}
+      </DropdownLink>
+    </DropdownContainer>
+  );
 }
 
 type DropdownNodeProps = {

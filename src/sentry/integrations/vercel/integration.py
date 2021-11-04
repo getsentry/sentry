@@ -94,10 +94,8 @@ class VercelIntegration(IntegrationInstallation):
 
     def get_dynamic_display_information(self):
         organization = Organization.objects.get_from_cache(id=self.organization_id)
-        source_code_link = absolute_uri(
-            "/settings/%s/integrations/?%s"
-            % (organization.slug, urlencode({"category": "source code management"}))
-        )
+        qs = urlencode({"category": "source code management"})
+        source_code_link = absolute_uri(f"/settings/{organization.slug}/integrations/?{qs}")
         add_project_link = absolute_uri(f"/organizations/{organization.slug}/projects/new/")
         return {
             "configure_integration": {

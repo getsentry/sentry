@@ -1187,7 +1187,7 @@
   dependencies:
     regenerator-runtime "^0.13.2"
 
-"@babel/runtime@^7.0.0", "@babel/runtime@^7.1.2", "@babel/runtime@^7.10.2", "@babel/runtime@^7.12.5", "@babel/runtime@^7.13.10", "@babel/runtime@^7.14.0", "@babel/runtime@^7.3.1", "@babel/runtime@^7.3.4", "@babel/runtime@^7.4.4", "@babel/runtime@^7.5.0", "@babel/runtime@^7.5.5", "@babel/runtime@^7.7.2", "@babel/runtime@^7.7.6", "@babel/runtime@^7.8.4", "@babel/runtime@^7.8.7", "@babel/runtime@^7.9.2", "@babel/runtime@~7.15.4":
+"@babel/runtime@^7.0.0", "@babel/runtime@^7.1.2", "@babel/runtime@^7.10.2", "@babel/runtime@^7.12.5", "@babel/runtime@^7.13.10", "@babel/runtime@^7.14.0", "@babel/runtime@^7.3.1", "@babel/runtime@^7.3.4", "@babel/runtime@^7.4.4", "@babel/runtime@^7.5.0", "@babel/runtime@^7.5.5", "@babel/runtime@^7.7.2", "@babel/runtime@^7.7.6", "@babel/runtime@^7.8.4", "@babel/runtime@^7.8.7", "@babel/runtime@^7.9.2", "@babel/runtime@^7.9.6", "@babel/runtime@~7.15.4":
   version "7.15.4"
   resolved "https://registry.yarnpkg.com/@babel/runtime/-/runtime-7.15.4.tgz#fd17d16bfdf878e6dd02d19753a39fa8a8d9c84a"
   integrity sha512-99catp6bHCaxr4sJ/DbTGgHS4+Rs2RVd2g7iOap6SLGPDknRK9ztKNsE/Fg6QhSeh1FGE5f6gHGQmvvn3I3xhw==
@@ -2933,6 +2933,20 @@
     dom-accessibility-api "^0.5.6"
     lz-string "^1.4.4"
     pretty-format "^27.0.2"
+
+"@testing-library/dom@^7.28.1":
+  version "7.31.2"
+  resolved "https://registry.yarnpkg.com/@testing-library/dom/-/dom-7.31.2.tgz#df361db38f5212b88555068ab8119f5d841a8c4a"
+  integrity sha512-3UqjCpey6HiTZT92vODYLPxTBWlM8ZOOjr3LX5F37/VRipW2M1kX6I/Cm4VXzteZqfGfagg8yXywpcOgQBlNsQ==
+  dependencies:
+    "@babel/code-frame" "^7.10.4"
+    "@babel/runtime" "^7.12.5"
+    "@types/aria-query" "^4.2.0"
+    aria-query "^4.2.2"
+    chalk "^4.1.0"
+    dom-accessibility-api "^0.5.6"
+    lz-string "^1.4.4"
+    pretty-format "^26.6.2"
 
 "@testing-library/jest-dom@^5.14.1":
   version "5.14.1"
@@ -6675,16 +6689,16 @@ eslint-config-prettier@6.3.0:
   dependencies:
     get-stdin "^6.0.0"
 
-eslint-config-sentry-app@1.62.0:
-  version "1.62.0"
-  resolved "https://registry.yarnpkg.com/eslint-config-sentry-app/-/eslint-config-sentry-app-1.62.0.tgz#02367bf8ece669e8a5bba858d1ccd081ace78dd8"
-  integrity sha512-6W0aM8MSgrMIHfLVoCzg7GPxRgdz57jksUIqhgivq2sBORxYvkF9E6BCCg3ysjunQU6iWarWC+9uMFCU3Ag4Xg==
+eslint-config-sentry-app@1.64.0:
+  version "1.64.0"
+  resolved "https://registry.yarnpkg.com/eslint-config-sentry-app/-/eslint-config-sentry-app-1.64.0.tgz#7d8605c0f5f24ae1f093eaded88022739cef1ca2"
+  integrity sha512-CV2YIiaGOQV3B3HY4c7BJ1HvYFafFcdWQwsuZJtylinay28eE/vU7RpyDhPgzMKTc5/4sCGaAPuW9PxHGdQAQA==
   dependencies:
     "@typescript-eslint/eslint-plugin" "^4.31.0"
     "@typescript-eslint/parser" "^4.31.0"
     eslint-config-prettier "6.3.0"
-    eslint-config-sentry "^1.62.0"
-    eslint-config-sentry-react "^1.62.0"
+    eslint-config-sentry "^1.64.0"
+    eslint-config-sentry-react "^1.64.0"
     eslint-import-resolver-typescript "^2.4.0"
     eslint-import-resolver-webpack "^0.13.1"
     eslint-plugin-emotion "^10.0.27"
@@ -6692,20 +6706,21 @@ eslint-config-sentry-app@1.62.0:
     eslint-plugin-jest "22.17.0"
     eslint-plugin-prettier "3.1.1"
     eslint-plugin-react "7.15.1"
-    eslint-plugin-sentry "^1.62.0"
+    eslint-plugin-sentry "^1.64.0"
     eslint-plugin-simple-import-sort "^7.0.0"
 
-eslint-config-sentry-react@^1.62.0:
-  version "1.62.0"
-  resolved "https://registry.yarnpkg.com/eslint-config-sentry-react/-/eslint-config-sentry-react-1.62.0.tgz#3699b8fa881bb4624f046b3679a7590257c00b3f"
-  integrity sha512-tLbCDXPl3+mp8HACQpF44OSzZKKQNhxv8zxKqVVVuif2OHFZu/+XfMdWS8EuuUKyGpmTgkW7HfYSkIKznXPb/w==
+eslint-config-sentry-react@^1.64.0:
+  version "1.64.0"
+  resolved "https://registry.yarnpkg.com/eslint-config-sentry-react/-/eslint-config-sentry-react-1.64.0.tgz#460f8994bdb8fc0e300a112e488f54515c8bcdf9"
+  integrity sha512-VBtrzYUjAHvJdA3ObR0jbk4fk2DrMniWKp+GTF4bQfT3pVIY33ng8tZ3s4iEfSMrDSGVfhOw3lwFjYfXmHaCgg==
   dependencies:
-    eslint-config-sentry "^1.62.0"
+    eslint-config-sentry "^1.64.0"
+    eslint-plugin-jest-dom "^3.9.2"
 
-eslint-config-sentry@^1.62.0:
-  version "1.62.0"
-  resolved "https://registry.yarnpkg.com/eslint-config-sentry/-/eslint-config-sentry-1.62.0.tgz#b57a08f45922c9528aa17dcfc3950eeb2fa13ac6"
-  integrity sha512-cxt/MaGl65TLzvDszVmLICSvxssoHZ3UVXD+fJ7oAygqnWuP6+vMvwsgi322FDOe/OgCHU+xrVkjm67vhtuQEw==
+eslint-config-sentry@^1.64.0:
+  version "1.64.0"
+  resolved "https://registry.yarnpkg.com/eslint-config-sentry/-/eslint-config-sentry-1.64.0.tgz#6db744b09d238915045e9868cbd07844c4ea618f"
+  integrity sha512-noCNCypHBnS6v4CuMI9WURGzwijhIvUsVLb3tIL1OVD56xOf1SMYSAkjPUKvQzvS9qLTiUf9UiTu23qVVL+4vA==
 
 eslint-import-resolver-node@^0.3.4:
   version "0.3.4"
@@ -6777,6 +6792,15 @@ eslint-plugin-import@^2.23.4:
     resolve "^1.20.0"
     tsconfig-paths "^3.9.0"
 
+eslint-plugin-jest-dom@^3.9.2:
+  version "3.9.2"
+  resolved "https://registry.yarnpkg.com/eslint-plugin-jest-dom/-/eslint-plugin-jest-dom-3.9.2.tgz#2cc200cabb17d1f5535afad9b49d0ca41b2f05eb"
+  integrity sha512-DKNW6nxYkBvwv36WcYFxapCalGjOGSWUu5PREpDVuXGbEns3S5jhr+mZ5W2N6MxbOWw/2U61C1JVLH31gwVjOQ==
+  dependencies:
+    "@babel/runtime" "^7.9.6"
+    "@testing-library/dom" "^7.28.1"
+    requireindex "^1.2.0"
+
 eslint-plugin-jest@22.17.0:
   version "22.17.0"
   resolved "https://registry.yarnpkg.com/eslint-plugin-jest/-/eslint-plugin-jest-22.17.0.tgz#dc170ec8369cd1bff9c5dd8589344e3f73c88cf6"
@@ -6806,10 +6830,10 @@ eslint-plugin-react@7.15.1:
     prop-types "^15.7.2"
     resolve "^1.12.0"
 
-eslint-plugin-sentry@^1.62.0:
-  version "1.62.0"
-  resolved "https://registry.yarnpkg.com/eslint-plugin-sentry/-/eslint-plugin-sentry-1.62.0.tgz#49c24a12b67b0181086fc1de8b316bdb352acb32"
-  integrity sha512-UmR/X2XUUxnBpXgx9/UfQsQqXlnymurFOJk+PQCu29oUlO+sR6spXhJmUV/HrjJqRDOIyoq1BdAauJPS2wPwqA==
+eslint-plugin-sentry@^1.64.0:
+  version "1.64.0"
+  resolved "https://registry.yarnpkg.com/eslint-plugin-sentry/-/eslint-plugin-sentry-1.64.0.tgz#aea659b4bdda5140512e569636f47053b91ecaf1"
+  integrity sha512-OcA53u7sBLuZwaFpkHh7ODLJq0cQvB3pIGLIukY/dmetHZVDNHYMujOVVDiJSlTc6U535SLC+hb/qJipHpu+QQ==
   dependencies:
     requireindex "~1.1.0"
 
@@ -10481,10 +10505,10 @@ mobx-react@~7.2.0:
   dependencies:
     mobx-react-lite "^3.2.0"
 
-mobx@^6.3.2:
-  version "6.3.2"
-  resolved "https://registry.yarnpkg.com/mobx/-/mobx-6.3.2.tgz#125590961f702a572c139ab69392bea416d2e51b"
-  integrity sha512-xGPM9dIE1qkK9Nrhevp0gzpsmELKU4MFUJRORW/jqxVFIHHWIoQrjDjL8vkwoJYY3C2CeVJqgvl38hgKTalTWg==
+mobx@^6.3.6:
+  version "6.3.6"
+  resolved "https://registry.yarnpkg.com/mobx/-/mobx-6.3.6.tgz#3192dea21ae8213d04a0df5c98a5ca164ed29ecd"
+  integrity sha512-TeCp8BTco5cmXKY7Zt5VSL5fHBEAHTSA6xs+KWmcxi3cFN1C+Xqs2m3giyGT/e6TSjtdDysVX5+cCZZhEyiJmA==
 
 mockdate@3.0.5:
   version "3.0.5"
@@ -12809,6 +12833,11 @@ require-uncached@^1.0.3:
   dependencies:
     caller-path "^0.1.0"
     resolve-from "^1.0.0"
+
+requireindex@^1.2.0:
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/requireindex/-/requireindex-1.2.0.tgz#3463cdb22ee151902635aa6c9535d4de9c2ef1ef"
+  integrity sha512-L9jEkOi3ASd9PYit2cwRfyppc9NoABujTP8/5gFcbERmo5jUoAKovIC3fsF17pkTnGsrByysqX+Kxd2OTNI1ww==
 
 requireindex@~1.1.0:
   version "1.1.0"

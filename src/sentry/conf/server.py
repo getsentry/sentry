@@ -290,6 +290,7 @@ MIDDLEWARE = (
     "sentry.middleware.sudo.SudoMiddleware",
     "sentry.middleware.superuser.SuperuserMiddleware",
     "sentry.middleware.locale.SentryLocaleMiddleware",
+    "sentry.middleware.ratelimit.RatelimitMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
 )
 
@@ -1044,6 +1045,8 @@ SENTRY_FEATURES = {
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": True,
+    # Enable logging for weekly reports
+    "organizations:weekly-report-debugging": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": True,
     # Automatically opt IN users to receiving Slack notifications.
@@ -1195,6 +1198,9 @@ SENTRY_SUSPECT_COMMITS_APM_SAMPLING = 0
 
 # sample rate for post_process_group task
 SENTRY_POST_PROCESS_GROUP_APM_SAMPLING = 0
+
+# sample rate for all reprocessing tasks (except for the per-event ones)
+SENTRY_REPROCESSING_APM_SAMPLING = 0
 
 # ----
 # end APM config
@@ -1817,7 +1823,9 @@ SENTRY_DEVSERVICES = {
     ),
     "snuba": lambda settings, options: (
         {
-            "image": "getsentry/snuba:nightly",
+            "image": "getsentry/snuba:nightly" if not APPLE_ARM64
+            # We cross-build arm64 images on GH's Apple Intel runners
+            else "ghcr.io/getsentry/snuba-arm64-dev:latest",
             "pull": True,
             "ports": {"1218/tcp": 1218},
             "command": ["devserver"],

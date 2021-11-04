@@ -72,6 +72,7 @@ class NotificationSetting(Model):
             (NotificationSettingTypes.DEPLOY, "deploy"),
             (NotificationSettingTypes.ISSUE_ALERTS, "issue"),
             (NotificationSettingTypes.WORKFLOW, "workflow"),
+            (NotificationSettingTypes.APPROVAL, "approval"),
         ),
         null=False,
     )

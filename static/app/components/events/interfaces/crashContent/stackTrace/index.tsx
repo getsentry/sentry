@@ -5,6 +5,7 @@ import {STACK_VIEW, StacktraceType} from 'app/types/stacktrace';
 
 import Content from './content';
 import ContentV2 from './contentV2';
+import ContentV3 from './contentV3';
 import rawStacktraceContent from './rawContent';
 
 type Props = Pick<React.ComponentProps<typeof ContentV2>, 'groupingCurrentLevel'> & {
@@ -13,6 +14,7 @@ type Props = Pick<React.ComponentProps<typeof ContentV2>, 'groupingCurrentLevel'
   newestFirst: boolean;
   platform: PlatformType;
   hasHierarchicalGrouping: boolean;
+  nativeV2?: boolean;
   stackView?: STACK_VIEW;
 };
 
@@ -24,6 +26,7 @@ function StackTrace({
   platform,
   hasHierarchicalGrouping,
   groupingCurrentLevel,
+  nativeV2,
 }: Props) {
   return (
     <ErrorBoundary mini>
@@ -31,6 +34,16 @@ function StackTrace({
         <pre className="traceback plain">
           {rawStacktraceContent(stacktrace, event.platform)}
         </pre>
+      ) : nativeV2 ? (
+        <ContentV3
+          data={stacktrace}
+          className="no-exception"
+          includeSystemFrames={stackView === STACK_VIEW.FULL}
+          platform={platform}
+          event={event}
+          newestFirst={newestFirst}
+          groupingCurrentLevel={groupingCurrentLevel}
+        />
       ) : hasHierarchicalGrouping ? (
         <ContentV2
           data={stacktrace}

@@ -108,6 +108,7 @@ export const serverless = [
   'node-azurefunctions',
   'node-gcpfunctions',
   'dotnet-awslambda',
+  'dotnet-gcpfunctions',
 ] as const;
 
 export const desktop = [

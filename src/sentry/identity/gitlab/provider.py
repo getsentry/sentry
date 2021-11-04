@@ -5,6 +5,7 @@ from sentry.auth.exceptions import IdentityNotValid
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.identity.oauth2 import OAuth2Provider
 from sentry.utils import json
+from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger("sentry.integration.gitlab")
 
@@ -27,7 +28,6 @@ def get_oauth_data(payload):
         data["token_type"] = payload["token_type"]
     if "created_at" in payload:
         data["created_at"] = int(payload["created_at"])
-
     return data
 
 
@@ -73,7 +73,17 @@ class GitlabIdentityProvider(OAuth2Provider):
         }
 
     def get_refresh_token_params(self, refresh_token, *args, **kwargs):
-        return {"grant_type": "refresh_token", "refresh_token": refresh_token}
+        identity = kwargs.get("identity")
+        client_id = identity.data.get("client_id")
+        client_secret = identity.data.get("client_secret")
+
+        return {
+            "grant_type": "refresh_token",
+            "refresh_token": refresh_token,
+            "redirect_uri": absolute_uri("/extensions/gitlab/setup/"),
+            "client_id": client_id,
+            "client_secret": client_secret,
+        }
 
     def refresh_identity(self, identity, *args, **kwargs):
         refresh_token = identity.data.get("refresh_token")
@@ -85,6 +95,7 @@ class GitlabIdentityProvider(OAuth2Provider):
         if not refresh_token_url:
             raise IdentityNotValid("Missing refresh token url")
 
+        kwargs["identity"] = identity
         data = self.get_refresh_token_params(refresh_token, *args, **kwargs)
 
         req = safe_urlopen(url=refresh_token_url, headers={}, data=data)
@@ -110,4 +121,5 @@ class GitlabIdentityProvider(OAuth2Provider):
         self.handle_refresh_error(req, payload)
 
         identity.data.update(get_oauth_data(payload))
-        return identity.update(data=identity.data)
+        identity.update(data=identity.data)
+        return identity

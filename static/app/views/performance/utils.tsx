@@ -267,10 +267,15 @@ export function addRoutePerformanceContext(selection: GlobalSelection) {
 
   transaction?.setTag('query.period', seconds.toString());
   let groupedPeriod = '>30d';
-  if (seconds <= oneDay) groupedPeriod = '<=1d';
-  else if (seconds <= oneDay * 7) groupedPeriod = '<=7d';
-  else if (seconds <= oneDay * 14) groupedPeriod = '<=14d';
-  else if (seconds <= oneDay * 30) groupedPeriod = '<=30d';
+  if (seconds <= oneDay) {
+    groupedPeriod = '<=1d';
+  } else if (seconds <= oneDay * 7) {
+    groupedPeriod = '<=7d';
+  } else if (seconds <= oneDay * 14) {
+    groupedPeriod = '<=14d';
+  } else if (seconds <= oneDay * 30) {
+    groupedPeriod = '<=30d';
+  }
   transaction?.setTag('query.period.grouped', groupedPeriod);
 }
 
@@ -297,7 +302,7 @@ export function PerformanceDuration(props: PerformanceDurationProps) {
     <Duration
       abbreviation={props.abbreviation}
       seconds={normalizedSeconds}
-      fixedDigits={normalizedSeconds > 1 ? 2 : 0}
+      fixedDigits={2}
     />
   );
 }

@@ -10,28 +10,44 @@ export enum SortOption {
 }
 
 const SORT_OPTIONS: SelectValue<string>[] = [
-  {label: t('Recent first'), value: SortOption.RECENT_FIRST},
-  {label: t('Recent last'), value: SortOption.RECENT_LAST},
+  {
+    label: t('Recent first'),
+    value: SortOption.RECENT_FIRST,
+  },
+  {
+    label: t('Recent last'),
+    value: SortOption.RECENT_LAST,
+  },
 ];
 
 type Props = {
   activeSortOption: SortOption;
   onChange: (sortOption: SortOption) => void;
+  disabled: boolean;
 };
 
-function SortOptions({activeSortOption, onChange}: Props) {
+function SortOptions({activeSortOption, onChange, disabled}: Props) {
   const {label: currentLabel, value: currentValue} =
     SORT_OPTIONS.find(sortOption => sortOption.value === activeSortOption) ??
     SORT_OPTIONS[0];
 
   return (
-    <Wrapper buttonProps={{prefix: t('Sort By'), size: 'small'}} label={currentLabel}>
+    <Wrapper
+      buttonProps={{
+        prefix: t('Sort By'),
+        size: 'small',
+        disabled,
+        title: disabled ? t('Stack trace contains only 1 frame') : undefined,
+      }}
+      label={currentLabel}
+    >
       {SORT_OPTIONS.map(({label, value}) => (
         <DropdownItem
           key={value}
           eventKey={value}
           isActive={value === currentValue}
           onSelect={(sortOption: SortOption) => onChange(sortOption)}
+          aria-label={t('Sort option')}
         >
           {label}
         </DropdownItem>

@@ -41,12 +41,16 @@ class NotificationSettingTypes(Enum):
     # Notifications for changes in assignment, resolution, comments, etc.
     WORKFLOW = 30
 
+    # Notifications that require approval like a request to invite a member
+    APPROVAL = 40
+
 
 NOTIFICATION_SETTING_TYPES = {
     NotificationSettingTypes.DEFAULT: "default",
     NotificationSettingTypes.DEPLOY: "deploy",
     NotificationSettingTypes.ISSUE_ALERTS: "alerts",
     NotificationSettingTypes.WORKFLOW: "workflow",
+    NotificationSettingTypes.APPROVAL: "approval",
 }
 
 
@@ -104,6 +108,7 @@ class FineTuningAPIKey(Enum):
     EMAIL = "email"
     REPORTS = "reports"
     WORKFLOW = "workflow"
+    APPROVAL = "approval"
 
 
 class UserOptionsSettingsKey(Enum):
@@ -112,6 +117,7 @@ class UserOptionsSettingsKey(Enum):
     SELF_ASSIGN = "selfAssignOnResolve"
     SUBSCRIBE_BY_DEFAULT = "subscribeByDefault"
     WORKFLOW = "workflowNotifications"
+    APPROVAL = "approvalNotifications"
 
 
 VALID_VALUES_FOR_KEY = {
@@ -121,6 +127,10 @@ VALID_VALUES_FOR_KEY = {
         NotificationSettingOptionValues.NEVER,
     },
     NotificationSettingTypes.ISSUE_ALERTS: {
+        NotificationSettingOptionValues.ALWAYS,
+        NotificationSettingOptionValues.NEVER,
+    },
+    NotificationSettingTypes.APPROVAL: {
         NotificationSettingOptionValues.ALWAYS,
         NotificationSettingOptionValues.NEVER,
     },

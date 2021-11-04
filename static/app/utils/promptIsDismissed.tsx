@@ -20,9 +20,9 @@ export function promptCanShow(prompt: string, uuid: string): boolean {
   const x = (parseInt(uuid.charAt(0), 16) || 0) % 2;
   if (prompt === 'suspect_commits') {
     return x === 1;
-  } else if (prompt === 'distributed_tracing') {
-    return x === 0;
-  } else {
-    return true;
   }
+  if (prompt === 'distributed_tracing') {
+    return x === 0;
+  }
+  return true;
 }

@@ -248,6 +248,8 @@ export function displayModeToDisplayType(displayMode: DisplayModes): DisplayType
       return DisplayType.BAR;
     case DisplayModes.WORLDMAP:
       return DisplayType.WORLD_MAP;
+    case DisplayModes.TOP5:
+      return DisplayType.TOP_N;
     default:
       return DisplayType.LINE;
   }
