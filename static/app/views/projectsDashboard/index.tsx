@@ -21,9 +21,9 @@ import ProjectsStatsStore from 'app/stores/projectsStatsStore';
 import space from 'app/styles/space';
 import {Organization, TeamWithProjects} from 'app/types';
 import {sortProjects} from 'app/utils';
+import useTeams from 'app/utils/useTeams';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
-import withTeamsForUser from 'app/utils/withTeamsForUser';
 
 import Resources from './resources';
 import TeamSection from './teamSection';
@@ -31,19 +31,19 @@ import TeamSection from './teamSection';
 type Props = {
   api: Client;
   organization: Organization;
-  teams: TeamWithProjects[];
-  loadingTeams: boolean;
   error: Error | null;
 } & RouteComponentProps<{orgId: string}, {}>;
 
-function Dashboard({teams, params, organization, loadingTeams, error}: Props) {
+function Dashboard({params, organization, error}: Props) {
   useEffect(() => {
     return function cleanup() {
       ProjectsStatsStore.reset();
     };
   }, []);
 
-  if (loadingTeams) {
+  const {teams, initiallyLoaded} = useTeams({provideUserTeams: true});
+
+  if (!initiallyLoaded) {
     return <LoadingIndicator />;
   }
 
@@ -51,10 +51,15 @@ function Dashboard({teams, params, organization, loadingTeams, error}: Props) {
     return <LoadingError message={t('An error occurred while fetching your projects')} />;
   }
 
-  const filteredTeams = teams.filter(team => team.projects.length);
+  const filteredTeams = (teams as TeamWithProjects[]).filter(
+    team => team.projects.length
+  );
   filteredTeams.sort((team1, team2) => team1.slug.localeCompare(team2.slug));
 
-  const projects = uniqBy(flatten(teams.map(teamObj => teamObj.projects)), 'id');
+  const projects = uniqBy(
+    flatten((teams as TeamWithProjects[]).map(teamObj => teamObj.projects)),
+    'id'
+  );
   const favorites = projects.filter(project => project.isBookmarked);
 
   const canCreateProjects = organization.access.includes('project:admin');
@@ -144,6 +149,4 @@ const OrganizationDashboardWrapper = styled('div')`
 `;
 
 export {Dashboard};
-export default withApi(
-  withOrganization(withTeamsForUser(withProfiler(OrganizationDashboard)))
-);
+export default withApi(withOrganization(withProfiler(OrganizationDashboard)));

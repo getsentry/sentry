@@ -3,6 +3,7 @@ import {act} from 'sentry-test/reactTestingLibrary';
 
 import * as projectsActions from 'app/actionCreators/projects';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
+import TeamStore from 'app/stores/teamStore';
 import {Dashboard} from 'app/views/projectsDashboard';
 
 jest.unmock('lodash/debounce');
@@ -44,18 +45,16 @@ describe('ProjectsDashboard', function () {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
+    TeamStore.reset();
   });
 
   describe('empty state', function () {
     it('renders with no projects', function () {
       const noProjectTeams = [TestStubs.Team({projects: []})];
+      act(() => void TeamStore.loadInitialData(noProjectTeams));
 
       const wrapper = mountWithTheme(
-        <Dashboard
-          teams={noProjectTeams}
-          organization={org}
-          params={{orgId: org.slug}}
-        />,
+        <Dashboard organization={org} params={{orgId: org.slug}} />,
         routerContext
       );
 
@@ -67,13 +66,10 @@ describe('ProjectsDashboard', function () {
       const projects = [TestStubs.Project({teams})];
 
       const teamsWithOneProject = [TestStubs.Team({projects})];
+      act(() => void TeamStore.loadInitialData(teamsWithOneProject));
 
       const wrapper = mountWithTheme(
-        <Dashboard
-          teams={teamsWithOneProject}
-          organization={org}
-          params={{orgId: org.slug}}
-        />,
+        <Dashboard organization={org} params={{orgId: org.slug}} />,
         routerContext
       );
 
@@ -100,13 +96,10 @@ describe('ProjectsDashboard', function () {
       ];
 
       const teamsWithTwoProjects = [TestStubs.Team({projects})];
+      act(() => void TeamStore.loadInitialData(teamsWithTwoProjects));
 
       const wrapper = mountWithTheme(
-        <Dashboard
-          teams={teamsWithTwoProjects}
-          organization={org}
-          params={{orgId: org.slug}}
-        />,
+        <Dashboard organization={org} params={{orgId: org.slug}} />,
         routerContext
       );
 
@@ -163,6 +156,7 @@ describe('ProjectsDashboard', function () {
       ];
 
       const teamsWithFavProjects = [TestStubs.Team({projects})];
+      act(() => void TeamStore.loadInitialData(teamsWithFavProjects));
 
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/projects/`,
@@ -257,12 +251,10 @@ describe('ProjectsDashboard', function () {
         })),
       });
 
+      act(() => void TeamStore.loadInitialData(teamsWithStatTestProjects));
+
       const wrapper = mountWithTheme(
-        <Dashboard
-          teams={teamsWithStatTestProjects}
-          organization={org}
-          params={{orgId: org.slug}}
-        />,
+        <Dashboard organization={org} params={{orgId: org.slug}} />,
         routerContext
       );
 
@@ -300,6 +292,8 @@ describe('ProjectsDashboard', function () {
     });
 
     it('renders an error from withTeamsForUser', function () {
+      act(() => void TeamStore.loadInitialData(teamsWithStatTestProjects));
+
       const wrapper = mountWithTheme(
         <Dashboard error={Error('uhoh')} organization={org} params={{orgId: org.slug}} />,
         routerContext
