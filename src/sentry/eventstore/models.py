@@ -408,7 +408,7 @@ class Event:
                 continue
 
             seen_hashes.add(hash_)
-            filtered_hashes.append(hash_)
+            filtered_hashes.append((name, hash_))
             tree_labels.append(
                 variant.component.tree_label or None
                 if isinstance(variant, ComponentVariant)
