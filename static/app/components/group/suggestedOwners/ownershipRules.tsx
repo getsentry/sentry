@@ -175,7 +175,7 @@ const Header = styled('h6')`
 `;
 
 const Content = styled('span')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
   margin-bottom: ${space(2)};
 `;
 
