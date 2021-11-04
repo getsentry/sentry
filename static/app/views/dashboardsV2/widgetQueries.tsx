@@ -358,7 +358,11 @@ class WidgetQueries extends React.Component<Props, State> {
             widget.queries[requestIndex],
             rawResults
           );
-          // We insert at a specific index instead of just pushing to timeseriesResults since we need to preserve the order of results because order determines color
+          // When charting timeseriesData on echarts, color association to a timeseries result
+          // is order sensitive, ie series at index i on the timeseries array will use color at
+          // index i on the color array. This means that on multi series results, we need to make
+          // sure that the order of series in our results do not change between fetches to avoid
+          // coloring inconsistencies between renders.
           transformedResult.forEach((result, resultIndex) => {
             timeseriesResults[requestIndex * transformedResult.length + resultIndex] =
               result;
