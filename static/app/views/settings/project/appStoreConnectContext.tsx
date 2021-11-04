@@ -41,13 +41,18 @@ const Provider = withApi(
       }
 
       try {
-        const response = await api.requestPromise(
-          `/projects/${orgSlug}/${project.slug}/appstoreconnect/validate/${appStoreConnectSymbolSourceId}/`
+        const response: AppStoreConnectValidationData[] = await api.requestPromise(
+          `/projects/${orgSlug}/${project.slug}/appstoreconnect/status`
         );
-        setAppStoreConnectValidationData({
-          id: appStoreConnectSymbolSourceId,
-          ...response,
-        });
+
+        const sourceStatus = response.find(
+          s => s.id === appStoreConnectSymbolSourceId,
+          response
+        );
+
+        if (sourceStatus) {
+          setAppStoreConnectValidationData(sourceStatus);
+        }
       } catch {
         // do nothing
       }
