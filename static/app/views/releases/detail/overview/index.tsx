@@ -29,6 +29,7 @@ import {
 import {getUtcDateString} from 'app/utils/dates';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
+import {MobileVital, WebVital} from 'app/utils/discover/fields';
 import {formatVersion} from 'app/utils/formatters';
 import {decodeScalar} from 'app/utils/queryString';
 import routeTitleGen from 'app/utils/routeTitle';
@@ -39,6 +40,10 @@ import AsyncView from 'app/views/asyncView';
 import {DisplayModes} from 'app/views/performance/transactionSummary/transactionOverview/charts';
 import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
 import {TrendChangeType, TrendView} from 'app/views/performance/trends/types';
+import {
+  platformToPerformanceType,
+  PROJECT_PERFORMANCE_TYPE,
+} from 'app/views/performance/utils';
 
 import {getReleaseParams, isReleaseArchived, ReleaseBounds} from '../../utils';
 import {ReleaseContext} from '..';
@@ -182,6 +187,107 @@ class ReleaseOverview extends AsyncView<Props> {
     return trendView;
   }
 
+  getReleasePerformanceEventView(
+    performanceType: string,
+    baseQuery: NewQuery
+  ): EventView {
+    const eventView =
+      performanceType === PROJECT_PERFORMANCE_TYPE.FRONTEND
+        ? (EventView.fromSavedQuery({
+            ...baseQuery,
+            fields: [
+              ...baseQuery.fields,
+              `p75(${WebVital.FCP})`,
+              `p75(${WebVital.FID})`,
+              `p75(${WebVital.LCP})`,
+              `p75(${WebVital.CLS})`,
+              'p75(spans.http)',
+              'p75(spans.browser)',
+              'p75(spans.resource)',
+            ],
+          }) as EventView)
+        : performanceType === PROJECT_PERFORMANCE_TYPE.BACKEND
+        ? (EventView.fromSavedQuery({
+            ...baseQuery,
+            fields: [...baseQuery.fields, 'apdex()', 'p75(spans.http)', 'p75(spans.db)'],
+          }) as EventView)
+        : performanceType === PROJECT_PERFORMANCE_TYPE.MOBILE
+        ? (EventView.fromSavedQuery({
+            ...baseQuery,
+            fields: [
+              ...baseQuery.fields,
+              `p75(${MobileVital.AppStartCold})`,
+              `p75(${MobileVital.AppStartWarm})`,
+              `p75(${MobileVital.FramesSlow})`,
+              `p75(${MobileVital.FramesFrozen})`,
+            ],
+          }) as EventView)
+        : (EventView.fromSavedQuery({
+            ...baseQuery,
+          }) as EventView);
+
+    return eventView;
+  }
+
+  getAllReleasesPerformanceView(
+    projectId: number,
+    performanceType: string,
+    releaseBounds: ReleaseBounds
+  ) {
+    const {selection, location} = this.props;
+    const {environments} = selection;
+
+    const {start, end, statsPeriod} = getReleaseParams({
+      location,
+      releaseBounds,
+    });
+
+    const baseQuery: NewQuery = {
+      id: undefined,
+      version: 2,
+      name: 'All Releases',
+      query: 'event.type:transaction',
+      fields: ['user_misery()'],
+      range: statsPeriod || undefined,
+      environment: environments,
+      projects: [projectId],
+      start: start ? getUtcDateString(start) : undefined,
+      end: end ? getUtcDateString(end) : undefined,
+    };
+
+    return this.getReleasePerformanceEventView(performanceType, baseQuery);
+  }
+
+  getReleasePerformanceView(
+    version: string,
+    projectId: number,
+    performanceType: string,
+    releaseBounds: ReleaseBounds
+  ) {
+    const {selection, location} = this.props;
+    const {environments} = selection;
+
+    const {start, end, statsPeriod} = getReleaseParams({
+      location,
+      releaseBounds,
+    });
+
+    const baseQuery: NewQuery = {
+      id: undefined,
+      version: 2,
+      name: `Release:${version}`,
+      query: `event.type:transaction release:${version}`,
+      fields: ['user_misery()'],
+      range: statsPeriod || undefined,
+      environment: environments,
+      projects: [projectId],
+      start: start ? getUtcDateString(start) : undefined,
+      end: end ? getUtcDateString(end) : undefined,
+    };
+
+    return this.getReleasePerformanceEventView(performanceType, baseQuery);
+  }
+
   get pageDateTime(): DateTimeObject {
     const query = this.props.location.query;
 
@@ -268,7 +374,7 @@ class ReleaseOverview extends AsyncView<Props> {
             'release-comparison-performance'
           );
           const {environments} = selection;
-
+          const performanceType = platformToPerformanceType([project], [project.id]);
           const {selectedSort, sortOptions} = getTransactionsListSort(location);
           const releaseEventView = this.getReleaseEventView(
             version,
@@ -284,6 +390,17 @@ class ReleaseOverview extends AsyncView<Props> {
             version,
             project.id,
             releaseMeta.released,
+            releaseBounds
+          );
+          const allReleasesPerformanceView = this.getAllReleasesPerformanceView(
+            project.id,
+            performanceType,
+            releaseBounds
+          );
+          const releasePerformanceView = this.getReleasePerformanceView(
+            version,
+            project.id,
+            performanceType,
             releaseBounds
           );
 
@@ -397,9 +514,10 @@ class ReleaseOverview extends AsyncView<Props> {
                               <PerformanceCardTable
                                 organization={organization}
                                 project={project}
-                                isLoading={loading}
-                                // TODO(kelly): hardcoding this until I have data
-                                isEmpty={false}
+                                location={location}
+                                allReleasesEventView={allReleasesPerformanceView}
+                                releaseEventView={releasePerformanceView}
+                                performanceType={performanceType}
                               />
                             ) : (
                               <TransactionsList
