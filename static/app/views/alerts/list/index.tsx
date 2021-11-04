@@ -19,11 +19,10 @@ import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {IconInfo} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {Organization, Project, Team} from 'app/types';
+import {Organization, Project} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import Projects from 'app/utils/projects';
 import withOrganization from 'app/utils/withOrganization';
-import withTeams from 'app/utils/withTeams';
 
 import TeamFilter, {getTeamParams} from '../rules/teamFilter';
 import {Incident} from '../types';
@@ -37,7 +36,6 @@ const DOCS_URL =
 
 type Props = RouteComponentProps<{orgId: string}, {}> & {
   organization: Organization;
-  teams: Team[];
 };
 
 type State = {
@@ -176,7 +174,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
   };
 
   renderFilterBar() {
-    const {teams, location} = this.props;
+    const {location} = this.props;
     const selectedTeams = new Set(getTeamParams(location.query.team));
     const selectedStatus = new Set(this.getQueryStatus(location.query.status));
 
@@ -184,7 +182,6 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
       <FilterWrapper>
         <TeamFilter
           showStatus
-          teams={teams}
           selectedStatus={selectedStatus}
           selectedTeams={selectedTeams}
           handleChangeFilter={this.handleChangeFilter}
@@ -386,4 +383,4 @@ const EmptyStateAction = styled('p')`
   font-size: ${p => p.theme.fontSizeLarge};
 `;
 
-export default withOrganization(withTeams(IncidentsListContainer));
+export default withOrganization(IncidentsListContainer);
