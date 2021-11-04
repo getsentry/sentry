@@ -419,7 +419,4 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         attachment = {
             "text": f"{invite_type} request for {member_email} has been {verb}. <{manage_url}|See Members and Requests>.",
         }
-
-        body = self.construct_reply(attachment)
-
-        return self.respond(body)
+        return self.respond(attachment)
