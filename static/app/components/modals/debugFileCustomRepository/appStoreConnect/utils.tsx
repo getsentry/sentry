@@ -53,7 +53,7 @@ type Error = {
 };
 
 export const unexpectedErrorMessage = t(
-  'An unexpected error occurred while configuring the app store connect'
+  'An unexpected error occurred while configuring the App Store Connect integration'
 );
 
 export function getAppStoreErrorMessage(
