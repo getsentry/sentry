@@ -171,7 +171,7 @@ def _get_next_page(response_json: Mapping[str, Any]) -> Optional[str]:
 
 def _get_appstore_info_paged(
     session: Session, credentials: AppConnectCredentials, url: str
-) -> Generator[Any, None, None]:
+) -> Generator[JSONData, None, None]:
     """Iterates through all the pages from a paged response.
 
     App Store Connect responses shares the general format:
@@ -289,7 +289,7 @@ def get_build_info(
             "&limit=200"
             # include related AppStore/PreRelease versions with the response as well as
             # buildBundles which contains metadata on the debug resources (dSYMs)
-            "&include=appStoreVersion,preReleaseVersion,buildBundles"
+            "&include=preReleaseVersion,appStoreVersion,buildBundles"
             # fetch the maximum number of build bundles
             "&limit[buildBundles]=50"
             # sort newer releases first
@@ -297,7 +297,7 @@ def get_build_info(
             # only include valid builds
             "&filter[processingState]=VALID"
             # and builds that have not expired yet
-            "&filter[expired]=false"
+            # "&filter[expired]=false"
         )
         pages = _get_appstore_info_paged(session, credentials, url)
         build_info = []
