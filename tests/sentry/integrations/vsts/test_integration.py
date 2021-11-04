@@ -13,7 +13,6 @@ from sentry.models import (
     Repository,
 )
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationProviderError
-from sentry.testutils.helpers import with_feature
 
 from .testutils import CREATE_SUBSCRIPTION, VstsIntegrationTestCase
 
@@ -45,20 +44,6 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
             "vso.serviceendpoint_manage",
             "vso.work_write",
         ]
-        assert metadata["subscription"]["id"] == CREATE_SUBSCRIPTION["id"]
-        assert metadata["domain_name"] == self.vsts_base_url
-
-    @with_feature("organizations:integrations-vsts-limited-scopes")
-    def test_limited_scopes_flow(self):
-        self.assert_installation()
-
-        integration = Integration.objects.get(provider="vsts")
-
-        assert integration.external_id == self.vsts_account_id
-        assert integration.name == self.vsts_account_name
-
-        metadata = integration.metadata
-        assert metadata["scopes"] == LIMITED_SCOPES
         assert metadata["subscription"]["id"] == CREATE_SUBSCRIPTION["id"]
         assert metadata["domain_name"] == self.vsts_base_url
 
