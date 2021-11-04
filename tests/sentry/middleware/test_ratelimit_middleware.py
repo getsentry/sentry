@@ -66,20 +66,26 @@ class RatelimitMiddlewareTest(TestCase):
             pass
 
         self.view = OrganizationGroupIndexEndpoint
-        request = self.factory.get("/")
-        request.session = {}
-        request.user = self.user
-        request.access = from_request(request, self.organization)
 
+        # Test for default IP
+        request = self.factory.get("/")
         assert (
             get_rate_limit_key(self.view, request)
-            == "ip:OrganizationGroupIndexEndpoint:GET:127.0.0.1"
+            == "ip:tests.sentry.middleware.test_ratelimit_middleware.OrganizationGroupIndexEndpoint:GET:127.0.0.1"
         )
+
+        # Test for users
+        request.session = {}
+        request.user = self.user
         assert (
-            get_rate_limit_key(self.view, request, "user")
-            == f"user:OrganizationGroupIndexEndpoint:GET:{self.user.id}"
+            get_rate_limit_key(self.view, request)
+            == f"user:tests.sentry.middleware.test_ratelimit_middleware.OrganizationGroupIndexEndpoint:GET:{self.user.id}"
         )
+
+        # Test for organization tokens (ie: sentry apps)
+        request.access = from_request(request, self.organization)
+        request.user = self.create_user(is_sentry_app=True)
         assert (
-            get_rate_limit_key(self.view, request, "org")
-            == f"org:OrganizationGroupIndexEndpoint:GET:{self.organization.id}"
+            get_rate_limit_key(self.view, request)
+            == f"org:tests.sentry.middleware.test_ratelimit_middleware.OrganizationGroupIndexEndpoint:GET:{self.organization.id}"
         )
