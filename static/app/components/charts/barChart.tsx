@@ -33,6 +33,7 @@ class BarChart extends React.Component<Props> {
               }
               return {value: [name, value], itemStyle};
             }),
+            animation: false,
             ...options,
           })
         )}
