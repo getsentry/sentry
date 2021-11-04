@@ -207,6 +207,7 @@ def child_sort_key(item: TraceEvent) -> List[int]:
 def query_trace_data(
     trace_id: str, params: Mapping[str, str], use_snql: bool = False
 ) -> Tuple[Sequence[SnubaTransaction], Sequence[SnubaError]]:
+    sentry_sdk.set_tag("discover.use_snql", use_snql)
     if use_snql:
         transaction_query = QueryBuilder(
             Dataset.Transactions,
@@ -250,7 +251,7 @@ def query_trace_data(
         )
         results = bulk_snql_query(
             [transaction_query.get_snql_query(), error_query.get_snql_query()],
-            referrer="api.trace-view.get-events",
+            referrer="api.trace-view.get-events.wip-snql",
         )
         transformed_results = [
             discover.transform_results(result, query.function_alias_map, {}, None)["data"]

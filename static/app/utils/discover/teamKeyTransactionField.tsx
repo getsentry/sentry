@@ -7,10 +7,9 @@ import TeamKeyTransaction, {
 import * as TeamKeyTransactionManager from 'app/components/performance/teamKeyTransactionsManager';
 import Tooltip from 'app/components/tooltip';
 import {IconStar} from 'app/icons';
-import {Organization, Project, Team} from 'app/types';
+import {Organization, Project} from 'app/types';
 import {defined} from 'app/utils';
 import withProjects from 'app/utils/withProjects';
-import withTeams from 'app/utils/withTeams';
 
 class TitleStar extends Component<TitleProps> {
   render() {
@@ -34,7 +33,6 @@ class TitleStar extends Component<TitleProps> {
 }
 
 type BaseProps = {
-  teams: Team[];
   organization: Organization;
   isKeyTransaction: boolean;
 };
@@ -112,4 +110,4 @@ function TeamKeyTransactionFieldWrapper({
   );
 }
 
-export default withTeams(withProjects(TeamKeyTransactionFieldWrapper));
+export default withProjects(TeamKeyTransactionFieldWrapper);

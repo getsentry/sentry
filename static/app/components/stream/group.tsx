@@ -256,13 +256,14 @@ class StreamGroup extends React.Component<Props, State> {
 
     if (isFiltered && typeof query === 'string') {
       const queryObj = queryToObj(query);
-      for (const queryTag in queryObj)
+      for (const queryTag in queryObj) {
         if (!DiscoveryExclusionFields.includes(queryTag)) {
           const queryVal = queryObj[queryTag].includes(' ')
             ? `"${queryObj[queryTag]}"`
             : queryObj[queryTag];
           queryTerms.push(`${queryTag}:${queryVal}`);
         }
+      }
 
       if (queryObj.__text) {
         queryTerms.push(queryObj.__text);

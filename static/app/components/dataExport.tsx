@@ -39,7 +39,9 @@ class DataExport extends React.Component<Props, State> {
 
   componentDidUpdate({payload: prevPayload}) {
     const {payload} = this.props;
-    if (!isEqual(prevPayload, payload)) this.resetState();
+    if (!isEqual(prevPayload, payload)) {
+      this.resetState();
+    }
   }
 
   get initialState(): State {
