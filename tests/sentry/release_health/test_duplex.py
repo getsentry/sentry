@@ -348,6 +348,11 @@ def test_function_dispatch_is_working():
     duplex.sessions.get_current_and_previous_crash_free_rates.assert_called_once_with(*call_params)
     duplex.metrics.get_current_and_previous_crash_free_rates.assert_called_once_with(*call_params)
 
+    # check log errors is called with whatever compare_results returned and with the returns from the two backends
+    args = duplex.log_errors.call_args
+    assert args[0][1] == "ret-sessions"
+    assert args[0][2] == "ret-metrics"
+
     # set the request to cover times before metrics were available
     call_params[3] = datetime(2021, 10, 1)
     duplex.get_current_and_previous_crash_free_rates(*call_params)
