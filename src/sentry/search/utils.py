@@ -1,7 +1,7 @@
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Optional, Sequence, FrozenSet
+from typing import TYPE_CHECKING, FrozenSet, Optional, Sequence
 
 from django.db import DataError
 from django.utils import timezone
