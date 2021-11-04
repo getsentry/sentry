@@ -416,7 +416,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         manage_url = absolute_uri(
             reverse("sentry-organization-members", args=[member.organization.slug])
         )
-        attachment = {
+        body = {
             "text": f"{invite_type} request for {member_email} has been {verb}. <{manage_url}|See Members and Requests>.",
         }
-        return self.respond(attachment)
+        return self.respond(body)
