@@ -290,16 +290,5 @@ describe('ProjectsDashboard', function () {
       });
       expect(ProjectsStatsStore.getAll()).toEqual({});
     });
-
-    it('renders an error from withTeamsForUser', function () {
-      act(() => void TeamStore.loadInitialData(teamsWithStatTestProjects));
-
-      const wrapper = mountWithTheme(
-        <Dashboard error={Error('uhoh')} organization={org} params={{orgId: org.slug}} />,
-        routerContext
-      );
-
-      expect(wrapper.find('LoadingError').exists()).toBe(true);
-    });
   });
 });

@@ -10,7 +10,6 @@ import {Client} from 'app/api';
 import Button from 'app/components/button';
 import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
-import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import NoProjectMessage from 'app/components/noProjectMessage';
 import PageHeading from 'app/components/pageHeading';
@@ -31,10 +30,9 @@ import TeamSection from './teamSection';
 type Props = {
   api: Client;
   organization: Organization;
-  error: Error | null;
 } & RouteComponentProps<{orgId: string}, {}>;
 
-function Dashboard({params, organization, error}: Props) {
+function Dashboard({params, organization}: Props) {
   useEffect(() => {
     return function cleanup() {
       ProjectsStatsStore.reset();
@@ -45,10 +43,6 @@ function Dashboard({params, organization, error}: Props) {
 
   if (!initiallyLoaded) {
     return <LoadingIndicator />;
-  }
-
-  if (error) {
-    return <LoadingError message={t('An error occurred while fetching your projects')} />;
   }
 
   const filteredTeams = (teams as TeamWithProjects[]).filter(
