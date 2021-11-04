@@ -526,15 +526,15 @@ def ingest_consumer(consumer_types, all_consumer_types, **options):
         get_ingest_consumer(consumer_types=consumer_types, executor=executor, **options).run()
 
 
-@run.command("metrics-consumer")
+@run.command("ingest-metrics-consumer")
 @log_options()
 @click.option(
     "--group_id",
-    default="metrics-consumer",
+    default="ingest-metrics-consumer",
     help="Consumer group to track metric indexer offsets. ",
 )
 @click.option("--topic", default="ingest-metrics", help="Topic to get subscription updates from.")
-@batching_kafka_options("metrics-consumer")
+@batching_kafka_options("ingest-metrics-consumer")
 @configuration
 def metrics_consumer(**options):
 
