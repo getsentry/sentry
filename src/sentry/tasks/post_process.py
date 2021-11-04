@@ -272,7 +272,6 @@ def post_process_group(
             )
 
             event_processing_store.delete_by_key(cache_key)
-
             return
 
         is_reprocessed = is_reprocessed_event(event.data)
@@ -411,11 +410,6 @@ def post_process_group(
                     plugin_slug=plugin.slug, event=event, is_new=is_new, is_regresion=is_regression
                 )
 
-            from sentry import similarity
-
-            with sentry_sdk.start_span(op="tasks.post_process_group.similarity"):
-                safe_execute(similarity.record, event.project, [event], _with_transaction=False)
-
         # Patch attachments that were ingested on the standalone path.
         with sentry_sdk.start_span(op="tasks.post_process_group.update_existing_attachments"):
             try:
@@ -431,8 +425,9 @@ def post_process_group(
                 primary_hash=kwargs.get("primary_hash"),
             )
 
-        with metrics.timer("tasks.post_process.delete_event_cache"):
-            event_processing_store.delete_by_key(cache_key)
+        index_similarity.delay(
+            project_id=event.project_id, group_id=event.group_id, cache_key=cache_key
+        )
 
 
 def process_snoozes(group):
@@ -501,3 +496,49 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
         _with_transaction=False,
         **kwargs,
     )
+
+
+@instrumented_task(
+    name="sentry.tasks.post_process.index_similarity",
+    queue="similarity.index",
+    time_limit=120,
+    soft_time_limit=110,
+)
+def index_similarity(project_id: int, group_id: int, cache_key: str):
+    """
+    Index the event into similarity. This task is responsible for
+    dropping the event payload from processing store, and is isolated
+    from the rest of post_process due to stability problems of
+    similarity.
+    """
+    from sentry.eventstore.models import Event
+    from sentry.eventstore.processing import event_processing_store
+    from sentry.models import EventDict, Group, Organization, Project
+
+    data = event_processing_store.get(cache_key)
+    set_current_event_project(data["project"])
+
+    # Delete key now such that timing out task does not cause
+    # processing store to leak.
+    with metrics.timer("tasks.post_process.delete_event_cache"):
+        event_processing_store.delete_by_key(cache_key)
+
+    event = Event(
+        project_id=data["project"], event_id=data["event_id"], group_id=group_id, data=data
+    )
+
+    # Bind project, org, group explicitly such that we don't fetch
+    # them directly from the DB by accident
+    event.group = Group.objects.get_from_cache(id=event.group_id)
+    event.project = event.group.project = Project.objects.get_from_cache(id=event.project_id)
+    event.project.organization = Organization.objects.get_from_cache(
+        id=event.project.organization_id
+    )
+
+    # Re-bind node data to avoid renormalization. We only want to
+    # renormalize when loading old data from the database.
+    event.data = EventDict(event.data, skip_renormalization=True)
+
+    from sentry import similarity
+
+    safe_execute(similarity.record, event.project, [event], _with_transaction=False)
