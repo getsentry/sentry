@@ -4,6 +4,7 @@ import {Location} from 'history';
 
 import Button from 'app/components/button';
 import _EventsRequest from 'app/components/charts/eventsRequest';
+import {getInterval} from 'app/components/charts/utils';
 import Link from 'app/components/links/link';
 import Truncate from 'app/components/truncate';
 import {IconClose} from 'app/icons';
@@ -52,18 +53,20 @@ export function VitalWidget(props: Props) {
   const {ContainerActions, eventView, organization, location} = props;
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
 
+  const field = props.fields[0];
+
   const Queries = {
     list: useMemo<QueryDefinition<DataType, WidgetDataResult>>(
       () => ({
-        fields: props.fields[0],
+        fields: field,
         component: provided => {
           const _eventView = props.eventView.clone();
 
-          const fieldFromProps = props.fields.map(field => ({
-            field,
+          const fieldFromProps = props.fields.map(propField => ({
+            field: propField,
           }));
 
-          _eventView.sorts = [{kind: 'desc', field: props.fields[0]}];
+          _eventView.sorts = [{kind: 'desc', field}];
 
           _eventView.fields = [
             {field: 'transaction'},
@@ -86,14 +89,14 @@ export function VitalWidget(props: Props) {
       }),
       [props.eventView, props.fields, props.organization.slug]
     ),
-    chart: useMemo(
+    chart: useMemo<QueryDefinition<DataType, WidgetDataResult>>(
       () => ({
         enabled: widgetData => {
           return !!widgetData?.list?.data?.length;
         },
         fields: props.fields,
         component: provided => {
-          const _eventView = provided.eventView.clone();
+          const _eventView = props.eventView.clone();
 
           _eventView.additionalConditions.setFilterValues('transaction', [
             provided.widgetData.list.data[selectedListIndex].transaction as string,
@@ -103,9 +106,19 @@ export function VitalWidget(props: Props) {
             <EventsRequest
               {...provided}
               limit={1}
-              currentSeriesName={props.fields[0]}
+              currentSeriesNames={[field]}
               includePrevious={false}
+              partial={false}
+              includeTransformedData={false}
               query={_eventView.getQueryWithAdditionalConditions()}
+              interval={getInterval(
+                {
+                  start: provided.start,
+                  end: provided.end,
+                  period: provided.period,
+                },
+                'medium'
+              )}
             />
           );
         },
@@ -182,7 +195,7 @@ export function VitalWidget(props: Props) {
             <_VitalChart
               {...provided.widgetData.chart}
               {...provided}
-              field={props.fields[0]}
+              field={field}
               organization={organization}
               query={eventView.query}
               project={eventView.project}
