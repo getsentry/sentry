@@ -99,7 +99,9 @@ class Chunk extends React.Component<Props, State> {
       case 'trace':
         return t('Trace Details');
       case 'default':
-        if (alias === 'state') return t('Application State');
+        if (alias === 'state') {
+          return t('Application State');
+        }
         return toTitleCase(alias);
       default:
         return toTitleCase(type);

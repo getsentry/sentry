@@ -28,8 +28,12 @@ function convertRelayPiiConfig(relayPiiConfig?: string) {
           const typeAndMethod = rule.slice(1).split(':');
           let [type] = typeAndMethod;
           const [, method] = typeAndMethod;
-          if (type === 'urlauth') type = 'url_auth';
-          if (type === 'usssn') type = 'us_ssn';
+          if (type === 'urlauth') {
+            type = 'url_auth';
+          }
+          if (type === 'usssn') {
+            type = 'us_ssn';
+          }
 
           convertedRules.push({
             id,
