@@ -8,10 +8,10 @@ import Pagination from 'app/components/pagination';
 import {PanelTable} from 'app/components/panels';
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {AuditLog} from 'app/types';
+import {use24Hours} from 'app/utils/dates';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 
 const avatarStyle = {
@@ -37,7 +37,7 @@ const AuditLogList = ({
   eventTypes,
   onEventSelect,
 }: Props) => {
-  const userOptions = ConfigStore.get('user')?.options ?? {};
+  const is24Hours = use24Hours();
   const hasEntries = entries && entries.length > 0;
   const ipv4Length = 15;
   const options = [
@@ -102,7 +102,7 @@ const AuditLogList = ({
               <DateTime dateOnly date={entry.dateCreated} />
               <DateTime
                 timeOnly
-                format={userOptions.clock24Hours ? 'HH:mm zz' : 'LT zz'}
+                format={is24Hours ? 'HH:mm zz' : 'LT zz'}
                 date={entry.dateCreated}
               />
             </TimestampInfo>
