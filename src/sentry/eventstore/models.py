@@ -372,6 +372,16 @@ class Event:
             hierarchical_variants
         )
 
+        if flat_hashes:
+            sentry_sdk.set_tag("event.get_hashes.first_flat_variant_name", flat_hashes[0][0])
+        if hierarchical_hashes:
+            sentry_sdk.set_tag(
+                "event.get_hashes.first_hierarchical_variant_name", hierarchical_hashes[0][0]
+            )
+
+        flat_hashes = [hash_ for _, hash_ in flat_hashes]
+        hierarchical_hashes = [hash_ for _, hash_ in hierarchical_hashes]
+
         return CalculatedHashes(
             hashes=flat_hashes, hierarchical_hashes=hierarchical_hashes, tree_labels=tree_labels
         )
@@ -392,7 +402,7 @@ class Event:
         filtered_hashes = []
         tree_labels = []
         seen_hashes = set()
-        for variant in variants:
+        for name, variant in variants:
             hash_ = variant.get_hash()
             if hash_ is None or hash_ in seen_hashes:
                 continue
