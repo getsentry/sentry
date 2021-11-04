@@ -72,7 +72,7 @@ def _get_setting_mapping_from_mapping(
     }
 
     notification_settings_mapping = notification_settings_by_recipient.get(recipient, {})
-    for scope in [get_scope_type(type), NotificationScopeType.USER, NotificationScopeType.TEAM]:
+    for scope in [NotificationScopeType.USER, NotificationScopeType.TEAM, get_scope_type(type)]:
         notification_setting_option.update(notification_settings_mapping.get(scope, {}))
 
     return notification_setting_option
