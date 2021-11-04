@@ -22,11 +22,7 @@ class SlackOrganizationRequestMessageBuilder(SlackNotificationsMessageBuilder):
 
     def build(self) -> SlackBody:
         # may need to pass more args to _build and pass recipient to certain helper functions
-        callback_id_raw = (
-            {self.notification.entity_name: self.notification.entity_id}
-            if self.notification.entity_name
-            else None
-        )
+        callback_id_raw = self.notification.get_callback_data()
         return self._build(
             title=self.notification.build_attachment_title(),
             text=self.notification.get_message_description(),

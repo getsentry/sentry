@@ -168,7 +168,7 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest):
             {
                 "text": "See Members & Requests",
                 "name": "See Members & Requests",
-                "url": "http://testserver/settings/{self.organization.slug}/members/?referrer=join_request-slack",
+                "url": f"http://testserver/settings/{self.organization.slug}/members/?referrer=join_request-slack",
                 "type": "button",
             },
         ]

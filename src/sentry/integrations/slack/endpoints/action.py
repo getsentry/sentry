@@ -29,6 +29,7 @@ from sentry.models import (
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
+from sentry.utils.internal_api import update_member_invitation_status
 from sentry.web.decorators import transaction_start
 
 from ..message_builder import SlackBody
@@ -91,7 +92,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
     def api_error(
         self,
         slack_request: SlackActionRequest,
-        group: Group | None,
+        group: Group,
         identity: Identity,
         error: ApiClient.ApiError,
         action_type: str,
@@ -365,38 +366,36 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
             # endpoint will check to make sure member is still in a state to be invited
             member = OrganizationMember.objects.get(id=member_id)
         except OrganizationMember.DoesNotExist:
-            return self.respond(status=404)
-
-        org_slug = member.organization.slug
-        url = reverse(
-            "sentry-api-0-organization-invite-request-detail",
-            args=[org_slug, member_id],
-        )
-
-        approve_member = slack_request.action_option == "approve_member"
-
-        # payload and endpoint differ if we reject or accept
-        action_data = {}
-        method = "DELETE"
-        if approve_member:
-            method = "PUT"
-            action_data = {
-                "approve": 1,
-            }
+            # member request is gone, likely someone else rejected it
+            member_email = slack_request.callback_data["member_email"]
+            return self.respond({"text": f"Member invitation for {member_email} no longer exists."})
 
         member_email = member.email
         original_status = member.invite_status
 
         try:
-            client.request(
-                method,
-                path=url,
-                data=action_data,
-                user=identity.user,
-            )
+            update_member_invitation_status(member, identity.user, slack_request.action_option)
         except client.ApiError as error:
-            return self.api_error(slack_request, None, identity, error, "status_dialog")
+            error_text = ""
+            # try to pull out an error message if we get a 400 error
+            if error.status_code == 400:
+                for val in error.body.values():
+                    if val and isinstance(val, list):
+                        error_text = val[0]
+            # 404 means invite is gone
+            if error.status_code == 404:
+                error_text = f"Member invitation for {member_email} no longer exists."
+            if error_text:
+                # we know success is impossible so update the message
+                return self.respond(
+                    {
+                        "text": error_text,
+                    }
+                )
+            # if some other error then we should do an ephemeral reply
+            return self.respond_ephemeral(DEFAULT_ERROR_MESSAGE)
 
+        approve_member = slack_request.action_option == "approve_member"
         event_name = (
             "integrations.slack.approve_member_invitation"
             if approve_member
@@ -414,7 +413,9 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
 
         verb = "approved" if approve_member else "rejected"
 
-        manage_url = absolute_uri(reverse("sentry-organization-members", args=[org_slug]))
+        manage_url = absolute_uri(
+            reverse("sentry-organization-members", args=[member.organization.slug])
+        )
         attachment = {
             "text": f"{invite_type} request for {member_email} has been {verb}. <{manage_url}|See Members and Requests>.",
         }

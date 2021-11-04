@@ -426,7 +426,7 @@ class StatusActionTest(BaseEventTest):
             invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
         )
 
-        callback_id = json.dumps({"member_id": member.id})
+        callback_id = json.dumps({"member_id": member.id, "member_email": "hello@sentry.io"})
 
         resp = self.post_webhook(action_data=[{"value": "approve_member"}], callback_id=callback_id)
 
@@ -453,7 +453,7 @@ class StatusActionTest(BaseEventTest):
             invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
         )
 
-        callback_id = json.dumps({"member_id": member.id})
+        callback_id = json.dumps({"member_id": member.id, "member_email": "hello@sentry.io"})
 
         resp = self.post_webhook(action_data=[{"value": "reject_member"}], callback_id=callback_id)
 
@@ -466,4 +466,57 @@ class StatusActionTest(BaseEventTest):
         assert (
             resp.data["text"]
             == f"Invite request for hello@sentry.io has been rejected. <{manage_url}|See Members and Requests>."
+        )
+
+    def test_invitation_removed(self):
+        other_user = self.create_user()
+        member = OrganizationMember.objects.create(
+            organization=self.organization,
+            email="hello@sentry.io",
+            role="member",
+            inviter=other_user,
+            invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
+        )
+        callback_id = json.dumps({"member_id": member.id, "member_email": "hello@sentry.io"})
+        member.delete()
+
+        resp = self.post_webhook(action_data=[{"value": "approve_member"}], callback_id=callback_id)
+
+        assert resp.status_code == 200, resp.content
+        assert resp.data["text"] == "Member invitation for hello@sentry.io no longer exists."
+
+    def test_invitation_already_accepted(self):
+        other_user = self.create_user()
+        member = OrganizationMember.objects.create(
+            organization=self.organization,
+            email="hello@sentry.io",
+            role="member",
+            inviter=other_user,
+            invite_status=InviteStatus.APPROVED.value,
+        )
+        callback_id = json.dumps({"member_id": member.id, "member_email": "hello@sentry.io"})
+
+        resp = self.post_webhook(action_data=[{"value": "approve_member"}], callback_id=callback_id)
+
+        assert resp.status_code == 200, resp.content
+        assert resp.data["text"] == "Member invitation for hello@sentry.io no longer exists."
+
+    def test_invitation_validation_error(self):
+        OrganizationMember.objects.filter(user=self.user).update(role="manager")
+        other_user = self.create_user()
+        member = OrganizationMember.objects.create(
+            organization=self.organization,
+            email="hello@sentry.io",
+            role="owner",
+            inviter=other_user,
+            invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
+        )
+        callback_id = json.dumps({"member_id": member.id, "member_email": "hello@sentry.io"})
+
+        resp = self.post_webhook(action_data=[{"value": "approve_member"}], callback_id=callback_id)
+
+        assert resp.status_code == 200, resp.content
+        assert (
+            resp.data["text"]
+            == "You do not have permission approve a member invitation with the role owner."
         )

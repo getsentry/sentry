@@ -24,7 +24,6 @@ logger = logging.getLogger(__name__)
 class OrganizationRequestNotification(BaseNotification, abc.ABC):
     analytics_event: str = ""
     referrer_base: str = ""
-    entity_name: str = ""
     member_by_user_id: MutableMapping[int, OrganizationMember] = {}
 
     def __init__(self, organization: Organization, requester: User) -> None:
@@ -38,10 +37,6 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
         )
 
         return SlackOrganizationRequestMessageBuilder
-
-    @property
-    def entity_id(self) -> str:
-        raise NotImplementedError
 
     def get_reference(self) -> Any:
         return self.organization
@@ -143,6 +138,9 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
             "You are receiving this notification because you're listed as an organization "
             f"{self.get_role_string(recipient_member)} | <{settings_url}|Notification Settings>"
         )
+
+    def get_callback_data(self) -> Mapping[str, Any] | None:
+        return None
 
     def record_notification_sent(self, recipient: Team | User, provider: ExternalProviders) -> None:
         # this event is meant to work for multiple providers but architecture

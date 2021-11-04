@@ -15,7 +15,6 @@ from .organization_member_details import get_allowed_roles
 from .organization_member_index import OrganizationMemberSerializer, save_team_assignments
 
 ERR_CANNOT_INVITE = "Your organization is not allowed to invite members."
-ERR_INSUFFICIENT_ROLE = "You do not have permission to invite that role."
 ERR_JOIN_REQUESTS_DISABLED = "Your organization does not allow requests to join."
 
 
@@ -39,7 +38,9 @@ class ApproveInviteRequestSerializer(serializers.Serializer):
 
         # members cannot invite roles higher than their own
         if member.role not in {r.id for r in allowed_roles}:
-            raise serializers.ValidationError(ERR_INSUFFICIENT_ROLE)
+            raise serializers.ValidationError(
+                f"You do not have permission approve a member invitation with the role {member.role}."
+            )
 
         return approve
 

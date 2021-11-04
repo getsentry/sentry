@@ -17,8 +17,6 @@ if TYPE_CHECKING:
 
 # Abstract class for invite and join requests to inherit from
 class AbstractInviteRequestNotification(OrganizationRequestNotification):
-    entity_name = "member_id"
-
     def __init__(self, pending_member: OrganizationMember, requester: User):
         super().__init__(pending_member.organization, requester)
         self.pending_member = pending_member
@@ -28,11 +26,6 @@ class AbstractInviteRequestNotification(OrganizationRequestNotification):
 
     def get_category(self) -> str:
         return "organization_invite_request"
-
-    @property
-    def entity_id(self) -> str:
-        entity_id: str = self.pending_member.id
-        return entity_id
 
     @property
     def members_url(self) -> str:
@@ -86,6 +79,9 @@ class AbstractInviteRequestNotification(OrganizationRequestNotification):
                 url=members_url,
             ),
         ]
+
+    def get_callback_data(self) -> Mapping[str, Any]:
+        return {"member_id": self.pending_member.id, "member_email": self.pending_member.email}
 
     def record_notification_sent(self, recipient: Team | User, provider: ExternalProviders) -> None:
         analytics.record(
