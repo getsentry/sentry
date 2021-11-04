@@ -2,11 +2,11 @@ import {createContext, useEffect, useState} from 'react';
 
 import {Client} from 'app/api';
 import {Organization, Project} from 'app/types';
-import {AppStoreConnectValidationData} from 'app/types/debugFiles';
+import {AppStoreConnectStatusData} from 'app/types/debugFiles';
 import withApi from 'app/utils/withApi';
 import withProject from 'app/utils/withProject';
 
-const AppStoreConnectContext = createContext<AppStoreConnectValidationData | undefined>(
+const AppStoreConnectContext = createContext<AppStoreConnectStatusData | undefined>(
   undefined
 );
 
@@ -19,12 +19,12 @@ type ProviderProps = {
 
 const Provider = withApi(
   withProject(({api, children, project, orgSlug}: ProviderProps) => {
-    const [appStoreConnectValidationData, setAppStoreConnectValidationData] = useState<
-      AppStoreConnectValidationData | undefined
+    const [appStoreConnectStatusData, setAppStoreConnectStatusData] = useState<
+      AppStoreConnectStatusData | undefined
     >();
 
     useEffect(() => {
-      fetchAppStoreConnectValidationData();
+      fetchAppStoreConnectStatusData();
     }, [project]);
 
     function getAppStoreConnectSymbolSourceId() {
@@ -33,7 +33,7 @@ const Provider = withApi(
       )?.id;
     }
 
-    async function fetchAppStoreConnectValidationData() {
+    async function fetchAppStoreConnectStatusData() {
       const appStoreConnectSymbolSourceId = getAppStoreConnectSymbolSourceId();
 
       if (!appStoreConnectSymbolSourceId) {
@@ -41,15 +41,14 @@ const Provider = withApi(
       }
 
       try {
-        const response: Map<string, AppStoreConnectValidationData> =
-          await api.requestPromise(
-            `/projects/${orgSlug}/${project.slug}/appstoreconnect/status`
-          );
+        const response: Map<string, AppStoreConnectStatusData> = await api.requestPromise(
+          `/projects/${orgSlug}/${project.slug}/appstoreconnect/status`
+        );
 
-        const sourceStatus: AppStoreConnectValidationData | undefined =
+        const sourceStatus: AppStoreConnectStatusData | undefined =
           response[appStoreConnectSymbolSourceId];
         if (sourceStatus) {
-          setAppStoreConnectValidationData(sourceStatus);
+          setAppStoreConnectStatusData(sourceStatus);
         }
       } catch {
         // do nothing
@@ -57,7 +56,7 @@ const Provider = withApi(
     }
 
     return (
-      <AppStoreConnectContext.Provider value={appStoreConnectValidationData}>
+      <AppStoreConnectContext.Provider value={appStoreConnectStatusData}>
         {children}
       </AppStoreConnectContext.Provider>
     );

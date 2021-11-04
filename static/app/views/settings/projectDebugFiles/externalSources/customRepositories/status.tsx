@@ -10,11 +10,11 @@ import {IconRefresh} from 'app/icons/iconRefresh';
 import {IconWarning} from 'app/icons/iconWarning';
 import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
-import {AppStoreConnectValidationData} from 'app/types/debugFiles';
+import {AppStoreConnectStatusData} from 'app/types/debugFiles';
 
 type Props = {
   onEditRepository: () => void;
-  details?: AppStoreConnectValidationData;
+  details?: AppStoreConnectStatusData;
 };
 
 function Status({details, onEditRepository}: Props) {

@@ -47,7 +47,7 @@ export type AppStoreConnectCredentialsStatus =
   | {status: 'valid'}
   | ({status: 'invalid'} & ValidationErrorDetailed);
 
-export type AppStoreConnectValidationData = {
+export type AppStoreConnectStatusData = {
   id: string;
   credentials: AppStoreConnectCredentialsStatus;
   /**
@@ -81,7 +81,7 @@ type CustomRepoAppStoreConnect = {
   bundleId: string;
   id: string;
   name: string;
-  details?: AppStoreConnectValidationData;
+  details?: AppStoreConnectStatusData;
 };
 
 type CustomRepoHttp = {
