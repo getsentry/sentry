@@ -7,8 +7,7 @@ export function ProjectKeys(params = []) {
         minidump:
           'http://dev.getsentry.net:8000/api/1/minidump?sentry_key=188ee45a58094d939428d8585aa6f661',
         public: 'http://188ee45a58094d939428d8585aa6f661@dev.getsentry.net:8000/1',
-        csp:
-          'http://dev.getsentry.net:8000/api/1/csp-report/?sentry_key=188ee45a58094d939428d8585aa6f661',
+        csp: 'http://dev.getsentry.net:8000/api/1/csp-report/?sentry_key=188ee45a58094d939428d8585aa6f661',
         security:
           'http://dev.getsentry.net:8000/api/1/security-report/?sentry_key=188ee45a58094d939428d8585aa6f661',
       },
