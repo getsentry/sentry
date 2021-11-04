@@ -13,7 +13,7 @@ from sentry import features, http
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.identity.pipeline import IdentityProviderPipeline
-from sentry.identity.vsts import get_user_info, use_limited_scopes
+from sentry.identity.vsts import get_user_info
 from sentry.integrations import (
     FeatureDescription,
     IntegrationFeatures,
@@ -364,9 +364,6 @@ class VstsIntegrationProvider(IntegrationProvider):  # type: ignore
             )
 
     def get_scopes(self) -> Sequence[str]:
-        if use_limited_scopes(self.pipeline):
-            return ("vso.graph", "vso.serviceendpoint_manage", "vso.work_write")
-
         return ("vso.code", "vso.graph", "vso.serviceendpoint_manage", "vso.work_write")
 
     def get_pipeline_views(self) -> Sequence[PipelineView]:
