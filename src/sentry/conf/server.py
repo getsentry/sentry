@@ -994,8 +994,6 @@ SENTRY_FEATURES = {
     "organizations:integrations-incident-management": True,
     # Allow orgs to automatically create Tickets in Issue Alerts
     "organizations:integrations-ticket-rules": True,
-    # Allow orgs to install AzureDevops with limited scopes
-    "organizations:integrations-vsts-limited-scopes": False,
     # Allow orgs to use the stacktrace linking feature
     "organizations:integrations-stacktrace-link": False,
     # Allow orgs to install a custom source code management integration
