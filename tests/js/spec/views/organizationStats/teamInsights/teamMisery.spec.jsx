@@ -128,4 +128,27 @@ describe('TeamMisery', () => {
 
     expect(screen.getByText('There are no items to display')).toBeInTheDocument();
   });
+
+  it('should render empty state on error', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/eventsv2/`,
+      statusCode: 500,
+      body: {},
+    });
+
+    const routerContext = TestStubs.routerContext();
+    mountWithTheme(
+      <TeamMisery
+        organization={TestStubs.Organization()}
+        projects={[TestStubs.Project()]}
+        period="8w"
+        location={routerContext.context}
+      />,
+      {context: routerContext}
+    );
+
+    await waitForElementToBeRemoved(screen.getByTestId('loading-indicator'));
+
+    expect(screen.getByText('There was an error loading data.')).toBeInTheDocument();
+  });
 });
