@@ -417,7 +417,13 @@ class WidgetQueries extends React.Component<Props, State> {
     const {children} = this.props;
     const {loading, timeseriesResults, tableResults, errorMessage} = this.state;
 
-    return children({loading, timeseriesResults, tableResults, errorMessage});
+    const filteredTimeseriesResults = timeseriesResults?.filter(result => !!result);
+    return children({
+      loading,
+      timeseriesResults: filteredTimeseriesResults,
+      tableResults,
+      errorMessage,
+    });
   }
 }
 
