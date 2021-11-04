@@ -281,7 +281,6 @@ from .endpoints.project_agnostic_rule_conditions import ProjectAgnosticRuleCondi
 from .endpoints.project_app_store_connect_credentials import (
     AppStoreConnectAppsEndpoint,
     AppStoreConnectCreateCredentialsEndpoint,
-    AppStoreConnectCredentialsValidateEndpoint,
     AppStoreConnectStatusEndpoint,
     AppStoreConnectUpdateCredentialsEndpoint,
 )
@@ -2022,11 +2021,6 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/apps/$",
                     AppStoreConnectAppsEndpoint.as_view(),
                     name="sentry-api-0-project-appstoreconnect-apps",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/validate/(?P<credentials_id>[^\/]+)/$",
-                    AppStoreConnectCredentialsValidateEndpoint.as_view(),
-                    name="sentry-api-0-project-appstoreconnect-validate",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/status/$",
