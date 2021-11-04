@@ -2253,3 +2253,15 @@ export type EventIdResponse = {
   eventId: string;
   event: Event;
 };
+
+export type AuditLog = {
+  id: string;
+  actor: User;
+  event: string;
+  ipAddress: string;
+  note: string;
+  targetObject: number;
+  targetUser: Actor | null;
+  data: any;
+  dateCreated: string;
+};
