@@ -7,7 +7,7 @@ from django.db.models import QuerySet
 from sentry.db.models import BaseManager, FlexibleForeignKey, Model
 
 if TYPE_CHECKING:
-    from sentry.models import ApiToken, Organization
+    from sentry.models import ApiToken
 
 
 class SentryAppInstallationTokenManager(BaseManager):
@@ -40,12 +40,12 @@ class SentryAppInstallationTokenManager(BaseManager):
             organization_id=install_token.sentry_app_installation.organization_id
         )
 
-    def has_organization_access(self, token: ApiToken, organization: Organization) -> bool:
+    def has_organization_access(self, token: ApiToken, organization_id: int) -> bool:
         install_token = self._get_token(token)
         if not install_token:
             return False
 
-        return install_token.sentry_app_installation.organization_id == organization.id
+        return install_token.sentry_app_installation.organization_id == organization_id
 
 
 class SentryAppInstallationToken(Model):
