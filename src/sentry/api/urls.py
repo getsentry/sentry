@@ -427,6 +427,7 @@ from .endpoints.user_organizations import UserOrganizationsEndpoint
 from .endpoints.user_password import UserPasswordEndpoint
 from .endpoints.user_permission_details import UserPermissionDetailsEndpoint
 from .endpoints.user_permissions import UserPermissionsEndpoint
+from .endpoints.user_permissions_config import UserPermissionsConfigEndpoint
 from .endpoints.user_social_identities_index import UserSocialIdentitiesIndexEndpoint
 from .endpoints.user_social_identity_details import UserSocialIdentityDetailsEndpoint
 from .endpoints.user_subscriptions import UserSubscriptionsEndpoint
@@ -693,6 +694,11 @@ urlpatterns = [
                     r"^(?P<user_id>[^\/]+)/permissions/$",
                     UserPermissionsEndpoint.as_view(),
                     name="sentry-api-0-user-permissions",
+                ),
+                url(
+                    r"^(?P<user_id>[^\/]+)/permissions/config/$",
+                    UserPermissionsConfigEndpoint.as_view(),
+                    name="sentry-api-0-user-permissions-config",
                 ),
                 url(
                     r"^(?P<user_id>[^\/]+)/permissions/(?P<permission_name>[^\/]+)/$",
