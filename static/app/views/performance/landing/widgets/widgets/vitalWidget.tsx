@@ -109,7 +109,7 @@ export function VitalWidget(props: Props) {
               currentSeriesNames={[field]}
               includePrevious={false}
               partial={false}
-              includeTransformedData={false}
+              includeTransformedData
               query={_eventView.getQueryWithAdditionalConditions()}
               interval={getInterval(
                 {
@@ -242,7 +242,7 @@ export function VitalWidget(props: Props) {
                     <GrowLink to={target}>
                       <Truncate value={transaction} maxLength={40} />
                     </GrowLink>
-                    <RightAlignedCell>
+                    <VitalBarCell>
                       <VitalBar
                         isLoading={provided.widgetData.list?.isLoading}
                         vital={settingToVital[props.chartSetting]}
@@ -250,9 +250,9 @@ export function VitalWidget(props: Props) {
                         showBar
                         showDurationDetail={false}
                         showDetail={false}
-                        barHeight={20}
+                        barHeight={24}
                       />
-                    </RightAlignedCell>
+                    </VitalBarCell>
                     <CloseContainer>
                       <StyledIconClose
                         onClick={() => {
@@ -293,6 +293,10 @@ function getVitalDataForListItem(listItem: TableDataRow) {
   return vitalData;
 }
 
+const VitalBarCell = styled(RightAlignedCell)`
+  width: 120px;
+  margin-right: ${space(1)};
+`;
 const EventsRequest = withApi(_EventsRequest);
 const Subtitle = styled('span')`
   color: ${p => p.theme.gray300};
