@@ -2,7 +2,6 @@ import isEqual from 'lodash/isEqual';
 
 import {
   aggregateOutputType,
-  getAggregateFields,
   isAggregateFieldOrEquation,
   isLegalYAxisType,
 } from 'app/utils/discover/fields';
@@ -66,22 +65,6 @@ export function normalizeQueries(
   }
 
   if (displayType === DisplayType.TOP_N) {
-    queries = queries.slice(0, 1);
-    const aggregateFields = getAggregateFields(queries[0].fields);
-
-    let otherFields = queries[0].fields.filter(
-      field => !!!aggregateFields.includes(field)
-    );
-
-    otherFields = otherFields.length ? otherFields : ['title'];
-
-    const fields: string[] = [
-      ...otherFields,
-      aggregateFields.length ? aggregateFields[0] : 'count()',
-    ];
-
-    queries = queries.map(query => ({...query, fields}));
-
     return queries;
   }
 
