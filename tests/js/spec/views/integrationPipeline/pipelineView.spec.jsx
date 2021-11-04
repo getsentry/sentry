@@ -12,13 +12,13 @@ jest.mock(
 );
 
 describe('PipelineView', () => {
-  it('renders awsLambdaProjectSelect', () => {
+  it('renders awsLambdaProjectSelect', async () => {
     mountWithTheme(
       <PipelineView pipelineName="awsLambdaProjectSelect" someField="someVal" />,
       {context: TestStubs.routerContext()}
     );
 
-    screen.findByText('mock_AwsLambdaProjectSelect');
+    await screen.findByText('mock_AwsLambdaProjectSelect');
 
     expect(document.title).toBe('AWS Lambda Select Project');
   });
