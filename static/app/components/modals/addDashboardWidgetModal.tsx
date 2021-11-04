@@ -260,7 +260,8 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
           });
         } else if (displayType === DisplayType.TOP_N) {
           normalized.forEach(query => {
-            query.fields = [...defaultTableColumns];
+            // Append Y-Axis to query.fields since TOP_N view assumes the last field is the Y-Axis
+            query.fields = [...defaultTableColumns, defaultWidgetQuery.fields[0]];
             query.orderby = defaultWidgetQuery.orderby;
           });
         } else {

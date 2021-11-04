@@ -8,9 +8,6 @@ import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {
   aggregateFunctionOutputType,
-  generateFieldAsString,
-  isAggregateEquation,
-  isAggregateField,
   isLegalYAxisType,
   QueryFieldValue,
 } from 'app/utils/discover/fields';
@@ -87,29 +84,14 @@ function WidgetQueryFields({
     onChange(newFields);
   }
 
-  function getAggregateFields(): QueryFieldValue[] {
-    return fields.filter(field => {
-      const fieldStr = generateFieldAsString(field);
-      return isAggregateField(fieldStr) || isAggregateEquation(fieldStr);
-    });
-  }
-
   function handleTopNChangeField(value: QueryFieldValue) {
-    const fieldValue = fields
-      .slice()
-      .reverse()
-      .find(field => {
-        const fieldStr = generateFieldAsString(field);
-        return isAggregateField(fieldStr) || isAggregateEquation(fieldStr);
-      }) as QueryFieldValue;
     const newFields = [...fields];
-    newFields[newFields.findIndex(field => field === fieldValue)] = value;
+    newFields[fields.length - 1] = value;
     onChange(newFields);
   }
 
   function handleTopNColumnChange(columns: QueryFieldValue[]) {
-    const aggregateFields = getAggregateFields();
-    const newFields = [...columns, aggregateFields[aggregateFields.length - 1]];
+    const newFields = [...columns, fields[fields.length - 1]];
     onChange(newFields);
   }
 
@@ -191,14 +173,8 @@ function WidgetQueryFields({
   };
 
   if (displayType === 'top_n') {
-    const fieldValue = fields
-      .slice()
-      .reverse()
-      .find(field => {
-        const fieldStr = generateFieldAsString(field);
-        return isAggregateField(fieldStr) || isAggregateEquation(fieldStr);
-      }) as QueryFieldValue;
-    const columns = fields.filter(field => field !== fieldValue);
+    const fieldValue = fields[fields.length - 1];
+    const columns = fields.slice(0, fields.length - 1);
 
     return (
       <React.Fragment>
