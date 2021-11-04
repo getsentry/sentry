@@ -22,11 +22,7 @@ export async function disconnectIdentity(
   }
 
   addSuccessMessage(`Disconnected ${identity.provider.name}`);
-  try {
-    onSuccess();
-  } catch {
-    addErrorMessage('Error: Please refresh');
-  }
+  onSuccess();
 }
 
 export function updateUser(user: User) {
