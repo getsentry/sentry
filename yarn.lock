@@ -14267,10 +14267,10 @@ to-regex@^3.0.1, to-regex@^3.0.2:
     regex-not "^1.0.2"
     safe-regex "^1.1.0"
 
-tocbot@^4.13.4:
-  version "4.13.4"
-  resolved "https://registry.yarnpkg.com/tocbot/-/tocbot-4.13.4.tgz#deae6f75de8c0ffdc887c4f2e3f00d52dfb81def"
-  integrity sha512-YIiqDvrDi7VUNMtDkMj1txmmGkv7fyVGOKWyp+Xd5GwFZSa3yu5QhRrwpkD4BTD6HbjKah+BvWBN+6m9160Kog==
+tocbot@^4.16.0:
+  version "4.16.0"
+  resolved "https://registry.yarnpkg.com/tocbot/-/tocbot-4.16.0.tgz#8d97b7c4dc20e23083dbaedcdbd18e0753e95eba"
+  integrity sha512-X23IWfvy8IppBtOjvNyPShe7b2Sop/pOZB/zSAhmEQbXIFjc3YJjh4k+kR1RLsxZ3LZxbPbPMRzp7J6UhRoYPw==
 
 toggle-selection@^1.0.6:
   version "1.0.6"
