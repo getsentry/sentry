@@ -23,7 +23,7 @@ export function generateTransactionSummaryRoute({orgSlug}: {orgSlug: String}): s
   return `/organizations/${orgSlug}/performance/summary/`;
 }
 
-function removeTransactionFilters(query: string): string {
+function cleanTransactionSummaryFilter(query: string): string {
   const filterParams = new MutableSearch(query);
   filterParams.removeFilter('transaction');
   return filterParams.formatString();
@@ -58,7 +58,7 @@ export function transactionSummaryRouteWithQuery({
 
   let searchFilter: typeof query.query;
   if (typeof query.query === 'string') {
-    searchFilter = removeTransactionFilters(query.query);
+    searchFilter = cleanTransactionSummaryFilter(query.query);
   } else {
     searchFilter = query.query;
   }
