@@ -57,6 +57,10 @@ import {
 
 import {TimePeriodType} from './constants';
 
+// Left and right padding are the gaps between the area that chart is drawn and
+// the boundaries of the entire svg in echarts. Vertical padding is similarly,
+// for the gap between the boundary and the x axis. These are used to contain the
+// graphics elements we draw in the chart area where series are drawn
 const LEFT_PADDING = 30;
 const RIGHT_PADDING = 17;
 const VERTICAL_PADDING = 22;
