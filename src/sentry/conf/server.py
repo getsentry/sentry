@@ -1000,9 +1000,6 @@ SENTRY_FEATURES = {
     "organizations:integrations-custom-scm": False,
     # Allow orgs to debug internal/unpublished sentry apps with logging
     "organizations:sentry-app-debugging": False,
-    # Temporary safety measure, turned on for specific orgs only if
-    # absolutely necessary, to be removed shortly
-    "organizations:slack-allow-workspace": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
     # Enable readonly dashboards
