@@ -30,14 +30,12 @@ from sentry.search.utils import (
 )
 from sentry.utils.compat import filter, map
 from sentry.utils.snuba import is_duration_measurement, is_measurement, is_span_op_breakdown
-from sentry.utils.validators import is_event_id
+from sentry.utils.validators import is_event_id, is_span_id
 
 # A wildcard is an asterisk prefixed by an even number of back slashes.
 # If there are an odd number of back slashes, then the back slash immediately
 # before the asterisk is actually escaping the asterisk.
 WILDCARD_CHARS = re.compile(r"(?<!\\)(\\\\)*\*")
-
-HEXADECIMAL_16_DIGITS = re.compile("^[0-9a-fA-F]{16}$")
 
 event_search_grammar = Grammar(
     r"""
@@ -350,12 +348,11 @@ class SearchValue(NamedTuple):
     def is_span_id(self) -> bool:
         """Return whether the current value is a valid span id
 
-        Span IDs are 16 digit hexadecimal strings.
         Empty strings are valid, so that it can be used for has:trace.span queries
         """
         if not isinstance(self.raw_value, str):
             return False
-        return bool(HEXADECIMAL_16_DIGITS.search(self.raw_value)) or self.raw_value == ""
+        return is_span_id(self.raw_value) or self.raw_value == ""
 
 
 class SearchFilter(NamedTuple):
