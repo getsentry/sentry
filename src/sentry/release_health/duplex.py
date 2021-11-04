@@ -1,4 +1,4 @@
-import collections
+import collections.abc
 import inspect
 from copy import deepcopy
 from datetime import datetime, timedelta
@@ -80,16 +80,6 @@ def _compare_basic(sessions, metrics, path: str) -> (bool, Optional[str]):
 def compare_datetime(
     sessions: Optional[DateLike], metrics: Optional[DateLike], rollup: int, path: str
 ) -> Optional[str]:
-    """
-    >>> compare_datetime("2021-10-10T10:15","2021-10-10T10:16", 3600, "x.y")
-    >>> compare_datetime("2021-10-10T10:15","2021-10-10T10:16", 36, "x.y")
-    'Field x.y failed to mach datetimes sessions=2021-10-10T10:15, metrics=2021-10-10T10:16'
-    >>> compare_datetime(datetime(2021,10,10,10,15),datetime(2021,10,10,10,16), 3600, "x.y")
-    >>> compare_datetime(datetime(2021,10,10,10,15),datetime(2021,10,10,10,16), 36, "x.y")
-    'Field x.y failed to mach datetimes sessions=2021-10-10 10:15:00, metrics=2021-10-10 10:16:00'
-    >>> compare_datetime("2021-10-10T10:15","abc", 36, "x.y")
-    'Field x.y could not parse dates sessions=2021-10-10T10:15, metrics=abc'
-    """
     done, error = _compare_basic(sessions, metrics, path)
     if done:
         return error
@@ -111,20 +101,6 @@ def compare_datetime(
 
 
 def compare_counters(sessions: Optional[int], metrics: Optional[int], path: str) -> Optional[str]:
-    """
-    >>> compare_counters(100,110, "x.y")
-    'Fields with different values at x.y sessions=100, metrics=110'
-    >>> compare_counters(100,105, "x.y")
-    >>> compare_counters(100,96, "x.y")
-    >>> compare_counters(None,None, "x.y")
-    >>> compare_counters(None,1, "x.y")
-    'Field x.y only present in metrics implementation'
-    >>> compare_counters(0,None, "x.y")
-    'Field x.y missing from metrics implementation'
-    >>> compare_counters(1,3, "x.y")
-    >>> compare_counters(1,7, "x.y")
-    'Fields with different values at x.y sessions=1, metrics=7'
-    """
     done, error = _compare_basic(sessions, metrics, path)
     if done:
         return error
@@ -211,8 +187,8 @@ def _compare_basic_sequence(sessions, metrics, path: str) -> (bool, List[str]):
         else:
             return True, []
 
-    if not isinstance(sessions, collections.Sequence) or not isinstance(
-        metrics, collections.Sequence
+    if not isinstance(sessions, collections.abc.Sequence) or not isinstance(
+        metrics, collections.abc.Sequence
     ):
         return True, [
             f"invalid sequence types at path {path} sessions={type(sessions)}, metrics={type(metrics)}"
@@ -344,7 +320,7 @@ def compare_results(
 
 
 def log_exception(ex, result):
-    pass
+    pass  # TODO
 
 
 class DuplexReleaseHealthBackend(ReleaseHealthBackend):
@@ -374,6 +350,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
             if type(should_compare) != bool:
                 # should compare depends on the session result
                 # evaluate it now
+                # TODO add timers around sessions and metrics
                 should_compare = should_compare(ret_val)
             if should_compare:
                 metrics_fn = getattr(self.metrics, fn_name)
