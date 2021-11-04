@@ -75,6 +75,8 @@ export default function OpsFilter(props: Props) {
           location={location}
           orgSlug={organization.slug}
           eventView={opsFilterEventView}
+          cursor="0:0:1"
+          noPagination
         >
           {({spanOps, isLoading, error}) => {
             if (isLoading) {
