@@ -1,5 +1,5 @@
 import {Component} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import flatten from 'lodash/flatten';
 
@@ -138,6 +138,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
       location: {query},
       organization,
       teams,
+      router,
     } = this.props;
     const {loading, ruleList = [], ruleListPageLinks} = this.state;
 
@@ -267,7 +268,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
                 team = '';
               }
 
-              browserHistory.push({
+              router.push({
                 pathname: path,
                 query: {...currentQuery, team, cursor},
               });
