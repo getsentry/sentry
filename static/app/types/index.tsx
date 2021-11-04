@@ -2263,5 +2263,5 @@ export type AuditLog = {
   targetObject: number;
   targetUser: Actor | null;
   data: any;
-  dateCreated: Date;
+  dateCreated: string;
 };
