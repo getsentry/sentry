@@ -526,4 +526,90 @@ describe('Dashboards > WidgetQueries', function () {
     expect(wrapper.find('[data-test-id="child"]')).toHaveLength(1);
     expect(errorMock).toHaveBeenCalledTimes(1);
   });
+
+  it('returns timeseriesResults in the same order as widgetQuery', async function () {
+    MockApiClient.clearMockResponses();
+    const defaultMock = MockApiClient.addMockResponse(
+      {
+        url: '/organizations/org-slug/events-stats/',
+        method: 'GET',
+        body: {
+          data: [
+            [
+              1000,
+              [
+                {
+                  count: 100,
+                },
+              ],
+            ],
+          ],
+          start: 1000,
+          end: 2000,
+        },
+      },
+      {
+        predicate: (_, options) => {
+          return options.query?.query === 'event.type:default';
+        },
+      }
+    );
+    const errorMock = MockApiClient.addMockResponse(
+      {
+        url: '/organizations/org-slug/events-stats/',
+        method: 'GET',
+        body: {
+          data: [
+            [
+              1000,
+              [
+                {
+                  count: 200,
+                },
+              ],
+            ],
+          ],
+          start: 1000,
+          end: 2000,
+        },
+      },
+      {
+        predicate: (_, options) => {
+          return options.query?.query === 'event.type:error';
+        },
+      }
+    );
+    const barWidget = {
+      ...multipleQueryWidget,
+      displayType: 'bar',
+      // Should be ignored for bars.
+      interval: '5m',
+    };
+    const child = jest.fn(() => <div data-test-id="child" />);
+    const wrapper = mountWithTheme(
+      <WidgetQueries
+        api={api}
+        widget={barWidget}
+        organization={initialData.organization}
+        selection={selection}
+      >
+        {child}
+      </WidgetQueries>,
+      initialData.routerContext
+    );
+    await tick();
+    await tick();
+    wrapper.update();
+
+    expect(defaultMock).toHaveBeenCalledTimes(1);
+    expect(errorMock).toHaveBeenCalledTimes(1);
+    expect(child).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        timeseriesResults: [
+          {data: [{name: 1000000, value: 200}], seriesName: 'errors : count()'},
+          {data: [{name: 1000000, value: 100}], seriesName: 'default : count()'},
+        ],
+      })
+    );
+  });
 });
