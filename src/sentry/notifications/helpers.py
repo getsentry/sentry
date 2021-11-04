@@ -57,27 +57,31 @@ def _get_setting_mapping_from_mapping(
     type: NotificationSettingTypes,
     should_use_slack_automatic: bool = False,
 ) -> Mapping[ExternalProviders, NotificationSettingOptionValues]:
-    # XXX(CEO): may not respect granularity of a setting for Slack a setting for email
-    # but we'll worry about that later since we don't have a FE for it yet
+    """
+    XXX(CEO): may not respect granularity of a setting for Slack a setting for
+     email but we'll worry about that later since we don't have a FE for it yet.
+    """
     from sentry.notifications.notify import notification_providers
 
-    specific_scope = get_scope_type(type)
-    notification_settings_mapping = notification_settings_by_recipient.get(recipient)
-    if notification_settings_mapping:
-        notification_setting_option = (
-            notification_settings_mapping.get(specific_scope)
-            or notification_settings_mapping.get(NotificationScopeType.USER)
-            or notification_settings_mapping.get(NotificationScopeType.TEAM)
-        )
-        if notification_setting_option:
-            return notification_setting_option
-
-    return {
+    # Fill in with the fallback values.
+    notification_setting_option = {
         provider: _get_notification_setting_default(
             provider, type, should_use_slack_automatic=should_use_slack_automatic
         )
         for provider in notification_providers()
     }
+
+    notification_settings_mapping = notification_settings_by_recipient.get(recipient)
+    if notification_settings_mapping:
+        specific_scope = get_scope_type(type)
+        notification_setting_option.update(
+            notification_settings_mapping.get(specific_scope)
+            or notification_settings_mapping.get(NotificationScopeType.USER)
+            or notification_settings_mapping.get(NotificationScopeType.TEAM)
+            or {}
+        )
+
+    return notification_setting_option
 
 
 def where_should_recipient_be_notified(
