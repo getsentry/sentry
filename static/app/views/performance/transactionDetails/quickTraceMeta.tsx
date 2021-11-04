@@ -20,7 +20,7 @@ import {
   QuickTraceQueryChildrenProps,
   TraceMeta,
 } from 'app/utils/performance/quickTrace/types';
-import {useOrganization} from 'app/utils/useOrganization';
+import useOrganization from 'app/utils/useOrganization';
 
 import {MetaData} from './styles';
 

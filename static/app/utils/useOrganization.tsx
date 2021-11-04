@@ -2,7 +2,7 @@ import {useContext} from 'react';
 
 import {OrganizationContext} from 'app/views/organizationContext';
 
-export function useOrganization() {
+function useOrganization() {
   const organization = useContext(OrganizationContext);
   if (!organization) {
     throw new Error('useOrganization called but organization is not set.');
@@ -10,6 +10,4 @@ export function useOrganization() {
   return organization;
 }
 
-export function useOrgSlug() {
-  return useOrganization().slug;
-}
+export default useOrganization;

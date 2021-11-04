@@ -10,7 +10,7 @@ import {Event} from 'app/types/event';
 import {STACK_TYPE} from 'app/types/stacktrace';
 import {isNativePlatform} from 'app/utils/platform';
 import useApi from 'app/utils/useApi';
-import {useOrganization} from 'app/utils/useOrganization';
+import useOrganization from 'app/utils/useOrganization';
 import BooleanField from 'app/views/settings/components/forms/booleanField';
 
 import EventDataSection from '../eventDataSection';
