@@ -171,6 +171,16 @@ def get_owners(project: Project, event: Event | None = None) -> Iterable[Team | 
         outcome = "match"
         recipients = ActorTuple.resolve_many(owners)
 
+    if len(recipients) > 1:
+        ownership = ProjectOwnership.get_ownership_cached(project.id)
+        # Used to suppress extra notifications to all project members, only notify the would-be auto-assignee
+        if (
+            ownership
+            and not ownership.fallthrough
+            and not features.has("organizations:notification-all-recipients", project.organization)
+        ):
+            return list(recipients)[-1:]
+
     metrics.incr(
         "features.owners.send_to",
         tags={"organization": project.organization_id, "outcome": outcome},
@@ -216,7 +226,7 @@ def determine_eligible_recipients(
     event: Event | None = None,
 ) -> Iterable[Team | User]:
     """
-    Either get the individual recipient from the target type/id or user the the
+    Either get the individual recipient from the target type/id or the
     owners as determined by rules for this project and event.
     """
     if not (project and project.teams.exists()):

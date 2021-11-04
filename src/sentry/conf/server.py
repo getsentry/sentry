@@ -1048,6 +1048,8 @@ SENTRY_FEATURES = {
     "organizations:minute-resolution-sessions": True,
     # Automatically opt IN users to receiving Slack notifications.
     "organizations:notification-slack-automatic": False,
+    # Notify all project members when fallthrough is disabled, instead of just the auto-assignee
+    "organizations:notification-all-recipients": False,
     # Enable the new native stack trace design
     "organizations:native-stack-trace-v2": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
