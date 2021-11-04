@@ -481,17 +481,17 @@ class AppStoreConnectStatusEndpoint(ProjectEndpoint):  # type: ignore
             except appstore_connect.UnauthorizedError:
                 asc_credentials = {
                     "status": "invalid",
-                    "code": AppConnectAuthenticationError().code,
+                    "code": AppConnectAuthenticationError.code,
                 }
             except appstore_connect.ForbiddenError:
-                asc_credentials = {"status": "invalid", "code": AppConnectForbiddenError().code}
+                asc_credentials = {"status": "invalid", "code": AppConnectForbiddenError.code}
             else:
                 if apps:
                     asc_credentials = {"status": "valid"}
                 else:
                     asc_credentials = {
                         "status": "invalid",
-                        "code": AppConnectAuthenticationError().code,
+                        "code": AppConnectAuthenticationError.code,
                     }
 
             asc_credentials = {
