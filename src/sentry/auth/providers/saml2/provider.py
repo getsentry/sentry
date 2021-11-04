@@ -302,11 +302,11 @@ class SAML2Provider(Provider):
 
         # Email and identifier MUST be correctly mapped
         if not attributes[Attributes.IDENTIFIER] or not attributes[Attributes.USER_EMAIL]:
+            error_msg_keys = ", ".join(repr(key) for key in sorted(raw_attributes.keys()))
             raise IdentityNotValid(
                 _(
-                    "Failed to map SAML attributes. Assertion returned the following attribute keys: %(keys)s"
+                    f"Failed to map SAML attributes. Assertion returned the following attribute keys: {error_msg_keys}"
                 )
-                % {"keys": raw_attributes.keys()}
             )
 
         name = (attributes[k] for k in (Attributes.FIRST_NAME, Attributes.LAST_NAME))
