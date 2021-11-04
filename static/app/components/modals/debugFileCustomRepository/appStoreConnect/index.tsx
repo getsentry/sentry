@@ -9,7 +9,6 @@ import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {AppStoreConnectContextProps} from 'app/components/projects/appStoreConnectContext';
-import {appStoreConnectAlertMessage} from 'app/components/projects/appStoreConnectContext/utils';
 import {IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
@@ -57,7 +56,7 @@ function AppStoreConnect({
   onSubmit,
   appStoreConnectContext,
 }: Props) {
-  const {updateAlertMessage} = appStoreConnectContext ?? {};
+  const {credentials} = appStoreConnectContext ?? {};
 
   const [isLoading, setIsLoading] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
@@ -114,6 +113,7 @@ function AppStoreConnect({
       const appStoreConnnectError = getAppStoreErrorMessage(error);
       if (typeof appStoreConnnectError === 'string') {
         // app-connect-authentication-error
+        // 'app-connect-forbidden-error'
         addErrorMessage(appStoreConnnectError);
         return;
       }
@@ -238,15 +238,27 @@ function AppStoreConnect({
     if (activeStep !== 0) {
       return alerts;
     }
-
-    if (updateAlertMessage === appStoreConnectAlertMessage.appStoreCredentialsInvalid) {
-      alerts.push(
-        <StyledAlert type="warning" icon={<IconWarning />}>
-          {t(
-            'Your App Store Connect credentials are invalid. To reconnect, update your credentials.'
-          )}
-        </StyledAlert>
-      );
+    if (credentials?.status === 'invalid') {
+      switch (credentials.code) {
+        case 'app-connect-forbidden-error':
+          alerts.push(
+            <StyledAlert type="warning" icon={<IconWarning />}>
+              {t(
+                'Your App Store Connect credentials have insufficient permissions. To reconnect, update your credentials.'
+              )}
+            </StyledAlert>
+          );
+          break;
+        case 'app-connect-authentication-error':
+        default:
+          alerts.push(
+            <StyledAlert type="warning" icon={<IconWarning />}>
+              {t(
+                'Your App Store Connect credentials are invalid. To reconnect, update your credentials.'
+              )}
+            </StyledAlert>
+          );
+      }
     }
 
     return alerts;

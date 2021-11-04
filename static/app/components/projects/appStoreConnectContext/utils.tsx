@@ -1,17 +1,20 @@
-import {t} from 'app/locale';
-import {AppStoreConnectValidationData} from 'app/types/debugFiles';
+import {
+  getAppStoreValidationErrorMessage,
+  ValidationErrorDetailed,
+} from 'app/components/modals/debugFileCustomRepository/appStoreConnect/utils';
+import {AppStoreConnectCredentialsStatus} from 'app/types/debugFiles';
 
-export const appStoreConnectAlertMessage = {
-  appStoreCredentialsInvalid: t(
-    'The credentials of your configured App Store Connect are invalid.'
-  ),
-};
+export function areAppStoreConnectCredentialsValid(
+  credentialsStatus: AppStoreConnectCredentialsStatus | undefined
+): boolean {
+  return credentialsStatus?.status === 'valid';
+}
 
 export function getAppConnectStoreUpdateAlertMessage(
-  appConnectValidationData: AppStoreConnectValidationData
-) {
-  if (appConnectValidationData.appstoreCredentialsValid === false) {
-    return appStoreConnectAlertMessage.appStoreCredentialsInvalid;
+  credentialsStatus: AppStoreConnectCredentialsStatus
+): string | undefined {
+  if (areAppStoreConnectCredentialsValid(credentialsStatus)) {
+    return undefined;
   }
-  return undefined;
+  return getAppStoreValidationErrorMessage(credentialsStatus as ValidationErrorDetailed);
 }

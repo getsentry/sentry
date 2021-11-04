@@ -2,6 +2,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Placeholder from 'app/components/placeholder';
+import {areAppStoreConnectCredentialsValid} from 'app/components/projects/appStoreConnectContext/utils';
 import TimeSince from 'app/components/timeSince';
 import Tooltip from 'app/components/tooltip';
 import {IconDownload} from 'app/icons/iconDownload';
@@ -23,9 +24,9 @@ function Status({details, onEditRepository}: Props) {
     return <Placeholder height="14px" />;
   }
 
-  const {pendingDownloads, appstoreCredentialsValid, lastCheckedBuilds} = details ?? {};
+  const {pendingDownloads, credentials, lastCheckedBuilds} = details ?? {};
 
-  if (appstoreCredentialsValid === false) {
+  if (areAppStoreConnectCredentialsValid(credentials) === false) {
     return (
       <Wrapper color={theme.red300} onClick={onEditRepository}>
         <StyledTooltip

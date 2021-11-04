@@ -28,13 +28,17 @@ const fieldErrorMessageMapping = {
   },
 };
 
-type ErrorCodeDetailed =
+export type ErrorCodeDetailed =
   | 'app-connect-authentication-error'
+  | 'app-connect-forbidden-error'
   | 'app-connect-multiple-sources-error';
 
+export type ValidationErrorDetailed = {
+  code: ErrorCodeDetailed;
+};
+
 type ResponseJSONDetailed = {
-  detail: {
-    code: ErrorCodeDetailed;
+  detail: ValidationErrorDetailed & {
     extra: Record<string, any>;
     message: string;
   };
@@ -64,21 +68,7 @@ export function getAppStoreErrorMessage(
     ?.detail;
 
   if (detailedErrorResponse) {
-    switch (detailedErrorResponse.code) {
-      case 'app-connect-authentication-error':
-        return t(
-          'We could not establish a connection with App Store Connect. Please check the entered App Store Connect credentials'
-        );
-      case 'app-connect-multiple-sources-error':
-        return t(
-          'Only one Apple App Store Connect application is allowed in this project'
-        );
-      default: {
-        // this shall not happen
-        Sentry.captureException(new Error('Unknown app store connect error'));
-        return unexpectedErrorMessage;
-      }
-    }
+    return getAppStoreValidationErrorMessage(detailedErrorResponse);
   }
 
   const errorResponse = error.responseJSON as undefined | ResponseJSON;
@@ -115,4 +105,24 @@ export function getAppStoreErrorMessage(
     },
     {}
   ) as Record<keyof StepOneData, string>;
+}
+
+export function getAppStoreValidationErrorMessage(
+  error: ValidationErrorDetailed
+): string {
+  switch (error.code) {
+    case 'app-connect-authentication-error':
+      return t(
+        'Credentials are invalid, missing, or expired. Check the entered App Store Connect credentials are correct and have not expired.'
+      );
+    case 'app-connect-forbidden-error':
+      return t('The supplied API key does not have sufficient permissions.');
+    case 'app-connect-multiple-sources-error':
+      return t('Only one Apple App Store Connect application is allowed in this project');
+    default: {
+      // this shall not happen
+      Sentry.captureException(new Error('Unknown app store connect error'));
+      return unexpectedErrorMessage;
+    }
+  }
 }

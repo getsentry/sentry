@@ -95,7 +95,7 @@ const Provider = ({children, project, organization}: ProviderProps) => {
           ? {
               ...appStoreConnectValidationData,
               updateAlertMessage: getAppConnectStoreUpdateAlertMessage(
-                appStoreConnectValidationData
+                appStoreConnectValidationData.credentials
               ),
             }
           : undefined
