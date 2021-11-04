@@ -5,16 +5,35 @@
 
 from __future__ import annotations
 
+from typing import Literal
+
 from django.utils.deprecation import MiddlewareMixin
 from rest_framework.request import Request
 
-from sentry.api.helpers.group_index.index import EndpointFunction, build_rate_limit_key
+from sentry.api.helpers.group_index.index import EndpointFunction
 from sentry.app import ratelimiter
 
 
-def get_rate_limit_key(view_func: EndpointFunction, request: Request):
+def get_rate_limit_key(
+    view_func: EndpointFunction, request: Request, category: Literal["org", "user", "ip"] = "ip"
+):
     """Construct a consistent global rate limit key using the arguments provided"""
-    return build_rate_limit_key(view_func, request)
+
+    view = view_func.__name__
+    http_method = request.method
+
+    # Default to using an IP based ratelimit
+    if category == "org":
+        request_access = getattr(request, "access", None)
+        id = getattr(request_access, "organization_id", None)
+
+    elif category == "user":
+        request_user = getattr(request, "user", None)
+        id = getattr(request_user, "id", None)
+    else:
+        id = request.META["REMOTE_ADDR"]
+
+    return f"{category}:{view}:{http_method}:{id}"
 
 
 def get_default_rate_limit() -> tuple[int, int]:
