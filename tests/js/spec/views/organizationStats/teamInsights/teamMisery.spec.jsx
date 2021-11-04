@@ -147,7 +147,7 @@ describe('TeamMisery', () => {
       {context: routerContext}
     );
 
-    await waitForElementToBeRemoved(screen.queryByTestId('loading-indicator'));
+    await waitForElementToBeRemoved(screen.getByTestId('loading-indicator'));
 
     expect(screen.getByText('There was an error loading data.')).toBeInTheDocument();
   });
