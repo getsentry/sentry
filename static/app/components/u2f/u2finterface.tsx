@@ -161,24 +161,24 @@ class U2fInterface extends React.Component<Props, State> {
   }
 
   testWebAuthn(authRequest) {
+    const credentials = [] as any;
+
+    authRequest.forEach(device => {
+      credentials.push({
+        id: this.base64urlToBuffer(device.keyHandle),
+        type: 'public-key',
+        transports: ['usb', 'ble', 'nfc'],
+      });
+    });
+
     const publicKeyCredentialRequestOptions = {
-      // rpId: 'richardmasentry.ngrok.io',
-      // challenge: Uint8Array.from(authRequest[0].challenge, c => c.charCodeAt(0)).buffer,
       challenge: this.base64urlToBuffer(authRequest[0].challenge),
-      // TODO make sure it inputs every keyhandle
-      allowCredentials: [
-        {
-          // id: Uint8Array.from(authRequest[0].keyHandle, c => c.charCodeAt(0)).buffer,
-          id: this.base64urlToBuffer(authRequest[0].keyHandle),
-          type: 'public-key' as type,
-          transports: ['usb', 'ble', 'nfc'] as transports,
-        },
-      ],
-      userVerification: 'discouraged' as userVerification,
+      allowCredentials: credentials,
+      userVerification: 'discouraged',
       extensions: {
         appid: authRequest[0].appId,
       },
-    };
+    } as PublicKeyCredentialRequestOptions;
 
     const promise = navigator.credentials.get({
       publicKey: publicKeyCredentialRequestOptions,
