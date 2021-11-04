@@ -2,7 +2,7 @@ import {ReactNode} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {SectionHeading as _SectionHeading} from 'app/components/charts/styles';
+import {SectionHeading} from 'app/components/charts/styles';
 import {Panel} from 'app/components/panels';
 import {DurationPill, RowRectangle} from 'app/components/performance/waterfall/rowBar';
 import {pickBarColor, toPercent} from 'app/components/performance/waterfall/utils';
@@ -62,7 +62,7 @@ export function HeaderItem(props: HeaderItemProps) {
   return (
     <HeaderItemContainer align={align}>
       {isSortKey && (
-        <IconArrow
+        <StyledIconArrow
           data-test-id="span-sort-arrow"
           size="xs"
           color={theme.subText as any}
@@ -83,8 +83,8 @@ export const HeaderItemContainer = styled('div')<{align: 'left' | 'right'}>`
   }
 `;
 
-const SectionHeading = styled(_SectionHeading)`
-  margin: 0px 0px 0px ${space(0.5)};
+const StyledIconArrow = styled(IconArrow)`
+  margin-right: ${space(0.5)};
 `;
 
 const SectionValue = styled('h1')`
