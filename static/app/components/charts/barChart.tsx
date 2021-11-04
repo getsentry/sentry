@@ -13,11 +13,12 @@ export type BarChartSeries = Series & Omit<EChartOption.SeriesBar, 'data' | 'nam
 type Props = Omit<ChartProps, 'series'> & {
   series: BarChartSeries[];
   stacked?: boolean;
+  animation?: boolean;
 };
 
 class BarChart extends React.Component<Props> {
   render() {
-    const {series, stacked, xAxis, ...props} = this.props;
+    const {series, stacked, xAxis, animation, ...props} = this.props;
 
     return (
       <BaseChart
@@ -33,7 +34,7 @@ class BarChart extends React.Component<Props> {
               }
               return {value: [name, value], itemStyle};
             }),
-            animation: false,
+            animation,
             ...options,
           })
         )}
