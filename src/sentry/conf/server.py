@@ -1011,7 +1011,7 @@ SENTRY_FEATURES = {
     "organizations:dashboards-basic": True,
     # Enable custom editable dashboards
     "organizations:dashboards-edit": True,
-    # Enable dashboard widget libraray
+    # Enable dashboard widget library
     "organizations:widget-library": False,
     # Enable navigation features between Discover and Dashboards
     "organizations:connect-discover-and-dashboards": False,
