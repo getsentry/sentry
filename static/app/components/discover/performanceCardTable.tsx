@@ -12,7 +12,7 @@ import NotAvailable from 'app/components/notAvailable';
 import {PanelItem} from 'app/components/panels';
 import PanelTable from 'app/components/panels/panelTable';
 import {IconArrow, IconWarning} from 'app/icons';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Organization, ReleaseProject} from 'app/types';
@@ -48,8 +48,6 @@ function PerformanceCardTable({
   performanceType,
   isLoading,
 }: PerformanceCardTableProps) {
-  const discoverPath = `/organizations/${organization.slug}/discover/results/`;
-
   const miseryRenderer =
     allReleasesTableData?.meta &&
     getFieldRenderer('user_misery', allReleasesTableData.meta);
@@ -116,19 +114,12 @@ function PerformanceCardTable({
     ];
 
     const webVitalTitles = webVitals.map((vital, idx) => {
+      const newView = releaseEventView.withColumns([
+        {kind: 'field', field: `p75(${vital.title})`},
+      ]);
       return (
         <SubTitle key={idx}>
-          <Link
-            to={{
-              pathname: discoverPath,
-              query: {
-                query: `${releaseEventView.query}`,
-                project: `${releaseEventView.project}`,
-                field: `p75(${vital.title})`,
-                statsPeriod: `${releaseEventView.statsPeriod}`,
-              },
-            }}
-          >
+          <Link to={newView.getResultsViewUrlTarget(organization.slug)}>
             {WEB_VITAL_DETAILS[vital.title].name} (
             {WEB_VITAL_DETAILS[vital.title].acronym})
           </Link>
@@ -137,19 +128,12 @@ function PerformanceCardTable({
     });
 
     const spanTitles = spans.map((span, idx) => {
+      const newView = releaseEventView.withColumns([
+        {kind: 'field', field: `${span.column}`},
+      ]);
       return (
         <SubTitle key={idx}>
-          <Link
-            to={{
-              pathname: discoverPath,
-              query: {
-                query: `${releaseEventView.query}`,
-                project: `${releaseEventView.project}`,
-                field: `${span.column}`,
-                statsPeriod: `${releaseEventView.statsPeriod}`,
-              },
-            }}
-          >
+          <Link to={newView.getResultsViewUrlTarget(organization.slug)}>
             {t(span.title)}
           </Link>
         </SubTitle>
@@ -196,13 +180,13 @@ function PerformanceCardTable({
     const emptyColumn = (
       <div>
         <SingleEmptySubText>
-          <StyledNotAvailable tooltip="No results found" />
+          <StyledNotAvailable tooltip={t('No results found')} />
         </SingleEmptySubText>
         <StyledPanelItem>
           <TitleSpace />
           {webVitals.map((vital, index) => (
             <MultipleEmptySubText key={vital[index]}>
-              {<StyledNotAvailable tooltip="No results found" />}
+              {<StyledNotAvailable tooltip={t('No results found')} />}
             </MultipleEmptySubText>
           ))}
         </StyledPanelItem>
@@ -210,7 +194,7 @@ function PerformanceCardTable({
           <TitleSpace />
           {spans.map((span, index) => (
             <MultipleEmptySubText key={span[index]}>
-              {<StyledNotAvailable tooltip="No results found" />}
+              {<StyledNotAvailable tooltip={t('No results found')} />}
             </MultipleEmptySubText>
           ))}
         </StyledPanelItem>
@@ -322,19 +306,12 @@ function PerformanceCardTable({
     ];
 
     const spanTitles = spans.map((span, idx) => {
+      const newView = releaseEventView.withColumns([
+        {kind: 'field', field: `${span.column}`},
+      ]);
       return (
         <SubTitle key={idx}>
-          <Link
-            to={{
-              pathname: discoverPath,
-              query: {
-                query: `${releaseEventView.query}`,
-                project: `${releaseEventView.project}`,
-                field: `${span.column}`,
-                statsPeriod: `${releaseEventView.statsPeriod}`,
-              },
-            }}
-          >
+          <Link to={newView.getResultsViewUrlTarget(organization.slug)}>
             {t(span.title)}
           </Link>
         </SubTitle>
@@ -380,16 +357,16 @@ function PerformanceCardTable({
     const emptyColumn = (
       <div>
         <SingleEmptySubText>
-          <StyledNotAvailable tooltip="No results found" />
+          <StyledNotAvailable tooltip={t('No results found')} />
         </SingleEmptySubText>
         <SingleEmptySubText>
-          <StyledNotAvailable tooltip="No results found" />
+          <StyledNotAvailable tooltip={t('No results found')} />
         </SingleEmptySubText>
         <StyledPanelItem>
           <TitleSpace />
           {spans.map((span, index) => (
             <MultipleEmptySubText key={span[index]}>
-              {<StyledNotAvailable tooltip="No results found" />}
+              {<StyledNotAvailable tooltip={t('No results found')} />}
             </MultipleEmptySubText>
           ))}
         </StyledPanelItem>
@@ -514,11 +491,11 @@ function PerformanceCardTable({
     const emptyColumn = (
       <div>
         <SingleEmptySubText>
-          <StyledNotAvailable tooltip="No results found" />
+          <StyledNotAvailable tooltip={t('No results found')} />
         </SingleEmptySubText>
         {mobileVitalFields.map((vital, index) => (
           <SingleEmptySubText key={vital[index]}>
-            <StyledNotAvailable tooltip="No results found" />
+            <StyledNotAvailable tooltip={t('No results found')} />
           </SingleEmptySubText>
         ))}
       </div>
@@ -590,7 +567,7 @@ function PerformanceCardTable({
     const emptyColumn = (
       <div>
         <SingleEmptySubText>
-          <StyledNotAvailable tooltip="No results found" />
+          <StyledNotAvailable tooltip={t('No results found')} />
         </SingleEmptySubText>
       </div>
     );
@@ -633,7 +610,7 @@ function PerformanceCardTable({
     );
   }
 
-  const loader = <LoadingIndicator style={{margin: '70px auto'}} />;
+  const loader = <StyledLoadingIndicator />;
 
   const platformPerformanceRender = {
     [PROJECT_PERFORMANCE_TYPE.FRONTEND]: {
@@ -663,10 +640,16 @@ function PerformanceCardTable({
       </HeadCellContainer>
       {isUnknownPlatform && (
         <StyledAlert type="warning" icon={<IconWarning size="md" />} system>
-          For more performance metrics, specify which platform this project is using in{' '}
-          <Link to={`/settings/${organization.slug}/projects/${project.slug}/`}>
-            project settings.
-          </Link>
+          {tct(
+            'For more performance metrics, specify which platform this project is using in [link]',
+            {
+              link: (
+                <Link to={`/settings/${organization.slug}/projects/${project.slug}/`}>
+                  {t('project settings.')}
+                </Link>
+              ),
+            }
+          )}
         </StyledAlert>
       )}
       <StyledPanelTable
@@ -748,6 +731,10 @@ export default PerformanceCardTableWrapper;
 const emptyFieldCss = p => css`
   color: ${p.theme.chartOther};
   text-align: right;
+`;
+
+const StyledLoadingIndicator = styled(LoadingIndicator)`
+  margin: 70px auto;
 `;
 
 const HeadCellContainer = styled('div')`
