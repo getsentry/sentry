@@ -98,7 +98,7 @@ class AccountIdentities extends AsyncView<Props, State> {
           </Fragment>
         }
       >
-        <Button>{t('Disconnect')}</Button>
+        <Button size="small">{t('Disconnect')}</Button>
       </Confirm>
     ) : (
       <Button
