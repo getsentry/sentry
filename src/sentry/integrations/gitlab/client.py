@@ -89,9 +89,12 @@ class GitLabApiClient(ApiClient):
     def metadata(self):
         return self.installation.model.metadata
 
+    def request_headers(self, identity):
+        access_token = identity.data["access_token"]
+        return {"Authorization": f"Bearer {access_token}"}
+
     def request(self, method, path, data=None, params=None):
-        access_token = self.identity.data["access_token"]
-        headers = {"Authorization": f"Bearer {access_token}"}
+        headers = self.request_headers(self.identity)
         url = GitLabApiClientPath.build_api_url(self.metadata["base_url"], path)
         try:
             return self._request(method, url, headers=headers, data=data, params=params)
@@ -99,8 +102,14 @@ class GitLabApiClient(ApiClient):
             if self.is_refreshing_token:
                 raise e
             self.is_refreshing_token = True
-            self.refresh_auth()
-            resp = self._request(method, url, headers=headers, data=data, params=params)
+            new_identity = self.refresh_auth()
+            resp = self._request(
+                method,
+                url,
+                headers=self.request_headers(new_identity),
+                data=data,
+                params=params,
+            )
             self.is_refreshing_token = False
             return resp
 
@@ -111,7 +120,7 @@ class GitLabApiClient(ApiClient):
 
         https://github.com/doorkeeper-gem/doorkeeper/wiki/Enable-Refresh-Token-Credentials#testing-with-oauth2-gem
         """
-        self.identity.get_provider().refresh_identity(
+        return self.identity.get_provider().refresh_identity(
             self.identity,
             refresh_token_url="{}{}".format(
                 self.metadata["base_url"], GitLabApiClientPath.oauth_token
