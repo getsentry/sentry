@@ -12,7 +12,7 @@ from sentry.api.helpers.group_index.index import EndpointFunction
 from sentry.app import ratelimiter
 
 
-def get_rate_limit_key(view_func: EndpointFunction, request: Request):
+def get_rate_limit_key(view_func: EndpointFunction, request: Request) -> str | None:
     """Construct a consistent global rate limit key using the arguments provided"""
 
     view = f"{view_func.__module__}.{view_func.__name__}"
@@ -25,17 +25,21 @@ def get_rate_limit_key(view_func: EndpointFunction, request: Request):
     request_access = getattr(request, "access", None)
     org_id = getattr(request_access, "organization_id", None)
 
+    ip_address = request.META.get("REMOTE_ADDR")
+
     # Default to using an IP based ratelimit
-    if is_sentry_app and org_id:
+    if is_sentry_app and org_id is not None:
         category = "org"
         id = org_id
-    elif user_id:
+    elif user_id is not None:
         category = "user"
         id = user_id
-    else:
+    elif ip_address is not None:
         category = "ip"
-        id = request.META["REMOTE_ADDR"]
-
+        id = ip_address
+    # If IP address doesn't exist, skip ratelimiting for now
+    else:
+        return None
     return f"{category}:{view}:{http_method}:{id}"
 
 
@@ -71,5 +75,7 @@ class RatelimitMiddleware(MiddlewareMixin):
             return
 
         key = get_rate_limit_key(view_func, request)
-        request.will_be_rate_limited = above_rate_limit_check(key)["is_limited"]
+        request.will_be_rate_limited = (
+            above_rate_limit_check(key)["is_limited"] if key is not None else False
+        )
         return
