@@ -1,4 +1,4 @@
-function AsanaPlugin() {
+export function AsanaPlugin() {
   return {
     status: 'unknown',
     description: 'Integrate Asana issues by linking a repository to a project.',
@@ -26,7 +26,7 @@ function AsanaPlugin() {
   };
 }
 
-function AsanaCreate() {
+export function AsanaCreate() {
   return [
     {
       name: 'workspace',
@@ -70,8 +70,7 @@ function AsanaCreate() {
 }
 
 const DEFAULT_AUTOCOMPLETE = {text: '(#724210387969378) billy', id: 724210387969378};
-function AsanaAutocomplete(type = 'project', values = [DEFAULT_AUTOCOMPLETE]) {
+
+export function AsanaAutocomplete(type = 'project', values = [DEFAULT_AUTOCOMPLETE]) {
   return {[type]: values};
 }
-
-export {AsanaAutocomplete, AsanaCreate, AsanaPlugin};
