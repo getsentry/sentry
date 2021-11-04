@@ -338,7 +338,9 @@ export class SentryAppExternalForm extends Component<Props, State> {
     const requiredFields = this.state.required_fields || [];
     const optionalFields = this.state.optional_fields || [];
 
-    if (!sentryAppInstallationUuid) return '';
+    if (!sentryAppInstallationUuid) {
+      return '';
+    }
 
     return (
       <Form
