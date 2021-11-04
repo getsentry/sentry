@@ -71,12 +71,11 @@ export function LineChartListWidget(props: Props) {
 
   const isSlowestType = slowList.includes(props.chartSetting);
 
-  const eventView = props.eventView.clone();
-
   const listQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
     () => ({
       fields: field,
       component: provided => {
+        const eventView = props.eventView.clone();
         eventView.sorts = [{kind: 'desc', field}];
         if (props.chartSetting === PerformanceWidgetSetting.MOST_RELATED_ISSUES) {
           eventView.fields = [
@@ -125,6 +124,7 @@ export function LineChartListWidget(props: Props) {
       },
       fields: field,
       component: provided => {
+        const eventView = props.eventView.clone();
         eventView.additionalConditions.setFilterValues('transaction', [
           provided.widgetData.list.data[selectedListIndex].transaction as string,
         ]);
