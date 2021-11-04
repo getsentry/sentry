@@ -228,12 +228,12 @@ describe('groupDetails', () => {
 
     expect(await screen.findByText(SAMPLE_EVENT_ALERT_TEXT)).toBeInTheDocument();
   });
-  it('does not render alert for non sample events', async function () {
+  it('does not render alert for non sample events', function () {
     const aProject = TestStubs.Project({firstEvent: false});
     act(() => ProjectsStore.reset());
     act(() => ProjectsStore.loadInitialData([aProject]));
     createWrapper();
 
-    expect(await screen.queryByText(SAMPLE_EVENT_ALERT_TEXT)).not.toBeInTheDocument();
+    expect(screen.queryByText(SAMPLE_EVENT_ALERT_TEXT)).not.toBeInTheDocument();
   });
 });
