@@ -102,6 +102,7 @@ class AccountIdentities extends AsyncView<Props, State> {
       </Confirm>
     ) : (
       <Button
+        size="small"
         disabled
         title={
           identity.status === UserIdentityStatus.NEEDED_FOR_GLOBAL_AUTH
