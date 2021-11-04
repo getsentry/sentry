@@ -66,7 +66,7 @@ def get_identities(user: User) -> Iterable[UserIdentityConfig]:
     )
     org_identities = (
         UserIdentityConfig.wrap(obj, get_org_identity_status(obj))
-        for obj in AuthIdentity.objects.filter(user=user)
+        for obj in AuthIdentity.objects.filter(user=user).select_related()
     )
 
     return itertools.chain(social_identities, global_identities, org_identities)
