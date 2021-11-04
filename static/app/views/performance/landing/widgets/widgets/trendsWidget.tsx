@@ -22,7 +22,7 @@ import {excludeTransaction} from '../../utils';
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import SelectableList, {RightAlignedCell} from '../components/selectableList';
 import {transformTrendsDiscover} from '../transforms/transformTrendsDiscover';
-import {WidgetDataResult} from '../types';
+import {QueryDefinition, WidgetDataResult} from '../types';
 import {PerformanceWidgetSetting} from '../widgetDefinitions';
 
 type Props = {
@@ -39,7 +39,7 @@ type Props = {
   ContainerActions: FunctionComponent<{isLoading: boolean}>;
 };
 
-type TrendsWidgetDataType = {
+type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformTrendsDiscover>;
 };
 
@@ -69,27 +69,30 @@ export function TrendsWidget(props: Props) {
   eventView.additionalConditions.addFilterValues('trend_percentage()', ['>0%']);
   eventView.additionalConditions.addFilterValues('confidence()', ['>6']);
 
-  const Queries = useMemo(() => {
-    return {
-      chart: {
-        fields: ['transaction', 'project'],
-        component: provided => (
-          <TrendsDiscoverQuery
-            {...provided}
-            eventView={eventView}
-            location={props.location}
-            trendChangeType={trendChangeType}
-            trendFunctionField={trendFunctionField}
-            limit={3}
-          />
-        ),
-        transform: transformTrendsDiscover,
-      },
-    };
-  }, [eventView.query, eventView.fields, trendChangeType]);
+  const chart = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
+    () => ({
+      fields: ['transaction', 'project'],
+      component: provided => (
+        <TrendsDiscoverQuery
+          {...provided}
+          eventView={eventView}
+          location={props.location}
+          trendChangeType={trendChangeType}
+          trendFunctionField={trendFunctionField}
+          limit={3}
+        />
+      ),
+      transform: transformTrendsDiscover,
+    }),
+    [eventView.query, eventView.fields, trendChangeType]
+  );
+
+  const Queries = {
+    chart,
+  };
 
   return (
-    <GenericPerformanceWidget<TrendsWidgetDataType>
+    <GenericPerformanceWidget<DataType>
       {...rest}
       Subtitle={() => <Subtitle>{t('Trending Transactions')}</Subtitle>}
       HeaderActions={provided => <ContainerActions {...provided.widgetData.chart} />}
