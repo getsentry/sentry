@@ -39,7 +39,11 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission, StrictProjectPermission
-from sentry.api.exceptions import AppConnectAuthenticationError, AppConnectMultipleSourcesError
+from sentry.api.exceptions import (
+    AppConnectAuthenticationError,
+    AppConnectForbiddenError,
+    AppConnectMultipleSourcesError,
+)
 from sentry.api.fields.secret import SecretField, validate_secret
 from sentry.lang.native import appconnect
 from sentry.lang.native.symbolicator import redact_source_secrets, secret_fields
@@ -424,15 +428,15 @@ class AppStoreConnectStatusEndpoint(ProjectEndpoint):  # type: ignore
     [
         {
             "id": "abc123",
-            "appstoreCredentialsValid": true,
+            "credentials": { status: "valid" } | { status: "invalid", code: "app-connect-forbidden-error" },
             "pendingDownloads": 123,
             "latestBuildVersion: "9.8.7" | null,
             "latestBuildNumber": "987000" | null,
             "lastCheckedBuilds": "YYYY-MM-DDTHH:MM:SS.SSSSSSZ" | null
-        }
+        },
         {
             "id": ...,
-            "appstoreCredentialsValid": ...,
+            "credentials": ...,
             "pendingDownloads": ...,
             "latestBuildVersion: ...,
             "latestBuildNumber": ...,
@@ -472,7 +476,28 @@ class AppStoreConnectStatusEndpoint(ProjectEndpoint):  # type: ignore
 
             session = requests.Session()
 
-            apps = appstore_connect.get_apps(session, credentials)
+            try:
+                apps = appstore_connect.get_apps(session, credentials)
+            except appstore_connect.UnauthorizedError:
+                asc_credentials = {
+                    "status": "invalid",
+                    "code": AppConnectAuthenticationError().code,
+                }
+            except appstore_connect.ForbiddenError:
+                asc_credentials = {"status": "invalid", "code": AppConnectForbiddenError().code}
+            else:
+                if apps:
+                    asc_credentials = {"status": "valid"}
+                else:
+                    asc_credentials = {
+                        "status": "invalid",
+                        "code": AppConnectAuthenticationError().code,
+                    }
+
+            asc_credentials = {
+                "status": "invalid",
+                "code": AppConnectAuthenticationError().code,
+            }
 
             pending_downloads = AppConnectBuild.objects.filter(
                 project=project, fetched=False
@@ -506,7 +531,7 @@ class AppStoreConnectStatusEndpoint(ProjectEndpoint):  # type: ignore
             statuses.append(
                 {
                     "id": config_id,
-                    "appstoreCredentialsValid": apps is not None,
+                    "credentials": asc_credentials,
                     "pendingDownloads": pending_downloads,
                     "latestBuildVersion": latestBuildVersion,
                     "latestBuildNumber": latestBuildNumber,
