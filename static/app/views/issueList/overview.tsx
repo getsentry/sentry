@@ -215,7 +215,8 @@ class IssueListOverview extends React.Component<Props, State> {
     // Wait for saved searches to load before we attempt to fetch stream data
     if (this.props.savedSearchLoading) {
       return;
-    } else if (prevProps.savedSearchLoading) {
+    }
+    if (prevProps.savedSearchLoading) {
       this.fetchData();
       return;
     }

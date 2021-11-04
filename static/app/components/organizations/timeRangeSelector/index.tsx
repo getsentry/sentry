@@ -41,11 +41,10 @@ const getDateWithTimezoneInUtc = (date, utc) =>
 const getInternalDate = (date, utc) => {
   if (utc) {
     return getUtcToSystem(date);
-  } else {
-    return new Date(
-      moment.tz(moment.utc(date), getUserTimezone()).format('YYYY/MM/DD HH:mm:ss')
-    );
   }
+  return new Date(
+    moment.tz(moment.utc(date), getUserTimezone()).format('YYYY/MM/DD HH:mm:ss')
+  );
 };
 
 const DateRangeHook = HookOrDefault({

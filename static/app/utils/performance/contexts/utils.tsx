@@ -24,7 +24,9 @@ export function createDefinedContext<ContextType>(options: {
 
   function useContext() {
     const context = React.useContext(Context);
-    if (!context && strict) throw new Error(errorMessage);
+    if (!context && strict) {
+      throw new Error(errorMessage);
+    }
     return context;
   }
 

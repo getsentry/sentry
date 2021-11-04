@@ -18,7 +18,7 @@ describe('PipelineView', () => {
       {context: TestStubs.routerContext()}
     );
 
-    screen.findByText('mock_AwsLambdaProjectSelect');
+    expect(screen.getByText('mock_AwsLambdaProjectSelect')).toBeInTheDocument();
 
     expect(document.title).toBe('AWS Lambda Select Project');
   });

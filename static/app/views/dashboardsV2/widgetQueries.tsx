@@ -341,7 +341,7 @@ class WidgetQueries extends React.Component<Props, State> {
     });
 
     let completed = 0;
-    promises.forEach(async (promise, i) => {
+    promises.forEach(async (promise, requestIndex) => {
       try {
         const rawResults = await promise;
         if (!this._isMounted) {
@@ -353,12 +353,23 @@ class WidgetQueries extends React.Component<Props, State> {
             return prevState;
           }
 
-          const timeseriesResults = (prevState.timeseriesResults ?? []).concat(
-            transformResult(widget.queries[i], rawResults)
+          const timeseriesResults = [...(prevState.timeseriesResults ?? [])];
+          const transformedResult = transformResult(
+            widget.queries[requestIndex],
+            rawResults
           );
+          // When charting timeseriesData on echarts, color association to a timeseries result
+          // is order sensitive, ie series at index i on the timeseries array will use color at
+          // index i on the color array. This means that on multi series results, we need to make
+          // sure that the order of series in our results do not change between fetches to avoid
+          // coloring inconsistencies between renders.
+          transformedResult.forEach((result, resultIndex) => {
+            timeseriesResults[requestIndex * transformedResult.length + resultIndex] =
+              result;
+          });
 
           const rawResultsClone = cloneDeep(prevState.rawResults ?? []);
-          rawResultsClone[i] = rawResults;
+          rawResultsClone[requestIndex] = rawResults;
 
           return {
             ...prevState,

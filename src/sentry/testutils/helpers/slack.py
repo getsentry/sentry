@@ -92,8 +92,9 @@ def link_team(team: Team, integration: Integration, channel_name: str, channel_i
 
 
 def send_notification(*args):
-    args_list = list(args)[1:]
-    send_notification_as_slack(*args_list, {})
+    provider, *args_list = args
+    if provider == ExternalProviders.SLACK:
+        send_notification_as_slack(*args_list, {})
 
 
 def get_attachment():

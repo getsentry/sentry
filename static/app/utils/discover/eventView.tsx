@@ -1375,7 +1375,8 @@ const isFieldsSimilar = (
 
   if (!isEqual(currentEquations, otherEquations)) {
     return false;
-  } else if (!isEqual(currentFields, otherFields)) {
+  }
+  if (!isEqual(currentFields, otherFields)) {
     return false;
   }
   return true;

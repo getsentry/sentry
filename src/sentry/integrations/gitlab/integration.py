@@ -255,7 +255,6 @@ class InstallationGuideView(PipelineView):
                 "setup_values": [
                     {"label": "Name", "value": "Sentry"},
                     {"label": "Redirect URI", "value": absolute_uri("/extensions/gitlab/setup/")},
-                    {"label": "Expire access tokens", "value": "Unchecked"},
                     {"label": "Scopes", "value": "api"},
                 ],
             },
@@ -332,7 +331,15 @@ class GitlabIntegrationProvider(IntegrationProvider):
 
     def build_integration(self, state):
         data = state["identity"]["data"]
-        oauth_data = get_oauth_data(data)
+
+        # Gitlab requires the client_id and client_secret for refreshing the access tokens
+        oauth_config = state.get("oauth_config_information", {})
+        oauth_data = {
+            **get_oauth_data(data),
+            "client_id": oauth_config.get("client_id"),
+            "client_secret": oauth_config.get("client_secret"),
+        }
+
         user = get_user_info(data["access_token"], state["installation_data"])
         group = self.get_group_info(data["access_token"], state["installation_data"])
         include_subgroups = state["installation_data"]["include_subgroups"]

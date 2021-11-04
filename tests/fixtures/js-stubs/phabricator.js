@@ -1,4 +1,4 @@
-function PhabricatorPlugin() {
+export function PhabricatorPlugin() {
   return {
     status: 'unknown',
     description:
@@ -35,7 +35,7 @@ function PhabricatorPlugin() {
   };
 }
 
-function PhabricatorCreate() {
+export function PhabricatorCreate() {
   return [
     {
       default: 'ApiException: Authentication failed, token expired!',
@@ -79,7 +79,7 @@ const DEFAULT_AUTOCOMPLETE_ASSIGNEE = {
 const DEFAULT_AUTOCOMPLETE_TAG1 = {text: 'Bar', id: 'PHID-PROJ-biz3qujawd2dfknvhpqv'};
 const DEFAULT_AUTOCOMPLETE_TAG2 = {text: 'Foo', id: 'PHID-PROJ-3dfrsmwmavdv4gbg4fxd'};
 
-function PhabricatorAutocomplete(type = 'project', values = null) {
+export function PhabricatorAutocomplete(type = 'project', values = null) {
   if (values) {
     return {[type]: values};
   }
@@ -91,5 +91,3 @@ function PhabricatorAutocomplete(type = 'project', values = null) {
   }
   return {[type]: values};
 }
-
-export {PhabricatorAutocomplete, PhabricatorCreate, PhabricatorPlugin};

@@ -29,7 +29,8 @@ function arrayIsEqual(arr?: any[], other?: any[], deep?: boolean): boolean {
 export function valueIsEqual(value?: any, other?: any, deep?: boolean): boolean {
   if (value === other) {
     return true;
-  } else if (isArray(value) || isArray(other)) {
+  }
+  if (isArray(value) || isArray(other)) {
     if (arrayIsEqual(value, other, deep)) {
       return true;
     }

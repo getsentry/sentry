@@ -122,7 +122,8 @@ function Tag({
           {tag}
         </Link>
       );
-    } else if (defined(to)) {
+    }
+    if (defined(to)) {
       return <Link to={to}>{tag}</Link>;
     }
 

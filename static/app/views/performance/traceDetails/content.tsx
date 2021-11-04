@@ -602,21 +602,22 @@ class TraceDetailsContent extends React.Component<Props, State> {
 
     if (!dateSelected) {
       return this.renderTraceRequiresDateRangeSelection();
-    } else if (isLoading) {
-      return this.renderTraceLoading();
-    } else if (error !== null || traces === null || traces.length <= 0) {
-      return this.renderTraceNotFound();
-    } else {
-      const traceInfo = getTraceInfo(traces);
-      return (
-        <React.Fragment>
-          {this.renderTraceWarnings()}
-          {this.renderTraceHeader(traceInfo)}
-          {this.renderSearchBar()}
-          {this.renderTraceView(traceInfo)}
-        </React.Fragment>
-      );
     }
+    if (isLoading) {
+      return this.renderTraceLoading();
+    }
+    if (error !== null || traces === null || traces.length <= 0) {
+      return this.renderTraceNotFound();
+    }
+    const traceInfo = getTraceInfo(traces);
+    return (
+      <React.Fragment>
+        {this.renderTraceWarnings()}
+        {this.renderTraceHeader(traceInfo)}
+        {this.renderSearchBar()}
+        {this.renderTraceView(traceInfo)}
+      </React.Fragment>
+    );
   }
 
   render() {

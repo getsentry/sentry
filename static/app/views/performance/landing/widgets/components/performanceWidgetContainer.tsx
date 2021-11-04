@@ -18,11 +18,11 @@ const getPerformanceWidgetContainer = ({
 }) => {
   if (containerType === 'panel') {
     return StyledPanel;
-  } else if (containerType === 'inline') {
-    return Div;
-  } else {
+  }
+  if (containerType === 'inline') {
     return Div;
   }
+  return Div;
 };
 
 export default getPerformanceWidgetContainer;

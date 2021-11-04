@@ -71,7 +71,7 @@ export const getAlertWizardCategories = (org: Organization): AlertWizardCategory
         {
           categoryHeading: t('Sessions'),
           options: ['crash_free_sessions', 'crash_free_users'] as AlertType[],
-          featureBadgeType: 'beta' as const,
+          featureBadgeType: 'new' as const,
         },
       ]
     : []),
@@ -325,14 +325,14 @@ export function getFunctionHelpText(alertType: AlertType): {
       labelText: t('Select apdex value and time interval'),
       timeWindowText,
     };
-  } else if (hidePrimarySelectorSet.has(alertType)) {
+  }
+  if (hidePrimarySelectorSet.has(alertType)) {
     return {
       labelText: t('Select time interval'),
     };
-  } else {
-    return {
-      labelText: t('Select function and time interval'),
-      timeWindowText,
-    };
   }
+  return {
+    labelText: t('Select function and time interval'),
+    timeWindowText,
+  };
 }

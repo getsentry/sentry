@@ -290,6 +290,7 @@ MIDDLEWARE = (
     "sentry.middleware.sudo.SudoMiddleware",
     "sentry.middleware.superuser.SuperuserMiddleware",
     "sentry.middleware.locale.SentryLocaleMiddleware",
+    "sentry.middleware.ratelimit.RatelimitMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
 )
 
@@ -993,23 +994,20 @@ SENTRY_FEATURES = {
     "organizations:integrations-incident-management": True,
     # Allow orgs to automatically create Tickets in Issue Alerts
     "organizations:integrations-ticket-rules": True,
-    # Allow orgs to install AzureDevops with limited scopes
-    "organizations:integrations-vsts-limited-scopes": False,
     # Allow orgs to use the stacktrace linking feature
     "organizations:integrations-stacktrace-link": False,
     # Allow orgs to install a custom source code management integration
     "organizations:integrations-custom-scm": False,
     # Allow orgs to debug internal/unpublished sentry apps with logging
     "organizations:sentry-app-debugging": False,
-    # Temporary safety measure, turned on for specific orgs only if
-    # absolutely necessary, to be removed shortly
-    "organizations:slack-allow-workspace": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
     # Enable readonly dashboards
     "organizations:dashboards-basic": True,
     # Enable custom editable dashboards
     "organizations:dashboards-edit": True,
+    # Enable dashboard widget library
+    "organizations:widget-library": False,
     # Enable navigation features between Discover and Dashboards
     "organizations:connect-discover-and-dashboards": False,
     # Enable experimental performance improvements.
@@ -1672,6 +1670,10 @@ SENTRY_ATTACHMENT_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
 # files and source maps, and directly translates to the chunk size in blob
 # store. MUST be a power of two.
 SENTRY_CHUNK_UPLOAD_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
+
+# This flag tell DEVSERVICES to start the ingest-metrics-consumer in order to work on
+# metrics in the development environment. Note: this is "metrics" the product
+SENTRY_USE_METRICS_DEV = False
 
 # This flags activates the Change Data Capture backend in the development environment
 SENTRY_USE_CDC_DEV = False

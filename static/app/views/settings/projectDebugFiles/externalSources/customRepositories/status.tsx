@@ -29,7 +29,7 @@ function Status({details, onEditRepository}: Props) {
     return (
       <Wrapper color={theme.red300} onClick={onEditRepository}>
         <StyledTooltip
-          title={t('Recheck your App Store Credentials')}
+          title={t('Re-check your App Store Credentials')}
           containerDisplayMode="inline-flex"
         >
           <IconWarning size="sm" />

@@ -72,7 +72,8 @@ export default class SelectField extends FormField<Props> {
 
     if (this.isMultiple()) {
       return value.map(v => v.value);
-    } else if (value.hasOwnProperty('value')) {
+    }
+    if (value.hasOwnProperty('value')) {
       return value.value;
     }
 

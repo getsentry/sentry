@@ -4,7 +4,13 @@ import {Location, LocationDescriptor, Query} from 'history';
 import Duration from 'app/components/duration';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {backend, frontend, mobile} from 'app/data/platformCategories';
-import {GlobalSelection, Organization, OrganizationSummary, Project} from 'app/types';
+import {
+  GlobalSelection,
+  Organization,
+  OrganizationSummary,
+  Project,
+  ReleaseProject,
+} from 'app/types';
 import {defined} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {statsPeriodToDays} from 'app/utils/dates';
@@ -34,13 +40,15 @@ const BACKEND_PLATFORMS: string[] = [...backend];
 const MOBILE_PLATFORMS: string[] = [...mobile];
 
 export function platformToPerformanceType(
-  projects: Project[],
+  projects: (Project | ReleaseProject)[],
   projectIds: readonly number[]
 ) {
   if (projectIds.length === 0 || projectIds[0] === ALL_ACCESS_PROJECTS) {
     return PROJECT_PERFORMANCE_TYPE.ANY;
   }
-  const selectedProjects = projects.filter(p => projectIds.includes(parseInt(p.id, 10)));
+  const selectedProjects = projects.filter(p =>
+    projectIds.includes(parseInt(`${p.id}`, 10))
+  );
   if (selectedProjects.length === 0 || selectedProjects.some(p => !p.platform)) {
     return PROJECT_PERFORMANCE_TYPE.ANY;
   }
@@ -267,10 +275,15 @@ export function addRoutePerformanceContext(selection: GlobalSelection) {
 
   transaction?.setTag('query.period', seconds.toString());
   let groupedPeriod = '>30d';
-  if (seconds <= oneDay) groupedPeriod = '<=1d';
-  else if (seconds <= oneDay * 7) groupedPeriod = '<=7d';
-  else if (seconds <= oneDay * 14) groupedPeriod = '<=14d';
-  else if (seconds <= oneDay * 30) groupedPeriod = '<=30d';
+  if (seconds <= oneDay) {
+    groupedPeriod = '<=1d';
+  } else if (seconds <= oneDay * 7) {
+    groupedPeriod = '<=7d';
+  } else if (seconds <= oneDay * 14) {
+    groupedPeriod = '<=14d';
+  } else if (seconds <= oneDay * 30) {
+    groupedPeriod = '<=30d';
+  }
   transaction?.setTag('query.period.grouped', groupedPeriod);
 }
 
