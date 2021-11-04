@@ -17,7 +17,7 @@ export const DISPLAY_TYPE_CHOICES = [
   {label: t('Table'), value: 'table'},
   {label: t('World Map'), value: 'world_map'},
   {label: t('Big Number'), value: 'big_number'},
-  {label: t('Top Events'), value: 'top_n'},
+  {label: t('Top 5 Events'), value: 'top_n'},
 ];
 
 export const INTERVAL_CHOICES = [
