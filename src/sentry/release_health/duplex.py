@@ -42,6 +42,7 @@ class ComparatorType(Enum):
     Quantile = "quantile"
     Entity = "entity"
     DateTime = "datetime"
+    Ignore = "ignore"
 
 
 Schema = Union[ComparatorType, List["Schema"], Mapping[str, "Schema"], Set["Schema"]]
@@ -157,6 +158,8 @@ def compare_scalars(
             return compare_datetime(sessions, metrics, rollup, path)
         else:
             return f"unsupported scalar type {t} at path {path}"
+    elif schema == ComparatorType.Ignore:
+        return None
     elif schema == ComparatorType.Counter:
         return compare_counters(sessions, metrics, path)
     elif schema == ComparatorType.Ratio:
@@ -220,7 +223,7 @@ def compare_arrays(
     return errors
 
 
-def compare_tuple(
+def compare_tuples(
     sessions, metrics, rollup: int, path: str, schema: Optional[Sequence[Schema]]
 ) -> List[str]:
     done, errors = _compare_basic_sequence(sessions, metrics, path)
@@ -282,6 +285,7 @@ def compare_dicts(
             ret_val += compare_results(
                 sessions.get(key), metrics.get(key), rollup, child_path, child_schema
             )
+    return ret_val
 
 
 def compare_results(
@@ -289,8 +293,6 @@ def compare_results(
 ) -> List[str]:
     if path is None:
         path = ""
-
-    errors = []
 
     if schema is not None:
         discriminator = schema
@@ -303,12 +305,14 @@ def compare_results(
         else:
             return [f"unmatched field at path {path}, sessions=None, metrics={metrics}"]
 
-    if type(discriminator) in {str, float, int, datetime}:
+    if type(discriminator) in {str, float, int, datetime, ComparatorType}:
         err = compare_scalars(sessions, metrics, rollup, path, schema)
         if err is not None:
-            errors.append(err)
+            return [err]
+        else:
+            return []
     elif type(discriminator) == tuple:
-        return compare_tuple(sessions, metrics, rollup, path, schema)
+        return compare_tuples(sessions, metrics, rollup, path, schema)
     elif type(discriminator) == list:
         return compare_arrays(sessions, metrics, rollup, path, schema)
     elif type(discriminator) == set:
@@ -319,22 +323,22 @@ def compare_results(
         return [f"invalid schema type={type(schema)} at path:'{path}'"]
 
 
-def log_exception(ex, result):
-    pass  # TODO
-
-
 class DuplexReleaseHealthBackend(ReleaseHealthBackend):
     DEFAULT_ROLLUP = 60 * 60  # 1h
 
     def __init__(
         self,
-        session: SessionsReleaseHealthBackend,
-        metrics: MetricsReleaseHealthBackend,
         metrics_start: datetime,
     ):
-        self.session = session
-        self.metrics = metrics
+        self.sessions = SessionsReleaseHealthBackend()
+        self.metrics = MetricsReleaseHealthBackend()
         self.metrics_start = metrics_start
+
+    def log_exception(self, ex, result=None):
+        pass  # TODO
+
+    def log_errors(self, errors, sessions, metrics):
+        pass
 
     def _dispatch_call(
         self,
@@ -344,23 +348,28 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         schema: Optional[Schema],
         *args,
     ):
-        sessions_fn = getattr(self.session, fn_name)
-        ret_val = sessions_fn(self.session, *args)
+        sessions_fn = getattr(self.sessions, fn_name)
+        ret_val = sessions_fn(*args)
         try:
             if type(should_compare) != bool:
                 # should compare depends on the session result
                 # evaluate it now
                 # TODO add timers around sessions and metrics
                 should_compare = should_compare(ret_val)
-            if should_compare:
-                metrics_fn = getattr(self.metrics, fn_name)
-                copy = deepcopy(ret_val)
-                metrics_val = metrics_fn(self.metrics, *args)
         except Exception as ex:
-            log_exception(ex, copy)
-        else:
-            compare_results(copy, metrics_val, rollup, None, schema)
-            # todo log errors
+            should_compare = False
+            self.log_exception(ex)
+
+        if should_compare:
+            copy = deepcopy(ret_val)
+            try:
+                metrics_fn = getattr(self.metrics, fn_name)
+                metrics_val = metrics_fn(*args)
+            except Exception as ex:
+                self.log_exception(ex, copy)
+            else:
+                errors = compare_results(copy, metrics_val, rollup, None, schema)
+                self.log_errors(errors, copy, metrics_val)
         return ret_val
 
     def get_current_and_previous_crash_free_rates(
@@ -721,38 +730,3 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
             stats_period,
             environments,
         )
-
-
-# TESTING how we cold do it automatically
-import types
-
-
-def generate_method(name):
-    def meth(self, *args, **kwargs):
-        session_meth = SessionsReleaseHealthBackend.__dict__[name]
-        ret_val = session_meth(self.session, *args, **kwargs)
-        copy = deepcopy(ret_val)
-        try:
-            metrics_meth = MetricsReleaseHealthBackend.__dict__[name]
-            metrics_ret_val = metrics_meth(self.metrics, *args, **kwargs)
-        except Exception as ex:
-            log_exception(ex, copy)
-        else:
-            compare_results(ret_val, metrics_ret_val)
-        return ret_val
-
-    return meth
-
-
-def create_methods(cls):
-    def __init__(self, session: SessionsReleaseHealthBackend, metrics: MetricsReleaseHealthBackend):
-        self.session = session
-        self.metrics = metrics
-
-    cls["__init__"] = __init__
-    for name, field in ReleaseHealthBackend.__dict__.items():
-        if isinstance(field, types.FunctionType):
-            cls[name] = generate_method(name)
-
-
-AutoDuplex = types.new_class("AutoDup", (ReleaseHealthBackend,), exec_body=create_methods)

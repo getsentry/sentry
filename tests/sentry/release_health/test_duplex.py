@@ -1,9 +1,11 @@
 from datetime import datetime
+from unittest.mock import MagicMock
 
 import pytest
 
 from sentry.release_health import duplex
-from sentry.release_health.duplex import ComparatorType
+from sentry.release_health.duplex import ComparatorType as Ct
+from sentry.release_health.duplex import DuplexReleaseHealthBackend
 
 
 @pytest.mark.parametrize(
@@ -109,26 +111,26 @@ def test_compare_floats(use_quantiles, sessions, metrics, are_equal):
 @pytest.mark.parametrize(
     "sessions,metrics,schema, are_equal",
     [
-        (100, 110, ComparatorType.Counter, False),
-        (100, 105, ComparatorType.Counter, True),
+        (100, 110, Ct.Counter, False),
+        (100, 105, Ct.Counter, True),
         # no schema will compare as entity and fail
         (100, 105, None, False),
         # no schema will compare as entity and succeed
         (100, 100, None, True),
-        (100, 100, ComparatorType.Entity, True),
-        (100, 101, ComparatorType.Entity, False),
-        (9.0, 9.05, ComparatorType.Quantile, True),
-        (9.0, 9.05, ComparatorType.Ratio, True),
-        (9.0, 9.1, ComparatorType.Ratio, False),
+        (100, 100, Ct.Entity, True),
+        (100, 101, Ct.Entity, False),
+        (9.0, 9.05, Ct.Quantile, True),
+        (9.0, 9.05, Ct.Ratio, True),
+        (9.0, 9.1, Ct.Ratio, False),
         # no schema, no problem, will figure out float and compare as ratio
         (9.0, 9.05, None, True),
-        ("2021-10-10T10:15", "2021-10-10T10:15:30", ComparatorType.DateTime, True),
+        ("2021-10-10T10:15", "2021-10-10T10:15:30", Ct.DateTime, True),
         # no schema will treat string as entity and fail
         ("2021-10-10T10:15", "2021-10-10T10:15:30", None, False),
         (
             datetime(2021, 10, 10, 10, 15, 0),
             datetime(2021, 10, 10, 10, 15, 30),
-            ComparatorType.DateTime,
+            Ct.DateTime,
             True,
         ),
         # no schema will still figure out to compare as datetime and succeed
@@ -156,4 +158,200 @@ def test_compare_scalars(sessions, metrics, schema, are_equal):
 def test_compare_basic_sequence(sessions, metrics, final_result, are_equal):
     actual_final, actual_errors = duplex._compare_basic_sequence(sessions, metrics, "a.b")
     assert actual_final == final_result
-    assert (actual_errors == []) == are_equal
+    assert (len(actual_errors) == 0) == are_equal
+
+
+@pytest.mark.parametrize(
+    "sessions,metrics,schema, are_equal",
+    [
+        # compare as array of entities
+        ([1, 2, 3], [1, 2, 3], None, True),
+        ([1, 2, 3], [1, 2, 3], [Ct.Entity], True),
+        ([1, 2, 3], [1, 2, 4], [Ct.Entity], False),
+        ([(1, 2), (2, 3), (3, 4)], [(1, 2), (2, 3), (3, 4)], [Ct.Entity], True),
+        ([1, 2, 3], [1, 2], None, False),
+        ([1, 2, 3], [1, 2, 4], [Ct.Counter], True),
+        (
+            [datetime(2021, 10, 10, 12, 30, 10)],
+            [datetime(2021, 10, 10, 12, 30, 20)],
+            [Ct.DateTime],
+            True,
+        ),
+    ],
+)
+def test_compare_arrays(sessions, metrics, schema, are_equal):
+    result = duplex.compare_arrays(sessions, metrics, 60, "", schema)
+    assert (len(result) == 0) == are_equal
+
+
+@pytest.mark.parametrize(
+    "sessions,metrics,schema, are_equal",
+    [
+        # compare as array of entities
+        ((1, 2, 3), (1, 2, 3), None, True),
+        ((1, 2), (1, 2), (Ct.Entity, Ct.Entity), True),
+        ((1, 2), (1, 3), (Ct.Entity, Ct.Entity), False),
+        ((1, 2), (1, 3), (Ct.Entity, Ct.Counter), True),
+        ([1, 2.1, 3], [1, 2.11, 4], (Ct.Entity, Ct.Ratio, Ct.Counter), True),
+        (((1, 2), (2, 3)), ((1, 2), (2, 3)), [Ct.Entity, Ct.Entity], True),
+        ((1, 2, 3), (1, 2), None, False),
+    ],
+)
+def test_compare_tuples(sessions, metrics, schema, are_equal):
+    result = duplex.compare_tuples(sessions, metrics, 60, "", schema)
+    assert (len(result) == 0) == are_equal
+
+
+@pytest.mark.parametrize(
+    "sessions,metrics,schema, are_equal",
+    [
+        # match all as default entities
+        ({"a": 1, "b": 2, "c": 3}, {"a": 1, "b": 3, "c": 44}, None, False),
+        ({"a": 1, "b": 2, "c": 3}, {"a": 1, "b": 2, "c": 3}, None, True),
+        # match all as configured types
+        ({"a": 1, "b": 2, "c": 3}, {"a": 1, "b": 3, "c": 4}, {"*": Ct.Entity}, False),
+        ({"a": 1, "b": 2, "c": 3}, {"a": 1, "b": 3, "c": 4}, {"*": Ct.Counter}, True),
+        # match all unspecified as counters, and "c" as Entity
+        (
+            {"a": 1, "b": 2, "c": 3},
+            {"a": 2, "b": 3, "c": 3},
+            {"*": Ct.Counter, "c": Ct.Entity},
+            True,
+        ),
+        # match subset of properties
+        (
+            {"a": 1, "b": 2, "c": 3},
+            {"a": 1, "b": 3, "c": 44},
+            {"a": Ct.Entity, "b": Ct.Counter},
+            True,
+        ),
+    ],
+)
+def test_compare_dicts(sessions, metrics, schema, are_equal):
+    result = duplex.compare_dicts(sessions, metrics, 60, "", schema)
+    assert (len(result) == 0) == are_equal
+
+
+@pytest.mark.parametrize(
+    "schema, are_equal",
+    [
+        # explicitly match everything
+        (
+            {
+                "a": [Ct.Counter],
+                "b": Ct.Entity,
+                "c": [{"a": (Ct.Entity, Ct.Ratio, Ct.Counter), "b": Ct.Ignore}],
+                "d": Ct.Entity,
+                "e": Ct.Counter,
+            },
+            True,
+        ),
+        # explicitly partial match
+        (
+            {
+                "a": [Ct.Counter],
+                "b": Ct.Entity,
+                "c": [{"a": (Ct.Entity, Ct.Ratio, Ct.Counter)}],
+            },
+            True,
+        ),
+        # implicit matching matching counters as explicit entities should fail
+        (
+            {
+                "a": Ct.Ignore,
+                "b": Ct.Ignore,
+                "c": Ct.Ignore,
+                "*": Ct.Entity,
+            },
+            False,
+        ),
+        # implicit matching counters as implicit entities should fail
+        (
+            {
+                "a": Ct.Ignore,
+                "b": Ct.Ignore,
+                "c": Ct.Ignore,
+                "*": None,  # scalars are implicitly matched as Entities
+            },
+            False,
+        ),
+        # implicit matching matching counters as counters should succeed
+        (
+            {
+                "a": Ct.Ignore,
+                "b": Ct.Ignore,
+                "c": Ct.Ignore,
+                "*": Ct.Counter,
+            },
+            True,
+        ),
+        # implicitly match entities
+        (
+            {
+                "a": [Ct.Counter],
+                "c": [{"a": (Ct.Entity, Ct.Ratio, Ct.Counter), "b": Ct.Ignore}],
+                "e": Ct.Counter,
+                "*": Ct.Entity,
+            },
+            True,
+        ),
+    ],
+)
+def test_compare_complex_structures(schema, are_equal):
+    sessions = {
+        "a": [1, 2, 3],
+        "b": "rel-1",
+        "c": [{"a": (1, 2.3, 4)}, {"a": (2, 3.3, 5)}, {"a": (1, 3.3, 5), "b": 1}],
+        "d": 1,
+        "e": 1,
+    }
+    metrics = {
+        "a": [1, 2, 4],
+        "b": "rel-1",
+        "c": [{"a": (1, 2.31, 5)}, {"a": (2, 3.31, 6)}, {"a": (1, 3.31, 6), "b": 121}],
+        "d": 1,
+        "e": 2,
+    }
+
+    result = duplex.compare_results(sessions, metrics, 60, "", schema)
+    assert (len(result) == 0) == are_equal
+
+
+def _get_duplex_with_mocks(metrics_start: datetime):
+    """Returns the DuplexReleaseHealthBackend with the Senssions and Metrics backends mocked"""
+    ret_val = DuplexReleaseHealthBackend(metrics_start)
+    ret_val.sessions = MagicMock()
+    ret_val.metrics = MagicMock()
+    ret_val.log_exception = MagicMock()
+    ret_val.log_errors = MagicMock()
+    ret_val.compare_results = MagicMock()
+    return ret_val
+
+
+def test_function_dispatch_is_working():
+    duplex = _get_duplex_with_mocks(datetime(2021, 10, 4, 12, 0))
+
+    duplex.sessions.get_current_and_previous_crash_free_rates.return_value = "ret-sessions"
+    duplex.metrics.get_current_and_previous_crash_free_rates.return_value = "ret-metrics"
+
+    call_params = [
+        [1, 2],
+        datetime(2021, 10, 10),
+        datetime(2021, 10, 11),
+        datetime(2021, 10, 5),
+        datetime(2021, 10, 7),
+        30,
+        1,
+    ]
+    duplex.get_current_and_previous_crash_free_rates(*call_params)
+    # check the both implementation were called
+    duplex.sessions.get_current_and_previous_crash_free_rates.assert_called_once_with(*call_params)
+    duplex.metrics.get_current_and_previous_crash_free_rates.assert_called_once_with(*call_params)
+
+    # set the request to cover times before metrics were available
+    call_params[3] = datetime(2021, 10, 1)
+    duplex.get_current_and_previous_crash_free_rates(*call_params)
+    # check sessions backend was called with the new data
+    duplex.sessions.get_current_and_previous_crash_free_rates.assert_called_with(*call_params)
+    # check metrics backend were not called again (only one original call)
+    assert duplex.metrics.get_current_and_previous_crash_free_rates.call_count == 1
