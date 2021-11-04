@@ -215,9 +215,11 @@ export function statsPeriodToDays(
 ) {
   if (statsPeriod && statsPeriod.endsWith('d')) {
     return parseInt(statsPeriod.slice(0, -1), 10);
-  } else if (statsPeriod && statsPeriod.endsWith('h')) {
+  }
+  if (statsPeriod && statsPeriod.endsWith('h')) {
     return parseInt(statsPeriod.slice(0, -1), 10) / 24;
-  } else if (start && end) {
+  }
+  if (start && end) {
     return (new Date(end).getTime() - new Date(start).getTime()) / (24 * 60 * 60 * 1000);
   }
   return 0;

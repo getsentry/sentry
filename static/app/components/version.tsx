@@ -92,13 +92,12 @@ const Version = ({
             <VersionText truncate={truncate}>{versionToDisplay}</VersionText>
           </GlobalSelectionLink>
         );
-      } else {
-        return (
-          <Link {...props}>
-            <VersionText truncate={truncate}>{versionToDisplay}</VersionText>
-          </Link>
-        );
       }
+      return (
+        <Link {...props}>
+          <VersionText truncate={truncate}>{versionToDisplay}</VersionText>
+        </Link>
+      );
     }
 
     return (

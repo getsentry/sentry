@@ -82,7 +82,8 @@ const getActionUniqueKey = ({
 }: Pick<Action, 'type' | 'integrationId' | 'sentryAppId'>) => {
   if (integrationId) {
     return `${type}-${integrationId}`;
-  } else if (sentryAppId) {
+  }
+  if (sentryAppId) {
     return `${type}-${sentryAppId}`;
   }
   return type;

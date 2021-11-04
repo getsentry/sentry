@@ -631,40 +631,39 @@ class EventsChart extends React.Component<EventsChartProps> {
                 }
               </EventsGeoRequest>
             );
-          } else {
-            return (
-              <EventsRequest
-                {...props}
-                api={api}
-                organization={organization}
-                period={period}
-                project={projects}
-                environment={environments}
-                start={start}
-                end={end}
-                interval={intervalVal}
-                query={query}
-                includePrevious={includePrevious}
-                currentSeriesNames={currentSeriesNames}
-                previousSeriesNames={previousSeriesNames}
-                yAxis={yAxis}
-                field={field}
-                orderby={orderby}
-                topEvents={topEvents}
-                confirmedQuery={confirmedQuery}
-                partial
-                // Cannot do interpolation when stacking series
-                withoutZerofill={withoutZerofill && !this.isStacked()}
-              >
-                {eventData => {
-                  return chartImplementation({
-                    ...eventData,
-                    zoomRenderProps,
-                  });
-                }}
-              </EventsRequest>
-            );
           }
+          return (
+            <EventsRequest
+              {...props}
+              api={api}
+              organization={organization}
+              period={period}
+              project={projects}
+              environment={environments}
+              start={start}
+              end={end}
+              interval={intervalVal}
+              query={query}
+              includePrevious={includePrevious}
+              currentSeriesNames={currentSeriesNames}
+              previousSeriesNames={previousSeriesNames}
+              yAxis={yAxis}
+              field={field}
+              orderby={orderby}
+              topEvents={topEvents}
+              confirmedQuery={confirmedQuery}
+              partial
+              // Cannot do interpolation when stacking series
+              withoutZerofill={withoutZerofill && !this.isStacked()}
+            >
+              {eventData => {
+                return chartImplementation({
+                  ...eventData,
+                  zoomRenderProps,
+                });
+              }}
+            </EventsRequest>
+          );
         }}
       </ChartZoom>
     );

@@ -70,7 +70,8 @@ class InternalStatChart extends Component<Props, State> {
     const {label, height} = this.props;
     if (loading) {
       return <LoadingIndicator />;
-    } else if (error) {
+    }
+    if (error) {
       return <LoadingError onRetry={this.fetchData} />;
     }
 

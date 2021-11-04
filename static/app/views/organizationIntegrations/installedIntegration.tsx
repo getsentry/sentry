@@ -39,14 +39,13 @@ export default class InstalledIntegration extends React.Component<Props> {
         body: aspects.removal_dialog.body,
         actionText: aspects.removal_dialog.actionText,
       };
-    } else {
-      return {
-        body: t(
-          'Deleting this integration will remove any project associated data. This action cannot be undone. Are you sure you want to delete this integration?'
-        ),
-        actionText: t('Delete'),
-      };
     }
+    return {
+      body: t(
+        'Deleting this integration will remove any project associated data. This action cannot be undone. Are you sure you want to delete this integration?'
+      ),
+      actionText: t('Delete'),
+    };
   }
 
   handleRemove(integration: Integration) {

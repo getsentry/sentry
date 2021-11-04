@@ -280,7 +280,8 @@ class GridEditable<
     const widths = columnOrder.map((item, index) => {
       if (item.width === COL_WIDTH_UNDEFINED) {
         return `minmax(${COL_WIDTH_MINIMUM}px, auto)`;
-      } else if (typeof item.width === 'number' && item.width > COL_WIDTH_MINIMUM) {
+      }
+      if (typeof item.width === 'number' && item.width > COL_WIDTH_MINIMUM) {
         if (index === columnOrder.length - 1) {
           return `minmax(${item.width}px, auto)`;
         }

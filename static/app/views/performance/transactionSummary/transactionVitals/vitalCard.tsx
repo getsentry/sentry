@@ -411,11 +411,11 @@ class VitalCard extends Component<Props, State> {
 
     if (value >= poorThreshold) {
       return vitalStateColors[VitalState.POOR];
-    } else if (value >= mehThreshold) {
-      return vitalStateColors[VitalState.MEH];
-    } else {
-      return vitalStateColors[VitalState.GOOD];
     }
+    if (value >= mehThreshold) {
+      return vitalStateColors[VitalState.MEH];
+    }
+    return vitalStateColors[VitalState.GOOD];
   }
 
   getBaselineSeries() {

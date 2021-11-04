@@ -228,17 +228,16 @@ const EventEntries = memo(
         setProGuardErrors(newProGuardErrors);
         setIsLoading(false);
         return;
-      } else {
-        if (proGuardImage) {
-          Sentry.withScope(function (s) {
-            s.setLevel(Sentry.Severity.Warning);
-            if (event.sdk) {
-              s.setTag('offending.event.sdk.name', event.sdk.name);
-              s.setTag('offending.event.sdk.version', event.sdk.version);
-            }
-            Sentry.captureMessage('Event contains proguard image but not uuid');
-          });
-        }
+      }
+      if (proGuardImage) {
+        Sentry.withScope(function (s) {
+          s.setLevel(Sentry.Severity.Warning);
+          if (event.sdk) {
+            s.setTag('offending.event.sdk.name', event.sdk.name);
+            s.setTag('offending.event.sdk.version', event.sdk.version);
+          }
+          Sentry.captureMessage('Event contains proguard image but not uuid');
+        });
       }
 
       const threads: Array<Thread> =

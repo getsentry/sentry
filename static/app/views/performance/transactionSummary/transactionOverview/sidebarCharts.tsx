@@ -269,11 +269,11 @@ type ChartValueProps = {
 function ChartSummaryValue({error, isLoading, value}: ChartValueProps) {
   if (error) {
     return <div>{'\u2014'}</div>;
-  } else if (isLoading) {
-    return <Placeholder height="24px" />;
-  } else {
-    return <ChartValue>{value}</ChartValue>;
   }
+  if (isLoading) {
+    return <Placeholder height="24px" />;
+  }
+  return <ChartValue>{value}</ChartValue>;
 }
 
 const RelativeBox = styled('div')`

@@ -80,15 +80,14 @@ export default class PasswordField extends InputField<Props, State> {
           </div>
         </div>
       );
-    } else {
-      return (
-        <div className="form-password saved">
-          <span>
-            {this.props.prefix + new Array(21 - this.props.prefix.length).join('*')}
-          </span>
-          {!this.props.disabled && <a onClick={this.startEdit}>Edit</a>}
-        </div>
-      );
     }
+    return (
+      <div className="form-password saved">
+        <span>
+          {this.props.prefix + new Array(21 - this.props.prefix.length).join('*')}
+        </span>
+        {!this.props.disabled && <a onClick={this.startEdit}>Edit</a>}
+      </div>
+    );
   }
 }

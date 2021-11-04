@@ -183,7 +183,8 @@ function parseBound(
 ): number | undefined {
   if (boundString === undefined) {
     return undefined;
-  } else if (precision === undefined || precision === 0) {
+  }
+  if (precision === undefined || precision === 0) {
     return parseInt(boundString, 10);
   }
   return parseFloat(boundString);

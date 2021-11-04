@@ -11,20 +11,20 @@ const eventId = '0987654321fedcba';
 function renderQuickTrace({isLoading, error, trace, type}) {
   if (isLoading) {
     return 'loading';
-  } else if (error !== null) {
-    return error;
-  } else {
-    return (
-      <Fragment>
-        <div key="type" data-test-id="type">
-          {type}
-        </div>
-        <div key="trace" data-test-id="trace">
-          {trace.length}
-        </div>
-      </Fragment>
-    );
   }
+  if (error !== null) {
+    return error;
+  }
+  return (
+    <Fragment>
+      <div key="type" data-test-id="type">
+        {type}
+      </div>
+      <div key="trace" data-test-id="trace">
+        {trace.length}
+      </div>
+    </Fragment>
+  );
 }
 
 describe('TraceLiteQuery', function () {

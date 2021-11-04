@@ -191,9 +191,8 @@ export default class AbstractExternalIssueForm<
       return newResult;
     }
     // Has a selected option, and it is not in API results
-    else {
-      return [...result, currentOption];
-    }
+
+    return [...result, currentOption];
   };
 
   /**

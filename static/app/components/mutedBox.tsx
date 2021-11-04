@@ -21,7 +21,8 @@ function MutedBox({statusDetails}: Props) {
           <DateTime date={ignoreUntil} />
         </strong>
       );
-    } else if (ignoreCount && ignoreWindow) {
+    }
+    if (ignoreCount && ignoreWindow) {
       return t(
         'This issue has been ignored until it occurs %s time(s) in %s',
         <strong>{ignoreCount.toLocaleString()}</strong>,
@@ -29,12 +30,14 @@ function MutedBox({statusDetails}: Props) {
           <Duration seconds={ignoreWindow * 60} />
         </strong>
       );
-    } else if (ignoreCount) {
+    }
+    if (ignoreCount) {
       return t(
         'This issue has been ignored until it occurs %s more time(s)',
         <strong>{ignoreCount.toLocaleString()}</strong>
       );
-    } else if (ignoreUserCount && ignoreUserWindow) {
+    }
+    if (ignoreUserCount && ignoreUserWindow) {
       return t(
         'This issue has been ignored until it affects %s user(s) in %s',
         <strong>{ignoreUserCount.toLocaleString()}</strong>,
@@ -42,7 +45,8 @@ function MutedBox({statusDetails}: Props) {
           <Duration seconds={ignoreUserWindow * 60} />
         </strong>
       );
-    } else if (ignoreUserCount) {
+    }
+    if (ignoreUserCount) {
       return t(
         'This issue has been ignored until it affects %s more user(s)',
         <strong>{ignoreUserCount.toLocaleString()}</strong>

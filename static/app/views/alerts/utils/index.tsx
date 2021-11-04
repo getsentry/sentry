@@ -155,11 +155,11 @@ export function convertDatasetEventTypesToSource(
 
   if (eventTypes.includes(EventTypes.DEFAULT) && eventTypes.includes(EventTypes.ERROR)) {
     return Datasource.ERROR_DEFAULT;
-  } else if (eventTypes.includes(EventTypes.DEFAULT)) {
-    return Datasource.DEFAULT;
-  } else {
-    return Datasource.ERROR;
   }
+  if (eventTypes.includes(EventTypes.DEFAULT)) {
+    return Datasource.DEFAULT;
+  }
+  return Datasource.ERROR;
 }
 
 /**

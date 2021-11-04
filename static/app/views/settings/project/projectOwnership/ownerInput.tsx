@@ -52,11 +52,10 @@ class OwnerInput extends React.Component<Props, State> {
 
     if (text.startsWith('Invalid rule owners:')) {
       return <InvalidOwners>{text}</InvalidOwners>;
-    } else {
-      return (
-        <SyntaxOverlay line={parseInt(text.match(/line (\d*),/)?.[1] ?? '', 10) - 1} />
-      );
     }
+    return (
+      <SyntaxOverlay line={parseInt(text.match(/line (\d*),/)?.[1] ?? '', 10) - 1} />
+    );
   }
 
   handleUpdateOwnership = () => {

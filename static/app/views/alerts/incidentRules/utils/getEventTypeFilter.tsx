@@ -16,7 +16,6 @@ export function getEventTypeFilter(
     return DATASOURCE_EVENT_TYPE_FILTERS[
       convertDatasetEventTypesToSource(dataset, eventTypes) ?? Datasource.ERROR
     ];
-  } else {
-    return DATASET_EVENT_TYPE_FILTERS[dataset ?? Dataset.ERRORS];
   }
+  return DATASET_EVENT_TYPE_FILTERS[dataset ?? Dataset.ERRORS];
 }

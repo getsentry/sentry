@@ -18,7 +18,8 @@ const SdkConfiguration = (props: Props) => {
   // check for manual override query param
   if (integrationSlug && parsed.manual !== '1') {
     return <IntegrationSetup integrationSlug={integrationSlug} {...props} />;
-  } else if (platform === 'other') {
+  }
+  if (platform === 'other') {
     return <OtherSetup {...props} />;
   }
   return <DocumentationSetup {...props} />;

@@ -30,11 +30,10 @@ export function isCurrentEvent(
 ): boolean {
   if (isTransaction(currentEvent)) {
     return event.event_id === currentEvent.id;
-  } else {
-    return (
-      event.errors !== undefined && event.errors.some(e => e.event_id === currentEvent.id)
-    );
   }
+  return (
+    event.errors !== undefined && event.errors.some(e => e.event_id === currentEvent.id)
+  );
 }
 
 type PathNode = {

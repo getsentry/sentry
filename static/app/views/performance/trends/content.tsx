@@ -315,14 +315,10 @@ class DefaultTrends extends React.Component<DefaultTrendsProps> {
     if (queryString || this.hasPushedDefaults) {
       this.hasPushedDefaults = true;
       return <React.Fragment>{children}</React.Fragment>;
-    } else {
-      this.hasPushedDefaults = true;
-      conditions.setFilterValues('tpm()', ['>0.01']);
-      conditions.setFilterValues(trendParameter.column, [
-        '>0',
-        `<${DEFAULT_MAX_DURATION}`,
-      ]);
     }
+    this.hasPushedDefaults = true;
+    conditions.setFilterValues('tpm()', ['>0.01']);
+    conditions.setFilterValues(trendParameter.column, ['>0', `<${DEFAULT_MAX_DURATION}`]);
 
     const query = conditions.formatString();
     eventView.query = query;

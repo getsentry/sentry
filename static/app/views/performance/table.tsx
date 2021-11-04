@@ -323,9 +323,8 @@ class _Table extends React.Component<Props, State> {
             </GuideAnchor>
           );
           return [this.renderHeadCell(tableData?.meta, teamKeyTransactionColumn, star)];
-        } else {
-          return [this.renderBodyCell(tableData, teamKeyTransactionColumn, dataRow)];
         }
+        return [this.renderBodyCell(tableData, teamKeyTransactionColumn, dataRow)];
       }
       return [];
     };
