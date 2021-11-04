@@ -32,7 +32,7 @@ const SettingsNavItem = ({badge, label, index, id, ...props}: Props) => {
     renderedBadge = <FeatureBadge type="beta" />;
   } else if (badge === 'warning') {
     renderedBadge = (
-      <Tooltip title={t('This settings needs review')} position="right">
+      <Tooltip title={t('This setting needs review')} position="right">
         <StyledBadge text={badge} type="warning" />
       </Tooltip>
     );
