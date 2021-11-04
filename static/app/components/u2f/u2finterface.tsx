@@ -2,6 +2,7 @@ import * as React from 'react';
 import * as Sentry from '@sentry/react';
 import u2f from 'u2f-api';
 
+import {base64urlToBuffer, bufferToBase64url} from 'app/components/u2f/webAuthnHelper';
 import {t, tct} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import {ChallengeData} from 'app/types';
@@ -49,26 +50,6 @@ class U2fInterface extends React.Component<Props, State> {
     }
   }
 
-  bufferToBase64url(buffer: ArrayBuffer): Base64urlString {
-    // Buffer to binary string
-    const byteView = new Uint8Array(buffer);
-    let str = '';
-    for (const charCode of byteView) {
-      str += String.fromCharCode(charCode);
-    }
-
-    // Binary string to base64
-    const base64String = btoa(str);
-
-    // Base64 to base64url
-    // We assume that the base64url string is well-formed.
-    const base64urlString = base64String
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=/g, '');
-    return base64urlString;
-  }
-
   submitU2fResponse(promise) {
     promise
       .then(data => {
@@ -82,11 +63,9 @@ class U2fInterface extends React.Component<Props, State> {
             if (typeof data.response !== 'undefined') {
               const authenticatorData = {
                 keyHandle: data.id,
-                clientData: this.bufferToBase64url(data.response.clientDataJSON),
-                signatureData: this.bufferToBase64url(data.response.signature),
-                authenticatorData: this.bufferToBase64url(
-                  data.response.authenticatorData
-                ),
+                clientData: bufferToBase64url(data.response.clientDataJSON),
+                signatureData: bufferToBase64url(data.response.signature),
+                authenticatorData: bufferToBase64url(data.response.authenticatorData),
               };
               u2fResponse = JSON.stringify(authenticatorData);
             }
@@ -143,36 +122,19 @@ class U2fInterface extends React.Component<Props, State> {
       });
   }
 
-  base64urlToBuffer(baseurl64String: Base64urlString): ArrayBuffer {
-    // Base64url to Base64
-    const padding = '=='.slice(0, (4 - (baseurl64String.length % 4)) % 4);
-    const base64String = baseurl64String.replace(/-/g, '+').replace(/_/g, '/') + padding;
-
-    // Base64 to binary string
-    const str = atob(base64String);
-
-    // Binary string to buffer
-    const buffer = new ArrayBuffer(str.length);
-    const byteView = new Uint8Array(buffer);
-    for (let i = 0; i < str.length; i++) {
-      byteView[i] = str.charCodeAt(i);
-    }
-    return buffer;
-  }
-
   testWebAuthn(authRequest) {
     const credentials = [] as any;
 
     authRequest.forEach(device => {
       credentials.push({
-        id: this.base64urlToBuffer(device.keyHandle),
+        id: base64urlToBuffer(device.keyHandle),
         type: 'public-key',
         transports: ['usb', 'ble', 'nfc'],
       });
     });
 
     const publicKeyCredentialRequestOptions = {
-      challenge: this.base64urlToBuffer(authRequest[0].challenge),
+      challenge: base64urlToBuffer(authRequest[0].challenge),
       allowCredentials: credentials,
       userVerification: 'discouraged',
       extensions: {
