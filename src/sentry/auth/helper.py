@@ -440,7 +440,8 @@ class AuthIdentityHandler:
                 try:
                     self._login(acting_user)
                 except self._NotCompletedSecurityChecks:
-                    if acting_user.has_usable_password():
+                    # adding is_account_verified to the check below in order to redirect to 2fa when the user migrates their idp but has 2fa enabled, otherwise it would stop them from linking their sso provider
+                    if acting_user.has_usable_password() or is_account_verified:
                         return self._post_login_redirect()
                     else:
                         acting_user = None

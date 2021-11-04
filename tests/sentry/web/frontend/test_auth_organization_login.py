@@ -1045,3 +1045,37 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
         assert getattr(member.flags, "sso:linked")
         assert not getattr(member.flags, "sso:invalid")
         assert not getattr(member.flags, "member-limit:restricted")
+
+    @with_feature("organizations:idp-automatic-migration")
+    @mock.patch("sentry.auth.idpmigration.MessageBuilder")
+    def test_flow_verify_and_link_without_password_need_2fa(self, email):
+        assert not self.user.has_usable_password()
+        self.create_member(organization=self.organization, user=self.user)
+        TotpInterface().enroll(self.user)
+        resp = self.client.post(self.path, {"init": True})
+
+        assert resp.status_code == 200
+        assert self.provider.TEMPLATE in resp.content.decode("utf-8")
+
+        resp = self.client.post(self.auth_sso_path, {"email": "bar@example.com"})
+        self.assertTemplateUsed(resp, "sentry/auth-confirm-account.html")
+
+        assert resp.status_code == 200
+        assert resp.context["existing_user"] == self.user
+        path = reverse(
+            "sentry-idp-email-verification",
+            args=[email.call_args.kwargs["context"]["verification_key"]],
+        )
+
+        resp = self.client.get(path)
+        assert resp.templates[0].name == "sentry/idp_account_verified.html"
+
+        assert resp.status_code == 200
+
+        path = reverse("sentry-auth-organization", args=[self.organization.slug])
+
+        resp = self.client.post(path, follow=True)
+
+        assert resp.redirect_chain == [
+            (reverse("sentry-2fa-dialog"), 302),
+        ]
