@@ -37,6 +37,8 @@ from sentry.utils.validators import is_event_id
 # before the asterisk is actually escaping the asterisk.
 WILDCARD_CHARS = re.compile(r"(?<!\\)(\\\\)*\*")
 
+HEXADECIMAL_16_DIGITS = re.compile("^[0-9a-fA-F]{16}$")
+
 event_search_grammar = Grammar(
     r"""
 search = spaces term*
@@ -344,6 +346,16 @@ class SearchValue(NamedTuple):
         if not isinstance(self.raw_value, str):
             return False
         return is_event_id(self.raw_value) or self.raw_value == ""
+
+    def is_span_id(self) -> bool:
+        """Return whether the current value is a valid span id
+
+        Span IDs are 16 digit hexadecimal strings.
+        Empty strings are valid, so that it can be used for has:trace.span queries
+        """
+        if not isinstance(self.raw_value, str):
+            return False
+        return bool(HEXADECIMAL_16_DIGITS.search(self.raw_value)) or self.raw_value == ""
 
 
 class SearchFilter(NamedTuple):

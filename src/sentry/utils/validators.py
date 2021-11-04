@@ -5,6 +5,10 @@ from django.utils.encoding import force_text
 
 INVALID_ID_DETAILS = "{} must be a valid UUID hex (32-36 characters long, containing only digits, dashes, or a-f characters)"
 
+WILDCARD_NOT_ALLOWED = "Wildcard conditions are not permitted on `{}` field"
+
+INVALID_SPAN_ID = "{} must be a valid 16 character hex (containing only digits, or a-f characters)"
+
 
 def validate_ip(value, required=True):
     if not required and not value:
