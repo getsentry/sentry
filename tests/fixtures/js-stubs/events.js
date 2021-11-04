@@ -13,7 +13,7 @@ export function Events(params = []) {
   ];
 }
 
-export function EventsStats(_query = {}, params) {
+export function EventsStats(params = {}) {
   return {
     data: [
       [new Date(), [{count: 321}, {count: 79}]],
