@@ -9,6 +9,7 @@ import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import DateTime from 'app/components/dateTime';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import Tag from 'app/components/tag';
 import {IconFlag} from 'app/icons';
 import {t, tct} from 'app/locale';
 import PluginIcon from 'app/plugins/components/pluginIcon';
@@ -56,16 +57,15 @@ class AccountIdentities extends AsyncView<Props, State> {
         <InternalContainer>
           <TagWrapper>
             {identity.category === UserIdentityCategory.SOCIAL_IDENTITY && (
-              <Tag isOrgName={false} label={t('Legacy')} />
+              <Tag type="default">{t('Legacy')}</Tag>
             )}
             {identity.category !== UserIdentityCategory.ORG_IDENTITY && (
-              <Tag
-                isOrgName={false}
-                label={identity.isLogin ? t('Sign In') : t('Integration')}
-              />
+              <Tag type="default">
+                {identity.isLogin ? t('Sign In') : t('Integration')}
+              </Tag>
             )}
             {identity.organization && (
-              <Tag isOrgName label={identity.organization.slug} />
+              <Tag type="highlight">{identity.organization.slug}</Tag>
             )}
           </TagWrapper>
 
@@ -222,27 +222,6 @@ const TagWrapper = styled('div')`
   justify-content: flex-start;
   flex-grow: 1;
   margin-right: ${space(1)};
-`;
-
-const Tag = styled(
-  ({
-    isOrgName: _isOrgName,
-    label,
-    ...p
-  }: {
-    label: string;
-    isOrgName: boolean;
-    theme?: any;
-  }) => <div {...p}>{label}</div>
-)`
-  padding: 1px 10px;
-  background: ${p => (p.isOrgName ? p.theme.purple200 : p.theme.gray100)};
-  border-radius: 20px;
-  font-size: ${space(1.5)};
-  margin-right: ${space(1)};
-  line-height: ${space(3)};
-  text-align: center;
-  color: ${p => (p.isOrgName ? p.theme.white : p.theme.gray500)};
 `;
 
 export default AccountIdentities;
