@@ -143,7 +143,8 @@ class EventChart extends Component<Props, State> {
     const {loading, error} = this.state;
     if (loading) {
       return <LoadingIndicator />;
-    } else if (error) {
+    }
+    if (error) {
       return <LoadingError onRetry={this.fetchData} />;
     }
     const series = this.getChartSeries();

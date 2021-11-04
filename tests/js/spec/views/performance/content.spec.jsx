@@ -143,7 +143,8 @@ describe('Performance > Content', function () {
         predicate: (_, options) => {
           if (!options.hasOwnProperty('query')) {
             return false;
-          } else if (!options.query.hasOwnProperty('field')) {
+          }
+          if (!options.query.hasOwnProperty('field')) {
             return false;
           }
           return !options.query.field.includes('team_key_transaction');
@@ -203,7 +204,8 @@ describe('Performance > Content', function () {
         predicate: (_, options) => {
           if (!options.hasOwnProperty('query')) {
             return false;
-          } else if (!options.query.hasOwnProperty('field')) {
+          }
+          if (!options.query.hasOwnProperty('field')) {
             return false;
           }
           return options.query.field.includes('team_key_transaction');

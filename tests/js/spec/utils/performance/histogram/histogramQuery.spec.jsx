@@ -9,24 +9,24 @@ import HistogramQuery from 'app/utils/performance/histogram/histogramQuery';
 function renderHistogram({isLoading, error, histograms}) {
   if (isLoading) {
     return 'loading';
-  } else if (error !== null) {
-    return 'error';
-  } else {
-    return (
-      <Fragment>
-        {Object.keys(histograms).map(name => (
-          <Fragment key={name}>
-            <p>{name}</p>
-            <ul>
-              {histograms[name].map(bar => (
-                <li key={bar.bin}>{`${bar.bin} - ${bar.count}`}</li>
-              ))}
-            </ul>
-          </Fragment>
-        ))}
-      </Fragment>
-    );
   }
+  if (error !== null) {
+    return 'error';
+  }
+  return (
+    <Fragment>
+      {Object.keys(histograms).map(name => (
+        <Fragment key={name}>
+          <p>{name}</p>
+          <ul>
+            {histograms[name].map(bar => (
+              <li key={bar.bin}>{`${bar.bin} - ${bar.count}`}</li>
+            ))}
+          </ul>
+        </Fragment>
+      ))}
+    </Fragment>
+  );
 }
 
 describe('HistogramQuery', function () {

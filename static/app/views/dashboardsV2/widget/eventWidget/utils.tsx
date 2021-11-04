@@ -28,7 +28,8 @@ export function mapErrors(
     if (Array.isArray(value) && typeof value[0] === 'string') {
       update[key] = value[0];
       return;
-    } else if (Array.isArray(value) && typeof value[0] === 'object') {
+    }
+    if (Array.isArray(value) && typeof value[0] === 'object') {
       update[key] = (value as ValidationError[]).map(item => mapErrors(item, {}));
     } else {
       update[key] = mapErrors(value as ValidationError, {});

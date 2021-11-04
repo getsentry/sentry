@@ -113,7 +113,8 @@ class TableView extends React.Component<TableViewProps> {
             <IconStack size="sm" />
           </PrependHeader>,
         ];
-      } else if (!hasIdField) {
+      }
+      if (!hasIdField) {
         return [
           <PrependHeader key="header-event-id">
             <SortLink
@@ -125,9 +126,8 @@ class TableView extends React.Component<TableViewProps> {
             />
           </PrependHeader>,
         ];
-      } else {
-        return [];
       }
+      return [];
     }
 
     if (hasAggregates) {
@@ -153,7 +153,8 @@ class TableView extends React.Component<TableViewProps> {
           </Link>
         </Tooltip>,
       ];
-    } else if (!hasIdField) {
+    }
+    if (!hasIdField) {
       let value = dataRow.id;
 
       if (tableData && tableData.meta) {
@@ -176,9 +177,8 @@ class TableView extends React.Component<TableViewProps> {
           </StyledLink>
         </Tooltip>,
       ];
-    } else {
-      return [];
     }
+    return [];
   };
 
   _renderGridHeaderCell = (column: TableColumn<keyof TableDataRow>): React.ReactNode => {

@@ -36,9 +36,8 @@ class TitleButton extends Component<TitleProps> {
     if (!isOpen && keyedTeams?.length) {
       const teamSlugs = keyedTeams.map(({slug}) => slug).join(', ');
       return <Tooltip title={teamSlugs}>{button}</Tooltip>;
-    } else {
-      return button;
     }
+    return button;
   }
 }
 
