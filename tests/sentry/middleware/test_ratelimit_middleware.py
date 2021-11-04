@@ -4,7 +4,7 @@ from unittest.mock import patch
 from django.test import RequestFactory
 from exam import fixture
 
-from sentry.middleware.ratelimit import RatelimitMiddleware
+from sentry.middleware.ratelimit import RatelimitMiddleware, above_rate_limit_check
 from sentry.testutils import TestCase
 
 
@@ -44,3 +44,10 @@ class RatelimitMiddlewareTest(TestCase):
         time.sleep(1)
         self.middleware.process_view(request, self.view, [], {})
         assert not request.will_be_rate_limited
+
+    @patch("sentry.middleware.ratelimit.get_default_rate_limit")
+    def test_above_rate_limit_check(self, default_rate_limit_mock):
+        default_rate_limit_mock.return_value = (10, 100)
+
+        return_val = above_rate_limit_check("foo")
+        assert return_val == dict(limited=False, current=1, limit=10, window=100)

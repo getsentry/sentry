@@ -31,7 +31,6 @@ class RedisRateLimiter(RateLimiter):
 
         key_hex = md5_text(key).hexdigest()
         bucket = int(time() / window)
-
         if project:
             redis_key = f"rl:{key_hex}:{project.id}:{bucket}"
         else:
@@ -47,6 +46,8 @@ class RedisRateLimiter(RateLimiter):
             raise InvalidConfiguration(str(e))
 
     def is_limited(self, key, limit, project=None, window=None):
+        if window is None:
+            window = self.window
         redis_key = self._construct_redis_key(key, project=project, window=window)
 
         try:
@@ -65,11 +66,12 @@ class RedisRateLimiter(RateLimiter):
 
         try:
             with self.cluster.map() as client:
-                current_count = client.get(redis_key)
-                if current_count is None:
-                    # Key hasn't been created yet, therefore no hits done so far
-                    return 0
-                return current_count
+                result = client.get(redis_key)
+            current_count = result.value
+            if current_count is None:
+                # Key hasn't been created yet, therefore no hits done so far
+                return 0
+            return int(current_count)
         except RedisError as e:
             # Don't report any existing hits when there is a redis error.
             # Log what happened and move on

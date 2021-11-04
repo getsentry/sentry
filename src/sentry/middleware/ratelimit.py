@@ -30,7 +30,12 @@ def above_rate_limit_check(key, limit=None, window=None):
     if limit is None:
         limit, window = get_default_rate_limit()
 
-    return ratelimiter.is_limited(key, limit=limit, window=window)
+    return {
+        "limited": ratelimiter.is_limited(key, limit=limit, window=window),
+        "current": ratelimiter.current_value(key, window=window),
+        "limit": limit,
+        "window": window,
+    }
 
 
 class RatelimitMiddleware(MiddlewareMixin):
@@ -43,5 +48,5 @@ class RatelimitMiddleware(MiddlewareMixin):
             return
 
         key = get_rate_limit_key(view_func, request)
-        request.will_be_rate_limited = above_rate_limit_check(key)
+        request.will_be_rate_limited = above_rate_limit_check(key)["limited"]
         return
