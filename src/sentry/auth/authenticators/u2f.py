@@ -4,7 +4,7 @@ from cryptography.exceptions import InvalidKey, InvalidSignature
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 from fido2.client import ClientData
-from fido2.ctap2 import AuthenticatorData
+from fido2.ctap2 import AuthenticatorData, base
 from fido2.server import U2FFido2Server
 from fido2.utils import websafe_decode
 from u2flib_server import u2f
@@ -16,24 +16,6 @@ from sentry.utils.decorators import classproperty
 from sentry.utils.http import absolute_uri
 
 from .base import ActivationChallengeResult, AuthenticatorInterface
-
-
-class Credentials:
-    def __init__(self, publicKey, keyHandle):
-        x = publicKey[1:32]
-        y = publicKey[33:65]
-        self.public_key = {
-            "1": 2,
-            "3": -7,
-            "-1": 1,
-            "-2": x.encode("ASCII"),
-            "-3": y.encode("ASCII"),
-        }
-        self.credential_id = keyHandle
-
-    # def keyToCoseKey(self, key):
-    #     breakpoint()
-    #     cbor = []
 
 
 class U2fInterface(AuthenticatorInterface):
@@ -158,8 +140,6 @@ class U2fInterface(AuthenticatorInterface):
         try:
             # u2f.complete_authentication(challenge, response, self.u2f_facets)
 
-            # U2FFido2Server.authenticate_complete(app_id=challenge["app_id"])
-            # breakpoint()
             server = U2FFido2Server(
                 app_id=challenge["appId"], rp={"id": challenge["appId"], "name": "Example RP"}
             )
@@ -169,15 +149,18 @@ class U2fInterface(AuthenticatorInterface):
             }
             credentials = []
             for registeredKey in challenge["registeredKeys"]:
-                c = Credentials(registeredKey["publicKey"], registeredKey["keyHandle"])
+                c = base.AttestedCredentialData.from_ctap1(
+                    websafe_decode(registeredKey["keyHandle"]),
+                    websafe_decode(registeredKey["publicKey"]),
+                )
                 credentials.append(c)
             server.authenticate_complete(
                 state=state,
                 credentials=credentials,
-                credential_id=response["keyHandle"],
+                credential_id=websafe_decode(response["keyHandle"]),
                 client_data=ClientData(websafe_decode(response["clientData"])),
                 auth_data=AuthenticatorData(websafe_decode(response["authenticatorData"])),
-                signature=response["signatureData"],
+                signature=websafe_decode(response["signatureData"]),
             )
         except (InvalidSignature, InvalidKey, StopIteration):
             return False
