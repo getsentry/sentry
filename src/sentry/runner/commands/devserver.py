@@ -233,7 +233,7 @@ def devserver(
             for name, topic in settings.KAFKA_SUBSCRIPTION_RESULT_TOPICS.items():
                 daemons += [_get_daemon("subscription-consumer", "--topic", topic, suffix=name)]
 
-        if settings.SENTRY_USE_METRICS_DEV:
+        if settings.SENTRY_USE_METRICS_DEV and settings.SENTRY_USE_RELAY:
             daemons += [_get_daemon("metrics")]
 
     if settings.SENTRY_USE_RELAY:
