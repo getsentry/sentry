@@ -85,6 +85,12 @@ class RuleNodeList extends React.Component<Props> {
       },
     };
 
+    // item.comparison type isn't backfilled and is missing for old alert rules
+    // this is a problem when an old alert is being edited, need to initialize it
+    if (!item.comparisonType && item.value && item.name) {
+      item.comparisonType = item.comparisonInterval === undefined ? 'count' : 'percent';
+    }
+
     if (item.comparisonType) {
       changeAlertNode = {
         ...changeAlertNode,
