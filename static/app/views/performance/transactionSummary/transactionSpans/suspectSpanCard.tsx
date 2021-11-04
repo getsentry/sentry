@@ -190,14 +190,22 @@ function SpanCount(props: HeaderItemProps) {
     );
   }
 
+  // Because the frequency is computed using `count_unique(id)` internally,
+  // it is an approximate value. This means that it has the potential to be
+  // greater than `totals.count` when it shouldn't. So let's clip the
+  // frequency value to make sure we don't see values over 100%.
+  const frequency = defined(totals?.count)
+    ? Math.min(suspectSpan.frequency, totals!.count)
+    : suspectSpan.frequency;
+
   const value = defined(totals?.count) ? (
     <Tooltip
       title={tct('[frequency] out of [total] transactions contain this span', {
-        frequency: suspectSpan.frequency,
+        frequency,
         total: totals!.count,
       })}
     >
-      <span>{formatPercentage(suspectSpan.frequency / totals!.count)}</span>
+      <span>{formatPercentage(frequency / totals!.count)}</span>
     </Tooltip>
   ) : (
     String(suspectSpan.count)
