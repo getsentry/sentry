@@ -1,16 +1,23 @@
 from collections import namedtuple
 from datetime import datetime, timedelta
+from typing import Optional
 
 import sentry_sdk
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
+from snuba_sdk.conditions import Condition, Op
+from snuba_sdk.function import Function
 
 from sentry import features
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.api.event_search import AggregateFilter
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import DateArg, parse_function
+from sentry.search.events.types import WhereType
 from sentry.search.utils import InvalidQuery, parse_datetime_string
 from sentry.snuba import discover
+from sentry.utils.snuba import Dataset, raw_snql_query
 
 # converter is to convert the aggregate filter to snuba query
 Alias = namedtuple("Alias", "converter aggregate")
@@ -31,6 +38,18 @@ REGRESSION = "regression"
 TREND_TYPES = [IMPROVED, REGRESSION]
 
 
+class TrendQueryBuilder(QueryBuilder):
+    def convert_aggregate_filter_to_condition(
+        self, aggregate_filter: AggregateFilter
+    ) -> Optional[WhereType]:
+        name = aggregate_filter.key.name
+
+        if name in self.params.get("aliases"):
+            return self.params["aliases"][name].converter(aggregate_filter)
+        else:
+            return super().convert_aggregate_filter_to_condition(aggregate_filter)
+
+
 class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
     trend_columns = {
         "p50": "percentile_range({column}, 0.5, {condition}, {boundary}) as {query_alias}",
@@ -44,6 +63,191 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
         "difference": "minus({alias}_2,{alias}_1) as {query_alias}",
         "t_test": "t_test({avg}_1, {avg}_2, variance_range_1, variance_range_2, count_range_1, count_range_2)",
     }
+
+    snql_trend_columns = {
+        "p50": "percentile_range({column}, 0.5, {condition}, {boundary})",
+        "p75": "percentile_range({column}, 0.75, {condition}, {boundary})",
+        "p95": "percentile_range({column}, 0.95, {condition}, {boundary})",
+        "p99": "percentile_range({column}, 0.99, {condition}, {boundary})",
+        "avg": "avg_range({column}, {condition}, {boundary})",
+        "variance": "variance_range(transaction.duration, {condition}, {boundary})",
+        "count_range": "count_range({condition}, {boundary})",
+        "percentage": "percentage({alias}_2, {alias}_1)",
+        "difference": "minus({alias}_2,{alias}_1)",
+        "t_test": "t_test({avg}_1, {avg}_2, variance_range_1, variance_range_2, count_range_1, count_range_2)",
+    }
+
+    def resolve_trend_columns(self, query, baseline_function, column, middle):
+        """Construct the columns needed to calculate high confidence trends
+
+        This is the snql version of get_trend_columns, which should be replaced
+        once we're migrated
+        """
+        if baseline_function not in self.snql_trend_columns:
+            raise ParseError(detail=f"{baseline_function} is not a supported trend function")
+
+        aggregate_column = self.snql_trend_columns.get(baseline_function)
+        aggregate_range_1 = query.resolve_function(
+            aggregate_column.format(column=column, condition="greater", boundary=middle),
+            forced_alias="aggregate_range_1",
+        )
+        aggregate_range_2 = query.resolve_function(
+            aggregate_column.format(
+                column=column,
+                condition="lessOrEquals",
+                boundary=middle,
+            ),
+            forced_alias="aggregate_range_2",
+        )
+
+        count_column = self.snql_trend_columns["count_range"]
+        count_range_1 = query.resolve_function(
+            count_column.format(condition="greater", boundary=middle), forced_alias="count_range_1"
+        )
+        count_range_2 = query.resolve_function(
+            count_column.format(condition="lessOrEquals", boundary=middle),
+            forced_alias="count_range_2",
+        )
+
+        variance_column = self.snql_trend_columns["variance"]
+        variance_range_1 = query.resolve_function(
+            variance_column.format(condition="greater", boundary=middle),
+            forced_alias="variance_range_1",
+        )
+        variance_range_2 = query.resolve_function(
+            variance_column.format(condition="lessOrEquals", boundary=middle),
+            forced_alias="variance_range_2",
+        )
+        # Only add average when its not the baseline
+        if baseline_function != "avg":
+            avg_column = self.snql_trend_columns["avg"]
+            avg_range_1 = query.resolve_function(
+                avg_column.format(
+                    column=column,
+                    condition="greater",
+                    boundary=middle,
+                )
+            )
+            avg_range_2 = query.resolve_function(
+                avg_column.format(
+                    column=column,
+                    condition="lessOrEquals",
+                    boundary=middle,
+                )
+            )
+        # avg will be added as the baseline
+        else:
+            avg_range_1 = aggregate_range_1
+            avg_range_2 = aggregate_range_2
+
+        t_test = query.resolve_division(
+            Function("minus", [avg_range_1, avg_range_2]),
+            Function(
+                "sqrt",
+                [
+                    Function(
+                        "plus",
+                        [
+                            Function(
+                                "divide",
+                                [
+                                    variance_range_1,
+                                    count_range_1,
+                                ],
+                            ),
+                            Function(
+                                "divide",
+                                [
+                                    variance_range_2,
+                                    count_range_2,
+                                ],
+                            ),
+                        ],
+                    ),
+                ],
+            ),
+            "t_test",
+        )
+        trend_percentage = query.resolve_division(
+            aggregate_range_2, aggregate_range_1, "trend_percentage"
+        )
+        trend_difference = Function(
+            "minus",
+            [
+                aggregate_range_2,
+                aggregate_range_1,
+            ],
+            "trend_difference",
+        )
+        count_percentage = query.resolve_division(count_range_2, count_range_1, "count_percentage")
+        return {
+            "aggregate_range_1": aggregate_range_1,
+            "aggregate_range_2": aggregate_range_2,
+            "count_range_1": count_range_1,
+            "count_range_2": count_range_2,
+            "t_test": t_test,
+            "trend_percentage": trend_percentage,
+            "trend_difference": trend_difference,
+            "count_percentage": count_percentage,
+        }
+
+    @staticmethod
+    def get_snql_function_aliases(trend_columns, trend_type):
+        """Construct a dict of aliases
+
+        this is because certain conditions behave differently depending on the trend type
+        like trend_percentage and trend_difference
+        """
+        return {
+            "trend_percentage()": Alias(
+                lambda aggregate_filter: Condition(
+                    trend_columns["trend_percentage"],
+                    Op(
+                        CORRESPONDENCE_MAP[aggregate_filter.operator]
+                        if trend_type == IMPROVED
+                        else aggregate_filter.operator
+                    ),
+                    1 + (aggregate_filter.value.value * (-1 if trend_type == IMPROVED else 1)),
+                ),
+                ["percentage", "transaction.duration"],
+            ),
+            "trend_difference()": Alias(
+                lambda aggregate_filter: Condition(
+                    trend_columns["trend_difference"],
+                    Op(
+                        CORRESPONDENCE_MAP[aggregate_filter.operator]
+                        if trend_type == IMPROVED
+                        else aggregate_filter.operator
+                    ),
+                    -1 * aggregate_filter.value.value
+                    if trend_type == IMPROVED
+                    else aggregate_filter.value.value,
+                ),
+                ["minus", "transaction.duration"],
+            ),
+            "confidence()": Alias(
+                lambda aggregate_filter: Condition(
+                    trend_columns["t_test"],
+                    Op(
+                        CORRESPONDENCE_MAP[aggregate_filter.operator]
+                        if trend_type == REGRESSION
+                        else aggregate_filter.operator
+                    ),
+                    -1 * aggregate_filter.value.value
+                    if trend_type == REGRESSION
+                    else aggregate_filter.value.value,
+                ),
+                None,
+            ),
+            "count_percentage()": Alias(
+                lambda aggregate_filter: Condition(
+                    "count_percentage",
+                    Op(aggregate_filter.operator),
+                    aggregate_filter.value.value,
+                ),
+                ["percentage", "count"],
+            ),
+        }
 
     @staticmethod
     def get_function_aliases(trend_type):
@@ -73,15 +277,6 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
                     else aggregate_filter.value.value,
                 ],
                 ["minus", "transaction.duration"],
-            ),
-            # TODO(wmak): remove this once we don't use this on the frontend
-            "t_test()": Alias(
-                lambda aggregate_filter: [
-                    "t_test",
-                    aggregate_filter.operator,
-                    aggregate_filter.value.value,
-                ],
-                None,
             ),
             "confidence()": Alias(
                 lambda aggregate_filter: [
@@ -178,9 +373,14 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
     def has_feature(self, organization, request):
         return features.has("organizations:performance-view", organization, actor=request.user)
 
+    def has_snql_feature(self, organization, request):
+        return features.has("organizations:performance-use-snql", organization, actor=request.user)
+
     def get(self, request, organization):
         if not self.has_feature(organization, request):
             return Response(status=404)
+        use_snql = self.has_snql_feature(organization, request)
+        sentry_sdk.set_tag("discover.use-snql", use_snql)
 
         try:
             params = self.get_snuba_params(request, organization)
@@ -208,8 +408,6 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
         if trend_type not in TREND_TYPES:
             raise ParseError(detail=f"{trend_type} is not a supported trend type")
 
-        params["aliases"] = self.get_function_aliases(trend_type)
-
         trend_function = request.GET.get("trendFunction", "p50()")
         function, columns, alias = parse_function(trend_function)
         if len(columns) == 0:
@@ -218,33 +416,71 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
         else:
             column = columns[0]
 
-        trend_columns = self.get_trend_columns(function, column, middle)
-
         selected_columns = self.get_field_list(organization, request)
         orderby = self.get_orderby(request)
-
         query = request.GET.get("query")
 
-        def data_fn(offset, limit):
-            return discover.query(
-                selected_columns=selected_columns + trend_columns,
-                query=query,
+        if not use_snql:
+            params["aliases"] = self.get_function_aliases(trend_type)
+            trend_columns = self.get_trend_columns(function, column, middle)
+        else:
+            trend_query = TrendQueryBuilder(
+                dataset=Dataset.Discover,
                 params=params,
+                selected_columns=selected_columns,
                 orderby=orderby,
-                offset=offset,
-                limit=limit,
-                referrer="api.trends.get-percentage-change",
-                auto_fields=True,
+                auto_fields=False,
                 auto_aggregations=True,
                 use_aggregate_conditions=True,
             )
+            trend_columns = self.resolve_trend_columns(trend_query, function, column, middle)
+            trend_query.columns.extend(trend_columns.values())
+            trend_query.aggregates.extend(trend_columns.values())
+            trend_query.params["aliases"] = self.get_snql_function_aliases(
+                trend_columns, trend_type
+            )
+            # Query needs to be resolved after columns because of the aliasing
+            where, having = trend_query.resolve_conditions(query, use_aggregate_conditions=True)
+            trend_query.where += where
+            trend_query.having += having
+
+        def data_fn(offset, limit):
+            if use_snql:
+                result = raw_snql_query(
+                    trend_query.get_snql_query(),
+                    referrer="api.trends.get-percentage-change.wip-snql",
+                )
+                result = discover.transform_results(
+                    result, trend_query.function_alias_map, {}, None
+                )
+                return result
+            else:
+                return discover.query(
+                    selected_columns=selected_columns + trend_columns,
+                    query=query,
+                    params=params,
+                    orderby=orderby,
+                    offset=offset,
+                    limit=limit,
+                    referrer="api.trends.get-percentage-change",
+                    auto_fields=True,
+                    auto_aggregations=True,
+                    use_aggregate_conditions=True,
+                )
 
         with self.handle_query_errors():
             return self.paginate(
                 request=request,
                 paginator=GenericOffsetPaginator(data_fn=data_fn),
                 on_results=self.build_result_handler(
-                    request, organization, params, trend_function, selected_columns, orderby, query
+                    request,
+                    organization,
+                    params,
+                    trend_function,
+                    selected_columns,
+                    orderby,
+                    query,
+                    use_snql,
                 ),
                 default_per_page=5,
                 max_per_page=5,
@@ -253,7 +489,15 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
 
 class OrganizationEventsTrendsStatsEndpoint(OrganizationEventsTrendsEndpointBase):
     def build_result_handler(
-        self, request, organization, params, trend_function, selected_columns, orderby, query
+        self,
+        request,
+        organization,
+        params,
+        trend_function,
+        selected_columns,
+        orderby,
+        query,
+        use_snql,
     ):
         def on_results(events_results):
             def get_event_stats(
@@ -271,6 +515,7 @@ class OrganizationEventsTrendsStatsEndpoint(OrganizationEventsTrendsEndpointBase
                     top_events=events_results,
                     referrer="api.trends.get-event-stats",
                     zerofill_results=zerofill_results,
+                    use_snql=use_snql,
                 )
 
             stats_results = (
@@ -299,7 +544,15 @@ class OrganizationEventsTrendsStatsEndpoint(OrganizationEventsTrendsEndpointBase
 
 class OrganizationEventsTrendsEndpoint(OrganizationEventsTrendsEndpointBase):
     def build_result_handler(
-        self, request, organization, params, trend_function, selected_columns, orderby, query
+        self,
+        request,
+        organization,
+        params,
+        trend_function,
+        selected_columns,
+        orderby,
+        query,
+        use_snql,
     ):
         return lambda events_results: self.handle_results_with_meta(
             request, organization, params["project_id"], events_results

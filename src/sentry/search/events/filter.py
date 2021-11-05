@@ -1298,9 +1298,6 @@ class QueryFilter(QueryFields):
         name = aggregate_filter.key.name
         value = aggregate_filter.value.value
 
-        if name in self.params.get("aliases", {}):
-            raise NotImplementedError("Aggregate aliases not implemented in snql field parsing yet")
-
         value = (
             int(to_timestamp(value))
             if isinstance(value, datetime) and name != "timestamp"
