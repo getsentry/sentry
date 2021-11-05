@@ -370,28 +370,37 @@ def _get_dsym_url(bundles: Optional[List[JSONData]]) -> Union[NoDsymUrl, str]:
     # available for download only depends on whether it was a bitcode
     # upload.
 
-    if bundles is None:
-        bundles = []
+    if not bundles:
+        return NoDsymUrl.NOT_NEEDED
 
-    # Remove all bundles associated with app clips, those don't have dSYMS or really any useful
-    # data since they're not apps themselves
+    get_url = lambda bundle: safe.get_path(
+        bundle, "attributes", "dSYMUrl", default=NoDsymUrl.NOT_NEEDED
+    )
+
+    app_clip_urls = [
+        get_url(b)
+        for b in bundles
+        if safe.get_path(b, "attributes", "bundleType", default="APP") == "APP_CLIP"
+    ]
+    if any(app_clip_urls):
+        sentry_sdk.capture_message("App_CLIP has dSYMUrl")
+
     app_bundles = [
         app_bundle
         for app_bundle in bundles
         if safe.get_path(app_bundle, "attributes", "bundleType", default="APP") != "APP_CLIP"
     ]
 
-    if len(app_bundles) == 0:
+    if not app_bundles:
         return NoDsymUrl.NOT_NEEDED
-
-    if len(app_bundles) > 1:
+    elif len(app_bundles) > 1:
         # We currently do not know how to handle these, we'll carry on
         # with the first bundle but report this as an error.
         sentry_sdk.capture_message("len(buildBundles) != 1")
 
-    # Because we only ask for processingState=VALID builds we expect the
-    # builds to be finished and if there are no dSYMs that means the
-    # build doesn't need dSYMs, i.e. it not a bitcode build.
+    # Because we only ask for processingState=VALID builds we expect the builds to be
+    # finished and if there are no dSYMs that means the build doesn't need dSYMs, i.e. it is
+    # not a bitcode build.
     bundle = app_bundles[0]
     url = safe.get_path(bundle, "attributes", "dSYMUrl", default=NoDsymUrl.NOT_NEEDED)
 
