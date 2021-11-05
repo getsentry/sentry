@@ -1,16 +1,19 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
 
 import Input from 'app/components/forms/input';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import {DEFAULT_DEBOUNCE_DURATION} from 'app/constants';
 import {t} from 'app/locale';
-import {Team} from 'app/types';
+import space from 'app/styles/space';
+import useTeams from 'app/utils/useTeams';
 
 import Filter from './filter';
 
 const ALERT_LIST_QUERY_DEFAULT_TEAMS = ['myteams', 'unassigned'];
 
 type Props = {
-  teams: Team[];
   selectedTeams: Set<string>;
   handleChangeFilter: (sectionId: string, activeFilters: Set<string>) => void;
   showStatus?: boolean;
@@ -34,12 +37,13 @@ export function getTeamParams(team?: string | string[]): string[] {
 }
 
 function TeamFilter({
-  teams,
   selectedTeams,
   showStatus = false,
   selectedStatus = new Set(),
   handleChangeFilter,
 }: Props) {
+  const {teams, onSearch, fetching} = useTeams();
+  const debouncedSearch = debounce(onSearch, DEFAULT_DEBOUNCE_DURATION);
   const [teamFilterSearch, setTeamFilterSearch] = useState<string | undefined>();
 
   const statusOptions = [
@@ -83,17 +87,22 @@ function TeamFilter({
   return (
     <Filter
       header={
-        <StyledInput
-          autoFocus
-          placeholder={t('Filter by team slug')}
-          onClick={event => {
-            event.stopPropagation();
-          }}
-          onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-            setTeamFilterSearch(event.target.value);
-          }}
-          value={teamFilterSearch || ''}
-        />
+        <InputWrapper>
+          <StyledInput
+            autoFocus
+            placeholder={t('Filter by team slug')}
+            onClick={event => {
+              event.stopPropagation();
+            }}
+            onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+              const search = event.target.value;
+              setTeamFilterSearch(search);
+              debouncedSearch(search);
+            }}
+            value={teamFilterSearch || ''}
+          />
+          {fetching && <StyledLoadingIndicator size={16} mini />}
+        </InputWrapper>
       }
       onFilterChange={handleChangeFilter}
       dropdownSections={[
@@ -118,8 +127,18 @@ function TeamFilter({
 
 export default TeamFilter;
 
+const InputWrapper = styled('div')`
+  position: relative;
+`;
+
 const StyledInput = styled(Input)`
   border: none;
-  border-bottom: 1px solid ${p => p.theme.gray200};
+  border-bottom: 1px solid transparent;
   border-radius: 0;
+`;
+
+const StyledLoadingIndicator = styled(LoadingIndicator)`
+  position: absolute;
+  right: 0;
+  top: ${space(0.75)};
 `;
