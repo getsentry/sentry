@@ -294,10 +294,10 @@ class TestGetDsymUrl:
                 },
             },
         ]
-        assert appstore_connect._get_dsym_url(bundles) is first_url
+        assert appstore_connect._get_dsym_url(bundles) == first_url
 
         bundles.reverse()
-        assert appstore_connect._get_dsym_url(bundles) is second_url
+        assert appstore_connect._get_dsym_url(bundles) == second_url
 
     def test_multi_bundle_mixed_urls(self) -> None:
         url = "http://iosapps.itunes.apple.com/itunes-assets/very-real-url"
@@ -320,7 +320,7 @@ class TestGetDsymUrl:
             },
         ]
 
-        assert appstore_connect._get_dsym_url(bundles) is url
+        assert appstore_connect._get_dsym_url(bundles) == url
 
         bundles.reverse()
         assert appstore_connect._get_dsym_url(bundles) is NoDsymUrl.NOT_NEEDED
@@ -346,7 +346,7 @@ class TestGetDsymUrl:
         ]
 
         with mock.patch("sentry_sdk.capture_message") as capture_message:
-            assert appstore_connect._get_dsym_url(bundles) == NoDsymUrl.NOT_NEEDED
+            assert appstore_connect._get_dsym_url(bundles) is NoDsymUrl.NOT_NEEDED
             assert capture_message.call_count == 0
 
     def test_multi_bundle_appclip_has_urls(self) -> None:
@@ -396,5 +396,5 @@ class TestGetDsymUrl:
         ]
 
         with mock.patch("sentry_sdk.capture_message") as capture_message:
-            assert appstore_connect._get_dsym_url(bundles) == NoDsymUrl.NOT_NEEDED
+            assert appstore_connect._get_dsym_url(bundles) is NoDsymUrl.NOT_NEEDED
             assert capture_message.call_count == 1
