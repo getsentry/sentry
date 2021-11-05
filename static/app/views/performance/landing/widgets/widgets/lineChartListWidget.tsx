@@ -29,6 +29,7 @@ import SelectableList, {RightAlignedCell} from '../components/selectableList';
 import {transformDiscoverToList} from '../transforms/transformDiscoverToList';
 import {transformEventsRequestToArea} from '../transforms/transformEventsToArea';
 import {QueryDefinition, WidgetDataResult} from '../types';
+import {eventsRequestQueryProps} from '../utils';
 import {PerformanceWidgetSetting} from '../widgetDefinitions';
 
 type Props = {
@@ -156,16 +157,7 @@ export function LineChartListWidget(props: Props) {
         }
         return (
           <EventsRequest
-            {...pick(provided, [
-              'children',
-              'organization',
-              'yAxis',
-              'period',
-              'start',
-              'end',
-              'environment',
-              'project',
-            ])}
+            {...pick(provided, eventsRequestQueryProps)}
             limit={1}
             includePrevious
             includeTransformedData
