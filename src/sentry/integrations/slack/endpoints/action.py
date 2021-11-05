@@ -4,7 +4,6 @@ from typing import Any, Mapping, MutableMapping
 
 from django.urls import reverse
 from requests import post
-from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -13,6 +12,7 @@ from sentry.api import ApiClient, client
 from sentry.api.base import Endpoint
 from sentry.api.helpers.group_index import update_groups
 from sentry.auth.access import from_member
+from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder.issues import build_group_attachment
 from sentry.integrations.slack.requests.action import SlackActionRequest
@@ -31,11 +31,6 @@ from sentry.models import (
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
-from sentry.utils.members import (
-    approve_member_invitation,
-    get_allowed_roles_for_member,
-    reject_member_invitation,
-)
 from sentry.web.decorators import transaction_start
 
 from ..message_builder import SlackBody
@@ -376,7 +371,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         try:
             member = OrganizationMember.objects.get_member_invite_query(member_id).get()
         except OrganizationMember.DoesNotExist:
-            # member request is gone, likely someone else rejected it
+            # member request is gone, likely someone else handled it
             member_email = slack_request.callback_data["member_email"]
             return self.respond_with_text(f"Member invitation for {member_email} no longer exists.")
 
@@ -398,20 +393,19 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
             )
 
         # validate the org options and check against allowed_roles
-        allowed_roles = get_allowed_roles_for_member(member_of_approver)
+        allowed_roles = member_of_approver.get_allowed_roles_to_invite()
         try:
             member.validate_invitation(identity.user, allowed_roles)
-        except serializers.ValidationError as err:
-            # error detail should always have at least one element in the array
-            return self.respond_with_text(str(err.detail[0]))
+        except UnableToAcceptMemberInvitationException as err:
+            return self.respond_with_text(str(err))
 
         original_status = member.invite_status
         member_email = member.email
         try:
             if slack_request.action_option == "approve_member":
-                approve_member_invitation(member, identity.user, referrer="slack")
+                member.approve_member_invitation(identity.user, referrer="slack")
             else:
-                reject_member_invitation(member, identity.user)
+                member.reject_member_invitation(identity.user)
         except Exception as err:
             # shouldn't error but if it does, respond to the user
             logger.error(
