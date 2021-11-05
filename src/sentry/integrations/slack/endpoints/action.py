@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Mapping
+from typing import Any, Mapping, MutableMapping
 
 from django.urls import reverse
 from requests import post
@@ -228,7 +228,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
 
     @transaction_start("SlackActionEndpoint")
     def post(self, request: Request) -> Response:
-        logging_data: Mapping[str, str] = {}
+        logging_data: MutableMapping[str, str] = {}
 
         try:
             slack_request = SlackActionRequest(request)
