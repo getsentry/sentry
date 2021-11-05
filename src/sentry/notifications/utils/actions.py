@@ -23,7 +23,7 @@ class MessageAction:
     # If this is a select type, the selected value.
     value: str | None = None
 
-    style: Literal["primary", "danger", "default"] = "default"
+    style: Literal["primary", "danger", "default"] | None = None
 
     # TODO(mgaeta): Refactor this to be provider-agnostic
     selected_options: Sequence[Mapping[str, Any]] | None = None

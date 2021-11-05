@@ -12,12 +12,14 @@ from sentry.utils.http import absolute_uri
 
 def get_slack_button(action: MessageAction) -> Mapping[str, Any]:
     kwargs: MutableMapping[str, Any] = {
-        "text": action.name or action.label,
+        "text": action.label or action.name,
         "name": action.name,
-        "url": action.url,
-        "style": action.style,
         "type": action.type,
     }
+    for field in ("style", "url", "value"):
+        value = getattr(action, field, None)
+        if value:
+            kwargs[field] = value
 
     if action.type == "select":
         kwargs["selected_options"] = action.selected_options or []
@@ -64,7 +66,7 @@ class SlackMessageBuilder(AbstractMessageBuilder, ABC):
             if title_link:
                 kwargs["title_link"] = title_link
 
-        if actions:
+        if actions is not None:
             kwargs["actions"] = [get_slack_button(action) for action in actions]
 
         return {
