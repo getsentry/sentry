@@ -266,6 +266,11 @@ describe('ProjectAlertsCreate', function () {
       await selectEvent.select(screen.getAllByText('all')[0], ['any']);
       await selectEvent.select(screen.getAllByText('all')[0], ['any']);
 
+      // `userEvent.paste` isn't really ideal, but since `userEvent.type` doesn't provide good performance and
+      // the purpose of this test is not focused on how the user interacts with the fields,
+      // but rather on whether the form will be saved and updated, we decided use `userEvent.paste`
+      // so that this test does not time out from the default jest value of 5000ms
+
       // Change name of alert rule
       userEvent.paste(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
 
