@@ -25,7 +25,7 @@ export type SuspectSpanTableColumnKeys =
   | 'timestamp'
   | 'transactionDuration'
   | 'spanDuration'
-  | 'repeated'
+  | 'occurrences'
   | 'cumulativeDuration'
   | 'spans';
 

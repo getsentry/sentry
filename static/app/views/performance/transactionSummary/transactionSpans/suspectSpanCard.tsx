@@ -39,7 +39,7 @@ import {getSuspectSpanSortFromEventView} from './utils';
 const SPANS_TABLE_COLUMN_ORDER: SuspectSpanTableColumn[] = [
   {
     key: 'id',
-    name: 'Event ID',
+    name: 'Example Transaction',
     width: COL_WIDTH_UNDEFINED,
   },
   {
@@ -53,8 +53,8 @@ const SPANS_TABLE_COLUMN_ORDER: SuspectSpanTableColumn[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'repeated',
-    name: 'Repeated',
+    key: 'occurrences',
+    name: 'Occurrences',
     width: COL_WIDTH_UNDEFINED,
   },
   {
@@ -68,7 +68,7 @@ const SPANS_TABLE_COLUMN_TYPE: Partial<Record<SuspectSpanTableColumnKeys, Column
   id: 'string',
   timestamp: 'date',
   spanDuration: 'duration',
-  repeated: 'integer',
+  occurrences: 'integer',
   cumulativeDuration: 'duration',
 };
 
@@ -103,7 +103,7 @@ export default function SuspectSpanEntry(props: Props) {
     timestamp: example.finishTimestamp * 1000,
     transactionDuration: (example.finishTimestamp - example.startTimestamp) * 1000,
     spanDuration: example.nonOverlappingExclusiveTime,
-    repeated: example.spans.length,
+    occurrences: example.spans.length,
     cumulativeDuration: example.spans.reduce(
       (duration, span) => duration + span.exclusiveTime,
       0
@@ -115,7 +115,7 @@ export default function SuspectSpanEntry(props: Props) {
 
   return (
     <div data-test-id="suspect-card">
-      <UpperPanel>
+      <UpperPanel data-test-id="suspect-card-upper">
         <HeaderItem
           label={t('Span Operation')}
           value={<SpanLabel span={suspectSpan} />}
