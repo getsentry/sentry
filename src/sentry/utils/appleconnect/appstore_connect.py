@@ -7,7 +7,7 @@ import pathlib
 import time
 from collections import namedtuple
 from http import HTTPStatus
-from typing import Any, Dict, Generator, List, Mapping, NewType, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Generator, List, Mapping, NewType, Optional, Tuple, Union
 
 import sentry_sdk
 from dateutil.parser import parse as parse_date
@@ -373,7 +373,7 @@ def _get_dsym_url(bundles: Optional[List[JSONData]]) -> Union[NoDsymUrl, str]:
     if not bundles:
         return NoDsymUrl.NOT_NEEDED
 
-    get_bundle_url = lambda bundle: safe.get_path(
+    get_bundle_url: Callable[[JSONData], Any] = lambda bundle: safe.get_path(
         bundle, "attributes", "dSYMUrl", default=NoDsymUrl.NOT_NEEDED
     )
 
