@@ -494,8 +494,9 @@ class AppStoreConnectStatusEndpoint(ProjectEndpoint):  # type: ignore
                         "code": AppConnectAuthenticationError.code,
                     }
 
+            # TODO: is it possible to set up two configs pointing to the same app?
             pending_downloads = AppConnectBuild.objects.filter(
-                project=project, fetched=False
+                project=project, app_id=symbol_source_cfg.appId, fetched=False
             ).count()
 
             latest_build = (
