@@ -60,11 +60,7 @@ export function normalizeQueries(
     queries = queries.slice(0, 3);
   }
 
-  if (displayType === DisplayType.TABLE) {
-    return queries;
-  }
-
-  if (displayType === DisplayType.TOP_N) {
+  if ([DisplayType.TABLE, DisplayType.TOP_N].includes(displayType)) {
     return queries;
   }
 
