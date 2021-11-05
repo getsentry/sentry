@@ -1,6 +1,7 @@
 import {Fragment, FunctionComponent, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
+import pick from 'lodash/pick';
 
 import Button from 'app/components/button';
 import _EventsRequest from 'app/components/charts/eventsRequest';
@@ -28,6 +29,7 @@ import SelectableList, {RightAlignedCell} from '../components/selectableList';
 import {transformDiscoverToList} from '../transforms/transformDiscoverToList';
 import {transformEventsRequestToVitals} from '../transforms/transformEventsToVitals';
 import {QueryDefinition, WidgetDataResult} from '../types';
+import {eventsRequestQueryProps} from '../utils';
 import {PerformanceWidgetSetting} from '../widgetDefinitions';
 
 type Props = {
@@ -104,7 +106,7 @@ export function VitalWidget(props: Props) {
 
           return (
             <EventsRequest
-              {...provided}
+              {...pick(provided, eventsRequestQueryProps)}
               limit={1}
               currentSeriesNames={[field]}
               includePrevious={false}
