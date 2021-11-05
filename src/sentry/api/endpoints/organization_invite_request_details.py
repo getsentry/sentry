@@ -6,7 +6,8 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPerm
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberWithTeamsSerializer
-from sentry.models import OrganizationMember, UnableToAcceptMemberInvitationException
+from sentry.exceptions import UnableToAcceptMemberInvitationException
+from sentry.models import OrganizationMember
 from sentry.utils.audit import get_api_key_for_audit_log
 
 from .organization_member_details import get_allowed_roles
