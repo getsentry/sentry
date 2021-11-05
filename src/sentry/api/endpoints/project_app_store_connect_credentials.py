@@ -459,7 +459,7 @@ class AppStoreConnectStatusEndpoint(ProjectEndpoint):  # type: ignore
 
     def get(self, request: Request, project: Project) -> Response:
         config_ids = appconnect.AppStoreConnectConfig.all_config_ids(project)
-        statuses = []
+        statuses = {}
         for config_id in config_ids:
             try:
                 symbol_source_cfg = appconnect.AppStoreConnectConfig.from_project_config(
@@ -523,15 +523,13 @@ class AppStoreConnectStatusEndpoint(ProjectEndpoint):  # type: ignore
             else:
                 last_checked_builds = check_entry.last_checked
 
-            statuses.append(
-                {
-                    "id": config_id,
-                    "credentials": asc_credentials,
-                    "pendingDownloads": pending_downloads,
-                    "latestBuildVersion": latestBuildVersion,
-                    "latestBuildNumber": latestBuildNumber,
-                    "lastCheckedBuilds": last_checked_builds,
-                }
-            )
+            statuses[config_id] = {
+                "id": config_id,
+                "credentials": asc_credentials,
+                "pendingDownloads": pending_downloads,
+                "latestBuildVersion": latestBuildVersion,
+                "latestBuildNumber": latestBuildNumber,
+                "lastCheckedBuilds": last_checked_builds,
+            }
 
         return Response(statuses, status=200)
