@@ -26,7 +26,7 @@ class UserReportNotification(ProjectNotification):
 
     def get_participants_with_group_subscription_reason(
         self,
-    ) -> Mapping[ExternalProviders, Mapping[Team | User, int]]:
+    ) -> Mapping[ExternalProviders, Mapping[User, int]]:
         data_by_provider = GroupSubscription.objects.get_participants(group=self.group)
         return {
             provider: data

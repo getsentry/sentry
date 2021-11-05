@@ -1,7 +1,16 @@
-from __future__ import annotations
-
 import re
-from typing import Any, Callable, Mapping, Sequence
+from typing import (
+    Any,
+    Callable,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Union,
+)
 
 from django.core.cache import cache
 
@@ -22,7 +31,6 @@ from sentry.models import (
 )
 from sentry.notifications.notifications.base import BaseNotification, ProjectNotification
 from sentry.notifications.notifications.rules import AlertRuleNotification
-from sentry.notifications.utils.actions import MessageAction
 from sentry.utils import json
 from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
@@ -32,12 +40,12 @@ from ..utils import build_notification_footer
 STATUSES = {"resolved": "resolved", "ignored": "ignored", "unresolved": "re-opened"}
 
 
-def format_actor_options(actors: Sequence[Team | User]) -> Sequence[Mapping[str, str]]:
+def format_actor_options(actors: Sequence[Union["Team", "User"]]) -> Sequence[Mapping[str, str]]:
     sort_func: Callable[[Mapping[str, str]], Any] = lambda actor: actor["text"]
     return sorted((format_actor_option(actor) for actor in actors), key=sort_func)
 
 
-def format_actor_option(actor: Team | User) -> Mapping[str, str]:
+def format_actor_option(actor: Union["Team", "User"]) -> Mapping[str, str]:
     if isinstance(actor, User):
         return {"text": actor.get_display_name(), "value": f"user:{actor.id}"}
     if isinstance(actor, Team):
@@ -46,7 +54,7 @@ def format_actor_option(actor: Team | User) -> Mapping[str, str]:
     raise NotImplementedError
 
 
-def build_attachment_title(obj: Group | Event) -> str:
+def build_attachment_title(obj: Union[Group, Event]) -> str:
     ev_metadata = obj.get_event_metadata()
     ev_type = obj.get_event_type()
 
@@ -64,7 +72,7 @@ def build_attachment_title(obj: Group | Event) -> str:
     return title_str
 
 
-def build_attachment_text(group: Group, event: Event | None = None) -> Any | None:
+def build_attachment_text(group: Group, event: Optional[Event] = None) -> Optional[Any]:
     # Group and Event both implement get_event_{type,metadata}
     obj = event if event is not None else group
     ev_metadata = obj.get_event_metadata()
@@ -76,7 +84,7 @@ def build_attachment_text(group: Group, event: Event | None = None) -> Any | Non
         return None
 
 
-def build_assigned_text(identity: Identity, assignee: str) -> str | None:
+def build_assigned_text(identity: Identity, assignee: str) -> Optional[str]:
     actor = ActorTuple.from_actor_identifier(assignee)
 
     try:
@@ -100,22 +108,18 @@ def build_assigned_text(identity: Identity, assignee: str) -> str | None:
     return f"*Issue assigned to {assignee_text} by <@{identity.external_id}>*"
 
 
-def build_action_text(identity: Identity, action: MessageAction) -> str | None:
-    if action.name == "assign":
-        selected_options = action.selected_options or []
-        if not len(selected_options):
-            return None
-        assignee = selected_options[0].get("value")
-        return build_assigned_text(identity, assignee)
+def build_action_text(identity: Identity, action: Mapping[str, Any]) -> Optional[str]:
+    if action["name"] == "assign":
+        return build_assigned_text(identity, action["selected_options"][0]["value"])
 
     # Resolve actions have additional 'parameters' after ':'
-    status = STATUSES.get((action.value or "").split(":", 1)[0])
+    status = action["value"].split(":", 1)[0]
 
     # Action has no valid action text, ignore
-    if not status:
+    if status not in STATUSES:
         return None
 
-    return f"*Issue {status} by <@{identity.external_id}>*"
+    return f"*Issue {STATUSES[status]} by <@{identity.external_id}>*"
 
 
 def build_rule_url(rule: Any, group: Group, project: Project) -> str:
@@ -128,7 +132,7 @@ def build_rule_url(rule: Any, group: Group, project: Project) -> str:
     return url
 
 
-def build_footer(group: Group, project: Project, rules: Sequence[Rule] | None = None) -> str:
+def build_footer(group: Group, project: Project, rules: Optional[Sequence[Rule]] = None) -> str:
     footer = f"{group.qualified_short_id}"
     if rules:
         rule_url = build_rule_url(rules[0], group, project)
@@ -141,8 +145,8 @@ def build_footer(group: Group, project: Project, rules: Sequence[Rule] | None = 
 
 
 def build_tag_fields(
-    event_for_tags: Any, tags: set[str] | None = None
-) -> Sequence[Mapping[str, str | bool]]:
+    event_for_tags: Any, tags: Optional[Set[str]] = None
+) -> Sequence[Mapping[str, Union[str, bool]]]:
     fields = []
     if tags:
         event_tags = event_for_tags.tags if event_for_tags else []
@@ -178,7 +182,7 @@ def get_option_groups(group: Group) -> Sequence[Mapping[str, Any]]:
 
 def has_releases(project: Project) -> bool:
     cache_key = f"has_releases:2:{project.id}"
-    has_releases_option: bool | None = cache.get(cache_key)
+    has_releases_option: Optional[bool] = cache.get(cache_key)
     if has_releases_option is None:
         has_releases_option = ReleaseProject.objects.filter(project_id=project.id).exists()
         if has_releases_option:
@@ -191,7 +195,7 @@ def has_releases(project: Project) -> bool:
 def get_action_text(
     text: str,
     actions: Sequence[Any],
-    identity: Identity | None = None,
+    identity: Optional[Identity] = None,
 ) -> str:
     return (
         text
@@ -211,67 +215,60 @@ def build_actions(
     project: Project,
     text: str,
     color: str,
-    actions: Sequence[MessageAction] | None = None,
-    identity: Identity | None = None,
-) -> tuple[Sequence[MessageAction], str, str]:
+    actions: Optional[Sequence[Any]] = None,
+    identity: Optional[Identity] = None,
+) -> Tuple[Sequence[Any], str, str]:
     """Having actions means a button will be shown on the Slack message e.g. ignore, resolve, assign."""
     if actions:
         text += get_action_text(text, actions, identity)
         return [], text, "_actioned_issue"
 
-    ignore_button = MessageAction(
-        name="status",
-        label="Ignore",
-        value="ignored",
-    )
-
-    resolve_button = MessageAction(
-        name="resolve_dialog",
-        label="Resolve...",
-        value="resolve_dialog",
-    )
+    ASSIGN_BUTTON: MutableMapping[str, Any] = {
+        "name": "assign",
+        "text": "Select Assignee...",
+        "type": "select",
+    }
+    IGNORE_BUTTON = {
+        "name": "status",
+        "type": "button",
+        "text": "Ignore",
+        "value": "ignored",
+    }
+    RESOLVE_BUTTON = {
+        "name": "resolve_dialog",
+        "text": "Resolve...",
+        "type": "button",
+        "value": "resolve_dialog",
+    }
 
     status = group.get_status()
 
     if not has_releases(project):
-        resolve_button = MessageAction(
-            name="status",
-            label="Resolve",
-            value="resolved",
-        )
+        RESOLVE_BUTTON.update({"name": "status", "text": "Resolve", "value": "resolved"})
 
     if status == GroupStatus.RESOLVED:
-        resolve_button = MessageAction(
-            name="status",
-            label="Unresolve",
-            value="unresolved",
-        )
+        RESOLVE_BUTTON.update({"name": "status", "text": "Unresolve", "value": "unresolved"})
 
     if status == GroupStatus.IGNORED:
-        ignore_button = MessageAction(
-            name="status",
-            label="Stop Ignoring",
-            value="unresolved",
-        )
+        IGNORE_BUTTON.update({"text": "Stop Ignoring", "value": "unresolved"})
 
     assignee = group.get_assignee()
-    assign_button = MessageAction(
-        name="assign",
-        label="Select Assignee...",
-        type="select",
-        selected_options=format_actor_options([assignee]) if assignee else [],
-        option_groups=get_option_groups(group),
+    ASSIGN_BUTTON.update(
+        {
+            "selected_options": format_actor_options([assignee]) if assignee else [],
+            "option_groups": get_option_groups(group),
+        }
     )
 
-    return [resolve_button, ignore_button, assign_button], text, color
+    return [RESOLVE_BUTTON, IGNORE_BUTTON, ASSIGN_BUTTON], text, color
 
 
 def get_title_link(
     group: Group,
-    event: Event | None,
+    event: Optional[Event],
     link_to_event: bool,
     issue_details: bool,
-    notification: BaseNotification | None,
+    notification: Optional[BaseNotification],
 ) -> str:
     if event and link_to_event:
         url = group.get_absolute_url(params={"referrer": "slack"}, event_id=event.event_id)
@@ -288,17 +285,17 @@ def get_title_link(
     return url_str
 
 
-def get_timestamp(group: Group, event: Event | None) -> float:
+def get_timestamp(group: Group, event: Optional[Event]) -> float:
     ts = group.last_seen
     return to_timestamp(max(ts, event.datetime) if event else ts)
 
 
-def get_color(event_for_tags: Event | None, notification: BaseNotification | None) -> str:
+def get_color(event_for_tags: Optional[Event], notification: Optional[BaseNotification]) -> str:
     if notification:
         if not isinstance(notification, AlertRuleNotification):
             return "info"
     if event_for_tags:
-        color: str | None = event_for_tags.get_tag("level")
+        color: Optional[str] = event_for_tags.get_tag("level")
         if color and color in LEVEL_TO_COLOR.keys():
             return color
     return "error"
@@ -308,15 +305,15 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
     def __init__(
         self,
         group: Group,
-        event: Event | None = None,
-        tags: set[str] | None = None,
-        identity: Identity | None = None,
-        actions: Sequence[MessageAction] | None = None,
-        rules: list[Rule] | None = None,
+        event: Optional[Event] = None,
+        tags: Optional[Set[str]] = None,
+        identity: Optional[Identity] = None,
+        actions: Optional[Sequence[Any]] = None,
+        rules: Optional[List[Rule]] = None,
         link_to_event: bool = False,
         issue_details: bool = False,
-        notification: ProjectNotification | None = None,
-        recipient: Team | User | None = None,
+        notification: Optional[ProjectNotification] = None,
+        recipient: Optional[Union["Team", "User"]] = None,
     ) -> None:
         super().__init__()
         self.group = group
@@ -369,11 +366,11 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
 
 def build_group_attachment(
     group: Group,
-    event: Event | None = None,
-    tags: set[str] | None = None,
-    identity: Identity | None = None,
-    actions: Sequence[MessageAction] | None = None,
-    rules: list[Rule] | None = None,
+    event: Optional[Event] = None,
+    tags: Optional[Set[str]] = None,
+    identity: Optional[Identity] = None,
+    actions: Optional[Sequence[Any]] = None,
+    rules: Optional[List[Rule]] = None,
     link_to_event: bool = False,
     issue_details: bool = False,
 ) -> SlackBody:
