@@ -6,6 +6,7 @@ import {act} from 'sentry-test/reactTestingLibrary';
 
 import * as globalSelection from 'app/actionCreators/globalSelection';
 import ProjectsStore from 'app/stores/projectsStore';
+import TeamStore from 'app/stores/teamStore';
 import {OrganizationContext} from 'app/views/organizationContext';
 import PerformanceContent from 'app/views/performance/content';
 import {DEFAULT_MAX_DURATION} from 'app/views/performance/trends/utils';
@@ -63,6 +64,7 @@ function initializeTrendsData(query, addDefaultQuery = true) {
 
 describe('Performance > Content', function () {
   beforeEach(function () {
+    act(() => void TeamStore.loadInitialData([]));
     browserHistory.push = jest.fn();
     jest.spyOn(globalSelection, 'updateDateTime');
 
@@ -141,7 +143,8 @@ describe('Performance > Content', function () {
         predicate: (_, options) => {
           if (!options.hasOwnProperty('query')) {
             return false;
-          } else if (!options.query.hasOwnProperty('field')) {
+          }
+          if (!options.query.hasOwnProperty('field')) {
             return false;
           }
           return !options.query.field.includes('team_key_transaction');
@@ -201,7 +204,8 @@ describe('Performance > Content', function () {
         predicate: (_, options) => {
           if (!options.hasOwnProperty('query')) {
             return false;
-          } else if (!options.query.hasOwnProperty('field')) {
+          }
+          if (!options.query.hasOwnProperty('field')) {
             return false;
           }
           return options.query.field.includes('team_key_transaction');

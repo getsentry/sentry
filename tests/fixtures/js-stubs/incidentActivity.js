@@ -1,6 +1,6 @@
 import {User} from './user';
 
-export function IncidentActivity(params) {
+export function IncidentActivity(params = {}) {
   return {
     comment: 'incident activity comment',
     type: 3,

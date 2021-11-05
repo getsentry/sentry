@@ -19,14 +19,13 @@ from django.db import transaction
 from sentry.lang.native.symbolicator import APP_STORE_CONNECT_SCHEMA, secret_fields
 from sentry.models import Project
 from sentry.utils import json
-from sentry.utils.appleconnect import appstore_connect, itunes_connect
+from sentry.utils.appleconnect import appstore_connect
 
 logger = logging.getLogger(__name__)
 
 # This might be odd, but it convinces mypy that this is part of this module's API.
 BuildInfo = appstore_connect.BuildInfo
 NoDsymUrl = appstore_connect.NoDsymUrl
-PublicProviderId = itunes_connect.PublicProviderId
 
 
 # The key in the project options under which all symbol sources are stored.
@@ -81,25 +80,6 @@ class AppStoreConnectConfig:
     # Private key for the API credentials.
     appconnectPrivateKey: str
 
-    # Username for the iTunes credentials.
-    itunesUser: str
-
-    # Password for the iTunes credentials.
-    itunesPassword: str
-
-    # The iTunes session cookie.
-    #
-    # Loading this cookie into ``requests.Session`` (see
-    # ``sentry.utils.appleconnect.itunes_connect.load_session_cookie``) will allow this
-    # session to make API iTunes requests as the user.
-    itunesSession: str
-
-    # The time the ``itunesSession`` cookie was created.
-    #
-    # The cookie only has a valid session for a limited time and needs user-interaction to
-    # create it.  So we keep track of when it was created.
-    itunesCreated: datetime
-
     # The name of the application, as supplied by the App Store Connect API.
     appName: str
 
@@ -113,13 +93,12 @@ class AppStoreConnectConfig:
     # This is guaranteed to be unique and should map 1:1 to ``appId``.
     bundleId: str
 
-    # The publicProviderId of the organisation according to iTunes.
-    #
-    # An iTunes session can have multiple organisations and needs this ID to be able to
-    # select the correct organisation to operate on.
-    orgPublicId: PublicProviderId
-
-    # The name of an organisation, as supplied by iTunes.
+    # TODO(itunes): Deprecated fields. These must be removed alongside a migration.
+    itunesUser: str
+    itunesPassword: str
+    itunesSession: str
+    itunesCreated: datetime
+    orgPublicId: str
     orgName: str
 
     def __post_init__(self) -> None:
@@ -140,6 +119,7 @@ class AppStoreConnectConfig:
         :raises InvalidConfigError: if the data does not contain a valid App Store Connect
            symbol source configuration.
         """
+        # TODO(itunes): Remove logic related to iTunes fields when the fields are removed
         if isinstance(data["itunesCreated"], datetime):
             data["itunesCreated"] = data["itunesCreated"].isoformat()
         try:
@@ -197,6 +177,7 @@ class AppStoreConnectConfig:
         data = dict()
         for field in dataclasses.fields(self):
             value = getattr(self, field.name)
+            # TODO(itunes): Remove logic related to iTunes fields when the fields are removed
             if field.name == "itunesCreated":
                 value = value.isoformat()
             data[field.name] = value
@@ -254,12 +235,7 @@ class AppStoreConnectConfig:
 
 
 class AppConnectClient:
-    """Client to interact with a single app from App Store Connect.
-
-    Note that on creating this instance it will already connect to iTunes to set the
-    provider for this session.  You also don't want to use the same iTunes cookie in
-    multiple connections, so only make one client for a project.
-    """
+    """Client to interact with a single app from App Store Connect."""
 
     def __init__(
         self,

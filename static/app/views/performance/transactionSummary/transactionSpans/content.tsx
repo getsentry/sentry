@@ -4,11 +4,13 @@ import {Location} from 'history';
 import omit from 'lodash/omit';
 
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
 import SearchBar from 'app/components/events/searchBar';
 import * as Layout from 'app/components/layouts/thirds';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import Pagination from 'app/components/pagination';
+import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import {defined} from 'app/utils';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
@@ -126,8 +128,11 @@ function SpansContent(props: Props) {
                 }
 
                 if (!suspectSpans?.length) {
-                  // TODO: empty state
-                  return null;
+                  return (
+                    <EmptyStateWarning>
+                      <p>{t('No span data found')}</p>
+                    </EmptyStateWarning>
+                  );
                 }
 
                 return (

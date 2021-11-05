@@ -155,7 +155,8 @@ class AccountNotificationFineTuning extends AsyncView<Props, State> {
           // Sort by primary -> email
           if (a.isPrimary) {
             return -1;
-          } else if (b.isPrimary) {
+          }
+          if (b.isPrimary) {
             return 1;
           }
 

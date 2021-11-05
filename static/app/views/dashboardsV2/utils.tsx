@@ -61,7 +61,7 @@ export function constructWidgetFromQuery(query?: Query): Widget | undefined {
       queryNames &&
       queryFields &&
       typeof query.queryOrderby === 'string'
-    )
+    ) {
       queryConditions.forEach((condition, index) => {
         queries.push({
           name: queryNames[index],
@@ -70,6 +70,7 @@ export function constructWidgetFromQuery(query?: Query): Widget | undefined {
           orderby: query.queryOrderby as string,
         });
       });
+    }
     if (query.title && query.displayType && query.interval && queries.length > 0) {
       const newWidget: Widget = {
         ...(pick(query, ['title', 'displayType', 'interval']) as {
