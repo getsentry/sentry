@@ -1,6 +1,6 @@
 import {Project} from './project';
 
-export function ProjectDetails(params) {
+export function ProjectDetails(params = {}) {
   return Project({
     subjectTemplate: '[$project] ${tag:level}: $title',
     subjectPrefix: '[my-org]',

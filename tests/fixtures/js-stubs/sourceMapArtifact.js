@@ -1,4 +1,4 @@
-export function SourceMapArtifact(params) {
+export function SourceMapArtifact(params = {}) {
   return {
     sha1: '111111111',
     dist: null,

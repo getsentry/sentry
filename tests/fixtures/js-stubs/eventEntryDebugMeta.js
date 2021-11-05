@@ -1,4 +1,4 @@
-export function EventEntryDebugMeta(params) {
+export function EventEntryDebugMeta(params = {}) {
   return {
     type: 'debugmeta',
     data: {

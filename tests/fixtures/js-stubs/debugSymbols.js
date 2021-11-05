@@ -1,4 +1,4 @@
-export function DebugSymbols(params) {
+export function DebugSymbols(params = {}) {
   return {
     debugSymbols: [
       {

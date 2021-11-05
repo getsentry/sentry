@@ -103,7 +103,7 @@ describe('NotificationSettingsByType', function () {
       // @ts-expect-error
       [TestStubs.UserIdentity()],
       // @ts-expect-error
-      [TestStubs.OrganizationIntegrations(org.id)]
+      [TestStubs.OrganizationIntegrations({organizationId: org.id})]
     );
     const alert = wrapper.find('StyledAlert');
     expect(alert).toHaveLength(1);

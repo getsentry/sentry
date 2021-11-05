@@ -1,4 +1,4 @@
-export function OrganizationEvent(params) {
+export function OrganizationEvent(params = {}) {
   return {
     projectID: '2',
     eventID: '12345678901234567890123456789012',

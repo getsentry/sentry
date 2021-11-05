@@ -1,4 +1,4 @@
-export function SourceMapArchive(params) {
+export function SourceMapArchive(params = {}) {
   return {
     date: '2020-05-06T13:41:48.926535Z',
     type: 'release',

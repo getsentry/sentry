@@ -1,6 +1,6 @@
 import {IncidentTrigger} from './incidentTrigger';
 
-export function IncidentRule(params) {
+export function IncidentRule(params = {}) {
   return {
     status: 0,
     dateCreated: '2019-07-31T23:02:02.731Z',

@@ -1,4 +1,4 @@
-export function Team(params) {
+export function Team(params = {}) {
   return {
     id: '1',
     slug: 'team-slug',
