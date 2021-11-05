@@ -10,7 +10,14 @@ type ThemeName = 'dark' | 'light';
 
 type Props = {
   children?: ReactChild;
+  /**
+   * Show the theme switcher, which allows for
+   * switching the local theme context between
+   * light and dark mode. Useful for previewing
+   * components in both modes.
+   */
   showThemeSwitcher?: boolean;
+  /** Remove the outer border and padding */
   noBorder?: boolean;
 };
 
@@ -18,33 +25,36 @@ type Props = {
 export const SampleThemeContext = createContext<ThemeName>('light');
 
 const Sample = ({children, showThemeSwitcher = false, noBorder = false}: Props) => {
-  const [theme, setTheme] = useState<ThemeName>('light');
-  let themeObject: Theme;
+  const [themeName, setThemeName] = useState<ThemeName>('light');
+
+  /**
+   * If theme switcher is shown, use the correct theme object based on themeName.
+   * Else, fall back to the global theme object.
+   */
+  const [theme, setTheme] = useState<Theme>(
+    showThemeSwitcher ? (themeName === 'light' ? lightTheme : darkTheme) : useTheme()
+  );
 
   const toggleTheme = () => {
-    if (theme === 'light') {
-      setTheme('dark');
+    if (themeName === 'light') {
+      setThemeName('dark');
+      setTheme(darkTheme);
     } else {
-      setTheme('light');
+      setThemeName('light');
+      setTheme(lightTheme);
     }
   };
-
-  if (showThemeSwitcher) {
-    themeObject = theme === 'light' ? lightTheme : darkTheme;
-  } else {
-    themeObject = useTheme();
-  }
 
   return (
     <Wrap>
       {showThemeSwitcher && (
-        <ThemeSwitcher onClick={() => toggleTheme()} active={theme === 'dark'}>
+        <ThemeSwitcher onClick={toggleTheme} active={themeName === 'dark'}>
           <IconMoon />
         </ThemeSwitcher>
       )}
-      <ThemeProvider theme={themeObject}>
+      <ThemeProvider theme={theme}>
         <InnerWrap noBorder={noBorder} addTopMargin={showThemeSwitcher}>
-          <SampleThemeContext.Provider value={theme}>
+          <SampleThemeContext.Provider value={themeName}>
             {children}
           </SampleThemeContext.Provider>
         </InnerWrap>
