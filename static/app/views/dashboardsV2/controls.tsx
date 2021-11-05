@@ -7,7 +7,7 @@ import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import Confirm from 'app/components/confirm';
 import Hovercard from 'app/components/hovercard';
-import {IconEdit} from 'app/icons';
+import {IconAdd, IconEdit} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
@@ -21,12 +21,21 @@ type Props = {
   onCancel: () => void;
   onCommit: () => void;
   onDelete: () => void;
+  onAddWidget?: () => void;
   dashboardState: DashboardState;
 };
 
 class Controls extends React.Component<Props> {
   render() {
-    const {dashboardState, dashboards, onEdit, onCancel, onCommit, onDelete} = this.props;
+    const {
+      dashboardState,
+      dashboards,
+      onEdit,
+      onCancel,
+      onCommit,
+      onDelete,
+      onAddWidget,
+    } = this.props;
 
     const cancelButton = (
       <Button
@@ -90,18 +99,32 @@ class Controls extends React.Component<Props> {
       <StyledButtonBar gap={1} key="controls">
         <DashboardEditFeature>
           {hasFeature => (
-            <Button
-              data-test-id="dashboard-edit"
-              onClick={e => {
-                e.preventDefault();
-                onEdit();
-              }}
-              priority="primary"
-              icon={<IconEdit size="xs" />}
-              disabled={!hasFeature}
-            >
-              {t('Edit Dashboard')}
-            </Button>
+            <React.Fragment>
+              <Button
+                data-test-id="dashboard-edit"
+                onClick={e => {
+                  e.preventDefault();
+                  onEdit();
+                }}
+                icon={<IconEdit size="xs" />}
+                disabled={!hasFeature}
+              >
+                {t('Edit Dashboard')}
+              </Button>
+              <Button
+                data-test-id="dashboard-add-widget"
+                priority="primary"
+                icon={<IconAdd isCircled size="s" />}
+                onClick={e => {
+                  e.preventDefault();
+                  if (onAddWidget) {
+                    onAddWidget();
+                  }
+                }}
+              >
+                {t('Add Widget')}
+              </Button>
+            </React.Fragment>
           )}
         </DashboardEditFeature>
       </StyledButtonBar>
