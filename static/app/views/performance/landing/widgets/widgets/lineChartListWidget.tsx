@@ -2,6 +2,7 @@ import {Fragment, FunctionComponent, useMemo, useState} from 'react';
 import {withRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
+import pick from 'lodash/pick';
 
 import _EventsRequest from 'app/components/charts/eventsRequest';
 import {getInterval} from 'app/components/charts/utils';
@@ -154,7 +155,7 @@ export function LineChartListWidget(props: Props) {
         }
         return (
           <EventsRequest
-            {...provided}
+            {...pick(provided, ['children', 'organization', 'yAxis'])}
             limit={1}
             includePrevious
             includeTransformedData
