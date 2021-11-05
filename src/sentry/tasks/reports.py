@@ -704,6 +704,14 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
 
     user = User.objects.get(id=user_id)
 
+    if features.has("organizations:weekly-report-debugging", organization):
+        logger.info(
+            "reports.deliver_organization_user_report.begin",
+            extra={
+                "user": user.id,
+                "organization_id": organization.id,
+            },
+        )
     if not user_subscribed_to_organization_reports(user, organization):
         if features.has("organizations:weekly-report-debugging", organization):
             logger.info(
@@ -768,6 +776,14 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
     message = build_message(timestamp, duration, organization, user, reports)
 
     if not dry_run:
+        if features.has("organizations:weekly-report-debugging", organization):
+            logger.info(
+                "reports.deliver_organization_user_report.finish",
+                extra={
+                    "user": user.id,
+                    "organization_id": organization.id,
+                },
+            )
         message.send()
 
 
