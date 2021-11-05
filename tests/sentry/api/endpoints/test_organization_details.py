@@ -88,10 +88,13 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         )
 
         # TODO(dcramer): We need to pare this down. Lots of duplicate queries for membership data.
-        expected_queries = 36
+        expected_queries = 35
 
         # TODO(mgaeta): Extra query while we're "dual reading" from UserOptions and NotificationSettings.
         expected_queries += 1
+
+        # Symbolication Low Priority Queue stats reads two killswitches
+        expected_queries += 8
 
         with self.assertNumQueries(expected_queries, using="default"):
             response = self.get_success_response(self.organization.slug)
@@ -599,11 +602,15 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
     def test_cancel_delete(self):
         org = self.create_organization(owner=self.user, status=OrganizationStatus.PENDING_DELETION)
+        ScheduledDeletion.schedule(org, days=1)
 
         self.get_success_response(org.slug, **{"cancelDeletion": True})
 
         org = Organization.objects.get(id=org.id)
         assert org.status == OrganizationStatus.VISIBLE
+        assert not ScheduledDeletion.objects.filter(
+            model_name="Organization", object_id=org.id
+        ).exists()
 
     def test_relay_pii_config(self):
         value = '{"applications": {"freeform": []}}'

@@ -10,8 +10,7 @@ import EventView, {
   LocationQuery,
 } from 'app/utils/discover/eventView';
 import {usePerformanceEventView} from 'app/utils/performance/contexts/performanceEventViewContext';
-
-import {useOrgSlug} from '../useOrganization';
+import useOrganization from 'app/utils/useOrganization';
 
 export type GenericChildrenProps<T> = {
   isLoading: boolean;
@@ -138,10 +137,25 @@ class _GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>>
   }
 
   getPayload(props: Props<T, P>) {
-    if (this.props.getRequestPayload) {
-      return this.props.getRequestPayload(props);
+    const {cursor, limit, noPagination, referrer} = props;
+    const payload = this.props.getRequestPayload
+      ? this.props.getRequestPayload(props)
+      : props.eventView.getEventsAPIPayload(props.location);
+
+    if (cursor) {
+      payload.cursor = cursor;
     }
-    return props.eventView.getEventsAPIPayload(props.location);
+    if (limit) {
+      payload.per_page = limit;
+    }
+    if (noPagination) {
+      payload.noPagination = noPagination;
+    }
+    if (referrer) {
+      payload.referrer = referrer;
+    }
+
+    return payload;
   }
 
   _shouldRefetchData = (prevProps: Props<T, P>): boolean => {
@@ -157,20 +171,8 @@ class _GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>>
   };
 
   fetchData = async () => {
-    const {
-      api,
-      beforeFetch,
-      afterFetch,
-      didFetch,
-      eventView,
-      orgSlug,
-      route,
-      limit,
-      cursor,
-      setError,
-      noPagination,
-      referrer,
-    } = this.props;
+    const {api, beforeFetch, afterFetch, didFetch, eventView, orgSlug, route, setError} =
+      this.props;
 
     if (!eventView.isValid()) {
       return;
@@ -183,19 +185,6 @@ class _GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>>
     this.setState({isLoading: true, tableFetchID});
 
     setError?.(undefined);
-
-    if (limit) {
-      apiPayload.per_page = limit;
-    }
-    if (noPagination) {
-      apiPayload.noPagination = noPagination;
-    }
-    if (cursor) {
-      apiPayload.cursor = cursor;
-    }
-    if (referrer) {
-      apiPayload.referrer = referrer;
-    }
 
     beforeFetch?.(api);
 
@@ -250,7 +239,7 @@ class _GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>>
 // Shim to allow us to use generic discover query or any specialization with or without passing org slug or eventview, which are now contexts.
 // This will help keep tests working and we can remove extra uses of context-provided props and update tests as we go.
 export function GenericDiscoverQuery<T, P>(props: OuterProps<T, P>) {
-  const orgSlug = props.orgSlug ?? useOrgSlug();
+  const orgSlug = props.orgSlug ?? useOrganization().slug;
   const eventView = props.eventView ?? usePerformanceEventView();
   const _props: Props<T, P> = {
     ...props,

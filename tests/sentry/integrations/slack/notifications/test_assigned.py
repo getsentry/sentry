@@ -1,13 +1,13 @@
+from unittest import mock
 from urllib.parse import parse_qs
 
 import responses
 
 from sentry.models import Activity, Identity, IdentityProvider, IdentityStatus, Integration
 from sentry.notifications.notifications.activity import AssignedActivityNotification
+from sentry.testutils.cases import SlackActivityNotificationTest
+from sentry.testutils.helpers.slack import get_attachment, send_notification
 from sentry.types.activity import ActivityType
-from sentry.utils.compat import mock
-
-from . import SlackActivityNotificationTest, get_attachment, send_notification
 
 
 class SlackAssignedNotificationTest(SlackActivityNotificationTest):
@@ -142,5 +142,5 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest):
         assert attachment["title"] == self.group.title
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=AssignedActivitySlack|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=AssignedActivitySlackUser|Notification Settings>"
         )

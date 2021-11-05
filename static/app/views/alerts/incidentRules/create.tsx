@@ -1,10 +1,8 @@
-import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 
-import {Organization, Project, Team} from 'app/types';
+import {Organization, Project} from 'app/types';
 import {metric} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
-import withTeams from 'app/utils/withTeams';
 import {
   createDefaultRule,
   createRuleFromEventView,
@@ -24,7 +22,7 @@ type Props = {
   organization: Organization;
   project: Project;
   eventView: EventView | undefined;
-  teams: Team[];
+  userTeamIds: string[];
   wizardTemplate?: WizardRuleTemplate;
   sessionId?: string;
   isCustomMetric?: boolean;
@@ -33,40 +31,37 @@ type Props = {
 /**
  * Show metric rules form with an empty rule. Redirects to alerts list after creation.
  */
-class IncidentRulesCreate extends Component<Props> {
-  handleSubmitSuccess = () => {
-    const {router} = this.props;
-    const {orgId} = this.props.params;
+function IncidentRulesCreate(props: Props) {
+  function handleSubmitSuccess() {
+    const {router} = props;
+    const {orgId} = props.params;
 
     metric.endTransaction({name: 'saveAlertRule'});
     router.push(`/organizations/${orgId}/alerts/rules/`);
-  };
-
-  render() {
-    const {project, eventView, wizardTemplate, sessionId, teams, ...props} = this.props;
-    const defaultRule = eventView
-      ? createRuleFromEventView(eventView)
-      : wizardTemplate
-      ? createRuleFromWizardTemplate(wizardTemplate)
-      : createDefaultRule();
-
-    const userTeamIds = teams.filter(({isMember}) => isMember).map(({id}) => id);
-
-    const projectTeamIds = new Set(project.teams.map(({id}) => id));
-    const defaultOwnerId = userTeamIds.find(id => projectTeamIds.has(id)) ?? null;
-    defaultRule.owner = defaultOwnerId && `team:${defaultOwnerId}`;
-
-    return (
-      <RuleForm
-        onSubmitSuccess={this.handleSubmitSuccess}
-        rule={{...defaultRule, projects: [project.slug]}}
-        sessionId={sessionId}
-        project={project}
-        userTeamIds={userTeamIds}
-        {...props}
-      />
-    );
   }
+
+  const {project, eventView, wizardTemplate, sessionId, userTeamIds, ...otherProps} =
+    props;
+  const defaultRule = eventView
+    ? createRuleFromEventView(eventView)
+    : wizardTemplate
+    ? createRuleFromWizardTemplate(wizardTemplate)
+    : createDefaultRule();
+
+  const projectTeamIds = new Set(project.teams.map(({id}) => id));
+  const defaultOwnerId = userTeamIds.find(id => projectTeamIds.has(id)) ?? null;
+  defaultRule.owner = defaultOwnerId && `team:${defaultOwnerId}`;
+
+  return (
+    <RuleForm
+      onSubmitSuccess={handleSubmitSuccess}
+      rule={{...defaultRule, projects: [project.slug]}}
+      sessionId={sessionId}
+      project={project}
+      userTeamIds={userTeamIds}
+      {...otherProps}
+    />
+  );
 }
 
-export default withTeams(IncidentRulesCreate);
+export default IncidentRulesCreate;

@@ -54,7 +54,8 @@ export function findNearestBucketIndex(
   // it's possible that the data is not available yet or the x axis is out of range
   if (!chartData.length || xAxis >= chartData[chartData.length - 1].bin + width) {
     return null;
-  } else if (xAxis < chartData[0].bin) {
+  }
+  if (xAxis < chartData[0].bin) {
     return -1;
   }
 

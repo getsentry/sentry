@@ -2,9 +2,8 @@ from django.urls import reverse
 
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
 from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR
-from sentry.integrations.slack.message_builder.incidents import build_incident_attachment
-from sentry.integrations.slack.message_builder.issues import build_group_attachment
-from sentry.integrations.slack.utils import parse_link
+from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
+from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
 from sentry.testutils import TestCase
 from sentry.utils.assets import get_asset_url
 from sentry.utils.dates import to_timestamp
@@ -26,7 +25,7 @@ class BuildIncidentAttachmentTest(TestCase):
                 to_timestamp(incident.date_started), "{date_pretty}", "{time}"
             )
         )
-        assert build_incident_attachment(action, incident) == {
+        assert SlackIncidentsMessageBuilder(incident, action).build() == {
             "fallback": title,
             "title": title,
             "title_link": absolute_uri(
@@ -51,7 +50,9 @@ class BuildIncidentAttachmentTest(TestCase):
         logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule, status=2)
-        title = f"Critical: {alert_rule.name}"  # This test will use the action/method and not the incident to build status
+
+        # This test will use the action/method and not the incident to build status
+        title = f"Critical: {alert_rule.name}"
         metric_value = 5000
         trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
         action = self.create_alert_rule_trigger_action(
@@ -63,9 +64,9 @@ class BuildIncidentAttachmentTest(TestCase):
             )
         )
         # This should fail because it pulls status from `action` instead of `incident`
-        assert build_incident_attachment(
-            action, incident, metric_value=metric_value, method="fire"
-        ) == {
+        assert SlackIncidentsMessageBuilder(
+            incident, action, metric_value=metric_value, method="fire"
+        ).build() == {
             "fallback": title,
             "title": title,
             "title_link": absolute_uri(
@@ -96,7 +97,7 @@ class BuildIncidentAttachmentTest(TestCase):
         self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
         group = self.create_group(project=self.project)
         ts = group.last_seen
-        assert build_group_attachment(group) == {
+        assert SlackIssuesMessageBuilder(group).build() == {
             "text": "",
             "color": "#E03E2F",
             "actions": [
@@ -124,7 +125,7 @@ class BuildIncidentAttachmentTest(TestCase):
                         },
                     ],
                     "text": "Select Assignee...",
-                    "selected_options": [None],
+                    "selected_options": [],
                     "type": "select",
                     "name": "assign",
                 },
@@ -143,7 +144,7 @@ class BuildIncidentAttachmentTest(TestCase):
         }
         event = self.store_event(data={}, project_id=self.project.id)
         ts = event.datetime
-        assert build_group_attachment(group, event) == {
+        assert SlackIssuesMessageBuilder(group, event).build() == {
             "color": "#E03E2F",
             "text": "",
             "actions": [
@@ -171,7 +172,7 @@ class BuildIncidentAttachmentTest(TestCase):
                         },
                     ],
                     "text": "Select Assignee...",
-                    "selected_options": [None],
+                    "selected_options": [],
                     "type": "select",
                     "name": "assign",
                 },
@@ -189,7 +190,7 @@ class BuildIncidentAttachmentTest(TestCase):
             "footer_icon": "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png",
         }
 
-        assert build_group_attachment(group, event, link_to_event=True) == {
+        assert SlackIssuesMessageBuilder(group, event, link_to_event=True).build() == {
             "color": "#E03E2F",
             "text": "",
             "actions": [
@@ -217,7 +218,7 @@ class BuildIncidentAttachmentTest(TestCase):
                         },
                     ],
                     "text": "Select Assignee...",
-                    "selected_options": [None],
+                    "selected_options": [],
                     "type": "select",
                     "name": "assign",
                 },
@@ -236,36 +237,25 @@ class BuildIncidentAttachmentTest(TestCase):
 
     def test_build_group_attachment_issue_alert(self):
         issue_alert_group = self.create_group(project=self.project)
-        assert build_group_attachment(issue_alert_group, issue_details=True)["actions"] == []
+        assert (
+            SlackIssuesMessageBuilder(issue_alert_group, issue_details=True).build()["actions"]
+            == []
+        )
 
     def test_build_group_attachment_color_no_event_error_fallback(self):
         group_with_no_events = self.create_group(project=self.project)
-        assert build_group_attachment(group_with_no_events)["color"] == "#E03E2F"
+        assert SlackIssuesMessageBuilder(group_with_no_events).build()["color"] == "#E03E2F"
 
     def test_build_group_attachment_color_unexpected_level_error_fallback(self):
         unexpected_level_event = self.store_event(
             data={"level": "trace"}, project_id=self.project.id, assert_no_errors=False
         )
-        assert build_group_attachment(unexpected_level_event.group)["color"] == "#E03E2F"
+        assert SlackIssuesMessageBuilder(unexpected_level_event.group).build()["color"] == "#E03E2F"
 
     def test_build_group_attachment_color_warning(self):
         warning_event = self.store_event(data={"level": "warning"}, project_id=self.project.id)
-        assert build_group_attachment(warning_event.group)["color"] == "#FFC227"
-        assert build_group_attachment(warning_event.group, warning_event)["color"] == "#FFC227"
-
-    def test_parse_link(self):
-        link = "https://meowlificent.ngrok.io/organizations/sentry/issues/167/?project=2&query=is%3Aunresolved"
-        link2 = "https://meowlificent.ngrok.io/organizations/sentry/issues/1/events/2d113519854c4f7a85bae8b69c7404ad/?project=2"
-        link3 = "https://meowlificent.ngrok.io/organizations/sentry/issues/9998089891/events/198e93sfa99d41b993ac8ae5dc384642/events/"
+        assert SlackIssuesMessageBuilder(warning_event.group).build()["color"] == "#FFC227"
         assert (
-            parse_link(link)
-            == "organizations/{organization}/issues/{issue_id}/project=%7Bproject%7D&query=%5B%27is%3Aunresolved%27%5D"
-        )
-        assert (
-            parse_link(link2)
-            == "organizations/{organization}/issues/{issue_id}/events/{event_id}/project=%7Bproject%7D"
-        )
-        assert (
-            parse_link(link3)
-            == "organizations/{organization}/issues/{issue_id}/events/{event_id}/events/"
+            SlackIssuesMessageBuilder(warning_event.group, warning_event).build()["color"]
+            == "#FFC227"
         )

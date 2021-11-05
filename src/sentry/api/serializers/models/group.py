@@ -10,9 +10,10 @@ from django.conf import settings
 from django.db.models import Min, prefetch_related_objects
 from django.utils import timezone
 
-from sentry import tagstore, tsdb
+from sentry import release_health, tagstore, tsdb
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer
+from sentry.api.serializers.models.plugin import is_plugin_deprecated
 from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import LOG_LEVELS, StatsPeriod
@@ -302,6 +303,8 @@ class GroupSerializerBase(Serializer):
         # should only have 1 org at this point
         organization_id = organization_id_list[0]
 
+        authorized = self._is_authorized(user, organization_id)
+
         # find all the integration installs that have issue tracking
         for integration in Integration.objects.filter(organizations=organization_id):
             if not (
@@ -344,6 +347,8 @@ class GroupSerializerBase(Serializer):
             # note that the model GroupMeta where all the information is stored is already cached at the top of this function
             # so these for loops doesn't make a bunch of queries
             for plugin in plugins.for_project(project=item.project, version=1):
+                if is_plugin_deprecated(plugin, item.project):
+                    continue
                 safe_execute(plugin.tags, None, item, annotations, _with_transaction=False)
             for plugin in plugins.for_project(project=item.project, version=2):
                 annotations.extend(
@@ -380,6 +385,7 @@ class GroupSerializerBase(Serializer):
                 "resolution_type": resolution_type,
                 "resolution_actor": resolution_actor,
                 "share_id": share_ids.get(item.id),
+                "authorized": authorized,
             }
 
             result[item]["is_unhandled"] = bool(snuba_stats.get(item.id, {}).get("unhandled"))
@@ -444,30 +450,30 @@ class GroupSerializerBase(Serializer):
             status_label = "unresolved"
         return status_details, status_label
 
-    def _get_permalink(self, obj, user):
+    def _is_authorized(self, user, organization_id):
         # If user is not logged in and member of the organization,
         # do not return the permalink which contains private information i.e. org name.
         request = env.request
-        is_superuser = request and is_active_superuser(request) and request.user == user
+        if request and is_active_superuser(request) and request.user == user:
+            return True
 
         # If user is a sentry_app then it's a proxy user meaning we can't do a org lookup via `get_orgs()`
         # because the user isn't an org member. Instead we can use the auth token and the installation
         # it's associated with to find out what organization the token has access to.
-        is_valid_sentryapp = False
         if (
             request
             and getattr(request.user, "is_sentry_app", False)
             and isinstance(request.auth, ApiToken)
         ):
-            is_valid_sentryapp = SentryAppInstallationToken.has_organization_access(
-                request.auth, obj.organization
-            )
+            if SentryAppInstallationToken.objects.has_organization_access(
+                request.auth, organization_id
+            ):
+                return True
 
-        if (
-            is_superuser
-            or is_valid_sentryapp
-            or (user.is_authenticated and user.get_orgs().filter(id=obj.organization.id).exists())
-        ):
+        return user.is_authenticated and user.get_orgs().filter(id=organization_id).exists()
+
+    def _get_permalink(self, attrs, obj):
+        if attrs["authorized"]:
             with sentry_sdk.start_span(op="GroupSerializerBase.serialize.permalink.build"):
                 return obj.get_absolute_url()
         else:
@@ -475,7 +481,7 @@ class GroupSerializerBase(Serializer):
 
     def serialize(self, obj, attrs, user):
         status_details, status_label = self._get_status(attrs, obj)
-        permalink = self._get_permalink(obj, user)
+        permalink = self._get_permalink(attrs, obj)
         is_subscribed, subscription_details = get_subscription_from_attributes(attrs)
         share_id = attrs["share_id"]
         group_dict = {
@@ -981,25 +987,19 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                     metrics.incr(f"group.get_session_counts.{found}")
 
                 if missed_items:
-                    filters = {"project_id": list({item.project_id for item in missed_items})}
-                    if self.environment_ids:
-                        filters["environment"] = self.environment_ids
-
-                    result_totals = raw_query(
-                        selected_columns=["sessions"],
-                        dataset=Dataset.Sessions,
-                        start=self.start,
-                        end=self.end,
-                        filter_keys=filters,
-                        groupby=["project_id"],
-                        referrer="serializers.GroupSerializerSnuba.session_totals",
+                    project_ids = list({item.project_id for item in missed_items})
+                    project_sessions = release_health.get_num_sessions_per_project(
+                        project_ids,
+                        self.start,
+                        self.end,
+                        self.environment_ids,
                     )
 
                     results = {}
-                    for data in result_totals["data"]:
-                        cache_key = self._build_session_cache_key(data["project_id"])
-                        results[data["project_id"]] = data["sessions"]
-                        cache.set(cache_key, data["sessions"], 3600)
+                    for project_id, count in project_sessions:
+                        cache_key = self._build_session_cache_key(project_id)
+                        results[project_id] = count
+                        cache.set(cache_key, count, 3600)
 
                     for item in missed_items:
                         if item.project_id in results.keys():

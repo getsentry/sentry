@@ -7,6 +7,7 @@ from django.utils import timezone
 from django.utils.encoding import force_text
 from rest_framework import serializers
 
+from sentry import analytics
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.serializers.rest_framework.environment import EnvironmentField
 from sentry.api.serializers.rest_framework.project import ProjectField
@@ -37,10 +38,8 @@ from sentry.incidents.models import (
     AlertRuleTriggerAction,
 )
 from sentry.integrations.slack.utils import validate_channel_id
-from sentry.models import ActorTuple
-from sentry.models.organizationmember import OrganizationMember
-from sentry.models.team import Team
-from sentry.models.user import User
+from sentry.mediators import alert_rule_actions
+from sentry.models import ActorTuple, OrganizationMember, SentryAppInstallation, Team, User
 from sentry.shared_integrations.exceptions import ApiRateLimitedError
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
@@ -84,20 +83,34 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
      - `alert_rule`: The alert_rule related to this action.
      - `organization`: The organization related to this action.
      - `access`: An access object (from `request.access`)
+     - `user`: The user from `request.user`
     """
 
     id = serializers.IntegerField(required=False)
     type = serializers.CharField()
     target_type = serializers.CharField()
+    sentry_app_config = serializers.JSONField(required=False)
+    sentry_app_installation_uuid = serializers.CharField(required=False)
 
     class Meta:
         model = AlertRuleTriggerAction
-        fields = ["id", "type", "target_type", "target_identifier", "integration", "sentry_app"]
+        fields = [
+            "id",
+            "type",
+            "target_type",
+            "target_identifier",
+            "integration",
+            "sentry_app",
+            "sentry_app_config",
+            "sentry_app_installation_uuid",
+        ]
         extra_kwargs = {
             "target_identifier": {"required": True},
             "target_display": {"required": False},
             "integration": {"required": False, "allow_null": True},
             "sentry_app": {"required": False, "allow_null": True},
+            "sentry_app_config": {"required": False, "allow_null": True},
+            "sentry_app_installation_uuid": {"required": False, "allow_null": True},
         }
 
     def validate_type(self, type):
@@ -168,6 +181,33 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                 raise serializers.ValidationError(
                     {"sentry_app": "SentryApp must be provided for sentry_app"}
                 )
+            if attrs.get("sentry_app_config"):
+                if attrs.get("sentry_app_installation_uuid") is None:
+                    raise serializers.ValidationError(
+                        {"sentry_app": "Missing paramater: sentry_app_installation_uuid"}
+                    )
+
+                try:
+                    install = SentryAppInstallation.objects.get(
+                        uuid=attrs.get("sentry_app_installation_uuid")
+                    )
+                except SentryAppInstallation.DoesNotExist:
+                    raise serializers.ValidationError(
+                        {"sentry_app": "The installation does not exist."}
+                    )
+                # Check response from creator and bubble up errors from providers as a ValidationError
+                result = alert_rule_actions.AlertRuleActionCreator.run(
+                    install=install,
+                    fields=attrs.get("sentry_app_config"),
+                )
+
+                if not result["success"]:
+                    raise serializers.ValidationError(
+                        {"sentry_app": f'{install.sentry_app.name}: {result["message"]}'}
+                    )
+
+                del attrs["sentry_app_installation_uuid"]
+
         attrs["use_async_lookup"] = self.context.get("use_async_lookup")
         attrs["input_channel_id"] = self.context.get("input_channel_id")
         should_validate_channel_id = self.context.get("validate_channel_id", True)
@@ -178,13 +218,21 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
 
     def create(self, validated_data):
         try:
-            return create_alert_rule_trigger_action(
+            action = create_alert_rule_trigger_action(
                 trigger=self.context["trigger"], **validated_data
             )
         except InvalidTriggerActionError as e:
             raise serializers.ValidationError(force_text(e))
         except ApiRateLimitedError as e:
             raise serializers.ValidationError(force_text(e))
+        else:
+            analytics.record(
+                "metric_alert_with_ui_component.created",
+                user_id=getattr(self.context["user"], "id", None),
+                alert_rule_id=getattr(self.context["alert_rule"], "id"),
+                organization_id=getattr(self.context["organization"], "id"),
+            )
+            return action
 
     def update(self, instance, validated_data):
         if "id" in validated_data:
@@ -203,6 +251,7 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
      - `alert_rule`: The alert_rule related to this trigger.
      - `organization`: The organization related to this trigger.
      - `access`: An access object (from `request.access`)
+     - `user`: The user from `request.user`
     """
 
     id = serializers.IntegerField(required=False)
@@ -266,6 +315,7 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
                         "trigger": alert_rule_trigger,
                         "organization": self.context["organization"],
                         "access": self.context["access"],
+                        "user": self.context["user"],
                         "use_async_lookup": self.context.get("use_async_lookup"),
                         "validate_channel_id": self.context.get("validate_channel_id"),
                         "input_channel_id": action_data.pop("input_channel_id", None),
@@ -273,7 +323,6 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
                     instance=action_instance,
                     data=action_data,
                 )
-
                 if action_serializer.is_valid():
                     try:
                         action_serializer.save()
@@ -296,6 +345,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
     Serializer for creating/updating an alert rule. Required context:
      - `organization`: The organization related to this alert rule.
      - `access`: An access object (from `request.access`)
+     - `user`: The user from `request.user`
     """
 
     environment = EnvironmentField(required=False, allow_null=True)
@@ -635,6 +685,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                         "alert_rule": alert_rule,
                         "organization": self.context["organization"],
                         "access": self.context["access"],
+                        "user": self.context["user"],
                         "use_async_lookup": self.context.get("use_async_lookup"),
                         "input_channel_id": self.context.get("input_channel_id"),
                         "validate_channel_id": self.context.get("validate_channel_id"),

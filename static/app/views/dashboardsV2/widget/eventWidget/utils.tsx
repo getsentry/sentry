@@ -3,7 +3,7 @@ import isEqual from 'lodash/isEqual';
 import {
   aggregateOutputType,
   getAggregateFields,
-  isAggregateField,
+  isAggregateFieldOrEquation,
   isLegalYAxisType,
 } from 'app/utils/discover/fields';
 import {Widget} from 'app/views/dashboardsV2/types';
@@ -28,7 +28,8 @@ export function mapErrors(
     if (Array.isArray(value) && typeof value[0] === 'string') {
       update[key] = value[0];
       return;
-    } else if (Array.isArray(value) && typeof value[0] === 'object') {
+    }
+    if (Array.isArray(value) && typeof value[0] === 'object') {
       update[key] = (value as ValidationError[]).map(item => mapErrors(item, {}));
     } else {
       update[key] = mapErrors(value as ValidationError, {});
@@ -87,7 +88,7 @@ export function normalizeQueries(
 
   // Filter out non-aggregate fields
   queries = queries.map(query => {
-    let fields = query.fields.filter(isAggregateField);
+    let fields = query.fields.filter(isAggregateFieldOrEquation);
 
     if (isTimeseriesChart || displayType === DisplayType.WORLD_MAP) {
       // Filter out fields that will not generate numeric output types

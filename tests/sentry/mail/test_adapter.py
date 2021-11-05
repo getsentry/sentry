@@ -1,5 +1,6 @@
 from collections import Counter
 from datetime import datetime
+from unittest import mock
 
 import pytz
 from django.contrib.auth.models import AnonymousUser
@@ -44,7 +45,6 @@ from sentry.rules.processor import RuleFuture
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.types.integrations import ExternalProviders
-from sentry.utils.compat import mock
 from sentry.utils.email import MessageBuilder, get_email_addresses
 from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
 from tests.sentry.mail import make_event_data, send_notification
@@ -195,8 +195,8 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             "Europe/Vienna"
         )
 
-        self.assertEquals(notification.project, self.project)
-        self.assertEquals(notification.get_reference(), group)
+        self.assertEqual(notification.project, self.project)
+        self.assertEqual(notification.get_reference(), group)
         assert notification.get_subject() == "BAR-1 - hello world"
 
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
@@ -535,7 +535,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest):
         rule = project.rule_set.all()[0]
         digest = build_digest(
             project, (event_to_record(event, (rule,)), event_to_record(event2, (rule,)))
-        )
+        )[0]
 
         with self.tasks():
             self.adapter.notify_digest(project, digest, ActionTargetType.ISSUE_OWNERS)
@@ -551,7 +551,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest):
     def test_notify_digest_single_record(self, send_async, notify):
         event = self.store_event(data={}, project_id=self.project.id)
         rule = self.project.rule_set.all()[0]
-        digest = build_digest(self.project, (event_to_record(event, (rule,)),))
+        digest = build_digest(self.project, (event_to_record(event, (rule,)),))[0]
         self.adapter.notify_digest(self.project, digest, ActionTargetType.ISSUE_OWNERS)
         assert send_async.call_count == 1
         assert notify.call_count == 1
@@ -573,7 +573,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest):
 
         digest = build_digest(
             self.project, (event_to_record(event, (rule,)), event_to_record(event2, (rule,)))
-        )
+        )[0]
 
         with self.tasks():
             self.adapter.notify_digest(self.project, digest, ActionTargetType.ISSUE_OWNERS)
@@ -615,7 +615,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest):
 
         digest = build_digest(
             project, (event_to_record(event, (rule,)), event_to_record(event2, (rule,)))
-        )
+        )[0]
 
         with self.tasks():
             self.adapter.notify_digest(project, digest, ActionTargetType.MEMBER, 444)
@@ -643,32 +643,6 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
         futures = [RuleFuture(rule, {})]
         self.adapter.rule_notify(event, futures, ActionTargetType.ISSUE_OWNERS)
         assert digests.add.call_count == 1
-
-
-class MailAdapterShouldNotifyTest(BaseMailAdapterTest):
-    def test_should_notify(self):
-        assert self.adapter.should_notify(ActionTargetType.ISSUE_OWNERS, self.group)
-        assert self.adapter.should_notify(ActionTargetType.MEMBER, self.group)
-
-    def test_should_not_notify_no_users(self):
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.NEVER,
-            user=self.user,
-            project=self.project,
-        )
-        assert not self.adapter.should_notify(ActionTargetType.ISSUE_OWNERS, self.group)
-
-    def test_should_always_notify_target_member(self):
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.NEVER,
-            user=self.user,
-            project=self.project,
-        )
-        assert self.adapter.should_notify(ActionTargetType.MEMBER, self.group)
 
 
 class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):

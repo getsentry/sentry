@@ -1,8 +1,6 @@
-import {Component} from 'react';
 import {browserHistory, withRouter, WithRouterProps} from 'react-router';
-import {withTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 
-import {Client} from 'app/api';
 import ChartZoom from 'app/components/charts/chartZoom';
 import LineChart from 'app/components/charts/lineChart';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
@@ -18,10 +16,13 @@ import EventView from 'app/utils/discover/eventView';
 import getDynamicText from 'app/utils/getDynamicText';
 import {decodeList} from 'app/utils/queryString';
 import {Theme} from 'app/utils/theme';
-import withApi from 'app/utils/withApi';
-import {YAxis} from 'app/views/releases/detail/overview/chart/releaseChartControls';
 
-import {NormalizedTrendsTransaction, TrendChangeType, TrendsStats} from './types';
+import {
+  NormalizedTrendsTransaction,
+  TrendChangeType,
+  TrendFunctionField,
+  TrendsStats,
+} from './types';
 import {
   generateTrendFunctionAsString,
   getCurrentTrendFunction,
@@ -44,15 +45,18 @@ type ViewProps = Pick<EventView, typeof QUERY_KEYS[number]>;
 
 type Props = WithRouterProps &
   ViewProps & {
-    theme: Theme;
-    api: Client;
     location: Location;
     organization: OrganizationSummary;
     trendChangeType: TrendChangeType;
+    trendFunctionField?: TrendFunctionField;
     transaction?: NormalizedTrendsTransaction;
     isLoading: boolean;
     statsData: TrendsStats;
     projects: Project[];
+    height?: number;
+    grid?: LineChart['props']['grid'];
+    disableXAxis?: boolean;
+    disableLegend?: boolean;
   };
 
 function transformEventStats(data: EventsStatsData, seriesName?: string): Series[] {
@@ -228,9 +232,28 @@ function getIntervalLine(
   return additionalLineSeries;
 }
 
-class Chart extends Component<Props> {
-  handleLegendSelectChanged = legendChange => {
-    const {location, trendChangeType} = this.props;
+export function Chart({
+  trendChangeType,
+  router,
+  statsPeriod,
+  project,
+  environment,
+  transaction,
+  statsData,
+  isLoading,
+  location,
+  projects,
+  start: propsStart,
+  end: propsEnd,
+  trendFunctionField,
+  disableXAxis,
+  disableLegend,
+  grid,
+  height,
+}: Props) {
+  const theme = useTheme();
+
+  const handleLegendSelectChanged = legendChange => {
     const {selected} = legendChange;
     const unselected = Object.keys(selected).filter(key => !selected[key]);
 
@@ -248,174 +271,163 @@ class Chart extends Component<Props> {
     browserHistory.push(to);
   };
 
-  render() {
-    const props = this.props;
+  const lineColor = trendToColor[trendChangeType || ''];
 
-    const {
-      theme,
-      trendChangeType,
-      router,
-      statsPeriod,
-      project,
-      environment,
-      transaction,
-      statsData,
-      isLoading,
-      location,
-      projects,
-    } = props;
-    const lineColor = trendToColor[trendChangeType || ''];
+  const events =
+    statsData && transaction?.project && transaction?.transaction
+      ? statsData[[transaction.project, transaction.transaction].join(',')]
+      : undefined;
+  const data = events?.data ?? [];
 
-    const events =
-      statsData && transaction?.project && transaction?.transaction
-        ? statsData[[transaction.project, transaction.transaction].join(',')]
-        : undefined;
-    const data = events?.data ?? [];
+  const trendFunction = getCurrentTrendFunction(location, trendFunctionField);
+  const trendParameter = getCurrentTrendParameter(location);
+  const chartLabel = generateTrendFunctionAsString(
+    trendFunction.field,
+    trendParameter.column
+  );
+  const results = transformEventStats(data, chartLabel);
+  const {smoothedResults, minValue, maxValue} = transformEventStatsSmoothed(
+    results,
+    chartLabel
+  );
 
-    const trendFunction = getCurrentTrendFunction(location);
-    const trendParameter = getCurrentTrendParameter(location);
-    const chartLabel = generateTrendFunctionAsString(
-      trendFunction.field,
-      trendParameter.column
-    );
-    const results = transformEventStats(data, chartLabel);
-    const {smoothedResults, minValue, maxValue} = transformEventStatsSmoothed(
-      results,
-      chartLabel
-    );
+  const start = propsStart ? getUtcToLocalDateObject(propsStart) : null;
+  const end = propsEnd ? getUtcToLocalDateObject(propsEnd) : null;
+  const {utc} = getParams(location.query);
 
-    const start = props.start ? getUtcToLocalDateObject(props.start) : null;
-    const end = props.end ? getUtcToLocalDateObject(props.end) : null;
-    const {utc} = getParams(location.query);
+  const seriesSelection = decodeList(
+    location.query[getUnselectedSeries(trendChangeType)]
+  ).reduce((selection, metric) => {
+    selection[metric] = false;
+    return selection;
+  }, {});
+  const legend = disableLegend
+    ? {show: false}
+    : {
+        ...getLegend(chartLabel),
+        selected: seriesSelection,
+      };
 
-    const seriesSelection = decodeList(
-      location.query[getUnselectedSeries(trendChangeType)]
-    ).reduce((selection, metric) => {
-      selection[metric] = false;
-      return selection;
-    }, {});
-    const legend = {
-      ...getLegend(chartLabel),
-      selected: seriesSelection,
-    };
+  const loading = isLoading;
+  const reloading = isLoading;
 
-    const loading = isLoading;
-    const reloading = isLoading;
+  const transactionProject = parseInt(
+    projects.find(({slug}) => transaction?.project === slug)?.id || '',
+    10
+  );
 
-    const transactionProject = parseInt(
-      projects.find(({slug}) => transaction?.project === slug)?.id || '',
-      10
-    );
+  const yMax = Math.max(
+    maxValue,
+    transaction?.aggregate_range_2 || 0,
+    transaction?.aggregate_range_1 || 0
+  );
+  const yMin = Math.min(
+    minValue,
+    transaction?.aggregate_range_1 || Number.MAX_SAFE_INTEGER,
+    transaction?.aggregate_range_2 || Number.MAX_SAFE_INTEGER
+  );
+  const yDiff = yMax - yMin;
+  const yMargin = yDiff * 0.1;
 
-    const yMax = Math.max(
-      maxValue,
-      transaction?.aggregate_range_2 || 0,
-      transaction?.aggregate_range_1 || 0
-    );
-    const yMin = Math.min(
-      minValue,
-      transaction?.aggregate_range_1 || Number.MAX_SAFE_INTEGER,
-      transaction?.aggregate_range_2 || Number.MAX_SAFE_INTEGER
-    );
-    const yDiff = yMax - yMin;
-    const yMargin = yDiff * 0.1;
+  const queryExtra = {
+    showTransactions: trendChangeType,
+    yAxis: 'countDuration',
+  };
 
-    const queryExtra = {
-      showTransactions: trendChangeType,
-      yAxis: YAxis.COUNT_DURATION,
-    };
-
-    const chartOptions = {
-      tooltip: {
-        valueFormatter: (value, seriesName) => {
-          return tooltipFormatter(value, seriesName);
-        },
+  const chartOptions = {
+    tooltip: {
+      valueFormatter: (value, seriesName) => {
+        return tooltipFormatter(value, seriesName);
       },
-      yAxis: {
-        min: Math.max(0, yMin - yMargin),
-        max: yMax + yMargin,
-        axisLabel: {
-          color: theme.chartLabel,
-          // p50() coerces the axis to be time based
-          formatter: (value: number) => axisLabelFormatter(value, 'p50()'),
-        },
+    },
+    yAxis: {
+      min: Math.max(0, yMin - yMargin),
+      max: yMax + yMargin,
+      axisLabel: {
+        color: theme.chartLabel,
+        // p50() coerces the axis to be time based
+        formatter: (value: number) => axisLabelFormatter(value, 'p50()'),
       },
-    };
+    },
+  };
 
-    return (
-      <ChartZoom
-        router={router}
-        period={statsPeriod}
-        start={start}
-        end={end}
-        utc={utc === 'true'}
-      >
-        {zoomRenderProps => {
-          const smoothedSeries = smoothedResults
-            ? smoothedResults.map(values => {
-                return {
-                  ...values,
-                  color: lineColor.default,
-                  lineStyle: {
-                    opacity: 1,
-                  },
-                };
-              })
-            : [];
+  return (
+    <ChartZoom
+      router={router}
+      period={statsPeriod}
+      start={start}
+      end={end}
+      utc={utc === 'true'}
+    >
+      {zoomRenderProps => {
+        const smoothedSeries = smoothedResults
+          ? smoothedResults.map(values => {
+              return {
+                ...values,
+                color: lineColor.default,
+                lineStyle: {
+                  opacity: 1,
+                },
+              };
+            })
+          : [];
 
-          const intervalSeries = getIntervalLine(
-            theme,
-            smoothedResults || [],
-            0.5,
-            transaction
-          );
+        const intervalSeries = getIntervalLine(
+          theme,
+          smoothedResults || [],
+          0.5,
+          transaction
+        );
 
-          return (
-            <ReleaseSeries
-              start={start}
-              end={end}
-              queryExtra={queryExtra}
-              period={statsPeriod}
-              utc={utc === 'true'}
-              projects={isNaN(transactionProject) ? project : [transactionProject]}
-              environments={environment}
-              memoized
-            >
-              {({releaseSeries}) => (
-                <TransitionChart loading={loading} reloading={reloading}>
-                  <TransparentLoadingMask visible={reloading} />
-                  {getDynamicText({
-                    value: (
-                      <LineChart
-                        {...zoomRenderProps}
-                        {...chartOptions}
-                        onLegendSelectChanged={this.handleLegendSelectChanged}
-                        series={[...smoothedSeries, ...releaseSeries, ...intervalSeries]}
-                        seriesOptions={{
-                          showSymbol: false,
-                        }}
-                        legend={legend}
-                        toolBox={{
-                          show: false,
-                        }}
-                        grid={{
+        return (
+          <ReleaseSeries
+            start={start}
+            end={end}
+            queryExtra={queryExtra}
+            period={statsPeriod}
+            utc={utc === 'true'}
+            projects={isNaN(transactionProject) ? project : [transactionProject]}
+            environments={environment}
+            memoized
+          >
+            {({releaseSeries}) => (
+              <TransitionChart loading={loading} reloading={reloading}>
+                <TransparentLoadingMask visible={reloading} />
+                {getDynamicText({
+                  value: (
+                    <LineChart
+                      height={height}
+                      {...zoomRenderProps}
+                      {...chartOptions}
+                      onLegendSelectChanged={handleLegendSelectChanged}
+                      series={[...smoothedSeries, ...releaseSeries, ...intervalSeries]}
+                      seriesOptions={{
+                        showSymbol: false,
+                      }}
+                      legend={legend}
+                      toolBox={{
+                        show: false,
+                      }}
+                      grid={
+                        grid ?? {
                           left: '10px',
                           right: '10px',
                           top: '40px',
                           bottom: '0px',
-                        }}
-                      />
-                    ),
-                    fixed: 'Duration Chart',
-                  })}
-                </TransitionChart>
-              )}
-            </ReleaseSeries>
-          );
-        }}
-      </ChartZoom>
-    );
-  }
+                        }
+                      }
+                      xAxis={disableXAxis ? {show: false} : undefined}
+                    />
+                  ),
+                  fixed: 'Duration Chart',
+                })}
+              </TransitionChart>
+            )}
+          </ReleaseSeries>
+        );
+      }}
+    </ChartZoom>
+  );
 }
 
-export default withTheme(withApi(withRouter(Chart)));
+export default withRouter(Chart);

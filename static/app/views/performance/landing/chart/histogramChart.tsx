@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {withTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -18,8 +18,8 @@ import {Series} from 'app/types/echarts';
 import EventView from 'app/utils/discover/eventView';
 import getDynamicText from 'app/utils/getDynamicText';
 import HistogramQuery from 'app/utils/performance/histogram/histogramQuery';
+import {HistogramData} from 'app/utils/performance/histogram/types';
 import {computeBuckets, formatHistogramData} from 'app/utils/performance/histogram/utils';
-import {Theme} from 'app/utils/theme';
 
 import {DoubleHeaderContainer} from '../../styles';
 import {getFieldOrBackup} from '../display/utils';
@@ -28,7 +28,6 @@ const NUM_BUCKETS = 50;
 const PRECISION = 0;
 
 type Props = {
-  theme: Theme;
   location: Location;
   organization: Organization;
   eventView: EventView;
@@ -43,7 +42,6 @@ type Props = {
 
 export function HistogramChart(props: Props) {
   const {
-    theme,
     location,
     onFilterChange,
     organization,
@@ -57,15 +55,6 @@ export function HistogramChart(props: Props) {
   } = props;
 
   const _backupField = backupField ? [backupField] : [];
-
-  const xAxis = {
-    type: 'category' as const,
-    truncate: true,
-    boundaryGap: false,
-    axisTick: {
-      alignWithLabel: true,
-    },
-  };
 
   return (
     <div>
@@ -87,11 +76,11 @@ export function HistogramChart(props: Props) {
       >
         {results => {
           const _field = usingBackupAxis ? getFieldOrBackup(field, backupField) : field;
-          const loading = results.isLoading;
-          const errored = results.error !== null;
+          const isLoading = results.isLoading;
+          const isErrored = results.error !== null;
           const chartData = results.histograms?.[_field];
 
-          if (errored) {
+          if (isErrored) {
             return (
               <ErrorPanel height="250px">
                 <IconWarning color="gray300" size="lg" />
@@ -103,68 +92,124 @@ export function HistogramChart(props: Props) {
             return null;
           }
 
-          const series = {
-            seriesName: t('Count'),
-            data: formatHistogramData(chartData, {type: 'duration'}),
-          };
-          const allSeries: Series[] = [];
-
-          if (!loading && !errored) {
-            allSeries.push(series);
-          }
-
-          const yAxis = {
-            type: 'value' as const,
-            axisLabel: {
-              color: theme.chartLabel,
-            },
-          };
-
           return (
-            <Fragment>
-              <BarChartZoom
-                minZoomWidth={10 ** -PRECISION * NUM_BUCKETS}
-                location={location}
-                paramStart={`${_field}:>=`}
-                paramEnd={`${_field}:<=`}
-                xAxisIndex={[0]}
-                buckets={computeBuckets(chartData)}
-                onHistoryPush={onFilterChange}
-              >
-                {zoomRenderProps => {
-                  return (
-                    <BarChartContainer>
-                      <MaskContainer>
-                        <TransparentLoadingMask visible={loading} />
-                        {getDynamicText({
-                          value: (
-                            <BarChart
-                              height={250}
-                              series={allSeries}
-                              xAxis={xAxis}
-                              yAxis={yAxis}
-                              grid={{
-                                left: space(3),
-                                right: space(3),
-                                top: space(3),
-                                bottom: loading ? space(4) : space(1.5),
-                              }}
-                              stacked
-                              {...zoomRenderProps}
-                            />
-                          ),
-                          fixed: <Placeholder height="250px" testId="skeleton-ui" />,
-                        })}
-                      </MaskContainer>
-                    </BarChartContainer>
-                  );
-                }}
-              </BarChartZoom>
-            </Fragment>
+            <Chart
+              isLoading={isLoading}
+              isErrored={isErrored}
+              chartData={chartData}
+              location={location}
+              onFilterChange={onFilterChange}
+              field={_field}
+            />
           );
         }}
       </HistogramQuery>
     </div>
+  );
+}
+
+type ChartProps = {
+  chartData?: HistogramData;
+  isLoading: boolean;
+  isErrored: boolean;
+  location: Location;
+  onFilterChange: Props['onFilterChange'];
+  field: string;
+  height?: number;
+  grid?: BarChart['props']['grid'];
+  disableXAxis?: boolean;
+  colors?: string[];
+};
+
+export function Chart(props: ChartProps) {
+  const {
+    isLoading,
+    isErrored,
+    chartData,
+    location,
+    field,
+    onFilterChange,
+    height,
+    grid,
+    disableXAxis,
+    colors,
+  } = props;
+  if (!chartData) {
+    return null;
+  }
+  const theme = useTheme();
+
+  const series = {
+    seriesName: t('Count'),
+    data: formatHistogramData(chartData, {type: 'duration'}),
+  };
+
+  const xAxis = {
+    type: 'category' as const,
+    truncate: true,
+    boundaryGap: false,
+    axisTick: {
+      alignWithLabel: true,
+    },
+  };
+
+  const allSeries: Series[] = [];
+
+  if (!isLoading && !isErrored) {
+    allSeries.push(series);
+  }
+
+  const yAxis = {
+    type: 'value' as const,
+    axisLabel: {
+      color: theme.chartLabel,
+    },
+  };
+
+  return (
+    <Fragment>
+      <BarChartZoom
+        minZoomWidth={10 ** -PRECISION * NUM_BUCKETS}
+        location={location}
+        paramStart={`${field}:>=`}
+        paramEnd={`${field}:<=`}
+        xAxisIndex={[0]}
+        buckets={computeBuckets(chartData)}
+        onHistoryPush={onFilterChange}
+      >
+        {zoomRenderProps => {
+          return (
+            <BarChartContainer>
+              <MaskContainer>
+                <TransparentLoadingMask visible={isLoading} />
+                {getDynamicText({
+                  value: (
+                    <BarChart
+                      height={height ?? 250}
+                      series={allSeries}
+                      xAxis={disableXAxis ? {show: false} : xAxis}
+                      yAxis={yAxis}
+                      colors={colors}
+                      grid={
+                        grid ?? {
+                          left: space(3),
+                          right: space(3),
+                          top: space(3),
+                          bottom: isLoading ? space(4) : space(1.5),
+                        }
+                      }
+                      stacked
+                      {...zoomRenderProps}
+                    />
+                  ),
+                  fixed: <Placeholder height="250px" testId="skeleton-ui" />,
+                })}
+              </MaskContainer>
+            </BarChartContainer>
+          );
+        }}
+      </BarChartZoom>
+    </Fragment>
   );
 }
 
@@ -177,4 +222,4 @@ const MaskContainer = styled('div')`
   position: relative;
 `;
 
-export default withTheme(HistogramChart);
+export default HistogramChart;

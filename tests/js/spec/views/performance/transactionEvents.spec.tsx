@@ -1,5 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {act} from 'sentry-test/reactTestingLibrary';
 
 import {t} from 'app/locale';
 import ProjectsStore from 'app/stores/projectsStore';
@@ -37,7 +38,7 @@ function initializeData({features: additionalFeatures = [], query = {}}: Data = 
     project: 1,
     projects: [],
   });
-  ProjectsStore.loadInitialData(initialData.organization.projects);
+  act(() => ProjectsStore.loadInitialData(initialData.organization.projects));
   return initialData;
 }
 
@@ -145,7 +146,7 @@ describe('Performance > TransactionSummary', function () {
   afterEach(function () {
     // @ts-expect-error
     MockApiClient.clearMockResponses();
-    ProjectsStore.reset();
+    act(() => ProjectsStore.reset());
     jest.clearAllMocks();
   });
 

@@ -402,7 +402,7 @@ export const AGGREGATIONS = {
     ],
     outputType: 'number',
     isSortable: true,
-    multiPlotType: 'area',
+    multiPlotType: 'line',
   },
   failure_rate: {
     parameters: [],
@@ -850,6 +850,14 @@ export function isEquationAlias(field: string): boolean {
   return EQUATION_ALIAS_PATTERN.test(field);
 }
 
+export function maybeEquationAlias(field: string): boolean {
+  return field.includes(EQUATION_PREFIX);
+}
+
+export function stripEquationPrefix(field: string): string {
+  return field.replace(EQUATION_PREFIX, '');
+}
+
 export function getEquationAliasIndex(field: string): number {
   const results = field.match(EQUATION_ALIAS_PATTERN);
 
@@ -934,7 +942,8 @@ export function explodeFieldString(field: string): Column {
 export function generateFieldAsString(value: QueryFieldValue): string {
   if (value.kind === 'field') {
     return value.field;
-  } else if (value.kind === 'equation') {
+  }
+  if (value.kind === 'equation') {
     return `${EQUATION_PREFIX}${value.field}`;
   }
 
@@ -971,6 +980,10 @@ export function getAggregateAlias(field: string): string {
  */
 export function isAggregateField(field: string): boolean {
   return parseFunction(field) !== null;
+}
+
+export function isAggregateFieldOrEquation(field: string): boolean {
+  return isAggregateField(field) || isAggregateEquation(field);
 }
 
 export function getAggregateFields(fields: string[]): string[] {
@@ -1026,9 +1039,11 @@ export function aggregateFunctionOutputType(
   // the first parameter and we can use that to get the type.
   if (firstArg && FIELDS.hasOwnProperty(firstArg)) {
     return FIELDS[firstArg];
-  } else if (firstArg && isMeasurement(firstArg)) {
+  }
+  if (firstArg && isMeasurement(firstArg)) {
     return measurementType(firstArg);
-  } else if (firstArg && isSpanOperationBreakdownField(firstArg)) {
+  }
+  if (firstArg && isSpanOperationBreakdownField(firstArg)) {
     return 'duration';
   }
 
@@ -1137,9 +1152,11 @@ export function getColumnType(column: Column): ColumnType {
   } else if (column.kind === 'field') {
     if (FIELDS.hasOwnProperty(column.field)) {
       return FIELDS[column.field];
-    } else if (isMeasurement(column.field)) {
+    }
+    if (isMeasurement(column.field)) {
       return measurementType(column.field);
-    } else if (isSpanOperationBreakdownField(column.field)) {
+    }
+    if (isSpanOperationBreakdownField(column.field)) {
       return 'duration';
     }
   }

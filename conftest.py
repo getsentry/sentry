@@ -17,19 +17,6 @@ def pytest_configure(config):
     warnings.filterwarnings("error", "", Warning, r"^(?!(|kombu|raven|sentry))")
 
 
-def pytest_addoption(parser):
-    parser.addoption(
-        "--itunes",
-        action="store_true",
-        help="Run iTunes tests, see tests/sentry/utils/appleconnect/itunes",
-    )
-
-
-def pytest_runtest_setup(item):
-    if item.get_closest_marker("itunes") and not item.config.getoption("--itunes"):
-        pytest.skip("Test requires --itunes")
-
-
 # XXX: The below code is vendored code from https://github.com/utgwkk/pytest-github-actions-annotate-failures
 # so that we can add support for pytest_rerunfailures
 # retried tests will no longer be annotated in GHA

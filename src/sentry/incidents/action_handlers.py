@@ -4,6 +4,7 @@ from typing import Sequence, Set, Tuple
 from django.template.defaultfilters import pluralize
 from django.urls import reverse
 
+from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.incidents.models import (
     INCIDENT_STATUS,
     AlertRuleThresholdType,
@@ -187,7 +188,19 @@ def generate_incident_trigger_email_context(project, incident, alert_rule_trigge
     # we can simplify this to be the below statement
     show_greater_than_string = is_active == is_threshold_type_above
     environment_string = snuba_query.environment.name if snuba_query.environment else "All"
+
     aggregate = alert_rule.snuba_query.aggregate
+    if CRASH_RATE_ALERT_AGGREGATE_ALIAS in aggregate:
+        aggregate = aggregate.split(f"AS {CRASH_RATE_ALERT_AGGREGATE_ALIAS}")[0].strip()
+
+    threshold = trigger.alert_threshold if is_active else alert_rule.resolve_threshold
+    if threshold is None:
+        # Setting this to trigger threshold because in the case of a resolve if no resolve
+        # threshold is specified this will be None. Since we add a comparison sign to the
+        # string it makes sense to set this to the trigger alert threshold if no threshold is
+        # specified
+        threshold = trigger.alert_threshold
+
     return {
         "link": absolute_uri(
             reverse(
@@ -215,7 +228,7 @@ def generate_incident_trigger_email_context(project, incident, alert_rule_trigge
         "triggered_at": incident_trigger.date_added,
         "aggregate": aggregate,
         "query": snuba_query.query,
-        "threshold": trigger.alert_threshold if is_active else alert_rule.resolve_threshold,
+        "threshold": threshold,
         # if alert threshold and threshold type is above then show '>'
         # if resolve threshold and threshold type is *BELOW* then show '>'
         "threshold_direction_string": ">" if show_greater_than_string else "<",

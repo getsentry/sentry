@@ -113,7 +113,8 @@ class TableView extends React.Component<TableViewProps> {
             <IconStack size="sm" />
           </PrependHeader>,
         ];
-      } else if (!hasIdField) {
+      }
+      if (!hasIdField) {
         return [
           <PrependHeader key="header-event-id">
             <SortLink
@@ -125,9 +126,8 @@ class TableView extends React.Component<TableViewProps> {
             />
           </PrependHeader>,
         ];
-      } else {
-        return [];
       }
+      return [];
     }
 
     if (hasAggregates) {
@@ -153,7 +153,8 @@ class TableView extends React.Component<TableViewProps> {
           </Link>
         </Tooltip>,
       ];
-    } else if (!hasIdField) {
+    }
+    if (!hasIdField) {
       let value = dataRow.id;
 
       if (tableData && tableData.meta) {
@@ -176,9 +177,8 @@ class TableView extends React.Component<TableViewProps> {
           </StyledLink>
         </Tooltip>,
       ];
-    } else {
-      return [];
     }
+    return [];
   };
 
   _renderGridHeaderCell = (column: TableColumn<keyof TableDataRow>): React.ReactNode => {
@@ -249,10 +249,6 @@ class TableView extends React.Component<TableViewProps> {
 
     let cell = fieldRenderer(dataRow, {organization, location});
 
-    const hasOther =
-      organization.features.includes('discover-top-events') &&
-      (tableData?.data?.length ?? 0) > TOP_N;
-
     if (columnKey === 'id') {
       const eventSlug = generateEventSlug(dataRow);
 
@@ -313,7 +309,7 @@ class TableView extends React.Component<TableViewProps> {
       <React.Fragment>
         {isFirstPage && isTopEvents && rowIndex < topEvents && columnIndex === 0 ? (
           // Add one if we need to include Other in the series
-          <TopResultsIndicator count={count + (hasOther ? 1 : 0)} index={rowIndex} />
+          <TopResultsIndicator count={count} index={rowIndex} />
         ) : null}
         <CellAction
           column={column}

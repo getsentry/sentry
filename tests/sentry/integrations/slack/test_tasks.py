@@ -1,3 +1,4 @@
+from unittest.mock import patch
 from uuid import uuid4
 
 import responses
@@ -13,9 +14,8 @@ from sentry.integrations.slack.utils import SLACK_RATE_LIMITED_MESSAGE
 from sentry.models import Rule
 from sentry.receivers.rules import DEFAULT_RULE_LABEL
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers import install_slack
 from sentry.utils import json
-from sentry.utils.compat.mock import patch
-from tests.sentry.integrations.slack import install_slack
 
 
 class SlackTasksTest(TestCase):
@@ -230,7 +230,7 @@ class SlackTasksTest(TestCase):
 
     @patch.object(RedisRuleStatus, "set_value", return_value=None)
     @patch(
-        "sentry.integrations.slack.utils.get_channel_id_with_timeout",
+        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
         return_value=("#", "chan-id", False),
     )
     def test_task_new_alert_rule(self, mock_get_channel_id, mock_set_value):
@@ -257,7 +257,7 @@ class SlackTasksTest(TestCase):
 
     @patch.object(RedisRuleStatus, "set_value", return_value=None)
     @patch(
-        "sentry.integrations.slack.utils.get_channel_id_with_timeout",
+        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
         return_value=("#", None, False),
     )
     def test_task_failed_id_lookup(self, mock_get_channel_id, mock_set_value):
@@ -279,7 +279,7 @@ class SlackTasksTest(TestCase):
 
     @patch.object(RedisRuleStatus, "set_value", return_value=None)
     @patch(
-        "sentry.integrations.slack.utils.get_channel_id_with_timeout",
+        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
         return_value=("#", None, True),
     )
     def test_task_timeout_id_lookup(self, mock_get_channel_id, mock_set_value):
@@ -301,7 +301,7 @@ class SlackTasksTest(TestCase):
 
     @patch.object(RedisRuleStatus, "set_value", return_value=None)
     @patch(
-        "sentry.integrations.slack.utils.get_channel_id_with_timeout",
+        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
         return_value=("#", "chan-id", False),
     )
     def test_task_existing_metric_alert(self, mock_get_channel_id, mock_set_value):

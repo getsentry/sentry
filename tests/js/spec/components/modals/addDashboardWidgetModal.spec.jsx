@@ -18,6 +18,7 @@ function mountModal({
   widget,
   fromDiscover,
   defaultWidgetQuery,
+  displayType,
 }) {
   return mountWithTheme(
     <AddDashboardWidgetModal
@@ -31,6 +32,7 @@ function mountModal({
       closeModal={() => void 0}
       fromDiscover={fromDiscover}
       defaultWidgetQuery={defaultWidgetQuery}
+      displayType={displayType}
     />,
     initialData.routerContext
   );
@@ -241,6 +243,37 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].fields).toEqual(['count()', 'p95(transaction.duration)']);
+    wrapper.unmount();
+  });
+
+  it('can add equation fields', async function () {
+    let widget = undefined;
+    const wrapper = mountModal({
+      initialData,
+      onAddWidget: data => (widget = data),
+    });
+
+    // Click the add button
+    const add = wrapper.find('button[aria-label="Add an Equation"]');
+    add.simulate('click');
+    wrapper.update();
+
+    // Should be another field input.
+    expect(wrapper.find('QueryField')).toHaveLength(2);
+
+    expect(wrapper.find('ArithmeticInput')).toHaveLength(1);
+
+    wrapper
+      .find('QueryFieldWrapper input[name="arithmetic"]')
+      .simulate('change', {target: {value: 'count() + 100'}})
+      .simulate('blur');
+
+    wrapper.update();
+
+    await clickSubmit(wrapper);
+
+    expect(widget.queries).toHaveLength(1);
+    expect(widget.queries[0].fields).toEqual(['count()', 'equation|count() + 100']);
     wrapper.unmount();
   });
 
@@ -842,7 +875,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       onAddWidget: data => (widget = data),
     });
     // Select Top n display
-    selectByLabel(wrapper, 'Top Events', {name: 'displayType', at: 0, control: true});
+    selectByLabel(wrapper, 'Top 5 Events', {name: 'displayType', at: 0, control: true});
     expect(getDisplayType(wrapper).props().value).toEqual('top_n');
 
     // No delete button as there is only one field.
@@ -895,6 +928,41 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(queryFields.at(0).props().fieldValue.function[0]).toEqual('count');
     expect(queryFields.at(1).props().fieldValue.function[0]).toEqual('failure_count');
     expect(queryFields.at(2).props().fieldValue.function[0]).toEqual('count_unique');
+    wrapper.unmount();
+  });
+
+  it('uses displayType if given a displayType', async function () {
+    const wrapper = mountModal({
+      initialData,
+      onAddWidget: () => undefined,
+      onUpdateWidget: () => undefined,
+      fromDiscover: true,
+      displayType: types.DisplayType.BAR,
+    });
+
+    expect(wrapper.find('SelectPicker').at(1).props().value.value).toEqual('bar');
+    wrapper.unmount();
+  });
+
+  it('correctly defaults fields and orderby when in Top N display', async function () {
+    const wrapper = mountModal({
+      initialData,
+      onAddWidget: () => undefined,
+      onUpdateWidget: () => undefined,
+      fromDiscover: true,
+      displayType: types.DisplayType.TOP_N,
+      defaultWidgetQuery: {fields: ['count_unique(user)'], orderby: '-count_unique_user'},
+      defaultTableColumns: ['title', 'count()', 'count_unique(user)'],
+    });
+
+    expect(wrapper.find('SelectPicker').at(1).props().value.value).toEqual('top_n');
+    expect(wrapper.find('WidgetQueriesForm').props().queries[0].fields).toEqual([
+      'title',
+      'count_unique(user)',
+    ]);
+    expect(wrapper.find('WidgetQueriesForm').props().queries[0].orderby).toEqual(
+      '-count_unique_user'
+    );
     wrapper.unmount();
   });
 });

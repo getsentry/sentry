@@ -32,7 +32,9 @@ class Columns(Enum):
     TAGS_KEY = Column("events.tags.key", "tags.key", "tags.key", "tags.key", "tags.key")
     TAGS_VALUE = Column("events.tags.value", "tags.value", "tags.value", "tags.value", "tags.value")
     TAGS_KEYS = Column("events.tags_key", "tags_key", "tags_key", "tags_key", "tags_key")
-    TAGS_VALUES = Column("events.tags_value", "tags_value", "tags_value", None, "tags_value")
+    TAGS_VALUES = Column(
+        "events.tags_value", "tags_value", "tags_value", "tags_value", "tags_value"
+    )
     TRANSACTION = Column(
         "events.transaction", "transaction", "transaction_name", "transaction", "transaction"
     )
@@ -296,6 +298,27 @@ class Columns(Enum):
         "span_op_breakdowns.value",
         "span_op_breakdowns.value",
         "span_op_breakdowns_value",
+    )
+    SPANS_OP = Column(
+        None,
+        None,
+        "spans.op",
+        "spans.op",
+        "spans_op",
+    )
+    SPANS_GROUP = Column(
+        None,
+        None,
+        "spans.group",
+        "spans.group",
+        "spans_group",
+    )
+    SPANS_EXCLUSIVE_TIME = Column(
+        None,
+        None,
+        "spans.exclusive_time",
+        "spans.exclusive_time",
+        "spans_exclusive_time",
     )
     # Tracing context fields.
     TRACE_ID = Column(

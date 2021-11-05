@@ -13,7 +13,7 @@ import LineChart from 'app/components/charts/lineChart';
 import SimpleTableChart from 'app/components/charts/simpleTableChart';
 import TransitionChart from 'app/components/charts/transitionChart';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
-import {getSeriesSelection} from 'app/components/charts/utils';
+import {getSeriesSelection, processTableResults} from 'app/components/charts/utils';
 import WorldMapChart from 'app/components/charts/worldMapChart';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Placeholder from 'app/components/placeholder';
@@ -22,7 +22,12 @@ import space from 'app/styles/space';
 import {GlobalSelection, Organization} from 'app/types';
 import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
 import {getFieldFormatter} from 'app/utils/discover/fieldRenderers';
-import {getAggregateArg, getMeasurementSlug} from 'app/utils/discover/fields';
+import {
+  getAggregateArg,
+  getMeasurementSlug,
+  maybeEquationAlias,
+  stripEquationPrefix,
+} from 'app/utils/discover/fields';
 import getDynamicText from 'app/utils/getDynamicText';
 import {Theme} from 'app/utils/theme';
 
@@ -191,44 +196,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
     const {start, end, period, utc} = selection.datetime;
 
     if (widget.displayType === 'world_map') {
-      const DEFAULT_GEO_DATA = {
-        title: '',
-        data: [],
-      };
-
-      const processTableResults = () => {
-        if (!tableResults || !tableResults.length) {
-          return DEFAULT_GEO_DATA;
-        }
-
-        const tableResult = tableResults[0];
-
-        const {data, meta} = tableResult;
-
-        if (!data || !data.length || !meta) {
-          return DEFAULT_GEO_DATA;
-        }
-
-        const preAggregate = Object.keys(meta).find(column => {
-          return column !== 'geo.country_code';
-        });
-
-        if (!preAggregate) {
-          return DEFAULT_GEO_DATA;
-        }
-
-        return {
-          title: tableResult.title ?? '',
-          data: data
-            .filter(row => row['geo.country_code'])
-            .map(row => {
-              return {name: row['geo.country_code'], value: row[preAggregate]};
-            }),
-        };
-      };
-
-      const {data, title} = processTableResults();
-
+      const {data, title} = processTableResults(tableResults);
       const series = [
         {
           seriesName: title,
@@ -262,6 +230,9 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
           if (slug !== null) {
             seriesName = slug.toUpperCase();
           }
+        }
+        if (maybeEquationAlias(seriesName)) {
+          seriesName = stripEquationPrefix(seriesName);
         }
         return seriesName;
       },
@@ -304,6 +275,14 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
           const colors = timeseriesResults
             ? theme.charts.getColorPalette(timeseriesResults.length - 2)
             : [];
+          // TODO(wmak): Need to change this when updating dashboards to support variable topEvents
+          if (
+            widget.displayType === 'top_n' &&
+            timeseriesResults &&
+            timeseriesResults.length > 5
+          ) {
+            colors[colors.length - 1] = theme.chartOther;
+          }
 
           // Create a list of series based on the order of the fields,
           const series = timeseriesResults

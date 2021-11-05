@@ -2,22 +2,20 @@ from django.core.signing import BadSignature, SignatureExpired
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.integrations.notifications import (
+    SUCCESS_UNLINKED_TEAM_MESSAGE,
+    SUCCESS_UNLINKED_TEAM_TITLE,
+)
 from sentry.integrations.utils import get_identity_or_404
-from sentry.models import ExternalActor, Identity, Integration, NotificationSetting, Team
+from sentry.models import ExternalActor, Identity, Integration
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.signing import unsign
 from sentry.web.decorators import transaction_start
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
 
-from ..utils import render_error_page, send_confirmation
 from . import build_linking_url as base_build_linking_url
-from . import never_cache
-
-SUCCESS_UNLINKED_TITLE = "Team unlinked"
-SUCCESS_UNLINKED_MESSAGE = (
-    "This channel will no longer receive issue alert notifications for the {team} team."
-)
+from . import never_cache, render_error_page
 
 
 def build_team_unlinking_url(
@@ -72,15 +70,12 @@ class SlackUnlinkTeamView(BaseView):  # type: ignore
 
         team = external_teams[0].actor.resolve()
 
-        teams = Team.objects.filter(
-            actor__in=[external_team.actor for external_team in external_teams]
-        )
         if request.method != "POST":
             return render_to_response(
                 "sentry/integrations/slack/unlink-team.html",
                 request=request,
                 context={
-                    "team": teams[0],
+                    "team": team,
                     "channel_name": channel_name,
                     "provider": integration.get_provider(),
                 },
@@ -88,15 +83,18 @@ class SlackUnlinkTeamView(BaseView):  # type: ignore
 
         if not Identity.objects.filter(idp=idp, external_id=params["slack_id"]).exists():
             return render_error_page(request, body_text="HTTP 403: User identity does not exist")
+
+        # Someone may have accidentally added multiple teams so unlink them all.
         for external_team in external_teams:
             external_team.delete()
-        for team in teams:
-            NotificationSetting.objects.remove_for_team(team, ExternalProviders.SLACK)
-        return send_confirmation(
-            integration,
-            channel_id,
-            SUCCESS_UNLINKED_TITLE,
-            SUCCESS_UNLINKED_MESSAGE.format(team=team.slug),
+
+        return render_to_response(
             "sentry/integrations/slack/unlinked-team.html",
-            request,
+            request=request,
+            context={
+                "heading_text": SUCCESS_UNLINKED_TEAM_TITLE,
+                "body_text": SUCCESS_UNLINKED_TEAM_MESSAGE.format(team=team.slug),
+                "channel_id": channel_id,
+                "team_id": integration.external_id,
+            },
         )

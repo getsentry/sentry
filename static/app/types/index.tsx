@@ -21,7 +21,7 @@ import {Field} from 'app/views/settings/components/forms/type';
 
 import {DynamicSamplingRules} from './dynamicSampling';
 import {Event} from './event';
-import {Mechanism, RawStacktrace, StacktraceType} from './stacktrace';
+import {RawStacktrace, StackTraceMechanism, StacktraceType} from './stacktrace';
 
 export enum SentryInitRenderReactComponent {
   INDICATORS = 'Indicators',
@@ -395,6 +395,7 @@ export type EventMetadata = {
   current_tree_label?: TreeLabelPart[];
   finest_tree_label?: TreeLabelPart[];
   current_level?: number;
+  display_title_with_tree_label?: boolean;
 };
 
 // endpoint: /api/0/issues/:issueId/attachments/?limit=50
@@ -449,7 +450,8 @@ export type ProjectSdkUpdates = {
   suggestions: SDKUpdatesSuggestion[];
 };
 
-export type EventsStatsData = [number, {count: number}[]][];
+export type EventsStatsData = [number, {count: number; comparisonCount?: number}[]][];
+export type EventsGeoData = {'geo.country_code': string; count: number}[];
 
 // API response format for a single series
 export type EventsStats = {
@@ -726,8 +728,10 @@ export type Authenticator = {
   );
 
 export type ChallengeData = {
+  // will have only authenticateRequest or registerRequest
   authenticateRequests: u2f.SignRequest;
   registerRequests: u2f.RegisterRequest;
+  registeredKeys: u2f.RegisteredKey[];
 };
 
 export type EnrolledAuthenticator = {
@@ -1624,8 +1628,8 @@ export type SentryAppComponent = {
       | 'rookout'
       | 'shortcut'
       | 'spikesh'
-      | 'teamwork'
-      | 'zepel';
+      | 'taskcall'
+      | 'teamwork';
     name: string;
   };
 };
@@ -2044,9 +2048,9 @@ export type ExceptionValue = {
   threadId: number | null;
   stacktrace: StacktraceType | null;
   rawStacktrace: RawStacktrace;
-  mechanism: Mechanism | null;
+  mechanism: StackTraceMechanism | null;
   module: string | null;
-  frames: Frame[] | null;
+  frames?: Frame[] | null;
 };
 
 export type ExceptionType = {
@@ -2125,12 +2129,6 @@ export type SessionApiResponse = SeriesApi & {
   start: DateString;
   end: DateString;
   query: string;
-  intervals: string[];
-  groups: {
-    by: Record<string, string | number>;
-    totals: Record<string, number>;
-    series: Record<string, number[]>;
-  }[];
 };
 
 export enum SessionField {
@@ -2254,4 +2252,16 @@ export type EventIdResponse = {
   groupId: string;
   eventId: string;
   event: Event;
+};
+
+export type AuditLog = {
+  id: string;
+  actor: User;
+  event: string;
+  ipAddress: string;
+  note: string;
+  targetObject: number;
+  targetUser: Actor | null;
+  data: any;
+  dateCreated: string;
 };

@@ -411,6 +411,7 @@ class UpdateProjectRuleTest(APITestCase):
         )
 
         actions[0]["channel"] = "#new_channel_name"
+        actions[0]["channel_id"] = "new_channel_id"
 
         url = reverse(
             "sentry-api-0-project-rule-details",
@@ -435,6 +436,13 @@ class UpdateProjectRuleTest(APITestCase):
             status=200,
             content_type="application/json",
             body=json.dumps(channels),
+        )
+        responses.add(
+            method=responses.GET,
+            url="https://slack.com/api/conversations.info",
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"ok": channels["ok"], "channel": channels["channels"][1]}),
         )
 
         response = self.client.put(
@@ -502,13 +510,19 @@ class UpdateProjectRuleTest(APITestCase):
                 {"name": "new_channel_name", "id": "new_channel_id"},
             ],
         }
-
         responses.add(
             method=responses.GET,
-            url="https://slack.com/api/channels.list",
+            url="https://slack.com/api/conversations.list",
             status=200,
             content_type="application/json",
             body=json.dumps(channels),
+        )
+        responses.add(
+            method=responses.GET,
+            url="https://slack.com/api/conversations.info",
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"ok": channels["ok"], "channel": channels["channels"][0]}),
         )
 
         response = self.client.put(
@@ -574,7 +588,7 @@ class UpdateProjectRuleTest(APITestCase):
                         "name": "Send a notification to the funinthesun Slack workspace to #team-team-team and show tags [] in notification",
                         "workspace": integration.id,
                         "channel": "#team-team-team",
-                        "input_channel_id": "CSVK0921",
+                        "channel_id": "CSVK0921",
                     }
                 ],
                 "conditions": [
@@ -795,7 +809,11 @@ class UpdateProjectRuleTest(APITestCase):
 
         rule = Rule.objects.create(project=project, label="my super cool rule")
 
-        self.create_sentry_app(name="Pied Piper", organization=project.organization)
+        self.create_sentry_app(
+            name="Pied Piper",
+            organization=project.organization,
+            schema={"elements": [self.create_alert_rule_action_schema()]},
+        )
         install = self.create_sentry_app_installation(
             slug="pied-piper", organization=project.organization
         )
@@ -803,8 +821,7 @@ class UpdateProjectRuleTest(APITestCase):
         actions = [
             {
                 "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
-                "settings": {"assignee": "Team Rocket", "priority": 27},
-                "uri": "/sentry/alerts/",
+                "settings": {"title": "Team Rocket", "summary": "We're blasting off again."},
                 "sentryAppInstallationUuid": install.uuid,
                 "hasSchemaFormConfig": True,
             },
@@ -841,16 +858,12 @@ class UpdateProjectRuleTest(APITestCase):
         kwargs = {
             "install": install,
             "fields": actions[0].get("settings"),
-            "uri": actions[0].get("uri"),
-            "rule": rule,
         }
 
         call_kwargs = mock_alert_rule_action_creator.call_args[1]
 
         assert call_kwargs["install"].id == kwargs["install"].id
         assert call_kwargs["fields"] == kwargs["fields"]
-        assert call_kwargs["uri"] == kwargs["uri"]
-        assert call_kwargs["rule"].id == kwargs["rule"].id
 
         assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.UPDATED.value).exists()
 

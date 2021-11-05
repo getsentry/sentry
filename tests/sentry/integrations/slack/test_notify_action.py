@@ -6,8 +6,8 @@ from sentry.integrations.slack import SlackNotifyServiceAction
 from sentry.integrations.slack.utils import SLACK_RATE_LIMITED_MESSAGE
 from sentry.models import Integration
 from sentry.testutils.cases import RuleTestCase
+from sentry.testutils.helpers import install_slack
 from sentry.utils import json
-from tests.sentry.integrations.slack import install_slack
 
 
 class SlackNotifyActionTest(RuleTestCase):
@@ -50,25 +50,35 @@ class SlackNotifyActionTest(RuleTestCase):
 
     def test_render_label(self):
         rule = self.get_rule(
-            data={"workspace": self.integration.id, "channel": "#my-channel", "tags": "one, two"}
+            data={
+                "workspace": self.integration.id,
+                "channel": "#my-channel",
+                "channel_id": "",
+                "tags": "one, two",
+            }
         )
 
         assert (
             rule.render_label()
-            == "Send a notification to the Awesome Team Slack workspace to #my-channel and show tags [one, two] in notification"
+            == "Send a notification to the Awesome Team Slack workspace to #my-channel (optionally, an ID: ) and show tags [one, two] in notification"
         )
 
     def test_render_label_without_integration(self):
         self.integration.delete()
 
         rule = self.get_rule(
-            data={"workspace": self.integration.id, "channel": "#my-channel", "tags": ""}
+            data={
+                "workspace": self.integration.id,
+                "channel": "#my-channel",
+                "channel_id": "",
+                "tags": "",
+            }
         )
 
         label = rule.render_label()
         assert (
             label
-            == "Send a notification to the [removed] Slack workspace to #my-channel and show tags [] in notification"
+            == "Send a notification to the [removed] Slack workspace to #my-channel (optionally, an ID: ) and show tags [] in notification"
         )
 
     @responses.activate

@@ -109,24 +109,6 @@ class AppConnectMultipleSourcesError(SentryAPIException):
     message = "Only one Apple App Store Connect application is allowed in this project"
 
 
-class ItunesAuthenticationError(SentryAPIException):
-    status_code = status.HTTP_401_UNAUTHORIZED
-    code = "itunes-authentication-error"
-    message = "Itunes authentication error"
-
-
-class ItunesSmsBlocked(SentryAPIException):
-    status_code = status.HTTP_423_LOCKED
-    code = "itunes-sms-blocked-error"
-    message = "Blocked from requesting more SMS codes for an unspecified period of time"
-
-
-class ItunesTwoFactorAuthenticationRequired(SentryAPIException):
-    status_code = status.HTTP_401_UNAUTHORIZED
-    code = "itunes-2fa-required"
-    message = "Itunes requires two-factor authentication to be enabled"
-
-
 class ConflictError(APIException):
     status_code = status.HTTP_409_CONFLICT
 

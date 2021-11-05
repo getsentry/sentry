@@ -4,7 +4,7 @@ from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
 from sentry.models import Identity, IdentityStatus, OrganizationIntegration
 from sentry.testutils import TestCase
-from tests.sentry.integrations.slack import add_identity, install_slack
+from sentry.testutils.helpers import add_identity, install_slack
 
 
 class SlackIntegrationLinkIdentityTestBase(TestCase):
@@ -31,12 +31,9 @@ class SlackIntegrationLinkIdentityTestBase(TestCase):
 class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
     @responses.activate
     def test_basic_flow(self):
+        """Do the auth flow and assert that the identity was created."""
         linking_url = build_linking_url(
-            self.integration,
-            self.organization,
-            self.external_id,
-            self.channel_id,
-            self.response_url,
+            self.integration, self.external_id, self.channel_id, self.response_url
         )
 
         # Load page.
@@ -68,11 +65,7 @@ class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
         )
 
         linking_url = build_linking_url(
-            self.integration,
-            self.organization,
-            external_id_2,
-            self.channel_id,
-            self.response_url,
+            self.integration, external_id_2, self.channel_id, self.response_url
         )
         self.client.post(linking_url)
 
@@ -100,7 +93,10 @@ class SlackIntegrationUnlinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
         self.assertTemplateUsed(response, "sentry/auth-unlink-identity.html")
 
         # Unlink identity of user.
-        self.client.post(self.unlinking_url)
+        response = self.client.post(self.unlinking_url)
+        assert response.status_code == 200
+        self.assertTemplateUsed(response, "sentry/integrations/slack/unlinked.html")
+
         assert not Identity.objects.filter(external_id="new-slack-id", user=self.user).exists()
         assert len(responses.calls) == 1
 

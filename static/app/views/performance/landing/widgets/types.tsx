@@ -4,7 +4,7 @@ import {Location} from 'history';
 import {Client} from 'app/api';
 import BaseChart from 'app/components/charts/baseChart';
 import {RenderProps} from 'app/components/charts/eventsRequest';
-import {DateString, Organization} from 'app/types';
+import {DateString, Organization, OrganizationSummary} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 
 import {PerformanceWidgetContainerTypes} from './components/performanceWidgetContainer';
@@ -20,6 +20,7 @@ export enum GenericPerformanceWidgetDataType {
   histogram = 'histogram',
   area = 'area',
   vitals = 'vitals',
+  line_list = 'line_list',
   trends = 'trends',
 }
 
@@ -35,7 +36,7 @@ export interface WidgetDataConstraint {
 export type QueryChildren = {
   children: (props: any) => ReactNode; // TODO(k-fish): Fix any type.
 };
-export type QueryFC = FunctionComponent<
+export type QueryFC<T extends WidgetDataConstraint> = FunctionComponent<
   QueryChildren & {
     fields?: string | string[];
     yAxis?: string | string[];
@@ -45,7 +46,10 @@ export type QueryFC = FunctionComponent<
     project?: Readonly<number[]>;
     environment?: Readonly<string[]>;
     team?: Readonly<string | string[]>;
-    organization?: Organization;
+    query?: string;
+    orgSlug: string;
+    organization: OrganizationSummary;
+    widgetData: T;
   }
 >;
 
@@ -53,7 +57,7 @@ export type QueryDefinition<
   T extends WidgetDataConstraint,
   S extends WidgetDataResult | undefined
 > = {
-  component: QueryFC;
+  component: QueryFC<T>;
   fields: string | string[];
   enabled?: (data: T) => boolean;
   transform: (
@@ -88,11 +92,14 @@ type HeaderActions<T> = FunctionComponent<{
   widgetData: T;
 }>;
 
+type Subtitle<T> = FunctionComponent<{
+  widgetData: T;
+}>;
+
 export type GenericPerformanceWidgetProps<T extends WidgetDataConstraint> = {
   // Header;
   title: string;
   titleTooltip: string;
-  subtitle?: JSX.Element;
 
   fields: string[];
   chartHeight: number;
@@ -103,7 +110,10 @@ export type GenericPerformanceWidgetProps<T extends WidgetDataConstraint> = {
   organization: Organization;
 
   // Components
+  Subtitle?: Subtitle<T>;
   HeaderActions?: HeaderActions<T>;
+  EmptyComponent?: FunctionComponent<{height?: number}>;
+
   Queries: Queries<T>;
   Visualizations: Visualizations<T>;
 };

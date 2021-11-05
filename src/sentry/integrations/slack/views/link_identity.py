@@ -5,15 +5,16 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.integrations.utils import get_identity_or_404
-from sentry.models import Identity, IdentityStatus, Integration, Organization
+from sentry.models import Identity, IdentityStatus, Integration
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.signing import unsign
 from sentry.web.decorators import transaction_start
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
 
+from ..utils import send_slack_response
 from . import build_linking_url as base_build_linking_url
-from . import never_cache, send_slack_response
+from . import never_cache
 
 SUCCESS_LINKED_MESSAGE = (
     "Your Slack identity has been linked to your Sentry account. You're good to go!"
@@ -21,16 +22,11 @@ SUCCESS_LINKED_MESSAGE = (
 
 
 def build_linking_url(
-    integration: Integration,
-    organization: Organization,
-    slack_id: str,
-    channel_id: str,
-    response_url: str,
+    integration: Integration, slack_id: str, channel_id: str, response_url: str
 ) -> str:
     return base_build_linking_url(
         "sentry-integration-slack-link-identity",
         integration_id=integration.id,
-        organization_id=organization.id,
         slack_id=slack_id,
         channel_id=channel_id,
         response_url=response_url,
@@ -53,7 +49,6 @@ class SlackLinkIdentityView(BaseView):  # type: ignore
             ExternalProviders.SLACK,
             request.user,
             integration_id=params["integration_id"],
-            organization_id=params["organization_id"],
         )
 
         if request.method != "POST":

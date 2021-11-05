@@ -1,5 +1,6 @@
 from base64 import b64encode
 from datetime import datetime, timedelta
+from unittest.mock import patch
 
 import pytz
 from django.urls import reverse
@@ -43,7 +44,6 @@ from sentry.testutils import (
     SnubaTestCase,
     TestCase,
 )
-from sentry.utils.compat.mock import patch
 
 
 class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
@@ -817,12 +817,14 @@ class OrganizationReleasesStatsTest(APITestCase):
         )
         release1.add_project(project1)
         url = reverse("sentry-api-0-organization-releases", kwargs={"organization_slug": org.slug})
-        response = self.client.get(f"{url}?adoptionStages=1", format="json")
 
-        assert response.status_code == 200, response.content
-        assert len(response.data) == 1
-        # Not returned because we don't have the feature.
-        assert "adoptionStages" not in response.data[0]
+        with self.feature({"organizations:release-adoption-stage": False}):
+            response = self.client.get(f"{url}?adoptionStages=1", format="json")
+
+            assert response.status_code == 200, response.content
+            assert len(response.data) == 1
+            # Not returned because we don't have the feature.
+            assert "adoptionStages" not in response.data[0]
 
         with self.feature("organizations:release-adoption-stage"):
             response = self.client.get(url, format="json")

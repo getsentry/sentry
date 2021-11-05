@@ -33,9 +33,8 @@ const TagsTable = ({event, query, generateUrl, title = t('Tag Details')}: Props)
     if (Array.isArray(error)) {
       if (error[1]?.reason) {
         return formatErrorKind(error[1].reason);
-      } else {
-        return formatErrorKind(error[0]);
       }
+      return formatErrorKind(error[0]);
     }
     return formatErrorKind(error);
   };

@@ -31,7 +31,10 @@ import {defined, generateQueryWithTag} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
 import {generateAggregateFields} from 'app/utils/discover/fields';
-import {DisplayModes} from 'app/utils/discover/types';
+import {
+  DisplayModes,
+  MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES,
+} from 'app/utils/discover/types';
 import localStorage from 'app/utils/localStorage';
 import {decodeList, decodeScalar} from 'app/utils/queryString';
 import withApi from 'app/utils/withApi';
@@ -154,7 +157,9 @@ class Results extends React.Component<Props, State> {
       addRoutePerformanceContext(selection);
     }
 
-    if (prevState.confirmedQuery !== confirmedQuery) this.fetchTotalCount();
+    if (prevState.confirmedQuery !== confirmedQuery) {
+      this.fetchTotalCount();
+    }
   }
 
   tagsApi: Client = new Client();
@@ -193,8 +198,11 @@ class Results extends React.Component<Props, State> {
         try {
           const results = await fetchProjectsCount(api, organization.slug);
 
-          if (projectLength === 0) projectLength = results.myProjects;
-          else projectLength = results.allProjects;
+          if (projectLength === 0) {
+            projectLength = results.myProjects;
+          } else {
+            projectLength = results.allProjects;
+          }
         } catch (err) {
           // do nothing, so the length is 0 or 1 and the query is assumed safe
         }
@@ -309,10 +317,9 @@ class Results extends React.Component<Props, State> {
 
   handleYAxisChange = (value: string[]) => {
     const {router, location} = this.props;
-    const isDisplayMultiYAxisSupported = [
-      DisplayModes.DEFAULT,
-      DisplayModes.DAILY,
-    ].includes(location.query.display as DisplayModes);
+    const isDisplayMultiYAxisSupported = MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES.includes(
+      location.query.display as DisplayModes
+    );
 
     const newQuery = {
       ...location.query,

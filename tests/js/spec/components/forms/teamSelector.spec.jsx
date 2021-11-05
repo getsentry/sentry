@@ -1,4 +1,4 @@
-import {act, fireEvent, mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {act, fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
 import {addTeamToProject} from 'app/actionCreators/projects';
 import {TeamSelector} from 'app/components/forms/teamSelector';
@@ -35,12 +35,12 @@ function createWrapper(props = {}) {
   );
 }
 
-function openSelectMenu(wrapper) {
+function openSelectMenu() {
   const keyDownEvent = {
     key: 'ArrowDown',
   };
 
-  const placeholder = wrapper.getByText('Select...');
+  const placeholder = screen.getByText('Select...');
   fireEvent.keyDown(placeholder, keyDownEvent);
 }
 
@@ -50,68 +50,68 @@ describe('Team Selector', function () {
   });
 
   it('renders options', function () {
-    const wrapper = createWrapper();
-    openSelectMenu(wrapper);
+    createWrapper();
+    openSelectMenu();
 
-    expect(wrapper.getByText('#team1')).toBeTruthy();
-    expect(wrapper.getByText('#team2')).toBeTruthy();
-    expect(wrapper.getByText('#team3')).toBeTruthy();
+    expect(screen.getByText('#team1')).toBeInTheDocument();
+    expect(screen.getByText('#team2')).toBeInTheDocument();
+    expect(screen.getByText('#team3')).toBeInTheDocument();
   });
 
   it('selects an option', function () {
     const onChangeMock = jest.fn();
-    const wrapper = createWrapper({onChange: onChangeMock});
-    openSelectMenu(wrapper);
+    createWrapper({onChange: onChangeMock});
+    openSelectMenu();
 
-    const option = wrapper.getByText('#team1');
+    const option = screen.getByText('#team1');
     fireEvent.click(option);
     expect(onChangeMock).toHaveBeenCalled();
   });
 
   it('respects the team filter', async function () {
     const teamFilter = team => team.slug === 'team1';
-    const wrapper = createWrapper({teamFilter});
-    openSelectMenu(wrapper);
+    createWrapper({teamFilter});
+    openSelectMenu();
 
-    expect(wrapper.getByText('#team1')).toBeTruthy();
+    expect(screen.getByText('#team1')).toBeInTheDocument();
 
     // These options should be filtered out
-    expect(wrapper.queryByText('#team2')).toBeFalsy();
-    expect(wrapper.queryByText('#team3')).toBeFalsy();
+    expect(screen.queryByText('#team2')).not.toBeInTheDocument();
+    expect(screen.queryByText('#team3')).not.toBeInTheDocument();
   });
 
   it('respects the project filter', async function () {
-    const wrapper = createWrapper({project});
-    openSelectMenu(wrapper);
+    createWrapper({project});
+    openSelectMenu();
 
-    expect(wrapper.getByText('#team1')).toBeTruthy();
+    expect(screen.getByText('#team1')).toBeInTheDocument();
 
     // team2 and team3 should have add to project buttons
-    expect(wrapper.getAllByRole('button').length).toBe(2);
+    expect(screen.getAllByRole('button').length).toBe(2);
   });
 
   it('respects the team and project filter', async function () {
     const teamFilter = team => team.slug === 'team1' || team.slug === 'team2';
-    const wrapper = createWrapper({teamFilter, project});
-    openSelectMenu(wrapper);
+    createWrapper({teamFilter, project});
+    openSelectMenu();
 
-    expect(wrapper.getByText('#team1')).toBeTruthy();
+    expect(screen.getByText('#team1')).toBeInTheDocument();
 
     // team3 should be filtered out
-    expect(wrapper.queryByText('#team3')).toBeFalsy();
+    expect(screen.queryByText('#team3')).not.toBeInTheDocument();
 
     // team2 should have add to project buttons
-    expect(wrapper.getAllByRole('button').length).toBe(1);
+    expect(screen.getAllByRole('button').length).toBe(1);
   });
 
   it('allows you to add teams outside of project', async function () {
-    const wrapper = createWrapper({project});
-    openSelectMenu(wrapper);
+    createWrapper({project});
+    openSelectMenu();
 
-    expect(wrapper.getByText('#team1')).toBeTruthy();
+    expect(screen.getByText('#team1')).toBeInTheDocument();
 
     // team2 and team3 should have add to project buttons
-    const addToProjectButtons = wrapper.getAllByRole('button');
+    const addToProjectButtons = screen.getAllByRole('button');
 
     await act(async () => {
       // add team2 to project

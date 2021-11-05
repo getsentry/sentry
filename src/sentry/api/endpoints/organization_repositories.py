@@ -8,6 +8,8 @@ from sentry.models import Integration, Repository
 from sentry.plugins.base import bindings
 from sentry.utils.sdk import capture_exception
 
+UNMIGRATABLE_PROVIDERS = ("bitbucket", "github")
+
 
 class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationIntegrationsPermission,)
@@ -35,7 +37,7 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
             integrations = Integration.objects.filter(
                 organizationintegration__organization=organization,
                 organizationintegration__status=ObjectStatus.ACTIVE,
-                provider__in=("bitbucket", "github", "vsts"),
+                provider__in=(UNMIGRATABLE_PROVIDERS),
                 status=ObjectStatus.ACTIVE,
             )
 

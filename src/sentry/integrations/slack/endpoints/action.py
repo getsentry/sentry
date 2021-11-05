@@ -7,13 +7,14 @@ from rest_framework.response import Response
 from sentry import analytics
 from sentry.api import ApiClient, client
 from sentry.api.base import Endpoint
+from sentry.api.helpers.group_index import update_groups
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder.issues import build_group_attachment
 from sentry.integrations.slack.requests.action import SlackActionRequest
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
-from sentry.models import ApiKey, Group, Identity, IdentityProvider, Integration, Project
+from sentry.models import Group, Identity, IdentityProvider, Integration, Project
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
 from sentry.web.decorators import transaction_start
@@ -21,10 +22,15 @@ from sentry.web.decorators import transaction_start
 from ..message_builder import SlackBody
 from ..utils import logger
 
-LINK_IDENTITY_MESSAGE = "Looks like you haven't linked your Sentry account with your Slack identity yet! <{associate_url}|Link your identity now> to perform actions in Sentry through Slack."
-
-UNLINK_IDENTITY_MESSAGE = "Looks like this Slack identity is linked to the Sentry user *{user_email}* who is not a member of organization *{org_name}* used with this Slack integration. <{associate_url}|Unlink your identity now>."
-
+LINK_IDENTITY_MESSAGE = (
+    "Looks like you haven't linked your Sentry account with your Slack identity yet! "
+    "<{associate_url}|Link your identity now> to perform actions in Sentry through Slack. "
+)
+UNLINK_IDENTITY_MESSAGE = (
+    "Looks like this Slack identity is linked to the Sentry user *{user_email}* "
+    "who is not a member of organization *{org_name}* used with this Slack integration. "
+    "<{associate_url}|Unlink your identity now>. "
+)
 DEFAULT_ERROR_MESSAGE = "Sentry can't perform that action right now on your behalf!"
 
 RESOLVE_SELECTOR = {
@@ -41,26 +47,67 @@ RESOLVE_SELECTOR = {
 }
 
 
+def update_group(
+    group: Group,
+    identity: Identity,
+    data: Mapping[str, str],
+    request: Request,
+) -> Response:
+    if not group.organization.has_access(identity.user):
+        raise ApiClient.ApiError(
+            status_code=403, body="The user does not have access to the organization."
+        )
+
+    return update_groups(
+        request=request,
+        group_ids=[group.id],
+        projects=[group.project],
+        organization_id=group.organization.id,
+        search_fn=None,
+        user=identity.user,
+        data=data,
+    )
+
+
 class SlackActionEndpoint(Endpoint):  # type: ignore
     authentication_classes = ()
     permission_classes = ()
 
+    def respond_ephemeral(self, text: str) -> Response:
+        return self.respond({"response_type": "ephemeral", "replace_original": False, "text": text})
+
     def api_error(
         self,
+        slack_request: SlackActionRequest,
+        group: Group,
+        identity: Identity,
         error: ApiClient.ApiError,
         action_type: str,
-        logging_data: Dict[str, str],
-        error_text: str,
     ) -> Response:
-        logging_data = logging_data.copy()
-        logging_data["response"] = str(error.body)
-        logging_data["action_type"] = action_type
-        logger.info(f"slack.action.api-error-pre-message: {str(logging_data)}")
-        logger.info("slack.action.api-error", extra=logging_data)
-
-        return self.respond(
-            {"response_type": "ephemeral", "replace_original": False, "text": error_text}
+        logger.info(
+            "slack.action.api-error",
+            extra={
+                **slack_request.get_logging_data(group),
+                "response": str(error.body),
+                "action_type": action_type,
+            },
         )
+
+        if error.status_code == 403:
+            text = UNLINK_IDENTITY_MESSAGE.format(
+                associate_url=build_unlinking_url(
+                    slack_request.integration.id,
+                    slack_request.user_id,
+                    slack_request.channel_id,
+                    slack_request.response_url,
+                ),
+                user_email=identity.user,
+                org_name=group.organization.name,
+            )
+        else:
+            text = DEFAULT_ERROR_MESSAGE
+
+        return self.respond_ephemeral(text)
 
     def on_assign(
         self, request: Request, identity: Identity, group: Group, action: Mapping[str, Any]
@@ -70,7 +117,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         if assignee == "none":
             assignee = None
 
-        self.update_group(group, identity, {"assignedTo": assignee})
+        update_group(group, identity, {"assignedTo": assignee}, request)
         analytics.record("integrations.slack.assign", actor_id=identity.user_id)
 
     def on_status(
@@ -94,26 +141,13 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         elif resolve_type == "inCurrentRelease":
             status.update({"statusDetails": {"inRelease": "latest"}})
 
-        self.update_group(group, identity, status)
+        update_group(group, identity, status, request)
 
         analytics.record(
             "integrations.slack.status",
             status=status["status"],
             resolve_type=resolve_type,
             actor_id=identity.user_id,
-        )
-
-    def update_group(self, group: Group, identity: Identity, data: Mapping[str, str]) -> Response:
-        event_write_key = ApiKey(
-            organization=group.project.organization, scope_list=["event:write"]
-        )
-
-        return client.put(
-            path=f"/projects/{group.project.organization.slug}/{group.project.slug}/issues/",
-            params={"id": group.id},
-            data=data,
-            user=identity.user,
-            auth=event_write_key,
         )
 
     def open_resolve_dialog(
@@ -236,25 +270,13 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
 
         # Determine the acting user by slack identity
         try:
-            idp = IdentityProvider.objects.get(type="slack", external_id=slack_request.team_id)
+            identity = slack_request.get_identity()
         except IdentityProvider.DoesNotExist:
-            logger.error("slack.action.invalid-team-id", extra=logging_data)
             return self.respond(status=403)
 
-        try:
-            identity = Identity.objects.select_related("user").get(idp=idp, external_id=user_id)
-        except Identity.DoesNotExist:
-            associate_url = build_linking_url(
-                integration, group.organization, user_id, channel_id, response_url
-            )
-
-            return self.respond(
-                {
-                    "response_type": "ephemeral",
-                    "replace_original": False,
-                    "text": LINK_IDENTITY_MESSAGE.format(associate_url=associate_url),
-                }
-            )
+        if not identity:
+            associate_url = build_linking_url(integration, user_id, channel_id, response_url)
+            return self.respond_ephemeral(LINK_IDENTITY_MESSAGE.format(associate_url=associate_url))
 
         # Handle status dialog submission
         if slack_request.type == "dialog_submission" and "resolve_type" in data["submission"]:
@@ -263,20 +285,8 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
 
             try:
                 self.on_status(request, identity, group, action, data, integration)
-            except client.ApiError as e:
-
-                if e.status_code == 403:
-                    text = UNLINK_IDENTITY_MESSAGE.format(
-                        associate_url=build_unlinking_url(
-                            integration.id, user_id, channel_id, response_url
-                        ),
-                        user_email=identity.user,
-                        org_name=group.organization.name,
-                    )
-                else:
-                    text = DEFAULT_ERROR_MESSAGE
-
-                return self.api_error(e, "status_dialog", logging_data, text)
+            except client.ApiError as error:
+                return self.api_error(slack_request, group, identity, error, "status_dialog")
 
             group = Group.objects.get(id=group.id)
             attachment = build_group_attachment(group, identity=identity, actions=[action])
@@ -315,19 +325,8 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
                 elif action_type == "resolve_dialog":
                     self.open_resolve_dialog(data, group, integration)
                     defer_attachment_update = True
-        except client.ApiError as e:
-            if e.status_code == 403:
-                text = UNLINK_IDENTITY_MESSAGE.format(
-                    associate_url=build_unlinking_url(
-                        integration.id, user_id, channel_id, response_url
-                    ),
-                    user_email=identity.user,
-                    org_name=group.organization.name,
-                )
-            else:
-                text = DEFAULT_ERROR_MESSAGE
-
-            return self.api_error(e, action_type, logging_data, text)
+        except client.ApiError as error:
+            return self.api_error(slack_request, group, identity, error, action_type)
 
         if defer_attachment_update:
             return self.respond()

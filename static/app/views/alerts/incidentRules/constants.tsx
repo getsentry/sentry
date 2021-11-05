@@ -1,3 +1,4 @@
+import {t} from 'app/locale';
 import EventView from 'app/utils/discover/eventView';
 import {AggregationKey, LooseFieldKey} from 'app/utils/discover/fields';
 import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
@@ -26,7 +27,7 @@ export const DATASET_EVENT_TYPE_FILTERS = {
 } as const;
 
 export const DATASOURCE_EVENT_TYPE_FILTERS = {
-  [Datasource.ERROR_DEFAULT]: '(event.type:error OR event.type:default)',
+  [Datasource.ERROR_DEFAULT]: 'event.type:[error, default]',
   [Datasource.ERROR]: 'event.type:error',
   [Datasource.DEFAULT]: 'event.type:default',
   [Datasource.TRANSACTION]: 'event.type:transaction',
@@ -61,6 +62,15 @@ const allAggregations: AggregationKey[] = [
   'failure_rate',
   'apdex',
   'count',
+];
+
+export const COMPARISON_DELTA_OPTIONS = [
+  {value: 5, label: t('same time 5 minutes ago')}, // 5 minutes
+  {value: 15, label: t('same time 15 minutes ago')}, // 15 minutes
+  {value: 60, label: t('same time one hour ago')}, // one hour
+  {value: 1440, label: t('same time one day ago')}, // one day
+  {value: 10080, label: t('same time one week ago')}, // one week
+  {value: 43200, label: t('same time one month ago')}, // 30 days
 ];
 
 export function getWizardAlertFieldConfig(

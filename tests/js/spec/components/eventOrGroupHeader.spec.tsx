@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 import {findByTextContent} from 'sentry-test/utils';
 
 import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
@@ -85,7 +85,7 @@ describe('EventOrGroupHeader', function () {
     });
 
     it('renders metadata values in message for error events', function () {
-      const {getByText} = mountWithTheme(
+      mountWithTheme(
         <EventOrGroupHeader
           organization={organization}
           data={{
@@ -97,7 +97,7 @@ describe('EventOrGroupHeader', function () {
         {context: routerContext}
       );
 
-      expect(getByText('metadata value')).toBeTruthy();
+      expect(screen.getByText('metadata value')).toBeInTheDocument();
     });
 
     it('renders location', async function () {
@@ -117,7 +117,9 @@ describe('EventOrGroupHeader', function () {
         {context: routerContext}
       );
 
-      expect(await findByTextContent(component, 'in path/to/file.swift')).toBeTruthy();
+      expect(
+        await findByTextContent(component, 'in path/to/file.swift')
+      ).toBeInTheDocument();
     });
   });
 
@@ -193,7 +195,7 @@ describe('EventOrGroupHeader', function () {
     });
 
     it('keeps sort in link when query has sort', function () {
-      const {getByRole} = mountWithTheme(
+      mountWithTheme(
         <EventOrGroupHeader
           organization={organization}
           data={{
@@ -211,14 +213,14 @@ describe('EventOrGroupHeader', function () {
         />
       );
 
-      expect(getByRole('link')).toHaveAttribute(
+      expect(screen.getByRole('link')).toHaveAttribute(
         'href',
         '/organizations/org-slug/issues/groupID/events/eventID/?_allp=1&sort=freq'
       );
     });
 
     it('lack of project adds allp parameter', function () {
-      const {getByRole} = mountWithTheme(
+      mountWithTheme(
         <EventOrGroupHeader
           organization={organization}
           data={{
@@ -233,7 +235,7 @@ describe('EventOrGroupHeader', function () {
         />
       );
 
-      expect(getByRole('link')).toHaveAttribute(
+      expect(screen.getByRole('link')).toHaveAttribute(
         'href',
         '/organizations/org-slug/issues/groupID/events/eventID/?_allp=1'
       );

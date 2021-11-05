@@ -48,7 +48,7 @@ class QueryBuilderTest(TestCase):
             ],
         )
         self.assertCountEqual(
-            query.select,
+            query.columns,
             [
                 AliasedExpression(Column("email"), "user.email"),
                 Column("release"),
@@ -84,6 +84,18 @@ class QueryBuilderTest(TestCase):
             [OrderBy(Column("email"), Direction.DESC)],
         )
         query.get_snql_query().validate()
+
+    def test_orderby_duplicate_columns(self):
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            selected_columns=["user.email", "user.email"],
+            orderby=["user.email"],
+        )
+        self.assertCountEqual(
+            query.orderby,
+            [OrderBy(Column("email"), Direction.ASC)],
+        )
 
     def test_simple_limitby(self):
         query = QueryBuilder(
@@ -191,7 +203,7 @@ class QueryBuilderTest(TestCase):
         project2 = self.create_project()
         # params is assumed to be validated at this point, so this query should be invalid
         self.params["project_id"] = [project2.id]
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             InvalidSearchQuery,
             re.escape(
                 f"Invalid query. Project(s) {str(project1.slug)} do not exist or are not actively selected."
@@ -220,7 +232,7 @@ class QueryBuilderTest(TestCase):
             ],
         )
         self.assertCountEqual(
-            query.select,
+            query.columns,
             [
                 Function(
                     "transform",
@@ -256,7 +268,7 @@ class QueryBuilderTest(TestCase):
         )
         # Because of the condition on project there should only be 1 project in the transform
         self.assertCountEqual(
-            query.select,
+            query.columns,
             [
                 Function(
                     "transform",
@@ -333,6 +345,23 @@ class QueryBuilderTest(TestCase):
             ],
         )
 
+    def test_array_join(self):
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            "",
+            selected_columns=["array_join(measurements_key)", "count()"],
+            functions_acl=["array_join"],
+        )
+        array_join_column = Function(
+            "arrayJoin",
+            [Column("measurements.key")],
+            "array_join_measurements_key",
+        )
+        self.assertCountEqual(query.columns, [array_join_column, Function("count", [], "count")])
+        # make sure the the array join columns are present in gropuby
+        self.assertCountEqual(query.groupby, [array_join_column])
+
     def test_retention(self):
         with self.options({"system.event-retention-days": 10}):
             with self.assertRaises(QueryOutsideRetentionError):
@@ -342,3 +371,117 @@ class QueryBuilderTest(TestCase):
                     "",
                     selected_columns=[],
                 )
+
+    def test_array_combinator(self):
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            "",
+            selected_columns=["sumArray(measurements_value)"],
+            functions_acl=["sumArray"],
+        )
+        self.assertCountEqual(
+            query.columns,
+            [
+                Function(
+                    "sum",
+                    [Function("arrayJoin", [Column("measurements.value")])],
+                    "sumArray_measurements_value",
+                )
+            ],
+        )
+
+    def test_array_combinator_is_private(self):
+        with self.assertRaisesRegex(InvalidSearchQuery, "sum: no access to private function"):
+            QueryBuilder(
+                Dataset.Discover,
+                self.params,
+                "",
+                selected_columns=["sumArray(measurements_value)"],
+            )
+
+    def test_array_combinator_with_non_array_arg(self):
+        with self.assertRaisesRegex(InvalidSearchQuery, "stuff is not a valid array column"):
+            QueryBuilder(
+                Dataset.Discover,
+                self.params,
+                "",
+                selected_columns=["sumArray(stuff)"],
+                functions_acl=["sumArray"],
+            )
+
+    def test_spans_columns(self):
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            "",
+            selected_columns=[
+                "array_join(spans_op)",
+                "array_join(spans_group)",
+                "sumArray(spans_exclusive_time)",
+            ],
+            functions_acl=["array_join", "sumArray"],
+        )
+        self.assertCountEqual(
+            query.columns,
+            [
+                Function("arrayJoin", [Column("spans.op")], "array_join_spans_op"),
+                Function("arrayJoin", [Column("spans.group")], "array_join_spans_group"),
+                Function(
+                    "sum",
+                    [Function("arrayJoin", [Column("spans.exclusive_time")])],
+                    "sumArray_spans_exclusive_time",
+                ),
+            ],
+        )
+
+    def test_array_join_clause(self):
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            "",
+            selected_columns=[
+                "spans_op",
+                "count()",
+            ],
+            array_join="spans_op",
+        )
+        self.assertCountEqual(
+            query.columns,
+            [
+                AliasedExpression(Column("spans.op"), "spans_op"),
+                Function("count", [], "count"),
+            ],
+        )
+        assert query.array_join == Column("spans.op")
+        query.get_snql_query().validate()
+
+    def test_sample_rate(self):
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            "",
+            selected_columns=[
+                "count()",
+            ],
+            sample_rate=0.1,
+        )
+        assert query.sample_rate == 0.1
+        snql_query = query.get_snql_query()
+        snql_query.validate()
+        assert snql_query.match.sample == 0.1
+
+    def test_turbo(self):
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            "",
+            selected_columns=[
+                "count()",
+            ],
+            turbo=True,
+        )
+        assert query.turbo.value
+        snql_query = query.get_snql_query()
+        snql_query.validate()
+        assert snql_query.turbo.value

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {withTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Access from 'app/components/acl/access';
@@ -13,7 +13,6 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Integration, IntegrationProvider, ObjectStatus, Organization} from 'app/types';
 import {IntegrationAnalyticsKey} from 'app/utils/analytics/integrationAnalyticsEvents';
-import {Theme} from 'app/utils/theme';
 
 import AddIntegrationButton from './addIntegrationButton';
 import IntegrationItem from './integrationItem';
@@ -40,14 +39,13 @@ export default class InstalledIntegration extends React.Component<Props> {
         body: aspects.removal_dialog.body,
         actionText: aspects.removal_dialog.actionText,
       };
-    } else {
-      return {
-        body: t(
-          'Deleting this integration will remove any project associated data. This action cannot be undone. Are you sure you want to delete this integration?'
-        ),
-        actionText: t('Delete'),
-      };
     }
+    return {
+      body: t(
+        'Deleting this integration will remove any project associated data. This action cannot be undone. Are you sure you want to delete this integration?'
+      ),
+      actionText: t('Delete'),
+    };
   }
 
   handleRemove(integration: Integration) {
@@ -190,28 +188,27 @@ const IntegrationItemBox = styled('div')`
   flex: 1;
 `;
 
-const IntegrationStatus = withTheme(
-  (
-    props: React.HTMLAttributes<HTMLDivElement> & {theme: Theme; status: ObjectStatus}
-  ) => {
-    const {theme, status, ...p} = props;
-    const color = status === 'active' ? theme.success : theme.gray300;
-    const titleText =
-      status === 'active'
-        ? t('This Integration can be disabled by clicking the Uninstall button')
-        : t('This Integration has been disconnected from the external provider');
-    return (
-      <Tooltip title={titleText}>
-        <div {...p}>
-          <CircleIndicator size={6} color={color} />
-          <IntegrationStatusText>{`${
-            status === 'active' ? t('enabled') : t('disabled')
-          }`}</IntegrationStatusText>
-        </div>
-      </Tooltip>
-    );
-  }
-);
+const IntegrationStatus = (
+  props: React.HTMLAttributes<HTMLDivElement> & {status: ObjectStatus}
+) => {
+  const theme = useTheme();
+  const {status, ...p} = props;
+  const color = status === 'active' ? theme.success : theme.gray300;
+  const titleText =
+    status === 'active'
+      ? t('This Integration can be disabled by clicking the Uninstall button')
+      : t('This Integration has been disconnected from the external provider');
+  return (
+    <Tooltip title={titleText}>
+      <div {...p}>
+        <CircleIndicator size={6} color={color} />
+        <IntegrationStatusText>{`${
+          status === 'active' ? t('enabled') : t('disabled')
+        }`}</IntegrationStatusText>
+      </div>
+    </Tooltip>
+  );
+};
 
 const StyledIntegrationStatus = styled(IntegrationStatus)`
   display: flex;

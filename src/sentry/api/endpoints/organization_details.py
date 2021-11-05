@@ -110,8 +110,6 @@ ORG_OPTIONS = (
     ("apdexThreshold", "sentry:apdex_threshold", int, None),
 )
 
-delete_logger = logging.getLogger("sentry.deletions.api")
-
 DELETION_STATUSES = frozenset(
     [OrganizationStatus.PENDING_DELETION, OrganizationStatus.DELETION_IN_PROGRESS]
 )
@@ -358,9 +356,9 @@ class OrganizationSerializer(serializers.Serializer):
                     changed_data[key] = f"from {old_val} to {option_inst.value}"
                 option_inst.save()
 
-        trusted_realy_info = self.validated_data.get("trustedRelays")
-        if trusted_realy_info is not None:
-            self.save_trusted_relays(trusted_realy_info, changed_data, org)
+        trusted_relay_info = self.validated_data.get("trustedRelays")
+        if trusted_relay_info is not None:
+            self.save_trusted_relays(trusted_relay_info, changed_data, org)
 
         if "openMembership" in self.initial_data:
             org.flags.allow_joinleave = self.initial_data["openMembership"]
@@ -503,10 +501,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                     event=AuditLogEntryEvent.ORG_RESTORE,
                     data=organization.get_audit_log_data(),
                 )
-                delete_logger.info(
-                    "object.delete.canceled",
-                    extra={"object_id": organization.id, "model": Organization.__name__},
-                )
+                ScheduledDeletion.cancel(organization)
             elif changed_data:
                 self.create_audit_entry(
                     request=request,

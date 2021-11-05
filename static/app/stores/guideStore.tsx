@@ -68,14 +68,14 @@ const defaultState: GuideStoreState = {
 type GuideStoreInterface = {
   state: GuideStoreState;
 
-  onFetchSucceeded: (data: GuidesServerData) => void;
-  onRegisterAnchor: (target: string) => void;
-  onUnregisterAnchor: (target: string) => void;
-  recordCue: (guide: string) => void;
-  updatePrevGuide: (nextGuide: Guide | null) => void;
+  onFetchSucceeded(data: GuidesServerData): void;
+  onRegisterAnchor(target: string): void;
+  onUnregisterAnchor(target: string): void;
+  recordCue(guide: string): void;
+  updatePrevGuide(nextGuide: Guide | null): void;
 };
 
-const guideStoreConfig: Reflux.StoreDefinition & GuideStoreInterface = {
+const storeConfig: Reflux.StoreDefinition & GuideStoreInterface = {
   state: defaultState,
 
   init() {
@@ -216,14 +216,15 @@ const guideStoreConfig: Reflux.StoreDefinition & GuideStoreInterface = {
       guideOptions = guideOptions.filter(({seen, dateThreshold}) => {
         if (seen) {
           return false;
-        } else if (user?.isSuperuser) {
+        }
+        if (user?.isSuperuser) {
           return true;
-        } else if (dateThreshold) {
+        }
+        if (dateThreshold) {
           // Show the guide to users who've joined before the date threshold
           return userDateJoined < dateThreshold;
-        } else {
-          return userDateJoined > assistantThreshold;
         }
+        return userDateJoined > assistantThreshold;
       });
     }
 
@@ -249,7 +250,6 @@ const guideStoreConfig: Reflux.StoreDefinition & GuideStoreInterface = {
   },
 };
 
-const GuideStore = Reflux.createStore(guideStoreConfig) as Reflux.Store &
-  GuideStoreInterface;
+const GuideStore = Reflux.createStore(storeConfig) as Reflux.Store & GuideStoreInterface;
 
 export default GuideStore;

@@ -1,4 +1,9 @@
-import {fireEvent, mountWithTheme, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  fireEvent,
+  mountWithTheme,
+  screen,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 
 import IssueListTagFilter from 'app/views/issueList/tagFilter';
 
@@ -39,7 +44,7 @@ describe('IssueListTagFilter', function () {
     );
 
   it('calls API and renders options when opened', async function () {
-    const {getByLabelText, getByText, getAllByText} = mountWithTheme(
+    mountWithTheme(
       <IssueListTagFilter
         tag={tag}
         value=""
@@ -49,17 +54,15 @@ describe('IssueListTagFilter', function () {
     );
 
     // changes dropdown input value
-    const input = getByLabelText(tag.key);
+    const input = screen.getByLabelText(tag.key);
     fireEvent.change(input, {target: {value: 'foo'}});
 
     // waits for the loading indicator to disappear
-    const loadingIndicator = getByText('Loading\u2026');
-
-    await waitFor(() => expect(loadingIndicator).not.toBeInTheDocument());
+    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
     // the result has a length of 2, because when performing a search,
     // an element containing the same value is present in the rendered HTML markup
-    const allFoo = getAllByText('foo');
+    const allFoo = screen.getAllByText('foo');
 
     // selects menu option
     const menuOptionFoo = allFoo[1];

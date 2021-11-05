@@ -364,10 +364,9 @@ function makeFieldOptions(
     .filter(({value}) => {
       if (fieldValues.has(value)) {
         return false;
-      } else {
-        fieldValues.add(value);
-        return true;
       }
+      fieldValues.add(value);
+      return true;
     })
     .filter(({value}) => (partialTerm ? value.includes(partialTerm) : true));
 

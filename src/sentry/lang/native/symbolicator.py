@@ -18,7 +18,7 @@ from sentry.auth.system import get_system_token
 from sentry.cache import default_cache
 from sentry.models import Organization
 from sentry.net.http import Session
-from sentry.tasks.store import RetrySymbolication
+from sentry.tasks.symbolication import RetrySymbolication
 from sentry.utils import json, metrics, safe
 
 MAX_ATTEMPTS = 3
@@ -59,12 +59,13 @@ APP_STORE_CONNECT_SCHEMA = {
         "appconnectIssuer": {"type": "string", "minLength": 36, "maxLength": 36},
         "appconnectKey": {"type": "string", "minLength": 2, "maxLength": 20},
         "appconnectPrivateKey": {"type": "string"},
+        "appName": {"type": "string", "minLength": 1, "maxLength": 512},
+        "appId": {"type": "string", "minLength": 1},
+        # TODO(itunes): All of the below fields are deprecated. Remove together with migration.
         "itunesUser": {"type": "string", "minLength": 1, "maxLength": 100},
         "itunesCreated": {"type": "string", "format": "date-time"},
         "itunesPassword": {"type": "string"},
         "itunesSession": {"type": "string"},
-        "appName": {"type": "string", "minLength": 1, "maxLength": 512},
-        "appId": {"type": "string", "minLength": 1},
         "bundleId": {"type": "string", "minLength": 1},
         "orgPublicId": {"type": "string", "minLength": 36, "maxLength": 36},
         "orgName": {"type": "string", "minLength": 1, "maxLength": 512},
@@ -76,13 +77,14 @@ APP_STORE_CONNECT_SCHEMA = {
         "appconnectIssuer",
         "appconnectKey",
         "appconnectPrivateKey",
+        "appName",
+        "appId",
+        "bundleId",
+        # TODO(itunes): All of the below fields are deprecated. Remove together with migration.
         "itunesUser",
         "itunesCreated",
         "itunesPassword",
         "itunesSession",
-        "appName",
-        "appId",
-        "bundleId",
         "orgPublicId",
         "orgName",
     ],
@@ -302,6 +304,7 @@ def normalize_user_source(source):
     return source
 
 
+# TODO(itunes): Remove logic related to iTunes fields when the fields are removed
 def secret_fields(source_type):
     """
     Returns a string list of all of the fields that contain a secret in a given source.

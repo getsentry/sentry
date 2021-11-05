@@ -4,6 +4,7 @@ import pick from 'lodash/pick';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
+import Feature from 'app/components/acl/feature';
 import SearchBar from 'app/components/events/searchBar';
 import SelectControl from 'app/components/forms/selectControl';
 import ListItem from 'app/components/list/listItem';
@@ -21,12 +22,17 @@ import {
   DATA_SOURCE_TO_SET_AND_EVENT_TYPES,
 } from 'app/views/alerts/utils';
 import {AlertType, getFunctionHelpText} from 'app/views/alerts/wizard/options';
+import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
 import FormField from 'app/views/settings/components/forms/formField';
 import SelectField from 'app/views/settings/components/forms/selectField';
 
-import {DEFAULT_AGGREGATE, DEFAULT_TRANSACTION_AGGREGATE} from './constants';
+import {
+  COMPARISON_DELTA_OPTIONS,
+  DEFAULT_AGGREGATE,
+  DEFAULT_TRANSACTION_AGGREGATE,
+} from './constants';
 import MetricField from './metricField';
-import {Dataset, Datasource, TimeWindow} from './types';
+import {AlertRuleComparisonType, Dataset, Datasource, TimeWindow} from './types';
 
 const TIME_WINDOW_MAP: Record<TimeWindow, string> = {
   [TimeWindow.ONE_MINUTE]: t('1 minute'),
@@ -49,6 +55,12 @@ type Props = {
   onFilterSearch: (query: string) => void;
   alertType: AlertType;
   dataset: Dataset;
+  timeWindow: number;
+  comparisonType: AlertRuleComparisonType;
+  onComparisonTypeChange: (value: AlertRuleComparisonType) => void;
+  onComparisonDeltaChange: (value: number) => void;
+  onTimeWindowChange: (value: number) => void;
+  comparisonDelta?: number;
   allowChangeEventTypes?: boolean;
 };
 
@@ -97,7 +109,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
     }
 
     return Object.entries(options).map(([value, label]) => ({
-      value,
+      value: parseInt(value, 10),
       label,
     }));
   }
@@ -128,8 +140,20 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
   }
 
   render() {
-    const {organization, disabled, onFilterSearch, allowChangeEventTypes, alertType} =
-      this.props;
+    const {
+      organization,
+      disabled,
+      onFilterSearch,
+      allowChangeEventTypes,
+      alertType,
+      timeWindow,
+      comparisonType,
+      comparisonDelta,
+      onTimeWindowChange,
+      onComparisonDeltaChange,
+      onComparisonTypeChange,
+      dataset,
+    } = this.props;
     const {environments} = this.state;
 
     const environmentOptions: SelectValue<string | null>[] =
@@ -263,9 +287,9 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
                         : model.setValue('aggregate', DEFAULT_AGGREGATE);
 
                       // set the value of the dataset and event type from data source
-                      const {dataset, eventTypes} =
+                      const {dataset: datasetFromDataSource, eventTypes} =
                         DATA_SOURCE_TO_SET_AND_EVENT_TYPES[optionValue] ?? {};
-                      model.setValue('dataset', dataset);
+                      model.setValue('dataset', datasetFromDataSource);
                       model.setValue('eventTypes', eventTypes);
                     }}
                     options={dataSourceOptions}
@@ -318,12 +342,29 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
                   {...(this.searchSupportedTags
                     ? {supportedTags: this.searchSupportedTags}
                     : {})}
-                  hasRecentSearches={this.props.dataset !== Dataset.SESSIONS}
+                  hasRecentSearches={dataset !== Dataset.SESSIONS}
                 />
               </SearchContainer>
             )}
           </FormField>
         </FormRow>
+        {dataset !== Dataset.SESSIONS && (
+          <Feature features={['organizations:change-alerts']} organization={organization}>
+            <StyledListItem>{t('Select threshold type')}</StyledListItem>
+            <FormRow>
+              <RadioGroup
+                style={{flex: 1}}
+                choices={[
+                  [AlertRuleComparisonType.COUNT, 'Count'],
+                  [AlertRuleComparisonType.CHANGE, 'Percent Change'],
+                ]}
+                value={comparisonType}
+                label={t('Threshold Type')}
+                onChange={onComparisonTypeChange}
+              />
+            </FormRow>
+          </Feature>
+        )}
         <StyledListItem>
           <StyledListTitle>
             <div>{intervalLabelText}</div>
@@ -354,22 +395,48 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
             />
           )}
           {timeWindowText && <FormRowText>{timeWindowText}</FormRowText>}
-          <SelectField
+          <SelectControl
             name="timeWindow"
-            style={{
-              ...formElemBaseStyle,
-              flex: '0 150px 0',
-              minWidth: 130,
-              maxWidth: 300,
+            styles={{
+              control: (provided: {[x: string]: string | number | boolean}) => ({
+                ...provided,
+                minWidth: 130,
+                maxWidth: 300,
+              }),
             }}
             options={this.timeWindowOptions}
             required
             isDisabled={disabled}
-            getValue={value => Number(value)}
-            setValue={value => `${value}`}
+            value={timeWindow}
+            onChange={({value}) => onTimeWindowChange(value)}
             inline={false}
             flexibleControlStateSize
           />
+          <Feature features={['organizations:change-alerts']} organization={organization}>
+            {comparisonType === AlertRuleComparisonType.CHANGE && (
+              <ComparisonContainer>
+                {t(' compared to ')}
+                <SelectControl
+                  name="comparisonDelta"
+                  styles={{
+                    container: (provided: {[x: string]: string | number | boolean}) => ({
+                      ...provided,
+                      marginLeft: space(1),
+                    }),
+                    control: (provided: {[x: string]: string | number | boolean}) => ({
+                      ...provided,
+                      minWidth: 500,
+                      maxWidth: 1000,
+                    }),
+                  }}
+                  value={comparisonDelta}
+                  onChange={({value}) => onComparisonDeltaChange(value)}
+                  options={COMPARISON_DELTA_OPTIONS}
+                  required={comparisonType === AlertRuleComparisonType.CHANGE}
+                />
+              </ComparisonContainer>
+            )}
+          </Feature>
         </FormRow>
       </React.Fragment>
     );
@@ -418,6 +485,13 @@ const FormRow = styled('div')`
 
 const FormRowText = styled('div')`
   margin: ${space(1)};
+`;
+
+const ComparisonContainer = styled('div')`
+  margin-left: ${space(1)};
+  display: flex;
+  flex-direction: row;
+  align-items: center;
 `;
 
 export default RuleConditionsForm;

@@ -3,7 +3,6 @@ import {browserHistory} from 'react-router';
 import {Location} from 'history';
 
 import {loadOrganizationTags} from 'app/actionCreators/tags';
-import {Client} from 'app/api';
 import {t} from 'app/locale';
 import {GlobalSelection, Organization, Project} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
@@ -18,7 +17,7 @@ import {
 import {removeHistogramQueryStrings} from 'app/utils/performance/histogram';
 import {decodeScalar} from 'app/utils/queryString';
 import {MutableSearch} from 'app/utils/tokenizeSearch';
-import withApi from 'app/utils/withApi';
+import useApi from 'app/utils/useApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
@@ -44,7 +43,6 @@ import {ZOOM_END, ZOOM_START} from './latencyChart';
 type TotalValues = Record<string, number>;
 
 type Props = {
-  api: Client;
   location: Location;
   selection: GlobalSelection;
   organization: Organization;
@@ -52,7 +50,9 @@ type Props = {
 };
 
 function TransactionOverview(props: Props) {
-  const {api, location, selection, organization, projects} = props;
+  const api = useApi();
+
+  const {location, selection, organization, projects} = props;
 
   useEffect(() => {
     loadOrganizationTags(api, organization.slug, selection);
@@ -158,7 +158,9 @@ function generateEventView(location: Location, transactionName: string): EventVi
     .setFilterValues('transaction', [transactionName]);
 
   Object.keys(conditions.filters).forEach(field => {
-    if (isAggregateField(field)) conditions.removeFilter(field);
+    if (isAggregateField(field)) {
+      conditions.removeFilter(field);
+    }
   });
 
   const fields = ['id', 'user.display', 'transaction.duration', 'trace', 'timestamp'];
@@ -232,6 +234,4 @@ function getTotalsEventView(
   ]);
 }
 
-export default withApi(
-  withGlobalSelection(withProjects(withOrganization(TransactionOverview)))
-);
+export default withGlobalSelection(withProjects(withOrganization(TransactionOverview)));

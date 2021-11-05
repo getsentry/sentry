@@ -3,6 +3,7 @@ import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import * as Layout from 'app/components/layouts/thirds';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -10,6 +11,7 @@ import {Organization, Project} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
 import {uniqueId} from 'app/utils/guid';
+import Teams from 'app/utils/teams';
 import BuilderBreadCrumbs from 'app/views/alerts/builder/builderBreadCrumbs';
 import IncidentRulesCreate from 'app/views/alerts/incidentRules/create';
 import IssueRuleEditor from 'app/views/alerts/issueRuleEditor';
@@ -128,20 +130,35 @@ class Create extends Component<Props, State> {
         </Layout.Header>
         <AlertConditionsBody>
           <StyledLayoutMain fullWidth>
-            {(!hasMetricAlerts || alertType === 'issue') && (
-              <IssueRuleEditor {...this.props} project={project} />
-            )}
+            <Teams provideUserTeams>
+              {({teams, initiallyLoaded}) =>
+                initiallyLoaded ? (
+                  <Fragment>
+                    {(!hasMetricAlerts || alertType === 'issue') && (
+                      <IssueRuleEditor
+                        {...this.props}
+                        project={project}
+                        userTeamIds={teams.map(({id}) => id)}
+                      />
+                    )}
 
-            {hasMetricAlerts && alertType === 'metric' && (
-              <IncidentRulesCreate
-                {...this.props}
-                eventView={eventView}
-                wizardTemplate={wizardTemplate}
-                sessionId={this.sessionId}
-                project={project}
-                isCustomMetric={wizardAlertType === 'custom'}
-              />
-            )}
+                    {hasMetricAlerts && alertType === 'metric' && (
+                      <IncidentRulesCreate
+                        {...this.props}
+                        eventView={eventView}
+                        wizardTemplate={wizardTemplate}
+                        sessionId={this.sessionId}
+                        project={project}
+                        isCustomMetric={wizardAlertType === 'custom'}
+                        userTeamIds={teams.map(({id}) => id)}
+                      />
+                    )}
+                  </Fragment>
+                ) : (
+                  <LoadingIndicator />
+                )
+              }
+            </Teams>
           </StyledLayoutMain>
         </AlertConditionsBody>
       </Fragment>

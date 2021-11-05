@@ -83,6 +83,12 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                 "-date_added",
             ]
 
+        elif sort_by == "myDashboardsAndRecentlyViewed":
+            order_by = [
+                Case(When(created_by_id=request.user.id, then=-1), default=1),
+                "-last_visited",
+            ]
+
         else:
             order_by = "title"
 

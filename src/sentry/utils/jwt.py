@@ -66,7 +66,7 @@ def decode(
     # encoding vs those only suitable for decoding.
     # TODO(flub): The algorithms parameter really does not need to be Optional and should be
     # a straight List[str].  However this is used by some unclear code in
-    # sentry.integrations.msteams.webook.verify_signature which isn't checked by mypy yet,
+    # sentry.integrations.msteams.webhook.verify_signature which isn't checked by mypy yet,
     # and I am too afraid to change this.  One day (hah!) all will be checked by mypy and
     # this can be safely fixed.
     options = {"verify": True}
@@ -137,6 +137,7 @@ def rsa_key_from_jwk(jwk: str) -> str:
         # The return type is verified in our own tests, this is fine.
         return key.private_bytes(Encoding.PEM, PrivateFormat.PKCS8, NoEncryption()).decode("UTF-8")  # type: ignore
     elif isinstance(key, RSAPublicKey):
-        return key.public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo).decode("UTF-8")
+        # The return type is verified in our own tests, this is fine.
+        return key.public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo).decode("UTF-8")  # type: ignore
     else:
         raise ValueError("Unknown RSA JWK key")

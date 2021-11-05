@@ -1,7 +1,7 @@
 import 'zrender/lib/svg/svg';
 
-import * as React from 'react';
-import {withTheme} from '@emotion/react';
+import {forwardRef, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import echarts, {EChartOption, ECharts} from 'echarts/lib/echarts';
 import ReactEchartsCore from 'echarts-for-react/lib/core';
@@ -21,6 +21,7 @@ import {
   ReactEchartsRef,
   Series,
 } from 'app/types/echarts';
+import {defined} from 'app/utils';
 import {Theme} from 'app/utils/theme';
 
 import Grid from './components/grid';
@@ -29,7 +30,7 @@ import Tooltip from './components/tooltip';
 import XAxis from './components/xAxis';
 import YAxis from './components/yAxis';
 import LineSeries from './series/lineSeries';
-import {getDimensionValue} from './utils';
+import {getDiffInMinutes, getDimensionValue, lightenHexToRgb} from './utils';
 
 // TODO(ts): What is the series type? EChartOption.Series's data cannot have
 // `onClick` since it's typically an array.
@@ -61,8 +62,6 @@ type Truncateable = {
 };
 
 type Props = {
-  theme: Theme;
-
   options?: EChartOption;
   /**
    * Chart Series
@@ -70,6 +69,11 @@ type Props = {
    * be an array of ECharts "Series" components.
    */
   series?: EChartOption.Series[];
+  /**
+   * Additional Chart Series
+   * This is to pass series to BaseChart bypassing the wrappers like LineChart, AreaChart etc.
+   */
+  additionalSeries?: EChartOption.SeriesLine[];
   /**
    * Array of color codes to use in charts. May also take a function which is
    * provided with the current theme
@@ -105,10 +109,22 @@ type Props = {
         value: number,
         isTimestamp: boolean,
         utc: boolean,
-        showTimeInTooltip: boolean
+        showTimeInTooltip: boolean,
+        addSecondsToTimeFormat: boolean,
+        bucketSize: number | undefined,
+        seriesParamsOrParam: EChartOption.Tooltip.Format | EChartOption.Tooltip.Format[]
       ) => string;
-      valueFormatter?: (value: number, label?: string) => string | number;
+      valueFormatter?: (
+        value: number,
+        label?: string,
+        seriesParams?: EChartOption.Tooltip.Format
+      ) => string | number;
       nameFormatter?: (name: string) => string;
+      markerFormatter?: (marker: string, label?: string) => string;
+      /**
+       * Array containing seriesNames that need to be indented
+       */
+      indentLabels?: string[];
     };
   /**
    * DataZoom (allows for zooming of chart)
@@ -197,6 +213,10 @@ type Props = {
    */
   isGroupedByDate?: boolean;
   /**
+   * optional, threshold in minutes used to add seconds to the xAxis datetime format if `isGroupedByDate == true`
+   */
+  minutesThresholdToDisplaySeconds?: number;
+  /**
    * Format timestamp with date AND time
    */
   showTimeInTooltip?: boolean;
@@ -236,8 +256,6 @@ type Props = {
 };
 
 function BaseChartUnwrapped({
-  theme,
-
   colors,
   grid,
   tooltip,
@@ -250,6 +268,7 @@ function BaseChartUnwrapped({
   echartsTheme,
   devicePixelRatio,
 
+  minutesThresholdToDisplaySeconds,
   showTimeInTooltip,
   useShortDate,
   start,
@@ -273,6 +292,7 @@ function BaseChartUnwrapped({
 
   options = {},
   series = [],
+  additionalSeries = [],
   yAxis = {},
   xAxis = {},
 
@@ -285,9 +305,19 @@ function BaseChartUnwrapped({
   transformSinglePointToBar = false,
   onChartReady = () => {},
 }: Props) {
+  const theme = useTheme();
+
   const hasSinglePoints = (series as EChartOption.SeriesLine[] | undefined)?.every(
     s => Array.isArray(s.data) && s.data.length <= 1
   );
+
+  const resolveColors =
+    colors !== undefined ? (Array.isArray(colors) ? colors : colors(theme)) : null;
+  const color =
+    resolveColors ||
+    (series.length ? theme.charts.getColorPalette(series.length) : theme.charts.colors);
+  const previousPeriodColors =
+    previousPeriod && previousPeriod.length > 1 ? lightenHexToRgb(color) : undefined;
 
   const transformedSeries =
     (hasSinglePoints && transformSinglePointToBar
@@ -301,18 +331,24 @@ function BaseChartUnwrapped({
       : series) ?? [];
 
   const transformedPreviousPeriod =
-    previousPeriod?.map(previous =>
+    previousPeriod?.map((previous, seriesIndex) =>
       LineSeries({
         name: previous.seriesName,
         data: previous.data.map(({name, value}) => [name, value]),
-        lineStyle: {color: theme.gray200, type: 'dotted'},
-        itemStyle: {color: theme.gray200},
+        lineStyle: {
+          color: previousPeriodColors ? previousPeriodColors[seriesIndex] : theme.gray200,
+          type: 'dotted',
+        },
+        itemStyle: {
+          color: previousPeriodColors ? previousPeriodColors[seriesIndex] : theme.gray200,
+        },
+        stack: 'previous',
       })
     ) ?? [];
 
   const resolvedSeries = !previousPeriod
-    ? transformedSeries
-    : [...transformedSeries, ...transformedPreviousPeriod];
+    ? [...transformedSeries, ...additionalSeries]
+    : [...transformedSeries, ...transformedPreviousPeriod, ...additionalSeries];
 
   const defaultAxesProps = {theme};
 
@@ -324,6 +360,14 @@ function BaseChartUnwrapped({
     ? yAxes.map(axis => YAxis({...axis, theme}))
     : [YAxis(defaultAxesProps), YAxis(defaultAxesProps)];
 
+  /**
+   * If true seconds will be added to the time format in the tooltips and chart xAxis
+   */
+  const addSecondsToTimeFormat =
+    isGroupedByDate && defined(minutesThresholdToDisplaySeconds)
+      ? getDiffInMinutes({start, end, period}) <= minutesThresholdToDisplaySeconds
+      : false;
+
   const xAxisOrCustom = !xAxes
     ? xAxis !== null
       ? XAxis({
@@ -334,12 +378,23 @@ function BaseChartUnwrapped({
           end,
           period,
           isGroupedByDate,
+          addSecondsToTimeFormat,
           utc,
         })
       : undefined
     : Array.isArray(xAxes)
     ? xAxes.map(axis =>
-        XAxis({...axis, theme, useShortDate, start, end, period, isGroupedByDate, utc})
+        XAxis({
+          ...axis,
+          theme,
+          useShortDate,
+          start,
+          end,
+          period,
+          isGroupedByDate,
+          addSecondsToTimeFormat,
+          utc,
+        })
       )
     : [XAxis(defaultAxesProps), XAxis(defaultAxesProps)];
 
@@ -354,18 +409,12 @@ function BaseChartUnwrapped({
       ? Tooltip({
           showTimeInTooltip,
           isGroupedByDate,
+          addSecondsToTimeFormat,
           utc,
           bucketSize,
           ...tooltip,
         })
       : undefined;
-
-  const resolveColors =
-    colors !== undefined ? (Array.isArray(colors) ? colors : colors(theme)) : null;
-
-  const color =
-    resolveColors ||
-    (series.length ? theme.charts.getColorPalette(series.length) : theme.charts.colors);
 
   const chartOption = {
     ...options,
@@ -396,7 +445,7 @@ function BaseChartUnwrapped({
   //
   // We use React.useMemo to keep the value across renders
   //
-  const eventsMap = React.useMemo(
+  const eventsMap = useMemo(
     () =>
       ({
         click: (props, instance) => {
@@ -455,6 +504,9 @@ const ChartContainer = styled('div')`
   .tooltip-label strong {
     font-weight: normal;
     color: ${p => p.theme.white};
+  }
+  .tooltip-label-indent {
+    margin-left: ${space(3)};
   }
   .tooltip-series > div {
     display: flex;
@@ -521,11 +573,10 @@ const ChartContainer = styled('div')`
   }
 `;
 
-const BaseChartWithTheme = withTheme(BaseChartUnwrapped);
+const BaseChart = forwardRef<ReactEchartsRef, Props>((props, ref) => (
+  <BaseChartUnwrapped forwardedRef={ref} {...props} />
+));
 
-const BaseChart = React.forwardRef<ReactEchartsRef, Omit<Props, 'theme'>>(
-  (props, ref) => <BaseChartWithTheme forwardedRef={ref} {...props} />
-);
 BaseChart.displayName = 'forwardRef(BaseChart)';
 
 export default BaseChart;

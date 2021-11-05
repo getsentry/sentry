@@ -187,6 +187,44 @@ class CreateProjectRuleTest(APITestCase):
             status_code=400,
         )
 
+    def test_frequency_percent_validation(self):
+        self.login_as(user=self.user)
+        condition = {
+            "id": "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition",
+            "interval": "1h",
+            "value": 101,
+            "comparisonType": "count",
+        }
+        response = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            name="test",
+            frequency=30,
+            owner=self.user.actor.get_actor_identifier(),
+            actionMatch="any",
+            filterMatch="any",
+            conditions=[condition],
+            status_code=400,
+        )
+        assert (
+            str(response.data["conditions"][0]) == "Ensure this value is less than or equal to 100"
+        )
+
+        # Upper bound shouldn't be enforced when we're doing a comparison alert
+        condition["comparisonType"] = "percent"
+        condition["comparisonInterval"] = "1d"
+        self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            name="test",
+            frequency=30,
+            owner=self.user.actor.get_actor_identifier(),
+            actionMatch="any",
+            filterMatch="any",
+            conditions=[condition],
+            status_code=200,
+        )
+
     def test_match_values(self):
         filters = [
             {
@@ -312,6 +350,7 @@ class CreateProjectRuleTest(APITestCase):
                     "name": "Send a notification to the funinthesun Slack workspace to #team-team-team and show tags [] in notification",
                     "workspace": str(integration.id),
                     "channel": "#team-team-team",
+                    "channel_id": "",
                     "tags": "",
                 }
             ],
@@ -422,7 +461,11 @@ class CreateProjectRuleTest(APITestCase):
 
         project = self.create_project()
 
-        self.create_sentry_app(name="Pied Piper", organization=project.organization)
+        self.create_sentry_app(
+            name="Pied Piper",
+            organization=project.organization,
+            schema={"elements": [self.create_alert_rule_action_schema()]},
+        )
         install = self.create_sentry_app_installation(
             slug="pied-piper", organization=project.organization
         )
@@ -430,8 +473,7 @@ class CreateProjectRuleTest(APITestCase):
         actions = [
             {
                 "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
-                "settings": {"assignee": "Team Rocket", "priority": 27},
-                "uri": "/sentry/alerts/",
+                "settings": {"title": "Team Rocket", "summary": "We're blasting off again."},
                 "sentryAppInstallationUuid": install.uuid,
                 "hasSchemaFormConfig": True,
             },
@@ -466,13 +508,9 @@ class CreateProjectRuleTest(APITestCase):
         kwargs = {
             "install": install,
             "fields": actions[0].get("settings"),
-            "uri": actions[0].get("uri"),
-            "rule": rule,
         }
 
         call_kwargs = mock_alert_rule_action_creator.call_args[1]
 
         assert call_kwargs["install"].id == kwargs["install"].id
         assert call_kwargs["fields"] == kwargs["fields"]
-        assert call_kwargs["uri"] == kwargs["uri"]
-        assert call_kwargs["rule"].id == kwargs["rule"].id

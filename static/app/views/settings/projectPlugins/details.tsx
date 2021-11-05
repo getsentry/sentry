@@ -40,8 +40,8 @@ type State = {
  *    PluginsStore
  */
 class ProjectPluginDetails extends AsyncView<Props, State> {
-  componentDidUpdate(prevProps: Props, prevContext: any) {
-    super.componentDidUpdate(prevProps, prevContext);
+  componentDidUpdate(prevProps: Props, prevState: State) {
+    super.componentDidUpdate(prevProps, prevState);
     if (prevProps.params.pluginId !== this.props.params.pluginId) {
       this.recordDetailsViewed();
     }
@@ -65,9 +65,8 @@ class ProjectPluginDetails extends AsyncView<Props, State> {
     const {plugin} = this.state;
     if (plugin && plugin.name) {
       return plugin.name;
-    } else {
-      return 'Sentry';
     }
+    return 'Sentry';
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {

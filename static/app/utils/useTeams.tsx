@@ -8,11 +8,17 @@ import OrganizationStore from 'app/stores/organizationStore';
 import TeamStore from 'app/stores/teamStore';
 import {useLegacyStore} from 'app/stores/useLegacyStore';
 import {Team} from 'app/types';
+import {isActiveSuperuser} from 'app/utils/isActiveSuperuser';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import RequestError from 'app/utils/requestError/requestError';
 import useApi from 'app/utils/useApi';
 
 type State = {
+  /**
+   * Reflects whether or not the initial fetch for the requested teams was
+   * fulfilled
+   */
+  initiallyLoaded: boolean;
   /**
    * This is state for when fetching data from API
    */
@@ -48,7 +54,7 @@ export type Result = {
    * Will always add new options into the store.
    */
   onSearch: (searchTerm: string) => Promise<void>;
-} & Pick<State, 'fetching' | 'hasMore' | 'fetchError'>;
+} & Pick<State, 'fetching' | 'hasMore' | 'fetchError' | 'initiallyLoaded'>;
 
 type Options = {
   /**
@@ -60,13 +66,15 @@ type Options = {
    */
   slugs?: string[];
   /**
-   * When true, fetches user's teams if necessary and only provides user's teams (isMember = true).
+   * When true, fetches user's teams if necessary and only provides user's
+   * teams (isMember = true).
    */
   provideUserTeams?: boolean;
 };
 
-type FetchTeamOptions = Pick<Options, 'limit'> & {
+type FetchTeamOptions = {
   slugs?: string[];
+  limit?: Options['limit'];
   cursor?: State['nextCursor'];
   search?: State['lastSearch'];
   lastSearch?: State['lastSearch'];
@@ -121,12 +129,39 @@ async function fetchTeams(
   return {results: data, hasMore, nextCursor};
 }
 
+// TODO: Paging for items which have already exist in the store is not
+// correctly implemented.
+
+/**
+ * Provides teams from the TeamStore
+ *
+ * This hook also provides a way to select specific slugs to ensure they are
+ * loaded, as well as search (type-ahead) for more slugs that may not be in the
+ * TeamsStore.
+ *
+ * NOTE: It is NOT guaranteed that all teams for an organization will be
+ * loaded, so you should use this hook with the intention of providing specific
+ * slugs, or loading more through search.
+ *
+ */
 function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
   const api = useApi();
   const {organization} = useLegacyStore(OrganizationStore);
   const store = useLegacyStore(TeamStore);
 
+  const orgId = organization?.slug;
+
+  const storeSlugs = new Set(store.teams.map(t => t.slug));
+  const slugsToLoad = slugs?.filter(slug => !storeSlugs.has(slug)) ?? [];
+  const shouldLoadSlugs = slugsToLoad.length > 0;
+  const shouldLoadTeams = provideUserTeams && !store.loadedUserTeams;
+
+  // If we don't need to make a request either for slugs or user teams, set
+  // initiallyLoaded to true
+  const initiallyLoaded = !shouldLoadSlugs && !shouldLoadTeams;
+
   const [state, setState] = useState<State>({
+    initiallyLoaded,
     fetching: false,
     hasMore: null,
     lastSearch: null,
@@ -135,7 +170,9 @@ function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
   });
 
   const slugsRef = useRef<Set<string> | null>(null);
-  // Only initialize slugsRef.current once and modify it when we receive new slugs determined through set equality
+
+  // Only initialize slugsRef.current once and modify it when we receive new
+  // slugs determined through set equality
   if (slugs !== undefined) {
     if (slugsRef.current === null) {
       slugsRef.current = new Set(slugs);
@@ -150,7 +187,6 @@ function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
   }
 
   async function loadUserTeams() {
-    const orgId = organization?.slug;
     if (orgId === undefined) {
       return;
     }
@@ -159,31 +195,23 @@ function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
     try {
       await fetchUserTeams(api, {orgId});
 
-      setState({...state, fetching: false});
+      setState({...state, fetching: false, initiallyLoaded: true});
     } catch (err) {
       console.error(err); // eslint-disable-line no-console
 
-      setState({...state, fetching: false, fetchError: err});
+      setState({...state, fetching: false, initiallyLoaded: true, fetchError: err});
     }
   }
 
   async function loadTeamsBySlug() {
-    const orgId = organization?.slug;
-    if (orgId === undefined || !slugs) {
-      return;
-    }
-
-    const storeSlugs = store.teams.map(t => t.slug);
-    const slugsNotInStore = slugs.filter(slug => !storeSlugs.includes(slug));
-
-    if (slugsNotInStore.length === 0) {
+    if (orgId === undefined) {
       return;
     }
 
     setState({...state, fetching: true});
     try {
       const {results, hasMore, nextCursor} = await fetchTeams(api, orgId, {
-        slugs: slugsNotInStore,
+        slugs: slugsToLoad,
         limit,
       });
 
@@ -194,12 +222,13 @@ function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
         ...state,
         hasMore,
         fetching: false,
+        initiallyLoaded: true,
         nextCursor,
       });
     } catch (err) {
       console.error(err); // eslint-disable-line no-console
 
-      setState({...state, fetching: false, fetchError: err});
+      setState({...state, fetching: false, initiallyLoaded: true, fetchError: err});
     }
   }
 
@@ -211,10 +240,9 @@ function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
       return;
     }
 
-    const orgId = organization?.slug;
     if (orgId === undefined) {
       // eslint-disable-next-line no-console
-      console.error('Cannot use useTeam.onSearch without an orgId passed to useTeam');
+      console.error('Cannot use useTeam.onSearch without an organization in context');
       return;
     }
 
@@ -252,27 +280,29 @@ function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
 
   useEffect(() => {
     // Load specified team slugs
-    if (slugs) {
+    if (shouldLoadSlugs) {
       loadTeamsBySlug();
       return;
     }
 
     // Load user teams
-    if (provideUserTeams && !store.loadedUserTeams) {
+    if (shouldLoadTeams) {
       loadUserTeams();
     }
   }, [slugsRef.current, provideUserTeams]);
 
-  let filteredTeams = store.teams;
-  if (slugs) {
-    filteredTeams = filteredTeams.filter(t => slugs.includes(t.slug));
-  } else if (provideUserTeams) {
-    filteredTeams = filteredTeams.filter(t => t.isMember);
-  }
+  const isSuperuser = isActiveSuperuser();
+
+  const filteredTeams = slugs
+    ? store.teams.filter(t => slugs.includes(t.slug))
+    : provideUserTeams && !isSuperuser
+    ? store.teams.filter(t => t.isMember)
+    : store.teams;
 
   const result: Result = {
     teams: filteredTeams,
     fetching: state.fetching || store.loading,
+    initiallyLoaded: state.initiallyLoaded,
     fetchError: state.fetchError,
     hasMore: state.hasMore,
     onSearch: handleSearch,

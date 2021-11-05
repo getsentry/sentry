@@ -11,7 +11,10 @@ export enum ChartType {
   SLACK_DISCOVER_TOTAL_PERIOD = 'slack:discover.totalPeriod',
   SLACK_DISCOVER_TOTAL_DAILY = 'slack:discover.totalDaily',
   SLACK_DISCOVER_TOP5_PERIOD = 'slack:discover.top5Period',
+  SLACK_DISCOVER_TOP5_PERIOD_LINE = 'slack:discover.top5PeriodLine',
   SLACK_DISCOVER_TOP5_DAILY = 'slack:discover.top5Daily',
+  SLACK_DISCOVER_PREVIOUS_PERIOD = 'slack:discover.previousPeriod',
+  SLACK_DISCOVER_WORLDMAP = 'slack:discover.worldmap',
 }
 
 /**
@@ -68,6 +71,13 @@ export type RenderData = {
 };
 
 /**
+ * Performs any additional initialization steps on Chartcuterie's global
+ * echarts object on service start up. For example, registerMaps can
+ * be called here to register any available maps to ECharts.
+ */
+export type InitFn = (echarts: any) => void;
+
+/**
  * The configuration object type expected to be provided to the service
  */
 export type ChartcuterieConfig = {
@@ -78,6 +88,11 @@ export type ChartcuterieConfig = {
    * configuration.
    */
   version: string;
+  /**
+   * The optional initialization function to run when the service starts
+   * or restarts due to configuration updates.
+   */
+  init?: InitFn;
 };
 
 /**

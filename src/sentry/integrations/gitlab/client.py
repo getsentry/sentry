@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 from urllib.parse import quote
 
 from django.urls import reverse
 
 from sentry.integrations.client import ApiClient
+from sentry.models import Repository
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
 from sentry.utils.http import absolute_uri
 
@@ -86,9 +89,12 @@ class GitLabApiClient(ApiClient):
     def metadata(self):
         return self.installation.model.metadata
 
+    def request_headers(self, identity):
+        access_token = identity.data["access_token"]
+        return {"Authorization": f"Bearer {access_token}"}
+
     def request(self, method, path, data=None, params=None):
-        access_token = self.identity.data["access_token"]
-        headers = {"Authorization": f"Bearer {access_token}"}
+        headers = self.request_headers(self.identity)
         url = GitLabApiClientPath.build_api_url(self.metadata["base_url"], path)
         try:
             return self._request(method, url, headers=headers, data=data, params=params)
@@ -96,8 +102,14 @@ class GitLabApiClient(ApiClient):
             if self.is_refreshing_token:
                 raise e
             self.is_refreshing_token = True
-            self.refresh_auth()
-            resp = self._request(method, url, headers=headers, data=data, params=params)
+            new_identity = self.refresh_auth()
+            resp = self._request(
+                method,
+                url,
+                headers=self.request_headers(new_identity),
+                data=data,
+                params=params,
+            )
             self.is_refreshing_token = False
             return resp
 
@@ -108,7 +120,7 @@ class GitLabApiClient(ApiClient):
 
         https://github.com/doorkeeper-gem/doorkeeper/wiki/Enable-Refresh-Token-Credentials#testing-with-oauth2-gem
         """
-        self.identity.get_provider().refresh_identity(
+        return self.identity.get_provider().refresh_identity(
             self.identity,
             refresh_token_url="{}{}".format(
                 self.metadata["base_url"], GitLabApiClientPath.oauth_token
@@ -252,7 +264,7 @@ class GitLabApiClient(ApiClient):
         path = GitLabApiClientPath.diff.format(project=project_id, sha=sha)
         return self.get(path)
 
-    def check_file(self, repo, path, ref):
+    def check_file(self, repo: Repository, path: str, ref: str) -> str | None:
         """Fetch a file for stacktrace linking
 
         See https://docs.gitlab.com/ee/api/repository_files.html#get-file-from-repository

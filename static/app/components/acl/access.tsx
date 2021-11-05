@@ -101,7 +101,8 @@ class Access extends React.Component<Props> {
 
     if (!render && typeof renderNoAccessMessage === 'function') {
       return renderNoAccessMessage(renderProps);
-    } else if (!render && renderNoAccessMessage) {
+    }
+    if (!render && renderNoAccessMessage) {
       return DEFAULT_NO_ACCESS_MESSAGE;
     }
 

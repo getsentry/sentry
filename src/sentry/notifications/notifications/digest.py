@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import logging
-from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping
 
 from sentry.digests import Digest
 from sentry.digests.utilities import (
@@ -7,7 +9,7 @@ from sentry.digests.utilities import (
     get_personalized_digests,
     should_get_personalized_digests,
 )
-from sentry.notifications.notifications.base import BaseNotification
+from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.notify import notify
 from sentry.notifications.types import ActionTargetType
 from sentry.notifications.utils import get_integration_link, has_alert_integration
@@ -26,24 +28,31 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class DigestNotification(BaseNotification):
+class DigestNotification(ProjectNotification):
     def __init__(
         self,
-        project: "Project",
+        project: Project,
         digest: Digest,
         target_type: ActionTargetType,
-        target_identifier: Optional[int] = None,
+        target_identifier: int | None = None,
     ) -> None:
         super().__init__(project)
         self.digest = digest
         self.target_type = target_type
         self.target_identifier = target_identifier
 
-    def get_participants(self) -> Mapping[ExternalProviders, Iterable[Union["Team", "User"]]]:
+    def get_participants(self) -> Mapping[ExternalProviders, Iterable[Team | User]]:
+        event = [
+            record
+            for records_by_group in self.digest.values()
+            for records in records_by_group.values()
+            for record in records
+        ][0].value.event
         return get_send_to(
             project=self.project,
             target_type=self.target_type,
             target_identifier=self.target_identifier,
+            event=event,
         )
 
     def get_filename(self) -> str:
@@ -55,10 +64,10 @@ class DigestNotification(BaseNotification):
     def get_type(self) -> str:
         return "notify.digest"
 
-    def get_unsubscribe_key(self) -> Optional[Tuple[str, int, Optional[str]]]:
+    def get_unsubscribe_key(self) -> tuple[str, int, str | None] | None:
         return "project", self.project.id, "alert_digest"
 
-    def get_subject(self, context: Optional[Mapping[str, Any]] = None) -> str:
+    def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
         if not context:
             # This shouldn't be possible but adding a message just in case.
             return "Digest Report"
@@ -104,15 +113,30 @@ class DigestNotification(BaseNotification):
         return extra_context
 
     def send(self) -> None:
+        from sentry.models import User
+
         if not self.should_email():
             return
+
+        # Only calculate shared context once.
+        shared_context = self.get_context()
+
+        if should_send_as_alert_notification(shared_context):
+            return send_as_alert_notification(
+                shared_context, self.target_type, self.target_identifier
+            )
 
         participants_by_provider = self.get_participants()
         if not participants_by_provider:
             return
 
         # Get every user ID for every provider as a set.
-        user_ids = {user.id for users in participants_by_provider.values() for user in users}
+        user_ids = {
+            participant.id
+            for participants in participants_by_provider.values()
+            for participant in participants
+            if isinstance(participant, User)
+        }
 
         logger.info(
             "mail.adapter.notify_digest",
@@ -123,14 +147,6 @@ class DigestNotification(BaseNotification):
                 "user_ids": user_ids,
             },
         )
-
-        # Only calculate shared context once.
-        shared_context = self.get_context()
-
-        if should_send_as_alert_notification(shared_context):
-            return send_as_alert_notification(
-                shared_context, self.target_type, self.target_identifier
-            )
 
         # Calculate the per-user context. It's fine that we're doing extra work
         # to get personalized digests for the non-email users.

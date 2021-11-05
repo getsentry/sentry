@@ -1,15 +1,15 @@
+from unittest import mock
 from urllib.parse import urlencode
 
 from sentry import options
 from sentry.integrations.slack.requests.action import SlackActionRequest
 from sentry.integrations.slack.requests.base import SlackRequest, SlackRequestError
 from sentry.integrations.slack.requests.event import SlackEventRequest
-from sentry.integrations.slack.util.auth import set_signing_secret
+from sentry.integrations.slack.utils import set_signing_secret
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import override_options
 from sentry.utils import json
 from sentry.utils.cache import memoize
-from sentry.utils.compat import mock
 
 
 class SlackRequestTest(TestCase):

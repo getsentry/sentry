@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Callable, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
 from parsimonious.exceptions import ParseError
 from sentry_relay import parse_release as parse_release_relay
@@ -757,6 +757,8 @@ def convert_search_boolean_to_snuba_query(terms, params=None):
     # start or end a query with an operator.
     prev = None
     new_terms = []
+    term = None
+
     for term in terms:
         if prev:
             if SearchBoolean.is_operator(prev) and SearchBoolean.is_operator(term):
@@ -772,7 +774,7 @@ def convert_search_boolean_to_snuba_query(terms, params=None):
         if term != SearchBoolean.BOOLEAN_AND:
             new_terms.append(term)
         prev = term
-    if SearchBoolean.is_operator(term):
+    if term is not None and SearchBoolean.is_operator(term):
         raise InvalidSearchQuery(f"Condition is missing on the right side of '{term}' operator")
     terms = new_terms
 
@@ -1038,9 +1040,14 @@ class QueryFilter(QueryFields):
     """Filter logic for a snql query"""
 
     def __init__(
-        self, dataset: Dataset, params: ParamsType, functions_acl: Optional[List[str]] = None
+        self,
+        dataset: Dataset,
+        params: ParamsType,
+        auto_fields: bool = False,
+        functions_acl: Optional[List[str]] = None,
+        equation_config: Optional[Dict[str, bool]] = None,
     ):
-        super().__init__(dataset, params, functions_acl)
+        super().__init__(dataset, params, auto_fields, functions_acl, equation_config)
 
         self.search_filter_converter: Mapping[
             str, Callable[[SearchFilter], Optional[WhereType]]
@@ -1056,6 +1063,7 @@ class QueryFilter(QueryFields):
             ERROR_UNHANDLED_ALIAS: self._error_unhandled_filter_converter,
             TEAM_KEY_TRANSACTION_ALIAS: self._key_transaction_filter_converter,
             RELEASE_STAGE_ALIAS: self._release_stage_filter_converter,
+            RELEASE_ALIAS: self._release_filter_converter,
             SEMVER_ALIAS: self._semver_filter_converter,
             SEMVER_PACKAGE_ALIAS: self._semver_package_filter_converter,
             SEMVER_BUILD_ALIAS: self._semver_build_filter_converter,
@@ -1107,6 +1115,7 @@ class QueryFilter(QueryFields):
         # start or end a query with an operator.
         prev = None
         new_terms = []
+        term = None
         for term in terms:
             if prev:
                 if SearchBoolean.is_operator(prev) and SearchBoolean.is_operator(term):
@@ -1124,7 +1133,7 @@ class QueryFilter(QueryFields):
 
             prev = term
 
-        if SearchBoolean.is_operator(term):
+        if term is not None and SearchBoolean.is_operator(term):
             raise InvalidSearchQuery(f"Condition is missing on the right side of '{term}' operator")
         terms = new_terms
 
@@ -1298,7 +1307,8 @@ class QueryFilter(QueryFields):
             operator = Op.IS_NULL if aggregate_filter.operator == "=" else Op.IS_NOT_NULL
             return Condition(name, operator)
 
-        function = self.resolve_function(name)
+        # When resolving functions in conditions we don't want to add them to the list of aggregates
+        function = self.resolve_function(name, resolve_only=True)
 
         return Condition(function, Op(aggregate_filter.operator), value)
 
@@ -1343,8 +1353,8 @@ class QueryFilter(QueryFields):
                 )
             elif name in ARRAY_FIELDS and search_filter.value.raw_value == "":
                 return Condition(
-                    Function("hasAny", [self.column(name), []]),
-                    Op.EQ if search_filter.operator == "=" else Op.NEQ,
+                    Function("notEmpty", [self.column(name)]),
+                    Op.EQ if search_filter.operator == "!=" else Op.NEQ,
                     1,
                 )
 
@@ -1451,24 +1461,17 @@ class QueryFilter(QueryFields):
             operator = Op.EQ if search_filter.operator == "=" else Op.NEQ
             return Condition(Function("equals", [self.column("message"), value]), operator, 1)
         else:
-            # https://clickhouse.yandex/docs/en/query_language/functions/string_search_functions/#position-haystack-needle
-            # positionCaseInsensitive returns 0 if not found and an index of 1 or more if found
-            # so we should flip the operator here
-            operator = Op.NEQ if search_filter.operator in EQUALITY_OPERATORS else Op.EQ
             if search_filter.is_in_filter:
                 return Condition(
-                    Function(
-                        "multiSearchFirstPositionCaseInsensitive",
-                        [self.column("message"), value],
-                    ),
-                    operator,
-                    0,
+                    self.column("message"),
+                    Op(search_filter.operator),
+                    value,
                 )
 
             # make message search case insensitive
             return Condition(
                 Function("positionCaseInsensitive", [self.column("message"), value]),
-                operator,
+                Op.NEQ if search_filter.operator in EQUALITY_OPERATORS else Op.EQ,
                 0,
             )
 
@@ -1643,12 +1646,7 @@ class QueryFilter(QueryFields):
 
         organization_id: int = self.params["organization_id"]
         project_ids: Optional[list[int]] = self.params.get("project_id")
-        environment_ids: Optional[list[int]] = self.params.get("environment_id", [])
-        environments = list(
-            Environment.objects.filter(
-                organization_id=organization_id, id__in=environment_ids
-            ).values_list("name", flat=True)
-        )
+        environments: Optional[list[Environment]] = self.params.get("environment_objects", [])
         qs = (
             Release.objects.filter_by_stage(
                 organization_id,
@@ -1667,6 +1665,26 @@ class QueryFilter(QueryFields):
             versions = [SEMVER_EMPTY_RELEASE]
 
         return Condition(self.column("release"), Op.IN, versions)
+
+    def _release_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        """Parse releases for potential aliases like `latest`"""
+        values = [
+            parse_release(
+                v,
+                self.params["project_id"],
+                self.params.get("environment_objects"),
+                self.params.get("organization_id"),
+            )
+            for v in to_list(search_filter.value.value)
+        ]
+
+        return self._default_filter_converter(
+            SearchFilter(
+                search_filter.key,
+                search_filter.operator,
+                SearchValue(values if search_filter.is_in_filter else values[0]),
+            )
+        )
 
     def _semver_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         """

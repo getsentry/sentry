@@ -76,11 +76,11 @@ export default function ChartFooter({
                   options={topEventOptions}
                   onChange={onTopEventsChange}
                   menuWidth="60px"
+                  featureType="new"
                 />
               );
-            } else {
-              return null;
             }
+            return null;
           }}
         </Feature>
         <Feature
@@ -97,16 +97,15 @@ export default function ChartFooter({
                   onChange={onAxisChange}
                 />
               );
-            } else {
-              return (
-                <OptionSelector
-                  title={t('Y-Axis')}
-                  selected={yAxisValue[0]}
-                  options={yAxisOptions}
-                  onChange={value => onAxisChange([value])}
-                />
-              );
             }
+            return (
+              <OptionSelector
+                title={t('Y-Axis')}
+                selected={yAxisValue[0]}
+                options={yAxisOptions}
+                onChange={value => onAxisChange([value])}
+              />
+            );
           }}
         </Feature>
       </InlineContainer>

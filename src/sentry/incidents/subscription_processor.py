@@ -151,12 +151,10 @@ class SubscriptionProcessor:
 
         return trigger.alert_threshold + resolve_add
 
-    def find_and_fire_active_warning_trigger(self, alert_operator, aggregation_value):
+    def find_active_warning_trigger(self, alert_operator, aggregation_value):
         """
-        Function used to re-fire a Warning trigger when making the transition from Critical to
-        Warning
+        Finds and returns an active warning trigger, if one exists on this alert
         """
-        active_warning_it = None
         for it in self.incident_triggers.values():
             current_trigger = it.alert_rule_trigger
             # Check if there is a Warning incident trigger that is active, and then check if the
@@ -167,8 +165,7 @@ class SubscriptionProcessor:
                 and alert_operator(aggregation_value, current_trigger.alert_threshold)
             ):
                 metrics.incr("incidents.alert_rules.threshold", tags={"type": "alert"})
-                active_warning_it = self.trigger_alert_threshold(current_trigger, aggregation_value)
-        return active_warning_it
+                return it
 
     def get_comparison_aggregation_value(self, subscription_update, aggregation_value):
         # For comparison alerts run a query over the comparison period and use it to calculate the
@@ -202,7 +199,7 @@ class SubscriptionProcessor:
                 limit=1,
                 referrer="subscription_processor.comparison_query",
             )
-            comparison_aggregate = results["data"][0]["count"]
+            comparison_aggregate = list(results["data"][0].values())[0]
         except Exception:
             logger.exception("Failed to run comparison query")
             return
@@ -223,7 +220,7 @@ class SubscriptionProcessor:
             '_total_count': 34
         }
         - `_crash_rate_alert_aggregate` represents sessions_crashed/sessions or
-        users_crashed/users, and so we need to subtract that number from 1 and then mutiply by
+        users_crashed/users, and so we need to subtract that number from 1 and then multiply by
         100 to get the crash free percentage
         - `_total_count` represents the total sessions or user counts. This is used when
         CRASH_RATE_ALERT_MINIMUM_THRESHOLD is set in the sense that if the minimum threshold is
@@ -259,7 +256,7 @@ class SubscriptionProcessor:
         # The subscription aggregation for crash rate alerts uses the Discover percentage
         # function, which would technically return a ratio of sessions_crashed/sessions and
         # so we need to calculate the crash free percentage out of that returned value
-        aggregation_value = (1 - aggregation_value) * 100
+        aggregation_value = round((1 - aggregation_value) * 100, 3)
         return aggregation_value
 
     def get_aggregation_value(self, subscription_update):
@@ -364,17 +361,19 @@ class SubscriptionProcessor:
                         # warning threshold, and so we will check if we are above the warning
                         # threshold and if so fire a warning alert
                         # This is mainly for handling transition from Critical -> Warning
+                        active_warning_it = None
                         if (
                             incident_trigger.alert_rule_trigger.label == CRITICAL_TRIGGER_LABEL
                             and self.incident_triggers
                         ):
-                            active_warning_it = self.find_and_fire_active_warning_trigger(
+                            active_warning_it = self.find_active_warning_trigger(
                                 alert_operator=alert_operator, aggregation_value=aggregation_value
                             )
                             if active_warning_it is not None:
                                 fired_incident_triggers.append(active_warning_it)
 
-                        fired_incident_triggers.append(incident_trigger)
+                        if active_warning_it is None:
+                            fired_incident_triggers.append(incident_trigger)
                 else:
                     self.trigger_resolve_counts[trigger.id] = 0
 

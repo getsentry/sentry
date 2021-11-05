@@ -1,10 +1,9 @@
 import * as React from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
-import {withTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import {Client} from 'app/api';
 import ChartZoom from 'app/components/charts/chartZoom';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import EventsRequest from 'app/components/charts/eventsRequest';
@@ -27,13 +26,10 @@ import {
   formatFloat,
   formatPercentage,
 } from 'app/utils/formatters';
-import {Theme} from 'app/utils/theme';
-import withApi from 'app/utils/withApi';
+import useApi from 'app/utils/useApi';
 import {getTermHelp, PERFORMANCE_TERM} from 'app/views/performance/data';
 
 type Props = WithRouterProps & {
-  theme: Theme;
-  api: Client;
   organization: Organization;
   location: Location;
   eventView: EventView;
@@ -43,8 +39,6 @@ type Props = WithRouterProps & {
 };
 
 function SidebarCharts({
-  theme,
-  api,
   location,
   eventView,
   organization,
@@ -53,6 +47,9 @@ function SidebarCharts({
   error,
   totals,
 }: Props) {
+  const api = useApi();
+  const theme = useTheme();
+
   const statsPeriod = eventView.statsPeriod;
   const start = eventView.start ? getUtcToLocalDateObject(eventView.start) : undefined;
   const end = eventView.end ? getUtcToLocalDateObject(eventView.end) : undefined;
@@ -272,11 +269,11 @@ type ChartValueProps = {
 function ChartSummaryValue({error, isLoading, value}: ChartValueProps) {
   if (error) {
     return <div>{'\u2014'}</div>;
-  } else if (isLoading) {
-    return <Placeholder height="24px" />;
-  } else {
-    return <ChartValue>{value}</ChartValue>;
   }
+  if (isLoading) {
+    return <Placeholder height="24px" />;
+  }
+  return <ChartValue>{value}</ChartValue>;
 }
 
 const RelativeBox = styled('div')`
@@ -297,4 +294,4 @@ const ChartValue = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
 `;
 
-export default withApi(withTheme(withRouter(SidebarCharts)));
+export default withRouter(SidebarCharts);

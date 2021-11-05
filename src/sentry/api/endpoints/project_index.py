@@ -44,7 +44,7 @@ class ProjectIndexEndpoint(Endpoint):
                 queryset = queryset.none()
         elif not (is_active_superuser(request) and request.GET.get("show") == "all"):
             if request.user.is_sentry_app:
-                queryset = SentryAppInstallationToken.get_projects(request.auth)
+                queryset = SentryAppInstallationToken.objects.get_projects(request.auth)
                 if isinstance(queryset, EmptyQuerySet):
                     raise AuthenticationFailed("Token not found")
             else:

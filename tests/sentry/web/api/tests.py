@@ -1,9 +1,10 @@
+from unittest import mock
+
 from django.urls import reverse
 from exam import fixture
 
 from sentry.testutils import TestCase
 from sentry.utils import json
-from sentry.utils.compat import mock
 
 
 class CrossDomainXmlTest(TestCase):
@@ -17,7 +18,7 @@ class CrossDomainXmlTest(TestCase):
         resp = self.client.get(self.path)
         get_origins.assert_called_once_with(self.project)
         assert resp.status_code == 200, resp.content
-        self.assertEquals(resp["Content-Type"], "application/xml")
+        self.assertEqual(resp["Content-Type"], "application/xml")
         self.assertTemplateUsed(resp, "sentry/crossdomain.xml")
         assert b'<allow-access-from domain="*" secure="false" />' in resp.content
 
@@ -26,8 +27,8 @@ class CrossDomainXmlTest(TestCase):
         get_origins.return_value = ["disqus.com", "www.disqus.com"]
         resp = self.client.get(self.path)
         get_origins.assert_called_once_with(self.project)
-        self.assertEquals(resp.status_code, 200)
-        self.assertEquals(resp["Content-Type"], "application/xml")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp["Content-Type"], "application/xml")
         self.assertTemplateUsed(resp, "sentry/crossdomain.xml")
         assert b'<allow-access-from domain="disqus.com" secure="false" />' in resp.content
         assert b'<allow-access-from domain="www.disqus.com" secure="false" />' in resp.content
@@ -37,15 +38,15 @@ class CrossDomainXmlTest(TestCase):
         get_origins.return_value = []
         resp = self.client.get(self.path)
         get_origins.assert_called_once_with(self.project)
-        self.assertEquals(resp.status_code, 200)
-        self.assertEquals(resp["Content-Type"], "application/xml")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp["Content-Type"], "application/xml")
         self.assertTemplateUsed(resp, "sentry/crossdomain.xml")
         assert b"<allow-access-from" not in resp.content
 
     def test_output_allows_x_sentry_auth(self):
         resp = self.client.get(self.path)
-        self.assertEquals(resp.status_code, 200)
-        self.assertEquals(resp["Content-Type"], "application/xml")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp["Content-Type"], "application/xml")
         self.assertTemplateUsed(resp, "sentry/crossdomain.xml")
         assert (
             b'<allow-http-request-headers-from domain="*" headers="*" secure="false" />'
