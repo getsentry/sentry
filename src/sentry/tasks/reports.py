@@ -586,6 +586,13 @@ def prepare_organization_report(timestamp, duration, organization_id, dry_run=Fa
                 "organization_id": organization_id,
             },
         )
+    if features.has("organizations:weekly-report-debugging", organization):
+        logger.info(
+            "reports.org.begin_computing_report",
+            extra={
+                "organization_id": organization.id,
+            },
+        )
         return
 
     backend.prepare(timestamp, duration, organization)
@@ -708,7 +715,7 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
         logger.info(
             "reports.deliver_organization_user_report.begin",
             extra={
-                "user": user.id,
+                "user_id": user.id,
                 "organization_id": organization.id,
             },
         )
@@ -717,7 +724,7 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
             logger.info(
                 "reports.user.unsubscribed",
                 extra={
-                    "user": user.id,
+                    "user_id": user.id,
                     "organization_id": organization.id,
                 },
             )
@@ -735,7 +742,7 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
             logger.info(
                 "reports.user.no_projects",
                 extra={
-                    "user": user.id,
+                    "user_id": user.id,
                     "organization_id": organization.id,
                 },
             )
@@ -764,7 +771,7 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
             logger.info(
                 "reports.user.no_reports",
                 extra={
-                    "user": user.id,
+                    "user_id": user.id,
                     "organization_id": organization.id,
                 },
             )
@@ -780,7 +787,7 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
             logger.info(
                 "reports.deliver_organization_user_report.finish",
                 extra={
-                    "user": user.id,
+                    "user_id": user.id,
                     "organization_id": organization.id,
                 },
             )
