@@ -157,12 +157,12 @@ class AppStoreConnectAppsEndpoint(ProjectEndpoint):  # type: ignore
         try:
             apps = appstore_connect.get_apps(session, credentials)
         except appstore_connect.UnauthorizedError:
-            raise AppConnectAuthenticationError()
+            raise AppConnectAuthenticationError
         except appstore_connect.ForbiddenError:
-            raise AppConnectForbiddenError()
+            raise AppConnectForbiddenError
 
         if apps is None:
-            raise AppConnectAuthenticationError()
+            raise AppConnectAuthenticationError
 
         all_apps = [
             {"name": app.name, "bundleId": app.bundle_id, "appId": app.app_id} for app in apps
