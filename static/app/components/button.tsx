@@ -238,7 +238,7 @@ const StyledButton = styled(
       }
 
       if (!href) {
-        return <button ref={ref} {...props} />;
+        return <button ref={ref} disabled={disabled} {...props} />;
       }
 
       if (external && href) {
@@ -265,6 +265,7 @@ const StyledButton = styled(
   ${getColors};
   ${getBoxShadow(false)};
   cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
+  pointer-events: ${p => (p.disabled ? 'none' : 'auto')};
   opacity: ${p => (p.busy || p.disabled) && '0.65'};
 
   &:active {
