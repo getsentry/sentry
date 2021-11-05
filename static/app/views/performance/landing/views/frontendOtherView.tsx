@@ -30,6 +30,8 @@ export function FrontendOtherView(props: BasePerformanceViewProps) {
           allowedCharts={[
             PerformanceWidgetSetting.MOST_RELATED_ERRORS,
             PerformanceWidgetSetting.MOST_RELATED_ISSUES,
+            PerformanceWidgetSetting.SLOW_HTTP_OPS,
+            PerformanceWidgetSetting.SLOW_RESOURCE_OPS,
           ]}
         />
         <Table

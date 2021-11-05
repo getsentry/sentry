@@ -2,6 +2,7 @@ import {Fragment, FunctionComponent, useMemo, useState} from 'react';
 import {withRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
+import pick from 'lodash/pick';
 
 import _EventsRequest from 'app/components/charts/eventsRequest';
 import {getInterval} from 'app/components/charts/utils';
@@ -92,7 +93,6 @@ export function LineChartListWidget(props: Props) {
           eventView.query = mutableSearch.formatString();
         } else if (isSlowestType) {
           eventView.additionalConditions.setFilterValues('epm()', ['>0.01']);
-          eventView.additionalConditions.setFilterValues(field, ['>0']);
           eventView.fields = [
             {field: 'transaction'},
             {field: 'project.id'},
@@ -103,6 +103,8 @@ export function LineChartListWidget(props: Props) {
           // Most related errors
           eventView.fields = [{field: 'transaction'}, {field: 'project.id'}, {field}];
         }
+        // Don't retrieve list items with 0 in the field.
+        eventView.additionalConditions.setFilterValues(field, ['>0']);
         return (
           <DiscoverQuery
             {...provided}
@@ -114,7 +116,7 @@ export function LineChartListWidget(props: Props) {
       },
       transform: transformDiscoverToList,
     }),
-    [props.eventView.query, field, props.organization.slug]
+    [props.eventView, field, props.organization.slug]
   );
 
   const chartQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(() => {
@@ -125,10 +127,16 @@ export function LineChartListWidget(props: Props) {
       fields: field,
       component: provided => {
         const eventView = props.eventView.clone();
+        if (!provided.widgetData.list.data[selectedListIndex]?.transaction) {
+          return null;
+        }
         eventView.additionalConditions.setFilterValues('transaction', [
           provided.widgetData.list.data[selectedListIndex].transaction as string,
         ]);
         if (props.chartSetting === PerformanceWidgetSetting.MOST_RELATED_ISSUES) {
+          if (!provided.widgetData.list.data[selectedListIndex]?.issue) {
+            return null;
+          }
           eventView.fields = [
             {field: 'issue'},
             {field: 'issue.id'},
@@ -148,7 +156,7 @@ export function LineChartListWidget(props: Props) {
         }
         return (
           <EventsRequest
-            {...provided}
+            {...pick(provided, ['children', 'organization', 'yAxis'])}
             limit={1}
             includePrevious
             includeTransformedData
@@ -168,7 +176,7 @@ export function LineChartListWidget(props: Props) {
       },
       transform: transformEventsRequestToArea,
     };
-  }, [props.eventView.query, field, props.organization.slug, selectedListIndex]);
+  }, [props.eventView, field, props.organization.slug, selectedListIndex]);
 
   const Queries = {
     list: listQuery,
