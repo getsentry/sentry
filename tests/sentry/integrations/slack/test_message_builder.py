@@ -1,13 +1,81 @@
+from __future__ import annotations
+
+from datetime import datetime
+from typing import Any, Mapping
+
 from django.urls import reverse
 
+from sentry.eventstore.models import Event
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
 from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR
 from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
+from sentry.models import Group, Team, User
 from sentry.testutils import TestCase
 from sentry.utils.assets import get_asset_url
 from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
+
+
+def build_test_message(
+    teams: set[Team],
+    users: set[User],
+    timestamp: datetime,
+    group: Group,
+    event: Event | None = None,
+    link_to_event: bool = False,
+) -> Mapping[str, Any]:
+    project = group.project
+
+    title = group.title
+    title_link = f"http://testserver/organizations/{project.organization.slug}/issues/{group.id}"
+    if event:
+        title = event.title
+        if link_to_event:
+            title_link += f"/events/{event.event_id}"
+    title_link += "/?referrer=slack"
+
+    return {
+        "text": "",
+        "color": "#E03E2F",
+        "actions": [
+            {"name": "status", "text": "Resolve", "type": "button", "value": "resolved"},
+            {"name": "status", "text": "Ignore", "type": "button", "value": "ignored"},
+            {
+                "option_groups": [
+                    {
+                        "text": "Teams",
+                        "options": [
+                            {"text": f"#{team.slug}", "value": f"team:{team.id}"} for team in teams
+                        ],
+                    },
+                    {
+                        "text": "People",
+                        "options": [
+                            {
+                                "text": user.email,
+                                "value": f"user:{user.id}",
+                            }
+                            for user in users
+                        ],
+                    },
+                ],
+                "text": "Select Assignee...",
+                "selected_options": [],
+                "type": "select",
+                "name": "assign",
+            },
+        ],
+        "mrkdwn_in": ["text"],
+        "title": title,
+        "fields": [],
+        "footer": f"{project.slug.upper()}-1",
+        "ts": to_timestamp(timestamp),
+        "title_link": title_link,
+        "callback_id": '{"issue":' + str(group.id) + "}",
+        "fallback": f"[{project.slug}] {title}",
+        "footer_icon": "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png",
+    }
 
 
 class BuildIncidentAttachmentTest(TestCase):
@@ -88,152 +156,35 @@ class BuildIncidentAttachmentTest(TestCase):
         }
 
     def test_build_group_attachment(self):
-        self.user = self.create_user("foo@example.com")
-        self.org = self.create_organization(name="Rowdy Tiger", owner=None)
-        self.team = self.create_team(organization=self.org, name="Mariachi Band")
-        self.project = self.create_project(
-            organization=self.org, teams=[self.team], name="Bengal-Elephant-Giraffe-Tree-House"
-        )
-        self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
         group = self.create_group(project=self.project)
-        ts = group.last_seen
-        assert SlackIssuesMessageBuilder(group).build() == {
-            "text": "",
-            "color": "#E03E2F",
-            "actions": [
-                {"name": "status", "text": "Resolve", "type": "button", "value": "resolved"},
-                {"text": "Ignore", "type": "button", "name": "status", "value": "ignored"},
-                {
-                    "option_groups": [
-                        {
-                            "text": "Teams",
-                            "options": [
-                                {
-                                    "text": "#mariachi-band",
-                                    "value": "team:" + str(self.team.id),
-                                }
-                            ],
-                        },
-                        {
-                            "text": "People",
-                            "options": [
-                                {
-                                    "text": "foo@example.com",
-                                    "value": "user:" + str(self.user.id),
-                                }
-                            ],
-                        },
-                    ],
-                    "text": "Select Assignee...",
-                    "selected_options": [],
-                    "type": "select",
-                    "name": "assign",
-                },
-            ],
-            "mrkdwn_in": ["text"],
-            "title": group.title,
-            "fields": [],
-            "footer": "BENGAL-ELEPHANT-GIRAFFE-TREE-HOUSE-1",
-            "ts": to_timestamp(ts),
-            "title_link": "http://testserver/organizations/rowdy-tiger/issues/"
-            + str(group.id)
-            + "/?referrer=slack",
-            "callback_id": '{"issue":' + str(group.id) + "}",
-            "fallback": f"[{self.project.slug}] {group.title}",
-            "footer_icon": "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png",
-        }
-        event = self.store_event(data={}, project_id=self.project.id)
-        ts = event.datetime
-        assert SlackIssuesMessageBuilder(group, event).build() == {
-            "color": "#E03E2F",
-            "text": "",
-            "actions": [
-                {"name": "status", "text": "Resolve", "type": "button", "value": "resolved"},
-                {"text": "Ignore", "type": "button", "name": "status", "value": "ignored"},
-                {
-                    "option_groups": [
-                        {
-                            "text": "Teams",
-                            "options": [
-                                {
-                                    "text": "#mariachi-band",
-                                    "value": "team:" + str(self.team.id),
-                                }
-                            ],
-                        },
-                        {
-                            "text": "People",
-                            "options": [
-                                {
-                                    "text": "foo@example.com",
-                                    "value": "user:" + str(self.user.id),
-                                }
-                            ],
-                        },
-                    ],
-                    "text": "Select Assignee...",
-                    "selected_options": [],
-                    "type": "select",
-                    "name": "assign",
-                },
-            ],
-            "mrkdwn_in": ["text"],
-            "title": event.title,
-            "fields": [],
-            "footer": "BENGAL-ELEPHANT-GIRAFFE-TREE-HOUSE-1",
-            "ts": to_timestamp(ts),
-            "title_link": "http://testserver/organizations/rowdy-tiger/issues/"
-            + str(group.id)
-            + "/?referrer=slack",
-            "callback_id": '{"issue":' + str(group.id) + "}",
-            "fallback": f"[{self.project.slug}] {event.title}",
-            "footer_icon": "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png",
-        }
 
-        assert SlackIssuesMessageBuilder(group, event, link_to_event=True).build() == {
-            "color": "#E03E2F",
-            "text": "",
-            "actions": [
-                {"name": "status", "text": "Resolve", "type": "button", "value": "resolved"},
-                {"text": "Ignore", "type": "button", "name": "status", "value": "ignored"},
-                {
-                    "option_groups": [
-                        {
-                            "text": "Teams",
-                            "options": [
-                                {
-                                    "text": "#mariachi-band",
-                                    "value": "team:" + str(self.team.id),
-                                }
-                            ],
-                        },
-                        {
-                            "text": "People",
-                            "options": [
-                                {
-                                    "text": "foo@example.com",
-                                    "value": "user:" + str(self.user.id),
-                                }
-                            ],
-                        },
-                    ],
-                    "text": "Select Assignee...",
-                    "selected_options": [],
-                    "type": "select",
-                    "name": "assign",
-                },
-            ],
-            "mrkdwn_in": ["text"],
-            "title": event.title,
-            "fields": [],
-            "footer": "BENGAL-ELEPHANT-GIRAFFE-TREE-HOUSE-1",
-            "ts": to_timestamp(ts),
-            "title_link": f"http://testserver/organizations/rowdy-tiger/issues/{group.id}/events/{event.event_id}/"
-            + "?referrer=slack",
-            "callback_id": '{"issue":' + str(group.id) + "}",
-            "fallback": f"[{self.project.slug}] {event.title}",
-            "footer_icon": "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png",
-        }
+        assert SlackIssuesMessageBuilder(group).build() == build_test_message(
+            teams={self.team},
+            users={self.user},
+            timestamp=group.last_seen,
+            group=group,
+        )
+
+        event = self.store_event(data={}, project_id=self.project.id)
+
+        assert SlackIssuesMessageBuilder(group, event).build() == build_test_message(
+            teams={self.team},
+            users={self.user},
+            timestamp=event.datetime,
+            group=group,
+            event=event,
+        )
+
+        assert SlackIssuesMessageBuilder(
+            group, event, link_to_event=True
+        ).build() == build_test_message(
+            teams={self.team},
+            users={self.user},
+            timestamp=event.datetime,
+            group=group,
+            event=event,
+            link_to_event=True,
+        )
 
     def test_build_group_attachment_issue_alert(self):
         issue_alert_group = self.create_group(project=self.project)
