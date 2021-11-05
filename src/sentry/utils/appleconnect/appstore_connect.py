@@ -373,12 +373,12 @@ def _get_dsym_url(bundles: Optional[List[JSONData]]) -> Union[NoDsymUrl, str]:
     if not bundles:
         return NoDsymUrl.NOT_NEEDED
 
-    get_url = lambda bundle: safe.get_path(
+    get_bundle_url = lambda bundle: safe.get_path(
         bundle, "attributes", "dSYMUrl", default=NoDsymUrl.NOT_NEEDED
     )
 
     app_clip_urls = [
-        get_url(b)
+        get_bundle_url(b)
         for b in bundles
         if safe.get_path(b, "attributes", "bundleType", default="APP") == "APP_CLIP"
     ]
@@ -401,9 +401,7 @@ def _get_dsym_url(bundles: Optional[List[JSONData]]) -> Union[NoDsymUrl, str]:
     # Because we only ask for processingState=VALID builds we expect the builds to be
     # finished and if there are no dSYMs that means the build doesn't need dSYMs, i.e. it is
     # not a bitcode build.
-    bundle = app_bundles[0]
-    url = safe.get_path(bundle, "attributes", "dSYMUrl", default=NoDsymUrl.NOT_NEEDED)
-
+    url = get_bundle_url(app_bundles[0])
     if isinstance(url, (NoDsymUrl, str)):
         return url
     else:
