@@ -93,7 +93,6 @@ export function LineChartListWidget(props: Props) {
           eventView.query = mutableSearch.formatString();
         } else if (isSlowestType) {
           eventView.additionalConditions.setFilterValues('epm()', ['>0.01']);
-          eventView.additionalConditions.setFilterValues(field, ['>0']);
           eventView.fields = [
             {field: 'transaction'},
             {field: 'project.id'},
@@ -104,6 +103,8 @@ export function LineChartListWidget(props: Props) {
           // Most related errors
           eventView.fields = [{field: 'transaction'}, {field: 'project.id'}, {field}];
         }
+        // Don't retrieve list items with 0 in the field.
+        eventView.additionalConditions.setFilterValues(field, ['>0']);
         return (
           <DiscoverQuery
             {...provided}
