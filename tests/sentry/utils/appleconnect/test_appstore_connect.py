@@ -7,10 +7,11 @@ file with credentials.  See the ``api_credentials`` fixture for details.
 import pathlib
 import textwrap
 import urllib.parse
+from typing import Optional
 
 import pytest
 import requests
-import responses as responses_mod
+import responses as responses_mod  # type: ignore
 
 from sentry.lang.native.appconnect import NoDsymUrl
 from sentry.utils import json
@@ -18,8 +19,11 @@ from sentry.utils.appleconnect import appstore_connect
 
 
 class TestListBuilds:
-    @pytest.fixture(scope="session", params=["live", "responses"])
-    def api_credentials(self, request) -> appstore_connect.AppConnectCredentials:
+    # mypy just can't cope with this function:
+    # - The request fixture type is private: _pytest.fixtures.FixtureRequest.
+    # - mypy has no idea that `pytest.skip()` raises and exception and terminates control flow.
+    @pytest.fixture(scope="session", params=["live", "responses"])  # type: ignore
+    def api_credentials(self, request) -> appstore_connect.AppConnectCredentials:  # type: ignore
         """An App Store Connect API key in the form of AppConnectCredentials.
 
         If ``apikey.json`` is present in the current directory it will load the credentials
@@ -64,12 +68,14 @@ class TestListBuilds:
                 ),
             )
 
-    @pytest.fixture(scope="session")
+    @pytest.fixture(scope="session")  # type: ignore
     def app_id(self) -> str:
         """The Sentry Cocoa Swift example app."""
         return "1549832463"
 
-    def write_paged_build_response(self, api_credentials, app_id):
+    def write_paged_build_response(
+        self, api_credentials: appstore_connect.AppConnectCredentials, app_id: str
+    ) -> None:
         """Use this function to create the ``pages_data.jons`` fixture data.
 
         NOTE: this function is purposefully dead code, it shows how to re-create the fixture
@@ -95,8 +101,10 @@ class TestListBuilds:
         pages_file = module_dir / "pages_data.json"
         pages_file.write_text(json.dumps(pages))
 
-    @pytest.fixture
-    def mocked_list_builds_api(self, api_credentials) -> responses_mod.RequestsMock:
+    @pytest.fixture  # type: ignore
+    def mocked_list_builds_api(
+        self, api_credentials: appstore_connect.AppConnectCredentials
+    ) -> Optional[responses_mod.RequestsMock]:
         """Optionally mocks the App Store Connect list builds API.
 
         This fixture piggybacks on the ``api_credentials`` fixture's parametrisation and if
@@ -118,7 +126,12 @@ class TestListBuilds:
         else:
             yield None
 
-    def test_get_build_info(self, mocked_list_builds_api, api_credentials, app_id):
+    def test_get_build_info(
+        self,
+        mocked_list_builds_api: Optional[responses_mod.RequestsMock],
+        api_credentials: appstore_connect.AppConnectCredentials,
+        app_id: str,
+    ) -> None:
         session = requests.Session()
 
         # Be sure to consume the entire ``builds`` iterator, otherwise the
@@ -134,7 +147,12 @@ class TestListBuilds:
         assert build.build_number
         assert build.uploaded_date
 
-    def test_dsyms_needed(self, mocked_list_builds_api, api_credentials, app_id):
+    def test_dsyms_needed(
+        self,
+        mocked_list_builds_api: Optional[responses_mod.RequestsMock],
+        api_credentials: appstore_connect.AppConnectCredentials,
+        app_id: str,
+    ) -> None:
         session = requests.Session()
 
         # Be sure to consume the entire ``builds`` iterator, otherwise the
@@ -150,10 +168,16 @@ class TestListBuilds:
             pytest.fail("Build 332 not found")
 
         assert build.build_number == "332"
+        assert isinstance(build.dsym_url, str)
         assert build.dsym_url.startswith("http://iosapps.itunes.apple.com/itunes-assets/")
         assert "accessKey=" in build.dsym_url
 
-    def test_no_dsyms_needed(self, mocked_list_builds_api, api_credentials, app_id):
+    def test_no_dsyms_needed(
+        self,
+        mocked_list_builds_api: Optional[responses_mod.RequestsMock],
+        api_credentials: appstore_connect.AppConnectCredentials,
+        app_id: str,
+    ) -> None:
         session = requests.Session()
 
         # Be sure to consume the entire ``builds`` iterator, otherwise the
