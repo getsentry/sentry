@@ -1,5 +1,5 @@
 import type {AxisPointerComponentOption, ECharts, LineSeriesOption} from 'echarts';
-import ReactEchartsCore from 'echarts-for-react/lib/core';
+import type ReactEchartsCore from 'echarts-for-react/lib/core';
 
 export type SeriesDataUnit = {
   value: number;

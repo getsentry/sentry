@@ -11,6 +11,7 @@ import type {
   LegendComponentOption,
   LineSeriesOption,
   SeriesOption,
+  TooltipComponentFormatterCallbackParams,
   TooltipComponentOption,
   VisualMapComponentOption,
   XAXisComponentOption,
@@ -90,7 +91,7 @@ type Props = {
    * Additional Chart Series
    * This is to pass series to BaseChart bypassing the wrappers like LineChart, AreaChart etc.
    */
-  additionalSeries?: EChartOption.SeriesLine[];
+  additionalSeries?: LineSeriesOption[];
   /**
    * Array of color codes to use in charts. May also take a function which is
    * provided with the current theme
@@ -132,7 +133,7 @@ type Props = {
         showTimeInTooltip: boolean,
         addSecondsToTimeFormat: boolean,
         bucketSize: number | undefined,
-        seriesParamsOrParam: EChartOption.Tooltip.Format | EChartOption.Tooltip.Format[]
+        seriesParamsOrParam: TooltipComponentFormatterCallbackParams
       ) => string;
       valueFormatter?: (
         value: number,

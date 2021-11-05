@@ -1,6 +1,6 @@
 import 'echarts/lib/component/markLine';
 
-import {LineSeriesOption} from 'echarts';
+import type {LineSeriesOption} from 'echarts';
 
 /**
  * eCharts markLine
