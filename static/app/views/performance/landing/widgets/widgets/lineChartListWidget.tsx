@@ -156,7 +156,16 @@ export function LineChartListWidget(props: Props) {
         }
         return (
           <EventsRequest
-            {...pick(provided, ['children', 'organization', 'yAxis'])}
+            {...pick(provided, [
+              'children',
+              'organization',
+              'yAxis',
+              'period',
+              'start',
+              'end',
+              'environment',
+              'project',
+            ])}
             limit={1}
             includePrevious
             includeTransformedData

@@ -47,7 +47,16 @@ export function SingleFieldAreaWidget(props: Props) {
       fields: props.fields[0],
       component: provided => (
         <EventsRequest
-          {...pick(provided, ['children', 'organization', 'yAxis'])}
+          {...pick(provided, [
+            'children',
+            'organization',
+            'yAxis',
+            'period',
+            'start',
+            'end',
+            'environment',
+            'project',
+          ])}
           limit={1}
           includePrevious
           includeTransformedData
