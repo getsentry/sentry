@@ -11,9 +11,9 @@ ERR_JOIN_REQUESTS_DISABLED = "Your organization does not allow requests to join.
 
 
 def validate_invitation(member, organization, user_to_approve, allowed_roles):
-    """"
-    Validates whether an org has the optionss to invite members, handle join requests,\
-    and that the member role doens't exceed the allowed roles to invite
+    """
+    Validates whether an org has the options to invite members, handle join requests,
+    and that the member role doesn't exceed the allowed roles to invite.
     """
     if not features.has("organizations:invite-members", organization, actor=user_to_approve):
         raise serializers.ValidationError(ERR_CANNOT_INVITE)
