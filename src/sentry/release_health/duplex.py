@@ -436,10 +436,41 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         query: QueryDefinition,
         span_op: str,
     ) -> SessionsQueryResult:
-        rollup = self.DEFAULT_ROLLUP  # not used
-        schema = None
-        # TODO for now disable comparison need to further investigate how to do it
-        should_compare = False
+        rollup = query.rollup
+
+        schema_for_totals = {
+            "sum(session)": ComparatorType.Counter,
+            "count_unique(user)": ComparatorType.Counter,
+            "avg(session.duration)": ComparatorType.Quantile,
+            "p50(session.duration)": ComparatorType.Quantile,
+            "p75(session.duration)": ComparatorType.Quantile,
+            "p90(session.duration)": ComparatorType.Quantile,
+            "p95(session.duration)": ComparatorType.Quantile,
+            "p99(session.duration)": ComparatorType.Quantile,
+            "max(session.duration)": ComparatorType.Quantile,
+        }
+        schema_for_series = {field: [comparator] for field, comparator in schema_for_totals.items()}
+
+        schema = {
+            "start": ComparatorType.DateTime,
+            "end": ComparatorType.DateTime,
+            "intervals": [ComparatorType.DateTime],
+            "groups": [
+                # FIXME: The entries in this list do not necessarily appear in the
+                # same order. For this reason, the tests use the `result_sorted` function defined here:
+                # https://github.com/getsentry/sentry/blob/0176f2f29849323ce851e4653a8891691e32a83e/tests/snuba/api/endpoints/test_organization_sessions.py#L16-L23
+                # Should we define a schema type which supports something like this?
+                # UnsortedCollection(sort_by=lambda item: sorted(item["by"].items()))
+                {
+                    "by": ComparatorType.Entity,
+                    "series": schema_for_series,
+                    "totals": schema_for_totals,
+                }
+            ],
+            "query": ComparatorType.Entity,
+        }
+
+        should_compare = query.start > self.metrics_start
 
         return self._dispatch_call(
             "run_sessions_query", should_compare, rollup, schema, org_id, query, span_op

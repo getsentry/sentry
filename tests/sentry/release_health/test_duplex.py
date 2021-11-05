@@ -225,6 +225,13 @@ def test_compare_tuples(sessions, metrics, schema, are_equal):
             {"a": Ct.Entity, "b": Ct.Counter},
             True,
         ),
+        # match overspecified schema
+        (
+            {"a": 1},
+            {"a": 1},
+            {"a": Ct.Entity, "b": Ct.Counter},
+            True,
+        ),
     ],
 )
 def test_compare_dicts(sessions, metrics, schema, are_equal):
