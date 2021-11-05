@@ -50,7 +50,7 @@ export function HistogramWidget(props: Props) {
         transform: transformHistogramQuery,
       },
     };
-  }, [props.eventView.query, props.fields[0], props.organization.slug]);
+  }, [props.eventView, props.fields[0], props.organization.slug]);
 
   const onFilterChange = () => {};
 
@@ -80,6 +80,7 @@ export function HistogramWidget(props: Props) {
               field={props.fields[0]}
               chartData={provided.widgetData.chart?.data?.[props.fields[0]]}
               disableXAxis
+              disableZoom
             />
           ),
           height: 160,

@@ -31,6 +31,9 @@ export function FrontendPageloadView(props: BasePerformanceViewProps) {
             PerformanceWidgetSetting.MOST_RELATED_ERRORS,
             PerformanceWidgetSetting.MOST_RELATED_ISSUES,
             PerformanceWidgetSetting.WORST_LCP_VITALS,
+            PerformanceWidgetSetting.SLOW_HTTP_OPS,
+            PerformanceWidgetSetting.SLOW_BROWSER_OPS,
+            PerformanceWidgetSetting.SLOW_RESOURCE_OPS,
           ]}
         />
         <Table

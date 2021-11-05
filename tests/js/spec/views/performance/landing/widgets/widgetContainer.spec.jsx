@@ -70,10 +70,8 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          environment: [],
           interval: '1h',
           partial: '1',
-          project: [],
           query: '',
           statsPeriod: '28d',
           yAxis: 'tpm()',
@@ -104,10 +102,8 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          environment: [],
           interval: '1h',
           partial: '1',
-          project: [],
           query: '',
           statsPeriod: '28d',
           yAxis: 'failure_rate()',
@@ -138,10 +134,8 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          environment: [],
           interval: '1h',
           partial: '1',
-          project: [],
           query: '',
           statsPeriod: '28d',
           yAxis: 'user_misery()',
@@ -260,7 +254,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           field: ['transaction', 'project.id', 'failure_count()'],
           per_page: 3,
           project: [],
-          query: '',
+          query: 'failure_count():>0',
           sort: '-failure_count()',
           statsPeriod: '14d',
         }),
@@ -294,7 +288,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           field: ['issue', 'transaction', 'title', 'project.id', 'count()'],
           per_page: 3,
           project: [],
-          query: 'event.type:error !tags[transaction]:""',
+          query: 'event.type:error !tags[transaction]:"" count():>0',
           sort: '-count()',
           statsPeriod: '14d',
         }),
