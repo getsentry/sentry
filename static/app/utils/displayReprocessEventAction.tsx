@@ -6,7 +6,7 @@ import {StacktraceType} from 'app/types/stacktrace';
 const NATIVE_PLATFORMS = ['cocoa', 'native'] as Array<PlatformType>;
 
 // Finds all frames in a given data blob and returns it's platforms
-function getPlatforms(exceptionValue: ExceptionValue | StacktraceType) {
+function getPlatforms(exceptionValue: ExceptionValue | StacktraceType | null) {
   const frames = exceptionValue?.frames ?? [];
   const stacktraceFrames = (exceptionValue as ExceptionValue)?.stacktrace?.frames ?? [];
 

@@ -30,7 +30,7 @@ export default class LineChart extends React.Component<Props> {
             ...seriesOptions,
             ...options,
             name: seriesName,
-            data: dataArray || data.map(({value, name}) => [name, value]),
+            data: dataArray || data?.map(({value, name}) => [name, value]),
             animation: false,
             animationThreshold: 1,
             animationDuration: 0,

@@ -5,7 +5,7 @@ import {ExceptionValue, Group, PlatformType} from 'app/types';
 import {Event} from 'app/types/event';
 import {STACK_VIEW} from 'app/types/stacktrace';
 import {defined} from 'app/utils';
-import {useOrganization} from 'app/utils/useOrganization';
+import useOrganization from 'app/utils/useOrganization';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 import StackTraceContent from '../stackTrace/content';
@@ -79,7 +79,7 @@ function StackTrace({
    * It is easier to fix the UI logic to show a non-empty stack trace for chained exceptions
    */
 
-  if (!!organization.features?.includes('native-stack-trace-v2')) {
+  if (!!organization?.features?.includes('native-stack-trace-v2')) {
     return (
       <StacktraceContentV3
         data={data}

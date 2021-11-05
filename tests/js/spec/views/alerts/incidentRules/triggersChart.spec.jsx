@@ -93,7 +93,7 @@ describe('Incident Rules Create', () => {
       .map(() => [new Date(), [{count: 10}]]);
     eventStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
-      body: TestStubs.EventsStats(undefined, {data}),
+      body: TestStubs.EventsStats({data}),
     });
     mountWithTheme(
       <TriggersChart

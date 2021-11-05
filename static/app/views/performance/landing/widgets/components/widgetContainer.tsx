@@ -5,7 +5,7 @@ import MenuItem from 'app/components/menuItem';
 import {Organization} from 'app/types';
 import localStorage from 'app/utils/localStorage';
 import {usePerformanceDisplayType} from 'app/utils/performance/contexts/performanceDisplayContext';
-import {useOrganization} from 'app/utils/useOrganization';
+import useOrganization from 'app/utils/useOrganization';
 import withOrganization from 'app/utils/withOrganization';
 import ContextMenu from 'app/views/dashboardsV2/contextMenu';
 import {PROJECT_PERFORMANCE_TYPE} from 'app/views/performance/utils';

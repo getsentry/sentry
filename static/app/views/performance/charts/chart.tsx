@@ -5,6 +5,7 @@ import min from 'lodash/min';
 
 import AreaChart from 'app/components/charts/areaChart';
 import ChartZoom from 'app/components/charts/chartZoom';
+import LineChart from 'app/components/charts/lineChart';
 import {DateString} from 'app/types';
 import {Series} from 'app/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
@@ -24,6 +25,7 @@ type Props = {
   disableXAxis?: boolean;
   chartColors?: string[];
   loading: boolean;
+  isLineChart?: boolean;
 };
 
 // adapted from https://stackoverflow.com/questions/11397239/rounding-up-for-a-graph-maximum
@@ -68,6 +70,7 @@ function Chart({
   disableMultiAxis,
   disableXAxis,
   chartColors,
+  isLineChart,
 }: Props) {
   const theme = useTheme();
 
@@ -176,6 +179,9 @@ function Chart({
   };
 
   if (loading) {
+    if (isLineChart) {
+      return <LineChart height={height} series={[]} {...areaChartProps} />;
+    }
     return <AreaChart height={height} series={[]} {...areaChartProps} />;
   }
   const series = data.map((values, i: number) => ({
@@ -193,16 +199,31 @@ function Chart({
       utc={utc}
       xAxisIndex={disableMultiAxis ? undefined : [0, 1]}
     >
-      {zoomRenderProps => (
-        <AreaChart
-          height={height}
-          {...zoomRenderProps}
-          series={series}
-          previousPeriod={previousData}
-          xAxis={disableXAxis ? {show: false} : undefined}
-          {...areaChartProps}
-        />
-      )}
+      {zoomRenderProps => {
+        if (isLineChart) {
+          return (
+            <LineChart
+              height={height}
+              {...zoomRenderProps}
+              series={series}
+              previousPeriod={previousData}
+              xAxis={disableXAxis ? {show: false} : undefined}
+              {...areaChartProps}
+            />
+          );
+        }
+
+        return (
+          <AreaChart
+            height={height}
+            {...zoomRenderProps}
+            series={series}
+            previousPeriod={previousData}
+            xAxis={disableXAxis ? {show: false} : undefined}
+            {...areaChartProps}
+          />
+        );
+      }}
     </ChartZoom>
   );
 }

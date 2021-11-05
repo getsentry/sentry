@@ -38,12 +38,12 @@ class ExternalActor(DefaultFieldsModel):
         unique_together = (("organization", "provider", "external_name", "actor"),)
 
     def delete(self, **kwargs):
-        from sentry.models import NotificationSetting
+        install = self.integration.get_installation(self.organization_id)
 
-        # There is no foreign key relationship so we have to manually cascade.
-        NotificationSetting.objects._filter(
-            target_ids=[self.actor_id], provider=ExternalProviders(self.provider)
-        ).delete()
+        install.notify_remove_external_team(external_team=self, team=self.actor.resolve())
+        install.remove_notification_settings(
+            actor_id=self.actor_id, provider=ExternalProviders(self.provider)
+        )
 
         return super().delete(**kwargs)
 

@@ -108,6 +108,7 @@ def send_notification_as_email(
             add_users_kwargs["project"] = notification.project
         msg.add_users([recipient.id], **add_users_kwargs)
         msg.send_async()
+        notification.record_notification_sent(recipient, ExternalProviders.EMAIL)
 
 
 def get_builder_args(

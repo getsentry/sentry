@@ -395,6 +395,7 @@ export type EventMetadata = {
   current_tree_label?: TreeLabelPart[];
   finest_tree_label?: TreeLabelPart[];
   current_level?: number;
+  display_title_with_tree_label?: boolean;
 };
 
 // endpoint: /api/0/issues/:issueId/attachments/?limit=50
@@ -2049,7 +2050,7 @@ export type ExceptionValue = {
   rawStacktrace: RawStacktrace;
   mechanism: StackTraceMechanism | null;
   module: string | null;
-  frames: Frame[] | null;
+  frames?: Frame[] | null;
 };
 
 export type ExceptionType = {
@@ -2058,13 +2059,34 @@ export type ExceptionType = {
   values?: Array<ExceptionValue>;
 };
 
+export enum UserIdentityCategory {
+  SOCIAL_IDENTITY = 'social-identity',
+  GLOBAL_IDENTITY = 'global-identity',
+  ORG_IDENTITY = 'org-identity',
+}
+
+export enum UserIdentityStatus {
+  CAN_DISCONNECT = 'can_disconnect',
+  NEEDED_FOR_GLOBAL_AUTH = 'needed_for_global_auth',
+  NEEDED_FOR_ORG_AUTH = 'needed_for_org_auth',
+}
+
+export type UserIdentityProvider = {
+  key: string;
+  name: string;
+};
+
 /**
- * Identity is used in Account Identities for SocialAuths
+ * UserIdentityConfig is used in Account Identities
  */
-export type Identity = {
+export type UserIdentityConfig = {
+  category: UserIdentityCategory;
   id: string;
-  provider: IntegrationProvider;
-  providerLabel: string;
+  provider: UserIdentityProvider;
+  status: UserIdentityStatus;
+  isLogin: boolean;
+  organization: Organization | null;
+  dateAdded: DateString;
 };
 
 // taken from https://stackoverflow.com/questions/46634876/how-can-i-change-a-readonly-property-in-typescript
@@ -2251,4 +2273,16 @@ export type EventIdResponse = {
   groupId: string;
   eventId: string;
   event: Event;
+};
+
+export type AuditLog = {
+  id: string;
+  actor: User;
+  event: string;
+  ipAddress: string;
+  note: string;
+  targetObject: number;
+  targetUser: Actor | null;
+  data: any;
+  dateCreated: string;
 };

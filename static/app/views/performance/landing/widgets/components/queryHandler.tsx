@@ -41,8 +41,6 @@ export function QueryHandler<T extends WidgetDataConstraint>(
             organization={props.queryProps.organization}
             orgSlug={props.queryProps.organization.slug}
             query={props.queryProps.eventView.getQueryWithAdditionalConditions()}
-            eventView={props.queryProps.eventView}
-            location={props.queryProps.location}
             widgetData={props.widgetData}
           >
             {results => {

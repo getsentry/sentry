@@ -13,43 +13,23 @@ import {AppStoreConnectValidationData} from 'app/types/debugFiles';
 
 type Props = {
   onEditRepository: () => void;
-  onRevalidateItunesSession: () => void;
   details?: AppStoreConnectValidationData;
 };
 
-function Status({details, onEditRepository, onRevalidateItunesSession}: Props) {
+function Status({details, onEditRepository}: Props) {
   const theme = useTheme();
 
   if (!details) {
     return <Placeholder height="14px" />;
   }
 
-  const {
-    pendingDownloads,
-    promptItunesSession,
-    appstoreCredentialsValid,
-    lastCheckedBuilds,
-  } = details ?? {};
-
-  if (promptItunesSession) {
-    return (
-      <Wrapper color={theme.red300} onClick={onRevalidateItunesSession}>
-        <StyledTooltip
-          title={t('Revalidate your iTunes session')}
-          containerDisplayMode="inline-flex"
-        >
-          <IconWarning size="sm" />
-        </StyledTooltip>
-        {t('iTunes Authentication required')}
-      </Wrapper>
-    );
-  }
+  const {pendingDownloads, appstoreCredentialsValid, lastCheckedBuilds} = details ?? {};
 
   if (appstoreCredentialsValid === false) {
     return (
       <Wrapper color={theme.red300} onClick={onEditRepository}>
         <StyledTooltip
-          title={t('Recheck your App Store Credentials')}
+          title={t('Re-check your App Store Credentials')}
           containerDisplayMode="inline-flex"
         >
           <IconWarning size="sm" />

@@ -200,6 +200,7 @@ def inner_refresh_all_builds() -> None:
     # objects. But that would miss projects that have a valid AppStore Connect
     # setup, but have not yet published any kind of build to AppStore.
     options = ProjectOption.objects.filter(key=appconnect.SYMBOL_SOURCES_PROP_NAME)
+    count = 0
     for option in options:
         with sdk.push_scope() as scope:
             scope.set_tag("project", option.project_id)
@@ -226,6 +227,8 @@ def inner_refresh_all_builds() -> None:
                                 "config_id": source_id,
                             }
                         )
+                        count += 1
                         metrics.incr("sentry.tasks.app_store_connect.refresh_count", sample_rate=1)
             except Exception:
                 logger.exception("Failed to refresh AppStoreConnect builds")
+    metrics.gauge("tasks.app_store_connect.refreshed", count, sample_rate=1)

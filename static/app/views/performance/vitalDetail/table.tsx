@@ -146,21 +146,19 @@ class Table extends React.Component<Props, State> {
             <PoorTag>{t('Poor')}</PoorTag>
           </UniqueTagCell>
         );
-      } else if (
-        dataRow[getAggregateAlias(getVitalDetailTableMehStatusFunction(vitalName))]
-      ) {
+      }
+      if (dataRow[getAggregateAlias(getVitalDetailTableMehStatusFunction(vitalName))]) {
         return (
           <UniqueTagCell>
             <MehTag>{t('Meh')}</MehTag>
           </UniqueTagCell>
         );
-      } else {
-        return (
-          <UniqueTagCell>
-            <GoodTag>{t('Good')}</GoodTag>
-          </UniqueTagCell>
-        );
       }
+      return (
+        <UniqueTagCell>
+          <GoodTag>{t('Good')}</GoodTag>
+        </UniqueTagCell>
+      );
     }
 
     const fieldRenderer = getFieldRenderer(field, tableMeta);
@@ -284,11 +282,10 @@ class Table extends React.Component<Props, State> {
             />
           );
           return [this.renderHeadCell(tableData?.meta, teamKeyTransactionColumn, star)];
-        } else {
-          return [
-            this.renderBodyCell(tableData, teamKeyTransactionColumn, dataRow, vitalName),
-          ];
         }
+        return [
+          this.renderBodyCell(tableData, teamKeyTransactionColumn, dataRow, vitalName),
+        ];
       }
       return [];
     };
