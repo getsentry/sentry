@@ -70,10 +70,8 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          environment: [],
           interval: '1h',
           partial: '1',
-          project: [],
           query: '',
           statsPeriod: '28d',
           yAxis: 'tpm()',
@@ -104,10 +102,8 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          environment: [],
           interval: '1h',
           partial: '1',
-          project: [],
           query: '',
           statsPeriod: '28d',
           yAxis: 'failure_rate()',
@@ -138,10 +134,8 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          environment: [],
           interval: '1h',
           partial: '1',
-          project: [],
           query: '',
           statsPeriod: '28d',
           yAxis: 'user_misery()',

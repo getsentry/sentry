@@ -84,7 +84,7 @@ export function TrendsWidget(props: Props) {
       ),
       transform: transformTrendsDiscover,
     }),
-    [eventView.query, eventView.fields, trendChangeType]
+    [eventView, trendChangeType]
   );
 
   const Queries = {

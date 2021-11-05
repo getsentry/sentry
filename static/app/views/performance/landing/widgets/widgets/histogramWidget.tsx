@@ -50,7 +50,7 @@ export function HistogramWidget(props: Props) {
         transform: transformHistogramQuery,
       },
     };
-  }, [props.eventView.query, props.fields[0], props.organization.slug]);
+  }, [props.eventView, props.fields[0], props.organization.slug]);
 
   const onFilterChange = () => {};
 

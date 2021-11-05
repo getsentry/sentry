@@ -114,7 +114,7 @@ export function LineChartListWidget(props: Props) {
       },
       transform: transformDiscoverToList,
     }),
-    [props.eventView.query, field, props.organization.slug]
+    [props.eventView, field, props.organization.slug]
   );
 
   const chartQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(() => {
@@ -168,7 +168,7 @@ export function LineChartListWidget(props: Props) {
       },
       transform: transformEventsRequestToArea,
     };
-  }, [props.eventView.query, field, props.organization.slug, selectedListIndex]);
+  }, [props.eventView, field, props.organization.slug, selectedListIndex]);
 
   const Queries = {
     list: listQuery,
