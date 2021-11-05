@@ -29,7 +29,7 @@ def main():
 
     files_modified = [text_type(f) for f in get_modified_files(os.getcwd()) if os.path.exists(f)]
 
-    return run(files_modified, test=True)
+    return run(files_modified)
 
 
 if __name__ == "__main__":
