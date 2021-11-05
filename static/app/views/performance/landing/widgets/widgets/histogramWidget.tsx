@@ -80,6 +80,7 @@ export function HistogramWidget(props: Props) {
               field={props.fields[0]}
               chartData={provided.widgetData.chart?.data?.[props.fields[0]]}
               disableXAxis
+              disableZoom
             />
           ),
           height: 160,
