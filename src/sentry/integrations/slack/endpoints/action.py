@@ -370,7 +370,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
             identity = None
 
         if not identity:
-            return self.respond_with_text("Identity not linked for user")
+            return self.respond_with_text("Identity not linked for user.")
 
         member_id = slack_request.callback_data["member_id"]
 
@@ -385,7 +385,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
 
         if not organization.has_access(identity.user):
             return self.respond_with_text(
-                "You don't have access to the organization for the invitation"
+                "You don't have access to the organization for the invitation."
             )
 
         # row should exist because we have access
@@ -394,7 +394,9 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         )
         access = from_member(member_of_approver)
         if not access.has_scope("member:admin"):
-            return self.respond_with_text("You don't have permission to approve member invitations")
+            return self.respond_with_text(
+                "You don't have permission to approve member invitations."
+            )
 
         # validate the org options and check against allowed_roles
         allowed_roles = get_allowed_roles_for_member(member_of_approver)
@@ -408,9 +410,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         member_email = member.email
         try:
             if slack_request.action_option == "approve_member":
-                # if we approve but the invite already approved, we can just say it was without doing anything
-                if not member.invite_approved:
-                    approve_member_invitation(member, identity.user, referrer="slack")
+                approve_member_invitation(member, identity.user, referrer="slack")
             else:
                 reject_member_invitation(member, identity.user)
         except Exception as err:

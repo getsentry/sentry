@@ -520,3 +520,44 @@ class StatusActionTest(BaseEventTest):
             resp.data["text"]
             == "You do not have permission approve a member invitation with the role owner."
         )
+
+    def test_identity_not_linked(self):
+        Identity.objects.filter(user=self.user).delete()
+        resp = self.post_webhook(action_data=[{"value": "approve_member"}], callback_id="")
+
+        assert resp.status_code == 200, resp.content
+        assert resp.data["text"] == "Identity not linked for user."
+
+    def test_wrong_organization(self):
+        other_user = self.create_user()
+        another_org = self.create_organization()
+        member = OrganizationMember.objects.create(
+            organization=another_org,
+            email="hello@sentry.io",
+            role="member",
+            inviter=other_user,
+            invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
+        )
+        callback_id = json.dumps({"member_id": member.id, "member_email": "hello@sentry.io"})
+
+        resp = self.post_webhook(action_data=[{"value": "approve_member"}], callback_id=callback_id)
+
+        assert resp.status_code == 200, resp.content
+        assert resp.data["text"] == "You don't have access to the organization for the invitation."
+
+    def test_no_member_admin(self):
+        OrganizationMember.objects.filter(user=self.user).update(role="admin")
+        other_user = self.create_user()
+        member = OrganizationMember.objects.create(
+            organization=self.organization,
+            email="hello@sentry.io",
+            role="member",
+            inviter=other_user,
+            invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
+        )
+        callback_id = json.dumps({"member_id": member.id, "member_email": "hello@sentry.io"})
+
+        resp = self.post_webhook(action_data=[{"value": "approve_member"}], callback_id=callback_id)
+
+        assert resp.status_code == 200, resp.content
+        assert resp.data["text"] == "You don't have permission to approve member invitations."
