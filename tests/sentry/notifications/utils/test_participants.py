@@ -9,7 +9,7 @@ from sentry.notifications.types import (
 )
 from sentry.notifications.utils.participants import get_send_to
 from sentry.ownership import grammar
-from sentry.ownership.grammar import Matcher, Owner, dump_schema
+from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.testutils import TestCase
 from sentry.types.integrations import ExternalProviders
 from tests.sentry.mail import make_event_data
@@ -243,3 +243,40 @@ class GetSendToOwnersTest(TestCase):
         event = self.store_event("no_rule.cpp")
 
         assert self.get_send_to_owners(event) == {}
+
+
+class ParticipantsTestCase(TestCase):
+    def setUp(self):
+        self.organzation = self.create_organization(name="Padishah Emperor", owner=None)
+        self.user = self.create_user(email="paul@atreides.space")
+        self.team_1 = self.create_team(organization=self.organization, name="House Atreides")
+        self.team_2 = self.create_team(organization=self.organization, name="Bene Gesserit")
+        self.project1 = self.create_project(
+            name="Settle Arrakis", organization=self.organization, teams=[self.team1, self.team2]
+        )
+        self.project2 = self.create_project(name="Survive", organization=self.organization)
+        rule1 = Rule(Matcher("path", "*"), [Owner("user", self.user.email)])
+        rule2 = Rule(Matcher("path", "*.py"), [Owner("team", self.team1.slug)])
+        rule3 = Rule(Matcher("path", "magic/*.js"), [Owner("team", self.team2.slug)])
+
+        self.project_ownership1 = ProjectOwnership.objects.create(
+            project_id=self.project1.id, schema=dump_schema([rule1, rule2, rule3]), fallthrough=True
+        )
+        self.project_ownership2 = ProjectOwnership.objects.create(
+            project_id=self.project2.id, fallthrough=True
+        )
+
+    def test_get_owners_no_event(self):
+        pass
+
+    def test_get_owners_empty(self):
+        pass
+
+    def test_get_owners_everyone(self):
+        pass
+
+    def test_get_owners_match(self):
+        pass
+
+    def test_only_autoassignee(self):
+        pass
