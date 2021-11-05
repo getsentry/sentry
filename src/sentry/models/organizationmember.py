@@ -64,6 +64,16 @@ class OrganizationMemberManager(BaseManager):
             organization__organizationintegration__integration=integration,
         ).select_related("organization")
 
+    def get_member_invite_query(self, id: int) -> QuerySet:
+        return OrganizationMember.objects.filter(
+            invite_status__in=[
+                InviteStatus.REQUESTED_TO_BE_INVITED.value,
+                InviteStatus.REQUESTED_TO_JOIN.value,
+            ],
+            user__isnull=True,
+            id=id,
+        )
+
 
 class OrganizationMember(Model):
     """
