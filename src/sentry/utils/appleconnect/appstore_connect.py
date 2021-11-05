@@ -266,7 +266,11 @@ class _IncludedRelations:
 
 
 def get_build_info(
-    session: Session, credentials: AppConnectCredentials, app_id: str
+    session: Session,
+    credentials: AppConnectCredentials,
+    app_id: str,
+    *,
+    include_expired: bool = False,
 ) -> List[BuildInfo]:
     """Returns the build infos for an application.
 
@@ -296,9 +300,9 @@ def get_build_info(
             "&sort=-uploadedDate"
             # only include valid builds
             "&filter[processingState]=VALID"
-            # and builds that have not expired yet
-            # "&filter[expired]=false"
         )
+        if not include_expired:
+            url += "&filter[expired]=false"
         pages = _get_appstore_info_paged(session, credentials, url)
         build_info = []
 

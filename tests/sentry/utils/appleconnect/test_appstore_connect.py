@@ -72,6 +72,9 @@ class TestListBuilds:
     def write_paged_build_response(self, api_credentials, app_id):
         """Use this function to create the ``pages_data.jons`` fixture data.
 
+        NOTE: this function is purposefully dead code, it shows how to re-create the fixture
+           data when it needs updating.
+
         The mocked_list_builds_api needs to load this data from a file, this can be used to
         generate the file.
         """
@@ -84,7 +87,6 @@ class TestListBuilds:
             "&limit[buildBundles]=50"
             "&sort=-uploadedDate"
             "&filter[processingState]=VALID"
-            # "&filter[expired]=false"
         )
         pages = list(appstore_connect._get_appstore_info_paged(session, api_credentials, url))
         assert pages
@@ -121,7 +123,9 @@ class TestListBuilds:
 
         # Be sure to consume the entire ``builds`` iterator, otherwise the
         # responses.RequestsMock will be unhappy that not all calls were made.
-        builds = list(appstore_connect.get_build_info(session, api_credentials, app_id))
+        builds = list(
+            appstore_connect.get_build_info(session, api_credentials, app_id, include_expired=True)
+        )
         build = builds[0]
 
         assert build.app_id == app_id
@@ -135,7 +139,9 @@ class TestListBuilds:
 
         # Be sure to consume the entire ``builds`` iterator, otherwise the
         # responses.RequestsMock will be unhappy that not all calls were made.
-        builds = list(appstore_connect.get_build_info(session, api_credentials, app_id))
+        builds = list(
+            appstore_connect.get_build_info(session, api_credentials, app_id, include_expired=True)
+        )
 
         for build in builds:
             if build.build_number == "332":
@@ -152,7 +158,9 @@ class TestListBuilds:
 
         # Be sure to consume the entire ``builds`` iterator, otherwise the
         # responses.RequestsMock will be unhappy that not all calls were made.
-        builds = list(appstore_connect.get_build_info(session, api_credentials, app_id))
+        builds = list(
+            appstore_connect.get_build_info(session, api_credentials, app_id, include_expired=True)
+        )
 
         for build in builds:
             if build.build_number == "333":
