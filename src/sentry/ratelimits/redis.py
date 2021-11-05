@@ -47,20 +47,8 @@ class RedisRateLimiter(RateLimiter):
             raise InvalidConfiguration(str(e))
 
     def is_limited(self, key, limit, project=None, window=None):
-        if window is None:
-            window = self.window
-        redis_key = self._construct_redis_key(key, project=project, window=window)
-
-        try:
-            with self.cluster.map() as client:
-                result = client.incr(redis_key)
-                client.expire(redis_key, window)
-            return result.value > limit
-        except RedisError as e:
-            # We don't want rate limited endpoints to fail when ratelimits
-            # can't be updated. We do want to know when that happens.
-            capture_exception(e)
-            return False
+        is_limited, _ = self.is_limited_with_value(key, limit, project=project, window=window)
+        return is_limited
 
     def current_value(self, key: int, project: Project = None, window: int = None) -> int:
         redis_key = self._construct_redis_key(key, project=project, window=window)
