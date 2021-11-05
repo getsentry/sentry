@@ -125,10 +125,16 @@ export function LineChartListWidget(props: Props) {
       fields: field,
       component: provided => {
         const eventView = props.eventView.clone();
+        if (!provided.widgetData.list.data[selectedListIndex]?.transaction) {
+          return null;
+        }
         eventView.additionalConditions.setFilterValues('transaction', [
           provided.widgetData.list.data[selectedListIndex].transaction as string,
         ]);
         if (props.chartSetting === PerformanceWidgetSetting.MOST_RELATED_ISSUES) {
+          if (!provided.widgetData.list.data[selectedListIndex]?.issue) {
+            return null;
+          }
           eventView.fields = [
             {field: 'issue'},
             {field: 'issue.id'},
