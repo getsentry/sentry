@@ -27,6 +27,7 @@ from sentry.models import (
     UserOption,
 )
 from sentry.utils import metrics, ratelimits
+from sentry.utils.members import get_allowed_roles_for_member
 
 ERR_NO_AUTH = "You cannot remove this member with an unauthenticated API request."
 ERR_INSUFFICIENT_ROLE = "You cannot remove a member who has more access than you."
@@ -48,9 +49,7 @@ def get_allowed_roles(request, organization, member=None):
         if member and roles.get(acting_member.role).priority < roles.get(member.role).priority:
             can_admin = False
         else:
-            allowed_roles = [
-                r for r in roles.get_all() if r.priority <= roles.get(acting_member.role).priority
-            ]
+            allowed_roles = get_allowed_roles_for_member(acting_member)
             can_admin = bool(allowed_roles)
     elif is_active_superuser(request):
         allowed_roles = roles.get_all()

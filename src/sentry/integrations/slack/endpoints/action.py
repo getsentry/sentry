@@ -4,6 +4,7 @@ from typing import Any, Mapping
 
 from django.urls import reverse
 from requests import post
+from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -11,6 +12,7 @@ from sentry import analytics
 from sentry.api import ApiClient, client
 from sentry.api.base import Endpoint
 from sentry.api.helpers.group_index import update_groups
+from sentry.auth.access import from_member
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder.issues import build_group_attachment
 from sentry.integrations.slack.requests.action import SlackActionRequest
@@ -29,7 +31,12 @@ from sentry.models import (
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
-from sentry.utils.internal_api import update_member_invitation_status
+from sentry.utils.members import (
+    approve_member_invitation,
+    get_allowed_roles_for_member,
+    reject_member_invitation,
+    validate_invitation,
+)
 from sentry.web.decorators import transaction_start
 
 from ..message_builder import SlackBody
@@ -357,44 +364,67 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
 
     def handle_member_approval(self, slack_request: SlackActionRequest):
         try:
+            # get_identity can return Noone
             identity = slack_request.get_identity()
         except IdentityProvider.DoesNotExist:
-            return self.respond(status=403)
+            identity = None
+
+        if not identity:
+            return self.respond_with_text("Identity not linked for user")
 
         member_id = slack_request.callback_data["member_id"]
+
         try:
-            # endpoint will check to make sure member is still in a state to be invited
-            member = OrganizationMember.objects.get(id=member_id)
+            member = OrganizationMember.objects.get_member_invite_query(member_id).get()
         except OrganizationMember.DoesNotExist:
             # member request is gone, likely someone else rejected it
             member_email = slack_request.callback_data["member_email"]
-            return self.respond({"text": f"Member invitation for {member_email} no longer exists."})
+            return self.respond_with_text(f"Member invitation for {member_email} no longer exists.")
 
-        member_email = member.email
-        original_status = member.invite_status
+        organization = member.organization
 
+        if not organization.has_access(identity.user):
+            return self.respond_with_text(
+                "You don't have access to the organization for the invitation"
+            )
+
+        # row should exist because we have access
+        member_of_approver = OrganizationMember.objects.get(
+            user=identity.user, organization=organization
+        )
+        access = from_member(member_of_approver)
+        if not access.has_scope("member:admin"):
+            return self.respond_with_text("You don't have permission to approve member invitations")
+
+        # validate the org options and check against allowed_roles
+        allowed_roles = get_allowed_roles_for_member(member_of_approver)
         try:
-            update_member_invitation_status(member, identity.user, slack_request.action_option)
-        except client.ApiError as error:
-            error_text = ""
-            # try to pull out an error message if we get a 400 error
-            if error.status_code == 400:
-                for val in error.body.values():
-                    if val and isinstance(val, list):
-                        error_text = val[0]
-            # 404 means invite is gone
-            if error.status_code == 404:
-                error_text = f"Member invitation for {member_email} no longer exists."
-            if error_text:
-                # we know success is impossible so update the message
-                return self.respond(
-                    {
-                        "text": error_text,
-                    }
-                )
-            # if some other error then we should do an ephemeral reply
+            validate_invitation(member, organization, identity.user, allowed_roles)
+        except serializers.ValidationError as err:
+            # error detail should always have at least one element in the array
+            return self.respond_with_text(str(err.detail[0]))
+
+        original_status = member.invite_status
+        member_email = member.email
+        try:
+            if slack_request.action_option == "approve_member":
+                # if we approve but the invite already approved, we can just say it was without doing anything
+                if not member.invite_approved:
+                    approve_member_invitation(member, identity.user, referrer="slack")
+            else:
+                reject_member_invitation(member, identity.user)
+        except Exception as err:
+            # shouldn't error but if it does, respond to the user
+            logger.error(
+                err,
+                extra={
+                    "organization_id": organization.id,
+                    "member_id": member.id,
+                },
+            )
             return self.respond_ephemeral(DEFAULT_ERROR_MESSAGE)
 
+        # record analytics and respond with success
         approve_member = slack_request.action_option == "approve_member"
         event_name = (
             "integrations.slack.approve_member_invitation"
