@@ -1926,6 +1926,9 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
                 val = self.base_datetime.isoformat()
             elif key in issue_search_config.boolean_keys:
                 val = "true"
+            elif key in {"trace.span", "trace.parent_span"}:
+                val = "abcdef1234abcdef"
+                test_query(f"!{key}:{val}")
             else:
                 val = "abadcafedeadbeefdeaffeedabadfeed"
                 test_query(f"!{key}:{val}")

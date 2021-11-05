@@ -157,7 +157,9 @@ class Results extends React.Component<Props, State> {
       addRoutePerformanceContext(selection);
     }
 
-    if (prevState.confirmedQuery !== confirmedQuery) this.fetchTotalCount();
+    if (prevState.confirmedQuery !== confirmedQuery) {
+      this.fetchTotalCount();
+    }
   }
 
   tagsApi: Client = new Client();
@@ -196,8 +198,11 @@ class Results extends React.Component<Props, State> {
         try {
           const results = await fetchProjectsCount(api, organization.slug);
 
-          if (projectLength === 0) projectLength = results.myProjects;
-          else projectLength = results.allProjects;
+          if (projectLength === 0) {
+            projectLength = results.myProjects;
+          } else {
+            projectLength = results.allProjects;
+          }
         } catch (err) {
           // do nothing, so the length is 0 or 1 and the query is assumed safe
         }

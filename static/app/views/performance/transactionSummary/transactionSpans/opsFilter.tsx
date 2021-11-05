@@ -68,13 +68,15 @@ export default function OpsFilter(props: Props) {
             handleOpChange(undefined);
           }}
         >
-          <HeaderTitle>{t('Operations')}</HeaderTitle>
+          <HeaderTitle>{t('All Operations')}</HeaderTitle>
           <Radio radioSize="small" checked={!defined(currentOp)} onChange={() => {}} />
         </ListHeader>
         <SpanOpsQuery
           location={location}
           orgSlug={organization.slug}
           eventView={opsFilterEventView}
+          cursor="0:0:1"
+          noPagination
         >
           {({spanOps, isLoading, error}) => {
             if (isLoading) {

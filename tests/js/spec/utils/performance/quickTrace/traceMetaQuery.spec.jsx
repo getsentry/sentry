@@ -10,23 +10,23 @@ const traceId = 'abcdef1234567890';
 function renderMeta({isLoading, error, meta}) {
   if (isLoading) {
     return 'loading';
-  } else if (error !== null) {
-    return error;
-  } else {
-    return (
-      <Fragment>
-        <div key="projects" data-test-id="projects">
-          {meta.projects}
-        </div>
-        <div key="transactions" data-test-id="transactions">
-          {meta.transactions}
-        </div>
-        <div key="errors" data-test-id="errors">
-          {meta.errors}
-        </div>
-      </Fragment>
-    );
   }
+  if (error !== null) {
+    return error;
+  }
+  return (
+    <Fragment>
+      <div key="projects" data-test-id="projects">
+        {meta.projects}
+      </div>
+      <div key="transactions" data-test-id="transactions">
+        {meta.transactions}
+      </div>
+      <div key="errors" data-test-id="errors">
+        {meta.errors}
+      </div>
+    </Fragment>
+  );
 }
 
 describe('TraceMetaQuery', function () {

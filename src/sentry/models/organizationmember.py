@@ -15,11 +15,13 @@ from django.utils.translation import ugettext_lazy as _
 from structlog import get_logger
 
 from bitfield import BitField
-from sentry import roles
+from sentry import features, roles
 from sentry.constants import ALERTS_MEMBER_WRITE_DEFAULT, EVENTS_MEMBER_ADMIN_DEFAULT
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
 from sentry.db.models.manager import BaseManager
+from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.models.team import TeamStatus
+from sentry.signals import member_invited
 from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
@@ -40,6 +42,10 @@ invite_status_names = {
     InviteStatus.REQUESTED_TO_BE_INVITED.value: "requested_to_be_invited",
     InviteStatus.REQUESTED_TO_JOIN.value: "requested_to_join",
 }
+
+
+ERR_CANNOT_INVITE = "Your organization is not allowed to invite members."
+ERR_JOIN_REQUESTS_DISABLED = "Your organization does not allow requests to join."
 
 
 class OrganizationMemberManager(BaseManager):
@@ -370,3 +376,89 @@ class OrganizationMember(Model):
 
         scopes = frozenset(s for s in scopes if s not in disabled_scopes)
         return scopes
+
+    def validate_invitation(self, user_to_approve, allowed_roles):
+        """
+        Validates whether an org has the options to invite members, handle join requests,
+        and that the member role doesn't exceed the allowed roles to invite.
+        """
+        organization = self.organization
+        if not features.has("organizations:invite-members", organization, actor=user_to_approve):
+            raise UnableToAcceptMemberInvitationException(ERR_CANNOT_INVITE)
+
+        if (
+            organization.get_option("sentry:join_requests") is False
+            and self.invite_status == InviteStatus.REQUESTED_TO_JOIN.value
+        ):
+            raise UnableToAcceptMemberInvitationException(ERR_JOIN_REQUESTS_DISABLED)
+
+        # members cannot invite roles higher than their own
+        if self.role not in {r.id for r in allowed_roles}:
+            raise UnableToAcceptMemberInvitationException(
+                f"You do not have permission approve a member invitation with the role {self.role}."
+            )
+        return True
+
+    def approve_member_invitation(
+        self, user_to_approve, api_key=None, ip_address=None, referrer=None
+    ):
+        """
+        Approve a member invite/join request and send an audit log entry
+        """
+        from sentry.models.auditlogentry import AuditLogEntryEvent
+        from sentry.utils.audit import create_audit_entry_from_user
+
+        self.approve_invite()
+        self.save()
+
+        if settings.SENTRY_ENABLE_INVITES:
+            self.send_invite_email()
+            member_invited.send_robust(
+                member=self,
+                user=user_to_approve,
+                sender=self.approve_member_invitation,
+                referrer=referrer,
+            )
+
+        create_audit_entry_from_user(
+            user_to_approve,
+            api_key,
+            ip_address,
+            organization_id=self.organization_id,
+            target_object=self.id,
+            data=self.get_audit_log_data(),
+            event=AuditLogEntryEvent.MEMBER_INVITE
+            if settings.SENTRY_ENABLE_INVITES
+            else AuditLogEntryEvent.MEMBER_ADD,
+        )
+
+    def reject_member_invitation(
+        self,
+        user_to_approve,
+        api_key=None,
+        ip_address=None,
+    ):
+        """
+        Reject a member invite/jin request and send an audit log entry
+        """
+        from sentry.models.auditlogentry import AuditLogEntryEvent
+        from sentry.utils.audit import create_audit_entry_from_user
+
+        self.delete()
+
+        create_audit_entry_from_user(
+            user_to_approve,
+            api_key,
+            ip_address,
+            organization_id=self.organization_id,
+            target_object=self.id,
+            data=self.get_audit_log_data(),
+            event=AuditLogEntryEvent.INVITE_REQUEST_REMOVE,
+        )
+
+    def get_allowed_roles_to_invite(self):
+        """
+        Return a list of roles which that member could invite
+        Must check if member member has member:admin first before checking
+        """
+        return [r for r in roles.get_all() if r.priority <= roles.get(self.role).priority]

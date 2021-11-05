@@ -2,6 +2,7 @@ import {Fragment, FunctionComponent, useMemo} from 'react';
 import {withRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
+import pick from 'lodash/pick';
 
 import _EventsRequest from 'app/components/charts/eventsRequest';
 import {getInterval} from 'app/components/charts/utils';
@@ -13,7 +14,7 @@ import _DurationChart from 'app/views/performance/charts/chart';
 
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import {transformEventsRequestToArea} from '../transforms/transformEventsToArea';
-import {WidgetDataResult} from '../types';
+import {QueryDefinition, WidgetDataResult} from '../types';
 
 type Props = {
   title: string;
@@ -28,7 +29,7 @@ type Props = {
   ContainerActions: FunctionComponent<{isLoading: boolean}>;
 };
 
-type AreaDataType = {
+type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToArea>;
 };
 
@@ -39,38 +40,41 @@ export function SingleFieldAreaWidget(props: Props) {
   if (props.fields.length !== 1) {
     throw new Error(`Single field area can only accept a single field (${props.fields})`);
   }
+  const field = props.fields[0];
 
-  const Queries = useMemo(() => {
-    return {
-      chart: {
-        fields: props.fields[0],
-        component: provided => (
-          <EventsRequest
-            {...provided}
-            limit={1}
-            includePrevious
-            includeTransformedData
-            partial
-            currentSeriesName={props.fields[0]}
-            eventView={props.eventView}
-            query={props.eventView.getQueryWithAdditionalConditions()}
-            interval={getInterval(
-              {
-                start: provided.start,
-                end: provided.end,
-                period: provided.period,
-              },
-              'medium'
-            )}
-          />
-        ),
-        transform: transformEventsRequestToArea,
-      },
-    };
-  }, [props.eventView.query, props.fields[0], props.organization.slug]);
+  const chart = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
+    () => ({
+      fields: props.fields[0],
+      component: provided => (
+        <EventsRequest
+          {...pick(provided, ['children', 'organization', 'yAxis'])}
+          limit={1}
+          includePrevious
+          includeTransformedData
+          partial
+          currentSeriesNames={[field]}
+          query={props.eventView.getQueryWithAdditionalConditions()}
+          interval={getInterval(
+            {
+              start: provided.start,
+              end: provided.end,
+              period: provided.period,
+            },
+            'medium'
+          )}
+        />
+      ),
+      transform: transformEventsRequestToArea,
+    }),
+    [props.eventView, field, props.organization.slug]
+  );
+
+  const Queries = {
+    chart,
+  };
 
   return (
-    <GenericPerformanceWidget<AreaDataType>
+    <GenericPerformanceWidget<DataType>
       {...props}
       Subtitle={() => (
         <Subtitle>{t('Compared to last %s ', globalSelection.datetime.period)}</Subtitle>

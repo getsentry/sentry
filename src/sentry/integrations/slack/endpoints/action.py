@@ -35,7 +35,6 @@ from sentry.utils.members import (
     approve_member_invitation,
     get_allowed_roles_for_member,
     reject_member_invitation,
-    validate_invitation,
 )
 from sentry.web.decorators import transaction_start
 
@@ -401,7 +400,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         # validate the org options and check against allowed_roles
         allowed_roles = get_allowed_roles_for_member(member_of_approver)
         try:
-            validate_invitation(member, organization, identity.user, allowed_roles)
+            member.validate_invitation(identity.user, allowed_roles)
         except serializers.ValidationError as err:
             # error detail should always have at least one element in the array
             return self.respond_with_text(str(err.detail[0]))

@@ -875,7 +875,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       onAddWidget: data => (widget = data),
     });
     // Select Top n display
-    selectByLabel(wrapper, 'Top Events', {name: 'displayType', at: 0, control: true});
+    selectByLabel(wrapper, 'Top 5 Events', {name: 'displayType', at: 0, control: true});
     expect(getDisplayType(wrapper).props().value).toEqual('top_n');
 
     // No delete button as there is only one field.
