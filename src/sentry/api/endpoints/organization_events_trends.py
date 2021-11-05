@@ -12,6 +12,7 @@ from sentry import features
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.event_search import AggregateFilter
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import DateArg, parse_function
 from sentry.search.events.types import WhereType
@@ -409,7 +410,10 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
             raise ParseError(detail=f"{trend_type} is not a supported trend type")
 
         trend_function = request.GET.get("trendFunction", "p50()")
-        function, columns, alias = parse_function(trend_function)
+        try:
+            function, columns, _ = parse_function(trend_function)
+        except InvalidSearchQuery as error:
+            raise ParseError(detail=error)
         if len(columns) == 0:
             # Default to duration
             column = "transaction.duration"

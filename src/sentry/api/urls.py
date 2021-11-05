@@ -416,6 +416,10 @@ from .endpoints.user_details import UserDetailsEndpoint
 from .endpoints.user_emails import UserEmailsEndpoint
 from .endpoints.user_emails_confirm import UserEmailsConfirmEndpoint
 from .endpoints.user_identity import UserIdentityEndpoint
+from .endpoints.user_identity_config import (
+    UserIdentityConfigDetailsEndpoint,
+    UserIdentityConfigEndpoint,
+)
 from .endpoints.user_identity_details import UserIdentityDetailsEndpoint
 from .endpoints.user_index import UserIndexEndpoint
 from .endpoints.user_ips import UserIPsEndpoint
@@ -724,6 +728,16 @@ urlpatterns = [
                     r"^(?P<user_id>[^\/]+)/organization-integrations/$",
                     UserOrganizationIntegrationsEndpoint.as_view(),
                     name="sentry-api-0-user-organization-integrations",
+                ),
+                url(
+                    r"^(?P<user_id>[^\/]+)/user-identities/$",
+                    UserIdentityConfigEndpoint.as_view(),
+                    name="sentry-api-0-user-identity-config",
+                ),
+                url(
+                    r"^(?P<user_id>[^\/]+)/user-identities/(?P<category>[\w-]+)/(?P<identity_id>[^\/]+)/$",
+                    UserIdentityConfigDetailsEndpoint.as_view(),
+                    name="sentry-api-0-user-identity-config-details",
                 ),
             ]
         ),
