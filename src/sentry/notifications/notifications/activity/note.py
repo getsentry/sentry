@@ -6,7 +6,7 @@ from .base import GroupActivityNotification
 
 
 class NoteActivityNotification(GroupActivityNotification):
-    message_builder = "SlackNotificationsMessageBuilder"
+    is_message_issue_unfurl = False
 
     def get_activity_name(self) -> str:
         return "Note"

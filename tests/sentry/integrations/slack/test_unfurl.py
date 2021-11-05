@@ -7,9 +7,9 @@ from django.test import RequestFactory
 from sentry.charts.types import ChartType
 from sentry.discover.models import DiscoverSavedQuery
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
-from sentry.integrations.slack.message_builder.discover import SlackDiscoverMessageBuilder
-from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
-from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
+from sentry.integrations.slack.message_builder.discover import build_discover_attachment
+from sentry.integrations.slack.message_builder.incidents import build_incident_attachment
+from sentry.integrations.slack.message_builder.issues import build_group_attachment
 from sentry.integrations.slack.unfurl import LinkType, UnfurlableUrl, link_handlers, match_link
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import install_slack
@@ -68,11 +68,8 @@ class UnfurlTest(TestCase):
 
         unfurls = link_handlers[LinkType.ISSUES].fn(self.request, self.integration, links)
 
-        assert unfurls[links[0].url] == SlackIssuesMessageBuilder(self.group).build()
-        assert (
-            unfurls[links[1].url]
-            == SlackIssuesMessageBuilder(group2, event, link_to_event=True).build()
-        )
+        assert unfurls[links[0].url] == build_group_attachment(self.group)
+        assert unfurls[links[1].url] == build_group_attachment(group2, event, link_to_event=True)
 
     def test_unfurl_incidents(self):
         alert_rule = self.create_alert_rule()
@@ -94,7 +91,7 @@ class UnfurlTest(TestCase):
         ]
         unfurls = link_handlers[LinkType.INCIDENTS].fn(self.request, self.integration, links)
 
-        assert unfurls[links[0].url] == SlackIncidentsMessageBuilder(incident, action).build()
+        assert unfurls[links[0].url] == build_incident_attachment(action, incident)
 
     @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
     def test_unfurl_discover(self, mock_generate_chart):
@@ -124,11 +121,8 @@ class UnfurlTest(TestCase):
         ):
             unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
 
-        assert (
-            unfurls[url]
-            == SlackDiscoverMessageBuilder(
-                title=args["query"].get("name"), chart_url="chart-url"
-            ).build()
+        assert unfurls[url] == build_discover_attachment(
+            title=args["query"].get("name"), chart_url="chart-url"
         )
         assert len(mock_generate_chart.mock_calls) == 1
         chart_data = mock_generate_chart.call_args[0][1]
@@ -163,11 +157,8 @@ class UnfurlTest(TestCase):
         ):
             unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
 
-        assert (
-            unfurls[url]
-            == SlackDiscoverMessageBuilder(
-                title=args["query"].get("name"), chart_url="chart-url"
-            ).build()
+        assert unfurls[url] == build_discover_attachment(
+            title=args["query"].get("name"), chart_url="chart-url"
         )
         assert len(mock_generate_chart.mock_calls) == 1
         assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_DISCOVER_PREVIOUS_PERIOD
@@ -203,11 +194,8 @@ class UnfurlTest(TestCase):
         ):
             unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
 
-        assert (
-            unfurls[url]
-            == SlackDiscoverMessageBuilder(
-                title=args["query"].get("name"), chart_url="chart-url"
-            ).build()
+        assert unfurls[url] == build_discover_attachment(
+            title=args["query"].get("name"), chart_url="chart-url"
         )
         assert len(mock_generate_chart.mock_calls) == 1
         chart_data = mock_generate_chart.call_args[0][1]
@@ -243,11 +231,8 @@ class UnfurlTest(TestCase):
         ):
             unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
 
-        assert (
-            unfurls[url]
-            == SlackDiscoverMessageBuilder(
-                title=args["query"].get("name"), chart_url="chart-url"
-            ).build()
+        assert unfurls[url] == build_discover_attachment(
+            title=args["query"].get("name"), chart_url="chart-url"
         )
         assert len(mock_generate_chart.mock_calls) == 1
         chart_data = mock_generate_chart.call_args[0][1]
@@ -302,11 +287,8 @@ class UnfurlTest(TestCase):
         ):
             unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
 
-        assert (
-            unfurls[url]
-            == SlackDiscoverMessageBuilder(
-                title=args["query"].get("name"), chart_url="chart-url"
-            ).build()
+        assert unfurls[url] == build_discover_attachment(
+            title=args["query"].get("name"), chart_url="chart-url"
         )
         assert len(mock_generate_chart.mock_calls) == 1
 
@@ -369,11 +351,8 @@ class UnfurlTest(TestCase):
         ):
             unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
 
-        assert (
-            unfurls[url]
-            == SlackDiscoverMessageBuilder(
-                title=args["query"].get("name"), chart_url="chart-url"
-            ).build()
+        assert unfurls[url] == build_discover_attachment(
+            title=args["query"].get("name"), chart_url="chart-url"
         )
         assert len(mock_generate_chart.mock_calls) == 1
 
@@ -414,11 +393,8 @@ class UnfurlTest(TestCase):
         ):
             unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
 
-        assert (
-            unfurls[url]
-            == SlackDiscoverMessageBuilder(
-                title=args["query"].get("name"), chart_url="chart-url"
-            ).build()
+        assert unfurls[url] == build_discover_attachment(
+            title=args["query"].get("name"), chart_url="chart-url"
         )
         assert len(mock_generate_chart.mock_calls) == 1
 
@@ -472,11 +448,8 @@ class UnfurlTest(TestCase):
         ):
             unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
 
-        assert (
-            unfurls[url]
-            == SlackDiscoverMessageBuilder(
-                title=args["query"].get("name"), chart_url="chart-url"
-            ).build()
+        assert unfurls[url] == build_discover_attachment(
+            title=args["query"].get("name"), chart_url="chart-url"
         )
         assert len(mock_generate_chart.mock_calls) == 1
 
@@ -514,11 +487,8 @@ class UnfurlTest(TestCase):
         ):
             unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
 
-        assert (
-            unfurls[url]
-            == SlackDiscoverMessageBuilder(
-                title=args["query"].get("name"), chart_url="chart-url"
-            ).build()
+        assert unfurls[url] == build_discover_attachment(
+            title=args["query"].get("name"), chart_url="chart-url"
         )
         assert len(mock_generate_chart.mock_calls) == 1
         chart_data = mock_generate_chart.call_args[0][1]
@@ -563,11 +533,8 @@ class UnfurlTest(TestCase):
         ):
             unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
 
-        assert (
-            unfurls[url]
-            == SlackDiscoverMessageBuilder(
-                title=args["query"].get("name"), chart_url="chart-url"
-            ).build()
+        assert unfurls[url] == build_discover_attachment(
+            title=args["query"].get("name"), chart_url="chart-url"
         )
         assert len(mock_generate_chart.mock_calls) == 1
 

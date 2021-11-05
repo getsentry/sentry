@@ -1,13 +1,10 @@
-from __future__ import annotations
-
 import logging
 from collections import defaultdict
-from typing import Any, Iterable, Mapping, MutableMapping
+from typing import Any, Iterable, Mapping, MutableMapping, Optional, Union
 
 from sentry.integrations.notifications import NotifyBasicMixin
-from sentry.integrations.slack.client import SlackClient
-from sentry.integrations.slack.message_builder import SlackBody
-from sentry.integrations.slack.message_builder.notifications import get_message_builder
+from sentry.integrations.slack.client import SlackClient  # NOQA
+from sentry.integrations.slack.message_builder.notifications import build_notification_attachment
 from sentry.models import ExternalActor, Identity, Integration, Organization, Team, User
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notify import register_notification_provider
@@ -38,21 +35,9 @@ class SlackNotifyBasicMixin(NotifyBasicMixin):  # type: ignore
         return
 
 
-def get_attachments(
-    notification: BaseNotification,
-    recipient: Team | User,
-    context: Mapping[str, Any],
-) -> SlackBody:
-    klass = get_message_builder(notification.message_builder)
-    attachments = klass(notification, context, recipient).build()
-    if isinstance(attachments, dict):
-        return [attachments]
-    return attachments
-
-
 def get_context(
     notification: BaseNotification,
-    recipient: Team | User,
+    recipient: Union["Team", "User"],
     shared_context: Mapping[str, Any],
     extra_context: Mapping[str, Any],
 ) -> Mapping[str, Any]:
@@ -64,8 +49,8 @@ def get_context(
 
 
 def get_channel_and_integration_by_user(
-    user: User, organization: Organization
-) -> Mapping[str, Integration]:
+    user: "User", organization: "Organization"
+) -> Mapping[str, "Integration"]:
 
     identities = Identity.objects.filter(
         idp__type=EXTERNAL_PROVIDERS[ExternalProviders.SLACK],
@@ -95,8 +80,8 @@ def get_channel_and_integration_by_user(
 
 
 def get_channel_and_integration_by_team(
-    team: Team, organization: Organization
-) -> Mapping[str, Integration]:
+    team: "Team", organization: "Organization"
+) -> Mapping[str, "Integration"]:
     try:
         external_actor = (
             ExternalActor.objects.filter(
@@ -114,9 +99,9 @@ def get_channel_and_integration_by_team(
 
 
 def get_channel_and_token_by_recipient(
-    organization: Organization, recipients: Iterable[Team | User]
-) -> Mapping[Team | User, Mapping[str, str]]:
-    output: MutableMapping[Team | User, MutableMapping[str, str]] = defaultdict(dict)
+    organization: "Organization", recipients: Iterable[Union["Team", "User"]]
+) -> Mapping[Union["Team", "User"], Mapping[str, str]]:
+    output: MutableMapping[Union["Team", "User"], MutableMapping[str, str]] = defaultdict(dict)
     for recipient in recipients:
         channels_to_integrations = (
             get_channel_and_integration_by_user(recipient, organization)
@@ -144,9 +129,9 @@ def get_channel_and_token_by_recipient(
 @register_notification_provider(ExternalProviders.SLACK)
 def send_notification_as_slack(
     notification: BaseNotification,
-    recipients: Iterable[Team | User],
+    recipients: Iterable[Union["Team", "User"]],
     shared_context: Mapping[str, Any],
-    extra_context_by_user_id: Mapping[int, Mapping[str, Any]] | None,
+    extra_context_by_user_id: Optional[Mapping[int, Mapping[str, Any]]],
 ) -> None:
     """Send an "activity" or "alert rule" notification to a Slack user or team."""
     client = SlackClient()
@@ -164,8 +149,7 @@ def send_notification_as_slack(
             )
         extra_context = (extra_context_by_user_id or {}).get(recipient.id, {})
         context = get_context(notification, recipient, shared_context, extra_context)
-        attachments = get_attachments(notification, recipient, context)
-
+        attachment = [build_notification_attachment(notification, context, recipient)]
         for channel, token in tokens_by_channel.items():
             # unfurl_links and unfurl_media are needed to preserve the intended message format
             # and prevent the app from replying with help text to the unfurl
@@ -176,7 +160,7 @@ def send_notification_as_slack(
                 "unfurl_links": False,
                 "unfurl_media": False,
                 "text": notification.get_notification_title(),
-                "attachments": json.dumps(attachments),
+                "attachments": json.dumps(attachment),
             }
             try:
                 client.post("/chat.postMessage", data=payload, timeout=5)

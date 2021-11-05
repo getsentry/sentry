@@ -70,9 +70,12 @@ def get_providers_from_which_to_remove_user(
 
 def get_participants_for_group(
     group: Group, user: User | None = None
-) -> Mapping[ExternalProviders, Mapping[Team | User, int]]:
+) -> Mapping[ExternalProviders, Mapping[User, int]]:
+    # TODO(dcramer): not used yet today except by Release's
+    if not group:
+        return {}
     participants_by_provider: MutableMapping[
-        ExternalProviders, MutableMapping[Team | User, int]
+        ExternalProviders, MutableMapping[User, int]
     ] = GroupSubscription.objects.get_participants(group)
     if user:
         # Optionally remove the actor that created the activity from the recipients list.
@@ -98,7 +101,7 @@ def get_reason(
 
 def get_participants_for_release(
     projects: Iterable[Project], organization: Organization, user_ids: set[int]
-) -> Mapping[ExternalProviders, Mapping[Team | User, int]]:
+) -> Mapping[ExternalProviders, Mapping[User, int]]:
     # Collect all users with verified emails on a team in the related projects.
     users = set(User.objects.get_team_members_with_verified_email_for_projects(projects))
 
@@ -120,7 +123,7 @@ def get_participants_for_release(
     # Map users to their setting value. Prioritize user/org specific, then
     # user default, then product default.
     users_to_reasons_by_provider: MutableMapping[
-        ExternalProviders, MutableMapping[Team | User, int]
+        ExternalProviders, MutableMapping[User, int]
     ] = defaultdict(dict)
     for user in users:
         notification_settings_by_scope = notification_settings_by_recipient.get(user, {})
@@ -138,12 +141,14 @@ def get_participants_for_release(
 
 
 def split_participants_and_context(
-    participants_with_reasons: Mapping[Team | User, int]
-) -> tuple[Iterable[Team | User], Mapping[int, Mapping[str, Any]]]:
-    return participants_with_reasons.keys(), {
-        participant.actor_id: {"reason": reason}
-        for participant, reason in participants_with_reasons.items()
-    }
+    participants_with_reasons: Mapping[User, int]
+) -> tuple[set[User], Mapping[int, Mapping[str, Any]]]:
+    participants = set()
+    extra_context = {}
+    for user, reason in participants_with_reasons.items():
+        participants.add(user)
+        extra_context[user.id] = {"reason": reason}
+    return participants, extra_context
 
 
 def get_owners(project: Project, event: Event | None = None) -> Iterable[Team | User]:
@@ -248,7 +253,7 @@ def get_send_to(
     target_type: ActionTargetType,
     target_identifier: int | None = None,
     event: Event | None = None,
-) -> Mapping[ExternalProviders, set[Team | User]]:
+) -> Mapping[ExternalProviders, Iterable[Team | User]]:
     recipients = determine_eligible_recipients(project, target_type, target_identifier, event)
     return get_recipients_by_provider(project, recipients)
 
@@ -310,9 +315,9 @@ def get_users_from_team_fall_back(
 
 
 def combine_recipients_by_provider(
-    teams_by_provider: Mapping[ExternalProviders, set[Team | User]],
-    users_by_provider: Mapping[ExternalProviders, set[Team | User]],
-) -> Mapping[ExternalProviders, set[Team | User]]:
+    teams_by_provider: Mapping[ExternalProviders, Iterable[Team | User]],
+    users_by_provider: Mapping[ExternalProviders, Iterable[Team | User]],
+) -> Mapping[ExternalProviders, Iterable[Team | User]]:
     """TODO(mgaeta): Make this more generic and move it to utils."""
     recipients_by_provider = defaultdict(set)
     for provider, teams in teams_by_provider.items():
@@ -326,7 +331,7 @@ def combine_recipients_by_provider(
 
 def get_recipients_by_provider(
     project: Project, recipients: Iterable[Team | User]
-) -> Mapping[ExternalProviders, set[Team | User]]:
+) -> Mapping[ExternalProviders, Iterable[Team | User]]:
     """Get the lists of recipients that should receive an Issue Alert by ExternalProvider."""
     teams, users = partition_recipients(recipients)
 

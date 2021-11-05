@@ -1,8 +1,6 @@
-from __future__ import annotations
-
 from collections import defaultdict
 from datetime import timedelta
-from typing import Any, Mapping, MutableMapping, Sequence
+from typing import Any, Mapping, MutableMapping, Optional, Sequence
 from uuid import uuid4
 
 from django.db import IntegrityError, transaction
@@ -62,9 +60,9 @@ from .validators import GroupValidator, ValidationError
 
 def handle_discard(
     request: Request,
-    group_list: Sequence[Group],
-    projects: Sequence[Project],
-    user: User,
+    group_list: Sequence["Group"],
+    projects: Sequence["Project"],
+    user: "User",
 ) -> Response:
     for project in projects:
         if not features.has("projects:discard-groups", project, actor=user):
@@ -100,7 +98,9 @@ def handle_discard(
     return Response(status=204)
 
 
-def self_subscribe_and_assign_issue(acting_user: User | None, group: Group) -> ActorTuple | None:
+def self_subscribe_and_assign_issue(
+    acting_user: Optional["User"], group: "Group"
+) -> Optional["ActorTuple"]:
     # Used during issue resolution to assign to acting user
     # returns None if the user didn't elect to self assign on resolution
     # or the group is assigned already, otherwise returns Actor
@@ -118,8 +118,8 @@ def self_subscribe_and_assign_issue(acting_user: User | None, group: Group) -> A
 
 
 def get_current_release_version_of_group(
-    group: Group, follows_semver: bool = False
-) -> Release | None:
+    group: "Group", follows_semver: bool = False
+) -> Optional[Release]:
     """
     Function that returns the latest release version associated with a Group, and by latest we
     mean either most recent (date) or latest in semver versioning scheme
@@ -161,12 +161,12 @@ def get_current_release_version_of_group(
 
 def update_groups(
     request: Request,
-    group_ids: Sequence[Group],
-    projects: Sequence[Project],
+    group_ids: Sequence["Group"],
+    projects: Sequence["Project"],
     organization_id: int,
-    search_fn: SearchFunction | None,
-    user: User | None = None,
-    data: Mapping[str, Any] | None = None,
+    search_fn: SearchFunction,
+    user: Optional["User"] = None,
+    data: Optional[Mapping[str, Any]] = None,
 ) -> Response:
     # If `user` and `data` are passed as parameters then they should override
     # the values in `request`.
@@ -202,7 +202,7 @@ def update_groups(
 
     acting_user = user if user.is_authenticated else None
 
-    if search_fn and not group_ids:
+    if not group_ids:
         try:
             cursor_result, _ = search_fn(
                 {
@@ -250,7 +250,7 @@ def update_groups(
                 .order_by("-sort")[0]
             )
             activity_type = Activity.SET_RESOLVED_IN_RELEASE
-            activity_data: MutableMapping[str, Any | None] = {
+            activity_data: MutableMapping[str, Optional[Any]] = {
                 # no version yet
                 "version": ""
             }
