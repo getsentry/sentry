@@ -64,3 +64,6 @@ class NewProcessingIssuesActivityNotification(ActivityNotification):
 
     def build_attachment_title(self) -> str:
         return self.get_subject()
+
+    def get_title_link(self) -> str | None:
+        return None

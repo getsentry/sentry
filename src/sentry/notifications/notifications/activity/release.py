@@ -149,5 +149,5 @@ class ReleaseActivityNotification(ActivityNotification):
     def build_attachment_title(self) -> str:
         return ""
 
-    def get_title_link(self) -> str:
-        return ""
+    def get_title_link(self) -> str | None:
+        return None
