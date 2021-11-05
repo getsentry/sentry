@@ -5,7 +5,7 @@ import pytest
 
 from sentry.release_health import duplex
 from sentry.release_health.duplex import ComparatorType as Ct
-from sentry.release_health.duplex import DuplexReleaseHealthBackend
+from sentry.release_health.duplex import DuplexReleaseHealthBackend, ListSet
 
 
 @pytest.mark.parametrize(
@@ -181,6 +181,40 @@ def test_compare_basic_sequence(sessions, metrics, final_result, are_equal):
 )
 def test_compare_arrays(sessions, metrics, schema, are_equal):
     result = duplex.compare_arrays(sessions, metrics, 60, "", schema)
+    assert (len(result) == 0) == are_equal
+
+
+@pytest.mark.parametrize(
+    "sessions,metrics,schema, are_equal",
+    [
+        (
+            [{"a": 1, "b": 11}, {"a": 2, "b": 22}],
+            [{"a": 2, "b": 22}, {"a": 1, "b": 11}],
+            ListSet({"*": Ct.Entity}, "a"),
+            True,
+        ),
+        (
+            [{"a": 1, "b": 11, "c": 3}, {"a": 2, "b": 22, "d": 1}],
+            [{"a": 2, "b": 22, "d": 100}, {"a": 1, "b": 11, "c": 3}],
+            ListSet({"b": Ct.Entity, "c": Ct.Counter}, "a"),
+            True,
+        ),
+        (
+            [{"a": (10, 1), "b": 1}, {"a": (50, 0), "b": 100}],
+            [{"a": (100, -50), "b": 101}, {"a": (5, 6), "b": 2}],
+            ListSet({"b": Ct.Counter}, lambda x: x["a"][0] + x["a"][1]),
+            True,
+        ),
+        (
+            [{"a": (10, 1), "b": 1}, {"a": (50, 0), "b": 200}],
+            [{"a": (100, -50), "b": 100}, {"a": (5, 6), "b": 2}],
+            ListSet({"b": Ct.Counter}, lambda x: x["a"][0] + x["a"][1]),
+            False,
+        ),
+    ],
+)
+def test_compare_list_set(sessions, metrics, schema, are_equal):
+    result = duplex.compare_list_set(sessions, metrics, 60, "", schema)
     assert (len(result) == 0) == are_equal
 
 

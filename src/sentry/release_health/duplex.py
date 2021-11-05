@@ -45,7 +45,31 @@ class ComparatorType(Enum):
     Ignore = "ignore"
 
 
-Schema = Union[ComparatorType, List["Schema"], Mapping[str, "Schema"], Set["Schema"]]
+IndexBy = Union[str, Callable[[Any], Any]]
+
+
+class ListSet:
+    """
+    ListSet is a list that behaves like a set
+
+    Each element has a field (or there is a lambda) that gives its identity
+    and elements within two lists are compared for equality by first matching
+    the identity and then matching their contents.
+
+    Inserting multiple elements with the same identity will result in
+    undefined behaviour (the last element for an identity in the list will
+    be compared and all the rest will be ignored)
+    """
+
+    def __init__(self, schema, index_by=IndexBy):
+        self.child_schema = schema
+        if type(index_by) == str:
+            self.index_by: Optional[Callable[[Any], Any]] = lambda x: x.get(index_by)
+        else:
+            self.index_by = index_by
+
+
+Schema = Union[ComparatorType, List["Schema"], Mapping[str, "Schema"], Set["Schema"], ListSet]
 
 
 def _get_calling_method():
@@ -288,6 +312,22 @@ def compare_dicts(
     return ret_val
 
 
+def compare_list_set(sessions, metrics, rollup, path, schema: ListSet) -> List[str]:
+    done, error = _compare_basic(sessions, metrics, path)
+    if done:
+        if error is not None:
+            return [error]
+        else:
+            return []
+
+    sessions_dict = {schema.index_by(x): x for x in sessions}
+    metrics_dict = {schema.index_by(x): x for x in metrics}
+
+    return compare_dicts(
+        sessions_dict, metrics_dict, rollup, path + "@", {"*": schema.child_schema}
+    )
+
+
 def compare_results(
     sessions, metrics, rollup: int, path: Optional[str] = None, schema: Optional[Schema] = None
 ) -> List[str]:
@@ -311,6 +351,8 @@ def compare_results(
             return [err]
         else:
             return []
+    elif type(discriminator) == ListSet:
+        return compare_list_set(sessions, metrics, rollup, path, schema)
     elif type(discriminator) == tuple:
         return compare_tuples(sessions, metrics, rollup, path, schema)
     elif type(discriminator) == list:
@@ -455,18 +497,14 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
             "start": ComparatorType.DateTime,
             "end": ComparatorType.DateTime,
             "intervals": [ComparatorType.DateTime],
-            "groups": [
-                # FIXME: The entries in this list do not necessarily appear in the
-                # same order. For this reason, the tests use the `result_sorted` function defined here:
-                # https://github.com/getsentry/sentry/blob/0176f2f29849323ce851e4653a8891691e32a83e/tests/snuba/api/endpoints/test_organization_sessions.py#L16-L23
-                # Should we define a schema type which supports something like this?
-                # UnsortedCollection(sort_by=lambda item: sorted(item["by"].items()))
-                {
-                    "by": ComparatorType.Entity,
+            "groups": ListSet(
+                schema={
+                    "by": ComparatorType.Ignore,
                     "series": schema_for_series,
                     "totals": schema_for_totals,
-                }
-            ],
+                },
+                index_by="by",
+            ),
             "query": ComparatorType.Entity,
         }
 
