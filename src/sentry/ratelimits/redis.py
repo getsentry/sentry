@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 from time import time
-from typing import Optional
 
 from redis.exceptions import RedisError
 from sentry_sdk import capture_exception
@@ -18,7 +19,7 @@ class RedisRateLimiter(RateLimiter):
         self.cluster, options = get_cluster_from_options("SENTRY_RATELIMITER_OPTIONS", options)
 
     def _construct_redis_key(
-        self, key: str, project: Optional[Project] = None, window: Optional[int] = None
+        self, key: str, project: Project | None = None, window: int | None = None
     ) -> str:
         """
         Construct a rate limit key using the args given. Key will have a format of:
@@ -26,7 +27,7 @@ class RedisRateLimiter(RateLimiter):
         where the time bucket is calculated by integer dividing the current time by the window
         """
 
-        if window is None:
+        if window is None or window == 0:
             window = self.window
 
         key_hex = md5_text(key).hexdigest()
@@ -77,3 +78,20 @@ class RedisRateLimiter(RateLimiter):
             # Log what happened and move on
             capture_exception(e)
             return 0
+
+    def is_limited_with_value(self, key, limit, project=None, window=None) -> tuple[bool, int]:
+        """Does a rate limit check as well as return the new rate limit value"""
+        if window is None or window == 0:
+            window = self.window
+        redis_key = self._construct_redis_key(key, project=project, window=window)
+
+        try:
+            with self.cluster.map() as client:
+                result = client.incr(redis_key)
+                client.expire(redis_key, window)
+            return result.value > limit, result.value
+        except RedisError as e:
+            # We don't want rate limited endpoints to fail when ratelimits
+            # can't be updated. We do want to know when that happens.
+            capture_exception(e)
+            return False, 0

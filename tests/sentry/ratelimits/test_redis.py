@@ -37,3 +37,11 @@ class RedisRateLimiterTest(TestCase):
 
         time.sleep(1)
         assert self.backend.current_value("new") == 0
+
+    def test_is_limited_with_value(self):
+        limited, value = self.backend.is_limited_with_value("foo", 1)
+        assert not limited
+        assert value == 1
+        limited, value = self.backend.is_limited_with_value("foo", 1)
+        assert limited
+        assert value == 2

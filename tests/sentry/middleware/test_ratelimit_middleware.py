@@ -50,4 +50,4 @@ class RatelimitMiddlewareTest(TestCase):
         default_rate_limit_mock.return_value = (10, 100)
 
         return_val = above_rate_limit_check("foo")
-        assert return_val == dict(limited=False, current=1, limit=10, window=100)
+        assert return_val == dict(is_limited=False, current=1, limit=10, window=100)
