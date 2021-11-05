@@ -1,7 +1,7 @@
 import os
 import signal
 import time
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import click
 
@@ -147,7 +147,6 @@ def attach(ctx, project, fast, service):
     if service not in containers:
         raise click.ClickException(f"Service `{service}` is not known or not enabled.")
 
-    # TODO threadpool here as well to print shit
     container = _start_service(
         ctx.obj["client"],
         ctx.obj["low_level_client"],
@@ -234,17 +233,26 @@ def up(ctx, services, project, exclude, fast, skip_only_if):
     get_or_create(ctx.obj["client"], "network", project)
 
     with ThreadPoolExecutor(max_workers=len(selected_services)) as executor:
+        futures = []
         for name in selected_services:
-            # todo error handling
-            executor.submit(
-                _start_service,
-                ctx.obj["client"],
-                ctx.obj["low_level_client"],
-                name,
-                containers,
-                project,
-                fast=fast,
+            futures.append(
+                executor.submit(
+                    _start_service,
+                    ctx.obj["client"],
+                    ctx.obj["low_level_client"],
+                    name,
+                    containers,
+                    project,
+                    fast=fast,
+                )
             )
+        for future in as_completed(futures):
+            # future.result() reraises exception if any.
+            # We don't want to raise, just report on it.
+            # We also don't have or care about return values.
+            e = future.exception()
+            if e is not None:
+                click.echo(e)
 
 
 def _prepare_containers(project, skip_only_if=False, silent=False):
