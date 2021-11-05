@@ -65,7 +65,5 @@ class ExternalUserDetailsEndpoint(OrganizationEndpoint, ExternalActorEndpointMix
         """
         Delete an External Team
         """
-        self.assert_has_feature(request, organization)
-
         external_user.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
