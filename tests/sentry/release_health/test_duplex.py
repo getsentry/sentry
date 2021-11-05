@@ -117,8 +117,8 @@ def test_compare_floats(use_quantiles, sessions, metrics, are_equal):
         (100, 105, None, False),
         # no schema will compare as entity and succeed
         (100, 100, None, True),
-        (100, 100, Ct.Entity, True),
-        (100, 101, Ct.Entity, False),
+        (100, 100, Ct.Exact, True),
+        (100, 101, Ct.Exact, False),
         (9.0, 9.05, Ct.Quantile, True),
         (9.0, 9.05, Ct.Ratio, True),
         (9.0, 9.1, Ct.Ratio, False),
@@ -166,9 +166,9 @@ def test_compare_basic_sequence(sessions, metrics, final_result, are_equal):
     [
         # compare as array of entities
         ([1, 2, 3], [1, 2, 3], None, True),
-        ([1, 2, 3], [1, 2, 3], [Ct.Entity], True),
-        ([1, 2, 3], [1, 2, 4], [Ct.Entity], False),
-        ([(1, 2), (2, 3), (3, 4)], [(1, 2), (2, 3), (3, 4)], [Ct.Entity], True),
+        ([1, 2, 3], [1, 2, 3], [Ct.Exact], True),
+        ([1, 2, 3], [1, 2, 4], [Ct.Exact], False),
+        ([(1, 2), (2, 3), (3, 4)], [(1, 2), (2, 3), (3, 4)], [Ct.Exact], True),
         ([1, 2, 3], [1, 2], None, False),
         ([1, 2, 3], [1, 2, 4], [Ct.Counter], True),
         (
@@ -190,13 +190,13 @@ def test_compare_arrays(sessions, metrics, schema, are_equal):
         (
             [{"a": 1, "b": 11}, {"a": 2, "b": 22}],
             [{"a": 2, "b": 22}, {"a": 1, "b": 11}],
-            ListSet({"*": Ct.Entity}, "a"),
+            ListSet({"*": Ct.Exact}, "a"),
             True,
         ),
         (
             [{"a": 1, "b": 11, "c": 3}, {"a": 2, "b": 22, "d": 1}],
             [{"a": 2, "b": 22, "d": 100}, {"a": 1, "b": 11, "c": 3}],
-            ListSet({"b": Ct.Entity, "c": Ct.Counter}, "a"),
+            ListSet({"b": Ct.Exact, "c": Ct.Counter}, "a"),
             True,
         ),
         (
@@ -223,11 +223,11 @@ def test_compare_list_set(sessions, metrics, schema, are_equal):
     [
         # compare as array of entities
         ((1, 2, 3), (1, 2, 3), None, True),
-        ((1, 2), (1, 2), (Ct.Entity, Ct.Entity), True),
-        ((1, 2), (1, 3), (Ct.Entity, Ct.Entity), False),
-        ((1, 2), (1, 3), (Ct.Entity, Ct.Counter), True),
-        ([1, 2.1, 3], [1, 2.11, 4], (Ct.Entity, Ct.Ratio, Ct.Counter), True),
-        (((1, 2), (2, 3)), ((1, 2), (2, 3)), [Ct.Entity, Ct.Entity], True),
+        ((1, 2), (1, 2), (Ct.Exact, Ct.Exact), True),
+        ((1, 2), (1, 3), (Ct.Exact, Ct.Exact), False),
+        ((1, 2), (1, 3), (Ct.Exact, Ct.Counter), True),
+        ([1, 2.1, 3], [1, 2.11, 4], (Ct.Exact, Ct.Ratio, Ct.Counter), True),
+        (((1, 2), (2, 3)), ((1, 2), (2, 3)), [Ct.Exact, Ct.Exact], True),
         ((1, 2, 3), (1, 2), None, False),
     ],
 )
@@ -243,27 +243,27 @@ def test_compare_tuples(sessions, metrics, schema, are_equal):
         ({"a": 1, "b": 2, "c": 3}, {"a": 1, "b": 3, "c": 44}, None, False),
         ({"a": 1, "b": 2, "c": 3}, {"a": 1, "b": 2, "c": 3}, None, True),
         # match all as configured types
-        ({"a": 1, "b": 2, "c": 3}, {"a": 1, "b": 3, "c": 4}, {"*": Ct.Entity}, False),
+        ({"a": 1, "b": 2, "c": 3}, {"a": 1, "b": 3, "c": 4}, {"*": Ct.Exact}, False),
         ({"a": 1, "b": 2, "c": 3}, {"a": 1, "b": 3, "c": 4}, {"*": Ct.Counter}, True),
-        # match all unspecified as counters, and "c" as Entity
+        # match all unspecified as counters, and "c" as Exact
         (
             {"a": 1, "b": 2, "c": 3},
             {"a": 2, "b": 3, "c": 3},
-            {"*": Ct.Counter, "c": Ct.Entity},
+            {"*": Ct.Counter, "c": Ct.Exact},
             True,
         ),
         # match subset of properties
         (
             {"a": 1, "b": 2, "c": 3},
             {"a": 1, "b": 3, "c": 44},
-            {"a": Ct.Entity, "b": Ct.Counter},
+            {"a": Ct.Exact, "b": Ct.Counter},
             True,
         ),
         # match overspecified schema
         (
             {"a": 1},
             {"a": 1},
-            {"a": Ct.Entity, "b": Ct.Counter},
+            {"a": Ct.Exact, "b": Ct.Counter},
             True,
         ),
     ],
@@ -280,9 +280,9 @@ def test_compare_dicts(sessions, metrics, schema, are_equal):
         (
             {
                 "a": [Ct.Counter],
-                "b": Ct.Entity,
-                "c": [{"a": (Ct.Entity, Ct.Ratio, Ct.Counter), "b": Ct.Ignore}],
-                "d": Ct.Entity,
+                "b": Ct.Exact,
+                "c": [{"a": (Ct.Exact, Ct.Ratio, Ct.Counter), "b": Ct.Ignore}],
+                "d": Ct.Exact,
                 "e": Ct.Counter,
             },
             True,
@@ -291,8 +291,8 @@ def test_compare_dicts(sessions, metrics, schema, are_equal):
         (
             {
                 "a": [Ct.Counter],
-                "b": Ct.Entity,
-                "c": [{"a": (Ct.Entity, Ct.Ratio, Ct.Counter)}],
+                "b": Ct.Exact,
+                "c": [{"a": (Ct.Exact, Ct.Ratio, Ct.Counter)}],
             },
             True,
         ),
@@ -302,7 +302,7 @@ def test_compare_dicts(sessions, metrics, schema, are_equal):
                 "a": Ct.Ignore,
                 "b": Ct.Ignore,
                 "c": Ct.Ignore,
-                "*": Ct.Entity,
+                "*": Ct.Exact,
             },
             False,
         ),
@@ -330,9 +330,9 @@ def test_compare_dicts(sessions, metrics, schema, are_equal):
         (
             {
                 "a": [Ct.Counter],
-                "c": [{"a": (Ct.Entity, Ct.Ratio, Ct.Counter), "b": Ct.Ignore}],
+                "c": [{"a": (Ct.Exact, Ct.Ratio, Ct.Counter), "b": Ct.Ignore}],
                 "e": Ct.Counter,
-                "*": Ct.Entity,
+                "*": Ct.Exact,
             },
             True,
         ),
