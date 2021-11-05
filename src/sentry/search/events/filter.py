@@ -59,7 +59,7 @@ from sentry.utils.snuba import (
     Dataset,
     QueryOutsideRetentionError,
 )
-from sentry.utils.validators import INVALID_ID_DETAILS
+from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCARD_NOT_ALLOWED
 
 
 def is_condition(term):
@@ -638,12 +638,16 @@ def convert_search_filter_to_snuba_query(
         }:
             value = int(to_timestamp(value)) * 1000
 
+        if name in {"trace.span", "trace.parent_span"}:
+            if search_filter.value.is_wildcard():
+                raise InvalidSearchQuery(WILDCARD_NOT_ALLOWED.format(name))
+            if not search_filter.value.is_span_id():
+                raise InvalidSearchQuery(INVALID_SPAN_ID.format(name))
+
         # Validate event ids and trace ids are uuids
         if name in {"id", "trace"}:
             if search_filter.value.is_wildcard():
-                raise InvalidSearchQuery(
-                    f"Wildcard conditions are not permitted on `{name}` field."
-                )
+                raise InvalidSearchQuery(WILDCARD_NOT_ALLOWED.format(name))
             elif not search_filter.value.is_event_id():
                 label = "Filter ID" if name == "id" else "Filter Trace ID"
                 raise InvalidSearchQuery(INVALID_ID_DETAILS.format(label))
@@ -1367,12 +1371,16 @@ class QueryFilter(QueryFields):
         }:
             value = int(to_timestamp(value)) * 1000
 
+        if name in {"trace.span", "trace.parent_span"}:
+            if search_filter.value.is_wildcard():
+                raise InvalidSearchQuery(WILDCARD_NOT_ALLOWED.format(name))
+            if not search_filter.value.is_span_id():
+                raise InvalidSearchQuery(INVALID_SPAN_ID.format(name))
+
         # Validate event ids and trace ids are uuids
         if name in {"id", "trace"}:
             if search_filter.value.is_wildcard():
-                raise InvalidSearchQuery(
-                    f"Wildcard conditions are not permitted on `{name}` field."
-                )
+                raise InvalidSearchQuery(WILDCARD_NOT_ALLOWED.format(name))
             elif not search_filter.value.is_event_id():
                 label = "Filter ID" if name == "id" else "Filter Trace ID"
                 raise InvalidSearchQuery(INVALID_ID_DETAILS.format(label))

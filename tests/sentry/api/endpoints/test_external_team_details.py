@@ -15,10 +15,9 @@ class ExternalTeamDetailsTest(APITestCase):
         )
 
     def test_basic_delete(self):
-        with self.feature({"organizations:integrations-codeowners": True}):
-            self.get_success_response(
-                self.organization.slug, self.team.slug, self.external_team.id, method="delete"
-            )
+        self.get_success_response(
+            self.organization.slug, self.team.slug, self.external_team.id, method="delete"
+        )
         assert not ExternalActor.objects.filter(id=str(self.external_team.id)).exists()
 
     def test_basic_update(self):

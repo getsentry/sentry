@@ -7,7 +7,7 @@ import pathlib
 import time
 from collections import namedtuple
 from http import HTTPStatus
-from typing import Any, Dict, Generator, List, Mapping, NewType, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Generator, List, Mapping, NewType, Optional, Tuple, Union
 
 import sentry_sdk
 from dateutil.parser import parse as parse_date
@@ -369,20 +369,39 @@ def _get_dsym_url(bundles: Optional[List[JSONData]]) -> Union[NoDsymUrl, str]:
     # was a bitcode upload or a native upload.  And whether dSYMs are
     # available for download only depends on whether it was a bitcode
     # upload.
-    if bundles is None or len(bundles) == 0:
+
+    if not bundles:
         return NoDsymUrl.NOT_NEEDED
 
-    if len(bundles) > 1:
+    get_bundle_url: Callable[[JSONData], Any] = lambda bundle: safe.get_path(
+        bundle, "attributes", "dSYMUrl", default=NoDsymUrl.NOT_NEEDED
+    )
+
+    app_clip_urls = [
+        get_bundle_url(b)
+        for b in bundles
+        if safe.get_path(b, "attributes", "bundleType", default="APP") == "APP_CLIP"
+    ]
+    if any(app_clip_urls):
+        sentry_sdk.capture_message("App_CLIP has dSYMUrl")
+
+    app_bundles = [
+        app_bundle
+        for app_bundle in bundles
+        if safe.get_path(app_bundle, "attributes", "bundleType", default="APP") != "APP_CLIP"
+    ]
+
+    if not app_bundles:
+        return NoDsymUrl.NOT_NEEDED
+    elif len(app_bundles) > 1:
         # We currently do not know how to handle these, we'll carry on
         # with the first bundle but report this as an error.
         sentry_sdk.capture_message("len(buildBundles) != 1")
 
-    # Because we only ask for processingState=VALID builds we expect the
-    # builds to be finished and if there are no dSYMs that means the
-    # build doesn't need dSYMs, i.e. it not a bitcode build.
-    bundle = bundles[0]
-    url = safe.get_path(bundle, "attributes", "dSYMUrl", default=NoDsymUrl.NOT_NEEDED)
-
+    # Because we only ask for processingState=VALID builds we expect the builds to be
+    # finished and if there are no dSYMs that means the build doesn't need dSYMs, i.e. it is
+    # not a bitcode build.
+    url = get_bundle_url(app_bundles[0])
     if isinstance(url, (NoDsymUrl, str)):
         return url
     else:
