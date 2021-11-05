@@ -10,6 +10,7 @@ import BarChart from 'app/components/charts/barChart';
 import MarkLine from 'app/components/charts/components/markLine';
 import {DateTimeObject} from 'app/components/charts/utils';
 import IdBadge from 'app/components/idBadge';
+import Link from 'app/components/links/link';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import PanelTable from 'app/components/panels/panelTable';
 import Placeholder from 'app/components/placeholder';
@@ -169,7 +170,7 @@ class TeamReleases extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {projects, period, theme} = this.props;
+    const {projects, period, theme, organization} = this.props;
     const {periodReleases} = this.state;
 
     const sortedProjects = projects
@@ -263,7 +264,16 @@ class TeamReleases extends AsyncComponent<Props, State> {
               </ProjectBadgeContainer>
 
               <ScoreWrapper>{this.renderReleaseCount(project.id, 'period')}</ScoreWrapper>
-              <ScoreWrapper>{this.renderReleaseCount(project.id, 'week')}</ScoreWrapper>
+              <ScoreWrapper>
+                <Link
+                  to={{
+                    pathname: `/organizations/${organization.slug}/releases/`,
+                    query: {project: project.id, statsPeriod: '7d'},
+                  }}
+                >
+                  {this.renderReleaseCount(project.id, 'week')}
+                </Link>
+              </ScoreWrapper>
               <ScoreWrapper>{this.renderTrend(project.id)}</ScoreWrapper>
             </Fragment>
           ))}
