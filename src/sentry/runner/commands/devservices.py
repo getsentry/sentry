@@ -1,10 +1,11 @@
 import os
 import signal
 import time
+from concurrent.futures import ThreadPoolExecutor
+from queue import Queue
+from threading import Thread
 
 import click
-
-from sentry.utils.compat import map
 
 # Work around a stupid docker issue: https://github.com/docker/for-mac/issues/5025
 RAW_SOCKET_HACK_PATH = os.path.expanduser(
@@ -12,6 +13,18 @@ RAW_SOCKET_HACK_PATH = os.path.expanduser(
 )
 if os.path.exists(RAW_SOCKET_HACK_PATH):
     os.environ["DOCKER_HOST"] = "unix://" + RAW_SOCKET_HACK_PATH
+
+# Queue for logs from _start_service, which is run in a thread pool.
+_start_service_logs = Queue()
+
+
+def _drain_start_service_logs(stop):
+    while not stop():
+        # This seems to be the only configuration that works.
+        # But isn't good because we loop a shit ton.
+        # It's essentially get_nowait but nonfatal.
+        if not _start_service_logs.empty():
+            click.echo(_start_service_logs.get())
 
 
 def get_docker_client():
@@ -148,6 +161,7 @@ def attach(ctx, project, fast, service):
     if service not in containers:
         raise click.ClickException(f"Service `{service}` is not known or not enabled.")
 
+    # TODO threadpool here as well to print shit
     container = _start_service(
         ctx.obj["client"],
         ctx.obj["low_level_client"],
@@ -233,10 +247,25 @@ def up(ctx, services, project, exclude, fast, skip_only_if):
 
     get_or_create(ctx.obj["client"], "network", project)
 
-    for name in selected_services:
-        _start_service(
-            ctx.obj["client"], ctx.obj["low_level_client"], name, containers, project, fast=fast
-        )
+    stop = False
+    t = Thread(target=_drain_start_service_logs, args=(lambda: stop,))
+    t.start()
+
+    with ThreadPoolExecutor(max_workers=len(selected_services)) as executor:
+        for name in selected_services:
+            # todo error handling
+            executor.submit(
+                _start_service,
+                ctx.obj["client"],
+                ctx.obj["low_level_client"],
+                name,
+                containers,
+                project,
+                fast=fast,
+            )
+
+    stop = True
+    t.join()
 
 
 def _prepare_containers(project, skip_only_if=False, silent=False):
@@ -295,7 +324,9 @@ def _start_service(
     pull = options.pop("pull", False)
     if not fast:
         if pull:
-            click.secho("> Pulling image '%s'" % options["image"], err=True, fg="green")
+            _start_service_logs.put_nowait(
+                click.style(f"> Pulling image '{options['image']}'", fg="green")
+            )
             retryable_pull(client, options["image"])
         else:
             # We want make sure to pull everything on the first time,
@@ -303,7 +334,9 @@ def _start_service(
             try:
                 client.images.get(options["image"])
             except NotFound:
-                click.secho("> Pulling image '%s'" % options["image"], err=True, fg="green")
+                _start_service_logs.put_nowait(
+                    click.style(f"> Pulling image '{options['image']}'", fg="green")
+                )
                 retryable_pull(client, options["image"])
 
     for mount in list(options.get("volumes", {}).keys()):
@@ -328,10 +361,11 @@ def _start_service(
     # Containers that should be started on-demand with devserver
     # should ONLY be started via the latter, which sets `always_start`.
     if with_devserver and not always_start:
-        click.secho(
-            "> Not starting container '%s' because it should be started on-demand with devserver."
-            % options["name"],
-            fg="yellow",
+        _start_service_logs.put_nowait(
+            click.style(
+                f"> Not starting container '{options['name']}' because it should be started on-demand with devserver.",
+                fg="yellow",
+            )
         )
         # XXX: if always_start=False, do not expect to have a container returned 100% of the time.
         return None
@@ -353,10 +387,11 @@ def _start_service(
             should_reuse_container = True
 
         if should_reuse_container:
-            click.secho(
-                f"> Starting EXISTING container '{container.name}' {listening}",
-                err=True,
-                fg="yellow",
+            _start_service_logs.put_nowait(
+                click.style(
+                    f"> Starting EXISTING container '{container.name}' {listening}",
+                    fg="yellow",
+                )
             )
             # Note that if the container is already running, this will noop.
             # This makes repeated `devservices up` quite fast.
@@ -366,14 +401,22 @@ def _start_service(
                 wait_for_healthcheck(low_level_client, container.name, healthcheck_options)
             return container
 
-        click.secho("> Stopping container '%s'" % container.name, err=True, fg="yellow")
+        _start_service_logs.put_nowait(
+            click.style(f"> Stopping container '{container.name}'", fg="yellow")
+        )
         container.stop()
-        click.secho("> Removing container '%s'" % container.name, err=True, fg="yellow")
+        _start_service_logs.put_nowait(
+            click.style(f"> Removing container '{container.name}'", fg="yellow")
+        )
         container.remove()
 
-    click.secho("> Creating container '%s'" % options["name"], err=True, fg="yellow")
+    _start_service_logs.put_nowait(
+        click.style(f"> Creating container '{options['name']}'", fg="yellow")
+    )
     container = client.containers.create(**options)
-    click.secho(f"> Starting container '{container.name}' {listening}", err=True, fg="yellow")
+    _start_service_logs.put_nowait(
+        click.style(f"> Starting container '{container.name}' {listening}", fg="yellow")
+    )
     container.start()
     healthcheck_options = options.get("healthcheck")
     if healthcheck_options:
