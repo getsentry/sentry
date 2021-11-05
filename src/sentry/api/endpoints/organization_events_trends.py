@@ -6,6 +6,7 @@ import sentry_sdk
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 from snuba_sdk.conditions import Condition, Op
+from snuba_sdk.expressions import Limit, Offset
 from snuba_sdk.function import Function
 
 from sentry import features
@@ -450,6 +451,8 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
 
         def data_fn(offset, limit):
             if use_snql:
+                trend_query.offset = Offset(offset)
+                trend_query.limit = Limit(limit)
                 result = raw_snql_query(
                     trend_query.get_snql_query(),
                     referrer="api.trends.get-percentage-change.wip-snql",

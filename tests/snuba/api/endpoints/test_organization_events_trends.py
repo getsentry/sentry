@@ -741,6 +741,7 @@ class OrganizationEventsTrendsPagingTest(APITestCase, SnubaTestCase):
         self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
 
         self.prototype = load_data("transaction")
+        self.features = {"organizations:performance-view": True}
 
         # Make 10 transactions for paging
         for i in range(10):
@@ -766,7 +767,7 @@ class OrganizationEventsTrendsPagingTest(APITestCase, SnubaTestCase):
         return links
 
     def test_pagination(self):
-        with self.feature("organizations:performance-view"):
+        with self.feature(self.features):
             response = self.client.get(
                 self.url,
                 format="json",
@@ -795,7 +796,7 @@ class OrganizationEventsTrendsPagingTest(APITestCase, SnubaTestCase):
             assert len(response.data["events"]["data"]) == 5
 
     def test_pagination_with_query(self):
-        with self.feature("organizations:performance-view"):
+        with self.feature(self.features):
             response = self.client.get(
                 self.url,
                 format="json",
@@ -934,5 +935,14 @@ class OrganizationEventsTrendsStatsEndpointTestWithSnql(OrganizationEventsTrends
         super().setUp()
         self.features = {
             "organizations:performance-view": True,
-            "organizations:peerformance-use-snql": True,
+            "organizations:performance-use-snql": True,
+        }
+
+
+class OrganizationEventsTrendsPagingTestWithSnql(OrganizationEventsTrendsPagingTest):
+    def setUp(self):
+        super().setUp()
+        self.features = {
+            "organizations:performance-view": True,
+            "organizations:performance-use-snql": True,
         }
