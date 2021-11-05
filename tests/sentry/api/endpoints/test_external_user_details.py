@@ -14,10 +14,7 @@ class ExternalUserDetailsTest(APITestCase):
         )
 
     def test_basic_delete(self):
-        with self.feature({"organizations:integrations-codeowners": True}):
-            self.get_success_response(
-                self.organization.slug, self.external_user.id, method="delete"
-            )
+        self.get_success_response(self.organization.slug, self.external_user.id, method="delete")
         assert not ExternalActor.objects.filter(id=str(self.external_user.id)).exists()
 
     def test_basic_update(self):
