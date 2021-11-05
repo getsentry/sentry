@@ -6406,18 +6406,18 @@ duplexer@^0.1.1, duplexer@^0.1.2:
   resolved "https://registry.yarnpkg.com/duplexer/-/duplexer-0.1.2.tgz#3abe43aef3835f8ae077d136ddce0f276b0400e6"
   integrity sha512-jtD6YG370ZCIi/9GTaJKQxWTZD045+4R4hTk/x1UyoqadyJ9x9CgSi1RlVDQF8U2sxLLSnFkCaMihqljHIWgMg==
 
-echarts-for-react@3.0.1:
-  version "3.0.1"
-  resolved "https://registry.yarnpkg.com/echarts-for-react/-/echarts-for-react-3.0.1.tgz#cf9de60e468b342c244314be2325e00d765a5137"
-  integrity sha512-9LNcPNT+DH+IwtZlahuXQf7zqCWSnnYqITXtKgLDzoQ7fvotH1xEaFPriASQb+jYqSI9pBdtN5cFneT89wECUg==
+echarts-for-react@3.0.2:
+  version "3.0.2"
+  resolved "https://registry.yarnpkg.com/echarts-for-react/-/echarts-for-react-3.0.2.tgz#ac5859157048a1066d4553e34b328abb24f2b7c1"
+  integrity sha512-DRwIiTzx8JfwPOVgGttDytBqdp5VzCSyMRIxubgU/g2n9y3VLUmF2FK7Icmg/sNVkv4+rktmrLN9w22U2yy3fA==
   dependencies:
     fast-deep-equal "^3.1.3"
     size-sensor "^1.0.1"
 
-echarts@5.2.1:
-  version "5.2.1"
-  resolved "https://registry.yarnpkg.com/echarts/-/echarts-5.2.1.tgz#bd58ec011cd82def4a714e4038ef4b73b8417bc3"
-  integrity sha512-OJ79b22eqRfbSV8vYmDKmA+XWfNbr0Uk/OafWcFNIGDWti2Uw9A6eVCiJLmqPa9Sk+EWL+t5v26aak0z3gxiZw==
+echarts@5.2.2:
+  version "5.2.2"
+  resolved "https://registry.yarnpkg.com/echarts/-/echarts-5.2.2.tgz#ec3c8b2a151cbba71ba3c2c7cf9b2f2047ce4370"
+  integrity sha512-yxuBfeIH5c+0FsoRP60w4De6omXhA06c7eUYBsC1ykB6Ys2yK5fSteIYWvkJ4xJVLQgCvAdO8C4mN6MLeJpBaw==
   dependencies:
     tslib "2.3.0"
     zrender "5.2.1"
