@@ -1,3 +1,5 @@
+import 'echarts/lib/component/grid';
+import 'echarts/lib/component/graphic';
 import 'zrender/lib/svg/svg';
 
 import {forwardRef, useMemo} from 'react';
@@ -11,15 +13,14 @@ import type {
   LegendComponentOption,
   LineSeriesOption,
   SeriesOption,
+  TooltipComponentFormatterCallback,
   TooltipComponentFormatterCallbackParams,
   TooltipComponentOption,
   VisualMapComponentOption,
   XAXisComponentOption,
   YAXisComponentOption,
 } from 'echarts';
-import {GraphicComponent, GridComponent} from 'echarts/components';
 import * as echarts from 'echarts/core';
-import {TooltipFormatterCallback} from 'echarts/types/dist/shared';
 import ReactEchartsCore from 'echarts-for-react/lib/core';
 
 import {IS_ACCEPTANCE_TEST} from 'app/constants';
@@ -47,8 +48,6 @@ import XAxis from './components/xAxis';
 import YAxis from './components/yAxis';
 import LineSeries from './series/lineSeries';
 import {getDiffInMinutes, getDimensionValue, lightenHexToRgb} from './utils';
-
-echarts.use([GridComponent, GraphicComponent]);
 
 // TODO(ts): What is the series type? EChartOption.Series's data cannot have
 // `onClick` since it's typically an array.
@@ -138,7 +137,7 @@ type Props = {
       valueFormatter?: (
         value: number,
         label?: string,
-        seriesParams?: TooltipFormatterCallback<any>
+        seriesParams?: TooltipComponentFormatterCallback<any>
       ) => string | number;
       nameFormatter?: (name: string) => string;
       markerFormatter?: (marker: string, label?: string) => string;

@@ -1,6 +1,10 @@
 import * as React from 'react';
 import {InjectedRouter} from 'react-router';
-import {EChartOption} from 'echarts/lib/echarts';
+import type {
+  DataZoomComponentOption,
+  ToolboxComponentOption,
+  XAXisComponentOption,
+} from 'echarts';
 import moment from 'moment';
 import * as qs from 'query-string';
 
@@ -41,15 +45,15 @@ export type ZoomRenderProps = Pick<Props, typeof ZoomPropKeys[number]> & {
   end?: Date;
   isGroupedByDate?: boolean;
   showTimeInTooltip?: boolean;
-  dataZoom?: EChartOption.DataZoom[];
-  toolBox?: EChartOption['toolbox'];
+  dataZoom?: DataZoomComponentOption[];
+  toolBox?: ToolboxComponentOption;
 };
 
 type Props = {
   children: (props: ZoomRenderProps) => React.ReactNode;
   router?: InjectedRouter;
   disabled?: boolean;
-  xAxis?: EChartOption.XAxis;
+  xAxis?: XAXisComponentOption;
   xAxisIndex?: number | number[];
   start?: DateString;
   end?: DateString;

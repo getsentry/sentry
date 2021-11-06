@@ -1,7 +1,7 @@
 import {withRouter, WithRouterProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {EChartOption} from 'echarts/lib/echarts';
+import type {TooltipComponentFormatterCallbackParams} from 'echarts';
 
 import Feature from 'app/components/acl/feature';
 import ChartZoom from 'app/components/charts/chartZoom';
@@ -190,10 +190,9 @@ function ReleaseAdoption({
       valueFormatter: (
         value: number,
         label?: string,
-        seriesParams?: EChartOption.Tooltip.Format
+        seriesParams?: TooltipComponentFormatterCallbackParams
       ) => {
-        const {axisIndex, dataIndex} =
-          (seriesParams as EChartOption.Tooltip.Format & {axisIndex: number}) || {};
+        const {axisIndex, dataIndex} = seriesParams || {};
         const absoluteCount = getCountAtIndex(
           releaseSessions?.groups,
           axisIndexToSessionsField[axisIndex ?? 0],
