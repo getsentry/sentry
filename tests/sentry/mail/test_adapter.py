@@ -469,9 +469,11 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             ),
             fallthrough=True,
         )
-
-        event_all_users = self.store_event(data=make_event_data("foo.cbl"), project_id=project.id)
-        self.assert_notify(event_all_users, [user.email, user2.email])
+        with self.feature({"organizations:notification-all-recipients": True}):
+            event_all_users = self.store_event(
+                data=make_event_data("foo.cbl"), project_id=project.id
+            )
+            self.assert_notify(event_all_users, [user.email, user2.email])
 
         event_team = self.store_event(data=make_event_data("foo.py"), project_id=project.id)
         self.assert_notify(event_team, [user.email, user2.email])
@@ -487,8 +489,12 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             user=user2,
             project=project,
         )
-        event_all_users = self.store_event(data=make_event_data("foo.cbl"), project_id=project.id)
-        self.assert_notify(event_all_users, [user.email])
+
+        with self.feature({"organizations:notification-all-recipients": True}):
+            event_all_users = self.store_event(
+                data=make_event_data("foo.cbl"), project_id=project.id
+            )
+            self.assert_notify(event_all_users, [user.email])
 
     def test_notify_team_members(self):
         """Test that each member of a team is notified"""

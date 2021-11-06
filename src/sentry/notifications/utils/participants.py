@@ -176,7 +176,6 @@ def get_owners(project: Project, event: Event | None = None) -> Iterable[Team | 
             if features.has("organizations:notification-all-recipients", project.organization)
             else matched_recipients[-1:]
         )
-
     metrics.incr(
         "features.owners.send_to",
         tags={"organization": project.organization_id, "outcome": outcome},
