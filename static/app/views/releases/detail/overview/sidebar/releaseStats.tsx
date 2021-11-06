@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-import {SectionHeading} from 'app/components/charts/styles';
 import DeployBadge from 'app/components/deployBadge';
 import NotAvailable from 'app/components/notAvailable';
+import ReleaseSidebarSection from 'app/components/releaseSidebarSection';
 import TimeSince from 'app/components/timeSince';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -20,17 +20,15 @@ function ReleaseStats({organization, release, project}: Props) {
   return (
     <Container>
       <div>
-        <SectionHeading>
-          {lastDeploy?.dateFinished ? t('Date Deployed') : t('Date Created')}
-        </SectionHeading>
-        <div>
+        <ReleaseSidebarSection
+          title={lastDeploy?.dateFinished ? t('Date Deployed') : t('Date Created')}
+        >
           <TimeSince date={lastDeploy?.dateFinished ?? dateCreated} />
-        </div>
+        </ReleaseSidebarSection>
       </div>
 
       <div>
-        <SectionHeading>{t('Last Deploy')}</SectionHeading>
-        <div>
+        <ReleaseSidebarSection title={t('Last Deploy')}>
           {lastDeploy?.dateFinished ? (
             <DeployBadge
               deploy={lastDeploy}
@@ -41,7 +39,7 @@ function ReleaseStats({organization, release, project}: Props) {
           ) : (
             <NotAvailable />
           )}
-        </div>
+        </ReleaseSidebarSection>
       </div>
     </Container>
   );

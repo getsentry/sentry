@@ -6,6 +6,7 @@ import moment from 'moment';
 import AsyncComponent from 'app/components/asyncComponent';
 import Count from 'app/components/count';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
+import ReleaseSidebarSection from 'app/components/releaseSidebarSection';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {t, tn} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
@@ -14,7 +15,7 @@ import {CrashFreeTimeBreakdown, Organization} from 'app/types';
 import {defined} from 'app/utils';
 
 import {displayCrashFreePercent} from '../../../utils';
-import {SectionHeading, Wrapper} from '../styles';
+import {Wrapper} from '../styles';
 
 type Props = AsyncComponent['props'] & {
   location: Location;
@@ -89,28 +90,29 @@ class TotalCrashFreeUsers extends AsyncComponent<Props, State> {
 
     return (
       <Wrapper>
-        <SectionHeading>{t('Total Crash Free Users')}</SectionHeading>
-        <Timeline>
-          {timeline.map(row => (
-            <Row key={row.date.toString()}>
-              <InnerRow>
-                <Text bold>{row.date.format('MMMM D')}</Text>
-                <Text bold right>
-                  <Count value={row.crashFreeUserCount} />{' '}
-                  {tn('user', 'users', row.crashFreeUserCount)}
-                </Text>
-              </InnerRow>
-              <InnerRow>
-                <Text>{row.dateLabel}</Text>
-                <Percent right>
-                  {defined(row.crashFreeUsers)
-                    ? displayCrashFreePercent(row.crashFreeUsers)
-                    : '-'}
-                </Percent>
-              </InnerRow>
-            </Row>
-          ))}
-        </Timeline>
+        <ReleaseSidebarSection title={t('Total Crash Free Users')}>
+          <Timeline>
+            {timeline.map(row => (
+              <Row key={row.date.toString()}>
+                <InnerRow>
+                  <Text bold>{row.date.format('MMMM D')}</Text>
+                  <Text bold right>
+                    <Count value={row.crashFreeUserCount} />{' '}
+                    {tn('user', 'users', row.crashFreeUserCount)}
+                  </Text>
+                </InnerRow>
+                <InnerRow>
+                  <Text>{row.dateLabel}</Text>
+                  <Percent right>
+                    {defined(row.crashFreeUsers)
+                      ? displayCrashFreePercent(row.crashFreeUsers)
+                      : '-'}
+                  </Percent>
+                </InnerRow>
+              </Row>
+            ))}
+          </Timeline>
+        </ReleaseSidebarSection>
       </Wrapper>
     );
   }

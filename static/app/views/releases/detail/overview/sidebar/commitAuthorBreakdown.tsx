@@ -4,6 +4,7 @@ import AsyncComponent from 'app/components/asyncComponent';
 import UserAvatar from 'app/components/avatar/userAvatar';
 import Button from 'app/components/button';
 import Collapsible from 'app/components/collapsible';
+import ReleaseSidebarSection from 'app/components/releaseSidebarSection';
 import {t, tn} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
@@ -11,7 +12,7 @@ import {Commit, User} from 'app/types';
 import {percent} from 'app/utils';
 import {userDisplayName} from 'app/utils/formatters';
 
-import {SectionHeading, Wrapper} from '../styles';
+import {Wrapper} from '../styles';
 
 type GroupedAuthorCommits = {
   [key: string]: {author: User | undefined; commitCount: number};
@@ -85,27 +86,28 @@ class CommitAuthorBreakdown extends AsyncComponent<Props, State> {
 
     return (
       <Wrapper>
-        <SectionHeading>{t('Commit Author Breakdown')}</SectionHeading>
-        <Collapsible
-          expandButton={({onExpand, numberOfHiddenItems}) => (
-            <Button priority="link" onClick={onExpand}>
-              {tn(
-                'Show %s collapsed author',
-                'Show %s collapsed authors',
-                numberOfHiddenItems
-              )}
-            </Button>
-          )}
-        >
-          {sortedAuthorsByNumberOfCommits.map(({commitCount, author}, index) => (
-            <AuthorLine key={author?.email ?? index}>
-              <UserAvatar user={author} size={20} hasTooltip />
-              <AuthorName>{userDisplayName(author || {}, false)}</AuthorName>
-              <Commits>{tn('%s commit', '%s commits', commitCount)}</Commits>
-              <Percent>{this.getDisplayPercent(commitCount)}</Percent>
-            </AuthorLine>
-          ))}
-        </Collapsible>
+        <ReleaseSidebarSection title={t('Commit Author Breakdown')}>
+          <Collapsible
+            expandButton={({onExpand, numberOfHiddenItems}) => (
+              <Button priority="link" onClick={onExpand}>
+                {tn(
+                  'Show %s collapsed author',
+                  'Show %s collapsed authors',
+                  numberOfHiddenItems
+                )}
+              </Button>
+            )}
+          >
+            {sortedAuthorsByNumberOfCommits.map(({commitCount, author}, index) => (
+              <AuthorLine key={author?.email ?? index}>
+                <UserAvatar user={author} size={20} hasTooltip />
+                <AuthorName>{userDisplayName(author || {}, false)}</AuthorName>
+                <Commits>{tn('%s commit', '%s commits', commitCount)}</Commits>
+                <Percent>{this.getDisplayPercent(commitCount)}</Percent>
+              </AuthorLine>
+            ))}
+          </Collapsible>
+        </ReleaseSidebarSection>
       </Wrapper>
     );
   }

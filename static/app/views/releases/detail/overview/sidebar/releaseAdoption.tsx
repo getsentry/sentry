@@ -11,7 +11,7 @@ import TransitionChart from 'app/components/charts/transitionChart';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import NotAvailable from 'app/components/notAvailable';
 import QuestionTooltip from 'app/components/questionTooltip';
-import SidebarSectionTitle from 'app/components/sidebarSectionTitle';
+import ReleaseSidebarSection from 'app/components/releaseSidebarSection';
 import Tag from 'app/components/tag';
 import Tooltip from 'app/components/tooltip';
 import {IconWarning} from 'app/icons';
@@ -238,7 +238,7 @@ function ReleaseAdoption({
     <Wrapper>
       {isMobileRelease(project.platform) && (
         <Feature features={['release-adoption-stage']}>
-          <SidebarSectionTitle
+          <ReleaseSidebarSection
             title={t('Adoption Stage')}
             icon={
               multipleEnvironments && (
@@ -251,21 +251,22 @@ function ReleaseAdoption({
                 />
               )
             }
-          />
-          {adoptionStageLabel && !multipleEnvironments ? (
-            <div>
-              <StyledTooltip title={adoptionStageLabel.tooltipTitle} isHoverable>
-                <Tag type={adoptionStageLabel.type}>{adoptionStageLabel.name}</Tag>
-              </StyledTooltip>
-              <AdoptionEnvironment>
-                {tct(`in [environment]`, {environment})}
-              </AdoptionEnvironment>
-            </div>
-          ) : (
-            <NotAvailableWrapper>
-              <NotAvailable />
-            </NotAvailableWrapper>
-          )}
+          >
+            {adoptionStageLabel && !multipleEnvironments ? (
+              <div>
+                <StyledTooltip title={adoptionStageLabel.tooltipTitle} isHoverable>
+                  <Tag type={adoptionStageLabel.type}>{adoptionStageLabel.name}</Tag>
+                </StyledTooltip>
+                <AdoptionEnvironment>
+                  {tct(`in [environment]`, {environment})}
+                </AdoptionEnvironment>
+              </div>
+            ) : (
+              <NotAvailableWrapper>
+                <NotAvailable />
+              </NotAvailableWrapper>
+            )}
+          </ReleaseSidebarSection>
         </Feature>
       )}
       <RelativeBox>
@@ -339,6 +340,7 @@ const NotAvailableWrapper = styled('div')`
 `;
 
 const AdoptionEnvironment = styled('span')`
+  color: ${p => p.theme.textColor};
   margin-left: ${space(0.5)};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
@@ -347,7 +349,7 @@ const RelativeBox = styled('div')`
   position: relative;
 `;
 
-const ChartTitle = styled(SidebarSectionTitle)`
+const ChartTitle = styled(ReleaseSidebarSection)`
   margin: 0;
 `;
 

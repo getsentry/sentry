@@ -1,0 +1,43 @@
+import * as React from 'react';
+import styled from '@emotion/styled';
+
+import space from 'app/styles/space';
+
+type Props = {
+  title: React.ReactNode;
+  children?: React.ReactNode;
+  icon?: React.ReactNode;
+};
+
+/**
+ * Used to add a new sidebar section on Release Details page.
+ */
+function ReleaseSidebarSection({title, children, icon, ...props}: Props) {
+  return (
+    <React.Fragment>
+      <Heading {...props}>
+        {title}
+        {icon && <IconWrapper>{icon}</IconWrapper>}
+      </Heading>
+      <SectionContent>{children}</SectionContent>
+    </React.Fragment>
+  );
+}
+
+const Heading = styled('h6')`
+  color: ${p => p.theme.textColor};
+  display: flex;
+  font-size: ${p => p.theme.fontSizeMedium};
+  margin: ${space(1)} 0;
+`;
+
+const IconWrapper = styled('div')`
+  color: ${p => p.theme.subText};
+  margin-left: ${space(0.5)};
+`;
+
+const SectionContent = styled('div')`
+  color: ${p => p.theme.subText};
+`;
+
+export default ReleaseSidebarSection;
