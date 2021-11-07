@@ -1,14 +1,18 @@
 import {createContext, useEffect, useState} from 'react';
 
 import {Organization, Project} from 'app/types';
-import {AppStoreConnectStatusData} from 'app/types/debugFiles';
+import {
+  AppStoreConnectCredentialsStatus,
+  AppStoreConnectStatusData,
+} from 'app/types/debugFiles';
+import {getAppStoreValidationErrorMessage} from 'app/utils/appStoreValidationErrorMessage';
 import useApi from 'app/utils/useApi';
 
-export type AppStoreConnectContextProps = AppStoreConnectStatusData | undefined;
+export type AppStoreConnectContextProps =
+  | Record<string, AppStoreConnectStatusData>
+  | undefined;
 
 const AppStoreConnectContext = createContext<AppStoreConnectContextProps>(undefined);
-
-import {getAppConnectStoreUpdateAlertMessage} from './utils';
 
 type ProviderProps = {
   children: React.ReactNode;
@@ -71,33 +75,40 @@ const Provider = ({children, project, organization}: ProviderProps) => {
     }
 
     try {
-      const response: Map<string, AppStoreConnectStatusData> = await api.requestPromise(
-        `/projects/${orgSlug}/${projectDetails.slug}/appstoreconnect/status/`
-      );
+      const response: Record<string, AppStoreConnectStatusData> =
+        await api.requestPromise(
+          `/projects/${orgSlug}/${projectDetails.slug}/appstoreconnect/status`
+        );
 
-      const sourceStatus: Omit<AppStoreConnectStatusData, 'id'> | undefined =
-        response[appStoreConnectSymbolSourceId];
-      if (sourceStatus) {
-        setAppStoreConnectStatusData({
-          ...sourceStatus,
-          id: appStoreConnectSymbolSourceId,
-        });
-      }
+      setAppStoreConnectStatusData(response);
     } catch {
       // do nothing
     }
+  }
+
+  function getUpdateAlertMessage(credentialsStatus: AppStoreConnectCredentialsStatus) {
+    if (credentialsStatus?.status === 'valid') {
+      return undefined;
+    }
+    return getAppStoreValidationErrorMessage(credentialsStatus);
   }
 
   return (
     <AppStoreConnectContext.Provider
       value={
         appStoreConnectStatusData
-          ? {
-              ...appStoreConnectStatusData,
-              updateAlertMessage: getAppConnectStoreUpdateAlertMessage(
-                appStoreConnectStatusData.credentials
-              ),
-            }
+          ? Object.keys(appStoreConnectStatusData).reduce(
+              (acc, key) => ({
+                ...acc,
+                [key]: {
+                  ...appStoreConnectStatusData[key],
+                  updateAlertMessage: getUpdateAlertMessage(
+                    appStoreConnectStatusData[key].credentials
+                  ),
+                },
+              }),
+              {}
+            )
           : undefined
       }
     >
