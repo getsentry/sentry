@@ -1,20 +1,14 @@
 import * as Sentry from '@sentry/react';
 
 import {t} from 'app/locale';
-
-type ValidationErrorDetailed = {
-  code:
-    | 'app-connect-authentication-error'
-    | 'app-connect-forbidden-error'
-    | 'app-connect-multiple-sources-error';
-};
+import {AppStoreConnectValidationError} from 'app/types/debugFiles';
 
 export const unexpectedErrorMessage = t(
   'An unexpected error occurred while configuring the App Store Connect integration'
 );
 
 export function getAppStoreValidationErrorMessage(
-  error: ValidationErrorDetailed
+  error: AppStoreConnectValidationError
 ): string {
   switch (error.code) {
     case 'app-connect-authentication-error':

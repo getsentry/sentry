@@ -41,7 +41,7 @@ export enum CustomRepoType {
   APP_STORE_CONNECT = 'appStoreConnect',
 }
 
-export type AppStoreConnectValidationErrorDetailed = {
+export type AppStoreConnectValidationError = {
   code:
     | 'app-connect-authentication-error'
     | 'app-connect-forbidden-error'
@@ -50,7 +50,7 @@ export type AppStoreConnectValidationErrorDetailed = {
 
 export type AppStoreConnectCredentialsStatus =
   | {status: 'valid'}
-  | ({status: 'invalid'} & AppStoreConnectValidationErrorDetailed);
+  | ({status: 'invalid'} & AppStoreConnectValidationError);
 
 export type AppStoreConnectStatusData = {
   id: string;
