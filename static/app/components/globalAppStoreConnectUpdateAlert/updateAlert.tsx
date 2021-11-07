@@ -2,7 +2,6 @@ import {Fragment, useContext, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {promptsCheck, promptsUpdate} from 'app/actionCreators/prompts';
-import {Client} from 'app/api';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import Link from 'app/components/links/link';
@@ -13,12 +12,11 @@ import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {AppStoreConnectStatusData} from 'app/types/debugFiles';
 import {promptIsDismissed} from 'app/utils/promptIsDismissed';
-import withApi from 'app/utils/withApi';
+import useApi from 'app/utils/useApi';
 
 const APP_STORE_CONNECT_UPDATES = 'app_store_connect_updates';
 
 type Props = {
-  api: Client;
   organization: Organization;
   project?: Project;
   Wrapper?: React.ComponentType;
@@ -26,8 +24,9 @@ type Props = {
   className?: string;
 };
 
-function UpdateAlert({api, Wrapper, isCompact, project, organization, className}: Props) {
+function UpdateAlert({Wrapper, isCompact, project, organization, className}: Props) {
   const appStoreConnectContext = useContext(AppStoreConnectContext);
+  const api = useApi();
   const [isDismissed, setIsDismissed] = useState(false);
 
   useEffect(() => {
@@ -38,7 +37,9 @@ function UpdateAlert({api, Wrapper, isCompact, project, organization, className}
     if (
       !project ||
       !appStoreConnectContext ||
-      !appStoreConnectContext.updateAlertMessage ||
+      !Object.keys(appStoreConnectContext).some(
+        key => !!appStoreConnectContext[key].updateAlertMessage
+      ) ||
       isDismissed
     ) {
       return;
@@ -122,27 +123,30 @@ function UpdateAlert({api, Wrapper, isCompact, project, organization, className}
   if (
     !project ||
     !appStoreConnectContext ||
-    !appStoreConnectContext.updateAlertMessage ||
+    !Object.keys(appStoreConnectContext).some(
+      key => !!appStoreConnectContext[key].updateAlertMessage
+    ) ||
     isDismissed
   ) {
     return null;
   }
 
-  const projectSettingsLink = `/settings/${organization.slug}/projects/${project.slug}/debug-symbols/?customRepository=${appStoreConnectContext.id}`;
+  const notices = Object.keys(appStoreConnectContext).map(key => {
+    const projectSettingsLink = `/settings/${organization.slug}/projects/${project.slug}/debug-symbols/?customRepository=${key}`;
+    return (
+      <Alert key={key} type="warning" icon={<IconRefresh />} className={className}>
+        <Content>
+          {renderMessage(appStoreConnectContext[key], projectSettingsLink)}
+          {renderActions(projectSettingsLink)}
+        </Content>
+      </Alert>
+    );
+  });
 
-  const notice = (
-    <Alert type="warning" icon={<IconRefresh />} className={className}>
-      <Content>
-        {renderMessage(appStoreConnectContext, projectSettingsLink)}
-        {renderActions(projectSettingsLink)}
-      </Content>
-    </Alert>
-  );
-
-  return Wrapper ? <Wrapper>{notice}</Wrapper> : notice;
+  return Wrapper ? <Wrapper>{notices}</Wrapper> : <Fragment>{notices}</Fragment>;
 }
 
-export default withApi(UpdateAlert);
+export default UpdateAlert;
 
 const Actions = styled('div')`
   display: grid;
