@@ -35,7 +35,7 @@ def get_email_addresses(user_ids: Iterable[int], project: Project = None) -> Map
 
     if pending:
         logger.warning(
-            "Could not resolve email addresses for user IDs in %r, discarding...", pending
+            f"Could not resolve email addresses for user IDs in {pending}, discarding..."
         )
 
     return results

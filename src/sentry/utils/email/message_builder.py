@@ -211,7 +211,7 @@ class MessageBuilder:
         extra = {"message_type": self.type}
         loggable = [v for k, v in self.context.items() if hasattr(v, "id")]
         for context in loggable:
-            extra["%s_id" % type(context).__name__.lower()] = context.id
+            extra[f"{type(context).__name__.lower()}_id"] = context.id
 
         log_mail_queued = partial(logger.info, "mail.queued", extra=extra)
         for message in messages:

@@ -26,7 +26,7 @@ class _CaseInsensitiveSigner(Signer):
         # See: https://github.com/django/django/blob/1.6.11/django/core/signing.py#L165-L172
         signed_value = force_str(signed_value)
         if self.sep not in signed_value:
-            raise BadSignature('No "%s" found in value' % self.sep)
+            raise BadSignature(f'No "{self.sep}" found in value')
         value, sig = signed_value.rsplit(self.sep, 1)
         if constant_time_compare(sig.lower(), self.signature(value)):
             return force_text(value)
