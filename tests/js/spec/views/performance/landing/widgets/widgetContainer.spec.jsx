@@ -8,9 +8,13 @@ import {PerformanceWidgetSetting} from 'app/views/performance/landing/widgets/wi
 import {PROJECT_PERFORMANCE_TYPE} from 'app/views/performance/utils';
 
 const initializeData = () => {
-  return _initializeData({
+  const data = _initializeData({
     query: {statsPeriod: '7d', environment: ['prod'], project: [-42]},
   });
+
+  data.eventView.additionalConditions.addFilterValues('transaction.op', ['pageload']);
+
+  return data;
 };
 
 const WrappedComponent = ({data, ...rest}) => {
@@ -78,7 +82,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
         query: expect.objectContaining({
           interval: '1h',
           partial: '1',
-          query: '',
+          query: 'transaction.op:pageload',
           statsPeriod: '14d',
           yAxis: 'tpm()',
         }),
@@ -110,7 +114,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
         query: expect.objectContaining({
           interval: '1h',
           partial: '1',
-          query: '',
+          query: 'transaction.op:pageload',
           statsPeriod: '14d',
           yAxis: 'failure_rate()',
         }),
@@ -142,7 +146,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
         query: expect.objectContaining({
           interval: '1h',
           partial: '1',
-          query: '',
+          query: 'transaction.op:pageload',
           statsPeriod: '14d',
           yAxis: 'user_misery()',
         }),
@@ -186,7 +190,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           ],
           per_page: 3,
           project: ['-42'],
-          query: '',
+          query: 'transaction.op:pageload',
           sort: '-count_if(measurements.lcp,greaterOrEquals,4000)',
           statsPeriod: '7d',
         }),
@@ -260,7 +264,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           field: ['transaction', 'project.id', 'failure_count()'],
           per_page: 3,
           project: ['-42'],
-          query: 'failure_count():>0',
+          query: 'transaction.op:pageload failure_count():>0',
           sort: '-failure_count()',
           statsPeriod: '7d',
         }),
@@ -331,7 +335,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           per_page: 3,
           project: ['-42'],
           query:
-            'tpm():>0.01 count_percentage():>0.25 count_percentage():<4 trend_percentage():>0% confidence():>6',
+            'transaction.op:pageload tpm():>0.01 count_percentage():>0.25 count_percentage():<4 trend_percentage():>0% confidence():>6',
           sort: 'trend_percentage()',
           statsPeriod: '7d',
           trendFunction: 'avg(transaction.duration)',
@@ -370,7 +374,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           per_page: 3,
           project: ['-42'],
           query:
-            'tpm():>0.01 count_percentage():>0.25 count_percentage():<4 trend_percentage():>0% confidence():>6',
+            'transaction.op:pageload tpm():>0.01 count_percentage():>0.25 count_percentage():<4 trend_percentage():>0% confidence():>6',
           sort: '-trend_percentage()',
           statsPeriod: '7d',
           trendFunction: 'avg(transaction.duration)',
@@ -412,7 +416,8 @@ describe('Performance > Widgets > WidgetContainer', function () {
           ],
           per_page: 3,
           project: ['-42'],
-          query: 'epm():>0.01 p75(measurements.frames_slow_rate):>0',
+          query:
+            'transaction.op:pageload epm():>0.01 p75(measurements.frames_slow_rate):>0',
           sort: '-p75(measurements.frames_slow_rate)',
           statsPeriod: '7d',
         }),
