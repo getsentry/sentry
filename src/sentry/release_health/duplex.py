@@ -615,8 +615,8 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         }
         schema_for_series = {field: [comparator] for field, comparator in schema_for_totals.items()}
 
-        def dict_to_tuple(d):
-            return tuple(sorted(d.items(), key=lambda t: t[0]))
+        def dict_to_tuple(d: Mapping[Any, Any]) -> Any:
+            return tuple(sorted(d.items(), key=lambda t: t[0]))  # type: ignore
 
         schema = {
             "start": ComparatorType.DateTime,
