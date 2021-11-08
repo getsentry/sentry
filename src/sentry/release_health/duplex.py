@@ -402,8 +402,10 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
     def _org_from_id(org_id: OrganizationId):
         return Organization.objects.get_from_cache(id=org_id)
 
-    def log_exception(self, ex, sessions=None):
+    def log_exception(self, ex, fn_name: str, sessions=None):
         with push_scope() as scope:
+            scope.set_tag("func-name", fn_name)
+            scope.fingerprint = ["release-health-exception", fn_name]
             scope.set_context(
                 "release-health",
                 {
@@ -412,12 +414,14 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
             )
             capture_exception(ex)
 
-    def log_errors(self, errors, sessions, metrics):
+    def log_errors(self, fn_name, errors, sessions, metrics):
         with push_scope() as scope:
+            scope.set_tag("func-name", fn_name)
+            scope.fingerprint = ["release-health-errors", fn_name]
             scope.set_context(
                 "release-health", {"errors": errors, "sessions": sessions, "metrics": metrics}
             )
-            capture_message("Release health metrics missmatch")
+            capture_message(f"{fn_name} - Release health metrics missmatch")
 
     def _dispatch_call(
         self,
@@ -444,7 +448,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
                 should_compare = should_compare(ret_val)
         except Exception as ex:
             should_compare = False
-            self.log_exception(ex)
+            self.log_exception(ex, fn_name)
 
         if should_compare:
             copy = deepcopy(ret_val)
@@ -453,10 +457,10 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
                 with timer("releasehealth.metrics.duration", tags=tags):
                     metrics_val = metrics_fn(*args)
             except Exception as ex:
-                self.log_exception(ex, copy)
+                self.log_exception(ex, fn_name, copy)
             else:
                 errors = compare_results(copy, metrics_val, rollup, None, schema)
-                self.log_errors(errors, copy, metrics_val)
+                self.log_errors(errors, fn_name, copy, metrics_val)
         return ret_val
 
     def get_current_and_previous_crash_free_rates(
