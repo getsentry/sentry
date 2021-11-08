@@ -4,11 +4,12 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {ModalRenderProps} from 'app/actionCreators/modal';
+import Tag from 'app/components/tagDeprecated';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {DashboardDetails} from 'app/views/dashboardsV2/types';
-import {DEFAULT_WIDGETS} from 'app/views/dashboardsV2/widgetLibrary/data';
+import {DEFAULT_WIDGETS, WidgetTemplate} from 'app/views/dashboardsV2/widgetLibrary/data';
 
 import Button from '../../button';
 import ButtonBar from '../../buttonBar';
@@ -30,6 +31,7 @@ type Props = ModalRenderProps & DashboardWidgetLibraryModalOptions;
 
 function DashboardWidgetLibraryModal({Header, Body, Footer}: Props) {
   const [tab, setTab] = useState(TAB.Library);
+  const [selectedWidgets, setSelectedWidgets] = useState<WidgetTemplate[]>([]);
 
   return (
     <React.Fragment>
@@ -47,7 +49,10 @@ function DashboardWidgetLibraryModal({Header, Body, Footer}: Props) {
         </StyledButtonBar>
         <Title>{t('%s WIDGETS', DEFAULT_WIDGETS.length)}</Title>
         {tab === TAB.Library ? (
-          <DashboardWidgetLibraryTab />
+          <DashboardWidgetLibraryTab
+            selectedWidgets={selectedWidgets}
+            setSelectedWidgets={setSelectedWidgets}
+          />
         ) : (
           <DashboardWidgetCustomTab />
         )}
@@ -60,14 +65,17 @@ function DashboardWidgetLibraryModal({Header, Body, Footer}: Props) {
           >
             {t('Read the docs')}
           </Button>
-          <Button
-            data-test-id="add-widget"
-            priority="primary"
-            type="button"
-            onClick={() => {}}
-          >
-            {t('Add Widget')}
-          </Button>
+          <div>
+            <SelectedBadge>{`${selectedWidgets.length} Selected`} </SelectedBadge>
+            <Button
+              data-test-id="add-widget"
+              priority="primary"
+              type="button"
+              onClick={() => {}}
+            >
+              {t('Add Widget')}
+            </Button>
+          </div>
         </FooterButtonbar>
       </Footer>
     </React.Fragment>
@@ -96,6 +104,15 @@ const Title = styled('h3')`
   font-size: ${p => p.theme.fontSizeSmall};
   text-transform: uppercase;
   color: ${p => p.theme.gray300};
+`;
+
+const SelectedBadge = styled(Tag)`
+  padding: 3px ${space(0.75)};
+  display: inline-flex;
+  align-items: center;
+  margin-left: ${space(1)};
+  margin-right: ${space(1)};
+  top: -1px;
 `;
 
 export default DashboardWidgetLibraryModal;

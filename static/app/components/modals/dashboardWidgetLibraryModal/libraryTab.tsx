@@ -2,10 +2,15 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
-import {DEFAULT_WIDGETS} from 'app/views/dashboardsV2/widgetLibrary/data';
+import {DEFAULT_WIDGETS, WidgetTemplate} from 'app/views/dashboardsV2/widgetLibrary/data';
 import WidgetLibraryCard from 'app/views/dashboardsV2/widgetLibrary/widgetCard';
 
-function DashboardWidgetLibraryTab() {
+type Props = {
+  selectedWidgets: WidgetTemplate[];
+  setSelectedWidgets: (widgets: WidgetTemplate[]) => void;
+};
+
+function DashboardWidgetLibraryTab({selectedWidgets, setSelectedWidgets}: Props) {
   return (
     <React.Fragment>
       <ScrollGrid>
@@ -14,8 +19,9 @@ function DashboardWidgetLibraryTab() {
             return (
               <WidgetLibraryCard
                 key={widgetCard.title}
-                title={widgetCard.title}
-                displayType={widgetCard.displayType}
+                widget={widgetCard}
+                selectedWidgets={selectedWidgets}
+                setSelectedWidgets={setSelectedWidgets}
               />
             );
           })}

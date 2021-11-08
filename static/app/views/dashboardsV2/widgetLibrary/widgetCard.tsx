@@ -1,30 +1,66 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
+import Button from 'app/components/button';
 import Card from 'app/components/card';
+import {IconAdd, IconCheckmark} from 'app/icons';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 
-import {DisplayType} from '../types';
 import {miniWidget} from '../utils';
 
+import {WidgetTemplate} from './data';
+
 type Props = {
-  title: string;
-  displayType: DisplayType;
-  onEventClick?: () => void;
+  widget: WidgetTemplate;
+  setSelectedWidgets: (widgets: WidgetTemplate[]) => void;
+  selectedWidgets: WidgetTemplate[];
 };
 
-function WidgetLibraryCard({title, displayType}: Props) {
+function WidgetLibraryCard({selectedWidgets, widget, setSelectedWidgets}: Props) {
+  const selectButton = (
+    <StyledButton
+      type="button"
+      icon={<IconAdd size="small" isCircled color="gray300" />}
+      onClick={() => {
+        const updatedWidgets = selectedWidgets.slice().concat(widget);
+        setSelectedWidgets(updatedWidgets);
+      }}
+    >
+      {t('Select')}
+    </StyledButton>
+  );
+
+  const selectedButton = (
+    <StyledButton
+      type="button"
+      icon={<IconCheckmark size="small" isCircled color="gray300" />}
+      onClick={() => {
+        const removedWidgetIndex = selectedWidgets.indexOf(widget);
+        if (removedWidgetIndex !== -1) {
+          const updatedWidgets = selectedWidgets.slice().splice(removedWidgetIndex, 1);
+          setSelectedWidgets(updatedWidgets);
+        }
+      }}
+      priority="primary"
+    >
+      {t('Selected')}
+    </StyledButton>
+  );
+
   return (
     <Card>
       <CardHeader>
         <CardContent>
-          <Title>{title}</Title>
+          <Title>{widget.title}</Title>
         </CardContent>
       </CardHeader>
       <CardBody>
-        <WidgetImage src={miniWidget(displayType)} />
+        <WidgetImage src={miniWidget(widget.displayType)} />
       </CardBody>
-      <CardFooter>{'FOOTER'}</CardFooter>
+      <CardFooter>
+        {selectedWidgets.includes(widget) ? selectedButton : selectButton}
+      </CardFooter>
     </Card>
   );
 }
@@ -57,6 +93,17 @@ const CardFooter = styled('div')`
   justify-content: space-between;
   align-items: center;
   padding: ${space(1)} ${space(2)};
+`;
+
+const StyledButton = styled(Button)`
+  width: 100%;
+  vertical-align: middle;
+  > span:first-child {
+    padding: 8px 16px;
+  }
+  active {
+    color: red;
+  }
 `;
 
 const WidgetImage = styled('img')`
