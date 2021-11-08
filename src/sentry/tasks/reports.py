@@ -35,7 +35,7 @@ from sentry.models import (
     UserOption,
 )
 from sentry.snuba.dataset import Dataset
-from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.base import instrumented_task
 from sentry.utils import json, redis
 from sentry.utils.compat import filter, map, zip
 from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
@@ -564,9 +564,11 @@ class RedisReportBackend(ReportBackend):
 backend = RedisReportBackend(redis.clusters.get("default"), 60 * 60 * 3)
 
 
-@retry()
 @instrumented_task(
-    name="sentry.tasks.reports.prepare_reports", queue="reports.prepare", acks_late=True
+    name="sentry.tasks.reports.prepare_reports",
+    queue="reports.prepare",
+    max_retries=5,
+    acks_late=True,
 )
 def prepare_reports(dry_run=False, *args, **kwargs):
     timestamp, duration = _fill_default_parameters(*args, **kwargs)
@@ -576,9 +578,11 @@ def prepare_reports(dry_run=False, *args, **kwargs):
         prepare_organization_report.delay(timestamp, duration, organization_id, dry_run=dry_run)
 
 
-@retry(exclude=(Organization.DoesNotExist))
 @instrumented_task(
-    name="sentry.tasks.reports.prepare_organization_report", queue="reports.prepare", acks_late=True
+    name="sentry.tasks.reports.prepare_organization_report",
+    queue="reports.prepare",
+    max_retries=5,
+    acks_late=True,
 )
 def prepare_organization_report(timestamp, duration, organization_id, dry_run=False):
     try:
@@ -698,10 +702,10 @@ def has_valid_aggregates(interval, project__report):
     return any(bool(value) for value in report.aggregates)
 
 
-@retry(exclude=(Organization.DoesNotExist))
 @instrumented_task(
     name="sentry.tasks.reports.deliver_organization_user_report",
     queue="reports.deliver",
+    max_retries=5,
     acks_late=True,
 )
 def deliver_organization_user_report(timestamp, duration, organization_id, user_id, dry_run=False):
