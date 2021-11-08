@@ -28,6 +28,7 @@ type Props = {
 class Controls extends React.Component<Props> {
   render() {
     const {
+      organization,
       dashboardState,
       dashboards,
       onEdit,
@@ -111,19 +112,21 @@ class Controls extends React.Component<Props> {
               >
                 {t('Edit Dashboard')}
               </Button>
-              <Button
-                data-test-id="dashboard-add-widget"
-                priority="primary"
-                icon={<IconAdd isCircled size="s" />}
-                onClick={e => {
-                  e.preventDefault();
-                  if (onAddWidget) {
-                    onAddWidget();
-                  }
-                }}
-              >
-                {t('Add Widget')}
-              </Button>
+              {organization.features.includes('widget-library') ? (
+                <Button
+                  data-test-id="dashboard-add-widget"
+                  priority="primary"
+                  icon={<IconAdd isCircled size="s" />}
+                  onClick={e => {
+                    e.preventDefault();
+                    if (onAddWidget) {
+                      onAddWidget();
+                    }
+                  }}
+                >
+                  {t('Add Widget')}
+                </Button>
+              ) : null}
             </React.Fragment>
           )}
         </DashboardEditFeature>
