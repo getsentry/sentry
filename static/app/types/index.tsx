@@ -253,21 +253,29 @@ export type AvatarProject = {
  */
 export type TimeseriesValue = [timestamp: number, value: number];
 
-export type Project = {
+export type ProjectSummary = {
   id: string;
   dateCreated: string;
-  isMember: boolean;
-  teams: Team[];
   features: string[];
-  organization: Organization;
+  firstEvent: 'string' | null;
+  firstTransactionEvent: boolean;
+
+  hasAccess: boolean;
+  hasSessions: boolean;
 
   isBookmarked: boolean;
   isInternal: boolean;
+  isMember: boolean;
+  isPublic: boolean;
+
+  name: string;
+} & AvatarProject;
+
+export type Project = {
+  teams: Team[];
+  organization: Organization;
+
   hasUserReports?: boolean;
-  hasAccess: boolean;
-  hasSessions: boolean;
-  firstEvent: 'string' | null;
-  firstTransactionEvent: boolean;
   subjectTemplate: string;
   digestsMaxDelay: number;
   digestsMinDelay: number;
@@ -297,7 +305,7 @@ export type Project = {
     previousCrashFreeRate: number | null;
     hasHealthData: boolean;
   };
-} & AvatarProject;
+} & ProjectSummary;
 
 export type MinimalProject = Pick<Project, 'id' | 'slug' | 'platform'>;
 
@@ -361,6 +369,7 @@ export type Team = {
   memberCount: number;
   avatar: Avatar;
   externalTeams: ExternalTeam[];
+  projects: ProjectSummary[];
 };
 
 export type TeamWithProjects = Team & {projects: Project[]};
