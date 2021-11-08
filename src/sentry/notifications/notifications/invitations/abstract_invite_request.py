@@ -6,8 +6,8 @@ from django.urls import reverse
 
 from sentry import analytics, roles
 from sentry.models import InviteStatus, OrganizationMember
-from sentry.notifications.notifications.base import MessageAction
 from sentry.notifications.notifications.organization_request import OrganizationRequestNotification
+from sentry.notifications.utils.actions import MessageAction
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
 
