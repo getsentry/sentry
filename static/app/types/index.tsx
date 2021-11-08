@@ -754,6 +754,7 @@ export interface Config {
 
   invitesEnabled: boolean;
   privacyUrl: string | null;
+  termsUrl: string | null;
   isOnPremise: boolean;
   lastOrganization: string | null;
   gravatarBaseUrl: string;
@@ -763,14 +764,18 @@ export interface Config {
    */
   messages: {message: string; level: string}[];
   dsn: string;
-  userIdentity: {ip_address: string; email: string; id: string; isStaff: boolean};
-  termsUrl: string | null;
+  userIdentity: {
+    ip_address: string;
+    email: string;
+    id: string;
+    isStaff: boolean;
+  };
   isAuthenticated: boolean;
   version: {
     current: string;
+    latest: string;
     build: string;
     upgradeAvailable: boolean;
-    latest: string;
   };
   sentryConfig: {
     dsn: string;
