@@ -8,9 +8,6 @@ import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {
   aggregateFunctionOutputType,
-  generateFieldAsString,
-  isAggregateEquation,
-  isAggregateField,
   isLegalYAxisType,
   QueryFieldValue,
 } from 'app/utils/discover/fields';
@@ -87,24 +84,14 @@ function WidgetQueryFields({
     onChange(newFields);
   }
 
-  function getAggregateFields(): QueryFieldValue[] {
-    return fields.filter(field => {
-      const fieldStr = generateFieldAsString(field);
-      return isAggregateField(fieldStr) || isAggregateEquation(fieldStr);
-    });
-  }
-
-  function handleTopNChangeField(value: QueryFieldValue, fieldIndex: number) {
-    const aggregateFields = getAggregateFields();
-    const otherFields = fields.filter(field => !!!aggregateFields.includes(field));
-    aggregateFields[fieldIndex] = value;
-    const newFields = [...otherFields, ...aggregateFields];
+  function handleTopNChangeField(value: QueryFieldValue) {
+    const newFields = [...fields];
+    newFields[fields.length - 1] = value;
     onChange(newFields);
   }
 
   function handleTopNColumnChange(columns: QueryFieldValue[]) {
-    const aggregateFields = getAggregateFields();
-    const newFields = [...columns, ...aggregateFields];
+    const newFields = [...columns, fields[fields.length - 1]];
     onChange(newFields);
   }
 
@@ -186,9 +173,8 @@ function WidgetQueryFields({
   };
 
   if (displayType === 'top_n') {
-    const aggregateFields = getAggregateFields();
-    const otherFields = fields.filter(field => !!!aggregateFields.includes(field));
-    const fieldValue = aggregateFields[0];
+    const fieldValue = fields[fields.length - 1];
+    const columns = fields.slice(0, fields.length - 1);
 
     return (
       <React.Fragment>
@@ -203,7 +189,7 @@ function WidgetQueryFields({
           required
         >
           <StyledColumnEditCollection
-            columns={otherFields}
+            columns={columns}
             onChange={handleTopNColumnChange}
             fieldOptions={fieldOptions}
             organization={organization}
@@ -219,11 +205,11 @@ function WidgetQueryFields({
           required
           stacked
         >
-          <QueryFieldWrapper key={`${aggregateFields[0]}:0`}>
+          <QueryFieldWrapper key={`${fieldValue}:0`}>
             <QueryField
               fieldValue={fieldValue}
               fieldOptions={generateFieldOptions({organization})}
-              onChange={value => handleTopNChangeField(value, 0)}
+              onChange={value => handleTopNChangeField(value)}
               filterPrimaryOptions={filterPrimaryOptions}
               filterAggregateParameters={filterAggregateParameters(fieldValue)}
             />
