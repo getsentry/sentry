@@ -3,7 +3,7 @@ import inspect
 from copy import deepcopy
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Callable, List, Mapping, Optional, Sequence, Set, TypeVar, Union
+from typing import Any, Callable, List, Mapping, Optional, Sequence, Set, Tuple, Union, cast
 
 from dateutil import parser
 from sentry_sdk import capture_exception, capture_message, push_scope
@@ -37,7 +37,10 @@ from sentry.snuba.sessions import get_rollup_starts_and_buckets
 from sentry.snuba.sessions_v2 import QueryDefinition
 from sentry.utils.metrics import timer
 
-DateLike = TypeVar("DateLike", datetime, str)
+DateLike = Union[datetime, str]
+
+ReleaseHealthResult = Any
+Scalars = Union[int, str, float, datetime, None]
 
 
 class ComparatorType(Enum):
@@ -65,18 +68,19 @@ class ListSet:
     be compared and all the rest will be ignored)
     """
 
-    def __init__(self, schema, index_by=IndexBy):
+    def __init__(self, schema: "Schema", index_by: IndexBy):
         self.child_schema = schema
         if type(index_by) == str:
-            self.index_by: Optional[Callable[[Any], Any]] = lambda x: x.get(index_by)
+            self.index_by: Callable[[Any], Any] = lambda x: x.get(index_by)
         else:
-            self.index_by = index_by
+
+            self.index_by = cast(Callable[[Any], Any], index_by)
 
 
-Schema = Union[ComparatorType, List["Schema"], Mapping[str, "Schema"], Set["Schema"], ListSet]
+Schema = Union[ComparatorType, List[Any], Mapping[str, Any], Set[Any], ListSet]
 
 
-def _get_calling_method():
+def _get_calling_method() -> str:
     """
     This assumes the method is the second function on the frame
     (as is the case when called for compare_results and log_exception)
@@ -85,12 +89,17 @@ def _get_calling_method():
     return inspect.stack()[2].function
 
 
-def compare_entities(sessions, metrics, path: str) -> Optional[str]:
+def compare_entities(
+    sessions: ReleaseHealthResult, metrics: ReleaseHealthResult, path: str
+) -> Optional[str]:
     if sessions != metrics:
         return f"field {path} contains different data sessions={sessions} metrics={metrics}"
+    return None
 
 
-def _compare_basic(sessions, metrics, path: str) -> (bool, Optional[str]):
+def _compare_basic(
+    sessions: ReleaseHealthResult, metrics: ReleaseHealthResult, path: str
+) -> Tuple[bool, Optional[str]]:
     """
     Runs basic comparisons common to most implementations,
 
@@ -107,32 +116,50 @@ def _compare_basic(sessions, metrics, path: str) -> (bool, Optional[str]):
 
 
 def compare_datetime(
-    sessions: Optional[DateLike], metrics: Optional[DateLike], rollup: int, path: str
+    sessions: ReleaseHealthResult, metrics: ReleaseHealthResult, rollup: int, path: str
 ) -> Optional[str]:
     done, error = _compare_basic(sessions, metrics, path)
     if done:
         return error
 
+    if not isinstance(sessions, (str, datetime)):
+        return f"invalid field type {path} sessions={sessions} expected a date-like type found {type(sessions)}"
+
+    if not isinstance(metrics, (str, datetime)):
+        return f"invalid field type {path} metrics={metrics} expected a date-like type found {type(metrics)}"
+
     if type(sessions) != type(metrics):
         return f"field {path} inconsistent types return sessions={type(sessions)}, metrics={type(metrics)}"
-    if type(sessions) == str:
+    if isinstance(sessions, str):
+        assert isinstance(metrics, str)
         try:
             sessions_d = parser.parse(sessions)
             metrics_d = parser.parse(metrics)
             dd = abs(sessions_d - metrics_d)
         except parser.ParserError:
             return f"field {path} could not parse dates sessions={sessions}, metrics={metrics}"
-    else:
+    elif isinstance(sessions, datetime):
+        assert isinstance(metrics, datetime)
         dd = abs(sessions - metrics)
+    else:
+        return f"field {path} invalid type {type(sessions)} expecting date-like type"
     if dd > timedelta(seconds=rollup):
         return f"field {path} failed to mach datetimes sessions={sessions}, metrics={metrics}"
     return None
 
 
-def compare_counters(sessions: Optional[int], metrics: Optional[int], path: str) -> Optional[str]:
+def compare_counters(
+    sessions: ReleaseHealthResult, metrics: ReleaseHealthResult, path: str
+) -> Optional[str]:
     done, error = _compare_basic(sessions, metrics, path)
     if done:
         return error
+
+    if not isinstance(sessions, int):
+        return f"invalid field type {path} sessions={sessions} expected an int type found {type(sessions)}"
+
+    if not isinstance(metrics, int):
+        return f"invalid field type {path} metrics={metrics} expected an int type found {type(metrics)}"
 
     if metrics < 0:
         return f"invalid field {path} value={metrics}, from metrics, only positive values are expected. "
@@ -154,10 +181,18 @@ def compare_counters(sessions: Optional[int], metrics: Optional[int], path: str)
     return None
 
 
-def compare_ratios(sessions: Optional[float], metrics: Optional[float], path: str) -> Optional[str]:
+def compare_ratios(
+    sessions: ReleaseHealthResult, metrics: ReleaseHealthResult, path: str
+) -> Optional[str]:
     done, error = _compare_basic(sessions, metrics, path)
     if done:
         return error
+
+    if not isinstance(sessions, float):
+        return f"invalid field type {path} sessions={sessions} expected a float type found {type(sessions)}"
+
+    if not isinstance(metrics, float):
+        return f"invalid field type {path} metrics={metrics} expected a float type found {type(metrics)}"
 
     if metrics < 0:
         return f"invalid field {path} value = {metrics}, from metrics, only positive values are expected. "
@@ -174,15 +209,15 @@ compare_quantiles = compare_ratios
 
 
 def compare_scalars(
-    sessions, metrics, rollup: int, path: str, schema: Optional[ComparatorType]
+    sessions: Scalars, metrics: Scalars, rollup: int, path: str, schema: Optional[Schema]
 ) -> Optional[str]:
     if schema is None:
         t = type(sessions)
-        if t in (str, int):
+        if isinstance(sessions, (str, int)):
             return compare_entities(sessions, metrics, path)
-        elif t == float:
+        elif isinstance(sessions, float):
             return compare_ratios(sessions, metrics, path)
-        elif t == datetime:
+        elif isinstance(sessions, datetime):
             return compare_datetime(sessions, metrics, rollup, path)
         else:
             return f"unsupported scalar type {t} at path {path}"
@@ -202,7 +237,9 @@ def compare_scalars(
         return f"unsupported schema={schema} at {path}"
 
 
-def _compare_basic_sequence(sessions, metrics, path: str) -> (bool, List[str]):
+def _compare_basic_sequence(
+    sessions: ReleaseHealthResult, metrics: ReleaseHealthResult, path: str
+) -> Tuple[bool, List[str]]:
     """
     Does basic comparisons common to sequences (arrays and tuples)
 
@@ -232,7 +269,11 @@ def _compare_basic_sequence(sessions, metrics, path: str) -> (bool, List[str]):
 
 
 def compare_arrays(
-    sessions, metrics, rollup: int, path: str, schema: Optional[List[Schema]]
+    sessions: ReleaseHealthResult,
+    metrics: ReleaseHealthResult,
+    rollup: int,
+    path: str,
+    schema: Optional[List[Schema]],
 ) -> List[str]:
     done, errors = _compare_basic_sequence(sessions, metrics, path)
     if done:
@@ -252,7 +293,11 @@ def compare_arrays(
 
 
 def compare_tuples(
-    sessions, metrics, rollup: int, path: str, schema: Optional[Sequence[Schema]]
+    sessions: ReleaseHealthResult,
+    metrics: ReleaseHealthResult,
+    rollup: int,
+    path: str,
+    schema: Optional[Sequence[Schema]],
 ) -> List[str]:
     done, errors = _compare_basic_sequence(sessions, metrics, path)
     if done:
@@ -270,7 +315,9 @@ def compare_tuples(
     return errors
 
 
-def compare_sets(sessions, metrics, path: str) -> List[str]:
+def compare_sets(
+    sessions: ReleaseHealthResult, metrics: ReleaseHealthResult, path: str
+) -> List[str]:
     if sessions != metrics:
         return [f"different values found at path {path} sessions={sessions}, metrics={metrics}"]
     return []
@@ -316,7 +363,13 @@ def compare_dicts(
     return ret_val
 
 
-def compare_list_set(sessions, metrics, rollup, path, schema: ListSet) -> List[str]:
+def compare_list_set(
+    sessions: ReleaseHealthResult,
+    metrics: ReleaseHealthResult,
+    rollup: int,
+    path: str,
+    schema: ListSet,
+) -> List[str]:
     done, error = _compare_basic(sessions, metrics, path)
     if done:
         if error is not None:
@@ -333,7 +386,11 @@ def compare_list_set(sessions, metrics, rollup, path, schema: ListSet) -> List[s
 
 
 def compare_results(
-    sessions, metrics, rollup: int, path: Optional[str] = None, schema: Optional[Schema] = None
+    sessions: ReleaseHealthResult,
+    metrics: ReleaseHealthResult,
+    rollup: int,
+    path: Optional[str] = None,
+    schema: Optional[Schema] = None,
 ) -> List[str]:
     if path is None:
         path = ""
@@ -355,15 +412,18 @@ def compare_results(
             return [err]
         else:
             return []
-    elif type(discriminator) == ListSet:
+    elif isinstance(schema, ListSet):  # we only support ListSet in Schemas (not in the results)
         return compare_list_set(sessions, metrics, rollup, path, schema)
-    elif type(discriminator) == tuple:
+    elif isinstance(discriminator, tuple):
+        assert schema is None or isinstance(schema, tuple)
         return compare_tuples(sessions, metrics, rollup, path, schema)
-    elif type(discriminator) == list:
+    elif isinstance(discriminator, list):
+        assert schema is None or isinstance(schema, list)
         return compare_arrays(sessions, metrics, rollup, path, schema)
-    elif type(discriminator) == set:
+    elif isinstance(discriminator, set):
         return compare_sets(sessions, metrics, path)
-    elif type(discriminator) == dict:
+    elif isinstance(discriminator, dict):
+        assert schema is None or isinstance(schema, dict)
         return compare_dicts(sessions, metrics, rollup, path, schema)
     else:
         return [f"invalid schema type={type(schema)} at path:'{path}'"]
@@ -388,7 +448,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         includes_releases = isinstance(projects_list[0], tuple)
 
         if includes_releases:
-            project_ids: List[ProjectId] = [x[0] for x in projects_list]  # type: ignore
+            project_ids: List[ProjectId] = [x[0] for x in projects_list]
         else:
             project_ids = projects_list  # type: ignore
 
@@ -399,10 +459,12 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         return None
 
     @staticmethod
-    def _org_from_id(org_id: OrganizationId):
+    def _org_from_id(org_id: OrganizationId) -> Organization:
         return Organization.objects.get_from_cache(id=org_id)
 
-    def log_exception(self, ex, fn_name: str, sessions=None):
+    def log_exception(
+        self, ex: Exception, fn_name: str, sessions: ReleaseHealthResult = None
+    ) -> None:
         with push_scope() as scope:
             scope.set_tag("func-name", fn_name)
             scope.fingerprint = ["release-health-exception", fn_name]
@@ -414,7 +476,13 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
             )
             capture_exception(ex)
 
-    def log_errors(self, fn_name, errors, sessions, metrics):
+    def log_errors(
+        self,
+        errors: List[str],
+        fn_name: str,
+        sessions: ReleaseHealthResult,
+        metrics: ReleaseHealthResult,
+    ) -> None:
         with push_scope() as scope:
             scope.set_tag("func-name", fn_name)
             scope.fingerprint = ["release-health-errors", fn_name]
@@ -427,11 +495,14 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         self,
         fn_name: str,
         should_compare: Union[bool, Callable[[Any], bool]],
-        rollup: int,
+        rollup: Optional[int],
         organization: Optional[Organization],
         schema: Optional[Schema],
-        *args,
-    ):
+        *args: Any,
+    ) -> ReleaseHealthResult:
+        if rollup is None:
+            rollup = 0  # force exact date comparison if not specified
+
         sessions_fn = getattr(self.sessions, fn_name)
         tags = {"method": fn_name}
         with timer("releasehealth.sessions.duration", tags=tags):
@@ -441,7 +512,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
             return ret_val  # cannot check feature without organization
 
         try:
-            if type(should_compare) != bool:
+            if not isinstance(should_compare, bool):
                 # should compare depends on the session result
                 # evaluate it now
                 # TODO add timers around sessions and metrics
@@ -598,11 +669,11 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
             "sessions_upper_bound": ComparatorType.DateTime,
         }
 
-        def should_compare(val: ReleaseSessionsTimeBounds):
+        def should_compare(val: ReleaseSessionsTimeBounds) -> bool:
             lower_bound = val.get("sessions_lower_bound")
             if lower_bound is not None:
                 lower_bound = parser.parse(lower_bound)
-                return lower_bound > self.metrics_start
+                return lower_bound > self.metrics_start  # type: ignore
             return True
 
         if org_id is not None:
@@ -629,7 +700,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         schema = {ComparatorType.Exact}
         should_compare = datetime.utcnow() - timedelta(days=90) > self.metrics_start
         organization = self._org_form_projects(projects_list)
-        return self._dispatch_call(
+        return self._dispatch_call(  # type: ignore
             "check_has_health_data", should_compare, rollup, organization, schema, projects_list
         )
 
@@ -650,7 +721,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         else:
             organization = self._org_form_projects(project_ids)
 
-        return self._dispatch_call(
+        return self._dispatch_call(  # type: ignore
             "check_releases_have_health_data",
             should_compare,
             rollup,
@@ -682,7 +753,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         }
         should_compare = datetime.utcnow() - timedelta(days=1) > self.metrics_start
         organization = self._org_form_projects(project_releases)
-        return self._dispatch_call(
+        return self._dispatch_call(  # type: ignore
             "get_release_health_data_overview",
             should_compare,
             rollup,
@@ -714,7 +785,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         ]
         should_compare = start > self.metrics_start
         organization = self._org_form_projects([project_id])
-        return self._dispatch_call(
+        return self._dispatch_call(  # type: ignore
             "get_crash_free_breakdown",
             should_compare,
             rollup,
@@ -734,7 +805,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         schema = [ComparatorType.Exact]
         should_compare = datetime.utcnow() - timedelta(days=3) > self.metrics_start
         organization = self._org_form_projects(project_ids)
-        return self._dispatch_call(
+        return self._dispatch_call(  # type: ignore
             "get_changed_project_release_model_adoptions",
             should_compare,
             rollup,
@@ -750,7 +821,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         schema = {"*": ComparatorType.DateTime}
         should_compare = datetime.utcnow() - timedelta(days=90) > self.metrics_start
         organization = self._org_form_projects(project_releases)
-        return self._dispatch_call(
+        return self._dispatch_call(  # type: ignore
             "get_oldest_health_data_for_releases",
             should_compare,
             rollup,
@@ -783,7 +854,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         else:
             organization = self._org_form_projects(project_ids)
 
-        return self._dispatch_call(
+        return self._dispatch_call(  # type: ignore
             "get_project_releases_count",
             should_compare,
             rollup,
@@ -839,7 +910,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         schema = ComparatorType.Counter
         should_compare = start > self.metrics_start
         organization = self._org_form_projects([project_id])
-        return self._dispatch_call(
+        return self._dispatch_call(  # type: ignore
             "get_project_sessions_count",
             should_compare,
             rollup,
@@ -863,7 +934,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         schema = [(ComparatorType.Exact, ComparatorType.Counter)]
         should_compare = start > self.metrics_start
         organization = self._org_form_projects(project_ids)
-        return self._dispatch_call(
+        return self._dispatch_call(  # type: ignore
             "get_num_sessions_per_project",
             should_compare,
             rollup,
@@ -897,7 +968,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         should_compare = stats_start > self.metrics_start
         organization = self._org_form_projects(project_ids)
 
-        return self._dispatch_call(
+        return self._dispatch_call(  # type: ignore
             "get_project_releases_by_stability",
             should_compare,
             rollup,

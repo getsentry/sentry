@@ -369,6 +369,7 @@ def _get_duplex_with_mocks(metrics_start: datetime):
     return ret_val
 
 
+@pytest.mark.skip(reason="Requires Db")
 def test_function_dispatch_is_working():
     duplex = _get_duplex_with_mocks(datetime(2021, 10, 4, 12, 0))
 
