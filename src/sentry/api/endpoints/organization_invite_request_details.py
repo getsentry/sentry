@@ -1,22 +1,17 @@
-from django.conf import settings
-from django.db.models import Q
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
-from sentry import features, roles
+from sentry import roles
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberWithTeamsSerializer
-from sentry.models import AuditLogEntryEvent, InviteStatus, OrganizationMember
-from sentry.signals import member_invited
+from sentry.exceptions import UnableToAcceptMemberInvitationException
+from sentry.models import OrganizationMember
+from sentry.utils.audit import get_api_key_for_audit_log
 
 from .organization_member_details import get_allowed_roles
 from .organization_member_index import OrganizationMemberSerializer, save_team_assignments
-
-ERR_CANNOT_INVITE = "Your organization is not allowed to invite members."
-ERR_INSUFFICIENT_ROLE = "You do not have permission to invite that role."
-ERR_JOIN_REQUESTS_DISABLED = "Your organization does not allow requests to join."
 
 
 class ApproveInviteRequestSerializer(serializers.Serializer):
@@ -24,22 +19,13 @@ class ApproveInviteRequestSerializer(serializers.Serializer):
 
     def validate_approve(self, approve):
         request = self.context["request"]
-        organization = self.context["organization"]
         member = self.context["member"]
         allowed_roles = self.context["allowed_roles"]
 
-        if not features.has("organizations:invite-members", organization, actor=request.user):
-            raise serializers.ValidationError(ERR_CANNOT_INVITE)
-
-        if (
-            organization.get_option("sentry:join_requests") is False
-            and member.invite_status == InviteStatus.REQUESTED_TO_JOIN.value
-        ):
-            raise serializers.ValidationError(ERR_JOIN_REQUESTS_DISABLED)
-
-        # members cannot invite roles higher than their own
-        if member.role not in {r.id for r in allowed_roles}:
-            raise serializers.ValidationError(ERR_INSUFFICIENT_ROLE)
+        try:
+            member.validate_invitation(request.user, allowed_roles)
+        except UnableToAcceptMemberInvitationException as err:
+            raise serializers.ValidationError(str(err))
 
         return approve
 
@@ -57,12 +43,8 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationEndpoint):
 
     def _get_member(self, organization, member_id):
         try:
-            return OrganizationMember.objects.get(
-                Q(invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value)
-                | Q(invite_status=InviteStatus.REQUESTED_TO_JOIN.value),
-                organization=organization,
-                user__isnull=True,
-                id=member_id,
+            return OrganizationMember.objects.get_member_invite_query(member_id).get(
+                organization=organization
             )
         except ValueError:
             raise OrganizationMember.DoesNotExist()
@@ -135,26 +117,12 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationEndpoint):
             result = serializer.validated_data
 
             if result.get("approve") and not member.invite_approved:
-                member.approve_invite()
-                member.save()
-
-                if settings.SENTRY_ENABLE_INVITES:
-                    member.send_invite_email()
-                    member_invited.send_robust(
-                        member=member,
-                        user=request.user,
-                        sender=self,
-                        referrer=request.data.get("referrer"),
-                    )
-
-                self.create_audit_entry(
-                    request=request,
-                    organization_id=organization.id,
-                    target_object=member.id,
-                    data=member.get_audit_log_data(),
-                    event=AuditLogEntryEvent.MEMBER_INVITE
-                    if settings.SENTRY_ENABLE_INVITES
-                    else AuditLogEntryEvent.MEMBER_ADD,
+                api_key = get_api_key_for_audit_log(request)
+                member.approve_member_invitation(
+                    request.user,
+                    api_key,
+                    request.META["REMOTE_ADDR"],
+                    request.data.get("referrer"),
                 )
 
         return Response(
@@ -180,14 +148,7 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationEndpoint):
         except OrganizationMember.DoesNotExist:
             raise ResourceDoesNotExist
 
-        member.delete()
-
-        self.create_audit_entry(
-            request=request,
-            organization_id=organization.id,
-            target_object=member.id,
-            data=member.get_audit_log_data(),
-            event=AuditLogEntryEvent.INVITE_REQUEST_REMOVE,
-        )
+        api_key = get_api_key_for_audit_log(request)
+        member.reject_member_invitation(request.user, api_key, request.META["REMOTE_ADDR"])
 
         return Response(status=status.HTTP_204_NO_CONTENT)
