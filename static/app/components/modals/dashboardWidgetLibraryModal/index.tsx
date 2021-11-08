@@ -22,7 +22,7 @@ export type DashboardWidgetLibraryModalOptions = {
   dashboard: DashboardDetails;
 };
 
-enum TAB {
+export enum TAB {
   Library = 'library',
   Custom = 'custom',
 }
@@ -66,7 +66,9 @@ function DashboardWidgetLibraryModal({Header, Body, Footer}: Props) {
             {t('Read the docs')}
           </Button>
           <div>
-            <SelectedBadge>{`${selectedWidgets.length} Selected`} </SelectedBadge>
+            <SelectedBadge data-test-id="selected-badge">
+              {`${selectedWidgets.length} Selected`}
+            </SelectedBadge>
             <Button
               data-test-id="add-widget"
               priority="primary"
