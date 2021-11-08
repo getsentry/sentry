@@ -557,7 +557,14 @@ class SearchVisitor(NodeVisitor):
                 raise InvalidSearchQuery(str(exc))
             return SearchFilter(search_key, operator, search_value)
 
-        return self._handle_text_filter(search_key, operator, SearchValue("".join(search_value)))
+        search_value = SearchValue("".join(search_value))
+        if operator not in ("=", "!=") and search_key.name not in self.config.text_operator_keys:
+            # Operators are not supported in text_filter.
+            # Push it back into the value before handing the negation.
+            search_value = search_value._replace(raw_value=f"{operator}{search_value.raw_value}")
+            operator = "!=" if negated else "="
+
+        return self._handle_text_filter(search_key, operator, search_value)
 
     def visit_date_filter(self, node, children):
         (search_key, _, operator, search_value) = children
