@@ -1,5 +1,4 @@
 import collections.abc
-import inspect
 from copy import deepcopy
 from datetime import datetime, timedelta
 from enum import Enum
@@ -78,15 +77,6 @@ class ListSet:
 
 
 Schema = Union[ComparatorType, List[Any], Mapping[str, Any], Set[Any], ListSet, Tuple[Any, ...]]
-
-
-def _get_calling_method() -> str:
-    """
-    This assumes the method is the second function on the frame
-    (as is the case when called for compare_results and log_exception)
-    :return:
-    """
-    return inspect.stack()[2].function
 
 
 def compare_entities(
@@ -505,7 +495,9 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         with timer("releasehealth.sessions.duration", tags=tags):
             ret_val = sessions_fn(*args)
 
-        if organization is None or not features.has("organizations:release-health-check-metrics"):
+        if organization is None or not features.has(
+            "organizations:release-health-check-metrics", organization
+        ):
             return ret_val  # cannot check feature without organization
 
         try:
@@ -523,11 +515,11 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
                 metrics_fn = getattr(self.metrics, fn_name)
                 with timer("releasehealth.metrics.duration", tags=tags):
                     metrics_val = metrics_fn(*args)
+                with timer("releasehealth.results-diff.duration", tags=tags):
+                    errors = compare_results(copy, metrics_val, rollup, None, schema)
+                self.log_errors(errors, fn_name, copy, metrics_val)
             except Exception as ex:
                 self.log_exception(ex, fn_name, copy)
-            else:
-                errors = compare_results(copy, metrics_val, rollup, None, schema)
-                self.log_errors(errors, fn_name, copy, metrics_val)
         return ret_val
 
     def get_current_and_previous_crash_free_rates(
@@ -623,6 +615,9 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         }
         schema_for_series = {field: [comparator] for field, comparator in schema_for_totals.items()}
 
+        def dict_to_tuple(d):
+            return tuple(sorted(d.items(), key=lambda t: t[0]))
+
         schema = {
             "start": ComparatorType.DateTime,
             "end": ComparatorType.DateTime,
@@ -633,7 +628,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
                     "series": schema_for_series,
                     "totals": schema_for_totals,
                 },
-                index_by="by",
+                index_by=dict_to_tuple,
             ),
             "query": ComparatorType.Exact,
         }
