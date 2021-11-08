@@ -120,9 +120,8 @@ describe('Dashboards > WidgetCard', function () {
 
     const menuOptions = wrapper.find('ContextMenu').props().children;
     expect(menuOptions.length > 0).toBe(true);
-    expect(menuOptions[0].props.children).toEqual(t('Open in Discover'));
-    menuOptions[0].props.onClick(mockEvent);
-    expect(browserHistory.push).toHaveBeenCalledWith(
+    expect(menuOptions[0].props.children.props.children).toContain(t('Open in Discover'));
+    expect(menuOptions[0].props.to).toEqual(
       expect.objectContaining({
         pathname: '/organizations/org-slug/discover/results/',
         query: expect.objectContaining({
@@ -130,6 +129,49 @@ describe('Dashboards > WidgetCard', function () {
           name: 'Errors',
           query: 'event.type:error',
           yAxis: ['count()', 'failure_count()'],
+        }),
+      })
+    );
+  });
+
+  it('Opens in Discover with World Map', async function () {
+    const wrapper = mountWithTheme(
+      <WidgetCard
+        api={api}
+        organization={initialData.organization}
+        widget={{
+          ...multipleQueryWidget,
+          displayType: 'world_map',
+          queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
+        }}
+        selection={selection}
+        isEditing={false}
+        onDelete={() => undefined}
+        onEdit={() => undefined}
+        renderErrorMessage={() => undefined}
+        isSorting={false}
+        currentWidgetDragging={false}
+        showContextMenu
+      >
+        {() => <div data-test-id="child" />}
+      </WidgetCard>,
+      initialData.routerContext
+    );
+
+    await tick();
+
+    const menuOptions = wrapper.find('ContextMenu').props().children;
+    expect(menuOptions.length > 0).toBe(true);
+    expect(menuOptions[0].props.children.props.children).toContain(t('Open in Discover'));
+    expect(menuOptions[0].props.to).toEqual(
+      expect.objectContaining({
+        pathname: '/organizations/org-slug/discover/results/',
+        query: expect.objectContaining({
+          display: 'worldmap',
+          field: ['geo.country_code', 'count()'],
+          name: 'Errors',
+          query: 'event.type:error has:geo.country_code',
+          yAxis: ['count()'],
         }),
       })
     );

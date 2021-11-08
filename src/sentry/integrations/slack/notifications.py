@@ -2,13 +2,11 @@ import logging
 from collections import defaultdict
 from typing import Any, Iterable, Mapping, MutableMapping, Optional, Union
 
-from sentry import analytics
+from sentry.integrations.notifications import NotifyBasicMixin
 from sentry.integrations.slack.client import SlackClient  # NOQA
 from sentry.integrations.slack.message_builder.notifications import build_notification_attachment
 from sentry.models import ExternalActor, Identity, Integration, Organization, Team, User
-from sentry.notifications.notifications.activity.base import ActivityNotification
 from sentry.notifications.notifications.base import BaseNotification
-from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.notify import register_notification_provider
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
@@ -16,6 +14,25 @@ from sentry.utils import json, metrics
 
 logger = logging.getLogger("sentry.notifications")
 SLACK_TIMEOUT = 5
+
+
+class SlackNotifyBasicMixin(NotifyBasicMixin):  # type: ignore
+    def send_message(self, channel_id: str, message: str) -> None:
+        client = SlackClient()
+        token = self.metadata.get("user_access_token") or self.metadata["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+        payload = {
+            "token": token,
+            "channel": channel_id,
+            "text": message,
+        }
+        try:
+            client.post("/chat.postMessage", headers=headers, data=payload, json=True)
+        except ApiError as e:
+            message = str(e)
+            if message != "Expired url":
+                logger.error("slack.slash-notify.response-error", extra={"error": message})
+        return
 
 
 def get_context(
@@ -109,15 +126,6 @@ def get_channel_and_token_by_recipient(
     return output
 
 
-def get_key(notification: BaseNotification) -> str:
-    if isinstance(notification, ActivityNotification):
-        return "activity"
-    elif isinstance(notification, AlertRuleNotification):
-        return "issue_alert"
-    else:
-        return ""
-
-
 @register_notification_provider(ExternalProviders.SLACK)
 def send_notification_as_slack(
     notification: BaseNotification,
@@ -167,15 +175,9 @@ def send_notification_as_slack(
                         "is_multiple": is_multiple,
                     },
                 )
-            analytics.record(
-                "integrations.slack.notification_sent",
-                organization_id=notification.organization.id,
-                project_id=notification.project.id,
-                category=notification.get_category(),
-                actor_id=recipient.actor_id,
-            )
+            notification.record_notification_sent(recipient, ExternalProviders.SLACK)
 
-    key = get_key(notification)
+    key = notification.metrics_key
     metrics.incr(
         f"{key}.notifications.sent",
         instance=f"slack.{key}.notification",

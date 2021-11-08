@@ -22,7 +22,7 @@ const PanelContainer = styled('div')<PositionProps>`
   box-shadow: 1px 0 2px rgba(0, 0, 0, 0.06);
   text-align: left;
   animation: 200ms ${slideInLeft};
-  z-index: ${p => p.theme.zIndex.sidebar};
+  z-index: ${p => p.theme.zIndex.sidebar - 1};
 
   ${p =>
     p.orientation === 'top'
@@ -91,7 +91,12 @@ function SidebarPanel({
   }
 
   const sidebar = (
-    <PanelContainer collapsed={collapsed} orientation={orientation} {...props}>
+    <PanelContainer
+      role="dialog"
+      collapsed={collapsed}
+      orientation={orientation}
+      {...props}
+    >
       {title && (
         <SidebarPanelHeader>
           <Title>{title}</Title>

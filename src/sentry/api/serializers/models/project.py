@@ -41,6 +41,7 @@ from sentry.notifications.helpers import (
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.snuba import discover
+from sentry.tasks.symbolication import should_demote_symbolication
 from sentry.utils import json
 from sentry.utils.compat import zip
 
@@ -563,7 +564,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             "dateCreated": obj.date_added,
             "environments": attrs["environments"],
             "eventProcessing": {
-                "symbolicationDegraded": False,
+                "symbolicationDegraded": should_demote_symbolication(obj.id),
             },
             "features": attrs["features"],
             "firstEvent": obj.first_event,

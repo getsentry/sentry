@@ -1,5 +1,6 @@
 import unittest
 from datetime import timedelta
+from unittest.mock import Mock
 from uuid import uuid4
 
 from django.utils import timezone
@@ -17,7 +18,6 @@ from sentry.utils.committers import (
     score_path_match_length,
     tokenize_path,
 )
-from sentry.utils.compat.mock import Mock
 
 # TODO(lb): Tests are still needed for _get_committers and _get_event_file_commiters
 

@@ -49,7 +49,7 @@ const DocsLink = ({img, title, desc, kind, story}: LinkProps) => (
     <TitleWrap>
       <Title>{title}</Title>
       <IconWrap>
-        <IconArrow color="gray500" direction="right" size="sm" />
+        <IconArrow color="textColor" direction="right" size="sm" />
       </IconWrap>
     </TitleWrap>
     {desc && <Desc>{desc}</Desc>}
@@ -89,13 +89,13 @@ const ImgWrap = styled('div')`
   position: relative;
   width: 100%;
   padding-top: 50%;
-  border: solid 1px ${p => p.theme.gray100};
+  border: solid 1px ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
   transition: 0.2s ease-out;
 
   ${/* sc-selector */ LinkWrap}:hover & {
-    border: solid 1px ${p => p.theme.gray200};
+    border: solid 1px ${p => p.theme.border};
   }
 `;
 
@@ -134,5 +134,5 @@ const IconWrap = styled('div')`
 const Desc = styled('p')`
   margin-top: ${space(0.5)};
   font-size: 0.875rem;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;

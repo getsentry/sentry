@@ -43,6 +43,9 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
     def has_top_events(self, organization: Organization, request: Request) -> bool:
         return features.has("organizations:discover-top-events", organization, actor=request.user)
 
+    def has_discover_snql(self, organization: Organization, request: Request) -> bool:
+        return features.has("organizations:discover-use-snql", organization, actor=request.user)
+
     def get(self, request: Request, organization: Organization) -> Response:
         with sentry_sdk.start_span(op="discover.endpoint", description="filter_params") as span:
             span.set_data("organization", organization)
@@ -109,6 +112,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                     allow_empty=False,
                     zerofill_results=zerofill_results,
                     include_other=self.has_top_events(organization, request),
+                    use_snql=self.has_discover_snql(organization, request),
                 )
             return discover.timeseries_query(
                 selected_columns=query_columns,
@@ -118,6 +122,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                 referrer=referrer,
                 zerofill_results=zerofill_results,
                 comparison_delta=comparison_delta,
+                use_snql=self.has_discover_snql(organization, request),
             )
 
         try:

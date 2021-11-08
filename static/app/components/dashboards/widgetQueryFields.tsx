@@ -238,7 +238,7 @@ function WidgetQueryFields({
     (['line', 'area', 'stacked_area', 'bar'].includes(displayType) &&
       fields.length === 3);
 
-  const canDelete = fields.filter(field => field.kind !== 'equation').length > 1;
+  const canDelete = fields.length > 1;
 
   return (
     <Field

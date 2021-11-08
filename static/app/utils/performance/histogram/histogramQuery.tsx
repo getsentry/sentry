@@ -22,12 +22,15 @@ type HistogramProps = {
 
 type RequestProps = DiscoverQueryProps & HistogramProps;
 
-type ChildrenProps = Omit<GenericChildrenProps<HistogramProps>, 'tableData'> & {
+export type HistogramQueryChildrenProps = Omit<
+  GenericChildrenProps<HistogramProps>,
+  'tableData'
+> & {
   histograms: Histograms | null;
 };
 
 type Props = RequestProps & {
-  children: (props: ChildrenProps) => React.ReactNode;
+  children: (props: HistogramQueryChildrenProps) => React.ReactNode;
 };
 
 function getHistogramRequestPayload(props: RequestProps) {

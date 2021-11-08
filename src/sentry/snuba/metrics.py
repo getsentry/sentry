@@ -5,16 +5,16 @@ import re
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from datetime import datetime, timedelta
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Protocol, Tuple, Union
 
 from snuba_sdk import And, Column, Condition, Entity, Granularity, Limit, Offset, Op, Or, Query
 from snuba_sdk.conditions import BooleanCondition
 from snuba_sdk.query import SelectableExpression
-from typing_extensions import Protocol
 
 from sentry.models import Project
 from sentry.sentry_metrics import indexer
 from sentry.snuba.sessions_v2 import (  # TODO: unite metrics and sessions_v2
+    AllowedResolution,
     InvalidField,
     InvalidParams,
     finite_or_none,
@@ -100,7 +100,7 @@ class QueryDefinition:
 
     """
 
-    def __init__(self, query_params, allow_minute_resolution=False):
+    def __init__(self, query_params):
 
         self.query = query_params.get("query", "")
         self.parsed_query = parse_query(self.query) if self.query else None
@@ -113,7 +113,7 @@ class QueryDefinition:
         self.fields = {key: parse_field(key) for key in raw_fields}
 
         start, end, rollup = get_constrained_date_range(
-            query_params, allow_minute_resolution, max_points=MAX_POINTS
+            query_params, AllowedResolution.ten_seconds, max_points=MAX_POINTS
         )
         self.rollup = rollup
         self.start = start

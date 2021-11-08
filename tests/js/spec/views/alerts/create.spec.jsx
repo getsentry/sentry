@@ -3,10 +3,16 @@ import selectEvent from 'react-select-event';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mockRouterPush} from 'sentry-test/mockRouterPush';
-import {fireEvent, mountWithTheme, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  fireEvent,
+  mountWithTheme,
+  screen,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import * as memberActionCreators from 'app/actionCreators/members';
 import ProjectsStore from 'app/stores/projectsStore';
+import TeamStore from 'app/stores/teamStore';
 import {metric, trackAnalyticsEvent} from 'app/utils/analytics';
 import AlertsContainer from 'app/views/alerts';
 import AlertBuilderProjectProvider from 'app/views/alerts/builder/projectProvider';
@@ -28,6 +34,7 @@ jest.mock('app/utils/analytics', () => ({
 }));
 
 describe('ProjectAlertsCreate', function () {
+  TeamStore.loadInitialData([]);
   const projectAlertRuleDetailsRoutes = [
     {
       path: '/organizations/:orgId/alerts/',
@@ -159,21 +166,16 @@ describe('ProjectAlertsCreate', function () {
 
   describe('Issue Alert', function () {
     it('loads default values', async function () {
-      const {
-        wrapper: {getByDisplayValue},
-      } = createWrapper();
+      createWrapper();
 
-      await waitFor(() => {
-        expect(getByDisplayValue('__all_environments__')).toBeInTheDocument();
-      });
-      expect(getByDisplayValue('all')).toBeInTheDocument();
-      expect(getByDisplayValue('30')).toBeInTheDocument();
+      const allEnvironments = await screen.findByDisplayValue('__all_environments__');
+      expect(allEnvironments).toBeInTheDocument();
+      expect(screen.getByDisplayValue('all')).toBeInTheDocument();
+      expect(screen.getByDisplayValue('30')).toBeInTheDocument();
     });
 
     it('can remove filters, conditions and actions', async function () {
-      const {
-        wrapper: {getByLabelText, getByPlaceholderText, getByText},
-      } = createWrapper({
+      createWrapper({
         organization: {
           features: ['alert-filters'],
         },
@@ -189,16 +191,16 @@ describe('ProjectAlertsCreate', function () {
       });
 
       // Change name of alert rule
-      fireEvent.change(getByPlaceholderText('My Rule Name'), {
+      fireEvent.change(screen.getByPlaceholderText('My Rule Name'), {
         target: {value: 'My Rule Name'},
       });
 
       // Add a condition and remove it
-      await selectEvent.select(getByText('Add optional condition...'), [
+      await selectEvent.select(screen.getByText('Add optional condition...'), [
         'A new issue is created',
       ]);
 
-      fireEvent.click(getByLabelText('Delete Node'));
+      fireEvent.click(screen.getByLabelText('Delete Node'));
 
       expect(trackAnalyticsEvent).toHaveBeenCalledWith({
         eventKey: 'edit_alert_rule.add_row',
@@ -210,19 +212,19 @@ describe('ProjectAlertsCreate', function () {
       });
 
       // Add a filter and remove it
-      await selectEvent.select(getByText('Add optional filter...'), [
+      await selectEvent.select(screen.getByText('Add optional filter...'), [
         'The issue is {comparison_type} than {value} {time}',
       ]);
 
-      fireEvent.click(getByLabelText('Delete Node'));
+      fireEvent.click(screen.getByLabelText('Delete Node'));
 
       // Add an action and remove it
-      await selectEvent.select(getByText('Add action...'), [
+      await selectEvent.select(screen.getByText('Add action...'), [
         'Send a notification (for all legacy integrations)',
       ]);
-      fireEvent.click(getByLabelText('Delete Node'));
+      fireEvent.click(screen.getByLabelText('Delete Node'));
 
-      fireEvent.click(getByText('Save Rule'));
+      fireEvent.click(screen.getByText('Save Rule'));
 
       await waitFor(() => {
         expect(mock).toHaveBeenCalledWith(
@@ -244,10 +246,7 @@ describe('ProjectAlertsCreate', function () {
     });
 
     it('updates values and saves', async function () {
-      const {
-        wrapper: {getAllByText, getByPlaceholderText, getByText},
-        router,
-      } = createWrapper({
+      const {router} = createWrapper({
         organization: {
           features: ['alert-filters'],
         },
@@ -263,47 +262,47 @@ describe('ProjectAlertsCreate', function () {
       });
 
       // Change target environment
-      await selectEvent.select(getByText('All Environments'), ['production']);
+      await selectEvent.select(screen.getByText('All Environments'), ['production']);
 
       // Change actionMatch and filterMatch dropdown
-      await selectEvent.select(getAllByText('all')[0], ['any']);
-      await selectEvent.select(getAllByText('all')[0], ['any']);
+      await selectEvent.select(screen.getAllByText('all')[0], ['any']);
+      await selectEvent.select(screen.getAllByText('all')[0], ['any']);
 
       // Change name of alert rule
-      fireEvent.change(getByPlaceholderText('My Rule Name'), {
+      fireEvent.change(screen.getByPlaceholderText('My Rule Name'), {
         target: {value: 'My Rule Name'},
       });
 
       // Add another condition
-      await selectEvent.select(getByText('Add optional condition...'), [
+      await selectEvent.select(screen.getByText('Add optional condition...'), [
         "An event's tags match {key} {match} {value}",
       ]);
       // Edit new Condition
-      fireEvent.change(getByPlaceholderText('key'), {
+      fireEvent.change(screen.getByPlaceholderText('key'), {
         target: {value: 'conditionKey'},
       });
-      fireEvent.change(getByPlaceholderText('value'), {
+      fireEvent.change(screen.getByPlaceholderText('value'), {
         target: {value: 'conditionValue'},
       });
-      await selectEvent.select(getByText('equals'), ['does not equal']);
+      await selectEvent.select(screen.getByText('equals'), ['does not equal']);
 
       // Add a new filter
-      await selectEvent.select(getByText('Add optional filter...'), [
+      await selectEvent.select(screen.getByText('Add optional filter...'), [
         'The issue is {comparison_type} than {value} {time}',
       ]);
-      fireEvent.change(getByPlaceholderText('10'), {
+      fireEvent.change(screen.getByPlaceholderText('10'), {
         target: {value: '12'},
       });
 
       // Add a new action
-      await selectEvent.select(getByText('Add action...'), [
+      await selectEvent.select(screen.getByText('Add action...'), [
         'Send a notification via {service}',
       ]);
 
       // Update action interval
-      await selectEvent.select(getByText('30 minutes'), ['60 minutes']);
+      await selectEvent.select(screen.getByText('30 minutes'), ['60 minutes']);
 
-      fireEvent.click(getByText('Save Rule'));
+      fireEvent.click(screen.getByText('Save Rule'));
 
       await waitFor(() => {
         expect(mock).toHaveBeenCalledWith(

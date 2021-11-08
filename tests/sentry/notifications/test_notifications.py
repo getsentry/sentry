@@ -124,7 +124,7 @@ class ActivityNotificationTest(APITestCase):
         assert attachment["text"] == "blah blah"
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=NoteActivitySlack|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=NoteActivitySlackUser|Notification Settings>"
         )
 
     @responses.activate
@@ -151,7 +151,7 @@ class ActivityNotificationTest(APITestCase):
         assert attachment["title"] == self.group.title
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=AssignedActivitySlack|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=AssignedActivitySlackUser|Notification Settings>"
         )
 
     @responses.activate
@@ -180,7 +180,7 @@ class ActivityNotificationTest(APITestCase):
         assert attachment["title"] == self.group.title
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=UnassignedActivitySlack|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=UnassignedActivitySlackUser|Notification Settings>"
         )
 
     @responses.activate
@@ -209,7 +209,7 @@ class ActivityNotificationTest(APITestCase):
         assert attachment["title"] == self.group.title
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=ResolvedActivitySlack|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=ResolvedActivitySlackUser|Notification Settings>"
         )
 
     @responses.activate
@@ -249,7 +249,7 @@ class ActivityNotificationTest(APITestCase):
         )
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/deploy/?referrer=ReleaseActivitySlack|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/deploy/?referrer=ReleaseActivitySlackUser|Notification Settings>"
         )
 
     @responses.activate
@@ -288,7 +288,7 @@ class ActivityNotificationTest(APITestCase):
         assert text == "Issue marked as regression"
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=RegressionActivitySlack|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=RegressionActivitySlackUser|Notification Settings>"
         )
 
     @responses.activate
@@ -323,7 +323,7 @@ class ActivityNotificationTest(APITestCase):
         assert attachment["title"] == self.group.title
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=ResolvedInReleaseActivitySlack|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=ResolvedInReleaseActivitySlackUser|Notification Settings>"
         )
 
     @responses.activate
@@ -383,5 +383,5 @@ class ActivityNotificationTest(APITestCase):
         assert attachment["title"] == "Hello world"
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/alerts/?referrer=AlertRuleSlack|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/alerts/?referrer=AlertRuleSlackUser|Notification Settings>"
         )

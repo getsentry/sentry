@@ -14,7 +14,6 @@ import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Button from 'app/components/button';
 import Checkbox from 'app/components/checkbox';
 import EventDataSection from 'app/components/events/eventDataSection';
-import ImageForBar from 'app/components/events/interfaces/imageForBar';
 import {getImageRange, parseAddress} from 'app/components/events/interfaces/utils';
 import {Panel, PanelBody} from 'app/components/panels';
 import SearchBar from 'app/components/searchBar';
@@ -29,6 +28,7 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import {shouldSkipSection} from '../debugMeta-v2/utils';
 
 import DebugImage from './debugImage';
+import ImageForBar from './imageForBar';
 import {getFileName} from './utils';
 
 const MIN_FILTER_LEN = 3;

@@ -79,15 +79,8 @@ class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
         slack_request: SlackRequest,
         integration: Integration,
     ):
-        # This will break if multiple Sentry orgs are added
-        # to a single Slack workspace and a user is a part of one
-        # org and not the other. Since we pick the first org
-        # in the integration organizations set, we might be picking
-        # the org the user is not a part of.
-        organization = integration.organizations.all()[0]
         associate_url = build_linking_url(
             integration=integration,
-            organization=organization,
             slack_id=slack_request.user_id,
             channel_id=slack_request.channel_id,
             response_url=slack_request.response_url,

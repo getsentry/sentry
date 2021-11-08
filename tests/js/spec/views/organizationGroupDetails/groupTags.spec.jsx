@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {fireEvent, mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
 import GroupTags from 'app/views/organizationGroupDetails/groupTags';
 
@@ -15,7 +15,7 @@ describe('GroupTags', function () {
   });
 
   it('navigates to issue details events tab with correct query params', function () {
-    const wrapper = mountWithTheme(
+    mountWithTheme(
       <GroupTags
         group={group}
         environments={['dev']}
@@ -32,11 +32,11 @@ describe('GroupTags', function () {
       })
     );
 
-    const headers = wrapper.getAllByRole('heading').map(header => header.innerHTML);
+    const headers = screen.getAllByRole('heading').map(header => header.innerHTML);
     // Check headers have been sorted alphabetically
     expect(headers).toEqual(['browser', 'device', 'environment', 'url', 'user']);
 
-    fireEvent.click(wrapper.getByText('david'));
+    fireEvent.click(screen.getByText('david'));
 
     expect(router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/issues/1/events/',

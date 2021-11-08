@@ -1,10 +1,11 @@
+from unittest.mock import patch
+
 import responses
 from django.urls import reverse
 
 from sentry.constants import SentryAppInstallationStatus
 from sentry.mediators.token_exchange import GrantExchanger
 from sentry.testutils import APITestCase
-from sentry.utils.compat.mock import patch
 
 
 class SentryAppInstallationDetailsTest(APITestCase):

@@ -1,4 +1,5 @@
 from collections import namedtuple
+from unittest.mock import patch
 
 import pytest
 from celery import Task
@@ -25,7 +26,6 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.testutils.helpers.faux import faux
 from sentry.utils import json
-from sentry.utils.compat.mock import patch
 from sentry.utils.http import absolute_uri
 from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
 

@@ -214,7 +214,9 @@ describe('EventsV2 > QueryList', function () {
 
     const menuItems = wrapper.find('MenuItem');
     expect(menuItems.length).toEqual(3);
-    expect(menuItems.at(0).find('span').children().html()).toEqual('Add to Dashboard');
+    expect(menuItems.at(0).find('span').children().first().html()).toEqual(
+      'Add to Dashboard'
+    );
     expect(menuItems.at(1).find('span').children().html()).toEqual('Delete Query');
     expect(menuItems.at(2).find('span').children().html()).toEqual('Duplicate Query');
   });

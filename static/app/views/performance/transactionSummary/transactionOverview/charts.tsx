@@ -18,7 +18,6 @@ import EventView from 'app/utils/discover/eventView';
 import {removeHistogramQueryStrings} from 'app/utils/performance/histogram';
 import {decodeScalar} from 'app/utils/queryString';
 import {TransactionsListOption} from 'app/views/releases/detail/overview';
-import {YAxis} from 'app/views/releases/detail/overview/chart/releaseChartControls';
 
 import {TrendColumnField, TrendFunctionField} from '../../trends/types';
 import {
@@ -148,7 +147,7 @@ class TransactionSummaryCharts extends Component<Props> {
     }
 
     const releaseQueryExtra = {
-      yAxis: display === DisplayModes.VITALS ? YAxis.COUNT_VITAL : YAxis.COUNT_DURATION,
+      yAxis: display === DisplayModes.VITALS ? 'countVital' : 'countDuration',
       showTransactions:
         display === DisplayModes.VITALS
           ? TransactionsListOption.SLOW_LCP

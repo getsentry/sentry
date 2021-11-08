@@ -44,6 +44,7 @@ from sentry.mediators import (
 )
 from sentry.models import (
     Activity,
+    Actor,
     Commit,
     CommitAuthor,
     CommitFileChange,
@@ -53,6 +54,7 @@ from sentry.models import (
     ExternalIssue,
     File,
     Group,
+    GroupHistory,
     GroupLink,
     Identity,
     IdentityProvider,
@@ -787,7 +789,24 @@ class Factories:
             "settings": {
                 "type": "alert-rule-settings",
                 "uri": "/sentry/alert-rule",
-                "required_fields": [{"type": "text", "name": "channel", "label": "Channel"}],
+                "required_fields": [
+                    {"type": "text", "name": "title", "label": "Title"},
+                    {"type": "text", "name": "summary", "label": "Summary"},
+                ],
+                "optional_fields": [
+                    {
+                        "type": "select",
+                        "name": "points",
+                        "label": "Points",
+                        "options": [["1", "1"], ["2", "2"], ["3", "3"], ["5", "5"], ["8", "8"]],
+                    },
+                    {
+                        "type": "select",
+                        "name": "assignee",
+                        "label": "Assignee",
+                        "uri": "/sentry/members",
+                    },
+                ],
             },
         }
 
@@ -996,9 +1015,16 @@ class Factories:
         target_identifier=None,
         integration=None,
         sentry_app=None,
+        sentry_app_config=None,
     ):
         return create_alert_rule_trigger_action(
-            trigger, type, target_type, target_identifier, integration, sentry_app
+            trigger,
+            type,
+            target_type,
+            target_identifier,
+            integration,
+            sentry_app,
+            sentry_app_config=sentry_app_config,
         )
 
     @staticmethod
@@ -1057,4 +1083,32 @@ class Factories:
             user=user,
             status=IdentityStatus.VALID,
             scopes=[],
+        )
+
+    @staticmethod
+    def create_group_history(
+        group: Group,
+        status: int,
+        release: Optional[Release] = None,
+        actor: Actor = None,
+        prev_history: GroupHistory = None,
+        date_added: datetime = None,
+    ) -> GroupHistory:
+        prev_history_date = None
+        if prev_history:
+            prev_history_date = prev_history.date_added
+
+        kwargs = {}
+        if date_added:
+            kwargs["date_added"] = date_added
+        return GroupHistory.objects.create(
+            organization=group.organization,
+            group=group,
+            project=group.project,
+            release=release,
+            actor=actor,
+            status=status,
+            prev_history=prev_history,
+            prev_history_date=prev_history_date,
+            **kwargs,
         )

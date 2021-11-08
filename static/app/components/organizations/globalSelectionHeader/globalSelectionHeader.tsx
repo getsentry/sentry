@@ -89,7 +89,7 @@ type Props = {
   className?: string;
 
   /**
-   * Slugs of projects to display in project selector (this affects the ^^^projects returned from HoC)
+   * Slugs of projects to display in project selector
    */
   specificProjectSlugs?: string[];
 
@@ -170,9 +170,6 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
     environments: null,
     searchQuery: '',
   };
-
-  hasMultipleProjectSelection = () =>
-    new Set(this.props.organization.features).has('global-views');
 
   // Returns an options object for `update*` actions
   getUpdateOptions = () => ({
@@ -346,10 +343,7 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
                     value={this.state.projects || this.props.selection.projects}
                     onChange={this.handleChangeProjects}
                     onUpdate={this.handleUpdateProjects}
-                    multi={
-                      !disableMultipleProjectSelection &&
-                      this.hasMultipleProjectSelection()
-                    }
+                    disableMultipleProjectSelection={disableMultipleProjectSelection}
                     {...(loadingProjects ? paginatedProjectSelectorCallbacks : {})}
                     showIssueStreamLink={showIssueStreamLink}
                     showProjectSettingsLink={showProjectSettingsLink}

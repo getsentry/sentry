@@ -4,18 +4,26 @@ import logging
 
 from django.db import migrations
 
-from sentry.snuba.models import QueryDatasets
+from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
 from sentry.snuba.tasks import _create_in_snuba, _delete_from_snuba
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 
 def migrate_subscriptions(apps, schema_editor):
     QuerySubscription = apps.get_model("sentry", "QuerySubscription")
+    AppSnubaQueryEventType = apps.get_model("sentry", "SnubaQueryEventType")
 
     for subscription in RangeQuerySetWrapperWithProgressBar(
         QuerySubscription.objects.select_related("snuba_query").all()
     ):
         if subscription.subscription_id is not None:
+            # The migration apps don't build this property, so manually set it.
+            raw_event_types = AppSnubaQueryEventType.objects.filter(
+                snuba_query=subscription.snuba_query
+            ).all()
+            event_types = [SnubaQueryEventType.EventType(ev.type) for ev in raw_event_types]
+            setattr(subscription.snuba_query, "event_types", event_types)
+
             subscription_id = None
             try:
                 subscription_id = _create_in_snuba(subscription)
@@ -41,7 +49,9 @@ def migrate_subscriptions(apps, schema_editor):
                 logging.exception(f"failed to delete {subscription.subscription_id}: {e}")
                 continue
 
-            subscription.update(subscription_id=subscription_id)
+            QuerySubscription.objects.filter(id=subscription.id).update(
+                subscription_id=subscription_id
+            )
 
 
 class Migration(migrations.Migration):
@@ -73,6 +83,6 @@ class Migration(migrations.Migration):
         migrations.RunPython(
             migrate_subscriptions,
             migrations.RunPython.noop,
-            hints={"tables": ["sentry_querysubscription"]},
+            hints={"tables": ["sentry_querysubscription", "sentry_snubaqueryeventtype"]},
         ),
     ]

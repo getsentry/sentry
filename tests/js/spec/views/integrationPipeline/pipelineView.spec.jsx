@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
 import PipelineView from 'app/views/integrationPipeline/pipelineView';
 
@@ -13,12 +13,12 @@ jest.mock(
 
 describe('PipelineView', () => {
   it('renders awsLambdaProjectSelect', () => {
-    const {findByText} = mountWithTheme(
+    mountWithTheme(
       <PipelineView pipelineName="awsLambdaProjectSelect" someField="someVal" />,
       {context: TestStubs.routerContext()}
     );
 
-    findByText('mock_AwsLambdaProjectSelect');
+    expect(screen.getByText('mock_AwsLambdaProjectSelect')).toBeInTheDocument();
 
     expect(document.title).toBe('AWS Lambda Select Project');
   });

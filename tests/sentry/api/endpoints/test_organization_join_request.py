@@ -1,9 +1,10 @@
+from unittest.mock import patch
+
 from django.core import mail
 from exam import fixture
 
 from sentry.models import AuthProvider, InviteStatus, OrganizationMember, OrganizationOption
 from sentry.testutils import APITestCase
-from sentry.utils.compat.mock import patch
 
 
 class OrganizationJoinRequestTest(APITestCase):

@@ -72,9 +72,16 @@ function OnboardingStatus({
     return null;
   }
 
+  const label = t('Quick Start');
+
   return (
     <Fragment>
-      <Container onClick={handleShowPanel} isActive={isActive}>
+      <Container
+        role="button"
+        aria-label={label}
+        onClick={handleShowPanel}
+        isActive={isActive}
+      >
         <ProgressRing
           animateText
           textCss={progressTextCss}
@@ -87,7 +94,7 @@ function OnboardingStatus({
         />
         {!collapsed && (
           <div>
-            <Heading>{t('Quick Start')}</Heading>
+            <Heading>{label}</Heading>
             <Remaining>
               {tct('[numberRemaining] Remaining tasks', {numberRemaining})}
               {pendingCompletionSeen && <PendingSeenIndicator />}

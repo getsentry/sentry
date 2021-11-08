@@ -1,11 +1,11 @@
 from datetime import datetime, timedelta
+from unittest import mock
 
 import pytz
 from django.utils import timezone
 
 from sentry.rules.filters.age_comparison import AgeComparisonFilter
 from sentry.testutils.cases import RuleTestCase
-from sentry.utils.compat import mock
 
 
 class AgeComparisonFilterTest(RuleTestCase):

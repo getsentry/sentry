@@ -1,4 +1,5 @@
 from datetime import timedelta
+from unittest.mock import ANY, Mock, patch
 
 from django.utils import timezone
 
@@ -23,7 +24,6 @@ from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.utils.cache import cache
-from sentry.utils.compat.mock import ANY, Mock, patch
 
 
 class EventMatcher:

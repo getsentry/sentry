@@ -325,8 +325,7 @@ const HovercardArrow = styled('span')<HovercardArrowProps>`
   }
   &::after {
     border: 10px solid transparent;
-    border-${getTipDirection}-color: ${p =>
-  p.tipColor || (p.placement === 'bottom' ? p.theme.backgroundSecondary : p.theme.white)};
+    border-${getTipDirection}-color: ${p => p.tipColor ?? p.theme.background};
   }
 `;
 

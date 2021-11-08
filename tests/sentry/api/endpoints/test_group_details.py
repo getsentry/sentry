@@ -1,5 +1,7 @@
 from base64 import b64encode
 from datetime import timedelta
+from unittest import mock
+from unittest.mock import patch
 
 from django.utils import timezone
 
@@ -23,8 +25,6 @@ from sentry.models import (
 )
 from sentry.plugins.base import plugins
 from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.utils.compat import mock
-from sentry.utils.compat.mock import patch
 
 
 class GroupDetailsTest(APITestCase, SnubaTestCase):

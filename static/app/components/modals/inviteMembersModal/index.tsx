@@ -268,26 +268,25 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
               : tct('Sent [invites]', tctComponents)}
           </StatusMessage>
         );
-      } else {
-        const inviteRequests = (
-          <strong>{tn('%s invite request', '%s invite requests', sentCount)}</strong>
-        );
-        const tctComponents = {
-          inviteRequests,
-          failed: errorCount,
-        };
-        return (
-          <StatusMessage status="success">
-            <IconCheckmark size="sm" />
-            {errorCount > 0
-              ? tct(
-                  '[inviteRequests] pending approval, [failed] failed to send.',
-                  tctComponents
-                )
-              : tct('[inviteRequests] pending approval', tctComponents)}
-          </StatusMessage>
-        );
       }
+      const inviteRequests = (
+        <strong>{tn('%s invite request', '%s invite requests', sentCount)}</strong>
+      );
+      const tctComponents = {
+        inviteRequests,
+        failed: errorCount,
+      };
+      return (
+        <StatusMessage status="success">
+          <IconCheckmark size="sm" />
+          {errorCount > 0
+            ? tct(
+                '[inviteRequests] pending approval, [failed] failed to send.',
+                tctComponents
+              )
+            : tct('[inviteRequests] pending approval', tctComponents)}
+        </StatusMessage>
+      );
     }
 
     if (this.hasDuplicateEmails) {

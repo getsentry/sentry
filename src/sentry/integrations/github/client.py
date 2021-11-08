@@ -1,9 +1,12 @@
+from __future__ import annotations
+
 from datetime import datetime
 
 import sentry_sdk
 
 from sentry.integrations.client import ApiClient
 from sentry.integrations.github.utils import get_jwt
+from sentry.models import Repository
 from sentry.utils import jwt
 
 
@@ -160,7 +163,7 @@ class GitHubClientMixin(ApiClient):
             headers=headers,
         )
 
-    def check_file(self, repo, path, version):
+    def check_file(self, repo: Repository, path: str, version: str) -> str | None:
         repo_name = repo.name
         return self.head_cached(path=f"/repos/{repo_name}/contents/{path}", params={"ref": version})
 

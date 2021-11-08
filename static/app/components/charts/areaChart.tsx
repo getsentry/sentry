@@ -11,8 +11,8 @@ type ChartProps = React.ComponentProps<typeof BaseChart>;
 export type AreaChartSeries = Series & Omit<EChartOption.SeriesLine, 'data' | 'name'>;
 
 type Props = Omit<ChartProps, 'series'> & {
-  stacked?: boolean;
   series: AreaChartSeries[];
+  stacked?: boolean;
 };
 
 class AreaChart extends React.Component<Props> {

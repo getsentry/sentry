@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from unittest.mock import patch
 
 import pytest
 from django.utils import timezone
@@ -27,7 +28,6 @@ from sentry.search.events.constants import (
 from sentry.snuba import discover
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.utils.compat.mock import patch
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import Dataset, get_array_column_alias
 
@@ -165,6 +165,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
 
     def test_missing_project(self):
         project_ids = []
+        other_project = None
         for project_name in ["a" * 32, "z" * 32, "m" * 32]:
             other_project = self.create_project(organization=self.organization, slug=project_name)
             project_ids.append(other_project.id)
@@ -174,7 +175,8 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             )
 
         # delete the last project so its missing
-        other_project.delete()
+        if other_project is not None:
+            other_project.delete()
 
         for use_snql in [False, True]:
             result = discover.query(
@@ -2171,22 +2173,60 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 assert len(data[0]["stack.filename"]) == len(expected_filenames), use_snql
                 assert sorted(data[0]["stack.filename"]) == expected_filenames, use_snql
 
-        result = discover.query(
-            selected_columns=["stack.filename"],
-            query="stack.filename:[raven.js]",
-            params={
-                "organization_id": self.organization.id,
-                "project_id": [self.project.id],
-                "start": before_now(minutes=12),
-                "end": before_now(minutes=8),
-            },
-            use_snql=use_snql,
-        )
+            result = discover.query(
+                selected_columns=["stack.filename"],
+                query="stack.filename:[raven.js]",
+                params={
+                    "organization_id": self.organization.id,
+                    "project_id": [self.project.id],
+                    "start": before_now(minutes=12),
+                    "end": before_now(minutes=8),
+                },
+                use_snql=use_snql,
+            )
 
-        data = result["data"]
-        assert len(data) == 1
-        assert len(data[0]["stack.filename"]) == len(expected_filenames)
-        assert sorted(data[0]["stack.filename"]) == expected_filenames
+            data = result["data"]
+            assert len(data) == 1
+            assert len(data[0]["stack.filename"]) == len(expected_filenames)
+            assert sorted(data[0]["stack.filename"]) == expected_filenames
+
+    @pytest.mark.skip("setting snuba config is too slow")
+    def test_spans_op_array_field(self):
+        trace_context = {
+            "parent_span_id": "8988cec7cc0779c1",
+            "type": "trace",
+            "op": "http.server",
+            "trace_id": "a7d67cf796774551a95be6543cacd459",
+            "span_id": "babaae0d4b7512d9",
+            "status": "ok",
+            "hash": "a" * 16,
+            "exclusive_time": 1.2345,
+        }
+        data = load_data(
+            "transaction", timestamp=before_now(minutes=10), trace_context=trace_context, spans=[]
+        )
+        self.store_event(data=data, project_id=self.project.id)
+
+        queries = [
+            ("has:spans_op", 1),
+            ("!has:spans_op", 0),
+        ]
+
+        for use_snql in [False, True]:
+            for query, expected_len in queries:
+                result = discover.query(
+                    selected_columns=["spans_op"],
+                    query=query,
+                    params={
+                        "organization_id": self.organization.id,
+                        "project_id": [self.project.id],
+                        "start": before_now(minutes=12),
+                        "end": before_now(minutes=8),
+                    },
+                    use_snql=use_snql,
+                )
+                data = result["data"]
+                assert len(data) == expected_len, use_snql
 
     def test_orderby_field_alias(self):
         data = load_data("android-ndk", timestamp=before_now(minutes=10))
@@ -3002,6 +3042,30 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                     auto_aggregations=True,
                     use_aggregate_conditions=True,
                 )
+
+    def test_sum_array_combinator(self):
+        data = load_data("transaction", timestamp=before_now(seconds=3))
+        data["measurements"] = {
+            "fp": {"value": 1000},
+            "fcp": {"value": 1000},
+            "lcp": {"value": 1000},
+        }
+        self.store_event(data=data, project_id=self.project.id)
+
+        results = discover.query(
+            selected_columns=["sumArray(measurements_value)"],
+            query="",
+            params={
+                "project_id": [self.project.id],
+                "start": self.two_min_ago,
+                "end": self.now,
+            },
+            # make sure to opt in to gain access to the function
+            functions_acl=["sumArray"],
+            # -Array combinator is only supported in SnQL
+            use_snql=True,
+        )
+        assert results["data"][0]["sumArray_measurements_value"] == 3000.0
 
     def test_any_function(self):
         data = load_data("transaction", timestamp=before_now(seconds=3))
@@ -5738,7 +5802,9 @@ class TimeseriesQueryTest(TimeseriesBase):
         )
         assert len(result.data["data"]) == 3
         # Values should all be 0, since there is no comparison period data at all.
-        assert [0, 0, 0] == [val["count"] for val in result.data["data"] if "count" in val]
+        assert [(0, 0), (3, 0), (0, 0)] == [
+            (val.get("count", 0), val.get("comparisonCount", 0)) for val in result.data["data"]
+        ]
 
         self.store_event(
             data={
@@ -5775,7 +5841,9 @@ class TimeseriesQueryTest(TimeseriesBase):
         assert len(result.data["data"]) == 3
         # In the second bucket we have 3 events in the current period and 2 in the comparison, so
         # we get a result of 50% increase
-        assert [0, 50, 0] == [val["count"] for val in result.data["data"] if "count" in val]
+        assert [(0, 0), (3, 2), (0, 0)] == [
+            (val.get("count", 0), val.get("comparisonCount", 0)) for val in result.data["data"]
+        ]
 
         result = discover.timeseries_query(
             selected_columns=["count_unique(user)"],
@@ -5791,8 +5859,9 @@ class TimeseriesQueryTest(TimeseriesBase):
         assert len(result.data["data"]) == 3
         # In the second bucket we have 1 unique user in the current period and 2 in the comparison, so
         # we get a result of -50%
-        assert [0, -50, 0] == [
-            val["count_unique_user"] for val in result.data["data"] if "count_unique_user" in val
+        assert [(0, 0), (1, 2), (0, 0)] == [
+            (val.get("count_unique_user", 0), val.get("comparisonCount", 0))
+            for val in result.data["data"]
         ]
 
     def test_count_miserable(self):
@@ -6143,12 +6212,16 @@ class GetFacetsTest(SnubaTestCase, TestCase):
     def test_invalid_query(self):
         with pytest.raises(InvalidSearchQuery):
             discover.get_facets(
-                "\n", {"project_id": [self.project.id], "end": self.min_ago, "start": self.day_ago}
+                "\n",
+                {"project_id": [self.project.id], "end": self.min_ago, "start": self.day_ago},
+                "testing.get-facets-test",
             )
 
     def test_no_results(self):
         results = discover.get_facets(
-            "", {"project_id": [self.project.id], "end": self.min_ago, "start": self.day_ago}
+            "",
+            {"project_id": [self.project.id], "end": self.min_ago, "start": self.day_ago},
+            "testing.get-facets-test",
         )
         assert results == []
 
@@ -6172,7 +6245,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
             project_id=self.project.id,
         )
         params = {"project_id": [self.project.id], "start": self.day_ago, "end": self.min_ago}
-        result = discover.get_facets("", params)
+        result = discover.get_facets("", params, "testing.get-facets-test")
         assert len(result) == 5
         assert {r.key for r in result} == {"color", "paying", "level"}
         assert {r.value for r in result} == {"red", "blue", "1", "0", "error"}
@@ -6199,7 +6272,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
             project_id=other_project.id,
         )
         params = {"project_id": [self.project.id], "start": self.day_ago, "end": self.min_ago}
-        result = discover.get_facets("", params)
+        result = discover.get_facets("", params, "testing.get-facets-test")
         keys = {r.key for r in result}
         assert keys == {"color", "level"}
 
@@ -6209,7 +6282,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
             "start": self.day_ago,
             "end": self.min_ago,
         }
-        result = discover.get_facets("", params)
+        result = discover.get_facets("", params, "testing.get-facets-test")
         keys = {r.key for r in result}
         assert keys == {"level", "toy", "color", "project"}
 
@@ -6228,7 +6301,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
                 project_id=self.project.id,
             )
         params = {"project_id": [self.project.id], "start": self.day_ago, "end": self.min_ago}
-        result = discover.get_facets("", params)
+        result = discover.get_facets("", params, "testing.get-facets-test")
         keys = {r.key for r in result}
         assert keys == {"environment", "level"}
         assert {None, "prod", "staging"} == {f.value for f in result if f.key == "environment"}
@@ -6254,12 +6327,12 @@ class GetFacetsTest(SnubaTestCase, TestCase):
             project_id=self.project.id,
         )
         params = {"project_id": [self.project.id], "start": self.day_ago, "end": self.min_ago}
-        result = discover.get_facets("bad", params)
+        result = discover.get_facets("bad", params, "testing.get-facets-test")
         keys = {r.key for r in result}
         assert "color" in keys
         assert "toy" not in keys
 
-        result = discover.get_facets("color:red", params)
+        result = discover.get_facets("color:red", params, "testing.get-facets-test")
         keys = {r.key for r in result}
         assert "color" in keys
         assert "toy" not in keys
@@ -6284,12 +6357,12 @@ class GetFacetsTest(SnubaTestCase, TestCase):
             project_id=self.project.id,
         )
         params = {"project_id": [self.project.id], "start": self.day_ago, "end": self.min_ago}
-        result = discover.get_facets("bad", params)
+        result = discover.get_facets("bad", params, "testing.get-facets-test")
         keys = {r.key for r in result}
         assert "color" in keys
         assert "toy" not in keys
 
-        result = discover.get_facets("color:red p95():>1", params)
+        result = discover.get_facets("color:red p95():>1", params, "testing.get-facets-test")
         keys = {r.key for r in result}
         assert "color" in keys
         assert "toy" not in keys
@@ -6314,7 +6387,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
             project_id=self.project.id,
         )
         params = {"project_id": [self.project.id], "start": self.day_ago, "end": self.min_ago}
-        result = discover.get_facets("", params)
+        result = discover.get_facets("", params, "testing.get-facets-test")
         keys = {r.key for r in result}
         assert "color" in keys
         assert "toy" not in keys

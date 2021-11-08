@@ -1,11 +1,13 @@
+from __future__ import annotations
+
 import logging
-from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Optional, Union
+from typing import TYPE_CHECKING, Any, Mapping, MutableMapping
 
 from django.utils.encoding import force_text
 
 from sentry.models import Group, GroupSubscription
 from sentry.notifications.helpers import get_reason_context
-from sentry.notifications.notifications.base import BaseNotification
+from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.utils import send_activity_notification
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
@@ -16,15 +18,15 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class UserReportNotification(BaseNotification):
-    def __init__(self, project: "Project", report: Mapping[str, Any]) -> None:
+class UserReportNotification(ProjectNotification):
+    def __init__(self, project: Project, report: Mapping[str, Any]) -> None:
         super().__init__(project)
         self.group = Group.objects.get(id=report["issue"]["id"])
         self.report = report
 
     def get_participants_with_group_subscription_reason(
         self,
-    ) -> Mapping[ExternalProviders, Mapping["User", int]]:
+    ) -> Mapping[ExternalProviders, Mapping[User, int]]:
         data_by_provider = GroupSubscription.objects.get_participants(group=self.group)
         return {
             provider: data
@@ -41,7 +43,7 @@ class UserReportNotification(BaseNotification):
     def get_type(self) -> str:
         return "notify.user-report"
 
-    def get_subject(self, context: Optional[Mapping[str, Any]] = None) -> str:
+    def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
         # Explicitly typing to satisfy mypy.
         message = f"{self.group.qualified_short_id} - New Feedback from {self.report['name']}"
         message = force_text(message)
@@ -71,7 +73,7 @@ class UserReportNotification(BaseNotification):
         }
 
     def get_recipient_context(
-        self, recipient: Union["Team", "User"], extra_context: Mapping[str, Any]
+        self, recipient: Team | User, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
         return get_reason_context(extra_context)
 

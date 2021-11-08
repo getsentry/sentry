@@ -10,11 +10,10 @@ jobs:
   test:
     name: relay test
     runs-on: ubuntu-20.04
-    timeout-minutes: 10
+    timeout-minutes: 90
     strategy:
       matrix:
-        # TODO(joshuarli): Add 3.8.12.
-        python-version: [3.6.13]
+        python-version: [3.8.12]
     steps:
       - uses: actions/checkout@v2
         with:

@@ -21,19 +21,16 @@ import {GlobalSelection, Organization, Project} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
 import {PerformanceEventViewProvider} from 'app/utils/performance/contexts/performanceEventViewContext';
-import {decodeScalar} from 'app/utils/queryString';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 
 import LandingContent from './landing/content';
-import {DEFAULT_MAX_DURATION} from './trends/utils';
 import {DEFAULT_STATS_PERIOD, generatePerformanceEventView} from './data';
 import {PerformanceLanding} from './landing';
 import Onboarding from './onboarding';
-import {addRoutePerformanceContext, getPerformanceTrendsUrl} from './utils';
+import {addRoutePerformanceContext, handleTrendsClick} from './utils';
 
 type Props = {
   api: Client;
@@ -131,49 +128,6 @@ class PerformanceContent extends Component<Props, State> {
     });
   };
 
-  handleTrendsClick = () => {
-    const {location, organization} = this.props;
-
-    const newQuery = {
-      ...location.query,
-    };
-
-    const query = decodeScalar(location.query.query, '');
-    const conditions = new MutableSearch(query);
-
-    trackAnalyticsEvent({
-      eventKey: 'performance_views.change_view',
-      eventName: 'Performance Views: Change View',
-      organization_id: parseInt(organization.id, 10),
-      view_name: 'TRENDS',
-    });
-
-    const modifiedConditions = new MutableSearch([]);
-
-    if (conditions.hasFilter('tpm()')) {
-      modifiedConditions.setFilterValues('tpm()', conditions.getFilterValues('tpm()'));
-    } else {
-      modifiedConditions.setFilterValues('tpm()', ['>0.01']);
-    }
-    if (conditions.hasFilter('transaction.duration')) {
-      modifiedConditions.setFilterValues(
-        'transaction.duration',
-        conditions.getFilterValues('transaction.duration')
-      );
-    } else {
-      modifiedConditions.setFilterValues('transaction.duration', [
-        '>0',
-        `<${DEFAULT_MAX_DURATION}`,
-      ]);
-    }
-    newQuery.query = modifiedConditions.formatString();
-
-    browserHistory.push({
-      pathname: getPerformanceTrendsUrl(organization),
-      query: {...newQuery},
-    });
-  };
-
   shouldShowOnboarding() {
     const {projects, demoMode} = this.props;
     const {eventView} = this.state;
@@ -218,7 +172,7 @@ class PerformanceContent extends Component<Props, State> {
               <Button
                 priority="primary"
                 data-test-id="landing-header-trends"
-                onClick={this.handleTrendsClick}
+                onClick={() => handleTrendsClick(this.props)}
               >
                 {t('View Trends')}
               </Button>
@@ -259,7 +213,7 @@ class PerformanceContent extends Component<Props, State> {
         eventView={this.state.eventView}
         setError={this.setError}
         handleSearch={this.handleSearch}
-        handleTrendsClick={this.handleTrendsClick}
+        handleTrendsClick={() => handleTrendsClick(this.props)}
         shouldShowOnboarding={this.shouldShowOnboarding()}
         {...this.props}
       />

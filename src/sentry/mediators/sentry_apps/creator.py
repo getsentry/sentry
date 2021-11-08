@@ -16,8 +16,10 @@ from sentry.models import (
 )
 from sentry.models.sentryapp import default_uuid, generate_slug
 
+from .mixin import SentryAppMixin
 
-class Creator(Mediator):
+
+class Creator(Mediator, SentryAppMixin):
     name = Param((str,))
     author = Param((str,))
     organization = Param("sentry.models.Organization")
@@ -130,4 +132,5 @@ class Creator(Mediator):
             user_id=self.user.id,
             organization_id=self.organization.id,
             sentry_app=self.sentry_app.slug,
+            created_alert_rule_ui_component="alert-rule-action" in self.get_schema_types(),
         )

@@ -61,6 +61,10 @@ SAMPLED_URL_NAMES = {
     "sentry-api-0-organization-scim-member-details": settings.SAMPLED_DEFAULT_RATE,
     "sentry-api-0-organization-scim-team-index": settings.SAMPLED_DEFAULT_RATE,
     "sentry-api-0-organization-scim-team-details": settings.SAMPLED_DEFAULT_RATE,
+    # members
+    "sentry-api-0-organization-invite-request-index": settings.SAMPLED_DEFAULT_RATE,
+    "sentry-api-0-organization-invite-request-detail": settings.SAMPLED_DEFAULT_RATE,
+    "sentry-api-0-organization-join-request": settings.SAMPLED_DEFAULT_RATE,
     # login
     "sentry-login": 0.1,
     "sentry-auth-organization": settings.SAMPLED_DEFAULT_RATE,
@@ -69,6 +73,8 @@ SAMPLED_URL_NAMES = {
     "sentry-logout": 0.1,
     "sentry-register": settings.SAMPLED_DEFAULT_RATE,
     "sentry-2fa-dialog": settings.SAMPLED_DEFAULT_RATE,
+    # reprocessing
+    "sentry-api-0-issues-reprocessing": settings.SENTRY_REPROCESSING_APM_SAMPLING,
 }
 if settings.ADDITIONAL_SAMPLED_URLS:
     SAMPLED_URL_NAMES.update(settings.ADDITIONAL_SAMPLED_URLS)
@@ -84,6 +90,9 @@ SAMPLED_TASKS = {
     "sentry.tasks.app_store_connect.refresh_all_builds": settings.SENTRY_APPCONNECT_APM_SAMPLING,
     "sentry.tasks.process_suspect_commits": settings.SENTRY_SUSPECT_COMMITS_APM_SAMPLING,
     "sentry.tasks.post_process.post_process_group": settings.SENTRY_POST_PROCESS_GROUP_APM_SAMPLING,
+    "sentry.tasks.reprocessing2.handle_remaining_events": settings.SENTRY_REPROCESSING_APM_SAMPLING,
+    "sentry.tasks.reprocessing2.reprocess_group": settings.SENTRY_REPROCESSING_APM_SAMPLING,
+    "sentry.tasks.reprocessing2.finish_reprocessing": settings.SENTRY_REPROCESSING_APM_SAMPLING,
 }
 
 

@@ -5,6 +5,7 @@ import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import {generateEventSlug} from 'app/utils/discover/urls';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import {getTraceDetailsUrl} from 'app/views/performance/traceDetails/utils';
 
 import {getTransactionDetailsUrl} from '../utils';
@@ -22,6 +23,12 @@ export function generateTransactionSummaryRoute({orgSlug}: {orgSlug: String}): s
   return `/organizations/${orgSlug}/performance/summary/`;
 }
 
+function cleanTransactionSummaryFilter(query: string): string {
+  const filterParams = new MutableSearch(query);
+  filterParams.removeFilter('transaction');
+  return filterParams.formatString();
+}
+
 export function transactionSummaryRouteWithQuery({
   orgSlug,
   transaction,
@@ -32,6 +39,7 @@ export function transactionSummaryRouteWithQuery({
   trendFunction,
   trendColumn,
   showTransactions,
+  additionalQuery,
 }: {
   orgSlug: string;
   transaction: string;
@@ -42,10 +50,18 @@ export function transactionSummaryRouteWithQuery({
   unselectedSeries?: string | string[];
   projectID?: string | string[];
   showTransactions?: TransactionFilterOptions;
+  additionalQuery?: Record<string, string>;
 }) {
   const pathname = generateTransactionSummaryRoute({
     orgSlug,
   });
+
+  let searchFilter: typeof query.query;
+  if (typeof query.query === 'string') {
+    searchFilter = cleanTransactionSummaryFilter(query.query);
+  } else {
+    searchFilter = query.query;
+  }
 
   return {
     pathname,
@@ -56,12 +72,13 @@ export function transactionSummaryRouteWithQuery({
       statsPeriod: query.statsPeriod,
       start: query.start,
       end: query.end,
-      query: query.query,
+      query: searchFilter,
       unselectedSeries,
       showTransactions,
       display,
       trendFunction,
       trendColumn,
+      ...additionalQuery,
     },
   };
 }
@@ -85,10 +102,17 @@ export function generateTransactionLink(transactionName: string) {
   return (
     organization: Organization,
     tableRow: TableDataRow,
-    query: Query
+    query: Query,
+    hash?: string
   ): LocationDescriptor => {
     const eventSlug = generateEventSlug(tableRow);
-    return getTransactionDetailsUrl(organization, eventSlug, transactionName, query);
+    return getTransactionDetailsUrl(
+      organization,
+      eventSlug,
+      transactionName,
+      query,
+      hash
+    );
   };
 }
 

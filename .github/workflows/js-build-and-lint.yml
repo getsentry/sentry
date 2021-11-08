@@ -47,6 +47,7 @@ jobs:
           key: ${{ runner.os }}-v2-yarn-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
 
       - name: Install dependencies
+        id: dependencies
         if: steps.changes.outputs.frontend == 'true'
         run: yarn install --frozen-lockfile
 
@@ -102,7 +103,7 @@ jobs:
           github-token: ${{ steps.token.outputs.token }}
 
       - name: tsc
-        if: always() && steps.changes.outputs.frontend == 'true'
+        if: steps.dependencies.outcome == 'success' && steps.changes.outputs.frontend == 'true'
         run: |
           yarn tsc -p config/tsconfig.build.json
 

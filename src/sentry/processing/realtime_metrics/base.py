@@ -1,36 +1,133 @@
+import collections
 import dataclasses
-from typing import Dict, Iterable, NewType, Set
+import enum
+from typing import ClassVar, DefaultDict, Iterable, List, Set, Union
 
 from sentry.utils.services import Service
 
 
-@dataclasses.dataclass(frozen=True)
-class BucketedCount:
-    """
-    Timestamp to count mapping. This represents some `count` amount of something performed
-    during `timestamp`. `timestamp` is stored in seconds.
-    """
+class _Period(enum.Enum):
+    """An enum to represent a singleton, for mypy's sake."""
 
-    timestamp: int
-    count: int
-
-
-# Duration to count mapping where the keys are durations and the values are counts. This represents
-# some `count` instances of some action where each individual instance some
-# [`duration`, `duration`+10) seconds of time to complete. `duration` is stored in seconds.
-BucketedDurations = NewType("BucketedDurations", Dict[int, int])
+    TOTAL_PERIOD = 0
 
 
 @dataclasses.dataclass(frozen=True)
-class DurationHistogram:
-    """
-    Mapping of timestamp to histogram-like dict of durations. This represents some `count` amount of
-    some action performed during `timestamp`, where `counts` are grouped by how long that action
-    took. `timestamp` is stored in seconds.
+class BucketedCounts:
+    """A count of something which occurred inside a certain timespan.
+
+    The timespan is further split up in multiple buckets of ``width`` seconds each.
+    ``timestamp`` denotes the POSIX timestamp of the start of the first bucket.
     """
 
     timestamp: int
-    histogram: BucketedDurations
+    width: int
+    counts: List[int]
+
+    TOTAL_PERIOD: ClassVar[_Period] = _Period.TOTAL_PERIOD
+
+    def total_time(self) -> int:
+        """Returns the total timespan covered by all buckets in seconds."""
+        return self.width * len(self.counts)
+
+    def total_count(self) -> int:
+        """Returns the sum of the counts in all the buckets."""
+        return sum(self.counts)
+
+    def rate(self, period: Union[int, _Period] = TOTAL_PERIOD) -> float:
+        """Computes the rate of counts in the buckets for the given period.
+
+        The period must either be the special value :attr:`BucketedCounts.TOTAL_PERIOD` or a
+        number of seconds.  In the latter case the rate of the most recent number of seconds
+        will be computed.
+
+        :raises ValueError: if the given number of seconds is smaller than the
+           :attr:`BucketedCounts.width`.
+        """
+        if period is self.TOTAL_PERIOD:
+            timespan = self.total_time()
+        else:
+            if period < self.width:
+                raise ValueError(
+                    f"Buckets of {self.width}s are too small to compute rate over {period}s"
+                )
+            if period > self.total_time():
+                raise ValueError("Can not compute rate over period longer than total_time")
+            timespan = period
+        bucket_count = int(timespan / self.width)
+        return sum(self.counts[-bucket_count:]) / timespan
+
+
+class DurationsHistogram:
+    """A histogram with fixed bucket sizes.
+
+    :ivar bucket_size: the size of the buckets in the histogram.
+
+    The counters are stored in a sparse dict, with the keys being the start of a bucket
+    duration, so e.g. with a bucket_size of ``10`` key ``30`` would cover durations in the
+    range [30, 40).
+
+    TODO: Not sure how much we gain from being sparse, maybe not being sparse and using a
+       list as storage is more efficient.
+    """
+
+    def __init__(self, bucket_size: int = 10):
+        self.bucket_size = bucket_size
+        self._data: DefaultDict[int, int] = collections.defaultdict(lambda: 0)
+
+    def incr(self, duration: int, count: int = 1) -> None:
+        """Increments the histogram counter of the bucket in which `duration` falls."""
+        bucket_key = duration - (duration % self.bucket_size)
+        self._data[bucket_key] += count
+
+    def incr_from(self, other: "DurationsHistogram") -> None:
+        """Add the counts from another histogram to this one.
+
+        The bucket_size must match.
+        """
+        assert self.bucket_size == other.bucket_size
+        for key, count in other._data.items():
+            self._data[key] += count
+
+    def percentile(self, percentile: float) -> int:
+        """Returns the requested percentile of the histogram.
+
+        The percentile should be expressed as a number between 0 and 1, i.e. 0.75 is the
+        75th percentile.
+        """
+        required_count = percentile * self.total_count()
+        running_count = 0
+        for (duration, count) in self._data.items():
+            running_count += count
+            if running_count >= required_count:
+                return duration
+        else:
+            raise ValueError("Failed to compute percentile")
+
+    def total_count(self) -> int:
+        """Returns the sum of the counts of all the buckets in the histogram."""
+        return sum(self._data.values())
+
+    def __repr__(self) -> str:
+        return f"<DurationsHistogram [{sorted(self._data.items())}]>"
+
+
+@dataclasses.dataclass(frozen=True)
+class BucketedDurationsHistograms:
+    """histograms of counters for a certain timespan.
+
+    The timespan is split up in multiple buckets of ``width`` seconds, with ``timestamp``
+    denoting the POSIX timestamp of the start of the first bucket.  Each bucket contains a
+    :class:`DurationHistogram`.
+    """
+
+    timestamp: int
+    width: int
+    histograms: List[DurationsHistogram]
+
+    def total_time(self) -> int:
+        """Returns the total timespan covered by the buckets in seconds."""
+        return self.width * len(self.histograms)
 
 
 class RealtimeMetricsStore(Service):  # type: ignore
@@ -75,7 +172,7 @@ class RealtimeMetricsStore(Service):  # type: ignore
         """
         raise NotImplementedError
 
-    def get_counts_for_project(self, project_id: int, timestamp: int) -> Iterable[BucketedCount]:
+    def get_counts_for_project(self, project_id: int, timestamp: int) -> BucketedCounts:
         """
         Returns a sorted list of bucketed timestamps paired with the count of symbolicator requests
         made during that time for some given project.
@@ -84,7 +181,7 @@ class RealtimeMetricsStore(Service):  # type: ignore
 
     def get_durations_for_project(
         self, project_id: int, timestamp: int
-    ) -> Iterable[DurationHistogram]:
+    ) -> BucketedDurationsHistograms:
         """
         Returns a sorted list of bucketed timestamps paired with a histogram-like dictionary of
         symbolication durations made during some timestamp for some given project.
@@ -121,19 +218,27 @@ class RealtimeMetricsStore(Service):  # type: ignore
         This registers an intent to redirect all symbolication events triggered by the specified
         project to be redirected to the low priority queue.
 
+        Applies a backoff timer to the project which prevents it from being automatically evicted
+        from the queue while that timer is active.
+
         Returns True if the project was a new addition to the list. Returns False if it was already
-        assigned to the low priority queue.
+        assigned to the low priority queue. This may throw an exception if there is some sort of
+        issue registering the project with the queue.
         """
         raise NotImplementedError
 
     def remove_projects_from_lpq(self, project_ids: Set[int]) -> int:
         """
-        Removes projects from the low priority queue.
+        Unassigns projects from the low priority queue.
 
         This registers an intent to restore all specified projects back to the regular queue.
 
+        Applies a backoff timer to the project which prevents it from being automatically assigned
+        to the queue while that timer is active.
+
         Returns the number of projects that were actively removed from the queue. Any projects that
         were not assigned to the low priority queue to begin with will be omitted from the return
-        value.
+        value. This may throw an exception if there is some sort of issue deregistering the projects
+        from the queue.
         """
         raise NotImplementedError

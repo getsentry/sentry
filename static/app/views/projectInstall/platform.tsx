@@ -218,6 +218,8 @@ class ProjectInstallPlatform extends Component<Props, State> {
 }
 
 const DocumentationWrapper = styled('div')`
+  line-height: 1.5;
+
   .gatsby-highlight {
     margin-bottom: ${space(3)};
 
@@ -231,9 +233,6 @@ const DocumentationWrapper = styled('div')`
     border-radius: ${p => p.theme.borderRadius};
   }
 
-  p {
-    line-height: 1.5;
-  }
   pre {
     word-break: break-all;
     white-space: pre-wrap;

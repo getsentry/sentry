@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from unittest.mock import patch
 
 import pytest
 import pytz
@@ -33,6 +34,7 @@ from sentry.incidents.logic import (
     create_incident,
     create_incident_activity,
     create_incident_snapshot,
+    create_session_stat_snapshot,
     deduplicate_trigger_actions,
     delete_alert_rule,
     delete_alert_rule_trigger,
@@ -44,6 +46,7 @@ from sentry.incidents.logic import (
     get_excluded_projects_for_alert_rule,
     get_incident_aggregates,
     get_incident_event_stats,
+    get_incident_session_stats,
     get_incident_stats,
     get_incident_subscribers,
     get_triggers_for_alert_rule,
@@ -79,10 +82,9 @@ from sentry.models import ActorTuple, PagerDutyService
 from sentry.models.integration import Integration
 from sentry.shared_integrations.exceptions import ApiRateLimitedError
 from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQueryEventType
-from sentry.testutils import BaseIncidentsTest, TestCase
+from sentry.testutils import BaseIncidentsTest, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils import json
-from sentry.utils.compat.mock import patch
 from sentry.utils.samples import load_data
 
 
@@ -234,29 +236,7 @@ class UpdateIncidentStatus(TestCase):
         )
 
 
-class BaseIncidentEventStatsTest(BaseIncidentsTest):
-    @fixture
-    def project_incident(self):
-        self.create_event(self.now - timedelta(minutes=2))
-        self.create_event(self.now - timedelta(minutes=2))
-        self.create_event(self.now - timedelta(minutes=1))
-        return self.create_incident(
-            date_started=self.now - timedelta(minutes=5), query="", projects=[self.project]
-        )
-
-    @fixture
-    def group_incident(self):
-        fingerprint = "group-1"
-        event = self.create_event(self.now - timedelta(minutes=2), fingerprint=fingerprint)
-        self.create_event(self.now - timedelta(minutes=2), fingerprint="other-group")
-        self.create_event(self.now - timedelta(minutes=1), fingerprint=fingerprint)
-        return self.create_incident(
-            date_started=self.now - timedelta(minutes=5),
-            query="",
-            projects=[],
-            groups=[event.group],
-        )
-
+class BaseIncidentsValidation:
     def validate_result(self, incident, result, expected_results, start, end, windowed_stats):
         # Duration of 300s, but no alert rule
         time_window = incident.alert_rule.snuba_query.time_window if incident.alert_rule else 60
@@ -279,6 +259,30 @@ class BaseIncidentEventStatsTest(BaseIncidentsTest):
         assert result.start == expected_start
         assert result.end == expected_end
         assert [r["count"] for r in result.data["data"]] == expected_results
+
+
+class BaseIncidentEventStatsTest(BaseIncidentsTest, BaseIncidentsValidation):
+    @fixture
+    def project_incident(self):
+        self.create_event(self.now - timedelta(minutes=2))
+        self.create_event(self.now - timedelta(minutes=2))
+        self.create_event(self.now - timedelta(minutes=1))
+        return self.create_incident(
+            date_started=self.now - timedelta(minutes=5), query="", projects=[self.project]
+        )
+
+    @fixture
+    def group_incident(self):
+        fingerprint = "group-1"
+        event = self.create_event(self.now - timedelta(minutes=2), fingerprint=fingerprint)
+        self.create_event(self.now - timedelta(minutes=2), fingerprint="other-group")
+        self.create_event(self.now - timedelta(minutes=1), fingerprint=fingerprint)
+        return self.create_incident(
+            date_started=self.now - timedelta(minutes=5),
+            query="",
+            projects=[],
+            groups=[event.group],
+        )
 
 
 @freeze_time()
@@ -361,6 +365,42 @@ class GetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
         self.run_test(incident, [2, 1])
 
 
+@freeze_time()
+class GetIncidentSessionStatsTest(TestCase, SnubaTestCase, BaseIncidentsValidation):
+    def setUp(self):
+        super().setUp()
+        self.now = timezone.now().replace(minute=0, second=0, microsecond=0)
+
+    def test_with_sessions(self):
+        alert_rule = self.create_alert_rule(
+            self.organization,
+            [self.project],
+            query="",
+            time_window=4,
+            dataset=QueryDatasets.SESSIONS,
+            aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
+        )
+        incident = self.create_incident(
+            date_started=self.now - timedelta(minutes=65),
+            query="",
+            projects=[self.project],
+            alert_rule=alert_rule,
+        )
+        for _ in range(3):
+            self.store_session(self.build_session(status="exited"))
+        self.store_session(self.build_session(status="crashed"))
+
+        self._6_min_ago_dt = datetime.utcnow() - timedelta(minutes=6)
+        self._6_min_ago = self._6_min_ago_dt.timestamp()
+        self.store_session(
+            self.build_session(status="crashed", received=self._6_min_ago, started=self._6_min_ago)
+        )
+        result = get_incident_session_stats(incident, windowed_stats=False)
+        self.validate_result(
+            incident, result, [None, 0.0, 75.0], start=None, end=None, windowed_stats=False
+        )
+
+
 class BaseIncidentAggregatesTest(BaseIncidentsTest):
     @property
     def project_incident(self):
@@ -377,6 +417,32 @@ class BaseIncidentAggregatesTest(BaseIncidentsTest):
 class GetIncidentAggregatesTest(TestCase, BaseIncidentAggregatesTest):
     def test_projects(self):
         assert get_incident_aggregates(self.project_incident) == {"count": 4, "unique_users": 2}
+
+
+class GetCrashRateIncidentAggregatesTest(TestCase, SnubaTestCase):
+    def setUp(self):
+        super().setUp()
+        self.now = timezone.now().replace(minute=0, second=0, microsecond=0)
+        for _ in range(2):
+            self.store_session(self.build_session(status="exited"))
+
+    def test_sessions(self):
+        incident = self.create_incident(
+            date_started=self.now - timedelta(minutes=120), query="", projects=[self.project]
+        )
+        alert_rule = self.create_alert_rule(
+            self.organization,
+            [self.project],
+            query="",
+            time_window=1,
+            dataset=QueryDatasets.SESSIONS,
+            aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
+        )
+        incident.update(alert_rule=alert_rule)
+        assert get_incident_aggregates(incident, dataset=QueryDatasets.SESSIONS) == {
+            "count": 0.0,
+            "unique_users": 2,
+        }
 
 
 @freeze_time()
@@ -398,6 +464,49 @@ class CreateEventStatTest(TestCase, BaseIncidentsTest):
         assert snapshot.start == expected_start
         assert snapshot.end == expected_end
         assert [row[1] for row in snapshot.values] == [2, 1]
+
+
+@freeze_time()
+class CreateSessionStatTest(TestCase, SnubaTestCase):
+    def setUp(self):
+        super().setUp()
+        self.now = timezone.now().replace(minute=0, second=0, microsecond=0)
+
+    def test_simple(self):
+        for _ in range(2):
+            self.store_session(self.build_session(status="exited"))
+        self.store_session(self.build_session(status="crashed"))
+        self._2_min_ago_dt = datetime.utcnow() - timedelta(minutes=2)
+        self._2_min_ago = self._2_min_ago_dt.timestamp()
+        self.store_session(
+            self.build_session(status="crashed", received=self._2_min_ago, started=self._2_min_ago)
+        )
+
+        alert_rule = self.create_alert_rule(
+            self.organization,
+            [self.project],
+            query="",
+            time_window=1,
+            dataset=QueryDatasets.SESSIONS,
+            aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
+        )
+        incident = self.create_incident(
+            date_started=self.now - timedelta(minutes=5),
+            query="",
+            projects=[self.project],
+            alert_rule=alert_rule,
+        )
+
+        snapshot = create_session_stat_snapshot(incident, windowed_stats=False)
+        assert snapshot.start == incident.date_started - timedelta(minutes=1)
+        assert snapshot.end == incident.current_end_date + timedelta(minutes=1)
+        assert [row[1] for row in snapshot.values] == [0.0, 66.667]
+
+        snapshot = create_session_stat_snapshot(incident, windowed_stats=True)
+        expected_start, expected_end = calculate_incident_time_range(incident, windowed_stats=True)
+        assert snapshot.start == expected_start
+        assert snapshot.end == expected_end
+        assert [row[1] for row in snapshot.values] == [0.0, 66.667]
 
 
 @freeze_time()
@@ -1509,7 +1618,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
             )
 
     def test_pagerduty(self):
-        SERVICES = [
+        services = [
             {
                 "type": "service",
                 "integration_key": "PND4F9",
@@ -1521,12 +1630,12 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
             provider="pagerduty",
             name="Example PagerDuty",
             external_id="example-pagerduty",
-            metadata={"services": SERVICES},
+            metadata={"services": services},
         )
         integration.add_organization(self.organization, self.user)
         service = PagerDutyService.objects.create(
-            service_name=SERVICES[0]["service_name"],
-            integration_key=SERVICES[0]["integration_key"],
+            service_name=services[0]["service_name"],
+            integration_key=services[0]["integration_key"],
             organization_integration=integration.organizationintegration_set.first(),
         )
         type = AlertRuleTriggerAction.Type.PAGERDUTY
@@ -1715,7 +1824,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             )
 
     def test_pagerduty(self):
-        SERVICES = [
+        services = [
             {
                 "type": "service",
                 "integration_key": "PND4F9",
@@ -1727,12 +1836,12 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             provider="pagerduty",
             name="Example PagerDuty",
             external_id="example-pagerduty",
-            metadata={"services": SERVICES},
+            metadata={"services": services},
         )
         integration.add_organization(self.organization, self.user)
         service = PagerDutyService.objects.create(
-            service_name=SERVICES[0]["service_name"],
-            integration_key=SERVICES[0]["integration_key"],
+            service_name=services[0]["service_name"],
+            integration_key=services[0]["integration_key"],
             organization_integration=integration.organizationintegration_set.first(),
         )
         type = AlertRuleTriggerAction.Type.PAGERDUTY

@@ -60,6 +60,10 @@ DEFAULT_TYPE_CONDITION = ["type", "!=", "transaction"]
 tag_value_data_transformers = {"first_seen": parse_datetime, "last_seen": parse_datetime}
 
 
+def is_fuzzy_numeric_key(key):
+    return key in FUZZY_NUMERIC_KEYS or snuba.is_measurement(key) or snuba.is_span_op_breakdown(key)
+
+
 def fix_tag_value_data(data):
     for key, transformer in tag_value_data_transformers.items():
         if key in data:
@@ -239,6 +243,7 @@ class SnubaTagStorage(TagStorage):
         if include_transactions:
             dataset = Dataset.Discover
 
+        cache_key = None
         if should_cache:
             filtering_strings = [f"{key}={value}" for key, value in filters.items()]
             filtering_strings.append(f"dataset={dataset.name}")
@@ -345,14 +350,14 @@ class SnubaTagStorage(TagStorage):
         use_cache=False,
         include_transactions=False,
     ):
-        MAX_UNSAMPLED_PROJECTS = 50
+        max_unsampled_projects = 50
         # We want to disable FINAL in the snuba query to reduce load.
         optimize_kwargs = {"turbo": True}
-        # If we are fetching less than MAX_UNSAMPLED_PROJECTS, then disable
+        # If we are fetching less than max_unsampled_projects, then disable
         # the sampling that turbo enables so that we get more accurate results.
         # We only want sampling when we have a large number of projects, so
         # that we don't cause performance issues for Snuba.
-        if len(projects) <= MAX_UNSAMPLED_PROJECTS:
+        if len(projects) <= max_unsampled_projects:
             optimize_kwargs["sample"] = 1
         return self.__get_tag_keys_for_projects(
             projects,
@@ -936,6 +941,7 @@ class SnubaTagStorage(TagStorage):
             return self._get_tag_values_for_semver_build(projects, environments, query)
 
         conditions = []
+        project_slugs = {}
         # transaction status needs a special case so that the user interacts with the names and not codes
         transaction_status = snuba_key == "transaction_status"
         if include_transactions and transaction_status:
@@ -950,7 +956,7 @@ class SnubaTagStorage(TagStorage):
                 conditions.append([snuba_key, "IN", status_codes])
             else:
                 return SequencePaginator([])
-        elif key in FUZZY_NUMERIC_KEYS:
+        elif is_fuzzy_numeric_key(key):
             converted_query = int(query) if query is not None and query.isdigit() else None
             if converted_query is not None:
                 conditions.append([snuba_key, ">=", converted_query - FUZZY_NUMERIC_DISTANCE])
@@ -1032,6 +1038,12 @@ class SnubaTagStorage(TagStorage):
                         for value, data in results.items()
                         if value in project_slugs
                     ]
+                )
+            elif is_fuzzy_numeric_key(key):
+                # numeric keys like measurements and breakdowns are nullable
+                # so filter out the None values from the results
+                results = OrderedDict(
+                    [(value, data) for value, data in results.items() if value is not None]
                 )
 
         tag_values = [

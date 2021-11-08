@@ -4,7 +4,7 @@ from django.db.models import Max
 from rest_framework import serializers
 
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
-from sentry.discover.arithmetic import categorize_columns, resolve_equation_list
+from sentry.discover.arithmetic import ArithmeticError, categorize_columns, resolve_equation_list
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import (
     Dashboard,
@@ -40,6 +40,13 @@ def validate_id(self, value):
         raise serializers.ValidationError("Invalid ID format. Must be a numeric string")
 
 
+def is_table_display_type(display_type):
+    return (
+        display_type
+        == DashboardWidgetDisplayTypes.as_text_choices()[DashboardWidgetDisplayTypes.TABLE][0]
+    )
+
+
 class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
     # Is a string because output serializers also make it a string.
     id = serializers.CharField(required=False)
@@ -68,9 +75,18 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
         fields = self._get_attr(data, "fields", []).copy()
         orderby = self._get_attr(data, "orderby", "")
         equations, fields = categorize_columns(fields)
+        is_table = is_table_display_type(self.context.get("displayType"))
 
         if equations is not None:
-            resolved_equations, _ = resolve_equation_list(equations, fields)
+            try:
+                resolved_equations, _, _ = resolve_equation_list(
+                    equations,
+                    fields,
+                    auto_add=not is_table,
+                    aggregates_only=not is_table,
+                )
+            except (InvalidSearchQuery, ArithmeticError) as err:
+                raise serializers.ValidationError({"fields": f"Invalid fields: {err}"})
         else:
             resolved_equations = []
 

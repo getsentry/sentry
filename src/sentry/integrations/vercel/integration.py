@@ -21,6 +21,7 @@ from sentry.models import (
     ProjectKey,
     SentryAppInstallation,
     SentryAppInstallationForProvider,
+    SentryAppInstallationToken,
     User,
 )
 from sentry.pipeline import NestedPipelineView
@@ -93,10 +94,8 @@ class VercelIntegration(IntegrationInstallation):
 
     def get_dynamic_display_information(self):
         organization = Organization.objects.get_from_cache(id=self.organization_id)
-        source_code_link = absolute_uri(
-            "/settings/%s/integrations/?%s"
-            % (organization.slug, urlencode({"category": "source code management"}))
-        )
+        qs = urlencode({"category": "source code management"})
+        source_code_link = absolute_uri(f"/settings/{organization.slug}/integrations/?{qs}")
         add_project_link = absolute_uri(f"/organizations/{organization.slug}/projects/new/")
         return {
             "configure_integration": {
@@ -229,7 +228,7 @@ class VercelIntegration(IntegrationInstallation):
             is_next_js = vercel_project.get("framework") == "nextjs"
             dsn_env_name = "NEXT_PUBLIC_SENTRY_DSN" if is_next_js else "SENTRY_DSN"
 
-            sentry_auth_token = SentryAppInstallationForProvider.get_token(
+            sentry_auth_token = SentryAppInstallationToken.objects.get_token(
                 sentry_project.organization.id,
                 "vercel",
             )

@@ -1,9 +1,9 @@
 from typing import Any, Mapping
+from unittest import mock
 
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.models import Integration, OrganizationIntegration
 from sentry.testutils import APITestCase
-from sentry.utils.compat import mock
 
 
 def serialized_provider() -> Mapping[str, Any]:

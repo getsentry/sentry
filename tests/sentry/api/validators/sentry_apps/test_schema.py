@@ -76,7 +76,9 @@ class TestSchemaValidation(TestCase):
         }
 
     def test_valid_schema_with_options(self):
-        validate_ui_element_schema(self.schema)
+        validate_ui_element_schema(
+            self.schema, features={"organizations:alert-rule-ui-component": True}
+        )
 
     @invalid_schema_with_error_message("'elements' is a required property")
     def test_invalid_schema_elements_missing(self):
@@ -94,7 +96,7 @@ class TestSchemaValidation(TestCase):
         validate_ui_element_schema(schema)
 
     @invalid_schema_with_error_message(
-        "Element has type 'other'. Type must be one of the following: ['issue-link', 'alert-rule-action', 'issue-media', 'stacktrace-link']"
+        "Element has type 'other'. Type must be one of the following: ['issue-link', 'issue-media', 'stacktrace-link']"
     )
     def test_invalid_schema_type_invalid(self):
         schema = {"elements": [{"type": "other"}]}
@@ -103,7 +105,7 @@ class TestSchemaValidation(TestCase):
     @invalid_schema_with_error_message(
         "'uri' is a required property for element of type 'stacktrace-link'"
     )
-    def test_invalid_chema_element_missing_uri(self):
+    def test_invalid_schema_element_missing_uri(self):
         schema = {
             "elements": [{"url": "/stacktrace/github/getsentry/sentry", "type": "stacktrace-link"}]
         }

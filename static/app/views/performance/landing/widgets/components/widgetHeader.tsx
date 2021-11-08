@@ -13,15 +13,17 @@ import {
 export function WidgetHeader<T extends WidgetDataConstraint>(
   props: GenericPerformanceWidgetProps<T> & WidgetDataProps<T>
 ) {
-  const {title, titleTooltip, subtitle, HeaderActions} = props;
+  const {title, titleTooltip, Subtitle, HeaderActions} = props;
   return (
     <WidgetHeaderContainer>
       <TitleContainer>
-        <StyledHeaderTitleLegend data-test-id="performance-widget-title">
-          {title}
-          <QuestionTooltip position="top" size="sm" title={titleTooltip} />
-        </StyledHeaderTitleLegend>
-        <div>{subtitle ? subtitle : null}</div>
+        <div>
+          <StyledHeaderTitleLegend data-test-id="performance-widget-title">
+            <div className="truncate">{title}</div>
+            <QuestionTooltip position="top" size="sm" title={titleTooltip} />
+          </StyledHeaderTitleLegend>
+        </div>
+        <div>{Subtitle ? <Subtitle {...props} /> : null}</div>
       </TitleContainer>
 
       {HeaderActions && (

@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from unittest import mock
 
 import pytest
 from django.utils import timezone
@@ -23,7 +24,6 @@ from sentry.search.utils import (
     tokenize_query,
 )
 from sentry.testutils import TestCase
-from sentry.utils.compat import mock
 
 
 def test_get_numeric_field_value():

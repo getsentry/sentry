@@ -1,4 +1,6 @@
-from typing import Any, MutableMapping, Optional
+from __future__ import annotations
+
+from typing import Any, MutableMapping
 
 from sentry.models import Activity, Mapping, NotificationSetting, User
 from sentry.notifications.types import GroupSubscriptionReason
@@ -37,7 +39,7 @@ class NewProcessingIssuesActivityNotification(ActivityNotification):
             ),
         }
 
-    def get_subject(self, context: Optional[Mapping[str, Any]] = None) -> str:
+    def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
         return f"Processing Issues on {self.project.slug}"
 
     def get_title(self) -> str:

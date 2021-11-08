@@ -320,12 +320,11 @@ export class SentryAppExternalForm extends Component<Props, State> {
   };
 
   handleAlertRuleSubmit = (formData, onSubmitSuccess) => {
-    const {config, sentryAppInstallationUuid} = this.props;
+    const {sentryAppInstallationUuid} = this.props;
     if (this.model.validateForm()) {
       onSubmitSuccess({
         // The form data must be nested in 'settings' to ensure they don't overlap with any other field names.
         settings: formData,
-        uri: config.uri,
         sentryAppInstallationUuid,
         // Used on the backend to explicitly associate with a different rule than those without a custom form.
         hasSchemaFormConfig: true,
@@ -339,7 +338,9 @@ export class SentryAppExternalForm extends Component<Props, State> {
     const requiredFields = this.state.required_fields || [];
     const optionalFields = this.state.optional_fields || [];
 
-    if (!sentryAppInstallationUuid) return '';
+    if (!sentryAppInstallationUuid) {
+      return '';
+    }
 
     return (
       <Form

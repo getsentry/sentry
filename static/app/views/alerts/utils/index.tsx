@@ -2,13 +2,11 @@ import round from 'lodash/round';
 
 import {Client} from 'app/api';
 import {t} from 'app/locale';
-import {NewQuery, Project, SessionField} from 'app/types';
+import {SessionField} from 'app/types';
 import {IssueAlertRule} from 'app/types/alerts';
 import {defined} from 'app/utils';
 import {getUtcDateString} from 'app/utils/dates';
 import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
-import EventView from 'app/utils/discover/eventView';
-import {getAggregateAlias} from 'app/utils/discover/fields';
 import {PRESET_AGGREGATES} from 'app/views/alerts/incidentRules/presets';
 import {
   Dataset,
@@ -55,14 +53,6 @@ export function fetchIncident(
   return api.requestPromise(`/organizations/${orgId}/incidents/${alertId}/`);
 }
 
-export function fetchIncidentStats(
-  api: Client,
-  orgId: string,
-  alertId: string
-): Promise<IncidentStats> {
-  return api.requestPromise(`/organizations/${orgId}/incidents/${alertId}/stats/`);
-}
-
 export function updateSubscription(
   api: Client,
   orgId: string,
@@ -92,21 +82,6 @@ export function updateStatus(
   });
 }
 
-/**
- * Is incident open?
- *
- * @param {Object} incident Incident object
- * @returns {Boolean}
- */
-export function isOpen(incident: Incident): boolean {
-  switch (incident.status) {
-    case IncidentStatus.CLOSED:
-      return false;
-    default:
-      return true;
-  }
-}
-
 export function getIncidentMetricPreset(incident: Incident) {
   const alertRule = incident?.alertRule;
   const aggregate = alertRule?.aggregate ?? '';
@@ -129,61 +104,6 @@ export function getStartEndFromStats(stats: IncidentStats) {
   return {start, end};
 }
 
-/**
- * Gets the URL for a discover view of the incident with the following default
- * parameters:
- *
- * - Ordered by the incident aggregate, descending
- * - yAxis maps to the aggregate
- * - The following fields are displayed:
- *   - For Error dataset alerts: [issue, count(), count_unique(user)]
- *   - For Transaction dataset alerts: [transaction, count()]
- * - Start and end are scoped to the same period as the alert rule
- */
-export function getIncidentDiscoverUrl(opts: {
-  orgSlug: string;
-  projects: Project[];
-  incident?: Incident;
-  stats?: IncidentStats;
-  extraQueryParams?: Partial<NewQuery>;
-}) {
-  const {orgSlug, projects, incident, stats, extraQueryParams} = opts;
-
-  if (!projects || !projects.length || !incident || !stats) {
-    return '';
-  }
-
-  const timeWindowString = `${incident.alertRule.timeWindow}m`;
-  const {start, end} = getStartEndFromStats(stats);
-
-  const discoverQuery: NewQuery = {
-    id: undefined,
-    name: (incident && incident.title) || '',
-    orderby: `-${getAggregateAlias(incident.alertRule.aggregate)}`,
-    yAxis: incident.alertRule.aggregate ? [incident.alertRule.aggregate] : undefined,
-    query: incident?.discoverQuery ?? '',
-    projects: projects
-      .filter(({slug}) => incident.projects.includes(slug))
-      .map(({id}) => Number(id)),
-    version: 2,
-    fields:
-      incident.alertRule.dataset === Dataset.ERRORS
-        ? ['issue', 'count()', 'count_unique(user)']
-        : ['transaction', incident.alertRule.aggregate],
-    start,
-    end,
-    ...extraQueryParams,
-  };
-
-  const discoverView = EventView.fromSavedQuery(discoverQuery);
-  const {query, ...toObject} = discoverView.getResultsViewUrlTarget(orgSlug);
-
-  return {
-    query: {...query, interval: timeWindowString},
-    ...toObject,
-  };
-}
-
 export function isIssueAlert(
   data: IssueAlertRule | SavedIncidentRule | IncidentRule
 ): data is IssueAlertRule {
@@ -193,10 +113,10 @@ export function isIssueAlert(
 export const DATA_SOURCE_LABELS = {
   [Dataset.ERRORS]: t('Errors'),
   [Dataset.TRANSACTIONS]: t('Transactions'),
-  [Datasource.ERROR_DEFAULT]: t('event.type:error OR event.type:default'),
-  [Datasource.ERROR]: t('event.type:error'),
-  [Datasource.DEFAULT]: t('event.type:default'),
-  [Datasource.TRANSACTION]: t('event.type:transaction'),
+  [Datasource.ERROR_DEFAULT]: 'event.type:error OR event.type:default',
+  [Datasource.ERROR]: 'event.type:error',
+  [Datasource.DEFAULT]: 'event.type:default',
+  [Datasource.TRANSACTION]: 'event.type:transaction',
 };
 
 // Maps a datasource to the relevant dataset and event_types for the backend to use
@@ -235,11 +155,11 @@ export function convertDatasetEventTypesToSource(
 
   if (eventTypes.includes(EventTypes.DEFAULT) && eventTypes.includes(EventTypes.ERROR)) {
     return Datasource.ERROR_DEFAULT;
-  } else if (eventTypes.includes(EventTypes.DEFAULT)) {
-    return Datasource.DEFAULT;
-  } else {
-    return Datasource.ERROR;
   }
+  if (eventTypes.includes(EventTypes.DEFAULT)) {
+    return Datasource.DEFAULT;
+  }
+  return Datasource.ERROR;
 }
 
 /**

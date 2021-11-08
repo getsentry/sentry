@@ -5,16 +5,36 @@ import moment from 'moment';
 import {
   DateTimeObject,
   getDiffInMinutes,
-  ONE_WEEK,
-  TWO_WEEKS,
+  SIX_HOURS,
+  SIXTY_DAYS,
+  THIRTY_DAYS,
 } from 'app/components/charts/utils';
+import {IconCheckmark, IconFire, IconWarning} from 'app/icons';
 import {SessionApiResponse, SessionField, SessionStatus} from 'app/types';
 import {SeriesDataUnit} from 'app/types/echarts';
 import {defined, percent} from 'app/utils';
+import {IconSize, Theme} from 'app/utils/theme';
 import {getCrashFreePercent, getSessionStatusPercent} from 'app/views/releases/utils';
+import {sessionTerm} from 'app/views/releases/utils/sessionTerm';
+
+/**
+ * If the time window is less than or equal 10, seconds will be displayed on the graphs
+ */
+export const MINUTES_THRESHOLD_TO_DISPLAY_SECONDS = 10;
+
+const CRASH_FREE_DANGER_THRESHOLD = 98;
+const CRASH_FREE_WARNING_THRESHOLD = 99.5;
 
 export function getCount(groups: SessionApiResponse['groups'] = [], field: SessionField) {
   return groups.reduce((acc, group) => acc + group.totals[field], 0);
+}
+
+export function getCountAtIndex(
+  groups: SessionApiResponse['groups'] = [],
+  field: SessionField,
+  index: number
+) {
+  return groups.reduce((acc, group) => acc + group.series[field][index], 0);
 }
 
 export function getCrashFreeRate(
@@ -156,11 +176,11 @@ export function getAdoptionSeries(
 ): SeriesDataUnit[] {
   return intervals.map((interval, i) => {
     const intervalReleaseSessions = releaseGroups.reduce(
-      (acc, group) => acc + group.series[field][i],
+      (acc, group) => acc + (group.series[field]?.[i] ?? 0),
       0
     );
     const intervalTotalSessions = allGroups.reduce(
-      (acc, group) => acc + group.series[field][i],
+      (acc, group) => acc + (group.series[field]?.[i] ?? 0),
       0
     );
 
@@ -171,6 +191,75 @@ export function getAdoptionSeries(
       value: Math.round(intervalAdoption),
     };
   });
+}
+
+export function getCountSeries(
+  field: SessionField,
+  group?: SessionApiResponse['groups'][0],
+  intervals: SessionApiResponse['intervals'] = []
+): SeriesDataUnit[] {
+  return intervals.map((interval, index) => ({
+    name: interval,
+    value: group?.series[field][index] ?? 0,
+  }));
+}
+
+export function initSessionsChart(theme: Theme) {
+  const colors = theme.charts.getColorPalette(14);
+  return {
+    [SessionStatus.HEALTHY]: {
+      seriesName: sessionTerm.healthy,
+      data: [],
+      color: theme.green300,
+      areaStyle: {
+        color: theme.green300,
+        opacity: 1,
+      },
+      lineStyle: {
+        opacity: 0,
+        width: 0.4,
+      },
+    },
+    [SessionStatus.ERRORED]: {
+      seriesName: sessionTerm.errored,
+      data: [],
+      color: colors[12],
+      areaStyle: {
+        color: colors[12],
+        opacity: 1,
+      },
+      lineStyle: {
+        opacity: 0,
+        width: 0.4,
+      },
+    },
+    [SessionStatus.ABNORMAL]: {
+      seriesName: sessionTerm.abnormal,
+      data: [],
+      color: colors[15],
+      areaStyle: {
+        color: colors[15],
+        opacity: 1,
+      },
+      lineStyle: {
+        opacity: 0,
+        width: 0.4,
+      },
+    },
+    [SessionStatus.CRASHED]: {
+      seriesName: sessionTerm.crashed,
+      data: [],
+      color: theme.red300,
+      areaStyle: {
+        color: theme.red300,
+        opacity: 1,
+      },
+      lineStyle: {
+        opacity: 0,
+        width: 0.4,
+      },
+    },
+  };
 }
 
 type GetSessionsIntervalOptions = {
@@ -188,15 +277,26 @@ export function getSessionsInterval(
     highFidelity = false;
   }
 
-  if (diffInMinutes > TWO_WEEKS) {
+  if (diffInMinutes >= SIXTY_DAYS) {
     return '1d';
   }
-  if (diffInMinutes > ONE_WEEK) {
-    return '6h';
+
+  if (diffInMinutes >= THIRTY_DAYS) {
+    return '4h';
+  }
+
+  if (diffInMinutes >= SIX_HOURS) {
+    return '1h';
   }
 
   // limit on backend for sub-hour session resolution is set to six hours
-  if (highFidelity && diffInMinutes < 360) {
+  if (highFidelity) {
+    if (diffInMinutes <= MINUTES_THRESHOLD_TO_DISPLAY_SECONDS) {
+      // This only works for metrics-based session stats.
+      // Backend will silently replace with '1m' for session-based stats.
+      return '10s';
+    }
+
     if (diffInMinutes <= 30) {
       return '1m';
     }
@@ -265,4 +365,16 @@ export function filterSessionsInTimeWindow(
     intervals,
     groups,
   };
+}
+
+export function getCrashFreeIcon(crashFreePercent: number, iconSize: IconSize = 'sm') {
+  if (crashFreePercent < CRASH_FREE_DANGER_THRESHOLD) {
+    return <IconFire color="red300" size={iconSize} />;
+  }
+
+  if (crashFreePercent < CRASH_FREE_WARNING_THRESHOLD) {
+    return <IconWarning color="yellow300" size={iconSize} />;
+  }
+
+  return <IconCheckmark isCircled color="green300" size={iconSize} />;
 }

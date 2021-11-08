@@ -1,4 +1,5 @@
 import {t} from 'app/locale';
+import {SchemaFormConfig} from 'app/views/organizationIntegrations/sentryAppExternalForm';
 
 export enum AlertRuleThresholdType {
   ABOVE,
@@ -76,7 +77,7 @@ export type UnsavedIncidentRule = {
   aggregate: string;
   thresholdType: AlertRuleThresholdType;
   resolveThreshold: number | '' | null;
-  comparisonDelta?: number;
+  comparisonDelta?: number | null;
   eventTypes?: EventTypes[];
   owner?: string | null;
 };
@@ -185,6 +186,7 @@ export type MetricActionTemplate = {
    */
   sentryAppId?: number;
 
+  sentryAppInstallationUuid?: string;
   /**
    * For some available actions, we pass in the list of available targets.
    */
@@ -194,6 +196,11 @@ export type MetricActionTemplate = {
    * If this is a `sentry_app` action, this is the Sentry App's status.
    */
   status?: 'unpublished' | 'published' | 'internal';
+
+  /**
+   * Sentry App Alert Rule UI Component settings
+   */
+  settings?: SchemaFormConfig;
 };
 
 /**

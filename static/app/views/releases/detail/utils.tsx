@@ -4,29 +4,22 @@ import moment from 'moment';
 
 import MarkLine from 'app/components/charts/components/markLine';
 import {parseStatsPeriod} from 'app/components/organizations/timeRangeSelector/utils';
-import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {t} from 'app/locale';
 import {
   Commit,
   CommitFile,
   FilesByRepository,
-  GlobalSelection,
-  Organization,
   ReleaseComparisonChartType,
   ReleaseProject,
   ReleaseWithHealth,
   Repository,
 } from 'app/types';
 import {Series} from 'app/types/echarts';
-import {getUtcDateString} from 'app/utils/dates';
-import EventView from 'app/utils/discover/eventView';
 import {decodeList} from 'app/utils/queryString';
 import {Theme} from 'app/utils/theme';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
-import {isProjectMobileForReleases} from 'app/views/releases/list';
 
-import {getReleaseBounds, getReleaseParams} from '../utils';
+import {getReleaseBounds, getReleaseParams, isMobileRelease} from '../utils';
 import {commonTermsDescription, SessionTerm} from '../utils/sessionTerm';
 
 export type CommitsByRepository = {
@@ -109,37 +102,6 @@ export function getReposToRender(repos: Array<string>, activeRepository?: Reposi
     return repos;
   }
   return [activeRepository.name];
-}
-
-/**
- * Get high level transaction information for this release
- */
-export function getReleaseEventView(
-  selection: GlobalSelection,
-  version: string,
-  _organization: Organization
-): EventView {
-  const {projects, environments, datetime} = selection;
-  const {start, end, period} = datetime;
-
-  const discoverQuery = {
-    id: undefined,
-    version: 2,
-    name: `${t('Release Apdex')}`,
-    fields: ['apdex()'],
-    query: new MutableSearch([
-      `release:${version}`,
-      'event.type:transaction',
-      'count():>0',
-    ]).formatString(),
-    range: period,
-    environment: environments,
-    projects,
-    start: start ? getUtcDateString(start) : undefined,
-    end: end ? getUtcDateString(end) : undefined,
-  } as const;
-
-  return EventView.fromSavedQuery(discoverQuery);
 }
 
 export const releaseComparisonChartLabels = {
@@ -248,8 +210,6 @@ export function generateReleaseMarkLines(
   const {statsPeriod, ...releaseParamsRest} = getReleaseParams({
     location,
     releaseBounds: getReleaseBounds(release),
-    defaultStatsPeriod: DEFAULT_STATS_PERIOD, // this will be removed once we get rid off legacy release details
-    allowEmptyPeriod: true,
   });
   let {start, end} = releaseParamsRest;
   const isDefaultPeriod = !(
@@ -276,7 +236,7 @@ export function generateReleaseMarkLines(
     );
   }
 
-  if (!isSingleEnv || !isProjectMobileForReleases(project.platform)) {
+  if (!isSingleEnv || !isMobileRelease(project.platform)) {
     // for now want to show marklines only on mobile platforms with single environment selected
     return markLines;
   }

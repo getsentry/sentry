@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import responses
 from django.test.utils import override_settings
 from django.urls import reverse
@@ -5,7 +7,6 @@ from django.urls import reverse
 from sentry.integrations.issues import IssueSyncMixin
 from sentry.models import Integration
 from sentry.testutils import APITestCase
-from sentry.utils.compat.mock import patch
 from tests.fixtures.integrations.mock_service import StubService
 
 

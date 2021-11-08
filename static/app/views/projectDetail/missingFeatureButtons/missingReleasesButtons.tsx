@@ -6,7 +6,7 @@ import FeatureTourModal from 'app/components/modals/featureTourModal';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {RELEASES_TOUR_STEPS} from 'app/views/releases/list/releasePromo';
+import {RELEASES_TOUR_STEPS} from 'app/views/releases/list/releasesPromo';
 
 const DOCS_URL = 'https://docs.sentry.io/product/releases/';
 const DOCS_HEALTH_URL = 'https://docs.sentry.io/product/releases/health/';

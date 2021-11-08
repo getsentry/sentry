@@ -7,7 +7,6 @@ import {
   removeAndRedirectToRemainingOrganization,
   updateOrganization,
 } from 'app/actionCreators/organizations';
-import {Client} from 'app/api';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import List from 'app/components/list';
@@ -16,7 +15,7 @@ import {Panel, PanelHeader} from 'app/components/panels';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t, tct} from 'app/locale';
 import {Organization, Project} from 'app/types';
-import withApi from 'app/utils/withApi';
+import useApi from 'app/utils/useApi';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 import Field from 'app/views/settings/components/forms/field';
@@ -27,13 +26,14 @@ import PermissionAlert from 'app/views/settings/organization/permissionAlert';
 import OrganizationSettingsForm from './organizationSettingsForm';
 
 type Props = {
-  api: Client;
   organization: Organization;
   projects: Project[];
 } & RouteComponentProps<{orgId: string}, {}>;
 
 function OrganizationGeneralSettings(props: Props) {
-  const {api, organization, projects, params} = props;
+  const api = useApi();
+
+  const {organization, projects, params} = props;
   const {orgId} = params;
 
   const access = new Set(organization.access);
@@ -133,4 +133,4 @@ function OrganizationGeneralSettings(props: Props) {
   );
 }
 
-export default withApi(withProjects(withOrganization(OrganizationGeneralSettings)));
+export default withProjects(withOrganization(OrganizationGeneralSettings));

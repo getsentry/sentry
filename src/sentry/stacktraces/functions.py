@@ -5,6 +5,7 @@ from sentry.utils.safe import setdefault_path
 
 _windecl_hash = re.compile(r"^@?(.*?)@[0-9]+$")
 _rust_hash = re.compile(r"::h[a-z0-9]{16}$")
+_gnu_version = re.compile(r"@@?GLIBC_([0-9.]+)$")
 _cpp_trailer_re = re.compile(r"(\bconst\b|&)$")
 _rust_blanket_re = re.compile(r"^([A-Z] as )")
 _lambda_re = re.compile(
@@ -242,6 +243,9 @@ def trim_native_function_name(function, platform, normalize_lambdas=True):
 
     # trim off rust markers
     function = _rust_hash.sub("", function)
+
+    # trim off gnu symbol versioning info
+    function = _gnu_version.sub("", function)
 
     # trim off windows decl markers
     return _windecl_hash.sub("\\1", function)

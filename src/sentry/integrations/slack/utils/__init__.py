@@ -6,8 +6,8 @@ __all__ = (
     "check_signing_secret",
     "get_channel_id",
     "get_channel_id_with_timeout",
+    "is_valid_role",
     "logger",
-    "send_confirmation",
     "send_incident_alert_notification",
     "send_slack_response",
     "strip_channel_name",
@@ -20,7 +20,7 @@ import logging
 
 logger = logging.getLogger("sentry.integrations.slack")
 
-from .auth import check_signing_secret, set_signing_secret
+from .auth import check_signing_secret, is_valid_role, set_signing_secret
 from .channel import (
     get_channel_id,
     get_channel_id_with_timeout,
@@ -29,7 +29,6 @@ from .channel import (
 )
 from .notifications import (
     build_notification_footer,
-    send_confirmation,
     send_incident_alert_notification,
     send_slack_response,
 )

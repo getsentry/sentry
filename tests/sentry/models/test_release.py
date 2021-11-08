@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import pytest
 from django.utils import timezone
 from freezegun import freeze_time
@@ -32,7 +34,6 @@ from sentry.models import (
 )
 from sentry.search.events.filter import parse_semver
 from sentry.testutils import SetRefsTestCase, TestCase
-from sentry.utils.compat.mock import patch
 from sentry.utils.strings import truncatechars
 
 

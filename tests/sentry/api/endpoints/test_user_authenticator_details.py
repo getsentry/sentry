@@ -1,4 +1,5 @@
 import datetime
+from unittest import mock
 
 from django.conf import settings
 from django.core import mail
@@ -8,7 +9,6 @@ from django.utils import timezone
 from sentry.auth.authenticators import RecoveryCodeInterface, SmsInterface, TotpInterface
 from sentry.models import Authenticator, Organization, User
 from sentry.testutils import APITestCase
-from sentry.utils.compat import mock
 
 
 def get_auth(user: "User") -> Authenticator:
@@ -86,6 +86,19 @@ class UserAuthenticatorDeviceDetailsTest(UserAuthenticatorDetailsTestBase):
     def test_require_2fa__delete_device__ok(self):
         self._require_2fa_for_organization()
         self.test_u2f_remove_device()
+
+    def test_rename_device(self):
+        data = {"name": "for testing"}
+        auth = get_auth(self.user)
+        self.get_success_response(self.user.id, auth.id, "devicekeyhandle", **data, method="put")
+
+        authenticator = Authenticator.objects.get(id=auth.id)
+        assert authenticator.interface.get_device_name("devicekeyhandle") == "for testing"
+
+    def test_rename_device_not_found(self):
+        data = {"name": "for testing"}
+        auth = get_auth(self.user)
+        self.get_error_response(self.user.id, auth.id, "not_a_real_device", **data, method="put")
 
 
 class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
@@ -229,6 +242,23 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
         assert Authenticator.objects.filter(id=auth.id).exists()
 
         assert len(mail.outbox) == 0
+
+    def test_require_2fa__can_delete_last_auth_superuser(self):
+        self._require_2fa_for_organization()
+
+        superuser = self.create_user(email="a@example.com", is_superuser=True)
+        self.login_as(user=superuser, superuser=True)
+
+        # enroll in one auth method
+        interface = TotpInterface()
+        interface.enroll(self.user)
+        auth = interface.authenticator
+
+        with self.tasks():
+            self.get_success_response(self.user.id, auth.id, method="delete", status_code=204)
+            assert_security_email_sent("mfa-removed")
+
+        assert not Authenticator.objects.filter(id=auth.id).exists()
 
     def test_require_2fa__delete_with_multiple_auth__ok(self):
         self._require_2fa_for_organization()

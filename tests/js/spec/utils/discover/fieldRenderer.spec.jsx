@@ -1,5 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {act} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'app/stores/configStore';
 import ProjectsStore from 'app/stores/projectsStore';
@@ -15,7 +16,7 @@ describe('getFieldRenderer', function () {
     });
     organization = context.organization;
     project = context.project;
-    ProjectsStore.loadInitialData([project]);
+    act(() => ProjectsStore.loadInitialData([project]));
     user = 'email:text@example.com';
 
     location = {

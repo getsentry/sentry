@@ -222,31 +222,6 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400, response.content
         assert response.data == {"detail": "No projects available"}
 
-    @freeze_time("2021-01-14T12:27:28.303Z")
-    def test_minimum_interval(self):
-        # smallest interval is 1h
-        response = self.do_request(
-            {"project": [-1], "statsPeriod": "2h", "interval": "5m", "field": ["sum(session)"]}
-        )
-        assert response.status_code == 400, response.content
-        assert response.data == {
-            "detail": "The interval has to be a multiple of the minimum interval of one hour."
-        }
-
-        response = self.do_request(
-            {"project": [-1], "statsPeriod": "2h", "interval": "1h", "field": ["sum(session)"]}
-        )
-        assert response.status_code == 200, response.content
-        assert result_sorted(response.data) == {
-            "start": "2021-01-14T11:00:00Z",
-            "end": "2021-01-14T12:28:00Z",
-            "query": "",
-            "intervals": ["2021-01-14T11:00:00Z", "2021-01-14T12:00:00Z"],
-            "groups": [
-                {"by": {}, "series": {"sum(session)": [2, 6]}, "totals": {"sum(session)": 8}}
-            ],
-        }
-
     @freeze_time("2021-01-14T12:37:28.303Z")
     def test_minute_resolution(self):
         with self.feature("organizations:minute-resolution-sessions"):
@@ -277,6 +252,31 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
                     }
                 ],
             }
+
+    @freeze_time("2021-01-14T12:37:28.303Z")
+    def test_10s_resolution(self):
+        with self.feature("organizations:minute-resolution-sessions"):
+            response = self.do_request(
+                {
+                    "project": [self.project1.id],
+                    "statsPeriod": "1m",
+                    "interval": "10s",
+                    "field": ["sum(session)"],
+                }
+            )
+            assert response.status_code == 200, response.content
+
+            from sentry.api.endpoints.organization_sessions import release_health
+
+            if release_health.is_metrics_based():
+                # With the metrics backend, we should get exactly what we asked for,
+                # 6 intervals with 10 second length. However, because of rounding,
+                # we get it rounded to the next minute (see https://github.com/getsentry/sentry/blob/d6c59c32307eee7162301c76b74af419055b9b39/src/sentry/snuba/sessions_v2.py#L388-L392)
+                assert len(response.data["intervals"]) == 9
+            else:
+                # With the sessions backend, the entire period will be aligned
+                # to one hour, and the resolution will still be one minute:
+                assert len(response.data["intervals"]) == 38
 
     @freeze_time("2021-01-14T12:27:28.303Z")
     def test_filter_projects(self):

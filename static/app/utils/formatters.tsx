@@ -70,6 +70,7 @@ export function getDuration(
       abbreviation ? tn('mo', 'mos', result) : ` ${tn('month', 'months', result)}`
     }`;
   }
+
   if (value >= WEEK) {
     const {label, result} = roundWithFixed(msValue / WEEK, fixedDigits);
     if (extraShort) {
@@ -80,12 +81,14 @@ export function getDuration(
     }
     return `${label} ${tn('week', 'weeks', result)}`;
   }
+
   if (value >= 172800000) {
     const {label, result} = roundWithFixed(msValue / DAY, fixedDigits);
     return `${label}${
       abbreviation || extraShort ? t('d') : ` ${tn('day', 'days', result)}`
     }`;
   }
+
   if (value >= 7200000) {
     const {label, result} = roundWithFixed(msValue / HOUR, fixedDigits);
     if (extraShort) {
@@ -96,6 +99,7 @@ export function getDuration(
     }
     return `${label} ${tn('hour', 'hours', result)}`;
   }
+
   if (value >= 120000) {
     const {label, result} = roundWithFixed(msValue / MINUTE, fixedDigits);
     if (extraShort) {
@@ -106,6 +110,7 @@ export function getDuration(
     }
     return `${label} ${tn('minute', 'minutes', result)}`;
   }
+
   if (value >= SECOND) {
     const {label, result} = roundWithFixed(msValue / SECOND, fixedDigits);
     if (extraShort || abbreviation) {

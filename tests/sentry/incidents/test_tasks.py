@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from unittest.mock import Mock, patch
 
 from django.urls import reverse
 from django.utils import timezone
@@ -29,7 +30,6 @@ from sentry.incidents.tasks import (
     send_subscriber_notifications,
 )
 from sentry.testutils import TestCase
-from sentry.utils.compat.mock import Mock, patch
 from sentry.utils.http import absolute_uri
 
 

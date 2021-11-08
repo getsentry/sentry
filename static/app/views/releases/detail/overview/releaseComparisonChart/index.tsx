@@ -14,7 +14,6 @@ import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import NotAvailable from 'app/components/notAvailable';
 import {Panel, PanelTable} from 'app/components/panels';
 import Tooltip from 'app/components/tooltip';
-import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {PlatformKey} from 'app/data/platformCategories';
 import {IconActivity, IconArrow, IconChevron, IconWarning} from 'app/icons';
 import {t, tct, tn} from 'app/locale';
@@ -31,6 +30,7 @@ import {
 } from 'app/types';
 import {defined} from 'app/utils';
 import {formatPercentage} from 'app/utils/formatters';
+import getDynamicText from 'app/utils/getDynamicText';
 import {decodeList, decodeScalar} from 'app/utils/queryString';
 import {
   getCount,
@@ -129,8 +129,6 @@ function ReleaseComparisonChart({
       getReleaseParams({
         location,
         releaseBounds: getReleaseBounds(release),
-        defaultStatsPeriod: DEFAULT_STATS_PERIOD, // this will be removed once we get rid off legacy release details
-        allowEmptyPeriod: true,
       }),
     [release, location]
   );
@@ -140,7 +138,15 @@ function ReleaseComparisonChart({
       fetchEventsTotals();
       fetchIssuesTotals();
     }
-  }, [period, start, end, organization.slug, location]);
+  }, [
+    period,
+    start,
+    end,
+    organization.slug,
+    location.query.project,
+    location.query.environment?.toString(),
+    release.version,
+  ]);
 
   useEffect(() => {
     const chartInUrl = decodeScalar(location.query.chart) as ReleaseComparisonChartType;
@@ -933,36 +939,44 @@ function ReleaseComparisonChart({
             ReleaseComparisonChartType.ERROR_COUNT,
             ReleaseComparisonChartType.TRANSACTION_COUNT,
             ReleaseComparisonChartType.FAILURE_RATE,
-          ].includes(activeChart) ? (
-            <ReleaseEventsChart
-              release={release}
-              project={project}
-              chartType={activeChart}
-              period={period ?? undefined}
-              start={start}
-              end={end}
-              utc={utc === 'true'}
-              value={chart.thisRelease}
-              diff={titleChartDiff}
-            />
-          ) : (
-            <ReleaseSessionsChart
-              releaseSessions={releaseSessions}
-              allSessions={allSessions}
-              release={release}
-              project={project}
-              chartType={activeChart}
-              platform={platform}
-              period={period ?? undefined}
-              start={start}
-              end={end}
-              utc={utc === 'true'}
-              value={chart.thisRelease}
-              diff={titleChartDiff}
-              loading={loading}
-              reloading={reloading}
-            />
-          )}
+          ].includes(activeChart)
+            ? getDynamicText({
+                value: (
+                  <ReleaseEventsChart
+                    release={release}
+                    project={project}
+                    chartType={activeChart}
+                    period={period ?? undefined}
+                    start={start}
+                    end={end}
+                    utc={utc === 'true'}
+                    value={chart.thisRelease}
+                    diff={titleChartDiff}
+                  />
+                ),
+                fixed: 'Events Chart',
+              })
+            : getDynamicText({
+                value: (
+                  <ReleaseSessionsChart
+                    releaseSessions={releaseSessions}
+                    allSessions={allSessions}
+                    release={release}
+                    project={project}
+                    chartType={activeChart}
+                    platform={platform}
+                    period={period ?? undefined}
+                    start={start}
+                    end={end}
+                    utc={utc === 'true'}
+                    value={chart.thisRelease}
+                    diff={titleChartDiff}
+                    loading={loading}
+                    reloading={reloading}
+                  />
+                ),
+                fixed: 'Sessions Chart',
+              })}
         </ChartContainer>
       </ChartPanel>
       <ChartTable
@@ -1031,7 +1045,8 @@ const ChartTable = styled(PanelTable)<{withExpanders: boolean}>`
   }
 
   @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    grid-template-columns: repeat(4, minmax(min-content, 1fr)) 75px;
+    grid-template-columns: repeat(4, minmax(min-content, 1fr)) ${p =>
+        p.withExpanders ? '75px' : ''};
   }
 `;
 

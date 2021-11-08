@@ -1,4 +1,5 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {act} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'app/stores/projectsStore';
 import {DiscoverLanding} from 'app/views/eventsV2/landing';
@@ -8,7 +9,7 @@ describe('EventsV2 > Landing', function () {
   const features = ['discover-basic', 'discover-query'];
 
   beforeEach(function () {
-    ProjectsStore.loadInitialData([TestStubs.Project()]);
+    act(() => ProjectsStore.loadInitialData([TestStubs.Project()]));
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -68,7 +69,7 @@ describe('EventsV2 > Landing', function () {
   });
 
   it('handles no projects', function () {
-    ProjectsStore.loadInitialData([]);
+    act(() => ProjectsStore.loadInitialData([]));
 
     const wrapper = mountWithTheme(
       <DiscoverLanding

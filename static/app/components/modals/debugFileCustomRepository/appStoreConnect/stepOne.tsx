@@ -27,7 +27,14 @@ function StepOne({stepOneData, onSetStepOneData}: Props) {
           }
         )}
       </Alert>
-      <Field label={t('Issuer')} inline={false} flexibleControlStateSize stacked required>
+      <Field
+        label={t('Issuer')}
+        inline={false}
+        error={stepOneData.errors?.issuer}
+        flexibleControlStateSize
+        stacked
+        required
+      >
         <Input
           type="text"
           name="issuer"
@@ -37,11 +44,21 @@ function StepOne({stepOneData, onSetStepOneData}: Props) {
             onSetStepOneData({
               ...stepOneData,
               issuer: e.target.value,
+              errors: !!stepOneData.errors
+                ? {...stepOneData.errors, issuer: undefined}
+                : undefined,
             })
           }
         />
       </Field>
-      <Field label={t('Key ID')} inline={false} flexibleControlStateSize stacked required>
+      <Field
+        label={t('Key ID')}
+        inline={false}
+        error={stepOneData.errors?.keyId}
+        flexibleControlStateSize
+        stacked
+        required
+      >
         <Input
           type="text"
           name="keyId"
@@ -51,6 +68,9 @@ function StepOne({stepOneData, onSetStepOneData}: Props) {
             onSetStepOneData({
               ...stepOneData,
               keyId: e.target.value,
+              errors: !!stepOneData.errors
+                ? {...stepOneData.errors, keyId: undefined}
+                : undefined,
             })
           }
         />

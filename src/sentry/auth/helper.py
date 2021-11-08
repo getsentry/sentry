@@ -1,6 +1,6 @@
 import logging
 from dataclasses import dataclass
-from typing import Any, Mapping, Optional, Tuple
+from typing import Any, Dict, Mapping, Optional, Tuple
 from uuid import uuid4
 
 from django.conf import settings
@@ -19,7 +19,10 @@ from sentry import features
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
 from sentry.app import locks
 from sentry.auth.exceptions import IdentityNotValid
-from sentry.auth.idpmigration import send_one_time_account_confirm_link
+from sentry.auth.idpmigration import (
+    get_verification_value_from_key,
+    send_one_time_account_confirm_link,
+)
 from sentry.auth.provider import MigratingIdentityId, Provider
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
@@ -379,6 +382,14 @@ class AuthIdentityHandler:
 
         return response
 
+    def has_verified_account(self, identity: Identity, verification_value: Dict[str, Any]) -> bool:
+        acting_user = self._get_user(identity)
+
+        return (
+            verification_value["email"] == identity["email"]
+            and verification_value["user_id"] == acting_user.id
+        )
+
     def handle_unknown_identity(
         self,
         state: AuthHelperSessionStore,
@@ -410,14 +421,15 @@ class AuthIdentityHandler:
         else:
             acting_user = self.user
             login_form = None
+        # we don't trust all IDP email verification, so users can also confirm via one time email link
+        is_account_verified = False
+        if self.request.session.get("confirm_account_verification_key"):
+            verification_key = self.request.session.get("confirm_account_verification_key")
+            verification_value = get_verification_value_from_key(verification_key)
+            if verification_value:
+                is_account_verified = self.has_verified_account(identity, verification_value)
 
-        # If they already have an SSO account and the identity provider says
-        # the email matches we go ahead and let them merge it. This is the
-        # only way to prevent them having duplicate accounts, and because
-        # we trust identity providers, its considered safe.
-        # Note: we do not trust things like SAML, so the SSO implementation needs
-        # to consider if 'email_verified' can be trusted or not
-        if acting_user and identity.get("email_verified"):
+        if acting_user and identity.get("email_verified") or is_account_verified:
             # we only allow this flow to happen if the existing user has
             # membership, otherwise we short circuit because it might be
             # an attempt to hijack membership of another organization
@@ -428,7 +440,8 @@ class AuthIdentityHandler:
                 try:
                     self._login(acting_user)
                 except self._NotCompletedSecurityChecks:
-                    if acting_user.has_usable_password():
+                    # adding is_account_verified to the check below in order to redirect to 2fa when the user migrates their idp but has 2fa enabled, otherwise it would stop them from linking their sso provider
+                    if acting_user.has_usable_password() or is_account_verified:
                         return self._post_login_redirect()
                     else:
                         acting_user = None
@@ -498,8 +511,11 @@ class AuthIdentityHandler:
 
     @property
     def provider_name(self):
-        # A blank character is needed to prevent an HTML span from collapsing
-        return self.auth_provider.get_provider().name if self.auth_provider else " "
+        if self.auth_provider:
+            return self.auth_provider.provider_name
+        else:
+            # A blank character is needed to prevent an HTML span from collapsing
+            return " "
 
     def _dispatch_to_confirmation(self, identity: Identity) -> Tuple[Optional[User], str]:
         if self.user.is_authenticated:
@@ -511,7 +527,7 @@ class AuthIdentityHandler:
                 send_one_time_account_confirm_link(
                     existing_user,
                     self.organization,
-                    self.provider_name,
+                    self.auth_provider,
                     identity["email"],
                     identity["id"],
                 )

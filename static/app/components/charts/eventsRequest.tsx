@@ -16,10 +16,12 @@ import {
   OrganizationSummary,
 } from 'app/types';
 import {Series, SeriesDataUnit} from 'app/types/echarts';
+import {stripEquationPrefix} from 'app/utils/discover/fields';
 
 export type TimeSeriesData = {
   // timeseries data
   timeseriesData?: Series[];
+  comparisonTimeseriesData?: Series[];
   allTimeseriesData?: EventsStatsData;
   originalTimeseriesData?: EventsStatsData;
   timeseriesTotals?: {count: number};
@@ -36,14 +38,12 @@ type LoadingStatus = {
    * Whether there was an error retrieving data
    */
   errored: boolean;
+  errorMessage?: string;
 };
-
-// Chart format for multiple series.
-type MultiSeriesResults = Series[];
 
 export type RenderProps = LoadingStatus &
   TimeSeriesData & {
-    results?: MultiSeriesResults;
+    results?: Series[]; // Chart with multiple series.
   };
 
 type DefaultProps = {
@@ -69,6 +69,10 @@ type DefaultProps = {
    * e.g. 1d, 1h, 1m, 1s
    */
   interval: string;
+  /**
+   * Time delta for comparing intervals of alert metrics, in seconds
+   */
+  comparisonDelta?: number;
   /**
    * number of rows to return
    */
@@ -183,6 +187,7 @@ export type EventsRequestProps = DefaultProps &
 type EventsRequestState = {
   reloading: boolean;
   errored: boolean;
+  errorMessage?: string;
   timeseriesData: null | EventsStats | MultiSeriesEventsStats;
   fetchedWithPrevious: boolean;
 };
@@ -197,6 +202,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
     start: null,
     end: null,
     interval: '1d',
+    comparisonDelta: undefined,
     limit: 15,
     query: '',
     includePrevious: true,
@@ -238,31 +244,37 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
     this.setState(state => ({
       reloading: state.timeseriesData !== null,
       errored: false,
+      errorMessage: undefined,
     }));
 
+    let errorMessage;
     if (expired) {
-      addErrorMessage(
-        t('%s has an invalid date range. Please try a more recent date range.', name),
-        {append: true}
+      errorMessage = t(
+        '%s has an invalid date range. Please try a more recent date range.',
+        name
       );
+      addErrorMessage(errorMessage, {append: true});
 
       this.setState({
         errored: true,
+        errorMessage,
       });
     } else {
       try {
         api.clear();
         timeseriesData = await doEventsRequest(api, props);
       } catch (resp) {
+        if (resp && resp.responseJSON && resp.responseJSON.detail) {
+          errorMessage = resp.responseJSON.detail;
+        } else {
+          errorMessage = t('Error loading chart data');
+        }
         if (!hideError) {
-          if (resp && resp.responseJSON && resp.responseJSON.detail) {
-            addErrorMessage(resp.responseJSON.detail);
-          } else {
-            addErrorMessage(t('Error loading chart data'));
-          }
+          addErrorMessage(errorMessage);
         }
         this.setState({
           errored: true,
+          errorMessage,
         });
       }
     }
@@ -366,6 +378,24 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
     ];
   }
 
+  /**
+   * Transforms comparisonCount in query response into timeseries data to be used in a comparison chart for change alerts
+   */
+  transformComparisonTimeseriesData(data: EventsStatsData): Series[] {
+    return [
+      {
+        seriesName: 'comparisonCount()',
+        data: data.map(([timestamp, countsForTimestamp]) => ({
+          name: timestamp * 1000,
+          value: countsForTimestamp.reduce(
+            (acc, {comparisonCount}) => acc + (comparisonCount ?? 0),
+            0
+          ),
+        })),
+      },
+    ];
+  }
+
   processData(response: EventsStats, seriesIndex: number = 0, seriesName?: string) {
     const {data, totals} = response;
     const {
@@ -374,6 +404,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
       timeAggregationSeriesName,
       currentSeriesNames,
       previousSeriesNames,
+      comparisonDelta,
     } = this.props;
     const {current, previous} = this.getData(data);
     const transformedData = includeTransformedData
@@ -382,6 +413,10 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
           seriesName ?? currentSeriesNames?.[seriesIndex]
         )
       : [];
+    const transformedComparisonData =
+      includeTransformedData && comparisonDelta
+        ? this.transformComparisonTimeseriesData(current)
+        : [];
     const previousData = includeTransformedData
       ? this.transformPreviousPeriodData(
           current,
@@ -408,6 +443,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
         : undefined;
     return {
       data: transformedData,
+      comparisonData: transformedComparisonData,
       allData: data,
       originalData: current,
       totals,
@@ -420,7 +456,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
 
   render() {
     const {children, showLoading, ...props} = this.props;
-    const {timeseriesData, reloading, errored} = this.state;
+    const {timeseriesData, reloading, errored, errorMessage} = this.state;
     // Is "loading" if data is null
     const loading = this.props.loading || timeseriesData === null;
 
@@ -437,7 +473,11 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
       const sortedTimeseriesData = Object.keys(timeseriesData)
         .map((seriesName: string, index: number): [number, Series, Series | null] => {
           const seriesData: EventsStats = timeseriesData[seriesName];
-          const processedData = this.processData(seriesData, index, seriesName);
+          const processedData = this.processData(
+            seriesData,
+            index,
+            stripEquationPrefix(seriesName)
+          );
           if (!timeframe) {
             timeframe = processedData.timeframe;
           }
@@ -448,20 +488,22 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
           ];
         })
         .sort((a, b) => a[0] - b[0]);
-      const results: MultiSeriesResults = sortedTimeseriesData.map(item => {
+      const results: Series[] = sortedTimeseriesData.map(item => {
         return item[1];
       });
-      const previousTimeseriesData: MultiSeriesResults | undefined =
-        sortedTimeseriesData.some(item => item[2] === null)
-          ? undefined
-          : sortedTimeseriesData.map(item => {
-              return item[2] as Series;
-            });
+      const previousTimeseriesData: Series[] | undefined = sortedTimeseriesData.some(
+        item => item[2] === null
+      )
+        ? undefined
+        : sortedTimeseriesData.map(item => {
+            return item[2] as Series;
+          });
 
       return children({
         loading,
         reloading,
         errored,
+        errorMessage,
         results,
         timeframe,
         previousTimeseriesData,
@@ -472,6 +514,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
     if (timeseriesData) {
       const {
         data: transformedTimeseriesData,
+        comparisonData: transformedComparisonTimeseriesData,
         allData: allTimeseriesData,
         originalData: originalTimeseriesData,
         totals: timeseriesTotals,
@@ -485,8 +528,10 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
         loading,
         reloading,
         errored,
+        errorMessage,
         // timeseries data
         timeseriesData: transformedTimeseriesData,
+        comparisonTimeseriesData: transformedComparisonTimeseriesData,
         allTimeseriesData,
         originalTimeseriesData,
         timeseriesTotals,
@@ -504,6 +549,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
       loading,
       reloading,
       errored,
+      errorMessage,
       ...props,
     });
   }

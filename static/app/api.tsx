@@ -108,8 +108,6 @@ export const initApiClientErrorHandling = () =>
         'ignore',
         '2fa-required',
         'app-connect-authentication-error',
-        'itunes-authentication-error',
-        'itunes-2fa-required',
       ].includes(code)
     ) {
       return;

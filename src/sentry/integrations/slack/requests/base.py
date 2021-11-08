@@ -1,4 +1,4 @@
-from typing import Any, Dict, Mapping, MutableMapping, Optional
+from typing import Any, Mapping, MutableMapping, Optional
 
 from rest_framework import status as status_
 from rest_framework.request import Request
@@ -61,33 +61,39 @@ class SlackRequest:
         raise NotImplementedError
 
     @property
-    def channel_id(self) -> Optional[Any]:
+    def channel_id(self) -> Optional[str]:
         """
         Provide a normalized interface to ``channel_id``, which Action and Event
         requests provide in different places.
         """
-        return self.data.get("channel_id") or self.data.get("channel", {}).get("id")
+        # Explicitly typing to satisfy mypy.
+        channel_id: str = self.data.get("channel_id") or self.data.get("channel", {}).get("id")
+        return channel_id
 
     @property
-    def response_url(self) -> Optional[Any]:
+    def response_url(self) -> Optional[str]:
         """Provide an interface to ``response_url`` for convenience."""
         return self.data.get("response_url")
 
     @property
-    def team_id(self) -> Any:
+    def team_id(self) -> str:
         """
         Provide a normalized interface to ``team_id``, which Action and Event
         requests provide in different places.
         """
-        return self.data.get("team_id") or self.data.get("team", {}).get("id")
+        # Explicitly typing to satisfy mypy.
+        team_id: str = self.data.get("team_id") or self.data.get("team", {}).get("id")
+        return team_id
 
     @property
-    def user_id(self) -> Optional[Any]:
+    def user_id(self) -> Optional[str]:
         """
         Provide a normalized interface to ``user_id``, which Action and Event
         requests provide in different places.
         """
-        return self.data.get("user_id") or self.data.get("user", {}).get("id")
+        # Explicitly typing to satisfy mypy.
+        user_id: Optional[str] = self.data.get("user_id") or self.data.get("user", {}).get("id")
+        return user_id
 
     @property
     def data(self) -> Mapping[str, Any]:
@@ -96,7 +102,7 @@ class SlackRequest:
         return self._data
 
     @property
-    def logging_data(self) -> Dict[str, Any]:
+    def logging_data(self) -> Mapping[str, str]:
         data = {
             "slack_team_id": self.team_id,
             "slack_channel_id": self.data.get("channel", {}).get("id"),
@@ -170,7 +176,7 @@ class SlackRequest:
         self._info("slack.request")
 
     def _error(self, key: str) -> None:
-        logger.error(key, extra=self.logging_data)
+        logger.error(key, extra={**self.logging_data})
 
     def _info(self, key: str) -> None:
-        logger.info(key, extra=self.logging_data)
+        logger.info(key, extra={**self.logging_data})

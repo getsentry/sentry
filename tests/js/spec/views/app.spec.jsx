@@ -1,4 +1,4 @@
-import {mountWithTheme, waitFor} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'app/stores/configStore';
 import App from 'app/views/app';
@@ -29,29 +29,29 @@ describe('App', function () {
   });
 
   it('renders', async function () {
-    const {getByText} = mountWithTheme(
+    mountWithTheme(
       <App params={{orgId: 'org-slug'}}>
         <div>placeholder content</div>
       </App>
     );
 
-    expect(getByText('placeholder content')).toBeInTheDocument();
+    expect(screen.getByText('placeholder content')).toBeInTheDocument();
   });
 
   it('renders NewsletterConsent', async function () {
     const user = ConfigStore.get('user');
     user.flags.newsletter_consent_prompt = true;
 
-    const {getByText} = mountWithTheme(
+    mountWithTheme(
       <App params={{orgId: 'org-slug'}}>
         <div>placeholder content</div>
       </App>
     );
 
-    await waitFor(() => {
-      const node = getByText('Yes, I would like to receive updates via email');
-      return expect(node).toBeInTheDocument();
-    });
+    const updatesViaEmail = await screen.findByText(
+      'Yes, I would like to receive updates via email'
+    );
+    expect(updatesViaEmail).toBeInTheDocument();
 
     user.flags.newsletter_consent_prompt = false;
   });
@@ -61,15 +61,15 @@ describe('App', function () {
     ConfigStore.set('needsUpgrade', true);
     ConfigStore.set('version', {current: '1.33.7'});
 
-    const {getByText} = mountWithTheme(
+    mountWithTheme(
       <App params={{orgId: 'org-slug'}}>
         <div>placeholder content</div>
       </App>
     );
 
-    await waitFor(() => {
-      const node = getByText('Complete setup by filling out the required configuration.');
-      return expect(node).toBeInTheDocument();
-    });
+    const completeSetup = await screen.findByText(
+      'Complete setup by filling out the required configuration.'
+    );
+    expect(completeSetup).toBeInTheDocument();
   });
 });

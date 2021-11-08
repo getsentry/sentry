@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import pytest
 from django.db import models
 from django.urls import reverse
@@ -14,7 +16,6 @@ from sentry.models import (
     SentryAppInstallationForProvider,
 )
 from sentry.testutils import AuthProviderTestCase, PermissionTestCase
-from sentry.utils.compat.mock import patch
 
 
 class OrganizationAuthSettingsPermissionTest(PermissionTestCase):

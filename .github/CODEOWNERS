@@ -32,10 +32,11 @@
 
 # Security
 /src/sentry/net/                    @getsentry/security
-/src/sentry/auth/                   @getsentry/security
-/src/sentry/api/permissions.py      @getsentry/security
-/src/sentry/api/authentication.py   @getsentry/security
-/src/sentry/api/endpoints/auth*     @getsentry/security
+/src/sentry/auth/                   @getsentry/security @getsentry/enterprise
+/src/sentry/api/permissions.py      @getsentry/security @getsentry/enterprise
+/src/sentry/api/authentication.py   @getsentry/security @getsentry/enterprise
+/src/sentry/api/endpoints/auth*     @getsentry/security @getsentry/enterprise
+/src/sentry/api/endpoints/user_permission*     @getsentry/security @getsentry/enterprise
 
 # Dev
 /.github/                   @getsentry/owners-sentry-dev
@@ -126,7 +127,7 @@ build-utils/        @getsentry/owners-js-build
 
 ### Performance ###
 /src/sentry/api/endpoints/organization_events_facets_performance.py         @getsentry/performance
-
+/src/sentry/api/endpoints/organization_events_spans_performance.py          @getsentry/performance
 /src/sentry/api/endpoints/organization_events_trace.py          @getsentry/performance
 /src/sentry/api/endpoints/organization_events_trends.py         @getsentry/performance
 /src/sentry/api/endpoints/organization_events_vitals.py         @getsentry/performance
@@ -227,10 +228,17 @@ build-utils/        @getsentry/owners-js-build
 
 ### Enterprise ###
 
-/src/sentry/api/endpoints/organization_auditlogs.py  @getsentry/enterprise
+/static/app/views/organizationStats                  @getsentry/enterprise
+/tests/js/spec/views/organizationStats/              @getsentry/enterprise
 /src/sentry/api/endpoints/organization_stats*.py     @getsentry/enterprise
+
+/src/sentry/api/endpoints/organization_auditlogs.py  @getsentry/enterprise
+
+/static/app/views/settings/organizationAuth/         @getsentry/enterprise
+/tests/sentry/api/endpoints/test_auth*.py            @getsentry/enterprise
+
 /src/sentry/scim/                                    @getsentry/enterprise
-/tests/sentry/api/test_scim.py                       @getsentry/enterprise
+/tests/sentry/api/test_scim*.py                      @getsentry/enterprise
 
 ## End of Enterprise ###
 
@@ -249,11 +257,12 @@ build-utils/        @getsentry/owners-js-build
 /src/sentry/api/endpoints/chunk.py                                  @getsentry/owners-native
 /src/sentry/api/endpoints/project_app_store_connect_credentials.py  @getsentry/owners-native
 /src/sentry/lang/native/                                            @getsentry/owners-native
-src/sentry/processing/realtime_metrics/                             @getsentry/owners-native
+/src/sentry/processing/realtime_metrics/                            @getsentry/owners-native
 /src/sentry/tasks/app_store_connect.py                              @getsentry/owners-native
 /src/sentry/tasks/assemble.py                                       @getsentry/owners-native
 /src/sentry/tasks/low_priority_symbolication.py                     @getsentry/owners-native
-/tests/sentry/tasks/test_low_priority_symbolication.py              @getsentry/owners-native
+/src/sentry/tasks/symbolication.py                                  @getsentry/owners-native
 /src/sentry/utils/appleconnect/                                     @getsentry/owners-native
+/tests/sentry/tasks/test_low_priority_symbolication.py              @getsentry/owners-native
 
 ## End of Native ##

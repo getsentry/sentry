@@ -239,9 +239,9 @@ function TeamSelector(props: Props) {
       onInputChange={debounce(val => void onSearch(val), DEFAULT_DEBOUNCE_DURATION)}
       isOptionDisabled={option => !!option.disabled}
       styles={{
-        ...(styles ?? {}),
         ...(includeUnassigned ? unassignedSelectStyles : {}),
         ...placeholderSelectStyles,
+        ...(styles ?? {}),
       }}
       isLoading={fetching}
       {...extraProps}

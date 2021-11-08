@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
 import ContextData from 'app/components/contextData';
 
@@ -7,10 +7,10 @@ describe('ContextData', function () {
     describe('strings', function () {
       it('should render urls w/ an additional <a> link', function () {
         const URL = 'https://example.org/foo/bar/';
-        const wrapper = mountWithTheme(<ContextData data={URL} />);
+        mountWithTheme(<ContextData data={URL} />);
 
-        expect(wrapper.find('span').at(0).text()).toEqual(URL);
-        expect(wrapper.find('a').at(0).prop('href')).toEqual(URL);
+        expect(screen.getByText(URL)).toBeInTheDocument();
+        expect(screen.getByRole('link')).toHaveAttribute('href', URL);
       });
     });
   });

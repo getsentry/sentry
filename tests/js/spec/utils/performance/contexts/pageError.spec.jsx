@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {fireEvent, mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
 import {
   PageErrorAlert,
@@ -23,7 +23,7 @@ describe('Performance > Contexts > pageError', function () {
   });
 
   it('Check that pageError context will render error alert', async function () {
-    const wrapper = mountWithTheme(
+    mountWithTheme(
       <PageErrorProvider>
         <div data-test-id="errorAlert">
           <PageErrorAlert />
@@ -33,10 +33,10 @@ describe('Performance > Contexts > pageError', function () {
       {context: routerContext}
     );
 
-    const button = await wrapper.findByTestId('pageErrorButton');
+    const button = await screen.findByTestId('pageErrorButton');
 
     await fireEvent.click(button);
 
-    expect(await wrapper.findByTestId('errorAlert')).toHaveTextContent('Fresh new error');
+    expect(await screen.findByTestId('errorAlert')).toHaveTextContent('Fresh new error');
   });
 });

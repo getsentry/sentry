@@ -17,19 +17,34 @@ export interface BaseChartSetting {
 }
 
 export enum PerformanceWidgetSetting {
+  DURATION_HISTOGRAM = 'duration_histogram',
   LCP_HISTOGRAM = 'lcp_histogram',
   FCP_HISTOGRAM = 'fcp_histogram',
   FID_HISTOGRAM = 'fid_histogram',
   APDEX_AREA = 'apdex_area',
   P50_DURATION_AREA = 'p50_duration_area',
+  P75_DURATION_AREA = 'p75_duration_area',
   P95_DURATION_AREA = 'p95_duration_area',
   P99_DURATION_AREA = 'p99_duration_area',
+  P75_LCP_AREA = 'p75_lcp_area',
   TPM_AREA = 'tpm_area',
   FAILURE_RATE_AREA = 'failure_rate_area',
   USER_MISERY_AREA = 'user_misery_area',
   WORST_LCP_VITALS = 'worst_lcp_vitals',
   MOST_IMPROVED = 'most_improved',
   MOST_REGRESSED = 'most_regressed',
+  MOST_RELATED_ERRORS = 'most_related_errors',
+  MOST_RELATED_ISSUES = 'most_related_issues',
+  SLOW_HTTP_OPS = 'slow_http_ops',
+  SLOW_DB_OPS = 'slow_db_ops',
+  SLOW_RESOURCE_OPS = 'slow_resource_ops',
+  SLOW_BROWSER_OPS = 'slow_browser_ops',
+  COLD_STARTUP_AREA = 'cold_startup_area',
+  WARM_STARTUP_AREA = 'warm_startup_area',
+  SLOW_FRAMES_AREA = 'slow_frames_area',
+  FROZEN_FRAMES_AREA = 'frozen_frames_area',
+  MOST_SLOW_FRAMES = 'most_slow_frames',
+  MOST_FROZEN_FRAMES = 'most_frozen_frames',
 }
 
 const WIDGET_PALETTE = CHART_PALETTE[5];
@@ -40,6 +55,13 @@ export const WIDGET_DEFINITIONS: ({
 }: {
   organization: Organization;
 }) => ({
+  [PerformanceWidgetSetting.DURATION_HISTOGRAM]: {
+    title: t('Duration Distribution'),
+    titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.DURATION_DISTRIBUTION),
+    fields: ['transaction.duration'],
+    dataType: GenericPerformanceWidgetDataType.histogram,
+    chartColor: WIDGET_PALETTE[5],
+  },
   [PerformanceWidgetSetting.LCP_HISTOGRAM]: {
     title: t('LCP Distribution'),
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.DURATION_DISTRIBUTION),
@@ -94,6 +116,13 @@ export const WIDGET_DEFINITIONS: ({
     dataType: GenericPerformanceWidgetDataType.area,
     chartColor: WIDGET_PALETTE[3],
   },
+  [PerformanceWidgetSetting.P75_DURATION_AREA]: {
+    title: t('p75 Duration'),
+    titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.P75),
+    fields: ['p75(transaction.duration)'], // TODO(k-fish): Check
+    dataType: GenericPerformanceWidgetDataType.area,
+    chartColor: WIDGET_PALETTE[3],
+  },
   [PerformanceWidgetSetting.P95_DURATION_AREA]: {
     title: t('p95 Duration'),
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.P95),
@@ -108,6 +137,13 @@ export const WIDGET_DEFINITIONS: ({
     dataType: GenericPerformanceWidgetDataType.area,
     chartColor: WIDGET_PALETTE[3],
   },
+  [PerformanceWidgetSetting.P75_LCP_AREA]: {
+    title: t('p75 LCP'),
+    titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.P75),
+    fields: ['p75(measurements.lcp)'],
+    dataType: GenericPerformanceWidgetDataType.area,
+    chartColor: WIDGET_PALETTE[1],
+  },
   [PerformanceWidgetSetting.FAILURE_RATE_AREA]: {
     title: t('Failure Rate'),
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.FAILURE_RATE),
@@ -120,6 +156,90 @@ export const WIDGET_DEFINITIONS: ({
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.USER_MISERY),
     fields: [`user_misery(${organization.apdexThreshold ?? ''})`], // TODO(k-fish): Check threshold is correct vs existing landing
     dataType: GenericPerformanceWidgetDataType.area,
+    chartColor: WIDGET_PALETTE[0],
+  },
+  [PerformanceWidgetSetting.COLD_STARTUP_AREA]: {
+    title: t('Cold Startup Time'),
+    titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.APP_START_COLD),
+    fields: ['p75(measurements.app_start_cold)'],
+    dataType: GenericPerformanceWidgetDataType.area,
+    chartColor: WIDGET_PALETTE[4],
+  },
+  [PerformanceWidgetSetting.WARM_STARTUP_AREA]: {
+    title: t('Warm Startup Time'),
+    titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.APP_START_WARM),
+    fields: ['p75(measurements.app_start_warm)'],
+    dataType: GenericPerformanceWidgetDataType.area,
+    chartColor: WIDGET_PALETTE[3],
+  },
+  [PerformanceWidgetSetting.SLOW_FRAMES_AREA]: {
+    title: t('Slow Frames'),
+    titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.SLOW_FRAMES),
+    fields: ['p75(measurements.frames_slow_rate)'],
+    dataType: GenericPerformanceWidgetDataType.area,
+    chartColor: WIDGET_PALETTE[0],
+  },
+  [PerformanceWidgetSetting.FROZEN_FRAMES_AREA]: {
+    title: t('Frozen Frames'),
+    titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.FROZEN_FRAMES),
+    fields: ['p75(measurements.frames_frozen_rate)'],
+    dataType: GenericPerformanceWidgetDataType.area,
+    chartColor: WIDGET_PALETTE[5],
+  },
+  [PerformanceWidgetSetting.MOST_RELATED_ERRORS]: {
+    title: t('Most Related Errors'),
+    titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.MOST_ERRORS),
+    fields: [`failure_count()`],
+    dataType: GenericPerformanceWidgetDataType.line_list,
+    chartColor: WIDGET_PALETTE[0],
+  },
+  [PerformanceWidgetSetting.MOST_RELATED_ISSUES]: {
+    title: t('Most Related Issues'),
+    titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.MOST_ISSUES),
+    fields: [`count()`],
+    dataType: GenericPerformanceWidgetDataType.line_list,
+    chartColor: WIDGET_PALETTE[0],
+  },
+  [PerformanceWidgetSetting.SLOW_HTTP_OPS]: {
+    title: t('Slow HTTP Ops'),
+    titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.SLOW_HTTP_SPANS),
+    fields: [`p75(spans.http)`],
+    dataType: GenericPerformanceWidgetDataType.line_list,
+    chartColor: WIDGET_PALETTE[0],
+  },
+  [PerformanceWidgetSetting.SLOW_BROWSER_OPS]: {
+    title: t('Slow Browser Ops'),
+    titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.SLOW_HTTP_SPANS),
+    fields: [`p75(spans.browser)`],
+    dataType: GenericPerformanceWidgetDataType.line_list,
+    chartColor: WIDGET_PALETTE[0],
+  },
+  [PerformanceWidgetSetting.SLOW_RESOURCE_OPS]: {
+    title: t('Slow Resource Ops'),
+    titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.SLOW_HTTP_SPANS),
+    fields: [`p75(spans.resource)`],
+    dataType: GenericPerformanceWidgetDataType.line_list,
+    chartColor: WIDGET_PALETTE[0],
+  },
+  [PerformanceWidgetSetting.SLOW_DB_OPS]: {
+    title: t('Slow DB Ops'),
+    titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.SLOW_HTTP_SPANS),
+    fields: [`p75(spans.db)`],
+    dataType: GenericPerformanceWidgetDataType.line_list,
+    chartColor: WIDGET_PALETTE[0],
+  },
+  [PerformanceWidgetSetting.MOST_SLOW_FRAMES]: {
+    title: t('Most Slow Frames'),
+    titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.SLOW_FRAMES),
+    fields: ['p75(measurements.frames_slow_rate)'],
+    dataType: GenericPerformanceWidgetDataType.line_list,
+    chartColor: WIDGET_PALETTE[0],
+  },
+  [PerformanceWidgetSetting.MOST_FROZEN_FRAMES]: {
+    title: t('Most Frozen Frames'),
+    titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.FROZEN_FRAMES),
+    fields: ['p75(measurements.frames_frozen_rate)'],
+    dataType: GenericPerformanceWidgetDataType.line_list,
     chartColor: WIDGET_PALETTE[0],
   },
   [PerformanceWidgetSetting.MOST_IMPROVED]: {

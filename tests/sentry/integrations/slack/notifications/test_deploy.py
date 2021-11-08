@@ -1,11 +1,12 @@
+from unittest import mock
+
 import responses
 from django.utils import timezone
 
 from sentry.models import Activity, Deploy, Release
 from sentry.notifications.notifications.activity import ReleaseActivityNotification
-from sentry.utils.compat import mock
-
-from . import SlackActivityNotificationTest, get_attachment, send_notification
+from sentry.testutils.cases import SlackActivityNotificationTest
+from sentry.testutils.helpers.slack import get_attachment, send_notification
 
 
 class SlackUnassignedNotificationTest(SlackActivityNotificationTest):
@@ -56,5 +57,5 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest):
         )
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/deploy/?referrer=ReleaseActivitySlack|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/deploy/?referrer=ReleaseActivitySlackUser|Notification Settings>"
         )

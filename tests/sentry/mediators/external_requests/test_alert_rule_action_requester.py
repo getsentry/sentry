@@ -16,7 +16,13 @@ class TestAlertRuleActionRequester(TestCase):
         self.group = self.create_group(project=self.project)
 
         self.sentry_app = self.create_sentry_app(
-            name="foo", organization=self.org, webhook_url="https://example.com", scopes=()
+            name="foo",
+            organization=self.org,
+            schema={
+                "elements": [
+                    self.create_alert_rule_action_schema(),
+                ]
+            },
         )
 
         self.install = self.create_sentry_app_installation(
@@ -29,17 +35,17 @@ class TestAlertRuleActionRequester(TestCase):
 
         responses.add(
             method=responses.POST,
-            url="https://example.com/alert-rule",
+            url="https://example.com/sentry/alert-rule",
             status=200,
-            content_type="application/json",
+            json={},
         )
 
         result = AlertRuleActionRequester.run(
             install=self.install,
-            uri="/alert-rule",
+            uri="/sentry/alert-rule",
             fields=fields,
         )
-        assert not result
+        assert result["success"]
 
         request = responses.calls[0].request
         assert request.headers["Sentry-App-Signature"]

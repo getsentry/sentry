@@ -1,12 +1,12 @@
 import unittest
 from collections import OrderedDict
 from functools import partial
+from unittest.mock import Mock, patch
 
 import pytest
 
 from sentry.testutils import TestCase
 from sentry.utils.canonical import CanonicalKeyDict
-from sentry.utils.compat.mock import Mock, patch
 from sentry.utils.safe import (
     get_path,
     safe_execute,

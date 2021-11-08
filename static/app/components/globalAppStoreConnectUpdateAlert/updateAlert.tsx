@@ -7,7 +7,6 @@ import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import Link from 'app/components/links/link';
 import AppStoreConnectContext from 'app/components/projects/appStoreConnectContext';
-import {appStoreConnectAlertMessage} from 'app/components/projects/appStoreConnectContext/utils';
 import {IconClose, IconRefresh} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -85,14 +84,7 @@ function UpdateAlert({api, Wrapper, isCompact, project, organization, className}
         {isCompact && (
           <Fragment>
             &nbsp;
-            <Link
-              to={
-                updateAlertMessage ===
-                appStoreConnectAlertMessage.appStoreCredentialsInvalid
-                  ? projectSettingsLink
-                  : `${projectSettingsLink}&revalidateItunesSession=true`
-              }
-            >
+            <Link to={projectSettingsLink}>
               {t('Update it in the project settings to reconnect')}
             </Link>
           </Fragment>
@@ -120,10 +112,7 @@ function UpdateAlert({api, Wrapper, isCompact, project, organization, className}
           {t('Dismiss')}
         </Button>
         |
-        <Button
-          priority="link"
-          to={`${projectSettingsLink}&revalidateItunesSession=true`}
-        >
+        <Button priority="link" to={projectSettingsLink}>
           {t('Update session')}
         </Button>
       </Actions>

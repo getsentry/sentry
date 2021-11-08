@@ -29,11 +29,7 @@ import {Panel, PanelBody} from 'app/components/panels';
 import QueryCount from 'app/components/queryCount';
 import StreamGroup from 'app/components/stream/group';
 import ProcessingIssueList from 'app/components/stream/processingIssueList';
-import {
-  DEFAULT_QUERY,
-  DEFAULT_STATS_PERIOD,
-  RELEASE_ADOPTION_STAGES,
-} from 'app/constants';
+import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'app/constants';
 import {tct} from 'app/locale';
 import GroupStore from 'app/stores/groupStore';
 import {PageContent} from 'app/styles/organization';
@@ -52,6 +48,7 @@ import {analytics, trackAnalyticsEvent} from 'app/utils/analytics';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import CursorPoller from 'app/utils/cursorPoller';
 import {getUtcDateString} from 'app/utils/dates';
+import {SEMVER_TAGS} from 'app/utils/discover/fields';
 import getCurrentSentryReactTransaction from 'app/utils/getCurrentSentryReactTransaction';
 import parseApiError from 'app/utils/parseApiError';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
@@ -218,7 +215,8 @@ class IssueListOverview extends React.Component<Props, State> {
     // Wait for saved searches to load before we attempt to fetch stream data
     if (this.props.savedSearchLoading) {
       return;
-    } else if (prevProps.savedSearchLoading) {
+    }
+    if (prevProps.savedSearchLoading) {
       this.fetchData();
       return;
     }
@@ -1031,24 +1029,9 @@ class IssueListOverview extends React.Component<Props, State> {
 
     // TODO(workflow): When organization:semver flag is removed add semver tags to tagStore
     if (organization.features.includes('semver') && !tags['release.version']) {
-      tags['release.version'] = {
-        key: 'release.version',
-        name: 'release.version',
-      };
-      tags['release.build'] = {
-        key: 'release.build',
-        name: 'release.build',
-      };
-      tags['release.package'] = {
-        key: 'release.package',
-        name: 'release.package',
-      };
-      tags['release.stage'] = {
-        key: 'release.stage',
-        name: 'release.stage',
-        predefined: true,
-        values: RELEASE_ADOPTION_STAGES,
-      };
+      Object.entries(SEMVER_TAGS).forEach(([key, value]) => {
+        tags[key] = value;
+      });
     }
 
     const projectIds = selection?.projects?.map(p => p.toString());

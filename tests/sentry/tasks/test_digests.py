@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.core import mail
 
 import sentry
@@ -7,7 +9,6 @@ from sentry.models.rule import Rule
 from sentry.tasks.digests import deliver_digest
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.utils.compat.mock import patch
 
 
 class DeliverDigestTest(TestCase):
@@ -40,3 +41,7 @@ class DeliverDigestTest(TestCase):
 
     def test_member_key(self):
         self.run_test(f"mail:p:{self.project.id}:Member:{self.user.id}")
+
+    def test_no_records(self):
+        # This shouldn't error if no records are present
+        deliver_digest(f"mail:p:{self.project.id}:IssueOwners:")

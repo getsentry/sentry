@@ -162,6 +162,10 @@ type Props = WithRouterProps & {
    */
   supportedTags?: {[key: string]: Tag};
   /**
+   * Type of supported tags
+   */
+  supportedTagType?: ItemType;
+  /**
    * Maximum number of search items to display or a falsey value for no
    * maximum
    */
@@ -471,13 +475,10 @@ class SmartSearchBar extends React.Component<Props, State> {
 
     callIfFunction(onKeyDown, evt);
 
-    if (!this.state.searchGroups.length) {
-      return;
-    }
-
+    const hasSearchGroups = this.state.searchGroups.length > 0;
     const isSelectingDropdownItems = this.state.activeSearchItem !== -1;
 
-    if (key === 'ArrowDown' || key === 'ArrowUp') {
+    if ((key === 'ArrowDown' || key === 'ArrowUp') && hasSearchGroups) {
       evt.preventDefault();
 
       const {flatSearchItems, activeSearchItem} = this.state;
@@ -529,7 +530,11 @@ class SmartSearchBar extends React.Component<Props, State> {
       this.setState({searchGroups, activeSearchItem: nextActiveSearchItem});
     }
 
-    if ((key === 'Tab' || key === 'Enter') && isSelectingDropdownItems) {
+    if (
+      (key === 'Tab' || key === 'Enter') &&
+      isSelectingDropdownItems &&
+      hasSearchGroups
+    ) {
       evt.preventDefault();
 
       const {activeSearchItem, searchGroups} = this.state;
@@ -701,8 +706,8 @@ class SmartSearchBar extends React.Component<Props, State> {
   /**
    * Returns array of possible key values that substring match `query`
    */
-  getTagKeys(query: string): SearchItem[] {
-    const {prepareQuery} = this.props;
+  getTagKeys(query: string): [SearchItem[], ItemType] {
+    const {prepareQuery, supportedTagType} = this.props;
 
     const supportedTags = this.props.supportedTags ?? {};
 
@@ -721,7 +726,10 @@ class SmartSearchBar extends React.Component<Props, State> {
       tagKeys = tagKeys.filter(key => key !== 'environment:');
     }
 
-    return tagKeys.map(value => ({value, desc: value}));
+    return [
+      tagKeys.map(value => ({value, desc: value})),
+      supportedTagType ?? ItemType.TAG_KEY,
+    ];
   }
 
   /**
@@ -900,14 +908,14 @@ class SmartSearchBar extends React.Component<Props, State> {
   };
 
   async generateTagAutocompleteGroup(tagName: string): Promise<AutocompleteGroup> {
-    const tagKeys = this.getTagKeys(tagName);
+    const [tagKeys, tagType] = this.getTagKeys(tagName);
     const recentSearches = await this.getRecentSearches();
 
     return {
       searchItems: tagKeys,
       recentSearchItems: recentSearches ?? [],
       tagName,
-      type: ItemType.TAG_KEY,
+      type: tagType,
     };
   }
 
@@ -981,10 +989,10 @@ class SmartSearchBar extends React.Component<Props, State> {
       // does not get updated)
       this.setState({searchTerm: query});
 
-      const tagKeys = this.getTagKeys('');
+      const [tagKeys, tagType] = this.getTagKeys('');
       const recentSearches = await this.getRecentSearches();
 
-      this.updateAutoCompleteState(tagKeys, recentSearches ?? [], '', ItemType.TAG_KEY);
+      this.updateAutoCompleteState(tagKeys, recentSearches ?? [], '', tagType);
       return;
     }
     // cursor on whitespace show default "help" search terms

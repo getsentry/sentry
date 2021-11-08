@@ -1,6 +1,7 @@
 import itertools
 import math
 from datetime import datetime, timedelta
+from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
 import pytz
@@ -228,6 +229,12 @@ class InvalidField(Exception):
     pass
 
 
+class AllowedResolution(Enum):
+    one_hour = (3600, "one hour")
+    one_minute = (60, "one minute")
+    ten_seconds = (10, "ten seconds")
+
+
 class QueryDefinition:
     """
     This is the definition of the query the user wants to execute.
@@ -235,7 +242,7 @@ class QueryDefinition:
     `fields` and `groupby` definitions as [`ColumnDefinition`] objects.
     """
 
-    def __init__(self, query, params, allow_minute_resolution=False):
+    def __init__(self, query, params, allowed_resolution: AllowedResolution):
         self.query = query.get("query", "")
         self.raw_fields = raw_fields = query.getlist("field", [])
         self.raw_groupby = raw_groupby = query.getlist("groupBy", [])
@@ -255,7 +262,7 @@ class QueryDefinition:
                 raise InvalidField(f'Invalid groupBy: "{key}"')
             self.groupby.append(GROUPBY_MAP[key])
 
-        start, end, rollup = get_constrained_date_range(query, allow_minute_resolution)
+        start, end, rollup = get_constrained_date_range(query, allowed_resolution)
         self.rollup = rollup
         self.start = start
         self.end = end
@@ -304,14 +311,15 @@ def get_now():
 
 
 def get_constrained_date_range(
-    params, allow_minute_resolution=False, max_points=MAX_POINTS
+    params,
+    allowed_resolution: AllowedResolution = AllowedResolution.one_hour,
+    max_points=MAX_POINTS,
 ) -> Tuple[datetime, datetime, int]:
     interval = parse_stats_period(params.get("interval", "1h"))
     interval = int(3600 if interval is None else interval.total_seconds())
 
-    smallest_interval = ONE_MINUTE if allow_minute_resolution else ONE_HOUR
+    smallest_interval, interval_str = allowed_resolution.value
     if interval % smallest_interval != 0 or interval < smallest_interval:
-        interval_str = "one minute" if allow_minute_resolution else "one hour"
         raise InvalidParams(
             f"The interval has to be a multiple of the minimum interval of {interval_str}."
         )
@@ -341,6 +349,10 @@ def get_constrained_date_range(
     # as the timeseries (using `WITH ROLLUP` in clickhouse)
 
     rounding_interval = int(math.ceil(interval / ONE_HOUR) * ONE_HOUR)
+
+    # Hack to disabled rounding interval for metrics-based queries:
+    if interval < ONE_MINUTE:
+        rounding_interval = interval
 
     date_range = timedelta(
         seconds=int(rounding_interval * math.ceil(date_range.total_seconds() / rounding_interval))

@@ -1,4 +1,4 @@
-import {fireEvent, mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
 import Button from 'app/components/button';
 
@@ -36,23 +36,23 @@ describe('Button', function () {
 
   it('calls `onClick` callback', function () {
     const spy = jest.fn();
-    const {getByText} = mountWithTheme(<Button onClick={spy}>Click me</Button>, {
+    mountWithTheme(<Button onClick={spy}>Click me</Button>, {
       context: routerContext,
     });
-    fireEvent.click(getByText('Click me'));
+    fireEvent.click(screen.getByText('Click me'));
 
     expect(spy).toHaveBeenCalled();
   });
 
   it('does not call `onClick` on disabled buttons', function () {
     const spy = jest.fn();
-    const {getByText} = mountWithTheme(
+    mountWithTheme(
       <Button onClick={spy} disabled>
         Click me
       </Button>,
       {context: routerContext}
     );
-    fireEvent.click(getByText('Click me'));
+    fireEvent.click(screen.getByText('Click me'));
 
     expect(spy).not.toHaveBeenCalled();
   });

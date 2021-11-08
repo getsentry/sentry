@@ -109,9 +109,9 @@ class ProjectRuleDetailsEndpoint(ProjectEndpoint):
                 context = {"uuid": client.uuid}
                 return Response(context, status=202)
 
-            updated_rule = project_rules.Updater.run(rule=rule, request=request, **kwargs)
+            trigger_alert_rule_action_creators(kwargs.get("actions"))
 
-            trigger_alert_rule_action_creators(kwargs.get("actions"), rule, request)
+            updated_rule = project_rules.Updater.run(rule=rule, request=request, **kwargs)
 
             RuleActivity.objects.create(
                 rule=updated_rule, user=request.user, type=RuleActivityType.UPDATED.value
