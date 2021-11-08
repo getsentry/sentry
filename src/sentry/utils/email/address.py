@@ -12,7 +12,7 @@ from .signer import _CaseInsensitiveSigner
 
 # cache the domain_from_email calculation
 # This is just a tuple of (email, email-domain)
-_from_email_domain_cache = (None, None)
+_from_email_domain_cache: tuple[str, str] | None = None
 
 # Pull email from the string: u'lauryn <lauryn@sentry.io>'
 EMAIL_PARSER = re.compile(r"<(.*)>")
@@ -23,7 +23,7 @@ signer = _CaseInsensitiveSigner()
 def get_from_email_domain() -> str:
     global _from_email_domain_cache
     from_ = options.get("mail.from")
-    if not _from_email_domain_cache[0] == from_:
+    if _from_email_domain_cache is None or not _from_email_domain_cache[0] == from_:
         _from_email_domain_cache = (from_, domain_from_email(from_))
     return _from_email_domain_cache[1]
 
