@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import re
-from typing import Mapping, Union
+from typing import Mapping
 from urllib.parse import urljoin
 
 from sentry.constants import ObjectStatus
@@ -48,7 +50,7 @@ def send_incident_alert_notification(
         logger.info("rule.fail.slack_post", extra={"error": str(e)})
 
 
-def get_referrer_qstring(notification: BaseNotification, recipient: Union["Team", "User"]) -> str:
+def get_referrer_qstring(notification: BaseNotification, recipient: Team | User) -> str:
     # TODO: make a generic version that works for other notification types
     return (
         "?referrer="
@@ -57,16 +59,14 @@ def get_referrer_qstring(notification: BaseNotification, recipient: Union["Team"
     )
 
 
-def get_settings_url(notification: BaseNotification, recipient: Union["Team", "User"]) -> str:
+def get_settings_url(notification: BaseNotification, recipient: Team | User) -> str:
     url_str = "/settings/account/notifications/"
     if notification.fine_tuning_key:
         url_str += f"{notification.fine_tuning_key}/"
     return str(urljoin(absolute_uri(url_str), get_referrer_qstring(notification, recipient)))
 
 
-def build_notification_footer(
-    notification: ProjectNotification, recipient: Union["Team", "User"]
-) -> str:
+def build_notification_footer(notification: ProjectNotification, recipient: Team | User) -> str:
     if isinstance(recipient, Team):
         team = Team.objects.get(id=recipient.id)
         url_str = f"/settings/{notification.organization.slug}/teams/{team.slug}/notifications/"
