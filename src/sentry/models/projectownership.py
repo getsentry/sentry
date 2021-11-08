@@ -48,6 +48,8 @@ class ProjectOwnership(Model):
                 else {
                     **ownership.schema,
                     "rules": [
+                        # Since we use the last matching rule owner as the auto-assignee,
+                        # we implicitly prioritize Ownership Rules over CODEOWNERS rules
                         *codeowners.schema["rules"],
                         *ownership.schema["rules"],
                     ],
@@ -85,11 +87,15 @@ class ProjectOwnership(Model):
         For a given project_id, and event data blob.
         We combine the schemas from IssueOwners and CodeOwners.
 
-        If Everyone is returned, this means we implicitly are
-        falling through our rules and everyone is responsible.
+        If there are no matching rules, check ProjectOwnership.fallthrough:
+            If ProjectOwnership.fallthrough is enabled, return Everyone (all project members)
+             - we implicitly are falling through our rules and everyone is responsible.
+            If ProjectOwnership.fallthrough is disabled, return an empty list
+             - there are explicitly no owners
 
-        If an empty list is returned, this means there are explicitly
-        no owners.
+        If there are matching rules, return the ordered actors.
+            The order is determined by iterating through rules sequentially, evaluating
+            CODEOWNERS (if present), followed by Ownership Rules
         """
         from sentry.models import ProjectCodeOwners
 

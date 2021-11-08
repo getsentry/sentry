@@ -1,4 +1,4 @@
-from typing import Iterable, Mapping, Optional, Union
+from typing import Iterable, Mapping, Optional, Sequence, Union
 
 from sentry.eventstore.models import Event
 from sentry.models import NotificationSetting, Project, ProjectOwnership, Team, User
@@ -7,11 +7,13 @@ from sentry.notifications.types import (
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
-from sentry.notifications.utils.participants import get_send_to
+from sentry.notifications.utils.participants import get_owners, get_send_to
 from sentry.ownership import grammar
-from sentry.ownership.grammar import Matcher, Owner, dump_schema
+from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.testutils import TestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.types.integrations import ExternalProviders
+from sentry.utils.cache import cache
 from tests.sentry.mail import make_event_data
 
 
@@ -243,3 +245,105 @@ class GetSendToOwnersTest(TestCase):
         event = self.store_event("no_rule.cpp")
 
         assert self.get_send_to_owners(event) == {}
+
+
+class GetOwnersCase(TestCase):
+    def setUp(self):
+        self.user_1 = self.create_user(email="paul@atreides.space")
+        self.user_2 = self.create_user(email="leto@atreides.space")
+        self.user_3 = self.create_user(email="lady@jessica.space")
+        self.organization = self.create_organization(name="Padishah Emperor")
+        self.team_1 = self.create_team(
+            organization=self.organization,
+            name="House Atreides",
+            members=[self.user_1, self.user_2],
+        )
+        self.team_2 = self.create_team(
+            organization=self.organization, name="Bene Gesserit", members=[self.user_1, self.user_3]
+        )
+        self.project = self.create_project(
+            name="Settle Arrakis", organization=self.organization, teams=[self.team_1, self.team_2]
+        )
+        self.rule_1 = Rule(Matcher("path", "*.js"), [Owner("team", self.team_1.slug)])
+        self.rule_2 = Rule(Matcher("path", "*.js"), [Owner("team", self.team_2.slug)])
+        self.rule_3 = Rule(Matcher("path", "*.js"), [Owner("user", self.user_1.email)])
+
+    def tearDown(self):
+        cache.delete(ProjectOwnership.get_cache_key(self.project.id))
+        super().tearDown()
+
+    def create_event(self, project: Project) -> Event:
+        return self.store_event(
+            data={
+                "event_id": "0" * 32,
+                "environment": "development",
+                "timestamp": iso_format(before_now(days=1)),
+                "fingerprint": ["part-1"],
+                "stacktrace": {"frames": [{"filename": "flow/spice.js"}]},
+            },
+            project_id=project.id,
+        )
+
+    def create_ownership(
+        self, project: Project, rules: Optional[Sequence[Rule]] = None, fallthrough: bool = False
+    ) -> ProjectOwnership:
+        return ProjectOwnership.objects.create(
+            project_id=project.id,
+            schema=dump_schema(rules if rules else []),
+            fallthrough=fallthrough,
+        )
+
+    def assert_recipients(
+        self, expected: Iterable[Union[Team, User]], received: Iterable[Union[Team, User]]
+    ) -> None:
+        assert len(expected) == len(received)
+        for recipient in expected:
+            assert recipient in received
+
+    # If no event to match, we assume fallthrough is enabled
+    def test_get_owners_no_event(self):
+        self.create_ownership(self.project)
+        recipients = get_owners(project=self.project)
+        self.assert_recipients(
+            expected=[self.user_1, self.user_2, self.user_3], received=recipients
+        )
+
+    # If no match, and fallthrough is disabled
+    def test_get_owners_empty(self):
+        self.create_ownership(self.project)
+        event = self.create_event(self.project)
+        recipients = get_owners(project=self.project, event=event)
+        self.assert_recipients(expected=[], received=recipients)
+
+    # If no match, and fallthrough is enabled
+    def test_get_owners_everyone(self):
+        self.create_ownership(self.project, [], True)
+        event = self.create_event(self.project)
+        recipients = get_owners(project=self.project, event=event)
+        self.assert_recipients(
+            expected=[self.user_1, self.user_2, self.user_3], received=recipients
+        )
+
+    # If matched, and all-recipients flag
+    def test_get_owners_match(self):
+        with self.feature("organizations:notification-all-recipients"):
+            self.create_ownership(self.project, [self.rule_1, self.rule_2, self.rule_3])
+            event = self.create_event(self.project)
+            recipients = get_owners(project=self.project, event=event)
+            self.assert_recipients(
+                expected=[self.team_1, self.team_2, self.user_1], received=recipients
+            )
+
+    # If matched, and no all-recipients flag
+    def test_get_owners_single_participant(self):
+        self.create_ownership(self.project, [self.rule_1, self.rule_2, self.rule_3])
+        event = self.create_event(self.project)
+        recipients = get_owners(project=self.project, event=event)
+        self.assert_recipients(expected=[self.user_1], received=recipients)
+
+    # If matched, we don't look at the fallthrough flag
+    def test_get_owners_match_ignores_fallthrough(self):
+        self.create_ownership(self.project, [self.rule_1, self.rule_2, self.rule_3], True)
+        event_2 = self.create_event(self.project)
+        recipients_2 = get_owners(project=self.project, event=event_2)
+        self.assert_recipients(expected=[self.user_1], received=recipients_2)
