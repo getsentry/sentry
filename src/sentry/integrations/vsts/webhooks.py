@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import logging
-from typing import Any, Mapping, Optional
+from typing import Any, Mapping
 
 from django.utils.crypto import constant_time_compare
 from rest_framework import status
@@ -69,13 +71,13 @@ def check_webhook_secret(request: Request, integration: Integration, event_type:
 
 def handle_assign_to(
     integration: Integration,
-    external_issue_key: Optional[str],
-    assigned_to: Optional[Mapping[str, str]],
+    external_issue_key: str | None,
+    assigned_to: Mapping[str, str] | None,
 ) -> None:
     if not assigned_to:
         return
 
-    email: Optional[str] = None
+    email: str | None = None
     assign = False
 
     new_value = assigned_to.get("newValue")
@@ -105,8 +107,8 @@ def handle_assign_to(
 def handle_status_change(
     integration: Integration,
     external_issue_key: str,
-    status_change: Optional[Mapping[str, str]],
-    project: Optional[str],
+    status_change: Mapping[str, str] | None,
+    project: str | None,
 ) -> None:
     if status_change is None:
         return
@@ -124,7 +126,7 @@ def handle_status_change(
 
 
 def handle_updated_workitem(data: Mapping[str, Any], integration: Integration) -> None:
-    project: Optional[str] = None
+    project: str | None = None
     try:
         external_issue_key = data["resource"]["workItemId"]
     except KeyError as e:

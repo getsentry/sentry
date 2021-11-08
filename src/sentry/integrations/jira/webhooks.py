@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import logging
-from typing import TYPE_CHECKING, Any, Mapping, Optional
+from typing import TYPE_CHECKING, Any, Mapping
 
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
@@ -20,10 +22,10 @@ logger = logging.getLogger("sentry.integrations.jira.webhooks")
 
 
 def get_assignee_email(
-    integration: "Integration",
+    integration: Integration,
     assignee: Mapping[str, str],
     use_email_scope: bool = False,
-) -> Optional[str]:
+) -> str | None:
     """Get email from `assignee` or pull it from API (if we have the scope for it.)"""
     email = assignee.get("emailAddress")
     if not email and use_email_scope:
@@ -38,7 +40,7 @@ def get_assignee_email(
 
 
 def handle_assignee_change(
-    integration: "Integration",
+    integration: Integration,
     data: Mapping[str, Any],
     use_email_scope: bool = False,
 ) -> None:

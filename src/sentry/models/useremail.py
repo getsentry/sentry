@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections import defaultdict
 from datetime import timedelta
 from typing import TYPE_CHECKING, Iterable, Mapping
@@ -18,21 +20,21 @@ CHARACTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
 
 class UserEmailManager(BaseManager):
-    def get_for_organization(self, organization: "Organization") -> QuerySet:
+    def get_for_organization(self, organization: Organization) -> QuerySet:
         return self.filter(user__sentry_orgmember_set__organization=organization)
 
-    def get_emails_by_user(self, organization: "Organization") -> Mapping["User", Iterable[str]]:
+    def get_emails_by_user(self, organization: Organization) -> Mapping[User, Iterable[str]]:
         emails_by_user = defaultdict(set)
         user_emails = self.get_for_organization(organization).select_related("user")
         for entry in user_emails:
             emails_by_user[entry.user].add(entry.email)
         return emails_by_user
 
-    def get_primary_email(self, user: "User") -> "UserEmail":
+    def get_primary_email(self, user: User) -> UserEmail:
         user_email, _ = self.get_or_create(user=user, email=user.email)
         return user_email
 
-    def get_users_by_id(self, email: str) -> Mapping[int, "User"]:
+    def get_users_by_id(self, email: str) -> Mapping[int, User]:
         return {
             row.user_id: row.user
             for row in self.filter(is_verified=True, email=email).select_related("user")
@@ -76,6 +78,6 @@ class UserEmail(Model):
         return self.user.email == self.email
 
     @classmethod
-    def get_primary_email(cls, user: "User") -> "UserEmail":
+    def get_primary_email(cls, user: User) -> UserEmail:
         """@deprecated"""
         return cls.objects.get_primary_email(user)
