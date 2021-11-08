@@ -58,6 +58,8 @@ class InvalidFingerprintingConfig(Exception):
 
 
 def get_crashing_thread(threads):
+    if threads is None:
+        return None
     if len(threads) == 1:
         return threads[0]
     filtered = [x for x in threads if x and x.get("crashed")]
