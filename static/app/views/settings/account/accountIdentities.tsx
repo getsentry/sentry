@@ -48,7 +48,7 @@ class AccountIdentities extends AsyncView<Props, State> {
     return (
       <IdentityPanelItem key={`${identity.category}:${identity.id}`}>
         <InternalContainer>
-          <IdentityIcon pluginId={identity.provider.key} />
+          <IdentityIcon providerId={identity.provider.key} />
           <IdentityText isSingleLine={!identity.dateAdded}>
             <IdentityName>{identity.provider.name}</IdentityName>
             {identity.dateAdded && <IdentityDateTime date={moment(identity.dateAdded)} />}

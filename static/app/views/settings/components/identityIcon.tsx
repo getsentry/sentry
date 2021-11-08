@@ -44,7 +44,7 @@ export const ICON_PATHS = {
 };
 
 type Props = {
-  pluginId?: string;
+  providerId?: string;
   size?: number;
 };
 
@@ -58,12 +58,12 @@ const IdentityIcon = styled('div')<Props>`
   background-size: contain;
   background-position: center center;
   background-repeat: no-repeat;
-  background-image: url(${({pluginId}) =>
-    (pluginId !== undefined && ICON_PATHS[pluginId]) || DEFAULT_ICON});
+  background-image: url(${({providerId}) =>
+    (providerId !== undefined && ICON_PATHS[providerId]) || DEFAULT_ICON});
 `;
 
 IdentityIcon.defaultProps = {
-  pluginId: '_default',
+  providerId: '_default',
   size: 36,
 };
 
