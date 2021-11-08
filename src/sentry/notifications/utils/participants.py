@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping
+from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequence
 
 from sentry import features
 from sentry.models import (
@@ -151,8 +151,13 @@ def split_participants_and_context(
     return participants, extra_context
 
 
-def get_owners(project: Project, event: Event | None = None) -> Iterable[Team | User]:
-    """Given a project and an event, decide which users and teams are the owners."""
+def get_owners(project: Project, event: Event | None = None) -> Sequence[Team | User]:
+    """
+    Given a project and an event, decide which users and teams are the owners.
+
+    If when checking owners, there is a rule match we only notify the last owner
+    (would-be auto-assignee) unless the organization passes the feature-flag
+    """
 
     if event:
         owners, _ = ProjectOwnership.get_owners(project.id, event.data)
@@ -161,7 +166,7 @@ def get_owners(project: Project, event: Event | None = None) -> Iterable[Team | 
 
     if not owners:
         outcome = "empty"
-        recipients = set()
+        recipients = list()
 
     elif owners == ProjectOwnership.Everyone:
         outcome = "everyone"
@@ -171,7 +176,7 @@ def get_owners(project: Project, event: Event | None = None) -> Iterable[Team | 
         outcome = "match"
         recipients = ActorTuple.resolve_many(owners)
         # Used to suppress extra notifications to all matched owners, only notify the would-be auto-assignee
-        if features.has("organizations:notification-all-recipients", project.organization):
+        if not features.has("organizations:notification-all-recipients", project.organization):
             recipients = recipients[-1:]
 
     metrics.incr(
