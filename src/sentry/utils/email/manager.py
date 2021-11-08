@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from typing import Iterable, Mapping
 
@@ -8,7 +10,9 @@ from .faker import is_fake_email
 logger = logging.getLogger("sentry.mail")
 
 
-def get_email_addresses(user_ids: Iterable[int], project: Project = None) -> Mapping[int, str]:
+def get_email_addresses(
+    user_ids: Iterable[int], project: Project | None = None
+) -> Mapping[int, str]:
     """
     Find the best email addresses for a collection of users. If a project is
     provided, prefer their project-specific notification preferences.

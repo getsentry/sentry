@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import re
 from email.utils import parseaddr
 
@@ -18,7 +20,7 @@ EMAIL_PARSER = re.compile(r"<(.*)>")
 signer = _CaseInsensitiveSigner()
 
 
-def get_from_email_domain():
+def get_from_email_domain() -> str:
     global _from_email_domain_cache
     from_ = options.get("mail.from")
     if not _from_email_domain_cache[0] == from_:
@@ -26,7 +28,7 @@ def get_from_email_domain():
     return _from_email_domain_cache[1]
 
 
-def email_to_group_id(address):
+def email_to_group_id(address: str) -> int:
     """
     Email address should be in the form of:
         {group_id}+{signature}@example.com
@@ -36,7 +38,7 @@ def email_to_group_id(address):
     return int(force_bytes(signer.unsign(signed_data)))
 
 
-def group_id_to_email(group_id):
+def group_id_to_email(group_id: int) -> str:
     signed_data = signer.sign(str(group_id))
     return "@".join(
         (
@@ -46,7 +48,7 @@ def group_id_to_email(group_id):
     )
 
 
-def domain_from_email(email):
+def domain_from_email(email: str) -> str:
     email = parseaddr(email)[1]
     try:
         return email.split("@", 1)[1]
