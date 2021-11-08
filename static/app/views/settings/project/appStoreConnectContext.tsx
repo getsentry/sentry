@@ -45,10 +45,13 @@ const Provider = withApi(
           `/projects/${orgSlug}/${project.slug}/appstoreconnect/status/`
         );
 
-        const sourceStatus: AppStoreConnectStatusData | undefined =
+        const sourceStatus: Omit<AppStoreConnectStatusData, 'id'> | undefined =
           response[appStoreConnectSymbolSourceId];
         if (sourceStatus) {
-          setAppStoreConnectStatusData(sourceStatus);
+          setAppStoreConnectStatusData({
+            ...sourceStatus,
+            id: appStoreConnectSymbolSourceId,
+          });
         }
       } catch {
         // do nothing

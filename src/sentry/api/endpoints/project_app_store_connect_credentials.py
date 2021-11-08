@@ -421,21 +421,19 @@ class AppStoreConnectStatusEndpoint(ProjectEndpoint):  # type: ignore
     """Returns a summary of the project's App Store Connect configuration
     and builds.
 
-    ``GET projects/{org_slug}/{proj_slug}/appstoreconnect/status``
+    ``GET projects/{org_slug}/{proj_slug}/appstoreconnect/status/``
 
     Response:
     ```json
-    [
-        {
-            "id": "abc123",
+    {
+       "abc123": {
             "credentials": { status: "valid" } | { status: "invalid", code: "app-connect-forbidden-error" },
             "pendingDownloads": 123,
             "latestBuildVersion: "9.8.7" | null,
             "latestBuildNumber": "987000" | null,
             "lastCheckedBuilds": "YYYY-MM-DDTHH:MM:SS.SSSSSSZ" | null
         },
-        {
-            "id": ...,
+        "...": {
             "credentials": ...,
             "pendingDownloads": ...,
             "latestBuildVersion: ...,
@@ -443,7 +441,7 @@ class AppStoreConnectStatusEndpoint(ProjectEndpoint):  # type: ignore
             "lastCheckedBuilds": ...
         },
         ...
-    ]
+    }
     ```
 
     * ``pendingDownloads`` is the number of pending build dSYM downloads.
@@ -525,7 +523,6 @@ class AppStoreConnectStatusEndpoint(ProjectEndpoint):  # type: ignore
                 last_checked_builds = check_entry.last_checked
 
             statuses[config_id] = {
-                "id": config_id,
                 "credentials": asc_credentials,
                 "pendingDownloads": pending_downloads,
                 "latestBuildVersion": latestBuildVersion,

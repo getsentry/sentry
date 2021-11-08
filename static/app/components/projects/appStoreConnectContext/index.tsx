@@ -75,10 +75,13 @@ const Provider = ({children, project, organization}: ProviderProps) => {
         `/projects/${orgSlug}/${projectDetails.slug}/appstoreconnect/status/`
       );
 
-      const sourceStatus: AppStoreConnectStatusData | undefined =
+      const sourceStatus: Omit<AppStoreConnectStatusData, 'id'> | undefined =
         response[appStoreConnectSymbolSourceId];
       if (sourceStatus) {
-        setAppStoreConnectStatusData(sourceStatus);
+        setAppStoreConnectStatusData({
+          ...sourceStatus,
+          id: appStoreConnectSymbolSourceId,
+        });
       }
     } catch {
       // do nothing
