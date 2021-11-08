@@ -113,7 +113,7 @@ export function getAppStoreValidationErrorMessage(
   switch (error.code) {
     case 'app-connect-authentication-error':
       return t(
-        'Credentials are invalid, missing, or expired. Check the entered App Store Connect credentials are correct and have not expired.'
+        'Credentials are invalid or missing. Check the entered App Store Connect credentials are correct.'
       );
     case 'app-connect-forbidden-error':
       return t('The supplied API key does not have sufficient permissions.');

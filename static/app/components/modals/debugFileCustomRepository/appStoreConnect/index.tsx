@@ -113,7 +113,7 @@ function AppStoreConnect({
       const appStoreConnnectError = getAppStoreErrorMessage(error);
       if (typeof appStoreConnnectError === 'string') {
         // app-connect-authentication-error
-        // 'app-connect-forbidden-error'
+        // app-connect-forbidden-error
         addErrorMessage(appStoreConnnectError);
         return;
       }
@@ -239,26 +239,17 @@ function AppStoreConnect({
       return alerts;
     }
     if (credentials?.status === 'invalid') {
-      switch (credentials.code) {
-        case 'app-connect-forbidden-error':
-          alerts.push(
-            <StyledAlert type="warning" icon={<IconWarning />}>
-              {t(
+      alerts.push(
+        <StyledAlert type="warning" icon={<IconWarning />}>
+          {credentials.code === 'app-connect-forbidden-error'
+            ? t(
                 'Your App Store Connect credentials have insufficient permissions. To reconnect, update your credentials.'
-              )}
-            </StyledAlert>
-          );
-          break;
-        case 'app-connect-authentication-error':
-        default:
-          alerts.push(
-            <StyledAlert type="warning" icon={<IconWarning />}>
-              {t(
+              )
+            : t(
                 'Your App Store Connect credentials are invalid. To reconnect, update your credentials.'
               )}
-            </StyledAlert>
-          );
-      }
+        </StyledAlert>
+      );
     }
 
     return alerts;

@@ -6,13 +6,13 @@ import {AppStoreConnectCredentialsStatus} from 'app/types/debugFiles';
 
 export function areAppStoreConnectCredentialsValid(
   credentialsStatus: AppStoreConnectCredentialsStatus | undefined
-): boolean {
+) {
   return credentialsStatus?.status === 'valid';
 }
 
 export function getAppConnectStoreUpdateAlertMessage(
   credentialsStatus: AppStoreConnectCredentialsStatus
-): string | undefined {
+) {
   if (areAppStoreConnectCredentialsValid(credentialsStatus)) {
     return undefined;
   }

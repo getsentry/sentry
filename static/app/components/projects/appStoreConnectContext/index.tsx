@@ -72,7 +72,7 @@ const Provider = ({children, project, organization}: ProviderProps) => {
 
     try {
       const response: Map<string, AppStoreConnectStatusData> = await api.requestPromise(
-        `/projects/${orgSlug}/${projectDetails.slug}/appstoreconnect/status`
+        `/projects/${orgSlug}/${projectDetails.slug}/appstoreconnect/status/`
       );
 
       const sourceStatus: AppStoreConnectStatusData | undefined =
