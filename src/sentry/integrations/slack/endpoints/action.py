@@ -4,7 +4,6 @@ from typing import Any, Mapping, MutableMapping
 
 from django.urls import reverse
 from requests import post
-from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -13,8 +12,8 @@ from sentry.api import ApiClient, client
 from sentry.api.base import Endpoint
 from sentry.api.helpers.group_index import update_groups
 from sentry.auth.access import from_member
+from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.integrations.slack.client import SlackClient
-from sentry.integrations.slack.message_builder.issues import build_group_attachment
 from sentry.integrations.slack.requests.action import SlackActionRequest
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.views.link_identity import build_linking_url
@@ -28,18 +27,14 @@ from sentry.models import (
     OrganizationMember,
     Project,
 )
+from sentry.notifications.utils.actions import MessageAction
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
-from sentry.utils.members import (
-    approve_member_invitation,
-    get_allowed_roles_for_member,
-    reject_member_invitation,
-    validate_invitation,
-)
 from sentry.web.decorators import transaction_start
 
 from ..message_builder import SlackBody
+from ..message_builder.issues import SlackIssuesMessageBuilder
 from ..utils import logger
 
 LINK_IDENTITY_MESSAGE = (
@@ -130,10 +125,9 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         return self.respond_ephemeral(text)
 
     def on_assign(
-        self, request: Request, identity: Identity, group: Group, action: Mapping[str, Any]
+        self, request: Request, identity: Identity, group: Group, action: MessageAction
     ) -> None:
-        assignee = action["selected_options"][0]["value"]
-
+        assignee = action.selected_options[0]["value"]
         if assignee == "none":
             assignee = None
 
@@ -145,13 +139,11 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         request: Request,
         identity: Identity,
         group: Group,
-        action: Mapping[str, Any],
+        action: MessageAction,
         data: Mapping[str, Any],
         integration: Integration,
     ) -> None:
-        status = action["value"]
-
-        status_data = status.split(":", 1)
+        status_data = (action.value or "").split(":", 1)
         status = {"status": status_data[0]}
 
         resolve_type = status_data[-1]
@@ -236,10 +228,6 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         except SlackRequestError as e:
             return self.respond(status=e.status)
 
-        data = slack_request.data
-
-        # Actions list may be empty when receiving a dialog response
-        action_list = data.get("actions", [])
         action_option = slack_request.action_option
 
         if action_option in ["approve_member", "reject_member"]:
@@ -248,6 +236,11 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         # if a user is just clicking our auto response in the messages tab we just return a 200
         if action_option == "sentry_docs_link_clicked":
             return self.respond()
+
+        # Actions list may be empty when receiving a dialog response
+        data = slack_request.data
+        action_list_raw = data.get("actions", [])
+        action_list = [MessageAction(**action_data) for action_data in action_list_raw]
 
         channel_id = slack_request.channel_id
         user_id = slack_request.user_id
@@ -304,7 +297,10 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         # Handle status dialog submission
         if slack_request.type == "dialog_submission" and "resolve_type" in data["submission"]:
             # Masquerade a status action
-            action = {"name": "status", "value": data["submission"]["resolve_type"]}
+            action = MessageAction(
+                name="status",
+                value=data["submission"]["resolve_type"],
+            )
 
             try:
                 self.on_status(request, identity, group, action, data, integration)
@@ -312,7 +308,9 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
                 return self.api_error(slack_request, group, identity, error, "status_dialog")
 
             group = Group.objects.get(id=group.id)
-            attachment = build_group_attachment(group, identity=identity, actions=[action])
+            attachment = SlackIssuesMessageBuilder(
+                group, identity=identity, actions=[action]
+            ).build()
 
             body = self.construct_reply(
                 attachment, is_message=slack_request.callback_data["is_message"]
@@ -339,7 +337,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         action_type = None
         try:
             for action in action_list:
-                action_type = action["name"]
+                action_type = action.name
 
                 if action_type == "status":
                     self.on_status(request, identity, group, action, data, integration)
@@ -357,7 +355,9 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         # Reload group as it may have been mutated by the action
         group = Group.objects.get(id=group.id)
 
-        attachment = build_group_attachment(group, identity=identity, actions=action_list)
+        attachment = SlackIssuesMessageBuilder(
+            group, identity=identity, actions=action_list
+        ).build()
         body = self.construct_reply(attachment, is_message=self.is_message(data))
 
         return self.respond(body)
@@ -399,20 +399,19 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
             )
 
         # validate the org options and check against allowed_roles
-        allowed_roles = get_allowed_roles_for_member(member_of_approver)
+        allowed_roles = member_of_approver.get_allowed_roles_to_invite()
         try:
-            validate_invitation(member, organization, identity.user, allowed_roles)
-        except serializers.ValidationError as err:
-            # error detail should always have at least one element in the array
-            return self.respond_with_text(str(err.detail[0]))
+            member.validate_invitation(identity.user, allowed_roles)
+        except UnableToAcceptMemberInvitationException as err:
+            return self.respond_with_text(str(err))
 
         original_status = member.invite_status
         member_email = member.email
         try:
             if slack_request.action_option == "approve_member":
-                approve_member_invitation(member, identity.user, referrer="slack")
+                member.approve_member_invitation(identity.user, referrer="slack")
             else:
-                reject_member_invitation(member, identity.user)
+                member.reject_member_invitation(identity.user)
         except Exception as err:
             # shouldn't error but if it does, respond to the user
             logger.error(
