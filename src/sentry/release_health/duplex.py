@@ -77,7 +77,7 @@ class ListSet:
             self.index_by = cast(Callable[[Any], Any], index_by)
 
 
-Schema = Union[ComparatorType, List[Any], Mapping[str, Any], Set[Any], ListSet]
+Schema = Union[ComparatorType, List[Any], Mapping[str, Any], Set[Any], ListSet, Tuple[Any, ...]]
 
 
 def _get_calling_method() -> str:
@@ -141,10 +141,9 @@ def compare_datetime(
     elif isinstance(sessions, datetime):
         assert isinstance(metrics, datetime)
         dd = abs(sessions - metrics)
-    else:
-        return f"field {path} invalid type {type(sessions)} expecting date-like type"
     if dd > timedelta(seconds=rollup):
         return f"field {path} failed to mach datetimes sessions={sessions}, metrics={metrics}"
+
     return None
 
 
@@ -396,7 +395,7 @@ def compare_results(
         path = ""
 
     if schema is not None:
-        discriminator = schema
+        discriminator: Union[ReleaseHealthResult, Schema, None] = schema
     else:
         discriminator = sessions
 
@@ -406,7 +405,7 @@ def compare_results(
         else:
             return [f"unmatched field at path {path}, sessions=None, metrics={metrics}"]
 
-    if type(discriminator) in {str, float, int, datetime, ComparatorType}:
+    if isinstance(discriminator, (str, float, int, datetime, ComparatorType)):
         err = compare_scalars(sessions, metrics, rollup, path, schema)
         if err is not None:
             return [err]
@@ -673,10 +672,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
                 return lower_bound_d > self.metrics_start
             return True
 
-        if org_id is not None:
-            organization = self._org_from_id(org_id)
-        else:
-            organization = self._org_from_projects([project_id])
+        organization = self._org_from_id(org_id)
 
         return self._dispatch_call(  # type: ignore
             "get_release_sessions_time_bounds",
@@ -713,10 +709,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         schema = {ComparatorType.Exact}
         should_compare = start > self.metrics_start
 
-        if organization_id is not None:
-            organization = self._org_from_id(organization_id)
-        else:
-            organization = self._org_from_projects(project_ids)
+        organization = self._org_from_id(organization_id)
 
         return self._dispatch_call(  # type: ignore
             "check_releases_have_health_data",
@@ -846,10 +839,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         rollup, stats_start, _ = get_rollup_starts_and_buckets(stats_period)
         should_compare = stats_start > self.metrics_start
 
-        if organization_id is not None:
-            organization = self._org_from_id(organization_id)
-        else:
-            organization = self._org_from_projects(project_ids)
+        organization = self._org_from_id(organization_id)
 
         return self._dispatch_call(  # type: ignore
             "get_project_releases_count",
@@ -881,7 +871,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         }
         should_compare = start > self.metrics_start
         organization = self._org_from_projects([project_id])
-        return self._dispatch_call(
+        return self._dispatch_call(  # type: ignore
             "get_project_release_stats",
             should_compare,
             rollup,
