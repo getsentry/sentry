@@ -89,7 +89,7 @@ boolean_filter = negation? search_key sep boolean_value
 numeric_in_filter = search_key sep numeric_in_list
 
 # numeric comparison filter
-numeric_filter = search_key sep operator? numeric_value
+numeric_filter = negation? search_key sep operator? numeric_value
 
 # aggregate duration filter
 aggregate_duration_filter = negation? aggregate_key sep operator? duration_format
@@ -539,9 +539,14 @@ class SearchVisitor(NodeVisitor):
 
         return SearchFilter(search_key, operator, search_value)
 
-    def _handle_numeric_filter(self, search_key, operator, search_value):
+    def _handle_numeric_filter(self, negated, search_key, operator, search_value):
         if isinstance(operator, Node):
-            operator = "=" if isinstance(operator.expr, Optional) else operator.text
+            if isinstance(operator.expr, Optional) and negated:
+                operator = "!="
+            elif isinstance(operator.expr, Optional):
+                operator = "="
+            else:
+                operator = operator.text
         else:
             operator = operator[0]
 
@@ -623,7 +628,7 @@ class SearchVisitor(NodeVisitor):
 
         # Durations overlap with numeric `m` suffixes
         if self.is_numeric_key(search_key.name):
-            return self._handle_numeric_filter(search_key, operator, search_value)
+            return self._handle_numeric_filter(False, search_key, operator, search_value)
 
         search_value = "".join(search_value)
         search_value = operator + search_value if operator != "=" else search_value
@@ -635,7 +640,7 @@ class SearchVisitor(NodeVisitor):
 
         # Numeric and boolean filters overlap on 1 and 0 values.
         if self.is_numeric_key(search_key.name):
-            return self._handle_numeric_filter(search_key, "=", [search_value.text, ""])
+            return self._handle_numeric_filter(False, search_key, "=", [search_value.text, ""])
 
         if self.is_boolean_key(search_key.name):
             if search_value.text.lower() in ("true", "1"):
@@ -664,8 +669,9 @@ class SearchVisitor(NodeVisitor):
         return self._handle_basic_filter(search_key, operator, search_value)
 
     def visit_numeric_filter(self, node, children):
-        (search_key, _, operator, search_value) = children
-        return self._handle_numeric_filter(search_key, operator, search_value)
+        (negation, search_key, _, operator, search_value) = children
+        negated = is_negated(negation)
+        return self._handle_numeric_filter(negated, search_key, operator, search_value)
 
     def visit_aggregate_duration_filter(self, node, children):
         (negation, search_key, _, operator, search_value) = children
