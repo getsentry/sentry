@@ -480,6 +480,27 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             assert len(response.data["data"]) == 1
             assert response.data["data"][0]["user"] == "ip:{}".format(data["user"]["ip_address"])
 
+    def test_operators_on_numeric_fields_work(self):
+        project = self.create_project()
+        event = self.store_event(
+            {"timestamp": iso_format(before_now(minutes=1))}, project_id=project.id
+        )
+
+        data = load_data("transaction", timestamp=before_now(minutes=1))
+        self.store_event(data, project_id=project.id)
+
+        # TODO: Parameterize and run for different combinations?
+        query = {"field": ["issue"], "query": f"issue.id:>{event.group.id - 1}"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["issue"] == event.group.qualified_short_id
+
+        query = {"field": ["issue"], "query": f"issue.id:>{event.group.id}"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 0
+
     def test_has_issue(self):
         project = self.create_project()
         event = self.store_event(
