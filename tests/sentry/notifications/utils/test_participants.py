@@ -326,7 +326,7 @@ class GetOwnersCase(TestCase):
 
     # If matched, and all-recipients flag
     def test_get_owners_match(self):
-        with self.feature({"organizations:notification-all-recipients": True}):
+        with self.feature("organizations:notification-all-recipients"):
             self.create_ownership(self.project, [self.rule_1, self.rule_2, self.rule_3])
             event = self.create_event(self.project)
             recipients = get_owners(project=self.project, event=event)

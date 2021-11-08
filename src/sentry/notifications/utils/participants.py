@@ -169,13 +169,11 @@ def get_owners(project: Project, event: Event | None = None) -> Iterable[Team | 
 
     else:
         outcome = "match"
-        matched_recipients = ActorTuple.resolve_many(owners)
+        recipients = ActorTuple.resolve_many(owners)
         # Used to suppress extra notifications to all matched owners, only notify the would-be auto-assignee
-        recipients = (
-            matched_recipients
-            if features.has("organizations:notification-all-recipients", project.organization)
-            else matched_recipients[-1:]
-        )
+        if features.has("organizations:notification-all-recipients", project.organization):
+            recipients = recipients[-1:]
+
     metrics.incr(
         "features.owners.send_to",
         tags={"organization": project.organization_id, "outcome": outcome},

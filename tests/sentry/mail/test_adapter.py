@@ -469,7 +469,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             ),
             fallthrough=True,
         )
-        with self.feature({"organizations:notification-all-recipients": True}):
+        with self.feature("organizations:notification-all-recipients"):
             event_all_users = self.store_event(
                 data=make_event_data("foo.cbl"), project_id=project.id
             )
@@ -490,7 +490,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             project=project,
         )
 
-        with self.feature({"organizations:notification-all-recipients": True}):
+        with self.feature("organizations:notification-all-recipients"):
             event_all_users = self.store_event(
                 data=make_event_data("foo.cbl"), project_id=project.id
             )
