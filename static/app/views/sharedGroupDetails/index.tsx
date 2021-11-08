@@ -10,10 +10,12 @@ import Footer from 'app/components/footer';
 import Link from 'app/components/links/link';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import LogoSentry from 'app/components/logoSentry';
+import {Panel, PanelHeader} from 'app/components/panels';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
-import {Group} from 'app/types';
+import {Group, SharedViewOrganization} from 'app/types';
 import withApi from 'app/utils/withApi';
 
 import SharedGroupHeader from './sharedGroupHeader';
@@ -77,16 +79,6 @@ class SharedGroupDetails extends Component<Props, State> {
     this.fetchData();
   };
 
-  getTitle() {
-    const {group} = this.state;
-
-    if (group) {
-      return group.title;
-    }
-
-    return 'Sentry';
-  }
-
   render() {
     const {group, loading, error} = this.state;
 
@@ -103,45 +95,47 @@ class SharedGroupDetails extends Component<Props, State> {
     }
 
     const {location, api, route, router} = this.props;
-    const {permalink, latestEvent, project} = group;
-    const title = this.getTitle();
+    const {title, permalink, latestEvent, project} = group;
+
+    // XXX(epurkhiser): Be careful. The organization represented here as part
+    // of the shared group's project is NOT a full organization, just a slug
+    // and name.
+    const organization: SharedViewOrganization = project.organization;
 
     return (
-      <DocumentTitle title={title}>
+      <DocumentTitle title={title ?? t('Sentry')}>
         <div className="app">
           <div className="pattern-bg" />
-          <div className="container">
-            <div className="box box-modal">
-              <div className="box-header">
-                <Link className="logo" to="/">
-                  <span className="icon-sentry-logo-full" />
+          <Wrapper>
+            <Panel>
+              <PanelHeader>
+                <Link to="/">
+                  <LogoSentry height="20" />
                 </Link>
                 {permalink && (
                   <Link className="details" to={permalink}>
                     {t('Details')}
                   </Link>
                 )}
-              </div>
-              <div className="content">
-                <SharedGroupHeader group={group} />
-                <Container className="group-overview event-details-container">
-                  <BorderlessEventEntries
-                    location={location}
-                    organization={project.organization}
-                    group={group}
-                    event={latestEvent}
-                    project={project}
-                    api={api}
-                    route={route}
-                    router={router}
-                    isBorderless
-                    isShare
-                  />
-                </Container>
-                <Footer />
-              </div>
-            </div>
-          </div>
+              </PanelHeader>
+              <SharedGroupHeader group={group} />
+              <Container className="group-overview event-details-container">
+                <BorderlessEventEntries
+                  location={location}
+                  organization={organization}
+                  group={group}
+                  event={latestEvent}
+                  project={project}
+                  api={api}
+                  route={route}
+                  router={router}
+                  isBorderless
+                  isShare
+                />
+              </Container>
+              <Footer />
+            </Panel>
+          </Wrapper>
         </div>
       </DocumentTitle>
     );
@@ -152,5 +146,9 @@ const Container = styled('div')`
   padding: 0 ${space(4)};
 `;
 
-export {SharedGroupDetails};
+const Wrapper = styled('div')`
+  max-width: 960px;
+  margin: ${space(4)} auto;
+`;
+
 export default withApi(SharedGroupDetails);
