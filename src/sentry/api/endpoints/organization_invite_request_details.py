@@ -6,13 +6,9 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPerm
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberWithTeamsSerializer
+from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.models import OrganizationMember
 from sentry.utils.audit import get_api_key_for_audit_log
-from sentry.utils.members import (
-    approve_member_invitation,
-    reject_member_invitation,
-    validate_invitation,
-)
 
 from .organization_member_details import get_allowed_roles
 from .organization_member_index import OrganizationMemberSerializer, save_team_assignments
@@ -23,12 +19,13 @@ class ApproveInviteRequestSerializer(serializers.Serializer):
 
     def validate_approve(self, approve):
         request = self.context["request"]
-        organization = self.context["organization"]
         member = self.context["member"]
         allowed_roles = self.context["allowed_roles"]
 
-        # will raise validation errors
-        validate_invitation(member, organization, request.user, allowed_roles)
+        try:
+            member.validate_invitation(request.user, allowed_roles)
+        except UnableToAcceptMemberInvitationException as err:
+            raise serializers.ValidationError(str(err))
 
         return approve
 
@@ -121,8 +118,7 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationEndpoint):
 
             if result.get("approve") and not member.invite_approved:
                 api_key = get_api_key_for_audit_log(request)
-                approve_member_invitation(
-                    member,
+                member.approve_member_invitation(
                     request.user,
                     api_key,
                     request.META["REMOTE_ADDR"],
@@ -153,6 +149,6 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationEndpoint):
             raise ResourceDoesNotExist
 
         api_key = get_api_key_for_audit_log(request)
-        reject_member_invitation(member, request.user, api_key, request.META["REMOTE_ADDR"])
+        member.reject_member_invitation(request.user, api_key, request.META["REMOTE_ADDR"])
 
         return Response(status=status.HTTP_204_NO_CONTENT)
