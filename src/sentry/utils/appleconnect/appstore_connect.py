@@ -390,7 +390,9 @@ def _get_dsym_url(bundles: Optional[List[JSONData]]) -> Union[NoDsymUrl, str]:
         sentry_sdk.capture_message("App Clip's bundle has a dSYMUrl")
 
     app_bundles = [
-        b for b in bundles if safe.get_path(b, "attributes", "bundleType", default="APP") == "APP"
+        app_bundle
+        for app_bundle in bundles
+        if safe.get_path(app_bundle, "attributes", "bundleType", default="APP") != "APP_CLIP"
     ]
     if not app_bundles:
         return NoDsymUrl.NOT_NEEDED
