@@ -105,7 +105,7 @@ class QueryBuilder(QueryFilter):
                 )
                 alias = column.name if type(column) == Column else column.alias
                 raise InvalidSearchQuery(
-                    f"A single field cannot be used both inside and outside a function in the same query. To use '{alias}' you must first remove the function(s): {function_msg}"
+                    f"A single field cannot be used both inside and outside a function in the same query. To use {alias} you must first remove the function(s): {function_msg}"
                 )
 
     def validate_having_clause(self) -> None:
