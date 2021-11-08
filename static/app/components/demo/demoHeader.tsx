@@ -69,10 +69,12 @@ export default function DemoHeader() {
         target="_blank"
         rel="noreferrer noopener"
       >
-        <span className="long-text">
+        <GetStartedTextLong>
           {saasOrgSlug ? t('Upgrade Now') : t('Sign Up for Free')}
-        </span>
-        <span className="short-text">{saasOrgSlug ? t('Upgrade') : t('Sign Up')}</span>
+        </GetStartedTextLong>
+        <GetStartedTextShort>
+          {saasOrgSlug ? t('Upgrade') : t('Sign Up')}
+        </GetStartedTextShort>
       </GetStarted>
     </Wrapper>
   );
@@ -126,6 +128,12 @@ const RequestDemoBtn = styled(BaseButton)`
   }
 `;
 
+const GetStartedTextShort = styled('span')`
+  display: none;
+`;
+
+const GetStartedTextLong = styled('span')``;
+
 // Note many of the colors don't come from the theme as they come from the marketing site
 const GetStarted = styled(BaseButton)`
   border-color: transparent;
@@ -136,10 +144,10 @@ const GetStarted = styled(BaseButton)`
     display: none;
   }
   @media (max-width: 650px) {
-    .long-text {
+    ${GetStartedTextLong} {
       display: none;
     }
-    .short-text {
+    ${GetStartedTextShort} {
       display: inline;
     }
   }
