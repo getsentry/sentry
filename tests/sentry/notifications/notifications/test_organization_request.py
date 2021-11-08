@@ -34,7 +34,6 @@ class GetParticipantsTest(TestCase):
 
     @with_feature("organizations:slack-requests")
     def test_turn_off_settings(self):
-
         NotificationSetting.objects.update_settings(
             ExternalProviders.SLACK,
             NotificationSettingTypes.APPROVAL,
@@ -53,6 +52,6 @@ class GetParticipantsTest(TestCase):
         notification = DummyRequestNotification(self.organization, self.user, member_ids)
 
         assert notification.get_participants() == {
-            ExternalProviders.EMAIL: {self.user2},
-            ExternalProviders.SLACK: {self.user1},
+            ExternalProviders.EMAIL: {self.user1, self.user2},
+            ExternalProviders.SLACK: {self.user1, self.user2},
         }

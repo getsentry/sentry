@@ -1,6 +1,6 @@
 import {IncidentRule} from './incidentRule';
 
-export function Incident(params) {
+export function Incident(params = {}) {
   return {
     id: '321',
     identifier: '123',

@@ -1,4 +1,4 @@
-function ExceptionWithMeta(props = {}) {
+export function ExceptionWithMeta(params = {}) {
   return {
     level: 'error',
     platform: 'python',
@@ -28,8 +28,6 @@ function ExceptionWithMeta(props = {}) {
         },
       },
     },
-    ...props,
+    ...params,
   };
 }
-
-export {ExceptionWithMeta};
