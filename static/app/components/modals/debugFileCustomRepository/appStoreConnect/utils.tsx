@@ -59,7 +59,7 @@ export function getAppStoreErrorMessage(
     ?.detail;
 
   if (detailedErrorResponse) {
-    return getAppStoreValidationErrorMessage(detailedErrorResponse);
+    return getAppStoreValidationErrorMessage(detailedErrorResponse) as string;
   }
 
   const errorResponse = error.responseJSON as undefined | ResponseJSON;

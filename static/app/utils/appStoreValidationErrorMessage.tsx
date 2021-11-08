@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/react';
 
-import {t} from 'app/locale';
+import Link from 'app/components/links/link';
+import {t, tct} from 'app/locale';
 import {AppStoreConnectValidationError} from 'app/types/debugFiles';
 
 export const unexpectedErrorMessage = t(
@@ -8,20 +9,37 @@ export const unexpectedErrorMessage = t(
 );
 
 export function getAppStoreValidationErrorMessage(
-  error: AppStoreConnectValidationError
-): string {
+  error: AppStoreConnectValidationError,
+  repo?: {name: string; link: string}
+) {
   switch (error.code) {
     case 'app-connect-authentication-error':
-      return t(
-        'Credentials are invalid, missing, or expired. Check the entered App Store Connect credentials are correct and have not expired.'
-      );
+      return repo
+        ? tct(
+            'Apple Store Connect credentials are invalid or missing. [linkToCustomRepository]',
+            {
+              linkToCustomRepository: (
+                <Link to={repo.link}>
+                  {tct(
+                    "Make sure the credentials of the '[customRepositoryName]' repository are correct and exist.",
+                    {
+                      customRepositoryName: repo.name,
+                    }
+                  )}
+                </Link>
+              ),
+            }
+          )
+        : t('The supplied Apple Store Connect credentials are invalid or missing.');
     case 'app-connect-forbidden-error':
       return t('The supplied API key does not have sufficient permissions.');
     case 'app-connect-multiple-sources-error':
-      return t('Only one Apple App Store Connect application is allowed in this project');
+      return t(
+        'Only one Apple App Store Connect application is allowed in this project.'
+      );
     default: {
       // this shall not happen
-      Sentry.captureException(new Error('Unknown app store connect error'));
+      Sentry.captureException(new Error('Unknown app store connect error.'));
       return unexpectedErrorMessage;
     }
   }

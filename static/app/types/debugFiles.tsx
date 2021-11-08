@@ -76,7 +76,7 @@ export type AppStoreConnectStatusData = {
   updateAlertMessage?: string;
 };
 
-type CustomRepoAppStoreConnect = {
+export type CustomRepoAppStoreConnect = {
   type: CustomRepoType.APP_STORE_CONNECT;
   appId: string;
   appName: string;

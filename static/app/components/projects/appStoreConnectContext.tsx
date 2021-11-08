@@ -29,6 +29,15 @@ const Provider = ({children, project, organization}: ProviderProps) => {
 
   const orgSlug = organization.slug;
 
+  const appStoreConnectSymbolSources = (
+    projectDetails?.symbolSources ? JSON.parse(projectDetails.symbolSources) : []
+  ).reduce((acc, {type, id, ...symbolSource}) => {
+    if (type.toLowerCase() === 'appstoreconnect') {
+      acc[id] = {type, ...symbolSource};
+    }
+    return acc;
+  }, {});
+
   useEffect(() => {
     fetchProjectDetails();
   }, [project]);
@@ -55,22 +64,12 @@ const Provider = ({children, project, organization}: ProviderProps) => {
     }
   }
 
-  function getAppStoreConnectSymbolSourceId(symbolSources?: string) {
-    return (symbolSources ? JSON.parse(symbolSources) : []).find(
-      symbolSource => symbolSource.type.toLowerCase() === 'appstoreconnect'
-    )?.id;
-  }
-
   async function fetchAppStoreConnectStatusData() {
     if (!projectDetails) {
       return;
     }
 
-    const appStoreConnectSymbolSourceId = getAppStoreConnectSymbolSourceId(
-      projectDetails.symbolSources
-    );
-
-    if (!appStoreConnectSymbolSourceId) {
+    if (!Object.keys(appStoreConnectSymbolSources).length) {
       return;
     }
 
@@ -86,29 +85,37 @@ const Provider = ({children, project, organization}: ProviderProps) => {
     }
   }
 
-  function getUpdateAlertMessage(credentialsStatus: AppStoreConnectCredentialsStatus) {
-    if (credentialsStatus?.status === 'valid') {
+  function getUpdateAlertMessage(
+    respository: NonNullable<Parameters<typeof getAppStoreValidationErrorMessage>[1]>,
+    credentials: AppStoreConnectCredentialsStatus
+  ) {
+    if (credentials?.status === 'valid') {
       return undefined;
     }
-    return getAppStoreValidationErrorMessage(credentialsStatus);
+
+    return getAppStoreValidationErrorMessage(credentials, respository);
   }
 
   return (
     <AppStoreConnectContext.Provider
       value={
-        appStoreConnectStatusData
-          ? Object.keys(appStoreConnectStatusData).reduce(
-              (acc, key) => ({
+        appStoreConnectStatusData && project
+          ? Object.keys(appStoreConnectStatusData).reduce((acc, key) => {
+              const appStoreConnect = appStoreConnectStatusData[key];
+              return {
                 ...acc,
                 [key]: {
-                  ...appStoreConnectStatusData[key],
+                  ...appStoreConnect,
                   updateAlertMessage: getUpdateAlertMessage(
-                    appStoreConnectStatusData[key].credentials
+                    {
+                      name: appStoreConnectSymbolSources[key].name,
+                      link: `/settings/${organization.slug}/projects/${project.slug}/debug-symbols/?customRepository=${key}`,
+                    },
+                    appStoreConnect.credentials
                   ),
                 },
-              }),
-              {}
-            )
+              };
+            }, {})
           : undefined
       }
     >
