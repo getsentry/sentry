@@ -66,16 +66,16 @@ class AbstractInviteRequestNotification(OrganizationRequestNotification):
         members_url = self.members_url + self.get_sentry_query_params(ExternalProviders.SLACK)
         return [
             MessageAction(
-                label="Approve",
+                name="Approve",
                 style="primary",
                 action_id="approve_request",
                 value="approve_member",
             ),
             MessageAction(
-                label="Reject", style="danger", action_id="approve_request", value="reject_member"
+                name="Reject", style="danger", action_id="approve_request", value="reject_member"
             ),
             MessageAction(
-                label="See Members & Requests",
+                name="See Members & Requests",
                 url=members_url,
             ),
         ]
