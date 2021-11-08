@@ -109,6 +109,9 @@ class Controls extends React.Component<Props> {
                 }}
                 icon={<IconEdit size="xs" />}
                 disabled={!hasFeature}
+                priority={
+                  organization.features.includes('widget-library') ? 'default' : 'primary'
+                }
               >
                 {t('Edit Dashboard')}
               </Button>
