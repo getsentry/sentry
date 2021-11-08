@@ -564,6 +564,7 @@ class RedisReportBackend(ReportBackend):
 backend = RedisReportBackend(redis.clusters.get("default"), 60 * 60 * 3)
 
 
+@retry()
 @instrumented_task(
     name="sentry.tasks.reports.prepare_reports", queue="reports.prepare", acks_late=True
 )
