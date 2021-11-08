@@ -268,15 +268,6 @@ class GetOwnersCase(TestCase):
         self.rule_2 = Rule(Matcher("path", "*.js"), [Owner("team", self.team_2.slug)])
         self.rule_3 = Rule(Matcher("path", "*.js"), [Owner("user", self.user_1.email)])
 
-        # self.project_ownership1 = ProjectOwnership.objects.create(
-        #     project_id=self.project_1.id,
-        #     schema=dump_schema([self.rule_1, self.rule_2, self.rule_3]),
-        #     fallthrough=True,
-        # )
-        # self.project_ownership2 = ProjectOwnership.objects.create(
-        #     project_id=self.project_2.id, fallthrough=True
-        # )
-
     def tearDown(self):
         cache.delete(ProjectOwnership.get_cache_key(self.project.id))
         super().tearDown()
