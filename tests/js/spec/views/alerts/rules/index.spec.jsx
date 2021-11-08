@@ -3,6 +3,7 @@ import {act, fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLi
 
 import OrganizationStore from 'app/stores/organizationStore';
 import ProjectsStore from 'app/stores/projectsStore';
+import TeamStore from 'app/stores/teamStore';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import AlertRulesList from 'app/views/alerts/rules';
 import {IncidentStatus} from 'app/views/alerts/types';
@@ -11,6 +12,7 @@ jest.mock('app/utils/analytics');
 
 describe('OrganizationRuleList', () => {
   const {routerContext, organization, router} = initializeOrg();
+  TeamStore.loadInitialData([]);
   let rulesMock;
   let projectMock;
   const pageLinks =
