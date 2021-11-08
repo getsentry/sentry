@@ -101,9 +101,6 @@ const StyledButton = styled(Button)`
   > span:first-child {
     padding: 8px 16px;
   }
-  active {
-    color: red;
-  }
 `;
 
 const WidgetImage = styled('img')`
