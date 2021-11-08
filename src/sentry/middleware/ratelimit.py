@@ -15,7 +15,7 @@ from sentry.app import ratelimiter
 def get_rate_limit_key(view_func: EndpointFunction, request: Request) -> str | None:
     """Construct a consistent global rate limit key using the arguments provided"""
 
-    view = f"{view_func.__module__}.{view_func.__name__}"
+    view = view_func.__qualname__
     http_method = request.method
 
     request_user = getattr(request, "user", None)
@@ -27,7 +27,6 @@ def get_rate_limit_key(view_func: EndpointFunction, request: Request) -> str | N
 
     ip_address = request.META.get("REMOTE_ADDR")
 
-    # Default to using an IP based ratelimit
     if is_sentry_app and org_id is not None:
         category = "org"
         id = org_id
