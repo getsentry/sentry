@@ -91,6 +91,7 @@ export function LineChartListWidget(props: Props) {
           eventView.additionalConditions.setFilterValues('!tags[transaction]', ['']);
           const mutableSearch = new MutableSearch(eventView.query);
           mutableSearch.removeFilter('transaction.duration');
+          eventView.additionalConditions.removeFilter('transaction.op'); // Remove transaction op incase it's applied from the performance view.
           eventView.query = mutableSearch.formatString();
         } else if (isSlowestType) {
           eventView.additionalConditions.setFilterValues('epm()', ['>0.01']);
@@ -149,6 +150,7 @@ export function LineChartListWidget(props: Props) {
           ]);
           eventView.additionalConditions.setFilterValues('event.type', ['error']);
           eventView.additionalConditions.setFilterValues('!tags[transaction]', ['']);
+          eventView.additionalConditions.removeFilter('transaction.op'); // Remove transaction op incase it's applied from the performance view.
           const mutableSearch = new MutableSearch(eventView.query);
           mutableSearch.removeFilter('transaction.duration');
           eventView.query = mutableSearch.formatString();
