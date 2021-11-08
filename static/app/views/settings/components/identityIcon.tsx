@@ -15,7 +15,6 @@ import okta from 'sentry-logos/logo-okta.svg';
 import onelogin from 'sentry-logos/logo-onelogin.svg';
 import rippling from 'sentry-logos/logo-rippling.svg';
 import saml2 from 'sentry-logos/logo-saml2.svg';
-import sentry from 'sentry-logos/logo-sentry.svg';
 import slack from 'sentry-logos/logo-slack.svg';
 import visualstudio from 'sentry-logos/logo-visualstudio.svg';
 
@@ -23,21 +22,14 @@ import visualstudio from 'sentry-logos/logo-visualstudio.svg';
 export const DEFAULT_ICON = placeholder;
 export const ICON_PATHS = {
   _default: DEFAULT_ICON,
-  sentry,
-  browsers: sentry,
-  device: sentry,
-  interface_types: sentry,
-  os: sentry,
-  urls: sentry,
-  webhooks: sentry,
 
   'active-directory': vsts,
   asana,
   auth0,
-  bitbucket_server: bitbucketserver,
   bitbucket,
-  github_enterprise: githubEnterprise,
+  bitbucket_server: bitbucketserver,
   github,
+  github_enterprise: githubEnterprise,
   gitlab,
   google,
   jira_server: jiraserver,
