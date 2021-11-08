@@ -345,6 +345,39 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
         )
         self.assert_event(events["data"][0])
 
+    def test_auto_aggregation(self):
+        # absolute_correlation is automatically added, and not a part of data otherwise
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    # Set the timeframe to where the second range has no transactions so all the counts/percentile are 0
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": iso_format(self.day_ago - timedelta(hours=2)),
+                    "field": ["project", "transaction"],
+                    "query": "event.type:transaction absolute_correlation():>0.2",
+                    "project": [self.project.id],
+                },
+            )
+        assert response.status_code == 200, response.content
+
+        events = response.data
+
+        assert len(events["data"]) == 1
+        self.expected_data.update(
+            {
+                "count_range_2": 4,
+                "count_range_1": 0,
+                "aggregate_range_1": 0,
+                "aggregate_range_2": 2000.0,
+                "count_percentage": None,
+                "trend_difference": 0,
+                "trend_percentage": None,
+            }
+        )
+        self.assert_event(events["data"][0])
+
 
 class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
     def setUp(self):
