@@ -1,6 +1,6 @@
 import collections.abc
 from copy import deepcopy
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, Callable, List, Mapping, Optional, Sequence, Set, Tuple, Union, cast
 
@@ -434,6 +434,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         if len(projects_list) == 0:
             return None
 
+        projects_list = list(projects_list)
         if isinstance(projects_list[0], tuple):
             project_ids: List[ProjectId] = [x[0] for x in projects_list]
         else:
@@ -575,7 +576,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
             "project_users_24h": ComparatorType.Counter,
             "project_sessions_24h": ComparatorType.Counter,
         }
-        should_compare = datetime.utcnow() - timedelta(hours=24) > self.metrics_start
+        should_compare = datetime.now(timezone.utc) - timedelta(hours=24) > self.metrics_start
 
         if org_id is not None:
             organization = self._org_from_id(org_id)
@@ -686,7 +687,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
     ) -> Set[ProjectOrRelease]:
         rollup = self.DEFAULT_ROLLUP  # not used
         schema = {ComparatorType.Exact}
-        should_compare = datetime.utcnow() - timedelta(days=90) > self.metrics_start
+        should_compare = datetime.now(timezone.utc) - timedelta(days=90) > self.metrics_start
         organization = self._org_from_projects(projects_list)
         return self._dispatch_call(  # type: ignore
             "check_has_health_data", should_compare, rollup, organization, schema, projects_list
@@ -736,7 +737,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
             "total_project_sessions_24h": ComparatorType.Counter
             # TODO still need to look into stats field and find out what compare conditions it has
         }
-        should_compare = datetime.utcnow() - timedelta(days=1) > self.metrics_start
+        should_compare = datetime.now(timezone.utc) - timedelta(days=1) > self.metrics_start
         organization = self._org_from_projects(project_releases)
         return self._dispatch_call(  # type: ignore
             "get_release_health_data_overview",
@@ -788,7 +789,8 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
     ) -> Sequence[ProjectRelease]:
         rollup = self.DEFAULT_ROLLUP  # not used
         schema = [ComparatorType.Exact]
-        should_compare = datetime.utcnow() - timedelta(days=3) > self.metrics_start
+        should_compare = datetime.now(timezone.utc) - timedelta(days=3) > self.metrics_start
+
         organization = self._org_from_projects(project_ids)
         return self._dispatch_call(  # type: ignore
             "get_changed_project_release_model_adoptions",
@@ -804,7 +806,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
     ) -> Mapping[ProjectRelease, str]:
         rollup = self.DEFAULT_ROLLUP  # TODO check if this is correct ?
         schema = {"*": ComparatorType.DateTime}
-        should_compare = datetime.utcnow() - timedelta(days=90) > self.metrics_start
+        should_compare = datetime.now(timezone.utc) - timedelta(days=90) > self.metrics_start
         organization = self._org_from_projects(project_releases)
         return self._dispatch_call(  # type: ignore
             "get_oldest_health_data_for_releases",
