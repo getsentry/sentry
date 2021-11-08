@@ -51,7 +51,9 @@ class TestListBuilds:
                     key_id=data["key_id"], issuer_id=data["issuer_id"], key=data["private_key"]
                 )
         else:
-            # NOTE: This key has been generated for these test.
+            # NOTE: This key has been generated outside of App Store Connect for the sole
+            # purpose of being used in this test. The key is not associated with any account
+            # on App Store Connect, and therefore is unable to access any live data.
             return appstore_connect.AppConnectCredentials(
                 key_id="AAAAAAAAAA",
                 issuer_id="12345678-abcd-abcd-abcd-1234567890ab",
