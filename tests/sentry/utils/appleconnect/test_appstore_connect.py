@@ -164,17 +164,18 @@ class TestListBuilds:
             appstore_connect.get_build_info(session, api_credentials, app_id, include_expired=True)
         )
 
+        found_build = None
+
         for build in builds:
             if build.build_number == "332":
+                found_build = build
                 break
-        else:
-            pytest.fail("Build 332 not found")
-        build = builds[0]
 
-        assert build.build_number == "332"
-        assert isinstance(build.dsym_url, str)
-        assert build.dsym_url.startswith("http://iosapps.itunes.apple.com/itunes-assets/")
-        assert "accessKey=" in build.dsym_url
+        assert found_build is not None
+        assert found_build.build_number == "332"
+        assert isinstance(found_build.dsym_url, str)
+        assert found_build.dsym_url.startswith("http://iosapps.itunes.apple.com/itunes-assets/")
+        assert "accessKey=" in found_build.dsym_url
 
     def test_no_dsyms_needed(
         self,
@@ -190,14 +191,15 @@ class TestListBuilds:
             appstore_connect.get_build_info(session, api_credentials, app_id, include_expired=True)
         )
 
+        found_build = None
         for build in builds:
             if build.build_number == "333":
+                found_build = build
                 break
-        else:
-            pytest.fail("Build 333 not found")
 
-        assert build.build_number == "333"
-        assert build.dsym_url is appstore_connect.NoDsymUrl.NOT_NEEDED
+        assert found_build is not None
+        assert found_build.build_number == "333"
+        assert found_build.dsym_url is appstore_connect.NoDsymUrl.NOT_NEEDED
 
 
 class TestGetDsymUrl:
