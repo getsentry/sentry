@@ -438,7 +438,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         if isinstance(projects_list[0], tuple):
             project_ids: List[ProjectId] = [x[0] for x in projects_list]
         else:
-            project_ids = projects_list  # type: ignore
+            project_ids = projects_list
 
         projects = Project.objects.get_many_from_cache(project_ids)
 
