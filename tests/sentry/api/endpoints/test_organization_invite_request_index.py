@@ -13,6 +13,7 @@ from sentry.testutils import APITestCase
 from sentry.testutils.cases import SlackActivityNotificationTest
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.slack import get_attachment_no_text
+from sentry.utils import json
 
 
 class OrganizationInviteRequestListTest(APITestCase):
@@ -221,3 +222,8 @@ class OrganizationInviteRequestCreateTest(APITestCase, SlackActivityNotification
                 "type": "button",
             },
         ]
+        member = OrganizationMember.objects.get(email="eric@localhost")
+        assert json.loads(attachment["callback_id"]) == {
+            "member_id": member.id,
+            "member_email": "eric@localhost",
+        }
