@@ -4,13 +4,12 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {ModalRenderProps} from 'app/actionCreators/modal';
-import Alert from 'app/components/alert';
 import Tag from 'app/components/tagDeprecated';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {DashboardDetails, Widget} from 'app/views/dashboardsV2/types';
-import {DEFAULT_WIDGETS, WidgetTemplate} from 'app/views/dashboardsV2/widgetLibrary/data';
+import {WidgetTemplate} from 'app/views/dashboardsV2/widgetLibrary/data';
 
 import Button from '../../button';
 import ButtonBar from '../../buttonBar';
@@ -64,16 +63,9 @@ function DashboardWidgetLibraryModal({
         </StyledButtonBar>
         {tab === TAB.Library ? (
           <React.Fragment>
-            {errored && !!!selectedWidgets.length ? (
-              <Alert type="error">
-                {t(
-                  'Please select at least one Widget from our Library. Alternatively, you can build a custom widget from scratch.'
-                )}
-              </Alert>
-            ) : null}
-            <Title>{t('%s WIDGETS', DEFAULT_WIDGETS.length)}</Title>
             <DashboardWidgetLibraryTab
               selectedWidgets={selectedWidgets}
+              errored={errored}
               setSelectedWidgets={setSelectedWidgets}
               setErrored={setErrored}
             />
@@ -130,14 +122,6 @@ const StyledButtonBar = styled(ButtonBar)`
 const FooterButtonbar = styled(ButtonBar)`
   justify-content: space-between;
   width: 100%;
-`;
-
-const Title = styled('h3')`
-  margin-bottom: ${space(1)};
-  padding: 0 !important;
-  font-size: ${p => p.theme.fontSizeSmall};
-  text-transform: uppercase;
-  color: ${p => p.theme.gray300};
 `;
 
 const SelectedBadge = styled(Tag)`
