@@ -79,7 +79,7 @@ class MessageBuilder:
         html_template: str | None = None,
         body: str = "",
         html_body: str | None = None,
-        headers: Mapping[str, Any] | None = None,
+        headers: Mapping[str, str] | None = None,
         reference: Model | None = None,
         reply_reference: Model | None = None,
         from_email: str | None = None,
