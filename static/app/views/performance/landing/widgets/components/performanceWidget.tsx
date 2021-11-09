@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useCallback, useRef, useState} from 'react';
 import {withRouter} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -28,19 +28,23 @@ export function GenericPerformanceWidget<T extends WidgetDataConstraint>(
   // Use object keyed to chart setting so switching between charts of a similar type doesn't retain data with query components still having inflight requests.
   const [allWidgetData, setWidgetData] = useState<{[chartSetting: string]: T}>({});
   const widgetData = allWidgetData[props.chartSetting] ?? {};
+  const widgetDataRef = useRef(widgetData);
 
   const setWidgetDataForKey = useCallback(
     (dataKey: string, result?: WidgetDataResult) => {
-      if (result) {
-        setWidgetData({[props.chartSetting]: {...widgetData, [dataKey]: result}});
-      }
+      const _widgetData = widgetDataRef.current;
+      const newWidgetData = {..._widgetData, [dataKey]: result};
+      widgetDataRef.current = newWidgetData;
+      setWidgetData({[props.chartSetting]: newWidgetData});
     },
     [allWidgetData, setWidgetData]
   );
   const removeWidgetDataForKey = useCallback(
     (dataKey: string) => {
-      const newWidgetData = {...widgetData};
+      const _widgetData = widgetDataRef.current;
+      const newWidgetData = {..._widgetData};
       delete newWidgetData[dataKey];
+      widgetDataRef.current = newWidgetData;
       setWidgetData({[props.chartSetting]: newWidgetData});
     },
     [allWidgetData, setWidgetData]
