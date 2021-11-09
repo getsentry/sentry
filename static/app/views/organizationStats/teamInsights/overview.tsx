@@ -262,6 +262,7 @@ function TeamInsightsOverview({location, router}: Props) {
               <TeamMisery
                 organization={organization}
                 projects={projects}
+                teamId={currentTeam!.id}
                 period={period}
                 start={start?.toString()}
                 end={end?.toString()}
