@@ -1,5 +1,6 @@
 import logging
 from collections import OrderedDict
+from random import random
 
 import requests
 import sentry_sdk
@@ -363,7 +364,7 @@ class BaseInternalApiClient(ApiClient, TrackResponseMixin):
             name=f"{self.integration_type}.http_response.{self.name}",
             parent_span_id=parent_span_id,
             trace_id=trace_id,
-            sampled=True,
+            sampled=random() < 0.05,
         ) as span:
             resp = ApiClient.request(self, *args, **kwargs)
             self.track_response_data(resp.status_code, span, None, resp)
