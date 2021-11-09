@@ -100,7 +100,7 @@ type TeamActor = {
 
 type TeamOption = {
   value: string | null;
-  label: React.ReactElement | string;
+  label: React.ReactNode;
   searchKey: string;
   actor: TeamActor | null;
   disabled?: boolean;
