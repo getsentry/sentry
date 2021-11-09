@@ -383,31 +383,31 @@ class ParseQueryTest(TestCase):
 
     def test_first_release(self):
         result = self.parse_query("first-release:bar")
-        assert result == {"first_release": "bar", "tags": {}, "query": ""}
+        assert result == {"first_release": ["bar"], "tags": {}, "query": ""}
 
     def test_first_release_latest(self):
         result = self.parse_query("first-release:latest")
-        assert result == {"first_release": "", "tags": {}, "query": ""}
+        assert result == {"first_release": [""], "tags": {}, "query": ""}
         release = self.create_release(
             project=self.project,
             version="older_release",
             date_added=datetime.now() - timedelta(days=1),
         )
         result = self.parse_query("first-release:latest")
-        assert result == {"first_release": release.version, "tags": {}, "query": ""}
+        assert result == {"first_release": [release.version], "tags": {}, "query": ""}
         release = self.create_release(
             project=self.project, version="new_release", date_added=datetime.now()
         )
         result = self.parse_query("first-release:latest")
-        assert result == {"first_release": release.version, "tags": {}, "query": ""}
+        assert result == {"first_release": [release.version], "tags": {}, "query": ""}
 
     def test_release(self):
         result = self.parse_query("release:bar")
-        assert result == {"tags": {"sentry:release": "bar"}, "query": ""}
+        assert result == {"tags": {"sentry:release": ["bar"]}, "query": ""}
 
     def test_release_latest(self):
         result = self.parse_query("release:latest")
-        assert result == {"tags": {"sentry:release": ""}, "query": ""}
+        assert result == {"tags": {"sentry:release": [""]}, "query": ""}
 
         release = self.create_release(
             project=self.project,
@@ -415,12 +415,12 @@ class ParseQueryTest(TestCase):
             date_added=datetime.now() - timedelta(days=1),
         )
         result = self.parse_query("release:latest")
-        assert result == {"tags": {"sentry:release": release.version}, "query": ""}
+        assert result == {"tags": {"sentry:release": [release.version]}, "query": ""}
         release = self.create_release(
             project=self.project, version="new_release", date_added=datetime.now()
         )
         result = self.parse_query("release:latest")
-        assert result == {"tags": {"sentry:release": release.version}, "query": ""}
+        assert result == {"tags": {"sentry:release": [release.version]}, "query": ""}
 
     def test_dist(self):
         result = self.parse_query("dist:123")
@@ -428,7 +428,7 @@ class ParseQueryTest(TestCase):
 
     def test_padded_spacing(self):
         result = self.parse_query("release:bar  foo   bar")
-        assert result == {"tags": {"sentry:release": "bar"}, "query": "foo bar"}
+        assert result == {"tags": {"sentry:release": ["bar"]}, "query": "foo bar"}
 
     def test_unknown_user_with_dot_query(self):
         result = self.parse_query("user.email:fake@example.com")
