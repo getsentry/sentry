@@ -355,7 +355,10 @@ from .endpoints.project_user_details import ProjectUserDetailsEndpoint
 from .endpoints.project_user_reports import ProjectUserReportsEndpoint
 from .endpoints.project_user_stats import ProjectUserStatsEndpoint
 from .endpoints.project_users import ProjectUsersEndpoint
-from .endpoints.prompts_activity import PromptsActivityEndpoint
+from .endpoints.prompts_activity import (
+    AppStoreConnectPromptsActivityEndpoint,
+    PromptsActivityEndpoint,
+)
 from .endpoints.relay_details import RelayDetailsEndpoint
 from .endpoints.relay_healthcheck import RelayHealthCheck
 from .endpoints.relay_index import RelayIndexEndpoint
@@ -560,6 +563,11 @@ urlpatterns = [
         r"^prompts-activity/$",
         PromptsActivityEndpoint.as_view(),
         name="sentry-api-0-prompts-activity",
+    ),
+    url(
+        r"^app-store-connect-prompts-activity/$",
+        AppStoreConnectPromptsActivityEndpoint.as_view(),
+        name="sentry-api-0-app-store-connect-prompts-activity",
     ),
     # Auth
     url(

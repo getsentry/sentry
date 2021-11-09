@@ -46,6 +46,48 @@ class PromptsConfig:
 
 prompt_config = PromptsConfig(DEFAULT_PROMPTS)
 
+MULTI_PROMPTS = {
+    "app_store_connect_updates": {
+        "required_fields": ["organization_id", "project_id"],
+        # quick hacky way to add support to distinguish between different instances
+        "discriminant": ["source_id"],
+    },
+}
+
+
+class MultiPromptsConfig:
+    """
+    Quick and dirty equivalent of PromptsConfig that extends it to support 1:M feature:prompts.
+
+    required_fields available: [organization_id, project_id]
+    """
+
+    def __init__(self, prompts):
+        self.prompts = prompts
+
+    def add(self, name, config):
+        if self.has(name):
+            raise Exception(f"Prompt key {name} is already in use")
+        if "required_fields" not in config:
+            raise Exception("'required_fields' must be present in the config dict")
+
+        self.prompts[name] = config
+
+    def has(self, name):
+        return name in self.prompts
+
+    def get(self, name):
+        return self.prompts[name]
+
+    def required_fields(self, name):
+        return self.prompts[name]["required_fields"]
+
+    def discriminant(self, name):
+        return self.prompts[name]["discriminant"]
+
+
+multi_prompt_config = PromptsConfig(MULTI_PROMPTS)
+
 
 # TODO: remove get_prompt_activities and use get_prompt_activities_for_user instead
 @request_cache

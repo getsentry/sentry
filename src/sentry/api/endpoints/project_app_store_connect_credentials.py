@@ -394,6 +394,11 @@ class AppStoreConnectStatusEndpoint(ProjectEndpoint):  # type: ignore
                         "code": AppConnectAuthenticationError.code,
                     }
 
+            asc_credentials = {
+                "status": "invalid",
+                "code": AppConnectForbiddenError.code,
+            }
+
             # TODO: is it possible to set up two configs pointing to the same app?
             pending_downloads = AppConnectBuild.objects.filter(
                 project=project, app_id=symbol_source_cfg.appId, fetched=False
