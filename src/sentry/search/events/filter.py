@@ -979,9 +979,10 @@ def format_search_filter(term, params):
         if term.operator in EQUALITY_OPERATORS:
             # A blank term value means that this is a has filter
             group_ids = to_list(value)
-        converted_filter = convert_search_filter_to_snuba_query(term, params=params)
-        if converted_filter:
-            conditions.append(converted_filter)
+        else:
+            converted_filter = convert_search_filter_to_snuba_query(term, params=params)
+            if converted_filter:
+                conditions.append(converted_filter)
     elif name == ISSUE_ALIAS:
         operator = term.operator
         value = to_list(value)
