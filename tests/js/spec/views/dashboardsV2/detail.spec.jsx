@@ -475,5 +475,41 @@ describe('Dashboards > Detail', function () {
         DashboardState.VIEW
       );
     });
+
+    it('can add library widgets', async function () {
+      initialData = initializeOrg({
+        organization: TestStubs.Organization({
+          features: [
+            'global-views',
+            'dashboards-basic',
+            'dashboards-edit',
+            'discover-query',
+            'widget-library',
+          ],
+          projects: [TestStubs.Project()],
+        }),
+      });
+
+      wrapper = mountWithTheme(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        initialData.routerContext
+      );
+      await tick();
+      wrapper.update();
+
+      // Enter Add Widget mode
+      wrapper
+        .find('Controls Button[data-test-id="add-widget-library"]')
+        .simulate('click');
+
+      const modal = await mountGlobalModal();
+
+      // console.log(modal.find('Button').debug());
+    });
   });
 });

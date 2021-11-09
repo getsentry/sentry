@@ -117,7 +117,7 @@ class Controls extends React.Component<Props> {
               </Button>
               {organization.features.includes('widget-library') ? (
                 <Button
-                  data-test-id="dashboard-add-widget"
+                  data-test-id="add-widget-library"
                   priority="primary"
                   icon={<IconAdd isCircled size="s" />}
                   onClick={e => {
