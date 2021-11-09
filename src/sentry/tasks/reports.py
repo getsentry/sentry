@@ -564,7 +564,12 @@ class RedisReportBackend(ReportBackend):
 backend = RedisReportBackend(redis.clusters.get("default"), 60 * 60 * 3)
 
 
-@instrumented_task(name="sentry.tasks.reports.prepare_reports", queue="reports.prepare")
+@instrumented_task(
+    name="sentry.tasks.reports.prepare_reports",
+    queue="reports.prepare",
+    max_retries=5,
+    acks_late=True,
+)
 def prepare_reports(dry_run=False, *args, **kwargs):
     timestamp, duration = _fill_default_parameters(*args, **kwargs)
 
@@ -573,7 +578,12 @@ def prepare_reports(dry_run=False, *args, **kwargs):
         prepare_organization_report.delay(timestamp, duration, organization_id, dry_run=dry_run)
 
 
-@instrumented_task(name="sentry.tasks.reports.prepare_organization_report", queue="reports.prepare")
+@instrumented_task(
+    name="sentry.tasks.reports.prepare_organization_report",
+    queue="reports.prepare",
+    max_retries=5,
+    acks_late=True,
+)
 def prepare_organization_report(timestamp, duration, organization_id, dry_run=False):
     try:
         organization = _get_organization_queryset().get(id=organization_id)
@@ -693,7 +703,10 @@ def has_valid_aggregates(interval, project__report):
 
 
 @instrumented_task(
-    name="sentry.tasks.reports.deliver_organization_user_report", queue="reports.deliver"
+    name="sentry.tasks.reports.deliver_organization_user_report",
+    queue="reports.deliver",
+    max_retries=5,
+    acks_late=True,
 )
 def deliver_organization_user_report(timestamp, duration, organization_id, user_id, dry_run=False):
     try:
