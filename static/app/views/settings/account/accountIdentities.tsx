@@ -12,11 +12,11 @@ import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import Tag from 'app/components/tag';
 import {IconFlag} from 'app/icons';
 import {t, tct} from 'app/locale';
-import PluginIcon from 'app/plugins/components/pluginIcon';
 import space from 'app/styles/space';
 import {UserIdentityCategory, UserIdentityConfig, UserIdentityStatus} from 'app/types';
 import AsyncView from 'app/views/asyncView';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import IdentityIcon from 'app/views/settings/components/identityIcon';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 
@@ -48,7 +48,7 @@ class AccountIdentities extends AsyncView<Props, State> {
     return (
       <IdentityPanelItem key={`${identity.category}:${identity.id}`}>
         <InternalContainer>
-          <PluginIcon pluginId={identity.provider.key} size={36} />
+          <IdentityIcon providerId={identity.provider.key} />
           <IdentityText isSingleLine={!identity.dateAdded}>
             <IdentityName>{identity.provider.name}</IdentityName>
             {identity.dateAdded && <IdentityDateTime date={moment(identity.dateAdded)} />}

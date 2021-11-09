@@ -300,6 +300,7 @@ class Chart extends React.Component<ChartProps, State> {
         },
       },
       ...(chartOptionsProp ?? {}),
+      animation: typeof Component === typeof BarChart ? false : undefined,
     };
 
     return (

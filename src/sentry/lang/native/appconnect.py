@@ -7,10 +7,8 @@ this.
 import dataclasses
 import logging
 import pathlib
-from datetime import datetime
 from typing import Any, Dict, List
 
-import dateutil
 import jsonschema
 import requests
 import sentry_sdk
@@ -53,6 +51,17 @@ class NoDsymsError(Exception):
     pass
 
 
+# TODO(itunes): Remove when the fields are removed from DB
+DEPRECATED_FIELDS = [
+    "itunesUser",
+    "itunesCreated",
+    "itunesPassword",
+    "itunesSession",
+    "orgPublicId",
+    "orgName",
+]
+
+
 @dataclasses.dataclass(frozen=True)
 class AppStoreConnectConfig:
     """The symbol source configuration for an App Store Connect source.
@@ -93,14 +102,6 @@ class AppStoreConnectConfig:
     # This is guaranteed to be unique and should map 1:1 to ``appId``.
     bundleId: str
 
-    # TODO(itunes): Deprecated fields. These must be removed alongside a migration.
-    itunesUser: str
-    itunesPassword: str
-    itunesSession: str
-    itunesCreated: datetime
-    orgPublicId: str
-    orgName: str
-
     def __post_init__(self) -> None:
         # All fields are required.
         for field in dataclasses.fields(self):
@@ -120,13 +121,13 @@ class AppStoreConnectConfig:
            symbol source configuration.
         """
         # TODO(itunes): Remove logic related to iTunes fields when the fields are removed
-        if isinstance(data["itunesCreated"], datetime):
-            data["itunesCreated"] = data["itunesCreated"].isoformat()
+        for field in DEPRECATED_FIELDS:
+            if field in data:
+                del data[field]
         try:
             jsonschema.validate(data, APP_STORE_CONNECT_SCHEMA)
         except jsonschema.exceptions.ValidationError as e:
             raise InvalidConfigError from e
-        data["itunesCreated"] = dateutil.parser.isoparse(data["itunesCreated"])
         return cls(**data)
 
     @classmethod
@@ -177,9 +178,6 @@ class AppStoreConnectConfig:
         data = dict()
         for field in dataclasses.fields(self):
             value = getattr(self, field.name)
-            # TODO(itunes): Remove logic related to iTunes fields when the fields are removed
-            if field.name == "itunesCreated":
-                value = value.isoformat()
             data[field.name] = value
         try:
             jsonschema.validate(data, APP_STORE_CONNECT_SCHEMA)
@@ -197,7 +195,8 @@ class AppStoreConnectConfig:
         """
         data = self.to_json()
         for to_redact in secret_fields("appStoreConnect"):
-            data[to_redact] = {"hidden-secret": True}
+            if to_redact in data:
+                data[to_redact] = {"hidden-secret": True}
         return data
 
     def update_project_symbol_source(self, project: Project, allow_multiple: bool) -> json.JSONData:

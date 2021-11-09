@@ -1,4 +1,4 @@
-export function OrganizationIntegrations(organizationId) {
+export function OrganizationIntegrations(params = {}) {
   return {
     id: '15',
     name: 'hb-testing',
@@ -26,7 +26,7 @@ export function OrganizationIntegrations(organizationId) {
     configData: {
       installationType: 'born_as_bot',
     },
-    organizationId,
     externalId: 'TA99AB9CD',
+    ...params,
   };
 }

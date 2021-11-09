@@ -338,13 +338,11 @@ def sort_grouping_variants(variants):
     # Sort system variant to the back of the list to resolve ambiguities when
     # choosing primary_hash for Snuba
     flat_variants.sort(key=lambda name_and_variant: 1 if name_and_variant[0] == "system" else 0)
-    flat_variants = [variant for name, variant in flat_variants]
 
     # Sort hierarchical_variants by order defined in HIERARCHICAL_VARIANTS
     hierarchical_variants.sort(
         key=lambda name_and_variant: HIERARCHICAL_VARIANTS.index(name_and_variant[0])
     )
-    hierarchical_variants = [variant for name, variant in hierarchical_variants]
 
     return flat_variants, hierarchical_variants
 
