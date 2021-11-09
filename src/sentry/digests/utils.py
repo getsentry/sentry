@@ -17,7 +17,12 @@ from sentry.types.integrations import ExternalProviders
 def get_digest_metadata(
     digest: Digest,
 ) -> tuple[datetime | None, datetime | None, CounterType[str]]:
-    """TODO MARCOS describe"""
+    """
+    Inspect a digest down to its events and return three pieces of data:
+     - the timestamp of the FIRST event chronologically
+     - the timestamp of the LAST event chronologically
+     - the total number of groups
+    """
     start: datetime | None = None
     end: datetime | None = None
 
@@ -81,8 +86,7 @@ def get_personalized_digests(
 
 
 def get_event_from_groups_in_digest(digest: Digest) -> Iterable[Event]:
-    # TODO MARCOS FIRST make sure this preserves ORDER!
-    """Gets the first event from each group in the digest."""
+    """Gets a random event from each group in the digest."""
     return {
         group_records[0].value.event
         for rule_groups in digest.values()

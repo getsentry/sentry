@@ -98,8 +98,6 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
         self.user3 = self.create_user()
         self.user4 = self.create_user()
         self.user5 = self.create_user()  # this user has no events
-        # TODO MARCOS make these actor IDs?
-        self.user_ids = [self.user1.id, self.user2.id, self.user3.id, self.user4.id, self.user5.id]
 
         self.team1 = self.create_team()
         self.team2 = self.create_team()
