@@ -166,6 +166,7 @@ function TeamMisery({
 
 type Props = AsyncComponent['props'] & {
   organization: Organization;
+  teamId: string;
   projects: Project[];
   location: Location;
   period?: string;
@@ -175,6 +176,7 @@ type Props = AsyncComponent['props'] & {
 
 function TeamMiseryWrapper({
   organization,
+  teamId,
   projects,
   location,
   period,
@@ -198,9 +200,10 @@ function TeamMiseryWrapper({
   const commonEventView = {
     id: undefined,
     query: 'transaction.duration:<15m team_key_transaction:true',
-    projects: projects.map(project => Number(project.id)),
+    projects: [],
     version: 2 as SavedQueryVersions,
     orderby: '-tpm',
+    teams: [Number(teamId)],
     fields: [
       'transaction',
       'project',
