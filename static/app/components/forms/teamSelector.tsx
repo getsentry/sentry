@@ -100,7 +100,7 @@ type TeamActor = {
 
 type TeamOption = {
   value: string | null;
-  label: React.ReactElement;
+  label: React.ReactNode;
   searchKey: string;
   actor: TeamActor | null;
   disabled?: boolean;
@@ -118,7 +118,7 @@ function TeamSelector(props: Props) {
 
   const createTeamOption = (team: Team): TeamOption => ({
     value: useId ? team.id : team.slug,
-    label: <IdBadge team={team} />,
+    label: multiple ? `#${team.slug}` : <IdBadge team={team} />,
     searchKey: `#${team.slug}`,
     actor: {
       type: 'team',
@@ -241,7 +241,7 @@ function TeamSelector(props: Props) {
       getOptionValue={option => option.searchKey}
       styles={{
         ...(includeUnassigned ? unassignedSelectStyles : {}),
-        ...placeholderSelectStyles,
+        ...(multiple ? {} : placeholderSelectStyles),
         ...(styles ?? {}),
       }}
       isLoading={fetching}
