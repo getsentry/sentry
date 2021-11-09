@@ -8,6 +8,7 @@ import pathlib
 import textwrap
 import urllib.parse
 from typing import Optional
+from unittest import mock
 
 import pytest
 import requests
@@ -163,16 +164,18 @@ class TestListBuilds:
             appstore_connect.get_build_info(session, api_credentials, app_id, include_expired=True)
         )
 
+        found_build = None
+
         for build in builds:
             if build.build_number == "332":
+                found_build = build
                 break
-        else:
-            pytest.fail("Build 332 not found")
 
-        assert build.build_number == "332"
-        assert isinstance(build.dsym_url, str)
-        assert build.dsym_url.startswith("http://iosapps.itunes.apple.com/itunes-assets/")
-        assert "accessKey=" in build.dsym_url
+        assert found_build is not None
+        assert found_build.build_number == "332"
+        assert isinstance(found_build.dsym_url, str)
+        assert found_build.dsym_url.startswith("http://iosapps.itunes.apple.com/itunes-assets/")
+        assert "accessKey=" in found_build.dsym_url
 
     def test_no_dsyms_needed(
         self,
@@ -188,14 +191,15 @@ class TestListBuilds:
             appstore_connect.get_build_info(session, api_credentials, app_id, include_expired=True)
         )
 
+        found_build = None
         for build in builds:
             if build.build_number == "333":
+                found_build = build
                 break
-        else:
-            pytest.fail("Build 333 not found")
 
-        assert build.build_number == "333"
-        assert build.dsym_url is appstore_connect.NoDsymUrl.NOT_NEEDED
+        assert found_build is not None
+        assert found_build.build_number == "333"
+        assert found_build.dsym_url is appstore_connect.NoDsymUrl.NOT_NEEDED
 
 
 class TestGetDsymUrl:
@@ -211,6 +215,7 @@ class TestGetDsymUrl:
                 "type": "buildBundles",
                 "id": "59467f37-371e-4755-afcd-0116775a6eab",
                 "attributes": {
+                    "bundleType": "APP",
                     "dSYMUrl": 1,
                 },
             }
@@ -225,6 +230,7 @@ class TestGetDsymUrl:
                 "type": "buildBundles",
                 "id": "59467f37-371e-4755-afcd-0116775a6eab",
                 "attributes": {
+                    "bundleType": "APP",
                     "dSYMUrl": None,
                 },
             }
@@ -239,6 +245,7 @@ class TestGetDsymUrl:
                 "type": "buildBundles",
                 "id": "59467f37-371e-4755-afcd-0116775a6eab",
                 "attributes": {
+                    "bundleType": "APP",
                     "dSYMUrl": url,
                 },
             }
@@ -252,6 +259,7 @@ class TestGetDsymUrl:
                 "type": "buildBundles",
                 "id": "59467f37-371e-4755-afcd-0116775a6eab",
                 "attributes": {
+                    "bundleType": "APP",
                     "dSYMUrl": None,
                 },
             },
@@ -259,6 +267,7 @@ class TestGetDsymUrl:
                 "type": "buildBundles",
                 "id": "5e231f58-31c6-47cc-b4f8-56952d44a158",
                 "attributes": {
+                    "bundleType": "APP",
                     "dSYMUrl": None,
                 },
             },
@@ -274,6 +283,7 @@ class TestGetDsymUrl:
                 "type": "buildBundles",
                 "id": "59467f37-371e-4755-afcd-0116775a6eab",
                 "attributes": {
+                    "bundleType": "APP",
                     "dSYMUrl": first_url,
                 },
             },
@@ -281,14 +291,15 @@ class TestGetDsymUrl:
                 "type": "buildBundles",
                 "id": "5e231f58-31c6-47cc-b4f8-56952d44a158",
                 "attributes": {
+                    "bundleType": "APP",
                     "dSYMUrl": second_url,
                 },
             },
         ]
-        assert appstore_connect._get_dsym_url(bundles) is first_url
+        assert appstore_connect._get_dsym_url(bundles) == first_url
 
         bundles.reverse()
-        assert appstore_connect._get_dsym_url(bundles) is second_url
+        assert appstore_connect._get_dsym_url(bundles) == second_url
 
     def test_multi_bundle_mixed_urls(self) -> None:
         url = "http://iosapps.itunes.apple.com/itunes-assets/very-real-url"
@@ -297,6 +308,7 @@ class TestGetDsymUrl:
                 "type": "buildBundles",
                 "id": "59467f37-371e-4755-afcd-0116775a6eab",
                 "attributes": {
+                    "bundleType": "APP",
                     "dSYMUrl": url,
                 },
             },
@@ -304,12 +316,87 @@ class TestGetDsymUrl:
                 "type": "buildBundles",
                 "id": "5e231f58-31c6-47cc-b4f8-56952d44a158",
                 "attributes": {
+                    "bundleType": "APP",
                     "dSYMUrl": None,
                 },
             },
         ]
 
-        assert appstore_connect._get_dsym_url(bundles) is url
+        assert appstore_connect._get_dsym_url(bundles) == url
 
         bundles.reverse()
         assert appstore_connect._get_dsym_url(bundles) is NoDsymUrl.NOT_NEEDED
+
+    def test_multi_bundle_appclip_no_urls(self) -> None:
+        bundles = [
+            {
+                "type": "buildBundles",
+                "id": "59467f37-371e-4755-afcd-0116775a6eab",
+                "attributes": {
+                    "bundleType": "APP",
+                    "dSYMUrl": None,
+                },
+            },
+            {
+                "type": "buildBundles",
+                "id": "59467f37-371e-4755-afcd-1227886b7fbc",
+                "attributes": {
+                    "bundleType": "APP_CLIP",
+                    "dSYMUrl": None,
+                },
+            },
+        ]
+
+        with mock.patch("sentry_sdk.capture_message") as capture_message:
+            assert appstore_connect._get_dsym_url(bundles) is NoDsymUrl.NOT_NEEDED
+            assert capture_message.call_count == 0
+
+    def test_multi_bundle_appclip_has_urls(self) -> None:
+        url = "http://iosapps.itunes.apple.com/itunes-assets/very-real-url"
+        bundles = [
+            {
+                "type": "buildBundles",
+                "id": "59467f37-371e-4755-afcd-0116775a6eab",
+                "attributes": {
+                    "bundleType": "APP",
+                    "dSYMUrl": url,
+                },
+            },
+            {
+                "type": "buildBundles",
+                "id": "59467f37-371e-4755-afcd-1227886b7fbc",
+                "attributes": {
+                    "bundleType": "APP_CLIP",
+                    "dSYMUrl": url,
+                },
+            },
+        ]
+
+        with mock.patch("sentry_sdk.capture_message") as capture_message:
+            assert appstore_connect._get_dsym_url(bundles) == url
+            assert capture_message.call_count == 1
+
+    def test_multi_bundle_appclip_mixed_clip_no_url(self) -> None:
+        url = "http://iosapps.itunes.apple.com/itunes-assets/very-real-url"
+        bundles = [
+            {
+                "type": "buildBundles",
+                "id": "59467f37-371e-4755-afcd-0116775a6eab",
+                "attributes": {
+                    "bundleType": "APP",
+                    "dSYMUrl": None,
+                },
+            },
+            {
+                "type": "buildBundles",
+                "id": "59467f37-371e-4755-afcd-1227886b7fbc",
+                "attributes": {
+                    "bundleType": "APP_CLIP",
+                    "dSYMUrl": url,
+                },
+            },
+        ]
+
+        with mock.patch("sentry_sdk.capture_message") as capture_message:
+            assert appstore_connect._get_dsym_url(bundles) is NoDsymUrl.NOT_NEEDED
+            assert capture_message.call_count == 1
