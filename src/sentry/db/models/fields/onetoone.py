@@ -7,4 +7,4 @@ __all__ = ("OneToOneCascadeDeletes",)
 class OneToOneCascadeDeletes(OneToOneField):
     def __init__(self, *args, **kwargs):
         kwargs.setdefault("on_delete", models.CASCADE)
-        return super().__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
