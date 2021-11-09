@@ -209,7 +209,9 @@ class GroupManager(BaseManager):
     def by_qualified_short_id(self, organization_id: int, short_id: str):
         return self.by_qualified_short_id_bulk(organization_id, [short_id])[0]
 
-    def by_qualified_short_id_bulk(self, organization_id: int, short_ids: list[str]):
+    def by_qualified_short_id_bulk(
+        self, organization_id: int, short_ids: list[str]
+    ) -> Sequence[Group]:
         short_ids = [parse_short_id(short_id) for short_id in short_ids]
         if not short_ids or any(short_id is None for short_id in short_ids):
             raise Group.DoesNotExist()
@@ -226,8 +228,8 @@ class GroupManager(BaseManager):
             ],
         )
 
-        groups: list[Group] = list(
-            Group.objects.exclude(
+        groups = list(
+            self.exclude(
                 status__in=[
                     GroupStatus.PENDING_DELETION,
                     GroupStatus.DELETION_IN_PROGRESS,
@@ -254,10 +256,7 @@ class GroupManager(BaseManager):
             logger.info("discarded.hash", extra={"project_id": project, "description": str(e)})
 
     def from_event_id(self, project, event_id):
-        """
-        Resolves the 32 character event_id string into
-        a Group for which it is found.
-        """
+        """Resolves the 32 character event_id string into a Group for which it is found."""
         group_id = None
 
         event = eventstore.get_event_by_id(project.id, event_id)
@@ -271,22 +270,19 @@ class GroupManager(BaseManager):
             # a Group.
             raise Group.DoesNotExist()
 
-        return Group.objects.get(id=group_id)
+        return self.get(id=group_id)
 
     def filter_by_event_id(self, project_ids, event_id):
-        event_ids = [event_id]
-        conditions = [["group_id", "IS NOT NULL", None]]
-        data = eventstore.get_events(
+        events = eventstore.get_events(
             filter=eventstore.Filter(
-                event_ids=event_ids, project_ids=project_ids, conditions=conditions
+                event_ids=[event_id],
+                project_ids=project_ids,
+                conditions=[["group_id", "IS NOT NULL", None]],
             ),
             limit=max(len(project_ids), 100),
             referrer="Group.filter_by_event_id",
         )
-
-        group_ids = {evt.group_id for evt in data}
-
-        return Group.objects.filter(id__in=group_ids)
+        return self.filter(id__in={event.group_id for event in events})
 
     def get_groups_by_external_issue(
         self,

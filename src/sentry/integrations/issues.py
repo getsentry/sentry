@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import enum
 import logging
 from collections import defaultdict
-from typing import Any, Mapping, Optional
+from typing import Any, Mapping
 
 from sentry.integrations.utils import where_should_sync
 from sentry.models import ExternalIssue, GroupLink, User
@@ -29,7 +31,7 @@ class ResolveSyncAction(enum.Enum):
     @classmethod
     def from_resolve_unresolve(
         cls, should_resolve: bool, should_unresolve: bool
-    ) -> "ResolveSyncAction":
+    ) -> ResolveSyncAction:
         if should_resolve and should_unresolve:
             logger.warning("sync-config-conflict")
             return ResolveSyncAction.NOOP
@@ -338,8 +340,8 @@ class IssueSyncMixin(IssueBasicMixin):
 
     def sync_assignee_outbound(
         self,
-        external_issue: "ExternalIssue",
-        user: Optional["User"],
+        external_issue: ExternalIssue,
+        user: User | None,
         assign: bool = True,
         **kwargs: Any,
     ) -> None:
@@ -369,7 +371,7 @@ class IssueSyncMixin(IssueBasicMixin):
 
     def sync_status_inbound(self, issue_key: str, data: Mapping[str, Any]) -> None:
         if not where_should_sync(self.model, "inbound_status", self.organization_id):
-            return
+            return None
 
         sync_status_inbound_task.apply_async(
             kwargs={
