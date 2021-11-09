@@ -20,15 +20,9 @@ class TestUpdateDsyms:
             appconnectIssuer="abc123" * 6,
             appconnectKey="abc123key",
             appconnectPrivateKey="----BEGIN PRIVATE KEY---- blabla",
-            itunesUser="me@example.com",
-            itunesPassword="secret",
-            itunesSession="THE-COOKIE",
-            itunesCreated=datetime.utcnow(),
             appName="My App",
             appId="123",
             bundleId="com.example.app",
-            orgPublicId="71105f98-7743-4844-ab70-2c901e2ea13d",
-            orgName="Example Com",
         )
 
     @pytest.fixture

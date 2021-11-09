@@ -80,13 +80,6 @@ APP_STORE_CONNECT_SCHEMA = {
         "appName",
         "appId",
         "bundleId",
-        # TODO(itunes): All of the below fields are deprecated. Remove together with migration.
-        "itunesUser",
-        "itunesCreated",
-        "itunesPassword",
-        "itunesSession",
-        "orgPublicId",
-        "orgName",
     ],
     "additionalProperties": False,
 }

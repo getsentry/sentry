@@ -31,15 +31,9 @@ class TestAppStoreConnectConfig:
             "appconnectIssuer": "abc123" * 6,
             "appconnectKey": "abc123",
             "appconnectPrivateKey": "---- BEGIN PRIVATE KEY ---- ABC123...",
-            "itunesUser": "someone@example.com",
-            "itunesPassword": "a secret",
-            "itunesSession": "ABC123",
-            "itunesCreated": now.isoformat(),
             "appName": "Sample Application",
             "appId": "1234",
             "bundleId": "com.example.app",
-            "orgPublicId": "71105f98-7743-4844-ab70-2c901e2ea13d",
-            "orgName": "Example Organisation",
         }
 
     def test_from_json_basic(self, data: json.JSONData, now: datetime) -> None:
@@ -49,31 +43,12 @@ class TestAppStoreConnectConfig:
         assert config.name == data["name"]
         assert config.appconnectIssuer == data["appconnectIssuer"]
         assert config.appconnectPrivateKey == data["appconnectPrivateKey"]
-        assert config.itunesUser == data["itunesUser"]
-        assert config.itunesPassword == data["itunesPassword"]
-        assert config.itunesSession == data["itunesSession"]
-        assert config.itunesCreated == now
         assert config.appName == data["appName"]
         assert config.bundleId == data["bundleId"]
-        assert config.orgPublicId == data["orgPublicId"]
-        assert config.orgName == data["orgName"]
-
-    def test_from_json_isoformat(self, data: json.JSONData, now: datetime) -> None:
-        data["itunesCreated"] = now.isoformat()
-        config = appconnect.AppStoreConnectConfig.from_json(data)
-        assert config.itunesCreated == now
-
-    def test_from_json_datetime(self, data: json.JSONData, now: datetime) -> None:
-        data["itunesCreated"] = now
-        config = appconnect.AppStoreConnectConfig.from_json(data)
-        assert config.itunesCreated == now
 
     def test_to_json(self, data: json.JSONData, now: datetime) -> None:
         config = appconnect.AppStoreConnectConfig.from_json(data)
         new_data = config.to_json()
-
-        # Fixup our input to expected JSON format
-        data["itunesCreated"] = now.isoformat()
 
         assert new_data == data
 
@@ -81,13 +56,25 @@ class TestAppStoreConnectConfig:
         config = appconnect.AppStoreConnectConfig.from_json(data)
         new_data = config.to_redacted_json()
 
-        # Fixup our input to expected JSON format
-        data["itunesCreated"] = now.isoformat()
+        # Redacted secrets
+        data["appconnectPrivateKey"] = {"hidden-secret": True}
+        assert "itunesPassword" not in data
+        assert "itunesSession" not in data
+
+        assert new_data == data
+
+    def test_to_redacted_json_with_deprecated(self, data: json.JSONData, now: datetime) -> None:
+        data_with_deprecated = data
+        data_with_deprecated["itunesPassword"] = "honk"
+        data_with_deprecated["itunesSession"] = "beep"
+
+        config = appconnect.AppStoreConnectConfig.from_json(data)
+        new_data = config.to_redacted_json()
 
         # Redacted secrets
         data["appconnectPrivateKey"] = {"hidden-secret": True}
-        data["itunesPassword"] = {"hidden-secret": True}
-        data["itunesSession"] = {"hidden-secret": True}
+        assert "itunesPassword" not in data
+        assert "itunesSession" not in data
 
         assert new_data == data
 
@@ -110,15 +97,9 @@ class TestAppStoreConnectConfigUpdateProjectSymbolSource:
             appconnectIssuer="abc123" * 6,
             appconnectKey="abc123key",
             appconnectPrivateKey="----BEGIN PRIVATE KEY---- blabla",
-            itunesUser="me@example.com",
-            itunesPassword="secret",
-            itunesSession="THE-COOKIE",
-            itunesCreated=datetime.utcnow(),
             appName="My App",
             appId="123",
             bundleId="com.example.app",
-            orgPublicId="71105f98-7743-4844-ab70-2c901e2ea13d",
-            orgName="Example Com",
         )
 
     @pytest.mark.django_db  # type: ignore
@@ -156,7 +137,6 @@ class TestAppStoreConnectConfigUpdateProjectSymbolSource:
         new_sources.append(cfg.to_json())
         assert stored_sources == new_sources
 
-    # TODO(itunes): Update when iTunes fields are removed
     @pytest.mark.django_db  # type: ignore
     def test_update(
         self, default_project: "Project", config: appconnect.AppStoreConnectConfig
@@ -169,24 +149,17 @@ class TestAppStoreConnectConfigUpdateProjectSymbolSource:
             name=config.name,
             appconnectIssuer=config.appconnectIssuer,
             appconnectKey=config.appconnectKey,
-            appconnectPrivateKey=config.appconnectPrivateKey,
-            itunesUser=config.itunesUser,
-            itunesPassword=config.itunesPassword,
-            itunesSession="A NEW COOKIE",
-            itunesCreated=datetime.utcnow(),
+            appconnectPrivateKey="A NEW KEY",
             appName=config.appName,
             appId=config.appId,
             bundleId=config.bundleId,
-            orgPublicId=config.orgPublicId,
-            orgName=config.orgName,
         )
 
         updated.update_project_symbol_source(default_project, allow_multiple=False)
 
         current = appconnect.AppStoreConnectConfig.from_project_config(default_project, config.id)
-        assert current.itunesSession == "A NEW COOKIE"
+        assert current.appconnectPrivateKey == "A NEW KEY"
 
-    # TODO(itunes): Update when iTunes fields are removed
     @pytest.mark.django_db  # type: ignore
     def test_update_no_matching_id(
         self, default_project: "Project", config: appconnect.AppStoreConnectConfig
@@ -199,16 +172,10 @@ class TestAppStoreConnectConfigUpdateProjectSymbolSource:
             name=config.name,
             appconnectIssuer=config.appconnectIssuer,
             appconnectKey=config.appconnectKey,
-            appconnectPrivateKey=config.appconnectPrivateKey,
-            itunesUser=config.itunesUser,
-            itunesPassword=config.itunesPassword,
-            itunesSession="A NEW COOKIE",
-            itunesCreated=datetime.utcnow(),
+            appconnectPrivateKey="A NEW KEY",
             appName=config.appName,
             appId=config.appId,
             bundleId=config.bundleId,
-            orgPublicId=config.orgPublicId,
-            orgName=config.orgName,
         )
 
         with pytest.raises(ValueError):
