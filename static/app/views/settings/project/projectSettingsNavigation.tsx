@@ -1,4 +1,5 @@
 import {useContext} from 'react';
+import some from 'lodash/some';
 
 import AppStoreConnectContext from 'app/components/projects/appStoreConnectContext';
 import {Organization, Project} from 'app/types';
@@ -14,7 +15,10 @@ type Props = {
 const ProjectSettingsNavigation = ({organization, project}: Props) => {
   const appStoreConnectContext = useContext(AppStoreConnectContext);
 
-  const debugFilesNeedsReview = !!appStoreConnectContext?.updateAlertMessage;
+  const debugFilesNeedsReview = some(
+    appStoreConnectContext,
+    srcStatus => srcStatus.credentials.status === 'invalid'
+  );
 
   return (
     <SettingsNavigation
