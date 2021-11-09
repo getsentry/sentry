@@ -79,7 +79,7 @@ const Provider = ({children, project, organization}: ProviderProps) => {
         string,
         Omit<AppStoreConnectStatusData, 'id'>
       > = await api.requestPromise(
-        `/projects/${orgSlug}/${projectDetails.slug}/appstoreconnect/status`
+        `/projects/${orgSlug}/${projectDetails.slug}/appstoreconnect/status/`
       );
 
       const fullStatuses: Record<string, AppStoreConnectStatusData> = mapValues(
