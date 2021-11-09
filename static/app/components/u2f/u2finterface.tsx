@@ -6,7 +6,6 @@ import {base64urlToBuffer, bufferToBase64url} from 'app/components/u2f/webAuthnH
 import {t, tct} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import {ChallengeData} from 'app/types';
-// import withOrganization from 'app/utils/withOrganization';
 
 type TapParams = {
   response: string;
