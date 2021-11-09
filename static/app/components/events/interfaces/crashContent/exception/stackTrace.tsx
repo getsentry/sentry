@@ -1,7 +1,7 @@
 import {Panel} from 'app/components/panels';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
-import {ExceptionValue, Group, PlatformType} from 'app/types';
+import {ExceptionValue, Group, Organization, PlatformType} from 'app/types';
 import {Event} from 'app/types/event';
 import {STACK_VIEW} from 'app/types/stacktrace';
 import {defined} from 'app/utils';
@@ -37,7 +37,14 @@ function StackTrace({
   expandFirstFrame,
   event,
 }: Props) {
-  const organization = useOrganization();
+  let organization: Organization | null = null;
+
+  try {
+    organization = useOrganization();
+  } catch {
+    // Organization context may be unavailable for the shared event view. We
+    // don't need to do anything if it's unavailable.
+  }
 
   if (!defined(stacktrace)) {
     return null;
