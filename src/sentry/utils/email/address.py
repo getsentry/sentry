@@ -14,8 +14,8 @@ from .signer import _CaseInsensitiveSigner
 # This is just a tuple of (email, email-domain)
 _from_email_domain_cache: tuple[str, str] | None = None
 
-# Pull email from the string: u'lauryn <lauryn@sentry.io>'
-EMAIL_PARSER = re.compile(r"<(.*)>")
+# Pull email from the string: "lauryn <lauryn@sentry.io>"
+EMAIL_PARSER = re.compile(r"<([^>]*)>")
 
 signer = _CaseInsensitiveSigner()
 
@@ -62,5 +62,5 @@ def is_valid_email_address(value: str) -> bool:
 
 
 def parse_email(email: str) -> str:
-    # TODO(mgaeta): This is too brittle and doesn't pass types.
-    return EMAIL_PARSER.search(email).group(1)  # type: ignore
+    matches = EMAIL_PARSER.search(email)
+    return matches.group(1) if matches else ""
