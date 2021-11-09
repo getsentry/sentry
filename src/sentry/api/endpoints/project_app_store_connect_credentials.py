@@ -27,7 +27,6 @@ Status checks:
     validates and includes the status of API credentials associated with this app.
     See :class:`AppStoreConnectCredentialsValidateEndpoint`.
 """
-import datetime
 import logging
 from typing import Dict, Optional, Union
 from uuid import uuid4
@@ -205,15 +204,6 @@ class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
         config["id"] = uuid4().hex
         config["name"] = config["appName"]
 
-        # TODO(itunes): Deprecated fields. Needs to be removed alongside a migration, so this uses
-        # placeholders as a temporary workaround until that migration happens.
-        config["itunesCreated"] = datetime.datetime.now()
-        config["itunesSession"] = "deprecated-field-do-not-use"
-        config["orgPublicId"] = "deprecated-field-please-do-not-use--"
-        config["orgName"] = "deprecated-field-do-not-use"
-        config["itunesUser"] = "deprecated-field-do-not-use"
-        config["itunesPassword"] = "deprecated-field-do-not-use"
-
         try:
             validated_config = appconnect.AppStoreConnectConfig.from_json(config)
         except ValueError:
@@ -289,15 +279,6 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
             )
         except KeyError:
             return Response(status=404)
-
-        # Deprecated fields. Needs to be removed alongside a migration, so this uses
-        # placeholders as a temporary workaround until that migration happens.
-        data["itunesCreated"] = datetime.datetime.now()
-        data["itunesSession"] = "deprecated-field-do-not-use"
-        data["orgPublicId"] = "deprecated-field-please-do-not-use--"
-        data["orgName"] = "deprecated-field-do-not-use"
-        data["itunesUser"] = "deprecated-field-do-not-use"
-        data["itunesPassword"] = "deprecated-field-do-not-use"
 
         # Any secrets set to None during validation are meant to be no-ops, so remove them to avoid
         # erasing the existing values
