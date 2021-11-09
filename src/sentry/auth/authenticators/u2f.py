@@ -104,7 +104,7 @@ class U2fInterface(AuthenticatorInterface):
     def activate(self, request):
         challenge = dict(u2f.begin_authentication(self.u2f_app_id, self.get_u2f_devices()))
 
-        # TODO change rp to host id
+        # TODO for completeness change to webauthn when functionalities for everything else is done
         # server = U2FFido2Server(
         #     app_id=self.u2f_app_id, rp={"id": self.u2f_app_id, "name": "Example RP"}
         # )
@@ -136,32 +136,35 @@ class U2fInterface(AuthenticatorInterface):
 
         return ActivationChallengeResult(challenge=challenge)
 
-    def validate_response(self, request, challenge, response):
+    def validate_response(self, request, challenge, response, is_webauthn_ff_enabled):
         try:
-            # u2f.complete_authentication(challenge, response, self.u2f_facets)
-
-            server = U2FFido2Server(
-                app_id=challenge["appId"], rp={"id": challenge["appId"], "name": "Example RP"}
-            )
-            state = {
-                "challenge": challenge["challenge"],
-                "user_verification": None,
-            }
-            credentials = []
-            for registeredKey in challenge["registeredKeys"]:
-                c = base.AttestedCredentialData.from_ctap1(
-                    websafe_decode(registeredKey["keyHandle"]),
-                    websafe_decode(registeredKey["publicKey"]),
+            if is_webauthn_ff_enabled:
+                # TODO change rp.id later when register is implemented
+                server = U2FFido2Server(
+                    app_id=challenge["appId"],
+                    rp={"id": challenge["appId"], "name": "Relying Party"},
                 )
-                credentials.append(c)
-            server.authenticate_complete(
-                state=state,
-                credentials=credentials,
-                credential_id=websafe_decode(response["keyHandle"]),
-                client_data=ClientData(websafe_decode(response["clientData"])),
-                auth_data=AuthenticatorData(websafe_decode(response["authenticatorData"])),
-                signature=websafe_decode(response["signatureData"]),
-            )
+                state = {
+                    "challenge": challenge["challenge"],
+                    "user_verification": None,
+                }
+                credentials = []
+                for registeredKey in challenge["registeredKeys"]:
+                    c = base.AttestedCredentialData.from_ctap1(
+                        websafe_decode(registeredKey["keyHandle"]),
+                        websafe_decode(registeredKey["publicKey"]),
+                    )
+                    credentials.append(c)
+                server.authenticate_complete(
+                    state=state,
+                    credentials=credentials,
+                    credential_id=websafe_decode(response["keyHandle"]),
+                    client_data=ClientData(websafe_decode(response["clientData"])),
+                    auth_data=AuthenticatorData(websafe_decode(response["authenticatorData"])),
+                    signature=websafe_decode(response["signatureData"]),
+                )
+                return True
+            u2f.complete_authentication(challenge, response, self.u2f_facets)
         except (InvalidSignature, InvalidKey, StopIteration):
             return False
         return True

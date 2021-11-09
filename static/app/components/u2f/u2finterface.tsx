@@ -6,6 +6,7 @@ import {base64urlToBuffer, bufferToBase64url} from 'app/components/u2f/webAuthnH
 import {t, tct} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import {ChallengeData} from 'app/types';
+// import withOrganization from 'app/utils/withOrganization';
 
 type TapParams = {
   response: string;
@@ -14,10 +15,12 @@ type TapParams = {
 
 type Props = {
   challengeData: ChallengeData;
+  is_webauthn_ff_enabled: boolean;
   flowMode: string;
   silentIfUnsupported: boolean;
   onTap: ({response, challenge}: TapParams) => Promise<void>;
   style?: React.CSSProperties;
+  // organization: Organization;
 };
 
 type State = {
@@ -152,8 +155,12 @@ class U2fInterface extends React.Component<Props, State> {
     let promise: Promise<u2f.SignResponse | u2f.RegisterResponse>;
 
     if (this.props.flowMode === 'sign') {
-      // promise = u2f.sign(this.props.challengeData.authenticateRequests);
-      this.testWebAuthn(this.props.challengeData.authenticateRequests);
+      if (this.props.is_webauthn_ff_enabled) {
+        this.testWebAuthn(this.props.challengeData.authenticateRequests);
+      } else {
+        promise = u2f.sign(this.props.challengeData.authenticateRequests);
+        this.submitU2fResponse(promise);
+      }
     } else if (this.props.flowMode === 'enroll') {
       const {registerRequests, registeredKeys} = this.props.challengeData;
       promise = u2f.register(registerRequests as any, registeredKeys as any);
@@ -299,3 +306,4 @@ class U2fInterface extends React.Component<Props, State> {
 }
 
 export default U2fInterface;
+// export default withOrganization(U2fInterface);
