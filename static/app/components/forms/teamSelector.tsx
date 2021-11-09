@@ -240,7 +240,7 @@ function TeamSelector(props: Props) {
       isOptionDisabled={option => !!option.disabled}
       styles={{
         ...(includeUnassigned ? unassignedSelectStyles : {}),
-        ...placeholderSelectStyles,
+        ...(multiple ? {} : placeholderSelectStyles),
         ...(styles ?? {}),
       }}
       isLoading={fetching}

@@ -16,12 +16,11 @@ import {IconSliders} from 'app/icons';
 import {t, tct} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import space from 'app/styles/space';
-import {Member, MemberRole, Organization, Team} from 'app/types';
+import {Member, MemberRole, Organization} from 'app/types';
 import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import routeTitleGen from 'app/utils/routeTitle';
 import theme from 'app/utils/theme';
 import withOrganization from 'app/utils/withOrganization';
-import withTeams from 'app/utils/withTeams';
 import AsyncView from 'app/views/asyncView';
 import {
   RenderSearch,
@@ -35,7 +34,6 @@ import OrganizationMemberRow from './organizationMemberRow';
 
 type Props = {
   organization: Organization;
-  teams: Team[];
 } & RouteComponentProps<{orgId: string}, {}>;
 
 type State = AsyncView['state'] & {
@@ -233,7 +231,7 @@ class OrganizationMembersList extends AsyncView<Props, State> {
   };
 
   renderBody() {
-    const {params, organization, routes, teams} = this.props;
+    const {params, organization, routes} = this.props;
     const {membersPageLinks, members, member: currentMember, inviteRequests} = this.state;
     const {name: orgName, access} = organization;
 
@@ -303,7 +301,6 @@ class OrganizationMembersList extends AsyncView<Props, State> {
                   organization={organization}
                   inviteRequest={inviteRequest}
                   inviteRequestBusy={{}}
-                  allTeams={teams}
                   allRoles={currentMember?.roles ?? MEMBER_ROLES}
                   onApprove={this.handleInviteRequestApprove}
                   onDeny={this.handleInviteRequestDeny}
@@ -388,4 +385,4 @@ const StyledPanelItem = styled('div')`
   width: 100%;
 `;
 
-export default withTeams(withOrganization(OrganizationMembersList));
+export default withOrganization(OrganizationMembersList);
