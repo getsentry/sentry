@@ -317,7 +317,7 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
 
             resolved_field = self.resolve_column(field)
 
-            values: Set[str] = set()
+            values: Set[Any] = set()
             for event in top_events:
                 if field in event:
                     alias = field
@@ -330,7 +330,7 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
                 if isinstance(event.get(alias), list):
                     continue
                 else:
-                    values.add(str(event.get(alias)))
+                    values.add(event.get(alias))
             values_list = list(values)
             if values_list:
                 if field == "timestamp" or field.startswith("timestamp.to_"):
