@@ -20,27 +20,21 @@ export const RELATED_ISSUES_QUERY_ERROR =
 /**
  * Renders an Alert box of type "info" for boolean queries in alert details. Renders a discover link if the feature is available.
  */
-export class RelatedIssuesNotAvailable extends React.Component<Props> {
-  render() {
-    const {buttonTo, buttonText} = this.props;
-
-    return (
-      <StyledAlert type="info">
-        <Content>
-          <IconInfo size="lg" />
-          <div data-test-id="loading-error-message">
-            Related Issues unavailable for this alert.
-          </div>
-          <Feature features={['discover-basic']}>
-            <Button type="button" priority="default" size="small" to={buttonTo}>
-              {buttonText}
-            </Button>
-          </Feature>
-        </Content>
-      </StyledAlert>
-    );
-  }
-}
+export const RelatedIssuesNotAvailable = ({buttonTo, buttonText}: Props) => (
+  <StyledAlert type="info">
+    <Content>
+      <IconInfo size="lg" />
+      <div data-test-id="loading-error-message">
+        Related Issues unavailable for this alert.
+      </div>
+      <Feature features={['discover-basic']}>
+        <Button type="button" priority="default" size="small" to={buttonTo}>
+          {buttonText}
+        </Button>
+      </Feature>
+    </Content>
+  </StyledAlert>
+);
 
 const StyledAlert = styled(Alert)`
   ${/* sc-selector */ Panel} & {
