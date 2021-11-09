@@ -242,7 +242,7 @@ class MetricChart extends React.PureComponent<Props, State> {
         type: 'line',
         markLine: MarkLine({
           silent: true,
-          lineStyle: {color: theme.gray200, type: 'dashed', width: 1},
+          lineStyle: {color: theme.gray200, width: 1},
           data: [{xAxis: ruleChanged} as any],
           label: {
             show: false,
