@@ -3622,7 +3622,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 key, value = field.split(".", 1)
                 expected = str(event_data["contexts"][key][value])
                 assert results[0][field] == expected, field + str(datum)
-        assert False
 
     def test_http_fields_between_datasets(self):
         project = self.create_project()
