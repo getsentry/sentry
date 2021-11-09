@@ -62,14 +62,12 @@ function DashboardWidgetLibraryModal({
           </Button>
         </StyledButtonBar>
         {tab === TAB.Library ? (
-          <React.Fragment>
-            <DashboardWidgetLibraryTab
-              selectedWidgets={selectedWidgets}
-              errored={errored}
-              setSelectedWidgets={setSelectedWidgets}
-              setErrored={setErrored}
-            />
-          </React.Fragment>
+          <DashboardWidgetLibraryTab
+            selectedWidgets={selectedWidgets}
+            errored={errored}
+            setSelectedWidgets={setSelectedWidgets}
+            setErrored={setErrored}
+          />
         ) : (
           <DashboardWidgetCustomTab />
         )}
