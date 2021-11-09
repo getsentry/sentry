@@ -8,9 +8,14 @@ import WidgetLibraryCard from 'app/views/dashboardsV2/widgetLibrary/widgetCard';
 type Props = {
   selectedWidgets: WidgetTemplate[];
   setSelectedWidgets: (widgets: WidgetTemplate[]) => void;
+  setErrored: (errored: boolean) => void;
 };
 
-function DashboardWidgetLibraryTab({selectedWidgets, setSelectedWidgets}: Props) {
+function DashboardWidgetLibraryTab({
+  selectedWidgets,
+  setSelectedWidgets,
+  setErrored,
+}: Props) {
   return (
     <React.Fragment>
       <ScrollGrid>
@@ -22,6 +27,7 @@ function DashboardWidgetLibraryTab({selectedWidgets, setSelectedWidgets}: Props)
                 widget={widgetCard}
                 selectedWidgets={selectedWidgets}
                 setSelectedWidgets={setSelectedWidgets}
+                setErrored={setErrored}
               />
             );
           })}

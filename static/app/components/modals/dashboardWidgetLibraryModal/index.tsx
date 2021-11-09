@@ -4,11 +4,12 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {ModalRenderProps} from 'app/actionCreators/modal';
+import Alert from 'app/components/alert';
 import Tag from 'app/components/tagDeprecated';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
-import {DashboardDetails} from 'app/views/dashboardsV2/types';
+import {DashboardDetails, Widget} from 'app/views/dashboardsV2/types';
 import {DEFAULT_WIDGETS, WidgetTemplate} from 'app/views/dashboardsV2/widgetLibrary/data';
 
 import Button from '../../button';
@@ -20,6 +21,7 @@ import DashboardWidgetLibraryTab from './libraryTab';
 export type DashboardWidgetLibraryModalOptions = {
   organization: Organization;
   dashboard: DashboardDetails;
+  onAddWidget: (widgets: Widget[]) => void;
 };
 
 export enum TAB {
@@ -29,9 +31,22 @@ export enum TAB {
 
 type Props = ModalRenderProps & DashboardWidgetLibraryModalOptions;
 
-function DashboardWidgetLibraryModal({Header, Body, Footer}: Props) {
+function DashboardWidgetLibraryModal({
+  Header,
+  Body,
+  Footer,
+  dashboard,
+  closeModal,
+  onAddWidget,
+}: Props) {
   const [tab, setTab] = useState(TAB.Library);
   const [selectedWidgets, setSelectedWidgets] = useState<WidgetTemplate[]>([]);
+  const [errored, setErrored] = useState(false);
+
+  function handleSubmit() {
+    onAddWidget([...dashboard.widgets, ...selectedWidgets]);
+    closeModal();
+  }
 
   return (
     <React.Fragment>
@@ -47,12 +62,22 @@ function DashboardWidgetLibraryModal({Header, Body, Footer}: Props) {
             {t('Custom')}
           </Button>
         </StyledButtonBar>
-        <Title>{t('%s WIDGETS', DEFAULT_WIDGETS.length)}</Title>
         {tab === TAB.Library ? (
-          <DashboardWidgetLibraryTab
-            selectedWidgets={selectedWidgets}
-            setSelectedWidgets={setSelectedWidgets}
-          />
+          <React.Fragment>
+            {errored && !!!selectedWidgets.length ? (
+              <Alert type="error">
+                {t(
+                  'Please select at least one Widget from our Library. Alternatively, you can build a custom widget from scratch.'
+                )}
+              </Alert>
+            ) : null}
+            <Title>{t('%s WIDGETS', DEFAULT_WIDGETS.length)}</Title>
+            <DashboardWidgetLibraryTab
+              selectedWidgets={selectedWidgets}
+              setSelectedWidgets={setSelectedWidgets}
+              setErrored={setErrored}
+            />
+          </React.Fragment>
         ) : (
           <DashboardWidgetCustomTab />
         )}
@@ -73,9 +98,16 @@ function DashboardWidgetLibraryModal({Header, Body, Footer}: Props) {
               data-test-id="add-widget"
               priority="primary"
               type="button"
-              onClick={() => {}}
+              onClick={(event: React.FormEvent) => {
+                event.preventDefault();
+                if (!!!selectedWidgets.length) {
+                  setErrored(true);
+                  return;
+                }
+                handleSubmit();
+              }}
             >
-              {t('Add Widget')}
+              {t('Confirm')}
             </Button>
           </div>
         </FooterButtonbar>
