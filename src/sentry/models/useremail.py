@@ -34,12 +34,6 @@ class UserEmailManager(BaseManager):
         user_email, _ = self.get_or_create(user=user, email=user.email)
         return user_email
 
-    def get_users_by_id(self, email: str) -> Mapping[int, User]:
-        return {
-            row.user_id: row.user
-            for row in self.filter(is_verified=True, email=email).select_related("user")
-        }
-
 
 def default_validation_hash():
     return get_random_string(32, CHARACTERS)
