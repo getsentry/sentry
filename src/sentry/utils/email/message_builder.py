@@ -189,7 +189,7 @@ class MessageBuilder:
 
     def get_built_messages(
         self,
-        to: list[str] | None = None,
+        to: Iterable[str] | None = None,
         cc: Iterable[str] | None = None,
         bcc: Iterable[str] | None = None,
     ) -> Sequence[EmailMultiAlternatives]:
@@ -211,7 +211,7 @@ class MessageBuilder:
 
     def send(
         self,
-        to: list[str] | None = None,
+        to: Iterable[str] | None = None,
         cc: Iterable[str] | None = None,
         bcc: Iterable[str] | None = None,
         fail_silently: bool = False,
@@ -222,7 +222,7 @@ class MessageBuilder:
 
     def send_async(
         self,
-        to: list[str] | None = None,
+        to: Iterable[str] | None = None,
         cc: Iterable[str] | None = None,
         bcc: Iterable[str] | None = None,
     ) -> None:
