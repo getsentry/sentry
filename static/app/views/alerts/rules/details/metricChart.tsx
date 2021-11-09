@@ -10,7 +10,6 @@ import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import Button from 'app/components/button';
 import ChartZoom from 'app/components/charts/chartZoom';
-import Graphic from 'app/components/charts/components/graphic';
 import MarkArea from 'app/components/charts/components/markArea';
 import MarkLine from 'app/components/charts/components/markLine';
 import EventsRequest from 'app/components/charts/eventsRequest';
@@ -56,14 +55,6 @@ import {
 } from '../../utils';
 
 import {TimePeriodType} from './constants';
-
-// Left and right padding are the gaps between the area that chart is drawn and
-// the boundaries of the entire svg in echarts. Vertical padding is similarly,
-// for the gap between the boundary and the x axis. These are used to contain the
-// graphics elements we draw in the chart area where series are drawn
-const LEFT_PADDING = 30;
-const RIGHT_PADDING = 17;
-const VERTICAL_PADDING = 22;
 
 type Props = WithRouterProps & {
   api: Client;
@@ -231,8 +222,7 @@ class MetricChart extends React.PureComponent<Props, State> {
     }
   };
 
-  getRuleChangeThresholdElements = (data: LineChartSeries[]): any[] => {
-    const {height, width} = this.state;
+  getRuleChangeSeries = (data: LineChartSeries[]): any[] => {
     const {dateModified} = this.props.rule || {};
 
     if (!data.length || !data[0].data.length || !dateModified) {
@@ -241,40 +231,31 @@ class MetricChart extends React.PureComponent<Props, State> {
 
     const seriesData = data[0].data;
     const seriesStart = moment(seriesData[0].name).valueOf();
-    const seriesEnd = moment(seriesData[seriesData.length - 1].name).valueOf();
     const ruleChanged = moment(dateModified).valueOf();
 
     if (ruleChanged < seriesStart) {
       return [];
     }
 
-    const chartWidth = width - (LEFT_PADDING + RIGHT_PADDING);
-    const position =
-      LEFT_PADDING +
-      Math.round((chartWidth * (ruleChanged - seriesStart)) / (seriesEnd - seriesStart));
-
     return [
       {
         type: 'line',
-        draggable: false,
-        position: [position, 0],
-        shape: {y1: 0, y2: height - VERTICAL_PADDING, x1: 1, x2: 1},
-        style: {
-          stroke: theme.gray200,
-        },
-      },
-      {
-        type: 'rect',
-        draggable: false,
-        position: [LEFT_PADDING, 0],
-        shape: {
-          // +1 makes the gray area go midway onto the dashed line above
-          width: position - LEFT_PADDING + 1,
-          height: height - VERTICAL_PADDING,
-        },
-        style: {
-          fill: color(theme.gray100).alpha(0.42).rgb().string(),
-        },
+        markLine: MarkLine({
+          silent: true,
+          lineStyle: {color: theme.gray200, type: 'dashed', width: 1},
+          data: [{xAxis: ruleChanged} as any],
+          label: {
+            show: false,
+          },
+        }),
+        markArea: MarkArea({
+          silent: true,
+          itemStyle: {
+            color: color(theme.gray100).alpha(0.42).rgb().string(),
+          },
+          data: [[{xAxis: seriesStart}, {xAxis: ruleChanged}]] as any,
+        }),
+        data: [],
       },
     ];
   };
@@ -596,10 +577,8 @@ class MetricChart extends React.PureComponent<Props, State> {
                             ...otherSeriesProps,
                           })
                       ),
+                      ...this.getRuleChangeSeries(timeseriesData),
                     ]}
-                    graphic={Graphic({
-                      elements: this.getRuleChangeThresholdElements(timeseriesData),
-                    })}
                     tooltip={{
                       formatter: seriesParams => {
                         // seriesParams can be object instead of array
