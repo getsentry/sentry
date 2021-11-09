@@ -95,6 +95,7 @@ value_converters = {
     "first_release": convert_first_release_value,
     "release": convert_release_value,
     "status": convert_status_value,
+    "regressed_in_release": convert_first_release_value,
 }
 
 
