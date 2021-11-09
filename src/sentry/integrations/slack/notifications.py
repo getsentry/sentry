@@ -146,7 +146,7 @@ def send_notification_as_slack(
     notification: BaseNotification,
     recipients: Iterable[Team | User],
     shared_context: Mapping[str, Any],
-    extra_context_by_user_id: Mapping[int, Mapping[str, Any]] | None,
+    extra_context_by_actor_id: Mapping[int, Mapping[str, Any]] | None,
 ) -> None:
     """Send an "activity" or "alert rule" notification to a Slack user or team."""
     client = SlackClient()
@@ -162,7 +162,7 @@ def send_notification_as_slack(
                     "recipient": recipient.id,
                 },
             )
-        extra_context = (extra_context_by_user_id or {}).get(recipient.id, {})
+        extra_context = (extra_context_by_actor_id or {}).get(recipient.actor_id, {})
         context = get_context(notification, recipient, shared_context, extra_context)
         attachments = get_attachments(notification, recipient, context)
 

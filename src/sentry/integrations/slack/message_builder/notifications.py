@@ -84,7 +84,7 @@ class DigestNotificationMessageBuilder(SlackNotificationsMessageBuilder):
         It's currently impossible in mypy to have recursive types so we need a
         hack to get this to return a SlackBody.
         """
-        digest: Digest = self.context.get(self.recipient.actor_id, {}).get("digest", {})
+        digest: Digest = self.context.get("digest", {})
         return [
             SlackIssuesMessageBuilder(  # type: ignore
                 group=group,

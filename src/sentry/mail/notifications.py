@@ -113,12 +113,12 @@ def send_notification_as_email(
 
 def get_builder_args(
     notification: BaseNotification,
-    recipient: "User",
-    shared_context: Optional[Mapping[str, Any]] = None,
-    extra_context_by_user_id: Optional[Mapping[int, Mapping[str, Any]]] = None,
+    recipient: User,
+    shared_context: Mapping[str, Any] | None = None,
+    extra_context_by_actor_id: Mapping[int, Mapping[str, Any]] | None = None,
 ) -> Mapping[str, Any]:
     # TODO: move context logic to single notification class method
-    extra_context = (extra_context_by_user_id or {}).get(recipient.id, {})
+    extra_context = (extra_context_by_actor_id or {}).get(recipient.actor_id, {})
     context = get_context(notification, recipient, shared_context or {}, extra_context)
     return {
         "subject": notification.get_subject_with_prefix(context=context),
