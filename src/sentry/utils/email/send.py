@@ -1,6 +1,8 @@
 import logging
+from typing import Any, Sequence
 
 from django.core import mail
+from django.core.mail import EmailMultiAlternatives
 
 from sentry import options
 from sentry.utils import metrics
@@ -10,9 +12,10 @@ from .backend import get_mail_backend
 logger = logging.getLogger("sentry.mail")
 
 
-def send_messages(messages, fail_silently=False):
+def send_messages(messages: Sequence[EmailMultiAlternatives], fail_silently: bool = False) -> int:
     connection = get_connection(fail_silently=fail_silently)
-    sent = connection.send_messages(messages)
+    # Explicitly typing to satisfy mypy.
+    sent: int = connection.send_messages(messages)
     metrics.incr("email.sent", len(messages), skip_internal=False)
     for message in messages:
         extra = {
@@ -23,7 +26,7 @@ def send_messages(messages, fail_silently=False):
     return sent
 
 
-def get_connection(fail_silently=False):
+def get_connection(fail_silently: bool = False) -> Any:
     """Gets an SMTP connection using our OptionsStore."""
     return mail.get_connection(
         backend=get_mail_backend(),
@@ -38,17 +41,25 @@ def get_connection(fail_silently=False):
     )
 
 
-def send_mail(subject, message, from_email, recipient_list, fail_silently=False, **kwargs):
+def send_mail(
+    subject: str,
+    message: str,
+    from_email: str,
+    recipient_list: Sequence[str],
+    fail_silently: bool = False,
+    **kwargs: Any,
+) -> int:
     """
     Wrapper that forces sending mail through our connection.
     Uses EmailMessage class which has more options than the simple send_mail
     """
-    email = mail.EmailMessage(
+    # Explicitly typing to satisfy mypy.
+    sent: int = mail.EmailMessage(
         subject,
         message,
         from_email,
         recipient_list,
         connection=get_connection(fail_silently=fail_silently),
         **kwargs,
-    )
-    return email.send(fail_silently=fail_silently)
+    ).send(fail_silently=fail_silently)
+    return sent

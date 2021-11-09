@@ -1,5 +1,5 @@
 from sentry.testutils import TestCase
-from sentry.utils.email.address import get_from_email_domain, is_valid_email_address
+from sentry.utils.email.address import get_from_email_domain, is_valid_email_address, parse_email
 
 
 class GetFromEmailDomainTest(TestCase):
@@ -20,3 +20,20 @@ class ValidEmailTest(TestCase):
 
     def test_is_valid_email_address_normal_human_email_address(self):
         assert is_valid_email_address("dcramer@gmail.com") is True
+
+
+class ParseEmailTest(TestCase):
+    def test_empty(self):
+        assert parse_email("") == ""
+
+    def test_no_email(self):
+        assert parse_email("marcos@sentry.io") == ""
+
+    def test_empty_email(self):
+        assert parse_email("<>") == ""
+
+    def test_two_emails(self):
+        assert parse_email("<a><b>") == "a"
+
+    def test_simple(self):
+        assert parse_email("lauryn <lauryn@sentry.io>") == "lauryn@sentry.io"

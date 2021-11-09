@@ -7,6 +7,7 @@ __all__ = (
     "group_id_to_email",
     "inline_css",
     "is_smtp_enabled",
+    "parse_email",
     "ListResolver",
     "MessageBuilder",
     "PreviewBackend",
@@ -20,7 +21,7 @@ parsing email address strings, building and sending messages, and looking up
 user emails in the database.
 """
 
-from .address import email_to_group_id, group_id_to_email
+from .address import email_to_group_id, group_id_to_email, parse_email
 from .backend import PreviewBackend, is_smtp_enabled
 from .faker import create_fake_email
 from .list_resolver import ListResolver

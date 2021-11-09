@@ -3,7 +3,7 @@
 FAKE_EMAIL_TLD = ".sentry-fake"
 
 
-def create_fake_email(unique_id, namespace):
+def create_fake_email(unique_id: str, namespace: str) -> str:
     """
     Generate a fake email of the form: {unique_id}@{namespace}{FAKE_EMAIL_TLD}
 
@@ -12,6 +12,6 @@ def create_fake_email(unique_id, namespace):
     return f"{unique_id}@{namespace}{FAKE_EMAIL_TLD}"
 
 
-def is_fake_email(email):
+def is_fake_email(email: str) -> bool:
     """Returns True if the provided email matches the fake email pattern."""
     return email.endswith(FAKE_EMAIL_TLD)

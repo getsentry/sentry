@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 import logging
 import os
 import time
 from functools import partial
 from operator import attrgetter
 from random import randrange
-from typing import Iterable, Optional
+from typing import Any, Callable, Iterable, Mapping, MutableMapping, Sequence
 
 import lxml
 import toronado
@@ -12,6 +14,7 @@ from django.core.mail import EmailMultiAlternatives
 from django.utils.encoding import force_text
 
 from sentry import options
+from sentry.db.models import Model
 from sentry.logging import LoggingFormat
 from sentry.models import Activity, Group, GroupEmailThread, Project
 from sentry.utils import metrics
@@ -25,7 +28,7 @@ from .send import send_messages
 
 logger = logging.getLogger("sentry.mail")
 
-default_list_type_handlers = {
+default_list_type_handlers: Mapping[type[Model], Callable[[Model], Iterable[str]]] = {
     Activity: attrgetter("project.slug", "project.organization.slug"),
     Project: attrgetter("slug", "organization.slug"),
     Group: attrgetter("project.slug", "organization.slug"),
@@ -42,7 +45,7 @@ MAX_RECIPIENTS = 5
 # Slightly modified version of Django's `django.core.mail.message:make_msgid`
 # because we need to override the domain. If we ever upgrade to django 1.8, we
 # can/should replace this.
-def make_msgid(domain):
+def make_msgid(domain: str) -> str:
     """Returns a string suitable for RFC 2822 compliant Message-ID, e.g:
     <20020201195627.33539.96671@nightshade.la.mastaler.com>
     Optional idstring if given is a string used to strengthen the
@@ -63,30 +66,28 @@ def inline_css(value: str) -> str:
     toronado.inline(tree)
     # CSS media query support is inconsistent when the DOCTYPE declaration is
     # missing, so we force it to HTML5 here.
-    return lxml.html.tostring(tree, doctype="<!DOCTYPE html>", encoding=None).decode("utf-8")
+    html: str = lxml.html.tostring(tree, doctype="<!DOCTYPE html>", encoding=None).decode("utf-8")
+    return html
 
 
 class MessageBuilder:
     def __init__(
         self,
-        subject,
-        context=None,
-        template=None,
-        html_template=None,
-        body="",
-        html_body=None,
-        headers=None,
-        reference=None,
-        reply_reference=None,
-        from_email=None,
-        type=None,
-    ):
+        subject: str,
+        context: Mapping[str, Any] | None = None,
+        template: str | None = None,
+        html_template: str | None = None,
+        body: str = "",
+        html_body: str | None = None,
+        headers: Mapping[str, str] | None = None,
+        reference: Model | None = None,
+        reply_reference: Model | None = None,
+        from_email: str | None = None,
+        type: str | None = None,
+    ) -> None:
         assert not (body and template)
         assert not (html_body and html_template)
         assert context or not (template or html_template)
-
-        if headers is None:
-            headers = {}
 
         self.subject = subject
         self.context = context or {}
@@ -94,44 +95,49 @@ class MessageBuilder:
         self.html_template = html_template
         self._txt_body = body
         self._html_body = html_body
-        self.headers = headers
+        self.headers: MutableMapping[str, Any] = {**(headers or {})}
         self.reference = reference  # The object that generated this message
         self.reply_reference = reply_reference  # The object this message is replying about
         self.from_email = from_email or options.get("mail.from")
-        self._send_to = set()
+        self._send_to: set[str] = set()
         self.type = type if type else "generic"
 
-        if reference is not None and "List-Id" not in headers:
+        if reference is not None and "List-Id" not in self.headers:
             try:
-                headers["List-Id"] = make_listid_from_instance(reference)
+                self.headers["List-Id"] = make_listid_from_instance(reference)
             except ListResolver.UnregisteredTypeError as error:
                 logger.debug(str(error))
             except AssertionError as error:
                 logger.warning(str(error))
 
-    def __render_html_body(self) -> str:
-        html_body = None
+    def __render_html_body(self) -> str | None:
         if self.html_template:
             html_body = render_to_string(self.html_template, self.context)
         else:
             html_body = self._html_body
 
-        if html_body is not None:
-            return inline_css(html_body)
+        if html_body is None:
+            return None
+
+        return inline_css(html_body)
 
     def __render_text_body(self) -> str:
         if self.template:
-            return render_to_string(self.template, self.context)
+            body: str = render_to_string(self.template, self.context)
+            return body
         return self._txt_body
 
-    def add_users(self, user_ids: Iterable[int], project: Optional[Project] = None) -> None:
+    def add_users(self, user_ids: Iterable[int], project: Project | None = None) -> None:
         self._send_to.update(list(get_email_addresses(user_ids, project).values()))
 
-    def build(self, to, reply_to=None, cc=None, bcc=None):
-        if self.headers is None:
-            headers = {}
-        else:
-            headers = self.headers.copy()
+    def build(
+        self,
+        to: str,
+        reply_to: Iterable[str] | None = None,
+        cc: Iterable[str] | None = None,
+        bcc: Iterable[str] | None = None,
+    ) -> EmailMultiAlternatives:
+        headers = {**self.headers}
 
         if options.get("mail.enable-replies") and "X-Sentry-Reply-To" in headers:
             reply_to = headers["X-Sentry-Reply-To"]
@@ -151,7 +157,7 @@ class MessageBuilder:
 
         if self.reply_reference is not None:
             reference = self.reply_reference
-            subject = "Re: %s" % subject
+            subject = f"Re: {subject}"
         else:
             reference = self.reference
 
@@ -181,7 +187,12 @@ class MessageBuilder:
 
         return msg
 
-    def get_built_messages(self, to=None, cc=None, bcc=None):
+    def get_built_messages(
+        self,
+        to: Iterable[str] | None = None,
+        cc: Iterable[str] | None = None,
+        bcc: Iterable[str] | None = None,
+    ) -> Sequence[EmailMultiAlternatives]:
         send_to = set(to or ())
         send_to.update(self._send_to)
         results = [
@@ -191,27 +202,38 @@ class MessageBuilder:
             logger.debug("Did not build any messages, no users to send to.")
         return results
 
-    def format_to(self, to):
+    def format_to(self, to: list[str]) -> str:
         if not to:
             return ""
         if len(to) > MAX_RECIPIENTS:
             to = to[:MAX_RECIPIENTS] + [f"and {len(to[MAX_RECIPIENTS:])} more."]
         return ", ".join(to)
 
-    def send(self, to=None, cc=None, bcc=None, fail_silently=False):
+    def send(
+        self,
+        to: Iterable[str] | None = None,
+        cc: Iterable[str] | None = None,
+        bcc: Iterable[str] | None = None,
+        fail_silently: bool = False,
+    ) -> int:
         return send_messages(
             self.get_built_messages(to, cc=cc, bcc=bcc), fail_silently=fail_silently
         )
 
-    def send_async(self, to=None, cc=None, bcc=None):
+    def send_async(
+        self,
+        to: Iterable[str] | None = None,
+        cc: Iterable[str] | None = None,
+        bcc: Iterable[str] | None = None,
+    ) -> None:
         from sentry.tasks.email import send_email
 
         fmt = options.get("system.logging-format")
         messages = self.get_built_messages(to, cc=cc, bcc=bcc)
-        extra = {"message_type": self.type}
+        extra: MutableMapping[str, str | tuple[str]] = {"message_type": self.type}
         loggable = [v for k, v in self.context.items() if hasattr(v, "id")]
         for context in loggable:
-            extra["%s_id" % type(context).__name__.lower()] = context.id
+            extra[f"{type(context).__name__.lower()}_id"] = context.id
 
         log_mail_queued = partial(logger.info, "mail.queued", extra=extra)
         for message in messages:

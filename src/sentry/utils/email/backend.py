@@ -1,20 +1,26 @@
+from __future__ import annotations
+
 import subprocess
 import tempfile
+from typing import Any, Sequence
 
 from django.conf import settings
+from django.core.mail import EmailMultiAlternatives
 from django.core.mail.backends.base import BaseEmailBackend
 
 from sentry import options
 
+Backend = Any
 
-def is_smtp_enabled(backend=None):
+
+def is_smtp_enabled(backend: Backend | None = None) -> bool:
     """Check if the current backend is SMTP based."""
     if backend is None:
         backend = get_mail_backend()
     return backend not in settings.SENTRY_SMTP_DISABLED_BACKENDS
 
 
-def get_mail_backend():
+def get_mail_backend() -> Backend:
     backend = options.get("mail.backend")
     try:
         return settings.SENTRY_EMAIL_BACKEND_ALIASES[backend]
@@ -22,7 +28,7 @@ def get_mail_backend():
         return backend
 
 
-class PreviewBackend(BaseEmailBackend):
+class PreviewBackend(BaseEmailBackend):  # type: ignore
     """
     Email backend that can be used in local development to open messages in the
     local mail client as they are sent.
@@ -30,7 +36,7 @@ class PreviewBackend(BaseEmailBackend):
     Probably only works on OS X.
     """
 
-    def send_messages(self, email_messages):
+    def send_messages(self, email_messages: Sequence[EmailMultiAlternatives]) -> int:
         for message in email_messages:
             content = bytes(message.message())
             preview = tempfile.NamedTemporaryFile(

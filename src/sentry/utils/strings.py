@@ -164,7 +164,7 @@ def tokens_from_name(value, remove_digits=False):
 valid_dot_atom_characters = frozenset(string.ascii_letters + string.digits + ".!#$%&'*+-/=?^_`{|}~")
 
 
-def is_valid_dot_atom(value):
+def is_valid_dot_atom(value: str) -> bool:
     """Validate an input string as an RFC 2822 dot-atom-text value."""
     return (
         isinstance(value, str)  # must be a string type
@@ -174,7 +174,7 @@ def is_valid_dot_atom(value):
     )  # can only contain valid characters
 
 
-def count_sprintf_parameters(string):
+def count_sprintf_parameters(string: str) -> int:
     """Counts the number of sprintf parameters in a string."""
     return len(_sprintf_placeholder_re.findall(string))
 
