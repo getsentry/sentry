@@ -39,28 +39,36 @@ class Migration(migrations.Migration):
                     model_name="externalissue",
                     name="integration",
                     field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to="sentry.Integration"
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="sentry.Integration",
+                        db_constraint=False,
                     ),
                 ),
                 migrations.AddField(
                     model_name="externalissue",
                     name="organization",
                     field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to="sentry.Organization"
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="sentry.Organization",
+                        db_constraint=False,
                     ),
                 ),
                 migrations.AddField(
                     model_name="grouplink",
                     name="group",
                     field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to="sentry.Group"
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="sentry.Group",
+                        db_constraint=False,
                     ),
                 ),
                 migrations.AddField(
                     model_name="grouplink",
                     name="project",
                     field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to="sentry.Project"
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="sentry.Project",
+                        db_constraint=False,
                     ),
                 ),
                 migrations.AlterUniqueTogether(
