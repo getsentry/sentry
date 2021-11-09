@@ -103,9 +103,9 @@ class AppStoreConnectConfig:
     bundleId: str
 
     def __post_init__(self) -> None:
+        # All fields are required.
         for field in dataclasses.fields(self):
-            # Takes advantage of the fact that all non-optional fields are str.
-            if not getattr(self, field.name, None) and field.type == str:
+            if not getattr(self, field.name, None):
                 raise ValueError(f"Missing field: {field.name}")
 
     @classmethod
