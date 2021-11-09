@@ -290,6 +290,7 @@ MIDDLEWARE = (
     "sentry.middleware.sudo.SudoMiddleware",
     "sentry.middleware.superuser.SuperuserMiddleware",
     "sentry.middleware.locale.SentryLocaleMiddleware",
+    "sentry.middleware.ratelimit.RatelimitMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
 )
 
@@ -566,7 +567,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.groupowner",
     "sentry.tasks.integrations",
     "sentry.tasks.low_priority_symbolication",
-    "sentry.tasks.members",
     "sentry.tasks.merge",
     "sentry.tasks.releasemonitor",
     "sentry.tasks.options",
@@ -993,23 +993,20 @@ SENTRY_FEATURES = {
     "organizations:integrations-incident-management": True,
     # Allow orgs to automatically create Tickets in Issue Alerts
     "organizations:integrations-ticket-rules": True,
-    # Allow orgs to install AzureDevops with limited scopes
-    "organizations:integrations-vsts-limited-scopes": False,
     # Allow orgs to use the stacktrace linking feature
     "organizations:integrations-stacktrace-link": False,
     # Allow orgs to install a custom source code management integration
     "organizations:integrations-custom-scm": False,
     # Allow orgs to debug internal/unpublished sentry apps with logging
     "organizations:sentry-app-debugging": False,
-    # Temporary safety measure, turned on for specific orgs only if
-    # absolutely necessary, to be removed shortly
-    "organizations:slack-allow-workspace": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
     # Enable readonly dashboards
     "organizations:dashboards-basic": True,
     # Enable custom editable dashboards
     "organizations:dashboards-edit": True,
+    # Enable dashboard widget library
+    "organizations:widget-library": False,
     # Enable navigation features between Discover and Dashboards
     "organizations:connect-discover-and-dashboards": False,
     # Enable experimental performance improvements.
@@ -1044,10 +1041,14 @@ SENTRY_FEATURES = {
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": True,
+    # Enable logging for weekly reports
+    "organizations:weekly-report-debugging": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": True,
     # Automatically opt IN users to receiving Slack notifications.
     "organizations:notification-slack-automatic": False,
+    # Notify all project members when fallthrough is disabled, instead of just the auto-assignee
+    "organizations:notification-all-recipients": False,
     # Enable the new native stack trace design
     "organizations:native-stack-trace-v2": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
@@ -1195,6 +1196,9 @@ SENTRY_SUSPECT_COMMITS_APM_SAMPLING = 0
 
 # sample rate for post_process_group task
 SENTRY_POST_PROCESS_GROUP_APM_SAMPLING = 0
+
+# sample rate for all reprocessing tasks (except for the per-event ones)
+SENTRY_REPROCESSING_APM_SAMPLING = 0
 
 # ----
 # end APM config
@@ -1668,6 +1672,10 @@ SENTRY_ATTACHMENT_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
 # store. MUST be a power of two.
 SENTRY_CHUNK_UPLOAD_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
 
+# This flag tell DEVSERVICES to start the ingest-metrics-consumer in order to work on
+# metrics in the development environment. Note: this is "metrics" the product
+SENTRY_USE_METRICS_DEV = False
+
 # This flags activates the Change Data Capture backend in the development environment
 SENTRY_USE_CDC_DEV = False
 
@@ -1817,7 +1825,9 @@ SENTRY_DEVSERVICES = {
     ),
     "snuba": lambda settings, options: (
         {
-            "image": "getsentry/snuba:nightly",
+            "image": "getsentry/snuba:nightly" if not APPLE_ARM64
+            # We cross-build arm64 images on GH's Apple Intel runners
+            else "ghcr.io/getsentry/snuba-arm64-dev:latest",
             "pull": True,
             "ports": {"1218/tcp": 1218},
             "command": ["devserver"],

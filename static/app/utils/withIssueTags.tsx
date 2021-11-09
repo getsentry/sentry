@@ -23,9 +23,8 @@ const getUsername = ({isManaged, username, email}: User) => {
   // their email in these cases, instead.
   if (username && uuidPattern.test(username)) {
     return email;
-  } else {
-    return !isManaged && username ? username : email;
   }
+  return !isManaged && username ? username : email;
 };
 
 /**

@@ -1,7 +1,7 @@
 import {browserHistory, RouteComponentProps} from 'react-router';
 
 import {t} from 'app/locale';
-import {Organization} from 'app/types';
+import {AuditLog, Organization} from 'app/types';
 import routeTitleGen from 'app/utils/routeTitle';
 import withOrganization from 'app/utils/withOrganization';
 import AsyncView from 'app/views/asyncView';
@@ -67,7 +67,10 @@ type Props = RouteComponentProps<{orgId: string}, {}> &
     organization: Organization;
   };
 
-type State = AsyncView['state'];
+type State = AsyncView['state'] & {
+  entryList: AuditLog[] | null;
+  entryListPageLinks: string | null;
+};
 
 class OrganizationAuditLog extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
@@ -98,15 +101,21 @@ class OrganizationAuditLog extends AsyncView<Props, State> {
     });
   };
 
+  renderLoading() {
+    return this.renderBody();
+  }
+
   renderBody() {
+    const {entryList, entryListPageLinks, loading, reloading} = this.state;
     const currentEventType = this.props.location.query.event;
     return (
       <AuditLogList
-        entries={this.state.entryList}
-        pageLinks={this.state.entryListPageLinks}
+        entries={entryList}
+        pageLinks={entryListPageLinks}
         eventType={currentEventType}
         eventTypes={EVENT_TYPES}
         onEventSelect={this.handleEventSelect}
+        isLoading={loading || reloading}
         {...this.props}
       />
     );

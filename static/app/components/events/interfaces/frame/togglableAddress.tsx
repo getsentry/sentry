@@ -67,6 +67,7 @@ function TogglableAddress({
 
   const relativeAddress = convertAbsoluteAddressToRelative();
   const canBeConverted = !!relativeAddress;
+
   const formattedAddress = !relativeAddress || isAbsolute ? address : relativeAddress;
   const tooltipTitle = getAddressTooltip();
   const tooltipDelay = isHoverPreviewed ? STACKTRACE_PREVIEW_TOOLTIP_DELAY : undefined;

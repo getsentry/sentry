@@ -76,9 +76,8 @@ class ReleasesAdoptionChart extends Component<Props> {
 
     if (diffInMinutes >= ONE_WEEK) {
       return '1d';
-    } else {
-      return '1h';
     }
+    return '1h';
   }
 
   getReleasesSeries(response: SessionApiResponse | null) {

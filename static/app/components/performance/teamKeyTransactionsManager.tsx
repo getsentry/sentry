@@ -162,19 +162,18 @@ class UnwrappedProvider extends Component<Props> {
               keyTransaction.transaction !== transactionName
           ),
         };
-      } else {
-        return {
-          team,
-          count: count + 1,
-          keyed: [
-            ...keyed,
-            {
-              project_id: project.id,
-              transaction: transactionName,
-            },
-          ],
-        };
       }
+      return {
+        team,
+        count: count + 1,
+        keyed: [
+          ...keyed,
+          {
+            project_id: project.id,
+            transaction: transactionName,
+          },
+        ],
+      };
     });
 
     try {

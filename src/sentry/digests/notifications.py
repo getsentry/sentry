@@ -1,32 +1,25 @@
+from __future__ import annotations
+
 import functools
 import itertools
 import logging
 from collections import OrderedDict, defaultdict, namedtuple
-from functools import reduce
-from typing import (
-    Any,
-    Callable,
-    Mapping,
-    MutableMapping,
-    MutableSequence,
-    Optional,
-    Sequence,
-    Tuple,
-)
+from typing import Any, Mapping, MutableMapping, MutableSequence, Sequence
 
 from sentry.app import tsdb
-from sentry.digests import Record
+from sentry.digests import Digest, Record
 from sentry.eventstore.models import Event
 from sentry.models import Group, GroupStatus, Project, Rule
 from sentry.notifications.types import ActionTargetType
 from sentry.utils.dates import to_timestamp
+from sentry.utils.pipeline import Pipeline
 
 logger = logging.getLogger("sentry.digests")
 
 Notification = namedtuple("Notification", "event rules")
 
 
-def split_key(key: str) -> Tuple["Project", "ActionTargetType", Optional[str]]:
+def split_key(key: str) -> tuple[Project, ActionTargetType, str | None]:
     key_parts = key.split(":", 4)
     project_id = key_parts[2]
     # XXX: We transitioned to new style keys (len == 5) a while ago on sentry.io. But
@@ -42,16 +35,15 @@ def split_key(key: str) -> Tuple["Project", "ActionTargetType", Optional[str]]:
 
 
 def unsplit_key(
-    project: "Project", target_type: ActionTargetType, target_identifier: Optional[str]
+    project: Project, target_type: ActionTargetType, target_identifier: str | None
 ) -> str:
-    return "mail:p:{}:{}:{}".format(
-        project.id, target_type.value, target_identifier if target_identifier is not None else ""
-    )
+    target_str = target_identifier if target_identifier is not None else ""
+    return f"mail:p:{project.id}:{target_type.value}:{target_str}"
 
 
 def event_to_record(event: Event, rules: Sequence[Rule]) -> Record:
     if not rules:
-        logger.warning("Creating record for %r that does not contain any rules!", event)
+        logger.warning(f"Creating record for {event} that does not contain any rules!")
 
     return Record(
         event.event_id,
@@ -60,7 +52,7 @@ def event_to_record(event: Event, rules: Sequence[Rule]) -> Record:
     )
 
 
-def fetch_state(project: "Project", records: Sequence[Record]) -> Mapping[str, Any]:
+def fetch_state(project: Project, records: Sequence[Record]) -> Mapping[str, Any]:
     # This reads a little strange, but remember that records are returned in
     # reverse chronological order, and we query the database in chronological
     # order.
@@ -83,8 +75,8 @@ def fetch_state(project: "Project", records: Sequence[Record]) -> Mapping[str, A
 
 
 def attach_state(
-    project: "Project",
-    groups: MutableMapping[int, "Group"],
+    project: Project,
+    groups: MutableMapping[int, Group],
     rules: Mapping[int, Rule],
     event_counts: Mapping[int, int],
     user_counts: Mapping[int, int],
@@ -108,65 +100,12 @@ def attach_state(
     return {"project": project, "groups": groups, "rules": rules}
 
 
-class Pipeline:
-    def __init__(self) -> None:
-        self.operations: MutableSequence[Callable[..., Any]] = []
-        self.logs: MutableSequence[str] = []
-
-    def __call__(self, sequence: Sequence[Any]) -> Tuple[Any, Sequence[str]]:
-        # Explicitly typing to satisfy mypy.
-        func: Callable[[Any, Callable[[Any], Any]], Any] = lambda x, operation: operation(x)
-        return reduce(func, self.operations, sequence), self.logs
-
-    def _log(self, message: str) -> None:
-        logger.debug(message)
-        self.logs.append(message)
-
-    def apply(self, function: Callable[[MutableMapping[str, Any]], Any]) -> "Pipeline":
-        def operation(sequence: MutableMapping[str, Any]) -> Any:
-            result = function(sequence)
-            self._log(f"{function!r} applied to {len(sequence)} items.")
-            return result
-
-        self.operations.append(operation)
-        return self
-
-    def filter(self, function: Callable[[Record], bool]) -> "Pipeline":
-        def operation(sequence: Sequence[Any]) -> Sequence[Any]:
-            result = [s for s in sequence if function(s)]
-            self._log(f"{function!r} filtered {len(sequence)} items to {len(result)}.")
-            return result
-
-        self.operations.append(operation)
-        return self
-
-    def map(self, function: Callable[[Sequence[Any]], Any]) -> "Pipeline":
-        def operation(sequence: Sequence[Any]) -> Sequence[Any]:
-            result = [function(s) for s in sequence]
-            self._log(f"{function!r} applied to {len(sequence)} items.")
-            return result
-
-        self.operations.append(operation)
-        return self
-
-    def reduce(
-        self, function: Callable[[Any, Any], Any], initializer: Callable[[Sequence[Any]], Any]
-    ) -> "Pipeline":
-        def operation(sequence: Sequence[Any]) -> Any:
-            result = reduce(function, sequence, initializer(sequence))
-            self._log(f"{function!r} reduced {len(sequence)} items to {len(result)}.")
-            return result
-
-        self.operations.append(operation)
-        return self
-
-
 def rewrite_record(
     record: Record,
-    project: "Project",
-    groups: Mapping[int, "Group"],
+    project: Project,
+    groups: Mapping[int, Group],
     rules: Mapping[str, Rule],
-) -> Optional[Record]:
+) -> Record | None:
     event = record.value.event
 
     # Reattach the group to the event.
@@ -174,7 +113,7 @@ def rewrite_record(
     if group is not None:
         event.group = group
     else:
-        logger.debug("%r could not be associated with a group.", record)
+        logger.debug(f"{record} could not be associated with a group.")
         return None
 
     return Record(
@@ -190,7 +129,7 @@ def group_records(
     group = record.value.event.group
     rules = record.value.rules
     if not rules:
-        logger.debug("%r has no associated rules, and will not be added to any groups.", record)
+        logger.debug(f"{record} has no associated rules, and will not be added to any groups.")
 
     for rule in rules:
         groups[rule][group].append(record)
@@ -199,8 +138,8 @@ def group_records(
 
 
 def sort_group_contents(
-    rules: MutableMapping[str, Mapping["Group", Sequence[Record]]]
-) -> Mapping[str, Mapping["Group", Sequence[Record]]]:
+    rules: MutableMapping[str, Mapping[Group, Sequence[Record]]]
+) -> Mapping[str, Mapping[Group, Sequence[Record]]]:
     for key, groups in rules.items():
         rules[key] = OrderedDict(
             sorted(
@@ -224,30 +163,26 @@ def sort_rule_groups(rules: Mapping[str, Rule]) -> Mapping[str, Rule]:
     )
 
 
+def check_group_state(record: Record) -> bool:
+    # Explicitly typing to satisfy mypy.
+    is_unresolved: bool = record.value.event.group.get_status() == GroupStatus.UNRESOLVED
+    return is_unresolved
+
+
 def build_digest(
-    project: "Project",
+    project: Project,
     records: Sequence[Record],
-    state: Optional[Mapping[str, Any]] = None,
-) -> Tuple[Optional[Any], Sequence[str]]:
-    records = list(records)
+    state: Mapping[str, Any] | None = None,
+) -> tuple[Digest | None, Sequence[str]]:
     if not records:
         return None, []
 
-    # XXX: This is a hack to allow generating a mock digest without actually
-    # doing any real IO!
-    if state is None:
-        state = fetch_state(project, records)
-
-    state = attach_state(**state)
-
-    def check_group_state(record: Record) -> bool:
-        # Explicitly typing to satisfy mypy.
-        is_unresolved: bool = record.value.event.group.get_status() == GroupStatus.UNRESOLVED
-        return is_unresolved
+    # XXX(hack): Allow generating a mock digest without actually doing any real IO!
+    state = state or fetch_state(project, records)
 
     pipeline = (
         Pipeline()
-        .map(functools.partial(rewrite_record, **state))
+        .map(functools.partial(rewrite_record, **attach_state(**state)))
         .filter(bool)
         .filter(check_group_state)
         .reduce(group_records, lambda sequence: defaultdict(lambda: defaultdict(list)))
@@ -255,4 +190,5 @@ def build_digest(
         .apply(sort_rule_groups)
     )
 
-    return pipeline(records)
+    digest, logs = pipeline(records)
+    return digest, logs

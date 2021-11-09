@@ -7,6 +7,7 @@ import AsyncComponent from 'app/components/asyncComponent';
 import {DateTimeObject} from 'app/components/charts/utils';
 import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
+import LoadingError from 'app/components/loadingError';
 import PanelTable from 'app/components/panels/panelTable';
 import {IconChevron, IconList} from 'app/icons';
 import {t, tct} from 'app/locale';
@@ -18,8 +19,6 @@ import EventView from 'app/utils/discover/eventView';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import type {Color} from 'app/utils/theme';
 
-import {transactionSummaryRouteWithQuery} from '../../performance/transactionSummary/utils';
-
 import {groupByTrend} from './utils';
 
 type TeamMiseryProps = {
@@ -30,6 +29,7 @@ type TeamMiseryProps = {
   weekTableData: TableData | null;
   isLoading: boolean;
   period?: string;
+  error?: Error | null;
 };
 
 /** The number of elements to display before collapsing */
@@ -43,6 +43,7 @@ function TeamMisery({
   weekTableData,
   isLoading,
   period,
+  error,
 }: TeamMiseryProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const miseryRenderer =
@@ -72,6 +73,10 @@ function TeamMisery({
     .sort((a, b) => Math.abs(b.trend) - Math.abs(a.trend));
 
   const groupedData = groupByTrend(sortedTableData);
+
+  if (error) {
+    return <LoadingError />;
+  }
 
   return (
     <Fragment>
@@ -106,17 +111,20 @@ function TeamMisery({
             return null;
           }
 
+          const linkEventView = EventView.fromSavedQuery({
+            id: undefined,
+            name: dataRow.transaction as string,
+            projects: [Number(project?.id)],
+            query: `transaction.duration:<15m transaction:${dataRow.transaction}`,
+            version: 2 as SavedQueryVersions,
+            range: '7d',
+            fields: ['id', 'title', 'event.type', 'project', 'user.display', 'timestamp'],
+          });
+
           return (
             <Fragment key={idx}>
               <TransactionWrapper>
-                <Link
-                  to={transactionSummaryRouteWithQuery({
-                    orgSlug: organization.slug,
-                    transaction: dataRow.transaction as string,
-                    projectID: project?.id,
-                    query: {query: 'transaction.duration:<15m'},
-                  })}
-                >
+                <Link to={linkEventView.getResultsViewUrlTarget(organization.slug)}>
                   {dataRow.transaction}
                 </Link>
               </TransactionWrapper>
@@ -222,13 +230,13 @@ function TeamMiseryWrapper({
       orgSlug={organization.slug}
       location={location}
     >
-      {({isLoading, tableData: periodTableData}) => (
+      {({isLoading, tableData: periodTableData, error}) => (
         <DiscoverQuery
           eventView={weekEventView}
           orgSlug={organization.slug}
           location={location}
         >
-          {({isLoading: isWeekLoading, tableData: weekTableData}) => (
+          {({isLoading: isWeekLoading, tableData: weekTableData, error: weekError}) => (
             <TeamMisery
               isLoading={isLoading || isWeekLoading}
               organization={organization}
@@ -237,6 +245,7 @@ function TeamMiseryWrapper({
               period={period}
               periodTableData={periodTableData}
               weekTableData={weekTableData}
+              error={error ?? weekError}
             />
           )}
         </DiscoverQuery>

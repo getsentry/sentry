@@ -158,7 +158,9 @@ function generateEventView(location: Location, transactionName: string): EventVi
     .setFilterValues('transaction', [transactionName]);
 
   Object.keys(conditions.filters).forEach(field => {
-    if (isAggregateField(field)) conditions.removeFilter(field);
+    if (isAggregateField(field)) {
+      conditions.removeFilter(field);
+    }
   });
 
   const fields = ['id', 'user.display', 'transaction.duration', 'trace', 'timestamp'];

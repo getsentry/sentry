@@ -20,6 +20,7 @@ ALLOWED_EVENTS_V2_REFERRERS = {
     "api.performance.vitals-cards",
     "api.performance.landing-table",
     "api.performance.transaction-summary",
+    "api.performance.transaction-spans",
     "api.performance.status-breakdown",
     "api.performance.vital-detail",
     "api.performance.durationpercentilechart",
@@ -125,6 +126,9 @@ class OrganizationEventsGeoEndpoint(OrganizationEventsV2EndpointBase):
                 referrer=referrer,
                 use_aggregate_conditions=True,
                 orderby=self.get_orderby(request) or maybe_aggregate,
+                use_snql=features.has(
+                    "organizations:discover-use-snql", organization, actor=request.user
+                ),
             )
 
         with self.handle_query_errors():

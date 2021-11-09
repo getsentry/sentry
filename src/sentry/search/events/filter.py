@@ -59,7 +59,7 @@ from sentry.utils.snuba import (
     Dataset,
     QueryOutsideRetentionError,
 )
-from sentry.utils.validators import INVALID_ID_DETAILS
+from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCARD_NOT_ALLOWED
 
 
 def is_condition(term):
@@ -638,12 +638,16 @@ def convert_search_filter_to_snuba_query(
         }:
             value = int(to_timestamp(value)) * 1000
 
+        if name in {"trace.span", "trace.parent_span"}:
+            if search_filter.value.is_wildcard():
+                raise InvalidSearchQuery(WILDCARD_NOT_ALLOWED.format(name))
+            if not search_filter.value.is_span_id():
+                raise InvalidSearchQuery(INVALID_SPAN_ID.format(name))
+
         # Validate event ids and trace ids are uuids
         if name in {"id", "trace"}:
             if search_filter.value.is_wildcard():
-                raise InvalidSearchQuery(
-                    f"Wildcard conditions are not permitted on `{name}` field."
-                )
+                raise InvalidSearchQuery(WILDCARD_NOT_ALLOWED.format(name))
             elif not search_filter.value.is_event_id():
                 label = "Filter ID" if name == "id" else "Filter Trace ID"
                 raise InvalidSearchQuery(INVALID_ID_DETAILS.format(label))
@@ -1307,7 +1311,8 @@ class QueryFilter(QueryFields):
             operator = Op.IS_NULL if aggregate_filter.operator == "=" else Op.IS_NOT_NULL
             return Condition(name, operator)
 
-        function = self.resolve_function(name)
+        # When resolving functions in conditions we don't want to add them to the list of aggregates
+        function = self.resolve_function(name, resolve_only=True)
 
         return Condition(function, Op(aggregate_filter.operator), value)
 
@@ -1352,8 +1357,8 @@ class QueryFilter(QueryFields):
                 )
             elif name in ARRAY_FIELDS and search_filter.value.raw_value == "":
                 return Condition(
-                    Function("hasAny", [self.column(name), []]),
-                    Op.EQ if search_filter.operator == "=" else Op.NEQ,
+                    Function("notEmpty", [self.column(name)]),
+                    Op.EQ if search_filter.operator == "!=" else Op.NEQ,
                     1,
                 )
 
@@ -1366,12 +1371,16 @@ class QueryFilter(QueryFields):
         }:
             value = int(to_timestamp(value)) * 1000
 
+        if name in {"trace.span", "trace.parent_span"}:
+            if search_filter.value.is_wildcard():
+                raise InvalidSearchQuery(WILDCARD_NOT_ALLOWED.format(name))
+            if not search_filter.value.is_span_id():
+                raise InvalidSearchQuery(INVALID_SPAN_ID.format(name))
+
         # Validate event ids and trace ids are uuids
         if name in {"id", "trace"}:
             if search_filter.value.is_wildcard():
-                raise InvalidSearchQuery(
-                    f"Wildcard conditions are not permitted on `{name}` field."
-                )
+                raise InvalidSearchQuery(WILDCARD_NOT_ALLOWED.format(name))
             elif not search_filter.value.is_event_id():
                 label = "Filter ID" if name == "id" else "Filter Trace ID"
                 raise InvalidSearchQuery(INVALID_ID_DETAILS.format(label))
@@ -1460,24 +1469,17 @@ class QueryFilter(QueryFields):
             operator = Op.EQ if search_filter.operator == "=" else Op.NEQ
             return Condition(Function("equals", [self.column("message"), value]), operator, 1)
         else:
-            # https://clickhouse.yandex/docs/en/query_language/functions/string_search_functions/#position-haystack-needle
-            # positionCaseInsensitive returns 0 if not found and an index of 1 or more if found
-            # so we should flip the operator here
-            operator = Op.NEQ if search_filter.operator in EQUALITY_OPERATORS else Op.EQ
             if search_filter.is_in_filter:
                 return Condition(
-                    Function(
-                        "multiSearchFirstPositionCaseInsensitive",
-                        [self.column("message"), value],
-                    ),
-                    operator,
-                    0,
+                    self.column("message"),
+                    Op(search_filter.operator),
+                    value,
                 )
 
             # make message search case insensitive
             return Condition(
                 Function("positionCaseInsensitive", [self.column("message"), value]),
-                operator,
+                Op.NEQ if search_filter.operator in EQUALITY_OPERATORS else Op.EQ,
                 0,
             )
 

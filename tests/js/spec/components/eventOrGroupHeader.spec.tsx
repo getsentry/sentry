@@ -117,7 +117,9 @@ describe('EventOrGroupHeader', function () {
         {context: routerContext}
       );
 
-      expect(await findByTextContent(component, 'in path/to/file.swift')).toBeTruthy();
+      expect(
+        await findByTextContent(component, 'in path/to/file.swift')
+      ).toBeInTheDocument();
     });
   });
 

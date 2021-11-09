@@ -48,9 +48,7 @@ export type QueryFC<T extends WidgetDataConstraint> = FunctionComponent<
     team?: Readonly<string | string[]>;
     query?: string;
     orgSlug: string;
-    location: Location;
     organization: OrganizationSummary;
-    eventView: EventView;
     widgetData: T;
   }
 >;

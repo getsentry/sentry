@@ -1,4 +1,4 @@
-export function EventEntryStacktrace(params) {
+export function EventEntryStacktrace(params = {}) {
   return {
     type: 'stacktrace',
     data: {

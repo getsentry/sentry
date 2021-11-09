@@ -28,16 +28,17 @@ const fieldErrorMessageMapping = {
   },
 };
 
-type ErrorCodeDetailed =
+export type ErrorCodeDetailed =
   | 'app-connect-authentication-error'
-  | 'app-connect-multiple-sources-error'
-  | 'itunes-authentication-error'
-  | 'itunes-2fa-required'
-  | 'itunes-sms-blocked-error';
+  | 'app-connect-forbidden-error'
+  | 'app-connect-multiple-sources-error';
+
+export type ValidationErrorDetailed = {
+  code: ErrorCodeDetailed;
+};
 
 type ResponseJSONDetailed = {
-  detail: {
-    code: ErrorCodeDetailed;
+  detail: ValidationErrorDetailed & {
     extra: Record<string, any>;
     message: string;
   };
@@ -53,7 +54,7 @@ type Error = {
 };
 
 export const unexpectedErrorMessage = t(
-  'An unexpected error occurred while configuring the app store connect'
+  'An unexpected error occurred while configuring the App Store Connect integration'
 );
 
 export function getAppStoreErrorMessage(
@@ -67,31 +68,7 @@ export function getAppStoreErrorMessage(
     ?.detail;
 
   if (detailedErrorResponse) {
-    switch (detailedErrorResponse.code) {
-      case 'app-connect-authentication-error':
-        return t(
-          'We could not establish a connection with App Store Connect. Please check the entered App Store Connect credentials'
-        );
-      case 'app-connect-multiple-sources-error':
-        return t(
-          'Only one Apple App Store Connect application is allowed in this project'
-        );
-      case 'itunes-authentication-error':
-        return t(
-          'The iTunes authentication failed. Please check the provided credentials'
-        );
-      case 'itunes-sms-blocked-error':
-        return t(
-          'Blocked from requesting more SMS codes for an unspecified period of time'
-        );
-      case 'itunes-2fa-required':
-        return t('The two factor authentication failed. Please check the entered code');
-      default: {
-        // this shall not happen
-        Sentry.captureException(new Error('Unknown app store connect error'));
-        return unexpectedErrorMessage;
-      }
-    }
+    return getAppStoreValidationErrorMessage(detailedErrorResponse);
   }
 
   const errorResponse = error.responseJSON as undefined | ResponseJSON;
@@ -128,4 +105,24 @@ export function getAppStoreErrorMessage(
     },
     {}
   ) as Record<keyof StepOneData, string>;
+}
+
+export function getAppStoreValidationErrorMessage(
+  error: ValidationErrorDetailed
+): string {
+  switch (error.code) {
+    case 'app-connect-authentication-error':
+      return t(
+        'Credentials are invalid or missing. Check the entered App Store Connect credentials are correct.'
+      );
+    case 'app-connect-forbidden-error':
+      return t('The supplied API key does not have sufficient permissions.');
+    case 'app-connect-multiple-sources-error':
+      return t('Only one Apple App Store Connect application is allowed in this project');
+    default: {
+      // this shall not happen
+      Sentry.captureException(new Error('Unknown app store connect error'));
+      return unexpectedErrorMessage;
+    }
+  }
 }
