@@ -358,6 +358,93 @@ def test_compare_complex_structures(schema, are_equal):
     assert (len(result) == 0) == are_equal
 
 
+def test_run_sessions_query_schema():
+    """
+    Tests the specific complex schema for runs_sessions_query.
+
+    Since the schema is embedded in the function and there is no clean way to test the function directly this
+    test copies and pastes the schema (it still serves as a test for a complex schema).
+    """
+
+    def index_by(d):
+        return tuple(sorted(d["by"].items(), key=lambda t: t[0]))  # type: ignore
+
+    schema_for_totals = {
+        "sum(session)": Ct.Counter,
+        "count_unique(user)": Ct.Counter,
+        "avg(session.duration)": Ct.Quantile,
+        "p50(session.duration)": Ct.Quantile,
+        "p75(session.duration)": Ct.Quantile,
+        "p90(session.duration)": Ct.Quantile,
+        "p95(session.duration)": Ct.Quantile,
+        "p99(session.duration)": Ct.Quantile,
+        "max(session.duration)": Ct.Quantile,
+    }
+    schema_for_series = {field: [comparator] for field, comparator in schema_for_totals.items()}
+
+    schema = {
+        "start": Ct.DateTime,
+        "end": Ct.DateTime,
+        "intervals": [Ct.DateTime],
+        "groups": ListSet(
+            schema={
+                "by": Ct.Ignore,
+                "series": schema_for_series,
+                "totals": schema_for_totals,
+            },
+            index_by=index_by,
+        ),
+        "query": Ct.Exact,
+    }
+
+    sessions = {
+        "start": "2021-02-01T00:00:00Z",
+        "end": "2021-02-04T00:00:00Z",
+        "intervals": ["2021-02-01T00:00:00Z", "2021-02-02T00:00:00Z", "2021-02-03T00:00:00Z"],
+        "groups": [
+            {
+                "by": {
+                    "session.status": "healthy",
+                    "environment": "release",
+                },
+                "totals": {"sum(session)": 1715553},
+                "series": {"sum(session)": [683772, 677788, 353993]},
+            },
+            {
+                "by": {
+                    "session.status": "abnormal",
+                    "environment": "release",
+                },
+                "totals": {"sum(session)": 0},
+                "series": {"sum(session)": [0, 0, 0]},
+            },
+        ],
+    }
+    metrics = {
+        "start": "2021-02-01T00:00:00Z",
+        "end": "2021-02-04T00:00:00Z",
+        "intervals": ["2021-02-01T00:00:00Z", "2021-02-02T00:00:00Z", "2021-02-03T00:00:00Z"],
+        "groups": [
+            {
+                "by": {"environment": "release", "session.status": "abnormal"},
+                "totals": {"sum(session)": 0},
+                "series": {"sum(session)": [0, 0, 0]},
+            },
+            {
+                "by": {
+                    "environment": "release",
+                    "session.status": "healthy",
+                },
+                "totals": {"sum(session)": 1715553},
+                "series": {"sum(session)": [683772, 677788, 353993]},
+            },
+        ],
+    }
+
+    result = duplex.compare_results(sessions, metrics, 60, "", schema)
+    assert len(result) == 0
+
+
 def _get_duplex_with_mocks(metrics_start: datetime):
     """Returns the DuplexReleaseHealthBackend with the Senssions and Metrics backends mocked"""
     ret_val = DuplexReleaseHealthBackend(metrics_start)

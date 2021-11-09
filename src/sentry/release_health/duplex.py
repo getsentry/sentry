@@ -616,8 +616,8 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         }
         schema_for_series = {field: [comparator] for field, comparator in schema_for_totals.items()}
 
-        def dict_to_tuple(d: Mapping[Any, Any]) -> Any:
-            return tuple(sorted(d.items(), key=lambda t: t[0]))  # type: ignore
+        def index_by(d: Mapping[Any, Any]) -> Any:
+            return tuple(sorted(d["by"].items(), key=lambda t: t[0]))  # type: ignore
 
         schema = {
             "start": ComparatorType.DateTime,
@@ -629,7 +629,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
                     "series": schema_for_series,
                     "totals": schema_for_totals,
                 },
-                index_by=dict_to_tuple,
+                index_by=index_by,
             ),
             "query": ComparatorType.Exact,
         }
