@@ -109,10 +109,10 @@ numeric_in_filter
 
 // numeric comparison filter
 numeric_filter
-  = key:search_key sep op:operator? value:numeric_value &{
+  = negation:negation? key:search_key sep op:operator? value:numeric_value &{
       return tc.predicateFilter(FilterType.Numeric, key)
     } {
-      return tc.tokenFilter(FilterType.Numeric, key, value, op, false);
+      return tc.tokenFilter(FilterType.Numeric, key, value, op, !!negation);
     }
 
 // aggregate duration filter

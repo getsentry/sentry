@@ -175,7 +175,7 @@ export const filterTypeConfig = {
     validKeys: [Token.KeySimple],
     validOps: allOperators,
     validValues: [Token.ValueNumber],
-    canNegate: false,
+    canNegate: true,
   },
   [FilterType.NumericIn]: {
     validKeys: [Token.KeySimple],
