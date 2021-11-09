@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from sentry.models import Organization, Project, Team, User
 
 
-class BaseNotification:
+class BaseNotification(abc.ABC):
     message_builder = "SlackNotificationsMessageBuilder"
     fine_tuning_key: str | None = None
     metrics_key: str = ""
