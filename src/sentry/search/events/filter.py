@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import datetime
 from typing import Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
@@ -1171,7 +1173,7 @@ class QueryFilter(QueryFields):
         return where, having
 
     def _combine_conditions(
-        self, lhs: List[WhereType], rhs: List[WhereType], operator: Union[And, Or]
+        self, lhs: List[WhereType], rhs: List[WhereType], operator: And | Or
     ) -> List[WhereType]:
         combined_conditions = [
             conditions[0] if len(conditions) == 1 else And(conditions=conditions)
