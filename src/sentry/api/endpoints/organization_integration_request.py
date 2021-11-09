@@ -24,13 +24,11 @@ def get_provider_name(provider_type: str, provider_slug: str) -> str | None:
     :return: The display name for the provider or None.
     """
     if provider_type == "first_party":
-        integration = integrations.get(provider_slug)
-        if integration:
-            return integration.name
+        if integrations.exists(provider_slug):
+            return integrations.get(provider_slug).name
     elif provider_type == "plugin":
-        plugin = plugins.get(provider_slug)
-        if plugin:
-            return plugin.title
+        if plugins.exists(provider_slug):
+            return plugins.get(provider_slug).title
     elif provider_type == "sentry_app":
         sentry_app = SentryApp.objects.filter(slug=provider_slug).first()
         if sentry_app:
