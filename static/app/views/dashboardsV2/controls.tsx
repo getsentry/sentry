@@ -21,7 +21,7 @@ type Props = {
   onCancel: () => void;
   onCommit: () => void;
   onDelete: () => void;
-  onAddWidget?: () => void;
+  onAddWidget: () => void;
   dashboardState: DashboardState;
 };
 
@@ -122,9 +122,7 @@ class Controls extends React.Component<Props> {
                   icon={<IconAdd isCircled size="s" />}
                   onClick={e => {
                     e.preventDefault();
-                    if (onAddWidget) {
-                      onAddWidget();
-                    }
+                    onAddWidget();
                   }}
                 >
                   {t('Add Widget')}

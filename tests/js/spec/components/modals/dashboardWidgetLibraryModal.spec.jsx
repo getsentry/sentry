@@ -78,7 +78,7 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
     fireEvent.click(selectButtons[3]);
 
     expect(screen.getByTestId('selected-badge')).toHaveTextContent('1 Selected');
-    fireEvent.click(screen.getByTestId('add-widget'));
+    fireEvent.click(screen.getByTestId('confirm-widgets'));
 
     expect(mockApply).toHaveBeenCalledTimes(1);
     expect(mockApply).toHaveBeenCalledWith([
@@ -109,7 +109,7 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
     expect(screen.queryByText(alertText)).not.toBeInTheDocument();
 
     expect(screen.getByTestId('selected-badge')).toHaveTextContent('0 Selected');
-    fireEvent.click(screen.getByTestId('add-widget'));
+    fireEvent.click(screen.getByTestId('confirm-widgets'));
 
     expect(mockApply).toHaveBeenCalledTimes(0);
     expect(closeModal).toHaveBeenCalledTimes(0);

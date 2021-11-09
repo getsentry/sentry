@@ -95,7 +95,7 @@ function DashboardWidgetLibraryModal({
               {`${selectedWidgets.length} Selected`}
             </SelectedBadge>
             <Button
-              data-test-id="add-widget"
+              data-test-id="confirm-widgets"
               priority="primary"
               type="button"
               onClick={(event: React.FormEvent) => {
