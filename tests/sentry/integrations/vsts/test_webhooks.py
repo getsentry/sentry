@@ -27,8 +27,6 @@ from .testutils import (
 
 class VstsWebhookWorkItemTest(APITestCase):
     def setUp(self):
-        self.organization = self.create_organization()
-        self.project = self.create_project(organization=self.organization)
         self.access_token = "1234567890"
         self.account_id = "80ded3e8-3cd3-43b1-9f96-52032624aa3a"
         self.instance = "https://instance.visualstudio.com/"
