@@ -176,7 +176,8 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint):
             raise ResourceDoesNotExist
 
         serializer = AlertRuleSerializer(
-            context={"organization": organization, "access": request.access}, data=request.data
+            context={"organization": organization, "access": request.access, "user": request.user},
+            data=request.data,
         )
 
         if serializer.is_valid():

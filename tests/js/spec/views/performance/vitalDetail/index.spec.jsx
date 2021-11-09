@@ -2,8 +2,10 @@ import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {act} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'app/stores/projectsStore';
+import TeamStore from 'app/stores/teamStore';
 import {OrganizationContext} from 'app/views/organizationContext';
 import VitalDetail from 'app/views/performance/vitalDetail/';
 
@@ -24,7 +26,7 @@ function initializeData({query} = {query: {}}) {
       },
     },
   });
-  ProjectsStore.loadInitialData(initialData.organization.projects);
+  act(() => ProjectsStore.loadInitialData(initialData.organization.projects));
   return initialData;
 }
 
@@ -38,6 +40,7 @@ const WrappedComponent = ({organization, ...rest}) => {
 
 describe('Performance > VitalDetail', function () {
   beforeEach(function () {
+    act(() => void TeamStore.loadInitialData([]));
     browserHistory.push = jest.fn();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -172,7 +175,7 @@ describe('Performance > VitalDetail', function () {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
-    ProjectsStore.reset();
+    act(() => ProjectsStore.reset());
   });
 
   it('renders basic UI elements', async function () {

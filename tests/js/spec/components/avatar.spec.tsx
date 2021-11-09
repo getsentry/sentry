@@ -1,13 +1,15 @@
 import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
 import AvatarComponent from 'app/components/avatar';
+import ConfigStore from 'app/stores/configStore';
 import {Avatar} from 'app/types';
 
 const gravatarBaseUrl = 'gravatarBaseUrl';
+const storeConfig = ConfigStore.getConfig();
 
-jest.mock('app/stores/configStore', () => ({
-  getConfig: () => ({gravatarBaseUrl}),
-}));
+jest
+  .spyOn(ConfigStore, 'getConfig')
+  .mockImplementation(() => ({...storeConfig, gravatarBaseUrl}));
 
 describe('Avatar', function () {
   const avatar: Avatar = {

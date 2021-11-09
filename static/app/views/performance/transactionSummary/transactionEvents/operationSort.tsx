@@ -105,7 +105,9 @@ class OperationSort extends Component<Props, State> {
               checked={eventView.sorts.some(({field}) => field === operation)}
               onClick={() => {
                 const sortLink = this.generateSortLink({field: operation});
-                if (sortLink) browserHistory.push(sortLink);
+                if (sortLink) {
+                  browserHistory.push(sortLink);
+                }
               }}
             />
             <span>{title}</span>

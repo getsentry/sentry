@@ -27,12 +27,6 @@ const colors = {
   blue200: '#6e9ef7',
   blue300: '#3D74DB',
 
-  orange100: '#FFF1ED',
-  orange200: '#F9C7B9',
-  orange300: '#F69C7D',
-  orange400: '#FF7738',
-  orange500: '#BA4A23',
-
   red100: '#FCC6C8',
   red200: '#FD918F',
   red300: '#F55459',
@@ -316,7 +310,7 @@ const generateBadgeTheme = (alias: Aliases) => ({
   },
   alpha: {
     background: `linear-gradient(90deg, ${colors.pink300}, ${colors.yellow300})`,
-    indicatorColor: colors.orange400,
+    indicatorColor: colors.pink300,
     color: alias.badgeText,
   },
   beta: {
@@ -347,8 +341,8 @@ const tag = {
     iconColor: colors.purple300,
   },
   promotion: {
-    background: colors.orange100,
-    iconColor: colors.orange400,
+    background: colors.pink100,
+    iconColor: colors.pink300,
   },
   highlight: {
     background: colors.purple100,
@@ -384,7 +378,10 @@ const level = {
   sample: colors.purple300,
   info: colors.blue300,
   warning: colors.yellow300,
-  error: colors.orange400,
+  // Hardcoded legacy color (orange400). We no longer use orange anywhere
+  // else in the app (except for the chart palette). This needs to be harcoded
+  // here because existing users may still associate orange with the "error" level.
+  error: '#FF7738',
   fatal: colors.red300,
   default: colors.gray300,
 };

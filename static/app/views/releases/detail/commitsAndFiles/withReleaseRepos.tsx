@@ -132,7 +132,7 @@ function withReleaseRepos<P extends DependentProps>(
         Sentry.captureException(error);
         addErrorMessage(
           t(
-            'An error occured while trying to fetch the repositories of the release: %s',
+            'An error occurred while trying to fetch the repositories of the release: %s',
             release
           )
         );

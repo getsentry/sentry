@@ -1,9 +1,8 @@
 import {RouteComponentProps} from 'react-router';
 
-import {Organization, Project, Team} from 'app/types';
+import {Organization, Project} from 'app/types';
 import {metric} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
-import withTeams from 'app/utils/withTeams';
 import {
   createDefaultRule,
   createRuleFromEventView,
@@ -23,7 +22,7 @@ type Props = {
   organization: Organization;
   project: Project;
   eventView: EventView | undefined;
-  teams: Team[];
+  userTeamIds: string[];
   wizardTemplate?: WizardRuleTemplate;
   sessionId?: string;
   isCustomMetric?: boolean;
@@ -41,14 +40,13 @@ function IncidentRulesCreate(props: Props) {
     router.push(`/organizations/${orgId}/alerts/rules/`);
   }
 
-  const {project, eventView, wizardTemplate, sessionId, teams, ...otherProps} = props;
+  const {project, eventView, wizardTemplate, sessionId, userTeamIds, ...otherProps} =
+    props;
   const defaultRule = eventView
     ? createRuleFromEventView(eventView)
     : wizardTemplate
     ? createRuleFromWizardTemplate(wizardTemplate)
     : createDefaultRule();
-
-  const userTeamIds = teams.filter(({isMember}) => isMember).map(({id}) => id);
 
   const projectTeamIds = new Set(project.teams.map(({id}) => id));
   const defaultOwnerId = userTeamIds.find(id => projectTeamIds.has(id)) ?? null;
@@ -66,4 +64,4 @@ function IncidentRulesCreate(props: Props) {
   );
 }
 
-export default withTeams(IncidentRulesCreate);
+export default IncidentRulesCreate;

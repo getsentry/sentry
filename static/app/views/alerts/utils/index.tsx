@@ -113,10 +113,10 @@ export function isIssueAlert(
 export const DATA_SOURCE_LABELS = {
   [Dataset.ERRORS]: t('Errors'),
   [Dataset.TRANSACTIONS]: t('Transactions'),
-  [Datasource.ERROR_DEFAULT]: t('event.type:error OR event.type:default'),
-  [Datasource.ERROR]: t('event.type:error'),
-  [Datasource.DEFAULT]: t('event.type:default'),
-  [Datasource.TRANSACTION]: t('event.type:transaction'),
+  [Datasource.ERROR_DEFAULT]: 'event.type:error OR event.type:default',
+  [Datasource.ERROR]: 'event.type:error',
+  [Datasource.DEFAULT]: 'event.type:default',
+  [Datasource.TRANSACTION]: 'event.type:transaction',
 };
 
 // Maps a datasource to the relevant dataset and event_types for the backend to use
@@ -155,11 +155,11 @@ export function convertDatasetEventTypesToSource(
 
   if (eventTypes.includes(EventTypes.DEFAULT) && eventTypes.includes(EventTypes.ERROR)) {
     return Datasource.ERROR_DEFAULT;
-  } else if (eventTypes.includes(EventTypes.DEFAULT)) {
-    return Datasource.DEFAULT;
-  } else {
-    return Datasource.ERROR;
   }
+  if (eventTypes.includes(EventTypes.DEFAULT)) {
+    return Datasource.DEFAULT;
+  }
+  return Datasource.ERROR;
 }
 
 /**

@@ -155,7 +155,8 @@ class AccountNotificationFineTuning extends AsyncView<Props, State> {
           // Sort by primary -> email
           if (a.isPrimary) {
             return -1;
-          } else if (b.isPrimary) {
+          }
+          if (b.isPrimary) {
             return 1;
           }
 
@@ -168,7 +169,7 @@ class AccountNotificationFineTuning extends AsyncView<Props, State> {
     const {params} = this.props;
     const {fineTuneType} = params;
 
-    if (['alerts', 'deploy', 'workflow'].includes(fineTuneType)) {
+    if (['alerts', 'deploy', 'workflow', 'approval'].includes(fineTuneType)) {
       return <NotificationSettingsByType notificationType={fineTuneType} />;
     }
 

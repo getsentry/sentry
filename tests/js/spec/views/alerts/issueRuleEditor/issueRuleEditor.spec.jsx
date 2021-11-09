@@ -100,6 +100,7 @@ describe('ProjectAlerts -> IssueRuleEditor', function () {
           routes={projectAlertRuleDetailsRoutes}
           onChangeTitle={onChangeTitleMock}
           project={project}
+          userTeamIds={[]}
         />
       </ProjectAlerts>,
       routerContext

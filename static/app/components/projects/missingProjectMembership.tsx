@@ -77,9 +77,11 @@ class MissingProjectMembership extends Component<Props, State> {
         return <Button busy>{t('Join Team')}</Button>;
       }
       return <Button busy>{t('Request Access')}</Button>;
-    } else if (team?.isPending) {
+    }
+    if (team?.isPending) {
       return <Button disabled>{t('Request Pending')}</Button>;
-    } else if (features.has('open-membership')) {
+    }
+    if (features.has('open-membership')) {
       return (
         <Button
           priority="primary"

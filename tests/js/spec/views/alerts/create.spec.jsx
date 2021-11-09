@@ -12,6 +12,7 @@ import {
 
 import * as memberActionCreators from 'app/actionCreators/members';
 import ProjectsStore from 'app/stores/projectsStore';
+import TeamStore from 'app/stores/teamStore';
 import {metric, trackAnalyticsEvent} from 'app/utils/analytics';
 import AlertsContainer from 'app/views/alerts';
 import AlertBuilderProjectProvider from 'app/views/alerts/builder/projectProvider';
@@ -33,6 +34,7 @@ jest.mock('app/utils/analytics', () => ({
 }));
 
 describe('ProjectAlertsCreate', function () {
+  TeamStore.loadInitialData([]);
   const projectAlertRuleDetailsRoutes = [
     {
       path: '/organizations/:orgId/alerts/',

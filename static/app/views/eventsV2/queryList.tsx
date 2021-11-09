@@ -283,7 +283,11 @@ class QueryList extends React.Component<Props> {
                   eventView={eventView}
                   organization={organization}
                   referrer={referrer}
-                  yAxis={hasFeature ? savedQuery.yAxis : undefined}
+                  yAxis={
+                    hasFeature && savedQuery.yAxis && savedQuery.yAxis.length
+                      ? savedQuery.yAxis
+                      : ['count()']
+                  }
                 />
               )}
             </Feature>

@@ -24,8 +24,8 @@ from sentry.models import (
     OrganizationMember,
 )
 from sentry.testutils import APITestCase
+from sentry.testutils.helpers import add_identity, install_slack
 from sentry.utils import json
-from tests.sentry.integrations.slack import add_identity, install_slack
 
 
 class BaseEventTest(APITestCase):
@@ -405,7 +405,12 @@ class StatusActionTest(BaseEventTest):
             "team": {"id": "TXXXXXXX1", "domain": "example.com"},
             "user": {"id": self.external_id, "domain": "example"},
             "type": "block_actions",
-            "actions": [{"value": "sentry_docs_link_clicked"}],
+            "actions": [
+                {
+                    "name": "",
+                    "value": "sentry_docs_link_clicked",
+                }
+            ],
         }
 
         payload = {"payload": json.dumps(payload)}

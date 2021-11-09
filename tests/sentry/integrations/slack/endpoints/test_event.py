@@ -7,8 +7,8 @@ import responses
 from sentry.integrations.slack.unfurl import Handler, LinkType, make_type_coercer
 from sentry.models import Identity, IdentityProvider, IdentityStatus
 from sentry.testutils import APITestCase
+from sentry.testutils.helpers import get_response_text, install_slack
 from sentry.utils import json
-from tests.sentry.integrations.slack import get_response_text, install_slack
 
 UNSET = object()
 

@@ -73,7 +73,7 @@ class TestAlertRuleSerializer(TestCase):
 
     @fixture
     def context(self):
-        return {"organization": self.organization, "access": self.access}
+        return {"organization": self.organization, "access": self.access, "user": self.user}
 
     def Any(self, cls):
         class Any:
@@ -659,6 +659,7 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
         return {
             "organization": self.organization,
             "access": self.access,
+            "user": self.user,
             "alert_rule": self.alert_rule,
             "trigger": self.trigger,
         }

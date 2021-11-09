@@ -187,6 +187,44 @@ class CreateProjectRuleTest(APITestCase):
             status_code=400,
         )
 
+    def test_frequency_percent_validation(self):
+        self.login_as(user=self.user)
+        condition = {
+            "id": "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition",
+            "interval": "1h",
+            "value": 101,
+            "comparisonType": "count",
+        }
+        response = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            name="test",
+            frequency=30,
+            owner=self.user.actor.get_actor_identifier(),
+            actionMatch="any",
+            filterMatch="any",
+            conditions=[condition],
+            status_code=400,
+        )
+        assert (
+            str(response.data["conditions"][0]) == "Ensure this value is less than or equal to 100"
+        )
+
+        # Upper bound shouldn't be enforced when we're doing a comparison alert
+        condition["comparisonType"] = "percent"
+        condition["comparisonInterval"] = "1d"
+        self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            name="test",
+            frequency=30,
+            owner=self.user.actor.get_actor_identifier(),
+            actionMatch="any",
+            filterMatch="any",
+            conditions=[condition],
+            status_code=200,
+        )
+
     def test_match_values(self):
         filters = [
             {

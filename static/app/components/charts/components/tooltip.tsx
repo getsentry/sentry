@@ -10,7 +10,7 @@ import {truncationFormatter} from '../utils';
 
 type ChartProps = React.ComponentProps<typeof BaseChart>;
 
-function defaultFormatAxisLabel(
+export function defaultFormatAxisLabel(
   value: number,
   isTimestamp: boolean,
   utc: boolean,
@@ -60,6 +60,10 @@ function defaultNameFormatter(value: string) {
   return value;
 }
 
+function defaultMarkerFormatter(value: string) {
+  return value;
+}
+
 function getSeriesValue(series: EChartOption.Tooltip.Format, offset: number) {
   if (!series.data) {
     return undefined;
@@ -81,7 +85,8 @@ type TooltipFormatters =
   | 'filter'
   | 'formatAxisLabel'
   | 'valueFormatter'
-  | 'nameFormatter';
+  | 'nameFormatter'
+  | 'markerFormatter';
 
 type FormatterOptions = Pick<NonNullable<ChartProps['tooltip']>, TooltipFormatters> &
   Pick<ChartProps, NeededChartProps> & {
@@ -105,6 +110,7 @@ function getFormatter({
   bucketSize,
   valueFormatter = defaultValueFormatter,
   nameFormatter = defaultNameFormatter,
+  markerFormatter = defaultMarkerFormatter,
   indentLabels = [],
   addSecondsToTimeFormat = false,
 }: FormatterOptions) {
@@ -143,7 +149,8 @@ function getFormatter({
         !!utc,
         !!showTimeInTooltip,
         addSecondsToTimeFormat,
-        bucketSize
+        bucketSize,
+        seriesParamsOrParam
       );
       // eCharts sets seriesName as null when `componentType` !== 'series'
       const truncatedName = truncationFormatter(
@@ -190,7 +197,8 @@ function getFormatter({
         !!utc,
         !!showTimeInTooltip,
         addSecondsToTimeFormat,
-        bucketSize
+        bucketSize,
+        seriesParamsOrParam
       );
 
     return [
@@ -203,11 +211,13 @@ function getFormatter({
           );
           const value = valueFormatter(getSeriesValue(s, 1), s.seriesName, s);
 
+          const marker = markerFormatter(s.marker ?? '', s.seriesName);
+
           const className = indentLabels.includes(formattedLabel)
             ? 'tooltip-label tooltip-label-indent'
             : 'tooltip-label';
 
-          return `<div><span class="${className}">${s.marker} <strong>${formattedLabel}</strong></span> ${value}</div>`;
+          return `<div><span class="${className}">${marker} <strong>${formattedLabel}</strong></span> ${value}</div>`;
         })
         .join(''),
       '</div>',
@@ -235,6 +245,7 @@ export default function Tooltip({
   formatAxisLabel,
   valueFormatter,
   nameFormatter,
+  markerFormatter,
   hideDelay,
   indentLabels,
   ...props
@@ -252,6 +263,7 @@ export default function Tooltip({
       formatAxisLabel,
       valueFormatter,
       nameFormatter,
+      markerFormatter,
       indentLabels,
     });
 

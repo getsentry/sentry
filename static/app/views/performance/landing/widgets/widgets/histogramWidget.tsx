@@ -39,12 +39,18 @@ export function HistogramWidget(props: Props) {
       chart: {
         fields: props.fields,
         component: provided => (
-          <HistogramQuery {...provided} numBuckets={20} dataFilter="exclude_outliers" />
+          <HistogramQuery
+            {...provided}
+            eventView={props.eventView}
+            location={props.location}
+            numBuckets={20}
+            dataFilter="exclude_outliers"
+          />
         ),
         transform: transformHistogramQuery,
       },
     };
-  }, [props.eventView, props.fields, props.organization.slug]);
+  }, [props.eventView, props.fields[0], props.organization.slug]);
 
   const onFilterChange = () => {};
 
@@ -74,6 +80,7 @@ export function HistogramWidget(props: Props) {
               field={props.fields[0]}
               chartData={provided.widgetData.chart?.data?.[props.fields[0]]}
               disableXAxis
+              disableZoom
             />
           ),
           height: 160,

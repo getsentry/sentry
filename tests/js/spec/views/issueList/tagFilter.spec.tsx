@@ -2,7 +2,7 @@ import {
   fireEvent,
   mountWithTheme,
   screen,
-  waitFor,
+  waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
 import IssueListTagFilter from 'app/views/issueList/tagFilter';
@@ -58,9 +58,7 @@ describe('IssueListTagFilter', function () {
     fireEvent.change(input, {target: {value: 'foo'}});
 
     // waits for the loading indicator to disappear
-    const loadingIndicator = screen.getByText('Loading\u2026');
-
-    await waitFor(() => expect(loadingIndicator).not.toBeInTheDocument());
+    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
     // the result has a length of 2, because when performing a search,
     // an element containing the same value is present in the rendered HTML markup

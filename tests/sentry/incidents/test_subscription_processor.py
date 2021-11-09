@@ -15,6 +15,7 @@ from sentry.incidents.logic import (
     WARNING_TRIGGER_LABEL,
     create_alert_rule_trigger,
     create_alert_rule_trigger_action,
+    update_alert_rule,
 )
 from sentry.incidents.models import (
     AlertRule,
@@ -42,7 +43,6 @@ from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQueryEven
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.utils import json
-from sentry.utils.compat import map
 from sentry.utils.dates import to_timestamp
 
 EMPTY = object()
@@ -1547,6 +1547,74 @@ class ProcessUpdateTest(TestCase, SnubaTestCase):
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.RESOLVED)
         self.assert_actions_resolved_for_incident(incident, [self.action])
 
+    def test_comparison_alert_different_aggregate(self):
+        rule = self.comparison_rule_above
+        update_alert_rule(rule, aggregate="count_unique(tags[sentry:user])")
+        comparison_delta = timedelta(seconds=rule.comparison_delta)
+        trigger = self.trigger
+        processor = self.send_update(
+            rule, trigger.alert_threshold + 1, timedelta(minutes=-10), subscription=self.sub
+        )
+        # Shouldn't trigger, since there should be no data in the comparison period
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_does_not_exist(trigger)
+        self.assert_action_handler_called_with_actions(None, [])
+        self.metrics.incr.assert_has_calls(
+            [
+                call("incidents.alert_rules.skipping_update_comparison_value_invalid"),
+                call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
+            ]
+        )
+        comparison_date = timezone.now() - comparison_delta
+
+        for i in range(4):
+            self.store_event(
+                data={
+                    "timestamp": iso_format(comparison_date - timedelta(minutes=30 + i)),
+                    "tags": {"sentry:user": i},
+                },
+                project_id=self.project.id,
+            )
+
+        self.metrics.incr.reset_mock()
+        processor = self.send_update(rule, 2, timedelta(minutes=-9), subscription=self.sub)
+        # Shouldn't trigger, since there are 4 events in the comparison period, and 2/4 == 50%
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_does_not_exist(trigger)
+        self.assert_action_handler_called_with_actions(None, [])
+        assert self.metrics.incr.call_count == 0
+
+        processor = self.send_update(rule, 4, timedelta(minutes=-8), subscription=self.sub)
+        # Shouldn't trigger, since there are 4 events in the comparison period, and 4/4 == 100%, so
+        # no change
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_does_not_exist(trigger)
+        self.assert_action_handler_called_with_actions(None, [])
+
+        processor = self.send_update(rule, 6, timedelta(minutes=-7), subscription=self.sub)
+        # Shouldn't trigger, 6/4 == 150%, but we want > 150%
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_does_not_exist(trigger)
+        self.assert_action_handler_called_with_actions(None, [])
+
+        processor = self.send_update(rule, 7, timedelta(minutes=-6), subscription=self.sub)
+        # Should trigger, 7/4 == 175% > 150%
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        incident = self.assert_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_fired_for_incident(incident, [self.action])
+
+        # Check we successfully resolve
+        processor = self.send_update(rule, 6, timedelta(minutes=-5), subscription=self.sub)
+        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.RESOLVED)
+        self.assert_actions_resolved_for_incident(incident, [self.action])
+
 
 class TestBuildAlertRuleStatKeys(unittest.TestCase):
     def test(self):
@@ -1617,17 +1685,19 @@ class TestUpdateAlertRuleStats(TestCase):
         date = datetime.utcnow().replace(tzinfo=pytz.utc)
         update_alert_rule_stats(alert_rule, sub, date, {3: 20, 4: 3}, {3: 10, 4: 15})
         client = get_redis_client()
-        results = map(
-            int,
-            client.mget(
-                [
-                    "{alert_rule:1:project:2}:last_update",
-                    "{alert_rule:1:project:2}:trigger:3:alert_triggered",
-                    "{alert_rule:1:project:2}:trigger:3:resolve_triggered",
-                    "{alert_rule:1:project:2}:trigger:4:alert_triggered",
-                    "{alert_rule:1:project:2}:trigger:4:resolve_triggered",
-                ]
-            ),
+        results = list(
+            map(
+                int,
+                client.mget(
+                    [
+                        "{alert_rule:1:project:2}:last_update",
+                        "{alert_rule:1:project:2}:trigger:3:alert_triggered",
+                        "{alert_rule:1:project:2}:trigger:3:resolve_triggered",
+                        "{alert_rule:1:project:2}:trigger:4:alert_triggered",
+                        "{alert_rule:1:project:2}:trigger:4:resolve_triggered",
+                    ]
+                ),
+            )
         )
 
         assert results == [int(to_timestamp(date)), 20, 10, 3, 15]

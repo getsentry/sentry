@@ -14,17 +14,17 @@ const eventId = '0987654321fedcba';
 function renderTraceFull({isLoading, error, type}) {
   if (isLoading) {
     return 'loading';
-  } else if (error !== null) {
-    return error;
-  } else {
-    return (
-      <Fragment>
-        <div key="type" data-test-id="type">
-          {type}
-        </div>
-      </Fragment>
-    );
   }
+  if (error !== null) {
+    return error;
+  }
+  return (
+    <Fragment>
+      <div key="type" data-test-id="type">
+        {type}
+      </div>
+    </Fragment>
+  );
 }
 
 describe('TraceFullQuery', function () {

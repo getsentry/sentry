@@ -10,6 +10,7 @@ from django.utils import timezone
 from sentry.models import GroupRuleStatus, GroupStatus, Rule
 from sentry.notifications.types import ActionTargetType
 from sentry.rules import init_registry
+from sentry.rules.conditions import EventCondition
 from sentry.rules.filters.base import EventFilter
 from sentry.rules.processor import RuleProcessor
 from sentry.testutils import TestCase
@@ -21,6 +22,11 @@ EMAIL_ACTION_DATA = {
 }
 
 EVERY_EVENT_COND_DATA = {"id": "sentry.rules.conditions.every_event.EveryEventCondition"}
+
+
+class MockConditionTrue(EventCondition):
+    def passes(self, event, state):
+        return True
 
 
 class RuleProcessorTest(TestCase):
@@ -154,6 +160,43 @@ class RuleProcessorTest(TestCase):
             # the extra queries. The conflicting insert doesn't seem to be counted here since it
             # creates no rows.
             self.run_query_test(rp, 2)
+
+    @patch(
+        "sentry.constants._SENTRY_RULES",
+        [
+            "sentry.mail.actions.NotifyEmailAction",
+            "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
+            "tests.sentry.rules.test_processor.MockConditionTrue",
+        ],
+    )
+    def test_slow_conditions_evaluate_last(self):
+        # Make sure slow/expensive conditions are evaluated last, so that we can skip evaluating
+        # them if cheaper conditions satisfy the rule.
+        self.rule.update(
+            data={
+                "conditions": [
+                    {"id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition"},
+                    {"id": "tests.sentry.rules.test_processor.MockConditionTrue"},
+                ],
+                "action_match": "any",
+                "actions": [EMAIL_ACTION_DATA],
+            },
+        )
+        with patch("sentry.rules.processor.rules", init_registry()), patch(
+            "sentry.rules.conditions.event_frequency.BaseEventFrequencyCondition.passes"
+        ) as passes:
+            rp = RuleProcessor(
+                self.event,
+                is_new=True,
+                is_regression=True,
+                is_new_group_environment=True,
+                has_reappeared=True,
+            )
+            results = rp.apply()
+        assert len(results) == 1
+        # We should never call `passes` on the frequency condition since we should run the cheap
+        # mock condition first.
+        assert passes.call_count == 0
 
 
 # mock filter which always passes

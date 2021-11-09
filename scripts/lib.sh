@@ -24,6 +24,10 @@ require() {
 }
 
 configure-sentry-cli() {
+    # XXX: For version 1.70.1 there's a bug hitting SENTRY_CLI_NO_EXIT_TRAP: unbound variable
+    # We can remove this after it's fixed
+    # https://github.com/getsentry/sentry-cli/pull/1059
+    export SENTRY_CLI_NO_EXIT_TRAP=${SENTRY_CLI_NO_EXIT_TRAP-0}
     if [ -n "${SENTRY_DSN+x}" ] && [ -z "${SENTRY_DEVENV_NO_REPORT+x}" ]; then
         if ! require sentry-cli; then
             curl -sL https://sentry.io/get-cli/ | bash
@@ -45,15 +49,6 @@ query-big-sur() {
 
 query-apple-m1() {
     query-mac && [[ $(uname -m) = 'arm64' ]]
-}
-
-get-pyenv-version() {
-    if [[ -n "${SENTRY_PYTHON_VERSION:-}" ]]; then
-        echo "${SENTRY_PYTHON_VERSION}"
-        return 0
-    fi
-
-    echo '3.8.12'
 }
 
 query-valid-python-version() {
@@ -120,6 +115,9 @@ install-py-dev() {
         # This install confluent-kafka from our GC storage since there's no arm64 wheel
         # https://github.com/confluentinc/confluent-kafka-python/issues/1190
         pip install https://storage.googleapis.com/python-arm64-wheels/confluent_kafka-1.5.0-cp38-cp38-macosx_11_0_arm64.whl
+        # uwsgi does not properly install via pyenv Python installations
+        # https://github.com/unbit/uwsgi/issues/2361
+        pip install https://storage.googleapis.com/python-arm64-wheels/uWSGI-2.0.19.1-cp38-cp38-macosx_11_0_universal2.whl
     fi
     # SENTRY_LIGHT_BUILD=1 disables webpacking during setup.py.
     # Webpacked assets are only necessary for devserver (which does it lazily anyways)
@@ -239,7 +237,11 @@ reset-db() {
 }
 
 prerequisites() {
-    brew update -q && brew bundle -q
+    if [ -z "${CI+x}" ]; then
+        brew update -q && brew bundle -q
+    else
+        HOMEBREW_NO_AUTO_UPDATE=on brew install libxmlsec1 pyenv
+    fi
 }
 
 direnv-help() {

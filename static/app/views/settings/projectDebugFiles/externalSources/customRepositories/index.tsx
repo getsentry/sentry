@@ -7,6 +7,7 @@ import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {openDebugFileSourceModal} from 'app/actionCreators/modal';
 import ProjectActions from 'app/actions/projectActions';
 import {Client} from 'app/api';
+import Access from 'app/components/acl/access';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
@@ -157,7 +158,6 @@ function CustomRepositories({
       query: {
         ...location.query,
         customRepository: undefined,
-        revalidateItunesSession: undefined,
       },
     });
   }
@@ -180,16 +180,12 @@ function CustomRepositories({
     });
   }
 
-  function handleEditRepository(
-    repoId: CustomRepo['id'],
-    revalidateItunesSession?: boolean
-  ) {
+  function handleEditRepository(repoId: CustomRepo['id']) {
     router.push({
       ...location,
       query: {
         ...location.query,
         customRepository: repoId,
-        revalidateItunesSession,
       },
     });
   }
@@ -229,9 +225,22 @@ function CustomRepositories({
           })}
         >
           {({isOpen}) => (
-            <DropdownButton isOpen={isOpen} size="small">
-              {t('Add Repository')}
-            </DropdownButton>
+            <Access access={['project:write']}>
+              {({hasAccess}) => (
+                <DropdownButton
+                  isOpen={isOpen}
+                  title={
+                    !hasAccess
+                      ? t('You do not have permission to add custom repositories.')
+                      : undefined
+                  }
+                  disabled={!hasAccess}
+                  size="small"
+                >
+                  {t('Add Repository')}
+                </DropdownButton>
+              )}
+            </Access>
           )}
         </DropdownAutoComplete>
       </PanelHeader>

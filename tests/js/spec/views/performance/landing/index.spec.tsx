@@ -1,6 +1,8 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeData} from 'sentry-test/performance/initializePerformanceData';
+import {act} from 'sentry-test/reactTestingLibrary';
 
+import TeamStore from 'app/stores/teamStore';
 import EventView from 'app/utils/discover/eventView';
 import {OrganizationContext} from 'app/views/organizationContext';
 import {PerformanceLanding} from 'app/views/performance/landing';
@@ -28,6 +30,7 @@ const WrappedComponent = ({data}) => {
 describe('Performance > Landing > Index', function () {
   let eventStatsMock: any;
   let eventsV2Mock: any;
+  act(() => void TeamStore.loadInitialData([]));
   beforeEach(function () {
     // @ts-expect-error
     MockApiClient.addMockResponse({
@@ -108,11 +111,11 @@ describe('Performance > Landing > Index', function () {
     const titles = wrapper.find('div[data-test-id="performance-widget-title"]');
     expect(titles).toHaveLength(5);
 
-    expect(titles.at(0).text()).toEqual('Transactions Per Minute');
-    expect(titles.at(1).text()).toEqual('Most Related Errors');
-    expect(titles.at(2).text()).toEqual('p75 LCP');
-    expect(titles.at(3).text()).toEqual('LCP Distribution');
-    expect(titles.at(4).text()).toEqual('FCP Distribution');
+    expect(titles.at(0).text()).toEqual('p75 LCP');
+    expect(titles.at(1).text()).toEqual('LCP Distribution');
+    expect(titles.at(2).text()).toEqual('FCP Distribution');
+    expect(titles.at(3).text()).toEqual('Most Related Errors');
+    expect(titles.at(4).text()).toEqual('Most Related Issues');
   });
 
   it('renders frontend other view', async function () {

@@ -1,4 +1,4 @@
-import {mountWithTheme, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
 import TeamIssuesReviewed from 'app/views/organizationStats/teamInsights/teamIssuesReviewed';
 
@@ -19,10 +19,6 @@ describe('TeamIssuesReviewed', () => {
         period="8w"
       />
     );
-
-    await waitFor(() => {
-      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
-    });
 
     expect(screen.getByText('javascript')).toBeInTheDocument();
     // Total

@@ -34,11 +34,9 @@ function initializeData({features: additionalFeatures = [], query = {}} = {}) {
       },
     },
   });
-  ProjectsStore.loadInitialData(initialData.organization.projects);
+  act(() => ProjectsStore.loadInitialData(initialData.organization.projects));
+  act(() => TeamStore.loadInitialData(teams));
 
-  act(() => {
-    TeamStore.loadInitialData(teams);
-  });
   return initialData;
 }
 
@@ -261,7 +259,7 @@ describe('Performance > TransactionSummary', function () {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
-    ProjectsStore.reset();
+    act(() => ProjectsStore.reset());
     jest.clearAllMocks();
   });
 

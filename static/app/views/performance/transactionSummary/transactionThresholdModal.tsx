@@ -63,10 +63,9 @@ class TransactionThresholdModal extends React.Component<Props, State> {
 
     if (defined(project)) {
       return projects.find(proj => proj.id === project);
-    } else {
-      const projectId = String(eventView.project[0]);
-      return projects.find(proj => proj.id === projectId);
     }
+    const projectId = String(eventView.project[0]);
+    return projects.find(proj => proj.id === projectId);
   }
 
   handleApply = async (event: React.FormEvent) => {

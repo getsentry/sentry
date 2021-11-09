@@ -61,7 +61,10 @@ class RelatedIssues extends Component<Props> {
         <ControlsWrapper>
           <StyledSectionHeading>
             {t('Related Issues')}
-            <Tooltip title={t('Top issues containing events matching the metric.')}>
+            <Tooltip
+              title={t('Top issues containing events matching the metric.')}
+              skipWrapper
+            >
               <IconInfo size="xs" color="gray200" />
             </Tooltip>
           </StyledSectionHeading>

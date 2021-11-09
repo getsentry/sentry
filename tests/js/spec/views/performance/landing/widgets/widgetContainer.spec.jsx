@@ -1,24 +1,38 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
-import {initializeData} from 'sentry-test/performance/initializePerformanceData';
+import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';
 
+import {PerformanceDisplayProvider} from 'app/utils/performance/contexts/performanceDisplayContext';
 import {OrganizationContext} from 'app/views/organizationContext';
 import WidgetContainer from 'app/views/performance/landing/widgets/components/widgetContainer';
 import {PerformanceWidgetSetting} from 'app/views/performance/landing/widgets/widgetDefinitions';
+import {PROJECT_PERFORMANCE_TYPE} from 'app/views/performance/utils';
+
+const initializeData = () => {
+  const data = _initializeData({
+    query: {statsPeriod: '7d', environment: ['prod'], project: [-42]},
+  });
+
+  data.eventView.additionalConditions.addFilterValues('transaction.op', ['pageload']);
+
+  return data;
+};
 
 const WrappedComponent = ({data, ...rest}) => {
   return (
-    <OrganizationContext.Provider value={data.organization}>
-      <WidgetContainer
-        {...data}
-        {...rest}
-        allowedCharts={[
-          PerformanceWidgetSetting.TPM_AREA,
-          PerformanceWidgetSetting.FAILURE_RATE_AREA,
-          PerformanceWidgetSetting.USER_MISERY_AREA,
-        ]}
-        forceDefaultChartSetting
-      />
-    </OrganizationContext.Provider>
+    <PerformanceDisplayProvider value={{performanceType: PROJECT_PERFORMANCE_TYPE.ANY}}>
+      <OrganizationContext.Provider value={data.organization}>
+        <WidgetContainer
+          {...data}
+          {...rest}
+          allowedCharts={[
+            PerformanceWidgetSetting.TPM_AREA,
+            PerformanceWidgetSetting.FAILURE_RATE_AREA,
+            PerformanceWidgetSetting.USER_MISERY_AREA,
+          ]}
+          forceDefaultChartSetting
+        />
+      </OrganizationContext.Provider>
+    </PerformanceDisplayProvider>
   );
 };
 
@@ -66,12 +80,10 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          environment: [],
-          interval: '1d',
+          interval: '1h',
           partial: '1',
-          project: [],
-          query: '',
-          statsPeriod: '28d',
+          query: 'transaction.op:pageload',
+          statsPeriod: '14d',
           yAxis: 'tpm()',
         }),
       })
@@ -100,12 +112,10 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          environment: [],
-          interval: '1d',
+          interval: '1h',
           partial: '1',
-          project: [],
-          query: '',
-          statsPeriod: '28d',
+          query: 'transaction.op:pageload',
+          statsPeriod: '14d',
           yAxis: 'failure_rate()',
         }),
       })
@@ -134,12 +144,10 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          environment: [],
-          interval: '1d',
+          interval: '1h',
           partial: '1',
-          project: [],
-          query: '',
-          statsPeriod: '28d',
+          query: 'transaction.op:pageload',
+          statsPeriod: '14d',
           yAxis: 'user_misery()',
         }),
       })
@@ -169,7 +177,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          environment: [],
+          environment: ['prod'],
           field: [
             'transaction',
             'title',
@@ -181,10 +189,10 @@ describe('Performance > Widgets > WidgetContainer', function () {
             'equation|count_if(measurements.lcp,greaterOrEquals,0) - count_if(measurements.lcp,greaterOrEquals,2500)',
           ],
           per_page: 3,
-          project: [],
-          query: '',
+          project: ['-42'],
+          query: 'transaction.op:pageload',
           sort: '-count_if(measurements.lcp,greaterOrEquals,4000)',
-          statsPeriod: '14d',
+          statsPeriod: '7d',
         }),
       })
     );
@@ -252,13 +260,13 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          environment: [],
+          environment: ['prod'],
           field: ['transaction', 'project.id', 'failure_count()'],
           per_page: 3,
-          project: [],
-          query: '',
+          project: ['-42'],
+          query: 'transaction.op:pageload failure_count():>0',
           sort: '-failure_count()',
-          statsPeriod: '14d',
+          statsPeriod: '7d',
         }),
       })
     );
@@ -286,13 +294,13 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          environment: [],
+          environment: ['prod'],
           field: ['issue', 'transaction', 'title', 'project.id', 'count()'],
           per_page: 3,
-          project: [],
-          query: 'event.type:error !tags[transaction]:""',
+          project: ['-42'],
+          query: 'event.type:error !tags[transaction]:"" count():>0',
           sort: '-count()',
-          statsPeriod: '14d',
+          statsPeriod: '7d',
         }),
       })
     );
@@ -320,16 +328,16 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          environment: [],
+          environment: ['prod'],
           field: ['transaction', 'project'],
           interval: undefined,
           middle: undefined,
           per_page: 3,
-          project: [],
+          project: ['-42'],
           query:
-            'tpm():>0.01 count_percentage():>0.25 count_percentage():<4 trend_percentage():>0% confidence():>6',
+            'transaction.op:pageload tpm():>0.01 count_percentage():>0.25 count_percentage():<4 trend_percentage():>0% confidence():>6',
           sort: 'trend_percentage()',
-          statsPeriod: '14d',
+          statsPeriod: '7d',
           trendFunction: 'avg(transaction.duration)',
           trendType: 'improved',
         }),
@@ -359,21 +367,64 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          environment: [],
+          environment: ['prod'],
           field: ['transaction', 'project'],
           interval: undefined,
           middle: undefined,
           per_page: 3,
-          project: [],
+          project: ['-42'],
           query:
-            'tpm():>0.01 count_percentage():>0.25 count_percentage():<4 trend_percentage():>0% confidence():>6',
+            'transaction.op:pageload tpm():>0.01 count_percentage():>0.25 count_percentage():<4 trend_percentage():>0% confidence():>6',
           sort: '-trend_percentage()',
-          statsPeriod: '14d',
+          statsPeriod: '7d',
           trendFunction: 'avg(transaction.duration)',
           trendType: 'regression',
         }),
       })
     );
+  });
+
+  it('Most slow frames widget', async function () {
+    const data = initializeData();
+
+    const wrapper = mountWithTheme(
+      <WrappedComponent
+        data={data}
+        defaultChartSetting={PerformanceWidgetSetting.MOST_SLOW_FRAMES}
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+      'Most Slow Frames'
+    );
+
+    expect(eventsV2Mock).toHaveBeenCalledTimes(1);
+    expect(eventsV2Mock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: ['prod'],
+          field: [
+            'transaction',
+            'project.id',
+            'epm()',
+            'p75(measurements.frames_slow_rate)',
+          ],
+          per_page: 3,
+          project: ['-42'],
+          query:
+            'transaction.op:pageload epm():>0.01 p75(measurements.frames_slow_rate):>0',
+          sort: '-p75(measurements.frames_slow_rate)',
+          statsPeriod: '7d',
+        }),
+      })
+    );
+
+    expect(wrapper.find('div[data-test-id="empty-message"]').exists()).toBe(true);
   });
 
   it('Able to change widget type from menu', async function () {
