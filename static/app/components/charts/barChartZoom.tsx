@@ -1,6 +1,5 @@
 import * as React from 'react';
 import {browserHistory} from 'react-router';
-import type {DataZoomComponentOption, ToolboxComponentOption} from 'echarts';
 import {Location} from 'history';
 
 import DataZoomInside from 'app/components/charts/components/dataZoomInside';
@@ -9,8 +8,8 @@ import {EChartChartReadyHandler, EChartDataZoomHandler} from 'app/types/echarts'
 import {callIfFunction} from 'app/utils/callIfFunction';
 
 export type RenderProps = {
-  dataZoom: DataZoomComponentOption;
-  toolBox: ToolboxComponentOption;
+  dataZoom: ReturnType<typeof DataZoomInside>;
+  toolBox: ReturnType<typeof ToolBox>;
   onChartReady: EChartChartReadyHandler;
   onDataZoom: EChartDataZoomHandler;
 };

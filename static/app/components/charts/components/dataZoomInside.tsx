@@ -1,6 +1,6 @@
 import 'echarts/lib/component/dataZoomInside';
 
-import type {DataZoomComponentOption, InsideDataZoomComponentOption} from 'echarts';
+import type {InsideDataZoomComponentOption} from 'echarts';
 
 const DEFAULT: InsideDataZoomComponentOption = {
   type: 'inside',
@@ -13,7 +13,7 @@ const DEFAULT: InsideDataZoomComponentOption = {
 
 export default function DataZoomInside(
   props: InsideDataZoomComponentOption | InsideDataZoomComponentOption[]
-): DataZoomComponentOption[] {
+): InsideDataZoomComponentOption[] {
   // `props` can be boolean, if so return default
   if (!props || !Array.isArray(props)) {
     const dataZoom = {
