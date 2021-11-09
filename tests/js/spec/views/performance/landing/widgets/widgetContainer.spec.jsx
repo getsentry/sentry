@@ -67,12 +67,12 @@ describe('Performance > Widgets > WidgetContainer', function () {
         body: {
           data: [
             {
-              'issue.id': 2754060735,
-              transaction: '/share/issue/:shareId/',
-              title: 'Error: useOrganization called but organization is not set.',
-              'project.id': 11276,
-              count: 3182,
-              issue: 'JAVASCRIPT-25ZY',
+              'issue.id': 123,
+              transaction: '/issue/:id/',
+              title: 'Error: Something is broken.',
+              'project.id': 1,
+              count: 3100,
+              issue: 'JAVASCRIPT-ABCD',
             },
           ],
         },
