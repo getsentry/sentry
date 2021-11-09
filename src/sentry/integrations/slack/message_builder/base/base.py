@@ -16,7 +16,7 @@ def get_slack_button(action: MessageAction) -> Mapping[str, Any]:
         "name": action.name,
         "type": action.type,
     }
-    for field in ("style", "url", "value"):
+    for field in ("style", "url", "value", "action_id"):
         value = getattr(action, field, None)
         if value:
             kwargs[field] = value
