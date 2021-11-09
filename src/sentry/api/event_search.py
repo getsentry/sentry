@@ -541,10 +541,8 @@ class SearchVisitor(NodeVisitor):
 
     def _handle_numeric_filter(self, negated, search_key, operator, search_value):
         if isinstance(operator, Node):
-            if isinstance(operator.expr, Optional) and negated:
-                operator = "!="
-            elif isinstance(operator.expr, Optional):
-                operator = "="
+            if isinstance(operator.expr, Optional):
+                operator = "!=" if negated else "="
             else:
                 operator = operator.text
         else:
