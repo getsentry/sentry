@@ -222,6 +222,10 @@ class OrganizationInviteRequestCreateTest(APITestCase, SlackActivityNotification
                 "type": "button",
             },
         ]
+        assert (
+            attachment["footer"]
+            == "You are receiving this notification because you're listed as an organization Manager | <http://testserver/settings/account/notifications/approval/?referrer=InviteRequestSlackUser|Notification Settings>"
+        )
         member = OrganizationMember.objects.get(email="eric@localhost")
         assert json.loads(attachment["callback_id"]) == {
             "member_id": member.id,
