@@ -2029,14 +2029,14 @@ urlpatterns = [
                     name="sentry-api-0-project-appstoreconnect-validate",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/(?P<credentials_id>[^\/]+)/$",
-                    AppStoreConnectUpdateCredentialsEndpoint.as_view(),
-                    name="sentry-api-0-project-appstoreconnect-credentials-update",
-                ),
-                url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/status/$",
                     AppStoreConnectStatusEndpoint.as_view(),
                     name="sentry-api-0-project-appstoreconnect-status",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/(?P<credentials_id>[^\/]+)/$",
+                    AppStoreConnectUpdateCredentialsEndpoint.as_view(),
+                    name="sentry-api-0-project-appstoreconnect-credentials-update",
                 ),
             ]
         ),
