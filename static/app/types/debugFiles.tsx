@@ -53,7 +53,6 @@ export type AppStoreConnectCredentialsStatus =
   | ({status: 'invalid'} & AppStoreConnectValidationError);
 
 export type AppStoreConnectStatusData = {
-  id: string;
   credentials: AppStoreConnectCredentialsStatus;
   /**
    * Indicates the number of downloads waiting to be processed and completed,
