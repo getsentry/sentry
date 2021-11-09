@@ -36,21 +36,50 @@ const WrappedComponent = ({data, ...rest}) => {
   );
 };
 
+const issuesPredicate = (url, options) =>
+  url.includes('eventsv2') && options.query?.query.includes('error');
+
 describe('Performance > Widgets > WidgetContainer', function () {
   let eventStatsMock;
   let eventsV2Mock;
   let eventsTrendsStats;
+
+  let issuesListMock;
+
   beforeEach(function () {
     eventStatsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/events-stats/`,
       body: [],
     });
-    eventsV2Mock = MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/org-slug/eventsv2/`,
-      body: [],
-    });
+    eventsV2Mock = MockApiClient.addMockResponse(
+      {
+        method: 'GET',
+        url: `/organizations/org-slug/eventsv2/`,
+        body: [],
+      },
+      {predicate: (...args) => !issuesPredicate(...args)}
+    );
+    issuesListMock = MockApiClient.addMockResponse(
+      {
+        method: 'GET',
+        url: `/organizations/org-slug/eventsv2/`,
+        body: {
+          data: [
+            {
+              'issue.id': 2754060735,
+              transaction: '/share/issue/:shareId/',
+              title: 'Error: useOrganization called but organization is not set.',
+              'project.id': 11276,
+              count: 3182,
+              issue: 'JAVASCRIPT-25ZY',
+            },
+          ],
+        },
+      },
+      {predicate: (...args) => issuesPredicate(...args)}
+    );
+
     eventsTrendsStats = MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/events-trends-stats/',
@@ -288,8 +317,8 @@ describe('Performance > Widgets > WidgetContainer', function () {
     expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
       'Most Related Issues'
     );
-    expect(eventsV2Mock).toHaveBeenCalledTimes(1);
-    expect(eventsV2Mock).toHaveBeenNthCalledWith(
+    expect(issuesListMock).toHaveBeenCalledTimes(1);
+    expect(issuesListMock).toHaveBeenNthCalledWith(
       1,
       expect.anything(),
       expect.objectContaining({
@@ -304,6 +333,38 @@ describe('Performance > Widgets > WidgetContainer', function () {
         }),
       })
     );
+  });
+
+  it('Switching from issues to errors widget', async function () {
+    const data = initializeData();
+
+    const wrapper = mountWithTheme(
+      <WrappedComponent
+        data={data}
+        defaultChartSetting={PerformanceWidgetSetting.MOST_RELATED_ISSUES}
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+      'Most Related Issues'
+    );
+    expect(issuesListMock).toHaveBeenCalledTimes(1);
+
+    wrapper.setProps({
+      defaultChartSetting: PerformanceWidgetSetting.MOST_RELATED_ERRORS,
+    });
+
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+      'Most Related Errors'
+    );
+    expect(eventsV2Mock).toHaveBeenCalledTimes(1);
+    expect(eventStatsMock).toHaveBeenCalledTimes(1);
   });
 
   it('Most improved trends widget', async function () {

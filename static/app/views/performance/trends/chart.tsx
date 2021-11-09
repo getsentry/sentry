@@ -380,50 +380,37 @@ export function Chart({
         );
 
         return (
-          <ReleaseSeries
-            start={start}
-            end={end}
-            queryExtra={queryExtra}
-            period={statsPeriod}
-            utc={utc === 'true'}
-            projects={isNaN(transactionProject) ? project : [transactionProject]}
-            environments={environment}
-            memoized
-          >
-            {({releaseSeries}) => (
-              <TransitionChart loading={loading} reloading={reloading}>
-                <TransparentLoadingMask visible={reloading} />
-                {getDynamicText({
-                  value: (
-                    <LineChart
-                      height={height}
-                      {...zoomRenderProps}
-                      {...chartOptions}
-                      onLegendSelectChanged={handleLegendSelectChanged}
-                      series={[...smoothedSeries, ...releaseSeries, ...intervalSeries]}
-                      seriesOptions={{
-                        showSymbol: false,
-                      }}
-                      legend={legend}
-                      toolBox={{
-                        show: false,
-                      }}
-                      grid={
-                        grid ?? {
-                          left: '10px',
-                          right: '10px',
-                          top: '40px',
-                          bottom: '0px',
-                        }
-                      }
-                      xAxis={disableXAxis ? {show: false} : undefined}
-                    />
-                  ),
-                  fixed: 'Duration Chart',
-                })}
-              </TransitionChart>
-            )}
-          </ReleaseSeries>
+          <TransitionChart loading={loading} reloading={reloading}>
+            <TransparentLoadingMask visible={reloading} />
+            {getDynamicText({
+              value: (
+                <LineChart
+                  height={height}
+                  {...zoomRenderProps}
+                  {...chartOptions}
+                  onLegendSelectChanged={handleLegendSelectChanged}
+                  series={[...smoothedSeries, ...intervalSeries]}
+                  seriesOptions={{
+                    showSymbol: false,
+                  }}
+                  legend={legend}
+                  toolBox={{
+                    show: false,
+                  }}
+                  grid={
+                    grid ?? {
+                      left: '10px',
+                      right: '10px',
+                      top: '40px',
+                      bottom: '0px',
+                    }
+                  }
+                  xAxis={disableXAxis ? {show: false} : undefined}
+                />
+              ),
+              fixed: 'Duration Chart',
+            })}
+          </TransitionChart>
         );
       }}
     </ChartZoom>
