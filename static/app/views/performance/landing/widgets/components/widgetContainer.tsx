@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import MenuItem from 'app/components/menuItem';
@@ -108,6 +108,10 @@ const _WidgetContainer = (props: Props) => {
     }
     setChartSettingState(setting);
   };
+
+  useEffect(() => {
+    setChartSettingState(_chartSetting);
+  }, [rest.defaultChartSetting]);
 
   const widgetProps = {
     chartSetting,
