@@ -28,7 +28,7 @@ from .send import send_messages
 
 logger = logging.getLogger("sentry.mail")
 
-default_list_type_handlers: Mapping[type[Model], Callable[[Model], Any]] = {
+default_list_type_handlers: Mapping[type[Model], Callable[[Model], Iterable[str]]] = {
     Activity: attrgetter("project.slug", "project.organization.slug"),
     Project: attrgetter("slug", "organization.slug"),
     Group: attrgetter("project.slug", "organization.slug"),

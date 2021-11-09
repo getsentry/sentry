@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import Mapping
-from typing import Any, Callable, Generic
+from typing import Callable, Generic, Iterable
 
 from sentry.db.models import Model
 from sentry.db.models.manager import M
@@ -20,7 +20,7 @@ class ListResolver(Generic[M]):
         """
 
     def __init__(
-        self, namespace: str, type_handlers: Mapping[type[Model], Callable[[M], Any]]
+        self, namespace: str, type_handlers: Mapping[type[Model], Callable[[M], Iterable[str]]]
     ) -> None:
         assert is_valid_dot_atom(namespace)
 
