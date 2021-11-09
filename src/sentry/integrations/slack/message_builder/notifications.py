@@ -7,6 +7,7 @@ from sentry.integrations.slack.message_builder.base.base import SlackMessageBuil
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
 from sentry.models import Team, User
 from sentry.notifications.notifications.base import BaseNotification, ProjectNotification
+from sentry.utils import json
 
 
 def get_message_builder(klass: str) -> type[SlackNotificationsMessageBuilder]:
@@ -30,12 +31,14 @@ class SlackNotificationsMessageBuilder(SlackMessageBuilder):
         self.recipient = recipient
 
     def build(self) -> SlackBody:
+        callback_id_raw = self.notification.get_callback_data()
         return self._build(
             title=self.notification.build_attachment_title(),
             title_link=self.notification.get_title_link(),
             text=self.notification.get_message_description(),
             footer=self.notification.build_notification_footer(self.recipient),
             actions=self.notification.get_message_actions(),
+            callback_id=json.dumps(callback_id_raw) if callback_id_raw else None,
         )
 
 

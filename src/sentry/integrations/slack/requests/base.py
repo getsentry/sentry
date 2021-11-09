@@ -102,6 +102,13 @@ class SlackRequest:
         return self._data
 
     @property
+    def action_option(self) -> Optional[str]:
+        # Actions list may be empty when receiving a dialog response
+        action_list = self.data.get("actions", [])
+        action_option: Optional[str] = action_list and action_list[0].get("value", "")
+        return action_option
+
+    @property
     def logging_data(self) -> Mapping[str, str]:
         data = {
             "slack_team_id": self.team_id,
