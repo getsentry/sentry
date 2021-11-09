@@ -24,6 +24,7 @@
       "screen_density": 3,
       "type": "device",
       "charging": true,
+      "language": "en_US",
       "locale": "US",
       "model_id": "NYC",
       "brand": "google",

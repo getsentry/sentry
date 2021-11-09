@@ -108,6 +108,13 @@ class Columns(Enum):
         "contexts[device.charging]",
         "device.charging",
     )
+    DEVICE_LANGUAGE = Column(
+        "events.contexts[device.language]",
+        "contexts[device.language]",
+        "contexts[device.language]",
+        "contexts[device.language]",
+        "device.language",
+    )
     DEVICE_LOCALE = Column(
         "events.contexts[device.locale]",
         "contexts[device.locale]",

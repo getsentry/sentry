@@ -25,6 +25,7 @@ const BUILTIN_TAGS = [
   'os.build',
   'os.kernel_version',
   'device.brand',
+  'device.language',
   'device.locale',
   'device.uuid',
   'device.model_id',
