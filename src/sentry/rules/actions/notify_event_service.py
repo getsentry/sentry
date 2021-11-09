@@ -1,7 +1,6 @@
 """
 Used for notifying a *specific* plugin/sentry app with a generic webhook payload
 """
-
 import logging
 
 from django import forms
@@ -100,7 +99,10 @@ def send_incident_alert_notification(action, incident, metric_value=None, method
 
 
 def find_alert_rule_action_ui_component(app_platform_event: AppPlatformEvent) -> bool:
-    # Loop through the triggers for the alert rule event. For each trigger, check if an action is an alert rule UI Component
+    """
+    Loop through the triggers for the alert rule event. For each trigger, check
+    if an action is an alert rule UI Component
+    """
     triggers = (
         getattr(app_platform_event, "data", {})
         .get("metric_alert", {})
@@ -111,11 +113,11 @@ def find_alert_rule_action_ui_component(app_platform_event: AppPlatformEvent) ->
     actions = [
         action
         for trigger in triggers
-        for action in trigger["actions"]
-        if (action["type"] == "sentry_app" and action["settings"] is not None)
+        for action in trigger.get("actions", {})
+        if (action.get("type") == "sentry_app" and action.get("settings") is not None)
     ]
 
-    return True if len(actions) else False
+    return bool(len(actions))
 
 
 class NotifyEventServiceForm(forms.Form):
