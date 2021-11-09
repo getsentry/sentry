@@ -109,9 +109,8 @@ export function vitalNameFromLocation(location: Location): WebVital {
 
   if (vitalName) {
     return vitalName;
-  } else {
-    return WebVital.LCP;
   }
+  return WebVital.LCP;
 }
 
 export function getVitalDetailTablePoorStatusFunction(vitalName: WebVital): string {

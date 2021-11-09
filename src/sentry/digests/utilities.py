@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 from collections import Counter, OrderedDict, defaultdict
 from datetime import datetime
 from typing import Counter as CounterType
-from typing import Iterable, Mapping, MutableMapping, Optional, Set, Tuple
+from typing import Iterable, Mapping, MutableMapping
 
 from sentry.digests import Digest
 from sentry.eventstore.models import Event
@@ -11,10 +13,10 @@ from sentry.notifications.types import ActionTargetType
 
 def get_digest_metadata(
     digest: Digest,
-) -> Tuple[Optional[datetime], Optional[datetime], CounterType[str]]:
+) -> tuple[datetime | None, datetime | None, CounterType[str]]:
     """TODO(mgaeta): This should probably just be part of `build_digest`."""
-    start: Optional[datetime] = None
-    end: Optional[datetime] = None
+    start: datetime | None = None
+    end: datetime | None = None
 
     counts: CounterType[str] = Counter()
     for rule, groups in digest.items():
@@ -41,7 +43,7 @@ def should_get_personalized_digests(target_type: ActionTargetType, project_id: i
 
 def get_personalized_digests(
     target_type: ActionTargetType, project_id: int, digest: Digest, user_ids: Iterable[int]
-) -> Iterable[Tuple[int, Digest]]:
+) -> Iterable[tuple[int, Digest]]:
     """
     TODO(mgaeta): I know this is inefficient. In the case that ProjectOwnership
      does exist, I do the same query twice. Once with this statement and again
@@ -72,7 +74,8 @@ def get_event_from_groups_in_digest(digest: Digest) -> Iterable[Event]:
 
 
 def build_custom_digest(original_digest: Digest, events: Iterable[Event]) -> Digest:
-    user_digest = OrderedDict()
+    """Given a digest and a set of events, filter the digest to only records that include the events."""
+    user_digest: Digest = OrderedDict()
     for rule, rule_groups in original_digest.items():
         user_rule_groups = OrderedDict()
         for group, group_records in rule_groups.items():
@@ -95,7 +98,7 @@ def build_events_by_actor(
      create a follow-up PR to address this method's efficiency problem.
      Just wanted to make as few changes as possible for now.
     """
-    events_by_actor: MutableMapping[ActorTuple, Set[Event]] = defaultdict(set)
+    events_by_actor: MutableMapping[ActorTuple, set[Event]] = defaultdict(set)
     for event in events:
         actors, __ = ProjectOwnership.get_owners(project_id, event.data)
         if actors == ProjectOwnership.Everyone:
@@ -108,7 +111,7 @@ def build_events_by_actor(
 def convert_actors_to_users(
     events_by_actor: Mapping[ActorTuple, Iterable[Event]], user_ids: Iterable[int]
 ) -> Mapping[int, Iterable[Event]]:
-    events_by_user: MutableMapping[int, Set[Event]] = defaultdict(set)
+    events_by_user: MutableMapping[int, set[Event]] = defaultdict(set)
     team_actors = [actor for actor in events_by_actor.keys() if actor.type == Team]
     teams_to_user_ids = team_actors_to_user_ids(team_actors, user_ids)
     for actor, events in events_by_actor.items():
@@ -123,7 +126,7 @@ def convert_actors_to_users(
         elif actor.type == User:
             events_by_user[actor.id].update(events)
         else:
-            raise ValueError("Unknown Actor type: %s" % actor.type)
+            raise ValueError(f"Unknown Actor type: {actor.type}")
     return events_by_user
 
 

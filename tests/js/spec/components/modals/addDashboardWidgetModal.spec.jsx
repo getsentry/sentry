@@ -19,6 +19,7 @@ function mountModal({
   fromDiscover,
   defaultWidgetQuery,
   displayType,
+  defaultTableColumns,
 }) {
   return mountWithTheme(
     <AddDashboardWidgetModal
@@ -33,6 +34,7 @@ function mountModal({
       fromDiscover={fromDiscover}
       defaultWidgetQuery={defaultWidgetQuery}
       displayType={displayType}
+      defaultTableColumns={defaultTableColumns}
     />,
     initialData.routerContext
   );
@@ -873,9 +875,16 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     const wrapper = mountModal({
       initialData,
       onAddWidget: data => (widget = data),
+      defaultTableColumns: ['title', 'count()', 'count_unique(user)', 'epm()'],
+      defaultWidgetQuery: {
+        name: '',
+        fields: ['count()'],
+        conditions: 'tag:value',
+        orderby: '',
+      },
     });
     // Select Top n display
-    selectByLabel(wrapper, 'Top Events', {name: 'displayType', at: 0, control: true});
+    selectByLabel(wrapper, 'Top 5 Events', {name: 'displayType', at: 0, control: true});
     expect(getDisplayType(wrapper).props().value).toEqual('top_n');
 
     // No delete button as there is only one field.
@@ -941,6 +950,29 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     });
 
     expect(wrapper.find('SelectPicker').at(1).props().value.value).toEqual('bar');
+    wrapper.unmount();
+  });
+
+  it('correctly defaults fields and orderby when in Top N display', async function () {
+    const wrapper = mountModal({
+      initialData,
+      onAddWidget: () => undefined,
+      onUpdateWidget: () => undefined,
+      fromDiscover: true,
+      displayType: types.DisplayType.TOP_N,
+      defaultWidgetQuery: {fields: ['count_unique(user)'], orderby: '-count_unique_user'},
+      defaultTableColumns: ['title', 'count()'],
+    });
+
+    expect(wrapper.find('SelectPicker').at(1).props().value.value).toEqual('top_n');
+    expect(wrapper.find('WidgetQueriesForm').props().queries[0].fields).toEqual([
+      'title',
+      'count()',
+      'count_unique(user)',
+    ]);
+    expect(wrapper.find('WidgetQueriesForm').props().queries[0].orderby).toEqual(
+      '-count_unique_user'
+    );
     wrapper.unmount();
   });
 });

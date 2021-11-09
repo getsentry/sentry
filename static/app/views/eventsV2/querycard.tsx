@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import ActivityAvatar from 'app/components/activity/item/avatar';
 import Card from 'app/components/card';
+import ErrorBoundary from 'app/components/errorBoundary';
 import Link from 'app/components/links/link';
 import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
@@ -55,7 +56,9 @@ class QueryCard extends React.PureComponent<Props> {
               )}
             </AvatarWrapper>
           </QueryCardHeader>
-          <QueryCardBody>{renderGraph()}</QueryCardBody>
+          <QueryCardBody>
+            <StyledErrorBoundary mini>{renderGraph()}</StyledErrorBoundary>
+          </QueryCardBody>
           <QueryCardFooter>
             <DateSelected>
               {subtitle}
@@ -137,6 +140,10 @@ const DateSelected = styled('div')`
 const DateStatus = styled('span')`
   color: ${p => p.theme.purple300};
   padding-left: ${space(1)};
+`;
+
+const StyledErrorBoundary = styled(ErrorBoundary)`
+  margin-bottom: 100px;
 `;
 
 export default QueryCard;

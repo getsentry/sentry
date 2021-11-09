@@ -1,6 +1,8 @@
-from typing import Any, MutableMapping, Optional
+from __future__ import annotations
 
-from sentry.models import Activity, Mapping, NotificationSetting, User
+from typing import Any, MutableMapping
+
+from sentry.models import Activity, Mapping, NotificationSetting, Team, User
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.notifications.utils import summarize_issues
 from sentry.types.integrations import ExternalProviders
@@ -16,11 +18,16 @@ class NewProcessingIssuesActivityNotification(ActivityNotification):
 
     def get_participants_with_group_subscription_reason(
         self,
-    ) -> Mapping[ExternalProviders, Mapping[User, int]]:
-        users_by_provider = NotificationSetting.objects.get_notification_recipients(self.project)
+    ) -> Mapping[ExternalProviders, Mapping[Team | User, int]]:
+        participants_by_provider = NotificationSetting.objects.get_notification_recipients(
+            self.project
+        )
         return {
-            provider: {user: GroupSubscriptionReason.processing_issue for user in users}
-            for provider, users in users_by_provider.items()
+            provider: {
+                participant: GroupSubscriptionReason.processing_issue
+                for participant in participants
+            }
+            for provider, participants in participants_by_provider.items()
         }
 
     def get_message_description(self) -> str:
@@ -37,7 +44,7 @@ class NewProcessingIssuesActivityNotification(ActivityNotification):
             ),
         }
 
-    def get_subject(self, context: Optional[Mapping[str, Any]] = None) -> str:
+    def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
         return f"Processing Issues on {self.project.slug}"
 
     def get_title(self) -> str:
@@ -54,3 +61,9 @@ class NewProcessingIssuesActivityNotification(ActivityNotification):
             f"/settings/{self.organization.slug}/projects/{self.project.slug}/processing-issues/"
         )
         return f"Processing issues on <{self.project.slug}|{project_url}"
+
+    def build_attachment_title(self) -> str:
+        return self.get_subject()
+
+    def get_title_link(self) -> str | None:
+        return None

@@ -45,8 +45,8 @@ export type AppStoreConnectValidationData = {
   id: string;
   appstoreCredentialsValid: boolean;
   /**
-   * Indicates if the itunesSession is actually *needed* to complete any
-   * downloads that are pending.
+   * Indicates the number of downloads waiting to be processed and completed,
+   * or the number of downloads waiting for valid credentials to be completed if applicable.
    */
   pendingDownloads: number;
   /**
@@ -61,11 +61,6 @@ export type AppStoreConnectValidationData = {
    * fetched. This will be null if no builds can be found.
    */
   latestBuildVersion: string | null;
-  /**
-   * Whether the UI should show an alert indicating we need the user to refresh
-   * their iTunes session.
-   */
-  promptItunesSession: boolean;
   lastCheckedBuilds: string | null;
   updateAlertMessage?: string;
 };
@@ -79,14 +74,7 @@ type CustomRepoAppStoreConnect = {
   appconnectPrivateKey: string;
   bundleId: string;
   id: string;
-  itunesCreated: string;
-  itunesPassword: string;
-  itunesPersonId: string;
-  itunesSession: string;
-  itunesUser: string;
   name: string;
-  orgPublicId: number;
-  orgName: string;
   details?: AppStoreConnectValidationData;
 };
 

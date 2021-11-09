@@ -1,6 +1,5 @@
 from sentry.models import NotificationSetting
 from sentry.notifications.helpers import (
-    _get_setting_mapping_from_mapping,
     collect_groups_by_project,
     get_scope_type,
     get_settings_by_provider,
@@ -41,51 +40,6 @@ class NotificationHelpersTest(TestCase):
             NotificationSettingOptionValues.ALWAYS,
             user=self.user,
         )
-
-    def test_get_setting_mapping_from_mapping_issue_alerts(self):
-        notification_settings = {
-            self.user: {
-                NotificationScopeType.USER: {
-                    ExternalProviders.EMAIL: NotificationSettingOptionValues.ALWAYS
-                }
-            }
-        }
-        mapping = _get_setting_mapping_from_mapping(
-            notification_settings,
-            self.user,
-            NotificationSettingTypes.ISSUE_ALERTS,
-        )
-        assert mapping == {ExternalProviders.EMAIL: NotificationSettingOptionValues.ALWAYS}
-
-    def test_get_setting_mapping_from_mapping_deploy(self):
-        notification_settings = {
-            self.user: {
-                NotificationScopeType.USER: {
-                    ExternalProviders.EMAIL: NotificationSettingOptionValues.COMMITTED_ONLY
-                }
-            }
-        }
-        mapping = _get_setting_mapping_from_mapping(
-            notification_settings,
-            self.user,
-            NotificationSettingTypes.DEPLOY,
-        )
-        assert mapping == {ExternalProviders.EMAIL: NotificationSettingOptionValues.COMMITTED_ONLY}
-
-    def test_get_setting_mapping_from_mapping_workflow(self):
-        notification_settings = {
-            self.user: {
-                NotificationScopeType.USER: {
-                    ExternalProviders.EMAIL: NotificationSettingOptionValues.SUBSCRIBE_ONLY
-                }
-            }
-        }
-        mapping = _get_setting_mapping_from_mapping(
-            notification_settings,
-            self.user,
-            NotificationSettingTypes.WORKFLOW,
-        )
-        assert mapping == {ExternalProviders.EMAIL: NotificationSettingOptionValues.SUBSCRIBE_ONLY}
 
     def test_get_deploy_values_by_provider_empty_settings(self):
         values_by_provider = get_values_by_provider_by_type(

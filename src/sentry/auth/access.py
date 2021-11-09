@@ -274,13 +274,17 @@ class NoAccess(BaseAccess):
 
 
 def from_request(request, organization=None, scopes=None):
+    is_superuser = is_active_superuser(request)
+
     if not organization:
-        return from_user(request.user, organization=organization, scopes=scopes)
+        return from_user(
+            request.user, organization=organization, scopes=scopes, is_superuser=is_superuser
+        )
 
     if getattr(request.user, "is_sentry_app", False):
         return _from_sentry_app(request.user, organization=organization)
 
-    if is_active_superuser(request):
+    if is_superuser:
         role = None
         # we special case superuser so that if they're a member of the org
         # they must still follow SSO checks, but they gain global access
@@ -343,25 +347,29 @@ def _from_sentry_app(user, organization=None):
     )
 
 
-def from_user(user, organization=None, scopes=None):
+def from_user(user, organization=None, scopes=None, is_superuser=False):
     if not user or user.is_anonymous or not user.is_active:
         return DEFAULT
 
     if not organization:
-        return OrganizationlessAccess(permissions=UserPermission.for_user(user.id))
+        return OrganizationlessAccess(
+            permissions=UserPermission.for_user(user.id) if is_superuser else ()
+        )
 
     try:
         om = get_cached_organization_member(user.id, organization.id)
     except OrganizationMember.DoesNotExist:
-        return OrganizationlessAccess(permissions=UserPermission.for_user(user.id))
+        return OrganizationlessAccess(
+            permissions=UserPermission.for_user(user.id) if is_superuser else ()
+        )
 
     # ensure cached relation
     om.organization = organization
 
-    return from_member(om, scopes=scopes)
+    return from_member(om, scopes=scopes, is_superuser=is_superuser)
 
 
-def from_member(member, scopes=None):
+def from_member(member, scopes=None, is_superuser=False):
     # TODO(dcramer): we want to optimize this access pattern as its several
     # network hops and needed in a lot of places
     requires_sso, sso_is_valid = _sso_params(member)
@@ -389,7 +397,7 @@ def from_member(member, scopes=None):
         projects=project_list,
         has_global_access=bool(member.organization.flags.allow_joinleave)
         or roles.get(member.role).is_global,
-        permissions=UserPermission.for_user(member.user_id),
+        permissions=UserPermission.for_user(member.user_id) if is_superuser else (),
         role=member.role,
     )
 

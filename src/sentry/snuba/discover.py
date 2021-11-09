@@ -12,7 +12,7 @@ from sentry import options
 from sentry.discover.arithmetic import categorize_columns, resolve_equation_list
 from sentry.models import Group
 from sentry.models.transaction_threshold import ProjectTransactionThreshold
-from sentry.search.events.builder import QueryBuilder, TimeseriesQueryBuilder
+from sentry.search.events.builder import QueryBuilder, TimeseriesQueryBuilder, TopEventsQueryBuilder
 from sentry.search.events.constants import CONFIGURABLE_AGGREGATES, DEFAULT_PROJECT_THRESHOLD
 from sentry.search.events.fields import (
     FIELD_ALIASES,
@@ -23,6 +23,7 @@ from sentry.search.events.fields import (
     resolve_field_list,
 )
 from sentry.search.events.filter import get_filter
+from sentry.search.events.types import ParamsType
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 from sentry.utils.compat import filter
 from sentry.utils.dates import to_timestamp
@@ -73,6 +74,7 @@ FacetResult = namedtuple("FacetResult", ["key", "value", "count"])
 resolve_discover_column = resolve_column(Dataset.Discover)
 
 OTHER_KEY = "Other"
+TOP_KEYS_DEFAULT_LIMIT = 10
 
 
 def is_real_column(col):
@@ -496,6 +498,8 @@ def timeseries_query(
     comparison_delta: A timedelta used to convert this into a comparison query. We make a second
     query time-shifted back by comparison_delta, and compare the results to get the % change for each
     time bucket. Requires that we only pass
+    use_snql (bool) Whether to directly build the query in snql, instead of using the older
+                    json construction
     """
     sentry_sdk.set_tag("discover.use_snql", use_snql)
     if use_snql:
@@ -666,6 +670,7 @@ def top_events_timeseries(
     allow_empty=True,
     zerofill_results=True,
     include_other=False,
+    use_snql=False,
 ):
     """
     High-level API for doing arbitrary user timeseries queries for a limited number of top events
@@ -688,6 +693,8 @@ def top_events_timeseries(
     top_events (dict|None) A dictionary with a 'data' key containing a list of dictionaries that
                     represent the top events matching the query. Useful when you have found
                     the top events earlier and want to save a query.
+    use_snql (bool) Whether to directly build the query in snql, instead of using the older
+                    json construction
     """
     if top_events is None:
         with sentry_sdk.start_span(op="discover.discover", description="top_events.fetch_events"):
@@ -701,7 +708,106 @@ def top_events_timeseries(
                 referrer=referrer,
                 auto_aggregations=True,
                 use_aggregate_conditions=True,
+                use_snql=use_snql,
             )
+
+    if use_snql:
+        # temporarily add snql to referrer
+        referrer = f"{referrer}.wip-snql"
+        top_events_builder = TopEventsQueryBuilder(
+            Dataset.Discover,
+            params,
+            rollup,
+            top_events["data"],
+            other=False,
+            query=user_query,
+            selected_columns=selected_columns,
+            timeseries_columns=timeseries_columns,
+            equations=equations,
+        )
+        if len(top_events["data"]) == limit and include_other:
+            other_events_builder = TopEventsQueryBuilder(
+                Dataset.Discover,
+                params,
+                rollup,
+                top_events["data"],
+                other=True,
+                query=user_query,
+                selected_columns=selected_columns,
+                timeseries_columns=timeseries_columns,
+                equations=equations,
+            )
+            result, other_result = bulk_snql_query(
+                [top_events_builder.get_snql_query(), other_events_builder.get_snql_query()],
+                referrer=referrer,
+            )
+        else:
+            result = raw_snql_query(top_events_builder.get_snql_query(), referrer=referrer)
+            other_result = {"data": []}
+        if (
+            not allow_empty
+            and not len(result.get("data", []))
+            and not len(other_result.get("data", []))
+        ):
+            return SnubaTSResult(
+                {
+                    "data": zerofill([], params["start"], params["end"], rollup, "time")
+                    if zerofill_results
+                    else [],
+                },
+                params["start"],
+                params["end"],
+                rollup,
+            )
+        with sentry_sdk.start_span(
+            op="discover.discover", description="top_events.transform_results"
+        ) as span:
+            span.set_data("result_count", len(result.get("data", [])))
+            result = transform_results(result, top_events_builder.function_alias_map, {}, None)
+
+            issues = {}
+            if "issue" in selected_columns:
+                issues = Group.issues_mapping(
+                    {event["issue.id"] for event in top_events["data"]},
+                    params["project_id"],
+                    organization,
+                )
+            translated_groupby = top_events_builder.translated_groupby
+
+            results = (
+                {OTHER_KEY: {"order": limit, "data": other_result["data"]}}
+                if len(other_result.get("data", []))
+                else {}
+            )
+            # Using the top events add the order to the results
+            for index, item in enumerate(top_events["data"]):
+                result_key = create_result_key(item, translated_groupby, issues)
+                results[result_key] = {"order": index, "data": []}
+            for row in result["data"]:
+                result_key = create_result_key(row, translated_groupby, issues)
+                if result_key in results:
+                    results[result_key]["data"].append(row)
+                else:
+                    logger.warning(
+                        "discover.top-events.timeseries.key-mismatch",
+                        extra={"result_key": result_key, "top_event_keys": list(results.keys())},
+                    )
+            for key, item in results.items():
+                results[key] = SnubaTSResult(
+                    {
+                        "data": zerofill(
+                            item["data"], params["start"], params["end"], rollup, "time"
+                        )
+                        if zerofill_results
+                        else item["data"],
+                        "order": item["order"],
+                    },
+                    params["start"],
+                    params["end"],
+                    rollup,
+                )
+
+        return results
 
     with sentry_sdk.start_span(
         op="discover.discover", description="top_events.filter_transform"
@@ -915,7 +1021,13 @@ def get_id(result):
         return result[1]
 
 
-def get_facets(query, params, limit=10, referrer=None):
+def get_facets(
+    query: str,
+    params: ParamsType,
+    referrer: str,
+    limit: Optional[int] = TOP_KEYS_DEFAULT_LIMIT,
+    use_snql: Optional[bool] = False,
+):
     """
     High-level API for getting 'facet map' results.
 
@@ -925,11 +1037,136 @@ def get_facets(query, params, limit=10, referrer=None):
 
     query (str) Filter query string to create conditions from.
     params (Dict[str, str]) Filtering parameters with start, end, project_id, environment
+    referrer (str) A referrer string to help locate the origin of this query.
     limit (int) The number of records to fetch.
-    referrer (str|None) A referrer string to help locate the origin of this query.
 
     Returns Sequence[FacetResult]
     """
+    sentry_sdk.set_tag("discover.use_snql", use_snql)
+    if use_snql:
+        # temporarily add snql to referrer
+        referrer = f"{referrer}.wip-snql"
+        sample = len(params["project_id"]) > 2
+
+        with sentry_sdk.start_span(op="discover.discover", description="facets.frequent_tags"):
+            key_name_builder = QueryBuilder(
+                Dataset.Discover,
+                params,
+                query=query,
+                selected_columns=["tags_key", "count()"],
+                orderby=["-count()", "tags_key"],
+                limit=limit,
+                turbo=sample,
+            )
+            key_names = raw_snql_query(key_name_builder.get_snql_query(), referrer=referrer)
+            # Sampling keys for multi-project results as we don't need accuracy
+            # with that much data.
+            top_tags = [r["tags_key"] for r in key_names["data"]]
+            if not top_tags:
+                return []
+
+        # TODO: Make the sampling rate scale based on the result size and scaling factor in
+        # sentry.options. To test the lowest acceptable sampling rate, we use 0.1 which
+        # is equivalent to turbo. We don't use turbo though as we need to re-scale data, and
+        # using turbo could cause results to be wrong if the value of turbo is changed in snuba.
+        sample_rate = 0.1 if (key_names["data"][0]["count"] > 10000) else None
+        # Rescale the results if we're sampling
+        multiplier = 1 / sample_rate if sample_rate is not None else 1
+
+        fetch_projects = False
+        if len(params.get("project_id", [])) > 1:
+            if len(top_tags) == limit:
+                top_tags.pop()
+            fetch_projects = True
+
+        results = []
+        if fetch_projects:
+            with sentry_sdk.start_span(op="discover.discover", description="facets.projects"):
+                project_value_builder = QueryBuilder(
+                    Dataset.Discover,
+                    params,
+                    query=query,
+                    selected_columns=["count()", "project_id"],
+                    orderby=["-count()"],
+                    # Ensures Snuba will not apply FINAL
+                    turbo=sample_rate is not None,
+                    sample_rate=sample_rate,
+                )
+                project_values = raw_snql_query(
+                    project_value_builder.get_snql_query(), referrer=referrer
+                )
+                results.extend(
+                    [
+                        FacetResult("project", r["project_id"], int(r["count"]) * multiplier)
+                        for r in project_values["data"]
+                    ]
+                )
+
+        # Get tag counts for our top tags. Fetching them individually
+        # allows snuba to leverage promoted tags better and enables us to get
+        # the value count we want.
+        individual_tags = []
+        aggregate_tags = []
+        for i, tag in enumerate(top_tags):
+            if tag == "environment":
+                # Add here tags that you want to be individual
+                individual_tags.append(tag)
+            elif i >= len(top_tags) - TOP_KEYS_DEFAULT_LIMIT:
+                aggregate_tags.append(tag)
+            else:
+                individual_tags.append(tag)
+
+        with sentry_sdk.start_span(
+            op="discover.discover", description="facets.individual_tags"
+        ) as span:
+            span.set_data("tag_count", len(individual_tags))
+            for tag_name in individual_tags:
+                tag = f"tags[{tag_name}]"
+                tag_value_builder = QueryBuilder(
+                    Dataset.Discover,
+                    params,
+                    query=query,
+                    selected_columns=["count()", tag],
+                    orderby=["-count()"],
+                    limit=TOP_VALUES_DEFAULT_LIMIT,
+                    # Ensures Snuba will not apply FINAL
+                    turbo=sample_rate is not None,
+                    sample_rate=sample_rate,
+                )
+                tag_values = raw_snql_query(tag_value_builder.get_snql_query(), referrer=referrer)
+                results.extend(
+                    [
+                        FacetResult(tag_name, r[tag], int(r["count"]) * multiplier)
+                        for r in tag_values["data"]
+                    ]
+                )
+
+        if aggregate_tags:
+            with sentry_sdk.start_span(op="discover.discover", description="facets.aggregate_tags"):
+                aggregate_value_builder = QueryBuilder(
+                    Dataset.Discover,
+                    params,
+                    query=(query if query is not None else "")
+                    + f" tags_key:[{','.join(aggregate_tags)}]",
+                    selected_columns=["count()", "tags_key", "tags_value"],
+                    orderby=["tags_key", "-count()"],
+                    limitby=("tags_key", TOP_VALUES_DEFAULT_LIMIT),
+                    # Ensures Snuba will not apply FINAL
+                    turbo=sample_rate is not None,
+                    sample_rate=sample_rate,
+                )
+                aggregate_values = raw_snql_query(
+                    aggregate_value_builder.get_snql_query(), referrer=referrer
+                )
+                results.extend(
+                    [
+                        FacetResult(r["tags_key"], r["tags_value"], int(r["count"]) * multiplier)
+                        for r in aggregate_values["data"]
+                    ]
+                )
+
+        return results
+
     with sentry_sdk.start_span(
         op="discover.discover", description="facets.filter_transform"
     ) as span:

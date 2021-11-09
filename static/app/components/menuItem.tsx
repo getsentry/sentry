@@ -65,6 +65,8 @@ type MenuItemProps = {
    */
   stopPropagation?: boolean;
 
+  'aria-label'?: string;
+
   className?: string;
 };
 

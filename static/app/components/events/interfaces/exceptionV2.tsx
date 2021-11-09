@@ -40,8 +40,24 @@ function Exception({
     return null;
   }
 
+  function getPlatform(): PlatformType {
+    const dataValue = data.values?.find(
+      value => !!value.stacktrace?.frames?.find(frame => !!frame.platform)
+    );
+
+    if (dataValue) {
+      const framePlatform = dataValue.stacktrace?.frames?.find(frame => !!frame.platform);
+
+      if (framePlatform?.platform) {
+        return framePlatform.platform;
+      }
+    }
+
+    return event.platform ?? 'other';
+  }
+
   const stackTraceNotFound = !(data.values ?? []).length;
-  const platform = (event.platform ?? 'other') as PlatformType;
+  const platform = getPlatform();
 
   return (
     <TraceEventDataSection
