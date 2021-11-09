@@ -127,9 +127,6 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
             f"{self.get_role_string(recipient_member)} | <{settings_url}|Notification Settings>"
         )
 
-    def get_callback_data(self) -> Mapping[str, Any] | None:
-        return None
-
     def record_notification_sent(self, recipient: Team | User, provider: ExternalProviders) -> None:
         # this event is meant to work for multiple providers but architecture
         # limitations mean we will fire individual for each provider

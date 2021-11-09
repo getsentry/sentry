@@ -98,6 +98,9 @@ class BaseNotification:
     def get_message_actions(self) -> Sequence[MessageAction]:
         return []
 
+    def get_callback_data(self) -> Mapping[str, Any] | None:
+        return None
+
 
 class ProjectNotification(BaseNotification, abc.ABC):
     def __init__(self, project: Project) -> None:
