@@ -1,4 +1,5 @@
 import {createContext, useEffect, useState} from 'react';
+import mapValues from 'lodash/mapValues';
 
 import {Organization, Project} from 'app/types';
 import {
@@ -74,12 +75,22 @@ const Provider = ({children, project, organization}: ProviderProps) => {
     }
 
     try {
-      const response: Record<string, AppStoreConnectStatusData> =
-        await api.requestPromise(
-          `/projects/${orgSlug}/${projectDetails.slug}/appstoreconnect/status`
-        );
+      const response: Record<
+        string,
+        Omit<AppStoreConnectStatusData, 'id'>
+      > = await api.requestPromise(
+        `/projects/${orgSlug}/${projectDetails.slug}/appstoreconnect/status`
+      );
 
-      setAppStoreConnectStatusData(response);
+      const fullStatuses: Record<string, AppStoreConnectStatusData> = mapValues(
+        response,
+        (partialStatus, id) => ({
+          ...partialStatus,
+          id,
+        })
+      );
+
+      setAppStoreConnectStatusData(fullStatuses);
     } catch {
       // do nothing
     }
