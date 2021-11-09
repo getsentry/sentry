@@ -47,9 +47,10 @@ export function getTabs(organization: Organization) {
         analyticsName: 'needs_review',
         count: true,
         enabled: true,
-        tooltipTitle: t(`Unresolved issues that are new or have reopened. Review, ignore,
-        or resolve an issue to move it out of this list. After 7 days these
-        issues are automatically marked as reviewed.`),
+        tooltipTitle:
+          t(`Issues are marked for review when they are created, unresolved, or unignored.
+          Mark an issue reviewed to move it out of this list.
+          Issues are automatically marked reviewed in 7 days.`),
       },
     ],
     [

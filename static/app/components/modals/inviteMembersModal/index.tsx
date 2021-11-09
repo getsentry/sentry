@@ -12,11 +12,10 @@ import {MEMBER_ROLES} from 'app/constants';
 import {IconAdd, IconCheckmark, IconWarning} from 'app/icons';
 import {t, tct, tn} from 'app/locale';
 import space from 'app/styles/space';
-import {Organization, Team} from 'app/types';
+import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {uniqueId} from 'app/utils/guid';
 import withLatestContext from 'app/utils/withLatestContext';
-import withTeams from 'app/utils/withTeams';
 
 import InviteRowControl from './inviteRowControl';
 import {InviteRow, InviteStatus, NormalizedInvite} from './types';
@@ -24,7 +23,6 @@ import {InviteRow, InviteStatus, NormalizedInvite} from './types';
 type Props = AsyncComponent['props'] &
   ModalRenderProps & {
     organization: Organization;
-    teams: Team[];
     source?: string;
     initialData?: Partial<InviteRow>[];
   };
@@ -270,26 +268,25 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
               : tct('Sent [invites]', tctComponents)}
           </StatusMessage>
         );
-      } else {
-        const inviteRequests = (
-          <strong>{tn('%s invite request', '%s invite requests', sentCount)}</strong>
-        );
-        const tctComponents = {
-          inviteRequests,
-          failed: errorCount,
-        };
-        return (
-          <StatusMessage status="success">
-            <IconCheckmark size="sm" />
-            {errorCount > 0
-              ? tct(
-                  '[inviteRequests] pending approval, [failed] failed to send.',
-                  tctComponents
-                )
-              : tct('[inviteRequests] pending approval', tctComponents)}
-          </StatusMessage>
-        );
       }
+      const inviteRequests = (
+        <strong>{tn('%s invite request', '%s invite requests', sentCount)}</strong>
+      );
+      const tctComponents = {
+        inviteRequests,
+        failed: errorCount,
+      };
+      return (
+        <StatusMessage status="success">
+          <IconCheckmark size="sm" />
+          {errorCount > 0
+            ? tct(
+                '[inviteRequests] pending approval, [failed] failed to send.',
+                tctComponents
+              )
+            : tct('[inviteRequests] pending approval', tctComponents)}
+        </StatusMessage>
+      );
     }
 
     if (this.hasDuplicateEmails) {
@@ -327,7 +324,7 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
   }
 
   render() {
-    const {Footer, closeModal, organization, teams: allTeams} = this.props;
+    const {Footer, closeModal, organization} = this.props;
     const {pendingInvites, sendingInvites, complete, inviteStatus, member} = this.state;
 
     const disableInputs = sendingInvites || complete;
@@ -375,7 +372,6 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
             teams={[...teams]}
             roleOptions={member ? member.roles : MEMBER_ROLES}
             roleDisabledUnallowed={this.willInvite}
-            teamOptions={allTeams}
             inviteStatus={inviteStatus}
             onRemove={() => this.removeInviteRow(i)}
             onChangeEmails={opts => this.setEmails(opts?.map(v => v.value) ?? [], i)}
@@ -524,4 +520,4 @@ export const modalCss = css`
   margin: 50px auto;
 `;
 
-export default withLatestContext(withTeams(InviteMembersModal));
+export default withLatestContext(InviteMembersModal);

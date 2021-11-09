@@ -27,12 +27,6 @@ const colors = {
   blue200: '#6e9ef7',
   blue300: '#3D74DB',
 
-  orange100: '#FFF1ED',
-  orange200: '#F9C7B9',
-  orange300: '#F69C7D',
-  orange400: '#FF7738',
-  orange500: '#BA4A23',
-
   red100: '#FCC6C8',
   red200: '#FD918F',
   red300: '#F55459',
@@ -191,6 +185,11 @@ const lightAliases = {
   chartLabel: colors.gray200,
 
   /**
+   * Color for the 'others' series in topEvent charts
+   */
+  chartOther: colors.gray200,
+
+  /**
    * Default Progressbar color
    */
   progressBar: colors.purple300,
@@ -255,6 +254,11 @@ const lightAliases = {
    * Count on button
    */
   buttonCount: colors.gray400,
+
+  /**
+   * Background of alert banners at the top
+   */
+  bannerBackground: colors.black,
 };
 
 const dataCategory = {
@@ -306,7 +310,7 @@ const generateBadgeTheme = (alias: Aliases) => ({
   },
   alpha: {
     background: `linear-gradient(90deg, ${colors.pink300}, ${colors.yellow300})`,
-    indicatorColor: colors.orange400,
+    indicatorColor: colors.pink300,
     color: alias.badgeText,
   },
   beta: {
@@ -337,8 +341,8 @@ const tag = {
     iconColor: colors.purple300,
   },
   promotion: {
-    background: colors.orange100,
-    iconColor: colors.orange400,
+    background: colors.pink100,
+    iconColor: colors.pink300,
   },
   highlight: {
     background: colors.purple100,
@@ -374,7 +378,10 @@ const level = {
   sample: colors.purple300,
   info: colors.blue300,
   warning: colors.yellow300,
-  error: colors.orange400,
+  // Hardcoded legacy color (orange400). We no longer use orange anywhere
+  // else in the app (except for the chart palette). This needs to be harcoded
+  // here because existing users may still associate orange with the "error" level.
+  error: '#FF7738',
   fatal: colors.red300,
   default: colors.gray300,
 };
@@ -476,12 +483,6 @@ const commonTheme = {
     // does not need to battle others for z-index priority
     initial: 1,
 
-    breadcrumbs: {
-      header: 2,
-      gridCellError: 1,
-      iconWrapper: 1,
-    },
-
     truncationFullValue: 10,
 
     traceView: {
@@ -524,6 +525,12 @@ const commonTheme = {
     // tooltips and hovercards can be inside modals sometimes.
     hovercard: 10002,
     tooltip: 10003,
+
+    // On mobile views org stats dropdowns overlap
+    orgStats: {
+      dataCategory: 2,
+      timeRange: 1,
+    },
 
     // On mobile views issue list dropdowns overlap
     issuesList: {
@@ -579,7 +586,7 @@ const commonTheme = {
 
   text: {
     family: '"Rubik", "Avenir Next", sans-serif',
-    familyMono: '"IBM Plex", Monaco, Consolas, "Courier New", monospace',
+    familyMono: '"Roboto Mono", Monaco, Consolas, "Courier New", monospace',
     lineHeightHeading: '1.15',
     lineHeightBody: '1.4',
   },
@@ -653,6 +660,7 @@ const darkAliases = {
   rowBackground: colors.gray500,
   chartLineColor: colors.gray500,
   chartLabel: colors.gray400,
+  chartOther: colors.gray300,
   progressBar: colors.purple200,
   progressBackground: colors.gray400,
   badgeBackground: colors.gray400,
@@ -677,6 +685,7 @@ const darkAliases = {
 
   buttonCountActive: colors.gray100,
   buttonCount: colors.gray400,
+  bannerBackground: colors.purple100,
 };
 
 export const lightTheme = {
@@ -709,6 +718,7 @@ type MyTheme = Theme;
  * Configure Emotion to use our theme
  */
 declare module '@emotion/react' {
+  // eslint-disable-next-line @typescript-eslint/no-shadow
   export interface Theme extends MyTheme {}
 }
 

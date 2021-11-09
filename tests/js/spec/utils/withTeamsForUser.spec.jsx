@@ -8,7 +8,6 @@ describe('withUserTeams HoC', function () {
   const api = new MockApiClient();
   const organization = TestStubs.Organization();
   delete organization.projects;
-  delete organization.teams;
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();

@@ -2,11 +2,13 @@ import hmac
 import itertools
 import uuid
 from hashlib import sha256
+from typing import TYPE_CHECKING
 
 from django.db import models
 from django.db.models import QuerySet
 from django.template.defaultfilters import slugify
 from django.utils import timezone
+from rest_framework.request import Request
 
 from sentry.constants import (
     SENTRY_APP_SLUG_MAX_LENGTH,
@@ -24,6 +26,9 @@ from sentry.db.models import (
 from sentry.models.apiscopes import HasApiScopes
 from sentry.models.sentryappinstallation import SentryAppInstallation
 from sentry.utils import metrics
+
+if TYPE_CHECKING:
+    from sentry.models import Project, User
 
 # When a developer selects to receive "<Resource> Webhooks" it really means
 # listening to a list of specific events. This is a mapping of what those
@@ -87,6 +92,27 @@ class SentryAppManager(ParanoidManager):
             installations__date_deleted=None,
         ).distinct()
 
+    def visible_for_user(self, request: Request) -> QuerySet:
+        from sentry.auth.superuser import is_active_superuser
+
+        if is_active_superuser(request):
+            return self.all()
+
+        return self.filter(status=SentryAppStatus.PUBLISHED)
+
+    def check_project_permission_for_sentry_app_user(
+        self, user: "User", project: "Project"
+    ) -> bool:
+        """
+        This method checks if a user from a Sentry app has permission to a
+        specific project. For now, only checks if app is installed on the
+        organization of the project.
+        """
+        assert user.is_sentry_app
+        # if the user exists, so should the sentry_app
+        sentry_app = self.get(proxy_user=user)
+        return sentry_app.is_installed_on(project.organization)
+
 
 class SentryApp(ParanoidModel, HasApiScopes):
     __include_in_export__ = True
@@ -143,24 +169,6 @@ class SentryApp(ParanoidModel, HasApiScopes):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_sentryapp"
-
-    @classmethod
-    def visible_for_user(cls, request):
-        from sentry.auth.superuser import is_active_superuser
-
-        if is_active_superuser(request):
-            return cls.objects.all()
-
-        return cls.objects.filter(status=SentryAppStatus.PUBLISHED)
-
-    # this method checks if a user from a sentry app has permission to a specific project
-    # for now, only checks if app is installed on the org of the project
-    @classmethod
-    def check_project_permission_for_sentry_app_user(cls, user, project):
-        assert user.is_sentry_app
-        # if the user exists, so should the sentry_app
-        sentry_app = cls.objects.get(proxy_user=user)
-        return sentry_app.is_installed_on(project.organization)
 
     @property
     def is_published(self):

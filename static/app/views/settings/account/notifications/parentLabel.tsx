@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 
 import Avatar from 'app/components/avatar';
@@ -11,23 +10,17 @@ type Props = {
   parent: OrganizationSummary | Project;
 };
 
-/** TODO(mgaeta): Infer parentKey from parent. */
-class ParentLabel extends React.Component<Props> {
-  render = () => {
-    const {notificationType, parent} = this.props;
-
-    return (
-      <FieldLabel>
-        <Avatar
-          {...{
-            [getParentKey(notificationType)]: parent,
-          }}
-        />
-        <span>{parent.slug}</span>
-      </FieldLabel>
-    );
-  };
-}
+// TODO(mgaeta): Infer parentKey from parent.
+const ParentLabel = ({notificationType, parent}: Props) => (
+  <FieldLabel>
+    <Avatar
+      {...{
+        [getParentKey(notificationType)]: parent,
+      }}
+    />
+    <span>{parent.slug}</span>
+  </FieldLabel>
+);
 
 const FieldLabel = styled('div')`
   display: flex;

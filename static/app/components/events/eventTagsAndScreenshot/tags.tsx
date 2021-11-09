@@ -16,24 +16,17 @@ type Props = {
   organization: Organization;
   projectSlug: Project['slug'];
   location: Location;
-  hasQueryFeature: boolean;
   hasContext: boolean;
 };
 
-function Tags({
-  event,
-  organization,
-  projectSlug,
-  location,
-  hasContext,
-  hasQueryFeature,
-}: Props) {
+function Tags({event, organization, projectSlug, location, hasContext}: Props) {
   return (
     <StyledDataSection
       title={t('Tags')}
       description={t(
         'Tags help you quickly both access related events and view the tag distribution for a set of events'
       )}
+      data-test-id="event-tags"
     >
       {hasContext && <TagsHighlight event={event} />}
       <EventTags
@@ -41,7 +34,6 @@ function Tags({
         organization={organization}
         projectId={projectSlug}
         location={location}
-        hasQueryFeature={hasQueryFeature}
       />
     </StyledDataSection>
   );
@@ -50,6 +42,7 @@ function Tags({
 export default Tags;
 
 const StyledDataSection = styled(DataSection)`
+  overflow: hidden;
   ${SectionContents} {
     overflow: hidden;
   }

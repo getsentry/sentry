@@ -3,6 +3,7 @@ import {action} from '@storybook/addon-actions';
 import {Panel} from 'app/components/panels';
 import Switch from 'app/components/switchButton';
 import NewBooleanField from 'app/views/settings/components/forms/booleanField';
+import CheckboxField from 'app/views/settings/components/forms/checkboxField';
 import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
 import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
 import DatePickerField from 'app/views/settings/components/forms/datePickerField';
@@ -152,6 +153,22 @@ export const __BooleanField = () => (
 );
 
 __BooleanField.storyName = 'Boolean';
+
+export const _CheckboxField = () => (
+  <Form>
+    <CheckboxField key="agree" name="agree" id="agree" label="Do you agree?" />
+    <CheckboxField
+      key="compelled"
+      name="compelled"
+      id="compelled"
+      label="You are compelled to agree"
+      help="More content to help you decide."
+      required
+    />
+  </Form>
+);
+
+_CheckboxField.storyName = 'Checkbox';
 
 export const _DatePickerField = () => (
   <Form>

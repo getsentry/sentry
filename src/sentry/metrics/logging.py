@@ -13,3 +13,6 @@ class LoggingBackend(MetricsBackend):
         logger.debug(
             "%r: %g ms", key, value * 1000, extra={"instance": instance, "tags": tags or {}}
         )
+
+    def gauge(self, key, value, instance=None, tags=None, sample_rate=1):
+        logger.debug("%r: %+g", key, value, extra={"instance": instance, "tags": tags or {}})

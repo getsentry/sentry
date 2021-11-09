@@ -1,7 +1,8 @@
+from unittest import mock
+
 import pytest
 
 from sentry.utils import metrics
-from sentry.utils.compat import mock
 
 
 def test_timer_success():
@@ -37,7 +38,7 @@ def test_wraps():
         return a
 
     with mock.patch("sentry.utils.metrics.timing") as timing:
-        thing(10) == 10
+        assert thing(10) == 10
 
         assert timing.call_count == 1
         args, kwargs = timing.call_args

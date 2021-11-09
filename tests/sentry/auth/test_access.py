@@ -1,9 +1,10 @@
+from unittest.mock import Mock
+
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.auth import access
-from sentry.models import AuthIdentity, AuthProvider, ObjectStatus, Organization
+from sentry.models import AuthIdentity, AuthProvider, ObjectStatus, Organization, UserPermission
 from sentry.testutils import TestCase
-from sentry.utils.compat.mock import Mock
 
 
 class FromUserTest(TestCase):
@@ -26,6 +27,7 @@ class FromUserTest(TestCase):
             assert not result.has_projects_access([project])
             assert not result.has_project_scope(project, "project:read")
             assert not result.has_project_membership(project)
+            assert not result.permissions
 
     def test_no_deleted_projects(self):
         user = self.create_user()
@@ -222,6 +224,30 @@ class FromUserTest(TestCase):
         for result in results:
             assert result is access.DEFAULT
 
+    def test_superuser_permissions(self):
+        user = self.create_user(is_superuser=True)
+        UserPermission.objects.create(user=user, permission="test.permission")
+
+        result = access.from_user(user)
+        assert not result.has_permission("test.permission")
+
+        result = access.from_user(user, is_superuser=True)
+        assert result.has_permission("test.permission")
+
+
+class FromRequestTest(TestCase):
+    def test_superuser(self):
+        user = self.create_user(is_superuser=True)
+        UserPermission.objects.create(user=user, permission="test.permission")
+
+        request = self.make_request(user=user, is_superuser=False)
+        result = access.from_request(request)
+        assert not result.has_permission("test.permission")
+
+        request = self.make_request(user=user, is_superuser=True)
+        result = access.from_request(request)
+        assert result.has_permission("test.permission")
+
 
 class FromSentryAppTest(TestCase):
     def setUp(self):
@@ -266,6 +292,7 @@ class FromSentryAppTest(TestCase):
         assert result.teams == [self.team]
         assert result.has_project_access(self.project)
         assert not result.has_project_access(self.out_of_scope_project)
+        assert not result.permissions
 
     def test_no_access_due_to_no_installation_unowned(self):
         request = self.make_request(user=self.proxy_user)
@@ -319,3 +346,4 @@ class DefaultAccessTest(TestCase):
         assert not result.has_projects_access([Mock()])
         assert not result.has_project_scope(Mock(), "project:read")
         assert not result.has_project_membership(Mock())
+        assert not result.permissions

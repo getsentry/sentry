@@ -17,7 +17,7 @@ def gen_aws_client(account_number, region, aws_external_id, service_name="lambda
     Returns an aws_lambda_client
     """
 
-    role_arn = "arn:aws:iam::%s:role/SentryRole" % (account_number)
+    role_arn = f"arn:aws:iam::{account_number}:role/SentryRole"
 
     aws_access_key_id = options.get("aws-lambda.access-key-id")
     aws_secret_access_key = options.get("aws-lambda.secret-access-key")
@@ -51,6 +51,7 @@ def gen_aws_client(account_number, region, aws_external_id, service_name="lambda
                         "Effect": "Allow",
                         "Action": [
                             "lambda:ListFunctions",
+                            "lambda:ListLayerVersions",
                             "lambda:GetLayerVersion",
                             "organizations:DescribeAccount",
                         ],

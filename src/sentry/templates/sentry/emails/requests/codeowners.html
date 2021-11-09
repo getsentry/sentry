@@ -1,0 +1,32 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load i18n %}
+
+
+{% block main %}
+
+<h2>{% trans "Request to Set Up Code Owners" %}</h2>
+
+<p>
+  {% blocktrans %}Hey {{ recipient_name }},{% endblocktrans %}
+</p>
+<p>
+  {% blocktrans %}
+  Heads up, <strong>{{ requester_name }}</strong> requested to set up <a href="https://docs.sentry.io/product/issues/issue-owners/#code-owners">Code Owners</a> for the <strong>{{ project_name }}</strong> project in <strong>{{ organization_name }}</strong>. They <i>did</i> ask nicely, if that helps.
+  {% endblocktrans %}
+</p>
+
+<p>
+  <a href="{{ codeowners_url }}" class="btn">{% trans "Set Up Code Owners Now" %}</a>
+</p>
+
+<p>
+  {% trans "To Better Software," %}
+  <br>
+  {% trans "The Sentry Team" %}
+</p>
+
+<p class="via">
+  {% trans "You are receiving this email because you're listed as an organization Admin, Manager or Owner." %}
+</p>
+{% endblock %}

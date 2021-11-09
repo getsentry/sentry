@@ -1,4 +1,5 @@
 from django import forms
+from django.http.response import Http404
 from django.urls import reverse
 from rest_framework import serializers
 from rest_framework.response import Response
@@ -39,6 +40,8 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
             context["config_error"] = str(e)
             context["auth_url"] = reverse("socialauth_associate", args=[plugin.slug])
 
+        if context["isDeprecated"] and context["isHidden"]:
+            raise Http404
         return Response(context)
 
     def post(self, request, project, plugin_id):

@@ -12,23 +12,13 @@ type Props = {
   className?: string;
 };
 
-class SelectorItem extends React.PureComponent<Props> {
-  handleClick = (e: React.MouseEvent) => {
-    const {onClick, value} = this.props;
-    onClick(value, e);
-  };
+const BaseSelectorItem = ({onClick, value, className, label}: Props) => (
+  <div className={className} onClick={e => onClick(value, e)}>
+    <Label>{label}</Label>
+  </div>
+);
 
-  render() {
-    const {className, label} = this.props;
-    return (
-      <div className={className} onClick={this.handleClick}>
-        <Label>{label}</Label>
-      </div>
-    );
-  }
-}
-
-const StyledSelectorItem = styled(SelectorItem)`
+const SelectorItem = styled(BaseSelectorItem)`
   display: flex;
   cursor: pointer;
   white-space: nowrap;
@@ -51,4 +41,4 @@ const Label = styled('span')`
   margin-right: ${space(1)};
 `;
 
-export default StyledSelectorItem;
+export default SelectorItem;

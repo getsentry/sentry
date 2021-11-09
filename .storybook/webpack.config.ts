@@ -93,6 +93,7 @@ const configBuilder = ({config}: Opts = {config: emptyConfig}) => {
         ...config.resolve?.alias,
         ...appConfig.resolve?.alias,
         app: staticPath,
+        'docs-ui': path.resolve(__dirname, '../docs-ui'),
       },
       fallback: {
         ...appConfig.resolve?.fallback,

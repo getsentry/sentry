@@ -46,7 +46,7 @@ const nodeColors = (theme: Theme) => ({
   },
 });
 
-export const EventNode = styled(Tag)`
+export const EventNode = styled(Tag)<{shouldOffset?: boolean}>`
   span {
     display: flex;
     color: ${p => nodeColors(p.theme)[p.type || 'white'].color};
@@ -55,6 +55,12 @@ export const EventNode = styled(Tag)`
     background-color: ${p => nodeColors(p.theme)[p.type || 'white'].background};
     border: 1px solid ${p => nodeColors(p.theme)[p.type || 'white'].border};
   }
+
+  /*
+   * When the EventNode is contains an icon, we need to offset the
+   * component a little for all the EventNodes to be aligned.
+   */
+  ${p => p.shouldOffset && `margin-top: ${space(0.5)}`}
 `;
 
 export const TraceConnector = styled('div')`
@@ -130,7 +136,7 @@ export const DropdownItemSubContainer = styled('div')`
   }
 `;
 
-export const StyledTruncate = styled(Truncate)`
+export const QuickTraceValue = styled(Truncate)`
   padding-left: ${space(1)};
   white-space: nowrap;
 `;

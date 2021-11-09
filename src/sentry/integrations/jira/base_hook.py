@@ -13,5 +13,5 @@ class JiraBaseHook(View):
             options.get("system.url-prefix"),
         ]
         sources_string = " ".join(s for s in sources if s)  # Filter out None
-        response["Content-Security-Policy"] = "frame-ancestors 'self' %s" % sources_string
+        response["Content-Security-Policy"] = f"frame-ancestors 'self' {sources_string}"
         return response

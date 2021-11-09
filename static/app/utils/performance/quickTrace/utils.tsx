@@ -1,7 +1,6 @@
 import omit from 'lodash/omit';
 import moment from 'moment-timezone';
 
-import {Client} from 'app/api';
 import {getTraceDateTimeRange} from 'app/components/events/interfaces/spans/utils';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {OrganizationSummary} from 'app/types';
@@ -31,11 +30,10 @@ export function isCurrentEvent(
 ): boolean {
   if (isTransaction(currentEvent)) {
     return event.event_id === currentEvent.id;
-  } else {
-    return (
-      event.errors !== undefined && event.errors.some(e => e.event_id === currentEvent.id)
-    );
   }
+  return (
+    event.errors !== undefined && event.errors.some(e => e.event_id === currentEvent.id)
+  );
 }
 
 type PathNode = {
@@ -229,10 +227,6 @@ export function parseQuickTrace(
 
 function sortTraceLite(trace: TraceLite): TraceLite {
   return trace.sort((a, b) => b['transaction.duration'] - a['transaction.duration']);
-}
-
-export function beforeFetch(api: Client) {
-  api.clear();
 }
 
 export function getTraceRequestPayload({eventView, location}: DiscoverQueryProps) {

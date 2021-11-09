@@ -1,4 +1,5 @@
 from copy import deepcopy
+from unittest import mock
 from urllib.parse import urlencode
 
 import responses
@@ -6,7 +7,6 @@ import responses
 from sentry.models import Identity, IdentityProvider, Integration
 from sentry.testutils import APITestCase
 from sentry.utils import jwt
-from sentry.utils.compat import mock
 
 from .test_helpers import (
     DECODED_TOKEN,
@@ -51,7 +51,7 @@ class MsTeamsWebhookTest(APITestCase):
             path=webhook_url,
             data=GENERIC_EVENT,
             format="json",
-            HTTP_AUTHORIZATION="Bearer %s" % TOKEN,
+            HTTP_AUTHORIZATION=f"Bearer {TOKEN}",
         )
 
         assert resp.status_code == 204
@@ -86,7 +86,7 @@ class MsTeamsWebhookTest(APITestCase):
             path=webhook_url,
             data=EXAMPLE_TEAM_MEMBER_ADDED,
             format="json",
-            HTTP_AUTHORIZATION="Bearer %s" % TOKEN,
+            HTTP_AUTHORIZATION=f"Bearer {TOKEN}",
         )
 
         assert resp.data["detail"] == "Could not validate JWT. Got fail"
@@ -102,7 +102,7 @@ class MsTeamsWebhookTest(APITestCase):
             path=webhook_url,
             data=EXAMPLE_TEAM_MEMBER_ADDED,
             format="json",
-            HTTP_AUTHORIZATION="Bearer %s" % TOKEN,
+            HTTP_AUTHORIZATION=f"Bearer {TOKEN}",
         )
         assert resp.data["detail"] == "The field iss does not match"
         assert resp.status_code == 403
@@ -117,7 +117,7 @@ class MsTeamsWebhookTest(APITestCase):
             path=webhook_url,
             data=EXAMPLE_TEAM_MEMBER_ADDED,
             format="json",
-            HTTP_AUTHORIZATION="Bearer %s" % TOKEN,
+            HTTP_AUTHORIZATION=f"Bearer {TOKEN}",
         )
         assert resp.data["detail"] == "The field serviceUrl does not match"
         assert resp.status_code == 403
@@ -132,7 +132,7 @@ class MsTeamsWebhookTest(APITestCase):
             path=webhook_url,
             data=EXAMPLE_TEAM_MEMBER_ADDED,
             format="json",
-            HTTP_AUTHORIZATION="Bearer %s" % TOKEN,
+            HTTP_AUTHORIZATION=f"Bearer {TOKEN}",
         )
 
         assert resp.data["detail"] == "Token is expired"
@@ -160,7 +160,7 @@ class MsTeamsWebhookTest(APITestCase):
             path=webhook_url,
             data=EXAMPLE_TEAM_MEMBER_ADDED,
             format="json",
-            HTTP_AUTHORIZATION="Bearer %s" % TOKEN,
+            HTTP_AUTHORIZATION=f"Bearer {TOKEN}",
         )
 
         assert resp.status_code == 201
@@ -204,7 +204,7 @@ class MsTeamsWebhookTest(APITestCase):
             path=webhook_url,
             data=different_member_added,
             format="json",
-            HTTP_AUTHORIZATION="Bearer %s" % TOKEN,
+            HTTP_AUTHORIZATION=f"Bearer {TOKEN}",
         )
 
         assert resp.status_code == 204
@@ -220,7 +220,7 @@ class MsTeamsWebhookTest(APITestCase):
             path=webhook_url,
             data=EXAMPLE_TEAM_MEMBER_REMOVED,
             format="json",
-            HTTP_AUTHORIZATION="Bearer %s" % TOKEN,
+            HTTP_AUTHORIZATION=f"Bearer {TOKEN}",
         )
 
         assert resp.status_code == 204
@@ -238,7 +238,7 @@ class MsTeamsWebhookTest(APITestCase):
             path=webhook_url,
             data=different_member_removed,
             format="json",
-            HTTP_AUTHORIZATION="Bearer %s" % TOKEN,
+            HTTP_AUTHORIZATION=f"Bearer {TOKEN}",
         )
 
         assert resp.status_code == 204
@@ -266,7 +266,7 @@ class MsTeamsWebhookTest(APITestCase):
             path=webhook_url,
             data=EXAMPLE_PERSONAL_MEMBER_ADDED,
             format="json",
-            HTTP_AUTHORIZATION="Bearer %s" % TOKEN,
+            HTTP_AUTHORIZATION=f"Bearer {TOKEN}",
         )
 
         assert resp.status_code == 204
@@ -295,7 +295,7 @@ class MsTeamsWebhookTest(APITestCase):
             path=webhook_url,
             data=EXAMPLE_MENTIONED,
             format="json",
-            HTTP_AUTHORIZATION="Bearer %s" % TOKEN,
+            HTTP_AUTHORIZATION=f"Bearer {TOKEN}",
         )
 
         assert resp.status_code == 204
@@ -318,7 +318,7 @@ class MsTeamsWebhookTest(APITestCase):
             path=webhook_url,
             data=different_user_mentioned,
             format="json",
-            HTTP_AUTHORIZATION="Bearer %s" % TOKEN,
+            HTTP_AUTHORIZATION=f"Bearer {TOKEN}",
         )
 
         assert resp.status_code == 204
@@ -346,7 +346,7 @@ class MsTeamsWebhookTest(APITestCase):
             path=webhook_url,
             data=EXAMPLE_UNLINK_COMMAND,
             format="json",
-            HTTP_AUTHORIZATION="Bearer %s" % TOKEN,
+            HTTP_AUTHORIZATION=f"Bearer {TOKEN}",
         )
 
         assert resp.status_code == 204
@@ -379,7 +379,7 @@ class MsTeamsWebhookTest(APITestCase):
             path=webhook_url,
             data=other_command,
             format="json",
-            HTTP_AUTHORIZATION="Bearer %s" % TOKEN,
+            HTTP_AUTHORIZATION=f"Bearer {TOKEN}",
         )
 
         assert resp.status_code == 204
@@ -412,7 +412,7 @@ class MsTeamsWebhookTest(APITestCase):
             path=webhook_url,
             data=other_command,
             format="json",
-            HTTP_AUTHORIZATION="Bearer %s" % TOKEN,
+            HTTP_AUTHORIZATION=f"Bearer {TOKEN}",
         )
 
         assert resp.status_code == 204
@@ -448,7 +448,7 @@ class MsTeamsWebhookTest(APITestCase):
             path=webhook_url,
             data=other_command,
             format="json",
-            HTTP_AUTHORIZATION="Bearer %s" % TOKEN,
+            HTTP_AUTHORIZATION=f"Bearer {TOKEN}",
         )
 
         assert resp.status_code == 204
@@ -482,7 +482,7 @@ class MsTeamsWebhookTest(APITestCase):
             path=webhook_url,
             data=other_command,
             format="json",
-            HTTP_AUTHORIZATION="Bearer %s" % TOKEN,
+            HTTP_AUTHORIZATION=f"Bearer {TOKEN}",
         )
 
         assert resp.status_code == 204

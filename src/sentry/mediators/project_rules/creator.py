@@ -1,4 +1,4 @@
-from collections import Iterable
+from collections.abc import Iterable
 
 from sentry.mediators import Mediator, Param
 from sentry.models import Actor, Rule

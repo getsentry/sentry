@@ -26,7 +26,7 @@ from sentry.models import (
 )
 from sentry.search.base import SearchBackend
 from sentry.search.events.constants import EQUALITY_OPERATORS, OPERATOR_TO_DJANGO
-from sentry.search.snuba.executors import PostgresSnubaQueryExecutor
+from sentry.search.snuba.executors import CdcPostgresSnubaQueryExecutor, PostgresSnubaQueryExecutor
 
 
 def assigned_to_filter(actors, projects, field_filter="id"):
@@ -462,7 +462,6 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
                     ).values_list("group")
                 )
             ),
-            "active_at": ScalarCondition("active_at"),
             "for_review": QCallbackCondition(functools.partial(inbox_filter, projects=projects)),
             "assigned_or_suggested": QCallbackCondition(
                 functools.partial(assigned_or_suggested_filter, projects=projects)
@@ -503,3 +502,8 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
                 }
             )
         return queryset_conditions
+
+
+class CdcEventsDatasetSnubaSearchBackend(EventsDatasetSnubaSearchBackend):
+    def _get_query_executor(self, *args, **kwargs):
+        return CdcPostgresSnubaQueryExecutor()

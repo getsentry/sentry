@@ -29,6 +29,10 @@ type State = {
   withAnnotatedText: boolean;
 };
 
+function getValueWithAnnotatedText(v: Value, meta?: Meta) {
+  return <AnnotatedText value={v} meta={meta} />;
+}
+
 class ContextData extends React.Component<Props, State> {
   static defaultProps = {
     data: null,
@@ -40,11 +44,7 @@ class ContextData extends React.Component<Props, State> {
       this.props;
     const maxDepth = maxDefaultDepth ?? 2;
 
-    function getValueWithAnnotatedText(v: Value, meta?: Meta) {
-      return <AnnotatedText value={v} meta={meta} />;
-    }
-
-    /* eslint no-shadow:0 */
+    // eslint-disable-next-line @typescript-eslint/no-shadow
     function walk(value: Value, depth: number) {
       let i = 0;
       const children: React.ReactNode[] = [];

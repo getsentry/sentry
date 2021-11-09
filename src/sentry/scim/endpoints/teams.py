@@ -31,12 +31,18 @@ from .constants import (
     SCIM_404_USER_RES,
     TeamPatchOps,
 )
-from .utils import OrganizationSCIMTeamPermission, SCIMEndpoint, parse_filter_conditions
+from .utils import (
+    OrganizationSCIMTeamPermission,
+    SCIMEndpoint,
+    SCIMFilterError,
+    parse_filter_conditions,
+)
 
 delete_logger = logging.getLogger("sentry.deletions.api")
 
 
-CONFLICTING_SLUG_ERROR = "A team with this slug already exists."
+def _team_expand(excluded_attributes):
+    return None if "members" in excluded_attributes else ["members"]
 
 
 class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
@@ -49,42 +55,41 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
         return False
 
     def get(self, request, organization):
-        try:
-            filter_val = parse_filter_conditions(request.GET.get("filter"))
-        except ValueError:
-            raise ParseError(detail=SCIM_400_INVALID_FILTER)
 
-        if "members" in request.GET.get("excludedAttributes", []):
-            expand = None
-        else:
-            expand = ["members"]
+        query_params = self.get_query_parameters(request)
+
         queryset = Team.objects.filter(
             organization=organization, status=TeamStatus.VISIBLE
         ).order_by("slug")
-
-        if filter_val:
-            queryset = queryset.filter(slug=slugify(filter_val))
+        if query_params["filter"]:
+            queryset = queryset.filter(slug__iexact=slugify(query_params["filter"]))
 
         def data_fn(offset, limit):
             return list(queryset[offset : offset + limit])
 
         def on_results(results):
-            results = serialize(results, None, TeamSCIMSerializer(expand=expand))
-            return self.list_api_format(request, queryset.count(), results)
+            results = serialize(
+                results,
+                None,
+                TeamSCIMSerializer(expand=_team_expand(query_params["excluded_attributes"])),
+            )
+            return self.list_api_format(results, queryset.count(), query_params["start_index"])
 
         return self.paginate(
             request=request,
             on_results=on_results,
             paginator=GenericOffsetPaginator(data_fn=data_fn),
-            default_per_page=int(request.GET.get("count", 100)),
+            default_per_page=query_params["count"],
             queryset=queryset,
             cursor_cls=SCIMCursor,
         )
 
     def post(self, request, organization):
-        # shim displayName from SCIM api to "slug" in order to work with
+        # shim displayName from SCIM api in order to work with
         # our regular team index POST
-        request.data.update({"slug": slugify(request.data["displayName"])})
+        request.data.update(
+            {"name": request.data["displayName"], "slug": slugify(request.data["displayName"])}
+        ),
         return super().post(request, organization)
 
 
@@ -110,7 +115,12 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         return team
 
     def get(self, request, organization, team):
-        context = serialize(team, serializer=TeamSCIMSerializer(expand=["members"]))
+        query_params = self.get_query_parameters(request)
+
+        context = serialize(
+            team,
+            serializer=TeamSCIMSerializer(expand=_team_expand(query_params["excluded_attributes"])),
+        )
         return Response(context)
 
     def _add_members_operation(self, request, operation, team):
@@ -133,22 +143,13 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
                     data=omt.get_audit_log_data(),
                 )
 
-    def _remove_members_operation(self, request, operation, team):
-        try:
-            # grab the filter out of the brackets of the string that looks
-            # like so: members[userName eq "baz@sentry.io"]
-            parsed_filter = parse_filter_conditions(
-                re.search(r"\[(.*?)\]", operation["path"]).groups()[0]
-            )
-        except Exception:
-            # TODO: log parse error
-            raise ParseError(detail=SCIM_400_INVALID_FILTER)
-        member = OrganizationMember.objects.get(organization=team.organization, id=parsed_filter[0])
+    def _remove_members_operation(self, request, member_id, team):
+        member = OrganizationMember.objects.get(organization=team.organization, id=member_id)
         with transaction.atomic():
             try:
                 omt = OrganizationMemberTeam.objects.get(team=team, organizationmember=member)
             except OrganizationMemberTeam.DoesNotExist:
-                pass
+                return
 
             self.create_audit_entry(
                 request=request,
@@ -163,9 +164,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
     def _rename_team_operation(self, request, new_name, team):
         serializer = TeamSerializer(
             team,
-            data={
-                "slug": slugify(new_name),
-            },
+            data={"name": new_name, "slug": slugify(new_name)},
             partial=True,
         )
         if serializer.is_valid():
@@ -194,9 +193,9 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
                     if op == TeamPatchOps.ADD and operation["path"] == "members":
                         self._add_members_operation(request, operation, team)
                     elif op == TeamPatchOps.REMOVE and "members" in operation["path"]:
-                        # the members op contains a filter string like so:
-                        # members[userName eq "baz@sentry.io"]
-                        self._remove_members_operation(request, operation, team)
+                        self._remove_members_operation(
+                            request, self._get_member_id_for_remove_op(operation), team
+                        )
                     elif op == TeamPatchOps.REPLACE:
                         path = operation.get("path")
 
@@ -225,8 +224,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
             sentry_sdk.capture_exception(e)
             return Response(SCIM_400_INTEGRITY_ERROR, status=400)
 
-        context = serialize(team, serializer=TeamSCIMSerializer())
-        return Response(context)
+        return self.respond(status=204)
 
     def delete(self, request, organization, team):
         return super().delete(request, team)
@@ -235,3 +233,19 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         # override parent's put since we don't have puts
         # in SCIM Team routes
         return self.http_method_not_allowed(request)
+
+    def _get_member_id_for_remove_op(self, operation):
+        if "value" in operation:
+            # azure sends member ids in this format under the key 'value'
+            return operation["value"][0]["value"]
+
+        try:
+            # grab the filter out of the brackets of the string that looks
+            # like so: members[value eq "123124"]
+            regex_search = re.search(r"\[(.*?)\]", operation["path"])
+            if regex_search is None:
+                raise SCIMFilterError
+            filter_path = regex_search.groups()[0]
+            return parse_filter_conditions(filter_path)
+        except SCIMFilterError:
+            raise ParseError(detail=SCIM_400_INVALID_FILTER)

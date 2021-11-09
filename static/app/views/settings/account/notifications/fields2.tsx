@@ -1,3 +1,5 @@
+import * as React from 'react';
+
 import {t} from 'app/locale';
 
 export type NotificationSettingField = {
@@ -8,6 +10,7 @@ export type NotificationSettingField = {
   defaultValue?: string;
   defaultFieldName?: string;
   help?: string;
+  confirm?: {[key: string]: React.ReactNode | string};
 };
 
 export const NOTIFICATION_SETTING_FIELDS: Record<string, NotificationSettingField> = {
@@ -52,6 +55,16 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, NotificationSettingFiel
       ['slack', t('Send to Slack')],
       ['email+slack', t('Send to Email and Slack')],
     ],
+  },
+  approval: {
+    name: 'approval',
+    type: 'select',
+    label: t('Approvals'),
+    choices: [
+      ['always', t('On')],
+      ['never', t('Off')],
+    ],
+    help: t('Notifications from teammates that require review or approval.'),
   },
   reports: {
     name: 'weekly reports',

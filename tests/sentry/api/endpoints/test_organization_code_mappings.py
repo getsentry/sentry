@@ -1,5 +1,6 @@
 from django.urls import reverse
 
+from sentry.api.endpoints.organization_code_mappings import BRANCH_NAME_ERROR_MESSAGE
 from sentry.models import Integration, Repository, RepositoryProjectPathConfig
 from sentry.testutils import APITestCase
 
@@ -288,30 +289,22 @@ class OrganizationCodeMappingsTest(APITestCase):
     def test_quote_in_branch(self):
         response = self.make_post({"defaultBranch": "f'f"})
         assert response.status_code == 400
-        assert response.data == {
-            "defaultBranch": [
-                "Branch name may only have letters, numbers, underscores, forward slashes and dashes. Branch name may not start or end with a forward slash."
-            ],
-        }
+        assert response.data == {"defaultBranch": [BRANCH_NAME_ERROR_MESSAGE]}
 
     def test_forward_slash_in_branch(self):
         response = self.make_post({"defaultBranch": "prod/deploy-branch"})
         assert response.status_code == 201, response.content
 
+    def test_period_in_branch(self):
+        response = self.make_post({"defaultBranch": "release-2.0.0"})
+        assert response.status_code == 201, response.content
+
     def test_leading_forward_slash_in_branch_conflict(self):
         response = self.make_post({"defaultBranch": "/prod/deploy-branch"})
         assert response.status_code == 400
-        assert response.data == {
-            "defaultBranch": [
-                "Branch name may only have letters, numbers, underscores, forward slashes and dashes. Branch name may not start or end with a forward slash."
-            ],
-        }
+        assert response.data == {"defaultBranch": [BRANCH_NAME_ERROR_MESSAGE]}
 
     def test_ending_forward_slash_in_branch_conflict(self):
         response = self.make_post({"defaultBranch": "prod/deploy-branch/"})
         assert response.status_code == 400
-        assert response.data == {
-            "defaultBranch": [
-                "Branch name may only have letters, numbers, underscores, forward slashes and dashes. Branch name may not start or end with a forward slash."
-            ],
-        }
+        assert response.data == {"defaultBranch": [BRANCH_NAME_ERROR_MESSAGE]}

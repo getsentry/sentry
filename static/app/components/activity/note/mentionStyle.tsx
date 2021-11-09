@@ -57,7 +57,7 @@ export default function mentionStyle({theme, minHeight}) {
       list: {
         maxHeight: 150,
         overflow: 'auto',
-        backgroundColor: 'white',
+        backgroundColor: `${theme.background}`,
         border: '1px solid rgba(0,0,0,0.15)',
         fontSize: 12,
       },
@@ -67,7 +67,7 @@ export default function mentionStyle({theme, minHeight}) {
         borderBottom: '1px solid rgba(0,0,0,0.15)',
 
         '&focused': {
-          backgroundColor: '#f8f6f9',
+          backgroundColor: `${theme.backgroundSecondary}`,
         },
       },
     },

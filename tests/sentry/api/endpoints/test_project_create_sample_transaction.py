@@ -20,6 +20,8 @@ class ProjectCreateSampleTransactionTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data["title"] == "/productstore"
+        project.refresh_from_db()
+        assert not project.flags.has_transactions
 
     def test_react(self):
         project = self.create_project(teams=[self.team], name="foo", platform="javascript-react")

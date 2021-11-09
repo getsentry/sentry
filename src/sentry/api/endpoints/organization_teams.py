@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models import team as team_serializers
+from sentry.api.serializers.models.team import TeamSerializer
 from sentry.models import (
     AuditLogEntryEvent,
     ExternalActor,
@@ -32,7 +32,7 @@ class OrganizationTeamsPermission(OrganizationPermission):
     }
 
 
-class TeamSerializer(serializers.Serializer):
+class TeamPostSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=64, required=False, allow_null=True, allow_blank=True)
     slug = serializers.RegexField(
         r"^[a-z0-9_\-]+$",
@@ -58,7 +58,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
 
     def team_serializer_for_post(self):
         # allow child routes to supply own serializer, used in SCIM teams route
-        return team_serializers.TeamSerializer()
+        return TeamSerializer()
 
     def get(self, request, organization):
         """
@@ -69,8 +69,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
 
         :pparam string organization_slug: the slug of the organization for
                                           which the teams should be listed.
-        :param string detailed:      Specify "0" to return team details that do not include projects
-        :param string is_not_member: Specify "1" to *only* return team details of teams that user is not a member of
+        :param string detailed: Specify "0" to return team details that do not include projects
         :auth: required
         """
         # TODO(dcramer): this should be system-wide default for organization
@@ -81,10 +80,6 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
         queryset = Team.objects.filter(
             organization=organization, status=TeamStatus.VISIBLE
         ).order_by("slug")
-
-        if request.GET.get("is_not_member", "0") == "1":
-            user_teams = Team.objects.get_for_user(organization=organization, user=request.user)
-            queryset = queryset.exclude(id__in=[ut.id for ut in user_teams])
 
         query = request.GET.get("query")
 
@@ -109,22 +104,20 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
                 elif key == "query":
                     value = " ".join(value)
                     queryset = queryset.filter(Q(name__icontains=value) | Q(slug__icontains=value))
+                elif key == "slug":
+                    queryset = queryset.filter(slug__in=value)
                 else:
                     queryset = queryset.none()
 
         is_detailed = request.GET.get("detailed", "1") != "0"
 
-        serializer = (
-            team_serializers.TeamWithProjectsSerializer
-            if is_detailed
-            else team_serializers.TeamSerializer
-        )
+        expand = ["projects", "externalTeams"] if is_detailed else []
 
         return self.paginate(
             request=request,
             queryset=queryset,
             order_by="slug",
-            on_results=lambda x: serialize(x, request.user, serializer()),
+            on_results=lambda x: serialize(x, request.user, TeamSerializer(expand=expand)),
             paginator_cls=OffsetPaginator,
         )
 
@@ -147,7 +140,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
                             name.
         :auth: required
         """
-        serializer = TeamSerializer(data=request.data)
+        serializer = TeamPostSerializer(data=request.data)
 
         if serializer.is_valid():
             result = serializer.validated_data

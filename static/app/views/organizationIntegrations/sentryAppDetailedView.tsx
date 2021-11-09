@@ -6,6 +6,7 @@ import {
   installSentryApp,
   uninstallSentryApp,
 } from 'app/actionCreators/sentryAppInstallations';
+import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import CircleIndicator from 'app/components/circleIndicator';
 import Confirm from 'app/components/confirm';
@@ -35,18 +36,16 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
   State & AbstractIntegrationDetailedView['state']
 > {
   tabs: Tab[] = ['overview'];
-  getEndpoints(): ([string, string, any] | [string, string])[] {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {
       organization,
       params: {integrationSlug},
     } = this.props;
-    const baseEndpoints: ([string, string, any] | [string, string])[] = [
+    return [
       ['sentryApp', `/sentry-apps/${integrationSlug}/`],
       ['featureData', `/sentry-apps/${integrationSlug}/features/`],
       ['appInstalls', `/organizations/${organization.slug}/sentry-app-installations/`],
     ];
-
-    return baseEndpoints;
   }
 
   onLoadAllEndpointsSuccess() {
@@ -134,7 +133,7 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
   handleInstall = async () => {
     const {organization} = this.props;
     const {sentryApp} = this.state;
-    this.trackIntegrationEvent('integrations.installation_start', {
+    this.trackIntegrationAnalytics('integrations.installation_start', {
       integration_status: sentryApp.status,
     });
     // installSentryApp adds a message on failure
@@ -142,7 +141,7 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
 
     // installation is complete if the status is installed
     if (install.status === 'installed') {
-      this.trackIntegrationEvent('integrations.installation_complete', {
+      this.trackIntegrationAnalytics('integrations.installation_complete', {
         integration_status: sentryApp.status,
       });
     }
@@ -169,7 +168,7 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
   handleUninstall = async (install: SentryAppInstallation) => {
     try {
       await uninstallSentryApp(this.api, install);
-      this.trackIntegrationEvent('integrations.uninstall_completed', {
+      this.trackIntegrationAnalytics('integrations.uninstall_completed', {
         integration_status: this.sentryApp.status,
       });
       const appInstalls = this.state.appInstalls.filter(
@@ -183,7 +182,7 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
 
   recordUninstallClicked = () => {
     const sentryApp = this.sentryApp;
-    this.trackIntegrationEvent('integrations.uninstall_clicked', {
+    this.trackIntegrationAnalytics('integrations.uninstall_clicked', {
       integration_status: sentryApp.status,
     });
   };

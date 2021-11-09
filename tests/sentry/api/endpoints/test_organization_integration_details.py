@@ -4,17 +4,19 @@ from sentry.models import (
     Integration,
     OrganizationIntegration,
     Repository,
+    ScheduledDeletion,
 )
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import with_feature
 
 
 class OrganizationIntegrationDetailsTest(APITestCase):
+    endpoint = "sentry-api-0-organization-integration-details"
+
     def setUp(self):
         super().setUp()
 
         self.login_as(user=self.user)
-        self.org = self.create_organization(owner=self.user, name="baz")
         self.integration = Integration.objects.create(
             provider="gitlab", name="Gitlab", external_id="gitlab:1"
         )
@@ -24,83 +26,73 @@ class OrganizationIntegrationDetailsTest(APITestCase):
             external_id="base_id",
             data={},
         )
-        self.integration.add_organization(self.org, self.user, default_auth_id=self.identity.id)
+        self.integration.add_organization(
+            self.organization, self.user, default_auth_id=self.identity.id
+        )
 
         self.repo = Repository.objects.create(
             provider="gitlab",
             name="getsentry/sentry",
-            organization_id=self.org.id,
+            organization_id=self.organization.id,
             integration_id=self.integration.id,
         )
 
-        self.path = f"/api/0/organizations/{self.org.slug}/integrations/{self.integration.id}/"
 
+class OrganizationIntegrationDetailsGetTest(OrganizationIntegrationDetailsTest):
     def test_simple(self):
-        response = self.client.get(self.path, format="json")
-
-        assert response.status_code == 200, response.content
+        response = self.get_success_response(self.organization.slug, self.integration.id)
         assert response.data["id"] == str(self.integration.id)
 
-    def test_removal(self):
-        with self.tasks():
-            response = self.client.delete(self.path, format="json")
 
-            assert response.status_code == 204, response.content
-            assert Integration.objects.filter(id=self.integration.id).exists()
-
-            # Ensure Organization integrations are removed
-            assert not OrganizationIntegration.objects.filter(
-                integration=self.integration, organization=self.org
-            ).exists()
-            assert not Identity.objects.filter(user=self.user).exists()
-
-            # make sure repo is dissociated from integration
-            assert Repository.objects.get(id=self.repo.id).integration_id is None
+class OrganizationIntegrationDetailsPostTest(OrganizationIntegrationDetailsTest):
+    method = "post"
 
     def test_update_config(self):
         config = {"setting": "new_value", "setting2": "baz"}
-
-        response = self.client.post(self.path, format="json", data=config)
-
-        assert response.status_code == 200, response.content
+        self.get_success_response(self.organization.slug, self.integration.id, **config)
 
         org_integration = OrganizationIntegration.objects.get(
-            integration=self.integration, organization=self.org
+            integration=self.integration, organization=self.organization
         )
 
         assert org_integration.config == config
 
-    def test_removal_default_identity_already_removed(self):
-        with self.tasks():
-            self.identity.delete()
-            response = self.client.delete(self.path, format="json")
 
-            assert response.status_code == 204, response.content
-            assert Integration.objects.filter(id=self.integration.id).exists()
+class OrganizationIntegrationDetailsDeleteTest(OrganizationIntegrationDetailsTest):
+    method = "delete"
 
-            # Ensure Organization integrations are removed
-            assert not OrganizationIntegration.objects.filter(
-                integration=self.integration, organization=self.org
-            ).exists()
+    def test_removal(self):
+        self.get_success_response(self.organization.slug, self.integration.id)
+        assert Integration.objects.filter(id=self.integration.id).exists()
+
+        org_integration = OrganizationIntegration.objects.get(
+            integration=self.integration, organization=self.organization
+        )
+        assert ScheduledDeletion.objects.filter(
+            model_name="OrganizationIntegration", object_id=org_integration.id
+        )
+
+
+class OrganizationIntegrationDetailsPutTest(OrganizationIntegrationDetailsTest):
+    method = "put"
 
     def test_no_access_put_request(self):
-        data = {"name": "Example Name"}
-
-        response = self.client.put(self.path, format="json", data=data)
-        assert response.status_code == 404
+        self.get_error_response(
+            self.organization.slug, self.integration.id, **{"name": "Example Name"}, status_code=404
+        )
 
     @with_feature("organizations:integrations-custom-scm")
     def test_valid_put_request(self):
         integration = Integration.objects.create(
             provider="custom_scm", name="A Name", external_id="1232948573948579127"
         )
-        integration.add_organization(self.org, self.user)
-        path = f"/api/0/organizations/{self.org.slug}/integrations/{integration.id}/"
+        integration.add_organization(self.organization, self.user)
 
-        data = {"name": "New Name", "domain": "https://example.com/"}
-
-        response = self.client.put(path, format="json", data=data)
-        assert response.status_code == 200
+        self.get_success_response(
+            self.organization.slug,
+            integration.id,
+            **{"name": "New Name", "domain": "https://example.com/"},
+        )
 
         updated = Integration.objects.get(id=integration.id)
         assert updated.name == "New Name"
@@ -111,27 +103,22 @@ class OrganizationIntegrationDetailsTest(APITestCase):
         integration = Integration.objects.create(
             provider="custom_scm", name="A Name", external_id="1232948573948579127"
         )
-        integration.add_organization(self.org, self.user)
-        path = f"/api/0/organizations/{self.org.slug}/integrations/{integration.id}/"
+        integration.add_organization(self.organization, self.user)
 
-        data = {"domain": "https://example.com/"}
-        response = self.client.put(path, format="json", data=data)
-        assert response.status_code == 200
+        self.get_success_response(
+            self.organization.slug, integration.id, **{"domain": "https://example.com/"}
+        )
 
         updated = Integration.objects.get(id=integration.id)
         assert updated.name == "A Name"
         assert updated.metadata["domain_name"] == "https://example.com/"
 
-        data = {"name": "Newness"}
-        response = self.client.put(path, format="json", data=data)
-        assert response.status_code == 200
+        self.get_success_response(self.organization.slug, integration.id, **{"name": "Newness"})
         updated = Integration.objects.get(id=integration.id)
         assert updated.name == "Newness"
         assert updated.metadata["domain_name"] == "https://example.com/"
 
-        data = {"domain": ""}
-        response = self.client.put(path, format="json", data=data)
-        assert response.status_code == 200
+        self.get_success_response(self.organization.slug, integration.id, **{"domain": ""})
         updated = Integration.objects.get(id=integration.id)
         assert updated.name == "Newness"
         assert updated.metadata["domain_name"] == ""

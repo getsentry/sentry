@@ -280,4 +280,23 @@ describe('TimeRangeSelector', function () {
     expect(wrapper.find('SelectorItem[value="absolute"]').prop('selected')).toBe(true);
     expect(wrapper.find('SelectorItem[value="14d"]').prop('selected')).toBe(false);
   });
+
+  it('uses the default absolute date', async function () {
+    wrapper = createWrapper({
+      defaultAbsolute: {
+        start: new Date('2017-10-10T00:00:00.000Z'),
+        end: new Date('2017-10-17T23:59:59.000Z'),
+      },
+    });
+
+    await wrapper.find('HeaderItem').simulate('click');
+    await wrapper.find('SelectorItem[value="absolute"]').simulate('click');
+
+    wrapper.find('SelectorItem[value="absolute"]').simulate('click');
+    expect(onChange).toHaveBeenCalledWith({
+      relative: null,
+      start: new Date('2017-10-10T00:00:00.000Z'),
+      end: new Date('2017-10-17T23:59:59.000Z'),
+    });
+  });
 });

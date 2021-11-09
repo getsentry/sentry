@@ -2,6 +2,7 @@ from rest_framework import status
 from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
+from sentry.api.endpoints.project_rules import trigger_alert_rule_action_creators
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.rule import RuleSerializer
@@ -108,7 +109,10 @@ class ProjectRuleDetailsEndpoint(ProjectEndpoint):
                 context = {"uuid": client.uuid}
                 return Response(context, status=202)
 
+            trigger_alert_rule_action_creators(kwargs.get("actions"))
+
             updated_rule = project_rules.Updater.run(rule=rule, request=request, **kwargs)
+
             RuleActivity.objects.create(
                 rule=updated_rule, user=request.user, type=RuleActivityType.UPDATED.value
             )

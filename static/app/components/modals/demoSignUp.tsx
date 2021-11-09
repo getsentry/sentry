@@ -7,15 +7,16 @@ import ButtonBar from 'app/components/buttonBar';
 import HighlightModalContainer from 'app/components/highlightModalContainer';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
-import {emailQueryParameter, extraQueryParameter} from 'app/utils/demoMode';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
+import {extraQueryParameterWithEmail, urlAttachQueryParams} from 'app/utils/demoMode';
 
 type Props = ModalRenderProps;
 
 const DemoSignUpModal = ({closeModal}: Props) => {
-  const queryParameter = emailQueryParameter();
-  const getStartedExtraParameter = extraQueryParameter(true);
-  const signupUrl = `https://sentry.io/signup/${queryParameter}${getStartedExtraParameter}`;
+  const signupUrl = urlAttachQueryParams(
+    'https://sentry.io/signup/',
+    extraQueryParameterWithEmail()
+  );
 
   return (
     <HighlightModalContainer>
@@ -34,7 +35,9 @@ const DemoSignUpModal = ({closeModal}: Props) => {
             priority="primary"
             href={signupUrl}
             onClick={() =>
-              trackAdvancedAnalyticsEvent('growth.demo_modal_clicked_signup', {}, null)
+              trackAdvancedAnalyticsEvent('growth.demo_modal_clicked_signup', {
+                organization: null,
+              })
             }
           >
             {t('Sign up now')}
@@ -42,7 +45,9 @@ const DemoSignUpModal = ({closeModal}: Props) => {
           <Button
             priority="default"
             onClick={() => {
-              trackAdvancedAnalyticsEvent('growth.demo_modal_clicked_continue', {}, null);
+              trackAdvancedAnalyticsEvent('growth.demo_modal_clicked_continue', {
+                organization: null,
+              });
               closeModal();
             }}
           >

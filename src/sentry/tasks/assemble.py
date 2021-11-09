@@ -137,7 +137,7 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
                 # and might resolve processing issues. If the file was not
                 # created, someone else has created it and will bump the
                 # revision instead.
-                bump_reprocessing_revision(project)
+                bump_reprocessing_revision(project, use_buffer=True)
     except Exception:
         set_assemble_status(
             AssembleTask.DIF,

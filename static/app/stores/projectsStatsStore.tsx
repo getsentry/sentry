@@ -17,7 +17,7 @@ type ProjectsStatsStoreInterface = {
  * clear the store when the Dashboard unmounts
  * (as to not disrupt ProjectsStore which a lot more components use)
  */
-const projectsStatsStore: Reflux.StoreDefinition & ProjectsStatsStoreInterface = {
+const storeConfig: Reflux.StoreDefinition & ProjectsStatsStoreInterface = {
   itemsBySlug: {},
 
   init() {
@@ -101,8 +101,7 @@ const projectsStatsStore: Reflux.StoreDefinition & ProjectsStatsStoreInterface =
   },
 };
 
-type ProjectsStatsStore = Reflux.Store & ProjectsStatsStoreInterface;
-
-const ProjectsStatsStore = Reflux.createStore(projectsStatsStore) as ProjectsStatsStore;
+const ProjectsStatsStore = Reflux.createStore(storeConfig) as Reflux.Store &
+  ProjectsStatsStoreInterface;
 
 export default ProjectsStatsStore;

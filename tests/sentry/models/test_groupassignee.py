@@ -1,6 +1,9 @@
+from unittest import mock
+
 import pytest
 
 from sentry.integrations.example.integration import ExampleIntegration
+from sentry.integrations.utils import sync_group_assignee_inbound
 from sentry.models import (
     Activity,
     ExternalIssue,
@@ -8,10 +11,8 @@ from sentry.models import (
     GroupLink,
     Integration,
     OrganizationIntegration,
-    sync_group_assignee_inbound,
 )
 from sentry.testutils import TestCase
-from sentry.utils.compat import mock
 
 
 class GroupAssigneeTestCase(TestCase):

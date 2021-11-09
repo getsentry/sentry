@@ -5,6 +5,7 @@ import Button from 'app/components/button';
 import {STACKTRACE_PREVIEW_TOOLTIP_DELAY} from 'app/components/stacktracePreview';
 import {IconChevron} from 'app/icons/iconChevron';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {PlatformType} from 'app/types';
 
 import {isDotnet} from '../utils';
@@ -12,7 +13,7 @@ import {isDotnet} from '../utils';
 type Props = {
   isExpandable: boolean;
   platform: PlatformType;
-  onToggleContext: (evt?: MouseEvent) => void;
+  onToggleContext: (evt: MouseEvent) => void;
   isHoverPreviewed?: boolean;
   isExpanded?: boolean;
 };
@@ -47,6 +48,7 @@ export default Expander;
 
 // the Button's label has the padding of 3px because the button size has to be 16x16 px.
 const StyledButton = styled(Button)`
+  margin-left: ${space(1)};
   span:first-child {
     padding: 3px;
   }

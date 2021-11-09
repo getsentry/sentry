@@ -8,7 +8,6 @@ from sentry.models import (
     DashboardWidgetQuery,
 )
 from sentry.testutils import OrganizationDashboardWidgetTestCase
-from sentry.utils.compat import zip
 
 
 class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
@@ -516,7 +515,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         }
         response = self.do_request("put", self.url(self.dashboard.id), data=data)
         assert response.status_code == 400, response.data
-        assert b"Cannot order by a field" in response.content
+        assert b"Cannot sort by a field" in response.content
 
     def test_remove_widget_and_add_new(self):
         # Remove a widget from the middle of the set and put a new widget there
@@ -694,3 +693,35 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 400
         assert response.data == ["You cannot update widgets that are not part of this dashboard."]
         self.assert_no_changes()
+
+
+class OrganizationDashboardVisitTest(OrganizationDashboardDetailsTestCase):
+    def url(self, dashboard_id):
+        return reverse(
+            "sentry-api-0-organization-dashboard-visit",
+            kwargs={"organization_slug": self.organization.slug, "dashboard_id": dashboard_id},
+        )
+
+    def test_visit_dashboard(self):
+        last_visited = self.dashboard.last_visited
+        assert self.dashboard.visits == 1
+
+        response = self.do_request("post", self.url(self.dashboard.id))
+        assert response.status_code == 204
+
+        dashboard = Dashboard.objects.get(id=self.dashboard.id)
+        assert dashboard.visits == 2
+        assert dashboard.last_visited > last_visited
+
+    def test_visit_dashboard_no_access(self):
+        last_visited = self.dashboard.last_visited
+        assert self.dashboard.visits == 1
+
+        with self.feature({"organizations:dashboards-edit": False}):
+            response = self.do_request("post", self.url(self.dashboard.id))
+
+        assert response.status_code == 404
+
+        dashboard = Dashboard.objects.get(id=self.dashboard.id)
+        assert dashboard.visits == 1
+        assert dashboard.last_visited == last_visited

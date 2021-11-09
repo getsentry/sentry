@@ -16,6 +16,7 @@ from sentry.grouping.result import CalculatedHashes
 from sentry.interfaces.base import get_interfaces
 from sentry.models import EventDict
 from sentry.snuba.events import Columns
+from sentry.spans.grouping.api import load_span_grouping_config
 from sentry.utils import json
 from sentry.utils.cache import memoize
 from sentry.utils.canonical import CanonicalKeyView
@@ -262,7 +263,7 @@ class Event:
         be saved under this key in nodestore so it can be retrieved using the
         same generated id when we only have project_id and event_id.
         """
-        return md5(f"{project_id}:{event_id}".encode("utf-8")).hexdigest()
+        return md5(f"{project_id}:{event_id}".encode()).hexdigest()
 
     # TODO We need a better way to cache these properties. functools
     # doesn't quite do the trick as there is a reference bug with unsaved
@@ -371,6 +372,16 @@ class Event:
             hierarchical_variants
         )
 
+        if flat_hashes:
+            sentry_sdk.set_tag("event.get_hashes.first_flat_variant_name", flat_hashes[0][0])
+        if hierarchical_hashes:
+            sentry_sdk.set_tag(
+                "event.get_hashes.first_hierarchical_variant_name", hierarchical_hashes[0][0]
+            )
+
+        flat_hashes = [hash_ for _, hash_ in flat_hashes]
+        hierarchical_hashes = [hash_ for _, hash_ in hierarchical_hashes]
+
         return CalculatedHashes(
             hashes=flat_hashes, hierarchical_hashes=hierarchical_hashes, tree_labels=tree_labels
         )
@@ -391,13 +402,13 @@ class Event:
         filtered_hashes = []
         tree_labels = []
         seen_hashes = set()
-        for variant in variants:
+        for name, variant in variants:
             hash_ = variant.get_hash()
             if hash_ is None or hash_ in seen_hashes:
                 continue
 
             seen_hashes.add(hash_)
-            filtered_hashes.append(hash_)
+            filtered_hashes.append((name, hash_))
             tree_labels.append(
                 variant.component.tree_label or None
                 if isinstance(variant, ComponentVariant)
@@ -470,6 +481,10 @@ class Event:
             return hashes.hashes[0]
 
         return None
+
+    def get_span_groupings(self, force_config=None):
+        config = load_span_grouping_config(force_config)
+        return config.execute_strategy(self.data)
 
     @property
     def organization(self):

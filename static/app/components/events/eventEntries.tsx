@@ -1,7 +1,8 @@
-import {memo, useEffect, useState} from 'react';
+import React, {memo, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {Location} from 'history';
+import uniq from 'lodash/uniq';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
@@ -27,9 +28,9 @@ import ExternalLink from 'app/components/links/externalLink';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {
-  EventAttachment,
   ExceptionValue,
   Group,
+  IssueAttachment,
   Organization,
   Project,
   SharedViewOrganization,
@@ -40,7 +41,7 @@ import {Entry, EntryType, Event} from 'app/types/event';
 import {Thread} from 'app/types/events';
 import {isNotSharedOrganization} from 'app/types/utils';
 import {defined, objectIsEmpty} from 'app/utils';
-import {analytics} from 'app/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import {projectProcessingIssuesMessages} from 'app/views/settings/project/projectProcessingIssues';
@@ -48,14 +49,14 @@ import {projectProcessingIssuesMessages} from 'app/views/settings/project/projec
 import findBestThread from './interfaces/threads/threadSelector/findBestThread';
 import getThreadException from './interfaces/threads/threadSelector/getThreadException';
 import EventEntry from './eventEntry';
-import EventTagAndScreenshot from './eventTagsAndScreenshot';
+import EventTagsAndScreenshot from './eventTagsAndScreenshot';
 
 const MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH =
   /^(([\w\$]\.[\w\$]{1,2})|([\w\$]{2}\.[\w\$]\.[\w\$]))(\.|$)/g;
 
 type ProGuardErrors = Array<Error>;
 
-type Props = {
+type Props = Pick<React.ComponentProps<typeof EventEntry>, 'route' | 'router'> & {
   /**
    * The organization can be the shared view on a public issue view.
    */
@@ -81,6 +82,8 @@ const EventEntries = memo(
     event,
     group,
     className,
+    router,
+    route,
     isShare = false,
     showExampleCommit = false,
     showTagSummary = true,
@@ -88,7 +91,7 @@ const EventEntries = memo(
   }: Props) => {
     const [isLoading, setIsLoading] = useState(true);
     const [proGuardErrors, setProGuardErrors] = useState<ProGuardErrors>([]);
-    const [attachments, setAttachments] = useState<EventAttachment[]>([]);
+    const [attachments, setAttachments] = useState<IssueAttachment[]>([]);
 
     const orgSlug = organization.slug;
     const projectSlug = project.slug;
@@ -111,14 +114,14 @@ const EventEntries = memo(
       const errorTypes = errors.map(errorEntries => errorEntries.type);
       const errorMessages = errors.map(errorEntries => errorEntries.message);
 
-      const orgId = organization.id;
       const platform = project.platform;
 
-      analytics('issue_error_banner.viewed', {
-        org_id: orgId ? parseInt(orgId, 10) : null,
+      // uniquify the array types
+      trackAdvancedAnalyticsEvent('issue_error_banner.viewed', {
+        organization: organization as Organization,
         group: event?.groupID,
-        error_type: errorTypes,
-        error_message: errorMessages,
+        error_type: uniq(errorTypes),
+        error_message: uniq(errorMessages),
         ...(platform && {platform}),
       });
     }
@@ -226,17 +229,16 @@ const EventEntries = memo(
         setProGuardErrors(newProGuardErrors);
         setIsLoading(false);
         return;
-      } else {
-        if (proGuardImage) {
-          Sentry.withScope(function (s) {
-            s.setLevel(Sentry.Severity.Warning);
-            if (event.sdk) {
-              s.setTag('offending.event.sdk.name', event.sdk.name);
-              s.setTag('offending.event.sdk.version', event.sdk.version);
-            }
-            Sentry.captureMessage('Event contains proguard image but not uuid');
-          });
-        }
+      }
+      if (proGuardImage) {
+        Sentry.withScope(function (s) {
+          s.setLevel(Sentry.Severity.Warning);
+          if (event.sdk) {
+            s.setTag('offending.event.sdk.name', event.sdk.name);
+            s.setTag('offending.event.sdk.version', event.sdk.version);
+          }
+          Sentry.captureMessage('Event contains proguard image but not uuid');
+        });
       }
 
       const threads: Array<Thread> =
@@ -320,12 +322,14 @@ const EventEntries = memo(
             organization={organization}
             event={definedEvent}
             entry={entry}
+            route={route}
+            router={router}
           />
         </ErrorBoundary>
       ));
     }
 
-    async function handleDeleteAttachment(attachmentId: EventAttachment['id']) {
+    async function handleDeleteAttachment(attachmentId: IssueAttachment['id']) {
       if (!event) {
         return;
       }
@@ -353,9 +357,8 @@ const EventEntries = memo(
       );
     }
 
-    const hasQueryFeature = orgFeatures.includes('discover-query');
     const hasMobileScreenshotsFeature = orgFeatures.includes('mobile-screenshots');
-    const hasContext = !objectIsEmpty(event.user) || !objectIsEmpty(event.contexts);
+    const hasContext = !objectIsEmpty(event.user ?? {}) || !objectIsEmpty(event.contexts);
     const hasErrors = !objectIsEmpty(event.errors) || !!proGuardErrors.length;
 
     return (
@@ -394,12 +397,11 @@ const EventEntries = memo(
         )}
         {showTagSummary &&
           (hasMobileScreenshotsFeature ? (
-            <EventTagAndScreenshot
+            <EventTagsAndScreenshot
               event={event}
               organization={organization as Organization}
               projectId={projectSlug}
               location={location}
-              hasQueryFeature={hasQueryFeature}
               isShare={isShare}
               hasContext={hasContext}
               isBorderless={isBorderless}
@@ -415,7 +417,6 @@ const EventEntries = memo(
                   organization={organization as Organization}
                   projectId={projectSlug}
                   location={location}
-                  hasQueryFeature={hasQueryFeature}
                 />
               </StyledEventDataSection>
             )

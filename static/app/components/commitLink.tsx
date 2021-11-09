@@ -15,7 +15,7 @@ type CommitFormatterParameters = {
 type CommitProvider = {
   icon: React.ReactNode;
   providerIds: string[];
-  commitUrl: (CommitFormatterParameters) => string;
+  commitUrl: (opts: CommitFormatterParameters) => string;
 };
 
 // TODO(epurkhiser, jess): This should be moved into plugins.

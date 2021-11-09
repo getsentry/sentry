@@ -22,13 +22,21 @@ function NewIssue({sampleEvent, eventCount, organization}: Props) {
         <EventOrGroupHeader
           data={sampleEvent}
           organization={organization}
+          grouping
           hideIcons
           hideLevel
         />
         <ExtraInfo>
           <TimeWrapper>
             <StyledIconClock size="11px" />
-            <TimeSince date={sampleEvent.dateCreated} suffix={t('old')} />
+            <TimeSince
+              date={
+                sampleEvent.dateCreated
+                  ? sampleEvent.dateCreated
+                  : sampleEvent.dateReceived
+              }
+              suffix={t('old')}
+            />
           </TimeWrapper>
         </ExtraInfo>
       </EventDetails>
@@ -61,6 +69,7 @@ const TimeWrapper = styled('div')`
 
 const EventCount = styled('div')`
   align-items: center;
+  font-variant-numeric: tabular-nums;
   line-height: 1.1;
 `;
 

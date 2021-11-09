@@ -9,13 +9,15 @@ from sentry.mediators.external_requests import SelectRequester
 class Preparer(Mediator):
     component = Param("sentry.models.SentryAppComponent")
     install = Param("sentry.models.SentryAppInstallation")
-    project = Param("sentry.models.Project")
+    project = Param("sentry.models.Project", required=False, default=None)
 
     def call(self):
         if self.component.type == "issue-link":
             return self._prepare_issue_link()
         if self.component.type == "stacktrace-link":
             return self._prepare_stacktrace_link()
+        if self.component.type == "alert-rule-action":
+            return self._prepare_alert_rule_action()
 
     def _prepare_stacktrace_link(self):
         schema = self.component.schema
@@ -48,6 +50,16 @@ class Preparer(Mediator):
             self._prepare_field(field)
 
         for field in create.get("optional_fields", []):
+            self._prepare_field(field)
+
+    def _prepare_alert_rule_action(self):
+        schema = self.component.schema.copy()
+        settings = schema.get("settings", {})
+
+        for field in settings.get("required_fields", []):
+            self._prepare_field(field)
+
+        for field in settings.get("optional_fields", []):
             self._prepare_field(field)
 
     def _prepare_field(self, field):

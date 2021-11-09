@@ -14,7 +14,7 @@ class UserPasswordSerializer(serializers.Serializer):
 
     def validate_password(self, value):
         user = self.context["user"]
-        if user.has_usable_password and not user.check_password(value):
+        if not user.check_password(value):
             raise serializers.ValidationError("The password you entered is not correct.")
         return value
 

@@ -1,15 +1,15 @@
 import {DebugImage} from 'app/components/events/interfaces/debugMeta/types';
 import {TraceContextType} from 'app/components/events/interfaces/spans/types';
 
-import {Breadcrumb} from './breadcrumbs';
+import {RawCrumb} from './breadcrumbs';
 import {Thread} from './events';
 import {StacktraceType} from './stacktrace';
 import {
-  EventAttachment,
   EventMetadata,
   EventOrGroupType,
   ExceptionType,
   Frame,
+  IssueAttachment,
   PlatformType,
   Release,
   SDKUpdatesSuggestion,
@@ -41,7 +41,7 @@ type EntryDebugMeta = {
 type EntryBreadcrumbs = {
   type: EntryType.BREADCRUMBS;
   data: {
-    values: Array<Breadcrumb>;
+    values: Array<RawCrumb>;
   };
 };
 
@@ -158,11 +158,12 @@ export type Measurement = {value: number};
 export type EventTag = {key: string; value: string};
 
 export type EventUser = {
-  username?: string;
-  name?: string;
+  username?: string | null;
+  name?: string | null;
   ip_address?: string;
   email?: string;
   id?: string;
+  data?: string | null;
 };
 
 type EventBase = {
@@ -176,43 +177,44 @@ type EventBase = {
   eventID: string;
   title: string;
   culprit: string;
-  dateCreated: string;
   dist: string | null;
   metadata: EventMetadata;
   contexts: EventContexts;
-  user: EventUser;
+  user: EventUser | null;
   message: string;
   entries: Entry[];
   errors: any[];
-  previousEventID?: string;
-  nextEventID?: string;
-  projectSlug: string;
   projectID: string;
   tags: EventTag[];
   size: number;
-  location: string;
-  oldestEventID: string | null;
-  latestEventID: string | null;
+  location: string | null;
   groupingConfig: {
     id: string;
     enhancements: string;
   };
-  crashFile: EventAttachment | null;
+  crashFile: IssueAttachment | null;
+  fingerprints: string[];
+  projectSlug?: string;
+  oldestEventID?: string | null;
+  latestEventID?: string | null;
+  previousEventID?: string | null;
+  nextEventID?: string | null;
   groupID?: string;
   context?: Record<string, any>;
+  dateCreated?: string;
   device?: Record<string, any>;
   packages?: Record<string, string>;
   platform?: PlatformType;
-  dateReceived?: string;
+  dateReceived: string;
   endTimestamp?: number;
   userReport?: any;
   sdk?: {
     name: string;
     version: string;
-  };
+  } | null;
   sdkUpdates?: Array<SDKUpdatesSuggestion>;
   measurements?: Record<string, Measurement>;
-  release?: Release;
+  release?: Release | null;
 };
 
 export type EventTransaction = Omit<EventBase, 'entries' | 'type'> & {
@@ -227,7 +229,13 @@ export type EventTransaction = Omit<EventBase, 'entries' | 'type'> & {
 };
 
 export type EventError = Omit<EventBase, 'entries' | 'type'> & {
-  entries: (EntryException | EntryStacktrace | EntryRequest)[];
+  entries: (
+    | EntryException
+    | EntryStacktrace
+    | EntryRequest
+    | EntryThreads
+    | EntryDebugMeta
+  )[];
   type: EventOrGroupType.ERROR;
 };
 

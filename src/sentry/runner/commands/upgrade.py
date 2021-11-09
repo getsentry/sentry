@@ -33,7 +33,7 @@ def _check_history():
     if not row or not row[0]:
         raise click.ClickException(
             "It looks like you've skipped a hard stop in our upgrade process. "
-            "Please follow the upgrade process here: https://develop.sentry.dev/self-hosted/#hard-stops"
+            "Please follow the upgrade process here: https://develop.sentry.dev/self-hosted/releases/#hard-stops"
         )
 
 

@@ -137,7 +137,10 @@ function getDeviceKnownDataDetails(
     case DeviceKnownDataType.BOOT_TIME:
       return {
         subject: t('Boot Time'),
-        value: getRelativeTimeFromEventDateCreated(event.dateCreated, data.boot_time),
+        value: getRelativeTimeFromEventDateCreated(
+          event.dateCreated ? event.dateCreated : event.dateReceived,
+          data.boot_time
+        ),
       };
     case DeviceKnownDataType.TIMEZONE:
       return {

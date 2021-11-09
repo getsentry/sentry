@@ -5,19 +5,18 @@ import {Location} from 'history';
 
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import SearchBar from 'app/components/events/searchBar';
-import FeatureBadge from 'app/components/featureBadge';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import * as TeamKeyTransactionManager from 'app/components/performance/teamKeyTransactionsManager';
 import {MAX_QUERY_LENGTH} from 'app/constants';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Organization, Project, Team} from 'app/types';
+import {Organization, Project} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
 import {generateAggregateFields} from 'app/utils/discover/fields';
-import {isActiveSuperuser} from 'app/utils/isActiveSuperuser';
 import {decodeScalar} from 'app/utils/queryString';
-import {tokenizeSearch} from 'app/utils/tokenizeSearch';
-import withTeams from 'app/utils/withTeams';
+import Teams from 'app/utils/teams';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 
 import Charts from '../charts/index';
 import {
@@ -53,7 +52,6 @@ type Props = {
   eventView: EventView;
   location: Location;
   projects: Project[];
-  teams: Team[];
   setError: (msg: string | undefined) => void;
   handleSearch: (searchQuery: string) => void;
 } & WithRouterProps;
@@ -61,8 +59,8 @@ type Props = {
 type State = {};
 class LandingContent extends Component<Props, State> {
   getSummaryConditions(query: string) {
-    const parsed = tokenizeSearch(query);
-    parsed.query = [];
+    const parsed = new MutableSearch(query);
+    parsed.freeText = [];
 
     return parsed.formatString();
   }
@@ -80,8 +78,8 @@ class LandingContent extends Component<Props, State> {
 
     // Transaction op can affect the display and show no results if it is explicitly set.
     const query = decodeScalar(location.query.query, '');
-    const searchConditions = tokenizeSearch(query);
-    searchConditions.removeTag('transaction.op');
+    const searchConditions = new MutableSearch(query);
+    searchConditions.removeFilter('transaction.op');
 
     trackAnalyticsEvent({
       eventKey: 'performance_views.landingv2.display_change',
@@ -266,13 +264,10 @@ class LandingContent extends Component<Props, State> {
   };
 
   render() {
-    const {organization, location, eventView, projects, teams, handleSearch} = this.props;
+    const {organization, location, eventView, projects, handleSearch} = this.props;
 
     const currentLandingDisplay = getCurrentLandingDisplay(location, projects, eventView);
     const filterString = getTransactionSearchQuery(location, eventView.query);
-
-    const isSuperuser = isActiveSuperuser();
-    const userTeams = teams.filter(({isMember}) => isMember || isSuperuser);
 
     return (
       <Fragment>
@@ -296,7 +291,7 @@ class LandingContent extends Component<Props, State> {
           >
             {LANDING_DISPLAYS.filter(
               ({isShown}) => !isShown || isShown(organization)
-            ).map(({alpha, label, field}) => (
+            ).map(({label, field}) => (
               <DropdownItem
                 key={field}
                 onSelect={this.handleLandingDisplayChange}
@@ -305,19 +300,26 @@ class LandingContent extends Component<Props, State> {
                 isActive={field === currentLandingDisplay.field}
               >
                 {label}
-                {alpha && <FeatureBadge type="alpha" noTooltip />}
               </DropdownItem>
             ))}
           </DropdownControl>
         </SearchContainer>
-        <TeamKeyTransactionManager.Provider
-          organization={organization}
-          teams={userTeams}
-          selectedTeams={['myteams']}
-          selectedProjects={eventView.project.map(String)}
-        >
-          {this.renderSelectedDisplay(currentLandingDisplay.field)}
-        </TeamKeyTransactionManager.Provider>
+        <Teams provideUserTeams>
+          {({teams, initiallyLoaded}) =>
+            initiallyLoaded ? (
+              <TeamKeyTransactionManager.Provider
+                organization={organization}
+                teams={teams}
+                selectedTeams={['myteams']}
+                selectedProjects={eventView.project.map(String)}
+              >
+                {this.renderSelectedDisplay(currentLandingDisplay.field)}
+              </TeamKeyTransactionManager.Provider>
+            ) : (
+              <LoadingIndicator />
+            )
+          }
+        </Teams>
       </Fragment>
     );
   }
@@ -333,4 +335,4 @@ const SearchContainer = styled('div')`
   }
 `;
 
-export default withRouter(withTeams(LandingContent));
+export default withRouter(LandingContent);

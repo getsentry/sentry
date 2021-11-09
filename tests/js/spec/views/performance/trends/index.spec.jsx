@@ -2,13 +2,14 @@ import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {act} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'app/stores/projectsStore';
 import TrendsIndex from 'app/views/performance/trends/';
 import {
   DEFAULT_MAX_DURATION,
-  getTrendsParameters,
   TRENDS_FUNCTIONS,
+  TRENDS_PARAMETERS,
 } from 'app/views/performance/trends/utils';
 
 const trendsViewQuery = {
@@ -72,7 +73,7 @@ function initializeTrendsData(
       },
     },
   });
-  ProjectsStore.loadInitialData(initialData.organization.projects);
+  act(() => ProjectsStore.loadInitialData(initialData.organization.projects));
   return initialData;
 }
 
@@ -172,7 +173,7 @@ describe('Performance > Trends', function () {
   afterEach(function () {
     wrapper.unmount();
     MockApiClient.clearMockResponses();
-    ProjectsStore.reset();
+    act(() => ProjectsStore.reset());
   });
 
   it('renders basic UI elements', async function () {
@@ -393,7 +394,7 @@ describe('Performance > Trends', function () {
     await tick();
     wrapper.update();
 
-    for (const parameter of getTrendsParameters()) {
+    for (const parameter of TRENDS_PARAMETERS) {
       selectTrendParameter(wrapper, parameter.label);
 
       await tick();

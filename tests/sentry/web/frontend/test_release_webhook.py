@@ -1,5 +1,6 @@
 import hmac
 from hashlib import sha256
+from unittest.mock import patch
 
 from django.urls import reverse
 from exam import fixture
@@ -7,7 +8,6 @@ from exam import fixture
 from sentry.models import ProjectOption
 from sentry.testutils import TestCase
 from sentry.utils import json
-from sentry.utils.compat.mock import patch
 
 
 class ReleaseWebhookTestBase(TestCase):
@@ -23,7 +23,7 @@ class ReleaseWebhookTestBase(TestCase):
     def signature(self):
         return hmac.new(
             key=self.token.encode("utf-8"),
-            msg=(f"{self.plugin_id}-{self.project.id}").encode("utf-8"),
+            msg=(f"{self.plugin_id}-{self.project.id}").encode(),
             digestmod=sha256,
         ).hexdigest()
 

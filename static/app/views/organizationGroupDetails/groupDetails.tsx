@@ -1,6 +1,6 @@
 import * as React from 'react';
 import DocumentTitle from 'react-document-title';
-import * as ReactRouter from 'react-router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 import PropTypes from 'prop-types';
 
@@ -22,7 +22,8 @@ import recreateRoute from 'app/utils/recreateRoute';
 import withApi from 'app/utils/withApi';
 
 import {ERROR_TYPES} from './constants';
-import GroupHeader, {TAB} from './header';
+import GroupHeader from './header';
+import {Tab} from './types';
 import {
   fetchGroupEvent,
   getGroupReprocessingStatus,
@@ -35,13 +36,11 @@ type Error = typeof ERROR_TYPES[keyof typeof ERROR_TYPES] | null;
 type Props = {
   api: Client;
   organization: Organization;
+  projects: Project[];
   environments: string[];
   children: React.ReactNode;
   isGlobalSelectionReady: boolean;
-} & ReactRouter.RouteComponentProps<
-  {orgId: string; groupId: string; eventId?: string},
-  {}
->;
+} & RouteComponentProps<{orgId: string; groupId: string; eventId?: string}, {}>;
 
 type State = {
   group: Group | null;
@@ -156,13 +155,13 @@ class GroupDetails extends React.Component<Props, State> {
     }
   }
 
-  getCurrentRouteInfo(group: Group): {currentTab: keyof typeof TAB; baseUrl: string} {
+  getCurrentRouteInfo(group: Group): {currentTab: Tab; baseUrl: string} {
     const {routes, organization} = this.props;
     const {event} = this.state;
 
     // All the routes under /organizations/:orgId/issues/:groupId have a defined props
     const {currentTab, isEventRoute} = routes[routes.length - 1].props as {
-      currentTab: keyof typeof TAB;
+      currentTab: Tab;
       isEventRoute: boolean;
     };
 
@@ -203,10 +202,10 @@ class GroupDetails extends React.Component<Props, State> {
         // Redirects to the Activities tab
         if (
           reprocessingStatus === ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT &&
-          currentTab !== TAB.ACTIVITY
+          currentTab !== Tab.ACTIVITY
         ) {
           return {
-            pathname: `${baseUrl}${TAB.ACTIVITY}/`,
+            pathname: `${baseUrl}${Tab.ACTIVITY}/`,
             query: {...params, groupId: nextGroupId},
           };
         }
@@ -222,7 +221,7 @@ class GroupDetails extends React.Component<Props, State> {
     if (hasReprocessingV2Feature) {
       if (
         reprocessingStatus === ReprocessingStatus.REPROCESSING &&
-        currentTab !== TAB.DETAILS
+        currentTab !== Tab.DETAILS
       ) {
         return {
           pathname: baseUrl,
@@ -232,11 +231,11 @@ class GroupDetails extends React.Component<Props, State> {
 
       if (
         reprocessingStatus === ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT &&
-        currentTab !== TAB.ACTIVITY &&
-        currentTab !== TAB.USER_FEEDBACK
+        currentTab !== Tab.ACTIVITY &&
+        currentTab !== Tab.USER_FEEDBACK
       ) {
         return {
-          pathname: `${baseUrl}${TAB.ACTIVITY}/`,
+          pathname: `${baseUrl}${Tab.ACTIVITY}/`,
           query: params,
         };
       }
@@ -310,7 +309,7 @@ class GroupDetails extends React.Component<Props, State> {
       const reprocessingNewRoute = this.getReprocessingNewRoute(updatedGroup);
 
       if (reprocessingNewRoute) {
-        ReactRouter.browserHistory.push(reprocessingNewRoute);
+        browserHistory.push(reprocessingNewRoute);
         return;
       }
 
@@ -349,7 +348,7 @@ class GroupDetails extends React.Component<Props, State> {
       const reprocessingNewRoute = this.getReprocessingNewRoute(data);
 
       if (reprocessingNewRoute) {
-        ReactRouter.browserHistory.push(reprocessingNewRoute);
+        browserHistory.push(reprocessingNewRoute);
         return;
       }
 
@@ -385,7 +384,7 @@ class GroupDetails extends React.Component<Props, State> {
         // this is not an ideal solution and will ultimately be replaced with
         // something smarter.
         delete locationWithProject.query._allp;
-        ReactRouter.browserHistory.replace(locationWithProject);
+        browserHistory.replace(locationWithProject);
       }
 
       this.setState({project, loadingGroup: false});
@@ -440,11 +439,10 @@ class GroupDetails extends React.Component<Props, State> {
   }
 
   renderError() {
-    const {organization, location} = this.props;
-    const projects = organization.projects ?? [];
+    const {projects, location} = this.props;
     const projectId = location.query.project;
 
-    const projectSlug = projects.find(proj => proj.id === projectId)?.slug;
+    const project = projects.find(proj => proj.id === projectId);
 
     switch (this.state.errorType) {
       case ERROR_TYPES.GROUP_NOT_FOUND:
@@ -456,7 +454,7 @@ class GroupDetails extends React.Component<Props, State> {
         return (
           <MissingProjectMembership
             organization={this.props.organization}
-            projectSlug={projectSlug}
+            project={project}
           />
         );
       default:
@@ -477,7 +475,7 @@ class GroupDetails extends React.Component<Props, State> {
       project,
     };
 
-    if (currentTab === TAB.DETAILS) {
+    if (currentTab === Tab.DETAILS) {
       childProps = {
         ...childProps,
         event,
@@ -488,7 +486,7 @@ class GroupDetails extends React.Component<Props, State> {
       };
     }
 
-    if (currentTab === TAB.TAGS) {
+    if (currentTab === Tab.TAGS) {
       childProps = {...childProps, event, baseUrl};
     }
 

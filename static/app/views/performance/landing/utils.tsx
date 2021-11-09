@@ -1,7 +1,9 @@
+import {ReactText} from 'react';
+import {browserHistory} from 'react-router';
 import {Location} from 'history';
 
 import {t} from 'app/locale';
-import {LightWeightOrganization, Organization, Project} from 'app/types';
+import {Organization, Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {
   formatAbbreviatedNumber,
@@ -11,6 +13,7 @@ import {
 } from 'app/utils/formatters';
 import {HistogramData} from 'app/utils/performance/histogram/types';
 import {decodeScalar} from 'app/utils/queryString';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 
 import {AxisOption, getTermHelp, PERFORMANCE_TERM} from '../data';
 import {Rectangle} from '../transactionSummary/transactionVitals/types';
@@ -54,9 +57,27 @@ export const LANDING_DISPLAYS = [
     field: LandingDisplayField.MOBILE,
     isShown: (organization: Organization) =>
       organization.features.includes('performance-mobile-vitals'),
-    alpha: true,
   },
 ];
+
+export function excludeTransaction(
+  transaction: string | ReactText,
+  props: {eventView: EventView; location: Location}
+) {
+  const {eventView, location} = props;
+
+  const searchConditions = new MutableSearch(eventView.query);
+  searchConditions.addFilterValues('!transaction', [`${transaction}`]);
+
+  browserHistory.push({
+    pathname: location.pathname,
+    query: {
+      ...location.query,
+      cursor: undefined,
+      query: searchConditions.formatString(),
+    },
+  });
+}
 
 export function getCurrentLandingDisplay(
   location: Location,
@@ -74,6 +95,27 @@ export function getCurrentLandingDisplay(
     ({field}) => field === defaultDisplayField
   );
   return defaultDisplay || LANDING_DISPLAYS[0];
+}
+
+export function handleLandingDisplayChange(field: string, location: Location) {
+  const newQuery = {...location.query};
+
+  delete newQuery[LEFT_AXIS_QUERY_KEY];
+  delete newQuery[RIGHT_AXIS_QUERY_KEY];
+
+  // Transaction op can affect the display and show no results if it is explicitly set.
+  const query = decodeScalar(location.query.query, '');
+  const searchConditions = new MutableSearch(query);
+  searchConditions.removeFilter('transaction.op');
+
+  browserHistory.push({
+    pathname: location.pathname,
+    query: {
+      ...newQuery,
+      query: searchConditions.formatString(),
+      landingDisplay: field,
+    },
+  });
 }
 
 export function getChartWidth(chartData: HistogramData, refPixelRect: Rectangle | null) {
@@ -98,6 +140,7 @@ export function getDefaultDisplayFieldForPlatform(
     [PROJECT_PERFORMANCE_TYPE.ANY]: LandingDisplayField.ALL,
     [PROJECT_PERFORMANCE_TYPE.FRONTEND]: LandingDisplayField.FRONTEND_PAGELOAD,
     [PROJECT_PERFORMANCE_TYPE.BACKEND]: LandingDisplayField.BACKEND,
+    [PROJECT_PERFORMANCE_TYPE.MOBILE]: LandingDisplayField.MOBILE,
   };
   const performanceType = platformToPerformanceType(projects, projectIds);
   const landingField =
@@ -112,7 +155,7 @@ type VitalCardDetail = {
 };
 
 export const vitalCardDetails = (
-  organization: LightWeightOrganization
+  organization: Organization
 ): {[key: string]: VitalCardDetail | undefined} => {
   return {
     'p75(transaction.duration)': {
@@ -132,9 +175,7 @@ export const vitalCardDetails = (
     },
     'apdex()': {
       title: t('Apdex'),
-      tooltip: organization.features.includes('project-transaction-threshold')
-        ? getTermHelp(organization, PERFORMANCE_TERM.APDEX_NEW)
-        : getTermHelp(organization, PERFORMANCE_TERM.APDEX),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX_NEW),
       formatter: value => formatFloat(value, 4),
     },
     'p75(measurements.frames_slow_rate)': {

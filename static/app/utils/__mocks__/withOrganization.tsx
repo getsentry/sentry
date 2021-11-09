@@ -19,7 +19,4 @@ const withOrganizationMock = WrappedComponent =>
     }
   };
 
-const isLightweightOrganization = () => {};
-
 export default withOrganizationMock;
-export {isLightweightOrganization};

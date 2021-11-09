@@ -1,7 +1,6 @@
 import * as React from 'react';
 import omit from 'lodash/omit';
 
-import {Client} from 'app/api';
 import GenericDiscoverQuery, {
   DiscoverQueryProps,
   GenericChildrenProps,
@@ -23,12 +22,15 @@ type HistogramProps = {
 
 type RequestProps = DiscoverQueryProps & HistogramProps;
 
-type ChildrenProps = Omit<GenericChildrenProps<HistogramProps>, 'tableData'> & {
+export type HistogramQueryChildrenProps = Omit<
+  GenericChildrenProps<HistogramProps>,
+  'tableData'
+> & {
   histograms: Histograms | null;
 };
 
 type Props = RequestProps & {
-  children: (props: ChildrenProps) => React.ReactNode;
+  children: (props: HistogramQueryChildrenProps) => React.ReactNode;
 };
 
 function getHistogramRequestPayload(props: RequestProps) {
@@ -49,10 +51,6 @@ function getHistogramRequestPayload(props: RequestProps) {
   ]);
   const apiPayload = Object.assign(baseApiPayload, additionalApiPayload);
   return apiPayload;
-}
-
-function beforeFetch(api: Client) {
-  api.clear();
 }
 
 function HistogramQuery(props: Props) {
@@ -88,7 +86,6 @@ function HistogramQuery(props: Props) {
     <GenericDiscoverQuery<Histograms, HistogramProps>
       route="events-histogram"
       getRequestPayload={getHistogramRequestPayload}
-      beforeFetch={beforeFetch}
       didFetch={didFetch}
       {...omit(props, 'children')}
     >

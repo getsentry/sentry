@@ -78,7 +78,7 @@ class OrganizationIntegrationConfigurationTabs(AcceptanceTestCase):
 
             # Add Mapping Modal
             externalName = self.browser.find_element_by_name("externalName")
-            externalName.send_keys("user2")
+            externalName.send_keys("@user2")
             self.browser.click("#userId:first-child div")
             self.browser.click('[id="react-select-2-option-1"]')
             self.browser.snapshot("integrations - save new external user mapping")

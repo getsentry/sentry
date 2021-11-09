@@ -1,9 +1,7 @@
 import enum
 import logging
 
-from django.http import Http404
-
-from sentry.models import IdentityProvider, Integration, Organization
+from sentry.models import Integration
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.compat import filter
 
@@ -84,25 +82,6 @@ def send_incident_alert_notification(action, incident, metric_value, method):
         client.send_card(channel, attachment)
     except ApiError as e:
         logger.info("rule.fail.msteams_post", extra={"error": str(e)})
-
-
-def get_identity(user, organization_id, integration_id):
-    try:
-        organization = Organization.objects.get(id__in=user.get_orgs(), id=organization_id)
-    except Organization.DoesNotExist:
-        raise Http404
-
-    try:
-        integration = Integration.objects.get(id=integration_id, organizations=organization)
-    except Integration.DoesNotExist:
-        raise Http404
-
-    try:
-        idp = IdentityProvider.objects.get(external_id=integration.external_id, type="msteams")
-    except IdentityProvider.DoesNotExist:
-        raise Http404
-
-    return organization, integration, idp
 
 
 def get_preinstall_client(service_url):

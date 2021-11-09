@@ -1,4 +1,5 @@
 from time import time
+from unittest import mock
 
 import pytest
 from django.test.utils import override_settings
@@ -10,10 +11,8 @@ from sentry.tasks.store import (
     preprocess_event,
     process_event,
     save_event,
-    symbolicate_event,
     time_synthetic_monitoring_event,
 )
-from sentry.utils.compat import mock
 
 EVENT_ID = "cc3e6c2bb6b6498097f336d1e6979f4b"
 
@@ -57,7 +56,13 @@ def mock_process_event():
 
 @pytest.fixture
 def mock_symbolicate_event():
-    with mock.patch("sentry.tasks.store.symbolicate_event") as m:
+    with mock.patch("sentry.tasks.symbolication.symbolicate_event") as m:
+        yield m
+
+
+@pytest.fixture
+def mock_symbolicate_event_low_priority():
+    with mock.patch("sentry.tasks.symbolication.symbolicate_event_low_priority") as m:
         yield m
 
 
@@ -69,7 +74,7 @@ def mock_get_symbolication_function():
 
 @pytest.fixture
 def mock_event_processing_store():
-    with mock.patch("sentry.tasks.store.event_processing_store") as m:
+    with mock.patch("sentry.eventstore.processing.event_processing_store") as m:
         yield m
 
 
@@ -98,75 +103,11 @@ def test_move_to_process_event(
         "extra": {"foo": "bar"},
     }
 
-    preprocess_event(data=data)
+    preprocess_event(cache_key="", data=data)
 
     assert mock_symbolicate_event.delay.call_count == 0
     assert mock_process_event.delay.call_count == 1
     assert mock_save_event.delay.call_count == 0
-
-
-@pytest.mark.django_db
-def test_move_to_symbolicate_event(
-    default_project, mock_process_event, mock_save_event, mock_symbolicate_event, register_plugin
-):
-    register_plugin(globals(), BasicPreprocessorPlugin)
-    data = {
-        "project": default_project.id,
-        "platform": "native",
-        "logentry": {"formatted": "test"},
-        "event_id": EVENT_ID,
-        "extra": {"foo": "bar"},
-    }
-
-    preprocess_event(data=data)
-
-    assert mock_symbolicate_event.delay.call_count == 1
-    assert mock_process_event.delay.call_count == 0
-    assert mock_save_event.delay.call_count == 0
-
-
-@pytest.mark.django_db
-def test_symbolicate_event_call_process_inline(
-    default_project,
-    mock_event_processing_store,
-    mock_process_event,
-    mock_save_event,
-    mock_get_symbolication_function,
-    register_plugin,
-):
-    register_plugin(globals(), BasicPreprocessorPlugin)
-    data = {
-        "project": default_project.id,
-        "platform": "native",
-        "event_id": EVENT_ID,
-        "extra": {"foo": "bar"},
-    }
-    mock_event_processing_store.get.return_value = data
-    mock_event_processing_store.store.return_value = "e:1"
-
-    symbolicated_data = {"type": "error"}
-
-    mock_get_symbolication_function.return_value = lambda _: symbolicated_data
-
-    with mock.patch("sentry.tasks.store._do_process_event") as mock_do_process_event:
-        symbolicate_event(cache_key="e:1", start_time=1)
-
-    # The event mutated, so make sure we save it back
-    ((_, (event,), _),) = mock_event_processing_store.store.mock_calls
-
-    assert event == symbolicated_data
-
-    assert mock_save_event.delay.call_count == 0
-    assert mock_process_event.delay.call_count == 0
-    mock_do_process_event.assert_called_once_with(
-        cache_key="e:1",
-        start_time=1,
-        event_id=EVENT_ID,
-        process_task=mock_process_event,
-        data=symbolicated_data,
-        data_has_changed=True,
-        from_symbolicate=True,
-    )
 
 
 @pytest.mark.django_db
@@ -182,7 +123,7 @@ def test_move_to_save_event(
         "extra": {"foo": "bar"},
     }
 
-    preprocess_event(data=data)
+    preprocess_event(cache_key="", data=data)
 
     assert mock_symbolicate_event.delay.call_count == 0
     assert mock_process_event.delay.call_count == 0

@@ -18,6 +18,8 @@ export type RawSpanType = {
   status?: string;
   data: Object;
   tags?: {[key: string]: string};
+  hash?: string;
+  exclusive_time?: number;
 };
 
 export const rawSpanKeys: Set<keyof RawSpanType> = new Set([
@@ -32,6 +34,8 @@ export const rawSpanKeys: Set<keyof RawSpanType> = new Set([
   'status',
   'data',
   'tags',
+  'hash',
+  'exclusive_time',
 ]);
 
 export type OrphanSpanType = {
@@ -71,13 +75,12 @@ export type EnhancedSpan =
   | ({
       type: 'root_span';
       span: SpanType;
-    } & CommonEnhancedProcessedSpanType &
-      SpanGroupProps)
+    } & CommonEnhancedProcessedSpanType)
   | ({
       type: 'span';
       span: SpanType;
-    } & CommonEnhancedProcessedSpanType &
-      SpanGroupProps);
+      toggleSpanGroup: (() => void) | undefined;
+    } & CommonEnhancedProcessedSpanType);
 
 // ProcessedSpanType with additional information
 export type EnhancedProcessedSpanType =
@@ -93,7 +96,13 @@ export type EnhancedProcessedSpanType =
   | {
       type: 'out_of_view';
       span: SpanType;
-    };
+    }
+  | ({
+      type: 'span_group_chain';
+      span: SpanType;
+      treeDepth: number;
+      continuingTreeDepths: Array<TreeDepthType>;
+    } & SpanGroupProps);
 
 export type SpanEntry = {
   type: 'spans';
@@ -112,9 +121,10 @@ export type ParsedTraceType = {
   parentSpanID?: string;
   traceStartTimestamp: number;
   traceEndTimestamp: number;
-  numOfSpans: number;
   spans: SpanType[];
   description?: string;
+  hash?: string;
+  exclusiveTime?: number;
 };
 
 export enum TickAlignment {
@@ -131,6 +141,8 @@ export type TraceContextType = {
   parent_span_id?: string;
   description?: string;
   status?: string;
+  hash?: string;
+  exclusive_time?: number;
 };
 
 type SpanTreeDepth = number;
@@ -170,4 +182,10 @@ export type SpanFuseOptions = {
   location: number;
   distance: number;
   maxPatternLength: number;
+};
+
+export type TraceBound = {
+  spanId: string;
+  traceStartTimestamp: number;
+  traceEndTimestamp: number;
 };

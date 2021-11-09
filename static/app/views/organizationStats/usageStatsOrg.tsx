@@ -245,6 +245,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
         [Outcome.DROPPED]: 0,
         [Outcome.INVALID]: 0, // Combined with dropped later
         [Outcome.RATE_LIMITED]: 0, // Combined with dropped later
+        [Outcome.CLIENT_DISCARD]: 0, // Not exposed yet
       };
 
       orgStats.groups.forEach(group => {
@@ -254,17 +255,27 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
           return;
         }
 
-        count.total += group.totals['sum(quantity)'];
+        if (outcome !== Outcome.CLIENT_DISCARD) {
+          count.total += group.totals['sum(quantity)'];
+        }
+
         count[outcome] += group.totals['sum(quantity)'];
 
         group.series['sum(quantity)'].forEach((stat, i) => {
-          if (outcome === Outcome.ACCEPTED || outcome === Outcome.FILTERED) {
-            usageStats[i][outcome] += stat;
-            return;
+          switch (outcome) {
+            case Outcome.ACCEPTED:
+            case Outcome.FILTERED:
+              usageStats[i][outcome] += stat;
+              return;
+            case Outcome.DROPPED:
+            case Outcome.RATE_LIMITED:
+            case Outcome.INVALID:
+              usageStats[i].dropped.total += stat;
+              // TODO: add client discards to dropped?
+              return;
+            default:
+              return;
           }
-
-          // Breaking down into reasons for dropped is not needed
-          usageStats[i].dropped.total += stat;
         });
       });
 

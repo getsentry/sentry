@@ -14,7 +14,7 @@ import space from 'app/styles/space';
 import {OrganizationSummary} from 'app/types';
 import {decodeScalar} from 'app/utils/queryString';
 
-import {decodeHistogramZoom} from './latencyChart';
+import {decodeHistogramZoom} from './transactionOverview/latencyChart';
 
 type DropdownButtonProps = React.ComponentProps<typeof DropdownButton>;
 
@@ -42,95 +42,93 @@ type Props = {
   onChangeFilter: (newFilter: SpanOperationBreakdownFilter) => void;
 };
 
-class Filter extends React.Component<Props> {
-  render() {
-    const {currentFilter, onChangeFilter, organization} = this.props;
+function Filter(props: Props) {
+  const {currentFilter, onChangeFilter, organization} = props;
 
-    if (!organization.features.includes('performance-ops-breakdown')) {
-      return null;
-    }
+  if (!organization.features.includes('performance-ops-breakdown')) {
+    return null;
+  }
 
-    const dropDownButtonProps: Pick<DropdownButtonProps, 'children' | 'priority'> & {
-      hasDarkBorderBottomColor: boolean;
-    } = {
-      children: (
-        <React.Fragment>
-          <IconFilter size="xs" />
-          <FilterLabel>
-            {currentFilter === SpanOperationBreakdownFilter.None
-              ? t('Filter')
-              : tct('Filter - [operationName]', {
-                  operationName: currentFilter,
-                })}
-          </FilterLabel>
-        </React.Fragment>
-      ),
-      priority: 'default',
-      hasDarkBorderBottomColor: false,
-    };
+  const dropDownButtonProps: Pick<DropdownButtonProps, 'children' | 'priority'> & {
+    hasDarkBorderBottomColor: boolean;
+  } = {
+    children: (
+      <React.Fragment>
+        <IconFilter size="xs" />
+        <FilterLabel>
+          {currentFilter === SpanOperationBreakdownFilter.None
+            ? t('Filter')
+            : tct('Filter - [operationName]', {
+                operationName: currentFilter,
+              })}
+        </FilterLabel>
+      </React.Fragment>
+    ),
+    priority: 'default',
+    hasDarkBorderBottomColor: false,
+  };
 
-    return (
-      <GuideAnchor target="span_op_breakdowns_filter" position="top">
-        <Wrapper>
-          <DropdownControl
-            menuWidth="240px"
-            blendWithActor
-            button={({isOpen, getActorProps}) => (
-              <StyledDropdownButton
-                {...getActorProps()}
-                showChevron={false}
-                isOpen={isOpen}
-                hasDarkBorderBottomColor={dropDownButtonProps.hasDarkBorderBottomColor}
-                priority={dropDownButtonProps.priority as DropdownButtonProps['priority']}
-                data-test-id="filter-button"
-              >
-                {dropDownButtonProps.children}
-              </StyledDropdownButton>
-            )}
+  return (
+    <GuideAnchor target="span_op_breakdowns_filter" position="top">
+      <Wrapper>
+        <DropdownControl
+          menuWidth="240px"
+          blendWithActor
+          button={({isOpen, getActorProps}) => (
+            <StyledDropdownButton
+              {...getActorProps()}
+              showChevron={false}
+              isOpen={isOpen}
+              hasDarkBorderBottomColor={dropDownButtonProps.hasDarkBorderBottomColor}
+              priority={dropDownButtonProps.priority as DropdownButtonProps['priority']}
+              data-test-id="filter-button"
+            >
+              {dropDownButtonProps.children}
+            </StyledDropdownButton>
+          )}
+        >
+          <MenuContent
+            onClick={event => {
+              // propagated clicks will dismiss the menu; we stop this here
+              event.stopPropagation();
+            }}
           >
-            <MenuContent
+            <Header
               onClick={event => {
-                // propagated clicks will dismiss the menu; we stop this here
                 event.stopPropagation();
+                onChangeFilter(SpanOperationBreakdownFilter.None);
               }}
             >
-              <Header
-                onClick={event => {
-                  event.stopPropagation();
-                  onChangeFilter(SpanOperationBreakdownFilter.None);
-                }}
-              >
-                <HeaderTitle>{t('Operation')}</HeaderTitle>
-                <Radio
-                  radioSize="small"
-                  checked={SpanOperationBreakdownFilter.None === currentFilter}
-                />
-              </Header>
-              <List>
-                {Array.from([...OPTIONS], (filterOption, index) => {
-                  const operationName = filterOption;
-                  return (
-                    <ListItem
-                      key={String(index)}
-                      isChecked={false}
-                      onClick={event => {
-                        event.stopPropagation();
-                        onChangeFilter(filterOption);
-                      }}
-                    >
-                      <OperationDot backgroundColor={pickBarColor(operationName)} />
-                      <OperationName>{operationName}</OperationName>
-                      <Radio radioSize="small" checked={filterOption === currentFilter} />
-                    </ListItem>
-                  );
-                })}
-              </List>
-            </MenuContent>
-          </DropdownControl>
-        </Wrapper>
-      </GuideAnchor>
-    );
-  }
+              <HeaderTitle>{t('Operation')}</HeaderTitle>
+              <Radio
+                radioSize="small"
+                checked={SpanOperationBreakdownFilter.None === currentFilter}
+              />
+            </Header>
+            <List>
+              {Array.from([...OPTIONS], (filterOption, index) => {
+                const operationName = filterOption;
+                return (
+                  <ListItem
+                    key={String(index)}
+                    isChecked={false}
+                    onClick={event => {
+                      event.stopPropagation();
+                      onChangeFilter(filterOption);
+                    }}
+                  >
+                    <OperationDot backgroundColor={pickBarColor(operationName)} />
+                    <OperationName>{operationName}</OperationName>
+                    <Radio radioSize="small" checked={filterOption === currentFilter} />
+                  </ListItem>
+                );
+              })}
+            </List>
+          </MenuContent>
+        </DropdownControl>
+      </Wrapper>
+    </GuideAnchor>
+  );
 }
 
 const FilterLabel = styled('span')`

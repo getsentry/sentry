@@ -1,22 +1,20 @@
 import {PureComponent} from 'react';
 
+import TeamSelector from 'app/components/forms/teamSelector';
 import {Panel, PanelBody} from 'app/components/panels';
-import SelectMembers from 'app/components/selectMembers';
 import {t} from 'app/locale';
-import {Organization, Project} from 'app/types';
+import {Project, Team} from 'app/types';
 import FormField from 'app/views/settings/components/forms/formField';
 import TextField from 'app/views/settings/components/forms/textField';
 
 type Props = {
   disabled: boolean;
   project: Project;
-  organization: Organization;
-  userTeamIds: string[];
 };
 
 class RuleNameOwnerForm extends PureComponent<Props> {
   render() {
-    const {disabled, project, organization, userTeamIds} = this.props;
+    const {disabled, project} = this.props;
     return (
       <Panel>
         <PanelBody>
@@ -38,22 +36,16 @@ class RuleNameOwnerForm extends PureComponent<Props> {
             {({model}) => {
               const owner = model.getValue('owner');
               const ownerId = owner && owner.split(':')[1];
-              const filteredTeamIds = new Set(userTeamIds);
-              // Add the current team that owns the alert
-              if (ownerId) {
-                filteredTeamIds.add(ownerId);
-              }
               return (
-                <SelectMembers
-                  showTeam
-                  project={project}
-                  organization={organization}
+                <TeamSelector
                   value={ownerId}
+                  project={project}
                   onChange={({value}) => {
                     const ownerValue = value && `team:${value}`;
                     model.setValue('owner', ownerValue);
                   }}
-                  filteredTeamIds={filteredTeamIds}
+                  teamFilter={(team: Team) => team.isMember || team.id === ownerId}
+                  useId
                   includeUnassigned
                   disabled={disabled}
                 />

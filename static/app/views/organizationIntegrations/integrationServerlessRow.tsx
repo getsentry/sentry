@@ -12,7 +12,7 @@ import Switch from 'app/components/switchButton';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {IntegrationWithConfig, Organization, ServerlessFunction} from 'app/types';
-import {trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {trackIntegrationAnalytics} from 'app/utils/integrationUtil';
 import withApi from 'app/utils/withApi';
 
 type Props = {
@@ -40,15 +40,12 @@ class IntegrationServerlessRow extends Component<Props, State> {
   }
 
   recordAction = (action: 'enable' | 'disable' | 'updateVersion') => {
-    trackIntegrationEvent(
-      'integrations.serverless_function_action',
-      {
-        integration: this.props.integration.provider.key,
-        integration_type: 'first_party',
-        action,
-      },
-      this.props.organization
-    );
+    trackIntegrationAnalytics('integrations.serverless_function_action', {
+      integration: this.props.integration.provider.key,
+      integration_type: 'first_party',
+      action,
+      organization: this.props.organization,
+    });
   };
   toggleEnable = async () => {
     const {serverlessFunction} = this.props;

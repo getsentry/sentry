@@ -40,7 +40,7 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
       routerContext
     );
 
-    const assignTeamButton = wrapper.find('Link[aria-label="Assign Team"]');
+    const assignTeamButton = wrapper.find('Link[aria-label="Assign Team"]').at(0);
     expect(assignTeamButton.prop('to')).toBe(
       '/settings/org-slug/projects/project-slug/teams/'
     );

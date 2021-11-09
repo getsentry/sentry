@@ -153,7 +153,7 @@ class GroupTest(TestCase, SnubaTestCase):
 
     def test_invalid_shared_id(self):
         with pytest.raises(Group.DoesNotExist):
-            Group.from_share_id("adc7a5b902184ce3818046302e94f8ec")
+            Group.objects.from_share_id("adc7a5b902184ce3818046302e94f8ec")
 
     def test_qualified_share_id(self):
         project = self.create_project(name="foo bar")

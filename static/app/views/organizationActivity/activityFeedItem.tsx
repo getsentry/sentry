@@ -1,5 +1,4 @@
 import {Component, createRef} from 'react';
-import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
 import ActivityAvatar from 'app/components/activity/item/avatar';
@@ -7,6 +6,7 @@ import CommitLink from 'app/components/commitLink';
 import Duration from 'app/components/duration';
 import IssueLink from 'app/components/issueLink';
 import ExternalLink from 'app/components/links/externalLink';
+import Link from 'app/components/links/link';
 import PullRequestLink from 'app/components/pullRequestLink';
 import TimeSince from 'app/components/timeSince';
 import Version from 'app/components/version';
@@ -169,7 +169,8 @@ class ActivityItem extends Component<Props, State> {
             duration: <Duration seconds={data.ignoreDuration * 60} />,
             issue: issueLink,
           });
-        } else if (data.ignoreCount && data.ignoreWindow) {
+        }
+        if (data.ignoreCount && data.ignoreWindow) {
           return tct(
             '[author] ignored [issue] until it happens [count] time(s) in [duration]',
             {
@@ -179,13 +180,15 @@ class ActivityItem extends Component<Props, State> {
               issue: issueLink,
             }
           );
-        } else if (data.ignoreCount) {
+        }
+        if (data.ignoreCount) {
           return tct('[author] ignored [issue] until it happens [count] time(s)', {
             author,
             count: data.ignoreCount,
             issue: issueLink,
           });
-        } else if (data.ignoreUserCount && data.ignoreUserWindow) {
+        }
+        if (data.ignoreUserCount && data.ignoreUserWindow) {
           return tct(
             '[author] ignored [issue] until it affects [count] user(s) in [duration]',
             {
@@ -195,7 +198,8 @@ class ActivityItem extends Component<Props, State> {
               issue: issueLink,
             }
           );
-        } else if (data.ignoreUserCount) {
+        }
+        if (data.ignoreUserCount) {
           return tct('[author] ignored [issue] until it affects [count] user(s)', {
             author,
             count: data.ignoreUserCount,
@@ -279,7 +283,8 @@ class ActivityItem extends Component<Props, State> {
             assignee: <span title={assignee.email}>{assignee.name}</span>,
             issue: issueLink,
           });
-        } else if (data.assigneeEmail) {
+        }
+        if (data.assigneeEmail) {
           return tct('[author] assigned [issue] to [assignee]', {
             author,
             assignee: data.assigneeEmail,

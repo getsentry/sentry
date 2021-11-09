@@ -1,25 +1,18 @@
+from unittest.mock import Mock, patch
 from urllib.parse import parse_qs, urlparse
 
 import pytest
 import responses
+from exam import mock
 
 from sentry.integrations.vsts import VstsIntegration, VstsIntegrationProvider
 from sentry.models import (
     Integration,
     IntegrationExternalProject,
     OrganizationIntegration,
-    Project,
     Repository,
 )
-from sentry.plugins.base import plugins
-from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.testutils.helpers import with_feature
-from sentry.utils.compat.mock import Mock, patch
-from tests.sentry.plugins.testutils import (
-    VstsPlugin,
-    register_mock_plugins,
-    unregister_mock_plugins,
-)
+from sentry.shared_integrations.exceptions import IntegrationError, IntegrationProviderError
 
 from .testutils import CREATE_SUBSCRIPTION, VstsIntegrationTestCase
 
@@ -32,10 +25,8 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
 
     def setUp(self):
         super().setUp()
-        register_mock_plugins()
 
     def tearDown(self):
-        unregister_mock_plugins()
         super().tearDown()
 
     def test_basic_flow(self):
@@ -53,20 +44,6 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
             "vso.serviceendpoint_manage",
             "vso.work_write",
         ]
-        assert metadata["subscription"]["id"] == CREATE_SUBSCRIPTION["id"]
-        assert metadata["domain_name"] == self.vsts_base_url
-
-    @with_feature("organizations:integrations-vsts-limited-scopes")
-    def test_limited_scopes_flow(self):
-        self.assert_installation()
-
-        integration = Integration.objects.get(provider="vsts")
-
-        assert integration.external_id == self.vsts_account_id
-        assert integration.name == self.vsts_account_name
-
-        metadata = integration.metadata
-        assert metadata["scopes"] == LIMITED_SCOPES
         assert metadata["subscription"]["id"] == CREATE_SUBSCRIPTION["id"]
         assert metadata["domain_name"] == self.vsts_base_url
 
@@ -97,60 +74,10 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
 
         assert Repository.objects.get(id=inaccessible_repo.id).integration_id is None
 
-    def setup_plugin_test(self):
-        self.project = Project.objects.create(organization_id=self.organization.id)
-        VstsPlugin().enable(project=self.project)
-
-    def test_disabled_plugin_when_fully_migrated(self):
-        self.setup_plugin_test()
-
-        Repository.objects.create(
-            organization_id=self.organization.id,
-            name=self.project_a["name"],
-            url=f"https://{self.vsts_account_name}.visualstudio.com/_git/{self.repo_name}",
-            provider="visualstudio",
-            external_id=self.repo_id,
-            config={"name": self.project_a["name"], "project": self.project_a["name"]},
-        )
-
-        # Enabled before Integration installation
-        assert "vsts" in [p.slug for p in plugins.for_project(self.project)]
-
-        with self.tasks():
-            self.assert_installation()
-
-        # Disabled
-        assert "vsts" not in [p.slug for p in plugins.for_project(self.project)]
-
-    def test_doesnt_disable_plugin_when_partially_migrated(self):
-        self.setup_plugin_test()
-
-        # Repo accessible by new Integration
-        Repository.objects.create(
-            organization_id=self.organization.id,
-            name=self.project_a["name"],
-            url=f"https://{self.vsts_account_name}.visualstudio.com/_git/{self.repo_name}",
-            provider="visualstudio",
-            external_id=self.repo_id,
-        )
-
-        # Inaccessible Repo - causes plugin to stay enabled
-        Repository.objects.create(
-            organization_id=self.organization.id,
-            name="NotReachable",
-            url="https://randoaccount.visualstudio.com/Product/_git/NotReachable",
-            provider="visualstudio",
-            external_id="123456789",
-        )
-        self.assert_installation()
-
-        # Still enabled
-        assert "vsts" in [p.slug for p in plugins.for_project(self.project)]
-
     def test_accounts_list_failure(self):
         responses.replace(
             responses.GET,
-            "https://app.vssps.visualstudio.com/_apis/accounts?ownerId=%s&api-version=4.1"
+            "https://app.vssps.visualstudio.com/_apis/accounts?memberId=%s&api-version=4.1"
             % self.vsts_user_id,
             status=403,
             json={"$id": 1, "message": "Your account is not good"},
@@ -185,7 +112,11 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
 
         # The above already created the Webhook, so subsequent calls to
         # ``build_integration`` should omit that data.
-        data = VstsIntegrationProvider().build_integration(state)
+        provider = VstsIntegrationProvider()
+        pipeline = Mock()
+        pipeline.organization = self.organization
+        provider.set_pipeline(pipeline)
+        data = provider.build_integration(state)
         assert "subscription" in data["metadata"]
         assert (
             Integration.objects.get(provider="vsts").metadata["subscription"]
@@ -271,7 +202,7 @@ class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
 
         integration = VstsIntegrationProvider()
 
-        with pytest.raises(IntegrationError) as err:
+        with pytest.raises(IntegrationProviderError) as err:
             integration.build_integration(state)
         assert "sufficient account access to create webhooks" in str(err)
 
@@ -304,7 +235,7 @@ class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
 
         integration = VstsIntegrationProvider()
 
-        with pytest.raises(IntegrationError) as err:
+        with pytest.raises(IntegrationProviderError) as err:
             integration.build_integration(state)
         assert "sufficient account access to create webhooks" in str(err)
 
@@ -513,3 +444,15 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
         )
         with pytest.raises(IntegrationError):
             installation.get_repositories()
+
+    def test_update_comment(self):
+        self.assert_installation()
+        integration = Integration.objects.get(provider="vsts")
+        installation = integration.get_installation(self.organization.id)
+
+        group_note = mock.Mock()
+        comment = "hello world\nThis is a comment.\n\n\n    I've changed it"
+        group_note.data = {"text": comment, "external_id": "123"}
+
+        # Does nothing.
+        installation.update_comment(1, self.user.id, group_note)

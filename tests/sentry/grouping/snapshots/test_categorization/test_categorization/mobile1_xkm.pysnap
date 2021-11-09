@@ -1,5 +1,5 @@
 ---
-created: '2021-03-29T22:02:40.657416Z'
+created: '2021-08-06T16:25:45.208749Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -10,9 +10,9 @@ KeyStoreException:Invalid key blob (thread_id:_, crashed:_)
   com.android.internal.os.RuntimeInit$Method  run category=internals
                     java.lang.reflect.Method  invoke category=indirection
                   android.app.ActivityThread  main category=threadbase
-                           android.os.Looper  loop category=system
-                          android.os.Handler  dispatchMessage category=internals
-                          android.os.Handler  handleCallback category=internals
+                           android.os.Looper  loop category=threadbase
+                          android.os.Handler  dispatchMessage category=threadbase
+                          android.os.Handler  handleCallback category=threadbase
                                               stripped_application_code
                                               stripped_application_code
                                               stripped_application_code
@@ -51,9 +51,9 @@ InvalidKeyException:Keystore operation failed (thread_id:_, crashed:_)
   com.android.internal.os.RuntimeInit$Method  run category=internals
                     java.lang.reflect.Method  invoke category=indirection
                   android.app.ActivityThread  main category=threadbase
-                           android.os.Looper  loop category=system
-                          android.os.Handler  dispatchMessage category=internals
-                          android.os.Handler  handleCallback category=internals
+                           android.os.Looper  loop category=threadbase
+                          android.os.Handler  dispatchMessage category=threadbase
+                          android.os.Handler  handleCallback category=threadbase
                                               stripped_application_code
                                               stripped_application_code
                                               stripped_application_code
@@ -92,9 +92,9 @@ KeyStoreException:the master key android-keystore://_androidx_security_master_ke
   com.android.internal.os.RuntimeInit$Method  run category=internals
                     java.lang.reflect.Method  invoke category=indirection
                   android.app.ActivityThread  main category=threadbase
-                           android.os.Looper  loop category=system
-                          android.os.Handler  dispatchMessage category=internals
-                          android.os.Handler  handleCallback category=internals
+                           android.os.Looper  loop category=threadbase
+                          android.os.Handler  dispatchMessage category=threadbase
+                          android.os.Handler  handleCallback category=threadbase
                                               stripped_application_code
                                               stripped_application_code
                                               stripped_application_code

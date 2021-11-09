@@ -1,9 +1,10 @@
+from unittest.mock import patch
+
 from jwt import ExpiredSignatureError
 
 from sentry.integrations.atlassian_connect import AtlassianConnectValidationError
 from sentry.models import Integration
 from sentry.testutils import APITestCase
-from sentry.utils.compat.mock import patch
 from sentry.utils.http import absolute_uri
 
 UNABLE_TO_VERIFY_INSTALLATION = b"Unable to verify installation"

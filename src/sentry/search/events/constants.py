@@ -3,7 +3,10 @@ import re
 from sentry.snuba.dataset import Dataset
 from sentry.utils.snuba import DATASETS
 
-KEY_TRANSACTION_ALIAS = "key_transaction"
+TIMEOUT_ERROR_MESSAGE = """
+Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects. Also consider a
+filter on the transaction field if you're filtering performance data.
+"""
 PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS = "project_threshold_config_index"
 PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS = "project_threshold_override_config_index"
 PROJECT_THRESHOLD_CONFIG_ALIAS = "project_threshold_config"
@@ -59,6 +62,9 @@ ARRAY_FIELDS = {
     "stack.module",
     "stack.package",
     "stack.stack_level",
+    "spans_op",
+    "spans_group",
+    "spans_exclusive_time",
 }
 
 CONFIGURABLE_AGGREGATES = {
@@ -86,17 +92,24 @@ DEFAULT_PROJECT_THRESHOLD_METRIC = "duration"
 DEFAULT_PROJECT_THRESHOLD = 300
 MAX_QUERYABLE_TRANSACTION_THRESHOLDS = 500
 
-
 OPERATOR_NEGATION_MAP = {
     "=": "!=",
+    "!=": "=",
     "<": ">=",
     "<=": ">",
     ">": "<=",
     ">=": "<",
     "IN": "NOT IN",
+    "NOT IN": "IN",
 }
 OPERATOR_TO_DJANGO = {">=": "gte", "<=": "lte", ">": "gt", "<": "lt", "=": "exact"}
 
 MAX_SEARCH_RELEASES = 1000
 SEMVER_EMPTY_RELEASE = "____SENTRY_EMPTY_RELEASE____"
 SEMVER_WILDCARDS = frozenset(["X", "*"])
+
+# In Performance TPM is used as an alias to EPM
+FUNCTION_ALIASES = {
+    "tpm": "epm",
+    "tps": "eps",
+}

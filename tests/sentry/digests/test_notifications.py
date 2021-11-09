@@ -14,8 +14,8 @@ from sentry.digests.notifications import (
     split_key,
     unsplit_key,
 )
-from sentry.mail.adapter import ActionTargetType
 from sentry.models import Rule
+from sentry.notifications.types import ActionTargetType
 from sentry.testutils import TestCase
 
 

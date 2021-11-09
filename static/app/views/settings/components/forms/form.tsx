@@ -12,8 +12,7 @@ import FormContext, {
   FormContextData,
 } from 'app/views/settings/components/forms/formContext';
 import FormModel, {FormOptions} from 'app/views/settings/components/forms/model';
-
-type Data = Record<string, any>;
+import {Data, OnSubmitCallback} from 'app/views/settings/components/forms/type';
 
 type RenderProps = {
   model: FormModel;
@@ -22,11 +21,20 @@ type RenderProps = {
 type RenderFunc = (props: RenderProps) => React.ReactNode;
 
 type Props = {
+  /**
+   * The HTTP method to use.
+   */
   apiMethod?: APIRequestMethod;
+  /**
+   * The URL to the API endpoint this form submits to.
+   */
   apiEndpoint?: string;
   children?: React.ReactNode | RenderFunc;
   className?: string;
   cancelLabel?: string;
+  /**
+   * Should the submit button be disabled.
+   */
   submitDisabled?: boolean;
   submitLabel?: string;
   submitPriority?: React.ComponentProps<typeof Button>['priority'];
@@ -34,28 +42,45 @@ type Props = {
   footerStyle?: React.CSSProperties;
   extraButton?: React.ReactNode;
   initialData?: Data;
-  // Require changes before able to submit form
+  /**
+   * Are changed required before the form can be submitted.
+   */
   requireChanges?: boolean;
-  // Reset form when there are errors; after submit
+  /**
+   * Should the form reset its state when there are errors after submission.
+   */
   resetOnError?: boolean;
   hideFooter?: boolean;
   allowUndo?: boolean;
-  // Save field on control blur
+  /**
+   * Should fields save individually as they are blurred.
+   */
   saveOnBlur?: boolean;
+  /**
+   * A FormModel instance. If undefined a FormModel will be created for you.
+   */
   model?: FormModel;
-  // if set to true, preventDefault is not called
+  /**
+   * If set to true, preventDefault is not called
+   */
   skipPreventDefault?: boolean;
   additionalFieldProps?: {[key: string]: any};
   'data-test-id'?: string;
 
+  /**
+   * Callback fired when the form is cancelled via the cancel button.
+   */
   onCancel?: (e: React.MouseEvent) => void;
-  onSubmit?: (
-    data: Data,
-    onSubmitSuccess: (data: Data) => void,
-    onSubmitError: (error: any) => void,
-    e: React.FormEvent,
-    model: FormModel
-  ) => void;
+  /**
+   * Callback to handle form submission.
+   *
+   * Defining this prop will replace the normal API submission behavior
+   * and instead only call the provided callback.
+   *
+   * Your callback is expected to call `onSubmitSuccess` when the action succeeds and
+   * `onSubmitError` when the action fails.
+   */
+  onSubmit?: OnSubmitCallback;
   onPreSubmit?: () => void;
 } & Pick<FormOptions, 'onSubmitSuccess' | 'onSubmitError' | 'onFieldChange'>;
 
@@ -224,7 +249,7 @@ const StyledFooter = styled('div')<{saveOnBlur?: boolean}>`
   display: flex;
   justify-content: flex-end;
   margin-top: 25px;
-  border-top: 1px solid #e9ebec;
+  border-top: 1px solid ${p => p.theme.innerBorder};
   background: none;
   padding: 16px 0 0;
   margin-bottom: 16px;

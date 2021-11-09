@@ -1,8 +1,16 @@
+from typing import Any
+
 import pytest
 from django.utils.functional import cached_property
 
 from sentry.incidents.models import IncidentActivityType
-from sentry.models import Activity, Integration, OrganizationMember, OrganizationMemberTeam
+from sentry.models import (
+    Activity,
+    Integration,
+    Organization,
+    OrganizationMember,
+    OrganizationMemberTeam,
+)
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
@@ -334,6 +342,29 @@ class Fixtures:
             code_mapping = self.create_code_mapping(self.project, self.repo)
 
         return Factories.create_codeowners(project=project, code_mapping=code_mapping, **kwargs)
+
+    def create_slack_integration(
+        self,
+        organization: "Organization",
+        external_id: str = "TXXXXXXX1",
+        **kwargs: Any,
+    ):
+        integration = Factories.create_slack_integration(
+            organization=organization, external_id=external_id, **kwargs
+        )
+        idp = Factories.create_identity_provider(integration=integration)
+        Factories.create_identity(organization.get_default_owner(), idp, "UXXXXXXX1")
+
+        return integration
+
+    def create_identity(self, *args, **kwargs):
+        return Factories.create_identity(*args, **kwargs)
+
+    def create_identity_provider(self, *args, **kwargs):
+        return Factories.create_identity_provider(*args, **kwargs)
+
+    def create_group_history(self, *args, **kwargs):
+        return Factories.create_group_history(*args, **kwargs)
 
     @pytest.fixture(autouse=True)
     def _init_insta_snapshot(self, insta_snapshot):

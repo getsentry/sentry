@@ -10,6 +10,7 @@ from sentry.api.serializers.rest_framework.group_notes import NoteSerializer
 from sentry.api.serializers.rest_framework.mentions import extract_user_ids_from_mentions
 from sentry.models import Activity, GroupSubscription
 from sentry.notifications.types import GroupSubscriptionReason
+from sentry.types.activity import ActivityType
 from sentry.utils.functional import extract_lazy_object
 
 
@@ -65,15 +66,9 @@ class GroupNotesEndpoint(GroupEndpoint):
             reason=GroupSubscriptionReason.team_mentioned,
         )
 
-        activity = Activity.objects.create(
-            group=group,
-            project=group.project,
-            type=Activity.NOTE,
-            user=extract_lazy_object(request.user),
-            data=data,
+        activity = Activity.objects.create_group_activity(
+            group, ActivityType.NOTE, user=extract_lazy_object(request.user), data=data
         )
-
-        activity.send_notification()
 
         self.create_external_comment(request, group, activity)
         return Response(serialize(activity, request.user), status=201)

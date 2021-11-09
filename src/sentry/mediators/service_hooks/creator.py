@@ -1,4 +1,4 @@
-from collections import Iterable
+from collections.abc import Iterable
 from itertools import chain
 
 from sentry.mediators import Mediator, Param

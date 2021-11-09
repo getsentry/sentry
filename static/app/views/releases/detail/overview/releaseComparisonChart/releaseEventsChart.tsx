@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
-import {withRouter} from 'react-router';
-import {WithRouterProps} from 'react-router/lib/withRouter';
-import {withTheme} from '@emotion/react';
+import {withRouter, WithRouterProps} from 'react-router';
+import {useTheme} from '@emotion/react';
+import {EChartOption} from 'echarts';
 
 import {Client} from 'app/api';
 import EventsChart from 'app/components/charts/eventsChart';
@@ -10,23 +10,32 @@ import {HeaderTitleLegend, HeaderValue} from 'app/components/charts/styles';
 import {getInterval} from 'app/components/charts/utils';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {t} from 'app/locale';
-import {DateString, Organization, ReleaseComparisonChartType} from 'app/types';
-import {Theme} from 'app/utils/theme';
-import {QueryResults} from 'app/utils/tokenizeSearch';
-import withApi from 'app/utils/withApi';
+import {
+  DateString,
+  Organization,
+  ReleaseComparisonChartType,
+  ReleaseProject,
+  ReleaseWithHealth,
+} from 'app/types';
+import {tooltipFormatter} from 'app/utils/discover/charts';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
+import useApi from 'app/utils/useApi';
 import withOrganization from 'app/utils/withOrganization';
 import {getTermHelp, PERFORMANCE_TERM} from 'app/views/performance/data';
 
-import {releaseComparisonChartTitles} from '../../utils';
+import {
+  generateReleaseMarkLines,
+  releaseComparisonChartTitles,
+  releaseMarkLinesLabels,
+} from '../../utils';
 
 type Props = WithRouterProps & {
-  version: string;
+  release: ReleaseWithHealth;
+  project: ReleaseProject;
   chartType: ReleaseComparisonChartType;
   value: React.ReactNode;
   diff: React.ReactNode;
-  theme: Theme;
   organization: Organization;
-  api: Client;
   period?: string;
   start?: string;
   end?: string;
@@ -34,13 +43,12 @@ type Props = WithRouterProps & {
 };
 
 function ReleaseEventsChart({
-  version,
+  release,
+  project,
   chartType,
   value,
   diff,
-  theme,
   organization,
-  api,
   router,
   period,
   start,
@@ -48,13 +56,16 @@ function ReleaseEventsChart({
   utc,
   location,
 }: Props) {
+  const api = useApi();
+  const theme = useTheme();
+
   function getColors() {
     const colors = theme.charts.getColorPalette(14);
     switch (chartType) {
       case ReleaseComparisonChartType.ERROR_COUNT:
         return [colors[12]];
       case ReleaseComparisonChartType.TRANSACTION_COUNT:
-        return [theme.gray300];
+        return [colors[0]];
       case ReleaseComparisonChartType.FAILURE_RATE:
         return [colors[9]];
       default:
@@ -63,18 +74,24 @@ function ReleaseEventsChart({
   }
 
   function getQuery() {
-    const releaseFilter = `release:${version}`;
+    const releaseFilter = `release:${release.version}`;
 
     switch (chartType) {
       case ReleaseComparisonChartType.ERROR_COUNT:
-        return new QueryResults([
+        return new MutableSearch([
           '!event.type:transaction',
           releaseFilter,
         ]).formatString();
       case ReleaseComparisonChartType.TRANSACTION_COUNT:
-        return new QueryResults(['event.type:transaction', releaseFilter]).formatString();
+        return new MutableSearch([
+          'event.type:transaction',
+          releaseFilter,
+        ]).formatString();
       case ReleaseComparisonChartType.FAILURE_RATE:
-        return new QueryResults(['event.type:transaction', releaseFilter]).formatString();
+        return new MutableSearch([
+          'event.type:transaction',
+          releaseFilter,
+        ]).formatString();
       default:
         return '';
     }
@@ -117,6 +134,7 @@ function ReleaseEventsChart({
 
   const projects = location.query.project;
   const environments = location.query.environment;
+  const markLines = generateReleaseMarkLines(release, project, theme, location);
 
   return (
     /**
@@ -136,11 +154,12 @@ function ReleaseEventsChart({
       interval={getInterval({start, end, period, utc}, 'high')}
       query="event.type:transaction"
       includePrevious={false}
-      currentSeriesName={t('All Releases')}
+      currentSeriesNames={[t('All Releases')]}
       yAxis={getYAxis()}
       field={getField()}
       confirmedQuery={chartType === ReleaseComparisonChartType.FAILURE_RATE}
       partial
+      referrer="api.releases.release-details-chart"
     >
       {({timeseriesData, loading, reloading}) => (
         <EventsChart
@@ -180,19 +199,32 @@ function ReleaseEventsChart({
           legendOptions={{right: 10, top: 0}}
           chartOptions={{
             grid: {left: '10px', right: '10px', top: '70px', bottom: '0px'},
+            tooltip: {
+              trigger: 'axis',
+              truncate: 80,
+              valueFormatter: (val: number, label?: string) => {
+                if (label && Object.values(releaseMarkLinesLabels).includes(label)) {
+                  return '';
+                }
+
+                return tooltipFormatter(val, getYAxis());
+              },
+            } as EChartOption.Tooltip,
           }}
           usePageZoom
           height={240}
+          seriesTransformer={series => [...series, ...markLines]}
           previousSeriesTransformer={series => {
             if (chartType === ReleaseComparisonChartType.FAILURE_RATE) {
               return timeseriesData?.[0];
             }
             return series;
           }}
+          referrer="api.releases.release-details-chart"
         />
       )}
     </EventsRequest>
   );
 }
 
-export default withOrganization(withTheme(withRouter(withApi(ReleaseEventsChart))));
+export default withOrganization(withRouter(ReleaseEventsChart));

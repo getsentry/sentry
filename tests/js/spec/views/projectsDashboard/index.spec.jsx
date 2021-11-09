@@ -1,4 +1,5 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {act} from 'sentry-test/reactTestingLibrary';
 
 import * as projectsActions from 'app/actionCreators/projects';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
@@ -292,7 +293,9 @@ describe('ProjectsDashboard', function () {
       expect(wrapper.find('Chart')).toHaveLength(6);
 
       // Resets store when it unmounts
-      wrapper.unmount();
+      act(() => {
+        wrapper.unmount();
+      });
       expect(ProjectsStatsStore.getAll()).toEqual({});
     });
 

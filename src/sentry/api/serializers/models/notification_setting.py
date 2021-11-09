@@ -2,6 +2,7 @@ from collections import defaultdict
 from typing import Any, Iterable, Mapping, MutableMapping, Optional, Set, Union
 
 from sentry.api.serializers import Serializer
+from sentry.features.helpers import any_organization_has_feature
 from sentry.models import NotificationSetting, Team, User
 from sentry.notifications.helpers import get_fallback_settings
 from sentry.notifications.types import VALID_VALUES_FOR_KEY, NotificationSettingTypes
@@ -16,10 +17,10 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
 
     def get_attrs(
         self,
-        item_list: Union[Iterable[Team], Iterable[User]],
+        item_list: Iterable[Union["Team", "User"]],
         user: User,
         **kwargs: Any,
-    ) -> Mapping[Union[User, Team], Mapping[str, Iterable[Any]]]:
+    ) -> Mapping[Union["Team", "User"], Mapping[str, Iterable[Any]]]:
         """
         This takes a list of recipients (which are either Users or Teams,
         because both can have Notification Settings). The function
@@ -40,7 +41,7 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
             target_ids=actor_mapping.keys(),
         )
 
-        results: MutableMapping[Union[User, Team], MutableMapping[str, Set[Any]]] = defaultdict(
+        results: MutableMapping[Union["Team", "User"], MutableMapping[str, Set[Any]]] = defaultdict(
             lambda: defaultdict(set)
         )
 
@@ -62,7 +63,7 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
 
     def serialize(
         self,
-        obj: Union[User, Team],
+        obj: Union["Team", "User"],
         attrs: Mapping[str, Iterable[Any]],
         user: User,
         **kwargs: Any,
@@ -95,12 +96,21 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
         """
         type_option: Optional[NotificationSettingTypes] = kwargs.get("type")
         types_to_serialize = {type_option} if type_option else set(VALID_VALUES_FOR_KEY.keys())
-        user = obj if type(obj) == User else None
 
         project_ids = {_.id for _ in attrs["projects"]}
         organization_ids = {_.id for _ in attrs["organizations"]}
 
-        data = get_fallback_settings(types_to_serialize, project_ids, organization_ids, user)
+        data = get_fallback_settings(
+            types_to_serialize,
+            project_ids,
+            organization_ids,
+            recipient=obj,
+            should_use_slack_automatic=any_organization_has_feature(
+                "organizations:notification-slack-automatic",
+                organizations=[obj.organization] if isinstance(obj, Team) else obj.get_orgs(),
+                actor=user,
+            ),
+        )
 
         # Forgive the variable name, I wanted the following lines to be legible.
         for n in attrs["settings"]:

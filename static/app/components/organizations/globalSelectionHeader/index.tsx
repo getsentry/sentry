@@ -1,11 +1,11 @@
 import * as React from 'react';
-import * as ReactRouter from 'react-router';
+import {withRouter, WithRouterProps} from 'react-router';
 import partition from 'lodash/partition';
 
 import ConfigStore from 'app/stores/configStore';
 import {Organization, Project} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
-import withProjectsSpecified from 'app/utils/withProjectsSpecified';
+import withProjects from 'app/utils/withProjects';
 
 import GlobalSelectionHeader from './globalSelectionHeader';
 import InitializeGlobalSelectionHeader from './initializeGlobalSelectionHeader';
@@ -18,84 +18,77 @@ type GlobalSelectionHeaderProps = Omit<
 type Props = {
   organization: Organization;
   projects: Project[];
-} & ReactRouter.WithRouterProps &
+} & WithRouterProps &
   GlobalSelectionHeaderProps &
   Partial<
     Pick<React.ComponentProps<typeof InitializeGlobalSelectionHeader>, 'skipLoadLastUsed'>
   >;
 
-class GlobalSelectionHeaderContainer extends React.Component<Props> {
-  getProjects = () => {
-    const {organization, projects} = this.props;
-    const {isSuperuser} = ConfigStore.get('user');
-    const isOrgAdmin = organization.access.includes('org:admin');
+function GlobalSelectionHeaderContainer({
+  organization,
+  projects,
+  loadingProjects,
+  location,
+  router,
+  routes,
+  defaultSelection,
+  forceProject,
+  shouldForceProject,
+  skipLoadLastUsed,
+  specificProjectSlugs,
+  showAbsolute,
+  ...props
+}: Props) {
+  const {isSuperuser} = ConfigStore.get('user');
+  const isOrgAdmin = organization.access.includes('org:admin');
 
-    const [memberProjects, nonMemberProjects] = partition(
-      projects,
-      project => project.isMember
-    );
+  const specifiedProjects = specificProjectSlugs
+    ? projects.filter(project => specificProjectSlugs.includes(project.slug))
+    : projects;
 
-    if (isSuperuser || isOrgAdmin) {
-      return [memberProjects, nonMemberProjects];
-    }
+  const [memberProjects, otherProjects] = partition(
+    specifiedProjects,
+    project => project.isMember
+  );
 
-    return [memberProjects, []];
-  };
+  const nonMemberProjects = isSuperuser || isOrgAdmin ? otherProjects : [];
 
-  render() {
-    const {
-      loadingProjects,
-      location,
-      organization,
-      router,
-      routes,
+  const enforceSingleProject = !organization.features.includes('global-views');
 
-      defaultSelection,
-      forceProject,
-      shouldForceProject,
-      skipLoadLastUsed,
-      showAbsolute,
-      ...props
-    } = this.props;
-    const enforceSingleProject = !organization.features.includes('global-views');
-    const [memberProjects, nonMemberProjects] = this.getProjects();
-
-    // We can initialize before ProjectsStore is fully loaded if we don't need to enforce single project.
-    return (
-      <React.Fragment>
-        {(!loadingProjects || (!shouldForceProject && !enforceSingleProject)) && (
-          <InitializeGlobalSelectionHeader
-            location={location}
-            skipLoadLastUsed={!!skipLoadLastUsed}
-            router={router}
-            organization={organization}
-            defaultSelection={defaultSelection}
-            forceProject={forceProject}
-            shouldForceProject={!!shouldForceProject}
-            shouldEnforceSingleProject={enforceSingleProject}
-            memberProjects={memberProjects}
-            showAbsolute={showAbsolute}
-          />
-        )}
-        <GlobalSelectionHeader
-          {...props}
-          loadingProjects={loadingProjects}
+  // We can initialize before ProjectsStore is fully loaded if we don't need to enforce single project.
+  return (
+    <React.Fragment>
+      {(!loadingProjects || (!shouldForceProject && !enforceSingleProject)) && (
+        <InitializeGlobalSelectionHeader
           location={location}
-          organization={organization}
+          skipLoadLastUsed={!!skipLoadLastUsed}
           router={router}
-          routes={routes}
-          shouldForceProject={!!shouldForceProject}
+          organization={organization}
           defaultSelection={defaultSelection}
           forceProject={forceProject}
+          shouldForceProject={!!shouldForceProject}
+          shouldEnforceSingleProject={enforceSingleProject}
           memberProjects={memberProjects}
-          nonMemberProjects={nonMemberProjects}
           showAbsolute={showAbsolute}
         />
-      </React.Fragment>
-    );
-  }
+      )}
+      <GlobalSelectionHeader
+        {...props}
+        loadingProjects={loadingProjects}
+        location={location}
+        organization={organization}
+        router={router}
+        routes={routes}
+        projects={projects}
+        shouldForceProject={!!shouldForceProject}
+        defaultSelection={defaultSelection}
+        forceProject={forceProject}
+        memberProjects={memberProjects}
+        nonMemberProjects={nonMemberProjects}
+        showAbsolute={showAbsolute}
+      />
+    </React.Fragment>
+  );
 }
 
-export default withOrganization(
-  withProjectsSpecified(ReactRouter.withRouter(GlobalSelectionHeaderContainer))
-);
+export default withOrganization(withProjects(withRouter(GlobalSelectionHeaderContainer)));

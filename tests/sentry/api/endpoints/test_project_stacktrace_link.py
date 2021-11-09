@@ -1,20 +1,44 @@
-from django.urls import reverse
+from typing import Any, Mapping
+from unittest import mock
 
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.models import Integration, OrganizationIntegration
 from sentry.testutils import APITestCase
-from sentry.utils.compat import mock
+
+
+def serialized_provider() -> Mapping[str, Any]:
+    """TODO(mgaeta): Make these into fixtures."""
+    return {
+        "aspects": {},
+        "canAdd": True,
+        "canDisable": False,
+        "features": ["commits", "issue-basic", "stacktrace-link"],
+        "key": "example",
+        "name": "Example",
+        "slug": "example",
+    }
+
+
+def serialized_integration(integration: Integration) -> Mapping[str, Any]:
+    """TODO(mgaeta): Make these into fixtures."""
+    return {
+        "accountType": None,
+        "domainName": None,
+        "icon": None,
+        "id": str(integration.id),
+        "name": "Example",
+        "provider": serialized_provider(),
+        "scopes": None,
+        "status": "active",
+    }
 
 
 class ProjectStacktraceLinkTest(APITestCase):
-    def setUp(self):
-        self.org = self.create_organization(owner=self.user, name="blap")
-        self.project = self.create_project(
-            name="foo", organization=self.org, teams=[self.create_team(organization=self.org)]
-        )
+    endpoint = "sentry-api-0-project-stacktrace-link"
 
+    def setUp(self):
         self.integration = Integration.objects.create(provider="example", name="Example")
-        self.integration.add_organization(self.org, self.user)
+        self.integration.add_organization(self.organization, self.user)
         self.oi = OrganizationIntegration.objects.get(integration_id=self.integration.id)
 
         self.repo = self.create_repo(
@@ -34,157 +58,74 @@ class ProjectStacktraceLinkTest(APITestCase):
         )
 
         self.filepath = "usr/src/getsentry/src/sentry/src/sentry/utils/safe.py"
-        self.url = reverse(
-            "sentry-api-0-project-stacktrace-link",
-            kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
-            },
-        )
+        self.login_as(self.user)
+
+    def expected_configurations(self) -> Mapping[str, Any]:
+        return {
+            "defaultBranch": "master",
+            "id": str(self.config.id),
+            "integrationId": str(self.integration.id),
+            "projectId": str(self.project.id),
+            "projectSlug": self.project.slug,
+            "provider": serialized_provider(),
+            "repoId": str(self.repo.id),
+            "repoName": self.repo.name,
+            "sourceRoot": self.config.source_root,
+            "stackRoot": self.config.stack_root,
+        }
 
     def test_no_filepath(self):
-        self.login_as(user=self.user)
-
-        response = self.client.get(self.url, format="json")
-        assert response.status_code == 400, response.content
+        response = self.get_error_response(
+            self.organization.slug, self.project.slug, status_code=400
+        )
         assert response.data == {"detail": "Filepath is required"}
 
     def test_no_configs(self):
-        self.login_as(user=self.user)
         # new project that has no configurations set up for it
         project = self.create_project(
             name="bloop",
-            organization=self.org,
-            teams=[self.create_team(organization=self.org)],
+            organization=self.organization,
+            teams=[self.create_team(organization=self.organization)],
         )
 
-        path = reverse(
-            "sentry-api-0-project-stacktrace-link",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+        response = self.get_success_response(
+            self.organization.slug, project.slug, qs_params={"file": self.filepath}
         )
-        url = f"{path}?file={self.filepath}"
-
-        response = self.client.get(url, format="json")
-        assert response.status_code == 200, response.content
         assert response.data == {
             "config": None,
             "sourceUrl": None,
-            "integrations": [self._serialized_integration()],
+            "integrations": [serialized_integration(self.integration)],
         }
 
     def test_file_not_found_error(self):
-        self.login_as(user=self.user)
-        url = f"{self.url}?file={self.filepath}"
-
-        response = self.client.get(url)
-
-        assert response.status_code == 200, response.content
-        assert response.data["config"] == {
-            "id": str(self.config.id),
-            "projectId": str(self.project.id),
-            "projectSlug": self.project.slug,
-            "repoId": str(self.repo.id),
-            "repoName": self.repo.name,
-            "provider": {
-                "aspects": {},
-                "features": ["commits", "issue-basic", "stacktrace-link"],
-                "name": "Example",
-                "canDisable": False,
-                "key": "example",
-                "slug": "example",
-                "canAdd": True,
-            },
-            "sourceRoot": self.config.source_root,
-            "stackRoot": self.config.stack_root,
-            "integrationId": str(self.integration.id),
-            "defaultBranch": "master",
-        }
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, qs_params={"file": self.filepath}
+        )
+        assert response.data["config"] == self.expected_configurations()
         assert not response.data["sourceUrl"]
         assert response.data["error"] == "file_not_found"
-        assert response.data["integrations"] == [self._serialized_integration()]
+        assert response.data["integrations"] == [serialized_integration(self.integration)]
         assert (
             response.data["attemptedUrl"]
             == f"https://example.com/{self.repo.name}/blob/master/src/sentry/src/sentry/utils/safe.py"
         )
 
     def test_stack_root_mismatch_error(self):
-        self.login_as(user=self.user)
-        url = f"{self.url}?file=wrong/file/path"
-
-        response = self.client.get(url)
-
-        assert response.status_code == 200, response.content
-        assert response.data["config"] == {
-            "id": str(self.config.id),
-            "projectId": str(self.project.id),
-            "projectSlug": self.project.slug,
-            "repoId": str(self.repo.id),
-            "repoName": self.repo.name,
-            "provider": {
-                "aspects": {},
-                "features": ["commits", "issue-basic", "stacktrace-link"],
-                "name": "Example",
-                "canDisable": False,
-                "key": "example",
-                "slug": "example",
-                "canAdd": True,
-            },
-            "sourceRoot": self.config.source_root,
-            "stackRoot": self.config.stack_root,
-            "integrationId": str(self.integration.id),
-            "defaultBranch": "master",
-        }
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, qs_params={"file": "wrong/file/path"}
+        )
+        assert response.data["config"] == self.expected_configurations()
         assert not response.data["sourceUrl"]
         assert response.data["error"] == "stack_root_mismatch"
-        assert response.data["integrations"] == [self._serialized_integration()]
+        assert response.data["integrations"] == [serialized_integration(self.integration)]
 
     def test_config_and_source_url(self):
-        self.login_as(user=self.user)
-        url = f"{self.url}?file={self.filepath}"
-
         with mock.patch.object(
             ExampleIntegration, "get_stacktrace_link", return_value="https://sourceurl.com/"
         ):
-            response = self.client.get(url)
-            assert response.status_code == 200, response.content
-            assert response.data["config"] == {
-                "id": str(self.config.id),
-                "projectId": str(self.project.id),
-                "projectSlug": self.project.slug,
-                "repoId": str(self.repo.id),
-                "repoName": self.repo.name,
-                "provider": {
-                    "aspects": {},
-                    "features": ["commits", "issue-basic", "stacktrace-link"],
-                    "name": "Example",
-                    "canDisable": False,
-                    "key": "example",
-                    "slug": "example",
-                    "canAdd": True,
-                },
-                "sourceRoot": self.config.source_root,
-                "stackRoot": self.config.stack_root,
-                "integrationId": str(self.integration.id),
-                "defaultBranch": "master",
-            }
+            response = self.get_success_response(
+                self.organization.slug, self.project.slug, qs_params={"file": self.filepath}
+            )
+            assert response.data["config"] == self.expected_configurations()
             assert response.data["sourceUrl"] == "https://sourceurl.com/"
-            assert response.data["integrations"] == [self._serialized_integration()]
-
-    def _serialized_integration(self):
-        return {
-            "status": "active",
-            "name": "Example",
-            "domainName": None,
-            "accountType": None,
-            "provider": {
-                "aspects": {},
-                "features": ["commits", "issue-basic", "stacktrace-link"],
-                "name": "Example",
-                "canDisable": False,
-                "key": "example",
-                "slug": "example",
-                "canAdd": True,
-            },
-            "id": str(self.integration.id),
-            "icon": None,
-        }
+            assert response.data["integrations"] == [serialized_integration(self.integration)]

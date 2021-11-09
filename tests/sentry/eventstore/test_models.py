@@ -117,7 +117,7 @@ class EventTest(TestCase):
         assert event.get_environment() == environment
 
         with self.assertNumQueries(0):
-            event.get_environment() == environment
+            assert event.get_environment() == environment
 
     def test_ip_address(self):
         event = self.store_event(

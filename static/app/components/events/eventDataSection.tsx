@@ -65,12 +65,13 @@ class EventDataSection extends React.Component<Props> {
       actions,
       isCentered,
       showPermalink,
+      ...props
     } = this.props;
 
     const titleNode = wrapTitle ? <h3>{title}</h3> : title;
 
     return (
-      <DataSection ref={this.dataSectionDOMRef} className={className || ''}>
+      <DataSection ref={this.dataSectionDOMRef} className={className || ''} {...props}>
         {title && (
           <SectionHeader id={type} isCentered={isCentered}>
             <Title>
@@ -80,7 +81,7 @@ class EventDataSection extends React.Component<Props> {
                   {titleNode}
                 </Permalink>
               ) : (
-                <div>{titleNode}</div>
+                titleNode
               )}
             </Title>
             {type === 'extra' && (
@@ -122,6 +123,7 @@ const StyledIconAnchor = styled(IconAnchor)`
 `;
 
 const Permalink = styled('a')`
+  width: 100%;
   :hover ${StyledIconAnchor} {
     display: block;
     color: ${p => p.theme.gray300};

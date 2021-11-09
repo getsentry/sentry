@@ -1,11 +1,10 @@
 ---
-created: '2021-06-30T16:44:00.307247Z'
+created: '2021-08-23T08:27:24.056795Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "26c7e56e7ca2afe463a03d055f388082"
-  tree_label: "wrapTimeFunction/<"
   component:
     app-depth-1*
       exception*
@@ -24,7 +23,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "f1434ba679e6b1155a535a19738c3be2"
-  tree_label: "wrapTimeFunction/< | e"
+  tree_label: "e"
   component:
     app-depth-2*
       exception*
@@ -52,7 +51,7 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "27b19d035e291a5a750f2d39f0658220"
-  tree_label: "wrapTimeFunction/< | e | componentPromise"
+  tree_label: "e | componentPromise"
   component:
     app-depth-3*
       exception*
@@ -89,7 +88,7 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-4:
   hash: "256fdadc22b3abffcf4ec847e43615d3"
-  tree_label: "wrapTimeFunction/< | e | componentPromise | e/<"
+  tree_label: "e | componentPromise"
   component:
     app-depth-4*
       exception*
@@ -135,7 +134,7 @@ app-depth-4:
 --------------------------------------------------------------------------
 app-depth-5:
   hash: "09767cbb939dfda38a031f6ce40e6ee0"
-  tree_label: "wrapTimeFunction/< | e | componentPromise | e/< | W"
+  tree_label: "e | componentPromise | W"
   component:
     app-depth-5*
       exception*
@@ -190,7 +189,7 @@ app-depth-5:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "dcfcd48a02c100bbe4023cbc783054f0"
-  tree_label: "wrapTimeFunction/< | e | componentPromise | e/< | W | _invoke</< | g/</t[e] | n | c | exports/</< | L | exports/< | e/</a</< | e/< | W | _invoke</< | g/</t[e] | n | b | i | S/< | M"
+  tree_label: "e | componentPromise | W | g/</t[e] | n | c | L | W | g/</t[e] | n | b | i | M"
   component:
     app-depth-max*
       exception*
@@ -398,7 +397,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "dcfcd48a02c100bbe4023cbc783054f0"
-  tree_label: "wrapTimeFunction/< | e | componentPromise | e/< | W | _invoke</< | g/</t[e] | n | c | exports/</< | L | exports/< | e/</a</< | e/< | W | _invoke</< | g/</t[e] | n | b | i | S/< | M"
+  tree_label: "e | componentPromise | W | g/</t[e] | n | c | L | W | g/</t[e] | n | b | i | M"
   component:
     system*
       exception*

@@ -58,7 +58,7 @@ export default class SelectCreatableField extends SelectField {
   }
 
   getField() {
-    const {placeholder, disabled, required, clearable, name} = this.props;
+    const {placeholder, disabled, clearable, name} = this.props;
 
     return (
       <StyledSelectControl
@@ -67,7 +67,6 @@ export default class SelectCreatableField extends SelectField {
         options={this.options}
         placeholder={placeholder}
         disabled={disabled}
-        required={required}
         value={this.state.value}
         onChange={this.onChange}
         clearable={clearable}

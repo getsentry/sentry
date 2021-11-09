@@ -1,6 +1,5 @@
 import * as React from 'react';
-import {withRouter} from 'react-router';
-import {WithRouterProps} from 'react-router/lib/withRouter';
+import {withRouter, WithRouterProps} from 'react-router';
 import {
   AutoSizer,
   CellMeasurer,
@@ -216,7 +215,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
       return;
     }
 
-    const {location, organization, projectId, groupId, event} = this.props;
+    const {location, organization, projectId: projSlug, groupId, event} = this.props;
     const {query} = location;
 
     const {imageCodeId, imageDebugId} = query;
@@ -244,7 +243,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
           {...deps}
           image={image}
           organization={organization}
-          projectId={projectId}
+          projSlug={projSlug}
           event={event}
           onReprocessEvent={
             defined(groupId) ? this.handleReprocessEvent(groupId) : undefined

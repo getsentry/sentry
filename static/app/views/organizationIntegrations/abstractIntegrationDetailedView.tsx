@@ -23,11 +23,11 @@ import {
 import {
   IntegrationAnalyticsKey,
   IntegrationEventParameters,
-} from 'app/utils/integrationEvents';
+} from 'app/utils/analytics/integrationAnalyticsEvents';
 import {
   getCategories,
   getIntegrationFeatureGate,
-  trackIntegrationEvent,
+  trackIntegrationAnalytics,
 } from 'app/utils/integrationUtil';
 import marked, {singleLineRenderer} from 'app/utils/marked';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
@@ -64,7 +64,7 @@ class AbstractIntegrationDetailedView<
   }
 
   onLoadAllEndpointsSuccess() {
-    this.trackIntegrationEvent('integrations.integration_viewed', {
+    this.trackIntegrationAnalytics('integrations.integration_viewed', {
       integration_tab: this.state.tab,
     });
   }
@@ -133,7 +133,7 @@ class AbstractIntegrationDetailedView<
   }
 
   onTabChange = (value: Tab) => {
-    this.trackIntegrationEvent('integrations.integration_tab_clicked', {
+    this.trackIntegrationAnalytics('integrations.integration_tab_clicked', {
       integration_tab: value,
     });
     this.setState({tab: value});
@@ -188,8 +188,8 @@ class AbstractIntegrationDetailedView<
     return this.props.params.integrationSlug;
   }
 
-  // Wrapper around trackIntegrationEvent that automatically provides many fields and the org
-  trackIntegrationEvent = <T extends IntegrationAnalyticsKey>(
+  // Wrapper around trackIntegrationAnalytics that automatically provides many fields and the org
+  trackIntegrationAnalytics = <T extends IntegrationAnalyticsKey>(
     eventKey: IntegrationAnalyticsKey,
     options?: Partial<IntegrationEventParameters[T]>
   ) => {
@@ -200,9 +200,10 @@ class AbstractIntegrationDetailedView<
       integration: this.integrationSlug,
       integration_type: this.integrationType,
       already_installed: this.installationStatus !== 'Not Installed', // pending counts as installed here
+      organization: this.props.organization,
       ...options,
     };
-    trackIntegrationEvent(eventKey, params, this.props.organization);
+    trackIntegrationAnalytics(eventKey, params);
   };
 
   // Returns the props as needed by the hooks integrations:feature-gates

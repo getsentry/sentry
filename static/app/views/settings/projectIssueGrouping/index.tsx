@@ -51,7 +51,7 @@ class ProjectIssueGrouping extends AsyncView<Props, State> {
 
   renderBody() {
     const {groupingConfigs} = this.state;
-    const {organization, project, params} = this.props;
+    const {organization, project, params, location} = this.props;
     const {orgId, projectId} = params;
     const endpoint = `/projects/${orgId}/${projectId}/`;
     const access = new Set(organization.access);
@@ -119,6 +119,7 @@ class ProjectIssueGrouping extends AsyncView<Props, State> {
             project={project}
             api={this.api}
             onUpgrade={this.fetchData}
+            location={location}
           />
         </Form>
       </Fragment>

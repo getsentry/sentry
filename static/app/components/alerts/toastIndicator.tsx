@@ -10,6 +10,52 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import testableTransition from 'app/utils/testableTransition';
 
+type Props = {
+  indicator: Indicator;
+  onDismiss: (indicator: Indicator, event: React.MouseEvent) => void;
+  className?: string;
+};
+
+function ToastIndicator({indicator, onDismiss, className, ...props}: Props) {
+  let icon: React.ReactNode;
+  const {options, message, type} = indicator;
+  const {undo, disableDismiss} = options || {};
+  const showUndo = typeof undo === 'function';
+  const handleClick = (e: React.MouseEvent) => {
+    if (disableDismiss) {
+      return;
+    }
+    if (typeof onDismiss === 'function') {
+      onDismiss(indicator, e);
+    }
+  };
+
+  if (type === 'success') {
+    icon = <IconCheckmark size="lg" isCircled />;
+  } else if (type === 'error') {
+    icon = <IconClose size="lg" isCircled />;
+  }
+
+  // TODO(billy): Remove ref- className after removing usage from getsentry
+
+  return (
+    <Toast
+      onClick={handleClick}
+      data-test-id={type ? `toast-${type}` : 'toast'}
+      className={classNames(className, 'ref-toast', `ref-${type}`)}
+      {...props}
+    >
+      {type === 'loading' ? (
+        <StyledLoadingIndicator mini />
+      ) : (
+        <Icon type={type}>{icon}</Icon>
+      )}
+      <Message>{message}</Message>
+      {showUndo && <Undo onClick={undo}>{t('Undo')}</Undo>}
+    </Toast>
+  );
+}
+
 const Toast = styled(motion.div)`
   display: flex;
   align-items: center;
@@ -75,51 +121,5 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
     border-left-color: ${p => p.theme.purple300};
   }
 `;
-
-type Props = {
-  indicator: Indicator;
-  onDismiss: (indicator: Indicator, event: React.MouseEvent) => void;
-  className?: string;
-};
-
-function ToastIndicator({indicator, onDismiss, className, ...props}: Props) {
-  let icon: React.ReactNode;
-  const {options, message, type} = indicator;
-  const {undo, disableDismiss} = options || {};
-  const showUndo = typeof undo === 'function';
-  const handleClick = (e: React.MouseEvent) => {
-    if (disableDismiss) {
-      return;
-    }
-    if (typeof onDismiss === 'function') {
-      onDismiss(indicator, e);
-    }
-  };
-
-  if (type === 'success') {
-    icon = <IconCheckmark size="lg" isCircled />;
-  } else if (type === 'error') {
-    icon = <IconClose size="lg" isCircled />;
-  }
-
-  // TODO(billy): Remove ref- className after removing usage from getsentry
-
-  return (
-    <Toast
-      onClick={handleClick}
-      data-test-id={type ? `toast-${type}` : 'toast'}
-      className={classNames(className, 'ref-toast', `ref-${type}`)}
-      {...props}
-    >
-      {type === 'loading' ? (
-        <StyledLoadingIndicator mini />
-      ) : (
-        <Icon type={type}>{icon}</Icon>
-      )}
-      <Message>{message}</Message>
-      {showUndo && <Undo onClick={undo}>{t('Undo')}</Undo>}
-    </Toast>
-  );
-}
 
 export default ToastIndicator;

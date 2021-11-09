@@ -1,12 +1,12 @@
 import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
 
-import {DateRangePicker} from 'react-date-range';
+import {DateRangePicker as BaseDateRangePicker} from 'react-date-range';
 import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
 
-const StyledDateRangePicker = styled(DateRangePicker)`
+const DateRangePicker = styled(BaseDateRangePicker)`
   padding: 21px; /* this is specifically so we can align borders */
 
   .rdrSelected,
@@ -139,4 +139,4 @@ const StyledDateRangePicker = styled(DateRangePicker)`
   }
 `;
 
-export default StyledDateRangePicker;
+export default DateRangePicker;

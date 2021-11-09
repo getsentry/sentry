@@ -26,7 +26,7 @@ def populate_target_locale_lookup_table():
                 else:
                     translation_regexp = re.escape(translation)
                     translation_regexp = translation_regexp.replace(
-                        r"\%s", r"(?P<format_string_data>[a-zA-Z0-9-_\$]+)"
+                        r"%s", r"(?P<format_string_data>[a-zA-Z0-9-_\$]+)"
                     )
                     # Some errors are substrings of more detailed ones, so we need exact match
                     translation_regexp = re.compile("^" + translation_regexp + "$")

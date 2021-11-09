@@ -89,6 +89,17 @@ from sentry.stacktraces.functions import (
         ["main::{lambda()#42}", "main::lambda"],
         ["lambda_7156c3ceaa11256748687ab67e3ef4cd", "lambda"],
         ["<lambda_7156c3ceaa11256748687ab67e3ef4cd>::operator()", "<lambda>::operator()"],
+        ["trigger_crash_a(int*) [clone .constprop.0]", "trigger_crash_a"],
+        [
+            "__gnu_cxx::__verbose_terminate_handler() [clone .cold]",
+            "__gnu_cxx::__verbose_terminate_handler",
+        ],
+        [
+            "std::__1::unique_ptr<X,std::default_delete<X> >::operator->",
+            "std::__1::unique_ptr<T>::operator->",
+        ],
+        ["pthread_cond_timedwait@@GLIBC_2.3.2", "pthread_cond_timedwait"],
+        ["glob64@GLIBC_2.2", "glob64"],
     ],
 )
 def test_trim_native_function_name(input, output):

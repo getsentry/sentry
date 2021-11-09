@@ -4,11 +4,12 @@ import {Indicator} from 'app/actionCreators/indicator';
 import IndicatorActions from 'app/actions/indicatorActions';
 import {t} from 'app/locale';
 
-type IndicatorStoreInterface = {
-  init: () => void;
-  get: () => Indicator[];
-  addSuccess: (message: string) => Indicator;
-  addError: (message?: string) => Indicator;
+import {CommonStoreInterface} from './types';
+
+type IndicatorStoreInterface = CommonStoreInterface<Indicator[]> & {
+  init(): void;
+  addSuccess(message: string): Indicator;
+  addError(message?: string): Indicator;
   /**
    * Appends a message to be displayed in list of indicators
    *
@@ -16,11 +17,11 @@ type IndicatorStoreInterface = {
    * @param type One of ['error', 'success', '']
    * @param options Options object
    */
-  append: (
+  append(
     message: string,
     type: Indicator['type'],
     options?: Indicator['options']
-  ) => Indicator;
+  ): Indicator;
   /**
    * When this method is called directly via older parts of the application,
    * we want to maintain the old behavior in that it is replaced (and not queued up)
@@ -29,27 +30,27 @@ type IndicatorStoreInterface = {
    * @param type One of ['error', 'success', '']
    * @param options Options object
    */
-  add: (
+  add(
     message: string,
     type?: Indicator['type'],
     options?: Indicator['options']
-  ) => Indicator;
+  ): Indicator;
   /**
    * Alias for add()
    */
-  addMessage: (
+  addMessage(
     message: string,
     type: Indicator['type'],
     options?: Indicator['options']
-  ) => Indicator;
+  ): Indicator;
   /**
    * Remove all current indicators.
    */
-  clear: () => void;
+  clear(): void;
   /**
    * Remove an indicator
    */
-  remove: (indicator: Indicator) => void;
+  remove(indicator: Indicator): void;
 };
 
 type Internals = {
@@ -57,7 +58,7 @@ type Internals = {
   lastId: number;
 };
 
-const storeConfig: Reflux.StoreDefinition & IndicatorStoreInterface & Internals = {
+const storeConfig: Reflux.StoreDefinition & Internals & IndicatorStoreInterface = {
   items: [],
   lastId: 0,
   init() {
@@ -67,10 +68,6 @@ const storeConfig: Reflux.StoreDefinition & IndicatorStoreInterface & Internals 
     this.listenTo(IndicatorActions.replace, this.add);
     this.listenTo(IndicatorActions.remove, this.remove);
     this.listenTo(IndicatorActions.clear, this.clear);
-  },
-
-  get() {
-    return this.items;
   },
 
   addSuccess(message) {
@@ -136,10 +133,13 @@ const storeConfig: Reflux.StoreDefinition & IndicatorStoreInterface & Internals 
 
     this.trigger(this.items);
   },
+
+  getState() {
+    return this.items;
+  },
 };
 
-type IndicatorStore = Reflux.Store & IndicatorStoreInterface;
-
-const IndicatorStore = Reflux.createStore(storeConfig) as IndicatorStore;
+const IndicatorStore = Reflux.createStore(storeConfig) as Reflux.Store &
+  IndicatorStoreInterface;
 
 export default IndicatorStore;

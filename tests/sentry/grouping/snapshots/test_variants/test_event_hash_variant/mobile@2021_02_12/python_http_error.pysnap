@@ -1,5 +1,5 @@
 ---
-created: '2021-06-30T16:44:00.591611Z'
+created: '2021-08-04T15:53:48.208895Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -25,8 +25,8 @@ app-depth-1:
           "<int> Client Error: Too Many Requests for url: <url>"
 --------------------------------------------------------------------------
 app-depth-2:
-  hash: "133db3f366b1327dab4e661f66dfb961"
-  tree_label: "raise_for_status | send_notification | safe_execute"
+  hash: "d59239f5aad3304d60beb1fde3369b78"
+  tree_label: "send_notification | safe_execute"
   component:
     app-depth-2*
       exception*
@@ -49,23 +49,14 @@ app-depth-2:
               "send_notification"
             context-line*
               "resp.raise_for_status()"
-          frame*
-            module*
-              "requests.models"
-            filename (module takes precedence)
-              "models.py"
-            function*
-              "raise_for_status"
-            context-line*
-              "raise HTTPError(http_error_msg, response=self)"
         type*
           "HTTPError"
         value (ignored because stacktrace takes precedence)
           "<int> Client Error: Too Many Requests for url: <url>"
 --------------------------------------------------------------------------
 app-depth-max:
-  hash: "133db3f366b1327dab4e661f66dfb961"
-  tree_label: "raise_for_status | send_notification | safe_execute"
+  hash: "d59239f5aad3304d60beb1fde3369b78"
+  tree_label: "send_notification | safe_execute"
   component:
     app-depth-max*
       exception*
@@ -88,15 +79,6 @@ app-depth-max:
               "send_notification"
             context-line*
               "resp.raise_for_status()"
-          frame*
-            module*
-              "requests.models"
-            filename (module takes precedence)
-              "models.py"
-            function*
-              "raise_for_status"
-            context-line*
-              "raise HTTPError(http_error_msg, response=self)"
         type*
           "HTTPError"
         value (ignored because stacktrace takes precedence)

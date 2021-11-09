@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import Access from 'app/components/acl/access';
 import ActionButton from 'app/components/actions/button';
 import MenuItemActionLink from 'app/components/actions/menuItemActionLink';
 import Button from 'app/components/button';
@@ -8,13 +9,16 @@ import ButtonBar from 'app/components/buttonBar';
 import ConfirmDelete from 'app/components/confirmDelete';
 import DropdownButton from 'app/components/dropdownButton';
 import DropdownLink from 'app/components/dropdownLink';
+import Tooltip from 'app/components/tooltip';
 import {IconEllipsis} from 'app/icons/iconEllipsis';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {CustomRepoType} from 'app/types/debugFiles';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 
 type Props = {
   repositoryName: string;
+  repositoryType: string;
   isDetailsExpanded: boolean;
   isDetailsDisabled: boolean;
   onToggleDetails: () => void;
@@ -25,6 +29,7 @@ type Props = {
 
 function Actions({
   repositoryName,
+  repositoryType,
   isDetailsExpanded,
   isDetailsDisabled,
   onToggleDetails,
@@ -37,18 +42,35 @@ function Actions({
       <ConfirmDelete
         confirmText={t('Delete Repository')}
         message={
-          <Fragment>
-            <TextBlock>
-              <strong>
-                {t('Removing this repository applies instantly to new events.')}
-              </strong>
-            </TextBlock>
-            <TextBlock>
-              {t(
-                'Debug files from this repository will not be used to symbolicate future events. This may create new issues and alert members in your organization.'
-              )}
-            </TextBlock>
-          </Fragment>
+          repositoryType === CustomRepoType.APP_STORE_CONNECT ? (
+            <Fragment>
+              <TextBlock>
+                <strong>
+                  {t(
+                    'Removing App Store Connect symbol source does not remove current dSYMs.'
+                  )}
+                </strong>
+              </TextBlock>
+              <TextBlock>
+                {t(
+                  'The App Store Connect symbol source periodically imports dSYMs into the "Uploaded debug information files". Removing this symbol source does not delete those files and they will remain available for symbolication until deleted directly.'
+                )}
+              </TextBlock>
+            </Fragment>
+          ) : (
+            <Fragment>
+              <TextBlock>
+                <strong>
+                  {t('Removing this repository applies instantly to new events.')}
+                </strong>
+              </TextBlock>
+              <TextBlock>
+                {t(
+                  'Debug files from this repository will not be used to symbolicate future events. This may create new issues and alert members in your organization.'
+                )}
+              </TextBlock>
+            </Fragment>
+          )
         }
         confirmInput={repositoryName}
         priority="danger"
@@ -64,33 +86,77 @@ function Actions({
         <StyledDropdownButton
           isOpen={isDetailsExpanded}
           size="small"
-          onClick={onToggleDetails}
+          onClick={isDetailsDisabled ? undefined : onToggleDetails}
           hideBottomBorder={false}
           disabled={isDetailsDisabled}
         >
           {t('Details')}
         </StyledDropdownButton>
       )}
-      <StyledButton onClick={onEdit} size="small">
-        {t('Configure')}
-      </StyledButton>
-      {renderConfirmDelete(<StyledButton size="small">{t('Delete')}</StyledButton>)}
-      <DropDownWrapper>
-        <DropdownLink
-          caret={false}
-          customTitle={
-            <StyledActionButton label={t('Actions')} icon={<IconEllipsis />} />
-          }
-          anchorRight
-        >
-          <MenuItemActionLink title={t('Configure')} onClick={onEdit}>
-            {t('Configure')}
-          </MenuItemActionLink>
-          {renderConfirmDelete(
-            <MenuItemActionLink title={t('Delete')}>{t('Delete')}</MenuItemActionLink>
-          )}
-        </DropdownLink>
-      </DropDownWrapper>
+      <Access access={['project:write']}>
+        {({hasAccess}) => (
+          <Fragment>
+            <ButtonTooltip
+              title={t(
+                'You do not have permission to edit custom repository configurations.'
+              )}
+              disabled={hasAccess}
+            >
+              <ActionBtn
+                disabled={!hasAccess || isDetailsDisabled}
+                onClick={onEdit}
+                size="small"
+              >
+                {t('Configure')}
+              </ActionBtn>
+            </ButtonTooltip>
+
+            {!hasAccess || isDetailsDisabled ? (
+              <ButtonTooltip
+                title={t(
+                  'You do not have permission to delete custom repository configurations.'
+                )}
+                disabled={hasAccess}
+              >
+                <ActionBtn size="small" disabled>
+                  {t('Delete')}
+                </ActionBtn>
+              </ButtonTooltip>
+            ) : (
+              renderConfirmDelete(<ActionBtn size="small">{t('Delete')}</ActionBtn>)
+            )}
+            <DropDownWrapper>
+              <DropdownLink
+                caret={false}
+                customTitle={
+                  <StyledActionButton
+                    label={t('Actions')}
+                    disabled={!hasAccess || isDetailsDisabled}
+                    title={
+                      !hasAccess
+                        ? t(
+                            'You do not have permission to edit and delete custom repository configurations.'
+                          )
+                        : undefined
+                    }
+                    icon={<IconEllipsis />}
+                  />
+                }
+                anchorRight
+              >
+                <MenuItemActionLink title={t('Configure')} onClick={onEdit}>
+                  {t('Configure')}
+                </MenuItemActionLink>
+                {renderConfirmDelete(
+                  <MenuItemActionLink title={t('Delete')}>
+                    {t('Delete')}
+                  </MenuItemActionLink>
+                )}
+              </DropdownLink>
+            </DropDownWrapper>
+          </Fragment>
+        )}
+      </Access>
     </StyledButtonBar>
   );
 }
@@ -118,7 +184,14 @@ const StyledButtonBar = styled(ButtonBar)`
   }
 `;
 
-const StyledButton = styled(Button)`
+const ButtonTooltip = styled(Tooltip)`
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    display: none;
+  }
+`;
+
+const ActionBtn = styled(Button)`
+  width: 100%;
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     display: none;
   }

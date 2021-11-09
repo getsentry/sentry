@@ -2,24 +2,19 @@ import * as React from 'react';
 
 import ConfigStore from 'app/stores/configStore';
 import LatestContextStore from 'app/stores/latestContextStore';
-import {
-  LightWeightOrganization,
-  Organization,
-  OrganizationSummary,
-  Project,
-} from 'app/types';
+import {Organization, OrganizationSummary, Project} from 'app/types';
 import getDisplayName from 'app/utils/getDisplayName';
 import withOrganizations from 'app/utils/withOrganizations';
 
 type InjectedLatestContextProps = {
   organizations?: OrganizationSummary[];
-  organization?: LightWeightOrganization | Organization | null;
+  organization?: Organization | null;
   project?: Project | null;
   lastRoute?: string | null;
 };
 
 type HocProps = {
-  organization?: LightWeightOrganization | Organization | null;
+  organization?: Organization | null;
   organizations: OrganizationSummary[];
 };
 

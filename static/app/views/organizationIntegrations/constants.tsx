@@ -8,7 +8,7 @@ export const LEARN_MORE = 'Learn More' as const;
 export const COLORS = {
   [INSTALLED]: 'success',
   [NOT_INSTALLED]: 'gray300',
-  [PENDING]: 'orange300',
+  [PENDING]: 'pink300',
   [LEARN_MORE]: 'gray300',
 } as const;
 
@@ -45,8 +45,8 @@ export const POPULARITY_WEIGHT: {
   rookout: 9,
   spikesh: 9,
   split: 9,
+  taskcall: 9,
   teamwork: 9,
-  zepel: 9,
 
   // Plugins
   webhooks: 10,

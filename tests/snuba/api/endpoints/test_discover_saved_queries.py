@@ -138,6 +138,64 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
                 values = list(reversed(values))
             assert list(sorted(values)) == values
 
+    def test_get_sortby_most_popular(self):
+        query = {"fields": ["message"], "query": "", "limit": 10}
+        model = DiscoverSavedQuery.objects.create(
+            organization=self.org,
+            created_by=self.user,
+            name="My query",
+            query=query,
+            version=2,
+            visits=3,
+            date_created=before_now(minutes=10),
+            date_updated=before_now(minutes=10),
+            last_visited=before_now(minutes=5),
+        )
+
+        model.set_projects(self.project_ids)
+        for forward_sort in [True, False]:
+            sorting = "mostPopular" if forward_sort else "-mostPopular"
+            with self.feature(self.feature_name):
+                response = self.client.get(self.url, data={"sortBy": sorting})
+
+            assert response.status_code == 200
+            values = [row["name"] for row in response.data]
+            expected = ["My query", "Test query"]
+
+            if not forward_sort:
+                expected = list(reversed(expected))
+
+            assert values == expected
+
+    def test_get_sortby_recently_viewed(self):
+        query = {"fields": ["message"], "query": "", "limit": 10}
+        model = DiscoverSavedQuery.objects.create(
+            organization=self.org,
+            created_by=self.user,
+            name="My query",
+            query=query,
+            version=2,
+            visits=3,
+            date_created=before_now(minutes=10),
+            date_updated=before_now(minutes=10),
+            last_visited=before_now(minutes=5),
+        )
+
+        model.set_projects(self.project_ids)
+        for forward_sort in [True, False]:
+            sorting = "recentlyViewed" if forward_sort else "-recentlyViewed"
+            with self.feature(self.feature_name):
+                response = self.client.get(self.url, data={"sortBy": sorting})
+
+            assert response.status_code == 200
+            values = [row["name"] for row in response.data]
+            expected = ["Test query", "My query"]
+
+            if not forward_sort:
+                expected = list(reversed(expected))
+
+            assert values == expected
+
     def test_get_sortby_myqueries(self):
         uhoh_user = self.create_user(username="uhoh")
         self.create_member(organization=self.org, user=uhoh_user)
@@ -261,7 +319,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
                     "range": "24h",
                     "limit": 20,
                     "environment": ["dev"],
-                    "yAxis": "count(id)",
+                    "yAxis": ["count(id)"],
                     "aggregations": [],
                     "orderby": "-time",
                 },
@@ -325,7 +383,7 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
                     "environment": ["dev"],
                     "query": "event.type:error browser.name:Firefox",
                     "range": "24h",
-                    "yAxis": "count(id)",
+                    "yAxis": ["count(id)"],
                     "display": "releases",
                     "version": 2,
                 },
@@ -336,7 +394,7 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
         assert data["range"] == "24h"
         assert data["environment"] == ["dev"]
         assert data["query"] == "event.type:error browser.name:Firefox"
-        assert data["yAxis"] == "count(id)"
+        assert data["yAxis"] == ["count(id)"]
         assert data["display"] == "releases"
         assert data["version"] == 2
 

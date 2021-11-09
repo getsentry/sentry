@@ -10,7 +10,7 @@ import NavTabs from 'app/components/navTabs';
 import {IconAdd, IconArrow} from 'app/icons';
 import {t} from 'app/locale';
 import {IntegrationProvider, IntegrationWithConfig, Organization} from 'app/types';
-import {trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {trackIntegrationAnalytics} from 'app/utils/integrationUtil';
 import {singleLineRenderer} from 'app/utils/marked';
 import withOrganization from 'app/utils/withOrganization';
 import AsyncView from 'app/views/asyncView';
@@ -68,14 +68,11 @@ class ConfigureIntegration extends AsyncView<Props, State> {
     if (stateKey !== 'integration') {
       return;
     }
-    trackIntegrationEvent(
-      'integrations.details_viewed',
-      {
-        integration: data.provider.key,
-        integration_type: 'first_party',
-      },
-      this.props.organization
-    );
+    trackIntegrationAnalytics('integrations.details_viewed', {
+      integration: data.provider.key,
+      integration_type: 'first_party',
+      organization: this.props.organization,
+    });
   }
 
   getTitle() {
@@ -241,7 +238,7 @@ class ConfigureIntegration extends AsyncView<Props, State> {
       ['codeMappings', t('Code Mappings')],
       ...(this.hasCodeOwners() ? [['userMappings', t('User Mappings')]] : []),
       ...(this.hasCodeOwners() ? [['teamMappings', t('Team Mappings')]] : []),
-    ];
+    ] as [id: Tab, label: string][];
 
     if (this.isCustomIntegration()) {
       tabs.unshift(['settings', t('Settings')]);
@@ -254,7 +251,7 @@ class ConfigureIntegration extends AsyncView<Props, State> {
             <li
               key={tabTuple[0]}
               className={this.tab === tabTuple[0] ? 'active' : ''}
-              onClick={() => this.onTabChange(tabTuple[0] as Tab)}
+              onClick={() => this.onTabChange(tabTuple[0])}
             >
               <CapitalizedLink>{tabTuple[1]}</CapitalizedLink>
             </li>

@@ -142,10 +142,37 @@ class Projects extends React.Component<Props, State> {
   componentDidMount() {
     const {slugs} = this.props;
 
-    if (slugs && !!slugs.length) {
+    if (!!slugs?.length) {
       this.loadSpecificProjects();
     } else {
       this.loadAllProjects();
+    }
+  }
+
+  componentDidUpdate(prevProps: Props) {
+    const {projects} = this.props;
+
+    if (projects !== prevProps.projects) {
+      this.updateProjectsFromStore();
+    }
+  }
+
+  /**
+   * Function to update projects when the store emits updates
+   */
+  updateProjectsFromStore() {
+    const {allProjects, projects, slugs} = this.props;
+
+    if (allProjects) {
+      this.setState({fetchedProjects: projects});
+      return;
+    }
+
+    if (!!slugs?.length) {
+      // Extract the requested projects from the store based on props.slugs
+      const projectsMap = this.getProjectsMap(projects);
+      const projectsFromStore = slugs.map(slug => projectsMap.get(slug)).filter(defined);
+      this.setState({projectsFromStore});
     }
   }
 
@@ -423,7 +450,8 @@ async function fetchProjects(
   }
 
   if (allProjects) {
-    const {loading, projects} = ProjectsStore.getState();
+    const projects = ProjectsStore.getAll();
+    const loading = ProjectsStore.isLoading();
     // If the projects store is loaded then return all projects from the store
     if (!loading) {
       return {
@@ -437,12 +465,12 @@ async function fetchProjects(
 
   let hasMore: null | boolean = false;
   let nextCursor: null | string = null;
-  const [results, , xhr] = await api.requestPromise(`/organizations/${orgId}/projects/`, {
+  const [data, , resp] = await api.requestPromise(`/organizations/${orgId}/projects/`, {
     includeAllArgs: true,
     query,
   });
 
-  const pageLinks = xhr && xhr.getResponseHeader('Link');
+  const pageLinks = resp?.getResponseHeader('Link');
   if (pageLinks) {
     const paginationObject = parseLinkHeader(pageLinks);
     hasMore =
@@ -453,11 +481,11 @@ async function fetchProjects(
 
   // populate the projects store if all projects were fetched
   if (allProjects) {
-    ProjectActions.loadProjects(results);
+    ProjectActions.loadProjects(data);
   }
 
   return {
-    results,
+    results: data,
     hasMore,
     nextCursor,
   };

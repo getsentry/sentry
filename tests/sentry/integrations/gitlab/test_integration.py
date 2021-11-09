@@ -1,3 +1,4 @@
+from unittest.mock import Mock, patch
 from urllib.parse import parse_qs, urlencode, urlparse
 
 import responses
@@ -12,7 +13,6 @@ from sentry.models import (
     Repository,
 )
 from sentry.testutils import IntegrationTestCase
-from sentry.utils.compat.mock import Mock, patch
 
 
 class GitlabIntegrationTest(IntegrationTestCase):
@@ -58,11 +58,11 @@ class GitlabIntegrationTest(IntegrationTestCase):
         authorize_params = {k: v[0] for k, v in params.items()}
 
         access_token = "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
-
+        refresh_token = "rrrrr-rrrrrrrrr-rrrrrrrrrr-rrrrrrrrrrrr"
         responses.add(
             responses.POST,
             "https://gitlab.example.com/oauth/token",
-            json={"access_token": access_token},
+            json={"access_token": access_token, "refresh_token": refresh_token},
         )
         responses.add(responses.GET, "https://gitlab.example.com/api/v4/user", json={"id": user_id})
         responses.add(
@@ -133,7 +133,12 @@ class GitlabIntegrationTest(IntegrationTestCase):
             idp=idp, user=self.user, external_id="gitlab.example.com:user_id_1"
         )
         assert identity.status == IdentityStatus.VALID
-        assert identity.data == {"access_token": "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"}
+        assert identity.data == {
+            "access_token": "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+            "client_id": "client_id",
+            "client_secret": "client_secret",
+            "refresh_token": "rrrrr-rrrrrrrrr-rrrrrrrrrr-rrrrrrrrrrrr",
+        }
 
     def test_goback_to_instructions(self):
         # Go to instructions
@@ -283,8 +288,14 @@ class GitlabIntegrationTest(IntegrationTestCase):
             status=401,
             json={},
         )
-        source_url = installation.get_stacktrace_link(repo, "README.md", ref, version)
-        assert not source_url
+
+        try:
+            installation.get_stacktrace_link(repo, "README.md", ref, version)
+        except Exception as e:
+            assert e.code == 401
+        else:
+            # check that the call throws.
+            assert False
 
     @responses.activate
     def test_get_stacktrace_link_use_default_if_version_404(self):

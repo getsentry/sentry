@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.core import mail
 from django.db.models import F
 from django.urls import reverse
@@ -10,10 +12,9 @@ from sentry.models import (
     Organization,
     OrganizationMember,
     OrganizationMemberTeam,
+    UserOption,
 )
 from sentry.testutils import APITestCase
-from sentry.utils.compat import map
-from sentry.utils.compat.mock import patch
 
 
 class OrganizationMemberTestBase(APITestCase):
@@ -260,13 +261,13 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
         self.get_success_response(self.organization.slug, member_om.id, teams=[foo.slug, bar.slug])
 
         member_teams = OrganizationMemberTeam.objects.filter(organizationmember=member_om)
-        team_ids = map(lambda x: x.team_id, member_teams)
+        team_ids = list(map(lambda x: x.team_id, member_teams))
         assert foo.id in team_ids
         assert bar.id in team_ids
 
         member_om = OrganizationMember.objects.get(id=member_om.id)
 
-        teams = map(lambda team: team.slug, member_om.teams.all())
+        teams = list(map(lambda team: team.slug, member_om.teams.all()))
         assert foo.slug in teams
         assert bar.slug in teams
 
@@ -281,7 +282,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
         )
 
         member_om = OrganizationMember.objects.get(id=member_om.id)
-        teams = map(lambda team: team.slug, member_om.teams.all())
+        teams = list(map(lambda team: team.slug, member_om.teams.all()))
         assert len(teams) == 0
 
     def test_can_update_role(self):
@@ -341,6 +342,31 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
         self.get_success_response(self.organization.slug, member_om.id)
 
         assert not OrganizationMember.objects.filter(id=member_om.id).exists()
+
+    def test_simple_related_user_options_are_deleted(self):
+        """
+        Test that ensures that when a member is removed from an org, their corresponding
+        `UserOption` instances for that the projects in that org are deleted as well
+        """
+        org = self.create_organization()
+        project2 = self.create_project(organization=org)
+        member = self.create_user("ahmed@ahmed.io")
+        u1 = UserOption.objects.create(
+            user=member, project=self.project, key="mail:email", value="ahmed@ahmed.io"
+        )
+        u2 = UserOption.objects.create(
+            user=member, project=project2, key="mail:email", value="ahmed@ahmed.io"
+        )
+
+        member_om = self.create_member(organization=self.organization, user=member, role="member")
+
+        self.get_success_response(self.organization.slug, member_om.id)
+
+        assert not OrganizationMember.objects.filter(id=member_om.id).exists()
+        assert not UserOption.objects.filter(id=u1.id).exists()
+        # Ensure that `UserOption` for a user in a different org does not get deleted when that
+        # same member is deleted from another org
+        assert UserOption.objects.filter(id=u2.id).exists()
 
     def test_invalid_id(self):
         member = self.create_user("bar@example.com")

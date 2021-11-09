@@ -21,8 +21,10 @@ from sentry.models import (
     InviteStatus,
     OrganizationMember,
     OrganizationMemberTeam,
+    Project,
     Team,
     TeamStatus,
+    UserOption,
 )
 from sentry.utils import metrics, ratelimits
 
@@ -277,6 +279,17 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
             AuthIdentity.objects.filter(
                 user=om.user, auth_provider__organization=organization
             ).delete()
+
+            # Delete instances of `UserOption` that are scoped to the projects within the
+            # organization when corresponding member is removed from org
+            proj_list = Project.objects.filter(organization=organization).values_list(
+                "id", flat=True
+            )
+            uo_list = UserOption.objects.filter(
+                user=om.user, project_id__in=proj_list, key="mail:email"
+            )
+            for uo in uo_list:
+                uo.delete()
 
             om.delete()
 

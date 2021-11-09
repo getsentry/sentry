@@ -1,21 +1,20 @@
 import {Component} from 'react';
-import {Params} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
+import NoProjectMessage from 'app/components/noProjectMessage';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
-import {Organization} from 'app/types';
+import {Organization, Project} from 'app/types';
+import Projects from 'app/utils/projects';
 import withOrganization from 'app/utils/withOrganization';
 
 import EventDetailsContent from './content';
+import FinishSetupAlert from './finishSetupAlert';
 
-type Props = {
+type Props = RouteComponentProps<{eventSlug: string}, {}> & {
   organization: Organization;
-  location: Location;
-  params: Params;
 };
 
 class EventDetails extends Component<Props> {
@@ -25,7 +24,7 @@ class EventDetails extends Component<Props> {
   };
 
   render() {
-    const {organization, location, params} = this.props;
+    const {organization, location, params, router, route} = this.props;
     const documentTitle = t('Performance Details');
     const eventSlug = this.getEventSlug();
     const projectSlug = eventSlug.split(':')[0];
@@ -37,14 +36,29 @@ class EventDetails extends Component<Props> {
         projectSlug={projectSlug}
       >
         <StyledPageContent>
-          <LightWeightNoProjectMessage organization={organization}>
+          <NoProjectMessage organization={organization}>
+            <Projects orgId={organization.slug} slugs={[projectSlug]}>
+              {({projects}) => {
+                if (projects.length === 0) {
+                  return null;
+                }
+                const project = projects.find(p => p.slug === projectSlug) as Project;
+                // only render setup alert if the project has no real transactions
+                if (!project || project.firstTransactionEvent) {
+                  return null;
+                }
+                return <FinishSetupAlert organization={organization} project={project} />;
+              }}
+            </Projects>
             <EventDetailsContent
               organization={organization}
               location={location}
               params={params}
               eventSlug={eventSlug}
+              router={router}
+              route={route}
             />
-          </LightWeightNoProjectMessage>
+          </NoProjectMessage>
         </StyledPageContent>
       </SentryDocumentTitle>
     );

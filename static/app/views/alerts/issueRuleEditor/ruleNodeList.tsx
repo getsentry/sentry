@@ -12,6 +12,12 @@ import {
   IssueAlertRuleCondition,
   IssueAlertRuleConditionTemplate,
 } from 'app/types/alerts';
+import {
+  CHANGE_ALERT_CONDITION_IDS,
+  COMPARISON_INTERVAL_CHOICES,
+  COMPARISON_TYPE_CHOICE_VALUES,
+  COMPARISON_TYPE_CHOICES,
+} from 'app/views/alerts/changeAlerts/constants';
 import {EVENT_FREQUENCY_PERCENT_CONDITION} from 'app/views/projectInstall/issueAlertOptions';
 
 import RuleNode from './ruleNode';
@@ -42,14 +48,81 @@ type Props = {
 
 class RuleNodeList extends React.Component<Props> {
   getNode = (
-    id: string
+    id: string,
+    itemIdx: number
   ):
     | IssueAlertRuleActionTemplate
     | IssueAlertRuleConditionTemplate
     | null
     | undefined => {
-    const {nodes} = this.props;
-    return nodes ? nodes.find(node => node.id === id) : null;
+    const {nodes, items, organization, onPropertyChange} = this.props;
+    const node = nodes ? nodes.find(n => n.id === id) : null;
+
+    if (!node) {
+      return null;
+    }
+
+    if (
+      !organization.features.includes('change-alerts') ||
+      !CHANGE_ALERT_CONDITION_IDS.includes(node.id)
+    ) {
+      return node;
+    }
+
+    const item = items[itemIdx] as IssueAlertRuleCondition;
+
+    let changeAlertNode: IssueAlertRuleConditionTemplate = {
+      ...node,
+      label: node.label.replace('...', ' {comparisonType}'),
+      formFields: {
+        ...node.formFields,
+        comparisonType: {
+          type: 'choice',
+          choices: COMPARISON_TYPE_CHOICES,
+          // give an initial value from not among choices so selector starts with none selected
+          initial: 'select',
+        },
+      },
+    };
+
+    // item.comparison type isn't backfilled and is missing for old alert rules
+    // this is a problem when an old alert is being edited, need to initialize it
+    if (!item.comparisonType && item.value && item.name) {
+      item.comparisonType = item.comparisonInterval === undefined ? 'count' : 'percent';
+    }
+
+    if (item.comparisonType) {
+      changeAlertNode = {
+        ...changeAlertNode,
+        label: changeAlertNode.label.replace(
+          '{comparisonType}',
+          COMPARISON_TYPE_CHOICE_VALUES[item.comparisonType]
+        ),
+      };
+
+      if (item.comparisonType === 'percent') {
+        if (!item.comparisonInterval) {
+          // comparisonInterval value in IssueRuleEditor state
+          // is undefined even if initial value is defined
+          // can't directly call onPropertyChange, because
+          // getNode is called during render
+          setTimeout(() => onPropertyChange(itemIdx, 'comparisonInterval', '1w'));
+        }
+        changeAlertNode = {
+          ...changeAlertNode,
+          formFields: {
+            ...changeAlertNode.formFields,
+            comparisonInterval: {
+              type: 'choice',
+              choices: COMPARISON_INTERVAL_CHOICES,
+              initial: '1w',
+            },
+          },
+        };
+      }
+    }
+
+    return changeAlertNode;
   };
 
   render() {
@@ -73,12 +146,12 @@ class RuleNodeList extends React.Component<Props> {
 
     const createSelectOptions = (actions: IssueAlertRuleActionTemplate[]) =>
       actions.map(node => {
-        const isBeta = node.id === EVENT_FREQUENCY_PERCENT_CONDITION;
+        const isNew = node.id === EVENT_FREQUENCY_PERCENT_CONDITION;
         return {
           value: node.id,
           label: (
             <React.Fragment>
-              {isBeta && <StyledFeatureBadge type="beta" noTooltip />}
+              {isNew && <StyledFeatureBadge type="new" noTooltip />}
               {shouldUsePrompt && node.prompt?.length > 0 ? node.prompt : node.label}
             </React.Fragment>
           ),
@@ -123,7 +196,7 @@ class RuleNodeList extends React.Component<Props> {
             <RuleNode
               key={idx}
               index={idx}
-              node={this.getNode(item.id)}
+              node={this.getNode(item.id, idx)}
               onDelete={onDeleteRow}
               onPropertyChange={onPropertyChange}
               onReset={onResetRow}

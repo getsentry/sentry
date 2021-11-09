@@ -11,7 +11,6 @@ from parsimonious.grammar import Grammar, NodeVisitor
 from parsimonious.nodes import Node
 
 from sentry.search.events.constants import (
-    KEY_TRANSACTION_ALIAS,
     OPERATOR_NEGATION_MAP,
     SEARCH_MAP,
     SEMVER_ALIAS,
@@ -31,7 +30,7 @@ from sentry.search.utils import (
 )
 from sentry.utils.compat import filter, map
 from sentry.utils.snuba import is_duration_measurement, is_measurement, is_span_op_breakdown
-from sentry.utils.validators import is_event_id
+from sentry.utils.validators import is_event_id, is_span_id
 
 # A wildcard is an asterisk prefixed by an even number of back slashes.
 # If there are an odd number of back slashes, then the back slash immediately
@@ -123,7 +122,7 @@ key                    = ~r"[a-zA-Z0-9_.-]+"
 quoted_key             = '"' ~r"[a-zA-Z0-9_.:-]+" '"'
 explicit_tag_key       = "tags" open_bracket search_key closed_bracket
 aggregate_key          = key open_paren spaces function_args? spaces closed_paren
-function_args          = aggregate_param (spaces comma spaces aggregate_param)*
+function_args          = aggregate_param (spaces comma spaces !comma aggregate_param?)*
 aggregate_param        = quoted_aggregate_param / raw_aggregate_param
 raw_aggregate_param    = ~r"[^()\t\n, \"]+"
 quoted_aggregate_param = '"' ('\\"' / ~r'[^\t\n\"]')* '"'
@@ -136,8 +135,8 @@ text_in_value          = quoted_value / in_value
 search_value           = quoted_value / value
 numeric_value          = "-"? numeric ~r"[kmb]"? &(end_value / comma / closed_bracket)
 boolean_value          = ~r"(true|1|false|0)"i &end_value
-text_in_list           = open_bracket text_in_value (spaces comma spaces text_in_value)* closed_bracket &end_value
-numeric_in_list        = open_bracket numeric_value (spaces comma spaces numeric_value)* closed_bracket &end_value
+text_in_list           = open_bracket text_in_value (spaces comma spaces !comma text_in_value?)* closed_bracket &end_value
+numeric_in_list        = open_bracket numeric_value (spaces comma spaces !comma numeric_value?)* closed_bracket &end_value
 
 # See: https://stackoverflow.com/a/39617181/790169
 in_value_termination = in_value_char (!in_value_end in_value_char)* in_value_end
@@ -258,9 +257,13 @@ def remove_space(children):
 
 
 def process_list(first, remaining):
+    # Empty values become blank nodes
+    if any(isinstance(item[4], Node) for item in remaining):
+        raise InvalidSearchQuery("Lists should not have empty values")
+
     return [
         first,
-        *[item[3] for item in remaining],
+        *(item[4][0] for item in remaining),
     ]
 
 
@@ -341,6 +344,15 @@ class SearchValue(NamedTuple):
         if not isinstance(self.raw_value, str):
             return False
         return is_event_id(self.raw_value) or self.raw_value == ""
+
+    def is_span_id(self) -> bool:
+        """Return whether the current value is a valid span id
+
+        Empty strings are valid, so that it can be used for has:trace.span queries
+        """
+        if not isinstance(self.raw_value, str):
+            return False
+        return is_span_id(self.raw_value) or self.raw_value == ""
 
 
 class SearchFilter(NamedTuple):
@@ -454,7 +466,7 @@ class SearchVisitor(NodeVisitor):
         return lookup
 
     def is_numeric_key(self, key):
-        return key in self.config.numeric_keys or is_measurement(key)
+        return key in self.config.numeric_keys or is_measurement(key) or is_span_op_breakdown(key)
 
     def is_duration_key(self, key):
         return (
@@ -679,7 +691,7 @@ class SearchVisitor(NodeVisitor):
                 # minutes). So we fall through to numeric if it's not a
                 # duration key
                 #
-                # TODO(epurkhsier): Should we validate that the field is
+                # TODO(epurkhiser): Should we validate that the field is
                 # numeric and do some other fallback if it's not?
                 aggregate_value = parse_numeric_value(*search_value)
         except ValueError:
@@ -1029,7 +1041,6 @@ default_config = SearchConfig(
         "error.handled",
         "error.unhandled",
         "stack.in_app",
-        KEY_TRANSACTION_ALIAS,
         TEAM_KEY_TRANSACTION_ALIAS,
     },
 )

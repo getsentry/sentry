@@ -5,17 +5,20 @@ import Csp from 'app/components/events/interfaces/csp';
 import DebugMeta from 'app/components/events/interfaces/debugMeta';
 import DebugMetaV2 from 'app/components/events/interfaces/debugMeta-v2';
 import Exception from 'app/components/events/interfaces/exception';
+import ExceptionV2 from 'app/components/events/interfaces/exceptionV2';
 import Generic from 'app/components/events/interfaces/generic';
 import Message from 'app/components/events/interfaces/message';
 import Request from 'app/components/events/interfaces/request';
 import Spans from 'app/components/events/interfaces/spans';
-import Stacktrace from 'app/components/events/interfaces/stacktrace';
+import StackTrace from 'app/components/events/interfaces/stackTrace';
+import StackTraceV2 from 'app/components/events/interfaces/stackTraceV2';
 import Template from 'app/components/events/interfaces/template';
 import Threads from 'app/components/events/interfaces/threads';
+import ThreadsV2 from 'app/components/events/interfaces/threadsV2';
 import {Group, Organization, Project, SharedViewOrganization} from 'app/types';
 import {Entry, EntryType, Event, EventTransaction} from 'app/types/event';
 
-type Props = {
+type Props = Pick<React.ComponentProps<typeof Breadcrumbs>, 'route' | 'router'> & {
   entry: Entry;
   projectSlug: Project['slug'];
   event: Event;
@@ -23,21 +26,45 @@ type Props = {
   group?: Group;
 };
 
-function EventEntry({entry, projectSlug, event, organization, group}: Props) {
-  const hasGroupingTreeUI = !!organization.features?.includes('grouping-stacktrace-ui');
+function EventEntry({
+  entry,
+  projectSlug,
+  event,
+  organization,
+  group,
+  route,
+  router,
+}: Props) {
+  const hasHierarchicalGrouping =
+    !!organization.features?.includes('grouping-stacktrace-ui') &&
+    !!(event.metadata.current_tree_label || event.metadata.finest_tree_label);
+
+  const hasNativeStackTraceV2 = !!organization.features?.includes(
+    'native-stack-trace-v2'
+  );
+
   const groupingCurrentLevel = group?.metadata?.current_level;
 
   switch (entry.type) {
     case EntryType.EXCEPTION: {
       const {data, type} = entry;
-      return (
+      return hasNativeStackTraceV2 ? (
+        <ExceptionV2
+          type={type}
+          event={event}
+          data={data}
+          projectId={projectSlug}
+          groupingCurrentLevel={groupingCurrentLevel}
+          hasHierarchicalGrouping={hasHierarchicalGrouping}
+        />
+      ) : (
         <Exception
           type={type}
           event={event}
           data={data}
           projectId={projectSlug}
           groupingCurrentLevel={groupingCurrentLevel}
-          hasGroupingTreeUI={hasGroupingTreeUI}
+          hasHierarchicalGrouping={hasHierarchicalGrouping}
         />
       );
     }
@@ -51,14 +78,23 @@ function EventEntry({entry, projectSlug, event, organization, group}: Props) {
     }
     case EntryType.STACKTRACE: {
       const {data, type} = entry;
-      return (
-        <Stacktrace
+      return hasNativeStackTraceV2 ? (
+        <StackTraceV2
           type={type}
           event={event}
           data={data}
           projectId={projectSlug}
           groupingCurrentLevel={groupingCurrentLevel}
-          hasGroupingTreeUI={hasGroupingTreeUI}
+          hasHierarchicalGrouping={hasHierarchicalGrouping}
+        />
+      ) : (
+        <StackTrace
+          type={type}
+          event={event}
+          data={data}
+          projectId={projectSlug}
+          groupingCurrentLevel={groupingCurrentLevel}
+          hasHierarchicalGrouping={hasHierarchicalGrouping}
         />
       );
     }
@@ -84,19 +120,30 @@ function EventEntry({entry, projectSlug, event, organization, group}: Props) {
           data={data}
           organization={organization as Organization}
           event={event}
+          router={router}
+          route={route}
         />
       );
     }
     case EntryType.THREADS: {
       const {data, type} = entry;
-      return (
+      return hasNativeStackTraceV2 ? (
+        <ThreadsV2
+          type={type}
+          event={event}
+          data={data}
+          projectId={projectSlug}
+          groupingCurrentLevel={groupingCurrentLevel}
+          hasHierarchicalGrouping={hasHierarchicalGrouping}
+        />
+      ) : (
         <Threads
           type={type}
           event={event}
           data={data}
           projectId={projectSlug}
           groupingCurrentLevel={groupingCurrentLevel}
-          hasGroupingTreeUI={hasGroupingTreeUI}
+          hasHierarchicalGrouping={hasHierarchicalGrouping}
         />
       );
     }

@@ -10,6 +10,8 @@ jobs:
   route:
     runs-on: ubuntu-latest
     if: >-
+      github.event.issue.state == 'open'
+      &&
       startsWith(github.event.label.name, 'Team: ')
       &&
       !contains(github.event.issue.labels.*.name, 'Status: Backlog')

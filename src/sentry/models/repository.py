@@ -77,11 +77,14 @@ class Repository(Model, PendingDeletionMixin):
 
 
 def on_delete(instance, actor=None, **kwargs):
+    """
+    Remove webhooks for repository providers that use repository level webhooks.
+    This is called from sentry.tasks.deletion.run_deletion()
+    """
     # If there is no provider, we don't have any webhooks, etc to delete
     if not instance.provider:
         return
 
-    # TODO(lb): I'm assuming that this is used by integrations... is it?
     def handle_exception(e):
         from sentry.exceptions import InvalidIdentity, PluginError
         from sentry.shared_integrations.exceptions import IntegrationError

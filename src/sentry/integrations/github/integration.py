@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import re
 
 from django.utils.text import slugify
@@ -79,7 +81,7 @@ API_ERRORS = {
 
 def build_repository_query(metadata, name, query):
     account_type = "user" if metadata["account_type"] == "User" else "org"
-    return (f"{account_type}:{name} {query}").encode("utf-8")
+    return (f"{account_type}:{name} {query}").encode()
 
 
 class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMixin):
@@ -118,7 +120,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
     def search_issues(self, query):
         return self.get_client().search_issues(query)
 
-    def format_source_url(self, repo, filepath, branch):
+    def format_source_url(self, repo: Repository, filepath: str, branch: str) -> str:
         # Must format the url ourselves since `check_file` is a head request
         # "https://github.com/octokit/octokit.rb/blob/master/README.md"
         return f"https://github.com/{repo.name}/blob/{branch}/{filepath}"
@@ -140,10 +142,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         if isinstance(exc, ApiError):
             message = API_ERRORS.get(exc.code)
             if exc.code == 404 and re.search(r"/repos/.*/(compare|commits)", exc.url):
-                message += (
-                    " Please also confirm that the commits associated with the following URL have been pushed to GitHub: %s"
-                    % exc.url
-                )
+                message += f" Please also confirm that the commits associated with the following URL have been pushed to GitHub: {exc.url}"
 
             if message is None:
                 message = exc.json.get("message", "unknown error") if exc.json else "unknown error"
@@ -250,7 +249,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
 class GitHubInstallationRedirect(PipelineView):
     def get_app_url(self):
         name = options.get("github-app.name")
-        return "https://github.com/apps/%s" % slugify(name)
+        return f"https://github.com/apps/{slugify(name)}"
 
     def dispatch(self, request, pipeline):
         if "reinstall_id" in request.GET:

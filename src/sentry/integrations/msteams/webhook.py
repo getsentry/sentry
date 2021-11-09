@@ -111,7 +111,7 @@ def verify_signature(request):
         )
     except Exception as err:
         logger.error("msteams.webhook.invalid-token-with-verify")
-        raise AuthenticationFailed("Could not validate JWT. Got %s" % err)
+        raise AuthenticationFailed(f"Could not validate JWT. Got {err}")
 
     # now validate iss, service url, and expiration
     if decoded.get("iss") != "https://api.botframework.com":
@@ -302,7 +302,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
         }
         action_data = self.make_action_data(data, identity.user_id)
         status = action_types[data["payload"]["actionType"]]
-        analytics_event = "integrations.msteams.%s" % status
+        analytics_event = f"integrations.msteams.{status}"
         analytics.record(
             analytics_event,
             actor_id=identity.user_id,

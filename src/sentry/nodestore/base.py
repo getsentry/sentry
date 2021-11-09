@@ -125,6 +125,7 @@ class NodeStorage(local, Service):
         {"message": "hello world"}
         """
         with sentry_sdk.start_span(op="nodestore.get") as span:
+            span.set_tag("node_id", id)
             if subkey is None:
                 item_from_cache = self._get_cache_item(id)
                 if item_from_cache:
@@ -236,7 +237,9 @@ class NodeStorage(local, Service):
         >>> nodestore.get('key1', subkey='reprocessing')
         {'foo': 'bam'}
         """
-        with sentry_sdk.start_span(op="nodestore.set_subkeys"):
+        with sentry_sdk.start_span(op="nodestore.set_subkeys") as span:
+            span.set_tag("node_id", id)
+            span.set_data("subkeys_count", len(data))
             cache_item = data.get(None)
             bytes_data = self._encode(data)
             self._set_bytes(id, bytes_data, ttl=ttl)

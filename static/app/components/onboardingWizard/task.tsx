@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as ReactRouter from 'react-router';
+import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 import moment from 'moment';
@@ -35,7 +35,7 @@ const recordAnalytics = (
     action,
   });
 
-type Props = ReactRouter.WithRouterProps & {
+type Props = WithRouterProps & {
   /**
    * Task to render
    */
@@ -113,7 +113,7 @@ function Task({router, task, onSkip, onMarkComplete, forwardedRef, organization}
         requisite: task.requisiteTasks[0].title,
       })}
     >
-      <IconLock color="orange400" />
+      <IconLock color="pink300" />
     </Tooltip>
   );
 
@@ -207,7 +207,7 @@ const InProgressIndicator = styled(({user, ...props}: InProgressIndicatorProps) 
 ))`
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: bold;
-  color: ${p => p.theme.orange400};
+  color: ${p => p.theme.pink300};
   display: grid;
   grid-template-columns: max-content max-content;
   align-items: center;
@@ -243,7 +243,7 @@ CompleteIndicator.defaultProps = {
 const SkippedIndicator = styled(IconClose)``;
 SkippedIndicator.defaultProps = {
   isCircled: true,
-  color: 'orange400',
+  color: 'pink300',
 };
 
 const completedItemAnimation = {
@@ -277,7 +277,7 @@ TaskBlankAvatar.defaultProps = {
   transition,
 };
 
-const WrappedTask = withOrganization(ReactRouter.withRouter(Task));
+const WrappedTask = withOrganization(withRouter(Task));
 
 export default React.forwardRef<
   HTMLDivElement,

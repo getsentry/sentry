@@ -27,9 +27,7 @@ class GitHubSearchEndpoint(IntegrationEndpoint):
                 return Response({"detail": "repo is a required parameter"}, status=400)
 
             try:
-                response = installation.search_issues(
-                    query=(f"repo:{repo} {query}").encode("utf-8")
-                )
+                response = installation.search_issues(query=(f"repo:{repo} {query}").encode())
             except ApiError as err:
                 if err.code == 403:
                     return Response({"detail": "Rate limit exceeded"}, status=429)

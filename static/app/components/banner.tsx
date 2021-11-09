@@ -65,7 +65,7 @@ const Banner: BannerType = ({
   return (
     <BannerWrapper backgroundImg={backgroundImg} className={className}>
       {backgroundComponent}
-      {isDismissable ? <CloseButton onClick={dismiss} /> : null}
+      {isDismissable ? <CloseButton onClick={dismiss} aria-label={t('Close')} /> : null}
       <BannerContent>
         <BannerTitle>{title}</BannerTitle>
         <BannerSubtitle>{subtitle}</BannerSubtitle>

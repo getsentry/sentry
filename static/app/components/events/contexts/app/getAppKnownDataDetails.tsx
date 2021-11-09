@@ -27,7 +27,7 @@ function getAppKnownDataDetails(
       return {
         subject: t('Start Time'),
         value: getRelativeTimeFromEventDateCreated(
-          event.dateCreated,
+          event.dateCreated ? event.dateCreated : event.dateReceived,
           data.app_start_time
         ),
       };

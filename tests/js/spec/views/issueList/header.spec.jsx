@@ -179,7 +179,7 @@ describe('IssueListHeader', () => {
       pathname,
       query: {query: 'is:unresolved'},
     });
-    expect(wrapper.find('Link').at(1).prop('to')).toEqual({
+    expect(wrapper.find('Link').at(2).prop('to')).toEqual({
       pathname,
       query: {
         query: 'is:unresolved is:for_review assigned_or_suggested:[me, none]',
@@ -204,7 +204,8 @@ describe('IssueListHeader', () => {
       />,
       TestStubs.routerContext()
     );
-    expect(wrapper.find('Link').at(1).prop('to')).toEqual({
+
+    expect(wrapper.find('Link').at(2).prop('to')).toEqual({
       pathname: '/organizations/org-slug/issues/',
       query: {
         query: 'is:unresolved is:for_review assigned_or_suggested:[me, none]',
@@ -224,7 +225,7 @@ describe('IssueListHeader', () => {
       />,
       TestStubs.routerContext()
     );
-    const inboxTab = wrapper.find('Link').at(1);
+    const inboxTab = wrapper.find('Link').at(2);
     expect(inboxTab.text()).toContain('For Review');
     inboxTab.simulate('click');
     expect(trackAnalyticsEvent).toHaveBeenCalledTimes(1);
@@ -241,7 +242,7 @@ describe('IssueListHeader', () => {
       />,
       TestStubs.routerContext()
     );
-    const inboxTab = wrapper.find('Link').at(1);
+    const inboxTab = wrapper.find('Link').at(2);
     inboxTab.simulate('click');
     expect(trackAnalyticsEvent).toHaveBeenCalledTimes(0);
   });

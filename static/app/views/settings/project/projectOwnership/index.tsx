@@ -1,11 +1,19 @@
 import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'app/actionCreators/indicator';
 import {openEditOwnershipRules, openModal} from 'app/actionCreators/modal';
+import Access from 'app/components/acl/access';
 import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
+import HookOrDefault from 'app/components/hookOrDefault';
 import ExternalLink from 'app/components/links/externalLink';
 import {IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
@@ -19,6 +27,7 @@ import {
 } from 'app/types';
 import routeTitleGen from 'app/utils/routeTitle';
 import AsyncView from 'app/views/asyncView';
+import FeedbackAlert from 'app/views/settings/account/notifications/feedbackAlert';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
@@ -38,6 +47,11 @@ type State = {
   codeowners?: CodeOwner[];
   integrations: Integration[];
 } & AsyncView['state'];
+
+const CodeOwnersHeader = HookOrDefault({
+  hookName: 'component:codeowners-header',
+  defaultComponent: () => <Fragment />,
+});
 
 class ProjectOwnership extends AsyncView<Props, State> {
   getTitle() {
@@ -113,7 +127,7 @@ tags.sku_class:enterprise #enterprise`;
 
   handleCodeOwnerAdded = (data: CodeOwner) => {
     const {codeowners} = this.state;
-    const newCodeowners = (codeowners || []).concat(data);
+    const newCodeowners = [data, ...(codeowners || [])];
     this.setState({codeowners: newCodeowners});
   };
 
@@ -133,6 +147,25 @@ tags.sku_class:enterprise #enterprise`;
     });
   };
 
+  handleAddCodeOwnerRequest = async () => {
+    const {organization, project} = this.props;
+    try {
+      addLoadingMessage(t('Requesting\u2026'));
+      await this.api.requestPromise(
+        `/projects/${organization.slug}/${project.slug}/codeowners-request/`,
+        {
+          method: 'POST',
+          data: {},
+        }
+      );
+
+      addSuccessMessage(t('Request Sent'));
+    } catch (err) {
+      addErrorMessage(t('Unable to send request'));
+      Sentry.captureException(err);
+    }
+  };
+
   renderCodeOwnerErrors = () => {
     const {project, organization} = this.props;
     const {codeowners} = this.state;
@@ -148,6 +181,33 @@ tags.sku_class:enterprise #enterprise`;
         </ErrorCtaContainer>
       </Fragment>
     );
+
+    const errMessageListComponent = (
+      message: string,
+      values: string[],
+      linkFunction: (s: string) => string,
+      linkValueFunction: (s: string) => string
+    ) => {
+      return (
+        <Fragment>
+          <ErrorMessageContainer>
+            <span>{message}</span>
+          </ErrorMessageContainer>
+          <ErrorMessageListContainer>
+            {values.map((value, index) => (
+              <ErrorInlineContainer key={index}>
+                <b>{value}</b>
+                <ErrorCtaContainer>
+                  <ExternalLink href={linkFunction(value)} key={index}>
+                    {linkValueFunction(value)}
+                  </ExternalLink>
+                </ErrorCtaContainer>
+              </ErrorInlineContainer>
+            ))}
+          </ErrorMessageListContainer>
+        </Fragment>
+      );
+    };
 
     return (codeowners || [])
       .filter(({errors}) => Object.values(errors).flat().length)
@@ -179,13 +239,20 @@ tags.sku_class:enterprise #enterprise`;
               );
 
             case 'teams_without_access':
-              return values.map(value =>
-                errMessageComponent(
-                  `The following team do not have access to the project: ${project.slug}`,
-                  [value],
+              return errMessageListComponent(
+                `The following team do not have access to the project: ${project.slug}`,
+                values,
+                value =>
                   `/settings/${organization.slug}/teams/${value.slice(1)}/projects/`,
-                  `Configure ${value} Team Permissions`
-                )
+                value => `Configure ${value} Permissions`
+              );
+
+            case 'users_without_access':
+              return errMessageListComponent(
+                `The following users are not on a team that has access to the project: ${project.slug}`,
+                values,
+                email => `/settings/${organization.slug}/members/?query=${email}`,
+                _ => `Configure Member Settings`
               );
             default:
               return null;
@@ -196,13 +263,17 @@ tags.sku_class:enterprise #enterprise`;
             key={id}
             type="error"
             icon={<IconWarning size="md" />}
-            expand={Object.entries(errors)
-              .filter(([_, values]) => values.length)
-              .map(([type, values]) => (
-                <ErrorContainer key={`${id}-${type}`}>
-                  {errMessage(type, values)}
-                </ErrorContainer>
-              ))}
+            expand={[
+              <AlertContentContainer key="container">
+                {Object.entries(errors)
+                  .filter(([_, values]) => values.length)
+                  .map(([type, values]) => (
+                    <ErrorContainer key={`${id}-${type}`}>
+                      {errMessage(type, values)}
+                    </ErrorContainer>
+                  ))}
+              </AlertContentContainer>,
+            ]}
           >
             {`There were ${
               Object.values(errors).flat().length
@@ -233,22 +304,41 @@ tags.sku_class:enterprise #enterprise`;
                 {t('View Issues')}
               </Button>
               <Feature features={['integrations-codeowners']}>
-                <CodeOwnerButton
-                  onClick={this.handleAddCodeOwner}
-                  size="small"
-                  priority="primary"
-                  data-test-id="add-codeowner-button"
-                  // TODO(nisanthan): Remove disabled logic when implementing support for multiple CODEOWNERS
-                  disabled={codeowners && codeowners.length > 0}
-                >
-                  {t('Add CODEOWNERS File')}
-                </CodeOwnerButton>
+                <Access access={['org:integrations']}>
+                  {({hasAccess}) =>
+                    hasAccess ? (
+                      <CodeOwnerButton
+                        onClick={this.handleAddCodeOwner}
+                        size="small"
+                        priority="primary"
+                        data-test-id="add-codeowner-button"
+                      >
+                        {t('Add CODEOWNERS File')}
+                      </CodeOwnerButton>
+                    ) : (
+                      <CodeOwnerButton
+                        onClick={this.handleAddCodeOwnerRequest}
+                        size="small"
+                        priority="primary"
+                        data-test-id="add-codeowner-request-button"
+                      >
+                        {t('Request to Add CODEOWNERS File')}
+                      </CodeOwnerButton>
+                    )
+                  }
+                </Access>
               </Feature>
             </Fragment>
           }
         />
         <IssueOwnerDetails>{this.getDetail()}</IssueOwnerDetails>
+        <CodeOwnersHeader
+          addCodeOwner={this.handleAddCodeOwner}
+          handleRequest={this.handleAddCodeOwnerRequest}
+        />
+
         <PermissionAlert />
+        <FeedbackAlert />
         {this.renderCodeOwnerErrors()}
         <RulesPanel
           data-test-id="issueowners-panel"
@@ -332,6 +422,11 @@ const CodeOwnerButton = styled(Button)`
   margin-left: ${space(1)};
 `;
 
+const AlertContentContainer = styled('div')`
+  overflow-y: auto;
+  max-height: 350px;
+`;
+
 const ErrorContainer = styled('div')`
   display: grid;
   grid-template-areas: 'message cta';
@@ -340,9 +435,21 @@ const ErrorContainer = styled('div')`
   padding: ${space(1.5)} 0;
 `;
 
+const ErrorInlineContainer = styled(ErrorContainer)`
+  gap: ${space(1.5)};
+  grid-template-columns: 1fr 2fr;
+  align-items: center;
+  padding: 0;
+`;
+
 const ErrorMessageContainer = styled('div')`
   grid-area: message;
   display: grid;
+  gap: ${space(1.5)};
+`;
+
+const ErrorMessageListContainer = styled('div')`
+  grid-column: message / cta-end;
   gap: ${space(1.5)};
 `;
 

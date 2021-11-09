@@ -9,16 +9,20 @@ import {t} from 'app/locale';
 import {NewQuery, Organization, SavedQuery} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
+import {DisplayModes} from 'app/utils/discover/types';
+import {DisplayType} from 'app/views/dashboardsV2/types';
 
 export function handleCreateQuery(
   api: Client,
   organization: Organization,
   eventView: EventView,
+  yAxis: string[],
   // True if this is a brand new query being saved
   // False if this is a modification from a saved query
   isNewQuery: boolean = true
 ): Promise<SavedQuery> {
   const payload = eventView.toNewQuery();
+  payload.yAxis = yAxis;
 
   trackAnalyticsEvent({
     ...getAnalyticsCreateEventKeyName(isNewQuery, 'request'),
@@ -70,9 +74,11 @@ const EVENT_NAME_NEW_MAP = {
 export function handleUpdateQuery(
   api: Client,
   organization: Organization,
-  eventView: EventView
+  eventView: EventView,
+  yAxis: string[]
 ): Promise<SavedQuery> {
   const payload = eventView.toNewQuery();
+  payload.yAxis = yAxis;
 
   if (!eventView.name) {
     addErrorMessage(t('Please name your query'));
@@ -234,4 +240,17 @@ export function extractAnalyticsQueryFields(payload: NewQuery): Partial<NewQuery
     fields,
     query,
   };
+}
+
+export function displayModeToDisplayType(displayMode: DisplayModes): DisplayType {
+  switch (displayMode) {
+    case DisplayModes.BAR:
+      return DisplayType.BAR;
+    case DisplayModes.WORLDMAP:
+      return DisplayType.WORLD_MAP;
+    case DisplayModes.TOP5:
+      return DisplayType.TOP_N;
+    default:
+      return DisplayType.LINE;
+  }
 }

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as ReactRouter from 'react-router';
+import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
@@ -14,7 +14,7 @@ import {getRelativeSummary} from 'app/components/organizations/timeRangeSelector
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {IconCalendar} from 'app/icons';
 import space from 'app/styles/space';
-import {DateString, LightWeightOrganization} from 'app/types';
+import {DateString, Organization} from 'app/types';
 import {defined} from 'app/utils';
 import {analytics} from 'app/utils/analytics';
 import {
@@ -41,11 +41,10 @@ const getDateWithTimezoneInUtc = (date, utc) =>
 const getInternalDate = (date, utc) => {
   if (utc) {
     return getUtcToSystem(date);
-  } else {
-    return new Date(
-      moment.tz(moment.utc(date), getUserTimezone()).format('YYYY/MM/DD HH:mm:ss')
-    );
   }
+  return new Date(
+    moment.tz(moment.utc(date), getUserTimezone()).format('YYYY/MM/DD HH:mm:ss')
+  );
 };
 
 const DateRangeHook = HookOrDefault({
@@ -89,7 +88,7 @@ const defaultProps = {
   onChange: (() => {}) as (data: ChangeData) => void,
 };
 
-type Props = ReactRouter.WithRouterProps & {
+type Props = WithRouterProps & {
   /**
    * Start date value for absolute date selector
    */
@@ -133,12 +132,17 @@ type Props = ReactRouter.WithRouterProps & {
   /**
    * Just used for metrics
    */
-  organization: LightWeightOrganization;
+  organization: Organization;
 
   /**
    * Small info icon with tooltip hint text
    */
   hint?: string;
+
+  /**
+   * Set an optional default value to prefill absolute date with
+   */
+  defaultAbsolute?: {start?: Date; end?: Date};
 } & Partial<typeof defaultProps>;
 
 type State = {
@@ -231,17 +235,19 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
   };
 
   handleAbsoluteClick = () => {
-    const {relative, onChange, defaultPeriod} = this.props;
+    const {relative, onChange, defaultPeriod, defaultAbsolute} = this.props;
 
     // Set default range to equivalent of last relative period,
     // or use default stats period
     const newDateTime: ChangeData = {
       relative: null,
-      start: getPeriodAgo(
-        'hours',
-        parsePeriodToHours(relative || defaultPeriod || DEFAULT_STATS_PERIOD)
-      ).toDate(),
-      end: new Date(),
+      start: defaultAbsolute?.start
+        ? defaultAbsolute.start
+        : getPeriodAgo(
+            'hours',
+            parsePeriodToHours(relative || defaultPeriod || DEFAULT_STATS_PERIOD)
+          ).toDate(),
+      end: defaultAbsolute?.end ? defaultAbsolute.end : new Date(),
     };
 
     if (defined(this.props.utc)) {
@@ -491,6 +497,6 @@ const SubmitRow = styled('div')`
   border-left: 1px solid ${p => p.theme.border};
 `;
 
-export default ReactRouter.withRouter(TimeRangeSelector);
+export default withRouter(TimeRangeSelector);
 
 export {TimeRangeRoot};

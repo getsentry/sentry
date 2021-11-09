@@ -1,5 +1,5 @@
 ---
-created: '2021-07-14T12:39:42.957158Z'
+created: '2021-08-04T15:53:49.960637Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -86,16 +86,7 @@ app-depth-max:
     app-depth-max*
       exception*
         stacktrace*
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
-            function*
-              "_pthread_start"
           frame*
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
             function*
               "stripped_application_code"
           frame*
@@ -103,73 +94,18 @@ app-depth-max:
               "stripped_application_code"
             function*
               "stripped_application_code"
-          frame (ignored due to recursion)
-            filename (discarded native filename for grouping stability)
-              "stripped_application_code"
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            filename (discarded native filename for grouping stability)
-              "stripped_application_code"
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            filename (discarded native filename for grouping stability)
-              "stripped_application_code"
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            filename (discarded native filename for grouping stability)
-              "stripped_application_code"
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            filename (discarded native filename for grouping stability)
-              "stripped_application_code"
-            function*
-              "stripped_application_code"
           frame*
             function*
               "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "std::__1::basic_string<T>::~basic_string"
           frame* (marked as prefix frame by stack trace rule (category:free +prefix))
             function*
               "free"
           frame* (marked as prefix frame by stack trace rule (category:malloc +prefix))
             function*
               "malloc_report"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "malloc_vreport"
           frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
             function*
               "abort"
-          frame (ignored by stack trace rule (category:throw +prefix ^-group))
-            function*
-              "pthread_kill"
-          frame (ignored by stack trace rule (category:throw +prefix ^-group))
-            function*
-              "__pthread_kill"
         type (ignored because exception is synthetic)
           "SIGABRT"
         value (ignored because stacktrace takes precedence)

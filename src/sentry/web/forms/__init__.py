@@ -1,6 +1,7 @@
 from django import forms
 
 from sentry.models import Activity
+from sentry.types.activity import ActivityType
 
 
 class NewNoteForm(forms.Form):
@@ -9,13 +10,6 @@ class NewNoteForm(forms.Form):
     )
 
     def save(self, group, user, event=None):
-        activity = Activity.objects.create(
-            group=group,
-            project=group.project,
-            type=Activity.NOTE,
-            user=user,
-            data=self.cleaned_data,
+        return Activity.objects.create_group_activity(
+            group, ActivityType.NOTE, user=user, data=self.cleaned_data
         )
-        activity.send_notification()
-
-        return activity

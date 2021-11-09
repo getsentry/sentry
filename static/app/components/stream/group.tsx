@@ -256,13 +256,14 @@ class StreamGroup extends React.Component<Props, State> {
 
     if (isFiltered && typeof query === 'string') {
       const queryObj = queryToObj(query);
-      for (const queryTag in queryObj)
+      for (const queryTag in queryObj) {
         if (!DiscoveryExclusionFields.includes(queryTag)) {
           const queryVal = queryObj[queryTag].includes(' ')
             ? `"${queryObj[queryTag]}"`
             : queryObj[queryTag];
           queryTerms.push(`${queryTag}:${queryVal}`);
         }
+      }
 
       if (queryObj.__text) {
         queryTerms.push(queryObj.__text);
@@ -310,6 +311,11 @@ class StreamGroup extends React.Component<Props, State> {
     const {data} = this.state;
     const {statusDetails, count} = data as GroupReprocessing;
     const {info, pendingEvents} = statusDetails;
+
+    if (!info) {
+      return null;
+    }
+
     const {totalEvents, dateCreated} = info;
 
     const remainingEventsToReprocess = totalEvents - pendingEvents;
@@ -317,8 +323,6 @@ class StreamGroup extends React.Component<Props, State> {
       remainingEventsToReprocess,
       totalEvents
     );
-
-    const value = remainingEventsToReprocessPercent || 100;
 
     return (
       <React.Fragment>
@@ -330,14 +334,14 @@ class StreamGroup extends React.Component<Props, State> {
             <Placeholder height="17px" />
           ) : (
             <React.Fragment>
-              <Count value={totalEvents} />
+              <Count value={remainingEventsToReprocess} />
               {'/'}
-              <Count value={Number(count)} />
+              <Count value={totalEvents} />
             </React.Fragment>
           )}
         </EventsReprocessedColumn>
         <ProgressColumn>
-          <ProgressBar value={value} />
+          <ProgressBar value={remainingEventsToReprocessPercent} />
         </ProgressColumn>
       </React.Fragment>
     );
@@ -681,6 +685,7 @@ const GroupCheckBoxWrapper = styled('div')`
 
 const primaryStatStyle = (theme: Theme) => css`
   font-size: ${theme.fontSizeLarge};
+  font-variant-numeric: tabular-nums;
 `;
 
 const PrimaryCount = styled(Count)`
@@ -693,6 +698,7 @@ const PrimaryPercent = styled('div')`
 
 const secondaryStatStyle = (theme: Theme) => css`
   font-size: ${theme.fontSizeLarge};
+  font-variant-numeric: tabular-nums;
 
   :before {
     content: '/';
@@ -741,6 +747,7 @@ const StyledMenuItem = styled(({to, children, ...p}: MenuItemProps) => (
 const menuItemStatStyles = css`
   text-align: right;
   font-weight: bold;
+  font-variant-numeric: tabular-nums;
   padding-left: ${space(1)};
 `;
 

@@ -1,5 +1,5 @@
 ---
-created: '2021-07-14T12:39:39.938788Z'
+created: '2021-08-04T15:53:47.840330Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -64,106 +64,15 @@ app-depth-max:
     app-depth-max*
       exception*
         stacktrace*
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
-            function*
-              "_dispatch_root_queues_init_once"
-            package (ignored because function takes precedence)
-              "libdispatch.dylib"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
-            function*
-              "start_wqthread"
-            package (ignored because function takes precedence)
-              "libsystem_pthread.dylib"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
-            function*
-              "_pthread_wqthread"
-            package (ignored because function takes precedence)
-              "libsystem_pthread.dylib"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
-            function*
-              "_dispatch_worker_thread2"
-            package (ignored because function takes precedence)
-              "libdispatch.dylib"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
-            function*
-              "_dispatch_root_queue_drain"
-            package (ignored because function takes precedence)
-              "libdispatch.dylib"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
-            function*
-              "_dispatch_client_callout"
-            package (ignored because function takes precedence)
-              "libdispatch.dylib"
           frame*
             function*
               "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored by stack trace rule (category:indirection -group))
-            filename (discarded native filename for grouping stability)
-              "function_template.hpp"
-            function*
-              "boost::function0<T>::operator()"
           frame*
             function*
               "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored by stack trace rule (category:indirection -group))
-            filename (discarded native filename for grouping stability)
-              "function_template.hpp"
-            function*
-              "boost::function0<T>::operator()"
           frame*
             function*
               "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "_INTERNAL34b3029b::`anonymous namespace'::Convert4444_8uTo4444_32f<T>"
         type (ignored because exception is synthetic)
           "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
         value (ignored because stacktrace takes precedence)

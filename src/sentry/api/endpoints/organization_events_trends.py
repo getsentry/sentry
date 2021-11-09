@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events.fields import DateArg, parse_function
 from sentry.search.utils import InvalidQuery, parse_datetime_string
 from sentry.snuba import discover
@@ -16,7 +17,7 @@ from sentry.snuba import discover
 Alias = namedtuple("Alias", "converter aggregate")
 
 
-# This is to flip conditions beteween trend types
+# This is to flip conditions between trend types
 CORRESPONDENCE_MAP = {
     ">": "<",
     ">=": "<=",
@@ -211,7 +212,10 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
         params["aliases"] = self.get_function_aliases(trend_type)
 
         trend_function = request.GET.get("trendFunction", "p50()")
-        function, columns, alias = parse_function(trend_function)
+        try:
+            function, columns, _ = parse_function(trend_function)
+        except InvalidSearchQuery as error:
+            raise ParseError(detail=error)
         if len(columns) == 0:
             # Default to duration
             column = "transaction.duration"
@@ -256,7 +260,9 @@ class OrganizationEventsTrendsStatsEndpoint(OrganizationEventsTrendsEndpointBase
         self, request, organization, params, trend_function, selected_columns, orderby, query
     ):
         def on_results(events_results):
-            def get_event_stats(query_columns, query, params, rollup, zerofill_results):
+            def get_event_stats(
+                query_columns, query, params, rollup, zerofill_results, comparison_delta=None
+            ):
                 return discover.top_events_timeseries(
                     query_columns,
                     selected_columns,

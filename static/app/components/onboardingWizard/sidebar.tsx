@@ -11,10 +11,11 @@ import {CommonSidebarProps} from 'app/components/sidebar/types';
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {OnboardingTask, OnboardingTaskKey, Organization} from 'app/types';
+import {OnboardingTask, OnboardingTaskKey, Organization, Project} from 'app/types';
 import testableTransition from 'app/utils/testableTransition';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
+import withProjects from 'app/utils/withProjects';
 
 import ProgressHeader from './progressHeader';
 import Task from './task';
@@ -24,6 +25,7 @@ import {findActiveTasks, findCompleteTasks, findUpcomingTasks, taskIsDone} from 
 type Props = Pick<CommonSidebarProps, 'orientation' | 'collapsed'> & {
   api: Client;
   organization: Organization;
+  projects: Project[];
   onClose: () => void;
 };
 
@@ -95,8 +97,8 @@ class OnboardingWizardSidebar extends Component<Props> {
   }
 
   get segmentedTasks() {
-    const {organization} = this.props;
-    const all = getMergedTasks(organization).filter(task => task.display);
+    const {organization, projects} = this.props;
+    const all = getMergedTasks({organization, projects}).filter(task => task.display);
 
     const active = all.filter(findActiveTasks);
     const upcoming = all.filter(findUpcomingTasks);
@@ -221,4 +223,4 @@ const TopRight = styled('img')`
   width: 60%;
 `;
 
-export default withApi(withOrganization(OnboardingWizardSidebar));
+export default withApi(withOrganization(withProjects(OnboardingWizardSidebar)));

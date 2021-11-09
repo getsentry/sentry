@@ -15,6 +15,7 @@ const FunctionName = ({
   showCompleteFunctionName,
   hasHiddenDetails,
   className,
+  ...props
 }: Props) => {
   const getValueOutput = ():
     | {value: Frame['function']; meta: ReturnType<typeof getMeta>}
@@ -46,7 +47,7 @@ const FunctionName = ({
   const valueOutput = getValueOutput();
 
   return (
-    <code className={className}>
+    <code className={className} {...props}>
       {!valueOutput ? (
         t('<unknown>')
       ) : (

@@ -3,6 +3,8 @@ import {mountGlobalModal} from 'sentry-test/modal';
 import {selectByValue} from 'sentry-test/select-new';
 
 import {Client} from 'app/api';
+import ModalStore from 'app/stores/modalStore';
+import ProjectsStore from 'app/stores/projectsStore';
 import IntegrationCodeMappings from 'app/views/organizationIntegrations/integrationCodeMappings';
 
 const mockResponse = mocks => {
@@ -23,8 +25,12 @@ describe('IntegrationCodeMappings', function () {
       name: 'Some Project',
     }),
   ];
-  const org = TestStubs.Organization({
-    projects,
+
+  ProjectsStore.loadInitialData(projects);
+
+  const org = TestStubs.Organization();
+  const invalidOrg = TestStubs.Organization({
+    access: [],
   });
   const integration = TestStubs.GitHubIntegration();
   const repos = [
@@ -75,6 +81,11 @@ describe('IntegrationCodeMappings', function () {
     );
   });
 
+  afterEach(() => {
+    // Clear the fields from the GlobalModal after every test
+    ModalStore.reset();
+  });
+
   it('shows the paths', async () => {
     expect(wrapper.find('RepoName').length).toEqual(2);
     expect(wrapper.find('RepoName').at(0).text()).toEqual(repos[0].name);
@@ -85,12 +96,34 @@ describe('IntegrationCodeMappings', function () {
     const modal = await mountGlobalModal();
 
     expect(modal.find('input[name="stackRoot"]')).toHaveLength(0);
-    wrapper.find('button[aria-label="Add Mapping"]').first().simulate('click');
+    wrapper.find('button[data-test-id="add-mapping-button"]').first().simulate('click');
 
     await tick();
     modal.update();
 
     expect(modal.find('input[name="stackRoot"]')).toHaveLength(1);
+  });
+
+  it('requires permissions to click', async () => {
+    const invalidContext = TestStubs.routerContext([{organization: invalidOrg}]);
+    wrapper = mountWithTheme(
+      <IntegrationCodeMappings organization={invalidOrg} integration={integration} />,
+      invalidContext
+    );
+    const modal = await mountGlobalModal(invalidContext);
+
+    expect(modal.find('input[name="stackRoot"]')).toHaveLength(0);
+
+    const addMappingButton = wrapper
+      .find('Button[data-test-id="add-mapping-button"]')
+      .first();
+    expect(addMappingButton.prop('disabled')).toBe(true);
+    addMappingButton.simulate('click');
+
+    await tick();
+    modal.update();
+
+    expect(modal.find('input[name="stackRoot"]')).toHaveLength(0);
   });
 
   it('create new config', async () => {
@@ -107,7 +140,7 @@ describe('IntegrationCodeMappings', function () {
         defaultBranch,
       }),
     });
-    wrapper.find('button[aria-label="Add Mapping"]').first().simulate('click');
+    wrapper.find('button[data-test-id="add-mapping-button"]').first().simulate('click');
 
     const modal = await mountGlobalModal();
 

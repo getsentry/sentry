@@ -1,6 +1,5 @@
 import * as React from 'react';
-import {withRouter} from 'react-router';
-import {WithRouterProps} from 'react-router/lib/withRouter';
+import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {ModalRenderProps} from 'app/actionCreators/modal';

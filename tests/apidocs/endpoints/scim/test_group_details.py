@@ -1,8 +1,8 @@
 from django.test.client import RequestFactory
 from django.urls import reverse
 
+from sentry.testutils import SCIMTestCase
 from tests.apidocs.util import APIDocsTestCase
-from tests.sentry.api.endpoints.test_scim import SCIMTestCase
 
 
 class SCIMTeamDetailsDocs(APIDocsTestCase, SCIMTestCase):

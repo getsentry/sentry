@@ -1,13 +1,26 @@
+import {browserHistory} from 'react-router';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {getOptionByLabel, selectByLabel} from 'sentry-test/select-new';
+import {getOptionByLabel, openMenu, selectByLabel} from 'sentry-test/select-new';
 
 import AddDashboardWidgetModal from 'app/components/modals/addDashboardWidgetModal';
+import {t} from 'app/locale';
 import TagStore from 'app/stores/tagStore';
+import * as types from 'app/views/dashboardsV2/types';
 
 const stubEl = props => <div>{props.children}</div>;
 
-function mountModal({initialData, onAddWidget, onUpdateWidget, widget}) {
+function mountModal({
+  initialData,
+  onAddWidget,
+  onUpdateWidget,
+  widget,
+  fromDiscover,
+  defaultWidgetQuery,
+  displayType,
+  defaultTableColumns,
+}) {
   return mountWithTheme(
     <AddDashboardWidgetModal
       Header={stubEl}
@@ -18,6 +31,10 @@ function mountModal({initialData, onAddWidget, onUpdateWidget, widget}) {
       onUpdateWidget={onUpdateWidget}
       widget={widget}
       closeModal={() => void 0}
+      fromDiscover={fromDiscover}
+      defaultWidgetQuery={defaultWidgetQuery}
+      displayType={displayType}
+      defaultTableColumns={defaultTableColumns}
     />,
     initialData.routerContext
   );
@@ -34,6 +51,11 @@ async function clickSubmit(wrapper) {
 
 function getDisplayType(wrapper) {
   return wrapper.find('input[name="displayType"]');
+}
+
+function selectDashboard(wrapper, dashboard) {
+  const input = wrapper.find('SelectControl[name="dashboard"]');
+  input.props().onChange(dashboard);
 }
 
 async function setSearchConditions(el, query) {
@@ -86,10 +108,66 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       url: '/organizations/org-slug/recent-searches/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [
+        TestStubs.Dashboard([], {
+          id: '1',
+          title: 'Test Dashboard',
+          widgetDisplay: ['area'],
+        }),
+      ],
+    });
   });
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
+  });
+
+  it('redirects correctly when creating a new dashboard', async function () {
+    const wrapper = mountModal({initialData, fromDiscover: true});
+    // @ts-expect-error
+    await tick();
+    await wrapper.update();
+    selectDashboard(wrapper, {label: t('+ Create New Dashboard'), value: 'new'});
+    await clickSubmit(wrapper);
+    expect(browserHistory.push).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pathname: '/organizations/org-slug/dashboards/new/',
+      })
+    );
+    wrapper.unmount();
+  });
+
+  it('redirects correctly when choosing an existing dashboard', async function () {
+    const wrapper = mountModal({initialData, fromDiscover: true});
+    // @ts-expect-error
+    await tick();
+    await wrapper.update();
+    selectDashboard(wrapper, {label: t('Test Dashboard'), value: '1'});
+    await clickSubmit(wrapper);
+    expect(browserHistory.push).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pathname: '/organizations/org-slug/dashboard/1/',
+      })
+    );
+    wrapper.unmount();
+  });
+
+  it('disables dashboards with max widgets', async function () {
+    types.MAX_WIDGETS = 1;
+    const wrapper = mountModal({initialData, fromDiscover: true});
+    // @ts-expect-error
+    await tick();
+    await wrapper.update();
+    openMenu(wrapper, {name: 'dashboard', control: true});
+
+    const input = wrapper.find('SelectControl[name="dashboard"]');
+    expect(input.find('Option Option')).toHaveLength(2);
+    expect(input.find('Option Option').at(0).props().isDisabled).toBe(false);
+    expect(input.find('Option Option').at(1).props().isDisabled).toBe(true);
+
+    wrapper.unmount();
   });
 
   it('can update the title', async function () {
@@ -167,6 +245,96 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].fields).toEqual(['count()', 'p95(transaction.duration)']);
+    wrapper.unmount();
+  });
+
+  it('can add equation fields', async function () {
+    let widget = undefined;
+    const wrapper = mountModal({
+      initialData,
+      onAddWidget: data => (widget = data),
+    });
+
+    // Click the add button
+    const add = wrapper.find('button[aria-label="Add an Equation"]');
+    add.simulate('click');
+    wrapper.update();
+
+    // Should be another field input.
+    expect(wrapper.find('QueryField')).toHaveLength(2);
+
+    expect(wrapper.find('ArithmeticInput')).toHaveLength(1);
+
+    wrapper
+      .find('QueryFieldWrapper input[name="arithmetic"]')
+      .simulate('change', {target: {value: 'count() + 100'}})
+      .simulate('blur');
+
+    wrapper.update();
+
+    await clickSubmit(wrapper);
+
+    expect(widget.queries).toHaveLength(1);
+    expect(widget.queries[0].fields).toEqual(['count()', 'equation|count() + 100']);
+    wrapper.unmount();
+  });
+
+  it('additional fields get added to new seach filters', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      method: 'POST',
+      body: [],
+    });
+
+    let widget = undefined;
+    const wrapper = mountModal({
+      initialData,
+      onAddWidget: data => (widget = data),
+    });
+
+    // Click the add button
+    const add = wrapper.find('button[aria-label="Add Overlay"]');
+    add.simulate('click');
+    wrapper.update();
+
+    // Should be another field input.
+    expect(wrapper.find('QueryField')).toHaveLength(2);
+
+    selectByLabel(wrapper, 'p95(\u2026)', {name: 'field', at: 1, control: true});
+
+    await clickSubmit(wrapper);
+
+    expect(widget.queries).toHaveLength(1);
+    expect(widget.queries[0].fields).toEqual(['count()', 'p95(transaction.duration)']);
+
+    // Add another search filter
+    const addQuery = wrapper.find('button[aria-label="Add Query"]');
+    addQuery.simulate('click');
+    wrapper.update();
+    // Set second query search conditions
+    const secondSearchBar = wrapper.find('SearchConditionsWrapper StyledSearchBar').at(1);
+    await setSearchConditions(secondSearchBar, 'event.type:error');
+
+    // Set second query legend alias
+    wrapper
+      .find('SearchConditionsWrapper input[placeholder="Legend Alias"]')
+      .at(1)
+      .simulate('change', {target: {value: 'Errors'}});
+
+    // Save widget
+    await clickSubmit(wrapper);
+
+    expect(widget.queries[0]).toMatchObject({
+      name: '',
+      conditions: '',
+      fields: ['count()', 'p95(transaction.duration)'],
+    });
+    expect(widget.queries[1]).toMatchObject({
+      name: 'Errors',
+      conditions: 'event.type:error',
+      fields: ['count()', 'p95(transaction.duration)'],
+    });
+
     wrapper.unmount();
   });
 
@@ -700,6 +868,111 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(widget.displayType).toEqual('line');
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].fields).toEqual(['count()']);
+    wrapper.unmount();
+  });
+
+  it('should automatically add columns for top n widget charts', async function () {
+    const wrapper = mountModal({
+      initialData,
+      onAddWidget: data => (widget = data),
+      defaultTableColumns: ['title', 'count()', 'count_unique(user)', 'epm()'],
+      defaultWidgetQuery: {
+        name: '',
+        fields: ['count()'],
+        conditions: 'tag:value',
+        orderby: '',
+      },
+    });
+    // Select Top n display
+    selectByLabel(wrapper, 'Top 5 Events', {name: 'displayType', at: 0, control: true});
+    expect(getDisplayType(wrapper).props().value).toEqual('top_n');
+
+    // No delete button as there is only one field.
+    expect(wrapper.find('IconDelete')).toHaveLength(0);
+
+    // Restricting to a single query
+    expect(wrapper.find('button[aria-label="Add Query"]')).toHaveLength(0);
+
+    // Restricting to a single y-axis
+    expect(wrapper.find('button[aria-label="Add Overlay"]')).toHaveLength(0);
+
+    const titleColumn = wrapper.find('input[name="field"]').at(0);
+    expect(titleColumn.props().value).toEqual({
+      kind: 'field',
+      meta: {dataType: 'string', name: 'title'},
+    });
+    const countColumn = wrapper.find('input[name="field"]').at(1);
+    expect(countColumn.props().value).toEqual({
+      kind: 'function',
+      meta: {parameters: [], name: 'count'},
+    });
+    expect(wrapper.find('WidgetQueriesForm Field[data-test-id="y-axis"]')).toHaveLength(
+      1
+    );
+    expect(wrapper.find('WidgetQueriesForm SelectControl[name="orderby"]')).toHaveLength(
+      1
+    );
+
+    wrapper.unmount();
+  });
+
+  it('should use defaultWidgetQuery Y-Axis and Conditions if given a defaultWidgetQuery', async function () {
+    const wrapper = mountModal({
+      initialData,
+      onAddWidget: () => undefined,
+      onUpdateWidget: () => undefined,
+      widget: undefined,
+      fromDiscover: true,
+      defaultWidgetQuery: {
+        name: '',
+        fields: ['count()', 'failure_count()', 'count_unique(user)'],
+        conditions: 'tag:value',
+        orderby: '',
+      },
+    });
+
+    expect(wrapper.find('SearchBar').props().query).toEqual('tag:value');
+    const queryFields = wrapper.find('QueryField');
+    expect(queryFields.length).toEqual(3);
+    expect(queryFields.at(0).props().fieldValue.function[0]).toEqual('count');
+    expect(queryFields.at(1).props().fieldValue.function[0]).toEqual('failure_count');
+    expect(queryFields.at(2).props().fieldValue.function[0]).toEqual('count_unique');
+    wrapper.unmount();
+  });
+
+  it('uses displayType if given a displayType', async function () {
+    const wrapper = mountModal({
+      initialData,
+      onAddWidget: () => undefined,
+      onUpdateWidget: () => undefined,
+      fromDiscover: true,
+      displayType: types.DisplayType.BAR,
+    });
+
+    expect(wrapper.find('SelectPicker').at(1).props().value.value).toEqual('bar');
+    wrapper.unmount();
+  });
+
+  it('correctly defaults fields and orderby when in Top N display', async function () {
+    const wrapper = mountModal({
+      initialData,
+      onAddWidget: () => undefined,
+      onUpdateWidget: () => undefined,
+      fromDiscover: true,
+      displayType: types.DisplayType.TOP_N,
+      defaultWidgetQuery: {fields: ['count_unique(user)'], orderby: '-count_unique_user'},
+      defaultTableColumns: ['title', 'count()'],
+    });
+
+    expect(wrapper.find('SelectPicker').at(1).props().value.value).toEqual('top_n');
+    expect(wrapper.find('WidgetQueriesForm').props().queries[0].fields).toEqual([
+      'title',
+      'count()',
+      'count_unique(user)',
+    ]);
+    expect(wrapper.find('WidgetQueriesForm').props().queries[0].orderby).toEqual(
+      '-count_unique_user'
+    );
     wrapper.unmount();
   });
 });

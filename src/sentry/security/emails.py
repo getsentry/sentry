@@ -1,9 +1,22 @@
+from datetime import datetime
+from typing import TYPE_CHECKING, Any, Mapping, Optional
+
 from django.utils import timezone
 
 from sentry.utils.email import MessageBuilder
 
+if TYPE_CHECKING:
+    from sentry.models import User
 
-def generate_security_email(account, type, actor, ip_address, context=None, current_datetime=None):
+
+def generate_security_email(
+    account: "User",
+    type: str,
+    actor: "User",
+    ip_address: str,
+    context: Optional[Mapping[str, Any]] = None,
+    current_datetime: Optional[datetime] = None,
+) -> MessageBuilder:
     if current_datetime is None:
         current_datetime = timezone.now()
 

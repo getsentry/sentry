@@ -11,11 +11,11 @@ type Error = {
   message: string;
 };
 
-type XhrError = {
+type ResponseError = {
   responseJSON?: Record<string, Array<string>>;
 };
 
-function handleError(error: XhrError): Error {
+function handleError(error: ResponseError): Error {
   const errorMessage = error.responseJSON?.relayPiiConfig[0];
 
   if (!errorMessage) {

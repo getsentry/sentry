@@ -1,6 +1,5 @@
 from rest_framework import serializers
 
-from sentry.api.bases.organization import OrganizationIntegrationsPermission
 from sentry.api.bases.organization_integrations import OrganizationIntegrationBaseEndpoint
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.integrations.serverless import ServerlessMixin
@@ -15,8 +14,6 @@ class ServerlessActionSerializer(CamelSnakeSerializer):
 
 
 class OrganizationIntegrationServerlessFunctionsEndpoint(OrganizationIntegrationBaseEndpoint):
-    permission_classes = (OrganizationIntegrationsPermission,)
-
     def get(self, request, organization, integration_id):
         """
         Get the list of repository project path configs in an integration

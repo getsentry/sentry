@@ -161,11 +161,12 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
     environment = ListField(child=serializers.CharField(), required=False, allow_null=True)
     query = serializers.CharField(required=False, allow_null=True)
     widths = ListField(child=serializers.CharField(), required=False, allow_null=True)
-    yAxis = serializers.CharField(required=False, allow_null=True)
+    yAxis = ListField(child=serializers.CharField(), required=False, allow_null=True)
     display = serializers.CharField(required=False, allow_null=True)
+    topEvents = serializers.IntegerField(min_value=1, max_value=10, required=False, allow_null=True)
 
     disallowed_fields = {
-        1: {"environment", "query", "yAxis", "display"},
+        1: {"environment", "query", "yAxis", "display", "topEvents"},
         2: {"groupby", "rollup", "aggregations", "conditions", "limit"},
     }
 
@@ -198,6 +199,7 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
             "widths",
             "yAxis",
             "display",
+            "topEvents",
         ]
 
         for key in query_keys:

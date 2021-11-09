@@ -78,6 +78,10 @@ describe('ProjectAlerts -> IssueRuleEditor', function () {
       url: '/projects/org-slug/project-slug/environments/',
       body: TestStubs.Environments(),
     });
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/project-slug/?expand=hasAlertIntegration`,
+      body: {},
+    });
   });
 
   afterEach(function () {
@@ -96,6 +100,7 @@ describe('ProjectAlerts -> IssueRuleEditor', function () {
           routes={projectAlertRuleDetailsRoutes}
           onChangeTitle={onChangeTitleMock}
           project={project}
+          userTeamIds={[]}
         />
       </ProjectAlerts>,
       routerContext

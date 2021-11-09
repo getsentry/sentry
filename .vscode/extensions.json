@@ -1,13 +1,12 @@
 {
-    // See https://go.microsoft.com/fwlink/?LinkId=827846
-    // for the documentation about the extensions.json format
-    "recommendations": [
-        "dzannotti.vscode-babel-coloring",
-        "esbenp.prettier-vscode",
-        "ms-python.python",
-        "dbaeumer.vscode-eslint",
-        "lextudio.restructuredtext",
-        "ziyasal.vscode-open-in-github",
-        "timonwong.shellcheck"
-    ]
+  // See https://go.microsoft.com/fwlink/?LinkId=827846
+  // for the documentation about the extensions.json format
+  "recommendations": [
+    "esbenp.prettier-vscode",
+    "ms-python.python",
+    "dbaeumer.vscode-eslint",
+    "lextudio.restructuredtext",
+    "ziyasal.vscode-open-in-github",
+    "timonwong.shellcheck"
+  ]
 }

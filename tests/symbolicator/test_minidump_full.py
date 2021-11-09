@@ -1,5 +1,6 @@
 import zipfile
 from io import BytesIO
+from unittest.mock import patch
 
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -10,7 +11,6 @@ from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL
 from sentry.models import EventAttachment, File
 from sentry.testutils import RelayStoreHelper, TransactionTestCase
 from sentry.testutils.helpers.task_runner import BurstTaskRunner
-from sentry.utils.compat.mock import patch
 from tests.symbolicator import get_fixture_path, insta_snapshot_stacktrace_data
 
 # IMPORTANT:
@@ -60,11 +60,18 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
         assert response.status_code == 201, response.content
         assert len(response.data) == 1
 
+    _FEATURES = {
+        "organizations:event-attachments": True,
+        "organizations:symbol-sources": False,
+        "organizations:custom-symbol-sources": False,
+        "organizations:images-loaded-v2": False,
+    }
+
     def test_full_minidump(self):
         self.project.update_option("sentry:store_crash_reports", STORE_CRASH_REPORTS_ALL)
         self.upload_symbols()
 
-        with self.feature("organizations:event-attachments"):
+        with self.feature(self._FEATURES):
             with open(get_fixture_path("windows.dmp"), "rb") as f:
                 event = self.post_and_retrieve_minidump(
                     {
@@ -124,7 +131,7 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
         # Other assertions are performed by `test_full_minidump`
 
     def test_missing_dsym(self):
-        with self.feature("organizations:event-attachments"):
+        with self.feature(self._FEATURES):
             with open(get_fixture_path("windows.dmp"), "rb") as f:
                 event = self.post_and_retrieve_minidump(
                     {"upload_file_minidump": f}, {"sentry[logger]": "test-logger"}
@@ -136,9 +143,9 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
     def test_reprocessing(self):
         self.project.update_option("sentry:store_crash_reports", STORE_CRASH_REPORTS_ALL)
 
-        with self.feature(
-            {"organizations:event-attachments": True, "organizations:reprocessing-v2": True}
-        ):
+        features = dict(self._FEATURES)
+        features["organizations:reprocessing-v2"] = True
+        with self.feature(features):
             with open(get_fixture_path("windows.dmp"), "rb") as f:
                 event = self.post_and_retrieve_minidump(
                     {"upload_file_minidump": f}, {"sentry[logger]": "test-logger"}

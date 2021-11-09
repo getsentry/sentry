@@ -1,29 +1,34 @@
+from sentry.models import OrganizationStatus
+
 from ..base import ModelDeletionTask, ModelRelation
 
 
 class OrganizationDeletionTask(ModelDeletionTask):
+    def should_proceed(self, instance):
+        """
+        Only delete organizations that haven't been undeleted.
+        """
+        return instance.status in {
+            OrganizationStatus.PENDING_DELETION,
+            OrganizationStatus.DELETION_IN_PROGRESS,
+        }
+
     def get_child_relations(self, instance):
-        from sentry.discover.models import DiscoverSavedQuery, KeyTransaction, TeamKeyTransaction
+        from sentry.deletions.defaults.discoversavedquery import DiscoverSavedQueryDeletionTask
+        from sentry.discover.models import DiscoverSavedQuery, TeamKeyTransaction
         from sentry.incidents.models import AlertRule, Incident
         from sentry.models import (
-            Commit,
             CommitAuthor,
-            CommitFileChange,
             Dashboard,
-            Distribution,
             Environment,
             ExternalIssue,
             OrganizationMember,
             Project,
             ProjectTransactionThreshold,
             PromptsActivity,
-            PullRequest,
             Release,
-            ReleaseCommit,
-            ReleaseEnvironment,
-            ReleaseFile,
-            ReleaseHeadCommit,
             Repository,
+            ServiceHook,
             Team,
         )
 
@@ -32,30 +37,29 @@ class OrganizationDeletionTask(ModelDeletionTask):
 
         model_list = (
             OrganizationMember,
-            CommitFileChange,
-            Commit,
-            PullRequest,
-            CommitAuthor,
-            Environment,
             Repository,
+            ServiceHook,
+            CommitAuthor,
+            Incident,
+            AlertRule,
+            Release,
             Project,
-            Release,  # Depends on Group deletions, a child of Project
-            ReleaseCommit,
-            ReleaseEnvironment,
-            ReleaseFile,
-            Distribution,
-            ReleaseHeadCommit,
+            Environment,
             Dashboard,
-            DiscoverSavedQuery,
-            KeyTransaction,
             TeamKeyTransaction,
             ExternalIssue,
             PromptsActivity,
-            Incident,
-            AlertRule,
             ProjectTransactionThreshold,
         )
         relations.extend([ModelRelation(m, {"organization_id": instance.id}) for m in model_list])
+        # Explicitly assign the task here as it was getting replaced with BulkModelDeletionTask in CI.
+        relations.append(
+            ModelRelation(
+                DiscoverSavedQuery,
+                {"organization_id": instance.id},
+                task=DiscoverSavedQueryDeletionTask,
+            )
+        )
 
         return relations
 

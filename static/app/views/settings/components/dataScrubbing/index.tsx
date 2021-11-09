@@ -160,45 +160,43 @@ class DataScrubbing<T extends ProjectId = undefined> extends React.Component<
     const {orgRules, rules} = this.state;
 
     return (
-      <React.Fragment>
-        <Panel data-test-id="advanced-data-scrubbing">
-          <PanelHeader>
-            <div>{t('Advanced Data Scrubbing')}</div>
-          </PanelHeader>
-          <PanelAlert type="info">
-            {additionalContext}{' '}
-            {`${t('The new rules will only apply to upcoming events. ')}`}{' '}
-            {tct('For more details, see [linkToDocs].', {
-              linkToDocs: (
-                <ExternalLink href={ADVANCED_DATASCRUBBING_LINK}>
-                  {t('full documentation on data scrubbing')}
-                </ExternalLink>
-              ),
-            })}
-          </PanelAlert>
-          <PanelBody>
-            {projectId && <OrganizationRules rules={orgRules} />}
-            <Content
-              rules={rules}
-              onDeleteRule={this.handleDelete}
-              onEditRule={this.handleOpenEditModal}
+      <Panel data-test-id="advanced-data-scrubbing" id="advanced-data-scrubbing">
+        <PanelHeader>
+          <div>{t('Advanced Data Scrubbing')}</div>
+        </PanelHeader>
+        <PanelAlert type="info">
+          {additionalContext}{' '}
+          {`${t('The new rules will only apply to upcoming events. ')}`}{' '}
+          {tct('For more details, see [linkToDocs].', {
+            linkToDocs: (
+              <ExternalLink href={ADVANCED_DATASCRUBBING_LINK}>
+                {t('full documentation on data scrubbing')}
+              </ExternalLink>
+            ),
+          })}
+        </PanelAlert>
+        <PanelBody>
+          {projectId && <OrganizationRules rules={orgRules} />}
+          <Content
+            rules={rules}
+            onDeleteRule={this.handleDelete}
+            onEditRule={this.handleOpenEditModal}
+            disabled={disabled}
+          />
+          <PanelAction>
+            <Button href={ADVANCED_DATASCRUBBING_LINK} target="_blank">
+              {t('Read the docs')}
+            </Button>
+            <Button
               disabled={disabled}
-            />
-            <PanelAction>
-              <Button href={ADVANCED_DATASCRUBBING_LINK} target="_blank">
-                {t('Read the docs')}
-              </Button>
-              <Button
-                disabled={disabled}
-                onClick={this.handleOpenAddModal}
-                priority="primary"
-              >
-                {t('Add Rule')}
-              </Button>
-            </PanelAction>
-          </PanelBody>
-        </Panel>
-      </React.Fragment>
+              onClick={this.handleOpenAddModal}
+              priority="primary"
+            >
+              {t('Add Rule')}
+            </Button>
+          </PanelAction>
+        </PanelBody>
+      </Panel>
     );
   }
 }

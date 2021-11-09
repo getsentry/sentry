@@ -1,9 +1,16 @@
-from django.urls import reverse
+from unittest import mock
 
+from django.urls import reverse
+from rest_framework.exceptions import ErrorDetail
+
+from sentry.models import ProjectOwnership
 from sentry.testutils import APITestCase
 
 
 class ProjectOwnershipEndpointTestCase(APITestCase):
+    endpoint = "sentry-api-0-project-ownership"
+    method = "put"
+
     def setUp(self):
         self.login_as(user=self.user)
 
@@ -98,3 +105,30 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         assert resp.data == {
             "raw": ["Codeowner type paths can only be added by importing CODEOWNER files"]
         }
+
+    def test_max_raw_length(self):
+        new_raw = f"*.py admin@localhost #{self.team.slug}"
+        with mock.patch("sentry.api.endpoints.project_ownership.MAX_RAW_LENGTH", 10):
+            resp = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                raw=new_raw,
+            )
+            assert resp.data == {
+                "raw": [
+                    ErrorDetail(string="Raw needs to be <= 10 characters in length", code="invalid")
+                ],
+            }
+
+        # Test that we allow this to be modified for existing large rows
+        ownership = ProjectOwnership.objects.create(
+            project=self.project,
+            raw=f"*.py test@localhost #{self.team.slug}",
+        )
+        self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            raw=new_raw,
+        )
+        ownership.refresh_from_db()
+        assert ownership.raw == new_raw

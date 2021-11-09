@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.db import IntegrityError
 
 from sentry.data_export.base import ExportQueryType
@@ -5,9 +7,9 @@ from sentry.data_export.models import ExportedData
 from sentry.data_export.tasks import assemble_download, merge_export_blobs
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import File
+from sentry.search.events.constants import TIMEOUT_ERROR_MESSAGE
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.utils.compat.mock import patch
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import (
     DatasetSelectionError,
@@ -499,37 +501,25 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         with self.tasks():
             assemble_download(de.id, count_down=0)
         error = emailer.call_args[1]["message"]
-        assert (
-            error
-            == "Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects."
-        )
+        assert error == TIMEOUT_ERROR_MESSAGE
 
         mock_query.side_effect = QueryMemoryLimitExceeded("test")
         with self.tasks():
             assemble_download(de.id, count_down=0)
         error = emailer.call_args[1]["message"]
-        assert (
-            error
-            == "Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects."
-        )
+        assert error == TIMEOUT_ERROR_MESSAGE
 
         mock_query.side_effect = QueryExecutionTimeMaximum("test")
         with self.tasks():
             assemble_download(de.id, count_down=0)
         error = emailer.call_args[1]["message"]
-        assert (
-            error
-            == "Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects."
-        )
+        assert error == TIMEOUT_ERROR_MESSAGE
 
         mock_query.side_effect = QueryTooManySimultaneous("test")
         with self.tasks():
             assemble_download(de.id, count_down=0)
         error = emailer.call_args[1]["message"]
-        assert (
-            error
-            == "Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects."
-        )
+        assert error == TIMEOUT_ERROR_MESSAGE
 
         mock_query.side_effect = DatasetSelectionError("test")
         with self.tasks():

@@ -15,6 +15,9 @@
       .header-buttons .integration-link {
         display: none !important;
       }
+      .banner {
+        display: none !important;
+      }
     }
   </style>
 {% endblock %}
@@ -38,7 +41,23 @@
   </div>
 {% endblock %}
 
-{% block main %}
+{% block content %}
+{% if not group.project.flags.has_transactions %}
+<div class="banner">
+  <div class="container banner-content">
+    <img src="{% absolute_asset_url 'sentry' 'images/logos/logo-lightning.svg' %}" class="banner-icon"/>
+    <span>
+      Want to measure latency for your app?
+    </span>
+    <a href="{% absolute_uri '/organizations/{}/performance/' group.project.organization.slug %}?project={{ group.project.id }}&referrer=alert_email" class="banner-action">
+      <b style="font-weight: bold;">Set up Performance</b>
+    </a>
+  </div>
+</div>
+{% endif %}
+
+<div class="container">
+  <div class="inner">
     <h2 style="margin-bottom: 15px">
         New alert from <a href="{{group.project.get_absolute_url}}">{{ project_label }}</a>
         {% if environment %} in {{ environment }}{% endif %}
@@ -207,4 +226,6 @@
         <link itemprop="url" href="https://sentry.io/"/>
       </div>
     </div>
+  </div>
+</div>
 {% endblock %}

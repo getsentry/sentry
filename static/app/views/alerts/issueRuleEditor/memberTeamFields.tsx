@@ -2,6 +2,7 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 
 import SelectControl from 'app/components/forms/selectControl';
+import TeamSelector from 'app/components/forms/teamSelector';
 import {PanelItem} from 'app/components/panels';
 import SelectMembers from 'app/components/selectMembers';
 import space from 'app/styles/space';
@@ -86,11 +87,21 @@ class MemberTeamFields extends React.Component<Props> {
           options={options}
           onChange={this.handleChangeActorType}
         />
-        {teamSelected || memberSelected ? (
+        {teamSelected ? (
+          <TeamSelector
+            disabled={disabled}
+            key={teamValue}
+            project={project}
+            // The value from the endpoint is of type `number`, `SelectMembers` require value to be of type `string`
+            value={`${ruleData.targetIdentifier}`}
+            styles={selectControlStyles}
+            onChange={this.handleChangeActorId}
+            useId
+          />
+        ) : memberSelected ? (
           <SelectMembers
             disabled={disabled}
             key={teamSelected ? teamValue : memberValue}
-            showTeam={teamSelected}
             project={project}
             organization={organization}
             // The value from the endpoint is of type `number`, `SelectMembers` require value to be of type `string`
@@ -98,9 +109,7 @@ class MemberTeamFields extends React.Component<Props> {
             styles={selectControlStyles}
             onChange={this.handleChangeActorId}
           />
-        ) : (
-          <span />
-        )}
+        ) : null}
       </PanelItemGrid>
     );
   }

@@ -1,6 +1,7 @@
 import calendar
 
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 from django.http import HttpResponse
 from django.utils import timezone
 from rest_framework import serializers
@@ -15,6 +16,7 @@ from sentry.utils.prompts import prompt_config
 VALID_STATUSES = frozenset(("snoozed", "dismissed"))
 
 
+# Endpoint to retrieve multiple PromptsActivity at once
 class PromptsActivitySerializer(serializers.Serializer):
     feature = serializers.CharField(required=True)
     status = serializers.ChoiceField(choices=zip(VALID_STATUSES, VALID_STATUSES), required=True)
@@ -33,24 +35,31 @@ class PromptsActivityEndpoint(Endpoint):
     def get(self, request):
         """Return feature prompt status if dismissed or in snoozed period"""
 
-        feature = request.GET.get("feature")
+        features = request.GET.getlist("feature")
+        if len(features) == 0:
+            return Response({"details": "No feature specified"}, status=400)
 
-        if not prompt_config.has(feature):
-            return Response({"detail": "Invalid feature name"}, status=400)
+        conditions = None
+        for feature in features:
+            if not prompt_config.has(feature):
+                return Response({"detail": "Invalid feature name " + feature}, status=400)
 
-        required_fields = prompt_config.required_fields(feature)
-        for field in required_fields:
-            if field not in request.GET:
-                return Response({"detail": 'Missing required field "%s"' % field}, status=400)
+            required_fields = prompt_config.required_fields(feature)
+            for field in required_fields:
+                if field not in request.GET:
+                    return Response({"detail": 'Missing required field "%s"' % field}, status=400)
+            filters = {k: request.GET.get(k) for k in required_fields}
+            condition = Q(feature=feature, **filters)
+            conditions = condition if conditions is None else (conditions | condition)
 
-        filters = {k: request.GET.get(k) for k in required_fields}
-
-        try:
-            result = PromptsActivity.objects.get(user=request.user, feature=feature, **filters)
-        except PromptsActivity.DoesNotExist:
-            return Response({})
-
-        return Response({"data": result.data})
+        result = PromptsActivity.objects.filter(conditions, user=request.user)
+        featuredata = {k.feature: k.data for k in result}
+        if len(features) == 1:
+            result = result.first()
+            data = None if result is None else result.data
+            return Response({"data": data, "features": featuredata})
+        else:
+            return Response({"features": featuredata})
 
     def put(self, request):
         serializer = PromptsActivitySerializer(data=request.data)

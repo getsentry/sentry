@@ -1,11 +1,11 @@
 import logging
 import types
+from unittest.mock import PropertyMock, patch
 
 from sentry.mediators import Mediator, Param
 from sentry.models import User
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.faux import faux
-from sentry.utils.compat.mock import PropertyMock, patch
 
 
 class Double:
@@ -128,9 +128,9 @@ class TestMediator(TestCase):
         class TransactionMediator(Mediator):
             def call(self):
                 User.objects.create(username="beep")
-                raise Exception
+                raise RuntimeError()
 
-        with self.assertRaises(Exception):
+        with self.assertRaises(RuntimeError):
             TransactionMediator.run()
 
         assert not User.objects.filter(username="beep").exists()

@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
-import {Params} from 'react-router/lib/Router';
-import {Location} from 'history';
+import {RouteComponentProps} from 'react-router';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
@@ -34,10 +33,11 @@ import {getTransactionDetailsUrl} from '../utils';
 
 import EventMetas from './eventMetas';
 
-type Props = {
+type Props = Pick<
+  RouteComponentProps<{eventSlug: string}, {}>,
+  'params' | 'location' | 'router' | 'route'
+> & {
   organization: Organization;
-  location: Location;
-  params: Params;
   eventSlug: string;
 };
 
@@ -90,7 +90,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     return transactionSummaryRouteWithQuery({
       orgSlug: organization.slug,
       transaction: event.title,
-      projectID: decodeScalar(location.query.project),
+      projectID: event.projectID,
       query: newQuery,
     });
   };
@@ -106,7 +106,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
   }
 
   renderContent(event: Event) {
-    const {organization, location, eventSlug} = this.props;
+    const {organization, location, eventSlug, route, router} = this.props;
 
     // metrics
     trackAnalyticsEvent({
@@ -141,7 +141,10 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                     <Breadcrumb
                       organization={organization}
                       location={location}
-                      transactionName={transactionName}
+                      transaction={{
+                        project: event.projectID,
+                        name: transactionName,
+                      }}
                       eventSlug={eventSlug}
                     />
                     <Layout.Title data-test-id="event-header">{event.title}</Layout.Title>
@@ -198,6 +201,8 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                               showTagSummary={false}
                               location={location}
                               api={this.api}
+                              router={router}
+                              route={route}
                               isBorderless
                             />
                           </QuickTraceContext.Provider>

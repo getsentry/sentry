@@ -24,7 +24,7 @@ type Props = {
   data?: Thread;
 } & Pick<
   CrashContentProps,
-  'exception' | 'stacktrace' | 'hasGroupingTreeUI' | 'groupingCurrentLevel'
+  'exception' | 'stacktrace' | 'hasHierarchicalGrouping' | 'groupingCurrentLevel'
 >;
 
 const Content = ({
@@ -38,7 +38,7 @@ const Content = ({
   exception,
   stacktrace,
   stackTraceNotFound,
-  hasGroupingTreeUI,
+  hasHierarchicalGrouping,
 }: Props) => (
   <div className="thread">
     {data && (!isNil(data?.id) || !!data?.name) && (
@@ -63,8 +63,8 @@ const Content = ({
         projectId={projectId}
         exception={exception}
         stacktrace={stacktrace}
-        hasGroupingTreeUI={hasGroupingTreeUI}
         groupingCurrentLevel={groupingCurrentLevel}
+        hasHierarchicalGrouping={hasHierarchicalGrouping}
       />
     )}
   </div>

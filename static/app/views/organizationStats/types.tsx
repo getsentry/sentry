@@ -6,6 +6,7 @@ export enum Outcome {
   INVALID = 'invalid',
   DROPPED = 'dropped',
   RATE_LIMITED = 'rate_limited',
+  CLIENT_DISCARD = 'client_discard',
 }
 
 /**

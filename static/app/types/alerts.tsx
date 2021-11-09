@@ -1,4 +1,5 @@
 import {IssueConfigField} from 'app/types/index';
+import {SchemaFormConfig} from 'app/views/organizationIntegrations/sentryAppExternalForm';
 
 type IssueAlertRuleFormField =
   | {
@@ -27,12 +28,15 @@ export type IssueAlertRuleActionTemplate = {
   label: string;
   prompt: string;
   enabled: boolean;
-  actionType?: 'ticket';
-  formFields?: {
-    [key: string]: IssueAlertRuleFormField;
-  };
+  actionType?: 'ticket' | 'sentryapp';
+  formFields?:
+    | {
+        [key: string]: IssueAlertRuleFormField;
+      }
+    | SchemaFormConfig;
   ticketType?: string;
   link?: string;
+  sentryAppInstallationUuid?: string;
 };
 export type IssueAlertRuleConditionTemplate = IssueAlertRuleActionTemplate;
 

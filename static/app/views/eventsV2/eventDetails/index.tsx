@@ -1,9 +1,8 @@
 import {Component} from 'react';
-import {Params} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
+import NoProjectMessage from 'app/components/noProjectMessage';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
@@ -13,10 +12,8 @@ import withOrganization from 'app/utils/withOrganization';
 
 import EventDetailsContent from './content';
 
-type Props = {
+type Props = RouteComponentProps<{eventSlug: string}, {}> & {
   organization: Organization;
-  location: Location;
-  params: Params;
 };
 
 class EventDetails extends Component<Props> {
@@ -42,7 +39,7 @@ class EventDetails extends Component<Props> {
       : [t('Discover')];
 
   render() {
-    const {organization, location, params} = this.props;
+    const {organization, location, params, router, route} = this.props;
     const eventView = this.getEventView();
     const eventSlug = this.getEventSlug();
 
@@ -56,15 +53,17 @@ class EventDetails extends Component<Props> {
         projectSlug={projectSlug}
       >
         <StyledPageContent>
-          <LightWeightNoProjectMessage organization={organization}>
+          <NoProjectMessage organization={organization}>
             <EventDetailsContent
               organization={organization}
               location={location}
               params={params}
               eventView={eventView}
               eventSlug={eventSlug}
+              router={router}
+              route={route}
             />
-          </LightWeightNoProjectMessage>
+          </NoProjectMessage>
         </StyledPageContent>
       </SentryDocumentTitle>
     );

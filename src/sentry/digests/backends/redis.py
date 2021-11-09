@@ -1,13 +1,16 @@
 import logging
 import time
 from contextlib import contextmanager
+from typing import Any, Iterable, Optional, Tuple
 
-from redis.client import ResponseError
+from rb.clients import LocalClient
+from redis.exceptions import ResponseError
 
 from sentry.digests import Record, ScheduleEntry
 from sentry.digests.backends.base import Backend, InvalidState
 from sentry.utils.compat import map
 from sentry.utils.locking.backends.redis import RedisLockBackend
+from sentry.utils.locking.lock import Lock
 from sentry.utils.locking.manager import LockManager
 from sentry.utils.redis import check_cluster_versions, get_cluster_from_options, load_script
 from sentry.utils.versioning import Version
@@ -67,7 +70,7 @@ class RedisBackend(Backend):
 
     """
 
-    def __init__(self, **options):
+    def __init__(self, **options: Any) -> None:
         self.cluster, options = get_cluster_from_options("SENTRY_DIGESTS_OPTIONS", options)
         self.locks = LockManager(RedisLockBackend(self.cluster))
 
@@ -84,18 +87,25 @@ class RedisBackend(Backend):
 
         super().__init__(**options)
 
-    def validate(self):
+    def validate(self) -> None:
         logger.debug("Validating Redis version...")
         check_cluster_versions(self.cluster, Version((2, 8, 9)), label="Digests")
 
-    def _get_connection(self, key):
+    def _get_connection(self, key: str) -> LocalClient:
         return self.cluster.get_local_client_for_key(f"{self.namespace}:t:{key}")
 
-    def _get_timeline_lock(self, key, duration):
+    def _get_timeline_lock(self, key: str, duration: int) -> Lock:
         lock_key = f"{self.namespace}:t:{key}"
         return self.locks.get(lock_key, duration=duration, routing_key=lock_key)
 
-    def add(self, key, record, increment_delay=None, maximum_delay=None, timestamp=None):
+    def add(
+        self,
+        key: str,
+        record: Record,
+        increment_delay: Optional[int] = None,
+        maximum_delay: Optional[int] = None,
+        timestamp: Optional[float] = None,
+    ) -> bool:
         if timestamp is None:
             timestamp = time.time()
 
@@ -128,14 +138,20 @@ class RedisBackend(Backend):
             )
         )
 
-    def __schedule_partition(self, host, deadline, timestamp):
-        return script(
+    def __schedule_partition(
+        self, host: int, deadline: float, timestamp: float
+    ) -> Iterable[Tuple[bytes, float]]:
+        # Explicitly typing to satisfy mypy.
+        partitions: Iterable[Tuple[bytes, float]] = script(
             self.cluster.get_local_client(host),
             ["-"],
             ["SCHEDULE", self.namespace, self.ttl, timestamp, deadline],
         )
+        return partitions
 
-    def schedule(self, deadline, timestamp=None):
+    def schedule(
+        self, deadline: float, timestamp: Optional[float] = None
+    ) -> Optional[Iterable[ScheduleEntry]]:
         if timestamp is None:
             timestamp = time.time()
 
@@ -145,20 +161,18 @@ class RedisBackend(Backend):
                     yield ScheduleEntry(key.decode("utf-8"), float(timestamp))
             except Exception as error:
                 logger.error(
-                    "Failed to perform scheduling for partition %r due to error: %r",
-                    host,
-                    error,
+                    f"Failed to perform scheduling for partition {host} due to error: {error}",
                     exc_info=True,
                 )
 
-    def __maintenance_partition(self, host, deadline, timestamp):
+    def __maintenance_partition(self, host: int, deadline: float, timestamp: float) -> Any:
         return script(
             self.cluster.get_local_client(host),
             ["-"],
             ["MAINTENANCE", self.namespace, self.ttl, timestamp, deadline],
         )
 
-    def maintenance(self, deadline, timestamp=None):
+    def maintenance(self, deadline: float, timestamp: Optional[float] = None) -> None:
         if timestamp is None:
             timestamp = time.time()
 
@@ -167,14 +181,14 @@ class RedisBackend(Backend):
                 self.__maintenance_partition(host, deadline, timestamp)
             except Exception as error:
                 logger.error(
-                    "Failed to perform maintenance on digest partition %r due to error: %r",
-                    host,
-                    error,
+                    f"Failed to perform maintenance on digest partition {host} due to error: {error}",
                     exc_info=True,
                 )
 
     @contextmanager
-    def digest(self, key, minimum_delay=None, timestamp=None):
+    def digest(
+        self, key: str, minimum_delay: Optional[int] = None, timestamp: Optional[float] = None
+    ) -> Any:
         if minimum_delay is None:
             minimum_delay = self.minimum_delay
 
@@ -216,7 +230,17 @@ class RedisBackend(Backend):
             # If the record value is `None`, this means the record data was
             # missing (it was presumably evicted by Redis) so we don't need to
             # return it here.
-            yield [record for record in records if record.value is not None]
+            filtered_records = [record for record in records if record.value is not None]
+            if len(records) != len(filtered_records):
+                logger.warning(
+                    "Filtered out missing records when fetching digest",
+                    extra={
+                        "key": key,
+                        "record_count": len(records),
+                        "filtered_record_count": len(filtered_records),
+                    },
+                )
+            yield filtered_records
 
             script(
                 connection,
@@ -225,7 +249,7 @@ class RedisBackend(Backend):
                 + [record.key for record in records],
             )
 
-    def delete(self, key, timestamp=None):
+    def delete(self, key: str, timestamp: Optional[float] = None) -> None:
         if timestamp is None:
             timestamp = time.time()
 

@@ -11,7 +11,6 @@ import {
   TraceRequestProps,
 } from 'app/utils/performance/quickTrace/types';
 import {
-  beforeFetch,
   getTraceRequestPayload,
   makeEventView,
 } from 'app/utils/performance/quickTrace/utils';
@@ -80,7 +79,6 @@ function GenericTraceFullQuery<T>({
     <GenericDiscoverQuery<T, AdditionalQueryProps>
       route={`events-trace/${traceId}`}
       getRequestPayload={getTraceFullRequestPayload}
-      beforeFetch={beforeFetch}
       eventView={eventView}
       {...props}
     >

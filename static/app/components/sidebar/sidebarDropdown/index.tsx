@@ -17,8 +17,9 @@ import {IconChevron, IconSentry} from 'app/icons';
 import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import space from 'app/styles/space';
-import {Config, Organization, User} from 'app/types';
+import {Config, Organization, Project, User} from 'app/types';
 import withApi from 'app/utils/withApi';
+import withProjects from 'app/utils/withProjects';
 
 import SidebarMenuItemLink from '../sidebarMenuItemLink';
 import {CommonSidebarProps} from '../types';
@@ -29,9 +30,10 @@ import SwitchOrganization from './switchOrganization';
 // TODO: make org and user optional props
 type Props = Pick<CommonSidebarProps, 'orientation' | 'collapsed'> & {
   api: Client;
-  org: Organization;
+  projects: Project[];
   user: User;
   config: Config;
+  org?: Organization;
   /**
    * Set to true to hide links within the organization
    */
@@ -41,6 +43,7 @@ type Props = Pick<CommonSidebarProps, 'orientation' | 'collapsed'> & {
 const SidebarDropdown = ({
   api,
   org,
+  projects,
   orientation,
   collapsed,
   config,
@@ -105,7 +108,7 @@ const SidebarDropdown = ({
             <OrgAndUserMenu {...getMenuProps({})}>
               {hasOrganization && (
                 <Fragment>
-                  <SidebarOrgSummary organization={org} />
+                  <SidebarOrgSummary organization={org} projectCount={projects.length} />
                   {!hideOrgLinks && (
                     <Fragment>
                       {hasOrgRead && (
@@ -155,15 +158,17 @@ const SidebarDropdown = ({
                       <SidebarMenuItem to="/settings/account/api/">
                         {t('API keys')}
                       </SidebarMenuItem>
-                      <Hook
-                        name="sidebar:organization-dropdown-menu-bottom"
-                        organization={org}
-                      />
+                      {hasOrganization && (
+                        <Hook
+                          name="sidebar:organization-dropdown-menu-bottom"
+                          organization={org}
+                        />
+                      )}
                       {user.isSuperuser && (
                         <SidebarMenuItem to="/manage/">{t('Admin')}</SidebarMenuItem>
                       )}
                       <SidebarMenuItem
-                        data-test-id="sidebarSignout"
+                        data-test-id="sidebar-signout"
                         onClick={handleLogout}
                       >
                         {t('Sign out')}
@@ -180,7 +185,7 @@ const SidebarDropdown = ({
   );
 };
 
-export default withApi(SidebarDropdown);
+export default withApi(withProjects(SidebarDropdown));
 
 const SentryLink = styled(Link)`
   color: ${p => p.theme.white};

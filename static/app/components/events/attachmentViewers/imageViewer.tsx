@@ -6,7 +6,13 @@ import {
 } from 'app/components/events/attachmentViewers/utils';
 import {PanelItem} from 'app/components/panels';
 
-function ImageViewer({className, ...props}: ViewerProps) {
+type Props = Omit<ViewerProps, 'attachment'> & {
+  attachment: Omit<ViewerProps['attachment'], 'event_id'> & {
+    event_id?: string;
+  };
+};
+
+function ImageViewer({className, ...props}: Props) {
   return (
     <Container className={className}>
       <img src={getAttachmentUrl(props, true)} />

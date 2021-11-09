@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from uuid import uuid4
 
 from django import forms
@@ -52,7 +54,9 @@ class CustomSCMIntegration(IntegrationInstallation, RepositoryMixin):
     def get_client(self):
         pass
 
-    def get_stacktrace_link(self, repo, filepath, default, version):
+    def get_stacktrace_link(
+        self, repo: Repository, filepath: str, default: str, version: str
+    ) -> str | None:
         """
         We don't have access to verify that the file does exists
         (using `check_file`) so instead we just return the
@@ -60,7 +64,7 @@ class CustomSCMIntegration(IntegrationInstallation, RepositoryMixin):
         """
         return self.format_source_url(repo, filepath, default)
 
-    def format_source_url(self, repo, filepath, branch):
+    def format_source_url(self, repo: Repository, filepath: str, branch: str) -> str:
         # This format works for GitHub/GitLab, not sure if it would
         # need to change for a different provider
         return f"{repo.url}/blob/{branch}/{filepath}"

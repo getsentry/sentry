@@ -8,12 +8,11 @@ import * as TeamKeyTransactionManager from 'app/components/performance/teamKeyTr
 import Tooltip from 'app/components/tooltip';
 import {IconStar} from 'app/icons';
 import {t, tn} from 'app/locale';
-import {Organization, Project, Team} from 'app/types';
+import {Organization, Project} from 'app/types';
 import {defined} from 'app/utils';
 import EventView from 'app/utils/discover/eventView';
-import {isActiveSuperuser} from 'app/utils/isActiveSuperuser';
+import useTeams from 'app/utils/useTeams';
 import withProjects from 'app/utils/withProjects';
-import withTeams from 'app/utils/withTeams';
 
 /**
  * This can't be a function component because `TeamKeyTransaction` uses
@@ -37,16 +36,14 @@ class TitleButton extends Component<TitleProps> {
     if (!isOpen && keyedTeams?.length) {
       const teamSlugs = keyedTeams.map(({slug}) => slug).join(', ');
       return <Tooltip title={teamSlugs}>{button}</Tooltip>;
-    } else {
-      return button;
     }
+    return button;
   }
 }
 
 type BaseProps = {
   organization: Organization;
   transactionName: string;
-  teams: Team[];
 };
 
 type Props = BaseProps &
@@ -82,10 +79,11 @@ type WrapperProps = BaseProps & {
 function TeamKeyTransactionButtonWrapper({
   eventView,
   organization,
-  teams,
   projects,
   ...props
 }: WrapperProps) {
+  const {teams, initiallyLoaded} = useTeams({provideUserTeams: true});
+
   if (eventView.project.length !== 1) {
     return <TitleButton isOpen={false} disabled keyedTeams={null} />;
   }
@@ -96,21 +94,19 @@ function TeamKeyTransactionButtonWrapper({
     return <TitleButton isOpen={false} disabled keyedTeams={null} />;
   }
 
-  const isSuperuser = isActiveSuperuser();
-  const userTeams = teams.filter(({isMember}) => isMember || isSuperuser);
-
   return (
     <TeamKeyTransactionManager.Provider
       organization={organization}
-      teams={userTeams}
+      teams={teams}
       selectedTeams={['myteams']}
       selectedProjects={[String(projectId)]}
     >
       <TeamKeyTransactionManager.Consumer>
-        {results => (
+        {({isLoading, ...results}) => (
           <TeamKeyTransactionButton
             organization={organization}
             project={project}
+            isLoading={isLoading || !initiallyLoaded}
             {...props}
             {...results}
           />
@@ -120,4 +116,4 @@ function TeamKeyTransactionButtonWrapper({
   );
 }
 
-export default withTeams(withProjects(TeamKeyTransactionButtonWrapper));
+export default withProjects(TeamKeyTransactionButtonWrapper);

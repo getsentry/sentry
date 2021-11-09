@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import {css} from '@emotion/react';
-import {Location} from 'history';
 
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import {AppStoreConnectContextProps} from 'app/components/projects/appStoreConnectContext';
@@ -12,11 +11,14 @@ import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig
 import Form from 'app/views/settings/components/forms/form';
 
 import AppStoreConnect from './appStoreConnect';
-import {getFormFields, getInitialData} from './utils';
+import Http from './http';
+import {getFinalData, getFormFieldsAndInitialData} from './utils';
 
 type AppStoreConnectInitialData = React.ComponentProps<
   typeof AppStoreConnect
 >['initialData'];
+
+type HttpInitialData = React.ComponentProps<typeof Http>['initialData'];
 
 type RouteParams = {
   orgId: string;
@@ -48,17 +50,18 @@ function DebugFileCustomRepository({
   sourceConfig,
   sourceType,
   params: {orgId, projectId: projectSlug},
-  location,
   appStoreConnectContext,
   closeModal,
 }: Props) {
-  function handleSave(data: Record<string, any>) {
-    onSave({...data, type: sourceType}).then(() => {
+  function handleSave(data?: Record<string, any>) {
+    if (!data) {
       closeModal();
+      window.location.reload();
+      return;
+    }
 
-      if (sourceType === CustomRepoType.APP_STORE_CONNECT) {
-        window.location.reload();
-      }
+    onSave({...getFinalData(sourceType, data), type: sourceType}).then(() => {
+      closeModal();
     });
   }
 
@@ -71,15 +74,25 @@ function DebugFileCustomRepository({
         orgSlug={orgId}
         projectSlug={projectSlug}
         onSubmit={handleSave}
-        initialData={sourceConfig as AppStoreConnectInitialData | undefined}
-        location={location as Location}
+        initialData={sourceConfig as AppStoreConnectInitialData}
         appStoreConnectContext={appStoreConnectContext}
       />
     );
   }
 
-  const fields = getFormFields(sourceType);
-  const initialData = getInitialData(sourceConfig);
+  if (sourceType === CustomRepoType.HTTP) {
+    return (
+      <Http
+        Header={Header}
+        Body={Body}
+        Footer={Footer}
+        onSubmit={handleSave}
+        initialData={sourceConfig as HttpInitialData}
+      />
+    );
+  }
+
+  const {initialData, fields} = getFormFieldsAndInitialData(sourceType, sourceConfig);
 
   return (
     <Fragment>

@@ -171,6 +171,7 @@ type Props = {
   rootClassName?: string;
 
   css?: any;
+  'data-test-id'?: string;
 } & Pick<
   ListProps,
   'virtualizedHeight' | 'virtualizedLabelHeight' | 'itemSize' | 'onScroll'
@@ -210,6 +211,7 @@ const Menu = ({
   onClose,
   css,
   closeOnSelect,
+  'data-test-id': dataTestId,
   ...props
 }: Props) => (
   <AutoComplete
@@ -235,10 +237,10 @@ const Menu = ({
       actions,
     }) => {
       // This is the value to use to filter (default to value in filter input)
-      const filterValueOrInput: string = filterValue ?? inputValue;
+      const filterValueOrInput = filterValue ?? inputValue;
 
       // Can't search if there are no items
-      const hasItems = items && !!items.length;
+      const hasItems = !!items?.length;
 
       // Only filter results if menu is open and there are items
       const autoCompleteResults =
@@ -275,6 +277,7 @@ const Menu = ({
           {...getRootProps()}
           className={rootClassName}
           disabled={disabled}
+          data-test-id={dataTestId}
         >
           {children({
             getInputProps,

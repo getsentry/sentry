@@ -273,20 +273,22 @@ class EmailAuthBackend(ModelBackend):
     Supports authenticating via an email address or a username.
     """
 
-    def authenticate(self, username=None, password=None):
+    def authenticate(self, request, username=None, password=None):
         users = find_users(username)
         if users:
             for user in users:
                 try:
-                    if user.password and user.check_password(password):
-                        return user
+                    if user.password:
+                        # XXX(joshuarli): This is checked before (and therefore, regardless of outcome)
+                        # password checking as a mechanism to drop old password hashers immediately and
+                        # then lazily sending out password reset emails.
+                        if user.is_password_expired:
+                            raise AuthUserPasswordExpired(user)
+                        if user.check_password(password):
+                            return user
                 except ValueError:
                     continue
         return None
 
-    # TODO(joshuarli): When we're fully on Django 1.10, we should switch to
-    # subclassing AllowAllUsersModelBackend (this isn't available in 1.9 and
-    # simply overriding user_can_authenticate here is a lot less verbose than
-    # conditionally importing).
     def user_can_authenticate(self, user):
         return True

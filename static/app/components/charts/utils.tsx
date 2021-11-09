@@ -6,6 +6,7 @@ import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {EventsStats, GlobalSelection, MultiSeriesEventsStats} from 'app/types';
 import {defined, escape} from 'app/utils';
 import {parsePeriodToHours} from 'app/utils/dates';
+import {TableDataWithTitle} from 'app/utils/discover/discoverQuery';
 import {decodeList} from 'app/utils/queryString';
 
 const DEFAULT_TRUNCATE_LENGTH = 80;
@@ -16,6 +17,7 @@ export const THIRTY_DAYS = 43200;
 export const TWO_WEEKS = 20160;
 export const ONE_WEEK = 10080;
 export const TWENTY_FOUR_HOURS = 1440;
+export const SIX_HOURS = 360;
 export const ONE_HOUR = 60;
 
 /**
@@ -57,7 +59,8 @@ export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'm
     // Greater than or equal to 60 days
     if (fidelity === 'high') {
       return '4h';
-    } else if (fidelity === 'medium') {
+    }
+    if (fidelity === 'medium') {
       return '1d';
     }
     return '2d';
@@ -67,7 +70,8 @@ export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'm
     // Greater than or equal to 30 days
     if (fidelity === 'high') {
       return '1h';
-    } else if (fidelity === 'medium') {
+    }
+    if (fidelity === 'medium') {
       return '4h';
     }
     return '1d';
@@ -76,7 +80,8 @@ export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'm
   if (diffInMinutes >= TWO_WEEKS) {
     if (fidelity === 'high') {
       return '30m';
-    } else if (fidelity === 'medium') {
+    }
+    if (fidelity === 'medium') {
       return '1h';
     }
     return '12h';
@@ -86,7 +91,8 @@ export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'm
     // Greater than 24 hours
     if (fidelity === 'high') {
       return '30m';
-    } else if (fidelity === 'medium') {
+    }
+    if (fidelity === 'medium') {
       return '1h';
     }
     return '6h';
@@ -96,26 +102,26 @@ export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'm
     // Between 1 hour and 24 hours
     if (fidelity === 'high') {
       return '5m';
-    } else if (fidelity === 'medium') {
-      return '15m';
-    } else {
-      return '1h';
     }
+    if (fidelity === 'medium') {
+      return '15m';
+    }
+    return '1h';
   }
 
   // Less than or equal to 1 hour
   if (fidelity === 'high') {
     return '1m';
-  } else if (fidelity === 'medium') {
-    return '5m';
-  } else {
-    return '10m';
   }
+  if (fidelity === 'medium') {
+    return '5m';
+  }
+  return '10m';
 }
 
 /**
  * Duplicate of getInterval, except that we do not support <1h granularity
- * Used by SessionsV2 and OrgStatsV2 API
+ * Used by OrgStatsV2 API
  */
 export function getSeriesApiInterval(datetimeObj: DateTimeObject) {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
@@ -196,4 +202,51 @@ export const getDimensionValue = (dimension?: number | string | null) => {
   }
 
   return dimension;
+};
+
+const RGB_LIGHTEN_VALUE = 30;
+export const lightenHexToRgb = (colors: string[]) =>
+  colors.map(hex => {
+    const rgb = [
+      Math.min(parseInt(hex.slice(1, 3), 16) + RGB_LIGHTEN_VALUE, 255),
+      Math.min(parseInt(hex.slice(3, 5), 16) + RGB_LIGHTEN_VALUE, 255),
+      Math.min(parseInt(hex.slice(5, 7), 16) + RGB_LIGHTEN_VALUE, 255),
+    ];
+    return `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
+  });
+
+const DEFAULT_GEO_DATA = {
+  title: '',
+  data: [],
+};
+export const processTableResults = (tableResults?: TableDataWithTitle[]) => {
+  if (!tableResults || !tableResults.length) {
+    return DEFAULT_GEO_DATA;
+  }
+
+  const tableResult = tableResults[0];
+
+  const {data, meta} = tableResult;
+
+  if (!data || !data.length || !meta) {
+    return DEFAULT_GEO_DATA;
+  }
+
+  const preAggregate = Object.keys(meta).find(column => {
+    return column !== 'geo.country_code';
+  });
+
+  if (!preAggregate) {
+    return DEFAULT_GEO_DATA;
+  }
+
+  return {
+    title: tableResult.title ?? '',
+    data: data.map(row => {
+      return {
+        name: row['geo.country_code'] as string,
+        value: row[preAggregate] as number,
+      };
+    }),
+  };
 };

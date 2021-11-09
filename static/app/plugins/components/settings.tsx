@@ -7,8 +7,8 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import {t, tct} from 'app/locale';
 import {Organization, Plugin, Project} from 'app/types';
 import {parseRepo} from 'app/utils';
-import {IntegrationAnalyticsKey} from 'app/utils/integrationEvents';
-import {trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {IntegrationAnalyticsKey} from 'app/utils/analytics/integrationAnalyticsEvents';
+import {trackIntegrationAnalytics} from 'app/utils/integrationUtil';
 
 type Props = {
   organization: Organization;
@@ -50,16 +50,13 @@ class PluginSettings<
   }
 
   trackPluginEvent = (eventKey: IntegrationAnalyticsKey) => {
-    trackIntegrationEvent(
-      eventKey,
-      {
-        integration: this.props.plugin.id,
-        integration_type: 'plugin',
-        view: 'plugin_details',
-        already_installed: this.state.wasConfiguredOnPageLoad,
-      },
-      this.props.organization
-    );
+    trackIntegrationAnalytics(eventKey, {
+      integration: this.props.plugin.id,
+      integration_type: 'plugin',
+      view: 'plugin_details',
+      already_installed: this.state.wasConfiguredOnPageLoad,
+      organization: this.props.organization,
+    });
   };
 
   componentDidMount() {

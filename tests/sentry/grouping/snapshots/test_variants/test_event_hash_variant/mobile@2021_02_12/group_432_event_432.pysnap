@@ -1,5 +1,5 @@
 ---
-created: '2021-07-14T12:39:40.404818Z'
+created: '2021-08-09T15:01:32.698056Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -129,121 +129,28 @@ app-depth-5:
           "Fatal Error: <hex> / <hex>"
 --------------------------------------------------------------------------
 app-depth-max:
-  hash: "28f1b76e3bcdfa5e5e1671e6a919a506"
-  tree_label: "abort | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | TppWorkerThread"
+  hash: "6148c73af04344a8597354711f5951ea"
+  tree_label: "abort | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code"
   component:
     app-depth-max*
       exception*
         stacktrace*
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
-            function*
-              "RtlUserThreadStart"
-            package (ignored because function takes precedence)
-              "ntdll.dll"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
-            function*
-              "BaseThreadInitThunk"
-            package (ignored because function takes precedence)
-              "kernel32.dll"
-          frame*
-            function*
-              "TppWorkerThread"
-            package (ignored because function takes precedence)
-              "ntdll.dll"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "RtlpTpWorkCallback"
-            package (ignored because function takes precedence)
-              "ntdll.dll"
           frame*
             function*
               "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored by stack trace rule (category:indirection -group))
-            filename (discarded native filename for grouping stability)
-              "function_template.hpp"
-            function*
-              "boost::function0<T>::operator()"
           frame*
             function*
               "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored by stack trace rule (category:indirection -group))
-            filename (discarded native filename for grouping stability)
-              "function_template.hpp"
-            function*
-              "boost::function0<T>::operator()"
           frame*
             function*
               "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored by stack trace rule (category:indirection -group))
-            filename (discarded native filename for grouping stability)
-              "function_template.hpp"
-            function*
-              "boost::function0<T>::operator()"
           frame*
             function*
               "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored by stack trace rule (category:indirection -group))
-            filename (discarded native filename for grouping stability)
-              "function_template.hpp"
-            function*
-              "boost::function0<T>::operator()"
           frame*
             function*
               "stripped_application_code"
-          frame (ignored by stack trace rule (category:indirection -group))
-            filename (discarded native filename for grouping stability)
-              "function_template.hpp"
-            function*
-              "boost::function0<T>::operator()"
           frame*
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
             function*
               "stripped_application_code"
           frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
@@ -251,24 +158,14 @@ app-depth-max:
               "abort"
             package (ignored because function takes precedence)
               "ucrtbase.dll"
-          frame (ignored by stack trace rule (category:throw +prefix ^-group))
-            function*
-              "raise"
-            package (ignored because function takes precedence)
-              "ucrtbase.dll"
-          frame (ignored by stack trace rule (category:throw +prefix ^-group))
-            filename (discarded native filename for grouping stability)
-              "crashpad_client_win.cc"
-            function*
-              "crashpad::`anonymous namespace'::HandleAbortSignal"
         type (ignored because exception is synthetic)
           "0x40000015 / 0x00000001"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: <hex> / <hex>"
 --------------------------------------------------------------------------
 system:
-  hash: "227f7914a2699056451d2e1a5757e2ab"
-  tree_label: "abort | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | TppWorkerThread"
+  hash: "8de0f3051007f493cd596f0db872d598"
+  tree_label: "abort | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code"
   component:
     system*
       exception*
@@ -283,12 +180,12 @@ system:
               "BaseThreadInitThunk"
             package (ignored because function takes precedence)
               "kernel32.dll"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "TppWorkerThread"
             package (ignored because function takes precedence)
               "ntdll.dll"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "RtlpTpWorkCallback"
             package (ignored because function takes precedence)

@@ -15,9 +15,7 @@ import {
 } from 'app/types';
 
 function showAlert(msg, type) {
-  IndicatorStore.addMessage(msg, type, {
-    duration: 4000,
-  });
+  IndicatorStore.addMessage(msg, type, {duration: 4000});
 }
 
 // TODO(ts) Type this any better.
@@ -45,8 +43,10 @@ class PendingChangeQueue {
   }
 }
 
+type Item = BaseGroup | Group | GroupCollapseRelease;
+
 type Internals = {
-  items: any[];
+  items: Item[];
   statuses: Record<string, Record<string, boolean>>;
   pendingChanges: PendingChangeQueue;
 
@@ -59,15 +59,15 @@ type Internals = {
 type GroupStoreInterface = Reflux.StoreDefinition & {
   init: () => void;
   reset: () => void;
-  loadInitialData: (items: BaseGroup[] | Group[] | GroupCollapseRelease[]) => void;
-  add: (items: BaseGroup[] | Group[] | GroupCollapseRelease[]) => void;
+  loadInitialData: (items: Item[]) => void;
+  add: (items: Item[]) => void;
   remove: (itemIds: string[]) => void;
   addStatus: (id: string, status: string) => void;
   clearStatus: (id: string, status: string) => void;
   hasStatus: (id: string, status: string) => boolean;
-  get: (id: string) => BaseGroup | Group | GroupCollapseRelease | undefined;
+  get: (id: string) => Item | undefined;
   getAllItemIds: () => string[];
-  getAllItems: () => BaseGroup[] | Group[] | GroupCollapseRelease[];
+  getAllItems: () => Item[];
   onAssignTo: (changeId: string, itemId: string, data: any) => void;
   onAssignToError: (changeId: string, itemId: string, error: Error) => void;
   onAssignToSuccess: (changeId: string, itemId: string, response: any) => void;
@@ -95,8 +95,6 @@ type GroupStoreInterface = Reflux.StoreDefinition & {
   onPopulateStats: (itemIds: string[], response: GroupStats[]) => void;
   onPopulateReleases: (itemId: string, releaseData: GroupRelease) => void;
 };
-
-type GroupStore = Reflux.Store & GroupStoreInterface;
 
 const storeConfig: Reflux.StoreDefinition & Internals & GroupStoreInterface = {
   listenables: [GroupActions],
@@ -261,7 +259,7 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupStoreInterface = {
     // TODO(ts) This needs to be constrained further. It was left as any
     // because the PendingChanges signatures and this were not aligned.
     const pendingForId: any[] = [];
-    this.pendingChanges.forEach((change: any) => {
+    this.pendingChanges.forEach(change => {
       if (change.id === id) {
         pendingForId.push(change);
       }
@@ -513,6 +511,6 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupStoreInterface = {
   },
 };
 
-const GroupStore = Reflux.createStore(storeConfig) as GroupStore;
+const GroupStore = Reflux.createStore(storeConfig) as Reflux.Store & GroupStoreInterface;
 
 export default GroupStore;

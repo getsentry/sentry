@@ -21,7 +21,7 @@ import {Field} from 'app/views/settings/components/forms/type';
 
 import {DynamicSamplingRules} from './dynamicSampling';
 import {Event} from './event';
-import {Mechanism, RawStacktrace, StacktraceType} from './stacktrace';
+import {RawStacktrace, StackTraceMechanism, StacktraceType} from './stacktrace';
 
 export enum SentryInitRenderReactComponent {
   INDICATORS = 'Indicators',
@@ -196,10 +196,8 @@ export type RelaysByPublickey = {
 
 /**
  * Detailed organization (e.g. when requesting details for a single org)
- *
- * Lightweight in this case means it does not contain `projects` or `teams`
  */
-export type LightWeightOrganization = OrganizationSummary & {
+export type Organization = OrganizationSummary & {
   relayPiiConfig: string;
   scrubIPAddresses: boolean;
   attachmentsRole: string;
@@ -235,14 +233,6 @@ export type LightWeightOrganization = OrganizationSummary & {
 };
 
 /**
- * Full organization details
- */
-export type Organization = LightWeightOrganization & {
-  projects: Project[];
-  teams: Team[];
-};
-
-/**
  * Minimal organization shape used on shared issue views.
  */
 export type SharedViewOrganization = {
@@ -275,12 +265,16 @@ export type Project = {
   isInternal: boolean;
   hasUserReports?: boolean;
   hasAccess: boolean;
+  hasSessions: boolean;
   firstEvent: 'string' | null;
   firstTransactionEvent: boolean;
   subjectTemplate: string;
   digestsMaxDelay: number;
   digestsMinDelay: number;
   environments: string[];
+  eventProcessing: {
+    symbolicationDegraded: boolean;
+  };
 
   // XXX: These are part of the DetailedProject serializer
   dynamicSampling: {
@@ -377,7 +371,11 @@ export type TreeLabelPart =
       function?: string;
       package?: string;
       type?: string;
+      classbase?: string;
+      filebase?: string;
       datapath?: (string | number)[];
+      // is_sentinel is no longer being used,
+      // but we will still assess whether we will use this property in the near future.
       is_sentinel?: boolean;
       is_prefix?: boolean;
     };
@@ -397,9 +395,11 @@ export type EventMetadata = {
   current_tree_label?: TreeLabelPart[];
   finest_tree_label?: TreeLabelPart[];
   current_level?: number;
+  display_title_with_tree_label?: boolean;
 };
 
-export type EventAttachment = {
+// endpoint: /api/0/issues/:issueId/attachments/?limit=50
+export type IssueAttachment = {
   id: string;
   dateCreated: string;
   headers: Object;
@@ -410,6 +410,9 @@ export type EventAttachment = {
   type: string;
   event_id: string;
 };
+
+// endpoint: /api/0/projects/:orgSlug/:projSlug/events/:eventId/attachments/
+export type EventAttachment = Omit<IssueAttachment, 'event_id'>;
 
 export type EntryData = Record<string, any | Array<any>>;
 
@@ -447,7 +450,8 @@ export type ProjectSdkUpdates = {
   suggestions: SDKUpdatesSuggestion[];
 };
 
-export type EventsStatsData = [number, {count: number}[]][];
+export type EventsStatsData = [number, {count: number; comparisonCount?: number}[]][];
+export type EventsGeoData = {'geo.country_code': string; count: number}[];
 
 // API response format for a single series
 export type EventsStats = {
@@ -490,6 +494,7 @@ type UserEnrolledAuthenticator = {
   dateCreated: EnrolledAuthenticator['createdAt'];
   type: Authenticator['id'];
   id: EnrolledAuthenticator['authId'];
+  name: EnrolledAuthenticator['name'];
 };
 
 export type User = Omit<AvatarUser, 'options'> & {
@@ -594,6 +599,9 @@ export type PluginNoProject = {
   author?: {name: string; url: string};
   description?: string;
   resourceLinks?: Array<{title: string; url: string}>;
+  altIsSentryApp?: boolean;
+  deprecationDate?: string;
+  firstPartyAlternative?: string;
 };
 
 export type Plugin = PluginNoProject & {
@@ -636,6 +644,7 @@ export type RelativePeriod = keyof typeof DEFAULT_RELATIVE_PERIODS;
 export type IntervalPeriod = ReturnType<typeof getInterval>;
 
 export type GlobalSelection = {
+  // Project Ids currently selected
   projects: number[];
   environments: string[];
   datetime: {
@@ -719,14 +728,17 @@ export type Authenticator = {
   );
 
 export type ChallengeData = {
+  // will have only authenticateRequest or registerRequest
   authenticateRequests: u2f.SignRequest;
   registerRequests: u2f.RegisterRequest;
+  registeredKeys: u2f.RegisteredKey[];
 };
 
 export type EnrolledAuthenticator = {
   lastUsedAt: string | null;
   createdAt: string;
   authId: string;
+  name: string;
 };
 
 export interface Config {
@@ -742,6 +754,7 @@ export interface Config {
 
   invitesEnabled: boolean;
   privacyUrl: string | null;
+  termsUrl: string | null;
   isOnPremise: boolean;
   lastOrganization: string | null;
   gravatarBaseUrl: string;
@@ -751,18 +764,18 @@ export interface Config {
    */
   messages: {message: string; level: string}[];
   dsn: string;
-  userIdentity: {ip_address: string; email: string; id: string; isStaff: boolean};
-  termsUrl: string | null;
+  userIdentity: {
+    ip_address: string;
+    email: string;
+    id: string;
+    isStaff: boolean;
+  };
   isAuthenticated: boolean;
   version: {
     current: string;
+    latest: string;
     build: string;
     upgradeAvailable: boolean;
-    latest: string;
-  };
-  statuspage?: {
-    id: string;
-    api_host: string;
   };
   sentryConfig: {
     dsn: string;
@@ -773,6 +786,10 @@ export interface Config {
   apmSampling: number;
   dsn_requests: string;
   demoMode: boolean;
+  statuspage?: {
+    id: string;
+    api_host: string;
+  };
 }
 
 // https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
@@ -784,6 +801,9 @@ export enum DataCategory {
   TRANSACTIONS = 'transactions',
   ATTACHMENTS = 'attachments',
 }
+
+export type EventType = 'error' | 'transaction' | 'attachment';
+
 export const DataCategoryName = {
   [DataCategory.ERRORS]: 'Errors',
   [DataCategory.TRANSACTIONS]: 'Transactions',
@@ -1045,7 +1065,7 @@ export type BaseGroupStatusReprocessing = {
     info: {
       dateCreated: string;
       totalEvents: number;
-    };
+    } | null;
   };
 };
 
@@ -1336,6 +1356,7 @@ export type Integration = {
   icon: string;
   domainName: string;
   accountType: string;
+  scopes?: string[];
   status: ObjectStatus;
   provider: BaseIntegrationProvider & {aspects: IntegrationAspects};
   dynamicDisplayInformation?: {
@@ -1607,13 +1628,13 @@ export type SentryAppComponent = {
     slug:
       | 'calixa'
       | 'clickup'
-      | 'clubhouse'
       | 'komodor'
       | 'linear'
       | 'rookout'
+      | 'shortcut'
       | 'spikesh'
-      | 'teamwork'
-      | 'zepel';
+      | 'taskcall'
+      | 'teamwork';
     name: string;
   };
 };
@@ -1641,8 +1662,9 @@ export type NewQuery = {
   end?: string;
 
   // Graph
-  yAxis?: string;
+  yAxis?: string[];
   display?: string;
+  topEvents?: string;
 
   teams?: Readonly<('myteams' | number)[]>;
 };
@@ -1985,9 +2007,9 @@ export type Frame = {
   rawFunction: string | null;
   symbol: string | null;
   symbolAddr: string | null;
-  symbolicatorStatus: SymbolicatorStatus;
   trust: any | null;
   vars: Record<string, any> | null;
+  symbolicatorStatus?: SymbolicatorStatus;
   addrMode?: string;
   origAbsPath?: string | null;
   mapUrl?: string | null;
@@ -2031,9 +2053,9 @@ export type ExceptionValue = {
   threadId: number | null;
   stacktrace: StacktraceType | null;
   rawStacktrace: RawStacktrace;
-  mechanism: Mechanism | null;
+  mechanism: StackTraceMechanism | null;
   module: string | null;
-  frames: Frame[] | null;
+  frames?: Frame[] | null;
 };
 
 export type ExceptionType = {
@@ -2042,13 +2064,34 @@ export type ExceptionType = {
   values?: Array<ExceptionValue>;
 };
 
+export enum UserIdentityCategory {
+  SOCIAL_IDENTITY = 'social-identity',
+  GLOBAL_IDENTITY = 'global-identity',
+  ORG_IDENTITY = 'org-identity',
+}
+
+export enum UserIdentityStatus {
+  CAN_DISCONNECT = 'can_disconnect',
+  NEEDED_FOR_GLOBAL_AUTH = 'needed_for_global_auth',
+  NEEDED_FOR_ORG_AUTH = 'needed_for_org_auth',
+}
+
+export type UserIdentityProvider = {
+  key: string;
+  name: string;
+};
+
 /**
- * Identity is used in Account Identities for SocialAuths
+ * UserIdentityConfig is used in Account Identities
  */
-export type Identity = {
+export type UserIdentityConfig = {
+  category: UserIdentityCategory;
   id: string;
-  provider: IntegrationProvider;
-  providerLabel: string;
+  provider: UserIdentityProvider;
+  status: UserIdentityStatus;
+  isLogin: boolean;
+  organization: Organization | null;
+  dateAdded: DateString;
 };
 
 // taken from https://stackoverflow.com/questions/46634876/how-can-i-change-a-readonly-property-in-typescript
@@ -2112,17 +2155,12 @@ export type SessionApiResponse = SeriesApi & {
   start: DateString;
   end: DateString;
   query: string;
-  intervals: string[];
-  groups: {
-    by: Record<string, string | number>;
-    totals: Record<string, number>;
-    series: Record<string, number[]>;
-  }[];
 };
 
 export enum SessionField {
   SESSIONS = 'sum(session)',
   USERS = 'count_unique(user)',
+  DURATION = 'p50(session.duration)',
 }
 
 export enum SessionStatus {
@@ -2148,6 +2186,7 @@ export enum ReleaseComparisonChartType {
   ERROR_COUNT = 'errorCount',
   TRANSACTION_COUNT = 'transactionCount',
   FAILURE_RATE = 'failureRate',
+  SESSION_DURATION = 'sessionDuration',
 }
 
 export enum HealthStatsPeriodOption {
@@ -2178,6 +2217,7 @@ export type CodeOwner = {
     missing_external_users: string[];
     missing_user_emails: string[];
     teams_without_access: string[];
+    users_without_access: string[];
   };
 };
 
@@ -2218,4 +2258,36 @@ export type CodeownersFile = {
   raw: string;
   filepath: string;
   html_url: string;
+};
+
+// Response from ShortIdLookupEndpoint
+// /organizations/${orgId}/shortids/${query}/
+export type ShortIdResponse = {
+  organizationSlug: string;
+  projectSlug: string;
+  groupId: string;
+  group: Group;
+  shortId: string;
+};
+
+// Response from EventIdLookupEndpoint
+// /organizations/${orgSlug}/eventids/${eventId}/
+export type EventIdResponse = {
+  organizationSlug: string;
+  projectSlug: string;
+  groupId: string;
+  eventId: string;
+  event: Event;
+};
+
+export type AuditLog = {
+  id: string;
+  actor: User;
+  event: string;
+  ipAddress: string;
+  note: string;
+  targetObject: number;
+  targetUser: Actor | null;
+  data: any;
+  dateCreated: string;
 };

@@ -45,7 +45,7 @@ type ChildrenRenderProps = {
   open: () => void;
 };
 
-type Props = {
+export type OpenConfirmOptions = {
   /**
    * Callback when user confirms
    */
@@ -71,16 +71,6 @@ type Props = {
    */
   renderMessage?: (renderProps: ConfirmMessageRenderProps) => React.ReactNode;
   /**
-   * Render props to control rendering of the modal in its entirety
-   */
-  children?:
-    | ((renderProps: ChildrenRenderProps) => React.ReactNode)
-    | React.ReactElement<{disabled: boolean; onClick: (e: React.MouseEvent) => void}>;
-  /**
-   * Passed to `children` render function
-   */
-  disabled?: boolean;
-  /**
    * Callback function when user is in the confirming state called when the
    * confirm modal is opened
    */
@@ -93,10 +83,6 @@ type Props = {
    * Header of modal
    */
   header?: React.ReactNode;
-  /**
-   * Stop event propagation when opening the confirm modal
-   */
-  stopPropagation?: boolean;
   /**
    * Disables the confirm button.
    *
@@ -122,23 +108,64 @@ type Props = {
   confirmText?: React.ReactNode;
 };
 
-function Confirm({
+type Props = OpenConfirmOptions & {
+  /**
+   * Render props to control rendering of the modal in its entirety
+   */
+  children?:
+    | ((renderProps: ChildrenRenderProps) => React.ReactNode)
+    | React.ReactElement<{disabled: boolean; onClick: (e: React.MouseEvent) => void}>;
+  /**
+   * Passed to `children` render function
+   */
+  disabled?: boolean;
+  /**
+   * Stop event propagation when opening the confirm modal
+   */
+  stopPropagation?: boolean;
+};
+
+/**
+ * Opens a confirmation modal when called. The procedural version of the
+ * `Confirm` component
+ */
+export const openConfirmModal = ({
   bypass,
-  renderMessage,
-  renderConfirmButton,
-  renderCancelButton,
-  message,
-  header,
-  disabled,
-  children,
-  onConfirm,
   onConfirming,
-  onCancel,
   priority = 'primary',
   cancelText = t('Cancel'),
   confirmText = t('Confirm'),
-  stopPropagation = false,
   disableConfirmButton = false,
+  ...rest
+}: OpenConfirmOptions) => {
+  if (bypass) {
+    rest.onConfirm?.();
+    return;
+  }
+
+  const modalProps = {
+    ...rest,
+    priority,
+    confirmText,
+    cancelText,
+    disableConfirmButton,
+  };
+
+  onConfirming?.();
+  openModal(renderProps => <ConfirmModal {...renderProps} {...modalProps} />);
+};
+
+/**
+ * The confirm component is somewhat special in that you can wrap any
+ * onClick-able element with this to trigger a interstital confirmation modal.
+ *
+ * This is the declarative alternative to using openConfirmModal
+ */
+function Confirm({
+  disabled,
+  children,
+  stopPropagation = false,
+  ...openConfirmOptions
 }: Props) {
   const triggerModal = (e?: React.MouseEvent) => {
     if (stopPropagation) {
@@ -149,28 +176,7 @@ function Confirm({
       return;
     }
 
-    if (bypass) {
-      onConfirm?.();
-      return;
-    }
-
-    onConfirming?.();
-
-    const modalProps = {
-      priority,
-      renderMessage,
-      renderConfirmButton,
-      renderCancelButton,
-      message,
-      confirmText,
-      cancelText,
-      header,
-      onConfirm,
-      onCancel,
-      disableConfirmButton,
-    };
-
-    openModal(renderProps => <ConfirmModal {...renderProps} {...modalProps} />);
+    openConfirmModal(openConfirmOptions);
   };
 
   if (typeof children === 'function') {

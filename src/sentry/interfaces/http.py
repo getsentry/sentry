@@ -5,13 +5,12 @@ __all__ = ("Http",)
 import re
 from urllib.parse import parse_qsl
 
-from django.utils.http import urlencode
 from django.utils.translation import ugettext as _
 
 from sentry.interfaces.base import Interface
 from sentry.utils import json
 from sentry.utils.json import prune_empty_keys
-from sentry.utils.safe import get_path
+from sentry.utils.safe import get_path, safe_urlencode
 from sentry.utils.strings import to_unicode
 from sentry.web.helpers import render_to_string
 
@@ -149,7 +148,7 @@ class Http(Interface):
         url = self.url
         if url:
             if self.query_string:
-                url = url + "?" + urlencode(get_path(self.query_string, filter=True))
+                url = url + "?" + safe_urlencode(get_path(self.query_string, filter=True))
             if self.fragment:
                 url = url + "#" + self.fragment
         return url
@@ -162,7 +161,7 @@ class Http(Interface):
                 "url": self.full_url,
                 "short_url": self.url,
                 "method": self.method,
-                "query_string": urlencode(get_path(self.query_string, filter=True)),
+                "query_string": safe_urlencode(get_path(self.query_string, filter=True)),
                 "fragment": self.fragment,
             },
         )

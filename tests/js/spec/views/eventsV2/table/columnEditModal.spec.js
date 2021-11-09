@@ -25,7 +25,7 @@ function mountModal({tagKeys, columns, onApply}, initialData) {
 describe('EventsV2 -> ColumnEditModal', function () {
   const initialData = initializeOrg({
     organization: {
-      features: ['performance-view', 'discover-arithmetic'],
+      features: ['performance-view'],
       apdexThreshold: 400,
     },
   });
@@ -357,6 +357,45 @@ describe('EventsV2 -> ColumnEditModal', function () {
         'Maximum operators exceeded'
       );
     });
+
+    it('resets required field to previous value if cleared', function () {
+      const initialColumnVal = '0.6';
+      const newWrapper = mountModal(
+        {
+          columns: [
+            {
+              kind: 'function',
+              function: [
+                'percentile',
+                'transaction.duration',
+                initialColumnVal,
+                undefined,
+              ],
+            },
+          ],
+          onApply,
+          tagKeys,
+        },
+        initialData
+      );
+
+      const field = newWrapper.find('QueryField input[name="refinement"]');
+      changeInputValue(field, '');
+      newWrapper.update();
+      field.simulate('blur');
+
+      expect(newWrapper.find('QueryField input[name="refinement"]').prop('value')).toBe(
+        initialColumnVal
+      );
+
+      newWrapper.find('Button[priority="primary"]').simulate('click');
+      expect(onApply).toHaveBeenCalledWith([
+        {
+          kind: 'function',
+          function: ['percentile', 'transaction.duration', initialColumnVal, undefined],
+        },
+      ]);
+    });
   });
 
   describe('equation automatic update', function () {
@@ -500,7 +539,7 @@ describe('EventsV2 -> ColumnEditModal', function () {
       // Apply the changes so we can see the new columns.
       newWrapper.find('Button[priority="primary"]').simulate('click');
       expect(onApply).toHaveBeenCalledWith([
-        {kind: 'function', function: ['count_unique', '', undefined, undefined]},
+        {kind: 'function', function: ['count_unique', 'user', undefined, undefined]},
         {kind: 'function', function: ['count', '', undefined, undefined]},
         {kind: 'equation', field: 'count() - count()'},
       ]);
@@ -534,8 +573,11 @@ describe('EventsV2 -> ColumnEditModal', function () {
       newWrapper.find('Button[priority="primary"]').simulate('click');
       // With the way the parser works only tokens up to the error will be updated
       expect(onApply).toHaveBeenCalledWith([
-        {kind: 'function', function: ['count_unique', '', undefined, undefined]},
-        {kind: 'equation', field: 'count_unique() - count_unique() arst count() '},
+        {kind: 'function', function: ['count_unique', 'user', undefined, undefined]},
+        {
+          kind: 'equation',
+          field: 'count_unique(user) - count_unique(user) arst count() ',
+        },
       ]);
     });
   });

@@ -1,13 +1,12 @@
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 
-import {Client} from 'app/api';
 import {escapeDoubleQuotes} from 'app/utils';
 import GenericDiscoverQuery, {
   DiscoverQueryProps,
   GenericChildrenProps,
 } from 'app/utils/discover/genericDiscoverQuery';
-import {escapeTagValue} from 'app/utils/tokenizeSearch';
+import {escapeFilterValue} from 'app/utils/tokenizeSearch';
 import withApi from 'app/utils/withApi';
 
 type HasMeasurementsProps = {
@@ -29,7 +28,7 @@ type Props = RequestProps & {
 
 function getHasMeasurementsRequestPayload(props: RequestProps) {
   const {eventView, location, transaction, type} = props;
-  const escaped = escapeDoubleQuotes(escapeTagValue(transaction));
+  const escaped = escapeDoubleQuotes(escapeFilterValue(transaction));
   const baseApiPayload = {
     transaction: `"${escaped}"`,
     type,
@@ -41,16 +40,11 @@ function getHasMeasurementsRequestPayload(props: RequestProps) {
   return Object.assign(baseApiPayload, additionalApiPayload);
 }
 
-function beforeFetch(api: Client) {
-  api.clear();
-}
-
 function HasMeasurementsQuery(props: Props) {
   return (
     <GenericDiscoverQuery<HasMeasurements, HasMeasurementsProps>
       route="events-has-measurements"
       getRequestPayload={getHasMeasurementsRequestPayload}
-      beforeFetch={beforeFetch}
       {...omit(props, 'children')}
     >
       {({tableData, ...rest}) => {

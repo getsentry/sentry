@@ -28,20 +28,15 @@ def _init_geoip():
         logger.warning("Error opening GeoIP database: %s" % geoip_path_mmdb)
         return
 
-    def encode_bytes(data):
-        if isinstance(data, str):
-            return data.encode("ISO-8859-1")
-        return data
-
     def _geo_by_addr(ip):
         geo = geo_db.get(ip)
         if not geo:
             return
 
         return {
-            "country_code": encode_bytes(geo["country"]["iso_code"]),
-            "region": encode_bytes(geo.get("subdivisions", [{}])[-1].get("iso_code")),
-            "city": encode_bytes(geo.get("city", {}).get("names", {}).get("en")),
+            "country_code": geo["country"]["iso_code"],
+            "region": geo.get("subdivisions", [{}])[-1].get("iso_code"),
+            "city": geo.get("city", {}).get("names", {}).get("en"),
             "latitude": geo["location"]["latitude"],
             "longitude": geo["location"]["longitude"],
         }

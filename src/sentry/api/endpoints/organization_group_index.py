@@ -2,12 +2,11 @@ import functools
 from datetime import datetime, timedelta
 from typing import List, Mapping, Optional, Sequence
 
-from django.conf import settings
 from django.utils import timezone
 from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import features, search
 from sentry.api.bases import OrganizationEventPermission, OrganizationEventsEndpointBase
 from sentry.api.event_search import SearchFilter
 from sentry.api.helpers.group_index import (
@@ -36,10 +35,7 @@ from sentry.models import (
     Project,
 )
 from sentry.search.events.constants import EQUALITY_OPERATORS
-from sentry.search.snuba.backend import (
-    EventsDatasetSnubaSearchBackend,
-    assigned_or_suggested_filter,
-)
+from sentry.search.snuba.backend import assigned_or_suggested_filter
 from sentry.search.snuba.executors import get_search_filter
 from sentry.snuba import discover
 from sentry.utils.compat import map
@@ -47,11 +43,6 @@ from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.validators import normalize_event_id
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
-
-
-search = EventsDatasetSnubaSearchBackend(**settings.SENTRY_SEARCH_OPTIONS)
-
-
 allowed_inbox_search_terms = frozenset(["date", "status", "for_review", "assigned_or_suggested"])
 
 
@@ -145,18 +136,6 @@ def inbox_search(
 
 class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
     permission_classes = (OrganizationEventPermission,)
-    skip_snuba_fields = {
-        "query",
-        "status",
-        "bookmarked_by",
-        "assigned_to",
-        "unassigned",
-        "linked",
-        "subscribed_by",
-        "active_at",
-        "first_release",
-        "first_seen",
-    }
 
     def _search(self, request, organization, projects, environments, extra_query_kwargs=None):
         query_kwargs = build_query_params_from_request(

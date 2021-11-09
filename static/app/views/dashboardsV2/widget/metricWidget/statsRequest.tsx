@@ -10,8 +10,8 @@ import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {t} from 'app/locale';
 import {GlobalSelection, Organization, Project, SessionApiResponse} from 'app/types';
 import {Series} from 'app/types/echarts';
-import {QueryResults} from 'app/utils/tokenizeSearch';
-import {getInterval} from 'app/views/releases/detail/overview/chart/utils';
+import {getSessionsInterval} from 'app/utils/sessions';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import {roundDuration} from 'app/views/releases/utils';
 
 import {MetricQuery} from './types';
@@ -89,7 +89,7 @@ function StatsRequest({
     const promises = filteredGroupings.map(({metricMeta, aggregation, groupBy}) => {
       const query: RequestQuery = {
         field: `${aggregation}(${metricMeta.name})`,
-        interval: getInterval(datetime),
+        interval: getSessionsInterval(datetime),
         ...requestExtraParams,
       };
 
@@ -109,7 +109,7 @@ function StatsRequest({
           .filter(tag => !!tag);
 
         if (!!tagsWithDoubleQuotes.length) {
-          query.query = new QueryResults(tagsWithDoubleQuotes).formatString();
+          query.query = new MutableSearch(tagsWithDoubleQuotes).formatString();
         }
       }
 

@@ -7,9 +7,11 @@ import isEqual from 'lodash/isEqual';
 import {Client} from 'app/api';
 import AreaChart from 'app/components/charts/areaChart';
 import BarChart from 'app/components/charts/barChart';
+import EventsGeoRequest from 'app/components/charts/eventsGeoRequest';
 import EventsRequest from 'app/components/charts/eventsRequest';
 import LineChart from 'app/components/charts/lineChart';
-import {getInterval} from 'app/components/charts/utils';
+import {getInterval, processTableResults} from 'app/components/charts/utils';
+import WorldMapChart from 'app/components/charts/worldMapChart';
 import LoadingContainer from 'app/components/loading/loadingContainer';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {IconWarning} from 'app/icons';
@@ -18,7 +20,7 @@ import {Series} from 'app/types/echarts';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import {axisLabelFormatter} from 'app/utils/discover/charts';
 import EventView from 'app/utils/discover/eventView';
-import {aggregateMultiPlotType, PlotType} from 'app/utils/discover/fields';
+import {PlotType} from 'app/utils/discover/fields';
 import {DisplayModes, TOP_N} from 'app/utils/discover/types';
 import {decodeScalar} from 'app/utils/queryString';
 import {Theme} from 'app/utils/theme';
@@ -30,6 +32,8 @@ type Props = {
   eventView: EventView;
   api: Client;
   location: Location;
+  referrer?: string;
+  yAxis?: string[];
 };
 
 class MiniGraph extends React.Component<Props> {
@@ -44,7 +48,7 @@ class MiniGraph extends React.Component<Props> {
   getRefreshProps(props: Props) {
     // get props that are relevant to the API payload for the graph
 
-    const {organization, location, eventView} = props;
+    const {organization, location, eventView, yAxis} = props;
 
     const apiPayload = eventView.getEventsAPIPayload(location);
 
@@ -61,7 +65,8 @@ class MiniGraph extends React.Component<Props> {
     const field = isTopEvents ? apiPayload.field : undefined;
     const topEvents = isTopEvents ? TOP_N : undefined;
     const orderby = isTopEvents ? decodeScalar(apiPayload.sort) : undefined;
-    const interval = isDaily ? '1d' : getInterval({start, end, period}, 'high');
+    const intervalFidelity = display === 'bar' ? 'low' : 'high';
+    const interval = isDaily ? '1d' : getInterval({start, end, period}, intervalFidelity);
 
     return {
       organization,
@@ -73,20 +78,19 @@ class MiniGraph extends React.Component<Props> {
       interval,
       project: eventView.project,
       environment: eventView.environment,
-      yAxis: eventView.getYAxis(),
+      yAxis: yAxis ?? eventView.getYAxis(),
       field,
       topEvents,
       orderby,
       showDaily: isDaily,
       expired: eventView.expired,
       name: eventView.name,
+      display,
     };
   }
 
   getChartType({
     showDaily,
-    yAxis,
-    timeseriesData,
   }: {
     showDaily: boolean;
     yAxis: string;
@@ -94,16 +98,6 @@ class MiniGraph extends React.Component<Props> {
   }): PlotType {
     if (showDaily) {
       return 'bar';
-    }
-    if (timeseriesData.length > 1) {
-      switch (aggregateMultiPlotType(yAxis)) {
-        case 'line':
-          return 'line';
-        case 'area':
-          return 'area';
-        default:
-          throw new Error(`Unknown multi plot type for ${yAxis}`);
-      }
     }
     return 'area';
   }
@@ -124,7 +118,7 @@ class MiniGraph extends React.Component<Props> {
   }
 
   render() {
-    const {theme, api} = this.props;
+    const {theme, api, referrer} = this.props;
     const {
       query,
       start,
@@ -141,8 +135,56 @@ class MiniGraph extends React.Component<Props> {
       showDaily,
       expired,
       name,
+      display,
     } = this.getRefreshProps(this.props);
 
+    if (display === DisplayModes.WORLDMAP) {
+      return (
+        <EventsGeoRequest
+          api={api}
+          organization={organization}
+          yAxis={yAxis}
+          query={query}
+          orderby={orderby}
+          projects={project as number[]}
+          period={period}
+          start={start}
+          end={end}
+          environments={environment as string[]}
+          referrer={referrer}
+        >
+          {({errored, loading, tableData}) => {
+            if (errored) {
+              return (
+                <StyledGraphContainer>
+                  <IconWarning color="gray300" size="md" />
+                </StyledGraphContainer>
+              );
+            }
+            if (loading) {
+              return (
+                <StyledGraphContainer>
+                  <LoadingIndicator mini />
+                </StyledGraphContainer>
+              );
+            }
+            const {data, title} = processTableResults(tableData);
+            const chartOptions = {
+              height: 100,
+              series: [
+                {
+                  seriesName: title,
+                  data,
+                },
+              ],
+              fromDiscoverQueryList: true,
+            };
+
+            return <WorldMapChart {...chartOptions} />;
+          }}
+        </EventsGeoRequest>
+      );
+    }
     return (
       <EventsRequest
         organization={organization}
@@ -161,13 +203,16 @@ class MiniGraph extends React.Component<Props> {
         orderby={orderby}
         expired={expired}
         name={name}
+        referrer={referrer}
+        hideError
         partial
       >
-        {({loading, timeseriesData, results, errored}) => {
+        {({loading, timeseriesData, results, errored, errorMessage}) => {
           if (errored) {
             return (
               <StyledGraphContainer>
                 <IconWarning color="gray300" size="md" />
+                <StyledErrorMessage>{errorMessage}</StyledErrorMessage>
               </StyledGraphContainer>
             );
           }
@@ -180,11 +225,14 @@ class MiniGraph extends React.Component<Props> {
           }
 
           const allSeries = timeseriesData ?? results ?? [];
-          const chartType = this.getChartType({
-            showDaily,
-            yAxis,
-            timeseriesData: allSeries,
-          });
+          const chartType =
+            display === 'bar'
+              ? display
+              : this.getChartType({
+                  showDaily,
+                  yAxis: Array.isArray(yAxis) ? yAxis[0] : yAxis,
+                  timeseriesData: allSeries,
+                });
           const data = allSeries.map(series => ({
             ...series,
             lineStyle: {
@@ -193,11 +241,16 @@ class MiniGraph extends React.Component<Props> {
             smooth: true,
           }));
 
+          const hasOther = topEvents && topEvents + 1 === allSeries.length;
+          const chartColors = allSeries.length
+            ? [...theme.charts.getColorPalette(allSeries.length - 2 - (hasOther ? 1 : 0))]
+            : undefined;
+          if (chartColors && chartColors.length && hasOther) {
+            chartColors.push(theme.chartOther);
+          }
           const chartOptions = {
-            colors: allSeries.length
-              ? [...theme.charts.getColorPalette(allSeries.length - 2)]
-              : undefined,
-            height: 100,
+            colors: chartColors,
+            height: 150,
             series: [...data],
             xAxis: {
               show: false,
@@ -214,7 +267,12 @@ class MiniGraph extends React.Component<Props> {
                 color: theme.chartLabel,
                 fontFamily: theme.text.family,
                 fontSize: 12,
-                formatter: (value: number) => axisLabelFormatter(value, yAxis, true),
+                formatter: (value: number) =>
+                  axisLabelFormatter(
+                    value,
+                    Array.isArray(yAxis) ? yAxis[0] : yAxis,
+                    true
+                  ),
                 inside: true,
                 showMinLabel: false,
                 showMaxLabel: false,
@@ -238,7 +296,9 @@ class MiniGraph extends React.Component<Props> {
               bottom: 0,
               containLabel: false,
             },
-            stacked: typeof topEvents === 'number' && topEvents > 0,
+            stacked:
+              (typeof topEvents === 'number' && topEvents > 0) ||
+              (Array.isArray(yAxis) && yAxis.length > 1),
           };
 
           const Component = this.getChartComponent(chartType);
@@ -252,11 +312,16 @@ class MiniGraph extends React.Component<Props> {
 const StyledGraphContainer = styled(props => (
   <LoadingContainer {...props} maskBackgroundColor="transparent" />
 ))`
-  height: 100px;
+  height: 150px;
 
   display: flex;
   justify-content: center;
   align-items: center;
+`;
+
+const StyledErrorMessage = styled('div')`
+  color: ${p => p.theme.gray300};
+  margin-left: 4px;
 `;
 
 export default withApi(withTheme(MiniGraph));

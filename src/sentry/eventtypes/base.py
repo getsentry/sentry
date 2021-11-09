@@ -7,20 +7,30 @@ from sentry.utils.strings import strip, truncatechars
 # Note: Detecting eventtypes is implemented in the Relay Rust library.
 
 
-def format_title_from_tree_label(tree_label):
-    parts = []
+def get_tree_label_part_details(part):
+    # Note: This function also exists in JS in app/utils/events.tsx, to make
+    # porting efforts simpler it's recommended to keep both variants structurally
+    # similar.
+    if isinstance(part, str):
+        # XXX(markus): Legacy codepath, should be unnecessary 90d after
+        # 2021-06-09. Same for frontend version.
+        return part
 
-    for x in tree_label:
-        if isinstance(x, str):
-            # XXX(markus): Legacy codepath, should be unnecessary 90d after
-            # 2021-06-09. Same for frontend version.
-            part = x
+    label = part.get("function") or part.get("package") or part.get("filebase") or part.get("type")
+
+    classbase = part.get("classbase")
+
+    if classbase:
+        if label:
+            label = f"{classbase}.{label}"
         else:
-            part = x.get("function") or x.get("package") or x.get("type")
+            label = classbase
 
-        parts.append(part or "<unknown>")
+    return label or "<unknown>"
 
-    return " | ".join(parts)
+
+def format_title_from_tree_label(tree_label):
+    return " | ".join(get_tree_label_part_details(x) for x in tree_label)
 
 
 def compute_title_with_tree_label(title: Optional[str], metadata: dict):
@@ -45,15 +55,13 @@ class BaseEvent:
     id = None
 
     def get_metadata(self, data):
-        metadata = {}
+        metadata = self.extract_metadata(data)
         title = data.get("title")
         if title is not None:
+            # If we already have a custom title, it needs to be in metadata
+            # regardless of what extract_metadata returns.
             metadata["title"] = title
-        for key, value in self.extract_metadata(data).items():
-            # If we already have a custom title, do not override with the
-            # computed title.
-            if key not in metadata:
-                metadata[key] = value
+
         return metadata
 
     def get_title(self, metadata):

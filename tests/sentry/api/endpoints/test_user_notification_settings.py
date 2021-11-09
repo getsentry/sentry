@@ -3,10 +3,6 @@ from sentry.notifications.types import NotificationSettingOptionValues, Notifica
 from sentry.testutils import APITestCase
 from sentry.types.integrations import ExternalProviders
 
-FEATURE_NAMES = [
-    "organizations:notification-platform",
-]
-
 
 class UserNotificationSettingsTestBase(APITestCase):
     endpoint = "sentry-api-0-user-notification-settings"
@@ -45,8 +41,7 @@ class UserNotificationSettingsGetTest(UserNotificationSettingsTestBase):
             user=self.user,
         )
 
-        with self.feature(FEATURE_NAMES):
-            response = self.get_success_response("me")
+        response = self.get_success_response("me")
 
         # Spot check.
         assert response.data["alerts"]["user"][self.user.id]["email"] == "never"
@@ -55,8 +50,7 @@ class UserNotificationSettingsGetTest(UserNotificationSettingsTestBase):
         assert response.data["workflow"]["user"][self.user.id]["slack"] == "subscribe_only"
 
     def test_notification_settings_empty(self):
-        with self.feature(FEATURE_NAMES):
-            response = self.get_success_response("me")
+        response = self.get_success_response("me")
 
         # Spot check.
         assert response.data["alerts"]["user"][self.user.id]["email"] == "always"
@@ -65,25 +59,21 @@ class UserNotificationSettingsGetTest(UserNotificationSettingsTestBase):
         assert response.data["workflow"]["user"][self.user.id]["slack"] == "never"
 
     def test_type_querystring(self):
-        with self.feature(FEATURE_NAMES):
-            response = self.get_success_response("me", qs_params={"type": "workflow"})
+        response = self.get_success_response("me", qs_params={"type": "workflow"})
 
         assert "alerts" not in response.data
         assert "workflow" in response.data
 
     def test_invalid_querystring(self):
-        with self.feature(FEATURE_NAMES):
-            self.get_error_response("me", qs_params={"type": "invalid"}, status_code=400)
+        self.get_error_response("me", qs_params={"type": "invalid"}, status_code=400)
 
     def test_invalid_user_id(self):
-        with self.feature(FEATURE_NAMES):
-            self.get_error_response("invalid", status_code=404)
+        self.get_error_response("invalid", status_code=404)
 
     def test_wrong_user_id(self):
         other_user = self.create_user("bizbaz@example.com")
 
-        with self.feature(FEATURE_NAMES):
-            self.get_error_response(other_user.id, status_code=403)
+        self.get_error_response(other_user.id, status_code=403)
 
     def test_invalid_notification_setting(self):
         other_organization = self.create_organization(name="Rowdy Tiger", owner=None)
@@ -99,8 +89,7 @@ class UserNotificationSettingsGetTest(UserNotificationSettingsTestBase):
             project=other_project,
         )
 
-        with self.feature(FEATURE_NAMES):
-            response = self.get_success_response("me")
+        response = self.get_success_response("me")
 
         assert other_project.id not in response.data["workflow"]["project"]
 
@@ -119,8 +108,7 @@ class UserNotificationSettingsTest(UserNotificationSettingsTestBase):
         )
 
         data = {"deploy": {"user": {"me": {"email": "always", "slack": "always"}}}}
-        with self.feature(FEATURE_NAMES):
-            self.get_success_response("me", **data)
+        self.get_success_response("me", **data)
 
         assert (
             NotificationSetting.objects.get_settings(
@@ -132,19 +120,15 @@ class UserNotificationSettingsTest(UserNotificationSettingsTestBase):
         )
 
     def test_empty_payload(self):
-        with self.feature(FEATURE_NAMES):
-            self.get_error_response("me", **{}, status_code=400)
+        self.get_error_response("me", **{}, status_code=400)
 
     def test_invalid_payload(self):
-        with self.feature(FEATURE_NAMES):
-            self.get_error_response("me", **{"invalid": 1}, status_code=400)
+        self.get_error_response("me", **{"invalid": 1}, status_code=400)
 
     def test_malformed_payload(self):
-        with self.feature(FEATURE_NAMES):
-            self.get_error_response("me", **{"alerts": [1, 2]}, status_code=400)
+        self.get_error_response("me", **{"alerts": [1, 2]}, status_code=400)
 
     def test_wrong_user_id(self):
         user2 = self.create_user()
         data = {"deploy": {"user": {user2.id: {"email": "always", "slack": "always"}}}}
-        with self.feature(FEATURE_NAMES):
-            self.get_error_response("me", **data, status_code=400)
+        self.get_error_response("me", **data, status_code=400)

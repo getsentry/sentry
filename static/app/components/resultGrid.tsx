@@ -245,12 +245,12 @@ class ResultGrid extends React.Component<Props, State> {
     this.props.api.request(this.props.endpoint!, {
       method: this.props.method,
       data: queryParams,
-      success: (data, _, jqXHR) => {
+      success: (data, _, resp) => {
         this.setState({
           loading: false,
           error: false,
           rows: data,
-          pageLinks: jqXHR?.getResponseHeader('Link') ?? null,
+          pageLinks: resp?.getResponseHeader('Link') ?? null,
         });
       },
       error: () => {
@@ -317,7 +317,7 @@ class ResultGrid extends React.Component<Props, State> {
   }
 
   render() {
-    const {filters} = this.props;
+    const {filters, sortOptions, path, location} = this.props;
     return (
       <div className="result-grid">
         <div className="table-options">
@@ -343,18 +343,18 @@ class ResultGrid extends React.Component<Props, State> {
             </div>
           )}
           <SortBy
-            options={this.props.sortOptions ?? []}
+            options={sortOptions ?? []}
             value={this.state.sortBy}
-            path={this.props.path ?? ''}
-            location={this.props.location}
+            path={path ?? ''}
+            location={location}
           />
           {Object.keys(filters ?? {}).map(filterKey => (
             <Filter
               key={filterKey}
               queryKey={filterKey}
               value={this.state.filters[filterKey]}
-              path={this.props.path ?? ''}
-              location={this.props.location}
+              path={path ?? ''}
+              location={location}
               {...(filters?.[filterKey] as FilterConfig)}
             />
           ))}

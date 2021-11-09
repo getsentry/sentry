@@ -478,7 +478,7 @@ function getDemoModeGuides(): GuidesContent {
           title: t('Release'),
           target: 'release_version',
           description: t(
-            `Click here to easily identify new issues, regressions, and track the health every release.`
+            `Click here to easily identify new issues, regressions, and track the health of every release.`
           ),
         },
       ],

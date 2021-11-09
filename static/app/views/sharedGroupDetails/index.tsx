@@ -102,7 +102,7 @@ class SharedGroupDetails extends Component<Props, State> {
       return <LoadingError onRetry={this.handleRetry} />;
     }
 
-    const {location, api} = this.props;
+    const {location, api, route, router} = this.props;
     const {permalink, latestEvent, project} = group;
     const title = this.getTitle();
 
@@ -132,6 +132,8 @@ class SharedGroupDetails extends Component<Props, State> {
                     event={latestEvent}
                     project={project}
                     api={api}
+                    route={route}
+                    router={router}
                     isBorderless
                     isShare
                   />

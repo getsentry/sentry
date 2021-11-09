@@ -5,7 +5,7 @@ from sentry.testutils import APITestCase
 
 
 class ProjectTransactionThresholdTest(APITestCase):
-    feature_name = "organizations:project-transaction-threshold"
+    feature_name = "organizations:performance-view"
 
     def setUp(self) -> None:
         super().setUp()
@@ -45,15 +45,16 @@ class ProjectTransactionThresholdTest(APITestCase):
         assert response.data["metric"] == "duration"
 
     def test_get_returns_error_without_feature_enabled(self):
-        ProjectTransactionThreshold.objects.create(
-            project=self.project,
-            organization=self.project.organization,
-            threshold=300,
-            metric=TransactionMetric.DURATION.value,
-        )
+        with self.feature({self.feature_name: False}):
+            ProjectTransactionThreshold.objects.create(
+                project=self.project,
+                organization=self.project.organization,
+                threshold=300,
+                metric=TransactionMetric.DURATION.value,
+            )
 
-        response = self.client.get(self.url, format="json")
-        assert response.status_code == 404
+            response = self.client.get(self.url, format="json")
+            assert response.status_code == 404
 
     def test_create_project_threshold(self):
         with self.feature(self.feature_name):

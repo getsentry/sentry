@@ -1,5 +1,5 @@
 ---
-created: '2021-03-29T22:02:38.698901Z'
+created: '2021-08-06T16:25:44.560821Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -10,10 +10,10 @@ IllegalArgumentException:pointerIndex out of range (thread_id:_, crashed:_)
   com.android.internal.os.ZygoteInit$MethodA  run category=internals
                     java.lang.reflect.Method  invoke category=indirection
                   android.app.ActivityThread  main category=threadbase
-                           android.os.Looper  loop category=system
-                     android.os.MessageQueue  next category=internals
+                           android.os.Looper  loop category=threadbase
+                     android.os.MessageQueue  next category=system
                      android.os.MessageQueue  nativePollOnce category=internals
-             android.view.InputEventReceiver  dispatchInputEvent category=ui
+             android.view.InputEventReceiver  dispatchInputEvent category=internals
   android.view.ViewRootImpl$WindowInputEvent  onInputEvent category=internals
                    android.view.ViewRootImpl  enqueueInputEvent category=internals
                    android.view.ViewRootImpl  doProcessInputEvents category=internals
@@ -36,7 +36,7 @@ IllegalArgumentException:pointerIndex out of range (thread_id:_, crashed:_)
                         android.app.Activity  dispatchTouchEvent category=std
      com.android.internal.policy.PhoneWindow  superDispatchTouchEvent category=internals
   com.android.internal.policy.PhoneWindow$De  superDispatchTouchEvent category=internals
-                      android.view.ViewGroup  dispatchTouchEvent category=ui
+                      android.view.ViewGroup  dispatchTouchEvent category=internals
                       android.view.ViewGroup  dispatchTransformedTouchEvent category=internals
                       android.view.ViewGroup  dispatchTouchEvent category=internals
                       android.view.ViewGroup  dispatchTransformedTouchEvent category=internals

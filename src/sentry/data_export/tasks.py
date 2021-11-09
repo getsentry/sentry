@@ -219,6 +219,8 @@ def get_processor(data_export, environment_id):
                 discover_query=data_export.query_info,
                 organization_id=data_export.organization_id,
             )
+        else:
+            raise ExportError(f"No processor found for this query type: {data_export.query_type}")
         return processor
     except ExportError as error:
         error_str = str(error)
@@ -234,6 +236,8 @@ def process_rows(processor, data_export, batch_size, offset):
             rows = process_issues_by_tag(processor, batch_size, offset)
         elif data_export.query_type == ExportQueryType.DISCOVER:
             rows = process_discover(processor, batch_size, offset)
+        else:
+            raise ExportError(f"No processor found for this query type: {data_export.query_type}")
         return rows
     except ExportError as error:
         error_str = str(error)
@@ -313,7 +317,6 @@ def merge_export_blobs(data_export_id, **kwargs):
                 if data_export.user.email:
                     user["email"] = data_export.user.email
                 scope.user = user
-            scope.user = user
             scope.set_tag("organization.slug", data_export.organization.slug)
             scope.set_tag("export.type", ExportQueryType.as_str(data_export.query_type))
             scope.set_extra("export.query", data_export.query_info)

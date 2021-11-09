@@ -1,0 +1,15 @@
+---
+created: '2021-08-06T16:37:57.508018Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+SIGSEGV:Segfault (thread_id:_, crashed:_)
+                         /system/lib/libc.so  __start_thread category=internals
+                         /system/lib/libc.so  __pthread_start category=threadbase
+                       /system/lib/libart.so  art::ThreadPoolWorker::Callback category=system
+                       /system/lib/libart.so  art::ThreadPoolWorker::Run category=internals
+                       /system/lib/libart.so  art::ThreadPool::GetTask category=internals
+                       /system/lib/libart.so  art::ConditionVariable::WaitHoldingLocks category=internals
+                         /system/lib/libc.so  syscall category=internals

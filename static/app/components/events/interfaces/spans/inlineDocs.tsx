@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react';
 
 import {loadDocs} from 'app/actionCreators/projects';
 import {Client} from 'app/api';
+import ExternalLink from 'app/components/links/externalLink';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {PlatformKey} from 'app/data/platformCategories';
 import {t, tct} from 'app/locale';
@@ -51,6 +52,10 @@ class InlineDocs extends Component<Props, State> {
       }
       case 'sentry.javascript.node': {
         tracingPlatform = 'node-tracing';
+        break;
+      }
+      case 'sentry.javascript.react-native': {
+        tracingPlatform = 'react-native-tracing';
         break;
       }
       default: {
@@ -110,7 +115,7 @@ class InlineDocs extends Component<Props, State> {
             `To manually instrument certain regions of your code, view [docLink:our documentation].`,
             {
               docLink: (
-                <a href="https://docs.sentry.io/product/performance/getting-started/" />
+                <ExternalLink href="https://docs.sentry.io/product/performance/getting-started/" />
               ),
             }
           )}

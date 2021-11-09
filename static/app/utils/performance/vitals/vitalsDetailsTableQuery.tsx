@@ -13,7 +13,7 @@ type BaseDataRow = {
   transaction: string;
   count: number;
   count_unique_user: number;
-  key_transaction: number;
+  team_key_transaction: number;
   [key: string]: React.ReactText;
 };
 

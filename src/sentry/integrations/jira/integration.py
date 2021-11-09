@@ -1,6 +1,7 @@
 import logging
 import re
 from operator import attrgetter
+from typing import Any, Mapping, Optional
 
 from django.conf import settings
 from django.urls import reverse
@@ -14,8 +15,14 @@ from sentry.integrations import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.issues import IssueSyncMixin
-from sentry.models import IntegrationExternalProject, Organization, OrganizationIntegration, User
+from sentry.integrations.issues import IssueSyncMixin, ResolveSyncAction
+from sentry.models import (
+    ExternalIssue,
+    IntegrationExternalProject,
+    Organization,
+    OrganizationIntegration,
+    User,
+)
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiUnauthorized,
@@ -359,7 +366,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
 
     def create_comment_attribution(self, user_id, comment_text):
         user = User.objects.get(id=user_id)
-        attribution = "%s wrote:\n\n" % user.name
+        attribution = f"{user.name} wrote:\n\n"
         return f"{attribution}{{quote}}{comment_text}{{quote}}"
 
     def update_comment(self, issue_id, user_id, group_note):
@@ -827,14 +834,20 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         # Immediately fetch and return the created issue.
         return self.get_issue(issue_key)
 
-    def sync_assignee_outbound(self, external_issue, user, assign=True, **kwargs):
+    def sync_assignee_outbound(
+        self,
+        external_issue: "ExternalIssue",
+        user: Optional["User"],
+        assign: bool = True,
+        **kwargs: Any,
+    ) -> None:
         """
         Propagate a sentry issue's assignee to a jira issue's assignee
         """
         client = self.get_client()
 
         jira_user = None
-        if assign:
+        if user and assign:
             for ue in user.emails.filter(is_verified=True):
                 try:
                     possible_users = client.search_users_for_issue(external_issue.key, ue.email)
@@ -873,7 +886,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 extra={
                     "organization_id": external_issue.organization_id,
                     "integration_id": external_issue.integration_id,
-                    "user_id": user.id,
+                    "user_id": user.id if user else None,
                     "issue_key": external_issue.key,
                 },
             )
@@ -928,17 +941,14 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         statuses = client.get_valid_statuses()
         return {s["id"] for s in statuses if s["statusCategory"]["key"] == "done"}
 
-    def should_unresolve(self, data):
+    def get_resolve_sync_action(self, data: Mapping[str, Any]) -> ResolveSyncAction:
         done_statuses = self._get_done_statuses()
         c_from = data["changelog"]["from"]
         c_to = data["changelog"]["to"]
-        return c_from in done_statuses and c_to not in done_statuses
-
-    def should_resolve(self, data):
-        done_statuses = self._get_done_statuses()
-        c_from = data["changelog"]["from"]
-        c_to = data["changelog"]["to"]
-        return c_to in done_statuses and c_from not in done_statuses
+        return ResolveSyncAction.from_resolve_unresolve(
+            should_resolve=c_to in done_statuses and c_from not in done_statuses,
+            should_unresolve=c_from in done_statuses and c_to not in done_statuses,
+        )
 
 
 class JiraIntegrationProvider(IntegrationProvider):

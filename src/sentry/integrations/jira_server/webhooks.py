@@ -1,5 +1,6 @@
 import logging
 
+from django.core.exceptions import ObjectDoesNotExist
 from django.views.decorators.csrf import csrf_exempt
 
 from sentry.api.base import Endpoint
@@ -33,7 +34,7 @@ def get_integration_from_token(token):
     try:
         jwt.decode(token, integration.metadata["webhook_secret"])
     except Exception as err:
-        raise ValueError("Could not validate JWT. Got %s" % err)
+        raise ValueError(f"Could not validate JWT. Got {err}")
 
     return integration
 
@@ -62,7 +63,7 @@ class JiraIssueUpdatedWebhook(Endpoint):
         try:
             handle_assignee_change(integration, data)
             handle_status_change(integration, data)
-        except ApiError as err:
+        except (ApiError, ObjectDoesNotExist) as err:
             logger.info("sync-failed", extra={"token": token, "error": str(err)})
             return self.respond(status=400)
         else:

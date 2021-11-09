@@ -16,7 +16,10 @@ function StepTwo({stepTwoData, onSetStepTwoData, appStoreApps}: Props) {
     <StyledSelectField
       name="application"
       label={t('App Store Connect application')}
-      choices={appStoreApps.map(appStoreApp => [appStoreApp.appId, appStoreApp.name])}
+      options={appStoreApps.map(appStoreApp => ({
+        value: appStoreApp.appId,
+        label: appStoreApp.name,
+      }))}
       placeholder={t('Select application')}
       onChange={appId => {
         const selectedAppStoreApp = appStoreApps.find(

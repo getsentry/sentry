@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {cleanup, fireEvent, mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
 import GroupTagValues from 'app/views/organizationGroupDetails/groupTagValues';
 
@@ -16,7 +16,6 @@ describe('GroupTagValues', () => {
   });
 
   afterEach(() => {
-    cleanup();
     MockApiClient.clearMockResponses();
   });
 
@@ -25,7 +24,7 @@ describe('GroupTagValues', () => {
       url: '/issues/1/tags/user/values/',
       body: TestStubs.TagValues(),
     });
-    const {getByLabelText, getByText} = mountWithTheme(
+    mountWithTheme(
       <GroupTagValues
         group={group}
         project={project}
@@ -36,8 +35,8 @@ describe('GroupTagValues', () => {
       {context: routerContext}
     );
 
-    fireEvent.click(getByLabelText('Show more'));
-    fireEvent.click(getByText('Search All Issues with Tag Value'));
+    fireEvent.click(screen.getByLabelText('Show more'));
+    fireEvent.click(screen.getByText('Search All Issues with Tag Value'));
 
     expect(router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/issues/',

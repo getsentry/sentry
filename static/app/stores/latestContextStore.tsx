@@ -4,9 +4,9 @@ import NavigationActions from 'app/actions/navigationActions';
 import OrganizationActions from 'app/actions/organizationActions';
 import OrganizationsActions from 'app/actions/organizationsActions';
 import ProjectActions from 'app/actions/projectActions';
-import {LightWeightOrganization, Organization, Project} from 'app/types';
+import {Organization, Project} from 'app/types';
 
-type OrgTypes = LightWeightOrganization | Organization | null;
+type OrgTypes = Organization | null;
 
 type State = {
   project: Project | null;
@@ -18,21 +18,23 @@ type State = {
 
 type LatestContextStoreInterface = {
   state: State;
-  reset: () => void;
-  get: () => State;
-  onSetLastRoute: (route: string) => void;
-  onUpdateOrganization: (organization: OrgTypes) => void;
-  onSetActiveOrganization: (organization: OrgTypes) => void;
-  onSetActiveProject: (project: Project | null) => void;
-  onUpdateProject: (project: Project | null) => void;
+  reset(): void;
+  get(): State;
+  onSetLastRoute(route: string): void;
+  onUpdateOrganization(organization: OrgTypes): void;
+  onSetActiveOrganization(organization: OrgTypes): void;
+  onSetActiveProject(project: Project | null): void;
+  onUpdateProject(project: Project | null): void;
 };
 
-// Keeps track of last usable project/org
-// this currently won't track when users navigate out of a org/project completely,
-// it tracks only if a user switches into a new org/project
-//
-// Only keep slug so that people don't get the idea to access org/project data here
-// Org/project data is currently in organizationsStore/projectsStore
+/**
+ * Keeps track of last usable project/org this currently won't track when users
+ * navigate out of a org/project completely, it tracks only if a user switches
+ * into a new org/project.
+ *
+ * Only keep slug so that people don't get the idea to access org/project data
+ * here Org/project data is currently in organizationsStore/projectsStore
+ */
 const storeConfig: Reflux.StoreDefinition & LatestContextStoreInterface = {
   state: {
     project: null,
@@ -143,8 +145,7 @@ const storeConfig: Reflux.StoreDefinition & LatestContextStoreInterface = {
   },
 };
 
-type LatestContextStore = Reflux.Store & LatestContextStoreInterface;
-
-const LatestContextStore = Reflux.createStore(storeConfig) as LatestContextStore;
+const LatestContextStore = Reflux.createStore(storeConfig) as Reflux.Store &
+  LatestContextStoreInterface;
 
 export default LatestContextStore;

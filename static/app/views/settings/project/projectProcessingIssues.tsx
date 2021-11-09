@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {WithRouterProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
@@ -61,7 +61,7 @@ const HELP_LINKS = {
 type Props = {
   api: Client;
   organization: Organization;
-} & WithRouterProps<{orgId: string; projectId: string}, {}>;
+} & RouteComponentProps<{orgId: string; projectId: string}, {}>;
 
 type State = {
   formData: object;
@@ -115,14 +115,14 @@ class ProjectProcessingIssues extends React.Component<Props, State> {
     this.props.api.request(
       `/projects/${orgId}/${projectId}/processingissues/?detailed=1`,
       {
-        success: (data, _, jqXHR) => {
+        success: (data, _, resp) => {
           const expected = this.state.expected - 1;
           this.setState({
             expected,
             error: false,
             loading: expected > 0,
             processingIssues: data,
-            pageLinks: jqXHR?.getResponseHeader('Link') ?? null,
+            pageLinks: resp?.getResponseHeader('Link') ?? null,
           });
         },
         error: () => {

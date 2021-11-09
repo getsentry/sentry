@@ -2,18 +2,16 @@ import * as React from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import {fetchOrgMembers} from 'app/actionCreators/members';
-import {Client} from 'app/api';
 import Alert from 'app/components/alert';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {t} from 'app/locale';
 import {Organization, Project} from 'app/types';
 import Projects from 'app/utils/projects';
-import withApi from 'app/utils/withApi';
+import useApi from 'app/utils/useApi';
 import ScrollToTop from 'app/views/settings/components/scrollToTop';
 
 type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
-  api: Client;
   children?: React.ReactNode;
   hasMetricAlerts: boolean;
 };
@@ -23,8 +21,11 @@ type RouteParams = {
 };
 
 function AlertBuilderProjectProvider(props: Props) {
-  const {children, params, organization, api, ...other} = props;
+  const api = useApi();
+
+  const {children, params, organization, ...other} = props;
   const {projectId} = params;
+
   return (
     <Projects orgId={organization.slug} allProjects>
       {({projects, initiallyLoaded, isIncomplete}) => {
@@ -60,4 +61,4 @@ function AlertBuilderProjectProvider(props: Props) {
   );
 }
 
-export default withApi(AlertBuilderProjectProvider);
+export default AlertBuilderProjectProvider;

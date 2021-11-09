@@ -36,7 +36,7 @@ import * as DividerHandlerManager from './dividerHandlerManager';
 import * as ScrollbarManager from './scrollbarManager';
 import SpanBarCursorGuide from './spanBarCursorGuide';
 import {MeasurementMarker} from './styles';
-import {EnhancedSpan, ProcessedSpanType, SpanGroupProps, TreeDepthType} from './types';
+import {EnhancedSpan, ProcessedSpanType, TreeDepthType} from './types';
 import {
   getMeasurementBounds,
   getMeasurements,
@@ -412,19 +412,6 @@ class SpanGroupBar extends React.Component<Props> {
       </ScrollbarManager.Consumer>
     );
   }
-}
-
-export function isCollapsedSpanGroup({
-  spanGrouping,
-  showSpanGroup,
-  toggleSpanGroup,
-}: SpanGroupProps) {
-  return (
-    Array.isArray(spanGrouping) &&
-    spanGrouping.length !== 0 &&
-    !showSpanGroup &&
-    typeof toggleSpanGroup === 'function'
-  );
 }
 
 export default SpanGroupBar;

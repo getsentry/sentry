@@ -66,7 +66,7 @@ const ContextSummaryOS = ({data}: Props) => {
   return (
     <Item className={className} icon={<span className="context-item-icon" />}>
       <h3>{renderName()}</h3>
-      <TextOverflow isParagraph>
+      <TextOverflow isParagraph data-test-id="context-sub-title">
         <Subject>{versionElement.subject}</Subject>
         <AnnotatedText value={versionElement.value} meta={versionElement.meta} />
       </TextOverflow>

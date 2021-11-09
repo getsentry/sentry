@@ -12,7 +12,7 @@ from .webhooks import JiraIssueUpdatedWebhook
 urlpatterns = [
     url(r"^ui-hook/$", JiraUiHookView.as_view()),
     url(r"^descriptor/$", JiraDescriptorEndpoint.as_view()),
-    url(r"^installed/$", JiraInstalledEndpoint.as_view()),
+    url(r"^installed/$", JiraInstalledEndpoint.as_view(), name="sentry-extensions-jira-installed"),
     url(r"^uninstalled/$", JiraUninstalledEndpoint.as_view()),
     url(
         r"^issue-updated/$",

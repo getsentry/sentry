@@ -1,6 +1,6 @@
 import * as React from 'react';
-import * as ReactRouter from 'react-router';
-import {withTheme} from '@emotion/react';
+import {InjectedRouter} from 'react-router';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -19,7 +19,6 @@ import {IconWarning} from 'app/icons';
 import {GlobalSelection} from 'app/types';
 import {Series} from 'app/types/echarts';
 import getDynamicText from 'app/utils/getDynamicText';
-import {Theme} from 'app/utils/theme';
 import {sessionTerm} from 'app/views/releases/utils/sessionTerm';
 
 import {DisplayType} from '../utils';
@@ -31,8 +30,7 @@ type Props = {
   isLoading: boolean;
   errored: boolean;
   selection: GlobalSelection;
-  router: ReactRouter.InjectedRouter;
-  theme: Theme;
+  router: InjectedRouter;
   platform?: PlatformKey;
 };
 
@@ -44,11 +42,12 @@ function Chart({
   isLoading,
   selection,
   router,
-  theme,
   platform,
 }: Props) {
   const {datetime} = selection;
   const {utc, period, start, end} = datetime;
+
+  const theme = useTheme();
 
   const filteredTimeseriesResults = timeseriesResults.filter(({seriesName}) => {
     // There is no concept of Abnormal sessions in javascript
@@ -127,7 +126,7 @@ function Chart({
   );
 }
 
-export default withTheme(Chart);
+export default Chart;
 
 const LoadingScreen = ({loading}: {loading: boolean}) => {
   if (!loading) {

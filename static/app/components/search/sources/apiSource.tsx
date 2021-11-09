@@ -4,19 +4,19 @@ import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
 import flatten from 'lodash/flatten';
 
-import {Client} from 'app/api';
+import {Client, ResponseMeta} from 'app/api';
 import {t} from 'app/locale';
 import {
-  Group,
+  EventIdResponse,
   IntegrationProvider,
   Member,
   Organization,
   PluginWithProjectList,
   Project,
   SentryApp,
+  ShortIdResponse,
   Team,
 } from 'app/types';
-import {Event} from 'app/types/event';
 import {defined} from 'app/utils';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import {singleLineRenderer as markedSingleLine} from 'app/utils/marked';
@@ -24,24 +24,6 @@ import withLatestContext from 'app/utils/withLatestContext';
 import {documentIntegrationList} from 'app/views/organizationIntegrations/constants';
 
 import {ChildProps, Result, ResultItem} from './types';
-
-// Response from ShortIdLookupEndpoint
-type ShortIdResponse = {
-  organizationSlug: string;
-  projectSlug: string;
-  groupId: string;
-  group: Group;
-  shortId: string;
-};
-
-// Response from EventIdLookupEndpoint
-type EventIdResponse = {
-  organizationSlug: string;
-  projectSlug: string;
-  groupId: string;
-  eventId: string;
-  event: Event;
-};
 
 // event ids must have string length of 32
 const shouldSearchEventIds = (query?: string) =>
@@ -378,7 +360,7 @@ class ApiSource extends React.Component<Props, State> {
 
       return this.api.requestPromise(url).then(
         resp => resp,
-        (err: JQueryXHR) => {
+        (err: ResponseMeta) => {
           // No need to log 404 errors
           if (err && err.status === 404) {
             return null;
@@ -392,16 +374,14 @@ class ApiSource extends React.Component<Props, State> {
     this.handleSearchRequest(searchRequests, directRequests);
   }, 150);
 
-  handleRequestError = (err: JQueryXHR, {url, orgId}) => {
+  handleRequestError = (err: ResponseMeta, {url, orgId}) => {
     Sentry.withScope(scope => {
       scope.setExtra(
         'url',
         url.replace(`/organizations/${orgId}/`, '/organizations/:orgId/')
       );
       Sentry.captureException(
-        new Error(
-          `API Source Failed: ${err && err.responseJSON && err.responseJSON.detail}`
-        )
+        new Error(`API Source Failed: ${err?.responseJSON?.detail}`)
       );
     });
   };

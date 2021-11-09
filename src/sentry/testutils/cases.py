@@ -1,3 +1,5 @@
+import responses
+
 from sentry.utils.compat import zip
 
 __all__ = (
@@ -18,14 +20,19 @@ __all__ = (
     "ReleaseCommitPatchTest",
     "SetRefsTestCase",
     "OrganizationDashboardWidgetTestCase",
+    "SCIMTestCase",
+    "SCIMAzureTestCase",
 )
 
+import hashlib
 import inspect
 import os
 import os.path
 import time
 from contextlib import contextmanager
 from datetime import datetime
+from unittest import mock
+from unittest.mock import patch
 from urllib.parse import urlencode
 from uuid import uuid4
 
@@ -52,6 +59,7 @@ from rest_framework.test import APITestCase as BaseAPITestCase
 from sentry import auth, eventstore
 from sentry.auth.authenticators import TotpInterface
 from sentry.auth.providers.dummy import DummyProvider
+from sentry.auth.providers.saml2.activedirectory.apps import ACTIVE_DIRECTORY_PROVIDER_NAME
 from sentry.auth.superuser import COOKIE_DOMAIN as SU_COOKIE_DOMAIN
 from sentry.auth.superuser import COOKIE_NAME as SU_COOKIE_NAME
 from sentry.auth.superuser import COOKIE_PATH as SU_COOKIE_PATH
@@ -61,25 +69,40 @@ from sentry.auth.superuser import ORG_ID as SU_ORG_ID
 from sentry.auth.superuser import Superuser
 from sentry.constants import MODULE_ROOT
 from sentry.eventstream.snuba import SnubaEventStream
+from sentry.mail import mail_adapter
+from sentry.models import AuthProvider as AuthProviderModel
 from sentry.models import (
+    Commit,
+    CommitAuthor,
     Dashboard,
     DashboardWidget,
     DashboardWidgetDisplayTypes,
     DashboardWidgetQuery,
     DeletedOrganization,
+    Deploy,
     GroupMeta,
+    Identity,
+    IdentityProvider,
+    IdentityStatus,
+    NotificationSetting,
     Organization,
     ProjectOption,
+    Release,
+    ReleaseCommit,
     Repository,
+    UserEmail,
+    UserOption,
 )
+from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.plugins.base import plugins
 from sentry.rules import EventState
+from sentry.sentry_metrics import indexer
 from sentry.tagstore.snuba import SnubaTagStorage
 from sentry.testutils.helpers.datetime import iso_format
+from sentry.testutils.helpers.slack import install_slack
+from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.auth import SSO_SESSION_KEY
-from sentry.utils.compat import mock
-from sentry.utils.compat.mock import patch
 from sentry.utils.pytest.selenium import Browser
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snuba import _snuba_pool
@@ -88,7 +111,7 @@ from . import assert_status_code
 from .factories import Factories
 from .fixtures import Fixtures
 from .helpers import AuthProvider, Feature, TaskRunner, override_options, parse_queries
-from .skips import requires_snuba
+from .skips import requires_snuba, requires_snuba_metrics
 
 DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36"
 
@@ -156,21 +179,23 @@ class BaseTestCase(Fixtures, Exam):
         self.client.cookies[name] = value
         self.client.cookies[name].update({k.replace("_", "-"): v for k, v in params.items()})
 
-    def make_request(self, user=None, auth=None, method=None):
+    def make_request(self, user=None, auth=None, method=None, is_superuser=False):
         request = HttpRequest()
         if method:
             request.method = method
         request.META["REMOTE_ADDR"] = "127.0.0.1"
         request.META["SERVER_NAME"] = "testserver"
         request.META["SERVER_PORT"] = 80
-        request.GET = {}
-        request.POST = {}
 
         # order matters here, session -> user -> other things
         request.session = self.session
         request.auth = auth
         request.user = user or AnonymousUser()
+        # must happen after request.user/request.session is populated
         request.superuser = Superuser(request)
+        if is_superuser:
+            # XXX: this is gross, but its a one off and apis change only once in a great while
+            request.superuser.set_logged_in(user)
         request.is_superuser = lambda: request.superuser.is_active
         request.successful_authenticator = None
         return request
@@ -369,7 +394,7 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
             query_string = urlencode(params.pop("qs_params"), doseq=True)
             url = f"{url}?{query_string}"
 
-        method = params.pop("method", self.method)
+        method = params.pop("method", self.method).lower()
 
         return getattr(self.client, method)(url, format="json", data=params)
 
@@ -811,6 +836,33 @@ class SnubaTestCase(BaseTestCase):
             == 200
         )
 
+    def build_session(self, **kwargs):
+        session = {
+            "session_id": str(uuid4()),
+            "distinct_id": str(uuid4()),
+            "status": "ok",
+            "seq": 0,
+            "retention_days": 90,
+            "duration": 60.0,
+            "errors": 0,
+            "started": time.time() // 60 * 60,
+            "received": time.time(),
+        }
+        # Support both passing the values for these field directly, and the full objects
+        translators = [
+            ("release", "version", "release"),
+            ("environment", "name", "environment"),
+            ("project_id", "id", "project"),
+            ("org_id", "id", "organization"),
+        ]
+        for key, attr, default_attr in translators:
+            if key not in kwargs:
+                kwargs[key] = getattr(self, default_attr)
+            val = kwargs[key]
+            kwargs[key] = getattr(val, attr, val)
+        session.update(kwargs)
+        return session
+
     def store_session(self, session):
         self.bulk_store_sessions([session])
 
@@ -896,6 +948,116 @@ class SnubaTestCase(BaseTestCase):
         assert (
             requests.post(
                 settings.SENTRY_SNUBA + "/tests/events/insert", data=json.dumps(events)
+            ).status_code
+            == 200
+        )
+
+
+@requires_snuba_metrics
+class SessionMetricsTestCase(SnubaTestCase):
+    """Store metrics instead of sessions"""
+
+    # NOTE: This endpoint does not exist yet, but we need something alike
+    # because /tests/<dataset>/insert always writes to the default entity
+    # (in the case of metrics, that's "metrics_sets")
+    snuba_endpoint = "/tests/entities/{entity}/insert"
+
+    def store_session(self, session):
+        """Mimic relays behavior of always emitting a metric for a started session,
+        and emitting an additional one if the session is fatal
+        https://github.com/getsentry/relay/blob/e3c064e213281c36bde5d2b6f3032c6d36e22520/relay-server/src/actors/envelopes.rs#L357
+        """
+        user = session.get("distinct_id")
+
+        # This check is not yet reflected in relay, see https://getsentry.atlassian.net/browse/INGEST-464
+        user_is_nil = user is None or user == "00000000-0000-0000-0000-000000000000"
+
+        # seq=0 is equivalent to relay's session.init, init=True is transformed
+        # to seq=0 in Relay.
+        if session["seq"] == 0:  # init
+            self._push_metric(session, "counter", "session", {"session.status": "init"}, +1)
+            if not user_is_nil:
+                self._push_metric(session, "set", "user", {"session.status": "init"}, user)
+
+        status = session["status"]
+
+        # Mark the session as errored, which includes fatal sessions.
+        if session.get("errors", 0) > 0 or status not in ("ok", "exited"):
+            self._push_metric(session, "set", "session.error", {}, session["session_id"])
+            if not user_is_nil:
+                self._push_metric(session, "set", "user", {"session.status": "errored"}, user)
+
+        if status in ("abnormal", "crashed"):  # fatal
+            self._push_metric(session, "counter", "session", {"session.status": status}, +1)
+            if not user_is_nil:
+                self._push_metric(session, "set", "user", {"session.status": status}, user)
+
+        if status != "ok":  # terminal
+            if session["duration"] is not None:
+                self._push_metric(
+                    session,
+                    "distribution",
+                    "session.duration",
+                    {"session.status": status},
+                    session["duration"],
+                )
+
+    def bulk_store_sessions(self, sessions):
+        for session in sessions:
+            self.store_session(session)
+
+    @classmethod
+    def _push_metric(cls, session, type, name, tags, value):
+        def metric_id(name):
+            res = indexer.record(name)
+            assert res is not None, name
+            return res
+
+        def tag_key(name):
+            res = indexer.record(name)
+            assert res is not None, name
+            return res
+
+        def tag_value(name):
+            res = indexer.record(name)
+            assert res is not None, name
+            return res
+
+        base_tags = {
+            tag_key(tag): tag_value(session[tag])
+            for tag in (
+                "release",
+                "environment",
+            )
+        }
+
+        extra_tags = {tag_key(k): tag_value(v) for k, v in tags.items()}
+
+        if type == "set":
+            # Relay uses a different hashing algorithm, but that's ok
+            value = [int.from_bytes(hashlib.md5(value.encode()).digest()[:8], "big")]
+        elif type == "distribution":
+            value = [value]
+
+        msg = {
+            "org_id": session["org_id"],
+            "project_id": session["project_id"],
+            "metric_id": metric_id(name),
+            "timestamp": session["started"],
+            "tags": {**base_tags, **extra_tags},
+            "type": {"counter": "c", "set": "s", "distribution": "d"}[type],
+            "value": value,
+            "retention_days": 90,
+        }
+
+        cls._send(msg, entity=f"metrics_{type}s")
+
+    @classmethod
+    def _send(cls, msg, entity):
+        assert (
+            requests.post(
+                settings.SENTRY_SNUBA + cls.snuba_endpoint.format(entity=entity),
+                data=json.dumps([msg]),
             ).status_code
             == 200
         )
@@ -1176,3 +1338,116 @@ class TestMigrations(TestCase):
 
     def setup_before_migration(self, apps):
         pass
+
+
+class SCIMTestCase(APITestCase):
+    def setUp(self, provider="dummy"):
+        super().setUp()
+        self.auth_provider = AuthProviderModel(organization=self.organization, provider=provider)
+        with self.feature({"organizations:sso-scim": True}):
+            self.auth_provider.enable_scim(self.user)
+            self.auth_provider.save()
+        self.login_as(user=self.user)
+
+
+class SCIMAzureTestCase(SCIMTestCase):
+    def setUp(self):
+        auth.register(ACTIVE_DIRECTORY_PROVIDER_NAME, DummyProvider)
+        super().setUp(provider=ACTIVE_DIRECTORY_PROVIDER_NAME)
+        self.addCleanup(auth.unregister, ACTIVE_DIRECTORY_PROVIDER_NAME, DummyProvider)
+
+
+class ActivityTestCase(TestCase):
+    def another_user(self, email_string, team=None, alt_email_string=None):
+        user = self.create_user(email_string)
+        if alt_email_string:
+            UserEmail.objects.create(email=alt_email_string, user=user)
+
+            assert UserEmail.objects.filter(user=user, email=alt_email_string).update(
+                is_verified=True
+            )
+
+        assert UserEmail.objects.filter(user=user, email=user.email).update(is_verified=True)
+
+        self.create_member(user=user, organization=self.org, teams=[team] if team else None)
+
+        return user
+
+    def another_commit(self, order, name, user, repository, alt_email_string=None):
+        commit = Commit.objects.create(
+            key=name * 40,
+            repository_id=repository.id,
+            organization_id=self.org.id,
+            author=CommitAuthor.objects.create(
+                organization_id=self.org.id,
+                name=user.name,
+                email=alt_email_string or user.email,
+            ),
+        )
+        ReleaseCommit.objects.create(
+            organization_id=self.org.id,
+            release=self.release,
+            commit=commit,
+            order=order,
+        )
+
+        return commit
+
+    def another_release(self, name):
+        release = Release.objects.create(
+            version=name * 40,
+            organization_id=self.project.organization_id,
+            date_released=timezone.now(),
+        )
+        release.add_project(self.project)
+        release.add_project(self.project2)
+        deploy = Deploy.objects.create(
+            release=release, organization_id=self.org.id, environment_id=self.environment.id
+        )
+
+        return release, deploy
+
+
+class SlackActivityNotificationTest(ActivityTestCase):
+    @fixture
+    def adapter(self):
+        return mail_adapter
+
+    def setUp(self):
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.SLACK,
+            NotificationSettingTypes.WORKFLOW,
+            NotificationSettingOptionValues.ALWAYS,
+            user=self.user,
+        )
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.SLACK,
+            NotificationSettingTypes.DEPLOY,
+            NotificationSettingOptionValues.ALWAYS,
+            user=self.user,
+        )
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.SLACK,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.ALWAYS,
+            user=self.user,
+        )
+        UserOption.objects.create(user=self.user, key="self_notifications", value="1")
+        self.integration = install_slack(self.organization)
+        self.idp = IdentityProvider.objects.create(type="slack", external_id="TXXXXXXX1", config={})
+        self.identity = Identity.objects.create(
+            external_id="UXXXXXXX1",
+            idp=self.idp,
+            user=self.user,
+            status=IdentityStatus.VALID,
+            scopes=[],
+        )
+        responses.add(
+            method=responses.POST,
+            url="https://slack.com/api/chat.postMessage",
+            body='{"ok": true}',
+            status=200,
+            content_type="application/json",
+        )
+        self.name = self.user.get_display_name()
+        self.short_id = self.group.qualified_short_id

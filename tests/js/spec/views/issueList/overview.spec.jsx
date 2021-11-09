@@ -4,9 +4,11 @@ import range from 'lodash/range';
 
 import {mountWithTheme, shallow} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {act} from 'sentry-test/reactTestingLibrary';
 
 import StreamGroup from 'app/components/stream/group';
 import GroupStore from 'app/stores/groupStore';
+import ProjectsStore from 'app/stores/projectsStore';
 import TagStore from 'app/stores/tagStore';
 import * as parseLinkHeader from 'app/utils/parseLinkHeader';
 import IssueListWithStores, {IssueListOverview} from 'app/views/issueList/overview';
@@ -958,7 +960,6 @@ describe('IssueList', function () {
       };
       expect(browserHistory.push).toHaveBeenLastCalledWith(pushArgs);
       wrapper.setProps({location: pushArgs});
-      wrapper.setContext({location: pushArgs});
 
       expect(wrapper.find('Pagination Button').first().prop('disabled')).toBe(false);
 
@@ -980,7 +981,6 @@ describe('IssueList', function () {
       };
       expect(browserHistory.push).toHaveBeenLastCalledWith(pushArgs);
       wrapper.setProps({location: pushArgs});
-      wrapper.setContext({location: pushArgs});
 
       // Click previous
       wrapper.find('Pagination Button').first().simulate('click');
@@ -1000,7 +1000,6 @@ describe('IssueList', function () {
       };
       expect(browserHistory.push).toHaveBeenLastCalledWith(pushArgs);
       wrapper.setProps({location: pushArgs});
-      wrapper.setContext({location: pushArgs});
 
       // Click previous back to initial page
       wrapper.find('Pagination Button').first().simulate('click');
@@ -1682,15 +1681,19 @@ describe('IssueList', function () {
         },
       },
     };
-    wrapper = mountWithTheme(<IssueListOverview {...props} />);
+
+    const {routerContext} = initializeOrg();
+    wrapper = mountWithTheme(<IssueListOverview {...props} />, routerContext);
     wrapper.setState({
       groupIds: range(0, 25).map(String),
       queryCount: 500,
       queryMaxCount: 1000,
+      pageLinks: DEFAULT_LINKS_HEADER,
     });
 
-    const paginationWrapper = wrapper.find('PaginationWrapper');
-    expect(paginationWrapper.text()).toBe('Showing 25 of 500 issues');
+    const paginationCaption = wrapper.find('PaginationCaption');
+
+    expect(paginationCaption.text()).toBe('Showing 25 of 500 issues');
 
     parseLinkHeaderSpy.mockReturnValue({
       next: {
@@ -1708,7 +1711,7 @@ describe('IssueList', function () {
         },
       },
     });
-    expect(paginationWrapper.text()).toBe('Showing 50 of 500 issues');
+    expect(paginationCaption.text()).toBe('Showing 50 of 500 issues');
     expect(wrapper.find('IssueListHeader').exists()).toBeTruthy();
   });
 
@@ -1731,15 +1734,18 @@ describe('IssueList', function () {
         },
       },
     };
-    wrapper = mountWithTheme(<IssueListOverview {...props} />);
+
+    const {routerContext} = initializeOrg();
+    wrapper = mountWithTheme(<IssueListOverview {...props} />, routerContext);
     wrapper.setState({
       groupIds: range(0, 25).map(String),
       queryCount: 500,
       queryMaxCount: 1000,
+      pageLinks: DEFAULT_LINKS_HEADER,
     });
 
-    const paginationWrapper = wrapper.find('PaginationWrapper');
-    expect(paginationWrapper.text()).toBe('Showing 500 of 500 issues');
+    const paginationCaption = wrapper.find('PaginationCaption');
+    expect(paginationCaption.text()).toBe('Showing 500 of 500 issues');
 
     parseLinkHeaderSpy.mockReturnValue({
       next: {
@@ -1758,7 +1764,7 @@ describe('IssueList', function () {
         },
       },
     });
-    expect(paginationWrapper.text()).toBe('Showing 25 of 500 issues');
+    expect(paginationCaption.text()).toBe('Showing 25 of 500 issues');
     expect(wrapper.find('IssueListHeader').exists()).toBeTruthy();
   });
 
@@ -1780,17 +1786,20 @@ describe('IssueList', function () {
         },
       },
     };
-    wrapper = mountWithTheme(<IssueListOverview {...props} />);
+
+    const {routerContext} = initializeOrg();
+    wrapper = mountWithTheme(<IssueListOverview {...props} />, routerContext);
     wrapper.setState({
       groupIds: range(0, 25).map(String),
       queryCount: 75,
       itemsRemoved: 1,
       queryMaxCount: 1000,
+      pageLinks: DEFAULT_LINKS_HEADER,
     });
 
-    const paginationWrapper = wrapper.find('PaginationWrapper');
+    const paginationCaption = wrapper.find('PaginationCaption');
     // 2nd page subtracts the one removed
-    expect(paginationWrapper.text()).toBe('Showing 49 of 74 issues');
+    expect(paginationCaption.text()).toBe('Showing 49 of 74 issues');
   });
 
   describe('with relative change feature', function () {
@@ -1802,6 +1811,84 @@ describe('IssueList', function () {
       };
       wrapper = mountWithTheme(<IssueListOverview {...props} />);
       expect(wrapper.instance().getGroupStatsPeriod()).toBe('auto');
+    });
+  });
+
+  describe('project low priority queue alert', function () {
+    const {routerContext} = initializeOrg();
+
+    beforeEach(function () {
+      act(() => ProjectsStore.reset());
+    });
+
+    it('does not render alert', function () {
+      act(() => ProjectsStore.loadInitialData([project]));
+
+      wrapper = mountWithTheme(<IssueListOverview {...props} />, routerContext);
+
+      const eventProcessingAlert = wrapper.find('StyledGlobalEventProcessingAlert');
+      expect(eventProcessingAlert.exists()).toBe(true);
+      expect(eventProcessingAlert.isEmptyRender()).toBe(true);
+    });
+
+    describe('renders alert', function () {
+      it('for one project', function () {
+        act(() =>
+          ProjectsStore.loadInitialData([
+            {...project, eventProcessing: {symbolicationDegraded: true}},
+          ])
+        );
+
+        wrapper = mountWithTheme(<IssueListOverview {...props} />, routerContext);
+
+        const eventProcessingAlert = wrapper.find('StyledGlobalEventProcessingAlert');
+        expect(eventProcessingAlert.exists()).toBe(true);
+        expect(eventProcessingAlert.isEmptyRender()).toBe(false);
+        expect(eventProcessingAlert.text()).toBe(
+          'Event Processing for this project is currently degraded. Events may appear with larger delays than usual or get dropped. Please check the Status page for a potential outage.'
+        );
+      });
+
+      it('for multiple projects', function () {
+        const projectBar = TestStubs.ProjectDetails({
+          id: '3560',
+          name: 'Bar Project',
+          slug: 'project-slug-bar',
+        });
+
+        act(() =>
+          ProjectsStore.loadInitialData([
+            {
+              ...project,
+              slug: 'project-slug',
+              eventProcessing: {symbolicationDegraded: true},
+            },
+            {
+              ...projectBar,
+              slug: 'project-slug-bar',
+              eventProcessing: {symbolicationDegraded: true},
+            },
+          ])
+        );
+
+        wrapper = mountWithTheme(
+          <IssueListOverview
+            {...props}
+            selection={{
+              ...props.selection,
+              projects: [Number(project.id), Number(projectBar.id)],
+            }}
+          />,
+          routerContext
+        );
+
+        const eventProcessingAlert = wrapper.find('StyledGlobalEventProcessingAlert');
+        expect(eventProcessingAlert.exists()).toBe(true);
+        expect(eventProcessingAlert.isEmptyRender()).toBe(false);
+        expect(eventProcessingAlert.text()).toBe(
+          `Event Processing for the ${project.slug}, ${projectBar.slug} projects is currently degraded. Events may appear with larger delays than usual or get dropped. Please check the Status page for a potential outage.`
+        );
+      });
     });
   });
 });

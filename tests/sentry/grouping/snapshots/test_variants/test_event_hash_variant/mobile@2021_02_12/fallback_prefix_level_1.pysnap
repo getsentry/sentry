@@ -1,0 +1,73 @@
+---
+created: '2021-08-05T16:10:40.444237Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "972a7e3aa49f6619550683c8202b05d4"
+  tree_label: "-[UIApplication _run]"
+  component:
+    app-depth-1*
+      exception*
+        stacktrace*
+          frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
+            function*
+              "-[UIApplication _run]"
+        type*
+          "EXC_BAD_ACCESS"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "87497299851e09febfecf4e84e0d45ba"
+  tree_label: "objc_release | -[UIApplication _run]"
+  component:
+    app-depth-max*
+      exception*
+        stacktrace*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "start"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "stripped_application_code"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "UIApplicationMain"
+          frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
+            function*
+              "-[UIApplication _run]"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "GSEventRunModal"
+          frame* (marked as prefix frame by stack trace rule (category:free +prefix))
+            function*
+              "objc_release"
+        type*
+          "EXC_BAD_ACCESS"
+--------------------------------------------------------------------------
+system:
+  hash: "87497299851e09febfecf4e84e0d45ba"
+  tree_label: "objc_release | -[UIApplication _run]"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "start"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "stripped_application_code"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "UIApplicationMain"
+          frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
+            function*
+              "-[UIApplication _run]"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "GSEventRunModal"
+          frame* (marked as prefix frame by stack trace rule (category:free +prefix))
+            function*
+              "objc_release"
+        type*
+          "EXC_BAD_ACCESS"

@@ -24,16 +24,12 @@ import GuideAnchor from 'app/components/assistant/guideAnchor';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
-import Pagination from 'app/components/pagination';
+import Pagination, {CursorHandler} from 'app/components/pagination';
 import {Panel, PanelBody} from 'app/components/panels';
 import QueryCount from 'app/components/queryCount';
 import StreamGroup from 'app/components/stream/group';
 import ProcessingIssueList from 'app/components/stream/processingIssueList';
-import {
-  DEFAULT_QUERY,
-  DEFAULT_STATS_PERIOD,
-  RELEASE_ADOPTION_STAGES,
-} from 'app/constants';
+import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'app/constants';
 import {tct} from 'app/locale';
 import GroupStore from 'app/stores/groupStore';
 import {PageContent} from 'app/styles/organization';
@@ -48,10 +44,11 @@ import {
   TagCollection,
 } from 'app/types';
 import {defined} from 'app/utils';
-import {analytics, metric, trackAnalyticsEvent} from 'app/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import CursorPoller from 'app/utils/cursorPoller';
 import {getUtcDateString} from 'app/utils/dates';
+import {SEMVER_TAGS} from 'app/utils/discover/fields';
 import getCurrentSentryReactTransaction from 'app/utils/getCurrentSentryReactTransaction';
 import parseApiError from 'app/utils/parseApiError';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
@@ -193,31 +190,6 @@ class IssueListOverview extends React.Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
-    // Fire off profiling/metrics first
-    if (prevState.issuesLoading && !this.state.issuesLoading) {
-      // First Meaningful Paint for /organizations/:orgId/issues/
-      if (prevState.queryCount === null) {
-        metric.measure({
-          name: 'app.page.perf.issue-list',
-          start: 'page-issue-list-start',
-          data: {
-            // start_type is set on 'page-issue-list-start'
-            org_id: parseInt(this.props.organization.id, 10),
-            group: this.props.organization.features.includes('enterprise-perf')
-              ? 'enterprise-perf'
-              : 'control',
-            milestone: 'first-meaningful-paint',
-            is_enterprise: this.props.organization.features
-              .includes('enterprise-orgs')
-              .toString(),
-            is_outlier: this.props.organization.features
-              .includes('enterprise-orgs-outliers')
-              .toString(),
-          },
-        });
-      }
-    }
-
     if (prevState.realtimeActive !== this.state.realtimeActive) {
       // User toggled realtime button
       if (this.state.realtimeActive) {
@@ -243,7 +215,8 @@ class IssueListOverview extends React.Component<Props, State> {
     // Wait for saved searches to load before we attempt to fetch stream data
     if (this.props.savedSearchLoading) {
       return;
-    } else if (prevProps.savedSearchLoading) {
+    }
+    if (prevProps.savedSearchLoading) {
       this.fetchData();
       return;
     }
@@ -538,10 +511,8 @@ class IssueListOverview extends React.Component<Props, State> {
         ([tabQuery]) => currentTabQuery === tabQuery
       )?.[1];
       if (tab && !endpointParams.cursor) {
-        trackAnalyticsEvent({
-          eventKey: 'issues_tab.viewed',
-          eventName: 'Viewed Issues Tab',
-          organization_id: organization.id,
+        trackAdvancedAnalyticsEvent('issues_tab.viewed', {
+          organization,
           tab: tab.analyticsName,
           num_issues: queryCounts[currentTabQuery].count,
         });
@@ -595,14 +566,14 @@ class IssueListOverview extends React.Component<Props, State> {
     this._lastRequest = this.props.api.request(this.getGroupListEndpoint(), {
       method: 'GET',
       data: qs.stringify(requestParams),
-      success: (data, _, jqXHR) => {
-        if (!jqXHR) {
+      success: (data, _, resp) => {
+        if (!resp) {
           return;
         }
 
         const {orgId} = this.props.params;
         // If this is a direct hit, we redirect to the intended result directly.
-        if (jqXHR.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
+        if (resp.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
           let redirect: string;
           if (data[0] && data[0].matchingEventId) {
             const {id, matchingEventId} = data[0];
@@ -622,13 +593,13 @@ class IssueListOverview extends React.Component<Props, State> {
         this._streamManager.push(data);
         this.fetchStats(data.map((group: BaseGroup) => group.id));
 
-        const hits = jqXHR.getResponseHeader('X-Hits');
+        const hits = resp.getResponseHeader('X-Hits');
         const queryCount =
           typeof hits !== 'undefined' && hits ? parseInt(hits, 10) || 0 : 0;
-        const maxHits = jqXHR.getResponseHeader('X-Max-Hits');
+        const maxHits = resp.getResponseHeader('X-Max-Hits');
         const queryMaxCount =
           typeof maxHits !== 'undefined' && maxHits ? parseInt(maxHits, 10) || 0 : 0;
-        const pageLinks = jqXHR.getResponseHeader('Link');
+        const pageLinks = resp.getResponseHeader('Link');
 
         this.fetchCounts(queryCount, fetchAllCounts);
 
@@ -641,10 +612,8 @@ class IssueListOverview extends React.Component<Props, State> {
         });
       },
       error: err => {
-        trackAnalyticsEvent({
-          eventKey: 'issue_search.failed',
-          eventName: 'Issue Search: Failed',
-          organization_id: this.props.organization.id,
+        trackAdvancedAnalyticsEvent('issue_search.failed', {
+          organization: this.props.organization,
           search_type: 'issues',
           search_source: 'main_search',
           error: parseApiError(err),
@@ -724,8 +693,8 @@ class IssueListOverview extends React.Component<Props, State> {
   }
 
   onIssueListSidebarSearch = (query: string) => {
-    analytics('search.searched', {
-      org_id: this.props.organization.id,
+    trackAdvancedAnalyticsEvent('search.searched', {
+      organization: this.props.organization,
       query,
       search_type: 'issues',
       search_source: 'search_builder',
@@ -752,11 +721,11 @@ class IssueListOverview extends React.Component<Props, State> {
     this.transitionTo({display});
   };
 
-  onCursorChange = (cursor: string | undefined, _path, query, pageDiff: number) => {
-    const queryPageInt = parseInt(query.page, 10);
-    let nextPage: number | undefined = isNaN(queryPageInt)
-      ? pageDiff
-      : queryPageInt + pageDiff;
+  onCursorChange: CursorHandler = (nextCursor, _path, _query, delta) => {
+    const queryPageInt = parseInt(this.props.location.query.page, 10);
+    let nextPage: number | undefined = isNaN(queryPageInt) ? delta : queryPageInt + delta;
+
+    let cursor: undefined | string = nextCursor;
 
     // unset cursor and page when we navigate back to the first page
     // also reset cursor if somehow the previous button is enabled on
@@ -775,8 +744,8 @@ class IssueListOverview extends React.Component<Props, State> {
       isSidebarVisible: !this.state.isSidebarVisible,
       renderSidebar: true,
     });
-    analytics('issue.search_sidebar_clicked', {
-      org_id: parseInt(organization.id, 10),
+    trackAdvancedAnalyticsEvent('issue.search_sidebar_clicked', {
+      organization,
     });
   };
 
@@ -938,14 +907,11 @@ class IssueListOverview extends React.Component<Props, State> {
   };
 
   onSavedSearchSelect = (savedSearch: SavedSearch) => {
-    trackAnalyticsEvent({
-      eventKey: 'organization_saved_search.selected',
-      eventName: 'Organization Saved Search: Selected saved search',
-      organization_id: this.props.organization.id,
+    trackAdvancedAnalyticsEvent('organization_saved_search.selected', {
+      organization: this.props.organization,
       search_type: 'issues',
       id: savedSearch.id ? parseInt(savedSearch.id, 10) : -1,
     });
-
     this.setState({issuesLoading: true}, () => this.transitionTo(undefined, savedSearch));
   };
 
@@ -1056,28 +1022,12 @@ class IssueListOverview extends React.Component<Props, State> {
 
     // TODO(workflow): When organization:semver flag is removed add semver tags to tagStore
     if (organization.features.includes('semver') && !tags['release.version']) {
-      tags['release.version'] = {
-        key: 'release.version',
-        name: 'release.version',
-      };
-      tags['release.build'] = {
-        key: 'release.build',
-        name: 'release.build',
-      };
-      tags['release.package'] = {
-        key: 'release.package',
-        name: 'release.package',
-      };
-      tags['release.stage'] = {
-        key: 'release.stage',
-        name: 'release.stage',
-        predefined: true,
-        values: RELEASE_ADOPTION_STAGES,
-      };
+      Object.entries(SEMVER_TAGS).forEach(([key, value]) => {
+        tags[key] = value;
+      });
     }
 
     const projectIds = selection?.projects?.map(p => p.toString());
-    const orgSlug = organization.slug;
 
     const showReprocessingTab = this.displayReprocessingTab();
     const displayReprocessingActions = this.displayReprocessingLayout(
@@ -1095,13 +1045,12 @@ class IssueListOverview extends React.Component<Props, State> {
           queryCounts={queryCounts}
           realtimeActive={realtimeActive}
           onRealtimeChange={this.onRealtimeChange}
-          projectIds={projectIds}
-          orgSlug={orgSlug}
           router={router}
           savedSearchList={savedSearches}
           onSavedSearchSelect={this.onSavedSearchSelect}
           onSavedSearchDelete={this.onSavedSearchDelete}
           displayReprocessingTab={showReprocessingTab}
+          selectedProjectIds={selection.projects}
         />
 
         <StyledPageContent>
@@ -1147,17 +1096,13 @@ class IssueListOverview extends React.Component<Props, State> {
                 {this.renderStreamBody()}
               </PanelBody>
             </Panel>
-            <PaginationWrapper>
-              {groupIds?.length > 0 && (
-                <div>
-                  {/* total includes its own space */}
-                  {tct('Showing [displayCount] issues', {
-                    displayCount,
-                  })}
-                </div>
-              )}
-              <StyledPagination pageLinks={pageLinks} onCursor={this.onCursorChange} />
-            </PaginationWrapper>
+            <StyledPagination
+              caption={tct('Showing [displayCount] issues', {
+                displayCount,
+              })}
+              pageLinks={pageLinks}
+              onCursor={this.onCursorChange}
+            />
           </StreamContent>
 
           <SidebarContainer showSidebar={isSidebarVisible}>
@@ -1222,16 +1167,8 @@ const SidebarContainer = styled('div')<{showSidebar: boolean}>`
   }
 `;
 
-const PaginationWrapper = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  font-size: ${p => p.theme.fontSizeMedium};
-`;
-
 const StyledPagination = styled(Pagination)`
   margin-top: 0;
-  margin-left: ${space(2)};
 `;
 
 const StyledQueryCount = styled(QueryCount)`

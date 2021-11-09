@@ -1,7 +1,6 @@
 import {Component} from 'react';
-import {Params} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 
 import {parseTrace} from 'app/components/events/interfaces/spans/utils';
 import Link from 'app/components/links/link';
@@ -15,10 +14,11 @@ import {getTransactionDetailsUrl} from '../utils';
 
 import {isTransactionEvent} from './utils';
 
-type Props = {
+type Props = Pick<
+  RouteComponentProps<{baselineEventSlug: string; regressionEventSlug: string}, {}>,
+  'location' | 'params'
+> & {
   organization: Organization;
-  location: Location;
-  params: Params;
   baselineEvent: Event;
   regressionEvent: Event;
 };

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {useEffect} from 'react';
 import {Link as RouterLink, withRouter, WithRouterProps} from 'react-router';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
@@ -10,9 +10,13 @@ type AnchorProps = React.HTMLProps<HTMLAnchorElement>;
 type ToLocationFunction = (location: Location) => LocationDescriptor;
 
 type Props = WithRouterProps & {
-  // URL
+  /**
+   * The string path or LocationDescriptor object
+   */
   to: ToLocationFunction | LocationDescriptor;
-  // Styles applied to the component's root
+  /**
+   * Style applied to the component's root
+   */
   className?: string;
 } & Omit<AnchorProps, 'href' | 'target' | 'as' | 'css'>;
 
@@ -20,32 +24,43 @@ type Props = WithRouterProps & {
  * A context-aware version of Link (from react-router) that falls
  * back to <a> if there is no router present
  */
-class Link extends React.Component<Props> {
-  componentDidMount() {
-    const isRouterPresent = this.props.location;
-    if (!isRouterPresent) {
+const BaseLink: React.FC<Props> = ({
+  location,
+  disabled,
+  to,
+  ref,
+  router: _router,
+  params: _params,
+  routes: _routes,
+  ...props
+}) => {
+  useEffect(() => {
+    // check if the router is present
+    if (!location) {
       Sentry.captureException(
         new Error('The link component was rendered without being wrapped by a <Router />')
       );
     }
+  }, []);
+
+  if (!disabled && location) {
+    return <RouterLink to={to} ref={ref as any} {...props} />;
   }
 
-  render() {
-    const {disabled, to, ref, location, ...props} = this.props;
-
-    if (!disabled && location) {
-      return <RouterLink to={to} ref={ref as any} {...props} />;
-    }
-
-    if (typeof to === 'string') {
-      return <Anchor href={to} ref={ref} disabled={disabled} {...props} />;
-    }
-
-    return <Anchor href="" ref={ref} {...props} disabled />;
+  if (typeof to === 'string') {
+    return <Anchor href={to} ref={ref} disabled={disabled} {...props} />;
   }
-}
 
-export default withRouter(Link);
+  return <Anchor href="" ref={ref} {...props} disabled />;
+};
+
+// Set the displayName for testing convenience
+BaseLink.displayName = 'Link';
+
+// Re-assign to Link to make auto-importing smarter
+const Link = withRouter(BaseLink);
+
+export default Link;
 
 const Anchor = styled('a', {
   shouldForwardProp: prop =>

@@ -1,12 +1,12 @@
 import os
 from contextlib import contextmanager
+from unittest import mock
 
 import pytest
 from google.oauth2.credentials import Credentials
 from google.rpc.status_pb2 import Status
 
 from sentry.nodestore.bigtable.backend import BigtableKVStorage, BigtableNodeStorage
-from sentry.utils.compat import mock
 
 
 class MockedBigtableKVStorage(BigtableKVStorage):

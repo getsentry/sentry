@@ -3,26 +3,23 @@ import pick from 'lodash/pick';
 import moment from 'moment';
 
 import MarkLine from 'app/components/charts/components/markLine';
+import {parseStatsPeriod} from 'app/components/organizations/timeRangeSelector/utils';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {t} from 'app/locale';
 import {
   Commit,
   CommitFile,
   FilesByRepository,
-  GlobalSelection,
-  LightWeightOrganization,
   ReleaseComparisonChartType,
   ReleaseProject,
   ReleaseWithHealth,
   Repository,
 } from 'app/types';
-import {getUtcDateString} from 'app/utils/dates';
-import EventView from 'app/utils/discover/eventView';
+import {Series} from 'app/types/echarts';
 import {decodeList} from 'app/utils/queryString';
 import {Theme} from 'app/utils/theme';
-import {QueryResults} from 'app/utils/tokenizeSearch';
-import {isProjectMobileForReleases} from 'app/views/releases/list';
 
+import {getReleaseBounds, getReleaseParams, isMobileRelease} from '../utils';
 import {commonTermsDescription, SessionTerm} from '../utils/sessionTerm';
 
 export type CommitsByRepository = {
@@ -107,41 +104,6 @@ export function getReposToRender(repos: Array<string>, activeRepository?: Reposi
   return [activeRepository.name];
 }
 
-/**
- * Get high level transaction information for this release
- */
-export function getReleaseEventView(
-  selection: GlobalSelection,
-  version: string,
-  organization: LightWeightOrganization
-): EventView {
-  const {projects, environments, datetime} = selection;
-  const {start, end, period} = datetime;
-
-  const apdexField = organization.features.includes('project-transaction-threshold')
-    ? 'apdex()'
-    : `apdex(${organization.apdexThreshold})`;
-
-  const discoverQuery = {
-    id: undefined,
-    version: 2,
-    name: `${t('Release Apdex')}`,
-    fields: [apdexField],
-    query: new QueryResults([
-      `release:${version}`,
-      'event.type:transaction',
-      'count():>0',
-    ]).formatString(),
-    range: period,
-    environment: environments,
-    projects,
-    start: start ? getUtcDateString(start) : undefined,
-    end: end ? getUtcDateString(end) : undefined,
-  } as const;
-
-  return EventView.fromSavedQuery(discoverQuery);
-}
-
 export const releaseComparisonChartLabels = {
   [ReleaseComparisonChartType.CRASH_FREE_SESSIONS]: t('Crash Free Session Rate'),
   [ReleaseComparisonChartType.HEALTHY_SESSIONS]: t('Healthy'),
@@ -154,6 +116,7 @@ export const releaseComparisonChartLabels = {
   [ReleaseComparisonChartType.ERRORED_USERS]: t('Errored'),
   [ReleaseComparisonChartType.CRASHED_USERS]: t('Crashed User Rate'),
   [ReleaseComparisonChartType.SESSION_COUNT]: t('Session Count'),
+  [ReleaseComparisonChartType.SESSION_DURATION]: t('Session Duration p50'),
   [ReleaseComparisonChartType.USER_COUNT]: t('User Count'),
   [ReleaseComparisonChartType.ERROR_COUNT]: t('Error Count'),
   [ReleaseComparisonChartType.TRANSACTION_COUNT]: t('Transaction Count'),
@@ -172,6 +135,7 @@ export const releaseComparisonChartTitles = {
   [ReleaseComparisonChartType.ERRORED_USERS]: t('Errored User Rate'),
   [ReleaseComparisonChartType.CRASHED_USERS]: t('Crashed User Rate'),
   [ReleaseComparisonChartType.SESSION_COUNT]: t('Session Count'),
+  [ReleaseComparisonChartType.SESSION_DURATION]: t('Session Duration'),
   [ReleaseComparisonChartType.USER_COUNT]: t('User Count'),
   [ReleaseComparisonChartType.ERROR_COUNT]: t('Error Count'),
   [ReleaseComparisonChartType.TRANSACTION_COUNT]: t('Transaction Count'),
@@ -230,7 +194,7 @@ function generateReleaseMarkLine(
 export const releaseMarkLinesLabels = {
   created: t('Release Created'),
   adopted: t('Adopted'),
-  unadopted: t('Unadopted'),
+  unadopted: t('Replaced'),
 };
 
 export function generateReleaseMarkLines(
@@ -240,49 +204,61 @@ export function generateReleaseMarkLines(
   location: Location,
   options?: GenerateReleaseMarklineOptions
 ) {
+  const markLines: Series[] = [];
   const adoptionStages = release.adoptionStages?.[project.slug];
+  const isSingleEnv = decodeList(location.query.environment).length === 1;
+  const {statsPeriod, ...releaseParamsRest} = getReleaseParams({
+    location,
+    releaseBounds: getReleaseBounds(release),
+  });
+  let {start, end} = releaseParamsRest;
   const isDefaultPeriod = !(
     location.query.pageStart ||
     location.query.pageEnd ||
     location.query.pageStatsPeriod
   );
-  const isSingleEnv = decodeList(location.query.environment).length === 1;
 
-  if (!isDefaultPeriod) {
-    // do not show marklines on non-default period
-    return [];
+  if (statsPeriod) {
+    const parsedStatsPeriod = parseStatsPeriod(statsPeriod, null);
+    start = parsedStatsPeriod.start;
+    end = parsedStatsPeriod.end;
   }
 
-  const markLines = [
-    generateReleaseMarkLine(
-      releaseMarkLinesLabels.created,
-      moment(release.dateCreated).startOf('minute').valueOf(),
-      theme,
-      options
-    ),
-  ];
-
-  if (!isSingleEnv || !isProjectMobileForReleases(project.platform)) {
-    // for now want to show marklines only on mobile platforms with single environment selected
-    return markLines;
-  }
-
-  if (adoptionStages?.adopted) {
+  const releaseCreated = moment(release.dateCreated).startOf('minute');
+  if (releaseCreated.isBetween(start, end) || isDefaultPeriod) {
     markLines.push(
       generateReleaseMarkLine(
-        releaseMarkLinesLabels.adopted,
-        moment(adoptionStages.adopted).valueOf(),
+        releaseMarkLinesLabels.created,
+        releaseCreated.valueOf(),
         theme,
         options
       )
     );
   }
 
-  if (adoptionStages?.unadopted) {
+  if (!isSingleEnv || !isMobileRelease(project.platform)) {
+    // for now want to show marklines only on mobile platforms with single environment selected
+    return markLines;
+  }
+
+  const releaseAdopted = adoptionStages?.adopted && moment(adoptionStages.adopted);
+  if (releaseAdopted && releaseAdopted.isBetween(start, end)) {
+    markLines.push(
+      generateReleaseMarkLine(
+        releaseMarkLinesLabels.adopted,
+        releaseAdopted.valueOf(),
+        theme,
+        options
+      )
+    );
+  }
+
+  const releaseReplaced = adoptionStages?.unadopted && moment(adoptionStages.unadopted);
+  if (releaseReplaced && releaseReplaced.isBetween(start, end)) {
     markLines.push(
       generateReleaseMarkLine(
         releaseMarkLinesLabels.unadopted,
-        moment(adoptionStages.unadopted).valueOf(),
+        releaseReplaced.valueOf(),
         theme,
         options
       )

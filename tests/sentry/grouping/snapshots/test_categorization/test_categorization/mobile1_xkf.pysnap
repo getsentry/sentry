@@ -1,5 +1,5 @@
 ---
-created: '2021-03-29T22:02:39.155869Z'
+created: '2021-08-06T16:25:44.671435Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -12,10 +12,10 @@ IllegalStateException:securePreferences.getString(key) must not be null (thread_
                     java.lang.reflect.Method  invoke category=indirection
                     java.lang.reflect.Method  invokeNative category=indirection
                   android.app.ActivityThread  main category=threadbase
-                           android.os.Looper  loop category=system
-                          android.os.Handler  dispatchMessage category=internals
-                android.app.ActivityThread$H  handleMessage category=std
-                  android.app.ActivityThread  access$1700 category=internals
+                           android.os.Looper  loop category=threadbase
+                          android.os.Handler  dispatchMessage category=threadbase
+                android.app.ActivityThread$H  handleMessage category=threadbase
+                  android.app.ActivityThread  access$1700 category=std
                   android.app.ActivityThread  handleReceiver category=internals
                                               stripped_application_code
                                               stripped_application_code
@@ -28,8 +28,8 @@ RuntimeException:_ (thread_id:_, crashed:_)
                     java.lang.reflect.Method  invoke category=indirection
                     java.lang.reflect.Method  invokeNative category=indirection
                   android.app.ActivityThread  main category=threadbase
-                           android.os.Looper  loop category=system
-                          android.os.Handler  dispatchMessage category=internals
-                android.app.ActivityThread$H  handleMessage category=std
-                  android.app.ActivityThread  access$1700 category=internals
+                           android.os.Looper  loop category=threadbase
+                          android.os.Handler  dispatchMessage category=threadbase
+                android.app.ActivityThread$H  handleMessage category=threadbase
+                  android.app.ActivityThread  access$1700 category=std
                   android.app.ActivityThread  handleReceiver category=internals

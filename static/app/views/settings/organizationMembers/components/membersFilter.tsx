@@ -6,7 +6,7 @@ import Switch from 'app/components/switchButton';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {MemberRole} from 'app/types';
-import {tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 
 type Props = {
   className?: string;
@@ -34,18 +34,18 @@ const getBoolean = (list: string[]) =>
     : null;
 
 const MembersFilter = ({className, roles, query, onChange}: Props) => {
-  const search = tokenizeSearch(query);
+  const search = new MutableSearch(query);
 
   const filters = {
-    roles: search.getTagValues('role') || [],
-    isInvited: getBoolean(search.getTagValues('isInvited')),
-    ssoLinked: getBoolean(search.getTagValues('ssoLinked')),
-    has2fa: getBoolean(search.getTagValues('has2fa')),
+    roles: search.getFilterValues('role') || [],
+    isInvited: getBoolean(search.getFilterValues('isInvited')),
+    ssoLinked: getBoolean(search.getFilterValues('ssoLinked')),
+    has2fa: getBoolean(search.getFilterValues('has2fa')),
   };
 
   const handleRoleFilter = (id: string) => () => {
     const roleList = new Set(
-      search.getTagValues('role') ? [...search.getTagValues('role')] : []
+      search.getFilterValues('role') ? [...search.getFilterValues('role')] : []
     );
 
     if (roleList.has(id)) {
@@ -55,15 +55,15 @@ const MembersFilter = ({className, roles, query, onChange}: Props) => {
     }
 
     const newSearch = search.copy();
-    newSearch.setTagValues('role', [...roleList]);
+    newSearch.setFilterValues('role', [...roleList]);
     onChange(newSearch.formatString());
   };
 
   const handleBoolFilter = (key: keyof Filters) => (value: boolean | null) => {
     const newQueryObject = search.copy();
-    newQueryObject.removeTag(key);
+    newQueryObject.removeFilter(key);
     if (value !== null) {
-      newQueryObject.setTagValues(key, [Boolean(value).toString()]);
+      newQueryObject.setFilterValues(key, [Boolean(value).toString()]);
     }
 
     onChange(newQueryObject.formatString());
@@ -74,7 +74,7 @@ const MembersFilter = ({className, roles, query, onChange}: Props) => {
       <FilterHeader>{t('Filter By')}</FilterHeader>
 
       <FilterLists>
-        <Filters>
+        <FilterList>
           <h3>{t('User Role')}</h3>
           {roles.map(({id, name}) => (
             <label key={id}>
@@ -86,9 +86,9 @@ const MembersFilter = ({className, roles, query, onChange}: Props) => {
               {name}
             </label>
           ))}
-        </Filters>
+        </FilterList>
 
-        <Filters>
+        <FilterList>
           <h3>{t('Status')}</h3>
           <BooleanFilter
             data-test-id="filter-isInvited"
@@ -111,7 +111,7 @@ const MembersFilter = ({className, roles, query, onChange}: Props) => {
           >
             {t('SSO Linked')}
           </BooleanFilter>
-        </Filters>
+        </FilterList>
       </FilterLists>
     </FilterContainer>
   );
@@ -159,7 +159,7 @@ const FilterLists = styled('div')`
   margin-top: ${space(0.75)};
 `;
 
-const Filters = styled('div')`
+const FilterList = styled('div')`
   display: grid;
   grid-template-rows: repeat(auto-fit, minmax(0, max-content));
   grid-gap: ${space(1)};

@@ -13,7 +13,7 @@ type Props = {
   className?: string;
 };
 
-function Footer({className}: Props) {
+function BaseFooter({className}: Props) {
   const config = ConfigStore.getConfig();
   return (
     <footer className={className}>
@@ -101,7 +101,7 @@ const Build = styled('span')`
   margin-left: ${space(1)};
 `;
 
-const StyledFooter = styled(Footer)`
+const Footer = styled(BaseFooter)`
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   color: ${p => p.theme.subText};
@@ -114,4 +114,4 @@ const StyledFooter = styled(Footer)`
   }
 `;
 
-export default StyledFooter;
+export default Footer;

@@ -273,7 +273,7 @@ class VercelGenericWebhookEndpoint(Endpoint):
         # Only create releases for production deploys for now
         if payload["target"] != "production":
             logger.info(
-                "Ignoring deployment for environment: %s" % payload["target"],
+                f"Ignoring deployment for environment: {payload['target']}",
                 extra={"external_id": external_id, "vercel_project_id": payload["projectId"]},
             )
             return self.respond(status=204)

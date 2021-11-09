@@ -210,7 +210,16 @@ class SnubaEventStorage(EventStorage):
             if len(result["data"]) != 1:
                 logger.warning(
                     "eventstore.missing-snuba-event",
-                    extra={"project_id": project_id, "event_id": event_id},
+                    extra={
+                        "project_id": project_id,
+                        "event_id": event_id,
+                        "group_id": group_id,
+                        "event_datetime": event.datetime,
+                        "event_timestamp": event.timestamp,
+                        "nodestore_insert": event.data.get("nodestore_insert"),
+                        "received": event.data.get("received"),
+                        "len_data": len(result["data"]),
+                    },
                 )
                 return None
 

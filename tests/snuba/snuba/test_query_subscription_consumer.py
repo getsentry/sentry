@@ -1,5 +1,8 @@
+import time
 from copy import deepcopy
 from datetime import timedelta
+from unittest import mock
+from unittest.mock import Mock, call
 from uuid import uuid4
 
 import pytz
@@ -18,7 +21,6 @@ from sentry.snuba.query_subscription_consumer import (
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.utils import json
-from sentry.utils.compat.mock import Mock, call
 
 
 class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
@@ -194,3 +196,25 @@ class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
         consumer.run()
 
         mock.assert_has_calls(expected_calls)
+
+    @mock.patch("sentry.snuba.query_subscription_consumer.QuerySubscriptionConsumer.commit_offsets")
+    def test_batch_timeout(self, commit_offset_mock):
+        self.producer.produce(self.topic, json.dumps(self.valid_wrapper))
+        self.producer.flush()
+
+        consumer = QuerySubscriptionConsumer(
+            "hi", topic=self.topic, commit_batch_size=100, commit_batch_timeout_ms=1
+        )
+
+        def mock_callback(*args, **kwargs):
+            time.sleep(0.1)
+            consumer.shutdown()
+
+        mock = Mock(side_effect=mock_callback)
+
+        register_subscriber(self.registration_key)(mock)
+        self.create_subscription()
+
+        consumer.run()
+        # Once on revoke, once on shutdown, and once due to batch timeout
+        assert len(commit_offset_mock.call_args_list) == 3

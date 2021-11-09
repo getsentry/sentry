@@ -82,7 +82,7 @@ describe('Performance > Table', function () {
       },
     ],
     sorts: [{field: 'tpm  ', kind: 'desc'}],
-    query: '',
+    query: 'event.type:transaction transaction:/api*',
     project: [project1.id, project2.id],
     start: '2019-10-01T00:00:00',
     end: '2019-10-02T00:00:00',
@@ -109,7 +109,7 @@ describe('Performance > Table', function () {
         },
         data: [
           {
-            key_transaction: 1,
+            team_key_transaction: 1,
             transaction: '/apple/cart',
             project: project1.slug,
             user: 'uhoh@example.com',
@@ -124,7 +124,7 @@ describe('Performance > Table', function () {
             project_threshold_config: ['duration', 300],
           },
           {
-            key_transaction: 0,
+            team_key_transaction: 0,
             transaction: '/apple/checkout',
             project: project2.slug,
             user: 'uhoh@example.com',
@@ -146,20 +146,16 @@ describe('Performance > Table', function () {
       url: `/organizations/org-slug/key-transactions-list/`,
       body: [],
     });
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/org-slug/legacy-key-transactions-count/`,
-      body: [],
-    });
   });
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
-    ProjectsStore.reset();
   });
 
   it('renders correct cell actions without feature', async function () {
-    const data = initializeData(projects, {query: 'event.type:transaction'});
+    const data = initializeData(projects, {
+      query: 'event.type:transaction transaction:/api*',
+    });
 
     const wrapper = mountWithTheme(
       <Table
@@ -175,40 +171,24 @@ describe('Performance > Table', function () {
     await tick();
     wrapper.update();
     const firstRow = wrapper.find('GridBody').find('GridRow').at(0);
-    const userMiseryCell = firstRow.find('GridBodyCell').at(9);
-    const cellAction = userMiseryCell.find('CellAction');
-
-    expect(cellAction.prop('allowActions')).toEqual([
-      'add',
-      'exclude',
-      'show_greater_than',
-      'show_less_than',
-    ]);
-
-    const menu = openContextMenu(wrapper, 8); // User Misery Cell Action
-    expect(menu.find('MenuButtons').find('ActionItem')).toHaveLength(2);
-  });
-
-  it('renders correct cell actions with feature', async function () {
-    const data = initializeData(projects, {query: 'event.type:transaction'}, [
-      'performance-view',
-      'project-transaction-threshold-override',
-    ]);
-
-    const wrapper = mountWithTheme(
-      <Table
-        eventView={eventView}
-        organization={data.organization}
-        location={data.router.location}
-        setError={jest.fn()}
-        summaryConditions=""
-        projects={projects}
-      />
-    );
-
-    await tick();
-    wrapper.update();
-    const firstRow = wrapper.find('GridBody').find('GridRow').at(0);
+    const transactionCell = firstRow.find('GridBodyCell').at(1);
+    expect(transactionCell.find('Link').prop('to')).toEqual({
+      pathname: '/organizations/org-slug/performance/summary/',
+      query: {
+        transaction: '/apple/cart',
+        project: '2',
+        environment: [],
+        statsPeriod: '14d',
+        start: '2019-10-01T00:00:00',
+        end: '2019-10-02T00:00:00',
+        query: 'event.type:transaction', // drops 'transaction:/api*' from the query
+        unselectedSeries: 'p100()',
+        showTransactions: undefined,
+        display: undefined,
+        trendFunction: undefined,
+        trendColumn: undefined,
+      },
+    });
     const userMiseryCell = firstRow.find('GridBodyCell').at(9);
     const cellAction = userMiseryCell.find('CellAction');
 

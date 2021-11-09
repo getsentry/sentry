@@ -2,7 +2,13 @@ import Reflux from 'reflux';
 
 import {PlatformExternalIssue} from 'app/types';
 
-const ExternalIssueStore = Reflux.createStore({
+type ExternalIssueStoreInterface = {
+  load(items: PlatformExternalIssue[]): void;
+  add(issue: PlatformExternalIssue): void;
+  getInitialState(): PlatformExternalIssue[];
+};
+
+const storeConfig: Reflux.StoreDefinition & ExternalIssueStoreInterface = {
   init() {
     this.items = [];
   },
@@ -30,12 +36,9 @@ const ExternalIssueStore = Reflux.createStore({
       this.trigger(this.items);
     }
   },
-});
-
-type ExternalIssueStoreType = Reflux.Store & {
-  load: (items: PlatformExternalIssue[]) => void;
-  add: (issue: PlatformExternalIssue) => void;
-  getInitialState: () => PlatformExternalIssue[];
 };
 
-export default ExternalIssueStore as ExternalIssueStoreType;
+const ExternalIssueStore = Reflux.createStore(storeConfig) as Reflux.Store &
+  ExternalIssueStoreInterface;
+
+export default ExternalIssueStore;

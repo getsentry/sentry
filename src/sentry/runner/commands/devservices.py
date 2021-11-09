@@ -46,6 +46,26 @@ def get_or_create(client, thing, name):
         return getattr(client, thing + "s").create(name)
 
 
+def retryable_pull(client, image, max_attempts=5):
+    from docker.errors import ImageNotFound
+
+    current_attempt = 0
+
+    # `client.images.pull` intermittently fails in CI, and the docker API/docker-py does not give us the relevant error message (i.e. it's not the same error as running `docker pull` from shell)
+    # As a workaround, let's retry when we hit the ImageNotFound exception.
+    #
+    # See https://github.com/docker/docker-py/issues/2101 for more information
+    while True:
+        try:
+            client.images.pull(image)
+        except ImageNotFound as e:
+            if current_attempt + 1 >= max_attempts:
+                raise e
+            current_attempt = current_attempt + 1
+            continue
+        break
+
+
 def wait_for_healthcheck(low_level_client, container_name, healthcheck_options):
     # healthcheck_options should be the dictionary for docker-py.
 
@@ -226,10 +246,11 @@ def _prepare_containers(project, skip_only_if=False, silent=False):
 
     containers = {}
 
-    for name, options in settings.SENTRY_DEVSERVICES.items():
-        options = options.copy()
-        test_fn = options.pop("only_if", None)
-        if not skip_only_if and test_fn and not test_fn(settings, sentry_options):
+    for name, option_builder in settings.SENTRY_DEVSERVICES.items():
+        options = option_builder(settings, sentry_options)
+        only_if = options.pop("only_if", True)
+
+        if not skip_only_if and not only_if:
             if not silent:
                 click.secho(f"! Skipping {name} due to only_if condition", err=True, fg="cyan")
             continue
@@ -275,7 +296,7 @@ def _start_service(
     if not fast:
         if pull:
             click.secho("> Pulling image '%s'" % options["image"], err=True, fg="green")
-            client.images.pull(options["image"])
+            retryable_pull(client, options["image"])
         else:
             # We want make sure to pull everything on the first time,
             # (the image doesn't exist), regardless of pull=True.
@@ -283,7 +304,7 @@ def _start_service(
                 client.images.get(options["image"])
             except NotFound:
                 click.secho("> Pulling image '%s'" % options["image"], err=True, fg="green")
-                client.images.pull(options["image"])
+                retryable_pull(client, options["image"])
 
     for mount in list(options.get("volumes", {}).keys()):
         if "/" not in mount:

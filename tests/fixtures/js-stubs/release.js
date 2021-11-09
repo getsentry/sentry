@@ -7,8 +7,8 @@ export function Release(params, healthParams) {
     data: {},
     lastDeploy: null,
     deployCount: 0,
-    dateCreated: '2020-03-23T00:00:00Z',
-    lastEvent: null,
+    dateCreated: '2020-03-23T01:02:30Z',
+    lastEvent: '2020-03-24T02:04:50Z',
     version: 'sentry-android-shop@1.2.0',
     firstEvent: null,
     lastCommit: null,
@@ -77,6 +77,7 @@ export function Release(params, healthParams) {
         id: 4383603,
         name: 'Sentry-Android-Shop',
         slug: 'sentry-android-shop',
+        platform: 'android',
       },
     ],
     currentProjectMeta: {
@@ -84,6 +85,15 @@ export function Release(params, healthParams) {
       prevReleaseVersion: '123',
       firstReleaseVersion: '0',
       lastReleaseVersion: '999',
+      sessionsUpperBound: null,
+      sessionsLowerBound: null,
+    },
+    adoptionStages: {
+      'sentry-android-shop': {
+        adopted: '2020-03-24T01:02:30Z',
+        stage: 'replaced',
+        unadopted: '2020-03-24T02:02:30Z',
+      },
     },
     ...params,
   };

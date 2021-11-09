@@ -215,7 +215,6 @@ export const MAX_AUTOCOMPLETE_RECENT_SEARCHES = 3;
 export const MAX_AUTOCOMPLETE_RELEASES = 5;
 
 export const DEFAULT_PER_PAGE = 50;
-export const TEAMS_PER_PAGE = 25;
 
 // Limit query length so paginated response headers don't
 // go over HTTP header size limits (4Kb)
@@ -254,6 +253,7 @@ export const IS_ACCEPTANCE_TEST = !!process.env.IS_ACCEPTANCE_TEST;
 export const NODE_ENV = process.env.NODE_ENV;
 export const DISABLE_RR_WEB = !!process.env.DISABLE_RR_WEB;
 export const SPA_DSN = process.env.SPA_DSN;
+export const SENTRY_RELEASE_VERSION = process.env.SENTRY_RELEASE_VERSION;
 
 export const DEFAULT_ERROR_JSON = {
   detail: t('Unknown error. Please try again.'),

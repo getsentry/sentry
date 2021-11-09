@@ -1,11 +1,12 @@
 import logging
 import warnings
-from typing import Any, Sequence
+from typing import TYPE_CHECKING, Any, Sequence
 
 from django.contrib.auth.models import AbstractBaseUser
 from django.contrib.auth.models import UserManager as DjangoUserManager
 from django.contrib.auth.signals import user_logged_out
 from django.db import IntegrityError, models, transaction
+from django.db.models import Count, Subquery
 from django.db.models.query import QuerySet
 from django.dispatch import receiver
 from django.urls import reverse
@@ -15,9 +16,13 @@ from django.utils.translation import ugettext_lazy as _
 from bitfield import BitField
 from sentry.db.models import BaseManager, BaseModel, BoundedAutoField, FlexibleForeignKey, sane_repr
 from sentry.models import LostPasswordHash
+from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils.http import absolute_uri
 
 audit_logger = logging.getLogger("sentry.audit.user")
+
+if TYPE_CHECKING:
+    from sentry.models import Group, Organization, Team
 
 
 class UserManager(BaseManager, DjangoUserManager):
@@ -36,14 +41,15 @@ class UserManager(BaseManager, DjangoUserManager):
             is_active=True,
         ).distinct()
 
-    def get_from_group(self, group):
+    def get_from_group(self, group: "Group") -> QuerySet:
         """Get a queryset of all users in all teams in a given Group's project."""
         return self.filter(
+            sentry_orgmember_set__organization=group.organization,
             sentry_orgmember_set__teams__in=group.project.teams.all(),
             is_active=True,
         )
 
-    def get_from_teams(self, organization_id, teams):
+    def get_from_teams(self, organization_id: int, teams: Sequence["Team"]) -> QuerySet:
         return self.filter(
             sentry_orgmember_set__organization_id=organization_id,
             sentry_orgmember_set__organizationmemberteam__team__in=teams,
@@ -59,6 +65,44 @@ class UserManager(BaseManager, DjangoUserManager):
             sentry_orgmember_set__organization_id=organization_id,
             sentry_orgmember_set__organizationmemberteam__team__projectteam__project__in=projects,
             sentry_orgmember_set__organizationmemberteam__is_active=True,
+            is_active=True,
+        )
+
+    def get_from_organizations(self, organization_ids):
+        """Returns users associated with an Organization based on their teams."""
+        return self.filter(
+            sentry_orgmember_set__organization_id__in=organization_ids,
+            sentry_orgmember_set__organizationmemberteam__is_active=True,
+            is_active=True,
+        )
+
+    def get_users_with_only_one_integration_for_provider(
+        self, provider: ExternalProviders, organization: "Organization"
+    ) -> QuerySet:
+        """
+        For a given organization, get the list of members that are only
+        connected to a single integration.
+        """
+        return (
+            self.filter(
+                sentry_orgmember_set__organization__organizationintegration__integration__provider=EXTERNAL_PROVIDERS[
+                    provider
+                ],
+                id__in=Subquery(
+                    self.filter(
+                        is_active=True,
+                        sentry_orgmember_set__organization=organization,
+                    ).values("id")
+                ),
+            )
+            .annotate(row_count=Count("id"))
+            .filter(row_count=1)
+        )
+
+    def get_for_email(self, email: str) -> Sequence["User"]:
+        return self.filter(
+            emails__email=email,
+            emails__is_verified=True,
             is_active=True,
         )
 
@@ -181,6 +225,15 @@ class User(BaseModel, AbstractBaseUser):
 
     def has_unverified_emails(self):
         return self.get_unverified_emails().exists()
+
+    def has_usable_password(self):
+        if self.password == "" or self.password is None:
+            # This is the behavior we've been relying on from Django 1.6 - 2.0.
+            # In 2.1, a "" or None password is considered usable.
+            # Removing this override requires identifying all the places
+            # to put set_unusable_password and a migration.
+            return False
+        return super().has_usable_password()
 
     def get_label(self):
         return self.email or self.username or self.id

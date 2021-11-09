@@ -1,5 +1,6 @@
 import unittest
 from datetime import timedelta
+from unittest.mock import Mock, patch
 
 from django.core.cache import cache
 from django.db import IntegrityError, transaction
@@ -23,7 +24,6 @@ from sentry.incidents.models import (
     TriggerStatus,
 )
 from sentry.testutils import TestCase
-from sentry.utils.compat.mock import Mock, patch
 
 
 class FetchForOrganizationTest(TestCase):

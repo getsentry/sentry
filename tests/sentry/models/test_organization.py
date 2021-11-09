@@ -1,4 +1,5 @@
 import copy
+from unittest import mock
 from uuid import uuid4
 
 from django.core import mail
@@ -33,7 +34,6 @@ from sentry.models import (
     User,
 )
 from sentry.testutils import TestCase
-from sentry.utils.compat import mock
 
 
 class OrganizationTest(TestCase):
@@ -224,14 +224,14 @@ class OrganizationTest(TestCase):
         update_tracked_data(inst)
         inst.name = "baz"
         self.assertTrue(has_changed(inst, "name"))
-        self.assertEquals(old_value(inst, "name"), "bar")
+        self.assertEqual(old_value(inst, "name"), "bar")
 
     def test_name_hasnt_changed_after_save(self):
         inst = Organization(id=1, name="bar")
         update_tracked_data(inst)
         inst.name = "baz"
         self.assertTrue(has_changed(inst, "name"))
-        self.assertEquals(old_value(inst, "name"), "bar")
+        self.assertEqual(old_value(inst, "name"), "bar")
         update_tracked_data(inst)
         models.signals.post_save.send(instance=inst, sender=type(inst), created=False)
         self.assertFalse(has_changed(inst, "name"))
@@ -279,8 +279,7 @@ class Require2fa(TestCase):
             assert member.token is None
             assert member.token_expires_at is None
 
-    @mock.patch("sentry.utils.email.logger")
-    def test_handle_2fa_required__compliant_and_non_compliant_members(self, email_log):
+    def test_handle_2fa_required__compliant_and_non_compliant_members(self):
         compliant_user, compliant_member = self._create_user_and_member(has_2fa=True)
         non_compliant_user, non_compliant_member = self._create_user_and_member()
 
@@ -292,7 +291,6 @@ class Require2fa(TestCase):
 
         assert len(mail.outbox) == 1
         assert mail.outbox[0].to == [non_compliant_user.email]
-        assert email_log.info.call_count == 2  # mail.queued, mail.sent
 
         audit_logs = AuditLogEntry.objects.filter(
             event=AuditLogEntryEvent.MEMBER_PENDING, organization=self.org, actor=self.owner
@@ -301,8 +299,7 @@ class Require2fa(TestCase):
         assert audit_logs[0].data["email"] == non_compliant_user.email
         assert audit_logs[0].target_user_id == non_compliant_user.id
 
-    @mock.patch("sentry.utils.email.logger")
-    def test_handle_2fa_required__compliant_members(self, email_log):
+    def test_handle_2fa_required__compliant_members(self):
         compliant = []
         for num in range(0, 4):
             user, member = self._create_user_and_member(has_2fa=True)
@@ -314,13 +311,12 @@ class Require2fa(TestCase):
         for user, member in compliant:
             self.is_organization_member(user.id, member.id)
 
-        assert len(mail.outbox) == email_log.info.call_count == 0
+        assert len(mail.outbox) == 0
         assert not AuditLogEntry.objects.filter(
             event=AuditLogEntryEvent.MEMBER_PENDING, organization=self.org, actor=self.owner
         ).exists()
 
-    @mock.patch("sentry.utils.email.logger")
-    def test_handle_2fa_required__non_compliant_members(self, email_log):
+    def test_handle_2fa_required__non_compliant_members(self):
         non_compliant = []
         for num in range(0, 4):
             user, member = self._create_user_and_member()
@@ -333,13 +329,11 @@ class Require2fa(TestCase):
             self.is_pending_organization_member(user.id, member.id)
 
         assert len(mail.outbox) == len(non_compliant)
-        assert email_log.info.call_count == len(non_compliant) * 2  # mail.queued, mail.sent
         assert AuditLogEntry.objects.filter(
             event=AuditLogEntryEvent.MEMBER_PENDING, organization=self.org, actor=self.owner
         ).count() == len(non_compliant)
 
-    @mock.patch("sentry.utils.email.logger")
-    def test_handle_2fa_required__pending_member__ok(self, email_log):
+    def test_handle_2fa_required__pending_member__ok(self):
         user, member = self._create_user_and_member(has_member_email=True)
         member.user = None
         member.save()
@@ -348,14 +342,13 @@ class Require2fa(TestCase):
             self.org.handle_2fa_required(self.request)
         self.is_pending_organization_member(user.id, member.id, was_booted=False)
 
-        assert len(mail.outbox) == email_log.info.call_count == 0
+        assert len(mail.outbox) == 0
         assert not AuditLogEntry.objects.filter(
             event=AuditLogEntryEvent.MEMBER_PENDING, organization=self.org, actor=self.owner
         ).exists()
 
     @mock.patch("sentry.tasks.auth.logger")
-    @mock.patch("sentry.utils.email.logger")
-    def test_handle_2fa_required__no_user_email__ok(self, email_log, auth_log):
+    def test_handle_2fa_required__no_user_email__ok(self, auth_log):
         user, member = self._create_user_and_member(has_user_email=False, has_member_email=True)
         assert not user.email
         assert member.email
@@ -365,7 +358,6 @@ class Require2fa(TestCase):
 
         self.is_pending_organization_member(user.id, member.id)
 
-        assert email_log.info.call_count == 2  # mail.queued, mail.sent
         assert len(mail.outbox) == 1
         assert mail.outbox[0].to == [member.email]
 
@@ -376,8 +368,7 @@ class Require2fa(TestCase):
         )
 
     @mock.patch("sentry.tasks.auth.logger")
-    @mock.patch("sentry.utils.email.logger")
-    def test_handle_2fa_required__no_email__warning(self, email_log, auth_log):
+    def test_handle_2fa_required__no_email__warning(self, auth_log):
         user, member = self._create_user_and_member(has_user_email=False)
         assert not user.email
         assert not member.email
@@ -392,8 +383,7 @@ class Require2fa(TestCase):
         )
 
     @mock.patch("sentry.tasks.auth.logger")
-    @mock.patch("sentry.utils.email.logger")
-    def test_handle_2fa_required__no_actor_and_api_key__ok(self, email_log, auth_log):
+    def test_handle_2fa_required__no_actor_and_api_key__ok(self, auth_log):
         user, member = self._create_user_and_member()
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
@@ -408,7 +398,6 @@ class Require2fa(TestCase):
         self.is_pending_organization_member(user.id, member.id)
 
         assert len(mail.outbox) == 1
-        assert email_log.info.call_count == 2  # mail.queued, mail.sent
         assert (
             AuditLogEntry.objects.filter(
                 event=AuditLogEntryEvent.MEMBER_PENDING,
@@ -420,8 +409,7 @@ class Require2fa(TestCase):
         )
 
     @mock.patch("sentry.tasks.auth.logger")
-    @mock.patch("sentry.utils.email.logger")
-    def test_handle_2fa_required__no_ip_address__ok(self, email_log, auth_log):
+    def test_handle_2fa_required__no_ip_address__ok(self, auth_log):
         user, member = self._create_user_and_member()
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
@@ -431,7 +419,6 @@ class Require2fa(TestCase):
         self.is_pending_organization_member(user.id, member.id)
 
         assert len(mail.outbox) == 1
-        assert email_log.info.call_count == 2  # mail.queued, mail.sent
         assert (
             AuditLogEntry.objects.filter(
                 event=AuditLogEntryEvent.MEMBER_PENDING,

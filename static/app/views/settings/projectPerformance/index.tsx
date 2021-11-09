@@ -15,7 +15,7 @@ type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
 class ProjectPerformanceContainer extends React.Component<Props> {
   render() {
     return (
-      <Feature features={['project-transaction-threshold']}>
+      <Feature features={['performance-view']}>
         <ProjectPerformance {...this.props} />
       </Feature>
     );

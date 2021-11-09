@@ -1,4 +1,4 @@
-import {Dataset} from 'app/views/alerts/incidentRules/types';
+import {Dataset, SessionsAggregate} from 'app/views/alerts/incidentRules/types';
 
 import {AlertType, WizardRuleTemplate} from './options';
 
@@ -16,6 +16,10 @@ const alertTypeIdentifiers: Record<Dataset, Partial<Record<AlertType, string>>> 
     lcp: 'measurements.lcp',
     fid: 'measurements.fid',
     cls: 'measurements.cls',
+  },
+  [Dataset.SESSIONS]: {
+    crash_free_sessions: SessionsAggregate.CRASH_FREE_SESSIONS,
+    crash_free_users: SessionsAggregate.CRASH_FREE_USERS,
   },
 };
 

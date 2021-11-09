@@ -10,10 +10,11 @@ import Pagination from 'app/components/pagination';
 import SearchBar from 'app/components/searchBar';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {DataCategory, Organization, Project} from 'app/types';
 import withProjects from 'app/utils/withProjects';
 
-import {UsageSeries} from './types';
+import {Outcome, UsageSeries} from './types';
 import UsageTable, {CellProject, CellStat, TableStat} from './usageTable';
 
 type Props = {
@@ -334,15 +335,17 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
           stats[projectId] = {...baseStat};
         }
 
-        stats[projectId].total += group.totals['sum(quantity)'];
+        if (outcome !== Outcome.CLIENT_DISCARD) {
+          stats[projectId].total += group.totals['sum(quantity)'];
+        }
 
-        if (
-          outcome === SortBy.ACCEPTED ||
-          outcome === SortBy.FILTERED ||
-          outcome === SortBy.DROPPED
-        ) {
+        if (outcome === Outcome.ACCEPTED || outcome === Outcome.FILTERED) {
           stats[projectId][outcome] += group.totals['sum(quantity)'];
-        } else {
+        } else if (
+          outcome === Outcome.RATE_LIMITED ||
+          outcome === Outcome.INVALID ||
+          outcome === Outcome.DROPPED
+        ) {
           stats[projectId][SortBy.DROPPED] += group.totals['sum(quantity)'];
         }
       });
@@ -397,16 +400,16 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
 
     return (
       <Fragment>
-        <GridRow>
+        <Container>
           <SearchBar
             defaultQuery=""
             query={tableQuery}
             placeholder={t('Filter your projects')}
             onSearch={this.handleSearch}
           />
-        </GridRow>
+        </Container>
 
-        <GridRow>
+        <Container>
           <UsageTable
             isLoading={loading || loadingProjects}
             isError={error}
@@ -417,7 +420,7 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
             usageStats={tableStats}
           />
           <Pagination pageLinks={this.pageLink} />
-        </GridRow>
+        </Container>
       </Fragment>
     );
   }
@@ -425,6 +428,6 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
 
 export default withProjects(UsageStatsProjects);
 
-const GridRow = styled('div')`
-  grid-column: 1 / -1;
+const Container = styled('div')`
+  margin-bottom: ${space(2)};
 `;

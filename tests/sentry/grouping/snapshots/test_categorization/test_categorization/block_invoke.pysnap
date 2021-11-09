@@ -1,0 +1,36 @@
+---
+created: '2021-08-03T17:17:29.041209Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+_:_ (thread_id:_, crashed:_)
+                               libdyld.dylib  start category=threadbase
+                                              stripped_application_code
+                                   UIKitCore  UIApplicationMain category=threadbase
+                                   UIKitCore  -[UIApplication _run] category=ui
+                            GraphicsServices  GSEventRunModal category=internals
+                              CoreFoundation  CFRunLoopRunSpecific category=indirection
+                              CoreFoundation  __CFRunLoopRun category=internals
+                              CoreFoundation  __CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__ category=internals
+                           libdispatch.dylib  _dispatch_main_queue_callback_4CF category=internals
+                           libdispatch.dylib  _dispatch_client_callout category=threadbase
+                           libdispatch.dylib  _dispatch_async_and_wait_invoke category=internals
+                           libdispatch.dylib  _dispatch_client_callout category=threadbase
+                                              __30-[TWAnalyticsBatcher spadeURL]_block_invoke category=internals
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code

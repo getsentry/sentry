@@ -59,6 +59,7 @@ const MergedStyles = () => css`
 
   & > .dropdown,
   & > button,
+  & > input,
   & > a {
     position: relative;
 
@@ -86,6 +87,7 @@ const MergedStyles = () => css`
     &:first-child {
       & + .dropdown:not(:last-child),
       & + a:not(:last-child),
+      & + input:not(:last-child),
       & + button:not(:last-child) {
         margin-left: -1px;
       }
@@ -96,6 +98,7 @@ const MergedStyles = () => css`
     &:not(:last-child):not(:first-child) {
       & + .dropdown,
       & + button,
+      & + input,
       & + a {
         margin-left: -1px;
       }

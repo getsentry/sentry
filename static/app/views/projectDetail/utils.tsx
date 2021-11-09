@@ -3,7 +3,9 @@ import {Location} from 'history';
 import {canIncludePreviousPeriod} from 'app/components/charts/utils';
 import {GlobalSelection} from 'app/types';
 
-export function shouldFetchPreviousPeriod(datetime: GlobalSelection['datetime']) {
+export function shouldFetchPreviousPeriod(
+  datetime: Partial<GlobalSelection['datetime']>
+) {
   const {start, end, period} = datetime;
 
   return !start && !end && canIncludePreviousPeriod(true, period);

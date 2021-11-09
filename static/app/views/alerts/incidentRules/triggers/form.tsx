@@ -12,7 +12,9 @@ import withConfig from 'app/utils/withConfig';
 import ThresholdControl from 'app/views/alerts/incidentRules/triggers/thresholdControl';
 import Field from 'app/views/settings/components/forms/field';
 
+import {isSessionAggregate} from '../../utils';
 import {
+  AlertRuleComparisonType,
   AlertRuleThresholdType,
   ThresholdControlValue,
   Trigger,
@@ -33,6 +35,7 @@ type Props = {
   projects: Project[];
   resolveThreshold: UnsavedIncidentRule['resolveThreshold'];
   thresholdType: UnsavedIncidentRule['thresholdType'];
+  comparisonType: AlertRuleComparisonType;
   aggregate: UnsavedIncidentRule['aggregate'];
   trigger: Trigger;
   triggerIndex: number;
@@ -69,6 +72,7 @@ class TriggerForm extends React.PureComponent<Props> {
       trigger,
       isCritical,
       thresholdType,
+      comparisonType,
       fieldHelp,
       triggerLabel,
       placeholder,
@@ -88,6 +92,7 @@ class TriggerForm extends React.PureComponent<Props> {
           type={trigger.label}
           thresholdType={thresholdType}
           threshold={trigger.alertThreshold}
+          comparisonType={comparisonType}
           placeholder={placeholder}
           onChange={this.handleChangeThreshold}
           onThresholdTypeChange={onThresholdTypeChange}
@@ -135,6 +140,40 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
     onResolveThresholdChange(trigger.alertThreshold);
   };
 
+  getThresholdUnits(aggregate: string, comparisonType: AlertRuleComparisonType) {
+    if (aggregate.includes('duration') || aggregate.includes('measurements')) {
+      return 'ms';
+    }
+
+    if (
+      isSessionAggregate(aggregate) ||
+      comparisonType === AlertRuleComparisonType.CHANGE
+    ) {
+      return '%';
+    }
+
+    return '';
+  }
+
+  getCriticalThresholdPlaceholder(
+    aggregate: string,
+    comparisonType: AlertRuleComparisonType
+  ) {
+    if (aggregate.includes('failure_rate')) {
+      return '0.05';
+    }
+
+    if (isSessionAggregate(aggregate)) {
+      return '97';
+    }
+
+    if (comparisonType === AlertRuleComparisonType.CHANGE) {
+      return '100';
+    }
+
+    return '300';
+  }
+
   render() {
     const {
       api,
@@ -144,6 +183,7 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
       organization,
       triggers,
       thresholdType,
+      comparisonType,
       aggregate,
       resolveThreshold,
       projects,
@@ -156,12 +196,7 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
       actions: [],
     };
 
-    const thresholdUnits =
-      aggregate.includes('duration') || aggregate.includes('measurements')
-        ? 'ms'
-        : aggregate.includes('failure_rate')
-        ? '%'
-        : '';
+    const thresholdUnits = this.getThresholdUnits(aggregate, comparisonType);
 
     return (
       <React.Fragment>
@@ -178,6 +213,7 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
               error={errors && errors.get(index)}
               trigger={trigger}
               thresholdType={thresholdType}
+              comparisonType={comparisonType}
               aggregate={aggregate}
               resolveThreshold={resolveThreshold}
               organization={organization}
@@ -197,7 +233,15 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
                   {isCritical ? t('Critical') : t('Warning')}
                 </React.Fragment>
               }
-              placeholder={isCritical ? `300${thresholdUnits}` : t('None')}
+              placeholder={
+                isCritical
+                  ? `${this.getCriticalThresholdPlaceholder(aggregate, comparisonType)}${
+                      comparisonType === AlertRuleComparisonType.COUNT
+                        ? thresholdUnits
+                        : ''
+                    }`
+                  : t('None')
+              }
               onChange={this.handleChangeTrigger(index)}
               onThresholdTypeChange={onThresholdTypeChange}
             />
@@ -211,6 +255,7 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
           trigger={resolveTrigger}
           // Flip rule thresholdType to opposite
           thresholdType={+!thresholdType}
+          comparisonType={comparisonType}
           aggregate={aggregate}
           resolveThreshold={resolveThreshold}
           organization={organization}

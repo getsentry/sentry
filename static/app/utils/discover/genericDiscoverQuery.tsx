@@ -2,12 +2,15 @@ import * as React from 'react';
 import {Location} from 'history';
 
 import {EventQuery} from 'app/actionCreators/events';
-import {Client} from 'app/api';
+import {Client, ResponseMeta} from 'app/api';
 import {t} from 'app/locale';
 import EventView, {
+  ImmutableEventView,
   isAPIPayloadSimilar,
   LocationQuery,
 } from 'app/utils/discover/eventView';
+import {usePerformanceEventView} from 'app/utils/performance/contexts/performanceEventViewContext';
+import useOrganization from 'app/utils/useOrganization';
 
 export type GenericChildrenProps<T> = {
   isLoading: boolean;
@@ -16,14 +19,17 @@ export type GenericChildrenProps<T> = {
   pageLinks: null | string;
 };
 
-export type DiscoverQueryProps = {
+type OptionalContextProps = {
+  eventView?: EventView | ImmutableEventView;
+  orgSlug?: string;
+};
+
+type BaseDiscoverQueryProps = {
   api: Client;
   /**
    * Used as the default source for cursor values.
    */
   location: Location;
-  eventView: EventView;
-  orgSlug: string;
   /**
    * Record limit to get.
    */
@@ -49,39 +55,48 @@ export type DiscoverQueryProps = {
   referrer?: string;
 };
 
-type RequestProps<P> = DiscoverQueryProps & P;
+export type DiscoverQueryPropsWithContext = BaseDiscoverQueryProps & OptionalContextProps;
+export type DiscoverQueryProps = BaseDiscoverQueryProps & {
+  orgSlug: string;
+  eventView: EventView | ImmutableEventView;
+};
 
-type ReactProps<T> = {
+type InnerRequestProps<P> = DiscoverQueryProps & P;
+type OuterRequestProps<P> = DiscoverQueryPropsWithContext & P;
+
+export type ReactProps<T> = {
   children?: (props: GenericChildrenProps<T>) => React.ReactNode;
 };
 
-type Props<T, P> = RequestProps<P> &
-  ReactProps<T> & {
-    /**
-     * Route to the endpoint
-     */
-    route: string;
-    /**
-     * Allows components to modify the payload before it is set.
-     */
-    getRequestPayload?: (props: Props<T, P>) => any;
-    /**
-     * An external hook in addition to the event view check to check if data should be refetched
-     */
-    shouldRefetchData?: (prevProps: Props<T, P>, props: Props<T, P>) => boolean;
-    /**
-     * A hook before fetch that can be used to do things like clearing the api
-     */
-    beforeFetch?: (api: Client) => void;
-    /**
-     * A hook to modify data into the correct output after data has been received
-     */
-    afterFetch?: (data: any, props?: Props<T, P>) => T;
-    /**
-     * A hook for parent orchestrators to pass down data based on query results, unlike afterFetch it is not meant for specializations as it will not modify data.
-     */
-    didFetch?: (data: T) => void;
-  };
+type ComponentProps<T, P> = {
+  /**
+   * Route to the endpoint
+   */
+  route: string;
+  /**
+   * Allows components to modify the payload before it is set.
+   */
+  getRequestPayload?: (props: Props<T, P>) => any;
+  /**
+   * An external hook in addition to the event view check to check if data should be refetched
+   */
+  shouldRefetchData?: (prevProps: Props<T, P>, props: Props<T, P>) => boolean;
+  /**
+   * A hook before fetch that can be used to do things like clearing the api
+   */
+  beforeFetch?: (api: Client) => void;
+  /**
+   * A hook to modify data into the correct output after data has been received
+   */
+  afterFetch?: (data: any, props?: Props<T, P>) => T;
+  /**
+   * A hook for parent orchestrators to pass down data based on query results, unlike afterFetch it is not meant for specializations as it will not modify data.
+   */
+  didFetch?: (data: T) => void;
+};
+
+type Props<T, P> = InnerRequestProps<P> & ReactProps<T> & ComponentProps<T, P>;
+type OuterProps<T, P> = OuterRequestProps<P> & ReactProps<T> & ComponentProps<T, P>;
 
 type State<T> = {
   tableFetchID: symbol | undefined;
@@ -90,7 +105,7 @@ type State<T> = {
 /**
  * Generic component for discover queries
  */
-class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> {
+class _GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> {
   state: State<T> = {
     isLoading: true,
     tableFetchID: undefined,
@@ -105,8 +120,8 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
   }
 
   componentDidUpdate(prevProps: Props<T, P>) {
-    // Reload data if we aren't already loading,
-    const refetchCondition = !this.state.isLoading && this._shouldRefetchData(prevProps);
+    // Reload data if the payload changes
+    const refetchCondition = this._shouldRefetchData(prevProps);
 
     // or if we've moved from an invalid view state to a valid one,
     const eventViewValidation =
@@ -122,10 +137,25 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
   }
 
   getPayload(props: Props<T, P>) {
-    if (this.props.getRequestPayload) {
-      return this.props.getRequestPayload(props);
+    const {cursor, limit, noPagination, referrer} = props;
+    const payload = this.props.getRequestPayload
+      ? this.props.getRequestPayload(props)
+      : props.eventView.getEventsAPIPayload(props.location);
+
+    if (cursor) {
+      payload.cursor = cursor;
     }
-    return props.eventView.getEventsAPIPayload(props.location);
+    if (limit) {
+      payload.per_page = limit;
+    }
+    if (noPagination) {
+      payload.noPagination = noPagination;
+    }
+    if (referrer) {
+      payload.referrer = referrer;
+    }
+
+    return payload;
   }
 
   _shouldRefetchData = (prevProps: Props<T, P>): boolean => {
@@ -141,20 +171,8 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
   };
 
   fetchData = async () => {
-    const {
-      api,
-      beforeFetch,
-      afterFetch,
-      didFetch,
-      eventView,
-      orgSlug,
-      route,
-      limit,
-      cursor,
-      setError,
-      noPagination,
-      referrer,
-    } = this.props;
+    const {api, beforeFetch, afterFetch, didFetch, eventView, orgSlug, route, setError} =
+      this.props;
 
     if (!eventView.isValid()) {
       return;
@@ -168,23 +186,13 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
 
     setError?.(undefined);
 
-    if (limit) {
-      apiPayload.per_page = limit;
-    }
-    if (noPagination) {
-      apiPayload.noPagination = noPagination;
-    }
-    if (cursor) {
-      apiPayload.cursor = cursor;
-    }
-    if (referrer) {
-      apiPayload.referrer = referrer;
-    }
-
     beforeFetch?.(api);
 
+    // clear any inflight requests since they are now stale
+    api.clear();
+
     try {
-      const [data, , jqXHR] = await doDiscoverQuery<T>(api, url, apiPayload);
+      const [data, , resp] = await doDiscoverQuery<T>(api, url, apiPayload);
       if (this.state.tableFetchID !== tableFetchID) {
         // invariant: a different request was initiated after this request
         return;
@@ -197,7 +205,7 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
         isLoading: false,
         tableFetchID: undefined,
         error: null,
-        pageLinks: jqXHR?.getResponseHeader('Link') ?? prevState.pageLinks,
+        pageLinks: resp?.getResponseHeader('Link') ?? prevState.pageLinks,
         tableData,
       }));
     } catch (err) {
@@ -228,13 +236,26 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
   }
 }
 
+// Shim to allow us to use generic discover query or any specialization with or without passing org slug or eventview, which are now contexts.
+// This will help keep tests working and we can remove extra uses of context-provided props and update tests as we go.
+export function GenericDiscoverQuery<T, P>(props: OuterProps<T, P>) {
+  const orgSlug = props.orgSlug ?? useOrganization().slug;
+  const eventView = props.eventView ?? usePerformanceEventView();
+  const _props: Props<T, P> = {
+    ...props,
+    orgSlug,
+    eventView,
+  };
+  return <_GenericDiscoverQuery<T, P> {..._props} />;
+}
+
 export type DiscoverQueryRequestParams = Partial<EventQuery & LocationQuery>;
 
 export async function doDiscoverQuery<T>(
   api: Client,
   url: string,
   params: DiscoverQueryRequestParams
-): Promise<[T, string | undefined, JQueryXHR | undefined]> {
+): Promise<[T, string | undefined, ResponseMeta | undefined]> {
   return api.requestPromise(url, {
     method: 'GET',
     includeAllArgs: true,

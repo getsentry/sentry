@@ -1,6 +1,6 @@
-import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
+import Link from 'app/components/links/link';
 import space from 'app/styles/space';
 
 const BackToIssues = styled(Link)`

@@ -245,8 +245,7 @@ def worker(ignore_unknown_queues, **options):
     if options["autoreload"]:
         from django.utils import autoreload
 
-        # Note this becomes autoreload.run_with_reloader in django 2.2
-        autoreload.main(run_worker, kwargs=options)
+        autoreload.run_with_reloader(run_worker, kwargs=options)
     else:
         run_worker(**options)
 
@@ -314,10 +313,22 @@ def cron(**options):
     help="How many messages to process (may or may not result in an enqueued task) before committing offsets.",
 )
 @click.option(
+    "--commit-batch-timeout-ms",
+    default=5000,
+    type=int,
+    help="Time (in milliseconds) to wait before closing current batch and committing offsets.",
+)
+@click.option(
     "--initial-offset-reset",
     default="latest",
     type=click.Choice(["earliest", "latest"]),
     help="Position in the commit log topic to begin reading from when no prior offset has been recorded.",
+)
+@click.option(
+    "--entity",
+    default="all",
+    type=click.Choice(["all", "errors", "transactions"]),
+    help="The type of entity to process (all, errors, transactions).",
 )
 @log_options()
 @configuration
@@ -327,10 +338,12 @@ def post_process_forwarder(**options):
 
     try:
         eventstream.run_post_process_forwarder(
+            entity=options["entity"],
             consumer_group=options["consumer_group"],
             commit_log_topic=options["commit_log_topic"],
             synchronize_commit_group=options["synchronize_commit_group"],
             commit_batch_size=options["commit_batch_size"],
+            commit_batch_timeout_ms=options["commit_batch_timeout_ms"],
             initial_offset_reset=options["initial_offset_reset"],
         )
     except ForwarderNotRequired:
@@ -355,6 +368,12 @@ def post_process_forwarder(**options):
     help="How many messages to process before committing offsets.",
 )
 @click.option(
+    "--commit-batch-timeout-ms",
+    default=5000,
+    type=int,
+    help="Time (in milliseconds) to wait before closing current batch and committing offsets.",
+)
+@click.option(
     "--initial-offset-reset",
     default="latest",
     type=click.Choice(["earliest", "latest"]),
@@ -375,6 +394,7 @@ def query_subscription_consumer(**options):
         group_id=options["group"],
         topic=options["topic"],
         commit_batch_size=options["commit_batch_size"],
+        commit_batch_timeout_ms=options["commit_batch_timeout_ms"],
         initial_offset_reset=options["initial_offset_reset"],
         force_offset_reset=options["force_offset_reset"],
     )
@@ -504,3 +524,15 @@ def ingest_consumer(consumer_types, all_consumer_types, **options):
         ingest_consumer_types=",".join(sorted(consumer_types)), _all_threads=True
     ):
         get_ingest_consumer(consumer_types=consumer_types, executor=executor, **options).run()
+
+
+@run.command("ingest-metrics-consumer")
+@log_options()
+@click.option("--topic", default="ingest-metrics", help="Topic to get subscription updates from.")
+@batching_kafka_options("ingest-metrics-consumer")
+@configuration
+def metrics_consumer(**options):
+
+    from sentry.sentry_metrics.indexer.indexer_consumer import get_metrics_consumer
+
+    get_metrics_consumer(**options).run()

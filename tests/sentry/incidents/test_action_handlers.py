@@ -19,12 +19,13 @@ from sentry.incidents.action_handlers import (
 from sentry.incidents.logic import update_incident_status
 from sentry.incidents.models import (
     INCIDENT_STATUS,
+    AlertRuleThresholdType,
     AlertRuleTriggerAction,
     IncidentStatus,
     IncidentStatusMethod,
     TriggerStatus,
 )
-from sentry.models import Integration, NotificationSetting, PagerDutyService, UserOption
+from sentry.models import Integration, NotificationSetting, PagerDutyService, UserEmail, UserOption
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils import TestCase
 from sentry.types.integrations import ExternalProviders
@@ -104,6 +105,10 @@ class EmailActionHandlerGetTargetsTest(TestCase):
             user=self.user, project=self.project, key="mail:email", value=new_email
         )
 
+        useremail = UserEmail.objects.get(email=self.user.email)
+        useremail.email = new_email
+        useremail.save()
+
         action = self.create_alert_rule_trigger_action(
             target_type=AlertRuleTriggerAction.TargetType.USER,
             target_identifier=str(self.user.id),
@@ -113,9 +118,14 @@ class EmailActionHandlerGetTargetsTest(TestCase):
         assert handler.get_targets() == [(self.user.id, new_email)]
 
     def test_team_email_routing(self):
-        new_user = self.create_user()
-
         new_email = "marcos@sentry.io"
+
+        new_user = self.create_user(new_email)
+
+        useremail = UserEmail.objects.get(email=self.user.email)
+        useremail.email = new_email
+        useremail.save()
+
         UserOption.objects.create(
             user=self.user, project=self.project, key="mail:email", value=new_email
         )
@@ -181,6 +191,58 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             self.project, incident, action.alert_rule_trigger, status
         )
 
+    def test_resolve(self):
+        status = TriggerStatus.RESOLVED
+        incident = self.create_incident()
+        action = self.create_alert_rule_trigger_action(triggered_for_incident=incident)
+        generated_email_context = generate_incident_trigger_email_context(
+            self.project, incident, action.alert_rule_trigger, status
+        )
+        assert generated_email_context["threshold"] == 100
+        assert generated_email_context["threshold_direction_string"] == "<"
+
+    def test_context_for_crash_rate_alert(self):
+        """
+        Test that ensures the metric name for Crash rate alerts excludes the alias
+        """
+        status = TriggerStatus.ACTIVE
+        incident = self.create_incident()
+        alert_rule = self.create_alert_rule(
+            aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate"
+        )
+        alert_rule_trigger = self.create_alert_rule_trigger(alert_rule)
+        action = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=alert_rule_trigger, triggered_for_incident=incident
+        )
+        assert (
+            generate_incident_trigger_email_context(
+                self.project, incident, action.alert_rule_trigger, status
+            )["aggregate"]
+            == "percentage(sessions_crashed, sessions)"
+        )
+
+    def test_context_for_resolved_crash_rate_alert(self):
+        """
+        Test that ensures the resolved notification contains the correct threshold string
+        """
+        status = TriggerStatus.RESOLVED
+        incident = self.create_incident()
+        alert_rule = self.create_alert_rule(
+            aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
+            threshold_type=AlertRuleThresholdType.BELOW,
+            query="",
+        )
+        alert_rule_trigger = self.create_alert_rule_trigger(alert_rule)
+        action = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=alert_rule_trigger, triggered_for_incident=incident
+        )
+        generated_email_context = generate_incident_trigger_email_context(
+            self.project, incident, action.alert_rule_trigger, status
+        )
+        assert generated_email_context["aggregate"] == "percentage(sessions_crashed, sessions)"
+        assert generated_email_context["threshold"] == 100
+        assert generated_email_context["threshold_direction_string"] == ">"
+
     def test_environment(self):
         status = TriggerStatus.ACTIVE
         environments = [
@@ -203,8 +265,10 @@ class FireTest:
         raise NotImplementedError
 
     def run_fire_test(self, method="fire"):
-        alert_rule = self.create_alert_rule()
-        incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CLOSED.value)
+        self.alert_rule = self.create_alert_rule()
+        incident = self.create_incident(
+            alert_rule=self.alert_rule, status=IncidentStatus.CLOSED.value
+        )
         if method == "resolve":
             update_incident_status(
                 incident, IncidentStatus.CLOSED, status_method=IncidentStatusMethod.MANUAL
@@ -574,6 +638,74 @@ class SentryAppActionHandlerTest(FireTest, TestCase):
             getattr(handler, method)(metric_value)
         data = responses.calls[0].request.body
         assert json.dumps(build_incident_attachment(action, incident, metric_value, method)) in data
+
+    def test_fire_metric_alert(self):
+        self.run_fire_test()
+
+    def test_resolve_metric_alert(self):
+        self.run_fire_test("resolve")
+
+
+@freeze_time()
+class SentryAppAlerRuleUIComponentActionHandlerTest(FireTest, TestCase):
+    def setUp(self):
+        self.sentry_app = self.create_sentry_app(
+            name="foo",
+            organization=self.organization,
+            is_alertable=True,
+            verify_install=False,
+            schema={
+                "elements": [
+                    self.create_alert_rule_action_schema(),
+                ]
+            },
+        )
+        self.create_sentry_app_installation(
+            slug=self.sentry_app.slug, organization=self.organization, user=self.user
+        )
+
+    @responses.activate
+    def run_test(self, incident, method):
+        from sentry.rules.actions.notify_event_service import build_incident_attachment
+
+        trigger = self.create_alert_rule_trigger(self.alert_rule, "hi", 1000)
+        action = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=trigger,
+            target_identifier=self.sentry_app.id,
+            type=AlertRuleTriggerAction.Type.SENTRY_APP,
+            target_type=AlertRuleTriggerAction.TargetType.SENTRY_APP,
+            sentry_app=self.sentry_app,
+            sentry_app_config={
+                "channel": "#santry",
+                "workspace": "santrysantrysantry",
+                "tag": "triage",
+                "assignee": "Nisanthan Nanthakumar",
+            },
+        )
+
+        responses.add(
+            method=responses.POST,
+            url="https://example.com/webhook",
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"ok": "true"}),
+        )
+
+        handler = SentryAppActionHandler(action, incident, self.project)
+        metric_value = 1000
+        with self.tasks():
+            getattr(handler, method)(metric_value)
+        data = responses.calls[0].request.body
+        assert json.dumps(build_incident_attachment(action, incident, metric_value, method)) in data
+        # Check that the Alert Rule UI Component settings are returned
+        assert json.loads(data)["data"]["metric_alert"]["alert_rule"]["triggers"][0]["actions"][0][
+            "settings"
+        ] == {
+            "channel": "#santry",
+            "workspace": "santrysantrysantry",
+            "tag": "triage",
+            "assignee": "Nisanthan Nanthakumar",
+        }
 
     def test_fire_metric_alert(self):
         self.run_fire_test()

@@ -69,7 +69,11 @@ export function treeResultLocator<T>({
 }: TreeResultLocatorOpts): T {
   const returnResult = (result: any) => new TokenResultFound(result);
 
-  const nodeVisitor = (token: TokenResult<Token>) => {
+  const nodeVisitor = (token: TokenResult<Token> | null) => {
+    if (token === null) {
+      return;
+    }
+
     const result = visitorTest({token, returnResult, skipToken: skipTokenMarker});
 
     // Bubble the result back up.
@@ -142,7 +146,11 @@ type TreeTransformerOpts = {
  * a transform to those nodes.
  */
 export function treeTransformer({tree, transform}: TreeTransformerOpts) {
-  const nodeVisitor = (token: TokenResult<Token>) => {
+  const nodeVisitor = (token: TokenResult<Token> | null) => {
+    if (token === null) {
+      return null;
+    }
+
     switch (token.type) {
       case Token.Filter:
         return transform({

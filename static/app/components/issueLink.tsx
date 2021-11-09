@@ -1,5 +1,4 @@
 import * as React from 'react';
-import {Link} from 'react-router';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
@@ -8,6 +7,7 @@ import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
 import EventAnnotation from 'app/components/events/eventAnnotation';
 import EventMessage from 'app/components/events/eventMessage';
 import Hovercard from 'app/components/hovercard';
+import Link from 'app/components/links/link';
 import TimeSince from 'app/components/timeSince';
 import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';

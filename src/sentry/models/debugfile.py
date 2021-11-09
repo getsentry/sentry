@@ -8,10 +8,29 @@ import re
 import shutil
 import tempfile
 import uuid
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    BinaryIO,
+    Dict,
+    FrozenSet,
+    Iterable,
+    List,
+    Mapping,
+    Optional,
+    Set,
+    Tuple,
+)
 
 from django.db import models
-from symbolic import Archive, ObjectErrorUnsupportedObject, SymbolicError, normalize_debug_id
-from symbolic.debuginfo import BcSymbolMap, UuidMapping
+from django.db.models.query import QuerySet
+from symbolic import (  # type: ignore
+    Archive,
+    ObjectErrorUnsupportedObject,
+    SymbolicError,
+    normalize_debug_id,
+)
+from symbolic.debuginfo import BcSymbolMap, UuidMapping  # type: ignore
 
 from sentry import options
 from sentry.constants import KNOWN_DIF_FORMATS
@@ -26,6 +45,9 @@ from sentry.db.models import (
 from sentry.models.file import File, clear_cached_files
 from sentry.reprocessing import bump_reprocessing_revision, resolve_processing_issue
 from sentry.utils.zip import safe_extract_zip
+
+if TYPE_CHECKING:
+    from sentry.models import Project
 
 logger = logging.getLogger(__name__)
 
@@ -42,8 +64,8 @@ class BadDif(Exception):
     pass
 
 
-class ProjectDebugFileManager(BaseManager):
-    def find_missing(self, checksums, project):
+class ProjectDebugFileManager(BaseManager):  # type: ignore
+    def find_missing(self, checksums: Iterable[str], project: "Project") -> List[str]:
         if not checksums:
             return []
 
@@ -59,13 +81,15 @@ class ProjectDebugFileManager(BaseManager):
 
         return sorted(missing)
 
-    def find_by_checksums(self, checksums, project):
+    def find_by_checksums(self, checksums: Iterable[str], project: "Project") -> QuerySet:
         if not checksums:
             return []
         checksums = [x.lower() for x in checksums]
         return ProjectDebugFile.objects.filter(checksum__in=checksums, project=project)
 
-    def find_by_debug_ids(self, project, debug_ids, features=None):
+    def find_by_debug_ids(
+        self, project: "Project", debug_ids: List[str], features: Optional[Set[str]] = None
+    ) -> Dict[str, "ProjectDebugFile"]:
         """Finds debug information files matching the given debug identifiers.
 
         If a set of features is specified, only files that satisfy all features
@@ -74,7 +98,7 @@ class ProjectDebugFileManager(BaseManager):
 
         Returns a dict of debug files keyed by their debug identifier.
         """
-        features = frozenset(features) if features is not None else frozenset()
+        features: FrozenSet[str] = frozenset(features) if features is not None else frozenset()  # type: ignore
 
         difs = (
             ProjectDebugFile.objects.filter(project_id=project.id, debug_id__in=debug_ids)
@@ -82,7 +106,7 @@ class ProjectDebugFileManager(BaseManager):
             .order_by("-id")
         )
 
-        difs_by_id = {}
+        difs_by_id: Dict[str, List["ProjectDebugFile"]] = {}
         for dif in difs:
             difs_by_id.setdefault(dif.debug_id, []).append(dif)
 
@@ -108,7 +132,7 @@ class ProjectDebugFileManager(BaseManager):
         return rv
 
 
-class ProjectDebugFile(Model):
+class ProjectDebugFile(Model):  # type: ignore
     __include_in_export__ = False
 
     file = FlexibleForeignKey("sentry.File")
@@ -129,17 +153,24 @@ class ProjectDebugFile(Model):
     __repr__ = sane_repr("object_name", "cpu_name", "debug_id")
 
     @property
-    def file_format(self):
+    def file_format(self) -> str:
         ct = self.file.headers.get("Content-Type", "unknown").lower()
         return KNOWN_DIF_FORMATS.get(ct, "unknown")
 
     @property
-    def file_type(self):
+    def file_type(self) -> Optional[str]:
         if self.data:
-            return self.data.get("type")
+            val: Optional[Any] = self.data.get("type")
+            if isinstance(val, str) or val is None:
+                return val
+            else:
+                logger.error("Incorrect type stored for file_type: %r", val)
+                return None
+        else:
+            return None
 
     @property
-    def file_extension(self):
+    def file_extension(self) -> str:
         if self.file_format == "breakpad":
             return ".sym"
         if self.file_format == "macho":
@@ -164,15 +195,15 @@ class ProjectDebugFile(Model):
         return ""
 
     @property
-    def features(self):
+    def features(self) -> FrozenSet[str]:
         return frozenset((self.data or {}).get("features", []))
 
-    def delete(self, *args, **kwargs):
+    def delete(self, *args: Any, **kwargs: Any) -> None:
         super().delete(*args, **kwargs)
         self.file.delete()
 
 
-def clean_redundant_difs(project, debug_id):
+def clean_redundant_difs(project: "Project", debug_id: str) -> None:
     """Deletes redundant debug files from the database and file storage. A debug
     file is considered redundant if there is a newer file with the same debug
     identifier and the same or a superset of its features.
@@ -183,7 +214,7 @@ def clean_redundant_difs(project, debug_id):
         .order_by("-id")
     )
 
-    all_features = set()
+    all_features: Set[str] = set()
     bcsymbolmap_seen = False
     uuidmap_seen = False
     for i, dif in enumerate(difs):
@@ -208,7 +239,12 @@ def clean_redundant_difs(project, debug_id):
                 all_features.update(dif.features)
 
 
-def create_dif_from_id(project, meta, fileobj=None, file=None):
+def create_dif_from_id(
+    project: "Project",
+    meta: "DifMeta",
+    fileobj: Optional[BinaryIO] = None,
+    file: Optional[File] = None,
+) -> Tuple[ProjectDebugFile, bool]:
     """Creates the :class:`ProjectDebugFile` entry for the provided DIF.
 
     This creates the :class:`ProjectDebugFile` entry for the DIF provided in `meta` (a
@@ -299,7 +335,7 @@ def create_dif_from_id(project, meta, fileobj=None, file=None):
     return dif, True
 
 
-def _analyze_progard_filename(filename):
+def _analyze_progard_filename(filename: str) -> Optional[str]:
     match = _proguard_file_re.search(filename)
     if match is None:
         return None
@@ -309,11 +345,20 @@ def _analyze_progard_filename(filename):
     try:
         return str(uuid.UUID(ident))
     except Exception:
-        pass
+        return None
 
 
 class DifMeta:
-    def __init__(self, file_format, arch, debug_id, path, code_id=None, name=None, data=None):
+    def __init__(
+        self,
+        file_format: str,
+        arch: str,
+        debug_id: str,
+        path: str,
+        code_id: Optional[str] = None,
+        name: Optional[str] = None,
+        data: Optional[Any] = None,
+    ):
         self.file_format = file_format
         self.arch = arch
         self.debug_id = debug_id  # TODO(flub): should this use normalize_debug_id()?
@@ -327,7 +372,13 @@ class DifMeta:
             self.name = os.path.basename(path)
 
     @classmethod
-    def from_object(cls, obj, path, name=None, debug_id=None):
+    def from_object(
+        cls,
+        obj: ProjectDebugFile,
+        path: str,
+        name: Optional[str] = None,
+        debug_id: Optional[str] = None,
+    ) -> "DifMeta":
         if debug_id is not None:
             try:
                 debug_id = normalize_debug_id(debug_id)
@@ -353,7 +404,7 @@ class DifMeta:
         )
 
     @property
-    def basename(self):
+    def basename(self) -> str:
         return os.path.basename(self.path)
 
 
@@ -367,7 +418,7 @@ class DifKind(enum.Enum):
     # regex of it twice.  That cost is probably not too great to worry about.
 
 
-def determine_dif_kind(path):
+def determine_dif_kind(path: str) -> DifKind:
     """Returns the :class:`DifKind` detected at `path`."""
     # TODO(flub): Using just the filename might be sufficient.  But the cost of opening a
     # file that we'll open and parse right away anyway is rather minimal, though it would
@@ -382,7 +433,12 @@ def determine_dif_kind(path):
             return DifKind.Object
 
 
-def detect_dif_from_path(path, name=None, debug_id=None, accept_unknown=False):
+def detect_dif_from_path(
+    path: str,
+    name: Optional[str] = None,
+    debug_id: Optional[str] = None,
+    accept_unknown: bool = False,
+) -> List[DifMeta]:
     """Detects which kind of Debug Information File (DIF) the file at `path` is.
 
     :param accept_unknown: If this is ``False`` an exception will be logged with the error
@@ -471,7 +527,9 @@ def detect_dif_from_path(path, name=None, debug_id=None, accept_unknown=False):
             return objs
 
 
-def create_debug_file_from_dif(to_create, project):
+def create_debug_file_from_dif(
+    to_create: Iterable[DifMeta], project: "Project"
+) -> List[ProjectDebugFile]:
     """Create a ProjectDebugFile from a dif (Debug Information File) and
     return an array of created objects.
     """
@@ -484,14 +542,16 @@ def create_debug_file_from_dif(to_create, project):
     return rv
 
 
-def create_files_from_dif_zip(fileobj, project, accept_unknown=False):
+def create_files_from_dif_zip(
+    fileobj: BinaryIO, project: "Project", accept_unknown: bool = False
+) -> List[ProjectDebugFile]:
     """Creates all missing debug files from the given zip file.  This
     returns a list of all files created.
     """
     scratchpad = tempfile.mkdtemp()
     try:
         safe_extract_zip(fileobj, scratchpad, strip_toplevel=False)
-        to_create = []
+        to_create: List[DifMeta] = []
 
         for dirpath, dirnames, filenames in os.walk(scratchpad):
             for fn in filenames:
@@ -499,9 +559,6 @@ def create_files_from_dif_zip(fileobj, project, accept_unknown=False):
                 try:
                     difs = detect_dif_from_path(fn, accept_unknown=accept_unknown)
                 except BadDif:
-                    difs = None
-
-                if difs is None:
                     difs = []
                 to_create = to_create + difs
 
@@ -517,13 +574,15 @@ def create_files_from_dif_zip(fileobj, project, accept_unknown=False):
 
 class DIFCache:
     @property
-    def cache_path(self):
-        return options.get("dsym.cache-path")
+    def cache_path(self) -> str:
+        return options.get("dsym.cache-path")  # type: ignore
 
-    def get_project_path(self, project):
+    def get_project_path(self, project: "Project") -> str:
         return os.path.join(self.cache_path, str(project.id))
 
-    def fetch_difs(self, project, debug_ids, features=None):
+    def fetch_difs(
+        self, project: "Project", debug_ids: Iterable[str], features: Optional[Set[str]] = None
+    ) -> Mapping[str, str]:
         """Given some ids returns an id to path mapping for where the
         debug symbol files are on the FS.
         """
@@ -543,7 +602,7 @@ class DIFCache:
 
         return rv
 
-    def clear_old_entries(self):
+    def clear_old_entries(self) -> None:
         clear_cached_files(self.cache_path)
 
 

@@ -63,12 +63,12 @@ class GroupUserFeedback extends Component<Props, State> {
       ...this.props.params,
       cursor: this.props.location.query.cursor || '',
     })
-      .then(([data, _, jqXHR]) => {
+      .then(([data, _, resp]) => {
         this.setState({
           error: false,
           loading: false,
           reportList: data,
-          pageLinks: jqXHR?.getResponseHeader('Link'),
+          pageLinks: resp?.getResponseHeader('Link'),
         });
       })
       .catch(() => {

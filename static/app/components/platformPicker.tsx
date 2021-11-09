@@ -1,5 +1,4 @@
 import * as React from 'react';
-import keydown from 'react-keydown';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import {PlatformIcon} from 'platformicons';
@@ -8,6 +7,7 @@ import Button from 'app/components/button';
 import ExternalLink from 'app/components/links/externalLink';
 import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
+import {DEFAULT_DEBOUNCE_DURATION} from 'app/constants';
 import categoryList, {filterAliases, PlatformKey} from 'app/data/platformCategories';
 import platforms from 'app/data/platforms';
 import {IconClose, IconProject, IconSearch} from 'app/icons';
@@ -15,7 +15,7 @@ import {t, tct} from 'app/locale';
 import {inputStyles} from 'app/styles/input';
 import space from 'app/styles/space';
 import {Organization, PlatformIntegration} from 'app/types';
-import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 const PLATFORM_CATEGORIES = [...categoryList, {id: 'all', name: t('All')}] as const;
@@ -80,27 +80,14 @@ class PlatformPicker extends React.Component<Props, State> {
 
   logSearch = debounce(() => {
     if (this.state.filter) {
-      trackAdvancedAnalyticsEvent(
-        'growth.platformpicker_search',
-        {
-          search: this.state.filter.toLowerCase(),
-          num_results: this.platformList.length,
-          source: this.props.source,
-        },
-        this.props.organization ?? null
-      );
+      trackAdvancedAnalyticsEvent('growth.platformpicker_search', {
+        search: this.state.filter.toLowerCase(),
+        num_results: this.platformList.length,
+        source: this.props.source,
+        organization: this.props.organization ?? null,
+      });
     }
-  }, 300);
-
-  @keydown('/')
-  focusSearch(e: KeyboardEvent) {
-    if (e.target !== this.searchInput.current) {
-      this.searchInput?.current?.focus();
-      e.preventDefault();
-    }
-  }
-
-  searchInput = React.createRef<HTMLInputElement>();
+  }, DEFAULT_DEBOUNCE_DURATION);
 
   render() {
     const platformList = this.platformList;
@@ -115,11 +102,11 @@ class PlatformPicker extends React.Component<Props, State> {
               <ListLink
                 key={id}
                 onClick={(e: React.MouseEvent) => {
-                  trackAdvancedAnalyticsEvent(
-                    'growth.platformpicker_category',
-                    {category: id, source: this.props.source},
-                    this.props.organization ?? null
-                  );
+                  trackAdvancedAnalyticsEvent('growth.platformpicker_category', {
+                    category: id,
+                    source: this.props.source,
+                    organization: this.props.organization ?? null,
+                  });
                   this.setState({category: id, filter: ''});
                   e.preventDefault();
                 }}
@@ -134,7 +121,6 @@ class PlatformPicker extends React.Component<Props, State> {
             <IconSearch size="xs" />
             <input
               type="text"
-              ref={this.searchInput}
               value={filter}
               placeholder={t('Filter Platforms')}
               onChange={e => this.setState({filter: e.target.value}, this.logSearch)}
@@ -153,14 +139,11 @@ class PlatformPicker extends React.Component<Props, State> {
                 e.stopPropagation();
               }}
               onClick={() => {
-                trackAdvancedAnalyticsEvent(
-                  'growth.select_platform',
-                  {
-                    platform_id: platform.id,
-                    source: this.props.source,
-                  },
-                  this.props.organization ?? null
-                );
+                trackAdvancedAnalyticsEvent('growth.select_platform', {
+                  platform_id: platform.id,
+                  source: this.props.source,
+                  organization: this.props.organization ?? null,
+                });
                 setPlatform(platform.id as PlatformKey);
               }}
             />

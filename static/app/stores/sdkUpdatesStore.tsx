@@ -9,14 +9,14 @@ type SdkUpdatesStoreInterface = {
   isSdkUpdatesLoaded(orgSlug: string): boolean;
 };
 
-type Internal = {
+type Internals = {
   /**
    * Org slug mapping to SDK updates
    */
   orgSdkUpdates: Map<string, ProjectSdkUpdates[]>;
 };
 
-const storeConfig: Reflux.StoreDefinition & SdkUpdatesStoreInterface & Internal = {
+const storeConfig: Reflux.StoreDefinition & Internals & SdkUpdatesStoreInterface = {
   orgSdkUpdates: new Map(),
 
   init() {
@@ -37,8 +37,7 @@ const storeConfig: Reflux.StoreDefinition & SdkUpdatesStoreInterface & Internal 
   },
 };
 
-type SdkUpdatesStore = Reflux.Store & SdkUpdatesStoreInterface;
-
-const SdkUpdatesStore = Reflux.createStore(storeConfig) as SdkUpdatesStore;
+const SdkUpdatesStore = Reflux.createStore(storeConfig) as Reflux.Store &
+  SdkUpdatesStoreInterface;
 
 export default SdkUpdatesStore;

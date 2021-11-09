@@ -119,7 +119,7 @@ class ParseSearchQueryTest(TestCase):
             'times_seen:"<10"',
         ]
         for invalid_query in invalid_queries:
-            with self.assertRaises(InvalidSearchQuery, expected_regex="Invalid number"):
+            with self.assertRaisesMessage(InvalidSearchQuery, "Invalid number"):
                 parse_search_query(invalid_query)
 
     def test_boolean_operators_not_allowed(self):
@@ -130,9 +130,9 @@ class ParseSearchQueryTest(TestCase):
             "user.email:foo@example.com AND user.email:bar@example.com AND user.email:foobar@example.com",
         ]
         for invalid_query in invalid_queries:
-            with self.assertRaises(
+            with self.assertRaisesMessage(
                 InvalidSearchQuery,
-                expected_regex='Boolean statements containing "OR" or "AND" are not supported in this search',
+                'Boolean statements containing "OR" or "AND" are not supported in this search',
             ):
                 parse_search_query(invalid_query)
 
@@ -179,13 +179,13 @@ class ConvertStatusValueTest(TestCase):
 
     def test_invalid(self):
         filters = [SearchFilter(SearchKey("status"), "=", SearchValue("wrong"))]
-        with self.assertRaises(InvalidSearchQuery, expected_regex="invalid status value"):
+        with self.assertRaisesMessage(InvalidSearchQuery, "invalid status value"):
             convert_query_values(filters, [self.project], self.user, None)
 
         filters = [AggregateFilter(AggregateKey("count_unique(user)"), ">", SearchValue("1"))]
-        with self.assertRaises(
+        with self.assertRaisesMessage(
             InvalidSearchQuery,
-            expected_regex="Aggregate filters (count_unique(user)) are not supported in issue searches.",
+            "Aggregate filters (count_unique(user)) are not supported in issue searches.",
         ):
             convert_query_values(filters, [self.project], self.user, None)
 

@@ -1,6 +1,6 @@
 from django.urls import reverse
 
-from .test_scim import SCIMTestCase
+from sentry.testutils import SCIMTestCase
 
 
 class SCIMSchemaEndpointTest(SCIMTestCase):

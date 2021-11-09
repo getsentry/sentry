@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 import logging
-from typing import Any, Mapping, MutableMapping, Optional, Set
+from typing import Any, Iterable, Mapping, MutableMapping
 
 import pytz
 
-from sentry.models import User, UserOption
-from sentry.notifications.notifications.base import BaseNotification
+from sentry.models import Team, User, UserOption
+from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import ActionTargetType
 from sentry.notifications.utils import (
     get_commits,
@@ -23,15 +25,16 @@ from sentry.utils import metrics
 logger = logging.getLogger(__name__)
 
 
-class AlertRuleNotification(BaseNotification):
+class AlertRuleNotification(ProjectNotification):
+    message_builder = "IssueNotificationMessageBuilder"
     fine_tuning_key = "alerts"
-    is_message_issue_unfurl = True
+    metrics_key = "issue_alert"
 
     def __init__(
         self,
         notification: Notification,
         target_type: ActionTargetType,
-        target_identifier: Optional[int] = None,
+        target_identifier: int | None = None,
     ) -> None:
         event = notification.event
         group = event.group
@@ -43,7 +46,7 @@ class AlertRuleNotification(BaseNotification):
         self.target_identifier = target_identifier
         self.rules = notification.rules
 
-    def get_participants(self) -> Mapping[ExternalProviders, Set[User]]:
+    def get_participants(self) -> Mapping[ExternalProviders, Iterable[Team | User]]:
         return get_send_to(
             project=self.project,
             target_type=self.target_type,
@@ -57,29 +60,32 @@ class AlertRuleNotification(BaseNotification):
     def get_category(self) -> str:
         return "issue_alert_email"
 
-    def get_subject(self, context: Optional[Mapping[str, Any]] = None) -> str:
+    def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
         return str(self.event.get_email_subject())
 
     def get_reference(self) -> Any:
         return self.group
 
-    def get_user_context(
-        self, user: User, extra_context: Mapping[str, Any]
+    def get_recipient_context(
+        self, recipient: Team | User, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
-        user_context = {"timezone": pytz.timezone("UTC")}
+        parent_context = super().get_recipient_context(recipient, extra_context)
+        user_context = {"timezone": pytz.timezone("UTC"), **parent_context}
         try:
             # AlertRuleNotification is shared among both email and slack notifications, and in slack
             # notifications, the `user` arg could be of type `Team` which is why we need this check
-            if isinstance(user, User):
+            if isinstance(recipient, User):
                 user_context.update(
                     {
                         "timezone": pytz.timezone(
-                            UserOption.objects.get_value(user=user, key="timezone", default="UTC")
+                            UserOption.objects.get_value(
+                                user=recipient, key="timezone", default="UTC"
+                            )
                         )
                     }
                 )
         except pytz.UnknownTimeZoneError:
-            ...
+            pass
         return user_context
 
     def get_context(self) -> MutableMapping[str, Any]:
@@ -109,7 +115,7 @@ class AlertRuleNotification(BaseNotification):
     def get_notification_title(self) -> Any:
         from sentry.integrations.slack.message_builder.issues import build_rule_url
 
-        title_str = "Issue triggered"
+        title_str = "Alert triggered"
 
         if self.rules:
             rule_url = build_rule_url(self.rules[0], self.group, self.project)
@@ -139,6 +145,15 @@ class AlertRuleNotification(BaseNotification):
 
         participants_by_provider = self.get_participants()
         if not participants_by_provider:
+            logger.info(
+                "notifications.notificaton.rules.alertrulenotification.skip.no_participants",
+                extra={
+                    "target_type": self.target_type.value,
+                    "target_identifier": self.target_identifier,
+                    "group": self.group.id,
+                    "project_id": self.project.id,
+                },
+            )
             return
 
         # Only calculate shared context once.

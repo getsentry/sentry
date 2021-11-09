@@ -37,3 +37,10 @@ class SentryAppService(PluginService):
     @property
     def service_type(self):
         return "sentry_app"
+
+    def has_alert_rule_action(self):
+        from sentry.models import SentryAppComponent
+
+        return SentryAppComponent.objects.filter(
+            sentry_app_id=self.service.id, type="alert-rule-action"
+        ).exists()

@@ -22,22 +22,20 @@ type StoreState = {
 type GlobalSelectionStoreInterface = {
   state: GlobalSelection;
 
-  reset: (state?: GlobalSelection) => void;
-  onReset: () => void;
-  isReady: () => boolean;
-  onSetOrganization: (organization: Organization) => void;
-  onInitializeUrlState: (newSelection: GlobalSelection) => void;
-  get: () => StoreState;
-  updateProjects: (
+  reset(state?: GlobalSelection): void;
+  onReset(): void;
+  isReady(): boolean;
+  onSetOrganization(organization: Organization): void;
+  onInitializeUrlState(newSelection: GlobalSelection): void;
+  get(): StoreState;
+  updateProjects(
     projects: GlobalSelection['projects'],
     environments: null | string[]
-  ) => void;
-  updateDateTime: (datetime: GlobalSelection['datetime']) => void;
-  updateEnvironments: (environments: string[]) => void;
-  onSave: (data: UpdateData) => void;
+  ): void;
+  updateDateTime(datetime: GlobalSelection['datetime']): void;
+  updateEnvironments(environments: string[]): void;
+  onSave(data: UpdateData): void;
 };
-
-type GlobalSelectionStore = Reflux.Store & GlobalSelectionStoreInterface;
 
 const storeConfig: Reflux.StoreDefinition & GlobalSelectionStoreInterface = {
   state: getDefaultSelection(),
@@ -162,6 +160,7 @@ const storeConfig: Reflux.StoreDefinition & GlobalSelectionStoreInterface = {
   },
 };
 
-const GlobalSelectionStore = Reflux.createStore(storeConfig) as GlobalSelectionStore;
+const GlobalSelectionStore = Reflux.createStore(storeConfig) as Reflux.Store &
+  GlobalSelectionStoreInterface;
 
 export default GlobalSelectionStore;

@@ -44,6 +44,7 @@ describe('Incident Rules Create', function () {
         params={{orgId: organization.slug, projectId: project.slug}}
         organization={organization}
         project={project}
+        userTeamIds={[]}
       />,
       routerContext
     );
@@ -57,6 +58,7 @@ describe('Incident Rules Create', function () {
           query: 'event.type:error',
           statsPeriod: '1d',
           yAxis: 'count()',
+          referrer: 'api.organization-event-stats',
         },
       })
     );

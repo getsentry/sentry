@@ -77,6 +77,10 @@ describe('groupEventDetails', () => {
       url: `/projects/${org.slug}/${project.slug}/events/${event.id}/grouping-info/`,
       body: {},
     });
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/codeowners/`,
+      body: [],
+    });
   };
 
   beforeEach(() => {
@@ -115,6 +119,11 @@ describe('groupEventDetails', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/sentry-app-components/?projectId=${project.id}`,
       body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/',
+      body: project,
     });
   });
 
@@ -417,7 +426,7 @@ describe('groupEventDetails', () => {
         body: [unpublishedInstall, internalInstall],
       });
 
-      wrapper = mountWithThemeWrapper();
+      mountWithThemeWrapper();
     });
 
     it('loads Integration UI components', () => {

@@ -1,10 +1,12 @@
 import pytest
 import responses
 
-from sentry.integrations.slack.utils import CHANNEL_PREFIX, MEMBER_PREFIX, get_channel_id
+from sentry.integrations.slack.utils import get_channel_id
+from sentry.integrations.slack.utils.channel import CHANNEL_PREFIX, MEMBER_PREFIX
 from sentry.models import Integration
-from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
+from sentry.shared_integrations.exceptions import ApiRateLimitedError, DuplicateDisplayNameError
 from sentry.testutils import TestCase
+from sentry.testutils.helpers import install_slack
 from sentry.utils import json
 
 
@@ -13,16 +15,7 @@ class GetChannelIdBotTest(TestCase):
         self.resp = responses.mock
         self.resp.__enter__()
 
-        self.integration = Integration.objects.create(
-            provider="slack",
-            name="Awesome Team",
-            external_id="TXXXXXXX1",
-            metadata={
-                "access_token": "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
-                "installation_type": "born_as_bot",
-            },
-        )
-        self.integration.add_organization(self.event.project.organization, self.user)
+        self.integration = install_slack(self.event.project.organization)
         self.add_list_response(
             "conversations",
             [
@@ -78,3 +71,35 @@ class GetChannelIdBotTest(TestCase):
     def test_invalid_channel_selected(self):
         assert get_channel_id(self.organization, self.integration, "#fake-channel")[1] is None
         assert get_channel_id(self.organization, self.integration, "@fake-user")[1] is None
+
+
+class GetChannelIdErrorBotTest(TestCase):
+    def setUp(self):
+        self.resp = responses.mock
+        self.resp.__enter__()
+
+        self.integration = Integration.objects.create(
+            provider="slack",
+            name="Awesome Team",
+            external_id="TXXXXXXX1",
+            metadata={
+                "access_token": "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "installation_type": "born_as_bot",
+            },
+        )
+        self.integration.add_organization(self.event.project.organization, self.user)
+
+    def tearDown(self):
+        self.resp.__exit__(None, None, None)
+
+    def test_rate_limiting(self):
+        """Should handle 429 from Slack when searching for channels"""
+        self.resp.add(
+            method=responses.GET,
+            url="https://slack.com/api/conversations.list",
+            status=429,
+            content_type="application/json",
+            body=json.dumps({"ok": "false", "error": "ratelimited"}),
+        )
+        with pytest.raises(ApiRateLimitedError):
+            get_channel_id(self.organization, self.integration, "@user")

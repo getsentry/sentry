@@ -1,14 +1,14 @@
 import * as React from 'react';
 import keyBy from 'lodash/keyBy';
 
+import {t, tct} from 'app/locale';
+import ConfigStore from 'app/stores/configStore';
 import {
   BooleanField,
   EmailField,
   RadioBooleanField,
   TextField,
-} from 'app/components/forms';
-import {t, tct} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
+} from 'app/views/settings/components/forms';
 
 type Section = {
   key: string;
@@ -26,6 +26,7 @@ type Field = {
   required?: boolean;
   allowEmpty?: boolean;
   disabledReason?: string;
+  disabled?: boolean;
   defaultValue?: () => string | false;
   component?: React.ComponentType<any>;
 };
@@ -194,11 +195,11 @@ const disabledReasons = {
   smtpDisabled: 'SMTP mail has been disabled, so this option is unavailable',
 };
 
-export function getOption(option: string) {
+export function getOption(option: string): Field {
   return definitionsMap[option];
 }
 
-export function getOptionDefault(option: string) {
+export function getOptionDefault(option: string): string | false | undefined {
   const meta = getOption(option);
   return meta.defaultValue ? meta.defaultValue() : undefined;
 }

@@ -10,11 +10,15 @@ import {Frame} from 'app/types';
 import {defined} from 'app/utils';
 
 import FunctionName from './functionName';
+import GroupingIndicator from './groupingIndicator';
 import {getFrameHint} from './utils';
 
 type Props = {
   frame: Frame;
-  showCompleteFunctionName: boolean;
+  absoluteFilePaths?: boolean;
+  showCompleteFunctionName?: boolean;
+  nativeStackTraceV2?: boolean;
+  isUsedForGrouping?: boolean;
   onFunctionNameToggle?: (event: React.MouseEvent<SVGElement>) => void;
   /**
    * Is the stack trace being previewed in a hovercard?
@@ -25,9 +29,12 @@ type Props = {
 
 const Symbol = ({
   frame,
+  absoluteFilePaths,
   onFunctionNameToggle,
   showCompleteFunctionName,
+  nativeStackTraceV2,
   isHoverPreviewed,
+  isUsedForGrouping,
   className,
 }: Props) => {
   const hasFunctionNameHiddenDetails =
@@ -54,18 +61,20 @@ const Symbol = ({
 
   return (
     <Wrapper className={className}>
-      <FunctionNameToggleTooltip
-        title={functionNameTooltipTitle}
-        containerDisplayMode="inline-flex"
-        delay={tooltipDelay}
-      >
-        <FunctionNameToggleIcon
-          hasFunctionNameHiddenDetails={hasFunctionNameHiddenDetails}
-          onClick={hasFunctionNameHiddenDetails ? onFunctionNameToggle : undefined}
-          size="xs"
-          color="purple300"
-        />
-      </FunctionNameToggleTooltip>
+      {onFunctionNameToggle && (
+        <FunctionNameToggleTooltip
+          title={functionNameTooltipTitle}
+          containerDisplayMode="inline-flex"
+          delay={tooltipDelay}
+        >
+          <FunctionNameToggleIcon
+            hasFunctionNameHiddenDetails={hasFunctionNameHiddenDetails}
+            onClick={hasFunctionNameHiddenDetails ? onFunctionNameToggle : undefined}
+            size="xs"
+            color="purple300"
+          />
+        </FunctionNameToggleTooltip>
+      )}
       <Data>
         <StyledFunctionName
           frame={frame}
@@ -79,20 +88,29 @@ const Symbol = ({
             </Tooltip>
           </HintStatus>
         )}
-        {frame.filename && (
-          <FileNameTooltip
-            title={frame.absPath}
-            disabled={!enablePathTooltip}
-            delay={tooltipDelay}
-          >
+        {frame.filename &&
+          (nativeStackTraceV2 ? (
             <Filename>
               {'('}
-              {frame.filename}
+              {absoluteFilePaths ? frame.absPath : frame.filename}
               {frame.lineNo && `:${frame.lineNo}`}
               {')'}
             </Filename>
-          </FileNameTooltip>
-        )}
+          ) : (
+            <FileNameTooltip
+              title={frame.absPath}
+              disabled={!enablePathTooltip}
+              delay={tooltipDelay}
+            >
+              <Filename>
+                {'('}
+                {frame.filename}
+                {frame.lineNo && `:${frame.lineNo}`}
+                {')'}
+              </Filename>
+            </FileNameTooltip>
+          ))}
+        {isUsedForGrouping && <GroupingIndicator />}
       </Data>
     </Wrapper>
   );
@@ -126,6 +144,9 @@ const StyledFunctionName = styled(FunctionName)`
 
 const Data = styled('div')`
   max-width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
 `;
 
 const HintStatus = styled('span')`
@@ -135,7 +156,7 @@ const HintStatus = styled('span')`
 `;
 
 const FileNameTooltip = styled(Tooltip)`
-  margin-right: ${space(0.5)};
+  margin-right: ${space(0.75)};
 `;
 
 const Filename = styled('span')`

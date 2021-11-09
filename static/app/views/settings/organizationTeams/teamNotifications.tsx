@@ -1,11 +1,18 @@
+import * as React from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import AsyncComponent from 'app/components/asyncComponent';
+import Button from 'app/components/button';
+import Confirm from 'app/components/confirm';
+import ExternalLink from 'app/components/links/externalLink';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import Tooltip from 'app/components/tooltip';
+import {IconDelete} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {Integration, LightWeightOrganization, Team} from 'app/types';
+import {ExternalTeam, Integration, Organization, Team} from 'app/types';
 import {toTitleCase} from 'app/utils';
 import withOrganization from 'app/utils/withOrganization';
 import AsyncView from 'app/views/asyncView';
@@ -13,7 +20,7 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import TextField from 'app/views/settings/components/forms/textField';
 
 type Props = RouteComponentProps<{orgId: string; teamId: string}, {}> & {
-  organization: LightWeightOrganization;
+  organization: Organization;
   team: Team;
 };
 
@@ -22,6 +29,8 @@ type State = AsyncView['state'] & {
   integrations: Integration[];
 };
 
+const DOCS_LINK =
+  'https://docs.sentry.io/product/integrations/notification-incidents/slack/#team-notifications';
 const NOTIFICATION_PROVIDERS = ['slack'];
 
 class TeamNotificationSettings extends AsyncView<Props, State> {
@@ -45,6 +54,20 @@ class TeamNotificationSettings extends AsyncView<Props, State> {
     ];
   }
 
+  handleDelete = async (mapping: ExternalTeam) => {
+    try {
+      const {organization, team} = this.props;
+      const endpoint = `/teams/${organization.slug}/${team.slug}/external-teams/${mapping.id}/`;
+      await this.api.requestPromise(endpoint, {
+        method: 'DELETE',
+      });
+      addSuccessMessage(t('Deletion successful'));
+      this.fetchData();
+    } catch {
+      addErrorMessage(t('An error occurred'));
+    }
+  };
+
   renderBody() {
     return (
       <Panel>
@@ -55,6 +78,7 @@ class TeamNotificationSettings extends AsyncView<Props, State> {
   }
 
   renderPanelBody() {
+    const {organization} = this.props;
     const {teamDetails, integrations} = this.state;
 
     const notificationIntegrations = integrations.filter(integration =>
@@ -79,7 +103,7 @@ class TeamNotificationSettings extends AsyncView<Props, State> {
           <NotDisabledSubText>
             {tct('Head over to Slack and type [code] to get started. [link].', {
               code: <code>/sentry link team</code>,
-              link: <a>{t('Learn more')}</a>,
+              link: <ExternalLink href={DOCS_LINK}>{t('Learn more')}</ExternalLink>,
             })}
           </NotDisabledSubText>
         </EmptyMessage>
@@ -90,27 +114,52 @@ class TeamNotificationSettings extends AsyncView<Props, State> {
       notificationIntegrations.map(integration => [integration.id, integration])
     );
 
+    const access = new Set(organization.access);
+    const hasAccess = access.has('team:write');
+
     return externalTeams.map(externalTeam => (
-      <TextField
-        disabled
-        key={externalTeam.id}
-        label={
-          <div>
-            <NotDisabledText>
-              {toTitleCase(externalTeam.provider)}:
-              {integrationsById[externalTeam.integrationId].name}
-            </NotDisabledText>
-            <NotDisabledSubText>
-              {tct('Unlink this channel in Slack with [code]. [link].', {
-                code: <code>/sentry unlink team</code>,
-                link: <a>{t('Learn more')}</a>,
-              })}
-            </NotDisabledSubText>
-          </div>
-        }
-        name="externalName"
-        value={externalTeam.externalName}
-      />
+      <FormFieldWrapper key={externalTeam.id}>
+        <StyledFormField
+          disabled
+          label={
+            <div>
+              <NotDisabledText>
+                {toTitleCase(externalTeam.provider)}:
+                {integrationsById[externalTeam.integrationId].name}
+              </NotDisabledText>
+              <NotDisabledSubText>
+                {tct('Unlink this channel in Slack with [code]. [link].', {
+                  code: <code>/sentry unlink team</code>,
+                  link: <ExternalLink href={DOCS_LINK}>{t('Learn more')}</ExternalLink>,
+                })}
+              </NotDisabledSubText>
+            </div>
+          }
+          name="externalName"
+          value={externalTeam.externalName}
+        />
+        <DeleteButtonWrapper>
+          <Tooltip
+            title={t(
+              'You must be an organization owner, manager or admin to remove a Slack team link'
+            )}
+            disabled={hasAccess}
+          >
+            <Confirm
+              disabled={!hasAccess}
+              onConfirm={() => this.handleDelete(externalTeam)}
+              message={t('Are you sure you want to remove this Slack team link?')}
+            >
+              <Button
+                size="small"
+                icon={<IconDelete size="md" />}
+                label={t('delete')}
+                disabled={!hasAccess}
+              />
+            </Confirm>
+          </Tooltip>
+        </DeleteButtonWrapper>
+      </FormFieldWrapper>
     ));
   }
 }
@@ -125,4 +174,16 @@ const NotDisabledSubText = styled('div')`
   font-size: ${p => p.theme.fontSizeRelativeSmall};
   line-height: 1.4;
   margin-top: ${space(1)};
+`;
+const FormFieldWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+`;
+const StyledFormField = styled(TextField)`
+  flex: 1;
+`;
+const DeleteButtonWrapper = styled('div')`
+  margin-right: ${space(4)};
+  padding-right: ${space(0.5)};
 `;

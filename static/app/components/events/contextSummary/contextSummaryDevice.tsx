@@ -77,7 +77,7 @@ const ContextSummaryDevice = ({data}: Props) => {
     <Item className={className} icon={<span className="context-item-icon" />}>
       <h3>{renderName()}</h3>
       {subTitle && (
-        <TextOverflow isParagraph>
+        <TextOverflow isParagraph data-test-id="context-sub-title">
           <Subject>{subTitle.subject}</Subject>
           <AnnotatedText value={subTitle.value} meta={subTitle.meta} />
         </TextOverflow>

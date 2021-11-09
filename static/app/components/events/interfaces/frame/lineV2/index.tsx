@@ -2,15 +2,16 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import {PackageStatusIcon} from 'app/components/events/interfaces/packageStatus';
-import {AddressToggleIcon} from 'app/components/events/interfaces/togglableAddress';
+import ListItem from 'app/components/list/listItem';
 import StrictClick from 'app/components/strictClick';
 import {PlatformType, SentryAppComponent} from 'app/types';
 import {Event} from 'app/types/event';
 import withSentryAppComponents from 'app/utils/withSentryAppComponents';
 
 import Context from '../context';
+import {PackageStatusIcon} from '../packageStatus';
 import {FunctionNameToggleIcon} from '../symbol';
+import {AddressToggleIcon} from '../togglableAddress';
 import {
   getPlatform,
   hasAssembly,
@@ -22,24 +23,27 @@ import {
 
 import Default from './default';
 import Native from './native';
+import NativeV2 from './nativeV2';
 
 type Props = Omit<
   React.ComponentProps<typeof Native>,
-  'onToggleContext' | 'isExpandable' | 'hasGroupingBadge'
+  'onToggleContext' | 'isExpandable' | 'leadsToApp' | 'hasGroupingBadge'
 > &
   Omit<
     React.ComponentProps<typeof Default>,
-    'onToggleContext' | 'isExpandable' | 'hasGroupingBadge'
+    'onToggleContext' | 'isExpandable' | 'leadsToApp' | 'hasGroupingBadge'
   > & {
     event: Event;
     registers: Record<string, string>;
     components: Array<SentryAppComponent>;
     emptySourceNotation?: boolean;
     isOnlyFrame?: boolean;
+    nativeV2?: boolean;
   };
 
 function Line({
   frame,
+  nextFrame,
   prevFrame,
   timesRepeated,
   includeSystemFrames,
@@ -48,11 +52,7 @@ function Line({
   showingAbsoluteAddress,
   showCompleteFunctionName,
   isFrameAfterLastNonApp,
-  isSentinel,
   isUsedForGrouping,
-  isPrefix,
-  haveFramesAtLeastOneExpandedFrame,
-  haveFramesAtLeastOneGroupingBadge,
   maxLengthOfRelativeAddress,
   image,
   registers,
@@ -64,77 +64,92 @@ function Line({
    * Is the stack trace being previewed in a hovercard?
    */
   isHoverPreviewed = false,
+  nativeV2 = false,
   ...props
 }: Props) {
-  const [isExpanded, setIsExpanded] = useState(props.isExpanded ?? false);
-
   /* Prioritize the frame platform but fall back to the platform
    of the stack trace / exception */
   const platform = getPlatform(frame.platform, props.platform ?? 'other') as PlatformType;
-  const expandable = isExpandable({
-    frame,
-    registers,
-    platform,
-    emptySourceNotation,
-    isOnlyFrame,
-  });
+  const leadsToApp = !frame.inApp && ((nextFrame && nextFrame.inApp) || !nextFrame);
 
-  function toggleContext(evt?: React.MouseEvent) {
-    evt && evt.preventDefault();
+  const expandable =
+    !leadsToApp || includeSystemFrames
+      ? isExpandable({
+          frame,
+          registers,
+          platform,
+          emptySourceNotation,
+          isOnlyFrame,
+        })
+      : false;
+
+  const [isExpanded, setIsExpanded] = useState(
+    expandable ? props.isExpanded ?? false : false
+  );
+
+  function toggleContext(evt: React.MouseEvent) {
+    evt.preventDefault();
     setIsExpanded(!isExpanded);
   }
 
   function renderLine() {
     switch (platform) {
       case 'objc':
-      // fallthrough
       case 'cocoa':
-      // fallthrough
       case 'native':
-        return (
-          <StrictClick onClick={expandable ? toggleContext : undefined}>
-            <Native
-              frame={frame}
-              prevFrame={prevFrame}
-              isHoverPreviewed={isHoverPreviewed}
-              platform={platform}
-              isExpanded={isExpanded}
-              isExpandable={expandable}
-              onAddressToggle={onAddressToggle}
-              onFunctionNameToggle={onFunctionNameToggle}
-              includeSystemFrames={includeSystemFrames}
-              showingAbsoluteAddress={showingAbsoluteAddress}
-              showCompleteFunctionName={showCompleteFunctionName}
-              isFrameAfterLastNonApp={isFrameAfterLastNonApp}
-              onToggleContext={toggleContext}
-              isSentinel={isSentinel}
-              isPrefix={isPrefix}
-              isUsedForGrouping={isUsedForGrouping}
-              haveFramesAtLeastOneExpandedFrame={haveFramesAtLeastOneExpandedFrame}
-              haveFramesAtLeastOneGroupingBadge={haveFramesAtLeastOneGroupingBadge}
-              image={image}
-              maxLengthOfRelativeAddress={maxLengthOfRelativeAddress}
-            />
-          </StrictClick>
+        return nativeV2 ? (
+          <NativeV2
+            leadsToApp={leadsToApp}
+            frame={frame}
+            prevFrame={prevFrame}
+            nextFrame={nextFrame}
+            isHoverPreviewed={isHoverPreviewed}
+            platform={platform}
+            isExpanded={isExpanded}
+            isExpandable={expandable}
+            includeSystemFrames={includeSystemFrames}
+            isFrameAfterLastNonApp={isFrameAfterLastNonApp}
+            onToggleContext={toggleContext}
+            image={image}
+            maxLengthOfRelativeAddress={maxLengthOfRelativeAddress}
+            isUsedForGrouping={isUsedForGrouping}
+          />
+        ) : (
+          <Native
+            leadsToApp={leadsToApp}
+            frame={frame}
+            prevFrame={prevFrame}
+            nextFrame={nextFrame}
+            isHoverPreviewed={isHoverPreviewed}
+            platform={platform}
+            isExpanded={isExpanded}
+            isExpandable={expandable}
+            onAddressToggle={onAddressToggle}
+            onFunctionNameToggle={onFunctionNameToggle}
+            includeSystemFrames={includeSystemFrames}
+            showingAbsoluteAddress={showingAbsoluteAddress}
+            showCompleteFunctionName={showCompleteFunctionName}
+            isFrameAfterLastNonApp={isFrameAfterLastNonApp}
+            onToggleContext={toggleContext}
+            image={image}
+            maxLengthOfRelativeAddress={maxLengthOfRelativeAddress}
+            isUsedForGrouping={isUsedForGrouping}
+          />
         );
       default:
         return (
-          <StrictClick onClick={expandable ? toggleContext : undefined}>
-            <Default
-              frame={frame}
-              timesRepeated={timesRepeated}
-              isHoverPreviewed={isHoverPreviewed}
-              platform={platform}
-              isExpanded={isExpanded}
-              isExpandable={expandable}
-              onToggleContext={toggleContext}
-              isSentinel={isSentinel}
-              isPrefix={isPrefix}
-              isUsedForGrouping={isUsedForGrouping}
-              haveFramesAtLeastOneExpandedFrame={haveFramesAtLeastOneExpandedFrame}
-              haveFramesAtLeastOneGroupingBadge={haveFramesAtLeastOneGroupingBadge}
-            />
-          </StrictClick>
+          <Default
+            leadsToApp={leadsToApp}
+            frame={frame}
+            nextFrame={nextFrame}
+            timesRepeated={timesRepeated}
+            isHoverPreviewed={isHoverPreviewed}
+            platform={platform}
+            isExpanded={isExpanded}
+            isExpandable={expandable}
+            onToggleContext={toggleContext}
+            isUsedForGrouping={isUsedForGrouping}
+          />
         );
     }
   }
@@ -146,11 +161,14 @@ function Line({
     collapsed: !isExpanded,
     'system-frame': !frame.inApp,
     'frame-errors': !!(frame.errors ?? []).length,
+    'leads-to-app': leadsToApp,
   });
 
   return (
-    <StyledLi className={className}>
-      {renderLine()}
+    <StyleListItem className={className} data-test-id="stack-trace-frame">
+      <StrictClick onClick={expandable ? toggleContext : undefined}>
+        {renderLine()}
+      </StrictClick>
       <Context
         frame={frame}
         event={event}
@@ -164,14 +182,18 @@ function Line({
         expandable={expandable}
         isExpanded={isExpanded}
       />
-    </StyledLi>
+    </StyleListItem>
   );
 }
 
 export default withSentryAppComponents(Line, {componentType: 'stacktrace-link'});
 
-const StyledLi = styled('li')`
+const StyleListItem = styled(ListItem)`
   overflow: hidden;
+
+  :first-child {
+    border-top: none;
+  }
 
   ${PackageStatusIcon} {
     flex-shrink: 0;

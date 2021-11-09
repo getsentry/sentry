@@ -1,0 +1,48 @@
+---
+created: '2021-08-02T11:09:20.944919Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+SIGABRT:Signal 6, Code 0 >
+Attempted to dereference garbage pointer 0x1fef9f0. (thread_id:_, crashed:_)
+                     libsystem_pthread.dylib  _pthread_wqthread category=threadbase
+                           libdispatch.dylib  _dispatch_worker_thread2 category=threadbase
+                           libdispatch.dylib  _dispatch_root_queue_drain category=internals
+                           libdispatch.dylib  _dispatch_async_redirect_invoke category=internals
+                           libdispatch.dylib  _dispatch_continuation_pop$VARIANT$mp category=internals
+                           libdispatch.dylib  _dispatch_client_callout category=threadbase
+                           libdispatch.dylib  _dispatch_block_async_invoke2 category=internals
+                                  Foundation  __NSOQSchedule_f category=internals
+                                  Foundation  __NSOPERATIONQUEUE_IS_STARTING_AN_OPERATION__ category=internals
+                                  Foundation  -[NSOperation start] category=indirection
+                                  Foundation  __NSOPERATION_IS_INVOKING_MAIN__ category=internals
+                                  Foundation  -[NSBlockOperation main] category=indirection
+                                  Foundation  __NSBLOCKOPERATION_IS_CALLING_OUT_TO_A_BLOCK__ category=internals
+                                   CFNetwork  _CFNetworkHTTPConnectionCacheSetLimit category=internals
+                                              block_destroy_helper.14 category=internals
+                                              block_destroy_helper.14 category=internals
+                                              __swift_memcpy24_8 category=internals
+                                              __swift_memcpy24_8 category=internals
+                                              __swift_memcpy24_8 category=internals
+                                              block_destroy_helper.14 category=internals
+                                              __swift_memcpy24_8 category=internals
+                                              __swift_destroy_boxed_opaque_existential_1 category=internals
+                                              block_destroy_helper category=internals
+                                              __swift_destroy_boxed_opaque_existential_1 category=internals
+                                              __swift_memcpy24_8 category=internals
+                                              block_destroy_helper.51 category=internals
+                                              __swift_memcpy24_8 category=internals
+                                              __swift_project_boxed_opaque_existential_1 category=internals
+                                              __swift_allocate_boxed_opaque_existential_0 category=internals
+                                              __swift_project_boxed_opaque_existential_1 category=internals
+                                              __swift_project_boxed_opaque_existential_1 category=internals
+                                              block_destroy_helper category=internals
+                              CoreFoundation  _CFRelease category=free
+                      libsystem_malloc.dylib  szone_free category=malloc
+                      libsystem_malloc.dylib  malloc_zone_error category=internals
+                      libsystem_malloc.dylib  malloc_vreport category=internals
+                           libsystem_c.dylib  abort category=throw
+                     libsystem_pthread.dylib  pthread_kill category=indirection
+                      libsystem_kernel.dylib  __pthread_kill category=internals

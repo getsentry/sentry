@@ -1,4 +1,5 @@
 import time
+from unittest.mock import patch
 
 import responses
 from django.http import HttpResponse
@@ -21,7 +22,6 @@ from sentry.models import (
 from sentry.testutils import APITestCase
 from sentry.testutils.asserts import assert_mock_called_once_with_partial
 from sentry.utils import json
-from sentry.utils.compat.mock import patch
 
 
 class BaseEventTest(APITestCase):
@@ -216,7 +216,7 @@ class StatusActionTest(BaseEventTest):
         assert GroupAssignee.objects.filter(group=self.group1, user=self.user).exists()
 
         assert b"Unassign" in responses.calls[0].request.body
-        assert f"Assigned to {self.user.email}".encode("utf-8") in responses.calls[0].request.body
+        assert f"Assigned to {self.user.email}".encode() in responses.calls[0].request.body
 
     @responses.activate
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
@@ -230,7 +230,7 @@ class StatusActionTest(BaseEventTest):
 
         assert b"Unassign" in responses.calls[0].request.body
         assert "user_conversation_id" in responses.calls[0].request.url
-        assert f"Assigned to {self.user.email}".encode("utf-8") in responses.calls[0].request.body
+        assert f"Assigned to {self.user.email}".encode() in responses.calls[0].request.body
 
     @responses.activate
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
@@ -244,7 +244,7 @@ class StatusActionTest(BaseEventTest):
 
         assert b"Unassign" in responses.calls[0].request.body
         assert "some_channel_id" in responses.calls[0].request.url
-        assert f"Assigned to {self.user.email}".encode("utf-8") in responses.calls[0].request.body
+        assert f"Assigned to {self.user.email}".encode() in responses.calls[0].request.body
 
     @responses.activate
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)

@@ -10,12 +10,15 @@ type Props = {
   title: string;
   description: string;
   children: React.ReactNode;
+  className?: string;
 };
 
-function DataSection({title, description, children}: Props) {
+function DataSection({title, description, children, className, ...props}: Props) {
   const type = kebabCase(title);
   return (
     <StyledEventDataSection
+      {...props}
+      className={className}
       type={type}
       title={
         <TitleWrapper>

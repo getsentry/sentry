@@ -3,11 +3,14 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {RequestOptions} from 'app/api';
+import Alert from 'app/components/alert';
+import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import {IconFlag, IconOpen, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Integration, IntegrationProvider} from 'app/types';
+import {getAlertText} from 'app/utils/integrationUtil';
 import withOrganization from 'app/utils/withOrganization';
 
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
@@ -23,9 +26,9 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
   AbstractIntegrationDetailedView['props'],
   State & AbstractIntegrationDetailedView['state']
 > {
-  getEndpoints(): ([string, string, any] | [string, string])[] {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {orgId, integrationSlug} = this.props.params;
-    const baseEndpoints: ([string, string, any] | [string, string])[] = [
+    return [
       [
         'information',
         `/organizations/${orgId}/config/integrations/?provider_key=${integrationSlug}`,
@@ -35,8 +38,6 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
         `/organizations/${orgId}/integrations/?provider_key=${integrationSlug}&includeConfig=0`,
       ],
     ];
-
-    return baseEndpoints;
   }
 
   get integrationType() {
@@ -150,7 +151,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
   };
 
   handleExternalInstall = () => {
-    this.trackIntegrationEvent('integrations.installation_start');
+    this.trackIntegrationAnalytics('integrations.installation_start');
   };
 
   renderTopButton(disabledFromFeatures: boolean, userHasAccess: boolean) {
@@ -210,9 +211,19 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     const {organization} = this.props;
     const provider = this.provider;
 
-    if (configurations.length) {
-      return configurations.map(integration => {
-        return (
+    if (!configurations.length) {
+      return this.renderEmptyConfigurations();
+    }
+
+    const alertText = getAlertText(configurations);
+    return (
+      <Fragment>
+        {alertText && (
+          <Alert type="warning" icon={<IconFlag size="sm" />}>
+            {alertText}
+          </Alert>
+        )}
+        {configurations.map(integration => (
           <InstallWrapper key={integration.id}>
             <InstalledIntegration
               organization={organization}
@@ -221,14 +232,13 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
               onRemove={this.onRemove}
               onDisable={this.onDisable}
               data-test-id={integration.id}
-              trackIntegrationEvent={this.trackIntegrationEvent}
+              trackIntegrationAnalytics={this.trackIntegrationAnalytics}
+              requiresUpgrade={!!alertText}
             />
           </InstallWrapper>
-        );
-      });
-    }
-
-    return this.renderEmptyConfigurations();
+        ))}
+      </Fragment>
+    );
   }
 }
 

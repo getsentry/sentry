@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import {Client} from 'app/api';
@@ -19,40 +19,39 @@ type Props = RouteComponentProps<{orgId: string}, {}> & {
   children: React.ReactNode;
 };
 
-class DashboardsV2Container extends React.Component<Props> {
-  render() {
-    const {organization, params, api, location, children} = this.props;
+function DashboardsV2Container(props: Props) {
+  const {organization, params, api, location, children} = props;
 
-    if (organization.features.includes('dashboards-edit')) {
-      return children;
-    }
-    return (
-      <DashboardBasicFeature organization={organization}>
-        <OrgDashboards
-          api={api}
-          location={location}
-          params={params}
-          organization={organization}
-        >
-          {({dashboard, dashboards, error, reloadData}) => {
-            return error ? (
-              <NotFound />
-            ) : dashboard ? (
-              <DashboardDetail
-                {...this.props}
-                initialState={DashboardState.VIEW}
-                dashboard={dashboard}
-                dashboards={dashboards}
-                reloadData={reloadData}
-              />
-            ) : (
-              <LoadingIndicator />
-            );
-          }}
-        </OrgDashboards>
-      </DashboardBasicFeature>
-    );
+  if (organization.features.includes('dashboards-edit')) {
+    return <Fragment>{children}</Fragment>;
   }
+
+  return (
+    <DashboardBasicFeature organization={organization}>
+      <OrgDashboards
+        api={api}
+        location={location}
+        params={params}
+        organization={organization}
+      >
+        {({dashboard, dashboards, error, reloadData}) => {
+          return error ? (
+            <NotFound />
+          ) : dashboard ? (
+            <DashboardDetail
+              {...props}
+              initialState={DashboardState.VIEW}
+              dashboard={dashboard}
+              dashboards={dashboards}
+              reloadData={reloadData}
+            />
+          ) : (
+            <LoadingIndicator />
+          );
+        }}
+      </OrgDashboards>
+    </DashboardBasicFeature>
+  );
 }
 
 export default withApi(withOrganization(DashboardsV2Container));

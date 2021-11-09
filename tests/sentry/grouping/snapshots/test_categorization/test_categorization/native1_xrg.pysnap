@@ -1,5 +1,5 @@
 ---
-created: '2021-03-29T19:24:18.462542Z'
+created: '2021-08-06T16:25:44.473346Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -8,9 +8,9 @@ source: tests/sentry/grouping/test_categorization.py
 Unhandled C++ Exception:Fatal Error: Unhandled C++ Exception (thread_id:_, crashed:_)
                C:\WINDOWS\SYSTEM32\ntdll.dll  RtlUserThreadStart category=threadbase
             C:\WINDOWS\System32\KERNEL32.DLL  BaseThreadInitThunk category=threadbase
-               C:\WINDOWS\SYSTEM32\ntdll.dll  TppWorkerThread category=system
-               C:\WINDOWS\SYSTEM32\ntdll.dll  TppWorkpExecuteCallback category=internals
-             C:\WINDOWS\SYSTEM32\WINHTTP.dll  HTTP_THREAD_POOL::_StaticWorkItemCallback category=internals
+               C:\WINDOWS\SYSTEM32\ntdll.dll  TppWorkerThread category=threadbase
+               C:\WINDOWS\SYSTEM32\ntdll.dll  TppWorkpExecuteCallback category=threadbase
+             C:\WINDOWS\SYSTEM32\WINHTTP.dll  HTTP_THREAD_POOL::_StaticWorkItemCallback category=system
              C:\WINDOWS\SYSTEM32\WINHTTP.dll  HTTP_REQUEST_HANDLE_OBJECT::OnWorkItem category=internals
              C:\WINDOWS\SYSTEM32\WINHTTP.dll  HTTP_REQUEST_HANDLE_OBJECT::_ControlledAppCallback category=internals
              C:\WINDOWS\SYSTEM32\WINHTTP.dll  HTTP_REQUEST_HANDLE_OBJECT::_SafeAppCallback category=internals

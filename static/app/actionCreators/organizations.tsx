@@ -8,7 +8,7 @@ import {Client} from 'app/api';
 import OrganizationsStore from 'app/stores/organizationsStore';
 import ProjectsStore from 'app/stores/projectsStore';
 import TeamStore from 'app/stores/teamStore';
-import {LightWeightOrganization, Organization} from 'app/types';
+import {Organization} from 'app/types';
 
 type RedirectRemainingOrganizationParams = {
   /**
@@ -104,7 +104,7 @@ export function removeAndRedirectToRemainingOrganization(
 /**
  * Set active organization
  */
-export function setActiveOrganization(org: LightWeightOrganization) {
+export function setActiveOrganization(org: Organization) {
   OrganizationsActions.setActive(org);
 }
 
@@ -120,7 +120,7 @@ export function changeOrganizationSlug(
  *
  * Accepts a partial organization as it will merge will existing organization
  */
-export function updateOrganization(org: Partial<LightWeightOrganization>) {
+export function updateOrganization(org: Partial<Organization>) {
   OrganizationsActions.update(org);
   OrganizationActions.update(org);
 }

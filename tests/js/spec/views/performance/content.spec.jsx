@@ -2,9 +2,12 @@ import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {act} from 'sentry-test/reactTestingLibrary';
 
 import * as globalSelection from 'app/actionCreators/globalSelection';
 import ProjectsStore from 'app/stores/projectsStore';
+import TeamStore from 'app/stores/teamStore';
+import {OrganizationContext} from 'app/views/organizationContext';
 import PerformanceContent from 'app/views/performance/content';
 import {DEFAULT_MAX_DURATION} from 'app/views/performance/trends/utils';
 import {vitalAbbreviations} from 'app/views/performance/vitalDetail/utils';
@@ -24,7 +27,7 @@ function initializeData(projects, query, features = FEATURES) {
       },
     },
   });
-  ProjectsStore.loadInitialData(initialData.organization.projects);
+  act(() => ProjectsStore.loadInitialData(initialData.organization.projects));
   return initialData;
 }
 
@@ -55,12 +58,13 @@ function initializeTrendsData(query, addDefaultQuery = true) {
       },
     },
   });
-  ProjectsStore.loadInitialData(initialData.organization.projects);
+  act(() => ProjectsStore.loadInitialData(initialData.organization.projects));
   return initialData;
 }
 
 describe('Performance > Content', function () {
   beforeEach(function () {
+    act(() => void TeamStore.loadInitialData([]));
     browserHistory.push = jest.fn();
     jest.spyOn(globalSelection, 'updateDateTime');
 
@@ -139,10 +143,11 @@ describe('Performance > Content', function () {
         predicate: (_, options) => {
           if (!options.hasOwnProperty('query')) {
             return false;
-          } else if (!options.query.hasOwnProperty('field')) {
+          }
+          if (!options.query.hasOwnProperty('field')) {
             return false;
           }
-          return !options.query.field.includes('key_transaction');
+          return !options.query.field.includes('team_key_transaction');
         },
       }
     );
@@ -165,7 +170,7 @@ describe('Performance > Content', function () {
           },
           data: [
             {
-              key_transaction: 1,
+              team_key_transaction: 1,
               transaction: '/apple/cart',
               'project.id': 1,
               user: 'uhoh@example.com',
@@ -179,7 +184,7 @@ describe('Performance > Content', function () {
               user_misery_300: 0.114,
             },
             {
-              key_transaction: 0,
+              team_key_transaction: 0,
               transaction: '/apple/checkout',
               'project.id': 1,
               user: 'uhoh@example.com',
@@ -199,10 +204,11 @@ describe('Performance > Content', function () {
         predicate: (_, options) => {
           if (!options.hasOwnProperty('query')) {
             return false;
-          } else if (!options.query.hasOwnProperty('field')) {
+          }
+          if (!options.query.hasOwnProperty('field')) {
             return false;
           }
-          return options.query.field.includes('key_transaction');
+          return options.query.field.includes('team_key_transaction');
         },
       }
     );
@@ -243,16 +249,11 @@ describe('Performance > Content', function () {
       url: `/organizations/org-slug/key-transactions-list/`,
       body: [],
     });
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/org-slug/legacy-key-transactions-count/`,
-      body: [],
-    });
   });
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
-    ProjectsStore.reset();
+    act(() => ProjectsStore.reset());
     globalSelection.updateDateTime.mockRestore();
   });
 
@@ -522,9 +523,7 @@ describe('Performance > Content', function () {
       TestStubs.Project({id: 1, firstTransactionEvent: false}),
       TestStubs.Project({id: 2, firstTransactionEvent: false}),
     ];
-    const data = initializeData(projects, {view: undefined}, [
-      'performance-create-sample-transaction',
-    ]);
+    const data = initializeData(projects, {view: undefined});
 
     const wrapper = mountWithTheme(
       <PerformanceContent
@@ -539,23 +538,24 @@ describe('Performance > Content', function () {
     ).toBe(true);
   });
 
-  it('Do not display Create Sample Transaction Button with feature flag turned off', async function () {
-    const projects = [
-      TestStubs.Project({id: 1, firstTransactionEvent: false}),
-      TestStubs.Project({id: 2, firstTransactionEvent: false}),
-    ];
-    const data = initializeData(projects, {view: undefined}, []);
+  it('Displays new landing component with feature flag on', async function () {
+    const projects = [TestStubs.Project({id: 1, firstTransactionEvent: false})];
+    const data = initializeData(projects, {view: undefined}, [
+      'performance-landing-widgets',
+    ]);
 
     const wrapper = mountWithTheme(
-      <PerformanceContent
-        organization={data.organization}
-        location={data.router.location}
-      />,
+      <OrganizationContext.Provider value={data.organization}>
+        <PerformanceContent
+          organization={data.organization}
+          location={data.router.location}
+        />
+      </OrganizationContext.Provider>,
       data.routerContext
     );
 
-    expect(
-      wrapper.find('Button[data-test-id="create-sample-transaction-btn"]').exists()
-    ).toBe(false);
+    expect(wrapper.find('div[data-test-id="performance-landing-v3"]').exists()).toBe(
+      true
+    );
   });
 });

@@ -5,11 +5,11 @@ import SearchBar from 'app/components/events/searchBar';
 import TagStore from 'app/stores/tagStore';
 
 const focusTextarea = el => el.find('textarea[name="query"]').simulate('focus');
-const selectFirstAutocompleteItem = async el => {
+const selectNthAutocompleteItem = async (el, index) => {
   focusTextarea(el);
 
   el.find('SearchListItem[data-test-id="search-autocomplete-item"]')
-    .first()
+    .at(index)
     .simulate('click');
   const textarea = el.find('textarea');
   textarea
@@ -122,9 +122,9 @@ describe('Events > SearchBar', function () {
     await wrapper.update();
 
     expect(wrapper.find('SearchDropdown').prop('searchSubstring')).toEqual('');
-    expect(wrapper.find('SearchDropdown Description').first().text()).toEqual('gpu');
+    expect(wrapper.find('SearchDropdown Description').at(2).text()).toEqual('gpu');
 
-    selectFirstAutocompleteItem(wrapper);
+    selectNthAutocompleteItem(wrapper, 2);
     await wrapper.update();
     // the trailing space is important here as without it, autocomplete suggestions will
     // try to complete `has:gpu` thinking the token has not ended yet
@@ -147,11 +147,11 @@ describe('Events > SearchBar', function () {
     await wrapper.update();
 
     expect(wrapper.find('SearchDropdown').prop('searchSubstring')).toEqual('');
-    expect(wrapper.find('SearchDropdown Description').first().text()).toEqual(
+    expect(wrapper.find('SearchDropdown Description').at(2).text()).toEqual(
       '"Nvidia 1080ti"'
     );
 
-    selectFirstAutocompleteItem(wrapper);
+    selectNthAutocompleteItem(wrapper, 2);
     await wrapper.update();
     expect(wrapper.find('textarea').prop('value')).toBe('gpu:"Nvidia 1080ti" ');
   });
@@ -178,9 +178,10 @@ describe('Events > SearchBar', function () {
     );
 
     expect(wrapper.find('SearchDropdown').prop('searchSubstring')).toEqual('');
-    expect(wrapper.find('SearchDropdown Description').first().text()).toEqual(
+    expect(wrapper.find('SearchDropdown Description').at(2).text()).toEqual(
       '"Nvidia 1080ti"'
     );
+    selectNthAutocompleteItem(wrapper, 2);
 
     wrapper.find('textarea').simulate('keydown', {key: 'Enter'});
 
@@ -296,7 +297,7 @@ describe('Events > SearchBar', function () {
         query: {project: ['1', '2'], statsPeriod: '14d', includeTransactions: '1'},
       })
     );
-    selectFirstAutocompleteItem(wrapper);
+    selectNthAutocompleteItem(wrapper, 0);
     expect(wrapper.find('textarea').prop('value')).toBe('!gpu:"Nvidia 1080ti" ');
   });
 

@@ -34,6 +34,20 @@ class PromptsActivityTest(APITestCase):
 
         assert resp.status_code == 400
 
+    def test_batched_invalid_feature(self):
+        # Invalid feature prompt name
+        resp = self.client.put(
+            self.path,
+            {
+                "organization_id": self.org.id,
+                "project_id": self.project.id,
+                "feature": ["releases", "gibberish"],
+                "status": "dismissed",
+            },
+        )
+
+        assert resp.status_code == 400
+
     def test_invalid_project(self):
         # Invalid project id
         data = {
@@ -64,7 +78,7 @@ class PromptsActivityTest(APITestCase):
         }
         resp = self.client.get(self.path, data)
         assert resp.status_code == 200
-        assert resp.data == {}
+        assert resp.data.get("data", None) is None
 
         self.client.put(
             self.path,
@@ -89,7 +103,7 @@ class PromptsActivityTest(APITestCase):
         }
         resp = self.client.get(self.path, data)
         assert resp.status_code == 200
-        assert resp.data == {}
+        assert resp.data.get("data", None) is None
 
         self.client.put(
             self.path,
@@ -106,3 +120,44 @@ class PromptsActivityTest(APITestCase):
         assert resp.status_code == 200
         assert "data" in resp.data
         assert "snoozed_ts" in resp.data["data"]
+
+    def test_batched(self):
+        data = {
+            "organization_id": self.org.id,
+            "project_id": self.project.id,
+            "feature": ["releases", "alert_stream"],
+        }
+        resp = self.client.get(self.path, data)
+        assert resp.status_code == 200
+        assert resp.data["features"].get("releases", None) is None
+        assert resp.data["features"].get("alert_stream", None) is None
+
+        self.client.put(
+            self.path,
+            {
+                "organization_id": self.org.id,
+                "project_id": self.project.id,
+                "feature": "releases",
+                "status": "dismissed",
+            },
+        )
+
+        resp = self.client.get(self.path, data)
+        assert resp.status_code == 200
+        assert "dismissed_ts" in resp.data["features"]["releases"]
+        assert resp.data["features"].get("alert_stream", None) is None
+
+        self.client.put(
+            self.path,
+            {
+                "organization_id": self.org.id,
+                "project_id": self.project.id,
+                "feature": "alert_stream",
+                "status": "snoozed",
+            },
+        )
+
+        resp = self.client.get(self.path, data)
+        assert resp.status_code == 200
+        assert "dismissed_ts" in resp.data["features"]["releases"]
+        assert "snoozed_ts" in resp.data["features"]["alert_stream"]

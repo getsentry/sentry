@@ -276,5 +276,47 @@
       },
       {"type": "spaces", "value": ""}
     ]
+  },
+  {
+    "query": "project_id:[500,501,]",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "numericIn",
+        "invalid": {"reason": "Lists should not have empty values"},
+        "negated": false,
+        "key": {"type": "keySimple", "value": "project_id", "quoted": false},
+        "operator": "",
+        "value": {
+          "type": "valueNumberList",
+          "items": [
+            {
+              "separator": "",
+              "value": {
+                "type": "valueNumber",
+                "value": "500",
+                "rawValue": 500,
+                "unit": null
+              }
+            },
+            {
+              "separator": ",",
+              "value": {
+                "type": "valueNumber",
+                "value": "501",
+                "rawValue": 501,
+                "unit": null
+              }
+            },
+            {
+              "separator": ",",
+              "value": null
+            }
+          ]
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
   }
 ]

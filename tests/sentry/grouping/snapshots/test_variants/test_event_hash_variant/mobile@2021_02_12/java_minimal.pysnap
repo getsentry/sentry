@@ -1,11 +1,11 @@
 ---
-created: '2021-07-07T15:30:52.589885Z'
+created: '2021-08-23T08:27:22.434291Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "52ea220ca35556ebb03e1991e153c653"
-  tree_label: "home"
+  tree_label: "Application.home"
   component:
     app-depth-1*
       exception*
@@ -24,7 +24,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "59ef3cab7ba66f62b79d29aa80090c5c"
-  tree_label: "home | invoke0"
+  tree_label: "Application.home | NativeMethodAccessorImpl.invoke0"
   component:
     app-depth-2*
       exception*
@@ -50,7 +50,7 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "1415060f2c35db944c439d52c620310b"
-  tree_label: "home | invoke0 | invoke"
+  tree_label: "Application.home | NativeMethodAccessorImpl.invoke0 | NativeMethodAccessorImpl.invoke"
   component:
     app-depth-3*
       exception*
@@ -83,7 +83,7 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-4:
   hash: "fceae19423f2f5c139821d29c433ba4c"
-  tree_label: "home | invoke0 | invoke | invoke"
+  tree_label: "Application.home | NativeMethodAccessorImpl.invoke0 | NativeMethodAccessorImpl.invoke | DelegatingMethodAccessorImpl.invoke"
   component:
     app-depth-4*
       exception*
@@ -123,7 +123,7 @@ app-depth-4:
 --------------------------------------------------------------------------
 app-depth-5:
   hash: "90de1f0caf1150bfdc92d957fdbb1fea"
-  tree_label: "home | invoke0 | invoke | invoke | doInvoke"
+  tree_label: "Application.home | NativeMethodAccessorImpl.invoke0 | NativeMethodAccessorImpl.invoke | DelegatingMethodAccessorImpl.invoke | InvocableHandlerMethod.doInvoke"
   component:
     app-depth-5*
       exception*
@@ -170,39 +170,11 @@ app-depth-5:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "12f3d3df2e7804af98f4b56c602d17b0"
-  tree_label: "home | invoke0 | invoke | invoke | doInvoke | invokeForRequest | invokeAndHandle | invokeHandlerMethod | handleInternal | handle | doDispatch | doService | processRequest | doGet | service | service | service | internalDoFilter | doFilter | doFilter | internalDoFilter | doFilter | doFilterInternal | doFilter | internalDoFilter | doFilter | doFilterInternal | doFilter | internalDoFilter | doFilter | doFilterInternal | doFilter | internalDoFilter | doFilter | doFilterInternal | doFilter | internalDoFilter | doFilter | invoke | invoke | invoke | invoke | invoke | invoke | service | service | process | process | doRun | run"
+  tree_label: "Application.home | NativeMethodAccessorImpl.invoke0 | NativeMethodAccessorImpl.invoke | DelegatingMethodAccessorImpl.invoke | InvocableHandlerMethod.doInvoke | InvocableHandlerMethod.invokeForRequest | ServletInvocableHandlerMethod.invokeAndHandle | RequestMappingHandlerAdapter.invokeHandlerMethod | RequestMappingHandlerAdapter.handleInternal | AbstractHandlerMethodAdapter.handle | DispatcherServlet.doDispatch | DispatcherServlet.doService | FrameworkServlet.processRequest | FrameworkServlet.doGet | HttpServlet.service | FrameworkServlet.service | HttpServlet.service | ApplicationFilterChain.internalDoFilter | ApplicationFilterChain.doFilter | WsFilter.doFilter | ApplicationFilterChain.internalDoFilter | ApplicationFilterChain.doFilter | RequestContextFilter.doFilterInternal | OncePerRequestFilter.doFilter | ApplicationFilterChain.internalDoFilter | ApplicationFilterChain.doFilter | HttpPutFormContentFilter.doFilterInternal | OncePerRequestFilter.doFilter | ApplicationFilterChain.internalDoFilter | ApplicationFilterChain.doFilter | HiddenHttpMethodFilter.doFilterInternal | OncePerRequestFilter.doFilter | ApplicationFilterChain.internalDoFilter | ApplicationFilterChain.doFilter | CharacterEncodingFilter.doFilterInternal | OncePerRequestFilter.doFilter | ApplicationFilterChain.internalDoFilter | ApplicationFilterChain.doFilter | StandardWrapperValve.invoke | StandardContextValve.invoke | AuthenticatorBase.invoke | StandardHostValve.invoke | ErrorReportValve.invoke | StandardEngineValve.invoke | CoyoteAdapter.service | Http11Processor.service | AbstractProcessorLight.process | coyote.process | net.doRun | SocketProcessorBase.run"
   component:
     app-depth-max*
       exception*
         stacktrace*
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
-            module*
-              "java.lang.Thread"
-            filename (module takes precedence)
-              "thread.java"
-            function*
-              "run"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
-            module*
-              "org.apache.tomcat.util.threads.TaskThread$WrappingRunnable"
-            filename (module takes precedence)
-              "taskthread.java"
-            function*
-              "run"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
-            module*
-              "java.util.concurrent.ThreadPoolExecutor$Worker"
-            filename (module takes precedence)
-              "threadpoolexecutor.java"
-            function*
-              "run"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
-            module*
-              "java.util.concurrent.ThreadPoolExecutor"
-            filename (module takes precedence)
-              "threadpoolexecutor.java"
-            function*
-              "runWorker"
           frame*
             module*
               "org.apache.tomcat.util.net.SocketProcessorBase"
@@ -525,13 +497,6 @@ app-depth-max:
               "invocablehandlermethod.java"
             function*
               "doInvoke"
-          frame (ignored by stack trace rule (category:indirection -group))
-            module*
-              "java.lang.reflect.Method"
-            filename (module takes precedence)
-              "method.java"
-            function*
-              "invoke"
           frame*
             module*
               "jdk.internal.reflect.DelegatingMethodAccessorImpl"
@@ -574,7 +539,7 @@ default:
 --------------------------------------------------------------------------
 system:
   hash: "12f3d3df2e7804af98f4b56c602d17b0"
-  tree_label: "home | invoke0 | invoke | invoke | doInvoke | invokeForRequest | invokeAndHandle | invokeHandlerMethod | handleInternal | handle | doDispatch | doService | processRequest | doGet | service | service | service | internalDoFilter | doFilter | doFilter | internalDoFilter | doFilter | doFilterInternal | doFilter | internalDoFilter | doFilter | doFilterInternal | doFilter | internalDoFilter | doFilter | doFilterInternal | doFilter | internalDoFilter | doFilter | doFilterInternal | doFilter | internalDoFilter | doFilter | invoke | invoke | invoke | invoke | invoke | invoke | service | service | process | process | doRun | run"
+  tree_label: "Application.home | NativeMethodAccessorImpl.invoke0 | NativeMethodAccessorImpl.invoke | DelegatingMethodAccessorImpl.invoke | InvocableHandlerMethod.doInvoke | InvocableHandlerMethod.invokeForRequest | ServletInvocableHandlerMethod.invokeAndHandle | RequestMappingHandlerAdapter.invokeHandlerMethod | RequestMappingHandlerAdapter.handleInternal | AbstractHandlerMethodAdapter.handle | DispatcherServlet.doDispatch | DispatcherServlet.doService | FrameworkServlet.processRequest | FrameworkServlet.doGet | HttpServlet.service | FrameworkServlet.service | HttpServlet.service | ApplicationFilterChain.internalDoFilter | ApplicationFilterChain.doFilter | WsFilter.doFilter | ApplicationFilterChain.internalDoFilter | ApplicationFilterChain.doFilter | RequestContextFilter.doFilterInternal | OncePerRequestFilter.doFilter | ApplicationFilterChain.internalDoFilter | ApplicationFilterChain.doFilter | HttpPutFormContentFilter.doFilterInternal | OncePerRequestFilter.doFilter | ApplicationFilterChain.internalDoFilter | ApplicationFilterChain.doFilter | HiddenHttpMethodFilter.doFilterInternal | OncePerRequestFilter.doFilter | ApplicationFilterChain.internalDoFilter | ApplicationFilterChain.doFilter | CharacterEncodingFilter.doFilterInternal | OncePerRequestFilter.doFilter | ApplicationFilterChain.internalDoFilter | ApplicationFilterChain.doFilter | StandardWrapperValve.invoke | StandardContextValve.invoke | AuthenticatorBase.invoke | StandardHostValve.invoke | ErrorReportValve.invoke | StandardEngineValve.invoke | CoyoteAdapter.service | Http11Processor.service | AbstractProcessorLight.process | coyote.process | net.doRun | SocketProcessorBase.run"
   component:
     system*
       exception*

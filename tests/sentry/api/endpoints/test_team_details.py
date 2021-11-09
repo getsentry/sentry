@@ -1,8 +1,12 @@
-from typing import Optional
-
-from sentry.models import AuditLogEntry, AuditLogEntryEvent, DeletedTeam, Team, TeamStatus
+from sentry.models import (
+    AuditLogEntry,
+    AuditLogEntryEvent,
+    DeletedTeam,
+    ScheduledDeletion,
+    Team,
+    TeamStatus,
+)
 from sentry.testutils import APITestCase
-from sentry.utils.compat.mock import patch
 
 
 class TeamDetailsTestBase(APITestCase):
@@ -15,9 +19,7 @@ class TeamDetailsTestBase(APITestCase):
     def assert_team_status(
         self,
         team_id: int,
-        mock_delete_team,
         status: TeamStatus,
-        transaction_id: Optional[int] = None,
     ) -> None:
         team = Team.objects.get(id=team_id)
 
@@ -31,32 +33,31 @@ class TeamDetailsTestBase(APITestCase):
         if status == TeamStatus.VISIBLE:
             assert not deleted_team
             assert not audit_log_entry
-            mock_delete_team.assert_not_called()  # NOQA
+            assert not ScheduledDeletion.objects.filter(
+                model_name="Team", object_id=team.id
+            ).exists()
             return
 
-        # On spite of the name, this checks the DeletedTeam object, not the audit log
+        # In spite of the name, this checks the DeletedTeam object, not the audit log
         self.assert_valid_deleted_log(deleted_team.get(), team)
         # *this* actually checks the audit log
         assert audit_log_entry.get()
-        mock_delete_team.apply_async.assert_called_once_with(
-            kwargs={"object_id": team.id, "transaction_id": transaction_id}
-        )
+        # Ensure a scheduled deletion was made.
+        assert ScheduledDeletion.objects.filter(model_name="Team", object_id=team.id).exists()
 
-    def assert_team_deleted(self, team_id, mock_delete_team, transaction_id):
+    def assert_team_deleted(self, team_id):
         """
         Checks team status, membership in DeletedTeams table, org
         audit log, and to see that delete function has been called.
         """
-        self.assert_team_status(
-            team_id, mock_delete_team, TeamStatus.PENDING_DELETION, transaction_id
-        )
+        self.assert_team_status(team_id, TeamStatus.PENDING_DELETION)
 
-    def assert_team_not_deleted(self, team_id, mock_delete_team):
+    def assert_team_not_deleted(self, team_id):
         """
         Checks team status, membership in DeletedTeams table, org
         audit log, and to see that delete function has not been called.
         """
-        self.assert_team_status(team_id, mock_delete_team, TeamStatus.VISIBLE)
+        self.assert_team_status(team_id, TeamStatus.VISIBLE)
 
 
 class TeamDetailsTest(TeamDetailsTestBase):
@@ -85,12 +86,25 @@ class TeamUpdateTest(TeamDetailsTestBase):
 class TeamDeleteTest(TeamDetailsTestBase):
     method = "delete"
 
-    @patch("sentry.api.endpoints.team_details.uuid4")
-    @patch("sentry.api.endpoints.team_details.delete_team")
-    def test_can_remove_as_admin_in_team(self, mock_delete_team, mock_uuid4):
+    def test_rename_on_delete(self):
         """Admins can remove teams of which they're a part"""
-        mock_uuid4.return_value = self.get_mock_uuid()
+        org = self.create_organization()
+        team = self.create_team(organization=org, slug="something-moderately-long")
+        admin_user = self.create_user(email="foo@example.com", is_superuser=False)
 
+        self.create_member(organization=org, user=admin_user, role="admin", teams=[team])
+
+        self.login_as(admin_user)
+
+        self.get_valid_response(team.organization.slug, team.slug, status_code=204)
+
+        original_slug = team.slug
+        team.refresh_from_db()
+        self.assert_team_deleted(team.id)
+        assert original_slug != team.slug, "Slug should be released on delete."
+
+    def test_can_remove_as_admin_in_team(self):
+        """Admins can remove teams of which they're a part"""
         org = self.create_organization()
         team = self.create_team(organization=org)
         admin_user = self.create_user(email="foo@example.com", is_superuser=False)
@@ -101,15 +115,12 @@ class TeamDeleteTest(TeamDetailsTestBase):
 
         self.get_valid_response(team.organization.slug, team.slug, status_code=204)
 
-        team = Team.objects.get(id=team.id)
-        self.assert_team_deleted(team.id, mock_delete_team, "abc123")
+        team.refresh_from_db()
+        self.assert_team_deleted(team.id)
 
-    @patch("sentry.api.endpoints.team_details.uuid4")
-    @patch("sentry.api.endpoints.team_details.delete_team")
-    def test_remove_as_admin_not_in_team(self, mock_delete_team, mock_uuid4):
+    def test_remove_as_admin_not_in_team(self):
         """Admins can't remove teams of which they're not a part, unless
         open membership is on."""
-        mock_uuid4.return_value = self.get_mock_uuid()
 
         # an org with closed membership (byproduct of flags=0)
         org = self.create_organization(owner=self.user, flags=0)
@@ -127,17 +138,16 @@ class TeamDeleteTest(TeamDetailsTestBase):
 
         # first, try deleting the team with open membership off
         self.get_valid_response(team.organization.slug, team.slug, status_code=403)
-        self.assert_team_not_deleted(team.id, mock_delete_team)
+        self.assert_team_not_deleted(team.id)
 
         # now, with open membership on
         org.flags.allow_joinleave = True
         org.save()
 
         self.get_valid_response(team.organization.slug, team.slug, status_code=204)
-        self.assert_team_deleted(team.id, mock_delete_team, "abc123")
+        self.assert_team_deleted(team.id)
 
-    @patch("sentry.api.endpoints.team_details.delete_team")
-    def test_cannot_remove_as_member(self, mock_delete_team):
+    def test_cannot_remove_as_member(self):
         """Members can't remove teams, even if they belong to them"""
 
         org = self.create_organization(owner=self.user)
@@ -154,4 +164,4 @@ class TeamDeleteTest(TeamDetailsTestBase):
         self.login_as(member_user)
 
         self.get_valid_response(team.organization.slug, team.slug, status_code=403)
-        self.assert_team_not_deleted(team.id, mock_delete_team)
+        self.assert_team_not_deleted(team.id)

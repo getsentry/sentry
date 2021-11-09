@@ -9,7 +9,7 @@ import GlobalModal from 'app/components/globalModal';
 
 describe('Debug Meta - Image Details Candidates', function () {
   let wrapper: ReturnType<typeof mountWithTheme>;
-  const projectId = 'foo';
+  const projSlug = 'foo';
   // @ts-expect-error
   const organization = TestStubs.Organization();
   // @ts-expect-error
@@ -23,7 +23,7 @@ describe('Debug Meta - Image Details Candidates', function () {
   beforeAll(async function () {
     // @ts-expect-error
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${projectId}/files/dsyms/?debug_id=${debugImage.debug_id}`,
+      url: `/projects/${organization.slug}/${projSlug}/files/dsyms/?debug_id=${debugImage.debug_id}`,
       method: 'GET',
       body: [],
     });
@@ -43,7 +43,7 @@ describe('Debug Meta - Image Details Candidates', function () {
           {...modalProps}
           image={debugImage}
           organization={organization}
-          projectId={projectId}
+          projSlug={projSlug}
           event={event}
         />
       ),

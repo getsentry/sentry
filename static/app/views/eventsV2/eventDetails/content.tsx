@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
-import {Params} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 
 import Feature from 'app/components/acl/feature';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -51,10 +50,11 @@ import LinkedIssue from './linkedIssue';
  */
 const EXCLUDED_TAG_KEYS = new Set(['release']);
 
-type Props = {
+type Props = Pick<
+  RouteComponentProps<{eventSlug: string}, {}>,
+  'params' | 'location' | 'route' | 'router'
+> & {
   organization: Organization;
-  location: Location;
-  params: Params;
   eventSlug: string;
   eventView: EventView;
 };
@@ -137,7 +137,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
   }
 
   renderContent(event: Event) {
-    const {organization, location, eventView} = this.props;
+    const {organization, location, eventView, route, router} = this.props;
     const {isSidebarVisible} = this.state;
 
     // metrics
@@ -241,6 +241,8 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                         showExampleCommit={false}
                         showTagSummary={false}
                         api={this.api}
+                        router={router}
+                        route={route}
                         isBorderless
                       />
                     </QuickTraceContext.Provider>

@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
 import CreateAlertButton from 'app/components/createAlertButton';
+import FeatureBadge from 'app/components/featureBadge';
 import Hovercard from 'app/components/hovercard';
 import * as Layout from 'app/components/layouts/thirds';
 import ExternalLink from 'app/components/links/externalLink';
@@ -22,9 +23,9 @@ import {Dataset} from 'app/views/alerts/incidentRules/types';
 import {
   AlertType,
   AlertWizardAlertNames,
-  AlertWizardOptions,
   AlertWizardPanelContent,
   AlertWizardRuleTemplates,
+  getAlertWizardCategories,
 } from './options';
 import RadioPanelGroup from './radioPanelGroup';
 
@@ -36,7 +37,6 @@ type RouteParams = {
 type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
   project: Project;
-  hasMetricAlerts: boolean;
 };
 
 type State = {
@@ -151,7 +151,6 @@ class AlertWizard extends Component<Props, State> {
 
   render() {
     const {
-      hasMetricAlerts,
       organization,
       params: {projectId},
       routes,
@@ -167,7 +166,6 @@ class AlertWizard extends Component<Props, State> {
         <Layout.Header>
           <StyledHeaderContent>
             <BuilderBreadCrumbs
-              hasMetricAlerts={hasMetricAlerts}
               orgSlug={organization.slug}
               projectSlug={projectId}
               title={t('Select Alert')}
@@ -182,20 +180,27 @@ class AlertWizard extends Component<Props, State> {
           <Layout.Main fullWidth>
             <WizardBody>
               <WizardOptions>
-                <Styledh2>{t('Errors')}</Styledh2>
-                {AlertWizardOptions.map(({categoryHeading, options}, i) => (
-                  <OptionsWrapper key={categoryHeading}>
-                    {i > 0 && <Styledh2>{categoryHeading}</Styledh2>}
-                    <RadioPanelGroup
-                      choices={options.map(alertType => {
-                        return [alertType, AlertWizardAlertNames[alertType]];
-                      })}
-                      onChange={this.handleChangeAlertOption}
-                      value={alertOption}
-                      label="alert-option"
-                    />
-                  </OptionsWrapper>
-                ))}
+                <CategoryTitle>{t('Errors')}</CategoryTitle>
+                {getAlertWizardCategories(organization).map(
+                  ({categoryHeading, options, featureBadgeType}, i) => (
+                    <OptionsWrapper key={categoryHeading}>
+                      {i > 0 && (
+                        <CategoryTitle>
+                          {categoryHeading}{' '}
+                          {featureBadgeType && <FeatureBadge type={featureBadgeType} />}
+                        </CategoryTitle>
+                      )}
+                      <RadioPanelGroup
+                        choices={options.map(alertType => {
+                          return [alertType, AlertWizardAlertNames[alertType]];
+                        })}
+                        onChange={this.handleChangeAlertOption}
+                        value={alertOption}
+                        label="alert-option"
+                      />
+                    </OptionsWrapper>
+                  )
+                )}
               </WizardOptions>
               <WizardPanel visible={!!panelContent && !!alertOption}>
                 <WizardPanelBody>
@@ -238,7 +243,7 @@ const StyledHeaderContent = styled(Layout.HeaderContent)`
   overflow: visible;
 `;
 
-const Styledh2 = styled('h2')`
+const CategoryTitle = styled('h2')`
   font-weight: normal;
   font-size: ${p => p.theme.fontSizeExtraLarge};
   margin-bottom: ${space(1)} !important;

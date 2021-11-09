@@ -30,7 +30,7 @@ type RawStats = Record<string, [timestamp: number, value: number][]>;
 
 const STAT_OPS = {
   'browser-extensions': {title: t('Browser Extension'), color: theme.gray200},
-  cors: {title: 'CORS', color: theme.orange400},
+  cors: {title: 'CORS', color: theme.yellow300},
   'error-message': {title: t('Error Message'), color: theme.purple300},
   'discarded-hash': {title: t('Discarded Issue'), color: theme.gray200},
   'invalid-csp': {title: t('Invalid CSP'), color: theme.blue300},

@@ -15,7 +15,7 @@ type Props = {
   hasGuideAnchor?: boolean;
 };
 
-const EventMessage = ({
+const BaseEventMessage = ({
   className,
   level,
   levelIndicatorSize,
@@ -35,7 +35,7 @@ const EventMessage = ({
   </div>
 );
 
-const StyledEventMessage = styled(EventMessage)`
+const EventMessage = styled(BaseEventMessage)`
   display: flex;
   align-items: center;
   position: relative;
@@ -53,4 +53,4 @@ const Message = styled('span')`
   max-height: 38px;
 `;
 
-export default StyledEventMessage;
+export default EventMessage;

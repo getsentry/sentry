@@ -4,14 +4,15 @@ import round from 'lodash/round';
 import moment from 'moment';
 
 import {DateTimeObject} from 'app/components/charts/utils';
+import ExternalLink from 'app/components/links/externalLink';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {PAGE_URL_PARAM, URL_PARAM} from 'app/constants/globalSelectionHeader';
-import {tn} from 'app/locale';
+import {desktop, mobile, PlatformKey} from 'app/data/platformCategories';
+import {t, tct} from 'app/locale';
 import {Release, ReleaseStatus} from 'app/types';
-import {QueryResults} from 'app/utils/tokenizeSearch';
+import {Theme} from 'app/utils/theme';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import {IssueSortOptions} from 'app/views/issueList/utils';
-
-import {DisplayOption} from '../list/utils';
 
 export const CRASH_FREE_DECIMAL_THRESHOLD = 95;
 
@@ -24,7 +25,14 @@ export const getCrashFreePercent = (
   decimalThreshold = CRASH_FREE_DECIMAL_THRESHOLD,
   decimalPlaces = 3
 ): number => {
-  return round(percent, percent > decimalThreshold ? decimalPlaces : 0);
+  const roundedValue = round(percent, percent > decimalThreshold ? decimalPlaces : 0);
+  if (roundedValue === 100 && percent < 100) {
+    return (
+      Math.floor(percent * Math.pow(10, decimalPlaces)) / Math.pow(10, decimalPlaces)
+    );
+  }
+
+  return roundedValue;
 };
 
 export const displayCrashFreePercent = (
@@ -57,17 +65,6 @@ export const displaySessionStatusPercent = (percent: number, absolute = true) =>
   return `${getSessionStatusPercent(percent, absolute).toLocaleString()}\u0025`;
 };
 
-export const displayCrashFreeDiff = (
-  diffPercent: number,
-  crashFreePercent?: number | null
-) =>
-  `${Math.abs(
-    round(
-      diffPercent,
-      crashFreePercent && crashFreePercent > CRASH_FREE_DECIMAL_THRESHOLD ? 3 : 0
-    )
-  ).toLocaleString()}\u0025`;
-
 export const getReleaseNewIssuesUrl = (
   orgSlug: string,
   projectId: string | number | null,
@@ -81,7 +78,7 @@ export const getReleaseNewIssuesUrl = (
       statsPeriod: undefined,
       start: undefined,
       end: undefined,
-      query: new QueryResults([`firstRelease:${version}`]).formatString(),
+      query: new MutableSearch([`firstRelease:${version}`]).formatString(),
       sort: IssueSortOptions.FREQ,
     },
   };
@@ -98,7 +95,7 @@ export const getReleaseUnhandledIssuesUrl = (
     query: {
       ...dateTime,
       project: projectId,
-      query: new QueryResults([
+      query: new MutableSearch([
         `release:${version}`,
         'error.unhandled:true',
       ]).formatString(),
@@ -118,7 +115,7 @@ export const getReleaseHandledIssuesUrl = (
     query: {
       ...dateTime,
       project: projectId,
-      query: new QueryResults([
+      query: new MutableSearch([
         `release:${version}`,
         'error.handled:true',
       ]).formatString(),
@@ -129,14 +126,6 @@ export const getReleaseHandledIssuesUrl = (
 
 export const isReleaseArchived = (release: Release) =>
   release.status === ReleaseStatus.Archived;
-
-export function releaseDisplayLabel(displayOption: DisplayOption, count?: number | null) {
-  if (displayOption === DisplayOption.USERS) {
-    return tn('user', 'users', count);
-  }
-
-  return tn('session', 'sessions', count);
-}
 
 export type ReleaseBounds = {releaseStart?: string | null; releaseEnd?: string | null};
 
@@ -149,7 +138,7 @@ export function getReleaseBounds(release?: Release): ReleaseBounds {
     (moment(sessionsUpperBound).isAfter(lastEvent) ? sessionsUpperBound : lastEvent) ??
       undefined
   )
-    .startOf('minute')
+    .endOf('minute')
     .utc()
     .format();
 
@@ -157,6 +146,16 @@ export function getReleaseBounds(release?: Release): ReleaseBounds {
     return {
       releaseStart,
       releaseEnd: moment(releaseEnd).add(1, 'minutes').utc().format(),
+    };
+  }
+
+  const thousandDaysAfterReleaseStart = moment(releaseStart).add('999', 'days');
+  if (thousandDaysAfterReleaseStart.isBefore(releaseEnd)) {
+    // if the release spans for more than thousand days, we need to clamp it
+    // (otherwise we would hit the backend limit for the amount of data buckets)
+    return {
+      releaseStart,
+      releaseEnd: thousandDaysAfterReleaseStart.utc().format(),
     };
   }
 
@@ -169,17 +168,9 @@ export function getReleaseBounds(release?: Release): ReleaseBounds {
 type GetReleaseParams = {
   location: Location;
   releaseBounds: ReleaseBounds;
-  defaultStatsPeriod: string;
-  allowEmptyPeriod: boolean;
 };
 
-// these options are here only temporarily while we still support older and newer release details page
-export function getReleaseParams({
-  location,
-  releaseBounds,
-  defaultStatsPeriod,
-  allowEmptyPeriod,
-}: GetReleaseParams) {
+export function getReleaseParams({location, releaseBounds}: GetReleaseParams) {
   const params = getParams(
     pick(location.query, [
       ...Object.values(URL_PARAM),
@@ -188,8 +179,7 @@ export function getReleaseParams({
     ]),
     {
       allowAbsolutePageDatetime: true,
-      defaultStatsPeriod,
-      allowEmptyPeriod,
+      allowEmptyPeriod: true,
     }
   );
   if (
@@ -203,3 +193,40 @@ export function getReleaseParams({
 
   return params;
 }
+
+const adoptionStagesLink = (
+  <ExternalLink href="https://docs.sentry.io/product/releases/health/#adoption-stages" />
+);
+
+export const ADOPTION_STAGE_LABELS: Record<
+  string,
+  {name: string; tooltipTitle: JSX.Element; type: keyof Theme['tag']}
+> = {
+  low_adoption: {
+    name: t('Low Adoption'),
+    tooltipTitle: tct(
+      'This release has a low percentage of sessions compared to other releases in this project. [link:Learn more]',
+      {link: adoptionStagesLink}
+    ),
+    type: 'warning',
+  },
+  adopted: {
+    name: t('Adopted'),
+    tooltipTitle: tct(
+      'This release has a high percentage of sessions compared to other releases in this project. [link:Learn more]',
+      {link: adoptionStagesLink}
+    ),
+    type: 'success',
+  },
+  replaced: {
+    name: t('Replaced'),
+    tooltipTitle: tct(
+      'This release was previously Adopted, but now has a lower level of sessions compared to other releases in this project. [link:Learn more]',
+      {link: adoptionStagesLink}
+    ),
+    type: 'default',
+  },
+};
+
+export const isMobileRelease = (releaseProjectPlatform: PlatformKey) =>
+  ([...mobile, ...desktop] as string[]).includes(releaseProjectPlatform);

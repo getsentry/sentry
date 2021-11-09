@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import Any, MutableMapping, Optional, Sequence, Tuple
+from typing import Any, Dict, List, MutableMapping, Optional, Sequence, Tuple, TypedDict
 
 from sentry.integrations.slack.message_builder import SlackBlock, SlackBody
 from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
@@ -37,19 +37,24 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         return {"type": "divider"}
 
     @staticmethod
-    def get_action_block(actions: Sequence[Tuple[str, str, str]]) -> SlackBlock:
-        return {
-            "type": "actions",
-            "elements": [
-                {
-                    "type": "button",
-                    "text": {"type": "plain_text", "text": text},
-                    "url": url,
-                    "value": value,
-                }
-                for text, url, value in actions
-            ],
-        }
+    def get_action_block(actions: Sequence[Tuple[str, Optional[str], str]]) -> SlackBlock:
+        class SlackBlockType(TypedDict):
+            type: str
+            elements: List[Dict[str, Any]]
+
+        action_block: SlackBlockType = {"type": "actions", "elements": []}
+        for text, url, value in actions:
+            button = {
+                "type": "button",
+                "text": {"type": "plain_text", "text": text},
+                "value": value,
+            }
+            if url:
+                button["url"] = url
+
+            action_block["elements"].append(button)
+
+        return action_block
 
     @staticmethod
     def _build_blocks(*args: SlackBlock) -> SlackBody:

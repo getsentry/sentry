@@ -15,12 +15,13 @@ from sentry.models import (
     ReleaseCommit,
     Repository,
     ScheduledDeletion,
+    ServiceHook,
 )
 from sentry.tasks.deletion import run_deletion
-from sentry.testutils import TestCase
+from sentry.testutils import TransactionTestCase
 
 
-class DeleteProjectTest(TestCase):
+class DeleteProjectTest(TransactionTestCase):
     def test_simple(self):
         project = self.create_project(name="test")
         event = self.store_event(data={}, project_id=project.id)
@@ -68,6 +69,12 @@ class DeleteProjectTest(TestCase):
             type=file_attachment.type,
             name="hello.png",
         )
+        hook = self.create_service_hook(
+            actor=self.user,
+            org=project.organization,
+            project=project,
+            url="https://example.com/webhook",
+        )
 
         deletion = ScheduledDeletion.schedule(project, days=0)
         deletion.update(in_progress=True)
@@ -87,3 +94,4 @@ class DeleteProjectTest(TestCase):
         assert Commit.objects.filter(id=commit.id).exists()
         assert not ProjectDebugFile.objects.filter(id=dif.id).exists()
         assert not File.objects.filter(id=file.id).exists()
+        assert not ServiceHook.objects.filter(id=hook.id).exists()

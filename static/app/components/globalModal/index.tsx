@@ -32,6 +32,12 @@ type ModalOptions = {
    * Set to true (the default) to show a translucent backdrop
    */
   backdrop?: 'static' | boolean;
+  /**
+   * Set to `false` to disable the ability to click outside the modal to
+   * close it. This is useful for modals containing user input which will
+   * disappear on an accidental click. Defaults to `true`.
+   */
+  allowClickClose?: boolean;
 };
 
 type ModalRenderProps = {
@@ -57,6 +63,17 @@ type ModalRenderProps = {
    * header which can include the close button.
    */
   CloseButton: ReturnType<typeof makeCloseButton>;
+};
+
+/**
+ * Meta-type to make re-exporting these in the action creator easy without
+ * poluting the global API namespace with duplicate type names.
+ *
+ * eg. you won't accidentally import ModalRenderProps from here.
+ */
+export type ModalTypes = {
+  options: ModalOptions;
+  renderProps: ModalRenderProps;
 };
 
 type Props = {
@@ -141,6 +158,9 @@ function GlobalModal({visible = false, options = {}, children, onClose}: Props) 
     return reset;
   }, [portal, handleEscapeClose, visible]);
 
+  // Close the modal when the browser history changes
+  React.useEffect(() => browserHistory.listen(() => actionCloseModal()), []);
+
   const renderedChild = children?.({
     CloseButton: makeCloseButton(closeModal),
     Header: makeClosableHeader(closeModal),
@@ -152,10 +172,13 @@ function GlobalModal({visible = false, options = {}, children, onClose}: Props) 
   // Default to enabled backdrop
   const backdrop = options.backdrop ?? true;
 
+  // Default to enabled click close
+  const allowClickClose = options.allowClickClose ?? true;
+
   // Only close when we directly click outside of the modal.
   const containerRef = React.useRef<HTMLDivElement>(null);
   const clickClose = (e: React.MouseEvent) =>
-    containerRef.current === e.target && closeModal();
+    containerRef.current === e.target && allowClickClose && closeModal();
 
   return ReactDOM.createPortal(
     <React.Fragment>
@@ -240,13 +263,7 @@ class GlobalModalContainer extends React.Component<Partial<Props>, State> {
     modalStore: ModalStore.get(),
   };
 
-  componentDidMount() {
-    // Listen for route changes so we can dismiss modal
-    this.unlistenBrowserHistory = browserHistory.listen(() => actionCloseModal());
-  }
-
   componentWillUnmount() {
-    this.unlistenBrowserHistory?.();
     this.unlistener?.();
   }
 
@@ -254,8 +271,6 @@ class GlobalModalContainer extends React.Component<Partial<Props>, State> {
     (modalStore: State['modalStore']) => this.setState({modalStore}),
     undefined
   );
-
-  unlistenBrowserHistory?: ReturnType<typeof browserHistory.listen>;
 
   render() {
     const {modalStore} = this.state;

@@ -10,18 +10,19 @@ type BarChartDataObject = Omit<EChartOption.SeriesBar.DataObject, 'value'> & {
   value: (string | number) | (string | number)[];
 };
 
-export default function barSeries(
-  props: Omit<EChartOption.SeriesBar, 'data'> & {
-    data?:
-      | (string | number | void | BarChartDataObject | (string | number)[])[]
-      | (string | number | void | BarChartDataObject)[][]
-      | undefined;
-  } = {}
-): EChartOption.SeriesBar {
-  const {data, ...rest} = props;
+type Props = Omit<EChartOption.SeriesBar, 'data'> & {
+  data?:
+    | (string | number | void | BarChartDataObject | (string | number)[])[]
+    | (string | number | void | BarChartDataObject)[][]
+    | undefined;
+};
+
+function barSeries({data, ...rest}: Props): EChartOption.SeriesBar {
   return {
     ...rest,
     data: data as EChartOption.SeriesBar['data'],
     type: 'bar',
   };
 }
+
+export default barSeries;

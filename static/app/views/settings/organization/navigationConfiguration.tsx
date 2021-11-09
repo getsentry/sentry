@@ -34,13 +34,6 @@ const organizationNavigation: NavigationSection[] = [
         id: 'members',
       },
       {
-        path: `${pathPrefix}/performance/`,
-        title: t('Performance'),
-        show: ({features}) => features!.has('performance-view'),
-        description: t('Manage performance settings'),
-        id: 'performance',
-      },
-      {
         path: `${pathPrefix}/security-and-privacy/`,
         title: t('Security & Privacy'),
         description: t(
@@ -79,7 +72,6 @@ const organizationNavigation: NavigationSection[] = [
       {
         path: `${pathPrefix}/relay/`,
         title: t('Relay'),
-        show: ({features}) => features!.has('relay'),
         description: t('Manage relays connected to the organization'),
         id: 'relay',
       },

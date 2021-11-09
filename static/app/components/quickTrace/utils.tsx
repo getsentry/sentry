@@ -13,7 +13,7 @@ import {
   TraceError,
 } from 'app/utils/performance/quickTrace/types';
 import {getTraceTimeRangeFromEvent} from 'app/utils/performance/quickTrace/utils';
-import {QueryResults} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import {getTraceDetailsUrl} from 'app/views/performance/traceDetails/utils';
 import {getTransactionDetailsUrl} from 'app/views/performance/utils';
 
@@ -109,11 +109,11 @@ export function generateMultiTransactionsTarget(
   organization: OrganizationSummary,
   groupType: 'Ancestor' | 'Children' | 'Descendant'
 ): LocationDescriptor {
-  const queryResults = new QueryResults([]);
+  const queryResults = new MutableSearch([]);
   const eventIds = events.map(child => child.event_id);
   for (let i = 0; i < eventIds.length; i++) {
     queryResults.addOp(i === 0 ? '(' : 'OR');
-    queryResults.addQuery(`id:${eventIds[i]}`);
+    queryResults.addFreeText(`id:${eventIds[i]}`);
     if (i === eventIds.length - 1) {
       queryResults.addOp(')');
     }
