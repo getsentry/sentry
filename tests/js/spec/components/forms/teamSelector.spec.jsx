@@ -2,6 +2,7 @@ import {act, fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLi
 
 import {addTeamToProject} from 'app/actionCreators/projects';
 import {TeamSelector} from 'app/components/forms/teamSelector';
+import OrganizationStore from 'app/stores/organizationStore';
 import TeamStore from 'app/stores/teamStore';
 
 jest.mock('app/actionCreators/projects', () => ({
@@ -28,10 +29,16 @@ const teamData = [
 const teams = teamData.map(data => TestStubs.Team(data));
 const project = TestStubs.Project({teams: [teams[0]]});
 const organization = TestStubs.Organization({access: ['project:write']});
+act(() => OrganizationStore.onUpdate(organization, {replace: true}));
 
 function createWrapper(props = {}) {
   return mountWithTheme(
-    <TeamSelector organization={organization} name="teamSelector" {...props} />
+    <TeamSelector
+      organization={organization}
+      name="teamSelector"
+      aria-label="Select a team"
+      {...props}
+    />
   );
 }
 
@@ -120,5 +127,16 @@ describe('Team Selector', function () {
     });
 
     expect(addTeamToProject).toHaveBeenCalled();
+  });
+
+  it('allows searching by slug with useId', function () {
+    createWrapper({useId: true});
+    openSelectMenu();
+
+    fireEvent.change(screen.getByLabelText('Select a team'), {
+      target: {value: 'team2'},
+    });
+
+    expect(screen.getByText('#team2')).toBeInTheDocument();
   });
 });
