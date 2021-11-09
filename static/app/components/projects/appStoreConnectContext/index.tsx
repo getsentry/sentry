@@ -1,10 +1,10 @@
 import {createContext, useEffect, useState} from 'react';
 
 import {Organization, Project} from 'app/types';
-import {AppStoreConnectValidationData} from 'app/types/debugFiles';
+import {AppStoreConnectStatusData} from 'app/types/debugFiles';
 import useApi from 'app/utils/useApi';
 
-export type AppStoreConnectContextProps = AppStoreConnectValidationData | undefined;
+export type AppStoreConnectContextProps = AppStoreConnectStatusData | undefined;
 
 const AppStoreConnectContext = createContext<AppStoreConnectContextProps>(undefined);
 
@@ -20,7 +20,7 @@ const Provider = ({children, project, organization}: ProviderProps) => {
   const api = useApi();
 
   const [projectDetails, setProjectDetails] = useState<undefined | Project>();
-  const [appStoreConnectValidationData, setAppStoreConnectValidationData] =
+  const [appStoreConnectStatusData, setAppStoreConnectStatusData] =
     useState<AppStoreConnectContextProps>(undefined);
 
   const orgSlug = organization.slug;
@@ -30,7 +30,7 @@ const Provider = ({children, project, organization}: ProviderProps) => {
   }, [project]);
 
   useEffect(() => {
-    fetchAppStoreConnectValidationData();
+    fetchAppStoreConnectStatusData();
   }, [projectDetails]);
 
   async function fetchProjectDetails() {
@@ -57,7 +57,7 @@ const Provider = ({children, project, organization}: ProviderProps) => {
     )?.id;
   }
 
-  async function fetchAppStoreConnectValidationData() {
+  async function fetchAppStoreConnectStatusData() {
     if (!projectDetails) {
       return;
     }
@@ -71,13 +71,18 @@ const Provider = ({children, project, organization}: ProviderProps) => {
     }
 
     try {
-      const response = await api.requestPromise(
-        `/projects/${orgSlug}/${projectDetails.slug}/appstoreconnect/validate/${appStoreConnectSymbolSourceId}/`
+      const response: Map<string, AppStoreConnectStatusData> = await api.requestPromise(
+        `/projects/${orgSlug}/${projectDetails.slug}/appstoreconnect/status/`
       );
-      setAppStoreConnectValidationData({
-        id: appStoreConnectSymbolSourceId,
-        ...response,
-      });
+
+      const sourceStatus: Omit<AppStoreConnectStatusData, 'id'> | undefined =
+        response[appStoreConnectSymbolSourceId];
+      if (sourceStatus) {
+        setAppStoreConnectStatusData({
+          ...sourceStatus,
+          id: appStoreConnectSymbolSourceId,
+        });
+      }
     } catch {
       // do nothing
     }
@@ -86,11 +91,11 @@ const Provider = ({children, project, organization}: ProviderProps) => {
   return (
     <AppStoreConnectContext.Provider
       value={
-        appStoreConnectValidationData
+        appStoreConnectStatusData
           ? {
-              ...appStoreConnectValidationData,
+              ...appStoreConnectStatusData,
               updateAlertMessage: getAppConnectStoreUpdateAlertMessage(
-                appStoreConnectValidationData
+                appStoreConnectStatusData.credentials
               ),
             }
           : undefined

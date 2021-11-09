@@ -282,6 +282,7 @@ from .endpoints.project_app_store_connect_credentials import (
     AppStoreConnectAppsEndpoint,
     AppStoreConnectCreateCredentialsEndpoint,
     AppStoreConnectCredentialsValidateEndpoint,
+    AppStoreConnectStatusEndpoint,
     AppStoreConnectUpdateCredentialsEndpoint,
 )
 from .endpoints.project_avatar import ProjectAvatarEndpoint
@@ -2026,6 +2027,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/validate/(?P<credentials_id>[^\/]+)/$",
                     AppStoreConnectCredentialsValidateEndpoint.as_view(),
                     name="sentry-api-0-project-appstoreconnect-validate",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/status/$",
+                    AppStoreConnectStatusEndpoint.as_view(),
+                    name="sentry-api-0-project-appstoreconnect-status",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/(?P<credentials_id>[^\/]+)/$",

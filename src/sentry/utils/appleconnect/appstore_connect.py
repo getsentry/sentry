@@ -36,7 +36,7 @@ class UnauthorizedError(RequestError):
 
 
 class ForbiddenError(RequestError):
-    """The App Store Connect session does not have access to the requested dSYM."""
+    """Forbidden: authentication token does not have sufficient permissions."""
 
     pass
 
@@ -154,6 +154,8 @@ def _get_appstore_json(
 
             if response.status_code == HTTPStatus.UNAUTHORIZED:
                 raise UnauthorizedError(full_url)
+            elif response.status_code == HTTPStatus.FORBIDDEN:
+                raise ForbiddenError(full_url)
             else:
                 raise RequestError(full_url)
         try:

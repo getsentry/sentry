@@ -1,3 +1,5 @@
+import {ValidationErrorDetailed} from 'app/components/modals/debugFileCustomRepository/appStoreConnect/utils';
+
 export enum DebugFileType {
   EXE = 'exe',
   DBG = 'dbg',
@@ -41,9 +43,13 @@ export enum CustomRepoType {
   APP_STORE_CONNECT = 'appStoreConnect',
 }
 
-export type AppStoreConnectValidationData = {
+export type AppStoreConnectCredentialsStatus =
+  | {status: 'valid'}
+  | ({status: 'invalid'} & ValidationErrorDetailed);
+
+export type AppStoreConnectStatusData = {
   id: string;
-  appstoreCredentialsValid: boolean;
+  credentials: AppStoreConnectCredentialsStatus;
   /**
    * Indicates the number of downloads waiting to be processed and completed,
    * or the number of downloads waiting for valid credentials to be completed if applicable.
@@ -75,7 +81,7 @@ type CustomRepoAppStoreConnect = {
   bundleId: string;
   id: string;
   name: string;
-  details?: AppStoreConnectValidationData;
+  details?: AppStoreConnectStatusData;
 };
 
 type CustomRepoHttp = {
