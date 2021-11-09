@@ -38,8 +38,9 @@ function WidgetLibraryCard({selectedWidgets, widget, setSelectedWidgets}: Props)
       onClick={() => {
         const removedWidgetIndex = selectedWidgets.indexOf(widget);
         if (removedWidgetIndex !== -1) {
-          const updatedWidgets = selectedWidgets.slice().splice(removedWidgetIndex, 1);
-          setSelectedWidgets(updatedWidgets);
+          const clonedSelectedWidgets = [...selectedWidgets];
+          clonedSelectedWidgets.splice(removedWidgetIndex, 1);
+          setSelectedWidgets(clonedSelectedWidgets);
         }
       }}
       priority="primary"
