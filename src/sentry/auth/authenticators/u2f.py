@@ -117,7 +117,7 @@ class U2fInterface(AuthenticatorInterface):
         # #         }
         # #     )
         # challenge = server.authenticate_begin()
-        # breakpoint()
+
         # XXX: Upgrading python-u2flib-server to 5.0.0 changes the response
         # format. Our current js u2f library expects the old format, so
         # massaging the data to include the old `authenticateRequests` key here.

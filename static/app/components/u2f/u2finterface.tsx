@@ -20,7 +20,6 @@ type Props = {
   silentIfUnsupported: boolean;
   onTap: ({response, challenge}: TapParams) => Promise<void>;
   style?: React.CSSProperties;
-  // organization: Organization;
 };
 
 type State = {
@@ -168,7 +167,6 @@ class U2fInterface extends React.Component<Props, State> {
     } else {
       throw new Error(`Unsupported flow mode '${this.props.flowMode}'`);
     }
-    // this.submitU2fResponse(promise);
   }
 
   onTryAgain = () => {
@@ -306,4 +304,3 @@ class U2fInterface extends React.Component<Props, State> {
 }
 
 export default U2fInterface;
-// export default withOrganization(U2fInterface);
