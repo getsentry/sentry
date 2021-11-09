@@ -373,6 +373,8 @@ class Factories:
         additional_projects: Optional[Sequence[Project]] = None,
         environments: Optional[Sequence[Environment]] = None,
         date_released: Optional[datetime] = None,
+        adopted: Optional[datetime] = None,
+        unadopted: Optional[datetime] = None,
     ):
         if version is None:
             version = force_text(hexlify(os.urandom(20)))
@@ -400,7 +402,11 @@ class Factories:
             )
             for project in [project] + additional_projects:
                 ReleaseProjectEnvironment.objects.create(
-                    project=project, release=release, environment=environment
+                    project=project,
+                    release=release,
+                    environment=environment,
+                    adopted=adopted,
+                    unadopted=unadopted,
                 )
 
         Activity.objects.create(

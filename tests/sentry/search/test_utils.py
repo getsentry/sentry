@@ -623,39 +623,68 @@ class GetLatestReleaseTest(TestCase):
         # latest overall (no environment filter)
         environment = None
         result = get_latest_release([self.project], environment)
-        assert result == newest.version
+        assert result == [newest.version]
 
         # latest in environment
         environment = self.environment
         result = get_latest_release([self.project], [environment])
-        assert result == new.version
+        assert result == [new.version]
 
-        assert get_latest_release([self.project.id], [environment]) == ""
-        assert (
-            get_latest_release([self.project.id], [environment], self.project.organization_id)
-            == new.version
-        )
+        assert get_latest_release([self.project.id], [environment]) == []
+        assert get_latest_release(
+            [self.project.id], [environment], self.project.organization_id
+        ) == [new.version]
 
         # Verify that not passing an environment correctly gets the latest one
-        assert get_latest_release([self.project], None) == newest.version
-        assert get_latest_release([self.project], []) == newest.version
+        assert get_latest_release([self.project], None) == [newest.version]
+        assert get_latest_release([self.project], []) == [newest.version]
 
         with pytest.raises(Release.DoesNotExist):
             # environment with no releases
-            environment = self.create_environment()
-            result = get_latest_release([self.project], [environment])
-            assert result == new.version
+            new_environment = self.create_environment()
+            get_latest_release([self.project], [new_environment])
+
+        project_2 = self.create_project()
+        other_project_env_release = self.create_release(
+            project_2, version="other_project_env", environments=[self.environment]
+        )
+        other_project_release = self.create_release(project_2, version="other_project")
+        assert get_latest_release([project_2], None) == [other_project_release.version]
+        assert get_latest_release([project_2], [environment]) == [other_project_env_release.version]
+        assert get_latest_release([self.project, project_2], None) == [
+            newest.version,
+            other_project_release.version,
+        ]
+        assert get_latest_release([self.project, project_2], [environment]) == [
+            new.version,
+            other_project_env_release.version,
+        ]
 
     def test_semver(self):
         project_2 = self.create_project()
         release_1 = self.create_release(version="test@2.0.0")
         self.create_release(version="test@1.3.2")
-        release_3 = self.create_release(version="test@1.0.0")
+        self.create_release(version="test@1.0.0")
 
         # Check when we're using a single project that we sort by semver
-        assert get_latest_release([self.project], None) == release_1.version
-        # Check that if we use > 1 project that we fall back to date sort
-        assert get_latest_release([project_2, self.project], None) == release_3.version
+        assert get_latest_release([self.project], None) == [release_1.version]
+        assert get_latest_release([project_2, self.project], None) == [release_1.version]
+        release_4 = self.create_release(project_2, version="test@1.3.3")
+        assert get_latest_release([project_2, self.project], None) == [
+            release_4.version,
+            release_1.version,
+        ]
+
+    def test_multiple_projects_mixed_versions(self):
+        project_2 = self.create_project()
+        release_1 = self.create_release(version="test@2.0.0")
+        self.create_release(project_2, version="not_semver")
+        release_2 = self.create_release(project_2, version="not_semver_2")
+        self.create_release(version="test@1.0.0")
+        assert get_latest_release([project_2, self.project], None) == [
+            release_2.version,
+            release_1.version,
+        ]
 
 
 class ConvertUserTagTest(TestCase):
