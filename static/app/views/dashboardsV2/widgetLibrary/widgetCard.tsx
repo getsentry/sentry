@@ -36,12 +36,8 @@ function WidgetLibraryCard({selectedWidgets, widget, setSelectedWidgets}: Props)
       type="button"
       icon={<IconCheckmark size="small" isCircled color="gray300" />}
       onClick={() => {
-        const removedWidgetIndex = selectedWidgets.indexOf(widget);
-        if (removedWidgetIndex !== -1) {
-          const clonedSelectedWidgets = [...selectedWidgets];
-          clonedSelectedWidgets.splice(removedWidgetIndex, 1);
-          setSelectedWidgets(clonedSelectedWidgets);
-        }
+        const updatedWidgets = selectedWidgets.filter(selected => widget !== selected);
+        setSelectedWidgets(updatedWidgets);
       }}
       priority="primary"
     >
