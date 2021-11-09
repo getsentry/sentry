@@ -72,7 +72,10 @@ describe('Team Selector', function () {
 
     const option = screen.getByText('#team1');
     fireEvent.click(option);
-    expect(onChangeMock).toHaveBeenCalled();
+    expect(onChangeMock).toHaveBeenCalledWith(
+      expect.objectContaining({value: 'team1'}),
+      expect.anything()
+    );
   });
 
   it('respects the team filter', async function () {
@@ -130,7 +133,8 @@ describe('Team Selector', function () {
   });
 
   it('allows searching by slug with useId', function () {
-    createWrapper({useId: true});
+    const onChangeMock = jest.fn();
+    createWrapper({useId: true, onChange: onChangeMock});
     openSelectMenu();
 
     fireEvent.change(screen.getByLabelText('Select a team'), {
@@ -138,5 +142,11 @@ describe('Team Selector', function () {
     });
 
     expect(screen.getByText('#team2')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('#team2'));
+    expect(onChangeMock).toHaveBeenCalledWith(
+      expect.objectContaining({value: '2'}),
+      expect.anything()
+    );
   });
 });
