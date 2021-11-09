@@ -112,7 +112,7 @@ class IntegrationExternalUserMappings extends AsyncComponent<Props, State> {
 
   renderBody() {
     const {integration} = this.props;
-    const {memberPageLinks} = this.state;
+    const {membersPageLinks} = this.state;
     return (
       <Fragment>
         <IntegrationExternalMappings
@@ -121,7 +121,7 @@ class IntegrationExternalUserMappings extends AsyncComponent<Props, State> {
           mappings={this.mappings}
           onCreateOrEdit={this.openModal}
           onDelete={this.handleDelete}
-          pageLinks={memberPageLinks}
+          pageLinks={membersPageLinks}
         />
       </Fragment>
     );
