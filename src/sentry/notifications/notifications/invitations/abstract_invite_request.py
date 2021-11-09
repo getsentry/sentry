@@ -89,5 +89,5 @@ class AbstractInviteRequestNotification(OrganizationRequestNotification):
             organization_id=self.organization.id,
             user_id=self.pending_member.inviter.id if self.pending_member.inviter else None,
             target_user_id=recipient.id,
-            providers=provider,
+            providers=provider.name.lower(),
         )

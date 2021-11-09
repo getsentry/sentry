@@ -135,7 +135,7 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
             organization_id=self.organization.id,
             user_id=self.requester.id,
             target_user_id=recipient.id,
-            providers=provider,
+            providers=provider.name.lower(),
         )
 
     def get_title_link(self) -> str | None:
