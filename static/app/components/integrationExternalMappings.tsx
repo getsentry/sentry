@@ -5,6 +5,7 @@ import capitalize from 'lodash/capitalize';
 import Access from 'app/components/acl/access';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
+import Pagination from 'app/components/pagination';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import Tooltip from 'app/components/tooltip';
 import {IconAdd, IconDelete, IconEdit} from 'app/icons';
@@ -20,13 +21,14 @@ type Props = {
   type: 'team' | 'user';
   onCreateOrEdit: (mapping?: ExternalActorMapping) => void;
   onDelete: (mapping: ExternalActorMapping) => void;
+  pageLinks?: string;
 };
 
 type State = {};
 
 class IntegrationExternalMappings extends Component<Props, State> {
   render() {
-    const {integration, mappings, type, onCreateOrEdit, onDelete} = this.props;
+    const {integration, mappings, type, onCreateOrEdit, onDelete, pageLinks} = this.props;
 
     return (
       <Fragment>
@@ -110,6 +112,7 @@ class IntegrationExternalMappings extends Component<Props, State> {
             ))}
           </PanelBody>
         </Panel>
+        <Pagination pageLinks={pageLinks} />
       </Fragment>
     );
   }
