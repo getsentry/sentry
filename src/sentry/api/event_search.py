@@ -80,7 +80,7 @@ specific_date_filter = search_key sep iso_8601_date_format
 rel_date_filter = search_key sep rel_date_format
 
 # filter for durations
-duration_filter = search_key sep operator? duration_format
+duration_filter = negation? search_key sep operator? duration_format
 
 # boolean comparison filter
 boolean_filter = negation? search_key sep boolean_value
@@ -611,9 +611,14 @@ class SearchVisitor(NodeVisitor):
         return self._handle_basic_filter(search_key, "=", SearchValue(value.text))
 
     def visit_duration_filter(self, node, children):
-        (search_key, sep, operator, search_value) = children
+        (negation, search_key, _, operator, search_value) = children
+        if self.is_duration_key(search_key.name) or self.is_numeric_key(search_key.name):
+            operator = handle_negation(negation, operator)
+        elif isinstance(operator, Node):
+            operator = operator.text
+        elif isinstance(operator, list):
+            operator = operator[0]
 
-        operator = operator[0] if not isinstance(operator, Node) else "="
         if self.is_duration_key(search_key.name):
             try:
                 search_value = parse_duration(*search_value)
@@ -626,8 +631,9 @@ class SearchVisitor(NodeVisitor):
             return self._handle_numeric_filter(search_key, operator, search_value)
 
         search_value = "".join(search_value)
-        search_value = operator + search_value if operator != "=" else search_value
-        return self._handle_basic_filter(search_key, "=", SearchValue(search_value))
+        search_value = operator + search_value if operator not in ("=", "!=") else search_value
+        operator = "!=" if is_negated(negation) else "="
+        return self._handle_basic_filter(search_key, operator, SearchValue(search_value))
 
     def visit_boolean_filter(self, node, children):
         (negation, search_key, sep, search_value) = children
@@ -665,8 +671,13 @@ class SearchVisitor(NodeVisitor):
 
     def visit_numeric_filter(self, node, children):
         (negation, search_key, _, operator, search_value) = children
-        if isinstance(operator, Node):
+        if (
+            self.is_numeric_key(search_key.name)
+            or search_key.name in self.config.text_operator_keys
+        ):
             operator = handle_negation(negation, operator)
+        elif isinstance(operator, Node):
+            operator = "=" if isinstance(operator.expr, Optional) else operator.text
         elif isinstance(operator, list):
             operator = operator[0]
 

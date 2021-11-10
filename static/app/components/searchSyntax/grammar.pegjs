@@ -85,10 +85,10 @@ rel_date_filter
 
 // filter for durations
 duration_filter
-  = key:search_key sep op:operator? value:duration_format &{
+  = negation:negation? key:search_key sep op:operator? value:duration_format &{
       return tc.predicateFilter(FilterType.Duration, key)
     } {
-      return tc.tokenFilter(FilterType.Duration, key, value, op, false);
+      return tc.tokenFilter(FilterType.Duration, key, value, op, !!negation);
     }
 
 // boolean comparison filter

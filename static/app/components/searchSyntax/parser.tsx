@@ -169,7 +169,7 @@ export const filterTypeConfig = {
     validKeys: [Token.KeySimple],
     validOps: allOperators,
     validValues: [Token.ValueDuration],
-    canNegate: false,
+    canNegate: true,
   },
   [FilterType.Numeric]: {
     validKeys: [Token.KeySimple],
