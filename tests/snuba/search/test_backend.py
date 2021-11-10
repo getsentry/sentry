@@ -16,9 +16,11 @@ from sentry.models import (
     GroupAssignee,
     GroupBookmark,
     GroupEnvironment,
+    GroupHistoryStatus,
     GroupStatus,
     GroupSubscription,
     Integration,
+    record_group_history,
 )
 from sentry.models.groupowner import GroupOwner
 from sentry.search.snuba.backend import (
@@ -1392,6 +1394,50 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
 
             assert third_results.hits > 10
             assert third_results.results != second_results.results
+
+    def test_regressed_in_release(self):
+        # expect no groups within the results since there are no releases
+        results = self.make_query(search_filter_query="regressed_in_release:fake")
+        assert set(results) == set()
+
+        # expect no groups even though there is a release; since no group regressed in this release
+        release_1 = self.create_release()
+
+        results = self.make_query(search_filter_query="regressed_in_release:%s" % release_1.version)
+        assert set(results) == set()
+
+        # Create a new event so that we get a group in this release
+        group = self.store_event(
+            data={
+                "release": release_1.version,
+            },
+            project_id=self.project.id,
+        ).group
+
+        # # Should still be no group since we didn't regress in this release
+        results = self.make_query(search_filter_query="regressed_in_release:%s" % release_1.version)
+        assert set(results) == set()
+
+        record_group_history(group, GroupHistoryStatus.REGRESSED, release=release_1)
+        results = self.make_query(search_filter_query="regressed_in_release:%s" % release_1.version)
+        assert set(results) == {group}
+
+        # Make sure this works correctly with multiple releases
+        release_2 = self.create_release()
+        group_2 = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group9001"],
+                "event_id": "a" * 32,
+                "release": release_2.version,
+            },
+            project_id=self.project.id,
+        ).group
+        record_group_history(group_2, GroupHistoryStatus.REGRESSED, release=release_2)
+
+        results = self.make_query(search_filter_query="regressed_in_release:%s" % release_1.version)
+        assert set(results) == {group}
+        results = self.make_query(search_filter_query="regressed_in_release:%s" % release_2.version)
+        assert set(results) == {group_2}
 
     def test_first_release(self):
 

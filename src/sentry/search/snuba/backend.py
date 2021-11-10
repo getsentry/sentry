@@ -2,6 +2,7 @@ import functools
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 from datetime import timedelta
+from typing import Sequence
 
 from django.db.models import Q
 from django.utils import timezone
@@ -13,6 +14,8 @@ from sentry.models import (
     Group,
     GroupAssignee,
     GroupEnvironment,
+    GroupHistory,
+    GroupHistoryStatus,
     GroupLink,
     GroupOwner,
     GroupStatus,
@@ -20,6 +23,7 @@ from sentry.models import (
     OrganizationMember,
     OrganizationMemberTeam,
     PlatformExternalIssue,
+    Project,
     Release,
     Team,
     User,
@@ -246,6 +250,19 @@ def assigned_or_suggested_filter(owners, projects, field_filter="id"):
     return query
 
 
+def regressed_in_release_filter(versions: Sequence[str], projects: Sequence[Project]) -> Q:
+    release_ids = Release.objects.filter(
+        organization_id=projects[0].organization_id, version__in=versions
+    ).values_list("id", flat=True)
+    return Q(
+        id__in=GroupHistory.objects.filter(
+            release_id__in=release_ids,
+            status=GroupHistoryStatus.REGRESSED,
+            project__in=projects,
+        ).values_list("group_id", flat=True),
+    )
+
+
 class Condition:
     """\
     Adds a single filter to a ``QuerySet`` object. Used with
@@ -465,6 +482,9 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
             "for_review": QCallbackCondition(functools.partial(inbox_filter, projects=projects)),
             "assigned_or_suggested": QCallbackCondition(
                 functools.partial(assigned_or_suggested_filter, projects=projects)
+            ),
+            "regressed_in_release": QCallbackCondition(
+                functools.partial(regressed_in_release_filter, projects=projects)
             ),
         }
 

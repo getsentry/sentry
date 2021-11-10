@@ -271,6 +271,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         "subscribed_by",
         "first_release",
         "first_seen",
+        "regressed_in_release",
     }
     sort_strategies = {
         "date": "last_seen",
@@ -431,6 +432,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
 
         max_time = options.get("snuba.search.max-total-chunk-time-seconds")
         time_start = time.time()
+        more_results = False
 
         # Do smaller searches in chunks until we have enough results
         # to answer the query (or hit the end of possible results). We do
