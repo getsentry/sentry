@@ -31,3 +31,5 @@ class MessageAction:
     # TODO(mgaeta): Refactor this to be provider-agnostic
     selected_options: Sequence[Mapping[str, Any]] | None = None
     option_groups: Sequence[Mapping[str, Any]] | None = None
+    block_id: str | None = None
+    elements: Sequence[Mapping[str, Any]] | None = None
