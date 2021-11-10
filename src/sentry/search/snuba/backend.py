@@ -1,20 +1,16 @@
-from __future__ import annotations
-
 import functools
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
-from datetime import datetime, timedelta
-from typing import Any, Callable, Dict, Mapping, Optional, Sequence
+from datetime import timedelta
+from typing import Sequence
 
-from django.db.models import Q, QuerySet
+from django.db.models import Q
 from django.utils import timezone
 from django.utils.functional import SimpleLazyObject
 
 from sentry import quotas
-from sentry.api.event_search import SearchFilter
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import (
-    Environment,
     Group,
     GroupAssignee,
     GroupEnvironment,
@@ -34,17 +30,10 @@ from sentry.models import (
 )
 from sentry.search.base import SearchBackend
 from sentry.search.events.constants import EQUALITY_OPERATORS, OPERATOR_TO_DJANGO
-from sentry.search.snuba.executors import (
-    AbstractQueryExecutor,
-    CdcPostgresSnubaQueryExecutor,
-    PostgresSnubaQueryExecutor,
-)
-from sentry.utils.cursors import Cursor, CursorResult
+from sentry.search.snuba.executors import CdcPostgresSnubaQueryExecutor, PostgresSnubaQueryExecutor
 
 
-def assigned_to_filter(
-    actors: Sequence[User | Team | None], projects: Sequence[Project], field_filter: str = "id"
-) -> Q:
+def assigned_to_filter(actors, projects, field_filter="id"):
     from sentry.models import OrganizationMember, OrganizationMemberTeam, Team
 
     include_none = False
@@ -99,7 +88,7 @@ def assigned_to_filter(
     return query
 
 
-def unassigned_filter(unassigned: bool, projects: Sequence[Project], field_filter: str = "id") -> Q:
+def unassigned_filter(unassigned, projects, field_filter="id"):
     query = Q(
         **{
             f"{field_filter}__in": GroupAssignee.objects.filter(
@@ -112,7 +101,7 @@ def unassigned_filter(unassigned: bool, projects: Sequence[Project], field_filte
     return query
 
 
-def linked_filter(linked: bool, projects: Sequence[Project]) -> Q:
+def linked_filter(linked, projects):
     """
     Builds a filter for whether or not a Group has an issue linked via either
     a PlatformExternalIssue or an ExternalIssue.
@@ -149,9 +138,7 @@ def linked_filter(linked: bool, projects: Sequence[Project]) -> Q:
     return query
 
 
-def first_release_all_environments_filter(
-    versions: Sequence[str], projects: Sequence[Project]
-) -> Q:
+def first_release_all_environments_filter(versions, projects):
     releases = {
         id_: version
         for id_, version in Release.objects.filter(
@@ -177,7 +164,7 @@ def first_release_all_environments_filter(
     )
 
 
-def inbox_filter(inbox: bool, projects: Sequence[Project]) -> Q:
+def inbox_filter(inbox, projects):
     query = Q(groupinbox__id__isnull=False)
     if not inbox:
         query = ~query
@@ -186,9 +173,7 @@ def inbox_filter(inbox: bool, projects: Sequence[Project]) -> Q:
     return query
 
 
-def assigned_or_suggested_filter(
-    owners: Sequence[User | Team | None], projects: Sequence[Project], field_filter: str = "id"
-) -> Q:
+def assigned_or_suggested_filter(owners, projects, field_filter="id"):
     organization_id = projects[0].organization_id
     project_ids = [p.id for p in projects]
 
@@ -284,15 +269,15 @@ class Condition:
     ``QuerySetBuilder``.
     """
 
-    def apply(self, queryset: QuerySet, search_filter: SearchFilter) -> QuerySet:
+    def apply(self, queryset, name, parameters):
         raise NotImplementedError
 
 
 class QCallbackCondition(Condition):
-    def __init__(self, callback: Callable[[Any], QuerySet]):
+    def __init__(self, callback):
         self.callback = callback
 
-    def apply(self, queryset: QuerySet, search_filter: SearchFilter) -> QuerySet:
+    def apply(self, queryset, search_filter):
         value = search_filter.value.raw_value
         q = self.callback(value)
         if search_filter.operator not in ("=", "!=", "IN", "NOT IN"):
@@ -312,17 +297,17 @@ class ScalarCondition(Condition):
     instances
     """
 
-    def __init__(self, field: str, extra: Optional[dict[str, Sequence[int]]] = None):
+    def __init__(self, field, extra=None):
         self.field = field
         self.extra = extra
 
-    def _get_operator(self, search_filter: SearchFilter) -> str:
+    def _get_operator(self, search_filter):
         django_operator = OPERATOR_TO_DJANGO.get(search_filter.operator, "")
         if django_operator:
             django_operator = f"__{django_operator}"
         return django_operator
 
-    def apply(self, queryset: QuerySet, search_filter: SearchFilter) -> QuerySet:
+    def apply(self, queryset, search_filter):
         django_operator = self._get_operator(search_filter)
         qs_method = queryset.exclude if search_filter.operator == "!=" else queryset.filter
 
@@ -334,10 +319,10 @@ class ScalarCondition(Condition):
 
 
 class QuerySetBuilder:
-    def __init__(self, conditions: Mapping[str, Condition]):
+    def __init__(self, conditions):
         self.conditions = conditions
 
-    def build(self, queryset: QuerySet, search_filters: Sequence[SearchFilter]) -> QuerySet:
+    def build(self, queryset, search_filters):
         for search_filter in search_filters:
             name = search_filter.key.name
             if name in self.conditions:
@@ -349,18 +334,18 @@ class QuerySetBuilder:
 class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
     def query(
         self,
-        projects: Sequence[Project],
-        environments: Optional[Sequence[Environment]] = None,
-        sort_by: str = "date",
-        limit: int = 100,
-        cursor: Optional[Cursor] = None,
-        count_hits: bool = False,
-        paginator_options: Optional[Mapping[str, Any]] = None,
-        search_filters: Optional[Sequence[SearchFilter]] = None,
-        date_from: Optional[datetime] = None,
-        date_to: Optional[datetime] = None,
-        max_hits: Optional[int] = None,
-    ) -> CursorResult:
+        projects,
+        environments=None,
+        sort_by="date",
+        limit=100,
+        cursor=None,
+        count_hits=False,
+        paginator_options=None,
+        search_filters=None,
+        date_from=None,
+        date_to=None,
+        max_hits=None,
+    ):
         search_filters = search_filters if search_filters is not None else []
 
         # ensure projects are from same org
@@ -416,14 +401,8 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
         )
 
     def _build_group_queryset(
-        self,
-        projects: Sequence[Project],
-        environments: Optional[Sequence[Environment]],
-        search_filters: Sequence[SearchFilter],
-        retention_window_start: Optional[datetime],
-        *args: Any,
-        **kwargs: Any,
-    ) -> QuerySet:
+        self, projects, environments, search_filters, retention_window_start, *args, **kwargs
+    ):
         """This method should return a QuerySet of the Group model.
         How you implement it is up to you, but we generally take in the various search parameters
         and filter Group's down using the field's we want to query on in Postgres."""
@@ -440,12 +419,8 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
         return group_queryset
 
     def _initialize_group_queryset(
-        self,
-        projects: Sequence[Project],
-        environments: Optional[Sequence[Environment]],
-        retention_window_start: Optional[datetime],
-        search_filters: Sequence[SearchFilter],
-    ) -> QuerySet:
+        self, projects, environments, retention_window_start, search_filters
+    ):
         group_queryset = Group.objects.filter(project__in=projects).exclude(
             status__in=[
                 GroupStatus.PENDING_DELETION,
@@ -467,41 +442,25 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
         return group_queryset
 
     @abstractmethod
-    def _get_queryset_conditions(
-        self,
-        projects: Sequence[Project],
-        environments: Optional[Sequence[Environment]],
-        search_filters: Sequence[SearchFilter],
-    ) -> Mapping[str, Condition]:
+    def _get_queryset_conditions(self, projects, environments, search_filters):
         """This method should return a dict of query set fields and a "Condition" to apply on that field."""
         raise NotImplementedError
 
     @abstractmethod
     def _get_query_executor(
-        self,
-        group_queryset: QuerySet,
-        projects: Sequence[Project],
-        environments: Optional[Sequence[Environment]],
-        search_filters: Sequence[SearchFilter],
-        date_from: Optional[datetime],
-        date_to: Optional[datetime],
-    ) -> AbstractQueryExecutor:
+        self, group_queryset, projects, environments, search_filters, date_from, date_to
+    ):
         """This method should return an implementation of the AbstractQueryExecutor
         We will end up calling .query() on the class returned by this method"""
         raise NotImplementedError
 
 
 class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
-    def _get_query_executor(self, *args: Any, **kwargs: Any) -> AbstractQueryExecutor:
+    def _get_query_executor(self, *args, **kwargs):
         return PostgresSnubaQueryExecutor()
 
-    def _get_queryset_conditions(
-        self,
-        projects: Sequence[Project],
-        environments: Optional[Sequence[Environment]],
-        search_filters: Sequence[SearchFilter],
-    ) -> Mapping[str, Condition]:
-        queryset_conditions: Dict[str, Condition] = {
+    def _get_queryset_conditions(self, projects, environments, search_filters):
+        queryset_conditions = {
             "status": QCallbackCondition(lambda statuses: Q(status__in=statuses)),
             "bookmarked_by": QCallbackCondition(
                 lambda users: Q(bookmark_set__project__in=projects, bookmark_set__user__in=users)
@@ -566,5 +525,5 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
 
 
 class CdcEventsDatasetSnubaSearchBackend(EventsDatasetSnubaSearchBackend):
-    def _get_query_executor(self, *args: Any, **kwargs: Any) -> CdcPostgresSnubaQueryExecutor:
+    def _get_query_executor(self, *args, **kwargs):
         return CdcPostgresSnubaQueryExecutor()
