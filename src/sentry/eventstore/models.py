@@ -373,11 +373,9 @@ class Event:
         )
 
         if flat_hashes:
-            sentry_sdk.set_tag("event.get_hashes.first_flat_variant_name", flat_hashes[0][0])
+            sentry_sdk.set_tag("get_hashes.flat_variant", flat_hashes[0][0])
         if hierarchical_hashes:
-            sentry_sdk.set_tag(
-                "event.get_hashes.first_hierarchical_variant_name", hierarchical_hashes[0][0]
-            )
+            sentry_sdk.set_tag("get_hashes.hierarchical_variant", hierarchical_hashes[0][0])
 
         flat_hashes = [hash_ for _, hash_ in flat_hashes]
         hierarchical_hashes = [hash_ for _, hash_ in hierarchical_hashes]

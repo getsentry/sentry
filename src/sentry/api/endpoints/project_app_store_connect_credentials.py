@@ -27,7 +27,6 @@ Status checks:
     validates and includes the status of API credentials associated with this app.
     See :class:`AppStoreConnectCredentialsValidateEndpoint`.
 """
-import datetime
 import logging
 from typing import Dict, Optional, Union
 from uuid import uuid4
@@ -210,15 +209,6 @@ class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
         config["id"] = uuid4().hex
         config["name"] = config["appName"]
 
-        # TODO(itunes): Deprecated fields. Needs to be removed alongside a migration, so this uses
-        # placeholders as a temporary workaround until that migration happens.
-        config["itunesCreated"] = datetime.datetime.now()
-        config["itunesSession"] = "deprecated-field-do-not-use"
-        config["orgPublicId"] = "deprecated-field-please-do-not-use--"
-        config["orgName"] = "deprecated-field-do-not-use"
-        config["itunesUser"] = "deprecated-field-do-not-use"
-        config["itunesPassword"] = "deprecated-field-do-not-use"
-
         try:
             validated_config = appconnect.AppStoreConnectConfig.from_json(config)
         except ValueError:
@@ -295,15 +285,6 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
         except KeyError:
             return Response(status=404)
 
-        # Deprecated fields. Needs to be removed alongside a migration, so this uses
-        # placeholders as a temporary workaround until that migration happens.
-        data["itunesCreated"] = datetime.datetime.now()
-        data["itunesSession"] = "deprecated-field-do-not-use"
-        data["orgPublicId"] = "deprecated-field-please-do-not-use--"
-        data["orgName"] = "deprecated-field-do-not-use"
-        data["itunesUser"] = "deprecated-field-do-not-use"
-        data["itunesPassword"] = "deprecated-field-do-not-use"
-
         # Any secrets set to None during validation are meant to be no-ops, so remove them to avoid
         # erasing the existing values
         for secret in secret_fields(symbol_source_config.type):
@@ -336,90 +317,6 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
         )
 
         return Response(symbol_source_config.to_redacted_json(), status=200)
-
-
-class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: ignore
-    """Validates the project's App Store Connect API credentials.
-
-    ``GET projects/{org_slug}/{proj_slug}/appstoreconnect/validate/{id}/``
-
-    See :class:`AppStoreConnectCreateCredentialsEndpoint` aka
-    ``projects/{org_slug}/{proj_slug}/appstoreconnect/`` for how to retrieve the ``id``.
-
-    Response:
-    ```json
-    {
-        "appstoreCredentialsValid": true,
-        "pendingDownloads": 123,
-        "latestBuildVersion: "9.8.7" | null,
-        "latestBuildNumber": "987000" | null,
-        "lastCheckedBuilds": "YYYY-MM-DDTHH:MM:SS.SSSSSSZ" | null
-    }
-    ```
-
-    * ``pendingDownloads`` is the number of pending build dSYM downloads.
-
-    * ``latestBuildVersion`` and ``latestBuildNumber`` together form a unique identifier for
-      the latest build recognized by Sentry.
-
-    * ``lastCheckedBuilds`` is when sentry last checked for new builds, regardless
-      of whether there were any or no builds in App Store Connect at the time.
-    """
-
-    permission_classes = [ProjectPermission]
-
-    def get(self, request: Request, project: Project, credentials_id: str) -> Response:
-        try:
-            symbol_source_cfg = appconnect.AppStoreConnectConfig.from_project_config(
-                project, credentials_id
-            )
-        except KeyError:
-            return Response(status=404)
-
-        credentials = appstore_connect.AppConnectCredentials(
-            key_id=symbol_source_cfg.appconnectKey,
-            key=symbol_source_cfg.appconnectPrivateKey,
-            issuer_id=symbol_source_cfg.appconnectIssuer,
-        )
-
-        session = requests.Session()
-        apps = appstore_connect.get_apps(session, credentials)
-
-        pending_downloads = AppConnectBuild.objects.filter(project=project, fetched=False).count()
-
-        latest_build = (
-            AppConnectBuild.objects.filter(project=project, bundle_id=symbol_source_cfg.bundleId)
-            .order_by("-uploaded_to_appstore")
-            .first()
-        )
-        if latest_build is None:
-            latestBuildVersion = None
-            latestBuildNumber = None
-        else:
-            latestBuildVersion = latest_build.bundle_short_version
-            latestBuildNumber = latest_build.bundle_version
-
-        try:
-            check_entry = LatestAppConnectBuildsCheck.objects.get(
-                project=project, source_id=symbol_source_cfg.id
-            )
-        # If the source was only just created then it's possible that sentry hasn't checked for any
-        # new builds for it yet.
-        except LatestAppConnectBuildsCheck.DoesNotExist:
-            last_checked_builds = None
-        else:
-            last_checked_builds = check_entry.last_checked
-
-        return Response(
-            {
-                "appstoreCredentialsValid": apps is not None,
-                "pendingDownloads": pending_downloads,
-                "latestBuildVersion": latestBuildVersion,
-                "latestBuildNumber": latestBuildNumber,
-                "lastCheckedBuilds": last_checked_builds,
-            },
-            status=200,
-        )
 
 
 class AppStoreConnectStatusEndpoint(ProjectEndpoint):  # type: ignore

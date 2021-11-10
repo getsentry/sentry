@@ -50,6 +50,7 @@ class AbstractInviteRequestNotification(OrganizationRequestNotification):
         self, recipient: Team | User, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
         context = super().get_recipient_context(recipient, extra_context)
+        context["email"] = self.pending_member.email
         context["organization_name"] = self.org_name
         context["pending_requests_link"] = self.members_url + self.get_sentry_query_params(
             ExternalProviders.EMAIL
@@ -89,5 +90,5 @@ class AbstractInviteRequestNotification(OrganizationRequestNotification):
             organization_id=self.organization.id,
             user_id=self.pending_member.inviter.id if self.pending_member.inviter else None,
             target_user_id=recipient.id,
-            providers=provider,
+            providers=provider.name.lower(),
         )
