@@ -1,12 +1,15 @@
+from base64 import urlsafe_b64decode
 from time import time
 
 from cryptography.exceptions import InvalidKey, InvalidSignature
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
+from fido2 import cbor
 from fido2.client import ClientData
 from fido2.ctap2 import AuthenticatorData, base
-from fido2.server import U2FFido2Server
+from fido2.server import Fido2Server, U2FFido2Server
 from fido2.utils import websafe_decode
+from fido2.webauthn import PublicKeyCredentialRpEntity
 from u2flib_server import u2f
 from u2flib_server.model import DeviceRegistration
 
@@ -49,11 +52,35 @@ class U2fInterface(AuthenticatorInterface):
         url_prefix = options.get("system.url-prefix")
         return url_prefix and url_prefix.startswith("https://")
 
+    def _create_credential_object(self, registeredKey):
+        return base.AttestedCredentialData.from_ctap1(
+            websafe_decode(registeredKey["keyHandle"]),
+            websafe_decode(registeredKey["publicKey"]),
+        )
+
     def generate_new_config(self):
         return {}
 
-    def start_enrollment(self):
-        return u2f.begin_registration(self.u2f_app_id, self.get_u2f_devices()).data_for_client
+    def start_enrollment(self, user):
+        rp = PublicKeyCredentialRpEntity(self.u2f_app_id, "Sentry")
+        server = Fido2Server(rp)
+        credentials = []
+        for registeredKey in self.get_u2f_devices():
+            c = self._create_credential_object(registeredKey)
+            credentials.append(c)
+
+        registration_data, state = server.register_begin(
+            user={"id": bytes(user.id), "name": user.name},
+            credentials=credentials,
+            user_verification="discouraged",
+            authenticator_attachment="cross-platform",
+        )
+        # old_data = u2f.begin_registration(self.u2f_app_id, self.get_u2f_devices()).data_for_client
+        # return cbor.encode(registration_data)
+        # breakpoint()
+        # return u2f.begin_registration(self.u2f_app_id, self.get_u2f_devices()).data_for_client
+        # breakpoint()
+        return registration_data
 
     def get_u2f_devices(self):
         rv = []
@@ -150,10 +177,7 @@ class U2fInterface(AuthenticatorInterface):
                 }
                 credentials = []
                 for registeredKey in challenge["registeredKeys"]:
-                    c = base.AttestedCredentialData.from_ctap1(
-                        websafe_decode(registeredKey["keyHandle"]),
-                        websafe_decode(registeredKey["publicKey"]),
-                    )
+                    c = self._create_credential_object(registeredKey)
                     credentials.append(c)
                 server.authenticate_complete(
                     state=state,
