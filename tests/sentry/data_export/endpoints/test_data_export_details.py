@@ -2,6 +2,7 @@ from datetime import timedelta
 from hashlib import sha1
 from io import BytesIO
 
+from django.urls import reverse
 from django.utils import timezone
 
 from sentry.data_export.base import ExportQueryType, ExportStatus
@@ -86,3 +87,15 @@ class DataExportDetailsTest(APITestCase):
             response = self.get_valid_response(self.organization.slug, self.data_export.id)
         assert response.data["checksum"] == sha1(contents).hexdigest()
         assert response.data["fileName"] == "test.csv"
+
+    def test_invalid_organization(self):
+        invalid_user = self.create_user()
+        invalid_organization = self.create_organization(owner=invalid_user)
+        self.login_as(user=invalid_user)
+        url = reverse(
+            self.endpoint,
+            args=[invalid_organization.slug, self.data_export.id],
+        )
+        with self.feature("organizations:discover-query"):
+            response = self.client.get(url)
+            assert response.status_code == 404
