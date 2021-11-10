@@ -15,8 +15,6 @@ if TYPE_CHECKING:
 
 
 class TestAppStoreConnectConfig:
-    # TODO(itunes): Update suite when iTunes fields are removed
-
     @pytest.fixture  # type: ignore
     def now(self) -> datetime:
         # Fixture so we can have one "now" for the entire test and its fixtures.
@@ -58,23 +56,6 @@ class TestAppStoreConnectConfig:
 
         # Redacted secrets
         data["appconnectPrivateKey"] = {"hidden-secret": True}
-        assert "itunesPassword" not in data
-        assert "itunesSession" not in data
-
-        assert new_data == data
-
-    def test_to_redacted_json_with_deprecated(self, data: json.JSONData, now: datetime) -> None:
-        data_with_deprecated = data
-        data_with_deprecated["itunesPassword"] = "honk"
-        data_with_deprecated["itunesSession"] = "beep"
-
-        config = appconnect.AppStoreConnectConfig.from_json(data)
-        new_data = config.to_redacted_json()
-
-        # Redacted secrets
-        data["appconnectPrivateKey"] = {"hidden-secret": True}
-        assert "itunesPassword" not in data
-        assert "itunesSession" not in data
 
         assert new_data == data
 
@@ -87,7 +68,6 @@ class TestAppStoreConnectConfig:
 
 
 class TestAppStoreConnectConfigUpdateProjectSymbolSource:
-    # TODO(itunes): Update when iTunes fields are removed
     @pytest.fixture  # type: ignore
     def config(self) -> appconnect.AppStoreConnectConfig:
         return appconnect.AppStoreConnectConfig(
