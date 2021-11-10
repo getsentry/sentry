@@ -413,15 +413,40 @@ def down(ctx, project, service):
     The default is everything, however you may pass positional arguments to specify
     an explicit list of services to bring down.
     """
-    prefix = project + "_"
-
     # TODO: make more like devservices rm
 
+    def _down(container):
+        click.secho(f"> Stopping '{container.name}' container", fg="red")
+        container.stop()
+        click.secho(f"> Stopped '{container.name}' container", fg="red")
+
+    containers = []
+    prefix = f"{project}_"
+
     for container in ctx.obj["client"].containers.list(all=True):
-        if container.name.startswith(prefix):
-            if not service or container.name[len(prefix) :] in service:
-                click.secho("> Stopping '%s' container" % container.name, err=True, fg="red")
-                container.stop()
+        if not container.name.startswith(prefix):
+            continue
+        if service and not container.name[len(prefix) :] in service:
+            continue
+        containers.append(container)
+
+    with ThreadPoolExecutor(max_workers=len(containers)) as executor:
+        futures = []
+        for container in containers:
+            futures.append(executor.submit(_down, container))
+        for future in as_completed(futures):
+            # If there was an exception, reraising it here to the main thread
+            # will not terminate the whole python process. We'd like to report
+            # on this exception and stop as fast as possible, so terminate
+            # ourselves. I believe (without verification) that the OS is now
+            # free to cleanup these threads, but not sure if they'll remain running
+            # in the background. What matters most is that we regain control
+            # of the terminal.
+            e = future.exception()
+            if e:
+                click.echo(e)
+                me = os.getpid()
+                os.kill(me, signal.SIGTERM)
 
 
 @devservices.command()
