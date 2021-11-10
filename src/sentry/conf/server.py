@@ -766,11 +766,6 @@ CELERYBEAT_SCHEDULE = {
         "schedule": crontab_with_minute_jitter(hour="*/6"),
         "options": {"expires": 60 * 25},
     },
-    "process_pending_incident_snapshots": {
-        "task": "sentry.incidents.tasks.process_pending_incident_snapshots",
-        "schedule": timedelta(hours=1),
-        "options": {"expires": 3600, "queue": "incidents"},
-    },
     "monitor-release-adoption": {
         "task": "sentry.tasks.monitor_release_adoption",
         "schedule": crontab(minute=0),
