@@ -95,7 +95,7 @@ class AlertListRow extends Component<Props> {
 
     return (
       <ErrorBoundary>
-        <Title>
+        <Title data-test-id="alert-title">
           <Link to={alertLink}>{incident.title}</Link>
         </Title>
 
