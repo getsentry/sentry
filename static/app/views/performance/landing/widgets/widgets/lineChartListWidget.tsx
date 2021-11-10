@@ -6,12 +6,13 @@ import pick from 'lodash/pick';
 
 import _EventsRequest from 'app/components/charts/eventsRequest';
 import {getInterval} from 'app/components/charts/utils';
+import Count from 'app/components/count';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Link from 'app/components/links/link';
 import Tooltip from 'app/components/tooltip';
 import Truncate from 'app/components/truncate';
 import {IconClose} from 'app/icons';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
@@ -274,6 +275,26 @@ export function LineChartListWidget(props: Props) {
                               {rightValue}
                             </Link>
                           </Tooltip>
+                        </RightAlignedCell>
+                        <CloseContainer>
+                          <StyledIconClose
+                            onClick={() =>
+                              excludeTransaction(listItem.transaction, props)
+                            }
+                          />
+                        </CloseContainer>
+                      </Fragment>
+                    );
+                  case PerformanceWidgetSetting.MOST_RELATED_ERRORS:
+                    return (
+                      <Fragment>
+                        <GrowLink to={transactionTarget} className="truncate">
+                          <Truncate value={transaction} maxLength={40} />
+                        </GrowLink>
+                        <RightAlignedCell>
+                          {tct('[count] errors', {
+                            count: <Count value={rightValue} />,
+                          })}
                         </RightAlignedCell>
                         <CloseContainer>
                           <StyledIconClose
