@@ -114,8 +114,8 @@ describe('Performance > Landing > Index', function () {
     expect(titles.at(0).text()).toEqual('p75 LCP');
     expect(titles.at(1).text()).toEqual('LCP Distribution');
     expect(titles.at(2).text()).toEqual('FCP Distribution');
-    expect(titles.at(3).text()).toEqual('Most Related Errors');
-    expect(titles.at(4).text()).toEqual('Most Related Issues');
+    expect(titles.at(3).text()).toEqual('Worst LCP Web Vitals');
+    expect(titles.at(4).text()).toEqual('Worst FCP Web Vitals');
   });
 
   it('renders frontend other view', async function () {
