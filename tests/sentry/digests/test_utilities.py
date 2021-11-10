@@ -192,7 +192,8 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
             self.user4.actor_id: set(self.user4_events),
         }
 
-        assert_get_personalized_digests(self.project, digest, expected_result)
+        with self.feature("organizations:notification-all-recipients"):
+            assert_get_personalized_digests(self.project, digest, expected_result)
 
     def test_direct_email(self):
         """When the action type is not Issue Owners, then the target actor gets a digest."""
@@ -259,7 +260,8 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
             self.user4.actor_id: set(events),
             self.user5.actor_id: set(events),
         }
-        assert_get_personalized_digests(self.project, digest, expected_result)
+        with self.feature("organizations:notification-all-recipients"):
+            assert_get_personalized_digests(self.project, digest, expected_result)
 
     def test_empty_records(self):
         assert build_digest(self.project, []) == (None, [])
