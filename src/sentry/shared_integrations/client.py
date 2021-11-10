@@ -238,7 +238,7 @@ class BaseApiClient(TrackResponseMixin):
             name=f"{self.integration_type}.http_response.{self.name}",
             parent_span_id=parent_span_id,
             trace_id=trace_id,
-            sampled=True,
+            sampled=random() < 0.05,
         ) as span:
             try:
                 with build_session() as session:
