@@ -193,3 +193,21 @@ class MetricsIndexerConsumerTest(TestCase):
         # loading the json converts the keys to strings e.g. {"tags": {1: 3}} --> {"tags": {"1": 3}}
         assert parsed["tags"] == {str(k): v for k, v in expected["tags"].items()}
         assert parsed["metric_id"] == expected["metric_id"]
+
+    def test_payload_without_tags(self):
+        """Assert that process_message does not crash when tags are omitted"""
+        payload_without_tags = {
+            "name": "session",
+            "timestamp": ts,
+            "type": "c",
+            "value": 1.0,
+            "org_id": 1,
+            "project_id": 3,
+        }
+
+        class MockMessage:
+            def value(self):
+                return json.dumps(payload_without_tags)
+
+        translated = MetricsIndexerWorker(None).process_message(MockMessage())
+        assert translated["tags"] == {}
