@@ -247,12 +247,18 @@ def up(ctx, services, project, exclude, fast, skip_only_if):
                 )
             )
         for future in as_completed(futures):
-            # future.result() reraises exception if any.
-            # We don't want to raise, just report on it.
-            # We also don't have or care about return values.
+            # If there was an exception, reraising it here to the main thread
+            # will not terminate the whole python process. We'd like to report
+            # on this exception and stop as fast as possible, so terminate
+            # ourselves. I believe (without verification) that the OS is now
+            # free to cleanup these threads, but not sure if they'll remain running
+            # in the background. What matters most is that we regain control
+            # of the terminal.
             e = future.exception()
-            if e is not None:
+            if e:
                 click.echo(e)
+                me = os.getpid()
+                os.kill(me, signal.SIGTERM)
 
 
 def _prepare_containers(project, skip_only_if=False, silent=False):
