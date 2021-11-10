@@ -3,32 +3,29 @@ import Reflux from 'reflux';
 import RepoActions from 'app/actions/repositoryActions';
 import {Repository} from 'app/types';
 
+type State = {
+  orgSlug?: string;
+  repositories: Repository[];
+  repositoriesLoading: boolean;
+  repositoriesError?: Error;
+};
 type RepositoryStoreInterface = {
-  get(): {
-    orgSlug?: string;
-    repositories?: Repository[];
-    repositoriesLoading?: boolean;
-    repositoriesError?: Error;
-  };
+  get(): State;
 
-  state: {
-    orgSlug?: string;
-    repositories?: Repository[];
-    repositoriesLoading?: boolean;
-    repositoriesError?: Error;
-  };
+  state: State;
 
   loadRepositories(orgSlug: string): void;
   loadRepositoriesSuccess(data: Repository[]): void;
   loadRepositoriesError(error: Error): void;
+  getState(): State;
 };
 
 const storeConfig: Reflux.StoreDefinition & RepositoryStoreInterface = {
   listenables: RepoActions,
   state: {
     orgSlug: undefined,
-    repositories: undefined,
-    repositoriesLoading: undefined,
+    repositories: [],
+    repositoriesLoading: false,
     repositoriesError: undefined,
   },
 
@@ -39,8 +36,8 @@ const storeConfig: Reflux.StoreDefinition & RepositoryStoreInterface = {
   resetRepositories() {
     this.state = {
       orgSlug: undefined,
-      repositories: undefined,
-      repositoriesLoading: undefined,
+      repositories: [],
+      repositoriesLoading: false,
       repositoriesError: undefined,
     };
     this.trigger(this.state);
@@ -49,7 +46,7 @@ const storeConfig: Reflux.StoreDefinition & RepositoryStoreInterface = {
   loadRepositories(orgSlug: string) {
     this.state = {
       orgSlug,
-      repositories: orgSlug === this.state.orgSlug ? this.state.repositories : undefined,
+      repositories: orgSlug === this.state.orgSlug ? this.state.repositories : [],
       repositoriesLoading: true,
       repositoriesError: undefined,
     };
@@ -59,7 +56,7 @@ const storeConfig: Reflux.StoreDefinition & RepositoryStoreInterface = {
   loadRepositoriesError(err: Error) {
     this.state = {
       ...this.state,
-      repositories: undefined,
+      repositories: [],
       repositoriesLoading: false,
       repositoriesError: err,
     };
@@ -78,6 +75,10 @@ const storeConfig: Reflux.StoreDefinition & RepositoryStoreInterface = {
 
   get() {
     return {...this.state};
+  },
+
+  getState() {
+    return this.get();
   },
 };
 
