@@ -266,9 +266,8 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
           </Button>
         </StyledPanelItem>
       ));
-    } else {
-      return <EmptyMessage description={t('No tokens created yet.')} />;
     }
+    return <EmptyMessage description={t('No tokens created yet.')} />;
   };
 
   onFieldChange = (name: string, value: FieldValue): void => {

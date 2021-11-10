@@ -147,12 +147,12 @@ class TwoFactorAuthView(BaseView):
             self.fail_signin(request, user, form)
 
         # check if webauthn-login feature flag is enabled for frontend
-        is_webauthn_ff_enabled = False
+        is_webauthn_signin_ff_enabled = False
         orgs = self._get_org_from_user(user)
         if any(
             features.has("organizations:webauthn-login", org, actor=request.user) for org in orgs
         ):
-            is_webauthn_ff_enabled = True
+            is_webauthn_signin_ff_enabled = True
 
         #  If a challenge and response exists, validate
         if challenge:
@@ -160,7 +160,7 @@ class TwoFactorAuthView(BaseView):
             if response:
                 response = json.loads(response)
                 if interface.validate_response(
-                    request, challenge, response, is_webauthn_ff_enabled
+                    request, challenge, response, is_webauthn_signin_ff_enabled
                 ):
                     return self.perform_signin(request, user, interface)
                 self.fail_signin(request, user, form)
@@ -172,7 +172,7 @@ class TwoFactorAuthView(BaseView):
                 "interface": interface,
                 "other_interfaces": self.get_other_interfaces(interface, interfaces),
                 "activation": activation,
-                "is_webauthn_ff_enabled": is_webauthn_ff_enabled,
+                "isWebauthnSigninFFEnabled": is_webauthn_signin_ff_enabled,
             },
             request,
             status=200,

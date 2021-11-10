@@ -40,6 +40,7 @@ type Props = WithRouterProps & {
   orgId: string;
   endpointPath: string;
   renderEmptyMessage?: () => React.ReactNode;
+  renderErrorMessage?: ({detail: string}, retry: () => void) => React.ReactNode;
   queryParams?: Record<string, number | string | string[] | undefined | null>;
   customStatsPeriod?: TimePeriodType;
   onFetchSuccess?: (
@@ -57,6 +58,7 @@ type Props = WithRouterProps & {
 type State = {
   loading: boolean;
   error: boolean;
+  errorData: {detail: string} | null;
   groups: Group[];
   pageLinks: string | null;
   memberList?: ReturnType<typeof indexMembersByProject>;
@@ -68,6 +70,7 @@ class GroupList extends React.Component<Props, State> {
   state: State = {
     loading: true,
     error: false,
+    errorData: null,
     groups: [],
     pageLinks: null,
   };
@@ -114,7 +117,7 @@ class GroupList extends React.Component<Props, State> {
     const {api, orgId} = this.props;
     api.clear();
 
-    this.setState({loading: true, error: false});
+    this.setState({loading: true, error: false, errorData: null});
 
     fetchOrgMembers(api, orgId).then(members => {
       this.setState({memberList: indexMembersByProject(members)});
@@ -128,6 +131,7 @@ class GroupList extends React.Component<Props, State> {
         this.setState(
           {
             error: false,
+            errorData: null,
             loading: false,
             pageLinks: resp?.getResponseHeader('Link') ?? null,
           },
@@ -138,7 +142,7 @@ class GroupList extends React.Component<Props, State> {
       },
       error: err => {
         Sentry.captureException(err);
-        this.setState({error: true, loading: false});
+        this.setState({error: true, errorData: err.responseJSON, loading: false});
       },
     });
   };
@@ -199,6 +203,7 @@ class GroupList extends React.Component<Props, State> {
       canSelectGroups,
       withChart,
       renderEmptyMessage,
+      renderErrorMessage,
       withPagination,
       useFilteredStats,
       useTintRow,
@@ -207,13 +212,17 @@ class GroupList extends React.Component<Props, State> {
       queryFilterDescription,
       narrowGroups,
     } = this.props;
-    const {loading, error, groups, memberList, pageLinks} = this.state;
+    const {loading, error, errorData, groups, memberList, pageLinks} = this.state;
 
     if (loading) {
       return <LoadingIndicator />;
     }
 
     if (error) {
+      if (typeof renderErrorMessage === 'function' && errorData) {
+        return renderErrorMessage(errorData, this.fetchData);
+      }
+
       return <LoadingError onRetry={this.fetchData} />;
     }
 

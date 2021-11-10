@@ -19,7 +19,7 @@
       container: '#u2f-container',
       props: {
         challengeData: {{ activation.challenge|to_json|safe }},
-        is_webauthn_ff_enabled: {{is_webauthn_ff_enabled|to_json|safe }},
+        isWebauthnSigninFFEnabled: {{isWebauthnSigninFFEnabled|to_json|safe }},
       },
     });
   </script>

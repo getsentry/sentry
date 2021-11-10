@@ -36,6 +36,7 @@
 /src/sentry/api/permissions.py      @getsentry/security @getsentry/enterprise
 /src/sentry/api/authentication.py   @getsentry/security @getsentry/enterprise
 /src/sentry/api/endpoints/auth*     @getsentry/security @getsentry/enterprise
+/src/sentry/api/endpoints/user_permission*     @getsentry/security @getsentry/enterprise
 
 # Dev
 /.github/                   @getsentry/owners-sentry-dev

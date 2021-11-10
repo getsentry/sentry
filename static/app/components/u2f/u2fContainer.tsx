@@ -11,7 +11,7 @@ type Props = {
   onTap: U2fSign['props']['onTap'];
   displayMode?: U2fSign['props']['displayMode'];
   className?: string;
-  is_webauthn_ff_enabled: boolean;
+  isWebauthnSigninFFEnabled: boolean;
 };
 type State = {
   authenticators: Array<Authenticator>;
@@ -46,11 +46,11 @@ class U2fContainer extends Component<Props, State> {
 
     return (
       <div className={className}>
-        {authenticators.map(auth =>
-          auth.id === 'u2f' && auth.challenge ? (
+        {authenticators.map(auth => {
+          return auth.id === 'u2f' && auth.challenge ? (
             <U2fSign key={auth.id} {...this.props} challengeData={auth.challenge} />
-          ) : null
-        )}
+          ) : null;
+        })}
       </div>
     );
   }

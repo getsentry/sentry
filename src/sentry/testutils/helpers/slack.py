@@ -92,8 +92,9 @@ def link_team(team: Team, integration: Integration, channel_name: str, channel_i
 
 
 def send_notification(*args):
-    args_list = list(args)[1:]
-    send_notification_as_slack(*args_list, {})
+    provider, *args_list = args
+    if provider == ExternalProviders.SLACK:
+        send_notification_as_slack(*args_list, {})
 
 
 def get_attachment():
@@ -105,3 +106,12 @@ def get_attachment():
 
     assert len(attachments) == 1
     return attachments[0], data["text"][0]
+
+
+def get_attachment_no_text():
+    assert len(responses.calls) >= 1
+    data = parse_qs(responses.calls[0].request.body)
+    assert "attachments" in data
+    attachments = json.loads(data["attachments"][0])
+    assert len(attachments) == 1
+    return attachments[0]

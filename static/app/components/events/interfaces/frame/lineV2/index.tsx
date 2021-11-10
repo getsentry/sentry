@@ -165,7 +165,7 @@ function Line({
   });
 
   return (
-    <StyleListItem className={className}>
+    <StyleListItem className={className} data-test-id="stack-trace-frame">
       <StrictClick onClick={expandable ? toggleContext : undefined}>
         {renderLine()}
       </StrictClick>

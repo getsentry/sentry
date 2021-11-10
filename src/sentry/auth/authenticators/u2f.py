@@ -1,10 +1,8 @@
-from base64 import urlsafe_b64decode
 from time import time
 
 from cryptography.exceptions import InvalidKey, InvalidSignature
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
-from fido2 import cbor
 from fido2.client import ClientData
 from fido2.ctap2 import AuthenticatorData, base
 from fido2.server import Fido2Server, U2FFido2Server
@@ -163,9 +161,9 @@ class U2fInterface(AuthenticatorInterface):
 
         return ActivationChallengeResult(challenge=challenge)
 
-    def validate_response(self, request, challenge, response, is_webauthn_ff_enabled):
+    def validate_response(self, request, challenge, response, is_webauthn_signin_ff_enabled):
         try:
-            if is_webauthn_ff_enabled:
+            if is_webauthn_signin_ff_enabled:
                 # TODO change rp.id later when register is implemented
                 server = U2FFido2Server(
                     app_id=challenge["appId"],

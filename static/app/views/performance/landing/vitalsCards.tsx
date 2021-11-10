@@ -477,9 +477,8 @@ function getP75(data: VitalData | null, vitalName: WebVital): string {
   const p75 = data?.p75 ?? null;
   if (p75 === null) {
     return '\u2014';
-  } else {
-    return vitalName === WebVital.CLS ? p75.toFixed(2) : `${p75.toFixed(0)}ms`;
   }
+  return vitalName === WebVital.CLS ? p75.toFixed(2) : `${p75.toFixed(0)}ms`;
 }
 
 type Percent = {

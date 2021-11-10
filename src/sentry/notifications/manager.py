@@ -289,27 +289,29 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
 
     def filter_to_accepting_recipients(
         self,
-        project: Project,
+        parent: Project,
         recipients: Iterable[Team | User],
+        type: NotificationSettingTypes = NotificationSettingTypes.ISSUE_ALERTS,
     ) -> Mapping[ExternalProviders, Iterable[Team | User]]:
         """
         Filters a list of teams or users down to the recipients by provider who
         are subscribed to alerts. We check both the project level settings and
         global default settings.
         """
-        notification_settings = self.get_for_recipient_by_parent(
-            NotificationSettingTypes.ISSUE_ALERTS, parent=project, recipients=recipients
-        )
+        from sentry.models import Organization
+
+        notification_settings = self.get_for_recipient_by_parent(type, parent, recipients)
         notification_settings_by_recipient = transform_to_notification_settings_by_recipient(
             notification_settings, recipients
         )
         mapping = defaultdict(set)
+        organization = parent if isinstance(parent, Organization) else parent.organization
         should_use_slack_automatic = features.has(
-            "organizations:notification-slack-automatic", project.organization
+            "organizations:notification-slack-automatic", organization
         )
         for recipient in recipients:
             providers = where_should_recipient_be_notified(
-                notification_settings_by_recipient, recipient, should_use_slack_automatic
+                notification_settings_by_recipient, recipient, should_use_slack_automatic, type
             )
             for provider in providers:
                 mapping[provider].add(recipient)

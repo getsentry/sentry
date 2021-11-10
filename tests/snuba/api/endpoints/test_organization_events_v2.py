@@ -7,13 +7,7 @@ from django.utils import timezone
 from pytz import utc
 
 from sentry.discover.models import TeamKeyTransaction
-from sentry.models import (
-    ApiKey,
-    ProjectTeam,
-    ProjectTransactionThreshold,
-    ReleaseProjectEnvironment,
-    ReleaseStages,
-)
+from sentry.models import ApiKey, ProjectTeam, ProjectTransactionThreshold, ReleaseStages
 from sentry.models.transaction_threshold import (
     ProjectTransactionThresholdOverride,
     TransactionMetric,
@@ -132,6 +126,44 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert (
             response.data["detail"]
             == "Parse error at 'hi \n ther' (column 4). This is commonly caused by unmatched parentheses. Enclose any text in double quotes."
+        )
+
+    def test_invalid_trace_span(self):
+        project = self.create_project()
+        self.store_event(
+            data={"event_id": "a" * 32, "message": "how to make fast", "timestamp": self.min_ago},
+            project_id=project.id,
+        )
+
+        query = {"field": ["id"], "query": "trace.span:invalid"}
+        response = self.do_request(query)
+        assert response.status_code == 400, response.content
+        assert (
+            response.data["detail"]
+            == "trace.span must be a valid 16 character hex (containing only digits, or a-f characters)"
+        )
+
+        query = {"field": ["id"], "query": "trace.parent_span:invalid"}
+        response = self.do_request(query)
+        assert response.status_code == 400, response.content
+        assert (
+            response.data["detail"]
+            == "trace.parent_span must be a valid 16 character hex (containing only digits, or a-f characters)"
+        )
+
+        query = {"field": ["id"], "query": "trace.span:*"}
+        response = self.do_request(query)
+        assert response.status_code == 400, response.content
+        assert (
+            response.data["detail"] == "Wildcard conditions are not permitted on `trace.span` field"
+        )
+
+        query = {"field": ["id"], "query": "trace.parent_span:*"}
+        response = self.do_request(query)
+        assert response.status_code == 400, response.content
+        assert (
+            response.data["detail"]
+            == "Wildcard conditions are not permitted on `trace.parent_span` field"
         )
 
     @mock.patch("sentry.snuba.discover.raw_query")
@@ -744,7 +776,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         query = {"field": ["id"], "sort": "garbage"}
         response = self.do_request(query)
         assert response.status_code == 400
-        assert "order by" in response.data["detail"]
+        assert "sort by" in response.data["detail"]
 
     def test_latest_release_alias(self):
         project = self.create_project()
@@ -853,32 +885,17 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
     def test_release_stage(self):
         replaced_release = self.create_release(
-            version="replaced_release", environments=[self.environment]
-        )
-        adopted_release = self.create_release(
-            version="adopted_release", environments=[self.environment]
-        )
-        not_adopted_release = self.create_release(
-            version="not_adopted_release", environments=[self.environment]
-        )
-        ReleaseProjectEnvironment.objects.create(
-            project_id=self.project.id,
-            release_id=adopted_release.id,
-            environment_id=self.environment.id,
-            adopted=timezone.now(),
-        )
-        ReleaseProjectEnvironment.objects.create(
-            project_id=self.project.id,
-            release_id=replaced_release.id,
-            environment_id=self.environment.id,
+            version="replaced_release",
+            environments=[self.environment],
             adopted=timezone.now(),
             unadopted=timezone.now(),
         )
-        ReleaseProjectEnvironment.objects.create(
-            project_id=self.project.id,
-            release_id=not_adopted_release.id,
-            environment_id=self.environment.id,
+        adopted_release = self.create_release(
+            version="adopted_release",
+            environments=[self.environment],
+            adopted=timezone.now(),
         )
+        self.create_release(version="not_adopted_release", environments=[self.environment])
 
         adopted_release_e_1 = self.store_event(
             data={
@@ -3415,7 +3432,9 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         self.run_test_in_query(
             "user.display:[foo@example.com, hello@example.com]", [event_1, event_3], [event_2]
         )
-        self.run_test_in_query("message:[group2, group1]", [event_1, event_2], [event_3])
+        self.run_test_in_query(
+            'message:["group2 src/app/group2.py in ?", group1]', [event_1, event_2], [event_3]
+        )
 
         self.run_test_in_query(
             f"issue.id:[{event_1.group_id},{event_2.group_id}]", [event_1, event_2]

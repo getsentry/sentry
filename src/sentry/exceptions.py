@@ -65,3 +65,7 @@ class ApiTokenLimitError(Exception):
 
 class InvalidSearchQuery(Exception):
     pass
+
+
+class UnableToAcceptMemberInvitationException(Exception):
+    pass

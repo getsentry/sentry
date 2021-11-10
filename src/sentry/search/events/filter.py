@@ -1,4 +1,5 @@
 from datetime import datetime
+from functools import reduce
 from typing import Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
 from parsimonious.exceptions import ParseError
@@ -59,7 +60,7 @@ from sentry.utils.snuba import (
     Dataset,
     QueryOutsideRetentionError,
 )
-from sentry.utils.validators import INVALID_ID_DETAILS
+from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCARD_NOT_ALLOWED
 
 
 def is_condition(term):
@@ -638,12 +639,16 @@ def convert_search_filter_to_snuba_query(
         }:
             value = int(to_timestamp(value)) * 1000
 
+        if name in {"trace.span", "trace.parent_span"}:
+            if search_filter.value.is_wildcard():
+                raise InvalidSearchQuery(WILDCARD_NOT_ALLOWED.format(name))
+            if not search_filter.value.is_span_id():
+                raise InvalidSearchQuery(INVALID_SPAN_ID.format(name))
+
         # Validate event ids and trace ids are uuids
         if name in {"id", "trace"}:
             if search_filter.value.is_wildcard():
-                raise InvalidSearchQuery(
-                    f"Wildcard conditions are not permitted on `{name}` field."
-                )
+                raise InvalidSearchQuery(WILDCARD_NOT_ALLOWED.format(name))
             elif not search_filter.value.is_event_id():
                 label = "Filter ID" if name == "id" else "Filter Trace ID"
                 raise InvalidSearchQuery(INVALID_ID_DETAILS.format(label))
@@ -1004,21 +1009,28 @@ def format_search_filter(term, params):
         and params
         and (value == "latest" or term.is_in_filter and any(v == "latest" for v in value))
     ):
-        value = [
-            parse_release(
-                v,
-                params["project_id"],
-                params.get("environment_objects"),
-                params.get("organization_id"),
-            )
-            for v in to_list(value)
-        ]
+        value = reduce(
+            lambda x, y: x + y,
+            [
+                parse_release(
+                    v,
+                    params["project_id"],
+                    params.get("environment_objects"),
+                    params.get("organization_id"),
+                )
+                for v in to_list(value)
+            ],
+            [],
+        )
+
+        operator_conversions = {"=": "IN", "!=": "NOT IN"}
+        operator = operator_conversions.get(term.operator, term.operator)
 
         converted_filter = convert_search_filter_to_snuba_query(
             SearchFilter(
                 term.key,
-                term.operator,
-                SearchValue(value if term.is_in_filter else value[0]),
+                operator,
+                SearchValue(value),
             )
         )
         if converted_filter:
@@ -1367,12 +1379,16 @@ class QueryFilter(QueryFields):
         }:
             value = int(to_timestamp(value)) * 1000
 
+        if name in {"trace.span", "trace.parent_span"}:
+            if search_filter.value.is_wildcard():
+                raise InvalidSearchQuery(WILDCARD_NOT_ALLOWED.format(name))
+            if not search_filter.value.is_span_id():
+                raise InvalidSearchQuery(INVALID_SPAN_ID.format(name))
+
         # Validate event ids and trace ids are uuids
         if name in {"id", "trace"}:
             if search_filter.value.is_wildcard():
-                raise InvalidSearchQuery(
-                    f"Wildcard conditions are not permitted on `{name}` field."
-                )
+                raise InvalidSearchQuery(WILDCARD_NOT_ALLOWED.format(name))
             elif not search_filter.value.is_event_id():
                 label = "Filter ID" if name == "id" else "Filter Trace ID"
                 raise InvalidSearchQuery(INVALID_ID_DETAILS.format(label))
@@ -1461,24 +1477,17 @@ class QueryFilter(QueryFields):
             operator = Op.EQ if search_filter.operator == "=" else Op.NEQ
             return Condition(Function("equals", [self.column("message"), value]), operator, 1)
         else:
-            # https://clickhouse.yandex/docs/en/query_language/functions/string_search_functions/#position-haystack-needle
-            # positionCaseInsensitive returns 0 if not found and an index of 1 or more if found
-            # so we should flip the operator here
-            operator = Op.NEQ if search_filter.operator in EQUALITY_OPERATORS else Op.EQ
             if search_filter.is_in_filter:
                 return Condition(
-                    Function(
-                        "multiSearchFirstPositionCaseInsensitive",
-                        [self.column("message"), value],
-                    ),
-                    operator,
-                    0,
+                    self.column("message"),
+                    Op(search_filter.operator),
+                    value,
                 )
 
             # make message search case insensitive
             return Condition(
                 Function("positionCaseInsensitive", [self.column("message"), value]),
-                operator,
+                Op.NEQ if search_filter.operator in EQUALITY_OPERATORS else Op.EQ,
                 0,
             )
 
@@ -1675,21 +1684,28 @@ class QueryFilter(QueryFields):
 
     def _release_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         """Parse releases for potential aliases like `latest`"""
-        values = [
-            parse_release(
-                v,
-                self.params["project_id"],
-                self.params.get("environment_objects"),
-                self.params.get("organization_id"),
-            )
-            for v in to_list(search_filter.value.value)
-        ]
+        values = reduce(
+            lambda x, y: x + y,
+            [
+                parse_release(
+                    v,
+                    self.params["project_id"],
+                    self.params.get("environment_objects"),
+                    self.params.get("organization_id"),
+                )
+                for v in to_list(search_filter.value.value)
+            ],
+            [],
+        )
+
+        operator_conversions = {"=": "IN", "!=": "NOT IN"}
+        operator = operator_conversions.get(search_filter.operator, search_filter.operator)
 
         return self._default_filter_converter(
             SearchFilter(
                 search_filter.key,
-                search_filter.operator,
-                SearchValue(values if search_filter.is_in_filter else values[0]),
+                operator,
+                SearchValue(values),
             )
         )
 

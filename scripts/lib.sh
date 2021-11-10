@@ -115,6 +115,9 @@ install-py-dev() {
         # This install confluent-kafka from our GC storage since there's no arm64 wheel
         # https://github.com/confluentinc/confluent-kafka-python/issues/1190
         pip install https://storage.googleapis.com/python-arm64-wheels/confluent_kafka-1.5.0-cp38-cp38-macosx_11_0_arm64.whl
+        # uwsgi does not properly install via pyenv Python installations
+        # https://github.com/unbit/uwsgi/issues/2361
+        pip install https://storage.googleapis.com/python-arm64-wheels/uWSGI-2.0.19.1-cp38-cp38-macosx_11_0_universal2.whl
     fi
     # SENTRY_LIGHT_BUILD=1 disables webpacking during setup.py.
     # Webpacked assets are only necessary for devserver (which does it lazily anyways)
