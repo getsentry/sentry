@@ -15,8 +15,11 @@ import _DurationChart from 'app/views/performance/charts/chart';
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import {transformEventsRequestToArea} from '../transforms/transformEventsToArea';
 import {QueryDefinition, WidgetDataResult} from '../types';
+import {eventsRequestQueryProps} from '../utils';
+import {PerformanceWidgetSetting} from '../widgetDefinitions';
 
 type Props = {
+  chartSetting: PerformanceWidgetSetting;
   title: string;
   titleTooltip: string;
   fields: string[];
@@ -47,7 +50,7 @@ export function SingleFieldAreaWidget(props: Props) {
       fields: props.fields[0],
       component: provided => (
         <EventsRequest
-          {...pick(provided, ['children', 'organization', 'yAxis'])}
+          {...pick(provided, eventsRequestQueryProps)}
           limit={1}
           includePrevious
           includeTransformedData

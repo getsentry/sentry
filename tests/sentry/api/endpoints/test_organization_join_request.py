@@ -1,18 +1,24 @@
 from unittest.mock import patch
 
+import responses
 from django.core import mail
 from exam import fixture
 
 from sentry.models import AuthProvider, InviteStatus, OrganizationMember, OrganizationOption
 from sentry.testutils import APITestCase
+from sentry.testutils.cases import SlackActivityNotificationTest
+from sentry.testutils.helpers import with_feature
+from sentry.testutils.helpers.slack import get_attachment_no_text
+from sentry.utils import json
 
 
-class OrganizationJoinRequestTest(APITestCase):
+class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest):
     endpoint = "sentry-api-0-organization-join-request"
     method = "post"
 
     def setUp(self):
-        super().setUp()
+        super(APITestCase, self).setUp()
+        super(SlackActivityNotificationTest, self).setUp()
         self.email = "test@example.com"
 
     @fixture
@@ -103,12 +109,21 @@ class OrganizationJoinRequestTest(APITestCase):
         assert not any(c[0][0] == "join_request.created" for c in mock_record.call_args_list)
 
     @patch("sentry.analytics.record")
-    def test_request_to_join(self, mock_record):
+    def test_request_to_join_email(self, mock_record):
+        self.organization = self.create_organization()
+
+        user1 = self.create_user(email="manager@localhost")
+        user2 = self.create_user(email="owner@localhost")
+        user3 = self.create_user(email="member@localhost")
+
+        self.create_member(organization=self.organization, user=user1, role="manager")
+        self.create_member(organization=self.organization, user=user2, role="owner")
+        self.create_member(organization=self.organization, user=user3, role="member")
+
         with self.tasks():
             self.get_success_response(self.organization.slug, email=self.email, status_code=204)
 
         members = OrganizationMember.objects.filter(organization=self.organization)
-        assert members.count() == 2
         join_request = members.get(email=self.email)
         assert join_request.user is None
         assert join_request.role == "member"
@@ -118,4 +133,49 @@ class OrganizationJoinRequestTest(APITestCase):
             "join_request.created", member_id=join_request.id, organization_id=self.organization.id
         )
 
-        assert len(mail.outbox) == 1
+        assert len(mail.outbox) == 2
+
+        assert mail.outbox[0].to == ["manager@localhost"]
+        assert mail.outbox[1].to == ["owner@localhost"]
+
+        expected_subject = f"Access request to {self.organization.name}"
+        assert mail.outbox[0].subject == expected_subject
+
+    @responses.activate
+    @with_feature("organizations:slack-requests")
+    def test_request_to_join_slack(self):
+        with self.tasks():
+            self.get_success_response(self.organization.slug, email=self.email, status_code=204)
+
+        attachment = get_attachment_no_text()
+        assert attachment["text"] == f"{self.email} is requesting to join {self.organization.name}"
+        assert attachment["actions"] == [
+            {
+                "text": "Approve",
+                "name": "Approve",
+                "style": "primary",
+                "type": "button",
+                "value": "approve_member",
+                "action_id": "approve_request",
+            },
+            {
+                "text": "Reject",
+                "name": "Reject",
+                "style": "danger",
+                "type": "button",
+                "value": "reject_member",
+                "action_id": "approve_request",
+            },
+            {
+                "text": "See Members & Requests",
+                "name": "See Members & Requests",
+                "url": f"http://testserver/settings/{self.organization.slug}/members/?referrer=join_request-slack",
+                "type": "button",
+            },
+        ]
+
+        member = OrganizationMember.objects.get(email=self.email)
+        assert json.loads(attachment["callback_id"]) == {
+            "member_id": member.id,
+            "member_email": self.email,
+        }

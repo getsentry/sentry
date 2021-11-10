@@ -6,12 +6,13 @@ import pick from 'lodash/pick';
 
 import _EventsRequest from 'app/components/charts/eventsRequest';
 import {getInterval} from 'app/components/charts/utils';
+import Count from 'app/components/count';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Link from 'app/components/links/link';
 import Tooltip from 'app/components/tooltip';
 import Truncate from 'app/components/truncate';
 import {IconClose} from 'app/icons';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
@@ -29,6 +30,7 @@ import SelectableList, {RightAlignedCell} from '../components/selectableList';
 import {transformDiscoverToList} from '../transforms/transformDiscoverToList';
 import {transformEventsRequestToArea} from '../transforms/transformEventsToArea';
 import {QueryDefinition, WidgetDataResult} from '../types';
+import {eventsRequestQueryProps} from '../utils';
 import {PerformanceWidgetSetting} from '../widgetDefinitions';
 
 type Props = {
@@ -90,6 +92,8 @@ export function LineChartListWidget(props: Props) {
           eventView.additionalConditions.setFilterValues('!tags[transaction]', ['']);
           const mutableSearch = new MutableSearch(eventView.query);
           mutableSearch.removeFilter('transaction.duration');
+          eventView.additionalConditions.removeFilter('transaction.op'); // Remove transaction op incase it's applied from the performance view.
+          eventView.additionalConditions.removeFilter('!transaction.op'); // Remove transaction op incase it's applied from the performance view.
           eventView.query = mutableSearch.formatString();
         } else if (isSlowestType) {
           eventView.additionalConditions.setFilterValues('epm()', ['>0.01']);
@@ -148,6 +152,8 @@ export function LineChartListWidget(props: Props) {
           ]);
           eventView.additionalConditions.setFilterValues('event.type', ['error']);
           eventView.additionalConditions.setFilterValues('!tags[transaction]', ['']);
+          eventView.additionalConditions.removeFilter('transaction.op'); // Remove transaction op incase it's applied from the performance view.
+          eventView.additionalConditions.removeFilter('!transaction.op'); // Remove transaction op incase it's applied from the performance view.
           const mutableSearch = new MutableSearch(eventView.query);
           mutableSearch.removeFilter('transaction.duration');
           eventView.query = mutableSearch.formatString();
@@ -156,7 +162,7 @@ export function LineChartListWidget(props: Props) {
         }
         return (
           <EventsRequest
-            {...pick(provided, ['children', 'organization', 'yAxis'])}
+            {...pick(provided, eventsRequestQueryProps)}
             limit={1}
             includePrevious
             includeTransformedData
@@ -269,6 +275,26 @@ export function LineChartListWidget(props: Props) {
                               {rightValue}
                             </Link>
                           </Tooltip>
+                        </RightAlignedCell>
+                        <CloseContainer>
+                          <StyledIconClose
+                            onClick={() =>
+                              excludeTransaction(listItem.transaction, props)
+                            }
+                          />
+                        </CloseContainer>
+                      </Fragment>
+                    );
+                  case PerformanceWidgetSetting.MOST_RELATED_ERRORS:
+                    return (
+                      <Fragment>
+                        <GrowLink to={transactionTarget} className="truncate">
+                          <Truncate value={transaction} maxLength={40} />
+                        </GrowLink>
+                        <RightAlignedCell>
+                          {tct('[count] errors', {
+                            count: <Count value={rightValue} />,
+                          })}
                         </RightAlignedCell>
                         <CloseContainer>
                           <StyledIconClose

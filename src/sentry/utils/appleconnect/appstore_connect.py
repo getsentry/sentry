@@ -36,7 +36,7 @@ class UnauthorizedError(RequestError):
 
 
 class ForbiddenError(RequestError):
-    """The App Store Connect session does not have access to the requested dSYM."""
+    """Forbidden: authentication token does not have sufficient permissions."""
 
     pass
 
@@ -154,6 +154,8 @@ def _get_appstore_json(
 
             if response.status_code == HTTPStatus.UNAUTHORIZED:
                 raise UnauthorizedError(full_url)
+            elif response.status_code == HTTPStatus.FORBIDDEN:
+                raise ForbiddenError(full_url)
             else:
                 raise RequestError(full_url)
         try:
@@ -171,7 +173,7 @@ def _get_next_page(response_json: Mapping[str, Any]) -> Optional[str]:
 
 def _get_appstore_info_paged(
     session: Session, credentials: AppConnectCredentials, url: str
-) -> Generator[Any, None, None]:
+) -> Generator[JSONData, None, None]:
     """Iterates through all the pages from a paged response.
 
     App Store Connect responses shares the general format:
@@ -266,7 +268,11 @@ class _IncludedRelations:
 
 
 def get_build_info(
-    session: Session, credentials: AppConnectCredentials, app_id: str
+    session: Session,
+    credentials: AppConnectCredentials,
+    app_id: str,
+    *,
+    include_expired: bool = False,
 ) -> List[BuildInfo]:
     """Returns the build infos for an application.
 
@@ -289,16 +295,16 @@ def get_build_info(
             "&limit=200"
             # include related AppStore/PreRelease versions with the response as well as
             # buildBundles which contains metadata on the debug resources (dSYMs)
-            "&include=appStoreVersion,preReleaseVersion,buildBundles"
+            "&include=preReleaseVersion,appStoreVersion,buildBundles"
             # fetch the maximum number of build bundles
             "&limit[buildBundles]=50"
             # sort newer releases first
             "&sort=-uploadedDate"
             # only include valid builds
             "&filter[processingState]=VALID"
-            # and builds that have not expired yet
-            "&filter[expired]=false"
         )
+        if not include_expired:
+            url += "&filter[expired]=false"
         pages = _get_appstore_info_paged(session, credentials, url)
         build_info = []
 
@@ -382,15 +388,14 @@ def _get_dsym_url(bundles: Optional[List[JSONData]]) -> Union[NoDsymUrl, str]:
         for b in bundles
         if safe.get_path(b, "attributes", "bundleType", default="APP") == "APP_CLIP"
     ]
-    if any(app_clip_urls):
-        sentry_sdk.capture_message("App_CLIP has dSYMUrl")
+    if not all(isinstance(url, NoDsymUrl) for url in app_clip_urls):
+        sentry_sdk.capture_message("App Clip's bundle has a dSYMUrl")
 
     app_bundles = [
         app_bundle
         for app_bundle in bundles
         if safe.get_path(app_bundle, "attributes", "bundleType", default="APP") != "APP_CLIP"
     ]
-
     if not app_bundles:
         return NoDsymUrl.NOT_NEEDED
     elif len(app_bundles) > 1:
