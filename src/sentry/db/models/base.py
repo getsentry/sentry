@@ -118,7 +118,7 @@ def __model_class_prepared(sender, **kwargs):
         raise ValueError(
             f"{sender!r} model has not defined __include_in_export__. This is used to determine "
             f"which models we export from sentry as part of our migration workflow: \n"
-            f"https://docs.sentry.io/product/sentry-basics/guides/migration/#3-export-your-data.\n"
+            f"https://docs.sentry.io/product/sentry-basics/migration/#3-export-your-data.\n"
             f"This should be True for core, low volume models used to configure Sentry. Things like "
             f"Organization, Project  and related settings. It should be False for high volume models "
             f"like Group."
