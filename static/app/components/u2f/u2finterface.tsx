@@ -14,7 +14,7 @@ type TapParams = {
 
 type Props = {
   challengeData: ChallengeData;
-  is_webauthn_ff_enabled: boolean;
+  isWebauthnSigninFFEnabled: boolean;
   flowMode: string;
   silentIfUnsupported: boolean;
   onTap: ({response, challenge}: TapParams) => Promise<void>;
@@ -41,7 +41,10 @@ class U2fInterface extends React.Component<Props, State> {
   };
 
   async componentDidMount() {
-    const supported = await u2f.isSupported();
+    let supported = false;
+    if (window.PublicKeyCredential) {
+      supported = true;
+    }
 
     // eslint-disable-next-line react/no-did-mount-set-state
     this.setState({isSupported: supported});
@@ -153,7 +156,7 @@ class U2fInterface extends React.Component<Props, State> {
     let promise: Promise<u2f.SignResponse | u2f.RegisterResponse>;
 
     if (this.props.flowMode === 'sign') {
-      if (this.props.is_webauthn_ff_enabled) {
+      if (this.props.isWebauthnSigninFFEnabled) {
         this.testWebAuthn(this.props.challengeData.authenticateRequests);
       } else {
         promise = u2f.sign(this.props.challengeData.authenticateRequests);

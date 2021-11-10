@@ -136,9 +136,9 @@ class U2fInterface(AuthenticatorInterface):
 
         return ActivationChallengeResult(challenge=challenge)
 
-    def validate_response(self, request, challenge, response, is_webauthn_ff_enabled):
+    def validate_response(self, request, challenge, response, is_webauthn_signin_ff_enabled):
         try:
-            if is_webauthn_ff_enabled:
+            if is_webauthn_signin_ff_enabled:
                 # TODO change rp.id later when register is implemented
                 server = U2FFido2Server(
                     app_id=challenge["appId"],
