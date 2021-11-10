@@ -312,9 +312,11 @@ describe('OrganizationStats', function () {
     });
 
     wrapper.find('Pagination Button').last().simulate('click');
-    expect(browserHistory.push).toHaveBeenCalledWith({
-      query: expect.objectContaining({cursor: '0:25:0'}),
-    });
+    expect(browserHistory.push).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({cursor: '0:25:0'}),
+      })
+    );
   });
 
   it('removes page query parameters during outbound navigation', async () => {

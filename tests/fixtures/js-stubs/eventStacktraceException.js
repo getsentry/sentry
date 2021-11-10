@@ -36,10 +36,10 @@ const message = {
   },
 };
 
-export function EventStacktraceException(params = []) {
+export function EventStacktraceException(params = {}) {
   return Event({entries: [{...exception}], ...params});
 }
 
-export function EventStacktraceMessage(params = []) {
+export function EventStacktraceMessage(params = {}) {
   return Event({entries: [{...message}], ...params});
 }

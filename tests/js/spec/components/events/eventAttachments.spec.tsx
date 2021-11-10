@@ -5,7 +5,6 @@ import EventAttachments from 'app/components/events/eventAttachments';
 
 describe('EventAttachments', function () {
   const {routerContext, organization, project} = initializeOrg();
-  // @ts-expect-error
   const event = TestStubs.Event({metadata: {stripped_crash: true}});
 
   const props = {

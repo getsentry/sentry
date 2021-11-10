@@ -6,14 +6,12 @@ import NotificationSettings from 'app/views/settings/account/notifications/notif
 
 const createWrapper = (notificationSettings: NotificationSettingsObject) => {
   const {routerContext} = initializeOrg();
-  // @ts-expect-error
   MockApiClient.addMockResponse({
     url: '/users/me/notification-settings/',
     method: 'GET',
     body: notificationSettings,
   });
 
-  // @ts-expect-error
   MockApiClient.addMockResponse({
     url: '/users/me/notifications/',
     method: 'GET',

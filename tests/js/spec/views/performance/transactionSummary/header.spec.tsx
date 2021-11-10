@@ -12,9 +12,7 @@ type InitialOpts = {
 
 function initializeData(opts?: InitialOpts) {
   const {features, platform} = opts ?? {};
-  // @ts-expect-error
   const project = TestStubs.Project({platform});
-  // @ts-expect-error
   const organization = TestStubs.Organization({
     projects: [project],
     features,
@@ -52,7 +50,6 @@ describe('Performance > Transaction Summary Header', function () {
   let wrapper;
 
   afterEach(function () {
-    // @ts-expect-error
     MockApiClient.clearMockResponses();
     wrapper.unmount();
   });
@@ -74,7 +71,6 @@ describe('Performance > Transaction Summary Header', function () {
       />
     );
 
-    // @ts-expect-error
     await tick();
     wrapper.update();
 
@@ -98,7 +94,6 @@ describe('Performance > Transaction Summary Header', function () {
       />
     );
 
-    // @ts-expect-error
     await tick();
     wrapper.update();
 
@@ -124,7 +119,6 @@ describe('Performance > Transaction Summary Header', function () {
       />
     );
 
-    // @ts-expect-error
     await tick();
     wrapper.update();
 
@@ -132,7 +126,6 @@ describe('Performance > Transaction Summary Header', function () {
   });
 
   it('should render web vitals tab when maybe and has measurements', async function () {
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-has-measurements/',
       body: {measurements: true},
@@ -154,7 +147,6 @@ describe('Performance > Transaction Summary Header', function () {
       />
     );
 
-    // @ts-expect-error
     await tick();
     wrapper.update();
 
@@ -162,7 +154,6 @@ describe('Performance > Transaction Summary Header', function () {
   });
 
   it('should not render web vitals tab when maybe and has no measurements', async function () {
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-has-measurements/',
       body: {measurements: false},
@@ -184,7 +175,6 @@ describe('Performance > Transaction Summary Header', function () {
       />
     );
 
-    // @ts-expect-error
     await tick();
     wrapper.update();
 
@@ -210,7 +200,6 @@ describe('Performance > Transaction Summary Header', function () {
       />
     );
 
-    // @ts-expect-error
     await tick();
     wrapper.update();
 

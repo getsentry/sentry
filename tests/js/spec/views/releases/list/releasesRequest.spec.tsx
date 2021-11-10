@@ -21,11 +21,9 @@ describe('ReleasesRequest', function () {
     },
   };
 
-  // @ts-expect-error
   MockApiClient.addMockResponse(
     {
       url: `/organizations/org-slug/sessions/`,
-      // @ts-ignore Cannot find TestStubs
       body: TestStubs.SessionStatusCountByReleaseInPeriod(),
     },
     {
@@ -43,11 +41,9 @@ describe('ReleasesRequest', function () {
     }
   );
 
-  // @ts-expect-error
   const requestForAutoHealthStatsPeriodSessionHistogram = MockApiClient.addMockResponse(
     {
       url: `/organizations/org-slug/sessions/`,
-      // @ts-ignore Cannot find TestStubs
       body: TestStubs.SessionStatusCountByProjectInPeriod(),
     },
     {
@@ -64,11 +60,9 @@ describe('ReleasesRequest', function () {
     }
   );
 
-  // @ts-expect-error
   const requestForAutoTotalCountByProjectInPeriod = MockApiClient.addMockResponse(
     {
       url: `/organizations/org-slug/sessions/`,
-      // @ts-expect-error
       body: TestStubs.SessionTotalCountByProjectIn24h(),
     },
     {
@@ -85,11 +79,9 @@ describe('ReleasesRequest', function () {
     }
   );
 
-  // @ts-expect-error
   const requestForAutoTotalCountByReleaseInPeriod = MockApiClient.addMockResponse(
     {
       url: `/organizations/org-slug/sessions/`,
-      // @ts-expect-error
       body: TestStubs.SesssionTotalCountByReleaseIn24h(),
     },
     {
@@ -107,11 +99,9 @@ describe('ReleasesRequest', function () {
     }
   );
 
-  // @ts-expect-error
   MockApiClient.addMockResponse(
     {
       url: `/organizations/${organization.slug}/sessions/`,
-      // @ts-ignore Cannot find TestStubs
       body: TestStubs.SesssionTotalCountByReleaseIn24h(),
     },
     {
@@ -129,11 +119,9 @@ describe('ReleasesRequest', function () {
     }
   );
 
-  // @ts-expect-error
   MockApiClient.addMockResponse(
     {
       url: `/organizations/org-slug/sessions/`,
-      // @ts-ignore Cannot find TestStubs
       body: TestStubs.SessionTotalCountByProjectIn24h(),
     },
     {
@@ -150,11 +138,9 @@ describe('ReleasesRequest', function () {
     }
   );
 
-  // @ts-expect-error
   MockApiClient.addMockResponse(
     {
       url: `/organizations/org-slug/sessions/`,
-      // @ts-ignore Cannot find TestStubs
       body: TestStubs.SessionUserStatusCountByReleaseInPeriod(),
     },
     {
@@ -172,11 +158,9 @@ describe('ReleasesRequest', function () {
     }
   );
 
-  // @ts-expect-error
   MockApiClient.addMockResponse(
     {
       url: `/organizations/${organization.slug}/sessions/`,
-      // @ts-ignore Cannot find TestStubs
       body: TestStubs.UserTotalCountByReleaseIn24h(),
     },
     {
@@ -194,11 +178,9 @@ describe('ReleasesRequest', function () {
     }
   );
 
-  // @ts-expect-error
   MockApiClient.addMockResponse(
     {
       url: `/organizations/org-slug/sessions/`,
-      // @ts-ignore Cannot find TestStubs
       body: TestStubs.UserTotalCountByProjectIn24h(),
     },
     {
@@ -242,7 +224,6 @@ describe('ReleasesRequest', function () {
       routerContext
     );
 
-    // @ts-expect-error
     await tick();
     wrapper.update();
 
@@ -474,7 +455,6 @@ describe('ReleasesRequest', function () {
       routerContext
     );
 
-    // @ts-expect-error
     await tick();
     wrapper.update();
 
@@ -705,7 +685,6 @@ describe('ReleasesRequest', function () {
       routerContext
     );
 
-    // @ts-expect-error
     await tick();
     wrapper.update();
 

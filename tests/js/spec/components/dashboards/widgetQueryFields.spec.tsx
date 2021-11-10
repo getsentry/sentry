@@ -7,7 +7,6 @@ import {FieldValueKind} from 'app/views/eventsV2/table/types';
 
 describe('BaseChart', function () {
   const {routerContext} = initializeOrg();
-  // @ts-expect-error
   const organization = TestStubs.Organization();
   let wrapper;
 

@@ -599,7 +599,6 @@ describe('WaterfallModel', () => {
     expect(waterfallModel.fuse).toBe(undefined);
 
     // Fuzzy search needs to be loaded asynchronously
-    // @ts-expect-error
     await tick();
 
     // expect fuse index to be created
@@ -620,7 +619,6 @@ describe('WaterfallModel', () => {
     const waterfallModel = new WaterfallModel(event);
 
     // Fuzzy search needs to be loaded asynchronously
-    // @ts-expect-error
     await tick();
 
     // show all spans in the waterfall

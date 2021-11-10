@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {act} from 'react-dom/test-utils';
 
 import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
@@ -6,13 +7,10 @@ import EventsGeoRequest from 'app/components/charts/eventsGeoRequest';
 import * as genericDiscoverQuery from 'app/utils/discover/genericDiscoverQuery';
 
 describe('EventsRequest', function () {
-  // @ts-expect-error
   const project = TestStubs.Project();
-  // @ts-expect-error
   const organization = TestStubs.Organization();
-  const mock = jest.fn(() => null);
+  const mock = jest.fn(() => <Fragment />);
   const DEFAULTS = {
-    // @ts-expect-error
     api: new MockApiClient(),
     organization,
     yAxis: ['count()'],
@@ -29,17 +27,15 @@ describe('EventsRequest', function () {
   describe('with props changes', function () {
     beforeEach(async function () {
       mock.mockClear();
-      // @ts-expect-error
-      jest.spyOn(genericDiscoverQuery, 'doDiscoverQuery').mockImplementation(() => {
-        return Promise.resolve([
-          {
-            data: 'test',
-          },
-        ]);
-      });
+
+      jest
+        .spyOn(genericDiscoverQuery, 'doDiscoverQuery')
+        .mockImplementation(() =>
+          Promise.resolve([{data: 'test'}, undefined, undefined])
+        );
+
       await act(async () => {
         wrapper = mountWithTheme(
-          // @ts-expect-error
           <EventsGeoRequest {...DEFAULTS}>{mock}</EventsGeoRequest>
         );
         return wrapper;
@@ -75,7 +71,6 @@ describe('EventsRequest', function () {
       });
       await act(async () => {
         wrapper = mountWithTheme(
-          // @ts-expect-error
           <EventsGeoRequest {...DEFAULTS}>{mock}</EventsGeoRequest>
         );
         return wrapper;
@@ -94,7 +89,6 @@ describe('EventsRequest', function () {
       await act(async () => {
         wrapper.rerender(
           <EventsGeoRequest {...DEFAULTS} query="event.type:error">
-            {/* @ts-expect-error */}
             {mock}
           </EventsGeoRequest>
         );
@@ -120,7 +114,6 @@ describe('EventsRequest', function () {
       await act(async () => {
         wrapper.rerender(
           <EventsGeoRequest {...DEFAULTS} yAxis={['failure_count()']}>
-            {/* @ts-expect-error */}
             {mock}
           </EventsGeoRequest>
         );
@@ -146,7 +139,6 @@ describe('EventsRequest', function () {
       await act(async () => {
         wrapper.rerender(
           <EventsGeoRequest {...DEFAULTS} period="12h">
-            {/* @ts-expect-error */}
             {mock}
           </EventsGeoRequest>
         );

@@ -16,10 +16,8 @@ import {
 
 function initializeData({query} = {query: {}}) {
   const features = ['performance-view', 'performance-suspect-spans-view'];
-  // @ts-expect-error
   const organization = TestStubs.Organization({
     features,
-    // @ts-expect-error
     projects: [TestStubs.Project()],
   });
   const initialData = initializeOrg({
@@ -135,32 +133,26 @@ describe('Performance > Transaction Spans', function () {
   let eventsSpanOpsMock;
   let eventsSpansPerformanceMock;
   beforeEach(function () {
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
     });
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/prompts-activity/',
       body: {},
     });
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',
       body: [],
     });
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-has-measurements/',
       body: {measurements: false},
     });
-    // @ts-expect-error
     eventsV2Mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/eventsv2/',
       body: 100,
     });
-    // @ts-expect-error
     eventsSpanOpsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-span-ops/',
       body: [],
@@ -168,14 +160,12 @@ describe('Performance > Transaction Spans', function () {
   });
 
   afterEach(function () {
-    // @ts-expect-error
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
   });
 
   describe('Without Span Data', function () {
     beforeEach(function () {
-      // @ts-expect-error
       eventsSpansPerformanceMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-spans-performance/',
         body: [],
@@ -200,7 +190,6 @@ describe('Performance > Transaction Spans', function () {
 
   describe('With Span Data', function () {
     beforeEach(function () {
-      // @ts-expect-error
       eventsSpansPerformanceMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-spans-performance/',
         body: spans.map(makeSuspectSpan),

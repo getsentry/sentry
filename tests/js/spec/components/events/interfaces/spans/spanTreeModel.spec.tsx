@@ -87,7 +87,6 @@ describe('SpanTreeModel', () => {
     ],
   } as EventTransaction;
 
-  // @ts-expect-error
   MockApiClient.addMockResponse({
     url: '/organizations/sentry/events/project:19c403a10af34db2b7d93ad669bb51ed/',
     body: {
@@ -123,7 +122,6 @@ describe('SpanTreeModel', () => {
     },
   });
 
-  // @ts-expect-error
   MockApiClient.addMockResponse({
     url: '/organizations/sentry/events/project:broken/',
     body: {

@@ -3,9 +3,7 @@ import {fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary
 import StackTraceContent from 'app/components/events/interfaces/crashContent/stackTrace/content';
 import {StacktraceType} from 'app/types/stacktrace';
 
-// @ts-expect-error
 const eventEntryStacktrace = TestStubs.EventEntryStacktrace();
-// @ts-expect-error
 const event = TestStubs.Event({entries: [eventEntryStacktrace]});
 
 const data = eventEntryStacktrace.data as Required<StacktraceType>;

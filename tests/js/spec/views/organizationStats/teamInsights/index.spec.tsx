@@ -9,9 +9,7 @@ describe('TeamInsightsContainer', () => {
   });
 
   it('blocks access if org is missing flag', () => {
-    // @ts-expect-error
     const organization = TestStubs.Organization();
-    // @ts-expect-error
     const context = TestStubs.routerContext([{organization}]);
     mountWithTheme(
       <TeamInsightsContainer organization={organization}>
@@ -23,13 +21,8 @@ describe('TeamInsightsContainer', () => {
     expect(screen.queryByText('test')).not.toBeInTheDocument();
   });
   it('allows access for orgs with flag', () => {
-    ProjectsStore.loadInitialData([
-      // @ts-expect-error
-      TestStubs.Project(),
-    ]);
-    // @ts-expect-error
+    ProjectsStore.loadInitialData([TestStubs.Project()]);
     const organization = TestStubs.Organization({features: ['team-insights']});
-    // @ts-expect-error
     const context = TestStubs.routerContext([{organization}]);
     mountWithTheme(
       <TeamInsightsContainer organization={organization}>
@@ -42,9 +35,7 @@ describe('TeamInsightsContainer', () => {
   });
   it('shows message for users with no teams', () => {
     ProjectsStore.loadInitialData([]);
-    // @ts-expect-error
     const organization = TestStubs.Organization({features: ['team-insights']});
-    // @ts-expect-error
     const context = TestStubs.routerContext([{organization}]);
     mountWithTheme(<TeamInsightsContainer organization={organization} />, {context});
 

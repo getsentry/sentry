@@ -35,18 +35,16 @@ jest.mock('app/components/charts/eventsGeoRequest', () =>
 
 describe('EventsV2 > MiniGraph', function () {
   const features = ['discover-basic', 'connect-discover-and-dashboards'];
-  const location = {
+  const location = TestStubs.location({
     query: {query: 'tag:value'},
     pathname: '/',
-  };
+  });
 
   let organization, eventView, initialData;
 
   beforeEach(() => {
-    // @ts-expect-error
     organization = TestStubs.Organization({
       features,
-      // @ts-expect-error
       projects: [TestStubs.Project()],
     });
     initialData = initializeOrg({
@@ -57,12 +55,9 @@ describe('EventsV2 > MiniGraph', function () {
       project: 1,
       projects: [],
     });
-    // @ts-expect-error
     eventView = EventView.fromSavedQueryOrLocation(undefined, location);
 
-    // @ts-expect-error
     MockApiClient.clearMockResponses();
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       statusCode: 200,
@@ -73,7 +68,6 @@ describe('EventsV2 > MiniGraph', function () {
     const yAxis = ['count()', 'failure_count()'];
     const wrapper = mountWithTheme(
       <MiniGraph
-        // @ts-expect-error
         location={location}
         eventView={eventView}
         organization={organization}
@@ -90,7 +84,6 @@ describe('EventsV2 > MiniGraph', function () {
     eventView.display = 'bar';
     const wrapper = mountWithTheme(
       <MiniGraph
-        // @ts-expect-error
         location={location}
         eventView={eventView}
         organization={organization}
@@ -107,7 +100,6 @@ describe('EventsV2 > MiniGraph', function () {
     eventView.display = 'worldmap';
     const wrapper = mountWithTheme(
       <MiniGraph
-        // @ts-expect-error
         location={location}
         eventView={eventView}
         organization={organization}
@@ -129,11 +121,8 @@ describe('EventsV2 > MiniGraph', function () {
 
   it('renders error message', async function () {
     const errorMessage = 'something went wrong';
-    // @ts-expect-error
     const api = new MockApiClient();
-    // @ts-expect-error
     MockApiClient.clearMockResponses();
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: {
@@ -144,7 +133,6 @@ describe('EventsV2 > MiniGraph', function () {
 
     const wrapper = mountWithTheme(
       <MiniGraph
-        // @ts-expect-error
         location={location}
         eventView={eventView}
         organization={organization}
@@ -153,7 +141,6 @@ describe('EventsV2 > MiniGraph', function () {
       initialData.routerContext
     );
 
-    // @ts-expect-error
     await tick();
     wrapper.update();
 

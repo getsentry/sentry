@@ -7,7 +7,6 @@ function renderComponent(avatarUsersSixUsers: AvatarList['props']['users']) {
 }
 
 describe('AvatarList', () => {
-  // @ts-expect-error
   const user = TestStubs.User();
 
   it('renders with user letter avatars', () => {

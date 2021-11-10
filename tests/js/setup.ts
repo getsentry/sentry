@@ -1,10 +1,15 @@
+import {InjectedRouter} from 'react-router';
 import {configure} from '@testing-library/react';
 import Adapter from '@wojtekmaj/enzyme-adapter-react-17';
 import Enzyme from 'enzyme'; // eslint-disable-line no-restricted-imports
+import {Location} from 'history';
 import MockDate from 'mockdate';
 import PropTypes from 'prop-types';
 
+import type {Client} from 'app/__mocks__/api';
 import ConfigStore from 'app/stores/configStore';
+
+import TestStubFixtures from '../fixtures/js-stubs/types';
 
 import {loadFixtures} from './sentry-test/loadFixtures';
 
@@ -16,9 +21,8 @@ export * from './sentry-test/select';
  *
  * See https://github.com/jsdom/jsdom/issues/1330
  */
-if (!SVGElement.prototype.getTotalLength) {
-  SVGElement.prototype.getTotalLength = () => 1;
-}
+// @ts-expect-error
+SVGElement.prototype.getTotalLength ??= () => 1;
 
 /**
  * React Testing Library configuration to override the default test id attribute
@@ -53,10 +57,7 @@ const fixtures = loadFixtures('js-stubs', {flatten: true});
 /**
  * Global testing configuration
  */
-ConfigStore.loadInitialData({
-  messages: [],
-  user: fixtures.User(),
-});
+ConfigStore.loadInitialData(fixtures.Config());
 
 /**
  * Mocks
@@ -70,12 +71,7 @@ jest.mock('scroll-to-element', () => jest.fn());
 jest.mock('react-router', () => {
   const ReactRouter = jest.requireActual('react-router');
   return {
-    IndexRedirect: ReactRouter.IndexRedirect,
-    IndexRoute: ReactRouter.IndexRoute,
-    Link: ReactRouter.Link,
-    Redirect: ReactRouter.Redirect,
-    Route: ReactRouter.Route,
-    withRouter: ReactRouter.withRouter,
+    ...ReactRouter,
     browserHistory: {
       goBack: jest.fn(),
       push: jest.fn(),
@@ -156,35 +152,29 @@ jest.mock('popper.js', () => {
   };
 });
 
-/**
- * Test Globals
- */
-
-// This is so we can use async/await in tests instead of wrapping with `setTimeout`.
-window.tick = () => new Promise(resolve => setTimeout(resolve));
-
-window.scrollTo = jest.fn();
-
-// This is very commonly used, so expose it globally.
-window.MockApiClient = jest.requireMock('app/api').Client;
-
-window.TestStubs = {
-  // react-router's 'router' context
-  router: (params = {}) => ({
+const routerFixtures = {
+  router: (params = {}): InjectedRouter => ({
     push: jest.fn(),
     replace: jest.fn(),
     go: jest.fn(),
     goBack: jest.fn(),
     goForward: jest.fn(),
-    listen: jest.fn(),
     setRouteLeaveHook: jest.fn(),
     isActive: jest.fn(),
     createHref: jest.fn(),
-    location: {query: {}},
+    location: TestStubs.location(),
+    createPath: jest.fn(),
+    routes: [],
+    params: {},
     ...params,
   }),
 
-  location: (params = {}) => ({
+  location: (params: Partial<Location> = {}): Location => ({
+    key: '',
+    search: '',
+    hash: '',
+    action: 'PUSH',
+    state: null,
     query: {},
     pathname: '/mock-pathname/',
     ...params,
@@ -214,13 +204,43 @@ window.TestStubs = {
       ...childContextTypes,
     },
   }),
-
-  AllAuthenticators: () => Object.values(fixtures.Authenticators()).map(x => x()),
-  ...fixtures,
 };
 
-// We now need to re-define `window.location`, otherwise we can't spyOn certain methods
-// as `window.location` is read-only
+type TestStubTypes = TestStubFixtures & typeof routerFixtures;
+
+/**
+ * Test Globals
+ */
+declare global {
+  /**
+   * Test stubs are automatically loaded from the fixtures/js-stubs
+   * directory. Use these for setting up test data.
+   */
+  // eslint-disable-next-line no-var
+  var TestStubs: TestStubTypes;
+  /**
+   * Generates a promise that resolves on the next macro-task
+   */
+  // eslint-disable-next-line no-var
+  var tick: () => Promise<void>;
+  /**
+   * Used to mock API requests
+   */
+  // eslint-disable-next-line no-var
+  var MockApiClient: typeof Client;
+}
+
+window.TestStubs = {...fixtures, ...routerFixtures};
+
+// This is so we can use async/await in tests instead of wrapping with `setTimeout`.
+window.tick = () => new Promise(resolve => setTimeout(resolve));
+
+window.MockApiClient = jest.requireMock('app/api').Client;
+
+window.scrollTo = jest.fn();
+
+// We need to re-define `window.location`, otherwise we can't spyOn certain
+// methods as `window.location` is read-only
 Object.defineProperty(window, 'location', {
   value: {...window.location, assign: jest.fn(), reload: jest.fn()},
   configurable: true,

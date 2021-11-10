@@ -8,18 +8,16 @@ import ResultsChart from 'app/views/eventsV2/resultsChart';
 
 describe('EventsV2 > ResultsChart', function () {
   const features = ['discover-basic', 'connect-discover-and-dashboards'];
-  const location = {
+  const location = TestStubs.location({
     query: {query: 'tag:value'},
     pathname: '/',
-  };
+  });
 
   let organization, eventView, initialData;
 
   beforeEach(() => {
-    // @ts-expect-error
     organization = TestStubs.Organization({
       features,
-      // @ts-expect-error
       projects: [TestStubs.Project()],
     });
     initialData = initializeOrg({
@@ -30,24 +28,22 @@ describe('EventsV2 > ResultsChart', function () {
       project: 1,
       projects: [],
     });
-    // @ts-expect-error
     eventView = EventView.fromSavedQueryOrLocation(undefined, location);
   });
 
   it('only allows default, daily, previous period, and bar display modes when multiple y axis are selected', async function () {
     const wrapper = mountWithTheme(
       <ResultsChart
-        // @ts-expect-error
         router={TestStubs.router()}
         organization={organization}
         eventView={eventView}
-        // @ts-expect-error
         location={location}
         onAxisChange={() => undefined}
         onDisplayChange={() => undefined}
         total={1}
         confirmedQuery
         yAxis={['count()', 'failure_count()']}
+        onTopEventsChange={() => {}}
       />,
       initialData.routerContext
     );
@@ -69,17 +65,16 @@ describe('EventsV2 > ResultsChart', function () {
   it('does not display a chart if no y axis is selected', async function () {
     const wrapper = mountWithTheme(
       <ResultsChart
-        // @ts-expect-error
         router={TestStubs.router()}
         organization={organization}
         eventView={eventView}
-        // @ts-expect-error
         location={location}
         onAxisChange={() => undefined}
         onDisplayChange={() => undefined}
         total={1}
         confirmedQuery
         yAxis={[]}
+        onTopEventsChange={() => {}}
       />,
       initialData.routerContext
     );
@@ -92,17 +87,16 @@ describe('EventsV2 > ResultsChart', function () {
     eventView.display = DisplayModes.WORLDMAP;
     const wrapper = mountWithTheme(
       <ResultsChart
-        // @ts-expect-error
         router={TestStubs.router()}
         organization={organization}
         eventView={eventView}
-        // @ts-expect-error
         location={location}
         onAxisChange={() => undefined}
         onDisplayChange={() => undefined}
         total={1}
         confirmedQuery
         yAxis={['count()']}
+        onTopEventsChange={() => {}}
       />,
       initialData.routerContext
     );
@@ -123,17 +117,16 @@ describe('EventsV2 > ResultsChart', function () {
     ];
     const wrapper = mountWithTheme(
       <ResultsChart
-        // @ts-expect-error
         router={TestStubs.router()}
         organization={organization}
         eventView={eventView}
-        // @ts-expect-error
         location={location}
         onAxisChange={() => undefined}
         onDisplayChange={() => undefined}
         total={1}
         confirmedQuery
         yAxis={['count()']}
+        onTopEventsChange={() => {}}
       />,
       initialData.routerContext
     );

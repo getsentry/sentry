@@ -8,7 +8,6 @@ import {
 import IssueListTagFilter from 'app/views/issueList/tagFilter';
 
 describe('IssueListTagFilter', function () {
-  // @ts-expect-error
   MockApiClient.clearMockResponses();
 
   const selectMock = jest.fn();

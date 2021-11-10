@@ -126,7 +126,6 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
   it('redirects correctly when creating a new dashboard', async function () {
     const wrapper = mountModal({initialData, fromDiscover: true});
-    // @ts-expect-error
     await tick();
     await wrapper.update();
     selectDashboard(wrapper, {label: t('+ Create New Dashboard'), value: 'new'});
@@ -141,7 +140,6 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
   it('redirects correctly when choosing an existing dashboard', async function () {
     const wrapper = mountModal({initialData, fromDiscover: true});
-    // @ts-expect-error
     await tick();
     await wrapper.update();
     selectDashboard(wrapper, {label: t('Test Dashboard'), value: '1'});
@@ -157,7 +155,6 @@ describe('Modals -> AddDashboardWidgetModal', function () {
   it('disables dashboards with max widgets', async function () {
     types.MAX_WIDGETS = 1;
     const wrapper = mountModal({initialData, fromDiscover: true});
-    // @ts-expect-error
     await tick();
     await wrapper.update();
     openMenu(wrapper, {name: 'dashboard', control: true});

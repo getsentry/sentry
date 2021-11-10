@@ -14,15 +14,12 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 
 import DataScrubbing from '../components/dataScrubbing';
 
-export type ProjectSecurityAndPrivacyProps = RouteComponentProps<
-  {orgId: string; projectId: string},
-  {}
-> & {
+type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
   organization: Organization;
   project: Project;
 };
 
-class ProjectSecurityAndPrivacy extends Component<ProjectSecurityAndPrivacyProps> {
+class ProjectSecurityAndPrivacy extends Component<Props> {
   handleUpdateProject = (data: Project) => {
     // This will update our project global state
     ProjectActions.updateSuccess(data);

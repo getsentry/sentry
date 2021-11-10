@@ -10,25 +10,20 @@ import GlobalModal from 'app/components/globalModal';
 describe('Debug Meta - Image Details Candidates', function () {
   let wrapper: ReturnType<typeof mountWithTheme>;
   const projSlug = 'foo';
-  // @ts-expect-error
   const organization = TestStubs.Organization();
-  // @ts-expect-error
   const event = TestStubs.Event();
-  // @ts-expect-error
   const eventEntryDebugMeta = TestStubs.EventEntryDebugMeta();
   const {data} = eventEntryDebugMeta;
   const {images} = data;
   const debugImage = images[0];
 
   beforeAll(async function () {
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${projSlug}/files/dsyms/?debug_id=${debugImage.debug_id}`,
       method: 'GET',
       body: [],
     });
 
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: `/builtin-symbol-sources/`,
       method: 'GET',
@@ -53,7 +48,6 @@ describe('Debug Meta - Image Details Candidates', function () {
       }
     );
 
-    // @ts-expect-error
     await tick();
     wrapper.update();
   });

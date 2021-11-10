@@ -16,10 +16,8 @@ describe('EventsV2 > ChartFooter', function () {
   afterEach(function () {});
 
   it('renders yAxis option using OptionSelector using only the first yAxisValue without feature flag', async function () {
-    // @ts-expect-error
     const organization = TestStubs.Organization({
       features,
-      // @ts-expect-error
       projects: [TestStubs.Project()],
     });
 
@@ -49,7 +47,6 @@ describe('EventsV2 > ChartFooter', function () {
       initialData.routerContext
     );
 
-    // @ts-expect-error
     await tick();
     wrapper.update();
 
@@ -59,7 +56,6 @@ describe('EventsV2 > ChartFooter', function () {
   });
 
   it('renders yAxis option using OptionCheckboxSelector using entire yAxisValue with feature flag', async function () {
-    // @ts-expect-error
     const organization = TestStubs.Organization({
       features: [...features, 'connect-discover-and-dashboards'],
     });
@@ -90,7 +86,6 @@ describe('EventsV2 > ChartFooter', function () {
       initialData.routerContext
     );
 
-    // @ts-expect-error
     await tick();
     wrapper.update();
 
@@ -100,7 +95,6 @@ describe('EventsV2 > ChartFooter', function () {
   });
 
   it('renders display limits with default limit when top 5 mode is selected', async function () {
-    // @ts-expect-error
     const organization = TestStubs.Organization({
       features: [...features, 'discover-top-events'],
     });
@@ -131,7 +125,6 @@ describe('EventsV2 > ChartFooter', function () {
       initialData.routerContext
     );
 
-    // @ts-expect-error
     await tick();
     wrapper.update();
 

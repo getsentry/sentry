@@ -19,10 +19,8 @@ type Data = {
 
 function initializeData({features: additionalFeatures = []}: Data) {
   const features = ['discover-basic', 'performance-view', ...additionalFeatures];
-  // @ts-expect-error
   const organization = TestStubs.Organization({
     features,
-    // @ts-expect-error
     projects: [TestStubs.Project()],
     apdexThreshold: 400,
   });
@@ -65,19 +63,15 @@ describe('Performance Transaction Events Content', function () {
       'spans.total.time',
       ...SPAN_OP_BREAKDOWN_FIELDS,
     ];
-    // @ts-expect-error
     organization = TestStubs.Organization();
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
     });
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/prompts-activity/',
       body: {},
     });
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',
       body: [],
@@ -113,7 +107,6 @@ describe('Performance Transaction Events Content', function () {
       },
     ];
     // Transaction list response
-    // @ts-expect-error
     MockApiClient.addMockResponse(
       {
         url: '/organizations/org-slug/eventsv2/',
@@ -141,7 +134,6 @@ describe('Performance Transaction Events Content', function () {
         },
       }
     );
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-has-measurements/',
       body: {measurements: false},
@@ -162,7 +154,6 @@ describe('Performance Transaction Events Content', function () {
   });
 
   afterEach(function () {
-    // @ts-expect-error
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
     jest.clearAllMocks();
@@ -183,7 +174,6 @@ describe('Performance Transaction Events Content', function () {
       />,
       initialData.routerContext
     );
-    // @ts-expect-error
     await tick();
     wrapper.update();
 
@@ -219,7 +209,6 @@ describe('Performance Transaction Events Content', function () {
       />,
       initialData.routerContext
     );
-    // @ts-expect-error
     await tick();
     wrapper.update();
 

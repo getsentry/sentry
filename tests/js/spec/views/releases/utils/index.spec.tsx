@@ -5,7 +5,6 @@ import {getReleaseBounds, getReleaseParams} from 'app/views/releases/utils';
 describe('releases/utils', () => {
   describe('getReleaseBounds', () => {
     it('returns start and end of a release', () => {
-      // @ts-expect-error
       expect(getReleaseBounds(TestStubs.Release())).toEqual({
         releaseStart: '2020-03-23T01:02:00Z',
         releaseEnd: '2020-03-24T02:04:59Z',
@@ -15,7 +14,6 @@ describe('releases/utils', () => {
     it('higher last session takes precendence over last event', () => {
       expect(
         getReleaseBounds(
-          // @ts-expect-error
           TestStubs.Release({
             currentProjectMeta: {sessionsUpperBound: '2020-03-24T03:04:55Z'},
           })
@@ -27,7 +25,6 @@ describe('releases/utils', () => {
     });
 
     it('there is no last session/event, it fallbacks to now', () => {
-      // @ts-expect-error
       expect(getReleaseBounds(TestStubs.Release({lastEvent: null}))).toEqual({
         releaseStart: '2020-03-23T01:02:00Z',
         releaseEnd: '2017-10-17T02:41:59Z',
@@ -37,7 +34,6 @@ describe('releases/utils', () => {
     it('adds 1 minute to end if start and end are within same minute', () => {
       expect(
         getReleaseBounds(
-          // @ts-expect-error
           TestStubs.Release({
             dateCreated: '2020-03-23T01:02:30Z',
             lastEvent: '2020-03-23T01:02:39Z',
@@ -52,7 +48,6 @@ describe('releases/utils', () => {
     it('clamps releases lasting longer than 1000 days', () => {
       expect(
         getReleaseBounds(
-          // @ts-expect-error
           TestStubs.Release({
             dateCreated: '2020-03-23T01:02:30Z',
             lastEvent: '2023-03-23T01:02:30Z',
@@ -67,7 +62,6 @@ describe('releases/utils', () => {
 
   describe('getReleaseParams', () => {
     const {routerContext} = initializeOrg();
-    // @ts-expect-error
     const releaseBounds = getReleaseBounds(TestStubs.Release());
 
     it('returns params related to a release', () => {

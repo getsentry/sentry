@@ -16,7 +16,6 @@ describe('EventsV2 > OptionCheckboxSelector', function () {
   let organization, initialData, selected, wrapper, onChangeStub, dropdownItem;
 
   beforeEach(() => {
-    // @ts-expect-error
     organization = TestStubs.Organization({
       features: [...features, 'connect-discover-and-dashboards'],
     });

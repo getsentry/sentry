@@ -33,15 +33,15 @@ const normalizeResult = (tokens: TokenResult<Token>[]) =>
       // XXX: This attempts to keep the test data simple, only including keys
       // that are really needed to validate functionality.
 
-      // @ts-ignore
+      // @ts-expect-error
       delete token.location;
-      // @ts-ignore
+      // @ts-expect-error
       delete token.text;
-      // @ts-ignore
+      // @ts-expect-error
       delete token.config;
 
       if (token.type === Token.Filter && token.invalid === null) {
-        // @ts-ignore
+        // @ts-expect-error
         delete token.invalid;
       }
 

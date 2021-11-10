@@ -33,11 +33,9 @@ describe('Filters and Sampling', function () {
     'Transaction',
   ];
 
-  // @ts-expect-error
   MockApiClient.addMockResponse({
     url: '/projects/org-slug/project-slug/',
     method: 'GET',
-    // @ts-expect-error
     body: TestStubs.Project(),
   });
 
@@ -121,11 +119,9 @@ describe('Filters and Sampling', function () {
     });
 
     it('with rules', async function () {
-      // @ts-expect-error
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/',
         method: 'GET',
-        // @ts-expect-error
         body: TestStubs.Project({
           dynamicSampling: {
             rules: [
@@ -253,11 +249,9 @@ describe('Filters and Sampling', function () {
 
   describe('edit rules', function () {
     it('error rule', async function () {
-      // @ts-expect-error
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/',
         method: 'GET',
-        // @ts-expect-error
         body: TestStubs.Project({
           dynamicSampling: {
             rules: [
@@ -297,11 +291,9 @@ describe('Filters and Sampling', function () {
         }),
       });
 
-      // @ts-expect-error
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/',
         method: 'PUT',
-        // @ts-expect-error
         body: TestStubs.Project({
           dynamicSampling: {
             rules: [
@@ -341,7 +333,6 @@ describe('Filters and Sampling', function () {
         }),
       });
 
-      // @ts-expect-error
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/tags/release/values/',
         method: 'GET',
@@ -465,11 +456,9 @@ describe('Filters and Sampling', function () {
     });
 
     it('transaction trace rule', async function () {
-      // @ts-expect-error
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/',
         method: 'GET',
-        // @ts-expect-error
         body: TestStubs.Project({
           dynamicSampling: {
             rules: [
@@ -509,11 +498,9 @@ describe('Filters and Sampling', function () {
         }),
       });
 
-      // @ts-expect-error
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/',
         method: 'PUT',
-        // @ts-expect-error
         body: TestStubs.Project({
           dynamicSampling: {
             rules: [
@@ -553,7 +540,6 @@ describe('Filters and Sampling', function () {
         }),
       });
 
-      // @ts-expect-error
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/tags/release/values/',
         method: 'GET',
@@ -681,11 +667,9 @@ describe('Filters and Sampling', function () {
     });
 
     it('individual transaction rule', async function () {
-      // @ts-expect-error
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/',
         method: 'GET',
-        // @ts-expect-error
         body: TestStubs.Project({
           dynamicSampling: {
             rules: [
@@ -725,11 +709,9 @@ describe('Filters and Sampling', function () {
         }),
       });
 
-      // @ts-expect-error
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/',
         method: 'PUT',
-        // @ts-expect-error
         body: TestStubs.Project({
           dynamicSampling: {
             rules: [
@@ -769,7 +751,6 @@ describe('Filters and Sampling', function () {
         }),
       });
 
-      // @ts-expect-error
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/tags/release/values/',
         method: 'GET',
@@ -898,11 +879,9 @@ describe('Filters and Sampling', function () {
 
   describe('delete rules', function () {
     it('error rule', async function () {
-      // @ts-expect-error
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/',
         method: 'GET',
-        // @ts-expect-error
         body: TestStubs.Project({
           dynamicSampling: {
             rules: [
@@ -942,11 +921,9 @@ describe('Filters and Sampling', function () {
         }),
       });
 
-      // @ts-expect-error
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/',
         method: 'PUT',
-        // @ts-expect-error
         body: TestStubs.Project({
           dynamicSampling: {
             rules: [
@@ -1071,37 +1048,33 @@ describe('Filters and Sampling', function () {
     });
 
     it('save rule', async function () {
-      // @ts-expect-error
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/',
         method: 'PUT',
-        body:
-          // @ts-expect-error
-          TestStubs.Project({
-            dynamicSampling: {
-              rules: [
-                {
-                  sampleRate: 0.2,
-                  type: 'error',
-                  condition: {
-                    op: 'and',
-                    inner: [
-                      {
-                        op: 'glob',
-                        name: 'event.release',
-                        value: ['1.2.3'],
-                      },
-                    ],
-                  },
-                  id: 39,
+        body: TestStubs.Project({
+          dynamicSampling: {
+            rules: [
+              {
+                sampleRate: 0.2,
+                type: 'error',
+                condition: {
+                  op: 'and',
+                  inner: [
+                    {
+                      op: 'glob',
+                      name: 'event.release',
+                      value: ['1.2.3'],
+                    },
+                  ],
                 },
-              ],
-              next_id: 40,
-            },
-          }),
+                id: 39,
+              },
+            ],
+            next_id: 40,
+          },
+        }),
       });
 
-      // @ts-expect-error
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/tags/release/values/',
         method: 'GET',
@@ -1274,37 +1247,33 @@ describe('Filters and Sampling', function () {
 
     describe('save rule', function () {
       it('transaction trace', async function () {
-        // @ts-expect-error
         MockApiClient.addMockResponse({
           url: '/projects/org-slug/project-slug/',
           method: 'PUT',
-          body:
-            // @ts-expect-error
-            TestStubs.Project({
-              dynamicSampling: {
-                rules: [
-                  {
-                    sampleRate: 0.2,
-                    type: 'trace',
-                    condition: {
-                      op: 'and',
-                      inner: [
-                        {
-                          op: 'glob',
-                          name: 'trace.release',
-                          value: ['1.2.3'],
-                        },
-                      ],
-                    },
-                    id: 40,
+          body: TestStubs.Project({
+            dynamicSampling: {
+              rules: [
+                {
+                  sampleRate: 0.2,
+                  type: 'trace',
+                  condition: {
+                    op: 'and',
+                    inner: [
+                      {
+                        op: 'glob',
+                        name: 'trace.release',
+                        value: ['1.2.3'],
+                      },
+                    ],
                   },
-                ],
-                next_id: 40,
-              },
-            }),
+                  id: 40,
+                },
+              ],
+              next_id: 40,
+            },
+          }),
         });
 
-        // @ts-expect-error
         MockApiClient.addMockResponse({
           url: '/organizations/org-slug/tags/release/values/',
           method: 'GET',
@@ -1391,37 +1360,33 @@ describe('Filters and Sampling', function () {
 
       describe('individual transaction', function () {
         it('release', async function () {
-          // @ts-expect-error
           MockApiClient.addMockResponse({
             url: '/projects/org-slug/project-slug/',
             method: 'PUT',
-            body:
-              // @ts-expect-error
-              TestStubs.Project({
-                dynamicSampling: {
-                  rules: [
-                    {
-                      sampleRate: 0.2,
-                      type: 'transaction',
-                      condition: {
-                        op: 'and',
-                        inner: [
-                          {
-                            op: 'glob',
-                            name: 'event.release',
-                            value: ['1.2.3'],
-                          },
-                        ],
-                      },
-                      id: 41,
+            body: TestStubs.Project({
+              dynamicSampling: {
+                rules: [
+                  {
+                    sampleRate: 0.2,
+                    type: 'transaction',
+                    condition: {
+                      op: 'and',
+                      inner: [
+                        {
+                          op: 'glob',
+                          name: 'event.release',
+                          value: ['1.2.3'],
+                        },
+                      ],
                     },
-                  ],
-                  next_id: 40,
-                },
-              }),
+                    id: 41,
+                  },
+                ],
+                next_id: 40,
+              },
+            }),
           });
 
-          // @ts-expect-error
           MockApiClient.addMockResponse({
             url: '/organizations/org-slug/tags/release/values/',
             method: 'GET',
@@ -1510,43 +1475,40 @@ describe('Filters and Sampling', function () {
         });
 
         it('legacy browser', async function () {
-          // @ts-expect-error
           MockApiClient.addMockResponse({
             url: '/projects/org-slug/project-slug/',
             method: 'PUT',
-            body:
-              // @ts-expect-error
-              TestStubs.Project({
-                dynamicSampling: {
-                  rules: [
-                    {
-                      sampleRate: 0.2,
-                      type: 'transaction',
-                      condition: {
-                        op: 'and',
-                        inner: [
-                          {
-                            op: 'custom',
-                            name: 'event.legacy_browser',
-                            value: [
-                              'ie_pre_9',
-                              'ie9',
-                              'ie10',
-                              'ie11',
-                              'safari_pre_6',
-                              'opera_pre_15',
-                              'opera_mini_pre_8',
-                              'android_pre_4',
-                            ],
-                          },
-                        ],
-                      },
-                      id: 42,
+            body: TestStubs.Project({
+              dynamicSampling: {
+                rules: [
+                  {
+                    sampleRate: 0.2,
+                    type: 'transaction',
+                    condition: {
+                      op: 'and',
+                      inner: [
+                        {
+                          op: 'custom',
+                          name: 'event.legacy_browser',
+                          value: [
+                            'ie_pre_9',
+                            'ie9',
+                            'ie10',
+                            'ie11',
+                            'safari_pre_6',
+                            'opera_pre_15',
+                            'opera_mini_pre_8',
+                            'android_pre_4',
+                          ],
+                        },
+                      ],
                     },
-                  ],
-                  next_id: 40,
-                },
-              }),
+                    id: 42,
+                  },
+                ],
+                next_id: 40,
+              },
+            }),
           });
 
           renderComponent();
