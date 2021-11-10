@@ -230,10 +230,10 @@ class AddCodeOwnerModal extends Component<Props, State> {
               <StyledSelectField
                 name="codeMappingId"
                 label={t('Apply an existing code mapping')}
-                choices={codeMappings.map((cm: RepositoryProjectPathConfig) => [
-                  cm.id,
-                  cm.repoName,
-                ])}
+                options={codeMappings.map((cm: RepositoryProjectPathConfig) => ({
+                  value: cm.id,
+                  label: cm.repoName,
+                }))}
                 onChange={this.fetchFile}
                 required
                 inline={false}
