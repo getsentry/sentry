@@ -207,6 +207,7 @@ class TeamDetails extends React.Component<Props, State> {
   }
 }
 
+// TODO(davidenwang): change to functional component and replace withTeams with useTeams
 export default withApi(withOrganization(withTeams(TeamDetails)));
 
 const RequestAccessWrapper = styled('div')`
