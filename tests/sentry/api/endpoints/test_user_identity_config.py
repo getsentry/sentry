@@ -226,7 +226,7 @@ class UserIdentityConfigDetailsEndpointDeleteTest(UserIdentityConfigTest):
 
     def test_enforces_needed_for_org_access(self):
         ident_obj = AuthIdentity.objects.create(user=self.user, auth_provider=self.org_provider)
-        self.get_error_response(self.user.id, "org-identity", str(ident_obj.id), status_code=405)
+        self.get_error_response(self.user.id, "org-identity", str(ident_obj.id), status_code=403)
         assert AuthIdentity.objects.get(id=ident_obj.id)
 
     @mock.patch("sentry.api.serializers.models.user_identity_config.is_login_provider")
@@ -237,7 +237,7 @@ class UserIdentityConfigDetailsEndpointDeleteTest(UserIdentityConfigTest):
         self.login_as(self.user)
 
         ident_obj = Identity.objects.create(user=self.user, idp=self.github_idp)
-        self.get_error_response(self.user.id, "global-identity", str(ident_obj.id), status_code=405)
+        self.get_error_response(self.user.id, "global-identity", str(ident_obj.id), status_code=403)
         assert Identity.objects.get(id=ident_obj.id)
 
     def test_enforces_org_ident_needed_for_login(self):
@@ -248,5 +248,5 @@ class UserIdentityConfigDetailsEndpointDeleteTest(UserIdentityConfigTest):
         ident_obj = AuthIdentity.objects.create(user=self.user, auth_provider=self.org_provider)
         self.login_as(self.user)
 
-        self.get_error_response(self.user.id, "org-identity", str(ident_obj.id), status_code=405)
+        self.get_error_response(self.user.id, "org-identity", str(ident_obj.id), status_code=403)
         assert AuthIdentity.objects.get(id=ident_obj.id)

@@ -116,7 +116,7 @@ class UserIdentityConfigDetailsEndpoint(UserEndpoint):
                 # appropriate, but 404 is fine or even preferable.
                 return Response(status=status.HTTP_404_NOT_FOUND)
             if identity.status != Status.CAN_DISCONNECT:
-                return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+                return Response(status=status.HTTP_403_FORBIDDEN)
 
             model_type = identity.get_model_type_for_category()
             model_type.objects.get(id=int(identity_id)).delete()
