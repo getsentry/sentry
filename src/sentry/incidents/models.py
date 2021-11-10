@@ -194,7 +194,7 @@ class Incident(Model):
 class PendingIncidentSnapshot(Model):
     __include_in_export__ = True
 
-    incident = OneToOneCascadeDeletes("sentry.Incident")
+    incident = OneToOneCascadeDeletes("sentry.Incident", db_constraint=False)
     target_run_date = models.DateTimeField(db_index=True, default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
 
@@ -206,8 +206,8 @@ class PendingIncidentSnapshot(Model):
 class IncidentSnapshot(Model):
     __include_in_export__ = True
 
-    incident = OneToOneCascadeDeletes("sentry.Incident")
-    event_stats_snapshot = FlexibleForeignKey("sentry.TimeSeriesSnapshot")
+    incident = OneToOneCascadeDeletes("sentry.Incident", db_constraint=False)
+    event_stats_snapshot = FlexibleForeignKey("sentry.TimeSeriesSnapshot", db_constraint=False)
     unique_users = models.IntegerField()
     total_events = models.IntegerField()
     date_added = models.DateTimeField(default=timezone.now)
@@ -229,26 +229,6 @@ class TimeSeriesSnapshot(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_timeseriessnapshot"
-
-    @property
-    def snuba_values(self):
-        """
-        Returns values matching the snuba format, a list of dicts with 'time'
-        and 'count' keys.
-        :return:
-        """
-        # We store the values here as floats so that we can support percentage stats.
-        # We don't want to return the time as a float, and to keep things consistent
-        # with what Snuba returns we cast floats to ints when they're whole numbers.
-        return {
-            "data": [
-                {
-                    "time": int(time),
-                    "count": count if count is None or not count.is_integer() else int(count),
-                }
-                for time, count in self.values
-            ]
-        }
 
 
 class IncidentActivityType(Enum):

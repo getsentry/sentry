@@ -1,9 +1,7 @@
 from copy import deepcopy
 from datetime import datetime, timedelta
-from itertools import chain
-from typing import Callable, Dict, Optional, Union
+from typing import Dict, Optional, Union
 
-import pytz
 from django.db import transaction
 from django.db.models.signals import post_save
 from django.utils import timezone
@@ -26,13 +24,10 @@ from sentry.incidents.models import (
     IncidentActivityType,
     IncidentProject,
     IncidentSeen,
-    IncidentSnapshot,
     IncidentStatus,
     IncidentStatusMethod,
     IncidentSubscription,
     IncidentTrigger,
-    PendingIncidentSnapshot,
-    TimeSeriesSnapshot,
     TriggerStatus,
 )
 from sentry.models import Integration, PagerDutyService, Project, SentryApp
@@ -50,9 +45,7 @@ from sentry.snuba.subscriptions import (
     update_snuba_query,
 )
 from sentry.snuba.tasks import build_snuba_filter
-from sentry.utils.compat import zip
-from sentry.utils.dates import to_timestamp
-from sentry.utils.snuba import SnubaQueryParams, SnubaTSResult, bulk_raw_query, is_measurement
+from sentry.utils.snuba import SnubaQueryParams, bulk_raw_query, is_measurement
 
 # We can return an incident as "windowed" which returns a range of points around the start of the incident
 # It attempts to center the start of the incident, only showing earlier data if there isn't enough time
@@ -62,12 +55,6 @@ NOT_SET = object()
 
 CRITICAL_TRIGGER_LABEL = "critical"
 WARNING_TRIGGER_LABEL = "warning"
-
-# types
-ENTITY_STATS_SNAPSHOT_FUNC = Callable[[Incident, bool], TimeSeriesSnapshot]
-INCIDENT_ENTITY_STATS_FUNC = Callable[
-    [Incident, Optional[datetime], Optional[datetime], bool], SnubaTSResult
-]
 
 
 class AlreadyDeletedError(Exception):
@@ -169,15 +156,8 @@ def update_incident_status(
             # If we're moving back out of closed status then unset the closed
             # date
             kwargs["date_closed"] = None
-            # Remove the snapshot since it's only used after the incident is
-            # closed.
-            IncidentSnapshot.objects.filter(incident=incident).delete()
-            PendingIncidentSnapshot.objects.filter(incident=incident).delete()
 
         incident.update(**kwargs)
-
-        if status == IncidentStatus.CLOSED:
-            create_pending_incident_snapshot(incident)
 
         analytics.record(
             "incident.status_change",
@@ -295,103 +275,6 @@ def delete_comment(activity):
     return activity.delete()
 
 
-def create_pending_incident_snapshot(incident):
-    if PendingIncidentSnapshot.objects.filter(incident=incident).exists():
-        PendingIncidentSnapshot.objects.filter(incident=incident).delete()
-
-    time_window = (
-        incident.alert_rule.snuba_query.time_window if incident.alert_rule is not None else 60
-    )
-    target_run_date = incident.current_end_date + min(
-        timedelta(seconds=time_window * 10), timedelta(days=10)
-    )
-    return PendingIncidentSnapshot.objects.create(
-        incident=incident, target_run_date=target_run_date
-    )
-
-
-def create_incident_snapshot(incident, windowed_stats=False):
-    """
-    Creates a snapshot of an incident. This includes the count of unique users
-    and total events, plus a time series snapshot of the entire incident.
-    """
-    assert incident.status == IncidentStatus.CLOSED.value
-    if IncidentSnapshot.objects.filter(incident=incident).exists():
-        return None
-
-    start, end = calculate_incident_time_range(incident, windowed_stats=windowed_stats)
-    if start == end:
-        return IncidentSnapshot.objects.create(
-            incident=incident,
-            event_stats_snapshot=TimeSeriesSnapshot.objects.create(
-                start=start,
-                end=end,
-                values=[],
-                period=incident.alert_rule.snuba_query.time_window,
-            ),
-            unique_users=0,
-            total_events=0,
-        )
-
-    dataset: QueryDatasets = QueryDatasets(incident.alert_rule.snuba_query.dataset)
-    if dataset == QueryDatasets.SESSIONS:
-        entity_stats_snapshot = create_session_stat_snapshot(
-            incident, windowed_stats=windowed_stats
-        )
-    else:
-        entity_stats_snapshot = create_event_stat_snapshot(incident, windowed_stats=windowed_stats)
-
-    aggregates = get_incident_aggregates(incident, dataset=dataset)
-    return IncidentSnapshot.objects.create(
-        incident=incident,
-        event_stats_snapshot=entity_stats_snapshot,
-        unique_users=aggregates["unique_users"],
-        total_events=aggregates["count"],
-    )
-
-
-def _entity_stats_snapshot_func_factory(
-    dataset: QueryDatasets, entity_stats_func: INCIDENT_ENTITY_STATS_FUNC
-) -> ENTITY_STATS_SNAPSHOT_FUNC:
-    time_col: str = "bucketed_started" if dataset == QueryDatasets.SESSIONS else "time"
-
-    def create_entity_stat_snapshot(
-        incident: Incident, windowed_stats: bool = False
-    ) -> TimeSeriesSnapshot:
-        entity_stats: SnubaTSResult = entity_stats_func(incident, None, None, windowed_stats)
-        start, end = calculate_incident_time_range(incident, windowed_stats=windowed_stats)
-        return TimeSeriesSnapshot.objects.create(
-            start=start,
-            end=end,
-            values=[[row[time_col], row["count"]] for row in entity_stats.data["data"]],
-            period=entity_stats.rollup,
-        )
-
-    return create_entity_stat_snapshot
-
-
-def create_event_stat_snapshot(
-    incident: Incident, windowed_stats: bool = False
-) -> TimeSeriesSnapshot:
-    """
-    Creates an event stats snapshot for an incident in a given period of time.
-    """
-    return _entity_stats_snapshot_func_factory(QueryDatasets.EVENTS, get_incident_event_stats)(
-        incident, windowed_stats
-    )
-
-
-def create_session_stat_snapshot(
-    incident: Incident, windowed_stats: bool = False
-) -> TimeSeriesSnapshot:
-    """
-    Creates an event stats snapshot for an incident in a given period of time.
-    """
-    return _entity_stats_snapshot_func_factory(QueryDatasets.SESSIONS, get_incident_session_stats)(
-        incident, windowed_stats
-    )
-
-
 def build_incident_query_params(incident, start=None, end=None, windowed_stats=False):
     params = {}
     params["start"], params["end"] = calculate_incident_time_range(
@@ -461,149 +344,6 @@ def calculate_incident_time_range(incident, start=None, end=None, windowed_stats
     return start, end
 
 
-def calculate_incident_prewindow(start, end, incident=None):
-    # Make the a bit earlier to show more relevant data from before the incident started:
-    prewindow = (end - start) / 5
-    if incident and incident.alert_rule is not None:
-        alert_rule_time_window = timedelta(seconds=incident.alert_rule.snuba_query.time_window)
-        prewindow = max(alert_rule_time_window, prewindow)
-    return prewindow
-
-
-def _incident_entity_stats_func_factory(dataset: QueryDatasets):
-    """
-    Function factory that returns a function responsible for returning incident entity specific
-    stats
-    """
-    if dataset == QueryDatasets.SESSIONS:
-        time_col: str = "bucketed_started"
-
-        def format_count_in_data(data):
-            for elem in data:
-                if elem["count"] is not None:
-                    elem["count"] = round((1 - elem["count"]) * 100, 3)
-                if isinstance(elem[time_col], str):
-                    elem[time_col] = to_timestamp(
-                        datetime.strptime(elem[time_col], "%Y-%m-%dT%H:%M:%S+00:00").astimezone(
-                            pytz.utc
-                        )
-                    )
-
-    else:
-        time_col = "time"
-
-        def format_count_in_data(data):
-            ...
-
-    def get_incident_entity_stats(
-        incident: Incident,
-        start: Optional[datetime] = None,
-        end: Optional[datetime] = None,
-        windowed_stats=False,
-    ) -> SnubaTSResult:
-        query_params = build_incident_query_params(
-            incident, start=start, end=end, windowed_stats=windowed_stats
-        )
-        time_window = incident.alert_rule.snuba_query.time_window
-        aggregations = query_params.pop("aggregations")[0]
-        snuba_params = [
-            SnubaQueryParams(
-                aggregations=[(aggregations[0], aggregations[1], "count")],
-                orderby=time_col,
-                groupby=[time_col],
-                rollup=time_window,
-                limit=10000,
-                **query_params,
-            )
-        ]
-
-        # We make extra queries to fetch these buckets
-        def build_extra_query_params(bucket_start):
-            extra_bucket_query_params = build_incident_query_params(
-                incident, start=bucket_start, end=bucket_start + timedelta(seconds=time_window)
-            )
-            aggregations = extra_bucket_query_params.pop("aggregations")[0]
-            return SnubaQueryParams(
-                aggregations=[(aggregations[0], aggregations[1], "count")],
-                limit=1,
-                **extra_bucket_query_params,
-            )
-
-        # We want to include the specific buckets for the incident start and closed times,
-        # so that there's no need to interpolate to show them on the frontend. If they're
-        # cleanly divisible by the `time_window` then there's no need to fetch, since
-        # they'll be included in the standard results anyway.
-        start_query_params = None
-        extra_buckets = []
-        retention = quotas.get_event_retention(organization=incident.organization) or 90
-        if (
-            incident.date_started
-            > datetime.utcnow().replace(tzinfo=timezone.utc) - timedelta(days=retention)
-            and int(to_timestamp(incident.date_started)) % time_window
-        ):
-            start_query_params = build_extra_query_params(incident.date_started)
-            snuba_params.append(start_query_params)
-            extra_buckets.append(incident.date_started)
-
-        if incident.date_closed:
-            date_closed = incident.date_closed.replace(second=0, microsecond=0)
-            if int(to_timestamp(date_closed)) % time_window:
-                snuba_params.append(build_extra_query_params(date_closed))
-                extra_buckets.append(date_closed)
-
-        results = bulk_raw_query(snuba_params, referrer="incidents.get_incident_event_stats")
-        # Once we receive the results, if we requested extra buckets we now need to label
-        # them with timestamp data, since the query we ran only returns the count.
-        for extra_start, result in zip(extra_buckets, results[1:]):
-            result["data"][0][time_col] = int(to_timestamp(extra_start))
-        merged_data = list(chain(*(r["data"] for r in results)))
-        # Used to format the count field when it is just a ratio into a percentage for crash rate
-        # alerts
-        format_count_in_data(merged_data)
-        merged_data.sort(key=lambda row: row[time_col])
-        results[0]["data"] = merged_data
-        # When an incident has just been created it's possible for the actual incident start
-        # date to be greater than the latest bucket for the query. Get the actual end date
-        # here.
-        end_date = snuba_params[0].end
-        if start_query_params:
-            end_date = max(end_date, start_query_params.end)
-
-        return SnubaTSResult(results[0], snuba_params[0].start, end_date, snuba_params[0].rollup)
-
-    return get_incident_entity_stats
-
-
-def get_incident_event_stats(
-    incident: Incident,
-    start: Optional[datetime] = None,
-    end: Optional[datetime] = None,
-    windowed_stats: bool = False,
-) -> SnubaTSResult:
-    """
-    Gets event stats for an incident. If start/end are provided, uses that time
-    period, otherwise uses the incident start/current_end.
-    """
-    return _incident_entity_stats_func_factory(QueryDatasets.EVENTS)(
-        incident, start, end, windowed_stats
-    )
-
-
-def get_incident_session_stats(
-    incident: Incident,
-    start: Optional[datetime] = None,
-    end: Optional[datetime] = None,
-    windowed_stats=False,
-) -> SnubaTSResult:
-    """
-    Gets session stats for an incident. If start/end are provided, uses that time
-    period, otherwise uses the incident start/current_end.
-    """
-    return _incident_entity_stats_func_factory(QueryDatasets.SESSIONS)(
-        incident, start, end, windowed_stats
-    )
-
-
 def get_incident_aggregates(
     incident: Incident,
     start: Optional[datetime] = None,
@@ -640,38 +380,6 @@ def get_incident_aggregates(
         snuba_params_list = [SnubaQueryParams(limit=10000, **query_params)]
         results = bulk_raw_query(snuba_params_list, referrer="incidents.get_incident_aggregates")
     return results[0]["data"][0]
-
-
-def get_incident_stats(incident, windowed_stats=False):
-    """
-    Returns stats for an incident. This includes unique user count, total event count
-    and event stats.
-    Note that even though this function accepts a windowed_stats parameter, it does not
-    affect the snapshots. Only the live fetched stats.
-    """
-    if windowed_stats and incident.status == IncidentStatus.CLOSED.value:
-        # At the moment, snapshots are only ever created with windowed_stats as True
-        # so if they send False, we need to do a live calculation below.
-        try:
-            snapshot = IncidentSnapshot.objects.get(incident=incident)
-            event_stats = snapshot.event_stats_snapshot
-            return {
-                "event_stats": SnubaTSResult(
-                    event_stats.snuba_values, event_stats.start, event_stats.end, event_stats.period
-                ),
-                "total_events": snapshot.total_events,
-                "unique_users": snapshot.unique_users,
-            }
-        except IncidentSnapshot.DoesNotExist:
-            pass
-
-    event_stats = get_incident_event_stats(incident, windowed_stats=windowed_stats)
-    aggregates = get_incident_aggregates(incident)
-    return {
-        "event_stats": event_stats,
-        "total_events": aggregates["count"],
-        "unique_users": aggregates["unique_users"],
-    }
 
 
 def subscribe_to_incident(incident, user):
