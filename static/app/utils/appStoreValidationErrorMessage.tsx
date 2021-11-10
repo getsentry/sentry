@@ -16,7 +16,7 @@ export function getAppStoreValidationErrorMessage(
     case 'app-connect-authentication-error':
       return repo
         ? tct(
-            'Apple Store Connect credentials are invalid or missing. [linkToCustomRepository]',
+            'App Store Connect credentials are invalid or missing. [linkToCustomRepository]',
             {
               linkToCustomRepository: (
                 <Link to={repo.link}>
