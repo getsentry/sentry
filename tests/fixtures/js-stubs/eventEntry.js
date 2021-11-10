@@ -1,4 +1,4 @@
-export function EventEntry(params) {
+export function EventEntry(params = {}) {
   return {
     id: '1',
     type: 'message',

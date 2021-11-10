@@ -31,3 +31,9 @@ export type SuspectSpan = {
 };
 
 export type SuspectSpans = SuspectSpan[];
+
+export type SpanOp = {
+  op: string;
+};
+
+export type SpanOps = SpanOp[];

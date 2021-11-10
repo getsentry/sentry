@@ -58,7 +58,9 @@ function generateEventView(location: Location, transactionName: string): EventVi
     .setFilterValues('transaction', [transactionName]);
 
   Object.keys(conditions.filters).forEach(field => {
-    if (isAggregateField(field)) conditions.removeFilter(field);
+    if (isAggregateField(field)) {
+      conditions.removeFilter(field);
+    }
   });
 
   const vitals = VITAL_GROUPS.reduce((allVitals: WebVital[], group) => {

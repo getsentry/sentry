@@ -1,5 +1,6 @@
 import logging
 from collections import OrderedDict
+from random import random
 
 import requests
 import sentry_sdk
@@ -68,9 +69,10 @@ class BaseApiResponse:
                 raise UnsupportedResponseType(
                     response.headers.get("Content-Type", ""), response.status_code
                 )
+        elif response.text == "":
+            return TextApiResponse(response.text, response.headers, response.status_code)
         else:
             data = json.loads(response.text, object_pairs_hook=OrderedDict)
-
         if isinstance(data, dict):
             return MappingApiResponse(data, response.headers, response.status_code)
         elif isinstance(data, (list, tuple)):
@@ -237,7 +239,7 @@ class BaseApiClient(TrackResponseMixin):
             name=f"{self.integration_type}.http_response.{self.name}",
             parent_span_id=parent_span_id,
             trace_id=trace_id,
-            sampled=True,
+            sampled=random() < 0.05,
         ) as span:
             try:
                 with build_session() as session:
@@ -284,7 +286,7 @@ class BaseApiClient(TrackResponseMixin):
     def delete(self, *args, **kwargs):
         return self.request("DELETE", *args, **kwargs)
 
-    def get_cached(self, path, *args, **kwargs):
+    def _get_cached(self, path: str, method: str, *args, **kwargs):
         query = ""
         if kwargs.get("params", None):
             query = json.dumps(kwargs.get("params"), sort_keys=True)
@@ -292,9 +294,12 @@ class BaseApiClient(TrackResponseMixin):
 
         result = cache.get(key)
         if result is None:
-            result = self.request("GET", path, *args, **kwargs)
+            result = self.request(method, path, *args, **kwargs)
             cache.set(key, result, self.cache_time)
         return result
+
+    def get_cached(self, path, *args, **kwargs):
+        return self._get_cached(path, "GET", *args, **kwargs)
 
     def get(self, *args, **kwargs):
         return self.request("GET", *args, **kwargs)
@@ -312,16 +317,7 @@ class BaseApiClient(TrackResponseMixin):
         return self.request("HEAD", *args, **kwargs)
 
     def head_cached(self, path, *args, **kwargs):
-        query = ""
-        if kwargs.get("params", None):
-            query = json.dumps(kwargs.get("params"), sort_keys=True)
-        key = self.get_cache_prefix() + md5_text(self.build_url(path), query).hexdigest()
-
-        result = cache.get(key)
-        if result is None:
-            result = self.head(path, *args, **kwargs)
-            cache.set(key, result, self.cache_time)
-        return result
+        return self._get_cached(path, "HEAD", *args, **kwargs)
 
     def get_with_pagination(self, path, gen_params, get_results, *args, **kwargs):
         page_size = self.page_size
@@ -369,7 +365,7 @@ class BaseInternalApiClient(ApiClient, TrackResponseMixin):
             name=f"{self.integration_type}.http_response.{self.name}",
             parent_span_id=parent_span_id,
             trace_id=trace_id,
-            sampled=True,
+            sampled=random() < 0.05,
         ) as span:
             resp = ApiClient.request(self, *args, **kwargs)
             self.track_response_data(resp.status_code, span, None, resp)

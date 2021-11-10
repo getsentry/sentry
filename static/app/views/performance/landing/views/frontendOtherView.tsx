@@ -14,7 +14,7 @@ export function FrontendOtherView(props: BasePerformanceViewProps) {
     <PerformanceDisplayProvider
       value={{performanceType: PROJECT_PERFORMANCE_TYPE.FRONTEND_OTHER}}
     >
-      <div data-test-id="frontend-pageload-view">
+      <div>
         <TripleChartRow
           {...props}
           allowedCharts={[
@@ -30,6 +30,8 @@ export function FrontendOtherView(props: BasePerformanceViewProps) {
           allowedCharts={[
             PerformanceWidgetSetting.MOST_RELATED_ERRORS,
             PerformanceWidgetSetting.MOST_RELATED_ISSUES,
+            PerformanceWidgetSetting.SLOW_HTTP_OPS,
+            PerformanceWidgetSetting.SLOW_RESOURCE_OPS,
           ]}
         />
         <Table

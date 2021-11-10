@@ -113,7 +113,7 @@ describe('OrganizationDetails', function () {
       );
 
       expect(mistakeText).toBeInTheDocument();
-      expect(screen.queryByLabelText('Restore Organization')).toBeNull();
+      expect(screen.queryByLabelText('Restore Organization')).not.toBeInTheDocument();
     });
   });
 
@@ -142,6 +142,6 @@ describe('OrganizationDetails', function () {
     );
 
     expect(inProgress).toBeInTheDocument();
-    expect(screen.queryByLabelText('Restore Organization')).toBeNull();
+    expect(screen.queryByLabelText('Restore Organization')).not.toBeInTheDocument();
   });
 });

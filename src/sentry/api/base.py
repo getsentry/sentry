@@ -194,6 +194,7 @@ class Endpoint(APIView):
                 path=str(self.request.path),
                 caller_ip=str(self.request.META.get("REMOTE_ADDR")),
                 user_agent=str(self.request.META.get("HTTP_USER_AGENT")),
+                rate_limited=str(getattr(self.request, "will_be_rate_limited", False)),
             )
             api_access_logger.info("api.access", extra=log_metrics)
         except Exception:
@@ -320,6 +321,9 @@ class Endpoint(APIView):
 
     def respond(self, context=None, **kwargs):
         return Response(context, **kwargs)
+
+    def respond_with_text(self, text):
+        return self.respond({"text": text})
 
     def get_per_page(self, request, default_per_page=100, max_per_page=100):
         try:

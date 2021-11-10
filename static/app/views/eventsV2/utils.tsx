@@ -318,10 +318,9 @@ function generateAdditionalConditions(
         if (value.length > 1) {
           conditions[column.field] = value;
           return;
-        } else {
-          // An array with only one value is equivalent to the value itself.
-          value = value[0];
         }
+        // An array with only one value is equivalent to the value itself.
+        value = value[0];
       }
 
       // if the value will be quoted, then do not trim it as the whitespaces

@@ -327,10 +327,8 @@ function __VitalChart(props: _VitalChartProps) {
 
   const results = _results.filter(r => !!fieldToVital(r.seriesName));
 
-  const {smoothedResults} = transformEventStatsSmoothed(results);
-
-  const smoothedSeries = smoothedResults
-    ? smoothedResults.map(({seriesName, ...rest}) => {
+  const smoothedSeries = results?.length
+    ? results.map(({seriesName, ...rest}) => {
         return {
           seriesName: fieldToVital(seriesName) || 'count',
           ...rest,

@@ -36,8 +36,13 @@ function StackTrace({
   hasHierarchicalGrouping,
   groupingCurrentLevel,
 }: Props) {
+  function getPlatform(): PlatformType {
+    const framePlatform = data.frames?.find(frame => !!frame.platform);
+    return framePlatform?.platform ?? event.platform ?? 'other';
+  }
+
+  const platform = getPlatform();
   const stackTraceNotFound = !(data.frames ?? []).length;
-  const platform = (event.platform ?? 'other') as PlatformType;
 
   return (
     <TraceEventDataSection
@@ -60,8 +65,8 @@ function StackTrace({
             frame.rawFunction !== frame.function
         )
       }
-      hasAbsoluteFilePaths={!!data.frames?.find(frame => defined(frame.filename))}
-      hasAbsoluteAddresses={!!data.frames?.find(frame => defined(frame.instructionAddr))}
+      hasAbsoluteFilePaths={!!data.frames?.find(frame => !!frame.filename)}
+      hasAbsoluteAddresses={!!data.frames?.find(frame => !!frame.instructionAddr)}
       hasAppOnlyFrames={!!data.frames?.find(frame => !!frame.inApp)}
       hasNewestFirst={(data.frames ?? []).length > 1}
       showPermalink
