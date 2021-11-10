@@ -19,8 +19,6 @@ import EventView from 'app/utils/discover/eventView';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import type {Color} from 'app/utils/theme';
 
-import {transactionSummaryRouteWithQuery} from '../../performance/transactionSummary/utils';
-
 import {groupByTrend} from './utils';
 
 type TeamMiseryProps = {
@@ -113,17 +111,20 @@ function TeamMisery({
             return null;
           }
 
+          const linkEventView = EventView.fromSavedQuery({
+            id: undefined,
+            name: dataRow.transaction as string,
+            projects: [Number(project?.id)],
+            query: `transaction.duration:<15m transaction:${dataRow.transaction}`,
+            version: 2 as SavedQueryVersions,
+            range: '7d',
+            fields: ['id', 'title', 'event.type', 'project', 'user.display', 'timestamp'],
+          });
+
           return (
             <Fragment key={idx}>
               <TransactionWrapper>
-                <Link
-                  to={transactionSummaryRouteWithQuery({
-                    orgSlug: organization.slug,
-                    transaction: dataRow.transaction as string,
-                    projectID: project?.id,
-                    query: {query: 'transaction.duration:<15m'},
-                  })}
-                >
+                <Link to={linkEventView.getResultsViewUrlTarget(organization.slug)}>
                   {dataRow.transaction}
                 </Link>
               </TransactionWrapper>
@@ -165,6 +166,7 @@ function TeamMisery({
 
 type Props = AsyncComponent['props'] & {
   organization: Organization;
+  teamId: string;
   projects: Project[];
   location: Location;
   period?: string;
@@ -174,6 +176,7 @@ type Props = AsyncComponent['props'] & {
 
 function TeamMiseryWrapper({
   organization,
+  teamId,
   projects,
   location,
   period,
@@ -197,9 +200,10 @@ function TeamMiseryWrapper({
   const commonEventView = {
     id: undefined,
     query: 'transaction.duration:<15m team_key_transaction:true',
-    projects: projects.map(project => Number(project.id)),
+    projects: [],
     version: 2 as SavedQueryVersions,
     orderby: '-tpm',
+    teams: [Number(teamId)],
     fields: [
       'transaction',
       'project',

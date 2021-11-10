@@ -8,9 +8,13 @@ import {PerformanceWidgetSetting} from 'app/views/performance/landing/widgets/wi
 import {PROJECT_PERFORMANCE_TYPE} from 'app/views/performance/utils';
 
 const initializeData = () => {
-  return _initializeData({
+  const data = _initializeData({
     query: {statsPeriod: '7d', environment: ['prod'], project: [-42]},
   });
+
+  data.eventView.additionalConditions.addFilterValues('transaction.op', ['pageload']);
+
+  return data;
 };
 
 const WrappedComponent = ({data, ...rest}) => {
@@ -32,21 +36,50 @@ const WrappedComponent = ({data, ...rest}) => {
   );
 };
 
+const issuesPredicate = (url, options) =>
+  url.includes('eventsv2') && options.query?.query.includes('error');
+
 describe('Performance > Widgets > WidgetContainer', function () {
   let eventStatsMock;
   let eventsV2Mock;
   let eventsTrendsStats;
+
+  let issuesListMock;
+
   beforeEach(function () {
     eventStatsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/events-stats/`,
       body: [],
     });
-    eventsV2Mock = MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/org-slug/eventsv2/`,
-      body: [],
-    });
+    eventsV2Mock = MockApiClient.addMockResponse(
+      {
+        method: 'GET',
+        url: `/organizations/org-slug/eventsv2/`,
+        body: [],
+      },
+      {predicate: (...args) => !issuesPredicate(...args)}
+    );
+    issuesListMock = MockApiClient.addMockResponse(
+      {
+        method: 'GET',
+        url: `/organizations/org-slug/eventsv2/`,
+        body: {
+          data: [
+            {
+              'issue.id': 123,
+              transaction: '/issue/:id/',
+              title: 'Error: Something is broken.',
+              'project.id': 1,
+              count: 3100,
+              issue: 'JAVASCRIPT-ABCD',
+            },
+          ],
+        },
+      },
+      {predicate: (...args) => issuesPredicate(...args)}
+    );
+
     eventsTrendsStats = MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/events-trends-stats/',
@@ -78,7 +111,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
         query: expect.objectContaining({
           interval: '1h',
           partial: '1',
-          query: '',
+          query: 'transaction.op:pageload',
           statsPeriod: '14d',
           yAxis: 'tpm()',
         }),
@@ -110,7 +143,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
         query: expect.objectContaining({
           interval: '1h',
           partial: '1',
-          query: '',
+          query: 'transaction.op:pageload',
           statsPeriod: '14d',
           yAxis: 'failure_rate()',
         }),
@@ -142,7 +175,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
         query: expect.objectContaining({
           interval: '1h',
           partial: '1',
-          query: '',
+          query: 'transaction.op:pageload',
           statsPeriod: '14d',
           yAxis: 'user_misery()',
         }),
@@ -186,7 +219,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           ],
           per_page: 3,
           project: ['-42'],
-          query: '',
+          query: 'transaction.op:pageload',
           sort: '-count_if(measurements.lcp,greaterOrEquals,4000)',
           statsPeriod: '7d',
         }),
@@ -260,7 +293,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           field: ['transaction', 'project.id', 'failure_count()'],
           per_page: 3,
           project: ['-42'],
-          query: 'failure_count():>0',
+          query: 'transaction.op:pageload failure_count():>0',
           sort: '-failure_count()',
           statsPeriod: '7d',
         }),
@@ -284,8 +317,8 @@ describe('Performance > Widgets > WidgetContainer', function () {
     expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
       'Most Related Issues'
     );
-    expect(eventsV2Mock).toHaveBeenCalledTimes(1);
-    expect(eventsV2Mock).toHaveBeenNthCalledWith(
+    expect(issuesListMock).toHaveBeenCalledTimes(1);
+    expect(issuesListMock).toHaveBeenNthCalledWith(
       1,
       expect.anything(),
       expect.objectContaining({
@@ -300,6 +333,38 @@ describe('Performance > Widgets > WidgetContainer', function () {
         }),
       })
     );
+  });
+
+  it('Switching from issues to errors widget', async function () {
+    const data = initializeData();
+
+    const wrapper = mountWithTheme(
+      <WrappedComponent
+        data={data}
+        defaultChartSetting={PerformanceWidgetSetting.MOST_RELATED_ISSUES}
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+      'Most Related Issues'
+    );
+    expect(issuesListMock).toHaveBeenCalledTimes(1);
+
+    wrapper.setProps({
+      defaultChartSetting: PerformanceWidgetSetting.MOST_RELATED_ERRORS,
+    });
+
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+      'Most Related Errors'
+    );
+    expect(eventsV2Mock).toHaveBeenCalledTimes(1);
+    expect(eventStatsMock).toHaveBeenCalledTimes(1);
   });
 
   it('Most improved trends widget', async function () {
@@ -331,7 +396,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           per_page: 3,
           project: ['-42'],
           query:
-            'tpm():>0.01 count_percentage():>0.25 count_percentage():<4 trend_percentage():>0% confidence():>6',
+            'transaction.op:pageload tpm():>0.01 count_percentage():>0.25 count_percentage():<4 trend_percentage():>0% confidence():>6',
           sort: 'trend_percentage()',
           statsPeriod: '7d',
           trendFunction: 'avg(transaction.duration)',
@@ -370,7 +435,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           per_page: 3,
           project: ['-42'],
           query:
-            'tpm():>0.01 count_percentage():>0.25 count_percentage():<4 trend_percentage():>0% confidence():>6',
+            'transaction.op:pageload tpm():>0.01 count_percentage():>0.25 count_percentage():<4 trend_percentage():>0% confidence():>6',
           sort: '-trend_percentage()',
           statsPeriod: '7d',
           trendFunction: 'avg(transaction.duration)',
@@ -412,7 +477,8 @@ describe('Performance > Widgets > WidgetContainer', function () {
           ],
           per_page: 3,
           project: ['-42'],
-          query: 'epm():>0.01 p75(measurements.frames_slow_rate):>0',
+          query:
+            'transaction.op:pageload epm():>0.01 p75(measurements.frames_slow_rate):>0',
           sort: '-p75(measurements.frames_slow_rate)',
           statsPeriod: '7d',
         }),

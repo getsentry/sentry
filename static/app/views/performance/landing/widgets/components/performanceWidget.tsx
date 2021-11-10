@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useCallback, useRef, useState} from 'react';
 import {withRouter} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -25,21 +25,31 @@ import {WidgetHeader} from './widgetHeader';
 export function GenericPerformanceWidget<T extends WidgetDataConstraint>(
   props: WidgetPropUnion<T>
 ) {
-  const [widgetData, setWidgetData] = useState<T>({} as T);
-  const [nextWidgetData, setNextWidgetData] = useState<T>({} as T);
+  // Use object keyed to chart setting so switching between charts of a similar type doesn't retain data with query components still having inflight requests.
+  const [allWidgetData, setWidgetData] = useState<{[chartSetting: string]: T}>({});
+  const widgetData = allWidgetData[props.chartSetting] ?? {};
+  const widgetDataRef = useRef(widgetData);
 
   const setWidgetDataForKey = useCallback(
     (dataKey: string, result?: WidgetDataResult) => {
-      if (result) {
-        setNextWidgetData({...nextWidgetData, [dataKey]: result});
-      }
-      if (result?.hasData || result?.isErrored) {
-        setWidgetData({...widgetData, [dataKey]: result});
-      }
+      const _widgetData = widgetDataRef.current;
+      const newWidgetData = {..._widgetData, [dataKey]: result};
+      widgetDataRef.current = newWidgetData;
+      setWidgetData({[props.chartSetting]: newWidgetData});
     },
-    [widgetData, nextWidgetData, setWidgetData, setNextWidgetData]
+    [allWidgetData, setWidgetData]
   );
-  const widgetProps = {widgetData, nextWidgetData, setWidgetDataForKey};
+  const removeWidgetDataForKey = useCallback(
+    (dataKey: string) => {
+      const _widgetData = widgetDataRef.current;
+      const newWidgetData = {..._widgetData};
+      delete newWidgetData[dataKey];
+      widgetDataRef.current = newWidgetData;
+      setWidgetData({[props.chartSetting]: newWidgetData});
+    },
+    [allWidgetData, setWidgetData]
+  );
+  const widgetProps = {widgetData, setWidgetDataForKey, removeWidgetDataForKey};
 
   const queries = Object.entries(props.Queries).map(([key, definition]) => ({
     ...definition,
@@ -55,6 +65,7 @@ export function GenericPerformanceWidget<T extends WidgetDataConstraint>(
       <QueryHandler
         widgetData={widgetData}
         setWidgetDataForKey={setWidgetDataForKey}
+        removeWidgetDataForKey={removeWidgetDataForKey}
         queryProps={props}
         queries={queries}
         api={api}
@@ -65,8 +76,7 @@ export function GenericPerformanceWidget<T extends WidgetDataConstraint>(
 }
 
 function _DataDisplay<T extends WidgetDataConstraint>(
-  props: GenericPerformanceWidgetProps<T> &
-    WidgetDataProps<T> & {nextWidgetData: T; totalHeight: number}
+  props: GenericPerformanceWidgetProps<T> & WidgetDataProps<T> & {totalHeight: number}
 ) {
   const {Visualizations, chartHeight, totalHeight, containerType, EmptyComponent} = props;
 
@@ -76,12 +86,9 @@ function _DataDisplay<T extends WidgetDataConstraint>(
 
   const numberKeys = Object.keys(props.Queries).length;
   const missingDataKeys = Object.values(props.widgetData).length !== numberKeys;
-  const missingNextDataKeys = Object.values(props.nextWidgetData).length !== numberKeys;
   const hasData =
     !missingDataKeys && Object.values(props.widgetData).every(d => !d || d.hasData);
-  const isLoading =
-    !missingNextDataKeys &&
-    Object.values(props.nextWidgetData).some(d => !d || d.isLoading);
+  const isLoading = Object.values(props.widgetData).some(d => !d || d.isLoading);
   const isErrored =
     !missingDataKeys && Object.values(props.widgetData).some(d => d && d.isErrored);
 

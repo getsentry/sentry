@@ -19,6 +19,7 @@ function mountModal({
   fromDiscover,
   defaultWidgetQuery,
   displayType,
+  defaultTableColumns,
 }) {
   return mountWithTheme(
     <AddDashboardWidgetModal
@@ -33,6 +34,7 @@ function mountModal({
       fromDiscover={fromDiscover}
       defaultWidgetQuery={defaultWidgetQuery}
       displayType={displayType}
+      defaultTableColumns={defaultTableColumns}
     />,
     initialData.routerContext
   );
@@ -873,6 +875,13 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     const wrapper = mountModal({
       initialData,
       onAddWidget: data => (widget = data),
+      defaultTableColumns: ['title', 'count()', 'count_unique(user)', 'epm()'],
+      defaultWidgetQuery: {
+        name: '',
+        fields: ['count()'],
+        conditions: 'tag:value',
+        orderby: '',
+      },
     });
     // Select Top n display
     selectByLabel(wrapper, 'Top 5 Events', {name: 'displayType', at: 0, control: true});
@@ -952,12 +961,13 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       fromDiscover: true,
       displayType: types.DisplayType.TOP_N,
       defaultWidgetQuery: {fields: ['count_unique(user)'], orderby: '-count_unique_user'},
-      defaultTableColumns: ['title', 'count()', 'count_unique(user)'],
+      defaultTableColumns: ['title', 'count()'],
     });
 
     expect(wrapper.find('SelectPicker').at(1).props().value.value).toEqual('top_n');
     expect(wrapper.find('WidgetQueriesForm').props().queries[0].fields).toEqual([
       'title',
+      'count()',
       'count_unique(user)',
     ]);
     expect(wrapper.find('WidgetQueriesForm').props().queries[0].orderby).toEqual(

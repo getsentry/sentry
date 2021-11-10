@@ -11,7 +11,7 @@ import {IconClose, IconRefresh} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
-import {AppStoreConnectValidationData} from 'app/types/debugFiles';
+import {AppStoreConnectStatusData} from 'app/types/debugFiles';
 import {promptIsDismissed} from 'app/utils/promptIsDismissed';
 import withApi from 'app/utils/withApi';
 
@@ -69,14 +69,14 @@ function UpdateAlert({api, Wrapper, isCompact, project, organization, className}
   }
 
   function renderMessage(
-    appStoreConnectValidationData: AppStoreConnectValidationData,
+    appStoreConnectStatusData: AppStoreConnectStatusData,
     projectSettingsLink: string
   ) {
-    if (!appStoreConnectValidationData.updateAlertMessage) {
+    if (!appStoreConnectStatusData.updateAlertMessage) {
       return null;
     }
 
-    const {updateAlertMessage} = appStoreConnectValidationData;
+    const {updateAlertMessage} = appStoreConnectStatusData;
 
     return (
       <div>
