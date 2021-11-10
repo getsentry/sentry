@@ -36,7 +36,7 @@ class DataExportDetailsEndpoint(OrganizationEndpoint):
             projects = Project.objects.filter(organization=organization, id__in=project_ids)
             if any(p for p in projects if not request.access.has_project_access(p)):
                 raise PermissionDenied(
-                    detail="You don't have access to some of the data this export contains."
+                    detail="You don't have permissions to view some of the data this export contains."
                 )
         # Ignore the download parameter unless we have a file to stream
         if request.GET.get("download") is not None and data_export._get_file() is not None:
