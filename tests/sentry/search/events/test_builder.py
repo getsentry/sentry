@@ -43,7 +43,7 @@ class QueryBuilderTest(TestCase):
             query.where,
             [
                 Condition(Column("email"), Op.EQ, "foo@example.com"),
-                Condition(Column("release"), Op.EQ, "1.2.1"),
+                Condition(Column("release"), Op.IN, ["1.2.1"]),
                 *self.default_conditions,
             ],
         )

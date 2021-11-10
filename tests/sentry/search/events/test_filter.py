@@ -12,7 +12,7 @@ from snuba_sdk.function import Function
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.api.release_search import INVALID_SEMVER_MESSAGE
-from sentry.models import ReleaseProjectEnvironment, ReleaseStages
+from sentry.models import ReleaseStages
 from sentry.models.release import SemverFilter
 from sentry.search.events.constants import (
     RELEASE_STAGE_ALIAS,
@@ -1312,11 +1312,11 @@ class GetSnubaQueryArgsTest(TestCase):
             "release:latest",
             params={"organization_id": self.organization.id, "project_id": [self.project.id]},
         )
-        assert result.conditions == [[["isNull", ["release"]], "=", 1]]
+        assert result.conditions == [["release", "IN", [""]]]
 
         # When organization id isn't included, project_id should unfortunately be an object
         result = get_filter("release:latest", params={"project_id": [self.project]})
-        assert result.conditions == [[["isNull", ["release"]], "=", 1]]
+        assert result.conditions == [["release", "IN", [""]]]
 
         release_2 = self.create_release(self.project)
 
@@ -1367,31 +1367,18 @@ class GetSnubaQueryArgsTest(TestCase):
 
     def test_release_stage(self):
         replaced_release = self.create_release(
-            version="replaced_release", environments=[self.environment]
-        )
-        adopted_release = self.create_release(
-            version="adopted_release", environments=[self.environment]
-        )
-        not_adopted_release = self.create_release(
-            version="not_adopted_release", environments=[self.environment]
-        )
-        ReleaseProjectEnvironment.objects.create(
-            project_id=self.project.id,
-            release_id=adopted_release.id,
-            environment_id=self.environment.id,
-            adopted=timezone.now(),
-        )
-        ReleaseProjectEnvironment.objects.create(
-            project_id=self.project.id,
-            release_id=replaced_release.id,
-            environment_id=self.environment.id,
+            version="replaced_release",
+            environments=[self.environment],
             adopted=timezone.now(),
             unadopted=timezone.now(),
         )
-        ReleaseProjectEnvironment.objects.create(
-            project_id=self.project.id,
-            release_id=not_adopted_release.id,
-            environment_id=self.environment.id,
+        self.create_release(
+            version="adopted_release",
+            environments=[self.environment],
+            adopted=timezone.now(),
+        )
+        not_adopted_release = self.create_release(
+            version="not_adopted_release", environments=[self.environment]
         )
         _filter = get_filter(
             f"{RELEASE_STAGE_ALIAS}:adopted",
@@ -2461,13 +2448,13 @@ def _project(x):
         (
             "in_search_then_AND",
             'url:["a", "b"] AND release:test',
-            [And(conditions=[_tag("url", ["a", "b"]), _cond("release", Op.EQ, "test")])],
+            [And(conditions=[_tag("url", ["a", "b"]), _cond("release", Op.IN, ["test"])])],
             [],
         ),
         (
             "in_search_then_OR",
             'url:["a", "b"] OR release:test',
-            [Or(conditions=[_tag("url", ["a", "b"]), _cond("release", Op.EQ, "test")])],
+            [Or(conditions=[_tag("url", ["a", "b"]), _cond("release", Op.IN, ["test"])])],
             [],
         ),
         (

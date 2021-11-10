@@ -32,7 +32,6 @@ from sentry.models import (
     Integration,
     OrganizationIntegration,
     Release,
-    ReleaseProjectEnvironment,
     ReleaseStages,
     UserOption,
     add_group_to_inbox,
@@ -1292,32 +1291,17 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
     def test_release_stage(self):
         replaced_release = self.create_release(
-            version="replaced_release", environments=[self.environment]
-        )
-        adopted_release = self.create_release(
-            version="adopted_release", environments=[self.environment]
-        )
-        not_adopted_release = self.create_release(
-            version="not_adopted_release", environments=[self.environment]
-        )
-        ReleaseProjectEnvironment.objects.create(
-            project_id=self.project.id,
-            release_id=adopted_release.id,
-            environment_id=self.environment.id,
-            adopted=timezone.now(),
-        )
-        ReleaseProjectEnvironment.objects.create(
-            project_id=self.project.id,
-            release_id=replaced_release.id,
-            environment_id=self.environment.id,
+            version="replaced_release",
+            environments=[self.environment],
             adopted=timezone.now(),
             unadopted=timezone.now(),
         )
-        ReleaseProjectEnvironment.objects.create(
-            project_id=self.project.id,
-            release_id=not_adopted_release.id,
-            environment_id=self.environment.id,
+        adopted_release = self.create_release(
+            version="adopted_release",
+            environments=[self.environment],
+            adopted=timezone.now(),
         )
+        self.create_release(version="not_adopted_release", environments=[self.environment])
 
         adopted_release_g_1 = self.store_event(
             data={
