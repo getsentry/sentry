@@ -508,6 +508,23 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 0
 
+    def test_negation_on_numeric_in_filter_excludes_issue(self):
+        project = self.create_project()
+        event = self.store_event(
+            {"timestamp": iso_format(before_now(minutes=1))}, project_id=project.id
+        )
+
+        query = {"field": ["issue"], "query": f"issue.id:[{event.group.id}]"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["issue"] == event.group.qualified_short_id
+
+        query = {"field": ["issue"], "query": f"!issue.id:[{event.group.id}]"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 0
+
     def test_has_issue(self):
         project = self.create_project()
         event = self.store_event(

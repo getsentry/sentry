@@ -86,7 +86,7 @@ duration_filter = search_key sep operator? duration_format
 boolean_filter = negation? search_key sep boolean_value
 
 # numeric in filter
-numeric_in_filter = search_key sep numeric_in_list
+numeric_in_filter = negation? search_key sep numeric_in_list
 
 # numeric comparison filter
 numeric_filter = negation? search_key sep operator? numeric_value
@@ -650,8 +650,8 @@ class SearchVisitor(NodeVisitor):
         return self._handle_basic_filter(search_key, "=" if not negated else "!=", search_value)
 
     def visit_numeric_in_filter(self, node, children):
-        (search_key, _, search_value) = children
-        operator = "IN"
+        (negation, search_key, _, search_value) = children
+        operator = handle_negation(negation, "IN")
 
         if self.is_numeric_key(search_key.name):
             try:

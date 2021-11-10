@@ -181,7 +181,7 @@ export const filterTypeConfig = {
     validKeys: [Token.KeySimple],
     validOps: [],
     validValues: [Token.ValueNumberList],
-    canNegate: false,
+    canNegate: true,
   },
   [FilterType.Boolean]: {
     validKeys: [Token.KeySimple],

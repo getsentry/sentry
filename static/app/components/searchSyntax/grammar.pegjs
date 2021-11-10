@@ -101,10 +101,10 @@ boolean_filter
 
 // numeric in filter
 numeric_in_filter
-  = key:search_key sep value:numeric_in_list &{
+  = negation:negation? key:search_key sep value:numeric_in_list &{
       return tc.predicateFilter(FilterType.NumericIn, key)
     } {
-      return tc.tokenFilter(FilterType.NumericIn, key, value, opDefault, false);
+      return tc.tokenFilter(FilterType.NumericIn, key, value, opDefault, !!negation);
     }
 
 // numeric comparison filter
