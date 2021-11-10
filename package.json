@@ -95,7 +95,7 @@
     "marked": "0.7.0",
     "mini-css-extract-plugin": "^2.0.0",
     "mobx": "^6.3.6",
-    "mobx-react": "~7.2.0",
+    "mobx-react": "~7.2.1",
     "mockdate": "3.0.5",
     "moment": "2.29.1",
     "moment-timezone": "0.5.33",
