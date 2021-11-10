@@ -30,13 +30,11 @@ export function getAppStoreValidationErrorMessage(
               ),
             }
           )
-        : t('The supplied App Store Connect credentials are invalid or missing.');
+        : t('The supplied Apple Store Connect credentials are invalid or missing.');
     case 'app-connect-forbidden-error':
       return t('The supplied API key does not have sufficient permissions.');
     case 'app-connect-multiple-sources-error':
-      return t(
-        'Only one App Store Connect application is allowed in this project.'
-      );
+      return t('Only one App Store Connect application is allowed in this project.');
     default: {
       // this shall not happen
       Sentry.captureException(new Error('Unknown app store connect error.'));
