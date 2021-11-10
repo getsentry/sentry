@@ -252,7 +252,7 @@ def assigned_or_suggested_filter(owners, projects, field_filter="id"):
 
 def regressed_in_release_filter(versions: Sequence[str], projects: Sequence[Project]) -> Q:
     release_ids = Release.objects.filter(
-        organization=projects[0].organization_id, version__in=versions
+        organization_id=projects[0].organization_id, version__in=versions
     ).values_list("id", flat=True)
     return Q(
         id__in=GroupHistory.objects.filter(
