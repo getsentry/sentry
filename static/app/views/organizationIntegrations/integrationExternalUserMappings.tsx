@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {withRouter, WithRouterProps} from 'react-router';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {openModal} from 'app/actionCreators/modal';
@@ -15,10 +16,11 @@ import {
 } from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
 
-type Props = AsyncComponent['props'] & {
-  integration: Integration;
-  organization: Organization;
-};
+type Props = AsyncComponent['props'] &
+  WithRouterProps & {
+    integration: Integration;
+    organization: Organization;
+  };
 
 type State = AsyncComponent['state'] & {
   members: (Member & {externalUsers: ExternalUser[]})[];
@@ -110,6 +112,7 @@ class IntegrationExternalUserMappings extends AsyncComponent<Props, State> {
 
   renderBody() {
     const {integration} = this.props;
+    const {membersPageLinks} = this.state;
     return (
       <Fragment>
         <IntegrationExternalMappings
@@ -118,10 +121,11 @@ class IntegrationExternalUserMappings extends AsyncComponent<Props, State> {
           mappings={this.mappings}
           onCreateOrEdit={this.openModal}
           onDelete={this.handleDelete}
+          pageLinks={membersPageLinks}
         />
       </Fragment>
     );
   }
 }
 
-export default withOrganization(IntegrationExternalUserMappings);
+export default withRouter(withOrganization(IntegrationExternalUserMappings));
