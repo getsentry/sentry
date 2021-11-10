@@ -1,18 +1,15 @@
-from __future__ import annotations
-
 import logging
 import time
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta, abstractmethod, abstractproperty
 from dataclasses import replace
 from datetime import datetime, timedelta
 from hashlib import md5
-from typing import Any, List, Mapping, Sequence, Set, Tuple
+from typing import Any, Mapping, Sequence
 
 import sentry_sdk
 from django.db.models import QuerySet
 from django.utils import timezone
 from snuba_sdk import Direction, Op
-from snuba_sdk.expressions import Expression
 from snuba_sdk.query import Column, Condition, Entity, Function, Join, Limit, OrderBy, Query
 from snuba_sdk.relationships import Relationship
 
@@ -28,7 +25,7 @@ from sentry.utils import json, metrics, snuba
 from sentry.utils.cursors import Cursor, CursorResult
 
 
-def get_search_filter(search_filters: Sequence[SearchFilter], name: str, operator: str) -> Any:
+def get_search_filter(search_filters, name, operator):
     """
     Finds the value of a search filter with the passed name and operator. If
     multiple values are found, returns the most restrictive value
@@ -60,78 +57,65 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
 
     TABLE_ALIAS = ""
 
-    @property
-    @abstractmethod
-    def aggregation_defs(self) -> Sequence[str] | Expression:
+    @abstractproperty
+    def aggregation_defs(self):
         """This method should return a dict of key:value
         where key is a field name for your aggregation
         and value is the aggregation function"""
         raise NotImplementedError
 
-    @property
-    @abstractmethod
-    def dependency_aggregations(self) -> Mapping[str, List[str]]:
+    @abstractproperty
+    def dependency_aggregations(self):
         """This method should return a dict of key:value
         where key is an aggregation_def field name
         and value is a list of aggregation field names that the 'key' aggregation requires."""
         raise NotImplementedError
 
     @property
-    def empty_result(self) -> CursorResult:
+    def empty_result(self):
         return Paginator(Group.objects.none()).get_result()
 
     @property
     @abstractmethod
-    def dataset(self) -> snuba.Dataset:
+    def dataset(self):
         """ "This function should return an enum from snuba.Dataset (like snuba.Dataset.Events)"""
-        raise NotImplementedError
-
-    @property
-    @abstractmethod
-    def sort_strategies(self) -> Mapping[str, str]:
-        raise NotImplementedError
-
-    @property
-    @abstractmethod
-    def postgres_only_fields(self) -> Set[str]:
         raise NotImplementedError
 
     @abstractmethod
     def query(
         self,
-        projects: Sequence[Project],
-        retention_window_start: Optional[datetime],
-        group_queryset: QuerySet,
-        environments: Optional[Sequence[Environment]],
-        sort_by: str,
-        limit: int,
-        cursor: Cursor,
-        count_hits: bool,
-        paginator_options: Optional[Mapping[str, Any]],
-        search_filters: Optional[Sequence[SearchFilter]],
-        date_from: Optional[datetime],
-        date_to: Optional[datetime],
-        max_hits: Optional[int] = None,
-    ) -> CursorResult:
+        projects,
+        retention_window_start,
+        group_queryset,
+        environments,
+        sort_by,
+        limit,
+        cursor,
+        count_hits,
+        paginator_options,
+        search_filters,
+        date_from,
+        date_to,
+    ):
         """This function runs your actual query and returns the results
         We usually return a paginator object, which contains the results and the number of hits"""
         raise NotImplementedError
 
     def snuba_search(
         self,
-        start: datetime,
-        end: datetime,
-        project_ids: Sequence[int],
-        environment_ids: Sequence[int],
-        sort_field: str,
-        organization_id: int,
-        cursor: Optional[Cursor] = None,
-        group_ids: Optional[Sequence[int]] = None,
-        limit: Optional[int] = None,
-        offset: int = 0,
-        get_sample: bool = False,
-        search_filters: Optional[Sequence[SearchFilter]] = None,
-    ) -> Tuple[List[Tuple[int, Any]], int]:
+        start,
+        end,
+        project_ids,
+        environment_ids,
+        sort_field,
+        organization_id,
+        cursor=None,
+        group_ids=None,
+        limit=None,
+        offset=0,
+        get_sample=False,
+        search_filters=None,
+    ):
         """
         Returns a tuple of:
         * a sorted list of (group_id, group_score) tuples sorted descending by score,
@@ -243,12 +227,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         return [(row["group_id"], row[sort_field]) for row in rows], total
 
     def _transform_converted_filter(
-        self,
-        search_filter: Sequence[SearchFilter],
-        converted_filter: Optional[Sequence[any]],
-        project_ids: Sequence[int],
-        environment_ids: Optional[Sequence[int]] = None,
-    ) -> Optional[Sequence[any]]:
+        self, search_filter, converted_filter, project_ids, environment_ids=None
+    ):
         """
         This method serves as a hook - after we convert the search_filter into a
         snuba compatible filter (which converts it in a general dataset
@@ -259,13 +239,13 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         """
         return converted_filter
 
-    def has_sort_strategy(self, sort_by: str) -> bool:
+    def has_sort_strategy(self, sort_by):
         return sort_by in self.sort_strategies.keys()
 
 
-def trend_aggregation(start: datetime, end: datetime) -> Sequence[str]:
-    middle_date = start + timedelta(seconds=(end - start).total_seconds() * 0.5)
-    middle = datetime.strftime(middle_date, DateArg.date_format)
+def trend_aggregation(start, end):
+    middle = start + timedelta(seconds=(end - start).total_seconds() * 0.5)
+    middle = datetime.strftime(middle, DateArg.date_format)
 
     agg_range_1 = f"countIf(greater(toDateTime('{middle}'), timestamp))"
     agg_range_2 = f"countIf(lessOrEquals(toDateTime('{middle}'), timestamp))"
@@ -318,25 +298,25 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
     }
 
     @property
-    def dataset(self) -> snuba.Dataset:
+    def dataset(self):
         return snuba.Dataset.Events
 
     def query(
         self,
-        projects: Sequence[Project],
-        retention_window_start: Optional[datetime],
-        group_queryset: QuerySet,
-        environments: Optional[Sequence[Environment]],
-        sort_by: str,
-        limit: int,
-        cursor: Cursor,
-        count_hits: bool,
-        paginator_options: Optional[Mapping[str, Any]],
-        search_filters: Optional[Sequence[SearchFilter]],
-        date_from: Optional[datetime],
-        date_to: Optional[datetime],
-        max_hits: Optional[int] = None,
-    ) -> CursorResult:
+        projects,
+        retention_window_start,
+        group_queryset,
+        environments,
+        sort_by,
+        limit,
+        cursor,
+        count_hits,
+        paginator_options,
+        search_filters,
+        date_from,
+        date_to,
+        max_hits=None,
+    ):
 
         now = timezone.now()
         end = None
@@ -561,22 +541,22 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
 
     def calculate_hits(
         self,
-        group_ids: Sequence[int],
-        too_many_candidates: bool,
-        sort_field: str,
-        projects: Sequence[Project],
-        retention_window_start: Optional[datetime],
-        group_queryset: Query,
-        environments: Sequence[Environment],
-        sort_by: str,
-        limit: int,
-        cursor: Cursor,
-        count_hits: bool,
-        paginator_options: Mapping[str, Any],
-        search_filters: Sequence[SearchFilter],
-        start: datetime,
-        end: datetime,
-    ) -> Optional[int]:
+        group_ids,
+        too_many_candidates,
+        sort_field,
+        projects,
+        retention_window_start,
+        group_queryset,
+        environments,
+        sort_by,
+        limit,
+        cursor,
+        count_hits,
+        paginator_options,
+        search_filters,
+        start,
+        end,
+    ):
         """
         This method should return an integer representing the number of hits (results) of your search.
         It will return 0 if hits were calculated and there are none.
@@ -738,7 +718,7 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         search_filters: Sequence[SearchFilter],
         date_from: Optional[datetime],
         date_to: Optional[datetime],
-    ) -> Tuple[datetime, datetime, datetime]:
+    ):
         now = timezone.now()
         end = None
         end_params = [_f for _f in [date_to, get_search_filter(search_filters, "date", "<")] if _f]
@@ -768,7 +748,7 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         search_filters: Sequence[SearchFilter],
         date_from: Optional[datetime],
         date_to: Optional[datetime],
-        max_hits: Optional[int] = None,
+        max_hits=None,
     ) -> CursorResult:
 
         if not validate_cdc_search_filters(search_filters):
