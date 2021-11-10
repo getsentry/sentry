@@ -22,6 +22,7 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
     analytics_event: str = ""
     referrer_base: str = ""
     member_by_user_id: MutableMapping[int, OrganizationMember] = {}
+    fine_tuning_key = "approval"
 
     def __init__(self, organization: Organization, requester: User) -> None:
         super().__init__(organization)
@@ -135,7 +136,7 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
             organization_id=self.organization.id,
             user_id=self.requester.id,
             target_user_id=recipient.id,
-            providers=provider,
+            providers=provider.name.lower(),
         )
 
     def get_title_link(self) -> str | None:

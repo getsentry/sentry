@@ -11,10 +11,26 @@ export function QueryHandler<T extends WidgetDataConstraint>(
   props: QueryHandlerProps<T>
 ) {
   const children = props.children ?? <Fragment />;
+
   if (!props.queries.length) {
     return <Fragment>{children}</Fragment>;
   }
 
+  return (
+    <Fragment>
+      {props.queries
+        .filter(q => (q.enabled ? q.enabled(props.widgetData) : true))
+        .map(query => (
+          <SingleQueryHandler key={query.queryKey} {...props} query={query} />
+        ))}
+    </Fragment>
+  );
+}
+
+function SingleQueryHandler<T extends WidgetDataConstraint>(
+  props: QueryHandlerProps<T> & {query: QueryDefinitionWithKey<T>}
+) {
+  const query = props.query;
   const globalSelection = props.queryProps.eventView.getGlobalSelection();
   const start = globalSelection.datetime.start
     ? getUtcToLocalDateObject(globalSelection.datetime.start)
@@ -24,35 +40,37 @@ export function QueryHandler<T extends WidgetDataConstraint>(
     ? getUtcToLocalDateObject(globalSelection.datetime.end)
     : null;
 
+  useEffect(
+    () => () => {
+      // Destroy previous data on unmount, in case enabled value changes and unmounts the query component.
+      props.removeWidgetDataForKey(query.queryKey);
+    },
+    []
+  );
+
   return (
-    <Fragment>
-      {props.queries
-        .filter(q => (q.enabled ? q.enabled(props.widgetData) : true))
-        .map(query => (
-          <query.component
-            key={query.queryKey}
-            fields={query.fields}
-            yAxis={query.fields}
-            start={start}
-            end={end}
-            period={globalSelection.datetime.period}
-            project={globalSelection.projects}
-            environment={globalSelection.environments}
-            organization={props.queryProps.organization}
-            orgSlug={props.queryProps.organization.slug}
-            query={props.queryProps.eventView.getQueryWithAdditionalConditions()}
-            widgetData={props.widgetData}
-          >
-            {results => {
-              return (
-                <Fragment>
-                  <QueryResultSaver<T> results={results} {...props} query={query} />
-                </Fragment>
-              );
-            }}
-          </query.component>
-        ))}
-    </Fragment>
+    <query.component
+      key={query.queryKey}
+      fields={query.fields}
+      yAxis={query.fields}
+      start={start}
+      end={end}
+      period={globalSelection.datetime.period}
+      project={globalSelection.projects}
+      environment={globalSelection.environments}
+      organization={props.queryProps.organization}
+      orgSlug={props.queryProps.organization.slug}
+      query={props.queryProps.eventView.getQueryWithAdditionalConditions()}
+      widgetData={props.widgetData}
+    >
+      {results => {
+        return (
+          <Fragment>
+            <QueryResultSaver<T> results={results} {...props} query={query} />
+          </Fragment>
+        );
+      }}
+    </query.component>
   );
 }
 
