@@ -8,6 +8,7 @@ class InAppRequestSentEvent(analytics.Event):
         analytics.Attribute("target_user_id"),
         analytics.Attribute("providers"),
         analytics.Attribute("subtype", required=False),
+        analytics.Attribute("invited_member_id"),
     )
 
 
