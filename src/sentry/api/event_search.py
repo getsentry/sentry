@@ -666,19 +666,17 @@ class SearchVisitor(NodeVisitor):
     def visit_numeric_filter(self, node, children):
         (negation, search_key, _, operator, search_value) = children
         if isinstance(operator, Node):
-            operator = "=" if isinstance(operator.expr, Optional) else operator.text
+            operator = handle_negation(negation, operator)
         elif isinstance(operator, list):
             operator = operator[0]
 
         if self.is_numeric_key(search_key.name):
-            operator = handle_negation(negation, operator)
             return self._handle_numeric_filter(search_key, operator, search_value)
 
         search_value = SearchValue("".join(search_value))
         if operator not in ("=", "!=") and search_key.name not in self.config.text_operator_keys:
             search_value = search_value._replace(raw_value=f"{operator}{search_value.raw_value}")
-
-        operator = "!=" if is_negated(negation) else "="
+            operator = "!=" if is_negated(negation) else "="
         return self._handle_basic_filter(search_key, operator, search_value)
 
     def visit_aggregate_duration_filter(self, node, children):
