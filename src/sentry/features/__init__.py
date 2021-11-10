@@ -85,6 +85,7 @@ default_manager.add("organizations:grouping-title-ui", OrganizationFeature, True
 default_manager.add("organizations:idp-automatic-migration", OrganizationFeature, True)
 default_manager.add("organizations:images-loaded-v2", OrganizationFeature)
 default_manager.add("organizations:issue-percent-filters", OrganizationFeature, True)
+default_manager.add("organizations:issues-in-dashboards", OrganizationFeature, True)
 default_manager.add("organizations:improved-search", OrganizationFeature, True)
 default_manager.add("organizations:incidents", OrganizationFeature)
 default_manager.add("organizations:integrations-alert-rule", OrganizationFeature)
