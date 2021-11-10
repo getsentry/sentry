@@ -23,7 +23,7 @@ import {GenericPerformanceWidget} from '../components/performanceWidget';
 import SelectableList, {RightAlignedCell} from '../components/selectableList';
 import {transformTrendsDiscover} from '../transforms/transformTrendsDiscover';
 import {QueryDefinition, WidgetDataResult} from '../types';
-import {PerformanceWidgetSetting} from '../widgetDefinitions';
+import {ChartDefinition, PerformanceWidgetSetting} from '../widgetDefinitions';
 
 type Props = {
   title: string;
@@ -35,6 +35,7 @@ type Props = {
   location: Location;
   organization: Organization;
   chartSetting: PerformanceWidgetSetting;
+  chartDefinition: ChartDefinition;
 
   ContainerActions: FunctionComponent<{isLoading: boolean}>;
 };

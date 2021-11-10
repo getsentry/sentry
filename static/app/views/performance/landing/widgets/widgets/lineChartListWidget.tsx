@@ -30,7 +30,7 @@ import {transformDiscoverToList} from '../transforms/transformDiscoverToList';
 import {transformEventsRequestToArea} from '../transforms/transformEventsToArea';
 import {QueryDefinition, WidgetDataResult} from '../types';
 import {eventsRequestQueryProps} from '../utils';
-import {PerformanceWidgetSetting} from '../widgetDefinitions';
+import {ChartDefinition, PerformanceWidgetSetting} from '../widgetDefinitions';
 
 type Props = {
   title: string;
@@ -42,6 +42,7 @@ type Props = {
   location: Location;
   organization: Organization;
   chartSetting: PerformanceWidgetSetting;
+  chartDefinition: ChartDefinition;
 
   ContainerActions: FunctionComponent<{isLoading: boolean}>;
 };
