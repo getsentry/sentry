@@ -131,6 +131,12 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400, response.content
         assert response.data == {"detail": 'Invalid groupBy: "envriomnent"'}
 
+    def test_illegal_groupby(self):
+        response = self.do_request({"field": ["sum(session)"], "groupBy": ["issue.id"]})
+
+        assert response.status_code == 400, response.content
+        assert response.data == {"detail": 'Invalid groupBy: "issue.id"'}
+
     def test_invalid_query(self):
         response = self.do_request(
             {"statsPeriod": "1d", "field": ["sum(session)"], "query": ["foo:bar"]}
@@ -151,6 +157,13 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         # TODO: it would be good to provide a better error here,
         # since its not obvious where `message` comes from.
         assert response.data == {"detail": 'Invalid query field: "message"'}
+
+    def test_illegal_query(self):
+        response = self.do_request(
+            {"statsPeriod": "1d", "field": ["sum(session)"], "query": ["issue.id:123"]}
+        )
+        assert response.status_code == 400, response.content
+        assert response.data == {"detail": 'Invalid query field: "group_id"'}
 
     def test_too_many_points(self):
         # default statsPeriod is 90d
