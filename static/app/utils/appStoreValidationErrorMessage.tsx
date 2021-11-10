@@ -35,7 +35,7 @@ export function getAppStoreValidationErrorMessage(
       return t('The supplied API key does not have sufficient permissions.');
     case 'app-connect-multiple-sources-error':
       return t(
-        'Only one Apple App Store Connect application is allowed in this project.'
+        'Only one App Store Connect application is allowed in this project.'
       );
     default: {
       // this shall not happen
