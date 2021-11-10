@@ -539,13 +539,10 @@ class SearchVisitor(NodeVisitor):
 
         return SearchFilter(search_key, operator, search_value)
 
-    def _handle_numeric_filter(self, negated, search_key, operator, search_value):
+    def _handle_numeric_filter(self, search_key, operator, search_value):
         if isinstance(operator, Node):
-            if isinstance(operator.expr, Optional):
-                operator = "!=" if negated else "="
-            else:
-                operator = operator.text
-        else:
+            operator = "=" if isinstance(operator.expr, Optional) else operator.text
+        elif isinstance(operator, list):
             operator = operator[0]
 
         if self.is_numeric_key(search_key.name):
@@ -555,14 +552,7 @@ class SearchVisitor(NodeVisitor):
                 raise InvalidSearchQuery(str(exc))
             return SearchFilter(search_key, operator, search_value)
 
-        search_value = SearchValue("".join(search_value))
-        if operator not in ("=", "!=") and search_key.name not in self.config.text_operator_keys:
-            # Operators are not supported in text_filter.
-            # Push it back into the value before handing the negation.
-            search_value = search_value._replace(raw_value=f"{operator}{search_value.raw_value}")
-            operator = "!=" if negated else "="
-
-        return self._handle_text_filter(search_key, operator, search_value)
+        return self._handle_text_filter(search_key, operator, SearchValue("".join(search_value)))
 
     def visit_date_filter(self, node, children):
         (search_key, _, operator, search_value) = children
@@ -633,7 +623,7 @@ class SearchVisitor(NodeVisitor):
 
         # Durations overlap with numeric `m` suffixes
         if self.is_numeric_key(search_key.name):
-            return self._handle_numeric_filter(False, search_key, operator, search_value)
+            return self._handle_numeric_filter(search_key, operator, search_value)
 
         search_value = "".join(search_value)
         search_value = operator + search_value if operator != "=" else search_value
@@ -645,7 +635,7 @@ class SearchVisitor(NodeVisitor):
 
         # Numeric and boolean filters overlap on 1 and 0 values.
         if self.is_numeric_key(search_key.name):
-            return self._handle_numeric_filter(False, search_key, "=", [search_value.text, ""])
+            return self._handle_numeric_filter(search_key, "=", [search_value.text, ""])
 
         if self.is_boolean_key(search_key.name):
             if search_value.text.lower() in ("true", "1"):
@@ -675,8 +665,21 @@ class SearchVisitor(NodeVisitor):
 
     def visit_numeric_filter(self, node, children):
         (negation, search_key, _, operator, search_value) = children
-        negated = is_negated(negation)
-        return self._handle_numeric_filter(negated, search_key, operator, search_value)
+        if isinstance(operator, Node):
+            operator = "=" if isinstance(operator.expr, Optional) else operator.text
+        elif isinstance(operator, list):
+            operator = operator[0]
+
+        if self.is_numeric_key(search_key.name):
+            operator = handle_negation(negation, operator)
+            return self._handle_numeric_filter(search_key, operator, search_value)
+
+        search_value = SearchValue("".join(search_value))
+        if operator not in ("=", "!=") and search_key.name not in self.config.text_operator_keys:
+            search_value = search_value._replace(raw_value=f"{operator}{search_value.raw_value}")
+
+        operator = "!=" if is_negated(negation) else "="
+        return self._handle_basic_filter(search_key, operator, search_value)
 
     def visit_aggregate_duration_filter(self, node, children):
         (negation, search_key, _, operator, search_value) = children
