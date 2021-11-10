@@ -30,7 +30,7 @@ export function getAppStoreValidationErrorMessage(
               ),
             }
           )
-        : t('The supplied Apple Store Connect credentials are invalid or missing.');
+        : t('The supplied App Store Connect credentials are invalid or missing.');
     case 'app-connect-forbidden-error':
       return t('The supplied API key does not have sufficient permissions.');
     case 'app-connect-multiple-sources-error':
