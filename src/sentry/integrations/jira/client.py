@@ -88,6 +88,7 @@ class JiraApiClient(ApiClient):
     TRANSITION_URL = "/rest/api/2/issue/%s/transitions"
     EMAIL_URL = "/rest/api/3/user/email"
     AUTOCOMPLETE_URL = "/rest/api/2/jql/autocompletedata/suggestions"
+    PROPERTIES_URL = "/rest/api/3/issue/%s/properties/%s"
 
     integration_name = "jira"
 
@@ -231,6 +232,12 @@ class JiraApiClient(ApiClient):
     def assign_issue(self, key, name_or_account_id):
         user_id_field = self.user_id_field()
         return self.put(self.ASSIGN_URL % key, data={user_id_field: name_or_account_id})
+
+    def set_issue_property(self, issue_key, badge_num):
+        module_key = "sentry-issues-glance"
+        properties_key = f"com.atlassian.jira.issue:{JIRA_KEY}:{module_key}:status"
+        data = {"type": "badge", "value": {"label": badge_num}}
+        return self.put(self.PROPERTIES_URL % (issue_key, properties_key), data=data)
 
     def get_email(self, account_id):
         user = self.get_cached(self.EMAIL_URL, params={"accountId": account_id})

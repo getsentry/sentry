@@ -69,9 +69,10 @@ class BaseApiResponse:
                 raise UnsupportedResponseType(
                     response.headers.get("Content-Type", ""), response.status_code
                 )
+        elif response.text == "":
+            return TextApiResponse(response.text, response.headers, response.status_code)
         else:
             data = json.loads(response.text, object_pairs_hook=OrderedDict)
-
         if isinstance(data, dict):
             return MappingApiResponse(data, response.headers, response.status_code)
         elif isinstance(data, (list, tuple)):

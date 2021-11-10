@@ -1,10 +1,12 @@
 from datetime import datetime
 from unittest.mock import patch
 
+import responses
 from django.utils import timezone
 from jwt import ExpiredSignatureError
 
 from sentry.integrations.atlassian_connect import AtlassianConnectValidationError
+from sentry.integrations.jira import JIRA_KEY
 from sentry.models import ExternalIssue, Group, GroupLink, Integration
 from sentry.testutils import APITestCase
 from sentry.utils.http import absolute_uri
@@ -34,17 +36,23 @@ class JiraIssueHookTest(APITestCase):
             first_release=self.first_release,
         )
         group = self.group
-        self.path = absolute_uri("extensions/jira/issue/APP-123/") + "?xdm_e=base_url"
+        self.issue_key = "APP-123"
+        self.path = absolute_uri(f"extensions/jira/issue/{self.issue_key}/") + "?xdm_e=base_url"
 
         self.integration = Integration.objects.create(
             provider="jira",
             name="Example Jira",
-            metadata={"base_url": "https://getsentry.atlassian.net"},
+            metadata={
+                "base_url": "https://getsentry.atlassian.net",
+                "shared_secret": "a-super-secret-key-from-atlassian",
+            },
         )
         self.integration.add_organization(self.organization, self.user)
 
         external_issue = ExternalIssue.objects.create(
-            organization_id=group.organization.id, integration_id=self.integration.id, key="APP-123"
+            organization_id=group.organization.id,
+            integration_id=self.integration.id,
+            key=self.issue_key,
         )
 
         GroupLink.objects.create(
@@ -56,6 +64,9 @@ class JiraIssueHookTest(APITestCase):
         )
 
         self.login_as(self.user)
+
+        self.properties_key = f"com.atlassian.jira.issue:{JIRA_KEY}:sentry-issues-glance:status"
+        self.properties_url = "https://getsentry.atlassian.net/rest/api/3/issue/%s/properties/%s"
 
     @patch(
         "sentry.integrations.jira.issue_hook.get_integration_from_request",
@@ -77,7 +88,12 @@ class JiraIssueHookTest(APITestCase):
 
     @patch.object(Group, "get_last_release")
     @patch("sentry.integrations.jira.issue_hook.get_integration_from_request")
+    @responses.activate
     def test_simple_get(self, mock_get_integration_from_request, mock_get_last_release):
+        responses.add(
+            responses.PUT, self.properties_url % (self.issue_key, self.properties_key), json={}
+        )
+
         mock_get_last_release.return_value = self.last_release.version
         mock_get_integration_from_request.return_value = self.integration
         response = self.client.get(self.path)
@@ -90,7 +106,13 @@ class JiraIssueHookTest(APITestCase):
         assert self.last_release.version in resp_content
 
     @patch("sentry.integrations.jira.issue_hook.get_integration_from_request")
+    @responses.activate
     def test_simple_not_linked(self, mock_get_integration_from_request):
+        issue_key = "bad-key"
+        responses.add(
+            responses.PUT, self.properties_url % (issue_key, self.properties_key), json={}
+        )
+
         mock_get_integration_from_request.return_value = self.integration
         path = absolute_uri("extensions/jira/issue/bad-key/") + "?xdm_e=base_url"
         response = self.client.get(path)
