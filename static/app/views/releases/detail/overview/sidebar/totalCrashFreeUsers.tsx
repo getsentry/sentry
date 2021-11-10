@@ -6,7 +6,7 @@ import moment from 'moment';
 import AsyncComponent from 'app/components/asyncComponent';
 import Count from 'app/components/count';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import ReleaseSidebarSection from 'app/components/releaseSidebarSection';
+import SidebarSection from 'app/components/sidebarSection';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {t, tn} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
@@ -90,7 +90,7 @@ class TotalCrashFreeUsers extends AsyncComponent<Props, State> {
 
     return (
       <Wrapper>
-        <ReleaseSidebarSection title={t('Total Crash Free Users')}>
+        <SidebarSection title={t('Total Crash Free Users')}>
           <Timeline>
             {timeline.map(row => (
               <Row key={row.date.toString()}>
@@ -112,7 +112,7 @@ class TotalCrashFreeUsers extends AsyncComponent<Props, State> {
               </Row>
             ))}
           </Timeline>
-        </ReleaseSidebarSection>
+        </SidebarSection>
       </Wrapper>
     );
   }

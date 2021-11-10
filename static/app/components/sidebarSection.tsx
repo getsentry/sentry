@@ -10,9 +10,9 @@ type Props = {
 };
 
 /**
- * Used to add a new sidebar section on Release Details page.
+ * Used to add the new sidebar section on a page.
  */
-function ReleaseSidebarSection({title, children, icon, ...props}: Props) {
+function SidebarSection({title, children, icon, ...props}: Props) {
   return (
     <React.Fragment>
       <Heading {...props}>
@@ -40,4 +40,4 @@ const SectionContent = styled('div')`
   color: ${p => p.theme.subText};
 `;
 
-export default ReleaseSidebarSection;
+export default SidebarSection;

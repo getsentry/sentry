@@ -5,7 +5,7 @@ import Button from 'app/components/button';
 import Collapsible from 'app/components/collapsible';
 import IdBadge from 'app/components/idBadge';
 import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
-import ReleaseSidebarSection from 'app/components/releaseSidebarSection';
+import SidebarSection from 'app/components/sidebarSection';
 import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, ReleaseProject} from 'app/types';
@@ -22,7 +22,7 @@ type Props = {
 function OtherProjects({projects, location, version, organization}: Props) {
   return (
     <Wrapper>
-      <ReleaseSidebarSection
+      <SidebarSection
         title={tn(
           'Other Project for This Release',
           'Other Projects for This Release',
@@ -61,7 +61,7 @@ function OtherProjects({projects, location, version, organization}: Props) {
             </Row>
           ))}
         </Collapsible>
-      </ReleaseSidebarSection>
+      </SidebarSection>
     </Wrapper>
   );
 }

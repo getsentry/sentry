@@ -4,7 +4,7 @@ import Count from 'app/components/count';
 import DateTime from 'app/components/dateTime';
 import {KeyValueTable, KeyValueTableRow} from 'app/components/keyValueTable';
 import Link from 'app/components/links/link';
-import ReleaseSidebarSection from 'app/components/releaseSidebarSection';
+import SidebarSection from 'app/components/sidebarSection';
 import TextOverflow from 'app/components/textOverflow';
 import TimeSince from 'app/components/timeSince';
 import Version from 'app/components/version';
@@ -25,7 +25,7 @@ const ProjectReleaseDetails = ({release, releaseMeta, orgSlug, projectSlug}: Pro
 
   return (
     <Wrapper>
-      <ReleaseSidebarSection title={t('Project Release Details')}>
+      <SidebarSection title={t('Project Release Details')}>
         <KeyValueTable>
           <KeyValueTableRow
             keyName={t('Created')}
@@ -65,7 +65,7 @@ const ProjectReleaseDetails = ({release, releaseMeta, orgSlug, projectSlug}: Pro
             }
           />
         </KeyValueTable>
-      </ReleaseSidebarSection>
+      </SidebarSection>
     </Wrapper>
   );
 };

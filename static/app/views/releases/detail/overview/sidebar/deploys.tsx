@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import DeployBadge from 'app/components/deployBadge';
-import ReleaseSidebarSection from 'app/components/releaseSidebarSection';
+import SidebarSection from 'app/components/sidebarSection';
 import TextOverflow from 'app/components/textOverflow';
 import TimeSince from 'app/components/timeSince';
 import {t} from 'app/locale';
@@ -20,7 +20,7 @@ type Props = {
 const Deploys = ({version, orgSlug, projectId, deploys}: Props) => {
   return (
     <Wrapper>
-      <ReleaseSidebarSection title={t('Deploys')}>
+      <SidebarSection title={t('Deploys')}>
         {deploys.map(deploy => (
           <Row key={deploy.id}>
             <StyledDeployBadge
@@ -34,7 +34,7 @@ const Deploys = ({version, orgSlug, projectId, deploys}: Props) => {
             </TextOverflow>
           </Row>
         ))}
-      </ReleaseSidebarSection>
+      </SidebarSection>
     </Wrapper>
   );
 };

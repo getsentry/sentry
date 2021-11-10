@@ -4,7 +4,7 @@ import AsyncComponent from 'app/components/asyncComponent';
 import UserAvatar from 'app/components/avatar/userAvatar';
 import Button from 'app/components/button';
 import Collapsible from 'app/components/collapsible';
-import ReleaseSidebarSection from 'app/components/releaseSidebarSection';
+import SidebarSection from 'app/components/sidebarSection';
 import {t, tn} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
@@ -86,7 +86,7 @@ class CommitAuthorBreakdown extends AsyncComponent<Props, State> {
 
     return (
       <Wrapper>
-        <ReleaseSidebarSection title={t('Commit Author Breakdown')}>
+        <SidebarSection title={t('Commit Author Breakdown')}>
           <Collapsible
             expandButton={({onExpand, numberOfHiddenItems}) => (
               <Button priority="link" onClick={onExpand}>
@@ -107,7 +107,7 @@ class CommitAuthorBreakdown extends AsyncComponent<Props, State> {
               </AuthorLine>
             ))}
           </Collapsible>
-        </ReleaseSidebarSection>
+        </SidebarSection>
       </Wrapper>
     );
   }

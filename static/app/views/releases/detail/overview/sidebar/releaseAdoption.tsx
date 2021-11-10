@@ -11,7 +11,7 @@ import TransitionChart from 'app/components/charts/transitionChart';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import NotAvailable from 'app/components/notAvailable';
 import QuestionTooltip from 'app/components/questionTooltip';
-import ReleaseSidebarSection from 'app/components/releaseSidebarSection';
+import SidebarSection from 'app/components/sidebarSection';
 import Tag from 'app/components/tag';
 import Tooltip from 'app/components/tooltip';
 import {IconWarning} from 'app/icons';
@@ -238,7 +238,7 @@ function ReleaseAdoption({
     <Wrapper>
       {isMobileRelease(project.platform) && (
         <Feature features={['release-adoption-stage']}>
-          <ReleaseSidebarSection
+          <SidebarSection
             title={t('Adoption Stage')}
             icon={
               multipleEnvironments && (
@@ -266,7 +266,7 @@ function ReleaseAdoption({
                 <NotAvailable />
               </NotAvailableWrapper>
             )}
-          </ReleaseSidebarSection>
+          </SidebarSection>
         </Feature>
       )}
       <RelativeBox>
@@ -349,7 +349,7 @@ const RelativeBox = styled('div')`
   position: relative;
 `;
 
-const ChartTitle = styled(ReleaseSidebarSection)`
+const ChartTitle = styled(SidebarSection)`
   margin: 0;
 `;
 
