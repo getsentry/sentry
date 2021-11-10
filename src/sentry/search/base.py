@@ -1,12 +1,16 @@
-from datetime import datetime
-from typing import Any, FrozenSet, Mapping, Optional, Sequence
+from __future__ import annotations
 
-from sentry.api.event_search import SearchFilter
-from sentry.models import Environment, Project
-from sentry.utils.cursors import Cursor, CursorResult
+from datetime import datetime
+from typing import TYPE_CHECKING, Any, FrozenSet, Mapping, Optional, Sequence
+
 from sentry.utils.services import Service
 
 ANY = object()
+
+if TYPE_CHECKING:
+    from sentry.api.event_search import SearchFilter
+    from sentry.models import Environment, Project
+    from sentry.utils.cursors import Cursor, CursorResult
 
 
 class SearchBackend(Service):  # type: ignore
