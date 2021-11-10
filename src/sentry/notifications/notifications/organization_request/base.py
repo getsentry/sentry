@@ -134,4 +134,5 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
     def record_notification_sent(
         self, recipient: Team | User, provider: ExternalProviders, **kwargs: Any
     ) -> None:
-        super().record_notification_sent(recipient, provider, user_id=self.requester.id, **kwargs)
+        user_id = kwargs.pop("user_id", None) or self.requester.id
+        super().record_notification_sent(recipient, provider, user_id=user_id, **kwargs)

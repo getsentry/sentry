@@ -266,10 +266,10 @@ class Organization(Model):
             Team,
         )
 
+        logger = logging.getLogger("sentry.merge")
         for from_member in OrganizationMember.objects.filter(
             organization=from_org, user__isnull=False
         ):
-            logger = logging.getLogger("sentry.merge")
             try:
                 to_member = OrganizationMember.objects.get(
                     organization=to_org, user=from_member.user
