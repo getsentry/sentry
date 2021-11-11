@@ -105,7 +105,7 @@ class Client implements ApiNamespace.Client {
   }
 
   // Returns a jest mock that represents Client.request calls
-  static addMockResponse(response: Partial<ResponseType>, options: MockResponseOptions) {
+  static addMockResponse(response: Partial<ResponseType>, options?: MockResponseOptions) {
     const mock = jest.fn();
 
     // Convert predicate into a matcher for backwards compatibility
