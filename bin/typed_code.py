@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import argparse
 import configparser
 import hashlib
@@ -41,9 +43,7 @@ def get_source_files() -> Set[str]:
     return {filename.strip() for filename in files.split(",")}
 
 
-def flatten_directories(
-    paths: Set[str],
-) -> Set[str]:
+def flatten_directories(paths: Set[str]) -> Set[str]:
     """
     For a list of files, recursively turn the directories into lists of their
     component files while passing along non-directories.
@@ -62,9 +62,7 @@ def flatten_directories(
     return result
 
 
-def get_all_teams(
-    team: Optional[str] = None,
-) -> Set[str]:
+def get_all_teams(team: Optional[str] = None) -> Set[str]:
     """
     Re-read the codeowners file looking for team names. This isn't a full
     solution because it doesn't skip commented lines. I wish the codeowners
@@ -83,10 +81,7 @@ def get_all_teams(
     return teams
 
 
-def split_files_by_codeowner(
-    files: Set[str],
-    codeowners: Any,
-) -> Mapping[str, Set[str]]:
+def split_files_by_codeowner(files: Set[str], codeowners: Any) -> MutableMapping[str, Set[str]]:
     """
     Given a list of filenames and a codeowners objects, split the files up by
     owner. This isn't a full solution because it doesn't handle multiple owners
@@ -103,10 +98,10 @@ def split_files_by_codeowner(
     return files_by_codeowner
 
 
-def load_cache(filename: str) -> MutableMapping[str, int]:
+def load_cache(filename: Optional[str] = None) -> MutableMapping[str, int]:
     logger.debug(f"loading cache from {filename}")
 
-    if not os.path.exists(filename):
+    if not (filename and os.path.exists(filename)):
         logger.debug("file not found")
         return {}
 
@@ -122,6 +117,8 @@ def load_cache(filename: str) -> MutableMapping[str, int]:
 
 
 def store_cache(cache: Mapping[str, int], filename: str) -> None:
+    # TODO We don't garbage collect stale hashes so the file cache will continue
+    #  to grow indefinitely.
     if not filename:
         return
 
@@ -270,8 +267,8 @@ def main() -> None:
 
     covered = analyze_files(covered_files, codeowners, cache, teams=teams, status="mypy.ini")
 
-    # If the team has no coverage, then don"t bother getting the denominator.
-    teams_with_covered_lines = {t for t, v in covered.items() if v > 0}
+    # If the team has no coverage, then don't bother getting the denominator.
+    teams_with_covered_lines = {t for t in teams if covered.get(t, 0) > 0}
 
     not_covered = analyze_files(
         all_files - covered_files, codeowners, cache, teams=teams_with_covered_lines, status="root"
