@@ -142,14 +142,7 @@ class Client implements ApiNamespace.Client {
     return Client.mockResponses.find(([response]) => {
       const matchesURL = url === response.url;
       const matchesMethod = (options.method || 'GET') === response.method;
-
-      let matchersMatch = true;
-      response.match.forEach(matcher => {
-        if (!matchersMatch) {
-          return;
-        }
-        matchersMatch = matcher(url, options);
-      });
+      const matchersMatch = response.match.every(matcher => matcher(url, options));
 
       return matchesURL && matchesMethod && matchersMatch;
     });
