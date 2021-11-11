@@ -152,7 +152,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint):
         if not features.has("organizations:incidents", organization, actor=request.user):
             raise ResourceDoesNotExist
 
-        projects = self.get_projects(request)
+        projects = self.get_projects(request, organization)
         alert_rules = AlertRule.objects.fetch_for_organization(organization, projects)
         if not features.has("organizations:performance-view", organization):
             # Filter to only error alert rules
