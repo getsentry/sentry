@@ -206,3 +206,5 @@ runs:
         fi
 
         docker ps -a
+
+        ./scripts/devservices-healthcheck.sh
