@@ -86,7 +86,10 @@ function CustomRepositories({
       return;
     }
 
-    const itemIndex = repositories.findIndex(v => v.id === customRepository);
+    const itemIndex = repositories.findIndex(
+      repository => repository.id === customRepository
+    );
+
     const item = repositories[itemIndex];
 
     if (!item) {
@@ -96,7 +99,7 @@ function CustomRepositories({
     openDebugFileSourceModal({
       sourceConfig: item,
       sourceType: item.type,
-      appStoreConnectContext,
+      appStoreConnectStatusData: appStoreConnectContext?.[item.id],
       onSave: updatedItem =>
         persistData({updatedItem: updatedItem as CustomRepo, index: itemIndex}),
       onClose: handleCloseModal,
@@ -250,23 +253,21 @@ function CustomRepositories({
             <p>{t('No custom repositories configured')}</p>
           </EmptyStateWarning>
         ) : (
-          repositories.map((repository, index) => {
-            const repositoryCopy = {...repository};
-            if (
-              repositoryCopy.type === CustomRepoType.APP_STORE_CONNECT &&
-              repositoryCopy.id === appStoreConnectContext?.id
-            ) {
-              repositoryCopy.details = appStoreConnectContext;
-            }
-            return (
-              <Repository
-                key={index}
-                repository={repositoryCopy}
-                onDelete={handleDeleteRepository}
-                onEdit={handleEditRepository}
-              />
-            );
-          })
+          repositories.map((repository, index) => (
+            <Repository
+              key={index}
+              repository={
+                repository.type === CustomRepoType.APP_STORE_CONNECT
+                  ? {
+                      ...repository,
+                      details: appStoreConnectContext?.[repository.id],
+                    }
+                  : repository
+              }
+              onDelete={handleDeleteRepository}
+              onEdit={handleEditRepository}
+            />
+          ))
         )}
       </PanelBody>
     </Panel>

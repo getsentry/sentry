@@ -1,5 +1,3 @@
-import {ValidationErrorDetailed} from 'app/components/modals/debugFileCustomRepository/appStoreConnect/utils';
-
 export enum DebugFileType {
   EXE = 'exe',
   DBG = 'dbg',
@@ -35,7 +33,7 @@ export type DebugFile = {
   data?: {type: DebugFileType; features: DebugFileFeature[]};
 };
 
-// Custom Repositories
+// Custom Repository
 export enum CustomRepoType {
   HTTP = 'http',
   S3 = 's3',
@@ -43,12 +41,18 @@ export enum CustomRepoType {
   APP_STORE_CONNECT = 'appStoreConnect',
 }
 
+export type AppStoreConnectValidationError = {
+  code:
+    | 'app-connect-authentication-error'
+    | 'app-connect-forbidden-error'
+    | 'app-connect-multiple-sources-error';
+};
+
 export type AppStoreConnectCredentialsStatus =
   | {status: 'valid'}
-  | ({status: 'invalid'} & ValidationErrorDetailed);
+  | ({status: 'invalid'} & AppStoreConnectValidationError);
 
 export type AppStoreConnectStatusData = {
-  id: string;
   credentials: AppStoreConnectCredentialsStatus;
   /**
    * Indicates the number of downloads waiting to be processed and completed,
@@ -71,7 +75,7 @@ export type AppStoreConnectStatusData = {
   updateAlertMessage?: string;
 };
 
-type CustomRepoAppStoreConnect = {
+export type CustomRepoAppStoreConnect = {
   type: CustomRepoType.APP_STORE_CONNECT;
   appId: string;
   appName: string;

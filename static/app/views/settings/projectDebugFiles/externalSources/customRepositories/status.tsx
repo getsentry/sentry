@@ -23,9 +23,9 @@ function Status({details, onEditRepository}: Props) {
     return <Placeholder height="14px" />;
   }
 
-  const {pendingDownloads, credentials, lastCheckedBuilds} = details ?? {};
+  const {pendingDownloads, credentials, lastCheckedBuilds} = details;
 
-  if (credentials?.status === 'invalid') {
+  if (credentials.status === 'invalid') {
     return (
       <Wrapper color={theme.red300} onClick={onEditRepository}>
         <StyledTooltip

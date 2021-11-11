@@ -14,7 +14,11 @@ type Props = {
 const ProjectSettingsNavigation = ({organization, project}: Props) => {
   const appStoreConnectContext = useContext(AppStoreConnectContext);
 
-  const debugFilesNeedsReview = !!appStoreConnectContext?.updateAlertMessage;
+  const debugFilesNeedsReview = appStoreConnectContext
+    ? Object.keys(appStoreConnectContext).some(
+        key => appStoreConnectContext[key].credentials.status === 'invalid'
+      )
+    : false;
 
   return (
     <SettingsNavigation
