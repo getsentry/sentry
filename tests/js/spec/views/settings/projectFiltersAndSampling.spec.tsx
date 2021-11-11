@@ -366,7 +366,7 @@ describe('Filters and Sampling', function () {
       expect(releaseField).toBeInTheDocument();
 
       // Release field is not empty
-      const releaseFieldValues = within(releaseField).getByTestId('multivalue');
+      const releaseFieldValues = screen.getByTestId('multivalue');
       expect(releaseFieldValues).toBeInTheDocument();
       expect(releaseFieldValues).toHaveTextContent('1*');
 
@@ -382,35 +382,24 @@ describe('Filters and Sampling', function () {
       // Sample rate is not empty
       expect(sampleRateField).toHaveValue(10);
 
-      const releaseFieldInput = within(releaseField).getByLabelText(
-        'Search or add a release'
-      );
-
       // Clear release field
-      fireEvent.keyDown(releaseFieldInput, {key: 'Backspace'});
+      fireEvent.keyDown(screen.getByLabelText('Search or add a release'), {
+        key: 'Backspace',
+      });
 
       // Release field is now empty
-      const newReleaseFieldValues = within(
-        screen.getByTestId('autocomplete-release')
-      ).queryByTestId('multivalue');
+      const newReleaseFieldValues = screen.queryByTestId('multivalue');
       expect(newReleaseFieldValues).not.toBeInTheDocument();
 
       expect(screen.getByRole('button', {name: 'Save Rule'})).toBeDisabled();
 
       // Type into realease field
-      fireEvent.change(
-        within(screen.getByTestId('autocomplete-release')).getByLabelText(
-          'Search or add a release'
-        ),
-        {
-          target: {value: '[I3].[0-9]'},
-        }
-      );
+      fireEvent.change(screen.getByLabelText('Search or add a release'), {
+        target: {value: '[I3].[0-9]'},
+      });
 
       // Autocomplete suggests options
-      const autocompleteOptions = within(
-        screen.getByTestId('autocomplete-release')
-      ).getByTestId('option');
+      const autocompleteOptions = screen.getByTestId('option');
       expect(autocompleteOptions).toBeInTheDocument();
       expect(autocompleteOptions).toHaveTextContent('[I3].[0-9]');
 
@@ -573,7 +562,7 @@ describe('Filters and Sampling', function () {
       expect(releaseField).toBeInTheDocument();
 
       // Release field is not empty
-      const releaseFieldValues = within(releaseField).getByTestId('multivalue');
+      const releaseFieldValues = screen.getByTestId('multivalue');
       expect(releaseFieldValues).toBeInTheDocument();
       expect(releaseFieldValues).toHaveTextContent('1.2.3');
 
@@ -589,35 +578,24 @@ describe('Filters and Sampling', function () {
       // Sample rate is not empty
       expect(sampleRateField).toHaveValue(20);
 
-      const releaseFieldInput = within(releaseField).getByLabelText(
-        'Search or add a release'
-      );
-
       // Clear release field
-      fireEvent.keyDown(releaseFieldInput, {key: 'Backspace'});
+      fireEvent.keyDown(screen.getByLabelText('Search or add a release'), {
+        key: 'Backspace',
+      });
 
       // Release field is now empty
-      const newReleaseFieldValues = within(
-        screen.getByTestId('autocomplete-release')
-      ).queryByTestId('multivalue');
+      const newReleaseFieldValues = screen.queryByTestId('multivalue');
       expect(newReleaseFieldValues).not.toBeInTheDocument();
 
       expect(screen.getByRole('button', {name: 'Save Rule'})).toBeDisabled();
 
       // Type into realease field
-      fireEvent.change(
-        within(screen.getByTestId('autocomplete-release')).getByLabelText(
-          'Search or add a release'
-        ),
-        {
-          target: {value: '[0-9]'},
-        }
-      );
+      fireEvent.change(screen.getByLabelText('Search or add a release'), {
+        target: {value: '[0-9]'},
+      });
 
       // Autocomplete suggests options
-      const autocompleteOptions = within(
-        screen.getByTestId('autocomplete-release')
-      ).getByTestId('option');
+      const autocompleteOptions = screen.getByTestId('option');
       expect(autocompleteOptions).toBeInTheDocument();
       expect(autocompleteOptions).toHaveTextContent('[0-9]');
 
@@ -784,7 +762,7 @@ describe('Filters and Sampling', function () {
       expect(releaseField).toBeInTheDocument();
 
       // Release field is not empty
-      const releaseFieldValues = within(releaseField).getByTestId('multivalue');
+      const releaseFieldValues = screen.getByTestId('multivalue');
       expect(releaseFieldValues).toBeInTheDocument();
 
       // Button is enabled - meaning the form is valid
@@ -799,35 +777,24 @@ describe('Filters and Sampling', function () {
       // Sample rate is not empty
       expect(sampleRateField).toHaveValue(20);
 
-      const releaseFieldInput = within(releaseField).getByLabelText(
-        'Search or add a release'
-      );
-
       // Clear release field
-      fireEvent.keyDown(releaseFieldInput, {key: 'Backspace'});
+      fireEvent.keyDown(screen.getByLabelText('Search or add a release'), {
+        key: 'Backspace',
+      });
 
       // Release field is now empty
-      const newReleaseFieldValues = within(
-        screen.getByTestId('autocomplete-release')
-      ).queryByTestId('multivalue');
+      const newReleaseFieldValues = screen.queryByTestId('multivalue');
       expect(newReleaseFieldValues).not.toBeInTheDocument();
 
       expect(screen.getByRole('button', {name: 'Save Rule'})).toBeDisabled();
 
       // Type into realease field
-      fireEvent.change(
-        within(screen.getByTestId('autocomplete-release')).getByLabelText(
-          'Search or add a release'
-        ),
-        {
-          target: {value: '[0-9]'},
-        }
-      );
+      fireEvent.change(screen.getByLabelText('Search or add a release'), {
+        target: {value: '[0-9]'},
+      });
 
       // Autocomplete suggests options
-      const autocompleteOptions = within(
-        screen.getByTestId('autocomplete-release')
-      ).getByTestId('option');
+      const autocompleteOptions = screen.getByTestId('option');
       expect(autocompleteOptions).toBeInTheDocument();
       expect(autocompleteOptions).toHaveTextContent('[0-9]');
 
@@ -1101,16 +1068,16 @@ describe('Filters and Sampling', function () {
       expect(releaseField).toBeInTheDocument();
 
       // Release field is empty
-      const releaseFieldValues = within(releaseField).queryByTestId('multivalue');
+      const releaseFieldValues = screen.queryByTestId('multivalue');
       expect(releaseFieldValues).not.toBeInTheDocument();
 
       // Type into realease field
-      fireEvent.change(within(releaseField).getByLabelText('Search or add a release'), {
+      fireEvent.change(screen.getByLabelText('Search or add a release'), {
         target: {value: '1.2.3'},
       });
 
       // Autocomplete suggests options
-      const autocompleteOptions = within(releaseField).getByTestId('option');
+      const autocompleteOptions = screen.getByTestId('option');
       expect(autocompleteOptions).toBeInTheDocument();
       expect(autocompleteOptions).toHaveTextContent('1.2.3');
 
@@ -1308,18 +1275,16 @@ describe('Filters and Sampling', function () {
         expect(releaseField).toBeInTheDocument();
 
         // Release field is empty
-        const releaseFieldValues = within(releaseField).queryByTestId('multivalue');
+        const releaseFieldValues = screen.queryByTestId('multivalue');
         expect(releaseFieldValues).not.toBeInTheDocument();
 
         // Type into realease field
-        fireEvent.change(within(releaseField).getByLabelText('Search or add a release'), {
+        fireEvent.change(screen.getByLabelText('Search or add a release'), {
           target: {value: '1.2.3'},
         });
 
         // Autocomplete suggests options
-        const autocompleteOptions = within(
-          screen.getByTestId('autocomplete-release')
-        ).getByTestId('option');
+        const autocompleteOptions = screen.getByTestId('option');
         expect(autocompleteOptions).toBeInTheDocument();
         expect(autocompleteOptions).toHaveTextContent('1.2.3');
 
@@ -1421,21 +1386,16 @@ describe('Filters and Sampling', function () {
           expect(releaseField).toBeInTheDocument();
 
           // Release field is empty
-          const releaseFieldValues = within(releaseField).queryByTestId('multivalue');
+          const releaseFieldValues = screen.queryByTestId('multivalue');
           expect(releaseFieldValues).not.toBeInTheDocument();
 
           // Type into realease field
-          fireEvent.change(
-            within(releaseField).getByLabelText('Search or add a release'),
-            {
-              target: {value: '1.2.3'},
-            }
-          );
+          fireEvent.change(screen.getByLabelText('Search or add a release'), {
+            target: {value: '1.2.3'},
+          });
 
           // Autocomplete suggests options
-          const autocompleteOptions = within(
-            screen.getByTestId('autocomplete-release')
-          ).getByTestId('option');
+          const autocompleteOptions = screen.getByTestId('option');
           expect(autocompleteOptions).toBeInTheDocument();
           expect(autocompleteOptions).toHaveTextContent('1.2.3');
 
