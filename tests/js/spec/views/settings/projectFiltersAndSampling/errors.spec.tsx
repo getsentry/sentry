@@ -8,12 +8,6 @@ import {
 import {commonConditionCategories, renderComponent, renderModal} from './utils';
 
 describe('Filters and Sampling - Error rule', function () {
-  MockApiClient.addMockResponse({
-    url: '/projects/org-slug/project-slug/',
-    method: 'GET',
-    body: TestStubs.Project(),
-  });
-
   it('edit rule', async function () {
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/',
@@ -320,6 +314,12 @@ describe('Filters and Sampling - Error rule', function () {
   });
 
   describe('modal', function () {
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/',
+      method: 'GET',
+      body: TestStubs.Project(),
+    });
+
     it('renders modal', async function () {
       renderComponent();
 
