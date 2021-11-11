@@ -61,8 +61,6 @@ describe('Filters and Sampling', function () {
     if (takeScreenshot) {
       expect(dialog).toSnapshot();
     }
-
-    return within(dialog);
   }
 
   describe('renders', function () {
@@ -356,15 +354,15 @@ describe('Filters and Sampling', function () {
       expect(editRuleButtons).toHaveLength(2);
 
       // Open rule modal - edit error rule
-      const modal = await renderModal(editRuleButtons[0]);
+      await renderModal(editRuleButtons[0]);
 
       // Modal content
-      expect(modal.getByText('Edit Error Sampling Rule')).toBeInTheDocument();
-      expect(modal.queryByText('Tracing')).not.toBeInTheDocument();
+      expect(screen.getByText('Edit Error Sampling Rule')).toBeInTheDocument();
+      expect(screen.queryByText('Tracing')).not.toBeInTheDocument();
 
       // Release Field
-      await modal.findByTestId('autocomplete-release');
-      const releaseField = modal.getByTestId('autocomplete-release');
+      await screen.findByTestId('autocomplete-release');
+      const releaseField = screen.getByTestId('autocomplete-release');
       expect(releaseField).toBeInTheDocument();
 
       // Release field is not empty
@@ -373,12 +371,12 @@ describe('Filters and Sampling', function () {
       expect(releaseFieldValues).toHaveTextContent('1*');
 
       // Button is enabled - meaning the form is valid
-      const saveRuleButton = modal.getByRole('button', {name: 'Save Rule'});
+      const saveRuleButton = screen.getByRole('button', {name: 'Save Rule'});
       expect(saveRuleButton).toBeInTheDocument();
       expect(saveRuleButton).toBeEnabled();
 
       // Sample rate field
-      const sampleRateField = modal.getByPlaceholderText('\u0025');
+      const sampleRateField = screen.getByPlaceholderText('\u0025');
       expect(sampleRateField).toBeInTheDocument();
 
       // Sample rate is not empty
@@ -393,15 +391,15 @@ describe('Filters and Sampling', function () {
 
       // Release field is now empty
       const newReleaseFieldValues = within(
-        modal.getByTestId('autocomplete-release')
+        screen.getByTestId('autocomplete-release')
       ).queryByTestId('multivalue');
       expect(newReleaseFieldValues).not.toBeInTheDocument();
 
-      expect(modal.getByRole('button', {name: 'Save Rule'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Save Rule'})).toBeDisabled();
 
       // Type into realease field
       fireEvent.change(
-        within(modal.getByTestId('autocomplete-release')).getByLabelText(
+        within(screen.getByTestId('autocomplete-release')).getByLabelText(
           'Search or add a release'
         ),
         {
@@ -411,7 +409,7 @@ describe('Filters and Sampling', function () {
 
       // Autocomplete suggests options
       const autocompleteOptions = within(
-        modal.getByTestId('autocomplete-release')
+        screen.getByTestId('autocomplete-release')
       ).getByTestId('option');
       expect(autocompleteOptions).toBeInTheDocument();
       expect(autocompleteOptions).toHaveTextContent('[I3].[0-9]');
@@ -419,18 +417,18 @@ describe('Filters and Sampling', function () {
       // Click on the suggested option
       fireEvent.click(autocompleteOptions);
 
-      expect(modal.getByRole('button', {name: 'Save Rule'})).toBeEnabled();
+      expect(screen.getByRole('button', {name: 'Save Rule'})).toBeEnabled();
 
       // Clear sample rate field
       fireEvent.change(sampleRateField, {target: {value: null}});
 
-      expect(modal.getByRole('button', {name: 'Save Rule'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Save Rule'})).toBeDisabled();
 
       // Update sample rate field
       fireEvent.change(sampleRateField, {target: {value: 50}});
 
       // Save button is now enabled
-      const saveRuleButtonEnabled = modal.getByRole('button', {name: 'Save Rule'});
+      const saveRuleButtonEnabled = screen.getByRole('button', {name: 'Save Rule'});
       expect(saveRuleButtonEnabled).toBeEnabled();
 
       // Click on save button
@@ -563,15 +561,15 @@ describe('Filters and Sampling', function () {
       expect(editRuleButtons).toHaveLength(2);
 
       // Open rule modal - edit transaction rule
-      const modal = await renderModal(editRuleButtons[1]);
+      await renderModal(editRuleButtons[1]);
 
       // Modal content
-      expect(modal.getByText('Edit Transaction Sampling Rule')).toBeInTheDocument();
-      expect(modal.getByText('Tracing')).toBeInTheDocument();
-      expect(modal.getByRole('checkbox')).toBeChecked();
+      expect(screen.getByText('Edit Transaction Sampling Rule')).toBeInTheDocument();
+      expect(screen.getByText('Tracing')).toBeInTheDocument();
+      expect(screen.getByRole('checkbox')).toBeChecked();
 
       // Release Field
-      const releaseField = await modal.findByTestId('autocomplete-release');
+      const releaseField = await screen.findByTestId('autocomplete-release');
       expect(releaseField).toBeInTheDocument();
 
       // Release field is not empty
@@ -580,12 +578,12 @@ describe('Filters and Sampling', function () {
       expect(releaseFieldValues).toHaveTextContent('1.2.3');
 
       // Button is enabled - meaning the form is valid
-      const saveRuleButton = modal.getByRole('button', {name: 'Save Rule'});
+      const saveRuleButton = screen.getByRole('button', {name: 'Save Rule'});
       expect(saveRuleButton).toBeInTheDocument();
       expect(saveRuleButton).toBeEnabled();
 
       // Sample rate field
-      const sampleRateField = modal.getByPlaceholderText('\u0025');
+      const sampleRateField = screen.getByPlaceholderText('\u0025');
       expect(sampleRateField).toBeInTheDocument();
 
       // Sample rate is not empty
@@ -600,15 +598,15 @@ describe('Filters and Sampling', function () {
 
       // Release field is now empty
       const newReleaseFieldValues = within(
-        modal.getByTestId('autocomplete-release')
+        screen.getByTestId('autocomplete-release')
       ).queryByTestId('multivalue');
       expect(newReleaseFieldValues).not.toBeInTheDocument();
 
-      expect(modal.getByRole('button', {name: 'Save Rule'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Save Rule'})).toBeDisabled();
 
       // Type into realease field
       fireEvent.change(
-        within(modal.getByTestId('autocomplete-release')).getByLabelText(
+        within(screen.getByTestId('autocomplete-release')).getByLabelText(
           'Search or add a release'
         ),
         {
@@ -618,7 +616,7 @@ describe('Filters and Sampling', function () {
 
       // Autocomplete suggests options
       const autocompleteOptions = within(
-        modal.getByTestId('autocomplete-release')
+        screen.getByTestId('autocomplete-release')
       ).getByTestId('option');
       expect(autocompleteOptions).toBeInTheDocument();
       expect(autocompleteOptions).toHaveTextContent('[0-9]');
@@ -626,18 +624,18 @@ describe('Filters and Sampling', function () {
       // Click on the suggested option
       fireEvent.click(autocompleteOptions);
 
-      expect(modal.getByRole('button', {name: 'Save Rule'})).toBeEnabled();
+      expect(screen.getByRole('button', {name: 'Save Rule'})).toBeEnabled();
 
       // Clear sample rate field
       fireEvent.change(sampleRateField, {target: {value: null}});
 
-      expect(modal.getByRole('button', {name: 'Save Rule'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Save Rule'})).toBeDisabled();
 
       // Update sample rate field
       fireEvent.change(sampleRateField, {target: {value: 60}});
 
       // Save button is now enabled
-      const saveRuleButtonEnabled = modal.getByRole('button', {name: 'Save Rule'});
+      const saveRuleButtonEnabled = screen.getByRole('button', {name: 'Save Rule'});
       expect(saveRuleButtonEnabled).toBeEnabled();
 
       // Click on save button
@@ -773,16 +771,16 @@ describe('Filters and Sampling', function () {
       expect(editRuleButtons).toHaveLength(2);
 
       // Open rule modal - edit transaction rule
-      const modal = await renderModal(editRuleButtons[1]);
+      await renderModal(editRuleButtons[1]);
 
       // Modal content
-      expect(modal.getByText('Edit Transaction Sampling Rule')).toBeInTheDocument();
-      expect(modal.getByText('Tracing')).toBeInTheDocument();
-      expect(modal.getByRole('checkbox')).not.toBeChecked();
+      expect(screen.getByText('Edit Transaction Sampling Rule')).toBeInTheDocument();
+      expect(screen.getByText('Tracing')).toBeInTheDocument();
+      expect(screen.getByRole('checkbox')).not.toBeChecked();
 
       // Release Field
-      await modal.findByTestId('autocomplete-release');
-      const releaseField = modal.getByTestId('autocomplete-release');
+      await screen.findByTestId('autocomplete-release');
+      const releaseField = screen.getByTestId('autocomplete-release');
       expect(releaseField).toBeInTheDocument();
 
       // Release field is not empty
@@ -790,12 +788,12 @@ describe('Filters and Sampling', function () {
       expect(releaseFieldValues).toBeInTheDocument();
 
       // Button is enabled - meaning the form is valid
-      const saveRuleButton = modal.getByRole('button', {name: 'Save Rule'});
+      const saveRuleButton = screen.getByRole('button', {name: 'Save Rule'});
       expect(saveRuleButton).toBeInTheDocument();
       expect(saveRuleButton).toBeEnabled();
 
       // Sample rate field
-      const sampleRateField = modal.getByPlaceholderText('\u0025');
+      const sampleRateField = screen.getByPlaceholderText('\u0025');
       expect(sampleRateField).toBeInTheDocument();
 
       // Sample rate is not empty
@@ -810,15 +808,15 @@ describe('Filters and Sampling', function () {
 
       // Release field is now empty
       const newReleaseFieldValues = within(
-        modal.getByTestId('autocomplete-release')
+        screen.getByTestId('autocomplete-release')
       ).queryByTestId('multivalue');
       expect(newReleaseFieldValues).not.toBeInTheDocument();
 
-      expect(modal.getByRole('button', {name: 'Save Rule'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Save Rule'})).toBeDisabled();
 
       // Type into realease field
       fireEvent.change(
-        within(modal.getByTestId('autocomplete-release')).getByLabelText(
+        within(screen.getByTestId('autocomplete-release')).getByLabelText(
           'Search or add a release'
         ),
         {
@@ -828,7 +826,7 @@ describe('Filters and Sampling', function () {
 
       // Autocomplete suggests options
       const autocompleteOptions = within(
-        modal.getByTestId('autocomplete-release')
+        screen.getByTestId('autocomplete-release')
       ).getByTestId('option');
       expect(autocompleteOptions).toBeInTheDocument();
       expect(autocompleteOptions).toHaveTextContent('[0-9]');
@@ -836,18 +834,18 @@ describe('Filters and Sampling', function () {
       // Click on the suggested option
       fireEvent.click(autocompleteOptions);
 
-      expect(modal.getByRole('button', {name: 'Save Rule'})).toBeEnabled();
+      expect(screen.getByRole('button', {name: 'Save Rule'})).toBeEnabled();
 
       // Clear sample rate field
       fireEvent.change(sampleRateField, {target: {value: null}});
 
-      expect(modal.getByRole('button', {name: 'Save Rule'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Save Rule'})).toBeDisabled();
 
       // Update sample rate field
       fireEvent.change(sampleRateField, {target: {value: 60}});
 
       // Save button is now enabled
-      const saveRuleButtonEnabled = modal.getByRole('button', {name: 'Save Rule'});
+      const saveRuleButtonEnabled = screen.getByRole('button', {name: 'Save Rule'});
       expect(saveRuleButtonEnabled).toBeEnabled();
 
       // Click on save button
@@ -964,19 +962,16 @@ describe('Filters and Sampling', function () {
       expect(deleteRuleButtons).toHaveLength(2);
 
       // Open deletion confirmation modal - delete error rule
-      const modal = await renderModal(deleteRuleButtons[0]);
+      await renderModal(deleteRuleButtons[0]);
 
       expect(
-        modal.getByText('Are you sure you wish to delete this dynamic sampling rule?')
+        screen.getByText('Are you sure you wish to delete this dynamic sampling rule?')
       ).toBeInTheDocument();
 
-      const modalActionButtons = modal.getAllByRole('button');
-      expect(modalActionButtons).toHaveLength(2);
-      expect(modalActionButtons[0]).toHaveTextContent('Cancel');
-      expect(modalActionButtons[1]).toHaveTextContent('Confirm');
+      expect(screen.getByText('Confirm')).toBeInTheDocument();
 
       // Confirm deletion
-      fireEvent.click(modalActionButtons[1]);
+      fireEvent.click(screen.getByText('Confirm'));
 
       // Confirmation modal will close
       await waitForElementToBeRemoved(() =>
@@ -996,18 +991,20 @@ describe('Filters and Sampling', function () {
       renderComponent();
 
       // Open Modal
-      const modal = await renderModal(screen.getByText('Add error rule'), true);
+      await renderModal(screen.getByText('Add error rule'), true);
 
       // Modal content
-      expect(modal.getByText('Add Error Sampling Rule')).toBeInTheDocument();
-      expect(modal.queryByText('Tracing')).not.toBeInTheDocument();
-      expect(modal.getByText('Conditions')).toBeInTheDocument();
-      expect(modal.getByText('Add Condition')).toBeInTheDocument();
-      expect(modal.getByText('Apply sampling rate to all errors')).toBeInTheDocument();
-      expect(modal.getByText('Sampling Rate \u0025')).toBeInTheDocument();
-      expect(modal.getByPlaceholderText('\u0025')).toHaveValue(null);
-      expect(modal.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
-      const saveRuleButton = modal.getByRole('button', {name: 'Save Rule'});
+      expect(screen.getByText('Add Error Sampling Rule')).toBeInTheDocument();
+      expect(screen.queryByText('Tracing')).not.toBeInTheDocument();
+      expect(
+        within(screen.getByRole('dialog')).getByText('Conditions')
+      ).toBeInTheDocument();
+      expect(screen.getByText('Add Condition')).toBeInTheDocument();
+      expect(screen.getByText('Apply sampling rate to all errors')).toBeInTheDocument();
+      expect(screen.getByText('Sampling Rate \u0025')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('\u0025')).toHaveValue(null);
+      expect(screen.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
+      const saveRuleButton = screen.getByRole('button', {name: 'Save Rule'});
       expect(saveRuleButton).toBeInTheDocument();
       expect(saveRuleButton).toBeDisabled();
 
@@ -1020,17 +1017,19 @@ describe('Filters and Sampling', function () {
       renderComponent();
 
       // Open Modal
-      const modal = await renderModal(screen.getByText('Add error rule'));
+      await renderModal(screen.getByText('Add error rule'));
 
       // Click on 'Add condition'
-      fireEvent.click(modal.getByText('Add Condition'));
+      fireEvent.click(screen.getByText('Add Condition'));
 
       // Autocomplete
-      const autoCompleteList = await screen.findByTestId('autocomplete-list');
-      expect(autoCompleteList).toBeInTheDocument();
+      expect(await screen.findByTestId('autocomplete-list')).toBeInTheDocument();
 
       // Condition Options
-      const conditionOptions = modal.getAllByRole('presentation');
+      const conditionOptions = within(
+        await screen.findByTestId('autocomplete-list')
+      ).getAllByRole('presentation');
+
       expect(conditionOptions).toHaveLength(commonConditionCategories.length);
 
       for (const conditionOptionIndex in conditionOptions) {
@@ -1081,24 +1080,24 @@ describe('Filters and Sampling', function () {
       renderComponent();
 
       // Open Modal
-      const modal = await renderModal(screen.getByText('Add error rule'));
+      await renderModal(screen.getByText('Add error rule'));
 
       // Click on 'Add condition'
-      fireEvent.click(modal.getByText('Add Condition'));
+      fireEvent.click(screen.getByText('Add Condition'));
 
       // Autocomplete
-      const autoCompleteList = await modal.findByTestId('autocomplete-list');
+      const autoCompleteList = await screen.findByTestId('autocomplete-list');
       expect(autoCompleteList).toBeInTheDocument();
 
       // Condition Options
-      const conditionOptions = modal.getAllByRole('presentation');
+      const conditionOptions = within(autoCompleteList).getAllByRole('presentation');
 
       // Click on the first condition option
       fireEvent.click(conditionOptions[0]);
 
       // Release Field
-      await modal.findByTestId('autocomplete-release');
-      const releaseField = modal.getByTestId('autocomplete-release');
+      await screen.findByTestId('autocomplete-release');
+      const releaseField = screen.getByTestId('autocomplete-release');
       expect(releaseField).toBeInTheDocument();
 
       // Release field is empty
@@ -1119,17 +1118,17 @@ describe('Filters and Sampling', function () {
       fireEvent.click(autocompleteOptions);
 
       // Button is still disabled
-      const saveRuleButton = modal.getByRole('button', {name: 'Save Rule'});
+      const saveRuleButton = screen.getByRole('button', {name: 'Save Rule'});
       expect(saveRuleButton).toBeInTheDocument();
       expect(saveRuleButton).toBeDisabled();
 
       // Fill sample rate field
-      const sampleRateField = modal.getByPlaceholderText('\u0025');
+      const sampleRateField = screen.getByPlaceholderText('\u0025');
       expect(sampleRateField).toBeInTheDocument();
       fireEvent.change(sampleRateField, {target: {value: 20}});
 
       // Save button is now enabled
-      const saveRuleButtonEnabled = modal.getByRole('button', {name: 'Save Rule'});
+      const saveRuleButtonEnabled = screen.getByRole('button', {name: 'Save Rule'});
       expect(saveRuleButtonEnabled).toBeEnabled();
 
       // Click on save button
@@ -1162,32 +1161,34 @@ describe('Filters and Sampling', function () {
       renderComponent();
 
       // Open Modal
-      const modal = await renderModal(screen.getByText('Add transaction rule'), true);
+      await renderModal(screen.getByText('Add transaction rule'), true);
 
       // Modal content
-      expect(modal.getByText('Add Transaction Sampling Rule')).toBeInTheDocument();
-      expect(modal.getByText('Tracing')).toBeInTheDocument();
-      expect(modal.getByRole('checkbox')).toBeChecked();
+      expect(screen.getByText('Add Transaction Sampling Rule')).toBeInTheDocument();
+      expect(screen.getByText('Tracing')).toBeInTheDocument();
+      expect(screen.getByRole('checkbox')).toBeChecked();
       expect(
         await findByTextContent(
-          modal,
+          screen,
           'Include all related transactions by trace ID. This can span across multiple projects. All related errors will remain. Learn more about tracing.'
         )
       ).toBeTruthy();
       expect(
-        modal.getByRole('link', {
+        screen.getByRole('link', {
           name: 'Learn more about tracing',
         })
       ).toHaveAttribute('href', DYNAMIC_SAMPLING_DOC_LINK);
-      expect(modal.getByText('Conditions')).toBeInTheDocument();
-      expect(modal.getByText('Add Condition')).toBeInTheDocument();
       expect(
-        modal.getByText('Apply sampling rate to all transactions')
+        within(screen.getByRole('dialog')).getByText('Conditions')
       ).toBeInTheDocument();
-      expect(modal.getByText('Sampling Rate \u0025')).toBeInTheDocument();
-      expect(modal.getByPlaceholderText('\u0025')).toHaveValue(null);
-      expect(modal.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
-      const saveRuleButton = modal.getByRole('button', {name: 'Save Rule'});
+      expect(screen.getByText('Add Condition')).toBeInTheDocument();
+      expect(
+        screen.getByText('Apply sampling rate to all transactions')
+      ).toBeInTheDocument();
+      expect(screen.getByText('Sampling Rate \u0025')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('\u0025')).toHaveValue(null);
+      expect(screen.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
+      const saveRuleButton = screen.getByRole('button', {name: 'Save Rule'});
       expect(saveRuleButton).toBeInTheDocument();
       expect(saveRuleButton).toBeDisabled();
 
@@ -1202,17 +1203,18 @@ describe('Filters and Sampling', function () {
       renderComponent();
 
       // Open Modal
-      const modal = await renderModal(screen.getByText('Add transaction rule'));
+      await renderModal(screen.getByText('Add transaction rule'));
 
       // Click on 'Add condition'
-      fireEvent.click(modal.getByText('Add Condition'));
+      fireEvent.click(screen.getByText('Add Condition'));
 
       // Autocomplete
-      const autoCompleteList = await modal.findByTestId('autocomplete-list');
+      const autoCompleteList = await screen.findByTestId('autocomplete-list');
       expect(autoCompleteList).toBeInTheDocument();
 
       // Trancing Condition Options
-      const conditionTracingOptions = modal.getAllByRole('presentation');
+      const conditionTracingOptions =
+        within(autoCompleteList).getAllByRole('presentation');
       expect(conditionTracingOptions).toHaveLength(conditionTracingCategories.length);
 
       for (const conditionTracingOptionIndex in conditionTracingOptions) {
@@ -1222,13 +1224,13 @@ describe('Filters and Sampling', function () {
       }
 
       // Unchecked tracing checkbox
-      fireEvent.click(modal.getByRole('checkbox'));
+      fireEvent.click(screen.getByRole('checkbox'));
 
       // Click on 'Add condition'
-      fireEvent.click(modal.getByText('Add Condition'));
+      fireEvent.click(screen.getByText('Add Condition'));
 
       // No Tracing Condition Options
-      const conditionOptions = modal.getAllByRole('presentation');
+      const conditionOptions = within(autoCompleteList).getAllByRole('presentation');
       expect(conditionOptions).toHaveLength(commonConditionCategories.length);
 
       for (const conditionOptionIndex in conditionOptions) {
@@ -1282,27 +1284,27 @@ describe('Filters and Sampling', function () {
         renderComponent();
 
         // Open Modal
-        const modal = await renderModal(screen.getByText('Add transaction rule'));
+        await renderModal(screen.getByText('Add transaction rule'));
 
         // Checked tracing checkbox
-        expect(modal.getByRole('checkbox')).toBeChecked();
+        expect(screen.getByRole('checkbox')).toBeChecked();
 
         // Click on 'Add condition'
-        fireEvent.click(modal.getByText('Add Condition'));
+        fireEvent.click(screen.getByText('Add Condition'));
 
         // Autocomplete
-        const autoCompleteList = await modal.findByTestId('autocomplete-list');
+        const autoCompleteList = await screen.findByTestId('autocomplete-list');
         expect(autoCompleteList).toBeInTheDocument();
 
         // Condition Options
-        const conditionOptions = modal.getAllByRole('presentation');
+        const conditionOptions = within(autoCompleteList).getAllByRole('presentation');
 
         // Click on the first condition option
         fireEvent.click(conditionOptions[0]);
 
         // Release Field
-        await modal.findByTestId('autocomplete-release');
-        const releaseField = modal.getByTestId('autocomplete-release');
+        await screen.findByTestId('autocomplete-release');
+        const releaseField = screen.getByTestId('autocomplete-release');
         expect(releaseField).toBeInTheDocument();
 
         // Release field is empty
@@ -1316,7 +1318,7 @@ describe('Filters and Sampling', function () {
 
         // Autocomplete suggests options
         const autocompleteOptions = within(
-          modal.getByTestId('autocomplete-release')
+          screen.getByTestId('autocomplete-release')
         ).getByTestId('option');
         expect(autocompleteOptions).toBeInTheDocument();
         expect(autocompleteOptions).toHaveTextContent('1.2.3');
@@ -1325,17 +1327,17 @@ describe('Filters and Sampling', function () {
         fireEvent.click(autocompleteOptions);
 
         // Button is still disabled
-        const saveRuleButton = modal.getByRole('button', {name: 'Save Rule'});
+        const saveRuleButton = screen.getByRole('button', {name: 'Save Rule'});
         expect(saveRuleButton).toBeInTheDocument();
         expect(saveRuleButton).toBeDisabled();
 
         // Fill sample rate field
-        const sampleRateField = modal.getByPlaceholderText('\u0025');
+        const sampleRateField = screen.getByPlaceholderText('\u0025');
         expect(sampleRateField).toBeInTheDocument();
         fireEvent.change(sampleRateField, {target: {value: 20}});
 
         // Save button is now enabled
-        const saveRuleButtonEnabled = modal.getByRole('button', {name: 'Save Rule'});
+        const saveRuleButtonEnabled = screen.getByRole('button', {name: 'Save Rule'});
         expect(saveRuleButtonEnabled).toBeEnabled();
 
         // Click on save button
@@ -1395,27 +1397,27 @@ describe('Filters and Sampling', function () {
           renderComponent();
 
           // Open Modal
-          const modal = await renderModal(screen.getByText('Add transaction rule'));
+          await renderModal(screen.getByText('Add transaction rule'));
 
           // Unchecked tracing checkbox
-          fireEvent.click(modal.getByRole('checkbox'));
+          fireEvent.click(screen.getByRole('checkbox'));
 
           // Click on 'Add condition'
-          fireEvent.click(modal.getByText('Add Condition'));
+          fireEvent.click(screen.getByText('Add Condition'));
 
           // Autocomplete
           const autoCompleteList = await screen.findByTestId('autocomplete-list');
           expect(autoCompleteList).toBeInTheDocument();
 
           // Condition Options
-          const conditionOptions = modal.getAllByRole('presentation');
+          const conditionOptions = within(autoCompleteList).getAllByRole('presentation');
 
           // Click on the first condition option
           fireEvent.click(conditionOptions[0]);
 
           // Release Field
-          await modal.findByTestId('autocomplete-release');
-          const releaseField = modal.getByTestId('autocomplete-release');
+          await screen.findByTestId('autocomplete-release');
+          const releaseField = screen.getByTestId('autocomplete-release');
           expect(releaseField).toBeInTheDocument();
 
           // Release field is empty
@@ -1432,7 +1434,7 @@ describe('Filters and Sampling', function () {
 
           // Autocomplete suggests options
           const autocompleteOptions = within(
-            modal.getByTestId('autocomplete-release')
+            screen.getByTestId('autocomplete-release')
           ).getByTestId('option');
           expect(autocompleteOptions).toBeInTheDocument();
           expect(autocompleteOptions).toHaveTextContent('1.2.3');
@@ -1441,17 +1443,17 @@ describe('Filters and Sampling', function () {
           fireEvent.click(autocompleteOptions);
 
           // Button is still disabled
-          const saveRuleButton = modal.getByRole('button', {name: 'Save Rule'});
+          const saveRuleButton = screen.getByRole('button', {name: 'Save Rule'});
           expect(saveRuleButton).toBeInTheDocument();
           expect(saveRuleButton).toBeDisabled();
 
           // Fill sample rate field
-          const sampleRateField = modal.getByPlaceholderText('\u0025');
+          const sampleRateField = screen.getByPlaceholderText('\u0025');
           expect(sampleRateField).toBeInTheDocument();
           fireEvent.change(sampleRateField, {target: {value: 20}});
 
           // Save button is now enabled
-          const saveRuleButtonEnabled = modal.getByRole('button', {name: 'Save Rule'});
+          const saveRuleButtonEnabled = screen.getByRole('button', {name: 'Save Rule'});
           expect(saveRuleButtonEnabled).toBeEnabled();
 
           // Click on save button
@@ -1513,8 +1515,8 @@ describe('Filters and Sampling', function () {
           renderComponent();
 
           // Open Modal
-          const modal = await renderModal(screen.getByText('Add transaction rule'));
-          const checkedCheckbox = modal.getByRole('checkbox');
+          await renderModal(screen.getByText('Add transaction rule'));
+          const checkedCheckbox = screen.getByRole('checkbox');
 
           // Checked tracing checkbox
           expect(checkedCheckbox).toBeChecked();
@@ -1526,34 +1528,34 @@ describe('Filters and Sampling', function () {
           expect(checkedCheckbox).not.toBeChecked();
 
           // Click on 'Add condition'
-          fireEvent.click(modal.getByText('Add Condition'));
+          fireEvent.click(screen.getByText('Add Condition'));
 
           // Autocomplete
           const autoCompleteList = await screen.findByTestId('autocomplete-list');
           expect(autoCompleteList).toBeInTheDocument();
 
           // Condition Options
-          const conditionOptions = modal.getAllByRole('presentation');
+          const conditionOptions = within(autoCompleteList).getAllByRole('presentation');
 
           // Click on the seventh condition option
           fireEvent.click(conditionOptions[6]);
 
           // Legacy Browsers
-          expect(modal.getByText('All browsers')).toBeInTheDocument();
+          expect(screen.getByText('All browsers')).toBeInTheDocument();
 
           const legacyBrowsers = Object.keys(LEGACY_BROWSER_LIST);
           for (const legacyBrowser of legacyBrowsers) {
             const {icon, title} = LEGACY_BROWSER_LIST[legacyBrowser];
-            expect(modal.getByText(title)).toBeInTheDocument();
-            expect(modal.getAllByTestId(`icon-${icon}`)[0]).toBeInTheDocument();
+            expect(screen.getByText(title)).toBeInTheDocument();
+            expect(screen.getAllByTestId(`icon-${icon}`)[0]).toBeInTheDocument();
           }
 
-          expect(modal.getAllByTestId('icon-internet-explorer')).toHaveLength(4);
-          expect(modal.getAllByTestId('icon-opera')).toHaveLength(2);
-          expect(modal.getByTestId('icon-safari')).toBeInTheDocument();
-          expect(modal.getByTestId('icon-android')).toBeInTheDocument();
+          expect(screen.getAllByTestId('icon-internet-explorer')).toHaveLength(4);
+          expect(screen.getAllByTestId('icon-opera')).toHaveLength(2);
+          expect(screen.getByTestId('icon-safari')).toBeInTheDocument();
+          expect(screen.getByTestId('icon-android')).toBeInTheDocument();
 
-          const switchButtons = modal.getAllByTestId('switch');
+          const switchButtons = screen.getAllByTestId('switch');
           expect(switchButtons).toHaveLength(legacyBrowsers.length + 1);
 
           // All browsers are unchecked
@@ -1570,17 +1572,17 @@ describe('Filters and Sampling', function () {
           }
 
           // Button is still disabled
-          const saveRuleButton = modal.getByRole('button', {name: 'Save Rule'});
+          const saveRuleButton = screen.getByRole('button', {name: 'Save Rule'});
           expect(saveRuleButton).toBeInTheDocument();
           expect(saveRuleButton).toBeDisabled();
 
           // Fill sample rate field
-          const sampleRateField = modal.getByPlaceholderText('\u0025');
+          const sampleRateField = screen.getByPlaceholderText('\u0025');
           expect(sampleRateField).toBeInTheDocument();
           fireEvent.change(sampleRateField, {target: {value: 20}});
 
           // Save button is now enabled
-          const saveRuleButtonEnabled = modal.getByRole('button', {name: 'Save Rule'});
+          const saveRuleButtonEnabled = screen.getByRole('button', {name: 'Save Rule'});
           expect(saveRuleButtonEnabled).toBeEnabled();
 
           // Click on save button
