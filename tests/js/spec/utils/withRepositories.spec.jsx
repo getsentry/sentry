@@ -1,5 +1,8 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {act} from 'sentry-test/reactTestingLibrary';
 
+import RepositoryActions from 'app/actions/repositoryActions';
+import OrganizationStore from 'app/stores/organizationStore';
 import RepositoryStore from 'app/stores/repositoryStore';
 import withRepositories from 'app/utils/withRepositories';
 
@@ -8,55 +11,59 @@ describe('withRepositories HoC', function () {
   const orgSlug = organization.slug;
   const repoUrl = `/organizations/${orgSlug}/repos/`;
 
-  const api = new MockApiClient();
   const mockData = [{id: '1'}];
 
-  beforeEach(() => {
+  beforeEach(function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: repoUrl,
       body: mockData,
     });
 
+    act(() => RepositoryStore.init());
+    act(() => OrganizationStore.init());
+    jest.spyOn(RepositoryActions, 'loadRepositories');
+    jest.spyOn(RepositoryActions, 'loadRepositoriesSuccess');
+  });
+
+  afterEach(function () {
     jest.restoreAllMocks();
-    RepositoryStore.init();
+    MockApiClient.clearMockResponses();
   });
 
   it('adds repositories prop', async () => {
     const Component = () => null;
+    OrganizationStore.onUpdate(organization);
     const Container = withRepositories(Component);
-    const wrapper = mountWithTheme(<Container api={api} organization={organization} />);
 
-    await tick(); // Run Store.loadRepositories
-    await tick(); // Run Store.loadRepositoriesSuccess
+    const wrapper = mountWithTheme(<Container />);
+
+    await act(tick);
     wrapper.update(); // Re-render component with Store data
 
     const mountedComponent = wrapper.find(Component);
     expect(mountedComponent.prop('repositories')).toEqual(mockData);
     expect(mountedComponent.prop('repositoriesLoading')).toEqual(false);
-    expect(mountedComponent.prop('repositoriesError')).toEqual(undefined);
+    expect(mountedComponent.prop('repositoriesError')).toEqual(null);
   });
 
   it('prevents repeated calls', async () => {
     const Component = () => null;
+    act(() => OrganizationStore.onUpdate(organization));
+
     const Container = withRepositories(Component);
 
-    jest.spyOn(api, 'requestPromise');
-    jest.spyOn(Container.prototype, 'fetchRepositories');
-
     // Mount and run component
-    mountWithTheme(<Container api={api} organization={organization} />);
-    await tick();
-    await tick();
+    mountWithTheme(<Container />);
+    await act(tick);
+    await act(tick);
 
-    // Mount and run duplicates
-    mountWithTheme(<Container api={api} organization={organization} />);
-    await tick();
-    mountWithTheme(<Container api={api} organization={organization} />);
-    await tick();
-
-    expect(api.requestPromise).toHaveBeenCalledTimes(1);
-    expect(Container.prototype.fetchRepositories).toHaveBeenCalledTimes(3);
+    // // Mount and run duplicates
+    mountWithTheme(<Container />);
+    await act(tick);
+    mountWithTheme(<Container />);
+    await act(tick);
+    expect(RepositoryActions.loadRepositories).toHaveBeenCalledTimes(1);
   });
 
   /**
@@ -69,20 +76,19 @@ describe('withRepositories HoC', function () {
    */
   it('prevents simultaneous calls', async () => {
     const Component = () => null;
+    act(() => OrganizationStore.onUpdate(organization));
+
     const Container = withRepositories(Component);
 
-    jest.spyOn(api, 'requestPromise');
-    jest.spyOn(Container.prototype, 'componentDidMount');
-
     // Mount and run duplicates
-    mountWithTheme(<Container api={api} organization={organization} />);
-    mountWithTheme(<Container api={api} organization={organization} />);
-    mountWithTheme(<Container api={api} organization={organization} />);
+    mountWithTheme(<Container />);
+    mountWithTheme(<Container />);
+    mountWithTheme(<Container />);
 
-    await tick();
-    await tick();
+    await act(tick);
+    await act(tick);
+    await act(tick);
 
-    expect(api.requestPromise).toHaveBeenCalledTimes(1);
-    expect(Container.prototype.componentDidMount).toHaveBeenCalledTimes(3);
+    expect(RepositoryActions.loadRepositoriesSuccess).toHaveBeenCalledTimes(1);
   });
 });
