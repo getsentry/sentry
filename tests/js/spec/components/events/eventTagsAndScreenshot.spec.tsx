@@ -104,7 +104,6 @@ describe('EventTagsAndScreenshot ', function () {
     },
   ];
 
-  // @ts-expect-error
   const event = TestStubs.Event({user});
 
   const {organization, project, router} = initializeOrg({

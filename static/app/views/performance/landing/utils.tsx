@@ -1,6 +1,7 @@
 import {ReactText} from 'react';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
+import omit from 'lodash/omit';
 
 import {t} from 'app/locale';
 import {Organization, Project} from 'app/types';
@@ -97,24 +98,35 @@ export function getCurrentLandingDisplay(
   return defaultDisplay || LANDING_DISPLAYS[0];
 }
 
-export function handleLandingDisplayChange(field: string, location: Location) {
-  const newQuery = {...location.query};
-
-  delete newQuery[LEFT_AXIS_QUERY_KEY];
-  delete newQuery[RIGHT_AXIS_QUERY_KEY];
-
+export function handleLandingDisplayChange(
+  field: string,
+  location: Location,
+  projects: Project[],
+  eventView?: EventView
+) {
   // Transaction op can affect the display and show no results if it is explicitly set.
   const query = decodeScalar(location.query.query, '');
   const searchConditions = new MutableSearch(query);
   searchConditions.removeFilter('transaction.op');
 
+  const queryWithConditions = {
+    ...omit(location.query, 'landingDisplay'),
+    query: searchConditions.formatString(),
+  };
+
+  delete queryWithConditions[LEFT_AXIS_QUERY_KEY];
+  delete queryWithConditions[RIGHT_AXIS_QUERY_KEY];
+
+  const defaultDisplay = getDefaultDisplayFieldForPlatform(projects, eventView);
+
+  const newQuery =
+    defaultDisplay === field
+      ? {...queryWithConditions}
+      : {...queryWithConditions, landingDisplay: field};
+
   browserHistory.push({
     pathname: location.pathname,
-    query: {
-      ...newQuery,
-      query: searchConditions.formatString(),
-      landingDisplay: field,
-    },
+    query: newQuery,
   });
 }
 

@@ -29,7 +29,11 @@ class GroupNotesEndpoint(GroupEndpoint):
     def post(self, request, group):
         serializer = NoteSerializer(
             data=request.data,
-            context={"organization_id": group.organization.id, "projects": [group.project]},
+            context={
+                "organization": group.organization,
+                "organization_id": group.organization.id,
+                "projects": [group.project],
+            },
         )
 
         if not serializer.is_valid():

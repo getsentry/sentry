@@ -254,7 +254,6 @@ describe('AccountSecurity', function () {
     const Add2FAButton = wrapper.find('Button[className="enroll-button"]').first();
 
     Add2FAButton.simulate('click');
-    // @ts-expect-error
     await tick();
     expect(openEmailModalFunc).toHaveBeenCalled();
   });

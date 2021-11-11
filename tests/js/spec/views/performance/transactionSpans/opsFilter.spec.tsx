@@ -8,10 +8,8 @@ import OpsFilter from 'app/views/performance/transactionSummary/transactionSpans
 
 function initializeData({query} = {query: {}}) {
   const features = ['performance-view', 'performance-suspect-spans-view'];
-  // @ts-expect-error
   const organization = TestStubs.Organization({
     features,
-    // @ts-expect-error
     projects: [TestStubs.Project()],
   });
   const initialData = initializeOrg({
@@ -44,7 +42,6 @@ function createEventView(location: Location) {
 
 describe('Performance > Transaction Spans', function () {
   it('fetches span ops', async function () {
-    // @ts-expect-error
     const eventsSpanOpsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-span-ops/',
       body: [{op: 'op1'}, {op: 'op2'}],
@@ -73,7 +70,6 @@ describe('Performance > Transaction Spans', function () {
   });
 
   it('handles op change correctly', async function () {
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-span-ops/',
       body: [{op: 'op1'}, {op: 'op2'}],
