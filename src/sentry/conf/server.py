@@ -1009,7 +1009,7 @@ SENTRY_FEATURES = {
     # Enable dashboard widget library
     "organizations:widget-library": False,
     # Enable issue widgets in dashboards
-    "organizations:issues-in-dashboards": True,
+    "organizations:issues-in-dashboards": False,
     # Enable navigation features between Discover and Dashboards
     "organizations:connect-discover-and-dashboards": False,
     # Enable experimental performance improvements.
