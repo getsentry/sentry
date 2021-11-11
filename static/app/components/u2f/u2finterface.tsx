@@ -128,7 +128,7 @@ class U2fInterface extends React.Component<Props, State> {
       });
   }
 
-  testWebAuthn(authRequest) {
+  webAuthnSignIn(authRequest) {
     const credentials = [] as any;
 
     authRequest.forEach(device => {
@@ -158,7 +158,7 @@ class U2fInterface extends React.Component<Props, State> {
     let promise: Promise<u2f.SignResponse | u2f.RegisterResponse>;
     if (this.props.flowMode === 'sign') {
       if (this.props.isWebauthnSigninFFEnabled) {
-        this.testWebAuthn(this.props.challengeData.authenticateRequests);
+        this.webAuthnSignIn(this.props.challengeData.authenticateRequests);
       } else {
         promise = u2f.sign(this.props.challengeData.authenticateRequests);
         this.submitU2fResponse(promise);
