@@ -277,12 +277,17 @@ def is_negated(node):
 
 
 def handle_negation(negation, operator):
-    if isinstance(operator, Node):
-        operator = "="
-    elif not isinstance(operator, str):
-        operator = operator[0]
+    operator = get_operator_value(operator)
     if is_negated(negation):
         return OPERATOR_NEGATION_MAP.get(operator, "!=")
+    return operator
+
+
+def get_operator_value(operator):
+    if isinstance(operator, Node):
+        operator = "=" if isinstance(operator.expr, Optional) else operator.text
+    elif isinstance(operator, list):
+        operator = operator[0]
     return operator
 
 
@@ -540,10 +545,7 @@ class SearchVisitor(NodeVisitor):
         return SearchFilter(search_key, operator, search_value)
 
     def _handle_numeric_filter(self, search_key, operator, search_value):
-        if isinstance(operator, Node):
-            operator = "=" if isinstance(operator.expr, Optional) else operator.text
-        elif isinstance(operator, list):
-            operator = operator[0]
+        operator = get_operator_value(operator)
 
         if self.is_numeric_key(search_key.name):
             try:
@@ -614,10 +616,8 @@ class SearchVisitor(NodeVisitor):
         (negation, search_key, _, operator, search_value) = children
         if self.is_duration_key(search_key.name) or self.is_numeric_key(search_key.name):
             operator = handle_negation(negation, operator)
-        elif isinstance(operator, Node):
-            operator = operator.text
-        elif isinstance(operator, list):
-            operator = operator[0]
+        else:
+            operator = get_operator_value(operator)
 
         if self.is_duration_key(search_key.name):
             try:
@@ -676,10 +676,8 @@ class SearchVisitor(NodeVisitor):
             or search_key.name in self.config.text_operator_keys
         ):
             operator = handle_negation(negation, operator)
-        elif isinstance(operator, Node):
-            operator = "=" if isinstance(operator.expr, Optional) else operator.text
-        elif isinstance(operator, list):
-            operator = operator[0]
+        else:
+            operator = get_operator_value(operator)
 
         if self.is_numeric_key(search_key.name):
             return self._handle_numeric_filter(search_key, operator, search_value)
@@ -848,10 +846,7 @@ class SearchVisitor(NodeVisitor):
 
     def visit_text_filter(self, node, children):
         (negation, search_key, _, operator, search_value) = children
-        if isinstance(operator, Node):
-            operator = "="
-        else:
-            operator = operator[0]
+        operator = get_operator_value(operator)
 
         # XXX: We check whether the text in the node itself is actually empty, so
         # we can tell the difference between an empty quoted string and no string
