@@ -155,7 +155,7 @@ def find_channel_id_for_rule(
         # want to set the status to failed. This just lets us skip
         # over the next block and hit the failed status at the end.
         item_id = None
-        prefix = None
+        prefix = ""
     except ApiRateLimitedError:
         redis_rule_status.set_value("failed", None, SLACK_RATE_LIMITED_MESSAGE)
         return
