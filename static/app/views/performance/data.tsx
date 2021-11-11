@@ -341,7 +341,7 @@ export const PERFORMANCE_TERMS: Record<PERFORMANCE_TERM, TermFormatter> = {
     ),
   cls: () =>
     t(
-      'Cumultative layout shift (CLS) is a web vital measuring unexpected visual shifting a user experiences.'
+      'Cumulative layout shift (CLS) is a web vital measuring unexpected visual shifting a user experiences.'
     ),
   userMisery: organization =>
     t(
