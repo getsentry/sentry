@@ -75,7 +75,7 @@ class JavaScriptSdkLoaderTest(TestCase):
         assert "sdk-loader" in resp["Surrogate-Key"]
         assert "Content-Encoding" not in resp
         assert "Set-Cookie" not in resp
-        assert "Vary" not in resp
+        assert "Vary" in resp
 
     def test_absolute_url(self):
         assert (
