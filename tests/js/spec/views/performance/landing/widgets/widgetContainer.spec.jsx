@@ -199,6 +199,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
       'Worst LCP Web Vitals'
     );
+
     expect(wrapper.find('a[data-test-id="view-all-button"]').text()).toEqual('View All');
     expect(eventsV2Mock).toHaveBeenCalledTimes(1);
     expect(eventsV2Mock).toHaveBeenNthCalledWith(
@@ -221,6 +222,94 @@ describe('Performance > Widgets > WidgetContainer', function () {
           project: ['-42'],
           query: 'transaction.op:pageload',
           sort: '-count_if(measurements.lcp,greaterOrEquals,4000)',
+          statsPeriod: '7d',
+        }),
+      })
+    );
+  });
+
+  it('Worst FCP widget', async function () {
+    const data = initializeData();
+
+    const wrapper = mountWithTheme(
+      <WrappedComponent
+        data={data}
+        defaultChartSetting={PerformanceWidgetSetting.WORST_FCP_VITALS}
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+      'Worst FCP Web Vitals'
+    );
+    expect(wrapper.find('a[data-test-id="view-all-button"]').text()).toEqual('View All');
+    expect(eventsV2Mock).toHaveBeenCalledTimes(1);
+    expect(eventsV2Mock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: ['prod'],
+          field: [
+            'transaction',
+            'title',
+            'project.id',
+            'count_if(measurements.fcp,greaterOrEquals,3000)',
+            'count_if(measurements.fcp,greaterOrEquals,1000)',
+            'count_if(measurements.fcp,greaterOrEquals,0)',
+            'equation|count_if(measurements.fcp,greaterOrEquals,1000) - count_if(measurements.fcp,greaterOrEquals,3000)',
+            'equation|count_if(measurements.fcp,greaterOrEquals,0) - count_if(measurements.fcp,greaterOrEquals,1000)',
+          ],
+          per_page: 3,
+          project: ['-42'],
+          query: 'transaction.op:pageload',
+          sort: '-count_if(measurements.fcp,greaterOrEquals,3000)',
+          statsPeriod: '7d',
+        }),
+      })
+    );
+  });
+
+  it('Worst FID widget', async function () {
+    const data = initializeData();
+
+    const wrapper = mountWithTheme(
+      <WrappedComponent
+        data={data}
+        defaultChartSetting={PerformanceWidgetSetting.WORST_FID_VITALS}
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+      'Worst FID Web Vitals'
+    );
+    expect(wrapper.find('a[data-test-id="view-all-button"]').text()).toEqual('View All');
+    expect(eventsV2Mock).toHaveBeenCalledTimes(1);
+    expect(eventsV2Mock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: ['prod'],
+          field: [
+            'transaction',
+            'title',
+            'project.id',
+            'count_if(measurements.fid,greaterOrEquals,300)',
+            'count_if(measurements.fid,greaterOrEquals,100)',
+            'count_if(measurements.fid,greaterOrEquals,0)',
+            'equation|count_if(measurements.fid,greaterOrEquals,100) - count_if(measurements.fid,greaterOrEquals,300)',
+            'equation|count_if(measurements.fid,greaterOrEquals,0) - count_if(measurements.fid,greaterOrEquals,100)',
+          ],
+          per_page: 3,
+          project: ['-42'],
+          query: 'transaction.op:pageload',
+          sort: '-count_if(measurements.fid,greaterOrEquals,300)',
           statsPeriod: '7d',
         }),
       })

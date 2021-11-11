@@ -113,9 +113,11 @@ const _WidgetContainer = (props: Props) => {
     setChartSettingState(_chartSetting);
   }, [rest.defaultChartSetting]);
 
+  const chartDefinition = WIDGET_DEFINITIONS({organization})[chartSetting];
   const widgetProps = {
+    ...chartDefinition,
     chartSetting,
-    ...WIDGET_DEFINITIONS({organization})[chartSetting],
+    chartDefinition,
     ContainerActions: containerProps => (
       <WidgetContainerActions
         {...containerProps}
