@@ -6,9 +6,7 @@ import pick from 'lodash/pick';
 import Button from 'app/components/button';
 import _EventsRequest from 'app/components/charts/eventsRequest';
 import {getInterval} from 'app/components/charts/utils';
-import Link from 'app/components/links/link';
 import Truncate from 'app/components/truncate';
-import {IconClose} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
@@ -25,7 +23,12 @@ import {_VitalChart} from 'app/views/performance/vitalDetail/vitalChart';
 import {excludeTransaction} from '../../utils';
 import {VitalBar} from '../../vitalsCards';
 import {GenericPerformanceWidget} from '../components/performanceWidget';
-import SelectableList, {RightAlignedCell} from '../components/selectableList';
+import SelectableList, {
+  GrowLink,
+  ListClose,
+  RightAlignedCell,
+  Subtitle,
+} from '../components/selectableList';
 import {transformDiscoverToList} from '../transforms/transformDiscoverToList';
 import {transformEventsRequestToVitals} from '../transforms/transformEventsToVitals';
 import {QueryDefinition, WidgetDataResult} from '../types';
@@ -255,14 +258,10 @@ export function VitalWidget(props: Props) {
                         barHeight={24}
                       />
                     </VitalBarCell>
-                    <CloseContainer>
-                      <StyledIconClose
-                        onClick={() => {
-                          excludeTransaction(listItem.transaction, props);
-                          setSelectListIndex(0);
-                        }}
-                      />
-                    </CloseContainer>
+                    <ListClose
+                      setSelectListIndex={setSelectListIndex}
+                      onClick={() => excludeTransaction(listItem.transaction, props)}
+                    />
                   </Fragment>
                 );
               })}
@@ -300,23 +299,3 @@ const VitalBarCell = styled(RightAlignedCell)`
   margin-right: ${space(1)};
 `;
 const EventsRequest = withApi(_EventsRequest);
-const Subtitle = styled('span')`
-  color: ${p => p.theme.gray300};
-  font-size: ${p => p.theme.fontSizeMedium};
-`;
-const CloseContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-const GrowLink = styled(Link)`
-  flex-grow: 1;
-`;
-
-const StyledIconClose = styled(IconClose)`
-  cursor: pointer;
-  color: ${p => p.theme.gray200};
-  &:hover {
-    color: ${p => p.theme.gray300};
-  }
-`;
