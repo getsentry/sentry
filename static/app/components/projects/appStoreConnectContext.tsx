@@ -124,8 +124,6 @@ const Provider = ({children, project, organization}: ProviderProps) => {
   );
 };
 
-const Consumer = AppStoreConnectContext.Consumer;
-
-export {Provider, Consumer};
+export {Provider};
 
 export default AppStoreConnectContext;
