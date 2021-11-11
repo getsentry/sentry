@@ -1,4 +1,3 @@
-from base64 import b64encode
 from time import time
 
 from cryptography.exceptions import InvalidKey, InvalidSignature
@@ -13,11 +12,10 @@ from fido2.webauthn import PublicKeyCredentialRpEntity
 from u2flib_server import u2f
 from u2flib_server.model import DeviceRegistration
 
-from sentry import options
+from sentry import features, options
 from sentry.utils.dates import to_datetime
 from sentry.utils.decorators import classproperty
 from sentry.utils.http import absolute_uri
-from sentry.utils.json import dumps
 
 from .base import ActivationChallengeResult, AuthenticatorInterface
 
@@ -62,28 +60,25 @@ class U2fInterface(AuthenticatorInterface):
     def generate_new_config(self):
         return {}
 
-    def start_enrollment(self, user):
-        rp = PublicKeyCredentialRpEntity(self.u2f_app_id, "Sentry")
-        server = Fido2Server(rp)
-        credentials = []
-        for registeredKey in self.get_u2f_devices():
-            c = self._create_credential_object(registeredKey)
-            credentials.append(c)
+    def start_enrollment(self, user, is_webauthn_register_ff):
+        if is_webauthn_register_ff:
+            # u2f_app_id needs to be changed to return sentry.io or dev name
+            rp = PublicKeyCredentialRpEntity("richardmasentry.ngrok.io", "Sentry")
+            server = Fido2Server(rp)
+            credentials = []
+            for registeredKey in self.get_u2f_devices():
+                c = self._create_credential_object(registeredKey)
+                credentials.append(c)
 
-        registration_data, state = server.register_begin(
-            user={"id": user.id, "name": user.name},
-            credentials=credentials,
-            user_verification="discouraged",
-            authenticator_attachment="cross-platform",
-        )
-        # old_data = u2f.begin_registration(self.u2f_app_id, self.get_u2f_devices()).data_for_client
-        # return cbor.encode(registration_data)
-        # breakpoint()
-        # return u2f.begin_registration(self.u2f_app_id, self.get_u2f_devices()).data_for_client
-        # breakpoint()
-        return cbor.encode(registration_data)
-        # breakpoint()
-        # return registration_data
+            registration_data, state = server.register_begin(
+                user={"id": bytes(user.id), "name": user.username, "displayName": user.name},
+                credentials=credentials,
+                user_verification="discouraged",
+                # authenticator_attachment="cross-platform",
+            )
+            return cbor.encode(registration_data)
+
+        return u2f.begin_registration(self.u2f_app_id, self.get_u2f_devices()).data_for_client
 
     def get_u2f_devices(self):
         rv = []
@@ -125,6 +120,7 @@ class U2fInterface(AuthenticatorInterface):
         return rv
 
     def try_enroll(self, enrollment_data, response_data, device_name=None):
+        # breakpoint()
         binding, cert = u2f.complete_registration(enrollment_data, response_data, self.u2f_facets)
         devices = self.config.setdefault("devices", [])
         devices.append(

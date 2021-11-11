@@ -7,6 +7,7 @@ from rest_framework import serializers, status
 from rest_framework.fields import SkipField
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.decorators import email_verification_required, sudo_required
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
@@ -14,6 +15,7 @@ from sentry.api.serializers import serialize
 from sentry.app import ratelimiter
 from sentry.auth.authenticators.base import EnrollmentStatus
 from sentry.models import Authenticator
+from sentry.models.organizationmember import OrganizationMember
 from sentry.security import capture_security_activity
 
 logger = logging.getLogger(__name__)
@@ -96,6 +98,10 @@ def get_serializer_field_metadata(serializer, fields=None):
 
 
 class UserAuthenticatorEnrollEndpoint(UserEndpoint):
+    def _get_org_from_user(self, user):
+        orgs = OrganizationMember.objects.filter(user_id=user.id)
+        return orgs
+
     @sudo_required
     def get(self, request, user, interface_id):
         """
@@ -139,8 +145,13 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
             response["qrcode"] = interface.get_provision_url(user.email)
 
         if interface_id == "u2f":
-            response["challenge"] = b64encode(interface.start_enrollment(user))
-
+            orgs = self._get_org_from_user(user)
+            is_webauthn_register_ff = False
+            if any(features.has("organizations:webauthn-login", org, actor=user) for org in orgs):
+                challenge = interface.start_enrollment(user, is_webauthn_register_ff)
+                response["challenge"] = b64encode(challenge)
+            else:
+                response["challenge"] = interface.start_enrollment(user, is_webauthn_register_ff)
             # XXX: Upgrading python-u2flib-server to 5.0.0 changes the response
             # format. Our current js u2f library expects the old format, so
             # massaging the data to include appId here

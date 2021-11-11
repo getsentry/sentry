@@ -65,8 +65,9 @@ class U2fInterface extends React.Component<Props, State> {
           },
           () => {
             let u2fResponse = JSON.stringify(data);
+            const challenge = JSON.stringify(this.props.challengeData);
             // below is to check if its a webauthn returned object which is a AuthenticatorAssertionResponse
-            if (typeof data.response !== 'undefined') {
+            if (typeof data.response !== 'undefined' && this.props.flowMode === 'sign') {
               const authenticatorData = {
                 keyHandle: data.id,
                 clientData: bufferToBase64url(data.response.clientDataJSON),
@@ -75,7 +76,20 @@ class U2fInterface extends React.Component<Props, State> {
               };
               u2fResponse = JSON.stringify(authenticatorData);
             }
-            const challenge = JSON.stringify(this.props.challengeData);
+            else if(typeof data.response !== 'undefined' && this.props.flowMode === 'enroll'){
+              const authenticatorData = {
+                id: data.id,
+                rawId: bufferToBase64url(data.rawId),
+                response: {
+                  attestationObject: bufferToBase64url(data.response.attestationObject),
+                  clientDataJSON: bufferToBase64url(data.response.clientDataJSON),
+                },
+                type: bufferToBase64url(data.type),
+              };
+              u2fResponse = JSON.stringify(authenticatorData);
+              // const challengeArray = base64urlToBuffer(this.props.challengeData)
+              // challenge = cbor.decodeAllSync(challengeArray)
+            }
 
             if (this.state.responseElement) {
               // eslint-disable-next-line react/no-direct-mutation-state
@@ -154,6 +168,13 @@ class U2fInterface extends React.Component<Props, State> {
     this.submitU2fResponse(promise);
   }
 
+  webAuthnRegister(publicKey){
+    const promise = navigator.credentials.create({
+      publicKey: publicKey,
+    });
+    this.submitU2fResponse(promise);
+  }
+
   invokeU2fFlow() {
     let promise: Promise<u2f.SignResponse | u2f.RegisterResponse>;
     if (this.props.flowMode === 'sign') {
@@ -164,8 +185,11 @@ class U2fInterface extends React.Component<Props, State> {
         this.submitU2fResponse(promise);
       }
     } else if (this.props.flowMode === 'enroll') {
-      const challengeArray = base64urlToBuffer(this.props.challengeData)
-      const challenge = cbor.decodeAllSync(challengeArray)
+      // webauthn
+      // const challengeArray = base64urlToBuffer(this.props.challengeData)
+      // const challenge = cbor.decodeAllSync(challengeArray)
+      // this.webAuthnRegister(challenge[0]['publicKey']);
+      // u2f
       const {registerRequests, registeredKeys} = this.props.challengeData;
       promise = u2f.register(registerRequests as any, registeredKeys as any);
       this.submitU2fResponse(promise);
