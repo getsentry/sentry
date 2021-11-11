@@ -187,4 +187,5 @@ class OnboardingPlatform extends Component<Props, State> {
   }
 }
 
+// TODO(davidenwang): change to functional component and replace withTeams with useTeams
 export default withApi(withTeams(OnboardingPlatform));

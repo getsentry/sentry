@@ -766,11 +766,6 @@ CELERYBEAT_SCHEDULE = {
         "schedule": crontab_with_minute_jitter(hour="*/6"),
         "options": {"expires": 60 * 25},
     },
-    "process_pending_incident_snapshots": {
-        "task": "sentry.incidents.tasks.process_pending_incident_snapshots",
-        "schedule": timedelta(hours=1),
-        "options": {"expires": 3600, "queue": "incidents"},
-    },
     "monitor-release-adoption": {
         "task": "sentry.tasks.monitor_release_adoption",
         "schedule": crontab(minute=0),
@@ -972,6 +967,8 @@ SENTRY_FEATURES = {
     # XXX(ja): DO NOT ENABLE UNTIL THIS NOTICE IS GONE. Relay experiences
     # gradual slowdown when this is enabled for too many projects.
     "organizations:metrics-extraction": False,
+    # True if the metrics backend should be checked against the sessions backend
+    "organizations:release-health-check-metrics": False,
     # Enable metric aggregate in metric alert rule builder
     "organizations:metric-alert-builder-aggregate": False,
     # Enable migrating auth identities between providers automatically

@@ -7,13 +7,9 @@ import ReleaseComparisonChart from 'app/views/releases/detail/overview/releaseCo
 
 describe('Releases > Detail > Overview > ReleaseComparison', () => {
   const {routerContext, organization, project} = initializeOrg();
-  // @ts-expect-error
   const api = new MockApiClient();
-  // @ts-expect-error
   const release = TestStubs.Release();
-  // @ts-expect-error
   const releaseSessions = TestStubs.SessionUserCountByStatus();
-  // @ts-expect-error
   const allSessions = TestStubs.SessionUserCountByStatus2();
 
   it('displays correct all/release/change data', () => {

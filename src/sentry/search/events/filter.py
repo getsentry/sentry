@@ -1,4 +1,5 @@
 from datetime import datetime
+from functools import reduce
 from typing import Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
 from parsimonious.exceptions import ParseError
@@ -1008,21 +1009,28 @@ def format_search_filter(term, params):
         and params
         and (value == "latest" or term.is_in_filter and any(v == "latest" for v in value))
     ):
-        value = [
-            parse_release(
-                v,
-                params["project_id"],
-                params.get("environment_objects"),
-                params.get("organization_id"),
-            )
-            for v in to_list(value)
-        ]
+        value = reduce(
+            lambda x, y: x + y,
+            [
+                parse_release(
+                    v,
+                    params["project_id"],
+                    params.get("environment_objects"),
+                    params.get("organization_id"),
+                )
+                for v in to_list(value)
+            ],
+            [],
+        )
+
+        operator_conversions = {"=": "IN", "!=": "NOT IN"}
+        operator = operator_conversions.get(term.operator, term.operator)
 
         converted_filter = convert_search_filter_to_snuba_query(
             SearchFilter(
                 term.key,
-                term.operator,
-                SearchValue(value if term.is_in_filter else value[0]),
+                operator,
+                SearchValue(value),
             )
         )
         if converted_filter:
@@ -1676,21 +1684,28 @@ class QueryFilter(QueryFields):
 
     def _release_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         """Parse releases for potential aliases like `latest`"""
-        values = [
-            parse_release(
-                v,
-                self.params["project_id"],
-                self.params.get("environment_objects"),
-                self.params.get("organization_id"),
-            )
-            for v in to_list(search_filter.value.value)
-        ]
+        values = reduce(
+            lambda x, y: x + y,
+            [
+                parse_release(
+                    v,
+                    self.params["project_id"],
+                    self.params.get("environment_objects"),
+                    self.params.get("organization_id"),
+                )
+                for v in to_list(search_filter.value.value)
+            ],
+            [],
+        )
+
+        operator_conversions = {"=": "IN", "!=": "NOT IN"}
+        operator = operator_conversions.get(search_filter.operator, search_filter.operator)
 
         return self._default_filter_converter(
             SearchFilter(
                 search_filter.key,
-                search_filter.operator,
-                SearchValue(values if search_filter.is_in_filter else values[0]),
+                operator,
+                SearchValue(values),
             )
         )
 
