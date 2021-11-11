@@ -79,7 +79,6 @@ def assert_get_personalized_digests(
         digest, project, target_type, target_identifier
     )
     personalized_digests = get_personalized_digests(digest, participants_by_provider_by_event)
-    print("personalized_digests", personalized_digests)
     for actor_id, user_digest in personalized_digests.items():
         assert actor_id in expected_result
         assert {e.event_id for e in get_event_from_groups_in_digest(user_digest)} == {
