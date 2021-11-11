@@ -9,7 +9,7 @@ from sentry.testutils import APITestCase
 from sentry.utils.snuba import MAX_FIELDS
 
 
-class DataExportTest(APITestCase):
+class OrganizationDataExportTest(APITestCase):
     endpoint = "sentry-api-0-organization-data-export"
     method = "post"
 

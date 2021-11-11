@@ -11,7 +11,7 @@ from sentry.models import File
 from sentry.testutils import APITestCase
 
 
-class DataExportDetailsTest(APITestCase):
+class OrganizationDataExportDetailsTest(APITestCase):
     endpoint = "sentry-api-0-organization-data-export-details"
 
     def setUp(self):
