@@ -102,7 +102,12 @@ export function PerformanceLanding(props: Props) {
               key={label}
               className={currentLandingDisplay.field === field ? 'active' : ''}
             >
-              <a href="#" onClick={() => handleLandingDisplayChange(field, location)}>
+              <a
+                href="#"
+                onClick={() =>
+                  handleLandingDisplayChange(field, location, projects, eventView)
+                }
+              >
                 {t(label)}
               </a>
             </li>
