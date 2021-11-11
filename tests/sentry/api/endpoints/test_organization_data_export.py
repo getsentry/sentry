@@ -281,7 +281,7 @@ class OrganizationDataExportTest(APITestCase):
             response = self.get_valid_response(self.org.slug, status_code=400, **payload)
         assert response.data == {"non_field_errors": ["Empty string after 'foo:'"]}
 
-    @mock.patch("sentry.data_export.endpoints.data_export.DiscoverProcessor")
+    @mock.patch("sentry.data_export.DiscoverProcessor")
     def test_export_resolves_empty_project(self, mock_discover_processor):
         """
         Ensures that a request to this endpoint returns a 201 if projects
