@@ -71,8 +71,6 @@ class AlertRuleNotification(ProjectNotification):
     ) -> MutableMapping[str, Any]:
         timezone = pytz.timezone("UTC")
 
-        # AlertRuleNotification is shared among both email and slack notifications, and in slack
-        # notifications, the `user` arg could be of type `Team` which is why we need this check.
         if isinstance(recipient, User):
             user_tz = UserOption.objects.get_value(user=recipient, key="timezone", default="UTC")
             try:

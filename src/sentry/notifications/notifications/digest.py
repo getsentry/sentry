@@ -117,7 +117,7 @@ class DigestNotification(ProjectNotification):
             self.target_identifier,
         )
 
-        # Get every user ID for every provider as a set.
+        # Get every actor ID for every provider as a set.
         actor_ids = set()
         combined_participants_by_provider = defaultdict(set)
         for participants_by_provider in participants_by_provider_by_event.values():
