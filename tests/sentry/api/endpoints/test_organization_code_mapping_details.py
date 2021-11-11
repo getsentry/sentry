@@ -29,8 +29,9 @@ class OrganizationCodeMappingDetailsTest(APITestCase):
             default_branch="master",
         )
 
+        self.endpoint = "sentry-api-0-organization-code-mapping-details"
         self.url = reverse(
-            "sentry-api-0-organization-code-mapping-details",
+            self.endpoint,
             args=[self.org.slug, self.config.id],
         )
 
@@ -62,3 +63,14 @@ class OrganizationCodeMappingDetailsTest(APITestCase):
             == "Cannot delete Code Mapping. Must delete Code Owner that uses this mapping first."
         )
         assert RepositoryProjectPathConfig.objects.filter(id=str(self.config.id)).exists()
+
+    def test_delete_another_orgs_code_mapping(self):
+        invalid_user = self.create_user()
+        invalid_organization = self.create_organization(owner=invalid_user)
+        self.login_as(user=invalid_user)
+        url = reverse(
+            self.endpoint,
+            args=[invalid_organization.slug, self.config.id],
+        )
+        resp = self.client.delete(url)
+        assert resp.status_code == 404

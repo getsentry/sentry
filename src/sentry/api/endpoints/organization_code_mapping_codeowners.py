@@ -2,7 +2,7 @@ from django.http import Http404
 from rest_framework import status
 
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
-from sentry.models import RepositoryProjectPathConfig
+from sentry.models import OrganizationIntegration, RepositoryProjectPathConfig
 
 from .organization_code_mappings import NullableOrganizationIntegrationMixin
 
@@ -18,6 +18,9 @@ class OrganizationCodeMappingCodeOwnersEndpoint(
         try:
             kwargs["config"] = RepositoryProjectPathConfig.objects.get(
                 id=config_id,
+                organization_integration__in=OrganizationIntegration.objects.filter(
+                    organization=kwargs["organization"]
+                ).values_list("id", flat=True),
             )
         except RepositoryProjectPathConfig.DoesNotExist:
             raise Http404

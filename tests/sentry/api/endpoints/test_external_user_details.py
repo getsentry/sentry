@@ -33,3 +33,12 @@ class ExternalUserDetailsTest(APITestCase):
                 self.organization.slug, self.external_user.id, status_code=400, **data
             )
         assert response.data == {"provider": ['"unknown" is not a valid choice.']}
+
+    def test_delete_another_orgs_external_user(self):
+        invalid_user = self.create_user()
+        invalid_organization = self.create_organization(owner=invalid_user)
+        self.login_as(user=invalid_user)
+        resp = self.get_error_response(
+            invalid_organization.slug, self.external_user.id, method="delete"
+        )
+        assert resp.status_code == 404
