@@ -6,6 +6,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_text
 
+from sentry.data_export.base import DEFAULT_EXPIRATION, ExportQueryType, ExportStatus
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
@@ -16,8 +17,6 @@ from sentry.db.models import (
 )
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
-
-from .base import DEFAULT_EXPIRATION, ExportQueryType, ExportStatus
 
 logger = logging.getLogger(__name__)
 
