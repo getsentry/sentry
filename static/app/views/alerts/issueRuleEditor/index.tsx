@@ -229,7 +229,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   }
 
   handleRuleSuccess = (isNew: boolean, rule: IssueAlertRule) => {
-    const {organization, router} = this.props;
+    const {organization, project, router} = this.props;
     this.setState({detailedError: null, loading: false, rule});
 
     // The onboarding task will be completed on the server side when the alert
@@ -241,7 +241,10 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
     metric.endTransaction({name: 'saveAlertRule'});
 
-    router.push(`/organizations/${organization.slug}/alerts/rules/`);
+    router.push({
+      pathname: `/organizations/${organization.slug}/alerts/rules/`,
+      query: {project: project.id},
+    });
     addSuccessMessage(isNew ? t('Created alert rule') : t('Updated alert rule'));
   };
 
