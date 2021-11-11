@@ -5,7 +5,6 @@ DEFAULT_PROMPTS = {
     "releases": {"required_fields": ["organization_id", "project_id"]},
     "suspect_commits": {"required_fields": ["organization_id", "project_id"]},
     "alert_stream": {"required_fields": ["organization_id"]},
-    "app_store_connect_updates": {"required_fields": ["organization_id", "project_id"]},
     "sdk_updates": {"required_fields": ["organization_id"]},
     "suggest_mobile_project": {"required_fields": ["organization_id"]},
     "stacktrace_link": {"required_fields": ["organization_id", "project_id"]},
