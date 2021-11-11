@@ -19,10 +19,12 @@ Calculate python typing progress by teams as determined by CODEOWNERS.
 
 BAR_LENGTH = 60
 UNOWNED_KEY = "other"
+TOTALS_KEY = "TOTAL"
 CACHE_SEPARATOR = "\t"
 TEAM_REGEX = re.compile(r"@\S+/\S+")
 # TODO pass directories and ignores as parameters
 ROOT = {"src/"}
+# TODO make these regexes
 IGNORE = {"src/sentry/migrations/"}
 
 # Collect config files
@@ -146,8 +148,11 @@ def analyze_file(file: str, cache: MutableMapping[str, int]) -> int:
     key = hash_file(filename)
     cached_value = cache.get(key)
     if cached_value is not None:
+        logger.debug(f"cache hit {filename}")
         return cached_value
 
+    logger.debug(f"cache size {len(cache.keys())}")
+    logger.debug(f"cache miss {filename} {key}")
     proc_cmd = f"pygount {filename} --format=summary --suffix=py"
     proc = subprocess.run(proc_cmd.split(" "), capture_output=True)
     output = proc.stdout.decode("utf-8")
@@ -157,6 +162,15 @@ def analyze_file(file: str, cache: MutableMapping[str, int]) -> int:
     return value
 
 
+def total_lines(files: Set[str], cache: MutableMapping[str, int], status: str = "") -> int:
+    """Gets the total lines and primes the cache."""
+    total = 0
+    for i, file in enumerate(files):
+        total += analyze_file(file, cache)
+        progress(i, len(files), status)
+    return total
+
+
 def analyze_files(
     files: Set[str],
     codeowners: Any,
@@ -164,13 +178,14 @@ def analyze_files(
     teams: Set[str],
     status: str = "",
 ) -> Mapping[str, int]:
-    files_by_codeowner = split_files_by_codeowner(files, codeowners)
-    count_by_team = defaultdict(int)
-
     logger.debug(f"file count {len(files)}")
     logger.debug(f"teams: {teams}")
 
-    i = 0
+    # This is slow.
+    total = total_lines(files, cache, status)
+    files_by_codeowner = split_files_by_codeowner(files, codeowners)
+
+    count_by_team = defaultdict(int)
     for team in teams:
         subset_of_files = files_by_codeowner.get(team, [])
         logger.debug(f"{team} {len(subset_of_files)}")
@@ -178,9 +193,9 @@ def analyze_files(
             value = analyze_file(file, cache)
             count_by_team[team] += value
             logger.debug(f"{value} {file}")
-            i += 1
-            progress(i, len(files), status)
 
+    logger.debug(count_by_team)
+    count_by_team[TOTALS_KEY] = total
     return count_by_team
 
 
@@ -200,15 +215,20 @@ def print_results(
     teams: Set[str],
 ) -> None:
     """Pretty print the results."""
-    tuples = [(team, get_result(covered_by_team, not_covered_by_team, team)) for team in teams]
+    tuples = sorted(
+        ((team, get_result(covered_by_team, not_covered_by_team, team)) for team in teams),
+        key=lambda x: x[1],
+    ) + [(TOTALS_KEY, get_result(covered_by_team, not_covered_by_team, TOTALS_KEY))]
+
     bar = "=" * int(BAR_LENGTH / 2)
     print(f"{bar} Python coverage by team {bar}")
-    for team, percent in sorted(tuples, key=lambda x: x[1]):
-        percent_str = f"{(percent):.2f}%" if percent else "-"
-        print(f"{team:<32} {percent_str}")
+    for team, percent in tuples:
+        if percent:
+            print(f"{team:<32} {(percent):.2f}%")
 
 
 def setup_args() -> Any:
+    # TODO take a config file
     parser = argparse.ArgumentParser(
         description="Generate a python typing report",
     )
@@ -262,7 +282,6 @@ def main() -> None:
     covered_files = flatten_directories(get_source_files())
     all_files = flatten_directories(ROOT)
     cache = load_cache(args.cache)
-
     teams = get_all_teams(team=args.team)
 
     covered = analyze_files(covered_files, codeowners, cache, teams=teams, status="mypy.ini")
