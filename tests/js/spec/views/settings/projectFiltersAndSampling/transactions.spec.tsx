@@ -14,12 +14,6 @@ import {
 import {commonConditionCategories, renderComponent, renderModal} from './utils';
 
 describe('Filters and Sampling - Transaction rule', function () {
-  MockApiClient.addMockResponse({
-    url: '/projects/org-slug/project-slug/',
-    method: 'GET',
-    body: TestStubs.Project(),
-  });
-
   describe('transaction rule', function () {
     it('renders', async function () {
       MockApiClient.addMockResponse({
@@ -221,6 +215,12 @@ describe('Filters and Sampling - Transaction rule', function () {
     });
 
     describe('modal', function () {
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/',
+        method: 'GET',
+        body: TestStubs.Project(),
+      });
+
       const conditionTracingCategories = [
         'Release',
         'Environment',
