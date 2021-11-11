@@ -960,13 +960,15 @@ SENTRY_FEATURES = {
     # sentry at the moment.
     "organizations:issue-search-use-cdc-primary": False,
     "organizations:issue-search-use-cdc-secondary": False,
-    # Enable the new Metrics page
+    # Enable metrics widget (prototype) on Dashboards
     "organizations:metrics": False,
     # Automatically extract metrics during ingestion.
     #
     # XXX(ja): DO NOT ENABLE UNTIL THIS NOTICE IS GONE. Relay experiences
     # gradual slowdown when this is enabled for too many projects.
     "organizations:metrics-extraction": False,
+    # Enable switch metrics button on Performance, allowing switch to unsampled transaction metrics
+    "organizations:metrics-performance-ui": False,
     # True if the metrics backend should be checked against the sessions backend
     "organizations:release-health-check-metrics": False,
     # Enable metric aggregate in metric alert rule builder
