@@ -244,6 +244,10 @@ describe('Filters and Sampling', function () {
   });
 
   describe('edit rules', function () {
+    beforeEach(function () {
+      MockApiClient.clearMockResponses();
+    });
+
     it('error rule', async function () {
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/',
@@ -361,9 +365,7 @@ describe('Filters and Sampling', function () {
       expect(screen.queryByText('Tracing')).not.toBeInTheDocument();
 
       // Release Field
-      await screen.findByTestId('autocomplete-release');
-      const releaseField = screen.getByTestId('autocomplete-release');
-      expect(releaseField).toBeInTheDocument();
+      expect(await screen.findByTestId('autocomplete-release')).toBeInTheDocument();
 
       // Release field is not empty
       const releaseFieldValues = screen.getByTestId('multivalue');
@@ -388,8 +390,7 @@ describe('Filters and Sampling', function () {
       });
 
       // Release field is now empty
-      const newReleaseFieldValues = screen.queryByTestId('multivalue');
-      expect(newReleaseFieldValues).not.toBeInTheDocument();
+      expect(screen.queryByTestId('multivalue')).not.toBeInTheDocument();
 
       expect(screen.getByRole('button', {name: 'Save Rule'})).toBeDisabled();
 
