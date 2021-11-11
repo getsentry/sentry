@@ -124,8 +124,7 @@ install-py-dev() {
     # Remove this block when upgrading the selenium package
     if grep -q "or setting is" "${fx_profile}"; then
         echo "We are patching ${fx_profile}. You will see this message only once."
-        sed -i .bak 's/or setting is/or setting ==/' ${fx_profile}
-        diff -U1 ${fx_profile} ${fx_profile}.bak
+        patch -p0 <scripts/patches/firefox_profile.diff
     fi
     # SENTRY_LIGHT_BUILD=1 disables webpacking during setup.py.
     # Webpacked assets are only necessary for devserver (which does it lazily anyways)
