@@ -2,7 +2,6 @@ import {
   fireEvent,
   screen,
   waitForElementToBeRemoved,
-  within,
 } from 'sentry-test/reactTestingLibrary';
 import {findByTextContent} from 'sentry-test/utils';
 
@@ -133,8 +132,7 @@ describe('Filters and Sampling - Transaction rule', function () {
       expect(screen.getByRole('checkbox')).toBeChecked();
 
       // Release Field
-      const releaseField = await screen.findByTestId('autocomplete-release');
-      expect(releaseField).toBeInTheDocument();
+      expect(screen.getByTestId('autocomplete-release')).toBeInTheDocument();
 
       // Release field is not empty
       const releaseFieldValues = screen.getByTestId('multivalue');
@@ -142,7 +140,7 @@ describe('Filters and Sampling - Transaction rule', function () {
       expect(releaseFieldValues).toHaveTextContent('1.2.3');
 
       // Button is enabled - meaning the form is valid
-      const saveRuleButton = screen.getByRole('button', {name: 'Save Rule'});
+      const saveRuleButton = screen.getByLabelText('Save Rule');
       expect(saveRuleButton).toBeInTheDocument();
       expect(saveRuleButton).toBeEnabled();
 
@@ -162,7 +160,7 @@ describe('Filters and Sampling - Transaction rule', function () {
       const newReleaseFieldValues = screen.queryByTestId('multivalue');
       expect(newReleaseFieldValues).not.toBeInTheDocument();
 
-      expect(screen.getByRole('button', {name: 'Save Rule'})).toBeDisabled();
+      expect(screen.getByLabelText('Save Rule')).toBeDisabled();
 
       // Type into realease field
       fireEvent.change(screen.getByLabelText('Search or add a release'), {
@@ -177,18 +175,18 @@ describe('Filters and Sampling - Transaction rule', function () {
       // Click on the suggested option
       fireEvent.click(autocompleteOptions);
 
-      expect(screen.getByRole('button', {name: 'Save Rule'})).toBeEnabled();
+      expect(screen.getByLabelText('Save Rule')).toBeEnabled();
 
       // Clear sample rate field
       fireEvent.change(sampleRateField, {target: {value: null}});
 
-      expect(screen.getByRole('button', {name: 'Save Rule'})).toBeDisabled();
+      expect(screen.getByLabelText('Save Rule')).toBeDisabled();
 
       // Update sample rate field
       fireEvent.change(sampleRateField, {target: {value: 60}});
 
       // Save button is now enabled
-      const saveRuleButtonEnabled = screen.getByRole('button', {name: 'Save Rule'});
+      const saveRuleButtonEnabled = screen.getByLabelText('Save Rule');
       expect(saveRuleButtonEnabled).toBeEnabled();
 
       // Click on save button
@@ -250,17 +248,14 @@ describe('Filters and Sampling - Transaction rule', function () {
             name: 'Learn more about tracing',
           })
         ).toHaveAttribute('href', DYNAMIC_SAMPLING_DOC_LINK);
-        expect(
-          within(screen.getByRole('dialog')).getByText('Conditions')
-        ).toBeInTheDocument();
         expect(screen.getByText('Add Condition')).toBeInTheDocument();
         expect(
           screen.getByText('Apply sampling rate to all transactions')
         ).toBeInTheDocument();
         expect(screen.getByText('Sampling Rate \u0025')).toBeInTheDocument();
         expect(screen.getByPlaceholderText('\u0025')).toHaveValue(null);
-        expect(screen.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
-        const saveRuleButton = screen.getByRole('button', {name: 'Save Rule'});
+        expect(screen.getByLabelText('Cancel')).toBeInTheDocument();
+        const saveRuleButton = screen.getByLabelText('Save Rule');
         expect(saveRuleButton).toBeInTheDocument();
         expect(saveRuleButton).toBeDisabled();
 
@@ -285,8 +280,7 @@ describe('Filters and Sampling - Transaction rule', function () {
         expect(autoCompleteList).toBeInTheDocument();
 
         // Trancing Condition Options
-        const conditionTracingOptions =
-          within(autoCompleteList).getAllByRole('presentation');
+        const conditionTracingOptions = screen.getAllByTestId('condition');
         expect(conditionTracingOptions).toHaveLength(conditionTracingCategories.length);
 
         for (const conditionTracingOptionIndex in conditionTracingOptions) {
@@ -302,7 +296,7 @@ describe('Filters and Sampling - Transaction rule', function () {
         fireEvent.click(screen.getByText('Add Condition'));
 
         // No Tracing Condition Options
-        const conditionOptions = within(autoCompleteList).getAllByRole('presentation');
+        const conditionOptions = screen.getAllByTestId('condition');
         expect(conditionOptions).toHaveLength(commonConditionCategories.length);
 
         for (const conditionOptionIndex in conditionOptions) {
@@ -369,15 +363,13 @@ describe('Filters and Sampling - Transaction rule', function () {
           expect(autoCompleteList).toBeInTheDocument();
 
           // Condition Options
-          const conditionOptions = within(autoCompleteList).getAllByRole('presentation');
+          const conditionOptions = screen.getAllByTestId('condition');
 
           // Click on the first condition option
           fireEvent.click(conditionOptions[0]);
 
           // Release Field
-          await screen.findByTestId('autocomplete-release');
-          const releaseField = screen.getByTestId('autocomplete-release');
-          expect(releaseField).toBeInTheDocument();
+          expect(screen.getByTestId('autocomplete-release')).toBeInTheDocument();
 
           // Release field is empty
           const releaseFieldValues = screen.queryByTestId('multivalue');
@@ -397,7 +389,7 @@ describe('Filters and Sampling - Transaction rule', function () {
           fireEvent.click(autocompleteOptions);
 
           // Button is still disabled
-          const saveRuleButton = screen.getByRole('button', {name: 'Save Rule'});
+          const saveRuleButton = screen.getByLabelText('Save Rule');
           expect(saveRuleButton).toBeInTheDocument();
           expect(saveRuleButton).toBeDisabled();
 
@@ -407,7 +399,7 @@ describe('Filters and Sampling - Transaction rule', function () {
           fireEvent.change(sampleRateField, {target: {value: 20}});
 
           // Save button is now enabled
-          const saveRuleButtonEnabled = screen.getByRole('button', {name: 'Save Rule'});
+          const saveRuleButtonEnabled = screen.getByLabelText('Save Rule');
           expect(saveRuleButtonEnabled).toBeEnabled();
 
           // Click on save button
@@ -475,21 +467,14 @@ describe('Filters and Sampling - Transaction rule', function () {
             // Click on 'Add condition'
             fireEvent.click(screen.getByText('Add Condition'));
 
-            // Autocomplete
-            const autoCompleteList = await screen.findByTestId('autocomplete-list');
-            expect(autoCompleteList).toBeInTheDocument();
-
             // Condition Options
-            const conditionOptions =
-              within(autoCompleteList).getAllByRole('presentation');
+            const conditionOptions = screen.getAllByTestId('condition');
 
             // Click on the first condition option
             fireEvent.click(conditionOptions[0]);
 
             // Release Field
-            await screen.findByTestId('autocomplete-release');
-            const releaseField = screen.getByTestId('autocomplete-release');
-            expect(releaseField).toBeInTheDocument();
+            expect(screen.getByTestId('autocomplete-release')).toBeInTheDocument();
 
             // Release field is empty
             const releaseFieldValues = screen.queryByTestId('multivalue');
@@ -509,7 +494,7 @@ describe('Filters and Sampling - Transaction rule', function () {
             fireEvent.click(autocompleteOptions);
 
             // Button is still disabled
-            const saveRuleButton = screen.getByRole('button', {name: 'Save Rule'});
+            const saveRuleButton = screen.getByLabelText('Save Rule');
             expect(saveRuleButton).toBeInTheDocument();
             expect(saveRuleButton).toBeDisabled();
 
@@ -519,7 +504,7 @@ describe('Filters and Sampling - Transaction rule', function () {
             fireEvent.change(sampleRateField, {target: {value: 20}});
 
             // Save button is now enabled
-            const saveRuleButtonEnabled = screen.getByRole('button', {name: 'Save Rule'});
+            const saveRuleButtonEnabled = screen.getByLabelText('Save Rule');
             expect(saveRuleButtonEnabled).toBeEnabled();
 
             // Click on save button
@@ -598,13 +583,8 @@ describe('Filters and Sampling - Transaction rule', function () {
             // Click on 'Add condition'
             fireEvent.click(screen.getByText('Add Condition'));
 
-            // Autocomplete
-            const autoCompleteList = await screen.findByTestId('autocomplete-list');
-            expect(autoCompleteList).toBeInTheDocument();
-
             // Condition Options
-            const conditionOptions =
-              within(autoCompleteList).getAllByRole('presentation');
+            const conditionOptions = screen.getAllByTestId('condition');
 
             // Click on the seventh condition option
             fireEvent.click(conditionOptions[6]);
@@ -641,7 +621,7 @@ describe('Filters and Sampling - Transaction rule', function () {
             }
 
             // Button is still disabled
-            const saveRuleButton = screen.getByRole('button', {name: 'Save Rule'});
+            const saveRuleButton = screen.getByLabelText('Save Rule');
             expect(saveRuleButton).toBeInTheDocument();
             expect(saveRuleButton).toBeDisabled();
 
@@ -651,7 +631,7 @@ describe('Filters and Sampling - Transaction rule', function () {
             fireEvent.change(sampleRateField, {target: {value: 20}});
 
             // Save button is now enabled
-            const saveRuleButtonEnabled = screen.getByRole('button', {name: 'Save Rule'});
+            const saveRuleButtonEnabled = screen.getByLabelText('Save Rule');
             expect(saveRuleButtonEnabled).toBeEnabled();
 
             // Click on save button
@@ -801,16 +781,13 @@ describe('Filters and Sampling - Transaction rule', function () {
       expect(screen.getByRole('checkbox')).not.toBeChecked();
 
       // Release Field
-      await screen.findByTestId('autocomplete-release');
-      const releaseField = screen.getByTestId('autocomplete-release');
-      expect(releaseField).toBeInTheDocument();
+      expect(screen.getByTestId('autocomplete-release')).toBeInTheDocument();
 
       // Release field is not empty
-      const releaseFieldValues = screen.getByTestId('multivalue');
-      expect(releaseFieldValues).toBeInTheDocument();
+      expect(screen.getByTestId('multivalue')).toBeInTheDocument();
 
       // Button is enabled - meaning the form is valid
-      const saveRuleButton = screen.getByRole('button', {name: 'Save Rule'});
+      const saveRuleButton = screen.getByLabelText('Save Rule');
       expect(saveRuleButton).toBeInTheDocument();
       expect(saveRuleButton).toBeEnabled();
 
@@ -830,7 +807,7 @@ describe('Filters and Sampling - Transaction rule', function () {
       const newReleaseFieldValues = screen.queryByTestId('multivalue');
       expect(newReleaseFieldValues).not.toBeInTheDocument();
 
-      expect(screen.getByRole('button', {name: 'Save Rule'})).toBeDisabled();
+      expect(screen.getByLabelText('Save Rule')).toBeDisabled();
 
       // Type into realease field
       fireEvent.change(screen.getByLabelText('Search or add a release'), {
@@ -845,18 +822,18 @@ describe('Filters and Sampling - Transaction rule', function () {
       // Click on the suggested option
       fireEvent.click(autocompleteOptions);
 
-      expect(screen.getByRole('button', {name: 'Save Rule'})).toBeEnabled();
+      expect(screen.getByLabelText('Save Rule')).toBeEnabled();
 
       // Clear sample rate field
       fireEvent.change(sampleRateField, {target: {value: null}});
 
-      expect(screen.getByRole('button', {name: 'Save Rule'})).toBeDisabled();
+      expect(screen.getByLabelText('Save Rule')).toBeDisabled();
 
       // Update sample rate field
       fireEvent.change(sampleRateField, {target: {value: 60}});
 
       // Save button is now enabled
-      const saveRuleButtonEnabled = screen.getByRole('button', {name: 'Save Rule'});
+      const saveRuleButtonEnabled = screen.getByLabelText('Save Rule');
       expect(saveRuleButtonEnabled).toBeEnabled();
 
       // Click on save button
