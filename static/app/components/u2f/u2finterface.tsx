@@ -6,7 +6,8 @@ import {base64urlToBuffer, bufferToBase64url} from 'app/components/u2f/webAuthnH
 import {t, tct} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import {ChallengeData} from 'app/types';
-import cbor from 'cbor-web';
+// @ts-ignore
+import * as cbor from 'cbor-web';
 
 type TapParams = {
   response: string;
@@ -154,11 +155,7 @@ class U2fInterface extends React.Component<Props, State> {
   }
 
   invokeU2fFlow() {
-    debugger;
     let promise: Promise<u2f.SignResponse | u2f.RegisterResponse>;
-    let challenge = atob(this.props.challengeData);
-    challenge = cbor.decodeAll(challenge)
-
     if (this.props.flowMode === 'sign') {
       if (this.props.isWebauthnSigninFFEnabled) {
         this.testWebAuthn(this.props.challengeData.authenticateRequests);
@@ -167,6 +164,8 @@ class U2fInterface extends React.Component<Props, State> {
         this.submitU2fResponse(promise);
       }
     } else if (this.props.flowMode === 'enroll') {
+      const challengeArray = base64urlToBuffer(this.props.challengeData)
+      const challenge = cbor.decodeAllSync(challengeArray)
       const {registerRequests, registeredKeys} = this.props.challengeData;
       promise = u2f.register(registerRequests as any, registeredKeys as any);
       this.submitU2fResponse(promise);
