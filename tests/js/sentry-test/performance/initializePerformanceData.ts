@@ -9,7 +9,6 @@ export function initializeData(settings?: {
   projects?: Project[];
   project?: Project;
 }) {
-  // @ts-expect-error
   const _defaultProject = TestStubs.Project();
   const _settings = {
     query: {},
@@ -20,11 +19,9 @@ export function initializeData(settings?: {
   };
   const {query, features} = _settings;
 
-  // @ts-expect-error
   const projects = [TestStubs.Project()];
   const [project] = projects;
 
-  // @ts-expect-error
   const organization = TestStubs.Organization({
     features,
     projects,

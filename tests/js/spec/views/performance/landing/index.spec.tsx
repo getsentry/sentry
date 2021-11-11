@@ -32,41 +32,34 @@ describe('Performance > Landing > Index', function () {
   let eventsV2Mock: any;
   act(() => void TeamStore.loadInitialData([]));
   beforeEach(function () {
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',
       body: [],
     });
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/prompts-activity/',
       body: {},
     });
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/key-transactions-list/`,
       body: [],
     });
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/legacy-key-transactions-count/`,
       body: [],
     });
-    // @ts-expect-error
     eventStatsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/events-stats/`,
       body: [],
     });
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/events-trends-stats/`,
       body: [],
     });
-    // @ts-expect-error
     eventsV2Mock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/eventsv2/`,
@@ -75,7 +68,6 @@ describe('Performance > Landing > Index', function () {
   });
 
   afterEach(function () {
-    // @ts-expect-error
     MockApiClient.clearMockResponses();
   });
 
@@ -83,7 +75,6 @@ describe('Performance > Landing > Index', function () {
     const data = initializeData();
 
     const wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
-    // @ts-expect-error
     await tick();
     wrapper.update();
 
@@ -98,7 +89,6 @@ describe('Performance > Landing > Index', function () {
     });
 
     const wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
-    // @ts-expect-error
     await tick();
     wrapper.update();
 
@@ -124,7 +114,6 @@ describe('Performance > Landing > Index', function () {
     });
 
     const wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
-    // @ts-expect-error
     await tick();
     wrapper.update();
 
@@ -137,7 +126,6 @@ describe('Performance > Landing > Index', function () {
     });
 
     const wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
-    // @ts-expect-error
     await tick();
     wrapper.update();
 
@@ -150,7 +138,6 @@ describe('Performance > Landing > Index', function () {
     });
 
     const wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
-    // @ts-expect-error
     await tick();
     wrapper.update();
 
@@ -163,7 +150,6 @@ describe('Performance > Landing > Index', function () {
     });
 
     const wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
-    // @ts-expect-error
     await tick();
     wrapper.update();
 
