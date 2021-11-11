@@ -1,4 +1,4 @@
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {addTeamToProject} from 'app/actionCreators/projects';
 import {TeamSelector} from 'app/components/forms/teamSelector';
@@ -123,15 +123,12 @@ describe('Team Selector', function () {
   it('allows searching by slug with useId', function () {
     const onChangeMock = jest.fn();
     createWrapper({useId: true, onChange: onChangeMock});
-    openSelectMenu();
+    userEvent.type(screen.getByText('Select...'), '{keyDown}');
 
-    fireEvent.change(screen.getByLabelText('Select a team'), {
-      target: {value: 'team2'},
-    });
+    userEvent.type(screen.getByLabelText('Select a team'), 'team2');
 
     expect(screen.getByText('#team2')).toBeInTheDocument();
-
-    fireEvent.click(screen.getByText('#team2'));
+    userEvent.click(screen.getByText('#team2'));
     expect(onChangeMock).toHaveBeenCalledWith(
       expect.objectContaining({value: '2'}),
       expect.anything()
