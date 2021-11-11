@@ -1755,12 +1755,6 @@ SENTRY_DEVSERVICES = {
                 "max_wal_senders=1",
             ],
             "entrypoint": "/cdc/postgres-entrypoint.sh" if settings.SENTRY_USE_CDC_DEV else None,
-            "healthcheck": {
-                "test": ["CMD", "pg_isready", "-U", "postgres"],
-                "interval": 30000000000,  # Test every 30 seconds (in ns).
-                "timeout": 5000000000,  # Time we should expect the test to take.
-                "retries": 3,
-            },
         }
     ),
     "zookeeper": lambda settings, options: (
