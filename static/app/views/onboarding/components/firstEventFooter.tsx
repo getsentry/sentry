@@ -44,7 +44,7 @@ export default function FirstEventFooter({
       </FirstEventIndicator>
       <CTASecondary>
         {tct(
-          'Just want to poke around before getting too cozy with the SDK? [sample:View a sample event for this SDK] and finish setup later.',
+          'Just want to poke around before getting too cozy with the SDK? [sample:View a sample event for this SDK] or [skip:finish setup later].',
           {
             sample: (
               <CreateSampleEventButton
@@ -53,6 +53,7 @@ export default function FirstEventFooter({
                 priority="link"
               />
             ),
+            skip: <Button priority="link" href="/" />,
           }
         )}
       </CTASecondary>
