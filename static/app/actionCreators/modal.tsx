@@ -7,9 +7,8 @@ import {DashboardWidgetLibraryModalOptions} from 'app/components/modals/dashboar
 import type {DashboardWidgetQuerySelectorModalOptions} from 'app/components/modals/dashboardWidgetQuerySelectorModal';
 import {InviteRow} from 'app/components/modals/inviteMembersModal/types';
 import type {ReprocessEventModalOptions} from 'app/components/modals/reprocessEventModal';
-import {AppStoreConnectContextProps} from 'app/components/projects/appStoreConnectContext';
 import {Group, IssueOwnership, Organization, Project, SentryApp, Team} from 'app/types';
-import {CustomRepoType} from 'app/types/debugFiles';
+import {AppStoreConnectStatusData, CustomRepoType} from 'app/types/debugFiles';
 import {Event} from 'app/types/event';
 
 export type ModalOptions = ModalTypes['options'];
@@ -197,7 +196,7 @@ export type SentryAppDetailsModalOptions = {
 type DebugFileSourceModalOptions = {
   sourceType: CustomRepoType;
   onSave: (data: Record<string, any>) => Promise<void>;
-  appStoreConnectContext?: AppStoreConnectContextProps;
+  appStoreConnectStatusData?: AppStoreConnectStatusData;
   onClose?: () => void;
   sourceConfig?: Record<string, any>;
 };

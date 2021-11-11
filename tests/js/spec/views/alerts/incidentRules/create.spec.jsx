@@ -1,5 +1,5 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
 import IncidentRulesCreate from 'app/views/alerts/incidentRules/create';
 
@@ -46,7 +46,7 @@ describe('Incident Rules Create', function () {
         project={project}
         userTeamIds={[]}
       />,
-      routerContext
+      {context: routerContext}
     );
 
     expect(eventStatsMock).toHaveBeenCalledWith(

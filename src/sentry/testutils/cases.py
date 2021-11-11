@@ -102,7 +102,7 @@ from sentry.testutils.helpers.datetime import iso_format
 from sentry.testutils.helpers.slack import install_slack
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
-from sentry.utils.auth import SSO_SESSION_KEY
+from sentry.utils.auth import SsoSession
 from sentry.utils.pytest.selenium import Browser
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snuba import _snuba_pool
@@ -224,7 +224,9 @@ class BaseTestCase(Fixtures, Exam):
 
         # TODO(dcramer): ideally this would get abstracted
         if organization_ids:
-            request.session[SSO_SESSION_KEY] = ",".join(str(o) for o in organization_ids)
+            for o in organization_ids:
+                sso_session = SsoSession.create(o)
+                self.session[sso_session.session_key] = sso_session.to_dict()
 
         # logging in implicitly binds superuser, but for test cases we
         # want that action to be explicit to avoid accidentally testing

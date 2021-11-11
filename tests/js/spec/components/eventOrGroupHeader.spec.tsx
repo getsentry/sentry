@@ -5,7 +5,6 @@ import {findByTextContent} from 'sentry-test/utils';
 import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
 import {EventOrGroupType} from 'app/types';
 
-// @ts-expect-error
 const group = TestStubs.Group({
   level: 'error',
   metadata: {
@@ -18,7 +17,6 @@ const group = TestStubs.Group({
   culprit: 'culprit',
 });
 
-// @ts-expect-error
 const event = TestStubs.Event({
   id: 'id',
   eventID: 'eventID',

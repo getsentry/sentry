@@ -3,7 +3,6 @@ import {fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary
 import Button from 'app/components/button';
 
 describe('Button', function () {
-  // @ts-expect-error
   const routerContext = TestStubs.routerContext();
 
   it('renders', function () {

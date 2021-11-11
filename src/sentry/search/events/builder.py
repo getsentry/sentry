@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple, cast
 
 from snuba_sdk.aliased_expression import AliasedExpression
 from snuba_sdk.column import Column
@@ -16,7 +16,7 @@ from sentry.search.events.types import ParamsType, SelectType, WhereType
 from sentry.utils.snuba import Dataset
 
 
-class QueryBuilder(QueryFilter):
+class QueryBuilder(QueryFilter):  # type: ignore
     """Builds a snql query"""
 
     def __init__(
@@ -35,7 +35,7 @@ class QueryBuilder(QueryFilter):
         limit: Optional[int] = 50,
         offset: Optional[int] = 0,
         limitby: Optional[Tuple[str, int]] = None,
-        turbo: Optional[bool] = False,
+        turbo: bool = False,
         sample_rate: Optional[float] = None,
     ):
         super().__init__(dataset, params, auto_fields, functions_acl)
@@ -86,7 +86,7 @@ class QueryBuilder(QueryFilter):
         else:
             return []
 
-    def validate_aggregate_arguments(self):
+    def validate_aggregate_arguments(self) -> None:
         for column in self.columns:
             if column in self.aggregates:
                 continue
@@ -149,7 +149,7 @@ class QueryBuilder(QueryFilter):
         )
 
 
-class TimeseriesQueryBuilder(QueryFilter):
+class TimeseriesQueryBuilder(QueryFilter):  # type: ignore
     time_column = Column("time")
 
     def __init__(
@@ -185,7 +185,8 @@ class TimeseriesQueryBuilder(QueryFilter):
     def select(self) -> List[SelectType]:
         if not self.aggregates:
             raise InvalidSearchQuery("Cannot query a timeseries without a Y-Axis")
-        return self.aggregates
+        # Casting for now since QueryFields/QueryFilter are only partially typed
+        return cast(List[SelectType], self.aggregates)
 
     def get_snql_query(self) -> Query:
         return Query(
@@ -247,14 +248,16 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
         params: ParamsType,
         granularity: int,
         top_events: List[Dict[str, Any]],
-        other: Optional[bool] = False,
+        other: bool = False,
         query: Optional[str] = None,
         selected_columns: Optional[List[str]] = None,
         timeseries_columns: Optional[List[str]] = None,
         equations: Optional[List[str]] = None,
         limit: Optional[int] = 10000,
     ):
-        timeseries_equations, timeseries_functions = categorize_columns(timeseries_columns)
+        timeseries_equations, timeseries_functions = categorize_columns(
+            timeseries_columns if timeseries_columns is not None else []
+        )
         super().__init__(
             dataset,
             params,
@@ -265,7 +268,7 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
             limit=limit,
         )
 
-        self.fields = selected_columns
+        self.fields: List[str] = selected_columns if selected_columns is not None else []
 
         if (conditions := self.resolve_top_event_conditions(top_events, other)) is not None:
             self.where.append(conditions)
@@ -290,7 +293,7 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
         return sorted(translated)
 
     def resolve_top_event_conditions(
-        self, top_events: Optional[Dict[str, Any]], other: bool
+        self, top_events: List[Dict[str, Any]], other: bool
     ) -> Optional[WhereType]:
         """Given a list of top events construct the conditions"""
         conditions = []
@@ -314,7 +317,7 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
 
             resolved_field = self.resolve_column(field)
 
-            values = set()
+            values: Set[Any] = set()
             for event in top_events:
                 if field in event:
                     alias = field
@@ -328,8 +331,8 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
                     continue
                 else:
                     values.add(event.get(alias))
-            values = list(values)
-            if values:
+            values_list = list(values)
+            if values_list:
                 if field == "timestamp" or field.startswith("timestamp.to_"):
                     if not other:
                         # timestamp fields needs special handling, creating a big OR instead
@@ -337,20 +340,20 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
                     else:
                         # Needs to be a big AND when negated
                         function, operator = And, Op.NEQ
-                    if len(values) > 1:
+                    if len(values_list) > 1:
                         conditions.append(
                             function(
                                 conditions=[
                                     Condition(resolved_field, operator, value)
-                                    for value in sorted(values)
+                                    for value in sorted(values_list)
                                 ]
                             )
                         )
                     else:
-                        conditions.append(Condition(resolved_field, operator, values[0]))
-                elif None in values:
+                        conditions.append(Condition(resolved_field, operator, values_list[0]))
+                elif None in values_list:
                     # one of the values was null, but we can't do an in with null values, so split into two conditions
-                    non_none_values = [value for value in values if value is not None]
+                    non_none_values = [value for value in values_list if value is not None]
                     null_condition = Condition(
                         Function("isNull", [resolved_field]), Op.EQ if not other else Op.NEQ, 1
                     )
@@ -366,7 +369,7 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
                         conditions.append(null_condition)
                 else:
                     conditions.append(
-                        Condition(resolved_field, Op.IN if not other else Op.NOT_IN, values)
+                        Condition(resolved_field, Op.IN if not other else Op.NOT_IN, values_list)
                     )
         if len(conditions) > 1:
             final_function = And if not other else Or

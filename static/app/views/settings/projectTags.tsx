@@ -88,7 +88,7 @@ class ProjectTags extends AsyncView<Props, State> {
               <EmptyMessage>
                 {tct('There are no tags, [link:learn how to add tags]', {
                   link: (
-                    <ExternalLink href="https://docs.sentry.io/product/sentry-basics/guides/enrich-data/" />
+                    <ExternalLink href="https://docs.sentry.io/product/sentry-basics/enrich-data/" />
                   ),
                 })}
               </EmptyMessage>
