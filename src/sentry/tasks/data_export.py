@@ -11,10 +11,15 @@ from django.core.files.base import ContentFile
 from django.db import IntegrityError, router
 from django.utils import timezone
 
+from sentry.data_export.processors.discover import DiscoverProcessor
+from sentry.data_export.processors.issues_by_tag import IssuesByTagProcessor
+from sentry.data_export.utils import handle_snuba_errors
 from sentry.models import (
     DEFAULT_BLOB_SIZE,
     MAX_FILE_SIZE,
     AssembleChecksumMismatch,
+    ExportedData,
+    ExportedDataBlob,
     File,
     FileBlob,
     FileBlobIndex,
@@ -31,10 +36,6 @@ from .base import (
     ExportError,
     ExportQueryType,
 )
-from .models import ExportedData, ExportedDataBlob
-from .processors.discover import DiscoverProcessor
-from .processors.issues_by_tag import IssuesByTagProcessor
-from .utils import handle_snuba_errors
 
 logger = logging.getLogger(__name__)
 
