@@ -687,6 +687,8 @@ class SearchVisitor(NodeVisitor):
         search_value = SearchValue("".join(search_value))
         if operator not in ("=", "!=") and search_key.name not in self.config.text_operator_keys:
             search_value = search_value._replace(raw_value=f"{operator}{search_value.raw_value}")
+
+        if search_key.name not in self.config.text_operator_keys:
             operator = "!=" if is_negated(negation) else "="
         return self._handle_basic_filter(search_key, operator, search_value)
 
