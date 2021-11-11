@@ -201,6 +201,9 @@ def update_groups(
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
+    if serializer is None:
+        return
+
     result = dict(serializer.validated_data)
 
     # so we won't have to requery for each group
@@ -241,7 +244,7 @@ def update_groups(
     commit = None
     res_type = None
     activity_type = None
-    activity_data = None
+    activity_data: MutableMapping[str, Any | None] | None = None
     if status in ("resolved", "resolvedInNextRelease"):
         res_status = None
         if status == "resolvedInNextRelease" or statusDetails.get("inNextRelease"):
@@ -260,7 +263,7 @@ def update_groups(
                 .order_by("-sort")[0]
             )
             activity_type = Activity.SET_RESOLVED_IN_RELEASE
-            activity_data: MutableMapping[str, Any | None] = {
+            activity_data = {
                 # no version yet
                 "version": ""
             }
