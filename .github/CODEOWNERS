@@ -184,10 +184,10 @@ build-utils/        @getsentry/owners-js-build
 
 /src/sentry/digests/                          @getsentry/ecosystem
 /src/sentry/identity/                         @getsentry/ecosystem
-/src/sentry/integrations/                     @getsentry/ecosystem
 /src/sentry/identity/                         @getsentry/ecosystem
-/src/sentry/mediators/                        @getsentry/ecosystem
+/src/sentry/integrations/                     @getsentry/ecosystem
 /src/sentry/mail/                             @getsentry/ecosystem
+/src/sentry/mediators/                        @getsentry/ecosystem
 /src/sentry/notifications/                    @getsentry/ecosystem
 /src/sentry/plugins/                          @getsentry/ecosystem
 /src/sentry/ratelimits/                       @getsentry/ecosystem
