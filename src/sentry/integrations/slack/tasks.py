@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Optional, Sequence
+from typing import Any, Mapping, Optional, Sequence
 from uuid import uuid4
 
 from django.conf import settings
@@ -14,6 +14,7 @@ from sentry.incidents.logic import (
     get_slack_channel_ids,
 )
 from sentry.incidents.models import AlertRule, AlertRuleTriggerAction
+from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.utils import get_identities_by_user
 from sentry.mediators import project_rules
 from sentry.models import (
@@ -29,7 +30,11 @@ from sentry.models import (
     User,
     UserEmail,
 )
-from sentry.shared_integrations.exceptions import ApiRateLimitedError, DuplicateDisplayNameError
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    ApiRateLimitedError,
+    DuplicateDisplayNameError,
+)
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json
 from sentry.utils.json import JSONData
@@ -155,6 +160,7 @@ def find_channel_id_for_rule(
         # want to set the status to failed. This just lets us skip
         # over the next block and hit the failed status at the end.
         item_id = None
+        prefix = ""
     except ApiRateLimitedError:
         redis_rule_status.set_value("failed", None, SLACK_RATE_LIMITED_MESSAGE)
         return
@@ -318,3 +324,16 @@ def link_slack_user_identities(integration: Integration, organization: Organizat
                     "type": idp.type,
                 },
             )
+
+
+# TODO: add retry logic
+@instrumented_task(name="sentry.integrations.slack.post_message", queue="integrations", max_retries=0)  # type: ignore
+def post_message(
+    payload: Mapping[str, Any], log_error_message: str, log_params: Mapping[str, Any]
+) -> None:
+    client = SlackClient()
+    try:
+        client.post("/chat.postMessage", data=payload, timeout=5)
+    except ApiError as e:
+        extra = {"error": str(e), **log_params}
+        logger.info(log_error_message, extra=extra)
