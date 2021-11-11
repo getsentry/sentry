@@ -67,8 +67,7 @@ describe('Filters and Sampling', function () {
 
   describe('renders', function () {
     it('empty', async function () {
-      const component = renderComponent(false);
-      const {container} = component;
+      const {container} = renderComponent(false);
 
       // Title
       expect(screen.getByText('Filters & Sampling')).toBeInTheDocument();
@@ -185,8 +184,7 @@ describe('Filters and Sampling', function () {
         }),
       });
 
-      const component = renderComponent(false);
-      const {container} = component;
+      const {container} = renderComponent(false);
 
       // Title
       expect(screen.getByText('Filters & Sampling')).toBeInTheDocument();
@@ -573,8 +571,7 @@ describe('Filters and Sampling', function () {
       expect(modal.getByRole('checkbox')).toBeChecked();
 
       // Release Field
-      await modal.findByTestId('autocomplete-release');
-      const releaseField = modal.getByTestId('autocomplete-release');
+      const releaseField = await modal.findByTestId('autocomplete-release');
       expect(releaseField).toBeInTheDocument();
 
       // Release field is not empty
@@ -1081,11 +1078,10 @@ describe('Filters and Sampling', function () {
         body: [{value: '1.2.3'}],
       });
 
-      const component = renderComponent();
-      const {getByText, queryByText} = component;
+      renderComponent();
 
       // Open Modal
-      const modal = await renderModal(getByText('Add error rule'));
+      const modal = await renderModal(screen.getByText('Add error rule'));
 
       // Click on 'Add condition'
       fireEvent.click(modal.getByText('Add Condition'));
@@ -1140,14 +1136,16 @@ describe('Filters and Sampling', function () {
       fireEvent.click(saveRuleButtonEnabled);
 
       // Modal will close
-      await waitForElementToBeRemoved(() => getByText('Add Error Sampling Rule'));
+      await waitForElementToBeRemoved(() => screen.getByText('Add Error Sampling Rule'));
 
       // Error rules panel is updated
-      expect(queryByText('There are no error rules to display')).not.toBeInTheDocument();
-      expect(getByText('Errors only')).toBeInTheDocument();
-      expect(getByText('Release')).toBeInTheDocument();
-      expect(getByText('1.2.3')).toBeInTheDocument();
-      expect(getByText('20%')).toBeInTheDocument();
+      expect(
+        screen.queryByText('There are no error rules to display')
+      ).not.toBeInTheDocument();
+      expect(screen.getByText('Errors only')).toBeInTheDocument();
+      expect(screen.getByText('Release')).toBeInTheDocument();
+      expect(screen.getByText('1.2.3')).toBeInTheDocument();
+      expect(screen.getByText('20%')).toBeInTheDocument();
     });
   });
 
@@ -1201,11 +1199,10 @@ describe('Filters and Sampling', function () {
     });
 
     it('condition options', async function () {
-      const component = renderComponent();
-      const {getByText, getByLabelText} = component;
+      renderComponent();
 
       // Open Modal
-      const modal = await renderModal(getByText('Add transaction rule'));
+      const modal = await renderModal(screen.getByText('Add transaction rule'));
 
       // Click on 'Add condition'
       fireEvent.click(modal.getByText('Add Condition'));
@@ -1241,8 +1238,10 @@ describe('Filters and Sampling', function () {
       }
 
       // Close Modal
-      fireEvent.click(getByLabelText('Close Modal'));
-      await waitForElementToBeRemoved(() => getByText('Add Transaction Sampling Rule'));
+      fireEvent.click(screen.getByLabelText('Close Modal'));
+      await waitForElementToBeRemoved(() =>
+        screen.getByText('Add Transaction Sampling Rule')
+      );
     });
 
     describe('save rule', function () {
