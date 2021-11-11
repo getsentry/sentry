@@ -3,6 +3,7 @@ import {act, fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLi
 
 import OrganizationStore from 'app/stores/organizationStore';
 import ProjectsStore from 'app/stores/projectsStore';
+import TeamStore from 'app/stores/teamStore';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import AlertRulesList from 'app/views/alerts/rules';
 import {IncidentStatus} from 'app/views/alerts/types';
@@ -11,8 +12,12 @@ jest.mock('app/utils/analytics');
 
 describe('OrganizationRuleList', () => {
   const {routerContext, organization, router} = initializeOrg();
+  TeamStore.loadInitialData([]);
   let rulesMock;
   let projectMock;
+  const pageLinks =
+    '<https://sentry.io/api/0/organizations/org-slug/combined-rules/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", ' +
+    '<https://sentry.io/api/0/organizations/org-slug/combined-rules/?cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"';
 
   const getComponent = props => (
     <AlertRulesList
@@ -30,6 +35,7 @@ describe('OrganizationRuleList', () => {
   beforeEach(() => {
     rulesMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/combined-rules/',
+      headers: {Link: pageLinks},
       body: [
         TestStubs.ProjectAlertRule({
           id: '123',
@@ -248,6 +254,27 @@ describe('OrganizationRuleList', () => {
           expand: ['latestIncident'],
           sort: ['incident_status', 'date_triggered'],
           team: ['myteams', 'unassigned'],
+        },
+      })
+    );
+  });
+
+  it('preserves empty team query parameter on pagination', async () => {
+    createWrapper({
+      organization,
+      location: {query: {team: ''}, search: '?team=`'},
+    });
+    expect(await screen.findByText('First Issue Alert')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText('Next'));
+
+    expect(router.push).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: {
+          expand: ['latestIncident'],
+          sort: ['incident_status', 'date_triggered'],
+          team: '',
+          cursor: '0:100:0',
         },
       })
     );

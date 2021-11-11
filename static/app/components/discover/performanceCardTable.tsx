@@ -1,100 +1,209 @@
 import {Fragment} from 'react';
 import * as React from 'react';
 import {Link} from 'react-router';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
 import Alert from 'app/components/alert';
+import AsyncComponent from 'app/components/asyncComponent';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import NotAvailable from 'app/components/notAvailable';
 import {PanelItem} from 'app/components/panels';
 import PanelTable from 'app/components/panels/panelTable';
-import UserMisery from 'app/components/userMisery';
-import {backend, frontend, mobile, serverless} from 'app/data/platformCategories';
-import {IconWarning} from 'app/icons';
-import {t} from 'app/locale';
+import {IconArrow, IconWarning} from 'app/icons';
+import {t, tct} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Organization, ReleaseProject} from 'app/types';
+import DiscoverQuery, {TableData} from 'app/utils/discover/discoverQuery';
+import EventView from 'app/utils/discover/eventView';
+import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {MobileVital, WebVital} from 'app/utils/discover/fields';
 import {
   MOBILE_VITAL_DETAILS,
   WEB_VITAL_DETAILS,
 } from 'app/utils/performance/vitals/constants';
+import {PROJECT_PERFORMANCE_TYPE} from 'app/views/performance/utils';
 
-const FRONTEND_PLATFORMS: string[] = [...frontend];
-const BACKEND_PLATFORMS: string[] = [...backend, ...serverless];
-const MOBILE_PLATFORMS: string[] = [...mobile];
-
-type Props = {
+type PerformanceCardTableProps = {
   organization: Organization;
+  location: Location;
   project: ReleaseProject;
+  allReleasesEventView: EventView;
+  releaseEventView: EventView;
+  allReleasesTableData: TableData | null;
+  thisReleaseTableData: TableData | null;
+  performanceType: string;
   isLoading: boolean;
-  isEmpty: boolean;
 };
 
-class PerformanceCardTable extends React.PureComponent<Props> {
-  userMiseryField() {
+function PerformanceCardTable({
+  organization,
+  location,
+  project,
+  releaseEventView,
+  allReleasesTableData,
+  thisReleaseTableData,
+  performanceType,
+  isLoading,
+}: PerformanceCardTableProps) {
+  const miseryRenderer =
+    allReleasesTableData?.meta &&
+    getFieldRenderer('user_misery', allReleasesTableData.meta);
+
+  function renderChange(
+    allReleasesScore: number,
+    thisReleaseScore: number,
+    meta: string
+  ) {
+    if (allReleasesScore === undefined || thisReleaseScore === undefined) {
+      return <StyledNotAvailable />;
+    }
+
+    const trend = allReleasesScore - thisReleaseScore;
+    const trendSeconds = trend >= 1000 ? trend / 1000 : trend;
+    const trendPercentage = (allReleasesScore - thisReleaseScore) * 100;
+    const valPercentage = Math.round(Math.abs(trendPercentage));
+    const val = Math.abs(trendSeconds).toFixed(2);
+
+    if (trend === 0) {
+      return <SubText>{`0${meta === 'duration' ? 'ms' : '%'}`}</SubText>;
+    }
+
     return (
-      <UserMiseryPanelItem>
-        <StyledUserMisery
-          bars={10}
-          barHeight={20}
-          miseryLimit={1000}
-          totalUsers={500}
-          userMisery={300}
-          miserableUsers={200}
+      <TrendText color={trend >= 0 ? 'success' : 'error'}>
+        {`${meta === 'duration' ? val : valPercentage}${
+          meta === 'duration' ? (trend >= 1000 ? 's' : 'ms') : '%'
+        }`}
+        <StyledIconArrow
+          color={trend >= 0 ? 'success' : 'error'}
+          direction={trend >= 0 ? 'down' : 'up'}
+          size="xs"
         />
-      </UserMiseryPanelItem>
+      </TrendText>
     );
   }
 
-  sectionField(field: JSX.Element[]) {
+  function userMiseryTrend() {
+    const allReleasesUserMisery = allReleasesTableData?.data?.[0]?.user_misery;
+    const thisReleaseUserMisery = thisReleaseTableData?.data?.[0]?.user_misery;
     return (
       <StyledPanelItem>
-        <TitleSpace />
-        {field}
+        {renderChange(
+          allReleasesUserMisery as number,
+          thisReleaseUserMisery as number,
+          'number' as string
+        )}
       </StyledPanelItem>
     );
   }
 
-  renderFrontendPerformance() {
-    const vitals = [WebVital.FCP, WebVital.FID, WebVital.LCP, WebVital.CLS];
-    const webVitalTitles = vitals.map(vital => {
+  function renderFrontendPerformance() {
+    const webVitals = [
+      {title: WebVital.FCP, field: 'p75_measurements_fcp'},
+      {title: WebVital.FID, field: 'p75_measurements_fid'},
+      {title: WebVital.LCP, field: 'p75_measurements_lcp'},
+      {title: WebVital.CLS, field: 'p75_measurements_cls'},
+    ];
+
+    const spans = [
+      {title: 'HTTP', column: 'p75(spans.http)', field: 'p75_spans_http'},
+      {title: 'Browser', column: 'p75(spans.browser)', field: 'p75_spans_browser'},
+      {title: 'Resource', column: 'p75(spans.resource)', field: 'p75_spans_resource'},
+    ];
+
+    const webVitalTitles = webVitals.map((vital, idx) => {
+      const newView = releaseEventView.withColumns([
+        {kind: 'field', field: `p75(${vital.title})`},
+      ]);
       return (
-        <SubTitle key={vital}>
-          {WEB_VITAL_DETAILS[vital].name} ({WEB_VITAL_DETAILS[vital].acronym})
+        <SubTitle key={idx}>
+          <Link to={newView.getResultsViewUrlTarget(organization.slug)}>
+            {WEB_VITAL_DETAILS[vital.title].name} (
+            {WEB_VITAL_DETAILS[vital.title].acronym})
+          </Link>
         </SubTitle>
       );
     });
 
-    const spans = ['HTTP', 'DB', 'Browser', 'Resource'];
-    const spanTitles = spans.map(span => {
-      return <SubTitle key={span}>{t(span)}</SubTitle>;
-    });
-
-    // TODO(kelly): placeholder data. will need to add discover data for webvitals and span operations in follow-up pr
-    const fieldData = ['0ms', '0ms', '0ms', '0ms'];
-    const field = fieldData.map(data => {
+    const spanTitles = spans.map((span, idx) => {
+      const newView = releaseEventView.withColumns([
+        {kind: 'field', field: `${span.column}`},
+      ]);
       return (
-        <Field key={data} align="right">
-          {data}
-        </Field>
+        <SubTitle key={idx}>
+          <Link to={newView.getResultsViewUrlTarget(organization.slug)}>
+            {t(span.title)}
+          </Link>
+        </SubTitle>
       );
     });
 
-    const columnData = () => {
-      return (
-        <div>
-          {this.userMiseryField()}
-          {this.sectionField(field)}
-          {this.sectionField(field)}
-        </div>
-      );
-    };
+    const webVitalsRenderer = webVitals.map(
+      vital =>
+        allReleasesTableData?.meta &&
+        getFieldRenderer(vital.field, allReleasesTableData?.meta)
+    );
+
+    const spansRenderer = spans.map(
+      span =>
+        allReleasesTableData?.meta &&
+        getFieldRenderer(span.field, allReleasesTableData?.meta)
+    );
+
+    const webReleaseTrend = webVitals.map(vital => {
+      return {
+        allReleasesRow: {
+          data: allReleasesTableData?.data?.[0]?.[vital.field],
+          meta: allReleasesTableData?.meta?.[vital.field],
+        },
+        thisReleaseRow: {
+          data: thisReleaseTableData?.data?.[0]?.[vital.field],
+          meta: thisReleaseTableData?.meta?.[vital.field],
+        },
+      };
+    });
+    const spansReleaseTrend = spans.map(span => {
+      return {
+        allReleasesRow: {
+          data: allReleasesTableData?.data?.[0]?.[span.field],
+          meta: allReleasesTableData?.meta?.[span.field],
+        },
+        thisReleaseRow: {
+          data: thisReleaseTableData?.data?.[0]?.[span.field],
+          meta: thisReleaseTableData?.meta?.[span.field],
+        },
+      };
+    });
+
+    const emptyColumn = (
+      <div>
+        <SingleEmptySubText>
+          <StyledNotAvailable tooltip={t('No results found')} />
+        </SingleEmptySubText>
+        <StyledPanelItem>
+          <TitleSpace />
+          {webVitals.map((vital, index) => (
+            <MultipleEmptySubText key={vital[index]}>
+              {<StyledNotAvailable tooltip={t('No results found')} />}
+            </MultipleEmptySubText>
+          ))}
+        </StyledPanelItem>
+        <StyledPanelItem>
+          <TitleSpace />
+          {spans.map((span, index) => (
+            <MultipleEmptySubText key={span[index]}>
+              {<StyledNotAvailable tooltip={t('No results found')} />}
+            </MultipleEmptySubText>
+          ))}
+        </StyledPanelItem>
+      </div>
+    );
 
     return (
       <Fragment>
         <div>
-          {/* Table description column */}
           <PanelItem>{t('User Misery')}</PanelItem>
           <StyledPanelItem>
             <div>{t('Web Vitals')}</div>
@@ -105,62 +214,167 @@ class PerformanceCardTable extends React.PureComponent<Props> {
             {spanTitles}
           </StyledPanelItem>
         </div>
+        {allReleasesTableData?.data.length === 0
+          ? emptyColumn
+          : allReleasesTableData?.data.map((dataRow, idx) => {
+              const allReleasesMisery = miseryRenderer?.(dataRow, {
+                organization,
+                location,
+              });
+              const allReleasesWebVitals = webVitalsRenderer?.map(renderer =>
+                renderer?.(dataRow, {organization, location})
+              );
+              const allReleasesSpans = spansRenderer?.map(renderer =>
+                renderer?.(dataRow, {organization, location})
+              );
+
+              return (
+                <div key={idx}>
+                  <UserMiseryPanelItem>{allReleasesMisery}</UserMiseryPanelItem>
+                  <StyledPanelItem>
+                    <TitleSpace />
+                    {allReleasesWebVitals.map(webVital => webVital)}
+                  </StyledPanelItem>
+                  <StyledPanelItem>
+                    <TitleSpace />
+                    {allReleasesSpans.map(span => span)}
+                  </StyledPanelItem>
+                </div>
+              );
+            })}
+        {thisReleaseTableData?.data.length === 0
+          ? emptyColumn
+          : thisReleaseTableData?.data.map((dataRow, idx) => {
+              const thisReleasesMisery = miseryRenderer?.(dataRow, {
+                organization,
+                location,
+              });
+              const thisReleasesWebVitals = webVitalsRenderer?.map(renderer =>
+                renderer?.(dataRow, {organization, location})
+              );
+              const thisReleasesSpans = spansRenderer?.map(renderer =>
+                renderer?.(dataRow, {organization, location})
+              );
+
+              return (
+                <div key={idx}>
+                  <div>
+                    <UserMiseryPanelItem>{thisReleasesMisery}</UserMiseryPanelItem>
+                    <StyledPanelItem>
+                      <TitleSpace />
+                      {thisReleasesWebVitals.map(webVital => webVital)}
+                    </StyledPanelItem>
+                    <StyledPanelItem>
+                      <TitleSpace />
+                      {thisReleasesSpans.map(span => span)}
+                    </StyledPanelItem>
+                  </div>
+                </div>
+              );
+            })}
         <div>
-          {/* Table All Releases column */}
-          {/* TODO(kelly): placeholder data. will need to add user misery data in follow-up pr */}
-          {columnData()}
-        </div>
-        <div>
-          {/* Table This Release column */}
-          {columnData()}
-        </div>
-        <div>
-          {/* Table Change column */}
-          {columnData()}
+          {userMiseryTrend()}
+          <StyledPanelItem>
+            <TitleSpace />
+            {webReleaseTrend?.map(row =>
+              renderChange(
+                row.allReleasesRow?.data as number,
+                row.thisReleaseRow?.data as number,
+                row.allReleasesRow?.meta as string
+              )
+            )}
+          </StyledPanelItem>
+          <StyledPanelItem>
+            <TitleSpace />
+            {spansReleaseTrend?.map(row =>
+              renderChange(
+                row.allReleasesRow?.data as number,
+                row.thisReleaseRow?.data as number,
+                row.allReleasesRow?.meta as string
+              )
+            )}
+          </StyledPanelItem>
         </div>
       </Fragment>
     );
   }
 
-  renderBackendPerformance() {
-    const spans = ['HTTP', 'DB'];
-    const spanTitles = spans.map(span => {
-      return <SubTitle key={span}>{t(span)}</SubTitle>;
-    });
+  function renderBackendPerformance() {
+    const spans = [
+      {title: 'HTTP', column: 'p75(spans.http)', field: 'p75_spans_http'},
+      {title: 'DB', column: 'p75(spans.db)', field: 'p75_spans_db'},
+    ];
 
-    // TODO(kelly): placeholder data. will need to add discover data for webvitals and span operations in follow-up pr
-    const apdexData = ['0ms'];
-    const apdexField = apdexData.map(data => {
+    const spanTitles = spans.map((span, idx) => {
+      const newView = releaseEventView.withColumns([
+        {kind: 'field', field: `${span.column}`},
+      ]);
       return (
-        <Field key={data} align="right">
-          {data}
-        </Field>
+        <SubTitle key={idx}>
+          <Link to={newView.getResultsViewUrlTarget(organization.slug)}>
+            {t(span.title)}
+          </Link>
+        </SubTitle>
       );
     });
 
-    const fieldData = ['0ms', '0ms'];
-    const field = fieldData.map(data => {
-      return (
-        <Field key={data} align="right">
-          {data}
-        </Field>
-      );
+    const apdexRenderer =
+      allReleasesTableData?.meta && getFieldRenderer('apdex', allReleasesTableData.meta);
+
+    const spansRenderer = spans.map(
+      span =>
+        allReleasesTableData?.meta &&
+        getFieldRenderer(span.field, allReleasesTableData?.meta)
+    );
+
+    const spansReleaseTrend = spans.map(span => {
+      return {
+        allReleasesRow: {
+          data: allReleasesTableData?.data?.[0]?.[span.field],
+          meta: allReleasesTableData?.meta?.[span.field],
+        },
+        thisReleaseRow: {
+          data: thisReleaseTableData?.data?.[0]?.[span.field],
+          meta: thisReleaseTableData?.meta?.[span.field],
+        },
+      };
     });
 
-    const columnData = () => {
+    function apdexTrend() {
+      const allReleasesApdex = allReleasesTableData?.data?.[0]?.apdex;
+      const thisReleaseApdex = thisReleaseTableData?.data?.[0]?.apdex;
       return (
-        <div>
-          {this.userMiseryField()}
-          <StyledPanelItem>{apdexField}</StyledPanelItem>
-          {this.sectionField(field)}
-        </div>
+        <StyledPanelItem>
+          {renderChange(
+            allReleasesApdex as number,
+            thisReleaseApdex as number,
+            'string' as string
+          )}
+        </StyledPanelItem>
       );
-    };
+    }
 
+    const emptyColumn = (
+      <div>
+        <SingleEmptySubText>
+          <StyledNotAvailable tooltip={t('No results found')} />
+        </SingleEmptySubText>
+        <SingleEmptySubText>
+          <StyledNotAvailable tooltip={t('No results found')} />
+        </SingleEmptySubText>
+        <StyledPanelItem>
+          <TitleSpace />
+          {spans.map((span, index) => (
+            <MultipleEmptySubText key={span[index]}>
+              {<StyledNotAvailable tooltip={t('No results found')} />}
+            </MultipleEmptySubText>
+          ))}
+        </StyledPanelItem>
+      </div>
+    );
     return (
       <Fragment>
         <div>
-          {/* Table description column */}
           <PanelItem>{t('User Misery')}</PanelItem>
           <StyledPanelItem>
             <div>{t('Apdex')}</div>
@@ -170,29 +384,79 @@ class PerformanceCardTable extends React.PureComponent<Props> {
             {spanTitles}
           </StyledPanelItem>
         </div>
+        {allReleasesTableData?.data.length === 0
+          ? emptyColumn
+          : allReleasesTableData?.data.map((dataRow, idx) => {
+              const allReleasesMisery = miseryRenderer?.(dataRow, {
+                organization,
+                location,
+              });
+              const allReleasesApdex = apdexRenderer?.(dataRow, {organization, location});
+              const allReleasesSpans = spansRenderer?.map(renderer =>
+                renderer?.(dataRow, {organization, location})
+              );
+
+              return (
+                <div key={idx}>
+                  <UserMiseryPanelItem>{allReleasesMisery}</UserMiseryPanelItem>
+                  <ApdexPanelItem>{allReleasesApdex}</ApdexPanelItem>
+                  <StyledPanelItem>
+                    <TitleSpace />
+                    {allReleasesSpans.map(span => span)}
+                  </StyledPanelItem>
+                </div>
+              );
+            })}
+        {thisReleaseTableData?.data.length === 0
+          ? emptyColumn
+          : thisReleaseTableData?.data.map((dataRow, idx) => {
+              const thisReleasesMisery = miseryRenderer?.(dataRow, {
+                organization,
+                location,
+              });
+              const thisReleasesApdex = apdexRenderer?.(dataRow, {
+                organization,
+                location,
+              });
+              const thisReleasesSpans = spansRenderer?.map(renderer =>
+                renderer?.(dataRow, {organization, location})
+              );
+
+              return (
+                <div key={idx}>
+                  <UserMiseryPanelItem>{thisReleasesMisery}</UserMiseryPanelItem>
+                  <ApdexPanelItem>{thisReleasesApdex}</ApdexPanelItem>
+                  <StyledPanelItem>
+                    <TitleSpace />
+                    {thisReleasesSpans.map(span => span)}
+                  </StyledPanelItem>
+                </div>
+              );
+            })}
         <div>
-          {/* Table All Releases column */}
-          {/* TODO(kelly): placeholder data. will need to add user misery data in follow-up pr */}
-          {columnData()}
-        </div>
-        <div>
-          {/* Table This Release column */}
-          {columnData()}
-        </div>
-        <div>
-          {/* Table Change column */}
-          {columnData()}
+          {userMiseryTrend()}
+          {apdexTrend()}
+          <StyledPanelItem>
+            <TitleSpace />
+            {spansReleaseTrend?.map(row =>
+              renderChange(
+                row.allReleasesRow?.data as number,
+                row.thisReleaseRow?.data as number,
+                row.allReleasesRow?.meta as string
+              )
+            )}
+          </StyledPanelItem>
         </div>
       </Fragment>
     );
   }
 
-  renderMobilePerformance() {
+  function renderMobilePerformance() {
     const mobileVitals = [
       MobileVital.AppStartCold,
       MobileVital.AppStartWarm,
       MobileVital.FramesSlow,
-      MobileVital.FramesFrozenRate,
+      MobileVital.FramesFrozen,
     ];
     const mobileVitalTitles = mobileVitals.map(mobileVital => {
       return (
@@ -200,139 +464,278 @@ class PerformanceCardTable extends React.PureComponent<Props> {
       );
     });
 
-    // TODO(kelly): placeholder data. will need to add mobile data for mobilevitals in follow-up pr
-    const mobileData = ['0ms'];
-    const mobileField = mobileData.map(data => {
-      return (
-        <Field key={data} align="right">
-          {data}
-        </Field>
-      );
-    });
-    const field = mobileVitals.map(vital => {
-      return <StyledPanelItem key={vital}>{mobileField}</StyledPanelItem>;
+    const mobileVitalFields = [
+      'p75_measurements_app_start_cold',
+      'p75_measurements_app_start_warm',
+      'p75_measurements_frames_slow',
+      'p75_measurements_frames_frozen',
+    ];
+    const mobileVitalsRenderer = mobileVitalFields.map(
+      field =>
+        allReleasesTableData?.meta && getFieldRenderer(field, allReleasesTableData?.meta)
+    );
+
+    const mobileReleaseTrend = mobileVitalFields.map(field => {
+      return {
+        allReleasesRow: {
+          data: allReleasesTableData?.data?.[0]?.[field],
+          meta: allReleasesTableData?.meta?.[field],
+        },
+        thisReleaseRow: {
+          data: thisReleaseTableData?.data?.[0]?.[field],
+          meta: thisReleaseTableData?.meta?.[field],
+        },
+      };
     });
 
-    const columnData = () => {
-      return (
-        <div>
-          {this.userMiseryField()}
-          {field}
-        </div>
-      );
-    };
+    const emptyColumn = (
+      <div>
+        <SingleEmptySubText>
+          <StyledNotAvailable tooltip={t('No results found')} />
+        </SingleEmptySubText>
+        {mobileVitalFields.map((vital, index) => (
+          <SingleEmptySubText key={vital[index]}>
+            <StyledNotAvailable tooltip={t('No results found')} />
+          </SingleEmptySubText>
+        ))}
+      </div>
+    );
 
     return (
       <Fragment>
         <div>
-          {/* Table description column */}
           <PanelItem>{t('User Misery')}</PanelItem>
           {mobileVitalTitles}
         </div>
+        {allReleasesTableData?.data.length === 0
+          ? emptyColumn
+          : allReleasesTableData?.data.map((dataRow, idx) => {
+              const allReleasesMisery = miseryRenderer?.(dataRow, {
+                organization,
+                location,
+              });
+              const allReleasesMobile = mobileVitalsRenderer?.map(renderer =>
+                renderer?.(dataRow, {organization, location})
+              );
+
+              return (
+                <div key={idx}>
+                  <UserMiseryPanelItem>{allReleasesMisery}</UserMiseryPanelItem>
+                  {allReleasesMobile.map((mobileVital, i) => (
+                    <StyledPanelItem key={i}>{mobileVital}</StyledPanelItem>
+                  ))}
+                </div>
+              );
+            })}
+        {thisReleaseTableData?.data.length === 0
+          ? emptyColumn
+          : thisReleaseTableData?.data.map((dataRow, idx) => {
+              const thisReleasesMisery = miseryRenderer?.(dataRow, {
+                organization,
+                location,
+              });
+              const thisReleasesMobile = mobileVitalsRenderer?.map(renderer =>
+                renderer?.(dataRow, {organization, location})
+              );
+
+              return (
+                <div key={idx}>
+                  <UserMiseryPanelItem>{thisReleasesMisery}</UserMiseryPanelItem>
+                  {thisReleasesMobile.map((mobileVital, i) => (
+                    <StyledPanelItem key={i}>{mobileVital}</StyledPanelItem>
+                  ))}
+                </div>
+              );
+            })}
         <div>
-          {/* Table All Releases column */}
-          {/* TODO(kelly): placeholder data. will need to add user misery data in follow-up pr */}
-          {columnData()}
-        </div>
-        <div>
-          {/* Table This Release column */}
-          {columnData()}
-        </div>
-        <div>
-          {/* Table Change column */}
-          {columnData()}
+          {userMiseryTrend()}
+          {mobileReleaseTrend?.map((row, idx) => (
+            <StyledPanelItem key={idx}>
+              {renderChange(
+                row.allReleasesRow?.data as number,
+                row.thisReleaseRow?.data as number,
+                row.allReleasesRow?.meta as string
+              )}
+            </StyledPanelItem>
+          ))}
         </div>
       </Fragment>
     );
   }
 
-  renderUnknownPerformance() {
+  function renderUnknownPerformance() {
+    const emptyColumn = (
+      <div>
+        <SingleEmptySubText>
+          <StyledNotAvailable tooltip={t('No results found')} />
+        </SingleEmptySubText>
+      </div>
+    );
+
     return (
       <Fragment>
         <div>
-          {/* Table description column */}
           <PanelItem>{t('User Misery')}</PanelItem>
         </div>
-        <div>
-          {/* TODO(kelly): placeholder data. will need to add user misery data in follow-up pr */}
-          {this.userMiseryField()}
-        </div>
-        <div>
-          {/* Table All Releases column */}
-          {this.userMiseryField()}
-        </div>
-        <div>
-          {/* Table This Release column */}
-          {this.userMiseryField()}
-        </div>
+        {allReleasesTableData?.data.length === 0
+          ? emptyColumn
+          : allReleasesTableData?.data.map((dataRow, idx) => {
+              const allReleasesMisery = miseryRenderer?.(dataRow, {
+                organization,
+                location,
+              });
+
+              return (
+                <div key={idx}>
+                  <UserMiseryPanelItem>{allReleasesMisery}</UserMiseryPanelItem>
+                </div>
+              );
+            })}
+        {thisReleaseTableData?.data.length === 0
+          ? emptyColumn
+          : thisReleaseTableData?.data.map((dataRow, idx) => {
+              const thisReleasesMisery = miseryRenderer?.(dataRow, {
+                organization,
+                location,
+              });
+
+              return (
+                <div key={idx}>
+                  <UserMiseryPanelItem>{thisReleasesMisery}</UserMiseryPanelItem>
+                </div>
+              );
+            })}
+        <div>{userMiseryTrend()}</div>
       </Fragment>
     );
   }
 
-  render() {
-    const {project, organization, isLoading, isEmpty} = this.props;
-    // Custom set the height so we don't have layout shift when results are loaded.
-    const loader = <LoadingIndicator style={{margin: '70px auto'}} />;
+  const loader = <StyledLoadingIndicator />;
 
-    const title = FRONTEND_PLATFORMS.includes(project.platform as string)
-      ? t('Frontend Performance')
-      : BACKEND_PLATFORMS.includes(project.platform as string)
-      ? t('Backend Performance')
-      : MOBILE_PLATFORMS.includes(project.platform as string)
-      ? t('Mobile Performance')
-      : t('[Unknown] Performance');
-    const platformPerformance = FRONTEND_PLATFORMS.includes(project.platform as string)
-      ? this.renderFrontendPerformance()
-      : BACKEND_PLATFORMS.includes(project.platform as string)
-      ? this.renderBackendPerformance()
-      : MOBILE_PLATFORMS.includes(project.platform as string)
-      ? this.renderMobilePerformance()
-      : this.renderUnknownPerformance();
-    const isUnknownPlatform = ![
-      ...FRONTEND_PLATFORMS,
-      ...BACKEND_PLATFORMS,
-      ...MOBILE_PLATFORMS,
-    ].includes(project.platform);
+  const platformPerformanceRender = {
+    [PROJECT_PERFORMANCE_TYPE.FRONTEND]: {
+      title: t('Frontend Performance'),
+      section: renderFrontendPerformance(),
+    },
+    [PROJECT_PERFORMANCE_TYPE.BACKEND]: {
+      title: t('Backend Performance'),
+      section: renderBackendPerformance(),
+    },
+    [PROJECT_PERFORMANCE_TYPE.MOBILE]: {
+      title: t('Mobile Performance'),
+      section: renderMobilePerformance(),
+    },
+    [PROJECT_PERFORMANCE_TYPE.ANY]: {
+      title: t('[Unknown] Performance'),
+      section: renderUnknownPerformance(),
+    },
+  };
 
-    return (
-      <Fragment>
-        <HeadCellContainer>{title}</HeadCellContainer>
-        {isUnknownPlatform ? (
-          <StyledAlert type="warning" icon={<IconWarning size="md" />} system>
-            For more performance metrics, specify which platform this project is using in{' '}
-            <Link to={`/settings/${organization.slug}/projects/${project.slug}/`}>
-              project settings.
-            </Link>
-          </StyledAlert>
-        ) : null}
-        <StyledPanelTable
-          isLoading={isLoading}
-          isEmpty={isEmpty}
-          emptyMessage={t('No transactions found')}
-          headers={[
-            <Cell key="description" align="left">
-              {t('Description')}
-            </Cell>,
-            <Cell key="releases" align="right">
-              {t('All Releases')}
-            </Cell>,
-            <Cell key="release" align="right">
-              {t('This Release')}
-            </Cell>,
-            <Cell key="change" align="right">
-              {t('Change')}
-            </Cell>,
-          ]}
-          disablePadding
-          loader={loader}
-          disableTopBorder={isUnknownPlatform}
-        >
-          {platformPerformance}
-        </StyledPanelTable>
-      </Fragment>
-    );
-  }
+  const isUnknownPlatform = performanceType === PROJECT_PERFORMANCE_TYPE.ANY;
+
+  return (
+    <Fragment>
+      <HeadCellContainer>
+        {platformPerformanceRender[performanceType].title}
+      </HeadCellContainer>
+      {isUnknownPlatform && (
+        <StyledAlert type="warning" icon={<IconWarning size="md" />} system>
+          {tct(
+            'For more performance metrics, specify which platform this project is using in [link]',
+            {
+              link: (
+                <Link to={`/settings/${organization.slug}/projects/${project.slug}/`}>
+                  {t('project settings.')}
+                </Link>
+              ),
+            }
+          )}
+        </StyledAlert>
+      )}
+      <StyledPanelTable
+        isLoading={isLoading}
+        headers={[
+          <Cell key="description" align="left">
+            {t('Description')}
+          </Cell>,
+          <Cell key="releases" align="right">
+            {t('All Releases')}
+          </Cell>,
+          <Cell key="release" align="right">
+            {t('This Release')}
+          </Cell>,
+          <Cell key="change" align="right">
+            {t('Change')}
+          </Cell>,
+        ]}
+        disablePadding
+        loader={loader}
+        disableTopBorder={isUnknownPlatform}
+      >
+        {platformPerformanceRender[performanceType].section}
+      </StyledPanelTable>
+    </Fragment>
+  );
 }
+
+type Props = AsyncComponent['props'] & {
+  organization: Organization;
+  allReleasesEventView: EventView;
+  releaseEventView: EventView;
+  performanceType: string;
+  project: ReleaseProject;
+  location: Location;
+};
+
+function PerformanceCardTableWrapper({
+  organization,
+  project,
+  allReleasesEventView,
+  releaseEventView,
+  performanceType,
+  location,
+}: Props) {
+  return (
+    <DiscoverQuery
+      eventView={allReleasesEventView}
+      orgSlug={organization.slug}
+      location={location}
+    >
+      {({isLoading, tableData: allReleasesTableData}) => (
+        <DiscoverQuery
+          eventView={releaseEventView}
+          orgSlug={organization.slug}
+          location={location}
+        >
+          {({isLoading: isReleaseLoading, tableData: thisReleaseTableData}) => (
+            <PerformanceCardTable
+              isLoading={isLoading || isReleaseLoading}
+              organization={organization}
+              location={location}
+              project={project}
+              allReleasesEventView={allReleasesEventView}
+              releaseEventView={releaseEventView}
+              allReleasesTableData={allReleasesTableData}
+              thisReleaseTableData={thisReleaseTableData}
+              performanceType={performanceType}
+            />
+          )}
+        </DiscoverQuery>
+      )}
+    </DiscoverQuery>
+  );
+}
+
+export default PerformanceCardTableWrapper;
+
+const emptyFieldCss = p => css`
+  color: ${p.theme.chartOther};
+  text-align: right;
+`;
+
+const StyledLoadingIndicator = styled(LoadingIndicator)`
+  margin: 70px auto;
+`;
 
 const HeadCellContainer = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
@@ -367,19 +770,21 @@ const TitleSpace = styled('div')`
   height: 24px;
 `;
 
-const StyledUserMisery = styled(UserMisery)`
-  ${PanelItem} {
-    justify-content: flex-end;
-  }
-`;
-
 const UserMiseryPanelItem = styled(PanelItem)`
   justify-content: flex-end;
 `;
 
-const Field = styled('div')<{align: 'left' | 'right'}>`
-  text-align: ${p => p.align};
-  margin-left: ${p => p.align === 'left' && space(2)};
+const ApdexPanelItem = styled(PanelItem)`
+  text-align: right;
+`;
+
+const SingleEmptySubText = styled(PanelItem)`
+  display: block;
+  ${emptyFieldCss}
+`;
+
+const MultipleEmptySubText = styled('div')`
+  ${emptyFieldCss}
 `;
 
 const Cell = styled('div')<{align: 'left' | 'right'}>`
@@ -396,4 +801,21 @@ const StyledAlert = styled(Alert)`
   margin-bottom: 0;
 `;
 
-export default PerformanceCardTable;
+const StyledNotAvailable = styled(NotAvailable)`
+  text-align: right;
+`;
+
+const SubText = styled('div')`
+  color: ${p => p.theme.subText};
+  text-align: right;
+`;
+
+const TrendText = styled('div')<{color: string}>`
+  color: ${p => p.theme[p.color]};
+  text-align: right;
+`;
+
+const StyledIconArrow = styled(IconArrow)<{color: string}>`
+  color: ${p => p.theme[p.color]};
+  margin-left: ${space(0.5)};
+`;

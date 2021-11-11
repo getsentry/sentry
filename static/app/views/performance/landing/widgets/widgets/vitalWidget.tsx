@@ -1,16 +1,16 @@
 import {Fragment, FunctionComponent, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
+import pick from 'lodash/pick';
 
 import Button from 'app/components/button';
 import _EventsRequest from 'app/components/charts/eventsRequest';
 import {getInterval} from 'app/components/charts/utils';
-import Link from 'app/components/links/link';
 import Truncate from 'app/components/truncate';
-import {IconClose} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
+import {defined} from 'app/utils';
 import DiscoverQuery, {TableDataRow} from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
 import {WebVital} from 'app/utils/discover/fields';
@@ -24,11 +24,17 @@ import {_VitalChart} from 'app/views/performance/vitalDetail/vitalChart';
 import {excludeTransaction} from '../../utils';
 import {VitalBar} from '../../vitalsCards';
 import {GenericPerformanceWidget} from '../components/performanceWidget';
-import SelectableList, {RightAlignedCell} from '../components/selectableList';
+import SelectableList, {
+  GrowLink,
+  ListClose,
+  RightAlignedCell,
+  Subtitle,
+} from '../components/selectableList';
 import {transformDiscoverToList} from '../transforms/transformDiscoverToList';
 import {transformEventsRequestToVitals} from '../transforms/transformEventsToVitals';
 import {QueryDefinition, WidgetDataResult} from '../types';
-import {PerformanceWidgetSetting} from '../widgetDefinitions';
+import {eventsRequestQueryProps} from '../utils';
+import {ChartDefinition, PerformanceWidgetSetting} from '../widgetDefinitions';
 
 type Props = {
   title: string;
@@ -40,6 +46,7 @@ type Props = {
   location: Location;
   organization: Organization;
   chartSetting: PerformanceWidgetSetting;
+  chartDefinition: ChartDefinition;
 
   ContainerActions: FunctionComponent<{isLoading: boolean}>;
 };
@@ -49,24 +56,74 @@ type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToVitals>;
 };
 
+export function transformFieldsWithStops(props: {
+  field: string;
+  fields: string[];
+  vitalStops: ChartDefinition['vitalStops'];
+}) {
+  const {field, fields, vitalStops} = props;
+  const poorStop = vitalStops?.poor;
+  const mehStop = vitalStops?.meh;
+
+  if (!defined(poorStop) || !defined(mehStop)) {
+    return {
+      sortField: fields[0],
+      fieldsList: fields,
+    };
+  }
+
+  const poorCountField = `count_if(${field},greaterOrEquals,${poorStop})`;
+  const mehCountField = `equation|count_if(${field},greaterOrEquals,${mehStop}) - count_if(${field},greaterOrEquals,${poorStop})`;
+  const goodCountField = `equation|count_if(${field},greaterOrEquals,0) - count_if(${field},greaterOrEquals,${mehStop})`;
+
+  const otherRequiredFieldsForQuery = [
+    `count_if(${field},greaterOrEquals,${mehStop})`,
+    `count_if(${field},greaterOrEquals,0)`,
+  ];
+
+  const vitalFields = {
+    poorCountField,
+    mehCountField,
+    goodCountField,
+  };
+
+  const fieldsList = [
+    poorCountField,
+    ...otherRequiredFieldsForQuery,
+    mehCountField,
+    goodCountField,
+  ];
+
+  return {
+    sortField: poorCountField,
+    vitalFields,
+    fieldsList,
+  };
+}
+
 export function VitalWidget(props: Props) {
   const {ContainerActions, eventView, organization, location} = props;
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
-
   const field = props.fields[0];
+
+  const {fieldsList, vitalFields, sortField} = transformFieldsWithStops({
+    field,
+    fields: props.fields,
+    vitalStops: props.chartDefinition.vitalStops,
+  });
 
   const Queries = {
     list: useMemo<QueryDefinition<DataType, WidgetDataResult>>(
       () => ({
-        fields: field,
+        fields: sortField,
         component: provided => {
           const _eventView = props.eventView.clone();
 
-          const fieldFromProps = props.fields.map(propField => ({
+          const fieldFromProps = fieldsList.map(propField => ({
             field: propField,
           }));
 
-          _eventView.sorts = [{kind: 'desc', field}];
+          _eventView.sorts = [{kind: 'desc', field: sortField}];
 
           _eventView.fields = [
             {field: 'transaction'},
@@ -87,14 +144,14 @@ export function VitalWidget(props: Props) {
         },
         transform: transformDiscoverToList,
       }),
-      [props.eventView, props.fields, props.organization.slug]
+      [props.eventView, fieldsList, props.organization.slug]
     ),
     chart: useMemo<QueryDefinition<DataType, WidgetDataResult>>(
       () => ({
         enabled: widgetData => {
           return !!widgetData?.list?.data?.length;
         },
-        fields: props.fields,
+        fields: fieldsList,
         component: provided => {
           const _eventView = props.eventView.clone();
 
@@ -104,12 +161,12 @@ export function VitalWidget(props: Props) {
 
           return (
             <EventsRequest
-              {...provided}
+              {...pick(provided, eventsRequestQueryProps)}
               limit={1}
-              currentSeriesNames={[field]}
+              currentSeriesNames={[sortField]}
               includePrevious={false}
               partial={false}
-              includeTransformedData={false}
+              includeTransformedData
               query={_eventView.getQueryWithAdditionalConditions()}
               interval={getInterval(
                 {
@@ -124,12 +181,15 @@ export function VitalWidget(props: Props) {
         },
         transform: transformEventsRequestToVitals,
       }),
-      [props.eventView, selectedListIndex, props.organization.slug]
+      [props.eventView, selectedListIndex, props.chartSetting, props.organization.slug]
     ),
   };
 
   const settingToVital: {[x: string]: WebVital} = {
     [PerformanceWidgetSetting.WORST_LCP_VITALS]: WebVital.LCP,
+    [PerformanceWidgetSetting.WORST_FCP_VITALS]: WebVital.FCP,
+    [PerformanceWidgetSetting.WORST_FID_VITALS]: WebVital.FID,
+    [PerformanceWidgetSetting.WORST_CLS_VITALS]: WebVital.CLS,
   };
 
   const handleViewAllClick = () => {
@@ -143,7 +203,7 @@ export function VitalWidget(props: Props) {
         const listItem = provided.widgetData.list?.data[selectedListIndex];
 
         if (!listItem) {
-          return <Subtitle />;
+          return <Subtitle> </Subtitle>;
         }
 
         const data = {
@@ -196,6 +256,7 @@ export function VitalWidget(props: Props) {
               {...provided.widgetData.chart}
               {...provided}
               field={field}
+              vitalFields={vitalFields}
               organization={organization}
               query={eventView.query}
               project={eventView.project}
@@ -242,7 +303,7 @@ export function VitalWidget(props: Props) {
                     <GrowLink to={target}>
                       <Truncate value={transaction} maxLength={40} />
                     </GrowLink>
-                    <RightAlignedCell>
+                    <VitalBarCell>
                       <VitalBar
                         isLoading={provided.widgetData.list?.isLoading}
                         vital={settingToVital[props.chartSetting]}
@@ -250,17 +311,13 @@ export function VitalWidget(props: Props) {
                         showBar
                         showDurationDetail={false}
                         showDetail={false}
-                        barHeight={20}
+                        barHeight={24}
                       />
-                    </RightAlignedCell>
-                    <CloseContainer>
-                      <StyledIconClose
-                        onClick={() => {
-                          excludeTransaction(listItem.transaction, props);
-                          setSelectListIndex(0);
-                        }}
-                      />
-                    </CloseContainer>
+                    </VitalBarCell>
+                    <ListClose
+                      setSelectListIndex={setSelectListIndex}
+                      onClick={() => excludeTransaction(listItem.transaction, props)}
+                    />
                   </Fragment>
                 );
               })}
@@ -293,24 +350,12 @@ function getVitalDataForListItem(listItem: TableDataRow) {
   return vitalData;
 }
 
-const EventsRequest = withApi(_EventsRequest);
-const Subtitle = styled('span')`
-  color: ${p => p.theme.gray300};
-  font-size: ${p => p.theme.fontSizeMedium};
-`;
-const CloseContainer = styled('div')`
+const VitalBarCell = styled(RightAlignedCell)`
+  width: 120px;
+  margin-left: ${space(1)};
+  margin-right: ${space(1)};
   display: flex;
   align-items: center;
   justify-content: center;
 `;
-const GrowLink = styled(Link)`
-  flex-grow: 1;
-`;
-
-const StyledIconClose = styled(IconClose)`
-  cursor: pointer;
-  color: ${p => p.theme.gray200};
-  &:hover {
-    color: ${p => p.theme.gray300};
-  }
-`;
+const EventsRequest = withApi(_EventsRequest);

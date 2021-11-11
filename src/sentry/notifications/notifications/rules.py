@@ -26,8 +26,8 @@ logger = logging.getLogger(__name__)
 
 
 class AlertRuleNotification(ProjectNotification):
+    message_builder = "IssueNotificationMessageBuilder"
     fine_tuning_key = "alerts"
-    is_message_issue_unfurl = True
     metrics_key = "issue_alert"
 
     def __init__(

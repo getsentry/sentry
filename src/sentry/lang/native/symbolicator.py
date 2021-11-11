@@ -61,14 +61,7 @@ APP_STORE_CONNECT_SCHEMA = {
         "appconnectPrivateKey": {"type": "string"},
         "appName": {"type": "string", "minLength": 1, "maxLength": 512},
         "appId": {"type": "string", "minLength": 1},
-        # TODO(itunes): All of the below fields are deprecated. Remove together with migration.
-        "itunesUser": {"type": "string", "minLength": 1, "maxLength": 100},
-        "itunesCreated": {"type": "string", "format": "date-time"},
-        "itunesPassword": {"type": "string"},
-        "itunesSession": {"type": "string"},
         "bundleId": {"type": "string", "minLength": 1},
-        "orgPublicId": {"type": "string", "minLength": 36, "maxLength": 36},
-        "orgName": {"type": "string", "minLength": 1, "maxLength": 512},
     },
     "required": [
         "type",
@@ -80,13 +73,6 @@ APP_STORE_CONNECT_SCHEMA = {
         "appName",
         "appId",
         "bundleId",
-        # TODO(itunes): All of the below fields are deprecated. Remove together with migration.
-        "itunesUser",
-        "itunesCreated",
-        "itunesPassword",
-        "itunesSession",
-        "orgPublicId",
-        "orgName",
     ],
     "additionalProperties": False,
 }
@@ -304,13 +290,12 @@ def normalize_user_source(source):
     return source
 
 
-# TODO(itunes): Remove logic related to iTunes fields when the fields are removed
 def secret_fields(source_type):
     """
     Returns a string list of all of the fields that contain a secret in a given source.
     """
     if source_type == "appStoreConnect":
-        yield from ["appconnectPrivateKey", "itunesPassword", "itunesSession"]
+        yield from ["appconnectPrivateKey"]
     elif source_type == "http":
         yield "password"
     elif source_type == "s3":

@@ -40,6 +40,8 @@ export enum PERFORMANCE_TERM {
   P99 = 'p99',
   LCP = 'lcp',
   FCP = 'fcp',
+  FID = 'fid',
+  CLS = 'cls',
   USER_MISERY = 'userMisery',
   STATUS_BREAKDOWN = 'statusBreakdown',
   DURATION_DISTRIBUTION = 'durationDistribution',
@@ -333,6 +335,14 @@ export const PERFORMANCE_TERMS: Record<PERFORMANCE_TERM, TermFormatter> = {
     t('Largest contentful paint (LCP) is a web vital meant to represent user load times'),
   fcp: () =>
     t('First contentful paint (FCP) is a web vital meant to represent user load times'),
+  fid: () =>
+    t(
+      'First input delay (FID) is a web vital representing load for the first user interaction on a page.'
+    ),
+  cls: () =>
+    t(
+      'Cumulative layout shift (CLS) is a web vital measuring unexpected visual shifting a user experiences.'
+    ),
   userMisery: organization =>
     t(
       "User Misery is a score that represents the number of unique users who have experienced load times 4x your organization's apdex threshold of %sms.",

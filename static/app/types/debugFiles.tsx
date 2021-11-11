@@ -33,7 +33,7 @@ export type DebugFile = {
   data?: {type: DebugFileType; features: DebugFileFeature[]};
 };
 
-// Custom Repositories
+// Custom Repository
 export enum CustomRepoType {
   HTTP = 'http',
   S3 = 's3',
@@ -41,9 +41,19 @@ export enum CustomRepoType {
   APP_STORE_CONNECT = 'appStoreConnect',
 }
 
-export type AppStoreConnectValidationData = {
-  id: string;
-  appstoreCredentialsValid: boolean;
+export type AppStoreConnectValidationError = {
+  code:
+    | 'app-connect-authentication-error'
+    | 'app-connect-forbidden-error'
+    | 'app-connect-multiple-sources-error';
+};
+
+export type AppStoreConnectCredentialsStatus =
+  | {status: 'valid'}
+  | ({status: 'invalid'} & AppStoreConnectValidationError);
+
+export type AppStoreConnectStatusData = {
+  credentials: AppStoreConnectCredentialsStatus;
   /**
    * Indicates the number of downloads waiting to be processed and completed,
    * or the number of downloads waiting for valid credentials to be completed if applicable.
@@ -65,7 +75,7 @@ export type AppStoreConnectValidationData = {
   updateAlertMessage?: string;
 };
 
-type CustomRepoAppStoreConnect = {
+export type CustomRepoAppStoreConnect = {
   type: CustomRepoType.APP_STORE_CONNECT;
   appId: string;
   appName: string;
@@ -75,7 +85,7 @@ type CustomRepoAppStoreConnect = {
   bundleId: string;
   id: string;
   name: string;
-  details?: AppStoreConnectValidationData;
+  details?: AppStoreConnectStatusData;
 };
 
 type CustomRepoHttp = {

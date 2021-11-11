@@ -34,10 +34,11 @@ class RedisRateLimiterTest(TestCase):
         """Ensure that the count resets when the window expires"""
         with freeze_time("2000-01-01") as frozen_time:
             for _ in range(10):
-                self.backend.is_limited("foo", 1, window=1)
+                self.backend.is_limited("foo", 1, window=10)
+            assert self.backend.current_value("foo", window=10) == 10
 
-            frozen_time.tick(1)
-            assert self.backend.current_value("new") == 0
+            frozen_time.tick(10)
+            assert self.backend.current_value("foo", window=10) == 0
 
     def test_is_limited_with_value(self):
         limited, value = self.backend.is_limited_with_value("foo", 1)

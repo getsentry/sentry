@@ -7,7 +7,6 @@ import {ProjectId} from 'app/views/settings/components/dataScrubbing/types';
 
 jest.mock('app/actionCreators/modal');
 
-// @ts-expect-error
 const relayPiiConfig = TestStubs.DataScrubbingRelayPiiConfig();
 const stringRelayPiiConfig = JSON.stringify(relayPiiConfig);
 const organizationSlug = 'sentry';
@@ -17,7 +16,6 @@ const additionalContext = 'These rules can be configured for each project.';
 jest.mock('app/actionCreators/indicator');
 
 function getOrganization(piiConfig?: string) {
-  // @ts-expect-error
   return TestStubs.Organization(
     piiConfig ? {id: '123', relayPiiConfig: piiConfig} : {id: '123'}
   );
@@ -191,7 +189,6 @@ describe('Data Scrubbing', () => {
     });
 
     it('Delete rule successfully', async () => {
-      // @ts-expect-error
       const mockDelete = MockApiClient.addMockResponse({
         url: endpoint,
         method: 'PUT',
@@ -212,7 +209,6 @@ describe('Data Scrubbing', () => {
       deleteButton.simulate('click');
       expect(mockDelete).toHaveBeenCalled();
 
-      // @ts-expect-error
       await tick();
       wrapper.update();
 

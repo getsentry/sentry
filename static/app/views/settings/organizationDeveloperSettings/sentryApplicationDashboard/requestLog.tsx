@@ -17,10 +17,12 @@ import {IconChevron, IconFlag, IconOpen} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {SentryApp, SentryAppSchemaIssueLink, SentryAppWebhookRequest} from 'app/types';
+import {use24Hours} from 'app/utils/dates';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 const ALL_EVENTS = t('All Events');
 const MAX_PER_PAGE = 10;
+const is24Hours = use24Hours();
 
 const componentHasSelectUri = (issueLinkComponent: SentryAppSchemaIssueLink): boolean => {
   const hasSelectUri = (fields: any[]): boolean =>
@@ -98,7 +100,7 @@ const TimestampLink = ({date, link}: {date: moment.MomentInput; link?: string}) 
       <StyledIconOpen size="12px" />
     </ExternalLink>
   ) : (
-    <DateTime date={date} />
+    <DateTime date={date} format={is24Hours ? 'MMM D, YYYY HH:mm:ss z' : 'll LTS z'} />
   );
 
 type Props = AsyncComponent['props'] & {

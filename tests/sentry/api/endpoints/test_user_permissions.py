@@ -2,7 +2,7 @@ from sentry.models import UserPermission
 from sentry.testutils import APITestCase
 
 
-class UserDetailsTest(APITestCase):
+class UserPermissionsConfigTest(APITestCase):
     endpoint = "sentry-api-0-user-permissions"
 
     def setUp(self):
@@ -11,7 +11,7 @@ class UserDetailsTest(APITestCase):
         self.login_as(user=self.user)
 
 
-class UserPermissionsGetTest(UserDetailsTest):
+class UserPermissionsGetTest(UserPermissionsConfigTest):
     def test_lookup_self(self):
         UserPermission.objects.create(user=self.user, permission="broadcasts.admin")
         UserPermission.objects.create(user=self.user, permission="users.admin")

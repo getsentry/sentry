@@ -170,7 +170,6 @@ describe('Quick Trace Utils', function () {
   });
 
   describe('parseQuickTrace', function () {
-    // @ts-expect-error
     const organization = TestStubs.Organization();
     it('parses empty trace', function () {
       const current = generateEventSelector({generation: 0, offset: 0}, 'transaction');

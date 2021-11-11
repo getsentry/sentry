@@ -1,22 +1,26 @@
 from __future__ import annotations
 
+import logging
 from time import time
 
+from django.conf import settings
 from redis.exceptions import RedisError
-from sentry_sdk import capture_exception
 
 from sentry.exceptions import InvalidConfiguration
 from sentry.models.project import Project
 from sentry.ratelimits.base import RateLimiter
+from sentry.utils import redis
 from sentry.utils.hashlib import md5_text
-from sentry.utils.redis import get_cluster_from_options
+
+logger = logging.getLogger(__name__)
 
 
 class RedisRateLimiter(RateLimiter):
     window = 60
 
     def __init__(self, **options):
-        self.cluster, options = get_cluster_from_options("SENTRY_RATELIMITER_OPTIONS", options)
+        cluster_key = getattr(settings, "SENTRY_RATE_LIMIT_REDIS_CLUSTER", "default")
+        self.client = redis.redis_clusters.get(cluster_key)
 
     def _construct_redis_key(
         self, key: str, project: Project | None = None, window: int | None = None
@@ -32,39 +36,40 @@ class RedisRateLimiter(RateLimiter):
 
         key_hex = md5_text(key).hexdigest()
         bucket = int(time() / window)
-        if project:
-            redis_key = f"rl:{key_hex}:{project.id}:{bucket}"
-        else:
-            redis_key = f"rl:{key_hex}:{bucket}"
+
+        redis_key = f"rl:{key_hex}"
+        if project is not None:
+            redis_key += f":{project.id}"
+        redis_key += f":{bucket}"
 
         return redis_key
 
     def validate(self):
         try:
-            with self.cluster.all() as client:
-                client.ping()
+            self.client.ping()
         except Exception as e:
             raise InvalidConfiguration(str(e))
 
-    def is_limited(self, key, limit, project=None, window=None):
+    def is_limited(self, key, limit, project=None, window=None) -> bool:
         is_limited, _ = self.is_limited_with_value(key, limit, project=project, window=window)
         return is_limited
 
     def current_value(self, key: int, project: Project = None, window: int = None) -> int:
+        """
+        Get the current value stored in redis for the rate limit with key "key" and said window
+        """
         redis_key = self._construct_redis_key(key, project=project, window=window)
 
         try:
-            with self.cluster.map() as client:
-                result = client.get(redis_key)
-            current_count = result.value
+            current_count = self.client.get(redis_key)
             if current_count is None:
                 # Key hasn't been created yet, therefore no hits done so far
                 return 0
             return int(current_count)
-        except RedisError as e:
+        except RedisError:
             # Don't report any existing hits when there is a redis error.
             # Log what happened and move on
-            capture_exception(e)
+            logger.exception("Failed to retrieve current value from redis")
             return 0
 
     def is_limited_with_value(self, key, limit, project=None, window=None) -> tuple[bool, int]:
@@ -74,12 +79,11 @@ class RedisRateLimiter(RateLimiter):
         redis_key = self._construct_redis_key(key, project=project, window=window)
 
         try:
-            with self.cluster.map() as client:
-                result = client.incr(redis_key)
-                client.expire(redis_key, window)
-            return result.value > limit, result.value
-        except RedisError as e:
+            result = self.client.incr(redis_key)
+            self.client.expire(redis_key, window)
+            return result > limit, result
+        except RedisError:
             # We don't want rate limited endpoints to fail when ratelimits
             # can't be updated. We do want to know when that happens.
-            capture_exception(e)
+            logger.exception("Failed to retrieve current value from redis")
             return False, 0
