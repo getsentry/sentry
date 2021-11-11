@@ -50,7 +50,7 @@ class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
         # look at the raw project_id filter passed in, if its empty
         # and project_id is not in groupBy filter, treat it as an
         # org wide query and don't pass project_id in to QueryDefinition
-        req_proj_ids = self.get_requested_project_ids(request)
+        req_proj_ids = self.get_requested_project_ids_unchecked(request)
         if self._is_org_total_query(request, req_proj_ids):
             return None
         else:

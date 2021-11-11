@@ -62,11 +62,9 @@ def serialize(data, projects):
 
 class OrganizationSdkUpdatesEndpoint(OrganizationEventsEndpointBase):
     def get(self, request, organization):
+        projects = self.get_projects(request, organization)
 
-        project_ids = self.get_requested_project_ids(request)
-        projects = self.get_projects(request, organization, project_ids)
-
-        len_projects = len(project_ids)
+        len_projects = len(projects)
         sentry_sdk.set_tag("query.num_projects", len_projects)
         sentry_sdk.set_tag("query.num_projects.grouped", format_grouped_length(len_projects))
 

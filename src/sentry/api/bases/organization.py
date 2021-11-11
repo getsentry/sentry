@@ -158,18 +158,6 @@ class OrganizationAlertRulePermission(OrganizationPermission):
 class OrganizationEndpoint(Endpoint):
     permission_classes = (OrganizationPermission,)
 
-    def get_requested_project_ids(self, request):
-        """
-        Returns the project ids that were requested by the request.
-
-        To determine the projects to filter this endpoint by with full
-        permission checking, use ``get_projects``, instead.
-        """
-        try:
-            return set(map(int, request.GET.getlist("project")))
-        except ValueError:
-            raise ParseError(detail="Invalid project parameter. Values must be numbers.")
-
     def get_projects(
         self,
         request,
@@ -201,7 +189,7 @@ class OrganizationEndpoint(Endpoint):
         :return: A list of Project objects, or raises PermissionDenied.
         """
         if project_ids is None:
-            project_ids = self.get_requested_project_ids(request)
+            project_ids = self.get_requested_project_ids_unchecked(request)
         return self._get_projects_by_id(
             project_ids, request, organization, force_global_perms, include_all_accessible
         )
@@ -253,6 +241,18 @@ class OrganizationEndpoint(Endpoint):
             raise PermissionDenied
 
         return projects
+
+    def get_requested_project_ids_unchecked(self, request):
+        """
+        Returns the project ids that were requested by the request.
+
+        To determine the projects to filter this endpoint by with full
+        permission checking, use ``get_projects``, instead.
+        """
+        try:
+            return set(map(int, request.GET.getlist("project")))
+        except ValueError:
+            raise ParseError(detail="Invalid project parameter. Values must be numbers.")
 
     def get_environments(self, request, organization):
         return get_environments(request, organization)
@@ -390,12 +390,13 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         """
         actor_id = None
         has_perms = None
+        key = None
         if getattr(request, "user", None) and request.user.id:
             actor_id = "user:%s" % request.user.id
         if getattr(request, "auth", None) and request.auth.id:
             actor_id = "apikey:%s" % request.auth.id
         if actor_id is not None:
-            project_ids = sorted(self.get_requested_project_ids(request))
+            project_ids = sorted(self.get_requested_project_ids_unchecked(request))
             key = "release_perms:1:%s" % hash_values(
                 [actor_id, organization.id, release.id] + project_ids
             )
@@ -404,7 +405,7 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
             has_perms = ReleaseProject.objects.filter(
                 release=release, project__in=self.get_projects(request, organization)
             ).exists()
-            if actor_id is not None:
+            if key is not None and actor_id is not None:
                 cache.set(key, has_perms, 60)
 
         return has_perms
