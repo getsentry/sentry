@@ -977,8 +977,8 @@ def format_search_filter(term, params):
                     projects_to_filter = project_ids
                 conditions.append(converted_filter)
     elif name == ISSUE_ID_ALIAS and value != "":
+        # A blank term value means that this is a has filter
         if term.operator in EQUALITY_OPERATORS:
-            # A blank term value means that this is a has filter
             group_ids = to_list(value)
         else:
             converted_filter = convert_search_filter_to_snuba_query(term, params=params)
