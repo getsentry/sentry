@@ -505,18 +505,32 @@ class TestAlertRuleSerializer(TestCase):
             {"owner": f"meow:{self.user.id}"},
             {
                 "owner": [
-                    "Could not parse owner. Format should be `type:id` where type is `team` or `user`."
+                    "Could not parse actor. Format should be `type:id` where type is `team` or `user`."
                 ]
             },
         )
         self.run_fail_validation_test(
             {"owner": "user:1234567"},
-            {"owner": ["Could not resolve owner to existing team or user."]},
+            {"owner": ["User does not exist"]},
         )
         self.run_fail_validation_test(
             {"owner": "team:1234567"},
-            {"owner": ["Could not resolve owner to existing team or user."]},
+            {"owner": ["Team does not exist"]},
         )
+        other_org = self.create_organization()
+        other_team = self.create_team(organization=other_org)
+        other_user = self.create_user()
+        self.create_member(user=other_user, organization=other_org, teams=[other_team])
+
+        self.run_fail_validation_test(
+            {"owner": f"user:{other_user.id}"},
+            {"owner": ["User is not a member of this organization"]},
+        )
+        self.run_fail_validation_test(
+            {"owner": f"team:{other_team.id}"},
+            {"owner": ["Team is not a member of this organization"]},
+        )
+
         base_params = self.valid_params.copy()
         base_params.update({"owner": f"team:{self.team.id}"})
         serializer = AlertRuleSerializer(context=self.context, data=base_params)

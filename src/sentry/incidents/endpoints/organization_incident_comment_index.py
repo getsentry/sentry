@@ -25,7 +25,11 @@ class OrganizationIncidentCommentIndexEndpoint(IncidentEndpoint):
     def post(self, request, organization, incident):
         serializer = CommentSerializer(
             data=request.data,
-            context={"projects": incident.projects.all(), "organization_id": organization.id},
+            context={
+                "projects": incident.projects.all(),
+                "organization": organization,
+                "organization_id": organization.id,
+            },
         )
         if serializer.is_valid():
             mentions = extract_user_ids_from_mentions(
