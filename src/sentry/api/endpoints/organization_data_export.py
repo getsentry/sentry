@@ -8,6 +8,10 @@ from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.organization import OrganizationDataExportPermission, OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.utils import InvalidParams, get_date_range_from_params
+from sentry.data_export.base import ExportQueryType
+from sentry.data_export.models import ExportedData
+from sentry.data_export.processors.discover import DiscoverProcessor
+from sentry.data_export.tasks import assemble_download
 from sentry.discover.arithmetic import categorize_columns, resolve_equation_list
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Environment
@@ -16,11 +20,6 @@ from sentry.search.events.filter import get_filter
 from sentry.utils import metrics
 from sentry.utils.compat import map
 from sentry.utils.snuba import MAX_FIELDS
-
-from ..base import ExportQueryType
-from ..models import ExportedData
-from ..processors.discover import DiscoverProcessor
-from ..tasks import assemble_download
 
 
 class DataExportQuerySerializer(serializers.Serializer):
@@ -109,7 +108,7 @@ class DataExportQuerySerializer(serializers.Serializer):
         return data
 
 
-class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
+class OrganizationDataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
     permission_classes = (OrganizationDataExportPermission,)
 
     def post(self, request, organization):

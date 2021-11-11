@@ -6,15 +6,14 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.bases.organization import OrganizationDataExportPermission, OrganizationEndpoint
 from sentry.api.serializers import serialize
+from sentry.data_export.models import ExportedData
 from sentry.models import Project
 from sentry.models.organization import Organization
 from sentry.utils import metrics
 from sentry.utils.compat import map
 
-from ..models import ExportedData
 
-
-class DataExportDetailsEndpoint(OrganizationEndpoint):
+class OrganizationDataExportDetailsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationDataExportPermission,)
 
     def get(self, request: Request, organization: Organization, data_export_id: str) -> Response:

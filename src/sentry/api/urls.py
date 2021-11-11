@@ -4,8 +4,6 @@ from sentry.api.endpoints.project_grouping_configs import ProjectGroupingConfigs
 from sentry.api.endpoints.project_transaction_threshold_override import (
     ProjectTransactionThresholdOverrideEndpoint,
 )
-from sentry.data_export.endpoints.data_export import DataExportEndpoint
-from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
 from sentry.discover.endpoints.discover_key_transactions import (
     KeyTransactionEndpoint,
     KeyTransactionListEndpoint,
@@ -159,6 +157,8 @@ from .endpoints.organization_dashboard_widget_details import (
     OrganizationDashboardWidgetDetailsEndpoint,
 )
 from .endpoints.organization_dashboards import OrganizationDashboardsEndpoint
+from .endpoints.organization_data_export import OrganizationDataExportEndpoint
+from .endpoints.organization_data_export_details import OrganizationDataExportDetailsEndpoint
 from .endpoints.organization_details import OrganizationDetailsEndpoint
 from .endpoints.organization_environments import OrganizationEnvironmentsEndpoint
 from .endpoints.organization_event_details import OrganizationEventDetailsEndpoint
@@ -777,12 +777,12 @@ urlpatterns = [
                 # Data Export
                 url(
                     r"^(?P<organization_slug>[^\/]+)/data-export/$",
-                    DataExportEndpoint.as_view(),
+                    OrganizationDataExportEndpoint.as_view(),
                     name="sentry-api-0-organization-data-export",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/data-export/(?P<data_export_id>[^\/]+)/$",
-                    DataExportDetailsEndpoint.as_view(),
+                    OrganizationDataExportDetailsEndpoint.as_view(),
                     name="sentry-api-0-organization-data-export-details",
                 ),
                 # Incidents
