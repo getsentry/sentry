@@ -14,7 +14,7 @@ class StaticMediaTest(TestCase):
         response = self.client.get(url)
         assert response.status_code == 200, response
         assert response["Cache-Control"] == NEVER_CACHE
-        assert response["Vary"] == "Accept-Encoding"
+        assert response["Vary"] == "Accept-Encoding, Cookie"
         assert response["Access-Control-Allow-Origin"] == "*"
         assert "Content-Encoding" not in response
 
@@ -24,7 +24,7 @@ class StaticMediaTest(TestCase):
         response = self.client.get(url)
         assert response.status_code == 200, response
         assert response["Cache-Control"] == FOREVER_CACHE
-        assert response["Vary"] == "Accept-Encoding"
+        assert response["Vary"] == "Accept-Encoding, Cookie"
         assert response["Access-Control-Allow-Origin"] == "*"
         assert "Content-Encoding" not in response
 
@@ -32,7 +32,7 @@ class StaticMediaTest(TestCase):
         response = self.client.get(url)
         assert response.status_code == 200, response
         assert response["Cache-Control"] == FOREVER_CACHE
-        assert response["Vary"] == "Accept-Encoding"
+        assert response["Vary"] == "Accept-Encoding, Cookie"
         assert response["Access-Control-Allow-Origin"] == "*"
         assert "Content-Encoding" not in response
 
@@ -40,7 +40,7 @@ class StaticMediaTest(TestCase):
             response = self.client.get(url)
             assert response.status_code == 200, response
             assert response["Cache-Control"] == NEVER_CACHE
-            assert response["Vary"] == "Accept-Encoding"
+            assert response["Vary"] == "Accept-Encoding, Cookie"
             assert response["Access-Control-Allow-Origin"] == "*"
 
     @override_settings(DEBUG=False)
@@ -64,7 +64,7 @@ class StaticMediaTest(TestCase):
                 response = self.client.get(url)
                 assert response.status_code == 200, response
                 assert response["Cache-Control"] == NO_CACHE
-                assert response["Vary"] == "Accept-Encoding"
+                assert response["Vary"] == "Accept-Encoding, Cookie"
                 assert response["Access-Control-Allow-Origin"] == "*"
                 assert "Content-Encoding" not in response
 
@@ -72,7 +72,7 @@ class StaticMediaTest(TestCase):
                 response = self.client.get(url)
                 assert response.status_code == 200, response
                 assert response["Cache-Control"] == NEVER_CACHE
-                assert response["Vary"] == "Accept-Encoding"
+                assert response["Vary"] == "Accept-Encoding, Cookie"
                 assert response["Access-Control-Allow-Origin"] == "*"
         finally:
             try:
@@ -86,7 +86,7 @@ class StaticMediaTest(TestCase):
         response = self.client.get(url)
         assert response.status_code == 200, response
         assert response["Cache-Control"] == NEVER_CACHE
-        assert response["Vary"] == "Accept-Encoding"
+        assert response["Vary"] == "Accept-Encoding, Cookie"
         assert "Access-Control-Allow-Origin" not in response
         assert "Content-Encoding" not in response
 
@@ -99,7 +99,7 @@ class StaticMediaTest(TestCase):
         url = "/_static/sentry/js/ads.js"
         response = self.client.get(url, HTTP_ACCEPT_ENCODING="gzip,deflate")
         assert response.status_code == 200, response
-        assert response["Vary"] == "Accept-Encoding"
+        assert response["Vary"] == "Accept-Encoding, Cookie"
         assert "Content-Encoding" not in response
 
         try:
@@ -108,12 +108,12 @@ class StaticMediaTest(TestCase):
             # Not a gzip Accept-Encoding, so shouldn't serve gzipped file
             response = self.client.get(url, HTTP_ACCEPT_ENCODING="lol")
             assert response.status_code == 200, response
-            assert response["Vary"] == "Accept-Encoding"
+            assert response["Vary"] == "Accept-Encoding, Cookie"
             assert "Content-Encoding" not in response
 
             response = self.client.get(url, HTTP_ACCEPT_ENCODING="gzip,deflate")
             assert response.status_code == 200, response
-            assert response["Vary"] == "Accept-Encoding"
+            assert response["Vary"] == "Accept-Encoding, Cookie"
             assert response["Content-Encoding"] == "gzip"
         finally:
             try:
