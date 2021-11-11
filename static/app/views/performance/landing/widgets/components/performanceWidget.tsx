@@ -6,6 +6,8 @@ import ErrorPanel from 'app/components/charts/errorPanel';
 import Placeholder from 'app/components/placeholder';
 import {IconWarning} from 'app/icons/iconWarning';
 import space from 'app/styles/space';
+import {Organization} from 'app/types';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import useApi from 'app/utils/useApi';
 import getPerformanceWidgetContainer from 'app/views/performance/landing/widgets/components/performanceWidgetContainer';
 
@@ -16,6 +18,7 @@ import {
   WidgetDataResult,
   WidgetPropUnion,
 } from '../types';
+import {PerformanceWidgetSetting} from '../widgetDefinitions';
 
 import {DataStateSwitch} from './dataStateSwitch';
 import {QueryHandler} from './queryHandler';
@@ -75,6 +78,16 @@ export function GenericPerformanceWidget<T extends WidgetDataConstraint>(
   );
 }
 
+function trackDataComponentClicks(
+  chartSetting: PerformanceWidgetSetting,
+  organization: Organization
+) {
+  trackAdvancedAnalyticsEvent('performance_views.landingv3.widget.interaction', {
+    organization,
+    widget_type: chartSetting,
+  });
+}
+
 function _DataDisplay<T extends WidgetDataConstraint>(
   props: GenericPerformanceWidgetProps<T> & WidgetDataProps<T> & {totalHeight: number}
 ) {
@@ -109,6 +122,9 @@ function _DataDisplay<T extends WidgetDataConstraint>(
             key={index}
             noPadding={Visualization.noPadding}
             bottomPadding={Visualization.bottomPadding}
+            onClick={() =>
+              trackDataComponentClicks(props.chartSetting, props.organization)
+            }
           >
             <Visualization.component
               grid={defaultGrid}
