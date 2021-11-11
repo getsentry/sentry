@@ -33,6 +33,7 @@ from .event import *  # NOQA
 from .eventattachment import *  # NOQA
 from .eventerror import *  # NOQA
 from .eventuser import *  # NOQA
+from .exporteddata import *  # NOQA
 from .externalactor import *  # NOQA
 from .externalissue import *  # NOQA
 from .featureadoption import *  # NOQA
