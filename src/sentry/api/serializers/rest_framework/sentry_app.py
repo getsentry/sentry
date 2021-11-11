@@ -80,6 +80,7 @@ class SentryAppSerializer(Serializer):
     overview = serializers.CharField(required=False, allow_null=True)
     verifyInstall = serializers.BooleanField(required=False, default=True)
     allowedOrigins = ListField(child=serializers.CharField(max_length=255), required=False)
+    popularity = serializers.IntegerField(min_value=0, max_value=32767, required=False)
 
     def __init__(self, *args, **kwargs):
         self.access = kwargs["access"]
