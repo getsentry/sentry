@@ -37,6 +37,7 @@ from sentry.web.frontend.react_page import GenericReactPageView, ReactPageView
 from sentry.web.frontend.reactivate_account import ReactivateAccountView
 from sentry.web.frontend.release_webhook import ReleaseWebhookView
 from sentry.web.frontend.restore_organization import RestoreOrganizationView
+from sentry.web.frontend.sentry_app_avatar import SentryAppAvatarPhotoView
 from sentry.web.frontend.setup_wizard import SetupWizardView
 from sentry.web.frontend.sudo import SudoView
 from sentry.web.frontend.team_avatar import TeamAvatarPhotoView
@@ -582,6 +583,11 @@ urlpatterns += [
         r"^team-avatar/(?P<avatar_id>[^\/]+)/$",
         TeamAvatarPhotoView.as_view(),
         name="sentry-team-avatar-url",
+    ),
+    url(
+        r"^sentry-app-avatar/(?P<avatar_id>[^\/]+)/$",
+        SentryAppAvatarPhotoView.as_view(),
+        name="sentry-app-avatar-url",
     ),
     # Serve chartcuterie configuration module
     url(
