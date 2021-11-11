@@ -54,6 +54,7 @@ class IntegrationSlackApproveMemberInvitation(analytics.Event):  # type: ignore
         analytics.Attribute("organization_id"),
         analytics.Attribute("actor_id"),
         analytics.Attribute("invitation_type"),
+        analytics.Attribute("invited_member_id"),
     )
 
 

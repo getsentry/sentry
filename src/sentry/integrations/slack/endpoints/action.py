@@ -438,6 +438,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
             actor_id=identity.user_id,
             organization_id=member.organization_id,
             invitation_type=invite_type.lower(),
+            invited_member_id=member_id,
         )
 
         verb = "approved" if approve_member else "rejected"
