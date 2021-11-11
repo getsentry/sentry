@@ -11,6 +11,13 @@ from django.core.files.base import ContentFile
 from django.db import IntegrityError, router
 from django.utils import timezone
 
+from sentry.data_export.base import (
+    EXPORTED_ROWS_LIMIT,
+    MAX_BATCH_SIZE,
+    SNUBA_MAX_RESULTS,
+    ExportError,
+    ExportQueryType,
+)
 from sentry.data_export.processors.discover import DiscoverProcessor
 from sentry.data_export.processors.issues_by_tag import IssuesByTagProcessor
 from sentry.data_export.utils import handle_snuba_errors
@@ -28,14 +35,6 @@ from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
 from sentry.utils.sdk import capture_exception
-
-from .base import (
-    EXPORTED_ROWS_LIMIT,
-    MAX_BATCH_SIZE,
-    SNUBA_MAX_RESULTS,
-    ExportError,
-    ExportQueryType,
-)
 
 logger = logging.getLogger(__name__)
 
