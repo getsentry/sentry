@@ -150,8 +150,8 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
 
     from sentry import models
     from sentry.app import nodestore
-    from sentry.data_export.models import ExportedData
     from sentry.db.deletion import BulkDeleteQuery
+    from sentry.models import ExportedData
 
     if timed:
         import time

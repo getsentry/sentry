@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 
 
 @instrumented_task(
-    name="sentry.data_export.tasks.assemble_download",
+    name="sentry.tasks.data_export.assemble_download",
     queue="data_export",
     default_retry_delay=60,
     max_retries=3,
@@ -294,7 +294,7 @@ def store_export_chunk_as_blob(data_export, bytes_written, fileobj, blob_size=DE
         return 0
 
 
-@instrumented_task(name="sentry.data_export.tasks.merge_blobs", queue="data_export", acks_late=True)
+@instrumented_task(name="sentry.tasks.data_export.merge_blobs", queue="data_export", acks_late=True)
 def merge_export_blobs(data_export_id, **kwargs):
     with sentry_sdk.start_transaction(
         op="task.data_export.merge",

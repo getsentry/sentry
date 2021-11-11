@@ -6,8 +6,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from sentry.data_export.base import ExportQueryType, ExportStatus
-from sentry.data_export.models import ExportedData
-from sentry.models import File
+from sentry.models import ExportedData, File
 from sentry.testutils import APITestCase
 
 

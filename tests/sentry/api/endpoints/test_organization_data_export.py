@@ -3,7 +3,7 @@ from unittest import mock
 from freezegun import freeze_time
 
 from sentry.data_export.base import ExportQueryType, ExportStatus
-from sentry.data_export.models import ExportedData
+from sentry.models import ExportedData
 from sentry.search.utils import parse_datetime_string
 from sentry.testutils import APITestCase
 from sentry.utils.snuba import MAX_FIELDS

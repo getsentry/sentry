@@ -85,7 +85,7 @@ class DiscoverProcessor:
                 offset=offset,
                 orderby=sort,
                 limit=limit,
-                referrer="data_export.tasks.discover",
+                referrer="tasks.data_export.discover",
                 auto_fields=True,
                 auto_aggregations=True,
                 use_aggregate_conditions=True,

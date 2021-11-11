@@ -3,11 +3,10 @@ from unittest.mock import patch
 from django.db import IntegrityError
 
 from sentry.data_export.base import ExportQueryType
-from sentry.data_export.models import ExportedData
-from sentry.data_export.tasks import assemble_download, merge_export_blobs
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import File
+from sentry.models import ExportedData, File
 from sentry.search.events.constants import TIMEOUT_ERROR_MESSAGE
+from sentry.tasks.data_export import assemble_download, merge_export_blobs
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.samples import load_data
@@ -63,9 +62,9 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         )
 
     def test_task_persistent_name(self):
-        assert assemble_download.name == "sentry.data_export.tasks.assemble_download"
+        assert assemble_download.name == "sentry.tasks.data_export.assemble_download"
 
-    @patch("sentry.data_export.models.ExportedData.email_success")
+    @patch("sentry.models.ExportedData.email_success")
     def test_issue_by_tag_batched(self, emailer):
         de = ExportedData.objects.create(
             user=self.user,
@@ -94,7 +93,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
 
         assert emailer.called
 
-    @patch("sentry.data_export.models.ExportedData.email_success")
+    @patch("sentry.models.ExportedData.email_success")
     def test_no_error_on_retry(self, emailer):
         de = ExportedData.objects.create(
             user=self.user,
@@ -126,7 +125,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
 
         assert emailer.called
 
-    @patch("sentry.data_export.models.ExportedData.email_failure")
+    @patch("sentry.models.ExportedData.email_failure")
     def test_issue_by_tag_missing_key(self, emailer):
         de = ExportedData.objects.create(
             user=self.user,
@@ -139,7 +138,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         error = emailer.call_args[1]["message"]
         assert error == "Requested key does not exist"
 
-    @patch("sentry.data_export.models.ExportedData.email_failure")
+    @patch("sentry.models.ExportedData.email_failure")
     def test_issue_by_tag_missing_project(self, emailer):
         de = ExportedData.objects.create(
             user=self.user,
@@ -152,7 +151,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         error = emailer.call_args[1]["message"]
         assert error == "Requested project does not exist"
 
-    @patch("sentry.data_export.models.ExportedData.email_failure")
+    @patch("sentry.models.ExportedData.email_failure")
     def test_issue_by_tag_missing_issue(self, emailer):
         de = ExportedData.objects.create(
             user=self.user,
@@ -167,7 +166,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
 
     @patch("sentry.tagstore.get_tag_key")
     @patch("sentry.utils.snuba.raw_query")
-    @patch("sentry.data_export.models.ExportedData.email_failure")
+    @patch("sentry.models.ExportedData.email_failure")
     def test_issue_by_tag_outside_retention(self, emailer, mock_query, mock_get_tag_key):
         """
         When an issues by tag query goes outside the retention range, it returns 0 results.
@@ -196,7 +195,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         header = file.getfile().read().strip()
         assert header == b"value,times_seen,last_seen,first_seen"
 
-    @patch("sentry.data_export.models.ExportedData.email_success")
+    @patch("sentry.models.ExportedData.email_success")
     def test_discover_batched(self, emailer):
         de = ExportedData.objects.create(
             user=self.user,
@@ -225,7 +224,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
 
         assert emailer.called
 
-    @patch("sentry.data_export.models.ExportedData.email_success")
+    @patch("sentry.models.ExportedData.email_success")
     def test_discover_respects_selected_environment(self, emailer):
         de = ExportedData.objects.create(
             user=self.user,
@@ -258,7 +257,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
 
         assert emailer.called
 
-    @patch("sentry.data_export.models.ExportedData.email_success")
+    @patch("sentry.models.ExportedData.email_success")
     def test_discover_respects_selected_environment_multiple(self, emailer):
         de = ExportedData.objects.create(
             user=self.user,
@@ -292,7 +291,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
 
         assert emailer.called
 
-    @patch("sentry.data_export.models.ExportedData.email_failure")
+    @patch("sentry.models.ExportedData.email_failure")
     def test_discover_missing_environment(self, emailer):
         de = ExportedData.objects.create(
             user=self.user,
@@ -310,7 +309,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         error = emailer.call_args[1]["message"]
         assert error == "Requested environment does not exist"
 
-    @patch("sentry.data_export.models.ExportedData.email_failure")
+    @patch("sentry.models.ExportedData.email_failure")
     def test_discover_missing_project(self, emailer):
         de = ExportedData.objects.create(
             user=self.user,
@@ -323,9 +322,9 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         error = emailer.call_args[1]["message"]
         assert error == "Requested project does not exist"
 
-    @patch("sentry.data_export.tasks.MAX_BATCH_SIZE", 35)
-    @patch("sentry.data_export.tasks.MAX_FILE_SIZE", 55)
-    @patch("sentry.data_export.models.ExportedData.email_success")
+    @patch("sentry.tasks.data_export.MAX_BATCH_SIZE", 35)
+    @patch("sentry.tasks.data_export.MAX_FILE_SIZE", 55)
+    @patch("sentry.models.ExportedData.email_success")
     def test_discover_export_file_too_large(self, emailer):
         de = ExportedData.objects.create(
             user=self.user,
@@ -354,7 +353,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
 
         assert emailer.called
 
-    @patch("sentry.data_export.models.ExportedData.email_success")
+    @patch("sentry.models.ExportedData.email_success")
     def test_discover_export_too_many_rows(self, emailer):
         de = ExportedData.objects.create(
             user=self.user,
@@ -384,7 +383,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert emailer.called
 
     @patch("sentry.snuba.discover.raw_query")
-    @patch("sentry.data_export.models.ExportedData.email_failure")
+    @patch("sentry.models.ExportedData.email_failure")
     def test_discover_outside_retention(self, emailer, mock_query):
         """
         When a discover query goes outside the retention range, email the user they should
@@ -411,7 +410,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert error == "Invalid date range. Please try a more recent date range."
 
     @patch("sentry.snuba.discover.query")
-    @patch("sentry.data_export.models.ExportedData.email_failure")
+    @patch("sentry.models.ExportedData.email_failure")
     def test_discover_invalid_search_query(self, emailer, mock_query):
         de = ExportedData.objects.create(
             user=self.user,
@@ -462,7 +461,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         header, row = file.getfile().read().strip().split(b"\r\n")
 
     @patch("sentry.snuba.discover.raw_query")
-    @patch("sentry.data_export.models.ExportedData.email_failure")
+    @patch("sentry.models.ExportedData.email_failure")
     def test_discover_snuba_error(self, emailer, mock_query):
         de = ExportedData.objects.create(
             user=self.user,
@@ -557,8 +556,8 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         error = emailer.call_args[1]["message"]
         assert error == "Internal error. Your query failed to run."
 
-    @patch("sentry.data_export.models.ExportedData.finalize_upload")
-    @patch("sentry.data_export.models.ExportedData.email_failure")
+    @patch("sentry.models.ExportedData.finalize_upload")
+    @patch("sentry.models.ExportedData.email_failure")
     def test_discover_integrity_error(self, emailer, finalize_upload):
         de = ExportedData.objects.create(
             user=self.user,
@@ -572,7 +571,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         error = emailer.call_args[1]["message"]
         assert error == "Failed to save the assembled file."
 
-    @patch("sentry.data_export.models.ExportedData.email_success")
+    @patch("sentry.models.ExportedData.email_success")
     def test_discover_sort(self, emailer):
         de = ExportedData.objects.create(
             user=self.user,
@@ -617,8 +616,8 @@ class AssembleDownloadLargeTest(TestCase, SnubaTestCase):
             )
             self.store_event(event, project_id=self.project.id)
 
-    @patch("sentry.data_export.tasks.MAX_BATCH_SIZE", 200)
-    @patch("sentry.data_export.models.ExportedData.email_success")
+    @patch("sentry.tasks.data_export.MAX_BATCH_SIZE", 200)
+    @patch("sentry.models.ExportedData.email_success")
     def test_discover_large_batch(self, emailer):
         """
         Each row in this export requires exactly 13 bytes, with batch_size=3 and
@@ -646,4 +645,4 @@ class AssembleDownloadLargeTest(TestCase, SnubaTestCase):
 
 class MergeExportBlobsTest(TestCase, SnubaTestCase):
     def test_task_persistent_name(self):
-        assert merge_export_blobs.name == "sentry.data_export.tasks.merge_blobs"
+        assert merge_export_blobs.name == "sentry.tasks.data_export.merge_blobs"
