@@ -20,7 +20,7 @@ describe('RadioGroupPanel', function () {
     );
 
     fireEvent.click(screen.getByText('Choice Three'));
-    // wrapper.find('[role="radio"] Radio').last().simulate('change');
+
     expect(mock).toHaveBeenCalledWith(expect.any(String), expect.any(Object));
   });
 
