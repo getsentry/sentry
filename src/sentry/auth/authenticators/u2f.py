@@ -1,8 +1,10 @@
+from base64 import b64encode
 from time import time
 
 from cryptography.exceptions import InvalidKey, InvalidSignature
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
+from fido2 import cbor
 from fido2.client import ClientData
 from fido2.ctap2 import AuthenticatorData, base
 from fido2.server import Fido2Server, U2FFido2Server
@@ -15,6 +17,7 @@ from sentry import options
 from sentry.utils.dates import to_datetime
 from sentry.utils.decorators import classproperty
 from sentry.utils.http import absolute_uri
+from sentry.utils.json import dumps
 
 from .base import ActivationChallengeResult, AuthenticatorInterface
 
@@ -68,7 +71,7 @@ class U2fInterface(AuthenticatorInterface):
             credentials.append(c)
 
         registration_data, state = server.register_begin(
-            user={"id": bytes(user.id), "name": user.name},
+            user={"id": user.id, "name": user.name},
             credentials=credentials,
             user_verification="discouraged",
             authenticator_attachment="cross-platform",
@@ -78,7 +81,9 @@ class U2fInterface(AuthenticatorInterface):
         # breakpoint()
         # return u2f.begin_registration(self.u2f_app_id, self.get_u2f_devices()).data_for_client
         # breakpoint()
-        return registration_data
+        return cbor.encode(registration_data)
+        # breakpoint()
+        # return registration_data
 
     def get_u2f_devices(self):
         rv = []

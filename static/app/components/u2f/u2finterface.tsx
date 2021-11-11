@@ -6,6 +6,7 @@ import {base64urlToBuffer, bufferToBase64url} from 'app/components/u2f/webAuthnH
 import {t, tct} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import {ChallengeData} from 'app/types';
+import cbor from 'cbor-web';
 
 type TapParams = {
   response: string;
@@ -153,7 +154,10 @@ class U2fInterface extends React.Component<Props, State> {
   }
 
   invokeU2fFlow() {
+    debugger;
     let promise: Promise<u2f.SignResponse | u2f.RegisterResponse>;
+    let challenge = atob(this.props.challengeData);
+    challenge = cbor.decodeAll(challenge)
 
     if (this.props.flowMode === 'sign') {
       if (this.props.isWebauthnSigninFFEnabled) {
