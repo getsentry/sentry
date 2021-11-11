@@ -50,7 +50,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         # Materialize the project ids here. This helps us to not overwhelm the query planner with
         # overcomplicated subqueries. Previously, this was causing Postgres to use a suboptimal
         # index to filter on. Also enforces permission checks.
-        projects = self.get_projects(request, organization, project_ids=project_ids)
+        projects = self.get_projects(request, organization, project_ids=set(project_ids))
 
         teams = request.GET.getlist("team", [])
         team_filter_query = None
