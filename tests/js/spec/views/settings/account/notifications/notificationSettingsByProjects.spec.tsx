@@ -7,7 +7,6 @@ import NotificationSettingsByProjects from 'app/views/settings/account/notificat
 const createWrapper = (projects: Project[]) => {
   const {routerContext} = initializeOrg();
 
-  // @ts-expect-error
   MockApiClient.addMockResponse({
     url: '/projects/',
     method: 'GET',
@@ -42,10 +41,8 @@ describe('NotificationSettingsByProjects', function () {
   });
 
   it('should show search bar when there are enough projects', function () {
-    // @ts-expect-error
     const organization = TestStubs.Organization();
     const projects = [...Array(3).keys()].map(id =>
-      // @ts-expect-error
       TestStubs.Project({organization, id})
     );
 

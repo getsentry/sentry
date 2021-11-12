@@ -4,7 +4,7 @@ import {
   screen,
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
-import {findByTextContent} from 'sentry-test/utils';
+import {getByTextContent} from 'sentry-test/utils';
 
 import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 import ProjectsStore from 'app/stores/projectsStore';
@@ -17,13 +17,11 @@ describe('ProjectDetail', function () {
   beforeEach(() => {
     GlobalSelectionStore.reset();
     ProjectsStore.reset();
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',
       body: [],
     });
 
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/prompts-activity/',
       body: {},
@@ -41,16 +39,14 @@ describe('ProjectDetail', function () {
         },
       ];
 
-      // @ts-expect-error
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
         body: projects,
       });
 
-      // @ts-expect-error
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/',
-        data: projects[0],
+        body: projects[0],
       });
 
       ProjectsStore.loadInitialData(projects);
@@ -82,16 +78,14 @@ describe('ProjectDetail', function () {
 
       ProjectsStore.loadInitialData(projects);
 
-      // @ts-expect-error
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
         body: projects,
       });
 
-      // @ts-expect-error
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/',
-        data: projects[0],
+        body: projects[0],
       });
 
       mountWithTheme(
@@ -102,8 +96,7 @@ describe('ProjectDetail', function () {
       await waitForElementToBeRemoved(() => screen.getByText('Loading\u2026'));
 
       expect(
-        await findByTextContent(
-          screen,
+        getByTextContent(
           'Event Processing for this project is currently degraded. Events may appear with larger delays than usual or get dropped. Please check the Status page for a potential outage.'
         )
       ).toBeInTheDocument();

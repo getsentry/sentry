@@ -32,13 +32,12 @@ from sentry.models import (
     Integration,
     OrganizationIntegration,
     Release,
-    ReleaseProjectEnvironment,
     ReleaseStages,
     UserOption,
     add_group_to_inbox,
     remove_group_from_inbox,
 )
-from sentry.models.grouphistory import GroupHistoryStatus
+from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.search.events.constants import (
     RELEASE_STAGE_ALIAS,
     SEMVER_ALIAS,
@@ -628,6 +627,22 @@ class GroupListTest(APITestCase, SnubaTestCase):
         issues = json.loads(response.content)
         assert len(issues) == 1
         assert int(issues[0]["id"]) == event.group.id
+
+    def test_lookup_by_regressed_in_release(self):
+        self.login_as(self.user)
+        project = self.project
+        release = self.create_release()
+        event = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=1)),
+                "tags": {"sentry:release": release.version},
+            },
+            project_id=project.id,
+        )
+        record_group_history(event.group, GroupHistoryStatus.REGRESSED, release=release)
+        response = self.get_valid_response(query=f"regressed_in_release:{release.version}")
+        issues = json.loads(response.content)
+        assert [int(issue["id"]) for issue in issues] == [event.group.id]
 
     def test_pending_delete_pending_merge_excluded(self):
         events = []
@@ -1292,32 +1307,17 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
     def test_release_stage(self):
         replaced_release = self.create_release(
-            version="replaced_release", environments=[self.environment]
-        )
-        adopted_release = self.create_release(
-            version="adopted_release", environments=[self.environment]
-        )
-        not_adopted_release = self.create_release(
-            version="not_adopted_release", environments=[self.environment]
-        )
-        ReleaseProjectEnvironment.objects.create(
-            project_id=self.project.id,
-            release_id=adopted_release.id,
-            environment_id=self.environment.id,
-            adopted=timezone.now(),
-        )
-        ReleaseProjectEnvironment.objects.create(
-            project_id=self.project.id,
-            release_id=replaced_release.id,
-            environment_id=self.environment.id,
+            version="replaced_release",
+            environments=[self.environment],
             adopted=timezone.now(),
             unadopted=timezone.now(),
         )
-        ReleaseProjectEnvironment.objects.create(
-            project_id=self.project.id,
-            release_id=not_adopted_release.id,
-            environment_id=self.environment.id,
+        adopted_release = self.create_release(
+            version="adopted_release",
+            environments=[self.environment],
+            adopted=timezone.now(),
         )
+        self.create_release(version="not_adopted_release", environments=[self.environment])
 
         adopted_release_g_1 = self.store_event(
             data={

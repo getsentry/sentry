@@ -228,7 +228,6 @@ def inner_refresh_all_builds() -> None:
                             }
                         )
                         count += 1
-                        metrics.incr("sentry.tasks.app_store_connect.refresh_count", sample_rate=1)
             except Exception:
                 logger.exception("Failed to refresh AppStoreConnect builds")
     metrics.gauge("tasks.app_store_connect.refreshed", count, sample_rate=1)

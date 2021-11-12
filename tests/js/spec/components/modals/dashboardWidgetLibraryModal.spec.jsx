@@ -1,6 +1,5 @@
-// import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
 import DashboardWidgetLibraryModal from 'app/components/modals/dashboardWidgetLibraryModal';
 

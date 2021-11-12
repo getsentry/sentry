@@ -30,8 +30,7 @@ class OrganizationHasMobileAppEvents(OrganizationEventsEndpointBase):
 
     # find a match not using the cache
     def _get(self, request, organization):
-        project_ids = self.get_requested_project_ids(request)
-        projects = self.get_projects(request, organization, project_ids)
+        projects = self.get_projects(request, organization)
         if len(projects) == 0:
             return None
 

@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from datetime import datetime
+from functools import reduce
 from typing import Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
 from parsimonious.exceptions import ParseError
@@ -66,7 +69,7 @@ def is_condition(term):
     return isinstance(term, (tuple, list)) and len(term) == 3 and term[1] in OPERATOR_TO_FUNCTION
 
 
-def translate_transaction_status(val):
+def translate_transaction_status(val: str) -> str:
     if val not in SPAN_STATUS_NAME_TO_CODE:
         raise InvalidSearchQuery(
             f"Invalid value {val} for transaction.status condition. Accepted "
@@ -502,7 +505,7 @@ def _semver_build_filter_converter(
     return ["release", "IN", versions]
 
 
-def handle_operator_negation(operator):
+def handle_operator_negation(operator: str) -> Tuple[str, bool]:
     negated = False
     if operator == "!=":
         negated = True
@@ -1008,21 +1011,28 @@ def format_search_filter(term, params):
         and params
         and (value == "latest" or term.is_in_filter and any(v == "latest" for v in value))
     ):
-        value = [
-            parse_release(
-                v,
-                params["project_id"],
-                params.get("environment_objects"),
-                params.get("organization_id"),
-            )
-            for v in to_list(value)
-        ]
+        value = reduce(
+            lambda x, y: x + y,
+            [
+                parse_release(
+                    v,
+                    params["project_id"],
+                    params.get("environment_objects"),
+                    params.get("organization_id"),
+                )
+                for v in to_list(value)
+            ],
+            [],
+        )
+
+        operator_conversions = {"=": "IN", "!=": "NOT IN"}
+        operator = operator_conversions.get(term.operator, term.operator)
 
         converted_filter = convert_search_filter_to_snuba_query(
             SearchFilter(
                 term.key,
-                term.operator,
-                SearchValue(value if term.is_in_filter else value[0]),
+                operator,
+                SearchValue(value),
             )
         )
         if converted_filter:
@@ -1170,7 +1180,9 @@ class QueryFilter(QueryFields):
 
         return where, having
 
-    def _combine_conditions(self, lhs, rhs, operator):
+    def _combine_conditions(
+        self, lhs: List[WhereType], rhs: List[WhereType], operator: And | Or
+    ) -> List[WhereType]:
         combined_conditions = [
             conditions[0] if len(conditions) == 1 else And(conditions=conditions)
             for conditions in [lhs, rhs]
@@ -1433,9 +1445,9 @@ class QueryFilter(QueryFields):
         # conditions added to env_conditions can be OR'ed
         env_conditions = []
         value = search_filter.value.value
-        values = set(value if isinstance(value, (list, tuple)) else [value])
+        values_set = set(value if isinstance(value, (list, tuple)) else [value])
         # sorted for consistency
-        values = sorted(f"{value}" for value in values)
+        values = sorted(f"{value}" for value in values_set)
         environment = self.column("environment")
         # the "no environment" environment is null in snuba
         if "" in values:
@@ -1556,12 +1568,11 @@ class QueryFilter(QueryFields):
                 self.resolve_field(search_filter.key.name),
                 Op.IS_NULL if search_filter.operator == "=" else Op.IS_NOT_NULL,
             )
-        if search_filter.is_in_filter:
-            internal_value = [
-                translate_transaction_status(val) for val in search_filter.value.raw_value
-            ]
-        else:
-            internal_value = translate_transaction_status(search_filter.value.raw_value)
+        internal_value = (
+            [translate_transaction_status(val) for val in search_filter.value.raw_value]
+            if search_filter.is_in_filter
+            else translate_transaction_status(search_filter.value.raw_value)
+        )
         return Condition(
             self.resolve_field(search_filter.key.name),
             Op(search_filter.operator),
@@ -1653,8 +1664,8 @@ class QueryFilter(QueryFields):
             raise ValueError("organization_id is a required param")
 
         organization_id: int = self.params["organization_id"]
-        project_ids: Optional[list[int]] = self.params.get("project_id")
-        environments: Optional[list[Environment]] = self.params.get("environment_objects", [])
+        project_ids: Optional[List[int]] = self.params.get("project_id")
+        environments: Optional[List[Environment]] = self.params.get("environment_objects", [])
         qs = (
             Release.objects.filter_by_stage(
                 organization_id,
@@ -1676,21 +1687,28 @@ class QueryFilter(QueryFields):
 
     def _release_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         """Parse releases for potential aliases like `latest`"""
-        values = [
-            parse_release(
-                v,
-                self.params["project_id"],
-                self.params.get("environment_objects"),
-                self.params.get("organization_id"),
-            )
-            for v in to_list(search_filter.value.value)
-        ]
+        values = reduce(
+            lambda x, y: x + y,
+            [
+                parse_release(
+                    v,
+                    self.params["project_id"],
+                    self.params.get("environment_objects"),
+                    self.params.get("organization_id"),
+                )
+                for v in to_list(search_filter.value.value)
+            ],
+            [],
+        )
+
+        operator_conversions = {"=": "IN", "!=": "NOT IN"}
+        operator = operator_conversions.get(search_filter.operator, search_filter.operator)
 
         return self._default_filter_converter(
             SearchFilter(
                 search_filter.key,
-                search_filter.operator,
-                SearchValue(values if search_filter.is_in_filter else values[0]),
+                operator,
+                SearchValue(values),
             )
         )
 
@@ -1714,7 +1732,7 @@ class QueryFilter(QueryFields):
             raise ValueError("organization_id is a required param")
 
         organization_id: int = self.params["organization_id"]
-        project_ids: Optional[list[int]] = self.params.get("project_id")
+        project_ids: Optional[List[int]] = self.params.get("project_id")
         # We explicitly use `raw_value` here to avoid converting wildcards to shell values
         version: str = search_filter.value.raw_value
         operator: str = search_filter.operator
@@ -1772,7 +1790,7 @@ class QueryFilter(QueryFields):
             raise ValueError("organization_id is a required param")
 
         organization_id: int = self.params["organization_id"]
-        project_ids: Optional[list[int]] = self.params.get("project_id")
+        project_ids: Optional[List[int]] = self.params.get("project_id")
         package: str = search_filter.value.raw_value
 
         versions = list(
@@ -1798,7 +1816,7 @@ class QueryFilter(QueryFields):
             raise ValueError("organization_id is a required param")
 
         organization_id: int = self.params["organization_id"]
-        project_ids: Optional[list[int]] = self.params.get("project_id")
+        project_ids: Optional[List[int]] = self.params.get("project_id")
         build: str = search_filter.value.raw_value
 
         operator, negated = handle_operator_negation(search_filter.operator)

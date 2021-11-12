@@ -2,14 +2,13 @@ import {mountGlobalModal} from 'sentry-test/modal';
 
 import {openReprocessEventModal} from 'app/actionCreators/modal';
 import ModalActions from 'app/actions/modalActions';
-// @ts-expect-error
+
 const group = TestStubs.Group({
   id: '1337',
   pluginActions: [],
   pluginIssues: [],
 });
 
-// @ts-expect-error
 const organization = TestStubs.Organization({
   id: '4660',
   slug: 'org',
@@ -21,9 +20,7 @@ async function renderComponent() {
 
   openReprocessEventModal({organization, groupId: group.id});
 
-  // @ts-expect-error
   await tick();
-  // @ts-expect-error
   await tick();
   modal.update();
 
@@ -74,7 +71,6 @@ describe('ReprocessEventModal', function () {
   });
 
   it('reprocess all events', async () => {
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/reprocessing/`,
       method: 'POST',
@@ -93,7 +89,6 @@ describe('ReprocessEventModal', function () {
 
     submitButton.simulate('submit');
 
-    // @ts-expect-error
     await tick();
     wrapper.update();
 

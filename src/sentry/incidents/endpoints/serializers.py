@@ -8,6 +8,7 @@ from django.utils.encoding import force_text
 from rest_framework import serializers
 
 from sentry import analytics
+from sentry.api.fields.actor import ActorField
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.serializers.rest_framework.environment import EnvironmentField
 from sentry.api.serializers.rest_framework.project import ProjectField
@@ -39,7 +40,7 @@ from sentry.incidents.models import (
 )
 from sentry.integrations.slack.utils import validate_channel_id
 from sentry.mediators import alert_rule_actions
-from sentry.models import ActorTuple, OrganizationMember, SentryAppInstallation, Team, User
+from sentry.models import OrganizationMember, SentryAppInstallation, Team, User
 from sentry.shared_integrations.exceptions import ApiRateLimitedError
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
@@ -370,7 +371,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         allow_null=True,
     )
     aggregate = serializers.CharField(required=True, min_length=1)
-    owner = serializers.CharField(
+    owner = ActorField(
         required=False,
         allow_null=True,
     )  # This will be set to required=True once the frontend starts sending it.
@@ -412,17 +413,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         if owner is None:
             return
 
-        try:
-            actor = ActorTuple.from_actor_identifier(owner)
-        except serializers.ValidationError:
-            raise serializers.ValidationError(
-                "Could not parse owner. Format should be `type:id` where type is `team` or `user`."
-            )
-        try:
-            if actor.resolve():
-                return actor
-        except (User.DoesNotExist, Team.DoesNotExist):
-            raise serializers.ValidationError("Could not resolve owner to existing team or user.")
+        return owner
 
     def validate_query(self, query):
         query_terms = query.split()
@@ -626,7 +617,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         if threshold_type == AlertRuleThresholdType.ABOVE:
             alert_op = operator.lt
             threshold_type = "above"
-        elif threshold_type == AlertRuleThresholdType.BELOW:
+        else:
             alert_op = operator.gt
             threshold_type = "below"
 
