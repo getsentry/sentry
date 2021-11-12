@@ -25,8 +25,7 @@ class SentryAppAvatarPutTest(SentryAppAvatarTestBase):
     method = "put"
 
     def test_upload(self):
-        # TODO(CEO): load svg fixture
-        data = {"avatar_type": "upload", "avatar_photo": b64encode(self.load_fixture("avatar.jpg"))}
+        data = {"avatar_type": "upload", "avatar_photo": b64encode(self.load_fixture("avatar.svg"))}
         self.get_success_response(self.unpublished_app.slug, **data)
 
         avatar = SentryAppAvatar.objects.get(sentry_app=self.unpublished_app)
