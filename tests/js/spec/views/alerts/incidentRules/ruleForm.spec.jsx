@@ -94,10 +94,15 @@ describe('Incident Rules Form', () => {
         },
       });
 
+      // Clear field
+      userEvent.clear(screen.getByPlaceholderText('Something really bad happened'));
+
       // Enter in name so we can submit
-      fireEvent.change(screen.getByPlaceholderText('Something really bad happened'), {
-        target: {value: 'Incident Rule'},
-      });
+      userEvent.type(
+        screen.getByPlaceholderText('Something really bad happened'),
+        'Incident Rule'
+      );
+
       userEvent.click(screen.getByLabelText('Save Rule'));
 
       expect(createRule).toHaveBeenCalledWith(
@@ -142,9 +147,13 @@ describe('Incident Rules Form', () => {
         rule,
       });
 
-      fireEvent.change(screen.getByPlaceholderText('Something really bad happened'), {
-        target: {value: 'new name'},
-      });
+      // Clear field
+      userEvent.clear(screen.getByPlaceholderText('Something really bad happened'));
+
+      userEvent.type(
+        screen.getByPlaceholderText('Something really bad happened'),
+        'new name'
+      );
 
       userEvent.click(screen.getByLabelText('Save Rule'));
 
@@ -194,9 +203,10 @@ describe('Incident Rules Form', () => {
         onSubmitSuccess,
       });
 
-      fireEvent.change(screen.getByPlaceholderText('Something really bad happened'), {
-        target: {value: 'Slack Alert Rule'},
-      });
+      userEvent.type(
+        screen.getByPlaceholderText('Something really bad happened'),
+        'Slack Alert Rule'
+      );
       userEvent.click(screen.getByLabelText('Save Rule'));
 
       expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();

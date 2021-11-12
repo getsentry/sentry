@@ -2,10 +2,10 @@ import {Fragment} from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
-  fireEvent,
   mountWithTheme,
   screen,
   userEvent,
+  waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
 import GlobalModal from 'app/components/globalModal';
@@ -103,8 +103,11 @@ describe('Incident Rules Details', function () {
     // Check correct rule name is called
     expect(onChangeTitleMock).toHaveBeenCalledWith(rule.name);
 
-    fireEvent.change(screen.getByTestId('warning-threshold'), {target: {value: 13}});
-    fireEvent.change(screen.getByTestId('resolve-threshold'), {target: {value: 12}});
+    userEvent.clear(screen.getByTestId('warning-threshold'));
+    userEvent.type(screen.getByTestId('warning-threshold'), '13');
+
+    userEvent.clear(screen.getByTestId('resolve-threshold'));
+    userEvent.type(screen.getByTestId('resolve-threshold'), '12');
 
     // Create a new action
     userEvent.click(screen.getByLabelText('Add Action'));
@@ -161,10 +164,12 @@ describe('Incident Rules Details', function () {
     editRule.mockReset();
 
     // Clear warning Trigger
-    userEvent.type(screen.getByTestId('warning-threshold'), '{backspace}{backspace}');
+    userEvent.clear(screen.getByTestId('warning-threshold'));
+
+    await waitFor(() => expect(screen.getByLabelText('Save Rule')).toBeEnabled());
 
     // Save Trigger
-    fireEvent.submit(screen.getByLabelText('Save Rule'));
+    userEvent.click(screen.getByLabelText('Save Rule'));
 
     expect(editRule).toHaveBeenCalledWith(
       expect.anything(),

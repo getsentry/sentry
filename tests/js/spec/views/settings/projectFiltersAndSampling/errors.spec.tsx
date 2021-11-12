@@ -1,5 +1,4 @@
 import {
-  fireEvent,
   screen,
   userEvent,
   waitForElementToBeRemoved,
@@ -145,10 +144,8 @@ describe('Filters and Sampling - Error rule', function () {
     expect(sampleRateField).toHaveValue(10);
 
     // Clear release field
-    userEvent.type(
-      screen.getByLabelText('Search or add a release'),
-      '{backspace}{backspace}'
-    );
+    userEvent.clear(screen.getByLabelText('Search or add a release'));
+
     // Release field is now empty
     expect(screen.queryByTestId('multivalue')).not.toBeInTheDocument();
 
@@ -168,7 +165,7 @@ describe('Filters and Sampling - Error rule', function () {
     expect(screen.getByLabelText('Save Rule')).toBeEnabled();
 
     // Clear sample rate field
-    userEvent.type(sampleRateField, '{backspace}{backspace}');
+    userEvent.clear(sampleRateField);
 
     expect(screen.getByLabelText('Save Rule')).toBeDisabled();
 

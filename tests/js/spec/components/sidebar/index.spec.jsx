@@ -80,22 +80,6 @@ describe('Sidebar', function () {
     window.location.assign.mockRestore();
   });
 
-  it('can toggle collapsed state', async function () {
-    renderSidebar();
-
-    expect(screen.getByText(user.name)).toBeInTheDocument();
-    expect(screen.getByText(organization.name)).toBeInTheDocument();
-
-    userEvent.click(screen.getByTestId('sidebar-collapse'));
-
-    // Check that the organization name is no longer visible
-    await waitForElementToBeRemoved(() => screen.getByText(organization.name));
-
-    // Un-collapse he sidebar and make sure the org name is visible again
-    userEvent.click(screen.getByTestId('sidebar-collapse'));
-    expect(await screen.findByText(organization.name)).toBeInTheDocument();
-  });
-
   it('can toggle help menu', function () {
     const {container} = renderSidebar();
 
@@ -255,5 +239,21 @@ describe('Sidebar', function () {
 
       expect(container).toSnapshot();
     });
+  });
+
+  it('can toggle collapsed state', async function () {
+    renderSidebar();
+
+    expect(screen.getByText(user.name)).toBeInTheDocument();
+    expect(screen.getByText(organization.name)).toBeInTheDocument();
+
+    userEvent.click(screen.getByTestId('sidebar-collapse'));
+
+    // Check that the organization name is no longer visible
+    await waitForElementToBeRemoved(() => screen.getByText(organization.name));
+
+    // Un-collapse he sidebar and make sure the org name is visible again
+    userEvent.click(screen.getByTestId('sidebar-collapse'));
+    expect(await screen.findByText(organization.name)).toBeInTheDocument();
   });
 });

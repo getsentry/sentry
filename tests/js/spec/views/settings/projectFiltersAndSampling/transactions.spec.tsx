@@ -152,7 +152,7 @@ describe('Filters and Sampling - Transaction rule', function () {
       expect(sampleRateField).toHaveValue(20);
 
       // Clear release field
-      userEvent.type(screen.getByLabelText('Search or add a release'), '{backspace}');
+      userEvent.clear(screen.getByLabelText('Search or add a release'));
 
       // Release field is now empty
       const newReleaseFieldValues = screen.queryByTestId('multivalue');
@@ -174,7 +174,7 @@ describe('Filters and Sampling - Transaction rule', function () {
       expect(screen.getByLabelText('Save Rule')).toBeEnabled();
 
       // Clear sample rate field
-      userEvent.type(sampleRateField, '{backspace}{backspace}');
+      userEvent.clear(sampleRateField);
 
       expect(screen.getByLabelText('Save Rule')).toBeDisabled();
 
@@ -788,7 +788,7 @@ describe('Filters and Sampling - Transaction rule', function () {
       expect(sampleRateField).toHaveValue(20);
 
       // Clear release field
-      userEvent.type(screen.getByLabelText('Search or add a release'), '{backspace}');
+      userEvent.clear(screen.getByLabelText('Search or add a release'));
 
       // Release field is now empty
       const newReleaseFieldValues = screen.queryByTestId('multivalue');
@@ -810,7 +810,7 @@ describe('Filters and Sampling - Transaction rule', function () {
       expect(screen.getByLabelText('Save Rule')).toBeEnabled();
 
       // Clear sample rate field
-      userEvent.type(sampleRateField, '{backspace}{backspace}');
+      userEvent.clear(sampleRateField);
 
       expect(screen.getByLabelText('Save Rule')).toBeDisabled();
 
