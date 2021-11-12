@@ -1,7 +1,7 @@
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
-from sentry.api.fields import AvatarField
+from sentry.api.fields import AvatarField, SentryAppLogoField
 from sentry.api.serializers import serialize
 
 
@@ -25,6 +25,21 @@ class AvatarSerializer(serializers.Serializer):
         return attrs
 
 
+class SentryAppLogoSerializer(serializers.Serializer):
+    avatar_photo = SentryAppLogoField(required=True)
+    avatar_type = serializers.ChoiceField(choices=(("upload", "upload")))
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        if attrs.get("avatar_type") != "upload":
+            raise serializers.ValidationError(
+                {"avatar_type": "Cannot set avatar_type to anything but upload"}
+            )
+        if not attrs.get("avatar_photo"):
+            raise serializers.ValidationError({"avatar_photo": "Must upload a logo."})
+        return attrs
+
+
 class AvatarMixin:
     object_type = None
     model = None
@@ -41,7 +56,14 @@ class AvatarMixin:
 
     def put(self, request, **kwargs):
         obj = kwargs.pop(self.object_type, None)
-        serializer = AvatarSerializer(data=request.data, context=self.get_serializer_context(obj))
+        if self.object_type == "sentry_app":
+            serializer = SentryAppLogoSerializer(
+                data=request.data, context=self.get_serializer_context(obj)
+            )
+        else:
+            serializer = AvatarSerializer(
+                data=request.data, context=self.get_serializer_context(obj)
+            )
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

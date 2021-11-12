@@ -51,18 +51,6 @@ class AvatarField(serializers.Field):
         if len(data) > self.max_size:
             raise ImageTooLarge()
 
-        # TODO: feature flag this? we only want to allow svgs for sentryapps
-        # but there is no way to get org context from this currently
-        if SVG_RE.match(data.decode("utf-8")) is not None:
-            svg = load_svg_file(BytesIO(data))
-            if svg is not None:
-                viewbox = svg.get("viewBox").split()
-                if not self.is_valid_svg_size(viewbox):
-                    raise serializers.ValidationError("Invalid image dimensions.")
-
-                return BytesIO(data)
-            raise serializers.ValidationError("Could not open file.")
-
         with Image.open(BytesIO(data)) as img:
             if Image.MIME[img.format] not in ALLOWED_MIMETYPES:
                 raise serializers.ValidationError("Invalid image format.")
@@ -73,19 +61,6 @@ class AvatarField(serializers.Field):
 
         return BytesIO(data)
 
-    def is_valid_svg_size(self, viewbox):
-        converted = [int(dimension) for dimension in viewbox][-2:]
-        width = converted[0]
-        height = converted[1]
-
-        if width != height:
-            return False
-        if width < MIN_SVG_DIMENSION:
-            return False
-        if width > MAX_SVG_DIMENSION:
-            return False
-        return True
-
     def is_valid_size(self, width, height):
         if width != height:
             return False
@@ -94,3 +69,37 @@ class AvatarField(serializers.Field):
         if width > self.max_dimension:
             return False
         return True
+
+
+class SentryAppLogoField(AvatarField):
+    def __init__(
+        self,
+        max_size=settings.SENTRY_MAX_AVATAR_SIZE,
+        min_dimension=MIN_SVG_DIMENSION,
+        max_dimension=MAX_SVG_DIMENSION,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+        self.max_size = max_size
+        self.min_dimension = min_dimension
+        self.max_dimension = max_dimension
+
+    def to_internal_value(self, data):
+        if not data:
+            return None
+        data = b64decode(data)
+        if len(data) > self.max_size:
+            raise ImageTooLarge()
+
+        if SVG_RE.match(data.decode("utf-8")) is not None:
+            svg = load_svg_file(BytesIO(data))
+            if svg is not None:
+                viewbox = svg.get("viewBox").split()
+                converted = [int(dimension) for dimension in viewbox][-2:]
+                width = converted[0]
+                height = converted[1]
+                if not self.is_valid_size(width, height):
+                    raise serializers.ValidationError("Invalid image dimensions.")
+
+                return BytesIO(data)
+            raise serializers.ValidationError("Could not open file.")
