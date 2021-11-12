@@ -12,7 +12,7 @@ from fido2.webauthn import PublicKeyCredentialRpEntity
 from u2flib_server import u2f
 from u2flib_server.model import DeviceRegistration
 
-from sentry import features, options
+from sentry import options
 from sentry.utils.dates import to_datetime
 from sentry.utils.decorators import classproperty
 from sentry.utils.http import absolute_uri

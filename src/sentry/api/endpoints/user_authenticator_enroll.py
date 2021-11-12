@@ -146,18 +146,18 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
 
         if interface_id == "u2f":
             orgs = self._get_org_from_user(user)
-            is_webauthn_register_ff = False
-            if any(features.has("organizations:webauthn-login", org, actor=user) for org in orgs):
-                challenge = interface.start_enrollment(user, is_webauthn_register_ff)
-                response["challenge"] = b64encode(challenge)
+            if any(
+                features.has("organizations:webauthn-register", org, actor=user) for org in orgs
+            ):
+                response["challenge"] = b64encode(interface.start_enrollment(user, True))
             else:
-                response["challenge"] = interface.start_enrollment(user, is_webauthn_register_ff)
-            # XXX: Upgrading python-u2flib-server to 5.0.0 changes the response
-            # format. Our current js u2f library expects the old format, so
-            # massaging the data to include appId here
-            # app_id = response["challenge"]["appId"]
-            # for register_request in response["challenge"]["registerRequests"]:
-            #     register_request["appId"] = app_id
+                response["challenge"] = interface.start_enrollment(user, False)
+                # XXX: Upgrading python-u2flib-server to 5.0.0 changes the response
+                # format. Our current js u2f library expects the old format, so
+                # massaging the data to include appId here
+                app_id = response["challenge"]["appId"]
+                for register_request in response["challenge"]["registerRequests"]:
+                    register_request["appId"] = app_id
         # breakpoint()
         return Response(response)
 
@@ -175,7 +175,7 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         """
         if ratelimiter.is_limited(
             f"auth:authenticator-enroll:{request.user.id}:{interface_id}",
-            limit=10,
+            limit=100,
             window=86400,  # 10 per day should be fine
         ):
             return HttpResponse(

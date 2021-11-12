@@ -186,13 +186,14 @@ class U2fInterface extends React.Component<Props, State> {
       }
     } else if (this.props.flowMode === 'enroll') {
       // webauthn
-      // const challengeArray = base64urlToBuffer(this.props.challengeData)
-      // const challenge = cbor.decodeAllSync(challengeArray)
-      // this.webAuthnRegister(challenge[0]['publicKey']);
+      const challengeArray = base64urlToBuffer(this.props.challengeData)
+      const challenge = cbor.decodeAllSync(challengeArray)
+      this.webAuthnRegister(challenge[0]['publicKey']);
+
       // u2f
-      const {registerRequests, registeredKeys} = this.props.challengeData;
-      promise = u2f.register(registerRequests as any, registeredKeys as any);
-      this.submitU2fResponse(promise);
+      // const {registerRequests, registeredKeys} = this.props.challengeData;
+      // promise = u2f.register(registerRequests as any, registeredKeys as any);
+      // this.submitU2fResponse(promise);
     } else {
       throw new Error(`Unsupported flow mode '${this.props.flowMode}'`);
     }
