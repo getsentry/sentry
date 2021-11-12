@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping
+from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequence
 
 from sentry.notifications.notifications.organization_request import OrganizationRequestNotification
+from sentry.notifications.utils.actions import MessageAction
 from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
@@ -44,15 +45,16 @@ class IntegrationRequestNotification(OrganizationRequestNotification):
         self.provider_slug = provider_slug
         self.provider_name = provider_name
         self.message = message
+        self.integration_link = get_url(
+            self.organization,
+            self.provider_type,
+            self.provider_slug,
+        )
 
     def get_context(self) -> MutableMapping[str, Any]:
         return {
             **self.get_base_context(),
-            "integration_link": get_url(
-                self.organization,
-                self.provider_type,
-                self.provider_slug,
-            ),
+            "integration_link": self.integration_link,
             "integration_name": self.provider_name,
             "message": self.message,
         }
@@ -71,6 +73,19 @@ class IntegrationRequestNotification(OrganizationRequestNotification):
 
     def get_type(self) -> str:
         return "organization.integration.request"
+
+    def build_attachment_title(self) -> str:
+        return "Request to Install"
+
+    def get_message_description(self) -> str:
+        requester_name = self.requester.get_display_name()
+        optional_message = (
+            f" They've included this message `{self.message}`" if self.message else ""
+        )
+        return f"{requester_name} is requesting to install the {self.provider_name} integration into {self.organization.name}.{optional_message}"
+
+    def get_message_actions(self) -> Sequence[MessageAction]:
+        return [MessageAction(name="Check it out", url=self.integration_link)]
 
     def determine_recipients(self) -> Iterable[Team | User]:
         # Explicitly typing to satisfy mypy.
