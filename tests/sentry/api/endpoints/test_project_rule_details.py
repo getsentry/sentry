@@ -689,65 +689,66 @@ class UpdateProjectRuleTest(APITestCase):
 
         assert response.status_code == 400, response.content
 
-        def test_rule_form_missing_condition(self):
-            self.login_as(user=self.user)
+    def test_rule_form_owner_perms(self):
+        self.login_as(user=self.user)
 
-            project = self.create_project()
+        project = self.create_project()
 
-            rule = Rule.objects.create(project=project, label="foo")
+        rule = Rule.objects.create(project=project, label="foo")
 
-            url = reverse(
-                "sentry-api-0-project-rule-details",
-                kwargs={
-                    "organization_slug": project.organization.slug,
-                    "project_slug": project.slug,
-                    "rule_id": rule.id,
-                },
-            )
-            response = self.client.put(
-                url,
-                data={
-                    "name": "hello world",
-                    "actionMatch": "any",
-                    "filterMatch": "any",
-                    "conditions": [],
-                    "actions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
-                },
-                format="json",
-            )
+        url = reverse(
+            "sentry-api-0-project-rule-details",
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_slug": project.slug,
+                "rule_id": rule.id,
+            },
+        )
+        other_user = self.create_user()
+        response = self.client.put(
+            url,
+            data={
+                "name": "hello world",
+                "actionMatch": "any",
+                "filterMatch": "any",
+                "conditions": [{"id": "sentry.rules.conditions.tagged_event.TaggedEventCondition"}],
+                "actions": [],
+                "owner": other_user.actor.get_actor_identifier(),
+            },
+            format="json",
+        )
 
-            assert response.status_code == 400, response.content
+        assert response.status_code == 400, response.content
+        assert str(response.data["owner"][0]) == "User is not a member of this organization"
 
-        def test_rule_form_missing_action(self):
-            self.login_as(user=self.user)
+    def test_rule_form_missing_action(self):
+        self.login_as(user=self.user)
 
-            project = self.create_project()
+        project = self.create_project()
 
-            rule = Rule.objects.create(project=project, label="foo")
+        rule = Rule.objects.create(project=project, label="foo")
 
-            url = reverse(
-                "sentry-api-0-project-rule-details",
-                kwargs={
-                    "organization_slug": project.organization.slug,
-                    "project_slug": project.slug,
-                    "rule_id": rule.id,
-                },
-            )
-            response = self.client.put(
-                url,
-                data={
-                    "name": "hello world",
-                    "actionMatch": "any",
-                    "filterMatch": "any",
-                    "action": [],
-                    "conditions": [
-                        {"id": "sentry.rules.conditions.tagged_event.TaggedEventCondition"}
-                    ],
-                },
-                format="json",
-            )
+        url = reverse(
+            "sentry-api-0-project-rule-details",
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_slug": project.slug,
+                "rule_id": rule.id,
+            },
+        )
+        response = self.client.put(
+            url,
+            data={
+                "name": "hello world",
+                "actionMatch": "any",
+                "filterMatch": "any",
+                "action": [],
+                "conditions": [{"id": "sentry.rules.conditions.tagged_event.TaggedEventCondition"}],
+            },
+            format="json",
+        )
 
-            assert response.status_code == 400, response.content
+        assert response.status_code == 400, response.content
 
     def test_update_filters(self):
         self.login_as(user=self.user)
