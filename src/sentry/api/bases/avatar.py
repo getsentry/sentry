@@ -30,8 +30,8 @@ class AvatarMixin:
     model = None
 
     def get(self, request, **kwargs):
-        obj = kwargs[self.object_type]
-        return Response(serialize(obj, request.user))
+        obj = kwargs.pop(self.object_type, None)
+        return Response(serialize(obj, request.user, **kwargs))
 
     def get_serializer_context(self, obj, **kwargs):
         return {"type": self.model, "kwargs": {self.object_type: obj}}
@@ -40,7 +40,7 @@ class AvatarMixin:
         return f"{obj.id}.png"
 
     def put(self, request, **kwargs):
-        obj = kwargs[self.object_type]
+        obj = kwargs.pop(self.object_type, None)
         serializer = AvatarSerializer(data=request.data, context=self.get_serializer_context(obj))
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -54,4 +54,4 @@ class AvatarMixin:
             filename=self.get_avatar_filename(obj),
         )
 
-        return Response(serialize(obj, request.user))
+        return Response(serialize(obj, request.user, **kwargs))
