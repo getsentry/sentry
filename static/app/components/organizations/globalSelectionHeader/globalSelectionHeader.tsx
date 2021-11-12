@@ -27,8 +27,6 @@ import {callIfFunction} from 'app/utils/callIfFunction';
 import Projects from 'app/utils/projects';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 
-import Header from './header';
-
 const PROJECTS_PER_PAGE = 50;
 
 const defaultProps = {
@@ -412,4 +410,25 @@ const BackButtonWrapper = styled('div')`
   height: 100%;
   position: relative;
   left: ${space(2)};
+`;
+
+const Header = styled('div')`
+  position: relative;
+  display: flex;
+  width: 100%;
+  height: 60px;
+
+  border-bottom: 1px solid ${p => p.theme.border};
+  box-shadow: ${p => p.theme.dropShadowLight};
+  z-index: ${p => p.theme.zIndex.globalSelectionHeader};
+
+  background: ${p => p.theme.headerBackground};
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+  @media (min-width: ${props => props.theme.breakpoints[0]} and max-width: ${props =>
+      props.theme.breakpoints[1]}) {
+    margin-top: 54px;
+  }
+  @media (max-width: calc(${props => props.theme.breakpoints[0]} - 1px)) {
+    margin-top: 0;
+  }
 `;
