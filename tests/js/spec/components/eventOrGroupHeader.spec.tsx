@@ -99,7 +99,7 @@ describe('EventOrGroupHeader', function () {
     });
 
     it('renders location', function () {
-      const component = mountWithTheme(
+      mountWithTheme(
         <EventOrGroupHeader
           organization={organization}
           data={{
@@ -115,7 +115,7 @@ describe('EventOrGroupHeader', function () {
         {context: routerContext}
       );
 
-      expect(getByTextContent(component, 'in path/to/file.swift')).toBeInTheDocument();
+      expect(getByTextContent('in path/to/file.swift')).toBeInTheDocument();
     });
   });
 

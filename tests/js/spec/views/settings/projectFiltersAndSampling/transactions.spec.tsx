@@ -239,7 +239,6 @@ describe('Filters and Sampling - Transaction rule', function () {
         expect(screen.getByRole('checkbox')).toBeChecked();
         expect(
           getByTextContent(
-            screen,
             'Include all related transactions by trace ID. This can span across multiple projects. All related errors will remain. Learn more about tracing.'
           )
         ).toBeTruthy();

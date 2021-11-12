@@ -97,7 +97,6 @@ describe('ProjectDetail', function () {
 
       expect(
         getByTextContent(
-          screen,
           'Event Processing for this project is currently degraded. Events may appear with larger delays than usual or get dropped. Please check the Status page for a potential outage.'
         )
       ).toBeInTheDocument();
