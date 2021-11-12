@@ -4,7 +4,6 @@ import Line from 'app/components/events/interfaces/frame/line';
 import {Frame} from 'app/types';
 
 describe('Frame - Line', function () {
-  // @ts-expect-error
   const event = TestStubs.Event();
 
   const data: Frame = {

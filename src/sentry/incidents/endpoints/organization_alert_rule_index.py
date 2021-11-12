@@ -31,7 +31,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         """
         Fetches alert rules and legacy rules for an organization
         """
-        project_ids = self.get_requested_project_ids(request) or None
+        project_ids = self.get_requested_project_ids_unchecked(request) or None
         if project_ids == {-1}:  # All projects for org:
             project_ids = Project.objects.filter(organization=organization).values_list(
                 "id", flat=True
@@ -49,8 +49,8 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
 
         # Materialize the project ids here. This helps us to not overwhelm the query planner with
         # overcomplicated subqueries. Previously, this was causing Postgres to use a suboptimal
-        # index to filter on.
-        project_ids = list(project_ids)
+        # index to filter on. Also enforces permission checks.
+        projects = self.get_projects(request, organization, project_ids=set(project_ids))
 
         teams = request.GET.getlist("team", [])
         team_filter_query = None
@@ -64,12 +64,12 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             if unassigned:
                 team_filter_query = team_filter_query | Q(owner_id=None)
 
-        alert_rules = AlertRule.objects.fetch_for_organization(organization, project_ids)
+        alert_rules = AlertRule.objects.fetch_for_organization(organization, projects)
         if not features.has("organizations:performance-view", organization):
             # Filter to only error alert rules
             alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)
         issue_rules = Rule.objects.filter(
-            status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE], project__in=project_ids
+            status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE], project__in=projects
         )
         name = request.GET.get("name", None)
         if name:
@@ -152,8 +152,8 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint):
         if not features.has("organizations:incidents", organization, actor=request.user):
             raise ResourceDoesNotExist
 
-        project_ids = self.get_requested_project_ids(request) or None
-        alert_rules = AlertRule.objects.fetch_for_organization(organization, project_ids)
+        projects = self.get_projects(request, organization)
+        alert_rules = AlertRule.objects.fetch_for_organization(organization, projects)
         if not features.has("organizations:performance-view", organization):
             # Filter to only error alert rules
             alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)

@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import logging
 import re
 from time import time
-from typing import Any, Mapping, MutableMapping, Optional, Sequence, Tuple
+from typing import Any, Mapping, MutableMapping, Sequence
 
 from django import forms
 from django.db.models import QuerySet
@@ -30,6 +32,7 @@ from sentry.models import (
     Organization,
     OrganizationIntegration,
     Repository,
+    generate_token,
 )
 from sentry.pipeline import NestedPipelineView, Pipeline, PipelineView
 from sentry.shared_integrations.exceptions import (
@@ -44,7 +47,6 @@ from sentry.web.helpers import render_to_response
 
 from .client import VstsApiClient
 from .repository import VstsRepositoryProvider
-from .webhooks import WorkItemWebhook
 
 DESCRIPTION = """
 Connect your Sentry organization to one or more of your Azure DevOps
@@ -115,7 +117,7 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync): 
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        self.default_identity: Optional[Identity] = None
+        self.default_identity: Identity | None = None
 
     def reinstall(self) -> None:
         self.reinstall_repositories()
@@ -123,7 +125,7 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync): 
     def all_repos_migrated(self) -> bool:
         return not self.get_unmigratable_repositories()
 
-    def get_repositories(self, query: Optional[str] = None) -> Sequence[Mapping[str, str]]:
+    def get_repositories(self, query: str | None = None) -> Sequence[Mapping[str, str]]:
         try:
             repos = self.get_client().get_repos(self.instance)
         except (ApiError, IdentityNotValid) as e:
@@ -311,7 +313,7 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync): 
         return instance_
 
     @property
-    def default_project(self) -> Optional[str]:
+    def default_project(self) -> str | None:
         try:
             # Explicitly typing to satisfy mypy.
             default_project_: str = self.model.metadata["default_project"]
@@ -346,7 +348,7 @@ class VstsIntegrationProvider(IntegrationProvider):  # type: ignore
         self,
         integration: IntegrationModel,
         organization: Organization,
-        extra: Optional[Mapping[str, Any]] = None,
+        extra: Mapping[str, Any] | None = None,
     ) -> None:
         repo_ids = Repository.objects.filter(
             organization_id=organization.id,
@@ -424,13 +426,12 @@ class VstsIntegrationProvider(IntegrationProvider):  # type: ignore
         return integration
 
     def create_subscription(
-        self, instance: Optional[str], oauth_data: Mapping[str, Any]
-    ) -> Tuple[int, str]:
-        webhook = WorkItemWebhook()
+        self, instance: str | None, oauth_data: Mapping[str, Any]
+    ) -> tuple[int, str]:
+        client = VstsApiClient(Identity(data=oauth_data), self.oauth_redirect_url)
+        shared_secret = generate_token()
         try:
-            subscription, shared_secret = webhook.create_subscription(
-                instance, oauth_data, self.oauth_redirect_url
-            )
+            subscription = client.create_subscription(instance, shared_secret)
         except ApiError as e:
             auth_codes = (400, 401, 403)
             permission_error = "permission" in str(e) or "not authorized" in str(e)
@@ -458,7 +459,7 @@ class VstsIntegrationProvider(IntegrationProvider):  # type: ignore
         return data
 
     @classmethod
-    def get_base_url(cls, access_token: str, account_id: int) -> Optional[str]:
+    def get_base_url(cls, access_token: str, account_id: int) -> str | None:
         """TODO(mgaeta): This should not be allowed to return None."""
         url = VstsIntegrationProvider.VSTS_ACCOUNT_LOOKUP_URL % account_id
         with http.build_session() as session:
@@ -471,7 +472,7 @@ class VstsIntegrationProvider(IntegrationProvider):  # type: ignore
             )
         if response.status_code == 200:
             # Explicitly typing to satisfy mypy.
-            location_url: Optional[str] = response.json()["locationUrl"]
+            location_url: str | None = response.json()["locationUrl"]
             return location_url
         return None
 
@@ -525,13 +526,13 @@ class AccountConfigView(PipelineView):  # type: ignore
 
     def get_account_from_id(
         self, account_id: int, accounts: Sequence[Mapping[str, Any]]
-    ) -> Optional[Mapping[str, Any]]:
+    ) -> Mapping[str, Any] | None:
         for account in accounts:
             if account["accountId"] == account_id:
                 return account
         return None
 
-    def get_accounts(self, access_token: str, user_id: int) -> Optional[JSONData]:
+    def get_accounts(self, access_token: str, user_id: int) -> JSONData | None:
         url = (
             f"https://app.vssps.visualstudio.com/_apis/accounts?memberId={user_id}&api-version=4.1"
         )

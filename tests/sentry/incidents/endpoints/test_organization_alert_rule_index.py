@@ -646,6 +646,23 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         self.assert_alert_rule_serialized(self.three_alert_rule, result[0], skip_dates=True)
         self.assert_alert_rule_serialized(self.one_alert_rule, result[1], skip_dates=True)
 
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+        self.issue_rule = self.create_issue_alert_rule(
+            data={
+                "project": other_project,
+                "name": "Issue Rule Test",
+                "conditions": [],
+                "actions": [],
+                "actionMatch": "all",
+                "date_added": before_now(minutes=4).replace(tzinfo=pytz.UTC),
+            }
+        )
+
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            response = self.get_error_response(self.organization.slug, project=[other_project.id])
+            assert response.data["detail"] == "You do not have permission to perform this action."
+
     def test_team_filter(self):
         self.setup_project_and_rules()
         with self.feature(["organizations:incidents", "organizations:performance-view"]):

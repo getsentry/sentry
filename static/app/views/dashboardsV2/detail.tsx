@@ -263,21 +263,12 @@ class DashboardDetail extends Component<Props, State> {
       dashboard,
       onAddWidget: (widgets: Widget[]) => {
         const modifiedDashboard = {
-          ...this.state.modifiedDashboard!,
+          ...cloneDashboard(dashboard),
           widgets,
         };
-        this.setState((state: State) => ({
-          ...state,
-          widgetToBeUpdated: undefined,
-          modifiedDashboard,
-        }));
         updateDashboard(api, organization.slug, modifiedDashboard).then(
           (newDashboard: DashboardDetails) => {
             addSuccessMessage(t('Dashboard updated'));
-            this.setState({
-              dashboardState: DashboardState.VIEW,
-              modifiedDashboard: null,
-            });
 
             if (reloadData) {
               reloadData();
