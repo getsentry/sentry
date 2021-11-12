@@ -17,6 +17,7 @@ import {
 } from 'app/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
+import {openConfirmModal} from 'app/components/confirm';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import MenuItem from 'app/components/menuItem';
 import Pagination from 'app/components/pagination';
@@ -141,11 +142,15 @@ function DashboardList({
             <ContextMenu>
               <MenuItem
                 data-test-id="dashboard-delete"
+                disabled={dashboards.length <= 1}
                 onClick={event => {
                   event.preventDefault();
-                  handleDelete(dashboard);
+                  openConfirmModal({
+                    message: t('Are you sure you want to delete this dashboard?'),
+                    priority: 'danger',
+                    onConfirm: () => handleDelete(dashboard),
+                  });
                 }}
-                disabled={dashboards.length <= 1}
               >
                 {t('Delete')}
               </MenuItem>
