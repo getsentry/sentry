@@ -68,7 +68,7 @@ describe('Breadcrumbs', () => {
 
   describe('filterCrumbs', function () {
     it('should filter crumbs based on crumb message', async function () {
-      const component = mountWithTheme(<Breadcrumbs {...props} />);
+      mountWithTheme(<Breadcrumbs {...props} />);
 
       const searchInput = screen.getByPlaceholderText('Search breadcrumbs');
 
@@ -84,11 +84,11 @@ describe('Breadcrumbs', () => {
         screen.queryByText('Sorry, no breadcrumbs match your search query')
       ).not.toBeInTheDocument();
 
-      expect(getAllByTextContent(component, 'sup')).toHaveLength(3);
+      expect(getAllByTextContent('sup')).toHaveLength(3);
     });
 
     it('should filter crumbs based on crumb level', function () {
-      const component = mountWithTheme(<Breadcrumbs {...props} />);
+      mountWithTheme(<Breadcrumbs {...props} />);
 
       const searchInput = screen.getByPlaceholderText('Search breadcrumbs');
 
@@ -96,17 +96,17 @@ describe('Breadcrumbs', () => {
 
       // breadcrumbs + filter item
       // TODO(Priscila): Filter should not render in the dom if not open
-      expect(getAllByTextContent(component, 'Warning')).toHaveLength(6);
+      expect(getAllByTextContent('Warning')).toHaveLength(6);
     });
 
     it('should filter crumbs based on crumb category', function () {
-      const component = mountWithTheme(<Breadcrumbs {...props} />);
+      mountWithTheme(<Breadcrumbs {...props} />);
 
       const searchInput = screen.getByPlaceholderText('Search breadcrumbs');
 
       fireEvent.change(searchInput, {target: {value: 'error'}});
 
-      expect(getAllByTextContent(component, 'error')).toHaveLength(2);
+      expect(getAllByTextContent('error')).toHaveLength(2);
     });
   });
 
