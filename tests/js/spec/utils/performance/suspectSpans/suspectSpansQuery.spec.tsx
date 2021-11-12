@@ -50,7 +50,7 @@ describe('SuspectSpansQuery', function () {
       url: '/organizations/test-org/events-spans-performance/',
       // just asserting that the data is being fetched, no need for actual data here
       body: [],
-      match: [MockApiClient.matchQuery({spanOp: 'op1'})],
+      match: [MockApiClient.matchQuery({spanOp: ['op1']})],
     });
 
     mountWithTheme(
