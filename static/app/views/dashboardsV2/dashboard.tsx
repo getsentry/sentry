@@ -80,14 +80,13 @@ class Dashboard extends Component<Props> {
   }
 
   handleStartAdd = () => {
-    const {organization, dashboard, selection} = this.props;
+    const {organization, selection} = this.props;
 
     trackAdvancedAnalyticsEvent('dashboards_views.add_widget_modal.opened', {
       organization,
     });
     openAddDashboardWidgetModal({
       organization,
-      dashboard,
       selection,
       onAddWidget: this.handleAddComplete,
     });
@@ -133,7 +132,6 @@ class Dashboard extends Component<Props> {
   handleEditWidget = (widget: Widget, index: number) => () => {
     const {
       organization,
-      dashboard,
       selection,
       router,
       location,
@@ -169,7 +167,6 @@ class Dashboard extends Component<Props> {
 
     openAddDashboardWidgetModal({
       organization,
-      dashboard,
       widget,
       selection,
       onAddWidget: this.handleAddComplete,
