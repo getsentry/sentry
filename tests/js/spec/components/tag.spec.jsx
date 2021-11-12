@@ -1,8 +1,8 @@
 import {
   cleanup,
-  fireEvent,
   mountWithTheme,
   screen,
+  userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
 import Tag from 'app/components/tag';
@@ -31,7 +31,7 @@ describe('Tag', function () {
       </Tag>
     );
     expect(screen.getByText('Tooltip')).toBeInTheDocument();
-    fireEvent.mouseOver(screen.getByText('Tooltip'));
+    userEvent.mouseOver(screen.getByText('Tooltip'));
     expect(await screen.findByText('lorem ipsum')).toBeInTheDocument();
   });
 
@@ -47,7 +47,7 @@ describe('Tag', function () {
     expect(screen.getByLabelText('Dismiss')).toBeInTheDocument();
 
     expect(mockCallback).toHaveBeenCalledTimes(0);
-    fireEvent.click(screen.getByLabelText('Dismiss'));
+    userEvent.click(screen.getByLabelText('Dismiss'));
     expect(mockCallback).toHaveBeenCalledTimes(1);
   });
 
