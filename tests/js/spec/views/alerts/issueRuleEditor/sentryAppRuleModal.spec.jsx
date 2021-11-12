@@ -1,4 +1,4 @@
-import {fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import SentryAppRuleModal from 'app/views/alerts/issueRuleEditor/sentryAppRuleModal';
 
@@ -17,16 +17,12 @@ describe('SentryAppRuleModal', function () {
   });
 
   function openSelectMenu(text) {
-    const keyDownEvent = {
-      key: 'ArrowDown',
-    };
-
     const placeholder = screen.getByText(text);
-    fireEvent.keyDown(placeholder, keyDownEvent);
+    userEvent.type(placeholder, '{keyDown}');
   }
 
   const _submit = () => {
-    fireEvent.click(screen.getByText('Save Changes'));
+    userEvent.click(screen.getByText('Save Changes'));
     return screen.queryAllByText('Field is required');
   };
 
@@ -108,10 +104,10 @@ describe('SentryAppRuleModal', function () {
       createWrapper();
       const titleInput = screen.getByTestId('title');
       const descriptionInput = screen.getByTestId('description');
-      fireEvent.change(titleInput, {target: {value: 'v'}});
-      fireEvent.change(descriptionInput, {target: {value: 'v'}});
+      userEvent.type(titleInput, 'v');
+      userEvent.type(descriptionInput, 'v');
       openSelectMenu('--');
-      fireEvent.click(screen.getByText('valor'));
+      userEvent.click(screen.getByText('valor'));
       submitSuccess();
     });
   });
