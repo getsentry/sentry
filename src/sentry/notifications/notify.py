@@ -46,7 +46,7 @@ def notify(
     notification: Any,
     recipients: Iterable[Team | User],
     shared_context: Mapping[str, Any],
-    extra_context_by_user_id: Mapping[int, Mapping[str, Any]] | None = None,
+    extra_context_by_actor_id: Mapping[int, Mapping[str, Any]] | None = None,
 ) -> None:
     """Send notifications to these users or team."""
-    registry[provider](notification, recipients, shared_context, extra_context_by_user_id)
+    registry[provider](notification, recipients, shared_context, extra_context_by_actor_id)
