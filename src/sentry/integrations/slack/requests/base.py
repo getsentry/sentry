@@ -71,9 +71,9 @@ class SlackRequest:
         return channel_id
 
     @property
-    def response_url(self) -> Optional[str]:
+    def response_url(self) -> str:
         """Provide an interface to ``response_url`` for convenience."""
-        return self.data.get("response_url")
+        return self.data.get("response_url", "")
 
     @property
     def team_id(self) -> str:
