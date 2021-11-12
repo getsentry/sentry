@@ -1,26 +1,21 @@
-from typing import Any, List, Optional
+from __future__ import annotations
+
+from typing import Any
 
 from rest_framework import status
-from rest_framework.request import Request
 
-from sentry.integrations.slack.requests.base import SlackRequest, SlackRequestError
+from sentry.integrations.slack.requests.base import SlackDMRequest, SlackRequestError
 from sentry.integrations.slack.unfurl import LinkType, match_link
 from sentry.models import IdentityProvider
-from sentry.models.user import User
 
 COMMANDS = ["link", "unlink", "link team", "unlink team"]
 
 
-def has_discover_links(links: List[str]) -> bool:
-    for link in links:
-        link_type, _ = match_link(link)
-        if link_type == LinkType.DISCOVER:
-            return True
-
-    return False
+def has_discover_links(links: list[str]) -> bool:
+    return any(match_link(link)[0] == LinkType.DISCOVER for link in links)
 
 
-class SlackEventRequest(SlackRequest):
+class SlackEventRequest(SlackDMRequest):
     """
     An Event request sent from Slack.
 
@@ -35,17 +30,15 @@ class SlackEventRequest(SlackRequest):
     Challenge requests will have a ``type`` of ``url_verification``.
     """
 
-    def __init__(self, request: Request) -> None:
-        super().__init__(request)
-        self.user: Optional[User] = None
-
     @property
-    def has_identity(self) -> bool:
-        return self.identity_str is not None
-
-    @property
-    def identity_str(self) -> Optional[str]:
+    def identity_str(self) -> str | None:
         return self.user.email if self.user else None
+
+    @property
+    def channel_name(self) -> str:
+        # Explicitly typing to satisfy mypy.
+        channel: str = self.data.get("event", {}).get("channel", "")
+        return channel
 
     def validate(self) -> None:
         if self.is_challenge():
@@ -67,9 +60,10 @@ class SlackEventRequest(SlackRequest):
         return str(self.data.get("event", {}).get("type"))
 
     @property
-    def user_id(self) -> Optional[Any]:
-        data = self.request.data.get("event")
-        return data["user"]
+    def user_id(self) -> str:
+        # Explicitly typing to satisfy mypy.
+        user: str = self.request.data.get("event", {}).get("user", "")
+        return user
 
     @property
     def text(self) -> Any:
@@ -77,7 +71,7 @@ class SlackEventRequest(SlackRequest):
         return data.get("text")
 
     @property
-    def links(self) -> List[str]:
+    def links(self) -> list[str]:
         links = self.data.get("event", {}).get("links", [])
         return [link["url"] for link in links if "url" in link]
 
@@ -101,7 +95,10 @@ class SlackEventRequest(SlackRequest):
             except IdentityProvider.DoesNotExist:
                 raise SlackRequestError(status=status.HTTP_403_FORBIDDEN)
 
-            self.user = identity.user if identity else None
+            self._user = identity.user if identity else None
 
     def _log_request(self) -> None:
         self._info(f"slack.event.{self.type}")
+
+    def is_bot(self) -> bool:
+        return bool(self.data.get("event", {}).get("bot_id"))

@@ -5,11 +5,11 @@ from urllib.parse import parse_qs
 from rest_framework import status
 from rest_framework.request import Request
 
-from sentry.integrations.slack.requests.base import SlackRequest, SlackRequestError
+from sentry.integrations.slack.requests.base import SlackDMRequest, SlackRequestError
 from sentry.models import IdentityProvider
 
 
-class SlackCommandRequest(SlackRequest):
+class SlackCommandRequest(SlackDMRequest):
     """
     A Command request sent from Slack.
 

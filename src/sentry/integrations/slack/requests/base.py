@@ -6,7 +6,7 @@ from rest_framework import status as status_
 from rest_framework.request import Request
 
 from sentry import options
-from sentry.models import Identity, IdentityProvider, Integration
+from sentry.models import Identity, IdentityProvider, Integration, User
 
 from ..utils import check_signing_secret, logger
 
@@ -37,7 +37,7 @@ class SlackRequest:
 
     def __init__(self, request: Request) -> None:
         self.request = request
-        self.integration: Optional[Integration] = None
+        self._integration: Integration | None = None
         self._data: MutableMapping[str, Any] = {}
         self._log_request()
 
@@ -49,27 +49,32 @@ class SlackRequest:
         self._validate_data()
         self._validate_integration()
 
+    def is_bot(self) -> bool:
+        """
+        If it's a message posted by our bot, we don't want to respond since that
+        will cause an infinite loop of messages.
+        """
+        return False
+
     def is_challenge(self) -> bool:
         return False
 
     @property
-    def has_identity(self) -> bool:
-        raise NotImplementedError
+    def integration(self) -> Integration:
+        if not self._integration:
+            raise RuntimeError
+        return self._integration
 
     @property
-    def type(self) -> str:
-        # Found in different places, so this is implemented in each request's
-        # specific object (``SlackEventRequest`` and ``SlackActionRequest``).
-        raise NotImplementedError
-
-    @property
-    def channel_id(self) -> Optional[str]:
+    def channel_id(self) -> str:
         """
         Provide a normalized interface to ``channel_id``, which Action and Event
         requests provide in different places.
         """
         # Explicitly typing to satisfy mypy.
-        channel_id: str = self.data.get("channel_id") or self.data.get("channel", {}).get("id")
+        channel_id: str = (
+            self.data.get("channel_id") or self.data.get("channel", {}).get("id") or ""
+        )
         return channel_id
 
     @property
@@ -84,17 +89,17 @@ class SlackRequest:
         requests provide in different places.
         """
         # Explicitly typing to satisfy mypy.
-        team_id: str = self.data.get("team_id") or self.data.get("team", {}).get("id")
+        team_id: str = self.data.get("team_id") or self.data.get("team", {}).get("id") or ""
         return team_id
 
     @property
-    def user_id(self) -> Optional[str]:
+    def user_id(self) -> str:
         """
         Provide a normalized interface to ``user_id``, which Action and Event
         requests provide in different places.
         """
         # Explicitly typing to satisfy mypy.
-        user_id: Optional[str] = self.data.get("user_id") or self.data.get("user", {}).get("id")
+        user_id: str = self.data.get("user_id") or self.data.get("user", {}).get("id") or ""
         return user_id
 
     @property
@@ -176,7 +181,7 @@ class SlackRequest:
 
     def _validate_integration(self) -> None:
         try:
-            self.integration = Integration.objects.get(provider="slack", external_id=self.team_id)
+            self._integration = Integration.objects.get(provider="slack", external_id=self.team_id)
         except Integration.DoesNotExist:
             self._error("slack.action.invalid-team-id")
             raise SlackRequestError(status=status_.HTTP_403_FORBIDDEN)
@@ -189,3 +194,31 @@ class SlackRequest:
 
     def _info(self, key: str) -> None:
         logger.info(key, extra={**self.logging_data})
+
+
+class SlackDMRequest(SlackRequest):
+    def __init__(self, request: Request) -> None:
+        super().__init__(request)
+        self._user: User | None = None
+
+    @property
+    def user(self) -> User | None:
+        return self._user
+
+    @property
+    def has_identity(self) -> bool:
+        return self.identity_str is not None
+
+    @property
+    def identity_str(self) -> str | None:
+        raise NotImplementedError
+
+    @property
+    def channel_name(self) -> str:
+        raise NotImplementedError
+
+    @property
+    def type(self) -> str:
+        # Found in different places, so this is implemented in each request's
+        # specific object (``SlackEventRequest`` and ``SlackActionRequest``).
+        raise NotImplementedError
