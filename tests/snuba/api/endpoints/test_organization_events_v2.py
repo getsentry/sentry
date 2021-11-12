@@ -2172,6 +2172,20 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data["data"]) == 1
         assert response.data["meta"]["message"] == "string"
 
+    def test_release_wildcard_condition(self):
+        release = self.create_release(version="test@1.2.3+123")
+
+        self.store_event(
+            data={"release": release.version, "timestamp": self.min_ago},
+            project_id=self.project.id,
+        ).event_id
+
+        query = {"field": ["stack.filename", "release"], "query": "release:test*"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["release"] == release.version
+
     def test_transaction_event_type(self):
         project = self.create_project()
         data = load_data(
