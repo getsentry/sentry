@@ -126,13 +126,13 @@ function TraceEventDataSection({
               />
               {raw ? (
                 isNativePlatform(platform) && (
-                  <Button
+                  <DownloadButton
                     size="small"
                     href={getDownloadHref()}
                     title={t('Download raw stack trace file')}
                   >
                     {t('Download')}
-                  </Button>
+                  </DownloadButton>
                 )
               ) : (
                 <Fragment>
@@ -185,14 +185,15 @@ export default TraceEventDataSection;
 const Header = styled('div')<{raw: boolean}>`
   display: grid;
   grid-template-columns: 1fr max-content;
-  grid-template-rows: repeat(3, 1fr);
-  grid-gap: ${space(2)};
+  grid-template-rows: ${p => (p.raw ? 'repeat(2, 1f)' : 'repeat(3, 1fr)')};
+  grid-gap: ${space(1)};
+  align-items: center;
   flex: 1;
   z-index: 3;
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-rows: repeat(2, 1fr);
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: ${p => (p.raw ? '50% 1fr max-content' : 'repeat(2, 1fr)')};
+    grid-template-rows: ${p => (p.raw ? '1fr' : 'repeat(2, 1fr)')};
   }
 
   @media (min-width: ${p => p.theme.breakpoints[3]}) {
@@ -217,6 +218,12 @@ const RawToggler = styled(BooleanField)`
       padding: 0;
       width: auto;
     }
+  }
+`;
+
+const DownloadButton = styled(Button)`
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    grid-column: 1/-1;
   }
 `;
 
