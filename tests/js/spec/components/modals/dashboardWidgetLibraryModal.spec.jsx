@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import DashboardWidgetLibraryModal from 'app/components/modals/dashboardWidgetLibraryModal';
 
@@ -51,16 +51,16 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
 
     // Select some widgets
     const selectButtons = screen.getAllByRole('button');
-    fireEvent.click(selectButtons[3]);
-    fireEvent.click(selectButtons[4]);
-    fireEvent.click(selectButtons[5]);
+    userEvent.click(selectButtons[3]);
+    userEvent.click(selectButtons[4]);
+    userEvent.click(selectButtons[5]);
 
     expect(screen.getByTestId('selected-badge')).toHaveTextContent('3 Selected');
     expect(screen.queryAllByText('Select')).toHaveLength(3);
     expect(screen.queryAllByText('Selected')).toHaveLength(3);
 
     // Deselect a widget
-    fireEvent.click(selectButtons[4]);
+    userEvent.click(selectButtons[4]);
     expect(screen.getByTestId('selected-badge')).toHaveTextContent('2 Selected');
     expect(screen.queryAllByText('Select')).toHaveLength(4);
     expect(screen.queryAllByText('Selected')).toHaveLength(2);
@@ -74,10 +74,10 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
     const container = mountModal({initialData}, mockApply, closeModal);
     // Select some widgets
     const selectButtons = screen.getAllByRole('button');
-    fireEvent.click(selectButtons[3]);
+    userEvent.click(selectButtons[3]);
 
     expect(screen.getByTestId('selected-badge')).toHaveTextContent('1 Selected');
-    fireEvent.click(screen.getByTestId('confirm-widgets'));
+    userEvent.click(screen.getByTestId('confirm-widgets'));
 
     expect(mockApply).toHaveBeenCalledTimes(1);
     expect(mockApply).toHaveBeenCalledWith([
@@ -108,7 +108,7 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
     expect(screen.queryByText(alertText)).not.toBeInTheDocument();
 
     expect(screen.getByTestId('selected-badge')).toHaveTextContent('0 Selected');
-    fireEvent.click(screen.getByTestId('confirm-widgets'));
+    userEvent.click(screen.getByTestId('confirm-widgets'));
 
     expect(mockApply).toHaveBeenCalledTimes(0);
     expect(closeModal).toHaveBeenCalledTimes(0);
