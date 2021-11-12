@@ -1,4 +1,4 @@
-import {fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import NarrowLayout from 'app/components/narrowLayout';
 
@@ -28,7 +28,7 @@ describe('NarrowLayout', function () {
     });
     mountWithTheme(<NarrowLayout showLogout />);
 
-    fireEvent.click(screen.getByText('Sign out'));
+    userEvent.click(screen.getByText('Sign out'));
     expect(mock).toHaveBeenCalled();
   });
 });
