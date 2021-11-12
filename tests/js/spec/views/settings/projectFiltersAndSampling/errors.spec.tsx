@@ -152,7 +152,7 @@ describe('Filters and Sampling - Error rule', function () {
     expect(screen.getByLabelText('Save Rule')).toBeDisabled();
 
     // Type into realease field
-    userEvent.paste(screen.getByLabelText('Search or add a release'), '[I3].[0-9]');
+    userEvent.type(screen.getByLabelText('Search or add a release'), '[I3]');
 
     // Autocomplete suggests options
     const autocompleteOptions = screen.getByTestId('option');
