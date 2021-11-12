@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ReleaseComparisonChart from 'app/views/releases/detail/overview/releaseComparisonChart';
 
@@ -66,7 +66,7 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
       {context: routerContext}
     );
 
-    fireEvent.click(screen.getByLabelText(/crash free user rate/i));
+    userEvent.click(screen.getByLabelText(/crash free user rate/i));
 
     expect(browserHistory.push).toHaveBeenCalledWith({query: {chart: 'crashFreeUsers'}});
 
@@ -113,9 +113,9 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
     );
 
     screen.getAllByLabelText(/toggle chart/i).forEach(toggle => {
-      fireEvent.click(toggle);
+      userEvent.click(toggle);
     });
-    fireEvent.click(screen.getByLabelText(/toggle additional/i));
+    userEvent.click(screen.getByLabelText(/toggle additional/i));
 
     expect(screen.getAllByRole('radio').length).toBe(13);
     // lazy way to make sure that all percentages are calculated correctly
@@ -128,9 +128,9 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
 
     // toggle back
     screen.getAllByLabelText(/toggle chart/i).forEach(toggle => {
-      fireEvent.click(toggle);
+      userEvent.click(toggle);
     });
-    fireEvent.click(screen.getByLabelText(/toggle additional/i));
+    userEvent.click(screen.getByLabelText(/toggle additional/i));
 
     expect(screen.getAllByRole('radio').length).toBe(3);
   });
