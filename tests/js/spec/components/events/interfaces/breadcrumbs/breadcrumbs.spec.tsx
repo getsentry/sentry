@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {getAllByTextContent} from 'sentry-test/utils';
 
 import Breadcrumbs from 'app/components/events/interfaces/breadcrumbs';
@@ -70,15 +70,15 @@ describe('Breadcrumbs', () => {
     it('should filter crumbs based on crumb message', async function () {
       mountWithTheme(<Breadcrumbs {...props} />);
 
-      const searchInput = screen.getByPlaceholderText('Search breadcrumbs');
-
-      fireEvent.change(searchInput, {target: {value: 'hi'}});
+      userEvent.type(screen.getByPlaceholderText('Search breadcrumbs'), 'hi');
 
       expect(
         await screen.findByText('Sorry, no breadcrumbs match your search query')
       ).toBeInTheDocument();
 
-      fireEvent.change(searchInput, {target: {value: 'up'}});
+      userEvent.click(screen.getByLabelText('Clear'));
+
+      userEvent.type(screen.getByPlaceholderText('Search breadcrumbs'), 'up');
 
       expect(
         screen.queryByText('Sorry, no breadcrumbs match your search query')
@@ -90,9 +90,7 @@ describe('Breadcrumbs', () => {
     it('should filter crumbs based on crumb level', function () {
       mountWithTheme(<Breadcrumbs {...props} />);
 
-      const searchInput = screen.getByPlaceholderText('Search breadcrumbs');
-
-      fireEvent.change(searchInput, {target: {value: 'war'}});
+      userEvent.type(screen.getByPlaceholderText('Search breadcrumbs'), 'war');
 
       // breadcrumbs + filter item
       // TODO(Priscila): Filter should not render in the dom if not open
@@ -102,9 +100,7 @@ describe('Breadcrumbs', () => {
     it('should filter crumbs based on crumb category', function () {
       mountWithTheme(<Breadcrumbs {...props} />);
 
-      const searchInput = screen.getByPlaceholderText('Search breadcrumbs');
-
-      fireEvent.change(searchInput, {target: {value: 'error'}});
+      userEvent.type(screen.getByPlaceholderText('Search breadcrumbs'), 'error');
 
       expect(getAllByTextContent('error')).toHaveLength(2);
     });
@@ -129,7 +125,7 @@ describe('Breadcrumbs', () => {
 
       const searchInput = screen.getByPlaceholderText('Search breadcrumbs');
 
-      fireEvent.change(searchInput, {target: {value: 'sup'}});
+      userEvent.type(searchInput, 'sup');
 
       expect(screen.queryByTestId('crumb')).not.toBeInTheDocument();
 

@@ -1,9 +1,9 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   act,
-  fireEvent,
   mountWithTheme,
   screen,
+  userEvent,
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
@@ -93,11 +93,16 @@ describe('Incident Rules Form', () => {
         },
       });
 
+      // Clear field
+      userEvent.clear(screen.getByPlaceholderText('Something really bad happened'));
+
       // Enter in name so we can submit
-      fireEvent.change(screen.getByPlaceholderText('Something really bad happened'), {
-        target: {value: 'Incident Rule'},
-      });
-      fireEvent.click(screen.getByLabelText('Save Rule'));
+      userEvent.type(
+        screen.getByPlaceholderText('Something really bad happened'),
+        'Incident Rule'
+      );
+
+      userEvent.click(screen.getByLabelText('Save Rule'));
 
       expect(createRule).toHaveBeenCalledWith(
         expect.anything(),
@@ -141,10 +146,15 @@ describe('Incident Rules Form', () => {
         rule,
       });
 
-      fireEvent.change(screen.getByPlaceholderText('Something really bad happened'), {
-        target: {value: 'new name'},
-      });
-      fireEvent.click(screen.getByLabelText('Save Rule'));
+      // Clear field
+      userEvent.clear(screen.getByPlaceholderText('Something really bad happened'));
+
+      userEvent.type(
+        screen.getByPlaceholderText('Something really bad happened'),
+        'new name'
+      );
+
+      userEvent.click(screen.getByLabelText('Save Rule'));
 
       expect(editRule).toHaveBeenLastCalledWith(
         expect.anything(),
@@ -191,10 +201,12 @@ describe('Incident Rules Form', () => {
         rule: alertRule,
         onSubmitSuccess,
       });
-      fireEvent.change(screen.getByPlaceholderText('Something really bad happened'), {
-        target: {value: 'Slack Alert Rule'},
-      });
-      fireEvent.click(screen.getByLabelText('Save Rule'));
+
+      userEvent.type(
+        screen.getByPlaceholderText('Something really bad happened'),
+        'Slack Alert Rule'
+      );
+      userEvent.click(screen.getByLabelText('Save Rule'));
 
       expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
 
@@ -261,10 +273,11 @@ describe('Incident Rules Form', () => {
         rule: alertRule,
         onSubmitSuccess,
       });
-      fireEvent.change(screen.getByPlaceholderText('Something really bad happened'), {
-        target: {value: 'Slack Alert Rule'},
-      });
-      fireEvent.click(screen.getByLabelText('Save Rule'));
+      userEvent.type(
+        screen.getByPlaceholderText('Something really bad happened'),
+        'Slack Alert Rule'
+      );
+      userEvent.click(screen.getByLabelText('Save Rule'));
 
       act(jest.runAllTimers);
       await waitFor(
