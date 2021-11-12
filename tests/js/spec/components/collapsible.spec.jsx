@@ -62,12 +62,12 @@ describe('Collapsible', function () {
     expect(screen.getByText(/Custom/)).toBeInTheDocument();
 
     // custom expand
-    fireEvent.click(screen.getByLabelText('Expand'));
+    userEvent.click(screen.getByLabelText('Expand'));
 
     expect(screen.getAllByText(/Item/)).toHaveLength(7);
 
     // custom collapse back
-    fireEvent.click(screen.getByText('Custom Collapse'));
+    userEvent.click(screen.getByText('Custom Collapse'));
 
     expect(screen.getAllByText(/Item/)).toHaveLength(5);
   });
