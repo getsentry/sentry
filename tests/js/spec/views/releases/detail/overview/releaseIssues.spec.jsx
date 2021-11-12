@@ -27,10 +27,10 @@ describe('ReleaseIssues', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${props.organization.slug}/issues-count/?end=2020-03-24T02%3A04%3A59Z&query=first-release%3A%221.0.0%22&query=release%3A%221.0.0%22&query=error.handled%3A0%20release%3A%221.0.0%22&start=2020-03-23T01%3A02%3A00Z`,
+      url: `/organizations/${props.organization.slug}/issues-count/?end=2020-03-24T02%3A04%3A59Z&query=first-release%3A%221.0.0%22&query=release%3A%221.0.0%22&query=error.handled%3A0%20release%3A%221.0.0%22&query=regressed_in_release%3A%221.0.0%22&start=2020-03-23T01%3A02%3A00Z`,
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${props.organization.slug}/issues-count/?query=first-release%3A%221.0.0%22&query=release%3A%221.0.0%22&query=error.handled%3A0%20release%3A%221.0.0%22&statsPeriod=24h`,
+      url: `/organizations/${props.organization.slug}/issues-count/?query=first-release%3A%221.0.0%22&query=release%3A%221.0.0%22&query=error.handled%3A0%20release%3A%221.0.0%22&query=regressed_in_release%3A%221.0.0%22&statsPeriod=24h`,
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${props.organization.slug}/releases/1.0.0/resolved/`,
@@ -104,8 +104,8 @@ describe('ReleaseIssues', function () {
 
     const filterOptions = wrapper.find('ButtonBar Button');
 
-    expect(filterOptions).toHaveLength(5); // fifth one is "Open Issues" button
-    expect(filterOptions.at(2).text()).toEqual('Unhandled Issues');
+    expect(filterOptions).toHaveLength(6); // sixth one is "Open Issues" button
+    expect(filterOptions.at(2).text()).toEqual('Unhandled');
 
     filterIssues(wrapper, 'new');
     expect(newIssuesEndpoint).toHaveBeenCalledTimes(1);
