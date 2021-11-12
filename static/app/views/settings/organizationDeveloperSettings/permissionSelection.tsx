@@ -129,8 +129,8 @@ export default class PermissionSelection extends Component<Props, State> {
     return (
       <Fragment>
         {SENTRY_APP_PERMISSIONS.map(config => {
-          const toChoice = ([value, opt]) => [value, opt.label];
-          const choices = Object.entries(config.choices).map(toChoice);
+          const toOption = ([value, {label}]) => ({value, label});
+          const options = Object.entries(config.choices).map(toOption);
           const value = permissions[config.resource];
 
           return (
@@ -141,7 +141,7 @@ export default class PermissionSelection extends Component<Props, State> {
               // sentryApplicationDetails.jsx
               name={`${config.resource}--permission`}
               key={config.resource}
-              choices={choices}
+              options={options}
               help={t(config.help)}
               label={t(config.label || config.resource)}
               onChange={this.onChange.bind(this, config.resource)}
