@@ -18,7 +18,7 @@ from sentry.app import tsdb
 from sentry.constants import LOG_LEVELS
 from sentry.digests import Record
 from sentry.digests.notifications import Notification, build_digest
-from sentry.digests.utilities import get_digest_metadata
+from sentry.digests.utils import get_digest_metadata
 from sentry.event_manager import EventManager, get_event_type
 from sentry.http import get_server_hostname
 from sentry.models import (

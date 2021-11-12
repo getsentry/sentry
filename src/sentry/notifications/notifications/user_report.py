@@ -75,7 +75,8 @@ class UserReportNotification(ProjectNotification):
     def get_recipient_context(
         self, recipient: Team | User, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
-        return get_reason_context(extra_context)
+        context = super().get_recipient_context(recipient, extra_context)
+        return {**context, **get_reason_context(context)}
 
     def send(self) -> None:
         return send_activity_notification(self)
