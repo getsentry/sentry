@@ -1,4 +1,4 @@
-import {fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import Button from 'app/components/button';
 import Collapsible from 'app/components/collapsible';
@@ -20,12 +20,12 @@ describe('Collapsible', function () {
     mountWithTheme(<Collapsible>{items}</Collapsible>);
 
     // expand
-    fireEvent.click(screen.getByLabelText('Show 2 hidden items'));
+    userEvent.click(screen.getByLabelText('Show 2 hidden items'));
 
     expect(screen.getAllByText(/Item/)).toHaveLength(7);
 
     // collapse back
-    fireEvent.click(screen.getByLabelText('Collapse'));
+    userEvent.click(screen.getByLabelText('Collapse'));
 
     expect(screen.getAllByText(/Item/)).toHaveLength(5);
   });
