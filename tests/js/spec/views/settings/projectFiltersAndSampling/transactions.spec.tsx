@@ -276,8 +276,7 @@ describe('Filters and Sampling - Transaction rule', function () {
         fireEvent.click(screen.getByText('Add Condition'));
 
         // Autocomplete
-        const autoCompleteList = await screen.findByTestId('autocomplete-list');
-        expect(autoCompleteList).toBeInTheDocument();
+        expect(screen.getByTestId('autocomplete-list')).toBeInTheDocument();
 
         // Trancing Condition Options
         const conditionTracingOptions = screen.getAllByTestId('condition');
@@ -359,8 +358,7 @@ describe('Filters and Sampling - Transaction rule', function () {
           fireEvent.click(screen.getByText('Add Condition'));
 
           // Autocomplete
-          const autoCompleteList = await screen.findByTestId('autocomplete-list');
-          expect(autoCompleteList).toBeInTheDocument();
+          expect(screen.getByTestId('autocomplete-list')).toBeInTheDocument();
 
           // Condition Options
           const conditionOptions = screen.getAllByTestId('condition');
