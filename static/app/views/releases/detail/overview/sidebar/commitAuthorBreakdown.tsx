@@ -4,14 +4,13 @@ import AsyncComponent from 'app/components/asyncComponent';
 import UserAvatar from 'app/components/avatar/userAvatar';
 import Button from 'app/components/button';
 import Collapsible from 'app/components/collapsible';
+import SidebarSection from 'app/components/sidebarSection';
 import {t, tn} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Commit, User} from 'app/types';
 import {percent} from 'app/utils';
 import {userDisplayName} from 'app/utils/formatters';
-
-import {SectionHeading, Wrapper} from '../styles';
 
 type GroupedAuthorCommits = {
   [key: string]: {author: User | undefined; commitCount: number};
@@ -84,8 +83,7 @@ class CommitAuthorBreakdown extends AsyncComponent<Props, State> {
     }
 
     return (
-      <Wrapper>
-        <SectionHeading>{t('Commit Author Breakdown')}</SectionHeading>
+      <SidebarSection title={t('Commit Author Breakdown')}>
         <Collapsible
           expandButton={({onExpand, numberOfHiddenItems}) => (
             <Button priority="link" onClick={onExpand}>
@@ -106,7 +104,7 @@ class CommitAuthorBreakdown extends AsyncComponent<Props, State> {
             </AuthorLine>
           ))}
         </Collapsible>
-      </Wrapper>
+      </SidebarSection>
     );
   }
 }

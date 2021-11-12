@@ -11,7 +11,7 @@ import TransitionChart from 'app/components/charts/transitionChart';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import NotAvailable from 'app/components/notAvailable';
 import QuestionTooltip from 'app/components/questionTooltip';
-import SidebarSectionTitle from 'app/components/sidebarSectionTitle';
+import SidebarSection from 'app/components/sidebarSection';
 import Tag from 'app/components/tag';
 import Tooltip from 'app/components/tooltip';
 import {IconWarning} from 'app/icons';
@@ -33,7 +33,6 @@ import {
   isMobileRelease,
 } from '../../../utils';
 import {generateReleaseMarkLines, releaseMarkLinesLabels} from '../../utils';
-import {Wrapper} from '../styles';
 
 const sessionsAxisIndex = 0;
 const usersAxisIndex = 1;
@@ -235,10 +234,10 @@ function ReleaseAdoption({
   const multipleEnvironments = environment.length === 0 || environment.length > 1;
 
   return (
-    <Wrapper>
+    <div>
       {isMobileRelease(project.platform) && (
         <Feature features={['release-adoption-stage']}>
-          <SidebarSectionTitle
+          <SidebarSection
             title={t('Adoption Stage')}
             icon={
               multipleEnvironments && (
@@ -251,21 +250,22 @@ function ReleaseAdoption({
                 />
               )
             }
-          />
-          {adoptionStageLabel && !multipleEnvironments ? (
-            <div>
-              <StyledTooltip title={adoptionStageLabel.tooltipTitle} isHoverable>
-                <Tag type={adoptionStageLabel.type}>{adoptionStageLabel.name}</Tag>
-              </StyledTooltip>
-              <AdoptionEnvironment>
-                {tct(`in [environment]`, {environment})}
-              </AdoptionEnvironment>
-            </div>
-          ) : (
-            <NotAvailableWrapper>
-              <NotAvailable />
-            </NotAvailableWrapper>
-          )}
+          >
+            {adoptionStageLabel && !multipleEnvironments ? (
+              <div>
+                <Tooltip title={adoptionStageLabel.tooltipTitle} isHoverable>
+                  <Tag type={adoptionStageLabel.type}>{adoptionStageLabel.name}</Tag>
+                </Tooltip>
+                <AdoptionEnvironment>
+                  {tct(`in [environment]`, {environment})}
+                </AdoptionEnvironment>
+              </div>
+            ) : (
+              <NotAvailableWrapper>
+                <NotAvailable />
+              </NotAvailableWrapper>
+            )}
+          </SidebarSection>
         </Feature>
       )}
       <RelativeBox>
@@ -324,21 +324,17 @@ function ReleaseAdoption({
           </TransitionChart>
         )}
       </RelativeBox>
-    </Wrapper>
+    </div>
   );
 }
-
-const StyledTooltip = styled(Tooltip)`
-  margin-bottom: ${space(3)};
-`;
 
 const NotAvailableWrapper = styled('div')`
   display: flex;
   align-items: center;
-  margin-bottom: ${space(3)};
 `;
 
 const AdoptionEnvironment = styled('span')`
+  color: ${p => p.theme.textColor};
   margin-left: ${space(0.5)};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
@@ -347,7 +343,7 @@ const RelativeBox = styled('div')`
   position: relative;
 `;
 
-const ChartTitle = styled(SidebarSectionTitle)`
+const ChartTitle = styled(SidebarSection)`
   margin: 0;
 `;
 

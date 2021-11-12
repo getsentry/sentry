@@ -4,13 +4,12 @@ import Count from 'app/components/count';
 import DateTime from 'app/components/dateTime';
 import {KeyValueTable, KeyValueTableRow} from 'app/components/keyValueTable';
 import Link from 'app/components/links/link';
+import SidebarSection from 'app/components/sidebarSection';
 import TextOverflow from 'app/components/textOverflow';
 import TimeSince from 'app/components/timeSince';
 import Version from 'app/components/version';
 import {t, tn} from 'app/locale';
 import {ReleaseMeta, ReleaseWithHealth} from 'app/types';
-
-import {SectionHeading, Wrapper} from '../styles';
 
 type Props = {
   release: ReleaseWithHealth;
@@ -23,8 +22,7 @@ const ProjectReleaseDetails = ({release, releaseMeta, orgSlug, projectSlug}: Pro
   const {version, versionInfo, dateCreated, firstEvent, lastEvent} = release;
 
   return (
-    <Wrapper>
-      <SectionHeading>{t('Project Release Details')}</SectionHeading>
+    <SidebarSection title={t('Project Release Details')}>
       <KeyValueTable>
         <KeyValueTableRow
           keyName={t('Created')}
@@ -64,7 +62,7 @@ const ProjectReleaseDetails = ({release, releaseMeta, orgSlug, projectSlug}: Pro
           }
         />
       </KeyValueTable>
-    </Wrapper>
+    </SidebarSection>
   );
 };
 

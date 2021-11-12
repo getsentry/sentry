@@ -5,11 +5,10 @@ import Button from 'app/components/button';
 import Collapsible from 'app/components/collapsible';
 import IdBadge from 'app/components/idBadge';
 import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
+import SidebarSection from 'app/components/sidebarSection';
 import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, ReleaseProject} from 'app/types';
-
-import {SectionHeading, Wrapper} from '../styles';
 
 type Props = {
   projects: ReleaseProject[];
@@ -20,15 +19,13 @@ type Props = {
 
 function OtherProjects({projects, location, version, organization}: Props) {
   return (
-    <Wrapper>
-      <SectionHeading>
-        {tn(
-          'Other Project for This Release',
-          'Other Projects for This Release',
-          projects.length
-        )}
-      </SectionHeading>
-
+    <SidebarSection
+      title={tn(
+        'Other Project for This Release',
+        'Other Projects for This Release',
+        projects.length
+      )}
+    >
       <Collapsible
         expandButton={({onExpand, numberOfHiddenItems}) => (
           <Button priority="link" onClick={onExpand}>
@@ -61,7 +58,7 @@ function OtherProjects({projects, location, version, organization}: Props) {
           </Row>
         ))}
       </Collapsible>
-    </Wrapper>
+    </SidebarSection>
   );
 }
 
