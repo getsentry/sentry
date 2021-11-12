@@ -155,7 +155,14 @@ class KeySettings extends Component<Props, State> {
                   </Field>
                   <SelectField
                     name="browserSdkVersion"
-                    choices={data.browserSdk ? data.browserSdk.choices : []}
+                    options={
+                      data.browserSdk
+                        ? data.browserSdk.choices.map(([value, label]) => ({
+                            value,
+                            label,
+                          }))
+                        : []
+                    }
                     placeholder={t('4.x')}
                     allowClear={false}
                     disabled={!hasAccess}
