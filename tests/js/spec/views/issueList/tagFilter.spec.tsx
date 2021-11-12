@@ -1,6 +1,7 @@
 import {
   mountWithTheme,
   screen,
+  userEvent,
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
