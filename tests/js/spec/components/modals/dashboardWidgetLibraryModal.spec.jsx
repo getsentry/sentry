@@ -1,6 +1,5 @@
-// import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import DashboardWidgetLibraryModal from 'app/components/modals/dashboardWidgetLibraryModal';
 
@@ -48,8 +47,8 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
 
     // Select some widgets
     const selectButtons = screen.getAllByRole('button');
-    fireEvent.click(selectButtons[4]);
-    fireEvent.click(selectButtons[5]);
+    userEvent.click(selectButtons[4]);
+    userEvent.click(selectButtons[5]);
 
     expect(screen.getByTestId('selected-badge')).toHaveTextContent('2 Selected');
     expect(screen.queryAllByText('Select')).toHaveLength(4);

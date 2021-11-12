@@ -1,4 +1,4 @@
-import {fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'app/api';
 import {ErrorRobot} from 'app/components/errorRobot';
@@ -42,7 +42,7 @@ describe('ErrorRobot', function () {
 
     it('Renders installation instructions', function () {
       createWrapper();
-      fireEvent.click(screen.getByText('Installation Instructions'));
+      userEvent.click(screen.getByText('Installation Instructions'));
       expect(routerContext.context.router.push).toHaveBeenCalledWith(
         '/org-slug/project-slug/getting-started/'
       );

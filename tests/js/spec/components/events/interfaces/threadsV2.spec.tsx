@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {fireEvent, mountWithTheme, screen, within} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import ThreadsV2 from 'app/components/events/interfaces/threadsV2';
 import {EventOrGroupType} from 'app/types';
@@ -237,7 +237,7 @@ describe('ThreadsV2', function () {
         mountWithTheme(<ThreadsV2 {...props} />, {organization: org});
 
         expect(screen.getByRole('checkbox', {name: 'Raw'})).not.toBeChecked();
-        fireEvent.click(screen.getByRole('checkbox', {name: 'Raw'}));
+        userEvent.click(screen.getByRole('checkbox', {name: 'Raw'}));
         expect(screen.getByRole('checkbox', {name: 'Raw'})).toBeChecked();
 
         // Actions must not be rendered
@@ -262,7 +262,7 @@ describe('ThreadsV2', function () {
           )
         ).toBeInTheDocument();
 
-        fireEvent.click(screen.getByRole('button', {name: 'Sort By Recent first'}));
+        userEvent.click(screen.getByRole('button', {name: 'Sort By Recent first'}));
 
         expect(screen.queryAllByLabelText('Sort option')).toHaveLength(2);
         expect(screen.queryAllByLabelText('Sort option')[0]).toHaveTextContent(
@@ -272,7 +272,7 @@ describe('ThreadsV2', function () {
           'Recent last'
         );
 
-        fireEvent.click(screen.getByText('Recent last'));
+        userEvent.click(screen.getByText('Recent last'));
 
         expect(
           screen.getByRole('button', {name: 'Sort By Recent last'})
@@ -284,9 +284,9 @@ describe('ThreadsV2', function () {
           )
         ).toBeInTheDocument();
 
-        fireEvent.click(screen.getByRole('button', {name: 'Sort By Recent last'}));
+        userEvent.click(screen.getByRole('button', {name: 'Sort By Recent last'}));
 
-        fireEvent.click(screen.getByText('Recent first'));
+        userEvent.click(screen.getByText('Recent first'));
 
         expect(
           screen.getByRole('button', {name: 'Sort By Recent first'})
@@ -300,7 +300,7 @@ describe('ThreadsV2', function () {
           screen.getByRole('button', {name: 'Options 1 Active'})
         ).toBeInTheDocument();
 
-        fireEvent.click(screen.getByRole('button', {name: 'Options 1 Active'}));
+        userEvent.click(screen.getByRole('button', {name: 'Options 1 Active'}));
 
         expect(screen.queryAllByLabelText('Display option')).toHaveLength(2);
 
@@ -313,7 +313,7 @@ describe('ThreadsV2', function () {
         );
 
         // hover over the Minified option
-        fireEvent.mouseEnter(within(displayOption0).getByText('Minified'));
+        userEvent.hover(within(displayOption0).getByText('Minified'));
         expect(
           await screen.findByText('Minified version not available')
         ).toBeInTheDocument();
@@ -330,7 +330,7 @@ describe('ThreadsV2', function () {
         expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(4);
 
         // Uncheck Full Stack Trace
-        fireEvent.click(screen.queryAllByLabelText('Display option')[1]);
+        userEvent.click(screen.queryAllByLabelText('Display option')[1]);
         expect(
           within(screen.queryAllByLabelText('Display option')[1]).getByRole('checkbox')
         ).not.toBeChecked();
@@ -894,7 +894,7 @@ describe('ThreadsV2', function () {
         mountWithTheme(<ThreadsV2 {...props} />, {organization: org});
 
         expect(screen.getByRole('checkbox', {name: 'Raw'})).not.toBeChecked();
-        fireEvent.click(screen.getByRole('checkbox', {name: 'Raw'}));
+        userEvent.click(screen.getByRole('checkbox', {name: 'Raw'}));
         expect(screen.getByRole('checkbox', {name: 'Raw'})).toBeChecked();
 
         // Actions must not be rendered
@@ -919,7 +919,7 @@ describe('ThreadsV2', function () {
           )
         ).toBeInTheDocument();
 
-        fireEvent.click(screen.getByRole('button', {name: 'Sort By Recent first'}));
+        userEvent.click(screen.getByRole('button', {name: 'Sort By Recent first'}));
 
         expect(screen.queryAllByLabelText('Sort option')).toHaveLength(2);
         expect(screen.queryAllByLabelText('Sort option')[0]).toHaveTextContent(
@@ -929,7 +929,7 @@ describe('ThreadsV2', function () {
           'Recent last'
         );
 
-        fireEvent.click(screen.getByText('Recent last'));
+        userEvent.click(screen.getByText('Recent last'));
 
         expect(
           screen.getByRole('button', {name: 'Sort By Recent last'})
@@ -941,9 +941,9 @@ describe('ThreadsV2', function () {
           )
         ).toBeInTheDocument();
 
-        fireEvent.click(screen.getByRole('button', {name: 'Sort By Recent last'}));
+        userEvent.click(screen.getByRole('button', {name: 'Sort By Recent last'}));
 
-        fireEvent.click(screen.getByText('Recent first'));
+        userEvent.click(screen.getByText('Recent first'));
 
         expect(
           screen.getByRole('button', {name: 'Sort By Recent first'})
@@ -956,7 +956,7 @@ describe('ThreadsV2', function () {
         expect(
           screen.getByRole('button', {name: 'Options 1 Active'})
         ).toBeInTheDocument();
-        fireEvent.click(screen.getByRole('button', {name: 'Options 1 Active'}));
+        userEvent.click(screen.getByRole('button', {name: 'Options 1 Active'}));
 
         expect(screen.queryAllByLabelText('Display option')).toHaveLength(5);
 
@@ -1010,7 +1010,7 @@ describe('ThreadsV2', function () {
           )
         ).toBeInTheDocument();
 
-        fireEvent.click(screen.queryAllByLabelText('Display option')[3]);
+        userEvent.click(screen.queryAllByLabelText('Display option')[3]);
         expect(within(displayOption3).getByRole('checkbox')).toBeChecked();
 
         expect(
@@ -1024,7 +1024,7 @@ describe('ThreadsV2', function () {
           within(screen.queryAllByTestId('stack-trace-frame')[1]).getByText('+0x085ac')
         ).toBeInTheDocument();
 
-        fireEvent.click(screen.queryAllByLabelText('Display option')[1]);
+        userEvent.click(screen.queryAllByLabelText('Display option')[1]);
         expect(
           within(screen.queryAllByLabelText('Display option')[1]).getByRole('checkbox')
         ).toBeChecked();
@@ -1034,7 +1034,7 @@ describe('ThreadsV2', function () {
         ).toBeInTheDocument();
 
         // Uncheck Full Stack Trace
-        fireEvent.click(screen.queryAllByLabelText('Display option')[4]);
+        userEvent.click(screen.queryAllByLabelText('Display option')[4]);
         expect(
           within(screen.queryAllByLabelText('Display option')[4]).getByRole('checkbox')
         ).not.toBeChecked();

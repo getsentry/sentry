@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import MetricField from 'app/views/alerts/incidentRules/metricField';
 import {Dataset} from 'app/views/alerts/incidentRules/types';
@@ -7,12 +7,8 @@ import Form from 'app/views/settings/components/forms/form';
 import FormModel from 'app/views/settings/components/forms/model';
 
 function openSelectMenu(text) {
-  const keyDownEvent = {
-    key: 'ArrowDown',
-  };
-
   const placeholder = screen.getByText(text);
-  fireEvent.keyDown(placeholder, keyDownEvent);
+  userEvent.type(placeholder, '{keyDown}');
 }
 
 describe('MetricField', function () {
@@ -45,7 +41,7 @@ describe('MetricField', function () {
     expect(screen.getByText('count_unique(…)')).toBeInTheDocument();
 
     // Select count_unique and verify the tags
-    fireEvent.click(screen.getByText('count_unique(…)'));
+    userEvent.click(screen.getByText('count_unique(…)'));
 
     expect(model.fields.get('metric')).toBe('count_unique(tags[sentry:user])');
     expect(screen.getByText('tags[sentry:user]')).toBeInTheDocument();
@@ -61,7 +57,7 @@ describe('MetricField', function () {
 
     // 10 error aggregate configs
     expect(screen.getAllByTestId('label')).toHaveLength(10);
-    fireEvent.click(screen.getByText('avg(…)'));
+    userEvent.click(screen.getByText('avg(…)'));
     expect(model.fields.get('metric')).toBe('avg(transaction.duration)');
 
     openSelectMenu('transaction.duration');
@@ -77,12 +73,12 @@ describe('MetricField', function () {
       </Form>
     );
     openSelectMenu('(Required)');
-    fireEvent.click(screen.getByText('failure_rate()'));
+    userEvent.click(screen.getByText('failure_rate()'));
 
     expect(screen.getByLabelText('Failure rate')).toBeDisabled();
 
     openSelectMenu('failure_rate()');
-    fireEvent.click(screen.getByText('p95(…)'));
+    userEvent.click(screen.getByText('p95(…)'));
 
     expect(screen.getByLabelText('Latency')).toBeDisabled();
   });
@@ -94,7 +90,7 @@ describe('MetricField', function () {
       </Form>
     );
 
-    fireEvent.click(screen.getByText('Failure rate'));
+    userEvent.click(screen.getByText('Failure rate'));
 
     expect(screen.getByText('failure_rate()')).toBeInTheDocument();
   });

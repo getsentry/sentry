@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {
   PageErrorAlert,
@@ -35,7 +35,7 @@ describe('Performance > Contexts > pageError', function () {
 
     const button = await screen.findByTestId('pageErrorButton');
 
-    await fireEvent.click(button);
+    userEvent.click(button);
 
     expect(await screen.findByTestId('errorAlert')).toHaveTextContent('Fresh new error');
   });

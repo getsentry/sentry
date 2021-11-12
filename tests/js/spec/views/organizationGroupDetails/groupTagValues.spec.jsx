@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import GroupTagValues from 'app/views/organizationGroupDetails/groupTagValues';
 
@@ -35,8 +35,8 @@ describe('GroupTagValues', () => {
       {context: routerContext}
     );
 
-    fireEvent.click(screen.getByLabelText('Show more'));
-    fireEvent.click(screen.getByText('Search All Issues with Tag Value'));
+    userEvent.click(screen.getByLabelText('Show more'));
+    userEvent.click(screen.getByText('Search All Issues with Tag Value'));
 
     expect(router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/issues/',

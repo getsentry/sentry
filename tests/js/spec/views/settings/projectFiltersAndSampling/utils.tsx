@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import GlobalModal from 'app/components/globalModal';
 import FiltersAndSampling from 'app/views/settings/project/filtersAndSampling';
@@ -36,7 +36,7 @@ export function renderComponent(withModal = true) {
 
 export async function renderModal(actionElement: HTMLElement, takeScreenshot = false) {
   // Open Modal
-  fireEvent.click(actionElement);
+  userEvent.click(actionElement);
   const dialog = await screen.findByRole('dialog');
   expect(dialog).toBeInTheDocument();
 

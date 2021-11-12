@@ -1,9 +1,9 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   act,
-  fireEvent,
   mountWithTheme,
   screen,
+  userEvent,
   within,
 } from 'sentry-test/reactTestingLibrary';
 
@@ -192,7 +192,7 @@ describe('IncidentsList', function () {
   it('filters by opened issues', function () {
     createWrapper();
 
-    fireEvent.click(screen.getByTestId('filter-button'));
+    userEvent.click(screen.getByTestId('filter-button'));
 
     const resolved = screen.getByText('Resolved');
     expect(resolved).toBeInTheDocument();
@@ -200,7 +200,7 @@ describe('IncidentsList', function () {
       within(resolved.parentElement).getByTestId('checkbox-fancy')
     ).not.toBeChecked();
 
-    fireEvent.click(resolved);
+    userEvent.click(resolved);
 
     expect(router.push).toHaveBeenCalledWith({
       pathname: undefined,
@@ -241,8 +241,7 @@ describe('IncidentsList', function () {
     const input = screen.getByPlaceholderText('Search by name');
     expect(input).toBeInTheDocument();
     const testQuery = 'test name';
-    fireEvent.change(input, {target: {value: testQuery}});
-    fireEvent.submit(input);
+    userEvent.type(input, `${testQuery}{enter}`);
 
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({

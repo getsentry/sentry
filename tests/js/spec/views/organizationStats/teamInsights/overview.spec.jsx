@@ -1,7 +1,7 @@
 import {
-  fireEvent,
   mountWithTheme,
   screen,
+  userEvent,
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
@@ -155,11 +155,11 @@ describe('TeamInsightsOverview', () => {
     await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
     expect(screen.getByText('#backend')).toBeInTheDocument();
-    fireEvent.mouseDown(screen.getByText('#backend'));
+    userEvent.type(screen.getByText('#backend'), '{mouseDown}');
     expect(screen.getByText('#frontend')).toBeInTheDocument();
     // Teams user is not a member of are hidden
     expect(screen.queryByText('#internal')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByText('#frontend'));
+    userEvent.click(screen.getByText('#frontend'));
     expect(mockRouter.push).toHaveBeenCalledWith({query: {team: team1.id}});
     expect(localStorage.setItem).toHaveBeenCalledWith(
       'teamInsightsSelectedTeamId:org-slug',
@@ -172,7 +172,7 @@ describe('TeamInsightsOverview', () => {
     createWrapper();
 
     expect(screen.getByText('#backend')).toBeInTheDocument();
-    fireEvent.mouseDown(screen.getByText('#backend'));
+    userEvent.type(screen.getByText('#backend'), '{mouseDown}');
     expect(screen.getByText('#frontend')).toBeInTheDocument();
     // User is not a member of internal team
     expect(screen.getByText('#internal')).toBeInTheDocument();

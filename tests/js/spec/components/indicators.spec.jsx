@@ -1,9 +1,9 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   act,
-  fireEvent,
   mountWithTheme,
   screen,
+  userEvent,
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
@@ -154,7 +154,7 @@ describe('Indicators', function () {
     act(jest.runAllTimers);
     expect(screen.getByTestId('toast')).toHaveTextContent('Loading');
 
-    fireEvent.click(screen.getByTestId('toast'));
+    userEvent.click(screen.getByTestId('toast'));
     act(jest.runAllTimers);
     expect(wrapper.container).toHaveTextContent('');
     expect(screen.queryByTestId('toast')).not.toBeInTheDocument();

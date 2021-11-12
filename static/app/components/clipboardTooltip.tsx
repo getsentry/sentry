@@ -46,6 +46,7 @@ const TooltipClipboardWrapper = styled('div')`
 `;
 
 const TooltipClipboardIconWrapper = styled('div')`
+  pointer-events: auto;
   position: relative;
   bottom: -${space(0.25)};
   :hover {
