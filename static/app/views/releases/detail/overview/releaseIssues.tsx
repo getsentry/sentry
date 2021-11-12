@@ -26,7 +26,6 @@ import EmptyState from '../commitsAndFiles/emptyState';
 enum IssuesType {
   NEW = 'new',
   UNHANDLED = 'unhandled',
-  // TODO(mikellykels): update for regressed issues when backend model is complete
   REGRESSED = 'regressed',
   RESOLVED = 'resolved',
   ALL = 'all',
@@ -35,8 +34,7 @@ enum IssuesType {
 enum IssuesQuery {
   NEW = 'first-release',
   UNHANDLED = 'error.handled:0',
-  // TODO(mikellykels): update for regressed issues when backend model is complete
-  REGRESSED = 'is:regressed',
+  REGRESSED = 'regressed_in_release',
   RESOLVED = 'is:resolved',
   ALL = 'release',
 }
@@ -66,7 +64,6 @@ type State = {
   count: {
     new: number | null;
     unhandled: number | null;
-    // TODO(mikellykels): update for regressed issues when backend model is complete
     regressed: number | null;
     resolved: number | null;
     all: number | null;
@@ -87,8 +84,7 @@ class ReleaseIssues extends Component<Props, State> {
       : query.includes(IssuesType.NEW)
       ? IssuesType.NEW
       : query.includes(IssuesType.UNHANDLED)
-      ? // TODO(mikellykels): update for regressed issues when backend model is complete
-        IssuesType.REGRESSED
+      ? IssuesType.REGRESSED
       : query.includes(IssuesType.REGRESSED)
       ? IssuesType.UNHANDLED
       : query.includes(IssuesType.RESOLVED)
@@ -104,7 +100,6 @@ class ReleaseIssues extends Component<Props, State> {
         all: null,
         resolved: null,
         unhandled: null,
-        // TODO(mikellykels): update for regressed issues when backend model is complete
         regressed: null,
       },
     };
@@ -145,8 +140,9 @@ class ReleaseIssues extends Component<Props, State> {
         query.setFilterValues('release', [version]);
         query.setFilterValues('error.handled', ['0']);
         break;
-      // TODO(mikellykels): update for regressed issues when backend model is complete
       case IssuesType.REGRESSED:
+        query.setFilterValues('regressed_in_release', [version]);
+        break;
       case IssuesType.RESOLVED:
       case IssuesType.ALL:
       default:
@@ -203,11 +199,15 @@ class ReleaseIssues extends Component<Props, State> {
             ]).formatString(),
           },
         };
-      // TODO(mikellykels): update for regressed issues when backend model is complete
       case IssuesType.REGRESSED:
         return {
           path: `/organizations/${organization.slug}/issues/`,
-          queryParams: {...queryParams, query: ''},
+          queryParams: {
+            ...queryParams,
+            query: new MutableSearch([
+              `${IssuesQuery.REGRESSED}:${version}`,
+            ]).formatString(),
+          },
         };
       case IssuesType.NEW:
       default:
@@ -239,7 +239,6 @@ class ReleaseIssues extends Component<Props, State> {
             unhandled:
               issueResponse[`${IssuesQuery.UNHANDLED} ${IssuesQuery.ALL}:"${version}"`] ||
               0,
-            // TODO(mikellykels): update for regressed issues when backend model is complete
             regressed: issueResponse[`${IssuesQuery.REGRESSED}:"${version}"`] || 0,
           },
         });
@@ -257,8 +256,7 @@ class ReleaseIssues extends Component<Props, State> {
       `${IssuesQuery.NEW}:"${version}"`,
       `${IssuesQuery.ALL}:"${version}"`,
       `${IssuesQuery.UNHANDLED} ${IssuesQuery.ALL}:"${version}"`,
-      // TODO(mikellykels): update for regressed issues when backend model is complete
-      // `${IssuesQuery.REGRESSED}:"${version}"`,
+      `${IssuesQuery.REGRESSED}:"${version}"`,
     ];
     const queryParams = params.map(param => param);
     const queryParameters = {
@@ -283,8 +281,7 @@ class ReleaseIssues extends Component<Props, State> {
         ? IssuesType.RESOLVED
         : issuesType === IssuesType.UNHANDLED
         ? IssuesType.UNHANDLED
-        : // TODO(mikellykels): update for regressed issues when backend model is complete
-        issuesType === IssuesType.REGRESSED
+        : issuesType === IssuesType.REGRESSED
         ? IssuesType.REGRESSED
         : '';
 
@@ -336,7 +333,6 @@ class ReleaseIssues extends Component<Props, State> {
                 timePeriod: displayedPeriod,
               })
           : null}
-        {/* TODO(mikellykels): update for regressed issues when backend model is complete */}
         {issuesType === IssuesType.REGRESSED
           ? isEntireReleasePeriod
             ? t('No regressed issues in this release.')
@@ -368,7 +364,6 @@ class ReleaseIssues extends Component<Props, State> {
         label: t('Unhandled'),
         issueCount: count.unhandled,
       },
-      // TODO(mikellykels): update for regressed issues when backend model is complete
       {
         value: IssuesType.REGRESSED,
         label: t('Regressed'),
