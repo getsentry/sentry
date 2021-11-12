@@ -16,8 +16,6 @@ logger = logging.getLogger(__name__)
 
 
 class RedisRateLimiter(RateLimiter):
-    window = 60
-
     def __init__(self, **options):
         cluster_key = getattr(settings, "SENTRY_RATE_LIMIT_REDIS_CLUSTER", "default")
         self.client = redis.redis_clusters.get(cluster_key)
@@ -50,10 +48,6 @@ class RedisRateLimiter(RateLimiter):
         except Exception as e:
             raise InvalidConfiguration(str(e))
 
-    def is_limited(self, key, limit, project=None, window=None) -> bool:
-        is_limited, _ = self.is_limited_with_value(key, limit, project=project, window=window)
-        return is_limited
-
     def current_value(self, key: int, project: Project = None, window: int = None) -> int:
         """
         Get the current value stored in redis for the rate limit with key "key" and said window
@@ -62,15 +56,16 @@ class RedisRateLimiter(RateLimiter):
 
         try:
             current_count = self.client.get(redis_key)
-            if current_count is None:
-                # Key hasn't been created yet, therefore no hits done so far
-                return 0
-            return int(current_count)
         except RedisError:
             # Don't report any existing hits when there is a redis error.
             # Log what happened and move on
             logger.exception("Failed to retrieve current value from redis")
             return 0
+
+        if current_count is None:
+            # Key hasn't been created yet, therefore no hits done so far
+            return 0
+        return int(current_count)
 
     def is_limited_with_value(self, key, limit, project=None, window=None) -> tuple[bool, int]:
         """Does a rate limit check as well as return the new rate limit value"""
