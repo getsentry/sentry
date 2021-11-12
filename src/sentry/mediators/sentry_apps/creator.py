@@ -34,6 +34,7 @@ class Creator(Mediator, SentryAppMixin):
     schema = Param(dict, default=lambda self: {})
     overview = Param((str,), required=False)
     allowed_origins = Param(Iterable, default=lambda self: [])
+    popularity = Param(int, required=False)
     request = Param("rest_framework.request.Request", required=False)
     user = Param("sentry.models.User")
     is_internal = Param(bool)
@@ -87,6 +88,7 @@ class Creator(Mediator, SentryAppMixin):
             "is_alertable": self.is_alertable,
             "verify_install": self.verify_install,
             "overview": self.overview,
+            "popularity": self.popularity or SentryApp._meta.get_field("popularity").default,
             "creator_user": self.user,
             "creator_label": self.user.email
             or self.user.username,  # email is not required for some users (sentry apps)

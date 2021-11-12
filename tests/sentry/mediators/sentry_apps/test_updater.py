@@ -6,7 +6,7 @@ from sentry.constants import SentryAppStatus
 from sentry.coreapi import APIError
 from sentry.mediators.sentry_apps import Updater
 from sentry.mediators.service_hooks.creator import expand_events
-from sentry.models import ApiToken, SentryAppComponent, ServiceHook
+from sentry.models import ApiToken, SentryApp, SentryAppComponent, ServiceHook
 from sentry.testutils import TestCase
 
 
@@ -157,6 +157,18 @@ class TestUpdater(TestCase):
         self.updater.overview = "Description of my very cool application"
         self.updater.call()
         assert self.sentry_app.overview == "Description of my very cool application"
+
+    def test_update_popularity_if_superuser(self):
+        popularity = 27
+        self.updater.popularity = popularity
+        self.user.is_superuser = True
+        self.updater.call()
+        assert self.sentry_app.popularity == popularity
+
+    def test_doesnt_update_popularity_if_not_superuser(self):
+        self.updater.popularity = 27
+        self.updater.call()
+        assert self.sentry_app.popularity == SentryApp._meta.get_field("popularity").default
 
     def test_update_status_if_superuser(self):
         self.updater.status = "published"

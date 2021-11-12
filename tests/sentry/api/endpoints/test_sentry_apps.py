@@ -46,6 +46,7 @@ class SentryAppsTest(APITestCase):
         self.install = self.internal_app.installations.first()
 
         self.url = reverse("sentry-api-0-sentry-apps")
+        self.default_popularity = SentryApp._meta.get_field("popularity").default
 
 
 class GetSentryAppsTest(SentryAppsTest):
@@ -89,6 +90,7 @@ class GetSentryAppsTest(SentryAppsTest):
                     "description": "Test can **utilize the Sentry API** to pull data or update resources in Sentry (with permissions granted, of course).",
                 }
             ],
+            "popularity": self.default_popularity,
         } in json.loads(response.content)
 
     def test_users_filter_on_internal_apps(self):
@@ -116,6 +118,7 @@ class GetSentryAppsTest(SentryAppsTest):
             "clientSecret": self.internal_app.application.client_secret,
             "owner": {"id": self.internal_org.id, "slug": self.internal_org.slug},
             "featureData": [],
+            "popularity": self.default_popularity,
         } in json.loads(response.content)
 
         response_uuids = {o["uuid"] for o in response.data}
@@ -153,6 +156,7 @@ class GetSentryAppsTest(SentryAppsTest):
             "clientSecret": self.internal_app.application.client_secret,
             "owner": {"id": self.internal_org.id, "slug": self.internal_org.slug},
             "featureData": [],
+            "popularity": self.default_popularity,
         } in json.loads(response.content)
 
         response_uuids = {o["uuid"] for o in response.data}
@@ -191,6 +195,7 @@ class GetSentryAppsTest(SentryAppsTest):
                     "description": "Test can **utilize the Sentry API** to pull data or update resources in Sentry (with permissions granted, of course).",
                 }
             ],
+            "popularity": self.default_popularity,
         } in json.loads(response.content)
 
         response_uuids = {o["uuid"] for o in response.data}
@@ -238,6 +243,7 @@ class GetSentryAppsTest(SentryAppsTest):
                     "description": "Testin can **utilize the Sentry API** to pull data or update resources in Sentry (with permissions granted, of course).",
                 }
             ],
+            "popularity": self.default_popularity,
         } in json.loads(response.content)
 
         response_uuids = {o["uuid"] for o in response.data}
@@ -289,6 +295,7 @@ class GetSentryAppsTest(SentryAppsTest):
                     "description": "Boo Far can **utilize the Sentry API** to pull data or update resources in Sentry (with permissions granted, of course).",
                 }
             ],
+            "popularity": self.default_popularity,
         } in json.loads(response.content)
 
     def test_users_dont_see_unpublished_apps_their_org_owns(self):
@@ -401,6 +408,24 @@ class PostSentryAppsTest(SentryAppsTest):
         assert response.data == {
             "organization": "Organization 'some-non-existent-org' does not exist.",
         }
+
+    def test_superuser_can_create_with_popularity(self):
+        self.login_as(user=self.superuser, superuser=True)
+        popularity = 27
+        response = self._post(popularity=popularity)
+
+        assert response.status_code == 201, response.content
+        assert {"popularity": popularity}.items() <= json.loads(response.content).items()
+
+    def test_nonsuperuser_cannot_create_with_popularity(self):
+        self.login_as(user=self.user)
+        popularity = 27
+        response = self._post(popularity=popularity)
+
+        assert response.status_code == 201, response.content
+        assert {"popularity": self.default_popularity}.items() <= json.loads(
+            response.content
+        ).items()
 
     def test_internal_sentry_app_cannot_create_app(self):
         self.create_project(organization=self.internal_org)

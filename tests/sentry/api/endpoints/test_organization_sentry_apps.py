@@ -1,5 +1,6 @@
 from django.urls import reverse
 
+from sentry.models import SentryApp
 from sentry.testutils import APITestCase
 from sentry.utils import json
 
@@ -58,6 +59,7 @@ class GetOrganizationSentryAppsTest(OrganizationSentryAppsTest):
                             "description": "Testin can **utilize the Sentry API** to pull data or update resources in Sentry (with permissions granted, of course).",
                         }
                     ],
+                    "popularity": SentryApp._meta.get_field("popularity").default,
                 }
             ],
         )

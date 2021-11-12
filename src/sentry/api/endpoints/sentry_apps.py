@@ -62,6 +62,9 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
             "schema": request.json_body.get("schema", {}),
             "overview": request.json_body.get("overview"),
             "allowedOrigins": request.json_body.get("allowedOrigins", []),
+            "popularity": request.json_body.get("popularity")
+            if request.user.is_superuser
+            else None,
         }
 
         if self._has_hook_events(request) and not features.has(

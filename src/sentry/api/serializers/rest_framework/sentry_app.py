@@ -80,6 +80,13 @@ class SentryAppSerializer(Serializer):
     overview = serializers.CharField(required=False, allow_null=True)
     verifyInstall = serializers.BooleanField(required=False, default=True)
     allowedOrigins = ListField(child=serializers.CharField(max_length=255), required=False)
+    # Bounds chosen to match PositiveSmallIntegerField (https://docs.djangoproject.com/en/3.2/ref/models/fields/#positivesmallintegerfield)
+    popularity = serializers.IntegerField(
+        min_value=0,
+        max_value=32767,
+        required=False,
+        allow_null=True,
+    )
 
     def __init__(self, *args, **kwargs):
         self.access = kwargs["access"]

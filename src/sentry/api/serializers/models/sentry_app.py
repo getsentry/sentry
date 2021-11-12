@@ -27,6 +27,7 @@ class SentryAppSerializer(Serializer):
             "verifyInstall": obj.verify_install,
             "overview": obj.overview,
             "allowedOrigins": obj.application.get_allowed_origins(),
+            "popularity": obj.popularity,
         }
 
         data["featureData"] = []
