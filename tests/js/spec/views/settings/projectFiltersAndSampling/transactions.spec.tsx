@@ -1,6 +1,6 @@
 import {
-  fireEvent,
   screen,
+  userEvent,
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 import {getByTextContent} from 'sentry-test/utils';
@@ -152,9 +152,7 @@ describe('Filters and Sampling - Transaction rule', function () {
       expect(sampleRateField).toHaveValue(20);
 
       // Clear release field
-      fireEvent.keyDown(screen.getByLabelText('Search or add a release'), {
-        key: 'Backspace',
-      });
+      userEvent.type(screen.getByLabelText('Search or add a release'), '{backspace}');
 
       // Release field is now empty
       const newReleaseFieldValues = screen.queryByTestId('multivalue');
@@ -163,9 +161,7 @@ describe('Filters and Sampling - Transaction rule', function () {
       expect(screen.getByLabelText('Save Rule')).toBeDisabled();
 
       // Type into realease field
-      fireEvent.change(screen.getByLabelText('Search or add a release'), {
-        target: {value: '[0-9]'},
-      });
+      userEvent.type(screen.getByLabelText('Search or add a release'), '[0-9]');
 
       // Autocomplete suggests options
       const autocompleteOptions = screen.getByTestId('option');
@@ -173,24 +169,24 @@ describe('Filters and Sampling - Transaction rule', function () {
       expect(autocompleteOptions).toHaveTextContent('[0-9]');
 
       // Click on the suggested option
-      fireEvent.click(autocompleteOptions);
+      userEvent.click(autocompleteOptions);
 
       expect(screen.getByLabelText('Save Rule')).toBeEnabled();
 
       // Clear sample rate field
-      fireEvent.change(sampleRateField, {target: {value: null}});
+      userEvent.type(sampleRateField, '{backspace}{backspace}');
 
       expect(screen.getByLabelText('Save Rule')).toBeDisabled();
 
       // Update sample rate field
-      fireEvent.change(sampleRateField, {target: {value: 60}});
+      userEvent.type(sampleRateField, '60');
 
       // Save button is now enabled
       const saveRuleButtonEnabled = screen.getByLabelText('Save Rule');
       expect(saveRuleButtonEnabled).toBeEnabled();
 
       // Click on save button
-      fireEvent.click(saveRuleButtonEnabled);
+      userEvent.click(saveRuleButtonEnabled);
 
       // Modal will close
       await waitForElementToBeRemoved(() =>
@@ -259,7 +255,7 @@ describe('Filters and Sampling - Transaction rule', function () {
         expect(saveRuleButton).toBeDisabled();
 
         // Close Modal
-        fireEvent.click(screen.getByLabelText('Close Modal'));
+        userEvent.click(screen.getByLabelText('Close Modal'));
         await waitForElementToBeRemoved(() =>
           screen.getByText('Add Transaction Sampling Rule')
         );
@@ -272,7 +268,7 @@ describe('Filters and Sampling - Transaction rule', function () {
         await renderModal(screen.getByText('Add transaction rule'));
 
         // Click on 'Add condition'
-        fireEvent.click(screen.getByText('Add Condition'));
+        userEvent.click(screen.getByText('Add Condition'));
 
         // Autocomplete
         expect(screen.getByTestId('autocomplete-list')).toBeInTheDocument();
@@ -288,10 +284,10 @@ describe('Filters and Sampling - Transaction rule', function () {
         }
 
         // Unchecked tracing checkbox
-        fireEvent.click(screen.getByRole('checkbox'));
+        userEvent.click(screen.getByRole('checkbox'));
 
         // Click on 'Add condition'
-        fireEvent.click(screen.getByText('Add Condition'));
+        userEvent.click(screen.getByText('Add Condition'));
 
         // No Tracing Condition Options
         const conditionOptions = screen.getAllByTestId('condition');
@@ -304,7 +300,7 @@ describe('Filters and Sampling - Transaction rule', function () {
         }
 
         // Close Modal
-        fireEvent.click(screen.getByLabelText('Close Modal'));
+        userEvent.click(screen.getByLabelText('Close Modal'));
         await waitForElementToBeRemoved(() =>
           screen.getByText('Add Transaction Sampling Rule')
         );
@@ -354,7 +350,7 @@ describe('Filters and Sampling - Transaction rule', function () {
           expect(screen.getByRole('checkbox')).toBeChecked();
 
           // Click on 'Add condition'
-          fireEvent.click(screen.getByText('Add Condition'));
+          userEvent.click(screen.getByText('Add Condition'));
 
           // Autocomplete
           expect(screen.getByTestId('autocomplete-list')).toBeInTheDocument();
@@ -363,7 +359,7 @@ describe('Filters and Sampling - Transaction rule', function () {
           const conditionOptions = screen.getAllByTestId('condition');
 
           // Click on the first condition option
-          fireEvent.click(conditionOptions[0]);
+          userEvent.click(conditionOptions[0]);
 
           // Release Field
           expect(screen.getByTestId('autocomplete-release')).toBeInTheDocument();
@@ -373,9 +369,7 @@ describe('Filters and Sampling - Transaction rule', function () {
           expect(releaseFieldValues).not.toBeInTheDocument();
 
           // Type into realease field
-          fireEvent.change(screen.getByLabelText('Search or add a release'), {
-            target: {value: '1.2.3'},
-          });
+          userEvent.type(screen.getByLabelText('Search or add a release'), '1.2.3');
 
           // Autocomplete suggests options
           const autocompleteOptions = screen.getByTestId('option');
@@ -383,7 +377,7 @@ describe('Filters and Sampling - Transaction rule', function () {
           expect(autocompleteOptions).toHaveTextContent('1.2.3');
 
           // Click on the suggested option
-          fireEvent.click(autocompleteOptions);
+          userEvent.click(autocompleteOptions);
 
           // Button is still disabled
           const saveRuleButton = screen.getByLabelText('Save Rule');
@@ -393,14 +387,14 @@ describe('Filters and Sampling - Transaction rule', function () {
           // Fill sample rate field
           const sampleRateField = screen.getByPlaceholderText('\u0025');
           expect(sampleRateField).toBeInTheDocument();
-          fireEvent.change(sampleRateField, {target: {value: 20}});
+          userEvent.type(sampleRateField, '20');
 
           // Save button is now enabled
           const saveRuleButtonEnabled = screen.getByLabelText('Save Rule');
           expect(saveRuleButtonEnabled).toBeEnabled();
 
           // Click on save button
-          fireEvent.click(saveRuleButtonEnabled);
+          userEvent.click(saveRuleButtonEnabled);
 
           // Modal will close
           await waitForElementToBeRemoved(() =>
@@ -459,16 +453,16 @@ describe('Filters and Sampling - Transaction rule', function () {
             await renderModal(screen.getByText('Add transaction rule'));
 
             // Unchecked tracing checkbox
-            fireEvent.click(screen.getByRole('checkbox'));
+            userEvent.click(screen.getByRole('checkbox'));
 
             // Click on 'Add condition'
-            fireEvent.click(screen.getByText('Add Condition'));
+            userEvent.click(screen.getByText('Add Condition'));
 
             // Condition Options
             const conditionOptions = screen.getAllByTestId('condition');
 
             // Click on the first condition option
-            fireEvent.click(conditionOptions[0]);
+            userEvent.click(conditionOptions[0]);
 
             // Release Field
             expect(screen.getByTestId('autocomplete-release')).toBeInTheDocument();
@@ -478,9 +472,7 @@ describe('Filters and Sampling - Transaction rule', function () {
             expect(releaseFieldValues).not.toBeInTheDocument();
 
             // Type into realease field
-            fireEvent.change(screen.getByLabelText('Search or add a release'), {
-              target: {value: '1.2.3'},
-            });
+            userEvent.type(screen.getByLabelText('Search or add a release'), '1.2.3');
 
             // Autocomplete suggests options
             const autocompleteOptions = screen.getByTestId('option');
@@ -488,7 +480,7 @@ describe('Filters and Sampling - Transaction rule', function () {
             expect(autocompleteOptions).toHaveTextContent('1.2.3');
 
             // Click on the suggested option
-            fireEvent.click(autocompleteOptions);
+            userEvent.click(autocompleteOptions);
 
             // Button is still disabled
             const saveRuleButton = screen.getByLabelText('Save Rule');
@@ -498,14 +490,14 @@ describe('Filters and Sampling - Transaction rule', function () {
             // Fill sample rate field
             const sampleRateField = screen.getByPlaceholderText('\u0025');
             expect(sampleRateField).toBeInTheDocument();
-            fireEvent.change(sampleRateField, {target: {value: 20}});
+            userEvent.type(sampleRateField, '20');
 
             // Save button is now enabled
             const saveRuleButtonEnabled = screen.getByLabelText('Save Rule');
             expect(saveRuleButtonEnabled).toBeEnabled();
 
             // Click on save button
-            fireEvent.click(saveRuleButtonEnabled);
+            userEvent.click(saveRuleButtonEnabled);
 
             // Modal will close
             await waitForElementToBeRemoved(() =>
@@ -572,19 +564,19 @@ describe('Filters and Sampling - Transaction rule', function () {
             expect(checkedCheckbox).toBeChecked();
 
             // Uncheck tracing checkbox
-            fireEvent.click(checkedCheckbox);
+            userEvent.click(checkedCheckbox);
 
             // Unched tracing checkbox
             expect(checkedCheckbox).not.toBeChecked();
 
             // Click on 'Add condition'
-            fireEvent.click(screen.getByText('Add Condition'));
+            userEvent.click(screen.getByText('Add Condition'));
 
             // Condition Options
             const conditionOptions = screen.getAllByTestId('condition');
 
             // Click on the seventh condition option
-            fireEvent.click(conditionOptions[6]);
+            userEvent.click(conditionOptions[6]);
 
             // Legacy Browsers
             expect(screen.getByText('All browsers')).toBeInTheDocument();
@@ -610,7 +602,7 @@ describe('Filters and Sampling - Transaction rule', function () {
             }
 
             // Click on the switch of 'All browsers' option
-            fireEvent.click(switchButtons[0]);
+            userEvent.click(switchButtons[0]);
 
             // All browsers are now checked
             for (const switchButton of switchButtons) {
@@ -625,14 +617,14 @@ describe('Filters and Sampling - Transaction rule', function () {
             // Fill sample rate field
             const sampleRateField = screen.getByPlaceholderText('\u0025');
             expect(sampleRateField).toBeInTheDocument();
-            fireEvent.change(sampleRateField, {target: {value: 20}});
+            userEvent.type(sampleRateField, '20');
 
             // Save button is now enabled
             const saveRuleButtonEnabled = screen.getByLabelText('Save Rule');
             expect(saveRuleButtonEnabled).toBeEnabled();
 
             // Click on save button
-            fireEvent.click(saveRuleButtonEnabled);
+            userEvent.click(saveRuleButtonEnabled);
 
             // Modal will close
             await waitForElementToBeRemoved(() =>
@@ -796,9 +788,7 @@ describe('Filters and Sampling - Transaction rule', function () {
       expect(sampleRateField).toHaveValue(20);
 
       // Clear release field
-      fireEvent.keyDown(screen.getByLabelText('Search or add a release'), {
-        key: 'Backspace',
-      });
+      userEvent.type(screen.getByLabelText('Search or add a release'), '{backspace}');
 
       // Release field is now empty
       const newReleaseFieldValues = screen.queryByTestId('multivalue');
@@ -807,9 +797,7 @@ describe('Filters and Sampling - Transaction rule', function () {
       expect(screen.getByLabelText('Save Rule')).toBeDisabled();
 
       // Type into realease field
-      fireEvent.change(screen.getByLabelText('Search or add a release'), {
-        target: {value: '[0-9]'},
-      });
+      userEvent.type(screen.getByLabelText('Search or add a release'), '[0-9]');
 
       // Autocomplete suggests options
       const autocompleteOptions = screen.getByTestId('option');
@@ -817,24 +805,24 @@ describe('Filters and Sampling - Transaction rule', function () {
       expect(autocompleteOptions).toHaveTextContent('[0-9]');
 
       // Click on the suggested option
-      fireEvent.click(autocompleteOptions);
+      userEvent.click(autocompleteOptions);
 
       expect(screen.getByLabelText('Save Rule')).toBeEnabled();
 
       // Clear sample rate field
-      fireEvent.change(sampleRateField, {target: {value: null}});
+      userEvent.type(sampleRateField, '{backspace}{backspace}');
 
       expect(screen.getByLabelText('Save Rule')).toBeDisabled();
 
       // Update sample rate field
-      fireEvent.change(sampleRateField, {target: {value: 60}});
+      userEvent.type(sampleRateField, '60');
 
       // Save button is now enabled
       const saveRuleButtonEnabled = screen.getByLabelText('Save Rule');
       expect(saveRuleButtonEnabled).toBeEnabled();
 
       // Click on save button
-      fireEvent.click(saveRuleButtonEnabled);
+      userEvent.click(saveRuleButtonEnabled);
 
       // Modal will close
       await waitForElementToBeRemoved(() =>

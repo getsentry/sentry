@@ -1,6 +1,7 @@
 import {
   fireEvent,
   screen,
+  userEvent,
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
@@ -144,19 +145,17 @@ describe('Filters and Sampling - Error rule', function () {
     expect(sampleRateField).toHaveValue(10);
 
     // Clear release field
-    fireEvent.keyDown(screen.getByLabelText('Search or add a release'), {
-      key: 'Backspace',
-    });
-
+    userEvent.type(
+      screen.getByLabelText('Search or add a release'),
+      '{backspace}{backspace}'
+    );
     // Release field is now empty
     expect(screen.queryByTestId('multivalue')).not.toBeInTheDocument();
 
     expect(screen.getByLabelText('Save Rule')).toBeDisabled();
 
     // Type into realease field
-    fireEvent.change(screen.getByLabelText('Search or add a release'), {
-      target: {value: '[I3].[0-9]'},
-    });
+    userEvent.paste(screen.getByLabelText('Search or add a release'), '[I3].[0-9]');
 
     // Autocomplete suggests options
     const autocompleteOptions = screen.getByTestId('option');
@@ -164,24 +163,24 @@ describe('Filters and Sampling - Error rule', function () {
     expect(autocompleteOptions).toHaveTextContent('[I3].[0-9]');
 
     // Click on the suggested option
-    fireEvent.click(autocompleteOptions);
+    userEvent.click(autocompleteOptions);
 
     expect(screen.getByLabelText('Save Rule')).toBeEnabled();
 
     // Clear sample rate field
-    fireEvent.change(sampleRateField, {target: {value: null}});
+    userEvent.type(sampleRateField, '{backspace}{backspace}');
 
     expect(screen.getByLabelText('Save Rule')).toBeDisabled();
 
     // Update sample rate field
-    fireEvent.change(sampleRateField, {target: {value: 50}});
+    userEvent.type(sampleRateField, '50');
 
     // Save button is now enabled
     const saveRuleButtonEnabled = screen.getByLabelText('Save Rule');
     expect(saveRuleButtonEnabled).toBeEnabled();
 
     // Click on save button
-    fireEvent.click(saveRuleButtonEnabled);
+    userEvent.click(saveRuleButtonEnabled);
 
     // Modal will close
     await waitForElementToBeRemoved(() => screen.getByText('Edit Error Sampling Rule'));
@@ -298,7 +297,7 @@ describe('Filters and Sampling - Error rule', function () {
     expect(screen.getByText('Confirm')).toBeInTheDocument();
 
     // Confirm deletion
-    fireEvent.click(screen.getByText('Confirm'));
+    userEvent.click(screen.getByText('Confirm'));
 
     // Confirmation modal will close
     await waitForElementToBeRemoved(() =>
@@ -338,7 +337,7 @@ describe('Filters and Sampling - Error rule', function () {
       expect(saveRuleButton).toBeDisabled();
 
       // Close Modal
-      fireEvent.click(screen.getByLabelText('Close Modal'));
+      userEvent.click(screen.getByLabelText('Close Modal'));
       await waitForElementToBeRemoved(() => screen.getByText('Add Error Sampling Rule'));
     });
 
@@ -349,7 +348,7 @@ describe('Filters and Sampling - Error rule', function () {
       await renderModal(screen.getByText('Add error rule'));
 
       // Click on 'Add condition'
-      fireEvent.click(screen.getByText('Add Condition'));
+      userEvent.click(screen.getByText('Add Condition'));
 
       // Autocomplete
       expect(screen.getByTestId('autocomplete-list')).toBeInTheDocument();
@@ -366,7 +365,7 @@ describe('Filters and Sampling - Error rule', function () {
       }
 
       // Close Modal
-      fireEvent.click(screen.getByLabelText('Close Modal'));
+      userEvent.click(screen.getByLabelText('Close Modal'));
       await waitForElementToBeRemoved(() => screen.getByText('Add Error Sampling Rule'));
     });
 
@@ -410,7 +409,7 @@ describe('Filters and Sampling - Error rule', function () {
       await renderModal(screen.getByText('Add error rule'));
 
       // Click on 'Add condition'
-      fireEvent.click(screen.getByText('Add Condition'));
+      userEvent.click(screen.getByText('Add Condition'));
 
       // Autocomplete
       expect(screen.getByTestId('autocomplete-list')).toBeInTheDocument();
@@ -419,7 +418,7 @@ describe('Filters and Sampling - Error rule', function () {
       const conditionOptions = screen.getAllByTestId('condition');
 
       // Click on the first condition option
-      fireEvent.click(conditionOptions[0]);
+      userEvent.click(conditionOptions[0]);
 
       // Release Field
       expect(screen.getByTestId('autocomplete-release')).toBeInTheDocument();
@@ -428,9 +427,7 @@ describe('Filters and Sampling - Error rule', function () {
       expect(screen.queryByTestId('multivalue')).not.toBeInTheDocument();
 
       // Type into realease field
-      fireEvent.change(screen.getByLabelText('Search or add a release'), {
-        target: {value: '1.2.3'},
-      });
+      userEvent.type(screen.getByLabelText('Search or add a release'), '1.2.3');
 
       // Autocomplete suggests options
       const autocompleteOptions = screen.getByTestId('option');
@@ -438,7 +435,7 @@ describe('Filters and Sampling - Error rule', function () {
       expect(autocompleteOptions).toHaveTextContent('1.2.3');
 
       // Click on the suggested option
-      fireEvent.click(autocompleteOptions);
+      userEvent.click(autocompleteOptions);
 
       // Button is still disabled
       const saveRuleButton = screen.getByLabelText('Save Rule');
@@ -448,14 +445,14 @@ describe('Filters and Sampling - Error rule', function () {
       // Fill sample rate field
       const sampleRateField = screen.getByPlaceholderText('\u0025');
       expect(sampleRateField).toBeInTheDocument();
-      fireEvent.change(sampleRateField, {target: {value: 20}});
+      userEvent.type(sampleRateField, '20');
 
       // Save button is now enabled
       const saveRuleButtonEnabled = screen.getByLabelText('Save Rule');
       expect(saveRuleButtonEnabled).toBeEnabled();
 
       // Click on save button
-      fireEvent.click(saveRuleButtonEnabled);
+      userEvent.click(saveRuleButtonEnabled);
 
       // Modal will close
       await waitForElementToBeRemoved(() => screen.getByText('Add Error Sampling Rule'));
