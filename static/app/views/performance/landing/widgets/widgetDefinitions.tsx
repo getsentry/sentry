@@ -6,7 +6,7 @@ import {getTermHelp, PERFORMANCE_TERM} from '../../data';
 
 import {GenericPerformanceWidgetDataType} from './types';
 
-export interface BaseChartSetting {
+export interface ChartDefinition {
   dataType: GenericPerformanceWidgetDataType;
   title: string;
 
@@ -14,6 +14,11 @@ export interface BaseChartSetting {
   fields: string[];
 
   chartColor?: string; // Optional. Will default to colors depending on placement in list or colors from the chart itself.
+
+  vitalStops?: {
+    poor: number;
+    meh: number;
+  };
 }
 
 export enum PerformanceWidgetSetting {
@@ -31,6 +36,9 @@ export enum PerformanceWidgetSetting {
   FAILURE_RATE_AREA = 'failure_rate_area',
   USER_MISERY_AREA = 'user_misery_area',
   WORST_LCP_VITALS = 'worst_lcp_vitals',
+  WORST_FCP_VITALS = 'worst_fcp_vitals',
+  WORST_CLS_VITALS = 'worst_cls_vitals',
+  WORST_FID_VITALS = 'worst_fid_vitals',
   MOST_IMPROVED = 'most_improved',
   MOST_REGRESSED = 'most_regressed',
   MOST_RELATED_ERRORS = 'most_related_errors',
@@ -50,7 +58,7 @@ export enum PerformanceWidgetSetting {
 const WIDGET_PALETTE = CHART_PALETTE[5];
 export const WIDGET_DEFINITIONS: ({
   organization,
-}) => Record<PerformanceWidgetSetting, BaseChartSetting> = ({
+}) => Record<PerformanceWidgetSetting, ChartDefinition> = ({
   organization,
 }: {
   organization: Organization;
@@ -86,13 +94,41 @@ export const WIDGET_DEFINITIONS: ({
   [PerformanceWidgetSetting.WORST_LCP_VITALS]: {
     title: t('Worst LCP Web Vitals'),
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.LCP),
-    fields: [
-      'count_if(measurements.lcp,greaterOrEquals,4000)',
-      'count_if(measurements.lcp,greaterOrEquals,2500)',
-      'count_if(measurements.lcp,greaterOrEquals,0)',
-      'equation|count_if(measurements.lcp,greaterOrEquals,2500) - count_if(measurements.lcp,greaterOrEquals,4000)',
-      'equation|count_if(measurements.lcp,greaterOrEquals,0) - count_if(measurements.lcp,greaterOrEquals,2500)',
-    ],
+    fields: ['measurements.lcp'],
+    vitalStops: {
+      poor: 4000,
+      meh: 2500,
+    },
+    dataType: GenericPerformanceWidgetDataType.vitals,
+  },
+  [PerformanceWidgetSetting.WORST_FCP_VITALS]: {
+    title: t('Worst FCP Web Vitals'),
+    titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.FCP),
+    fields: ['measurements.fcp'],
+    vitalStops: {
+      poor: 3000,
+      meh: 1000,
+    },
+    dataType: GenericPerformanceWidgetDataType.vitals,
+  },
+  [PerformanceWidgetSetting.WORST_FID_VITALS]: {
+    title: t('Worst FID Web Vitals'),
+    titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.FID),
+    fields: ['measurements.fid'],
+    vitalStops: {
+      poor: 300,
+      meh: 100,
+    },
+    dataType: GenericPerformanceWidgetDataType.vitals,
+  },
+  [PerformanceWidgetSetting.WORST_CLS_VITALS]: {
+    title: t('Worst CLS Web Vitals'),
+    titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.CLS),
+    fields: ['measurements.cls'],
+    vitalStops: {
+      poor: 0.25,
+      meh: 0.1,
+    },
     dataType: GenericPerformanceWidgetDataType.vitals,
   },
   [PerformanceWidgetSetting.TPM_AREA]: {

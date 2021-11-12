@@ -64,7 +64,7 @@ const config: Config.InitialOptions = {
     'jest-canvas-mock',
   ],
   setupFilesAfterEnv: [
-    '<rootDir>/tests/js/setup.js',
+    '<rootDir>/tests/js/setup.ts',
     '<rootDir>/tests/js/setupFramework.ts',
     '@testing-library/jest-dom/extend-expect',
   ],

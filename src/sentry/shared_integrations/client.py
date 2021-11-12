@@ -69,9 +69,10 @@ class BaseApiResponse:
                 raise UnsupportedResponseType(
                     response.headers.get("Content-Type", ""), response.status_code
                 )
+        elif response.text == "":
+            return TextApiResponse(response.text, response.headers, response.status_code)
         else:
             data = json.loads(response.text, object_pairs_hook=OrderedDict)
-
         if isinstance(data, dict):
             return MappingApiResponse(data, response.headers, response.status_code)
         elif isinstance(data, (list, tuple)):
@@ -238,7 +239,7 @@ class BaseApiClient(TrackResponseMixin):
             name=f"{self.integration_type}.http_response.{self.name}",
             parent_span_id=parent_span_id,
             trace_id=trace_id,
-            sampled=True,
+            sampled=random() < 0.05,
         ) as span:
             try:
                 with build_session() as session:

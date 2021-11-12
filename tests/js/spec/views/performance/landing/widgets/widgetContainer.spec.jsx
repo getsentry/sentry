@@ -36,21 +36,50 @@ const WrappedComponent = ({data, ...rest}) => {
   );
 };
 
+const issuesPredicate = (url, options) =>
+  url.includes('eventsv2') && options.query?.query.includes('error');
+
 describe('Performance > Widgets > WidgetContainer', function () {
   let eventStatsMock;
   let eventsV2Mock;
   let eventsTrendsStats;
+
+  let issuesListMock;
+
   beforeEach(function () {
     eventStatsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/events-stats/`,
       body: [],
     });
-    eventsV2Mock = MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/org-slug/eventsv2/`,
-      body: [],
-    });
+    eventsV2Mock = MockApiClient.addMockResponse(
+      {
+        method: 'GET',
+        url: `/organizations/org-slug/eventsv2/`,
+        body: [],
+      },
+      {predicate: (...args) => !issuesPredicate(...args)}
+    );
+    issuesListMock = MockApiClient.addMockResponse(
+      {
+        method: 'GET',
+        url: `/organizations/org-slug/eventsv2/`,
+        body: {
+          data: [
+            {
+              'issue.id': 123,
+              transaction: '/issue/:id/',
+              title: 'Error: Something is broken.',
+              'project.id': 1,
+              count: 3100,
+              issue: 'JAVASCRIPT-ABCD',
+            },
+          ],
+        },
+      },
+      {predicate: (...args) => issuesPredicate(...args)}
+    );
+
     eventsTrendsStats = MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/events-trends-stats/',
@@ -170,6 +199,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
       'Worst LCP Web Vitals'
     );
+
     expect(wrapper.find('a[data-test-id="view-all-button"]').text()).toEqual('View All');
     expect(eventsV2Mock).toHaveBeenCalledTimes(1);
     expect(eventsV2Mock).toHaveBeenNthCalledWith(
@@ -192,6 +222,94 @@ describe('Performance > Widgets > WidgetContainer', function () {
           project: ['-42'],
           query: 'transaction.op:pageload',
           sort: '-count_if(measurements.lcp,greaterOrEquals,4000)',
+          statsPeriod: '7d',
+        }),
+      })
+    );
+  });
+
+  it('Worst FCP widget', async function () {
+    const data = initializeData();
+
+    const wrapper = mountWithTheme(
+      <WrappedComponent
+        data={data}
+        defaultChartSetting={PerformanceWidgetSetting.WORST_FCP_VITALS}
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+      'Worst FCP Web Vitals'
+    );
+    expect(wrapper.find('a[data-test-id="view-all-button"]').text()).toEqual('View All');
+    expect(eventsV2Mock).toHaveBeenCalledTimes(1);
+    expect(eventsV2Mock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: ['prod'],
+          field: [
+            'transaction',
+            'title',
+            'project.id',
+            'count_if(measurements.fcp,greaterOrEquals,3000)',
+            'count_if(measurements.fcp,greaterOrEquals,1000)',
+            'count_if(measurements.fcp,greaterOrEquals,0)',
+            'equation|count_if(measurements.fcp,greaterOrEquals,1000) - count_if(measurements.fcp,greaterOrEquals,3000)',
+            'equation|count_if(measurements.fcp,greaterOrEquals,0) - count_if(measurements.fcp,greaterOrEquals,1000)',
+          ],
+          per_page: 3,
+          project: ['-42'],
+          query: 'transaction.op:pageload',
+          sort: '-count_if(measurements.fcp,greaterOrEquals,3000)',
+          statsPeriod: '7d',
+        }),
+      })
+    );
+  });
+
+  it('Worst FID widget', async function () {
+    const data = initializeData();
+
+    const wrapper = mountWithTheme(
+      <WrappedComponent
+        data={data}
+        defaultChartSetting={PerformanceWidgetSetting.WORST_FID_VITALS}
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+      'Worst FID Web Vitals'
+    );
+    expect(wrapper.find('a[data-test-id="view-all-button"]').text()).toEqual('View All');
+    expect(eventsV2Mock).toHaveBeenCalledTimes(1);
+    expect(eventsV2Mock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: ['prod'],
+          field: [
+            'transaction',
+            'title',
+            'project.id',
+            'count_if(measurements.fid,greaterOrEquals,300)',
+            'count_if(measurements.fid,greaterOrEquals,100)',
+            'count_if(measurements.fid,greaterOrEquals,0)',
+            'equation|count_if(measurements.fid,greaterOrEquals,100) - count_if(measurements.fid,greaterOrEquals,300)',
+            'equation|count_if(measurements.fid,greaterOrEquals,0) - count_if(measurements.fid,greaterOrEquals,100)',
+          ],
+          per_page: 3,
+          project: ['-42'],
+          query: 'transaction.op:pageload',
+          sort: '-count_if(measurements.fid,greaterOrEquals,300)',
           statsPeriod: '7d',
         }),
       })
@@ -288,8 +406,8 @@ describe('Performance > Widgets > WidgetContainer', function () {
     expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
       'Most Related Issues'
     );
-    expect(eventsV2Mock).toHaveBeenCalledTimes(1);
-    expect(eventsV2Mock).toHaveBeenNthCalledWith(
+    expect(issuesListMock).toHaveBeenCalledTimes(1);
+    expect(issuesListMock).toHaveBeenNthCalledWith(
       1,
       expect.anything(),
       expect.objectContaining({
@@ -304,6 +422,38 @@ describe('Performance > Widgets > WidgetContainer', function () {
         }),
       })
     );
+  });
+
+  it('Switching from issues to errors widget', async function () {
+    const data = initializeData();
+
+    const wrapper = mountWithTheme(
+      <WrappedComponent
+        data={data}
+        defaultChartSetting={PerformanceWidgetSetting.MOST_RELATED_ISSUES}
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+      'Most Related Issues'
+    );
+    expect(issuesListMock).toHaveBeenCalledTimes(1);
+
+    wrapper.setProps({
+      defaultChartSetting: PerformanceWidgetSetting.MOST_RELATED_ERRORS,
+    });
+
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+      'Most Related Errors'
+    );
+    expect(eventsV2Mock).toHaveBeenCalledTimes(1);
+    expect(eventStatsMock).toHaveBeenCalledTimes(1);
   });
 
   it('Most improved trends widget', async function () {

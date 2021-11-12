@@ -173,7 +173,7 @@ describe('Dashboards > Detail', function () {
   });
 
   describe('custom dashboards', function () {
-    let wrapper, initialData, widgets, mockVisit;
+    let wrapper, initialData, widgets, mockVisit, mockPut;
 
     beforeEach(function () {
       initialData = initializeOrg({organization});
@@ -241,6 +241,10 @@ describe('Dashboards > Detail', function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
         body: TestStubs.Dashboard(widgets, {id: '1', title: 'Custom Errors'}),
+      });
+      mockPut = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        method: 'PUT',
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-stats/',
@@ -473,6 +477,111 @@ describe('Dashboards > Detail', function () {
       wrapper.update();
       expect(wrapper.find('DashboardDetail').props().initialState).toEqual(
         DashboardState.VIEW
+      );
+    });
+
+    it('can add library widgets', async function () {
+      initialData = initializeOrg({
+        organization: TestStubs.Organization({
+          features: [
+            'global-views',
+            'dashboards-basic',
+            'dashboards-edit',
+            'discover-query',
+            'widget-library',
+          ],
+          projects: [TestStubs.Project()],
+        }),
+      });
+
+      wrapper = mountWithTheme(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        initialData.routerContext
+      );
+      await tick();
+      wrapper.update();
+
+      // Enter Add Widget mode
+      wrapper
+        .find('Controls Button[data-test-id="add-widget-library"]')
+        .simulate('click');
+
+      const modal = await mountGlobalModal();
+      await tick();
+      await modal.update();
+
+      modal.find('Button').at(4).simulate('click');
+
+      expect(modal.find('SelectedBadge').text()).toEqual('1 Selected');
+
+      modal.find('Button[data-test-id="confirm-widgets"]').simulate('click');
+
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find('DashboardDetail').state().dashboardState).toEqual(
+        DashboardState.VIEW
+      );
+      expect(mockPut).toHaveBeenCalledTimes(1);
+      expect(mockPut).toHaveBeenCalledWith(
+        '/organizations/org-slug/dashboards/1/',
+        expect.objectContaining({
+          data: expect.objectContaining({
+            title: 'Custom Errors',
+            widgets: [
+              {
+                id: '1',
+                interval: '1d',
+                queries: [
+                  {conditions: 'event.type:error', fields: ['count()'], name: ''},
+                ],
+                title: 'Errors',
+                type: 'line',
+              },
+              {
+                id: '2',
+                interval: '1d',
+                queries: [
+                  {conditions: 'event.type:transaction', fields: ['count()'], name: ''},
+                ],
+                title: 'Transactions',
+                type: 'line',
+              },
+              {
+                id: '3',
+                interval: '1d',
+                queries: [
+                  {
+                    conditions: 'event.type:transaction transaction:/api/cats',
+                    fields: ['p50()'],
+                    name: '',
+                  },
+                ],
+                title: 'p50 of /api/cats',
+                type: 'line',
+              },
+              {
+                displayType: 'area',
+                id: undefined,
+                interval: '5m',
+                queries: [
+                  {
+                    conditions: '!event.type:transaction',
+                    fields: ['count()'],
+                    name: '',
+                    orderby: '',
+                  },
+                ],
+                title: 'All Events',
+              },
+            ],
+          }),
+        })
       );
     });
   });

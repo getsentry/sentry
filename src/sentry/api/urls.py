@@ -40,7 +40,6 @@ from sentry.incidents.endpoints.organization_incident_details import (
 )
 from sentry.incidents.endpoints.organization_incident_index import OrganizationIncidentIndexEndpoint
 from sentry.incidents.endpoints.organization_incident_seen import OrganizationIncidentSeenEndpoint
-from sentry.incidents.endpoints.organization_incident_stats import OrganizationIncidentStatsEndpoint
 from sentry.incidents.endpoints.organization_incident_subscription_index import (
     OrganizationIncidentSubscriptionIndexEndpoint,
 )
@@ -281,7 +280,6 @@ from .endpoints.project_agnostic_rule_conditions import ProjectAgnosticRuleCondi
 from .endpoints.project_app_store_connect_credentials import (
     AppStoreConnectAppsEndpoint,
     AppStoreConnectCreateCredentialsEndpoint,
-    AppStoreConnectCredentialsValidateEndpoint,
     AppStoreConnectStatusEndpoint,
     AppStoreConnectUpdateCredentialsEndpoint,
 )
@@ -806,11 +804,6 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/$",
                     OrganizationIncidentDetailsEndpoint.as_view(),
                     name="sentry-api-0-organization-incident-details",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/stats/$",
-                    OrganizationIncidentStatsEndpoint.as_view(),
-                    name="sentry-api-0-organization-incident-stats",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/incidents/$",
@@ -2022,11 +2015,6 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/apps/$",
                     AppStoreConnectAppsEndpoint.as_view(),
                     name="sentry-api-0-project-appstoreconnect-apps",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/validate/(?P<credentials_id>[^\/]+)/$",
-                    AppStoreConnectCredentialsValidateEndpoint.as_view(),
-                    name="sentry-api-0-project-appstoreconnect-validate",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/status/$",
