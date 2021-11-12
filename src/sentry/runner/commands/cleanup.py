@@ -38,6 +38,7 @@ def multiprocess_worker(task_queue):
     # Configure within each Process
     import logging
 
+    from sentry import deletions
     from sentry.utils.imports import import_string
 
     logger = logging.getLogger("sentry.cleanup")
@@ -56,7 +57,7 @@ def multiprocess_worker(task_queue):
 
             configure()
 
-            from sentry import deletions, models, similarity
+            from sentry import models, similarity
 
             skip_models = [
                 # Handled by other parts of cleanup
@@ -146,19 +147,17 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
 
     configure()
 
+    import time
+
     from django.db import router as db_router
 
     from sentry import models
     from sentry.app import nodestore
     from sentry.db.deletion import BulkDeleteQuery
     from sentry.models import ExportedData
+    from sentry.utils import metrics
 
-    if timed:
-        import time
-
-        from sentry.utils import metrics
-
-        start_time = time.time()
+    start_time = time.time()
 
     # list of models which this query is restricted to
     model_list = {m.lower() for m in model}
