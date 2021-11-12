@@ -79,6 +79,7 @@ export type ComponentHooks = {
   'component:disabled-member-tooltip': () => React.ComponentType<DisabledMemberTooltipProps>;
   'component:disabled-app-store-connect-item': () => React.ComponentType<DisabledAppStoreConnectItem>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
+  'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
 };
 
 /**
