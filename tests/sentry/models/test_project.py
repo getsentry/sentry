@@ -1,6 +1,7 @@
 from typing import Iterable
 
 from sentry.models import (
+    ActorTuple,
     Environment,
     EnvironmentProject,
     NotificationSetting,
@@ -199,6 +200,31 @@ class ProjectTest(TestCase):
             project=project, release=release, environment=environment
         ).exists()
         assert not ReleaseProject.objects.filter(project=project, release=release).exists()
+
+    def test_transfer_to_organization_alert_rules(self):
+        from_org = self.create_organization()
+        team = self.create_team(organization=from_org)
+        to_org = self.create_organization()
+        to_team = self.create_team(organization=to_org)
+
+        project = self.create_project(teams=[team])
+
+        alert_rule = self.create_alert_rule(
+            organization=self.organization,
+            projects=[project],
+            owner=ActorTuple.from_actor_identifier(f"team:{team.id}"),
+        )
+        rule = Rule.objects.create(label="another test rule", project=project, owner=team.actor)
+        rule2 = Rule.objects.create(label="rule2", project=project, owner=to_team.actor)
+
+        project.transfer_to(organization=to_org)
+
+        alert_rule.refresh_from_db()
+        rule.refresh_from_db()
+        rule2.refresh_from_db()
+        assert alert_rule.owner is None
+        assert rule.owner is None
+        assert rule2.owner is not None
 
 
 class CopyProjectSettingsTest(TestCase):
