@@ -105,28 +105,27 @@ const Breadcrumbs = ({crumbs, linkLastItem = false, ...props}: Props) => {
               {...crumbProps}
             />
           );
-        } else {
-          const {label, to, preserveGlobalSelection, key} = crumb;
-          const labelKey = typeof label === 'string' ? label : '';
-          const mapKey =
-            key ?? typeof to === 'string' ? `${labelKey}${to}` : `${labelKey}${index}`;
-
-          return (
-            <React.Fragment key={mapKey}>
-              {to ? (
-                <BreadcrumbLink to={to} preserveGlobalSelection={preserveGlobalSelection}>
-                  {label}
-                </BreadcrumbLink>
-              ) : (
-                <BreadcrumbItem>{label}</BreadcrumbItem>
-              )}
-
-              {index < crumbs.length - 1 && (
-                <BreadcrumbDividerIcon size="xs" direction="right" />
-              )}
-            </React.Fragment>
-          );
         }
+        const {label, to, preserveGlobalSelection, key} = crumb;
+        const labelKey = typeof label === 'string' ? label : '';
+        const mapKey =
+          key ?? typeof to === 'string' ? `${labelKey}${to}` : `${labelKey}${index}`;
+
+        return (
+          <React.Fragment key={mapKey}>
+            {to ? (
+              <BreadcrumbLink to={to} preserveGlobalSelection={preserveGlobalSelection}>
+                {label}
+              </BreadcrumbLink>
+            ) : (
+              <BreadcrumbItem>{label}</BreadcrumbItem>
+            )}
+
+            {index < crumbs.length - 1 && (
+              <BreadcrumbDividerIcon size="xs" direction="right" />
+            )}
+          </React.Fragment>
+        );
       })}
     </BreadcrumbList>
   );

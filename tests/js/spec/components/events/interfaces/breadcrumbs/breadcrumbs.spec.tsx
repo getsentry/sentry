@@ -1,6 +1,6 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
-import {findAllByTextContent} from 'sentry-test/utils';
+import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {getAllByTextContent} from 'sentry-test/utils';
 
 import Breadcrumbs from 'app/components/events/interfaces/breadcrumbs';
 import {BreadcrumbLevelType, BreadcrumbType} from 'app/types/breadcrumbs';
@@ -14,9 +14,7 @@ describe('Breadcrumbs', () => {
     props = {
       route: {},
       router,
-      // @ts-expect-error
       organization: TestStubs.Organization(),
-      // @ts-expect-error
       event: TestStubs.Event({entries: []}),
       type: EntryType.BREADCRUMBS,
       data: {
@@ -70,45 +68,41 @@ describe('Breadcrumbs', () => {
 
   describe('filterCrumbs', function () {
     it('should filter crumbs based on crumb message', async function () {
-      const component = mountWithTheme(<Breadcrumbs {...props} />);
+      mountWithTheme(<Breadcrumbs {...props} />);
 
-      const searchInput = screen.getByPlaceholderText('Search breadcrumbs');
-
-      fireEvent.change(searchInput, {target: {value: 'hi'}});
+      userEvent.type(screen.getByPlaceholderText('Search breadcrumbs'), 'hi');
 
       expect(
         await screen.findByText('Sorry, no breadcrumbs match your search query')
       ).toBeInTheDocument();
 
-      fireEvent.change(searchInput, {target: {value: 'up'}});
+      userEvent.click(screen.getByLabelText('Clear'));
+
+      userEvent.type(screen.getByPlaceholderText('Search breadcrumbs'), 'up');
 
       expect(
         screen.queryByText('Sorry, no breadcrumbs match your search query')
       ).not.toBeInTheDocument();
 
-      expect(await findAllByTextContent(component, 'sup')).toHaveLength(3);
+      expect(getAllByTextContent('sup')).toHaveLength(3);
     });
 
-    it('should filter crumbs based on crumb level', async function () {
-      const component = mountWithTheme(<Breadcrumbs {...props} />);
+    it('should filter crumbs based on crumb level', function () {
+      mountWithTheme(<Breadcrumbs {...props} />);
 
-      const searchInput = screen.getByPlaceholderText('Search breadcrumbs');
-
-      fireEvent.change(searchInput, {target: {value: 'war'}});
+      userEvent.type(screen.getByPlaceholderText('Search breadcrumbs'), 'war');
 
       // breadcrumbs + filter item
       // TODO(Priscila): Filter should not render in the dom if not open
-      expect(await findAllByTextContent(component, 'Warning')).toHaveLength(6);
+      expect(getAllByTextContent('Warning')).toHaveLength(6);
     });
 
-    it('should filter crumbs based on crumb category', async function () {
-      const component = mountWithTheme(<Breadcrumbs {...props} />);
+    it('should filter crumbs based on crumb category', function () {
+      mountWithTheme(<Breadcrumbs {...props} />);
 
-      const searchInput = screen.getByPlaceholderText('Search breadcrumbs');
+      userEvent.type(screen.getByPlaceholderText('Search breadcrumbs'), 'error');
 
-      fireEvent.change(searchInput, {target: {value: 'error'}});
-
-      expect(await findAllByTextContent(component, 'error')).toHaveLength(2);
+      expect(getAllByTextContent('error')).toHaveLength(2);
     });
   });
 
@@ -131,7 +125,7 @@ describe('Breadcrumbs', () => {
 
       const searchInput = screen.getByPlaceholderText('Search breadcrumbs');
 
-      fireEvent.change(searchInput, {target: {value: 'sup'}});
+      userEvent.type(searchInput, 'sup');
 
       expect(screen.queryByTestId('crumb')).not.toBeInTheDocument();
 

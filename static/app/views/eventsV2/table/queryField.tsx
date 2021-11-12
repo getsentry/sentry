@@ -353,7 +353,8 @@ class QueryField extends React.Component<Props> {
                   validateColumnTypes(param.columnTypes as ValidateColumnTypes, value)
               ),
             };
-          } else if (param.kind === 'dropdown') {
+          }
+          if (param.kind === 'dropdown') {
             return {
               kind: 'dropdown',
               options: param.options,

@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import logging
-from typing import Any, Iterable, Mapping, Optional, Union
+from typing import Any, Iterable, Mapping
 
 from django.utils.encoding import force_text
 
@@ -35,7 +37,7 @@ def get_headers(notification: BaseNotification) -> Mapping[str, Any]:
     return headers
 
 
-def build_subject_prefix(project: "Project") -> str:
+def build_subject_prefix(project: Project) -> str:
     key = "mail:subject_prefix"
     out: str = force_text(
         ProjectOption.objects.get_value(project, key) or options.get("mail.subject-prefix")
@@ -44,7 +46,7 @@ def build_subject_prefix(project: "Project") -> str:
 
 
 def get_unsubscribe_link(
-    user_id: int, resource_id: int, key: str = "issue", referrer: Optional[str] = None
+    user_id: int, resource_id: int, key: str = "issue", referrer: str | None = None
 ) -> str:
     signed_link: str = generate_signed_link(
         user_id,
@@ -55,14 +57,14 @@ def get_unsubscribe_link(
     return signed_link
 
 
-def log_message(notification: BaseNotification, recipient: Union["Team", "User"]) -> None:
+def log_message(notification: BaseNotification, recipient: Team | User) -> None:
     extra = notification.get_log_params(recipient)
     logger.info("mail.adapter.notify.mail_user", extra={**extra})
 
 
 def get_context(
     notification: BaseNotification,
-    recipient: Union["Team", "User"],
+    recipient: Team | User,
     shared_context: Mapping[str, Any],
     extra_context: Mapping[str, Any],
 ) -> Mapping[str, Any]:
@@ -90,9 +92,9 @@ def get_context(
 @register_notification_provider(ExternalProviders.EMAIL)
 def send_notification_as_email(
     notification: BaseNotification,
-    recipients: Iterable[Union["Team", "User"]],
+    recipients: Iterable[Team | User],
     shared_context: Mapping[str, Any],
-    extra_context_by_user_id: Optional[Mapping[int, Mapping[str, Any]]],
+    extra_context_by_actor_id: Mapping[int, Mapping[str, Any]] | None,
 ) -> None:
     for recipient in recipients:
         if isinstance(recipient, Team):
@@ -100,7 +102,7 @@ def send_notification_as_email(
             continue
         log_message(notification, recipient)
         msg = MessageBuilder(
-            **get_builder_args(notification, recipient, shared_context, extra_context_by_user_id)
+            **get_builder_args(notification, recipient, shared_context, extra_context_by_actor_id)
         )
         # TODO: find better way of handling this
         add_users_kwargs = {}
@@ -113,12 +115,12 @@ def send_notification_as_email(
 
 def get_builder_args(
     notification: BaseNotification,
-    recipient: "User",
-    shared_context: Optional[Mapping[str, Any]] = None,
-    extra_context_by_user_id: Optional[Mapping[int, Mapping[str, Any]]] = None,
+    recipient: User,
+    shared_context: Mapping[str, Any] | None = None,
+    extra_context_by_actor_id: Mapping[int, Mapping[str, Any]] | None = None,
 ) -> Mapping[str, Any]:
     # TODO: move context logic to single notification class method
-    extra_context = (extra_context_by_user_id or {}).get(recipient.id, {})
+    extra_context = (extra_context_by_actor_id or {}).get(recipient.actor_id, {})
     context = get_context(notification, recipient, shared_context or {}, extra_context)
     return {
         "subject": notification.get_subject_with_prefix(context=context),

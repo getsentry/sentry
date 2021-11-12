@@ -6,17 +6,18 @@ import DashboardWidgetQuerySelectorModal from 'app/components/modals/dashboardWi
 import {t} from 'app/locale';
 import {DisplayType} from 'app/views/dashboardsV2/types';
 
-const stubEl = props => <div>{props.children}</div>;
+const stubEl: any = (props: any) => <div>{props.children}</div>;
+
 const api: Client = new Client();
 
 function mountModal({initialData, widget}) {
   return mountWithTheme(
     <DashboardWidgetQuerySelectorModal
       Header={stubEl}
-      // @ts-expect-error
       Footer={stubEl}
-      // @ts-expect-error
       Body={stubEl}
+      CloseButton={stubEl}
+      closeModal={() => {}}
       organization={initialData.organization}
       widget={widget}
       api={api}
@@ -53,34 +54,28 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       interval: '5m',
       queries: [mockQuery],
     };
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/widgets/',
       method: 'POST',
       statusCode: 200,
       body: [],
     });
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: [],
     });
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/eventsv2/',
       body: {data: [{'event.type': 'error'}], meta: {'event.type': 'string'}},
     });
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-geo/',
       body: {data: [], meta: {}},
     });
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
       body: [],
     });
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
       body: [{id: '1', title: t('Test Dashboard')}],
@@ -88,13 +83,11 @@ describe('Modals -> AddDashboardWidgetModal', function () {
   });
 
   afterEach(() => {
-    // @ts-expect-error
     MockApiClient.clearMockResponses();
   });
 
   it('renders a single query selection when the widget only has one query', async function () {
     const wrapper = mountModal({initialData, widget: mockWidget});
-    // @ts-expect-error
     await tick();
     expect(wrapper.find('StyledInput').length).toEqual(1);
     expect(wrapper.find('StyledInput').props().value).toEqual(
@@ -116,7 +109,6 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       id: '3',
     });
     const wrapper = mountModal({initialData, widget: mockWidget});
-    // @ts-expect-error
     await tick();
     expect(wrapper.find('StyledInput').length).toEqual(3);
     expect(wrapper.find('StyledInput').at(0).props().value).toEqual(
@@ -134,7 +126,6 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
   it('links user to the query in discover when a query is selected from the modal', async function () {
     const wrapper = mountModal({initialData, widget: mockWidget});
-    // @ts-expect-error
     await tick();
     expect(wrapper.find('QueryContainer').find('Link').props().to).toEqual(
       expect.objectContaining({
@@ -154,7 +145,6 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     mockWidget.queries[0].fields = ['count()'];
     mockWidget.displayType = DisplayType.WORLD_MAP;
     const wrapper = mountModal({initialData, widget: mockWidget});
-    // @ts-expect-error
     await tick();
     expect(wrapper.find('QueryContainer').find('Link').props().to).toEqual({
       pathname: '/organizations/org-slug/discover/results/',

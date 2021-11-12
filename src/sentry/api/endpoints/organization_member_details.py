@@ -48,9 +48,7 @@ def get_allowed_roles(request, organization, member=None):
         if member and roles.get(acting_member.role).priority < roles.get(member.role).priority:
             can_admin = False
         else:
-            allowed_roles = [
-                r for r in roles.get_all() if r.priority <= roles.get(acting_member.role).priority
-            ]
+            allowed_roles = acting_member.get_allowed_roles_to_invite()
             can_admin = bool(allowed_roles)
     elif is_active_superuser(request):
         allowed_roles = roles.get_all()

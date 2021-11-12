@@ -19,6 +19,7 @@ function mountModal({
   fromDiscover,
   defaultWidgetQuery,
   displayType,
+  defaultTableColumns,
 }) {
   return mountWithTheme(
     <AddDashboardWidgetModal
@@ -33,6 +34,7 @@ function mountModal({
       fromDiscover={fromDiscover}
       defaultWidgetQuery={defaultWidgetQuery}
       displayType={displayType}
+      defaultTableColumns={defaultTableColumns}
     />,
     initialData.routerContext
   );
@@ -124,7 +126,6 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
   it('redirects correctly when creating a new dashboard', async function () {
     const wrapper = mountModal({initialData, fromDiscover: true});
-    // @ts-expect-error
     await tick();
     await wrapper.update();
     selectDashboard(wrapper, {label: t('+ Create New Dashboard'), value: 'new'});
@@ -139,7 +140,6 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
   it('redirects correctly when choosing an existing dashboard', async function () {
     const wrapper = mountModal({initialData, fromDiscover: true});
-    // @ts-expect-error
     await tick();
     await wrapper.update();
     selectDashboard(wrapper, {label: t('Test Dashboard'), value: '1'});
@@ -155,7 +155,6 @@ describe('Modals -> AddDashboardWidgetModal', function () {
   it('disables dashboards with max widgets', async function () {
     types.MAX_WIDGETS = 1;
     const wrapper = mountModal({initialData, fromDiscover: true});
-    // @ts-expect-error
     await tick();
     await wrapper.update();
     openMenu(wrapper, {name: 'dashboard', control: true});
@@ -873,9 +872,16 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     const wrapper = mountModal({
       initialData,
       onAddWidget: data => (widget = data),
+      defaultTableColumns: ['title', 'count()', 'count_unique(user)', 'epm()'],
+      defaultWidgetQuery: {
+        name: '',
+        fields: ['count()'],
+        conditions: 'tag:value',
+        orderby: '',
+      },
     });
     // Select Top n display
-    selectByLabel(wrapper, 'Top Events', {name: 'displayType', at: 0, control: true});
+    selectByLabel(wrapper, 'Top 5 Events', {name: 'displayType', at: 0, control: true});
     expect(getDisplayType(wrapper).props().value).toEqual('top_n');
 
     // No delete button as there is only one field.
@@ -952,12 +958,13 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       fromDiscover: true,
       displayType: types.DisplayType.TOP_N,
       defaultWidgetQuery: {fields: ['count_unique(user)'], orderby: '-count_unique_user'},
-      defaultTableColumns: ['title', 'count()', 'count_unique(user)'],
+      defaultTableColumns: ['title', 'count()'],
     });
 
     expect(wrapper.find('SelectPicker').at(1).props().value.value).toEqual('top_n');
     expect(wrapper.find('WidgetQueriesForm').props().queries[0].fields).toEqual([
       'title',
+      'count()',
       'count_unique(user)',
     ]);
     expect(wrapper.find('WidgetQueriesForm').props().queries[0].orderby).toEqual(

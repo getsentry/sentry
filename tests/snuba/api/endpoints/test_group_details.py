@@ -170,5 +170,10 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         )
         assert response.status_code == 400
         assert response.data == {
-            "assignedTo": [ErrorDetail(string="Unknown actor input", code="invalid")]
+            "assignedTo": [
+                ErrorDetail(
+                    string="Could not parse actor. Format should be `type:id` where type is `team` or `user`.",
+                    code="invalid",
+                )
+            ]
         }

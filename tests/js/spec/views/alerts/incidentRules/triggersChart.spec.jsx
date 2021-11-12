@@ -1,5 +1,5 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'app/api';
 import AreaChart from 'app/components/charts/areaChart';
@@ -42,7 +42,7 @@ describe('Incident Rules Create', () => {
         aggregate="count()"
         triggers={[]}
       />,
-      routerContext
+      {context: routerContext}
     );
 
     await tick();
@@ -93,7 +93,7 @@ describe('Incident Rules Create', () => {
       .map(() => [new Date(), [{count: 10}]]);
     eventStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
-      body: TestStubs.EventsStats(undefined, {data}),
+      body: TestStubs.EventsStats({data}),
     });
     mountWithTheme(
       <TriggersChart
@@ -105,7 +105,7 @@ describe('Incident Rules Create', () => {
         aggregate="count()"
         triggers={[]}
       />,
-      routerContext
+      {context: routerContext}
     );
 
     await tick();

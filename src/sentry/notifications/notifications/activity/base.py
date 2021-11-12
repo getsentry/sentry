@@ -46,7 +46,8 @@ class ActivityNotification(ProjectNotification, ABC):
     def get_recipient_context(
         self, recipient: Team | User, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
-        return get_reason_context(extra_context)
+        context = super().get_recipient_context(recipient, extra_context)
+        return {**context, **get_reason_context(context)}
 
     def get_reference(self) -> Any:
         return self.activity
@@ -59,7 +60,7 @@ class ActivityNotification(ProjectNotification, ABC):
 
     def get_participants_with_group_subscription_reason(
         self,
-    ) -> Mapping[ExternalProviders, Mapping[User, int]]:
+    ) -> Mapping[ExternalProviders, Mapping[Team | User, int]]:
         raise NotImplementedError
 
     def send(self) -> None:
@@ -67,7 +68,7 @@ class ActivityNotification(ProjectNotification, ABC):
 
 
 class GroupActivityNotification(ActivityNotification, ABC):
-    is_message_issue_unfurl = True
+    message_builder = "IssueNotificationMessageBuilder"
 
     def __init__(self, activity: Activity) -> None:
         super().__init__(activity)
@@ -88,7 +89,7 @@ class GroupActivityNotification(ActivityNotification, ABC):
 
     def get_participants_with_group_subscription_reason(
         self,
-    ) -> Mapping[ExternalProviders, Mapping[User, int]]:
+    ) -> Mapping[ExternalProviders, Mapping[Team | User, int]]:
         """This is overridden by the activity subclasses."""
         return get_participants_for_group(self.group, self.activity.user)
 
@@ -176,3 +177,13 @@ class GroupActivityNotification(ActivityNotification, ABC):
         context.update(params)
 
         return mark_safe(description.format(**context))
+
+    def get_title_link(self) -> str | None:
+        from sentry.integrations.slack.message_builder.issues import get_title_link
+
+        return get_title_link(self.group, None, False, True, self)
+
+    def build_attachment_title(self) -> str:
+        from sentry.integrations.slack.message_builder.issues import build_attachment_title
+
+        return build_attachment_title(self.group)

@@ -118,6 +118,7 @@ type ChartProps = {
   height?: number;
   grid?: BarChart['props']['grid'];
   disableXAxis?: boolean;
+  disableZoom?: boolean;
   colors?: string[];
 };
 
@@ -132,6 +133,7 @@ export function Chart(props: ChartProps) {
     height,
     grid,
     disableXAxis,
+    disableZoom,
     colors,
   } = props;
   if (!chartData) {
@@ -199,7 +201,7 @@ export function Chart(props: ChartProps) {
                         }
                       }
                       stacked
-                      {...zoomRenderProps}
+                      {...(disableZoom ? {} : zoomRenderProps)}
                     />
                   ),
                   fixed: <Placeholder height="250px" testId="skeleton-ui" />,

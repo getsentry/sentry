@@ -2147,5 +2147,24 @@ class OrganizationEventsStatsTopNEventsWithSnql(OrganizationEventsStatsTopNEvent
             in mock_query.mock_calls[1].args[0].where
         )
 
+    def test_top_events_boolean_condition_and_project_field(self):
+        with self.feature(self.enabled_features):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "field": ["project", "count()"],
+                    "topEvents": 5,
+                    "query": "event.type:transaction (transaction:*a OR transaction:b*)",
+                },
+                format="json",
+            )
+
+        assert response.status_code == 200
+
     def test_top_events_with_to_other(self):
         super().test_top_events_with_to_other()

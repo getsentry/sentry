@@ -1,12 +1,8 @@
 import {Fragment, FunctionComponent, useMemo, useState} from 'react';
 import {withRouter} from 'react-router';
-import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import EmptyStateWarning from 'app/components/emptyStateWarning';
-import Link from 'app/components/links/link';
 import Truncate from 'app/components/truncate';
-import {IconClose} from 'app/icons';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
@@ -20,10 +16,16 @@ import {Chart} from '../../../trends/chart';
 import {TrendChangeType, TrendFunctionField} from '../../../trends/types';
 import {excludeTransaction} from '../../utils';
 import {GenericPerformanceWidget} from '../components/performanceWidget';
-import SelectableList, {RightAlignedCell} from '../components/selectableList';
+import SelectableList, {
+  GrowLink,
+  ListClose,
+  RightAlignedCell,
+  Subtitle,
+  WidgetEmptyStateWarning,
+} from '../components/selectableList';
 import {transformTrendsDiscover} from '../transforms/transformTrendsDiscover';
-import {WidgetDataResult} from '../types';
-import {PerformanceWidgetSetting} from '../widgetDefinitions';
+import {QueryDefinition, WidgetDataResult} from '../types';
+import {ChartDefinition, PerformanceWidgetSetting} from '../widgetDefinitions';
 
 type Props = {
   title: string;
@@ -35,11 +37,12 @@ type Props = {
   location: Location;
   organization: Organization;
   chartSetting: PerformanceWidgetSetting;
+  chartDefinition: ChartDefinition;
 
   ContainerActions: FunctionComponent<{isLoading: boolean}>;
 };
 
-type TrendsWidgetDataType = {
+type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformTrendsDiscover>;
 };
 
@@ -69,30 +72,34 @@ export function TrendsWidget(props: Props) {
   eventView.additionalConditions.addFilterValues('trend_percentage()', ['>0%']);
   eventView.additionalConditions.addFilterValues('confidence()', ['>6']);
 
-  const Queries = useMemo(() => {
-    return {
-      chart: {
-        fields: ['transaction', 'project'],
-        component: provided => (
-          <TrendsDiscoverQuery
-            {...provided}
-            eventView={eventView}
-            location={props.location}
-            trendChangeType={trendChangeType}
-            trendFunctionField={trendFunctionField}
-            limit={3}
-          />
-        ),
-        transform: transformTrendsDiscover,
-      },
-    };
-  }, [eventView.query, eventView.fields, trendChangeType]);
+  const chart = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
+    () => ({
+      fields: ['transaction', 'project'],
+      component: provided => (
+        <TrendsDiscoverQuery
+          {...provided}
+          eventView={eventView}
+          location={props.location}
+          trendChangeType={trendChangeType}
+          trendFunctionField={trendFunctionField}
+          limit={3}
+        />
+      ),
+      transform: transformTrendsDiscover,
+    }),
+    [eventView, trendChangeType]
+  );
+
+  const Queries = {
+    chart,
+  };
 
   return (
-    <GenericPerformanceWidget<TrendsWidgetDataType>
+    <GenericPerformanceWidget<DataType>
       {...rest}
       Subtitle={() => <Subtitle>{t('Trending Transactions')}</Subtitle>}
       HeaderActions={provided => <ContainerActions {...provided.widgetData.chart} />}
+      EmptyComponent={WidgetEmptyStateWarning}
       Queries={Queries}
       Visualizations={[
         {
@@ -143,14 +150,10 @@ export function TrendsWidget(props: Props) {
                     <RightAlignedCell>
                       <CompareDurations transaction={listItem} />
                     </RightAlignedCell>
-                    <CloseContainer>
-                      <StyledIconClose
-                        onClick={() => {
-                          excludeTransaction(listItem.transaction, props);
-                          setSelectListIndex(0);
-                        }}
-                      />
-                    </CloseContainer>
+                    <ListClose
+                      setSelectListIndex={setSelectListIndex}
+                      onClick={() => excludeTransaction(listItem.transaction, props)}
+                    />
                   </Fragment>
                 );
               })}
@@ -160,37 +163,8 @@ export function TrendsWidget(props: Props) {
           noPadding: true,
         },
       ]}
-      EmptyComponent={() => (
-        <StyledEmptyStateWarning small>{t('No results')}</StyledEmptyStateWarning>
-      )}
     />
   );
 }
 
 const TrendsChart = withRouter(withProjects(Chart));
-const Subtitle = styled('span')`
-  color: ${p => p.theme.gray300};
-  font-size: ${p => p.theme.fontSizeMedium};
-`;
-const CloseContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-const GrowLink = styled(Link)`
-  flex-grow: 1;
-`;
-
-const StyledIconClose = styled(IconClose)`
-  cursor: pointer;
-  color: ${p => p.theme.gray200};
-
-  &:hover {
-    color: ${p => p.theme.gray300};
-  }
-`;
-
-const StyledEmptyStateWarning = styled(EmptyStateWarning)`
-  min-height: 300px;
-  justify-content: center;
-`;

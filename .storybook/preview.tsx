@@ -1,6 +1,7 @@
 import 'focus-visible';
 import 'docs-ui/index.js';
 
+import {Fragment} from 'react';
 import {DocsContainer, Meta} from '@storybook/addon-docs';
 import {addDecorator, addParameters, DecoratorFn, Parameters} from '@storybook/react';
 import Code from 'docs-ui/components/code';
@@ -47,12 +48,16 @@ const withThemeDocs: DecoratorFn = ({children, context}) => {
   }
 
   return (
-    <ThemeProvider theme={currentTheme}>
-      <GlobalStyles isDark={isDark} theme={currentTheme} />
-      <PreviewGlobalStyles theme={currentTheme} />
-      <DocsContainer context={context}>{children}</DocsContainer>
-      <TableOfContents />
-    </ThemeProvider>
+    <Fragment>
+      <DocsContainer context={context}>
+        <GlobalStyles isDark={isDark} theme={currentTheme} />
+        <PreviewGlobalStyles theme={currentTheme} />
+        <ThemeProvider theme={currentTheme}>{children}</ThemeProvider>
+      </DocsContainer>
+      <ThemeProvider theme={currentTheme}>
+        <TableOfContents />
+      </ThemeProvider>
+    </Fragment>
   );
 };
 

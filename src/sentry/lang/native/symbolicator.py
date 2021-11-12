@@ -59,15 +59,9 @@ APP_STORE_CONNECT_SCHEMA = {
         "appconnectIssuer": {"type": "string", "minLength": 36, "maxLength": 36},
         "appconnectKey": {"type": "string", "minLength": 2, "maxLength": 20},
         "appconnectPrivateKey": {"type": "string"},
-        "itunesUser": {"type": "string", "minLength": 1, "maxLength": 100},
-        "itunesCreated": {"type": "string", "format": "date-time"},
-        "itunesPassword": {"type": "string"},
-        "itunesSession": {"type": "string"},
         "appName": {"type": "string", "minLength": 1, "maxLength": 512},
         "appId": {"type": "string", "minLength": 1},
         "bundleId": {"type": "string", "minLength": 1},
-        "orgPublicId": {"type": "string", "minLength": 36, "maxLength": 36},
-        "orgName": {"type": "string", "minLength": 1, "maxLength": 512},
     },
     "required": [
         "type",
@@ -76,15 +70,9 @@ APP_STORE_CONNECT_SCHEMA = {
         "appconnectIssuer",
         "appconnectKey",
         "appconnectPrivateKey",
-        "itunesUser",
-        "itunesCreated",
-        "itunesPassword",
-        "itunesSession",
         "appName",
         "appId",
         "bundleId",
-        "orgPublicId",
-        "orgName",
     ],
     "additionalProperties": False,
 }
@@ -307,7 +295,7 @@ def secret_fields(source_type):
     Returns a string list of all of the fields that contain a secret in a given source.
     """
     if source_type == "appStoreConnect":
-        yield from ["appconnectPrivateKey", "itunesPassword", "itunesSession"]
+        yield from ["appconnectPrivateKey"]
     elif source_type == "http":
         yield "password"
     elif source_type == "s3":

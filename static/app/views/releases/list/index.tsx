@@ -206,23 +206,24 @@ class ReleasesList extends AsyncView<Props, State> {
     if (
       sort === ReleasesSortOption.USERS_24_HOURS &&
       display === ReleasesDisplayOption.SESSIONS
-    )
+    ) {
       sort = ReleasesSortOption.SESSIONS_24_HOURS;
-    else if (
+    } else if (
       sort === ReleasesSortOption.SESSIONS_24_HOURS &&
       display === ReleasesDisplayOption.USERS
-    )
+    ) {
       sort = ReleasesSortOption.USERS_24_HOURS;
-    else if (
+    } else if (
       sort === ReleasesSortOption.CRASH_FREE_USERS &&
       display === ReleasesDisplayOption.SESSIONS
-    )
+    ) {
       sort = ReleasesSortOption.CRASH_FREE_SESSIONS;
-    else if (
+    } else if (
       sort === ReleasesSortOption.CRASH_FREE_SESSIONS &&
       display === ReleasesDisplayOption.USERS
-    )
+    ) {
       sort = ReleasesSortOption.CRASH_FREE_USERS;
+    }
 
     router.push({
       ...location,
