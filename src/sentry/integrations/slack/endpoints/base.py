@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import abc
-from typing import Any, Sequence, Tuple
+from typing import Sequence
 
 from rest_framework.response import Response
 

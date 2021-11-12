@@ -1,4 +1,4 @@
-from typing import Optional, Sequence, Tuple
+from __future__ import annotations
 
 from django.http import HttpResponse
 from rest_framework import status
@@ -126,7 +126,7 @@ class SlackCommandsEndpoint(SlackDMEndpoint):  # type: ignore
             integration, identity.user
         )
 
-        found: Optional[OrganizationMember] = None
+        found: OrganizationMember | None = None
         for organization_membership in organization_memberships:
             if is_team_linked_to_channel(organization_membership.organization, slack_request):
                 found = organization_membership

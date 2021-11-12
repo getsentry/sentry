@@ -1,4 +1,5 @@
-from typing import Optional
+from __future__ import annotations
+
 from urllib.parse import parse_qs
 
 from rest_framework import status
@@ -19,15 +20,15 @@ class SlackCommandRequest(SlackRequest):
 
     def __init__(self, request: Request) -> None:
         super().__init__(request)
-        self.identity_str: Optional[str] = None
+        self._identity_str: str | None = None
 
     @property
     def channel_name(self) -> str:
         return self.data.get("channel_name", "")
 
     @property
-    def has_identity(self) -> bool:
-        return self.identity_str is not None
+    def identity_str(self) -> str | None:
+        return self._identity_str
 
     def _validate_data(self) -> None:
         try:
@@ -48,4 +49,4 @@ class SlackCommandRequest(SlackRequest):
         except IdentityProvider.DoesNotExist:
             raise SlackRequestError(status=status.HTTP_403_FORBIDDEN)
 
-        self.identity_str = identity.user.email if identity else None
+        self._identity_str = identity.user.email if identity else None

@@ -1,4 +1,6 @@
-from typing import Any, Mapping, MutableMapping, Optional
+from __future__ import annotations
+
+from typing import Any, Mapping, MutableMapping
 
 from rest_framework import status as status_
 from rest_framework.request import Request
@@ -102,10 +104,10 @@ class SlackRequest:
         return self._data
 
     @property
-    def action_option(self) -> Optional[str]:
+    def action_option(self) -> str | None:
         # Actions list may be empty when receiving a dialog response
         action_list = self.data.get("actions", [])
-        action_option: Optional[str] = action_list and action_list[0].get("value", "")
+        action_option: str | None = action_list and action_list[0].get("value", "")
         return action_option
 
     @property
@@ -124,7 +126,7 @@ class SlackRequest:
 
         return {k: v for k, v in data.items() if v}
 
-    def get_identity(self) -> Optional[Identity]:
+    def get_identity(self) -> Identity | None:
         try:
             idp = IdentityProvider.objects.get(type="slack", external_id=self.team_id)
         except IdentityProvider.DoesNotExist as e:
