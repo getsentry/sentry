@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from sentry.models import Project
 from sentry.utils.services import Service
 
 
@@ -9,9 +8,7 @@ class RateLimiter(Service):
 
     window = 60
 
-    def is_limited(
-        self, key: str, limit: int, project: Project | None = None, window: int | None = None
-    ) -> bool:
+    def is_limited(self, key: str, limit: int, project=None, window: int | None = None) -> bool:
         is_limited, _ = self.is_limited_with_value(key, limit, project=project, window=window)
         return is_limited
 
