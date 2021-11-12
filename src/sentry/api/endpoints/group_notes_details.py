@@ -40,7 +40,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
         except Activity.DoesNotExist:
             raise ResourceDoesNotExist
 
-        serializer = NoteSerializer(data=request.data)
+        serializer = NoteSerializer(data=request.data, context={"organization": group.organization})
 
         if serializer.is_valid():
             payload = serializer.validated_data

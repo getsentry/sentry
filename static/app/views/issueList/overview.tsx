@@ -121,7 +121,6 @@ type State = {
   tagsLoading: boolean;
   memberList: ReturnType<typeof indexMembersByProject>;
   // Will be set to true if there is valid session data from issue-stats api call
-  hasSessions: boolean;
   query?: string;
 };
 
@@ -171,7 +170,6 @@ class IssueListOverview extends React.Component<Props, State> {
       issuesLoading: true,
       tagsLoading: true,
       memberList: {},
-      hasSessions: false,
     };
   }
 
@@ -398,7 +396,6 @@ class IssueListOverview extends React.Component<Props, State> {
   fetchStats = (groups: string[]) => {
     // If we have no groups to fetch, just skip stats
     if (!groups.length) {
-      this.setState({hasSessions: false});
       return;
     }
     const requestParams: StatEndpointParams = {
@@ -420,15 +417,7 @@ class IssueListOverview extends React.Component<Props, State> {
         if (!data) {
           return;
         }
-
         GroupActions.populateStats(groups, data);
-        const hasSessions =
-          data.filter(groupStats => !groupStats.sessionCount).length === 0;
-        if (hasSessions !== this.state.hasSessions) {
-          this.setState({
-            hasSessions,
-          });
-        }
       },
       error: err => {
         this.setState({
@@ -985,7 +974,6 @@ class IssueListOverview extends React.Component<Props, State> {
       groupIds,
       queryMaxCount,
       itemsRemoved,
-      hasSessions,
     } = this.state;
     const {organization, savedSearch, savedSearches, tags, selection, location, router} =
       this.props;
@@ -1068,7 +1056,6 @@ class IssueListOverview extends React.Component<Props, State> {
               isSearchDisabled={isSidebarVisible}
               tagValueLoader={this.tagValueLoader}
               tags={tags}
-              hasSessions={hasSessions}
               selectedProjects={selection.projects}
             />
 

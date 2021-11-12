@@ -8,7 +8,7 @@ import {DateString, Organization, OrganizationSummary} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 
 import {PerformanceWidgetContainerTypes} from './components/performanceWidgetContainer';
-import {PerformanceWidgetSetting} from './widgetDefinitions';
+import {ChartDefinition, PerformanceWidgetSetting} from './widgetDefinitions';
 
 export enum VisualizationDataState {
   ERROR = 'error',
@@ -99,6 +99,7 @@ type Subtitle<T> = FunctionComponent<{
 
 export type GenericPerformanceWidgetProps<T extends WidgetDataConstraint> = {
   chartSetting: PerformanceWidgetSetting;
+  chartDefinition: ChartDefinition;
 
   // Header;
   title: string;
