@@ -53,7 +53,7 @@ SAMPLED_URL_NAMES = {
     # stats
     "sentry-api-0-organization-stats": settings.SAMPLED_DEFAULT_RATE,
     "sentry-api-0-organization-stats-v2": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-api-0-project-stats": 0.1,  # lower rate because of high TPM
+    "sentry-api-0-project-stats": 0.05,  # lower rate because of high TPM
     # debug files
     "sentry-api-0-assemble-dif-files": 0.1,
     # scim
@@ -67,7 +67,7 @@ SAMPLED_URL_NAMES = {
     "sentry-api-0-organization-join-request": settings.SAMPLED_DEFAULT_RATE,
     # login
     "sentry-login": 0.1,
-    "sentry-auth-organization": settings.SAMPLED_DEFAULT_RATE,
+    "sentry-auth-organization": 0.2,
     "sentry-auth-link-identity": settings.SAMPLED_DEFAULT_RATE,
     "sentry-auth-sso": settings.SAMPLED_DEFAULT_RATE,
     "sentry-logout": 0.1,

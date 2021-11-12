@@ -4,10 +4,10 @@ import DateTime from 'app/components/dateTime';
 import NotAvailable from 'app/components/notAvailable';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {AppStoreConnectValidationData} from 'app/types/debugFiles';
+import {AppStoreConnectStatusData} from 'app/types/debugFiles';
 
 type Props = {
-  details?: AppStoreConnectValidationData;
+  details?: AppStoreConnectStatusData;
 };
 
 function Details({details}: Props) {

@@ -14,9 +14,7 @@ describe('Breadcrumbs', () => {
     props = {
       route: {},
       router,
-      // @ts-expect-error
       organization: TestStubs.Organization(),
-      // @ts-expect-error
       event: TestStubs.Event({entries: []}),
       type: EntryType.BREADCRUMBS,
       data: {

@@ -1,8 +1,9 @@
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import MenuItem from 'app/components/menuItem';
 import {Organization} from 'app/types';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import localStorage from 'app/utils/localStorage';
 import {usePerformanceDisplayType} from 'app/utils/performance/contexts/performanceDisplayContext';
 import useOrganization from 'app/utils/useOrganization';
@@ -85,6 +86,20 @@ const _setChartSetting = (
   setWidgetStorageObject(localObject);
 };
 
+function trackChartSettingChange(
+  previousChartSetting: PerformanceWidgetSetting,
+  chartSetting: PerformanceWidgetSetting,
+  fromDefault: boolean,
+  organization: Organization
+) {
+  trackAdvancedAnalyticsEvent('performance_views.landingv3.widget.switch', {
+    organization,
+    from_widget: previousChartSetting,
+    to_widget: chartSetting,
+    from_default: fromDefault,
+  });
+}
+
 const _WidgetContainer = (props: Props) => {
   const {organization, index, chartHeight, allowedCharts, ...rest} = props;
   const performanceType = usePerformanceDisplayType();
@@ -107,11 +122,23 @@ const _WidgetContainer = (props: Props) => {
       _setChartSetting(index, chartHeight, performanceType, setting);
     }
     setChartSettingState(setting);
+    trackChartSettingChange(
+      chartSetting,
+      setting,
+      rest.defaultChartSetting === chartSetting,
+      organization
+    );
   };
 
+  useEffect(() => {
+    setChartSettingState(_chartSetting);
+  }, [rest.defaultChartSetting]);
+
+  const chartDefinition = WIDGET_DEFINITIONS({organization})[chartSetting];
   const widgetProps = {
+    ...chartDefinition,
     chartSetting,
-    ...WIDGET_DEFINITIONS({organization})[chartSetting],
+    chartDefinition,
     ContainerActions: containerProps => (
       <WidgetContainerActions
         {...containerProps}

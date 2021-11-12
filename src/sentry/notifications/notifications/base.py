@@ -22,7 +22,13 @@ class BaseNotification:
 
     @property
     def org_slug(self) -> str:
-        return str(self.organization.slug)
+        slug: str = self.organization.slug
+        return slug
+
+    @property
+    def org_name(self) -> str:
+        name: str = self.organization.name
+        return name
 
     def get_filename(self) -> str:
         raise NotImplementedError
@@ -91,6 +97,9 @@ class BaseNotification:
 
     def get_message_actions(self) -> Sequence[MessageAction]:
         return []
+
+    def get_callback_data(self) -> Mapping[str, Any] | None:
+        return None
 
 
 class ProjectNotification(BaseNotification, abc.ABC):

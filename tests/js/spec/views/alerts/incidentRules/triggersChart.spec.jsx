@@ -1,5 +1,5 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'app/api';
 import AreaChart from 'app/components/charts/areaChart';
@@ -42,7 +42,7 @@ describe('Incident Rules Create', () => {
         aggregate="count()"
         triggers={[]}
       />,
-      routerContext
+      {context: routerContext}
     );
 
     await tick();
@@ -105,7 +105,7 @@ describe('Incident Rules Create', () => {
         aggregate="count()"
         triggers={[]}
       />,
-      routerContext
+      {context: routerContext}
     );
 
     await tick();

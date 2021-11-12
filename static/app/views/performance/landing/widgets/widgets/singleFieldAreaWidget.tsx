@@ -16,8 +16,12 @@ import {GenericPerformanceWidget} from '../components/performanceWidget';
 import {transformEventsRequestToArea} from '../transforms/transformEventsToArea';
 import {QueryDefinition, WidgetDataResult} from '../types';
 import {eventsRequestQueryProps} from '../utils';
+import {ChartDefinition, PerformanceWidgetSetting} from '../widgetDefinitions';
 
 type Props = {
+  chartSetting: PerformanceWidgetSetting;
+  chartDefinition: ChartDefinition;
+
   title: string;
   titleTooltip: string;
   fields: string[];

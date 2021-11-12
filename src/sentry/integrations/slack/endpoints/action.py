@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping, MutableMapping
 
+from django.urls import reverse
 from requests import post
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -10,15 +11,26 @@ from sentry import analytics
 from sentry.api import ApiClient, client
 from sentry.api.base import Endpoint
 from sentry.api.helpers.group_index import update_groups
+from sentry.auth.access import from_member
+from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.requests.action import SlackActionRequest
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
-from sentry.models import Group, Identity, IdentityProvider, Integration, Project
+from sentry.models import (
+    Group,
+    Identity,
+    IdentityProvider,
+    Integration,
+    InviteStatus,
+    OrganizationMember,
+    Project,
+)
 from sentry.notifications.utils.actions import MessageAction
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
+from sentry.utils.http import absolute_uri
 from sentry.web.decorators import transaction_start
 
 from ..message_builder import SlackBody
@@ -216,16 +228,19 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         except SlackRequestError as e:
             return self.respond(status=e.status)
 
-        data = slack_request.data
+        action_option = slack_request.action_option
 
-        # Actions list may be empty when receiving a dialog response
-        action_list_raw = data.get("actions", [])
-        action_list = [MessageAction(**action_data) for action_data in action_list_raw]
-        action_option = (action_list[0].value if len(action_list) else None) or ""
+        if action_option in ["approve_member", "reject_member"]:
+            return self.handle_member_approval(slack_request)
 
         # if a user is just clicking our auto response in the messages tab we just return a 200
         if action_option == "sentry_docs_link_clicked":
             return self.respond()
+
+        # Actions list may be empty when receiving a dialog response
+        data = slack_request.data
+        action_list_raw = data.get("actions", [])
+        action_list = [MessageAction(**action_data) for action_data in action_list_raw]
 
         channel_id = slack_request.channel_id
         user_id = slack_request.user_id
@@ -345,4 +360,93 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         ).build()
         body = self.construct_reply(attachment, is_message=self.is_message(data))
 
+        return self.respond(body)
+
+    def handle_member_approval(self, slack_request: SlackActionRequest):
+        try:
+            # get_identity can return Noone
+            identity = slack_request.get_identity()
+        except IdentityProvider.DoesNotExist:
+            identity = None
+
+        if not identity:
+            return self.respond_with_text("Identity not linked for user.")
+
+        member_id = slack_request.callback_data["member_id"]
+
+        try:
+            member = OrganizationMember.objects.get_member_invite_query(member_id).get()
+        except OrganizationMember.DoesNotExist:
+            # member request is gone, likely someone else rejected it
+            member_email = slack_request.callback_data["member_email"]
+            return self.respond_with_text(f"Member invitation for {member_email} no longer exists.")
+
+        organization = member.organization
+
+        if not organization.has_access(identity.user):
+            return self.respond_with_text(
+                "You don't have access to the organization for the invitation."
+            )
+
+        # row should exist because we have access
+        member_of_approver = OrganizationMember.objects.get(
+            user=identity.user, organization=organization
+        )
+        access = from_member(member_of_approver)
+        if not access.has_scope("member:admin"):
+            return self.respond_with_text(
+                "You don't have permission to approve member invitations."
+            )
+
+        # validate the org options and check against allowed_roles
+        allowed_roles = member_of_approver.get_allowed_roles_to_invite()
+        try:
+            member.validate_invitation(identity.user, allowed_roles)
+        except UnableToAcceptMemberInvitationException as err:
+            return self.respond_with_text(str(err))
+
+        original_status = member.invite_status
+        member_email = member.email
+        try:
+            if slack_request.action_option == "approve_member":
+                member.approve_member_invitation(identity.user, referrer="slack")
+            else:
+                member.reject_member_invitation(identity.user)
+        except Exception as err:
+            # shouldn't error but if it does, respond to the user
+            logger.error(
+                err,
+                extra={
+                    "organization_id": organization.id,
+                    "member_id": member.id,
+                },
+            )
+            return self.respond_ephemeral(DEFAULT_ERROR_MESSAGE)
+
+        # record analytics and respond with success
+        approve_member = slack_request.action_option == "approve_member"
+        event_name = (
+            "integrations.slack.approve_member_invitation"
+            if approve_member
+            else "integrations.slack.reject_member_invitation"
+        )
+        invite_type = (
+            "Invite" if original_status == InviteStatus.REQUESTED_TO_BE_INVITED.value else "Join"
+        )
+        analytics.record(
+            event_name,
+            actor_id=identity.user_id,
+            organization_id=member.organization_id,
+            invitation_type=invite_type.lower(),
+            invited_member_id=member_id,
+        )
+
+        verb = "approved" if approve_member else "rejected"
+
+        manage_url = absolute_uri(
+            reverse("sentry-organization-members", args=[member.organization.slug])
+        )
+        body = {
+            "text": f"{invite_type} request for {member_email} has been {verb}. <{manage_url}|See Members and Requests>.",
+        }
         return self.respond(body)

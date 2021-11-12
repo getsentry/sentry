@@ -12,8 +12,11 @@ import {Chart as HistogramChart} from 'app/views/performance/landing/chart/histo
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import {transformHistogramQuery} from '../transforms/transformHistogramQuery';
 import {WidgetDataResult} from '../types';
+import {ChartDefinition, PerformanceWidgetSetting} from '../widgetDefinitions';
 
 type Props = {
+  chartSetting: PerformanceWidgetSetting;
+  chartDefinition: ChartDefinition;
   title: string;
   titleTooltip: string;
   fields: string[];

@@ -567,7 +567,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.groupowner",
     "sentry.tasks.integrations",
     "sentry.tasks.low_priority_symbolication",
-    "sentry.tasks.members",
     "sentry.tasks.merge",
     "sentry.tasks.releasemonitor",
     "sentry.tasks.options",
@@ -767,11 +766,6 @@ CELERYBEAT_SCHEDULE = {
         "schedule": crontab_with_minute_jitter(hour="*/6"),
         "options": {"expires": 60 * 25},
     },
-    "process_pending_incident_snapshots": {
-        "task": "sentry.incidents.tasks.process_pending_incident_snapshots",
-        "schedule": timedelta(hours=1),
-        "options": {"expires": 3600, "queue": "incidents"},
-    },
     "monitor-release-adoption": {
         "task": "sentry.tasks.monitor_release_adoption",
         "schedule": crontab(minute=0),
@@ -966,13 +960,17 @@ SENTRY_FEATURES = {
     # sentry at the moment.
     "organizations:issue-search-use-cdc-primary": False,
     "organizations:issue-search-use-cdc-secondary": False,
-    # Enable the new Metrics page
+    # Enable metrics widget (prototype) on Dashboards
     "organizations:metrics": False,
     # Automatically extract metrics during ingestion.
     #
     # XXX(ja): DO NOT ENABLE UNTIL THIS NOTICE IS GONE. Relay experiences
     # gradual slowdown when this is enabled for too many projects.
     "organizations:metrics-extraction": False,
+    # Enable switch metrics button on Performance, allowing switch to unsampled transaction metrics
+    "organizations:metrics-performance-ui": False,
+    # True if the metrics backend should be checked against the sessions backend
+    "organizations:release-health-check-metrics": False,
     # Enable metric aggregate in metric alert rule builder
     "organizations:metric-alert-builder-aggregate": False,
     # Enable migrating auth identities between providers automatically
@@ -1008,6 +1006,8 @@ SENTRY_FEATURES = {
     "organizations:dashboards-edit": True,
     # Enable dashboard widget library
     "organizations:widget-library": False,
+    # Enable issue widgets in dashboards
+    "organizations:issues-in-dashboards": False,
     # Enable navigation features between Discover and Dashboards
     "organizations:connect-discover-and-dashboards": False,
     # Enable experimental performance improvements.
@@ -1757,12 +1757,6 @@ SENTRY_DEVSERVICES = {
                 "max_wal_senders=1",
             ],
             "entrypoint": "/cdc/postgres-entrypoint.sh" if settings.SENTRY_USE_CDC_DEV else None,
-            "healthcheck": {
-                "test": ["CMD", "pg_isready", "-U", "postgres"],
-                "interval": 30000000000,  # Test every 30 seconds (in ns).
-                "timeout": 5000000000,  # Time we should expect the test to take.
-                "retries": 3,
-            },
         }
     ),
     "zookeeper": lambda settings, options: (

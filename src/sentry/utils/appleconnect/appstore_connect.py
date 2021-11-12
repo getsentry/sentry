@@ -36,7 +36,7 @@ class UnauthorizedError(RequestError):
 
 
 class ForbiddenError(RequestError):
-    """The App Store Connect session does not have access to the requested dSYM."""
+    """Forbidden: authentication token does not have sufficient permissions."""
 
     pass
 
@@ -154,6 +154,8 @@ def _get_appstore_json(
 
             if response.status_code == HTTPStatus.UNAUTHORIZED:
                 raise UnauthorizedError(full_url)
+            elif response.status_code == HTTPStatus.FORBIDDEN:
+                raise ForbiddenError(full_url)
             else:
                 raise RequestError(full_url)
         try:
@@ -386,15 +388,14 @@ def _get_dsym_url(bundles: Optional[List[JSONData]]) -> Union[NoDsymUrl, str]:
         for b in bundles
         if safe.get_path(b, "attributes", "bundleType", default="APP") == "APP_CLIP"
     ]
-    if any(app_clip_urls):
-        sentry_sdk.capture_message("App_CLIP has dSYMUrl")
+    if not all(isinstance(url, NoDsymUrl) for url in app_clip_urls):
+        sentry_sdk.capture_message("App Clip's bundle has a dSYMUrl")
 
     app_bundles = [
         app_bundle
         for app_bundle in bundles
         if safe.get_path(app_bundle, "attributes", "bundleType", default="APP") != "APP_CLIP"
     ]
-
     if not app_bundles:
         return NoDsymUrl.NOT_NEEDED
     elif len(app_bundles) > 1:

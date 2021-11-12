@@ -173,7 +173,7 @@ class Client implements ApiNamespace.Client {
       const body =
         typeof response.body === 'function' ? response.body(url, options) : response.body;
 
-      if (response.statusCode !== 200) {
+      if (![200, 202].includes(response.statusCode)) {
         response.callCount++;
 
         const errorResponse = Object.assign(
@@ -210,6 +210,8 @@ class Client implements ApiNamespace.Client {
           {},
           {
             getResponseHeader: (key: string) => response.headers[key],
+            statusCode: response.statusCode,
+            status: response.statusCode,
           }
         );
       }
