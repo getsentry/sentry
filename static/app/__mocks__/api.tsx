@@ -140,11 +140,13 @@ class Client implements ApiNamespace.Client {
 
   static findMockResponse(url: string, options: Readonly<ApiNamespace.RequestOptions>) {
     return Client.mockResponses.find(([response]) => {
-      const matchesURL = url === response.url;
-      const matchesMethod = (options.method || 'GET') === response.method;
-      const matchersMatch = response.match.every(matcher => matcher(url, options));
-
-      return matchesURL && matchesMethod && matchersMatch;
+      if (url !== response.url) {
+        return false;
+      }
+      if ((options.method || 'GET') !== response.method) {
+        return false;
+      }
+      return response.match.every(matcher => matcher(url, options));
     });
   }
 
