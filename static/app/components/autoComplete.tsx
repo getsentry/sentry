@@ -33,6 +33,7 @@ const defaultProps = {
 
 type Item = {
   disabled?: boolean;
+  'data-test-id'?: string;
 };
 
 type GetInputArgs<E extends HTMLInputElement> = {
@@ -374,6 +375,7 @@ class AutoComplete<T extends Item> extends React.Component<Props<T>, State<T>> {
 
     return {
       ...props,
+      'data-test-id': item['data-test-id'],
       onClick: this.handleItemClick({item, index: newIndex, ...props}),
     };
   };
