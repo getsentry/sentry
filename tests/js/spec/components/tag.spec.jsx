@@ -1,97 +1,101 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {
+  cleanup,
+  fireEvent,
+  mountWithTheme,
+  screen,
+} from 'sentry-test/reactTestingLibrary';
 
 import Tag from 'app/components/tag';
 import {IconFire} from 'app/icons';
 
 describe('Tag', function () {
   it('basic', function () {
-    const wrapper = mountWithTheme(<Tag>Text</Tag>);
-    expect(wrapper.text()).toEqual('Text');
+    mountWithTheme(<Tag>Text</Tag>);
+    expect(screen.getByText('Text')).toBeInTheDocument();
   });
 
   it('with icon', function () {
-    const wrapper = mountWithTheme(
-      <Tag icon={<IconFire />} type="error">
+    mountWithTheme(
+      <Tag icon={<IconFire data-test-id="icon-fire" />} type="error">
         Error
       </Tag>
     );
-    expect(wrapper.text()).toEqual('Error');
-    expect(wrapper.find('Background').prop('type')).toEqual('error');
-    expect(wrapper.find('IconFire').exists()).toBeTruthy();
+    expect(screen.getByText('Error')).toBeInTheDocument();
+    expect(screen.getByTestId('icon-fire')).toBeInTheDocument();
   });
 
-  it('with tooltip', function () {
-    const wrapper = mountWithTheme(
+  it('with tooltip', async function () {
+    mountWithTheme(
       <Tag type="highlight" tooltipText="lorem ipsum">
         Tooltip
       </Tag>
     );
-    expect(wrapper.text()).toEqual('Tooltip');
-    expect(wrapper.find('Tooltip').prop('title')).toEqual('lorem ipsum');
+    expect(screen.getByText('Tooltip')).toBeInTheDocument();
+    fireEvent.mouseOver(screen.getByText('Tooltip'));
+    expect(await screen.findByText('lorem ipsum')).toBeInTheDocument();
   });
 
   it('with dismiss', function () {
     const mockCallback = jest.fn();
 
-    const wrapper = mountWithTheme(
+    mountWithTheme(
       <Tag type="highlight" onDismiss={mockCallback}>
         Dismissable
       </Tag>
     );
-    expect(wrapper.text()).toEqual('Dismissable');
-    expect(wrapper.find('IconClose').exists()).toBeTruthy();
+    expect(screen.getByText('Dismissable')).toBeInTheDocument();
+    expect(screen.getByLabelText('Dismiss')).toBeInTheDocument();
 
     expect(mockCallback).toHaveBeenCalledTimes(0);
-    wrapper.find('DismissButton').simulate('click');
+    fireEvent.click(screen.getByLabelText('Dismiss'));
     expect(mockCallback).toHaveBeenCalledTimes(1);
   });
 
   it('with internal link', function () {
     const to = '/organizations/sentry/issues/';
-    const wrapper = mountWithTheme(
-      <Tag type="highlight" to={to}>
+    mountWithTheme(
+      <Tag type="highlight" to={to} iconsProps={{'data-test-id': 'icon-open'}}>
         Internal link
       </Tag>
     );
-    expect(wrapper.text()).toEqual('Internal link');
-    expect(wrapper.find('IconOpen').exists()).toBeTruthy();
-    expect(wrapper.find('Link').prop('to')).toEqual(to);
+    expect(screen.getByText('Internal link')).toBeInTheDocument();
+    expect(screen.getByTestId('tag-open')).toBeInTheDocument();
+    expect(screen.getByTestId('tag-highlight').parentElement).toHaveAttribute('href', to);
   });
 
   it('with external link', function () {
     const href = 'https://sentry.io/';
-    const wrapper = mountWithTheme(
+    mountWithTheme(
       <Tag type="highlight" href={href}>
         External link
       </Tag>
     );
-    expect(wrapper.text()).toEqual('External link');
-    expect(wrapper.find('IconOpen').exists()).toBeTruthy();
-    expect(wrapper.find('a').props()).toEqual(
-      expect.objectContaining({
-        href,
-        target: '_blank',
-        rel: 'noreferrer noopener',
-      })
-    );
+    expect(screen.getByText('External link')).toBeInTheDocument();
+    expect(screen.getByTestId('tag-open')).toBeInTheDocument();
+    const link = screen.getByTestId('tag-highlight').parentElement;
+    expect(link).toHaveAttribute('href', href);
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', 'noreferrer noopener');
   });
 
   it('overrides a link default icon', function () {
-    const wrapper1 = mountWithTheme(<Tag href="#">1</Tag>);
-    const wrapper2 = mountWithTheme(
+    mountWithTheme(<Tag href="#">1</Tag>);
+    expect(screen.getByTestId('tag-open')).toBeInTheDocument();
+    cleanup();
+
+    mountWithTheme(
       <Tag href="#" icon={null}>
         2
       </Tag>
     );
-    const wrapper3 = mountWithTheme(
-      <Tag href="#" icon={<IconFire />}>
+    expect(screen.queryByTestId('tag-open')).not.toBeInTheDocument();
+    cleanup();
+
+    mountWithTheme(
+      <Tag href="#" icon={<IconFire data-test-id="icon-fire" />}>
         3
       </Tag>
     );
-
-    expect(wrapper1.find('IconOpen').exists()).toBeTruthy();
-    expect(wrapper2.find('IconOpen').exists()).toBeFalsy();
-    expect(wrapper3.find('IconOpen').exists()).toBeFalsy();
-    expect(wrapper3.find('IconFire').exists()).toBeTruthy();
+    expect(screen.getByTestId('icon-fire')).toBeInTheDocument();
   });
 });

@@ -69,7 +69,7 @@ function Tag({
 
   const tag = (
     <Tooltip title={tooltipText} containerDisplayMode="inline-flex">
-      <Background type={type}>
+      <Background type={type} data-test-id={`tag-${type}`}>
         {tagIcon()}
 
         <Text type={type} maxWidth={textMaxWidth}>
@@ -103,7 +103,7 @@ function Tag({
     if ((defined(href) || defined(to)) && icon === undefined) {
       return (
         <IconWrapper>
-          <IconOpen {...iconsProps} />
+          <IconOpen data-test-id="tag-open" {...iconsProps} />
         </IconWrapper>
       );
     }
