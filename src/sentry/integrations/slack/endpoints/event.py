@@ -6,9 +6,9 @@ from rest_framework.response import Response
 
 from sentry import analytics, features
 from sentry.integrations.slack.client import SlackClient
-from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
-from sentry.integrations.slack.message_builder.event import SlackEventMessageBuilder
 from sentry.integrations.slack.requests.base import SlackRequest, SlackRequestError
+from sentry.integrations.slack.message_builder.help import SlackHelpMessageBuilder
+from sentry.integrations.slack.message_builder.prompt import SlackPromptLinkMessageBuilder
 from sentry.integrations.slack.requests.event import COMMANDS, SlackEventRequest
 from sentry.integrations.slack.unfurl import LinkType, UnfurlableUrl, link_handlers, match_link
 from sentry.integrations.slack.views.link_identity import build_linking_url
@@ -86,21 +86,12 @@ class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
             response_url=slack_request.response_url,
         )
 
-        builder = BlockSlackMessageBuilder()
-
-        blocks = [
-            builder.get_markdown_block(
-                "Link your Slack identity to Sentry to unfurl Discover charts."
-            ),
-            builder.get_action_block([("Link", associate_url, "link"), ("Cancel", None, "ignore")]),
-        ]
-
         payload = {
             "token": self._get_access_token(integration),
             "channel": data["channel"],
             "user": data["user"],
             "text": "Link your Slack identity to Sentry to unfurl Discover charts.",
-            "blocks": json.dumps(blocks),
+            **SlackPromptLinkMessageBuilder(associate_url).as_payload(),
         }
 
         client = SlackClient()
