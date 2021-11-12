@@ -382,16 +382,31 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   onAddIssueWidget = () => {
-    const {organization, dashboard} = this.props;
+    const {api, organization, location, dashboard, reloadData} = this.props;
 
     openAddDashboardIssueWidgetModal({
       organization,
       onAddWidget: widget => {
-        this.setState({
-          dashboardState: DashboardState.EDIT,
-          modifiedDashboard: cloneDashboard(dashboard),
-        });
-        this.onUpdateWidget([...dashboard.widgets, widget]);
+        updateDashboard(api, organization.slug, {
+          ...dashboard,
+          widgets: [...dashboard.widgets, widget],
+        }).then(
+          (newDashboard: DashboardDetails) => {
+            if (reloadData) {
+              reloadData();
+            }
+            if (dashboard && newDashboard.id !== dashboard.id) {
+              browserHistory.replace({
+                pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
+                query: {
+                  ...location.query,
+                },
+              });
+              return;
+            }
+          },
+          () => undefined
+        );
       },
     });
   };

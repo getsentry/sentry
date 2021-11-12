@@ -11,6 +11,7 @@ from sentry.models import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
     DashboardWidgetQuery,
+    DashboardWidgetTypes,
 )
 from sentry.search.events.fields import get_function_alias, resolve_field_list
 from sentry.search.events.filter import get_filter
@@ -132,6 +133,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
     )
     interval = serializers.CharField(required=False, max_length=10)
     queries = DashboardWidgetQuerySerializer(many=True, required=False)
+    type = serializers.ChoiceField(choices=DashboardWidgetTypes.as_text_choices(), required=False)
 
     def validate_display_type(self, display_type):
         return DashboardWidgetDisplayTypes.get_id_for_type_name(display_type)

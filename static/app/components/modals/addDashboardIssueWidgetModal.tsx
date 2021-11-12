@@ -51,6 +51,7 @@ type State = {
   queries: WidgetQuery[];
   loading: boolean;
   errors?: Record<string, any>;
+  type: WidgetType;
 };
 
 const newQuery = {
@@ -72,6 +73,7 @@ class AddDashboardIssueWidgetModal extends React.Component<Props, State> {
         queries: [{...newQuery}],
         errors: undefined,
         loading: false,
+        type: WidgetType.ISSUE,
       };
       return;
     }
@@ -82,6 +84,7 @@ class AddDashboardIssueWidgetModal extends React.Component<Props, State> {
       queries: widget.queries,
       errors: undefined,
       loading: false,
+      type: WidgetType.ISSUE,
     };
   }
 
@@ -93,6 +96,7 @@ class AddDashboardIssueWidgetModal extends React.Component<Props, State> {
       organization,
       onAddWidget,
       onUpdateWidget,
+      closeModal,
       widget: previousWidget,
     } = this.props;
     this.setState({loading: true});
@@ -102,7 +106,7 @@ class AddDashboardIssueWidgetModal extends React.Component<Props, State> {
       interval: this.state.interval,
       queries: this.state.queries,
       displayType: DisplayType.TABLE,
-      type: WidgetType.ISSUE,
+      type: this.state.type,
     };
     try {
       await validateWidget(api, organization.slug, widgetData);
@@ -116,6 +120,7 @@ class AddDashboardIssueWidgetModal extends React.Component<Props, State> {
         onAddWidget(widgetData);
         addSuccessMessage(t('Added widget.'));
       }
+      closeModal();
     } catch (err) {
       errors = mapErrors(err?.responseJSON ?? {}, {});
       this.setState({errors});
