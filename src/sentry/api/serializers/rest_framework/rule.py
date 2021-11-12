@@ -1,11 +1,11 @@
 from rest_framework import serializers
 
 from sentry import features
+from sentry.api.fields.actor import ActorField
+from sentry.api.serializers.rest_framework.list import ListField
 from sentry.constants import MIGRATED_CONDITIONS, SCHEMA_FORM_ACTIONS, TICKET_ACTIONS
-from sentry.models import ActorTuple, Environment, Team, User
+from sentry.models import Environment
 from sentry.rules import rules
-
-from . import ListField
 
 ValidationError = serializers.ValidationError
 
@@ -77,25 +77,7 @@ class RuleSerializer(serializers.Serializer):
     conditions = ListField(child=RuleNodeField(type="condition/event"), required=False)
     filters = ListField(child=RuleNodeField(type="filter/event"), required=False)
     frequency = serializers.IntegerField(min_value=5, max_value=60 * 24 * 30)
-    owner = serializers.CharField(required=False, allow_null=True)
-
-    def validate_owner(self, owner):
-        # owner should be team:id or user:id
-        if owner is None:
-            return
-
-        try:
-            actor = ActorTuple.from_actor_identifier(owner)
-        except Exception:
-            raise serializers.ValidationError(
-                "Could not parse owner. Format should be `type:id` where type is `team` or `user`."
-            )
-
-        try:
-            if actor.resolve():
-                return actor
-        except (User.DoesNotExist, Team.DoesNotExist):
-            raise serializers.ValidationError("Could not resolve owner to existing team or user.")
+    owner = ActorField(required=False, allow_null=True)
 
     def validate_environment(self, environment):
         if environment is None:

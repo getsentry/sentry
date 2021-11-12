@@ -71,7 +71,11 @@ class ProjectRuleDetailsEndpoint(ProjectEndpoint):
             }}
 
         """
-        serializer = RuleSerializer(context={"project": project}, data=request.data, partial=True)
+        serializer = RuleSerializer(
+            context={"project": project, "organization": project.organization},
+            data=request.data,
+            partial=True,
+        )
 
         if serializer.is_valid():
             data = serializer.validated_data
