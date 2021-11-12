@@ -540,6 +540,8 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             card.find_element_by_css_selector('[data-test-id="context-menu"]').click()
             # Delete the query
             card.find_element_by_css_selector('[data-test-id="delete-query"]').click()
+            # Confirm deletion
+            card.find_element_by_css_selector('[data-test-id="confirm-button"]').click()
 
             # Wait for card to clear
             self.browser.wait_until_not(card_selector)

@@ -289,11 +289,19 @@ describe('Dashboards > Detail', function () {
         .find('IconClick[data-test-id="widget-delete"]')
         .simulate('click');
 
+      // Confirm
+      const FirstModal = await mountGlobalModal();
+      FirstModal.find('Button').last().simulate('click');
+
       wrapper
         .find('WidgetCard')
         .at(1)
         .find('IconClick[data-test-id="widget-delete"]')
         .simulate('click');
+
+      // Confirm
+      const SecondModal = await mountGlobalModal();
+      SecondModal.find('Button').last().simulate('click');
 
       // Save changes
       wrapper.find('Controls Button[data-test-id="dashboard-commit"]').simulate('click');

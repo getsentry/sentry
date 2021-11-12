@@ -9,6 +9,7 @@ import isEqual from 'lodash/isEqual';
 import {openDashboardWidgetQuerySelectorModal} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import {HeaderTitle} from 'app/components/charts/styles';
+import {openConfirmModal} from 'app/components/confirm';
 import ErrorBoundary from 'app/components/errorBoundary';
 import FeatureBadge from 'app/components/featureBadge';
 import MenuItem from 'app/components/menuItem';
@@ -99,7 +100,11 @@ class WidgetCard extends React.Component<Props> {
           <IconClick
             data-test-id="widget-delete"
             onClick={() => {
-              onDelete();
+              openConfirmModal({
+                message: t('Are you sure you want to delete this widget?'),
+                priority: 'danger',
+                onConfirm: onDelete,
+              });
             }}
           >
             <IconDelete color="textColor" />

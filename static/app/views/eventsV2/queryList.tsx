@@ -10,6 +10,7 @@ import {resetGlobalSelection} from 'app/actionCreators/globalSelection';
 import {openAddDashboardWidgetModal} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
+import {openConfirmModal} from 'app/components/confirm';
 import DropdownMenu from 'app/components/dropdownMenu';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import FeatureBadge from 'app/components/featureBadge';
@@ -311,7 +312,14 @@ class QueryList extends React.Component<Props> {
               </Feature>
               <MenuItem
                 data-test-id="delete-query"
-                onClick={this.handleDeleteQuery(eventView)}
+                onClick={event => {
+                  event.preventDefault();
+                  openConfirmModal({
+                    message: t('Are you sure you want to delete this query?'),
+                    priority: 'danger',
+                    onConfirm: () => this.handleDeleteQuery(eventView),
+                  });
+                }}
               >
                 {t('Delete Query')}
               </MenuItem>
