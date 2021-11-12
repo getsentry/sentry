@@ -14,15 +14,19 @@ type Props = {
  */
 function SidebarSection({title, children, icon, ...props}: Props) {
   return (
-    <React.Fragment>
+    <Wrapper>
       <Heading {...props}>
         {title}
         {icon && <IconWrapper>{icon}</IconWrapper>}
       </Heading>
       <SectionContent>{children}</SectionContent>
-    </React.Fragment>
+    </Wrapper>
   );
 }
+
+const Wrapper = styled('div')`
+  margin-bottom: ${space(3)};
+`;
 
 const Heading = styled('h6')`
   color: ${p => p.theme.textColor};

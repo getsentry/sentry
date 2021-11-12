@@ -15,7 +15,6 @@ import {CrashFreeTimeBreakdown, Organization} from 'app/types';
 import {defined} from 'app/utils';
 
 import {displayCrashFreePercent} from '../../../utils';
-import {Wrapper} from '../styles';
 
 type Props = AsyncComponent['props'] & {
   location: Location;
@@ -89,31 +88,29 @@ class TotalCrashFreeUsers extends AsyncComponent<Props, State> {
     }
 
     return (
-      <Wrapper>
-        <SidebarSection title={t('Total Crash Free Users')}>
-          <Timeline>
-            {timeline.map(row => (
-              <Row key={row.date.toString()}>
-                <InnerRow>
-                  <Text bold>{row.date.format('MMMM D')}</Text>
-                  <Text bold right>
-                    <Count value={row.crashFreeUserCount} />{' '}
-                    {tn('user', 'users', row.crashFreeUserCount)}
-                  </Text>
-                </InnerRow>
-                <InnerRow>
-                  <Text>{row.dateLabel}</Text>
-                  <Percent right>
-                    {defined(row.crashFreeUsers)
-                      ? displayCrashFreePercent(row.crashFreeUsers)
-                      : '-'}
-                  </Percent>
-                </InnerRow>
-              </Row>
-            ))}
-          </Timeline>
-        </SidebarSection>
-      </Wrapper>
+      <SidebarSection title={t('Total Crash Free Users')}>
+        <Timeline>
+          {timeline.map(row => (
+            <Row key={row.date.toString()}>
+              <InnerRow>
+                <Text bold>{row.date.format('MMMM D')}</Text>
+                <Text bold right>
+                  <Count value={row.crashFreeUserCount} />{' '}
+                  {tn('user', 'users', row.crashFreeUserCount)}
+                </Text>
+              </InnerRow>
+              <InnerRow>
+                <Text>{row.dateLabel}</Text>
+                <Percent right>
+                  {defined(row.crashFreeUsers)
+                    ? displayCrashFreePercent(row.crashFreeUsers)
+                    : '-'}
+                </Percent>
+              </InnerRow>
+            </Row>
+          ))}
+        </Timeline>
+      </SidebarSection>
     );
   }
 }

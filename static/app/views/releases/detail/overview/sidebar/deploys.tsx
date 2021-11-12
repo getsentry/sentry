@@ -8,8 +8,6 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Deploy} from 'app/types';
 
-import {Wrapper} from '../styles';
-
 type Props = {
   version: string;
   orgSlug: string;
@@ -19,23 +17,21 @@ type Props = {
 
 const Deploys = ({version, orgSlug, projectId, deploys}: Props) => {
   return (
-    <Wrapper>
-      <SidebarSection title={t('Deploys')}>
-        {deploys.map(deploy => (
-          <Row key={deploy.id}>
-            <StyledDeployBadge
-              deploy={deploy}
-              orgSlug={orgSlug}
-              version={version}
-              projectId={projectId}
-            />
-            <TextOverflow>
-              <TimeSince date={deploy.dateFinished} />
-            </TextOverflow>
-          </Row>
-        ))}
-      </SidebarSection>
-    </Wrapper>
+    <SidebarSection title={t('Deploys')}>
+      {deploys.map(deploy => (
+        <Row key={deploy.id}>
+          <StyledDeployBadge
+            deploy={deploy}
+            orgSlug={orgSlug}
+            version={version}
+            projectId={projectId}
+          />
+          <TextOverflow>
+            <TimeSince date={deploy.dateFinished} />
+          </TextOverflow>
+        </Row>
+      ))}
+    </SidebarSection>
   );
 };
 

@@ -11,8 +11,6 @@ import Version from 'app/components/version';
 import {t, tn} from 'app/locale';
 import {ReleaseMeta, ReleaseWithHealth} from 'app/types';
 
-import {Wrapper} from '../styles';
-
 type Props = {
   release: ReleaseWithHealth;
   releaseMeta: ReleaseMeta;
@@ -24,49 +22,47 @@ const ProjectReleaseDetails = ({release, releaseMeta, orgSlug, projectSlug}: Pro
   const {version, versionInfo, dateCreated, firstEvent, lastEvent} = release;
 
   return (
-    <Wrapper>
-      <SidebarSection title={t('Project Release Details')}>
-        <KeyValueTable>
-          <KeyValueTableRow
-            keyName={t('Created')}
-            value={<DateTime date={dateCreated} seconds={false} />}
-          />
-          <KeyValueTableRow
-            keyName={t('Version')}
-            value={<Version version={version} anchor={false} />}
-          />
-          <KeyValueTableRow
-            keyName={t('Package')}
-            value={
-              <StyledTextOverflow ellipsisDirection="left">
-                {versionInfo.package ?? '\u2014'}
-              </StyledTextOverflow>
-            }
-          />
-          <KeyValueTableRow
-            keyName={t('First Event')}
-            value={firstEvent ? <TimeSince date={firstEvent} /> : '\u2014'}
-          />
-          <KeyValueTableRow
-            keyName={t('Last Event')}
-            value={lastEvent ? <TimeSince date={lastEvent} /> : '\u2014'}
-          />
-          <KeyValueTableRow
-            keyName={t('Source Maps')}
-            value={
-              <Link
-                to={`/settings/${orgSlug}/projects/${projectSlug}/source-maps/${encodeURIComponent(
-                  version
-                )}/`}
-              >
-                <Count value={releaseMeta.releaseFileCount} />{' '}
-                {tn('artifact', 'artifacts', releaseMeta.releaseFileCount)}
-              </Link>
-            }
-          />
-        </KeyValueTable>
-      </SidebarSection>
-    </Wrapper>
+    <SidebarSection title={t('Project Release Details')}>
+      <KeyValueTable>
+        <KeyValueTableRow
+          keyName={t('Created')}
+          value={<DateTime date={dateCreated} seconds={false} />}
+        />
+        <KeyValueTableRow
+          keyName={t('Version')}
+          value={<Version version={version} anchor={false} />}
+        />
+        <KeyValueTableRow
+          keyName={t('Package')}
+          value={
+            <StyledTextOverflow ellipsisDirection="left">
+              {versionInfo.package ?? '\u2014'}
+            </StyledTextOverflow>
+          }
+        />
+        <KeyValueTableRow
+          keyName={t('First Event')}
+          value={firstEvent ? <TimeSince date={firstEvent} /> : '\u2014'}
+        />
+        <KeyValueTableRow
+          keyName={t('Last Event')}
+          value={lastEvent ? <TimeSince date={lastEvent} /> : '\u2014'}
+        />
+        <KeyValueTableRow
+          keyName={t('Source Maps')}
+          value={
+            <Link
+              to={`/settings/${orgSlug}/projects/${projectSlug}/source-maps/${encodeURIComponent(
+                version
+              )}/`}
+            >
+              <Count value={releaseMeta.releaseFileCount} />{' '}
+              {tn('artifact', 'artifacts', releaseMeta.releaseFileCount)}
+            </Link>
+          }
+        />
+      </KeyValueTable>
+    </SidebarSection>
   );
 };
 

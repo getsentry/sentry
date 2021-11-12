@@ -12,8 +12,6 @@ import {Commit, User} from 'app/types';
 import {percent} from 'app/utils';
 import {userDisplayName} from 'app/utils/formatters';
 
-import {Wrapper} from '../styles';
-
 type GroupedAuthorCommits = {
   [key: string]: {author: User | undefined; commitCount: number};
 };
@@ -85,30 +83,28 @@ class CommitAuthorBreakdown extends AsyncComponent<Props, State> {
     }
 
     return (
-      <Wrapper>
-        <SidebarSection title={t('Commit Author Breakdown')}>
-          <Collapsible
-            expandButton={({onExpand, numberOfHiddenItems}) => (
-              <Button priority="link" onClick={onExpand}>
-                {tn(
-                  'Show %s collapsed author',
-                  'Show %s collapsed authors',
-                  numberOfHiddenItems
-                )}
-              </Button>
-            )}
-          >
-            {sortedAuthorsByNumberOfCommits.map(({commitCount, author}, index) => (
-              <AuthorLine key={author?.email ?? index}>
-                <UserAvatar user={author} size={20} hasTooltip />
-                <AuthorName>{userDisplayName(author || {}, false)}</AuthorName>
-                <Commits>{tn('%s commit', '%s commits', commitCount)}</Commits>
-                <Percent>{this.getDisplayPercent(commitCount)}</Percent>
-              </AuthorLine>
-            ))}
-          </Collapsible>
-        </SidebarSection>
-      </Wrapper>
+      <SidebarSection title={t('Commit Author Breakdown')}>
+        <Collapsible
+          expandButton={({onExpand, numberOfHiddenItems}) => (
+            <Button priority="link" onClick={onExpand}>
+              {tn(
+                'Show %s collapsed author',
+                'Show %s collapsed authors',
+                numberOfHiddenItems
+              )}
+            </Button>
+          )}
+        >
+          {sortedAuthorsByNumberOfCommits.map(({commitCount, author}, index) => (
+            <AuthorLine key={author?.email ?? index}>
+              <UserAvatar user={author} size={20} hasTooltip />
+              <AuthorName>{userDisplayName(author || {}, false)}</AuthorName>
+              <Commits>{tn('%s commit', '%s commits', commitCount)}</Commits>
+              <Percent>{this.getDisplayPercent(commitCount)}</Percent>
+            </AuthorLine>
+          ))}
+        </Collapsible>
+      </SidebarSection>
     );
   }
 }

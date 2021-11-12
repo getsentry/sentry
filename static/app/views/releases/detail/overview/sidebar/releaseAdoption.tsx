@@ -33,7 +33,6 @@ import {
   isMobileRelease,
 } from '../../../utils';
 import {generateReleaseMarkLines, releaseMarkLinesLabels} from '../../utils';
-import {Wrapper} from '../styles';
 
 const sessionsAxisIndex = 0;
 const usersAxisIndex = 1;
@@ -235,7 +234,7 @@ function ReleaseAdoption({
   const multipleEnvironments = environment.length === 0 || environment.length > 1;
 
   return (
-    <Wrapper>
+    <div>
       {isMobileRelease(project.platform) && (
         <Feature features={['release-adoption-stage']}>
           <SidebarSection
@@ -254,9 +253,9 @@ function ReleaseAdoption({
           >
             {adoptionStageLabel && !multipleEnvironments ? (
               <div>
-                <StyledTooltip title={adoptionStageLabel.tooltipTitle} isHoverable>
+                <Tooltip title={adoptionStageLabel.tooltipTitle} isHoverable>
                   <Tag type={adoptionStageLabel.type}>{adoptionStageLabel.name}</Tag>
-                </StyledTooltip>
+                </Tooltip>
                 <AdoptionEnvironment>
                   {tct(`in [environment]`, {environment})}
                 </AdoptionEnvironment>
@@ -325,18 +324,13 @@ function ReleaseAdoption({
           </TransitionChart>
         )}
       </RelativeBox>
-    </Wrapper>
+    </div>
   );
 }
-
-const StyledTooltip = styled(Tooltip)`
-  margin-bottom: ${space(3)};
-`;
 
 const NotAvailableWrapper = styled('div')`
   display: flex;
   align-items: center;
-  margin-bottom: ${space(3)};
 `;
 
 const AdoptionEnvironment = styled('span')`
