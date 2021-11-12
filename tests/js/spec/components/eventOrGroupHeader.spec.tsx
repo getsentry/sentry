@@ -1,6 +1,6 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
-import {findByTextContent} from 'sentry-test/utils';
+import {getByTextContent} from 'sentry-test/utils';
 
 import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
 import {EventOrGroupType} from 'app/types';
@@ -98,7 +98,7 @@ describe('EventOrGroupHeader', function () {
       expect(screen.getByText('metadata value')).toBeInTheDocument();
     });
 
-    it('renders location', async function () {
+    it('renders location', function () {
       const component = mountWithTheme(
         <EventOrGroupHeader
           organization={organization}
@@ -115,9 +115,7 @@ describe('EventOrGroupHeader', function () {
         {context: routerContext}
       );
 
-      expect(
-        await findByTextContent(component, 'in path/to/file.swift')
-      ).toBeInTheDocument();
+      expect(getByTextContent(component, 'in path/to/file.swift')).toBeInTheDocument();
     });
   });
 

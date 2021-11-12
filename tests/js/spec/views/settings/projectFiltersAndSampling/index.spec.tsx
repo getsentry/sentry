@@ -1,5 +1,5 @@
 import {screen} from 'sentry-test/reactTestingLibrary';
-import {findByTextContent} from 'sentry-test/utils';
+import {getByTextContent} from 'sentry-test/utils';
 
 import {DYNAMIC_SAMPLING_DOC_LINK} from 'app/views/settings/project/filtersAndSampling/utils';
 
@@ -13,7 +13,7 @@ describe('Filters and Sampling', function () {
   });
 
   describe('renders', function () {
-    it('empty', async function () {
+    it('empty', function () {
       const {container} = renderComponent(false);
 
       // Title
@@ -21,7 +21,7 @@ describe('Filters and Sampling', function () {
 
       // Error rules container
       expect(
-        await findByTextContent(
+        getByTextContent(
           screen,
           'Manage the inbound data you want to store. To change the sampling rate or rate limits, update your SDK configuration. The rules added below will apply on top of your SDK configuration. Any new rule may take a few minutes to propagate.'
         )
@@ -64,7 +64,7 @@ describe('Filters and Sampling', function () {
       expect(container).toSnapshot();
     });
 
-    it('with rules', async function () {
+    it('with rules', function () {
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/',
         method: 'GET',
@@ -138,7 +138,7 @@ describe('Filters and Sampling', function () {
 
       // Error rules container
       expect(
-        await findByTextContent(
+        getByTextContent(
           screen,
           'Manage the inbound data you want to store. To change the sampling rate or rate limits, update your SDK configuration. The rules added below will apply on top of your SDK configuration. Any new rule may take a few minutes to propagate.'
         )
@@ -154,7 +154,6 @@ describe('Filters and Sampling', function () {
         screen.queryByText('There are no error rules to display')
       ).not.toBeInTheDocument();
       expect(screen.getByText('Errors only')).toBeInTheDocument();
-
       expect(screen.getByText('Add error rule')).toBeInTheDocument();
 
       // Transaction traces and individual transactions rules container

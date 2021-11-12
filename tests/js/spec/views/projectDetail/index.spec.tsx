@@ -4,7 +4,7 @@ import {
   screen,
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
-import {findByTextContent} from 'sentry-test/utils';
+import {getByTextContent} from 'sentry-test/utils';
 
 import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 import ProjectsStore from 'app/stores/projectsStore';
@@ -96,7 +96,7 @@ describe('ProjectDetail', function () {
       await waitForElementToBeRemoved(() => screen.getByText('Loading\u2026'));
 
       expect(
-        await findByTextContent(
+        getByTextContent(
           screen,
           'Event Processing for this project is currently degraded. Events may appear with larger delays than usual or get dropped. Please check the Status page for a potential outage.'
         )
