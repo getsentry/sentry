@@ -1,6 +1,6 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
-import {findAllByTextContent} from 'sentry-test/utils';
+import {getAllByTextContent} from 'sentry-test/utils';
 
 import Breadcrumbs from 'app/components/events/interfaces/breadcrumbs';
 import {BreadcrumbLevelType, BreadcrumbType} from 'app/types/breadcrumbs';
@@ -68,7 +68,7 @@ describe('Breadcrumbs', () => {
 
   describe('filterCrumbs', function () {
     it('should filter crumbs based on crumb message', async function () {
-      const component = mountWithTheme(<Breadcrumbs {...props} />);
+      mountWithTheme(<Breadcrumbs {...props} />);
 
       const searchInput = screen.getByPlaceholderText('Search breadcrumbs');
 
@@ -84,11 +84,11 @@ describe('Breadcrumbs', () => {
         screen.queryByText('Sorry, no breadcrumbs match your search query')
       ).not.toBeInTheDocument();
 
-      expect(await findAllByTextContent(component, 'sup')).toHaveLength(3);
+      expect(getAllByTextContent('sup')).toHaveLength(3);
     });
 
-    it('should filter crumbs based on crumb level', async function () {
-      const component = mountWithTheme(<Breadcrumbs {...props} />);
+    it('should filter crumbs based on crumb level', function () {
+      mountWithTheme(<Breadcrumbs {...props} />);
 
       const searchInput = screen.getByPlaceholderText('Search breadcrumbs');
 
@@ -96,17 +96,17 @@ describe('Breadcrumbs', () => {
 
       // breadcrumbs + filter item
       // TODO(Priscila): Filter should not render in the dom if not open
-      expect(await findAllByTextContent(component, 'Warning')).toHaveLength(6);
+      expect(getAllByTextContent('Warning')).toHaveLength(6);
     });
 
-    it('should filter crumbs based on crumb category', async function () {
-      const component = mountWithTheme(<Breadcrumbs {...props} />);
+    it('should filter crumbs based on crumb category', function () {
+      mountWithTheme(<Breadcrumbs {...props} />);
 
       const searchInput = screen.getByPlaceholderText('Search breadcrumbs');
 
       fireEvent.change(searchInput, {target: {value: 'error'}});
 
-      expect(await findAllByTextContent(component, 'error')).toHaveLength(2);
+      expect(getAllByTextContent('error')).toHaveLength(2);
     });
   });
 
