@@ -138,6 +138,9 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
     def validate_display_type(self, display_type):
         return DashboardWidgetDisplayTypes.get_id_for_type_name(display_type)
 
+    def validate_type(self, type):
+        return DashboardWidgetTypes.get_id_for_type_name(type)
+
     validate_id = validate_id
 
     def validate_interval(self, interval):
