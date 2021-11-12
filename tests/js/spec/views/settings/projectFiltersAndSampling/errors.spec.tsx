@@ -124,7 +124,7 @@ describe('Filters and Sampling - Error rule', function () {
     expect(screen.queryByText('Tracing')).not.toBeInTheDocument();
 
     // Release Field
-    expect(await screen.findByTestId('autocomplete-release')).toBeInTheDocument();
+    expect(screen.getByTestId('autocomplete-release')).toBeInTheDocument();
 
     // Release field is not empty
     const releaseFieldValues = screen.getByTestId('multivalue');
@@ -352,7 +352,7 @@ describe('Filters and Sampling - Error rule', function () {
       fireEvent.click(screen.getByText('Add Condition'));
 
       // Autocomplete
-      expect(await screen.findByTestId('autocomplete-list')).toBeInTheDocument();
+      expect(screen.getByTestId('autocomplete-list')).toBeInTheDocument();
 
       // Condition Options
       const conditionOptions = screen.getAllByTestId('condition');
@@ -413,8 +413,7 @@ describe('Filters and Sampling - Error rule', function () {
       fireEvent.click(screen.getByText('Add Condition'));
 
       // Autocomplete
-      const autoCompleteList = await screen.findByTestId('autocomplete-list');
-      expect(autoCompleteList).toBeInTheDocument();
+      expect(screen.getByTestId('autocomplete-list')).toBeInTheDocument();
 
       // Condition Options
       const conditionOptions = screen.getAllByTestId('condition');
@@ -423,13 +422,10 @@ describe('Filters and Sampling - Error rule', function () {
       fireEvent.click(conditionOptions[0]);
 
       // Release Field
-      await screen.findByTestId('autocomplete-release');
-      const releaseField = screen.getByTestId('autocomplete-release');
-      expect(releaseField).toBeInTheDocument();
+      expect(screen.getByTestId('autocomplete-release')).toBeInTheDocument();
 
       // Release field is empty
-      const releaseFieldValues = screen.queryByTestId('multivalue');
-      expect(releaseFieldValues).not.toBeInTheDocument();
+      expect(screen.queryByTestId('multivalue')).not.toBeInTheDocument();
 
       // Type into realease field
       fireEvent.change(screen.getByLabelText('Search or add a release'), {
