@@ -203,28 +203,42 @@ class ProjectTest(TestCase):
 
     def test_transfer_to_organization_alert_rules(self):
         from_org = self.create_organization()
+        from_user = self.create_user()
+        self.create_member(user=from_user, role="member", organization=from_org)
         team = self.create_team(organization=from_org)
         to_org = self.create_organization()
         to_team = self.create_team(organization=to_org)
+        to_user = self.create_user()
+        self.create_member(user=to_user, role="member", organization=to_org)
 
         project = self.create_project(teams=[team])
 
+        # should lose their owners
         alert_rule = self.create_alert_rule(
             organization=self.organization,
             projects=[project],
             owner=ActorTuple.from_actor_identifier(f"team:{team.id}"),
         )
-        rule = Rule.objects.create(label="another test rule", project=project, owner=team.actor)
-        rule2 = Rule.objects.create(label="rule2", project=project, owner=to_team.actor)
+        rule1 = Rule.objects.create(label="another test rule", project=project, owner=team.actor)
+        rule2 = Rule.objects.create(label="rule4", project=project, owner=from_user.actor)
+
+        # should keep their owners
+        rule3 = Rule.objects.create(label="rule2", project=project, owner=to_team.actor)
+        rule4 = Rule.objects.create(label="rule3", project=project, owner=to_user.actor)
 
         project.transfer_to(organization=to_org)
 
         alert_rule.refresh_from_db()
-        rule.refresh_from_db()
+        rule1.refresh_from_db()
         rule2.refresh_from_db()
+        rule3.refresh_from_db()
+        rule4.refresh_from_db()
         assert alert_rule.owner is None
-        assert rule.owner is None
-        assert rule2.owner is not None
+        assert rule1.owner is None
+        assert rule2.owner is None
+
+        assert rule3.owner is not None
+        assert rule4.owner is not None
 
 
 class CopyProjectSettingsTest(TestCase):

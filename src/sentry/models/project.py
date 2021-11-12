@@ -333,9 +333,7 @@ class Project(Model, PendingDeletionMixin):
         for rule in list(chain(alert_rules, rules)):
             actor = rule.owner
             if actor.type == ACTOR_TYPES["user"]:
-                is_member = organization.member_set.filter(
-                    organizationmember__user__id=actor.id
-                ).exists()
+                is_member = organization.member_set.filter(user=actor.resolve()).exists()
             if actor.type == ACTOR_TYPES["team"]:
                 is_member = actor.resolve().organization.id == organization.id
             if not is_member:
