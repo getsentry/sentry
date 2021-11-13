@@ -4,20 +4,24 @@ from sentry.testutils import TestCase
 
 class FilterToTeamTest(TestCase):
     def test(self):
+        GroupAssignee.objects.assign(self.group, self.user)
+        proj_1_group_2 = self.store_event(data={}, project_id=self.project.id).group
+        GroupAssignee.objects.assign(self.group, self.team)
+        history = set(GroupHistory.objects.filter(group__in=[self.group, proj_1_group_2]))
+
         other_org = self.create_organization()
         other_team = self.create_team(other_org, members=[self.user])
         other_project = self.create_project(organization=other_org, teams=[other_team])
-        GroupAssignee.objects.assign(self.group, self.user)
-
-        history = GroupHistory.objects.filter(group=self.group).get()
         other_group = self.store_event(data={}, project_id=other_project.id).group
+        other_group_2 = self.store_event(data={}, project_id=other_project.id).group
         GroupAssignee.objects.assign(other_group, self.user)
-        other_history = GroupHistory.objects.filter(group=other_group).get()
+        GroupAssignee.objects.assign(other_group_2, other_team)
+        other_history = set(GroupHistory.objects.filter(group__in=[other_group, other_group_2]))
 
         # Even though the user is a member of both orgs, and is assigned to both groups, we should
         # filter down to just the history that each team has access to here.
-        assert list(GroupHistory.objects.filter_to_team(self.team)) == [history]
-        assert list(GroupHistory.objects.filter_to_team(other_team)) == [other_history]
+        assert set(GroupHistory.objects.filter_to_team(self.team)) == history
+        assert set(GroupHistory.objects.filter_to_team(other_team)) == other_history
 
 
 class GetPrevHistoryTest(TestCase):
