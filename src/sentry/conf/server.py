@@ -1775,7 +1775,7 @@ SENTRY_DEVSERVICES = {
             "ports": {"9092/tcp": 9092},
             "environment": {
                 "KAFKA_ZOOKEEPER_CONNECT": "{containers[zookeeper][name]}:2181",
-                "KAFKA_LISTENERS": "INTERNAL://0.0.0.0:9093,EXTERNAL://0.0.0.0:9092",
+                "KAFKA_LISTENERS": "INTERNAL://{containers[kafka][name]}:9093,EXTERNAL://{containers[kafka][name]}:9092",
                 "KAFKA_ADVERTISED_LISTENERS": "INTERNAL://{containers[kafka][name]}:9093,EXTERNAL://{containers[kafka]"
                 "[ports][9092/tcp][0]}:{containers[kafka][ports][9092/tcp][1]}",
                 "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP": "INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT",
