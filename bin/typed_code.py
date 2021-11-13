@@ -224,10 +224,10 @@ def print_results(
     )
 
     bar = "=" * int(BAR_LENGTH / 2)
-    print(f"{bar} Python coverage by team {bar}")
+    print(f"{bar} Python coverage by team {bar}")  # NOQA S002
     for team, percent in tuples:
         if percent:
-            print(f"{team:<32} {(percent):.2f}%")
+            print(f"{team:<32} {(percent):.2f}%")  # NOQA S002
 
 
 def setup_args() -> Any:
