@@ -95,9 +95,7 @@ class SentryAppLogoField(AvatarField):
             svg = load_svg_file(BytesIO(data))
             if svg is not None:
                 viewbox = svg.get("viewBox").split()
-                converted = [int(dimension) for dimension in viewbox][-2:]
-                width = converted[0]
-                height = converted[1]
+                width, height = [int(dimension) for dimension in viewbox][-2:]
                 if not self.is_valid_size(width, height):
                     raise serializers.ValidationError("Invalid image dimensions.")
 

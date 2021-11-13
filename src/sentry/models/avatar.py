@@ -79,7 +79,7 @@ class AvatarBase(Model):
         return photo
 
     @classmethod
-    def save_avatar(cls, relation, type, avatar=None, filename=None):
+    def save_avatar(cls, relation, type, avatar=None, filename=None, color=None):
         from sentry.models import File
 
         if avatar:
@@ -109,6 +109,9 @@ class AvatarBase(Model):
                 instance.ident = uuid4().hex
 
             instance.avatar_type = [i for i, n in cls.AVATAR_TYPES if n == type][0]
+
+            if color:
+                instance.color = color
 
             instance.save()
 

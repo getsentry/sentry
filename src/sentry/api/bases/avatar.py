@@ -28,6 +28,7 @@ class AvatarSerializer(serializers.Serializer):
 class SentryAppLogoSerializer(serializers.Serializer):
     avatar_photo = SentryAppLogoField(required=True)
     avatar_type = serializers.ChoiceField(choices=(("upload", "upload")))
+    color = serializers.BooleanField(required=False)
 
     def validate(self, attrs):
         attrs = super().validate(attrs)
@@ -74,6 +75,7 @@ class AvatarMixin:
             type=result["avatar_type"],
             avatar=result.get("avatar_photo"),
             filename=self.get_avatar_filename(obj),
+            color=result.get("color"),
         )
 
         return Response(serialize(obj, request.user, **kwargs))

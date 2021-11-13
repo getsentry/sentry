@@ -2,7 +2,7 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import SentryAppStatus
-from sentry.models import IntegrationFeature, SentryApp
+from sentry.models import IntegrationFeature, SentryApp, SentryAppAvatar
 from sentry.models.sentryapp import MASKED_VALUE
 from sentry.utils.compat import map
 
@@ -50,6 +50,17 @@ class SentryAppSerializer(Serializer):
                     "clientId": obj.application.client_id,
                     "clientSecret": client_secret,
                     "owner": {"id": obj.owner.id, "slug": obj.owner.slug},
+                }
+            )
+
+        for img in SentryAppAvatar.objects.filter(sentry_app=obj):
+            data.update(
+                {
+                    "avatar": {
+                        "avatarType": img.avatar_type,
+                        "avatarUuid": img.ident,
+                        "color": img.color,
+                    }
                 }
             )
 

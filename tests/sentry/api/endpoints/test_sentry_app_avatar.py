@@ -18,8 +18,6 @@ class SentryAppAvatarTest(SentryAppAvatarTestBase):
         with self.feature("organizations:sentry-app-logo-upload"):
             response = self.get_success_response(self.unpublished_app.slug)
             assert response.data["uuid"] == str(self.unpublished_app.uuid)
-            # TODO(CEO): Update/uncomment this when the serializer is updated
-            # assert response.data["avatar"]["avatarUuid"] is None
 
 
 class SentryAppAvatarPutTest(SentryAppAvatarTestBase):
@@ -28,14 +26,18 @@ class SentryAppAvatarPutTest(SentryAppAvatarTestBase):
     def test_upload(self):
         with self.feature("organizations:sentry-app-logo-upload"):
             data = {
+                "color": 1,
                 "avatar_type": "upload",
                 "avatar_photo": b64encode(self.load_fixture("avatar.svg")),
             }
-            self.get_success_response(self.unpublished_app.slug, **data)
+            resp = self.get_success_response(self.unpublished_app.slug, **data)
 
         avatar = SentryAppAvatar.objects.get(sentry_app=self.unpublished_app)
         assert avatar.file_id
         assert avatar.get_avatar_type_display() == "upload"
+        assert resp.data["avatar"]["avatarType"] == 1
+        assert resp.data["avatar"]["avatarUuid"] is not None
+        assert resp.data["avatar"]["color"] is True
 
     def test_put_bad(self):
         SentryAppAvatar.objects.create(sentry_app=self.unpublished_app)
