@@ -53,6 +53,11 @@ jobs:
           python-version: ${{ matrix.python-version }}
           pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           snuba: true
+          # TODO(joshuarli): In the future, bigtable tests should be excluded from
+          # our pytest sharding and run separately. But right now
+          # there's so few of them that we accept the overhead
+          # of running the bigtable emulator for all backend tests.
+          bigtable: true
 
       - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         if: steps.changes.outputs.backend == 'true'

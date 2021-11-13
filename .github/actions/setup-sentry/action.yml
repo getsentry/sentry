@@ -19,6 +19,10 @@ inputs:
     description: 'Is kafka required?'
     required: false
     default: 'false'
+  bigtable:
+    description: 'Is bigtable required?'
+    required: false
+    default: 'false'
   chartcuterie:
     description: 'Is chartcuterie required?'
     required: false
@@ -64,6 +68,7 @@ runs:
     - name: Setup default environment variables
       shell: bash
       env:
+        NEED_BIGTABLE: ${{ inputs.bigtable }}
         NEED_KAFKA: ${{ inputs.kafka }}
         MATRIX_INSTANCE: ${{ matrix.instance }}
         # XXX: We should be using something like len(strategy.matrix.instance) (not possible atm)
@@ -103,7 +108,10 @@ runs:
         [ "$GITHUB_REF" = "refs/heads/master" ] && echo "PYTEST_SENTRY_ALWAYS_REPORT=1" >> $GITHUB_ENV || true
 
         ### services configuration ###
-        echo "BIGTABLE_EMULATOR_HOST=localhost:8086" >> $GITHUB_ENV
+        if [ "$NEED_BIGTABLE" = "true" ]; then
+          echo "BIGTABLE_EMULATOR_HOST=127.0.0.1:8086" >> $GITHUB_ENV
+        fi
+
         # Note: some backend tests (e.g. tests/sentry/eventstream/kafka/test_consumer.py) will behave
         # differently if these are set.
         if [ "$NEED_KAFKA" = "true" ]; then
@@ -166,15 +174,6 @@ runs:
         # redis, postgres are needed for almost every code path.
         services='redis postgres'
 
-        # TODO: fix the need to pass --skip-only-if.
-        if [ "$BIGTABLE_EMULATOR_HOST" ]; then
-          services="--skip-only-if ${services} bigtable"
-        fi
-
-        if [ "$NEED_CHARTCUTERIE" = "true" ]; then
-          services="--skip-only-if ${services} chartcuterie"
-        fi
-
         if [ "$NEED_CLICKHOUSE" = "true" ] || [ "$NEED_SNUBA" = "true" ]; then
           services="${services} clickhouse"
         fi
@@ -185,6 +184,14 @@ runs:
 
         if [ "$NEED_KAFKA" = "true" ]; then
           services="${services} zookeeper kafka"
+        fi
+
+        if [ "$NEED_BIGTABLE" ]; then
+          services="${services} bigtable"
+        fi
+
+        if [ "$NEED_CHARTCUTERIE" = "true" ]; then
+          services="${services} chartcuterie"
         fi
 
         sentry devservices up $services
