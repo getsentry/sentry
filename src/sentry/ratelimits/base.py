@@ -17,3 +17,6 @@ class RateLimiter(Service):
 
     def is_limited_with_value(self, key, limit, project=None, window=None):
         return False, 0
+
+    def validate(self):
+        raise NotImplementedError

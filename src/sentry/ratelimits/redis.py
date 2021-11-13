@@ -76,9 +76,10 @@ class RedisRateLimiter(RateLimiter):
         try:
             result = self.client.incr(redis_key)
             self.client.expire(redis_key, window)
-            return result > limit, result
         except RedisError:
             # We don't want rate limited endpoints to fail when ratelimits
             # can't be updated. We do want to know when that happens.
             logger.exception("Failed to retrieve current value from redis")
             return False, 0
+
+        return result > limit, result
