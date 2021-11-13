@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
@@ -39,6 +39,8 @@ const WrappedComponent = ({organization, ...rest}) => {
 };
 
 describe('Performance > VitalDetail', function () {
+  enforceActOnUseLegacyStoreHook();
+
   beforeEach(function () {
     act(() => void TeamStore.loadInitialData([]));
     browserHistory.push = jest.fn();

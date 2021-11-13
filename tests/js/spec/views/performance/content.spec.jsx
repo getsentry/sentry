@@ -1,10 +1,11 @@
 import {browserHistory} from 'react-router';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
 import * as globalSelection from 'app/actionCreators/globalSelection';
+import OrganizationStore from 'app/stores/organizationStore';
 import ProjectsStore from 'app/stores/projectsStore';
 import TeamStore from 'app/stores/teamStore';
 import {OrganizationContext} from 'app/views/organizationContext';
@@ -27,6 +28,7 @@ function initializeData(projects, query, features = FEATURES) {
       },
     },
   });
+  act(() => void OrganizationStore.onUpdate(initialData.organization, {replace: true}));
   act(() => ProjectsStore.loadInitialData(initialData.organization.projects));
   return initialData;
 }
@@ -63,6 +65,8 @@ function initializeTrendsData(query, addDefaultQuery = true) {
 }
 
 describe('Performance > Content', function () {
+  enforceActOnUseLegacyStoreHook();
+
   beforeEach(function () {
     act(() => void TeamStore.loadInitialData([]));
     browserHistory.push = jest.fn();
@@ -293,7 +297,6 @@ describe('Performance > Content', function () {
       data.routerContext
     );
     await tick();
-    wrapper.update();
 
     // onboarding should show.
     expect(wrapper.find('Onboarding')).toHaveLength(1);
@@ -318,7 +321,6 @@ describe('Performance > Content', function () {
       data.routerContext
     );
     await tick();
-    wrapper.update();
 
     expect(wrapper.find('Onboarding')).toHaveLength(0);
   });
@@ -352,7 +354,7 @@ describe('Performance > Content', function () {
 
   it('Default period for trends does not call updateDateTime', async function () {
     const data = initializeTrendsData({query: 'tag:value'}, false);
-    const wrapper = mountWithTheme(
+    mountWithTheme(
       <PerformanceContent
         organization={data.organization}
         location={data.router.location}
@@ -360,7 +362,6 @@ describe('Performance > Content', function () {
       data.routerContext
     );
     await tick();
-    wrapper.update();
     expect(globalSelection.updateDateTime).toHaveBeenCalledTimes(0);
   });
 
@@ -378,7 +379,6 @@ describe('Performance > Content', function () {
       data.routerContext
     );
     await tick();
-    wrapper.update();
 
     const trendsLink = wrapper.find('[data-test-id="landing-header-trends"]').at(0);
     trendsLink.simulate('click');
@@ -403,7 +403,7 @@ describe('Performance > Content', function () {
     ];
     const data = initializeData(projects, {view: undefined});
 
-    const wrapper = mountWithTheme(
+    mountWithTheme(
       <PerformanceContent
         organization={data.organization}
         location={data.router.location}
@@ -411,7 +411,6 @@ describe('Performance > Content', function () {
       data.routerContext
     );
     await tick();
-    wrapper.update();
 
     expect(browserHistory.push).toHaveBeenCalledTimes(0);
   });
@@ -419,7 +418,7 @@ describe('Performance > Content', function () {
   it('Default page (transactions) with trends feature will not update filters if none are set', async function () {
     const data = initializeTrendsData({view: undefined}, false);
 
-    const wrapper = mountWithTheme(
+    mountWithTheme(
       <PerformanceContent
         organization={data.organization}
         location={data.router.location}
@@ -427,7 +426,6 @@ describe('Performance > Content', function () {
       data.routerContext
     );
     await tick();
-    wrapper.update();
 
     expect(browserHistory.push).toHaveBeenCalledTimes(0);
   });
@@ -443,7 +441,6 @@ describe('Performance > Content', function () {
       data.routerContext
     );
     await tick();
-    wrapper.update();
 
     const trendsLink = wrapper.find('[data-test-id="landing-header-trends"]').at(0);
     trendsLink.simulate('click');
@@ -472,7 +469,6 @@ describe('Performance > Content', function () {
       data.routerContext
     );
     await tick();
-    wrapper.update();
 
     const vitalsContainer = wrapper.find('VitalsContainer');
     expect(vitalsContainer).toHaveLength(0);
@@ -498,7 +494,6 @@ describe('Performance > Content', function () {
       data.routerContext
     );
     await tick();
-    wrapper.update();
 
     const vitalsContainer = wrapper.find('VitalsContainer');
     expect(vitalsContainer).toHaveLength(1);
