@@ -164,10 +164,23 @@ runs:
         sentry init
 
         # redis, postgres are needed for almost every code path.
-        sentry devservices up redis postgres
+        services='redis postgres'
 
+        # TODO: fix the need to pass --skip-only-if.
         if [ "$BIGTABLE_EMULATOR_HOST" ]; then
-          sentry devservices up --skip-only-if bigtable
+          services="--skip-only-if ${services} bigtable"
+        fi
+
+        if [ "$NEED_CHARTCUTERIE" = "true" ]; then
+          services="--skip-only-if ${services} chartcuterie"
+        fi
+
+        if [ "$NEED_CLICKHOUSE" = "true" ] || [ "$NEED_SNUBA" = "true" ]; then
+          services="${services} clickhouse"
+        fi
+
+        if [ "$NEED_SNUBA" = "true" ]; then
+          services="${services} snuba"
         fi
 
         # TODO: Use devservices kafka. See https://github.com/getsentry/sentry/pull/20986#issuecomment-704510570
@@ -194,17 +207,7 @@ runs:
             confluentinc/cp-kafka:5.1.2
         fi
 
-        if [ "$NEED_SNUBA" = "true" ]; then
-          sentry devservices up clickhouse snuba
-        fi
-
-        if [ "$NEED_CLICKHOUSE" = "true" ]; then
-          sentry devservices up clickhouse
-        fi
-
-        if [ "$NEED_CHARTCUTERIE" = "true" ]; then
-          sentry devservices up --skip-only-if chartcuterie
-        fi
+        sentry devservices up $services
 
         docker ps -a
 
