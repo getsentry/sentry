@@ -166,6 +166,7 @@ runs:
         NEED_KAFKA: ${{ inputs.kafka }}
         NEED_SNUBA: ${{ inputs.snuba }}
         NEED_CLICKHOUSE: ${{ inputs.clickhouse }}
+        NEED_BIGTABLE: ${{ inputs.bigtable }}
         NEED_CHARTCUTERIE: ${{ inputs.chartcuterie }}
         WORKDIR: ${{ inputs.workdir }}
       run: |
