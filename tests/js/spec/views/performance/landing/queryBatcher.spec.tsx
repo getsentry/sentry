@@ -220,17 +220,6 @@ describe('Performance > Widgets > Query Batching', function () {
         }),
       })
     );
-
-    // expect(eventStatsMock).toHaveBeenNthCalledWith(
-    //   2,
-    //   expect.anything(),
-    //   expect.objectContaining({
-    //     query: expect.objectContaining({
-    //       ...BASIC_QUERY_PARAMS,
-    //       yAxis: ['tpm()', 'failure_rate()', 'user_misery()'],
-    //     }),
-    //   })
-    // );
     expect(eventStatsMock).toHaveBeenCalledTimes(1);
 
     expect(await screen.findAllByTestId('widget-state-has-data')).toHaveLength(3);

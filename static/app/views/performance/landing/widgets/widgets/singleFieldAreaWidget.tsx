@@ -9,6 +9,7 @@ import {getInterval} from 'app/components/charts/utils';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
+import {QueryBatchNode} from 'app/utils/performance/contexts/genericQueryBatcher';
 import withApi from 'app/utils/withApi';
 import _DurationChart from 'app/views/performance/charts/chart';
 
@@ -51,23 +52,28 @@ export function SingleFieldAreaWidget(props: Props) {
     () => ({
       fields: props.fields[0],
       component: provided => (
-        <EventsRequest
-          {...pick(provided, eventsRequestQueryProps)}
-          limit={1}
-          includePrevious
-          includeTransformedData
-          partial
-          currentSeriesNames={[field]}
-          query={props.eventView.getQueryWithAdditionalConditions()}
-          interval={getInterval(
-            {
-              start: provided.start,
-              end: provided.end,
-              period: provided.period,
-            },
-            'medium'
+        <QueryBatchNode batchProperty="yAxis">
+          {({queryBatching}) => (
+            <EventsRequest
+              {...pick(provided, eventsRequestQueryProps)}
+              queryBatching={queryBatching}
+              limit={1}
+              includePrevious
+              includeTransformedData
+              partial
+              currentSeriesNames={[field]}
+              query={props.eventView.getQueryWithAdditionalConditions()}
+              interval={getInterval(
+                {
+                  start: provided.start,
+                  end: provided.end,
+                  period: provided.period,
+                },
+                'medium'
+              )}
+            />
           )}
-        />
+        </QueryBatchNode>
       ),
       transform: transformEventsRequestToArea,
     }),

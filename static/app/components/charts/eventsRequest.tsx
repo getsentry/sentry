@@ -17,6 +17,7 @@ import {
 } from 'app/types';
 import {Series, SeriesDataUnit} from 'app/types/echarts';
 import {stripEquationPrefix} from 'app/utils/discover/fields';
+import {QueryBatching} from 'app/utils/performance/contexts/genericQueryBatcher';
 
 export type TimeSeriesData = {
   // timeseries data
@@ -174,6 +175,10 @@ type EventsRequestPartialProps = {
    * A unique name for what's triggering this request, see organization_events_stats for an allowlist
    */
   referrer?: string;
+  /**
+   * A container for query batching data and functions.
+   */
+  queryBatching?: QueryBatching;
 };
 
 type TimeAggregationProps =
@@ -192,7 +197,7 @@ type EventsRequestState = {
   fetchedWithPrevious: boolean;
 };
 
-const propNamesToIgnore = ['api', 'children', 'organization', 'loading'];
+const propNamesToIgnore = ['api', 'children', 'organization', 'loading', 'queryBatching'];
 const omitIgnoredProps = (props: EventsRequestProps) =>
   omitBy(props, (_value, key) => propNamesToIgnore.includes(key));
 
