@@ -3,6 +3,7 @@ from unittest.mock import patch
 import responses
 from exam import fixture
 from rest_framework import serializers
+from rest_framework.exceptions import ErrorDetail
 
 from sentry.auth.access import from_user
 from sentry.incidents.endpoints.serializers import (
@@ -314,10 +315,11 @@ class TestAlertRuleSerializer(TestCase):
         assert serializer.is_valid(), serializer.errors
 
         # Now do a two trigger test:
+        payload["triggers"][0]["alertThreshold"] = 2
         payload["triggers"].append(
             {
                 "label": "warning",
-                "alertThreshold": 0,
+                "alertThreshold": 1,
                 "actions": [
                     {"type": "email", "targetType": "team", "targetIdentifier": self.team.id},
                     {"type": "email", "targetType": "user", "targetIdentifier": self.user.id},
@@ -328,6 +330,59 @@ class TestAlertRuleSerializer(TestCase):
         serializer = AlertRuleSerializer(context=self.context, data=payload, partial=True)
 
         assert serializer.is_valid(), serializer.errors
+
+        payload["thresholdType"] = AlertRuleThresholdType.BELOW.value
+        payload["resolveThreshold"] = 0
+        payload["triggers"][0]["alertThreshold"] = 1
+        payload["triggers"].pop()
+
+        serializer = AlertRuleSerializer(context=self.context, data=payload, partial=True)
+
+        assert serializer.is_valid(), serializer.errors
+
+    def test_boundary_off_by_one(self):
+        self.run_fail_validation_test(
+            {
+                "thresholdType": AlertRuleThresholdType.ABOVE.value,
+                "resolveThreshold": 2,
+                "triggers": [
+                    {
+                        "label": "critical",
+                        "alertThreshold": 0,
+                        "actions": [],
+                    },
+                ],
+            },
+            {
+                "nonFieldErrors": [
+                    ErrorDetail(
+                        string="critical alert threshold must be above resolution threshold",
+                        code="invalid",
+                    )
+                ]
+            },
+        )
+        self.run_fail_validation_test(
+            {
+                "thresholdType": AlertRuleThresholdType.BELOW.value,
+                "resolveThreshold": 0,
+                "triggers": [
+                    {
+                        "label": "critical",
+                        "alertThreshold": 2,
+                        "actions": [],
+                    },
+                ],
+            },
+            {
+                "nonFieldErrors": [
+                    ErrorDetail(
+                        string="critical alert threshold must be below resolution threshold",
+                        code="invalid",
+                    )
+                ]
+            },
+        )
 
     def test_invalid_slack_channel(self):
         # We had an error where an invalid slack channel was spitting out unclear
