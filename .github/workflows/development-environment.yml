@@ -20,7 +20,7 @@ jobs:
     timeout-minutes: 40
     strategy:
       matrix:
-        os: [macos-11.0, ubuntu-20.04]
+        os: [macos-11.0]
       fail-fast: false
     env:
       # Make the environment more similar to what Mac defaults to
