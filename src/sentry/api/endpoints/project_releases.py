@@ -100,7 +100,9 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
         :auth: required
         """
         bind_organization_context(project.organization)
-        serializer = ReleaseWithVersionSerializer(data=request.data)
+        serializer = ReleaseWithVersionSerializer(
+            data=request.data, context={"organization": project.organization}
+        )
 
         with configure_scope() as scope:
             if serializer.is_valid():

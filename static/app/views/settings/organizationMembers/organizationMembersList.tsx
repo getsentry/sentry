@@ -57,6 +57,16 @@ class OrganizationMembersList extends AsyncView<Props, State> {
     };
   }
 
+  onLoadAllEndpointsSuccess() {
+    const {organization} = this.props;
+    const {inviteRequests, members} = this.state;
+    trackAdvancedAnalyticsEvent('member_settings_page.loaded', {
+      organization,
+      num_members: members?.length,
+      num_invite_requests: inviteRequests?.length,
+    });
+  }
+
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {orgId} = this.props.params;
 
