@@ -69,7 +69,6 @@ runs:
       shell: bash
       env:
         NEED_BIGTABLE: ${{ inputs.bigtable }}
-        NEED_KAFKA: ${{ inputs.kafka }}
         MATRIX_INSTANCE: ${{ matrix.instance }}
         # XXX: We should be using something like len(strategy.matrix.instance) (not possible atm)
         # If you have other things like python-version: [foo, bar, baz] then the sharding logic
@@ -107,15 +106,11 @@ runs:
         # expected that people have failing tests on their PRs
         [ "$GITHUB_REF" = "refs/heads/master" ] && echo "PYTEST_SENTRY_ALWAYS_REPORT=1" >> $GITHUB_ENV || true
 
-        ### services configuration ###
+        # Right now, we run so few bigtable related tests that the
+        # overhead of running bigtable in all backend tests
+        # is way smaller than the time it would take to run in its own job.
         if [ "$NEED_BIGTABLE" = "true" ]; then
           echo "BIGTABLE_EMULATOR_HOST=127.0.0.1:8086" >> $GITHUB_ENV
-        fi
-
-        # Note: some backend tests (e.g. tests/sentry/eventstream/kafka/test_consumer.py) will behave
-        # differently if these are set.
-        if [ "$NEED_KAFKA" = "true" ]; then
-          echo "SENTRY_KAFKA_HOSTS=127.0.0.1:9092" >> $GITHUB_ENV
         fi
 
     - name: Setup python
