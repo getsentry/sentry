@@ -187,6 +187,35 @@ class CreateProjectRuleTest(APITestCase):
             status_code=400,
         )
 
+    def test_owner_perms(self):
+        self.login_as(user=self.user)
+        other_user = self.create_user()
+        response = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            name="test",
+            owner=other_user.actor.get_actor_identifier(),
+            actionMatch="any",
+            filterMatch="any",
+            actions=[],
+            conditions=[],
+            status_code=400,
+        )
+        assert str(response.data["owner"][0]) == "User is not a member of this organization"
+        other_team = self.create_team(self.create_organization())
+        response = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            name="test",
+            owner=other_team.actor.get_actor_identifier(),
+            actionMatch="any",
+            filterMatch="any",
+            actions=[],
+            conditions=[],
+            status_code=400,
+        )
+        assert str(response.data["owner"][0]) == "Team is not a member of this organization"
+
     def test_frequency_percent_validation(self):
         self.login_as(user=self.user)
         condition = {

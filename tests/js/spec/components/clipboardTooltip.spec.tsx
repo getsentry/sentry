@@ -1,6 +1,6 @@
 import copy from 'copy-text-to-clipboard';
 
-import {fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ClipboardTooltip from 'app/components/clipboardTooltip';
 
@@ -17,13 +17,12 @@ describe('ClipboardTooltip', function () {
     );
 
     expect(screen.getByText(content)).toBeInTheDocument();
-    fireEvent.mouseEnter(screen.getByText(content));
+    userEvent.hover(screen.getByText(content));
 
     await screen.findByText(title);
 
-    const clipboardContent = screen.getByLabelText('Copy to clipboard');
-    expect(clipboardContent).toBeInTheDocument();
-    fireEvent.click(clipboardContent);
+    expect(screen.getByLabelText('Copy to clipboard')).toBeInTheDocument();
+    userEvent.click(screen.getByLabelText('Copy to clipboard'));
 
     expect(copy).toHaveBeenCalledWith(title);
   });
