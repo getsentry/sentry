@@ -3,23 +3,25 @@ import {useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps} from 'app/actionCreators/modal';
+import {ModalRenderProps, openAddDashboardWidgetModal} from 'app/actionCreators/modal';
 import Tag from 'app/components/tagDeprecated';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Organization} from 'app/types';
+import {GlobalSelection, Organization} from 'app/types';
+import withGlobalSelection from 'app/utils/withGlobalSelection';
 import {DashboardDetails, Widget} from 'app/views/dashboardsV2/types';
 import {WidgetTemplate} from 'app/views/dashboardsV2/widgetLibrary/data';
 
 import Button from '../../button';
 import ButtonBar from '../../buttonBar';
 
-import DashboardWidgetCustomTab from './customTab';
 import DashboardWidgetLibraryTab from './libraryTab';
 
 export type DashboardWidgetLibraryModalOptions = {
   organization: Organization;
   dashboard: DashboardDetails;
+  initialSelectedWidgets?: WidgetTemplate[];
+  customWidget?: Widget;
   onAddWidget: (widgets: Widget[]) => void;
 };
 
@@ -28,18 +30,26 @@ export enum TAB {
   Custom = 'custom',
 }
 
-type Props = ModalRenderProps & DashboardWidgetLibraryModalOptions;
+type Props = ModalRenderProps &
+  DashboardWidgetLibraryModalOptions & {
+    selection: GlobalSelection;
+  };
 
 function DashboardWidgetLibraryModal({
   Header,
   Body,
   Footer,
   dashboard,
+  organization,
+  selection,
+  customWidget,
+  initialSelectedWidgets,
   closeModal,
   onAddWidget,
 }: Props) {
-  const [tab, setTab] = useState(TAB.Library);
-  const [selectedWidgets, setSelectedWidgets] = useState<WidgetTemplate[]>([]);
+  const [selectedWidgets, setSelectedWidgets] = useState<WidgetTemplate[]>(
+    initialSelectedWidgets ? initialSelectedWidgets : []
+  );
   const [errored, setErrored] = useState(false);
 
   function handleSubmit() {
@@ -53,24 +63,30 @@ function DashboardWidgetLibraryModal({
         <h4>{t('Add Widget')}</h4>
       </Header>
       <Body>
-        <StyledButtonBar active={tab}>
-          <Button barId={TAB.Library} onClick={() => setTab(TAB.Library)}>
-            {t('Library')}
-          </Button>
-          <Button barId={TAB.Custom} onClick={() => setTab(TAB.Custom)}>
+        <StyledButtonBar>
+          <Button
+            barId={TAB.Custom}
+            onClick={() => {
+              openAddDashboardWidgetModal({
+                organization,
+                selection,
+                dashboard,
+                selectedWidgets,
+                widget: customWidget,
+                fromLibrary: true,
+                onAddLibraryWidget: onAddWidget,
+              });
+            }}
+          >
             {t('Custom')}
           </Button>
         </StyledButtonBar>
-        {tab === TAB.Library ? (
-          <DashboardWidgetLibraryTab
-            selectedWidgets={selectedWidgets}
-            errored={errored}
-            setSelectedWidgets={setSelectedWidgets}
-            setErrored={setErrored}
-          />
-        ) : (
-          <DashboardWidgetCustomTab />
-        )}
+        <DashboardWidgetLibraryTab
+          selectedWidgets={selectedWidgets}
+          errored={errored}
+          setSelectedWidgets={setSelectedWidgets}
+          setErrored={setErrored}
+        />
       </Body>
       <Footer>
         <FooterButtonbar gap={1}>
@@ -113,7 +129,6 @@ export const modalCss = css`
 `;
 
 const StyledButtonBar = styled(ButtonBar)`
-  grid-template-columns: repeat(2, minmax(0, 1fr));
   margin-bottom: ${space(1)};
 `;
 
@@ -131,4 +146,4 @@ const SelectedBadge = styled(Tag)`
   top: -1px;
 `;
 
-export default DashboardWidgetLibraryModal;
+export default withGlobalSelection(DashboardWidgetLibraryModal);
