@@ -4,7 +4,7 @@ from django.utils import timezone
 from django.utils.timezone import now
 from freezegun import freeze_time
 
-from sentry.models import GroupHistory, GroupHistoryStatus
+from sentry.models import GroupAssignee, GroupHistory, GroupHistoryStatus
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now
 
@@ -18,6 +18,8 @@ class TeamIssueBreakdownTest(APITestCase):
         project2 = self.create_project(teams=[self.team], slug="bar")
         group1 = self.create_group(checksum="a" * 32, project=project1, times_seen=10)
         group2 = self.create_group(checksum="b" * 32, project=project2, times_seen=5)
+        GroupAssignee.objects.assign(group1, self.user)
+        GroupAssignee.objects.assign(group2, self.user)
 
         GroupHistory.objects.create(
             organization=self.organization,

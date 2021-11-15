@@ -20,14 +20,13 @@ class TeamIssueBreakdownEndpoint(TeamEndpoint, EnvironmentMixin):  # type: ignor
 
         Right now the stats we return are the count of reviewed issues and the total count of issues.
         """
-        project_list = Project.objects.get_for_team_ids(team_ids=[team.id])
         start, end = get_date_range_from_params(request.GET)
         end = end.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
         start = start.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
         bucketed_issues = (
-            GroupHistory.objects.filter(
+            GroupHistory.objects.filter_to_team(team)
+            .filter(
                 status__in=[GroupHistoryStatus.UNRESOLVED] + ACTIONED_STATUSES,
-                project__in=project_list,
                 date_added__gte=start,
                 date_added__lte=end,
             )
@@ -42,6 +41,7 @@ class TeamIssueBreakdownEndpoint(TeamEndpoint, EnvironmentMixin):  # type: ignor
             date_series_dict[current_day.isoformat()] = {"reviewed": 0, "total": 0}
             current_day += timedelta(days=1)
 
+        project_list = Project.objects.get_for_team_ids(team_ids=[team.id])
         agg_project_counts = {
             project.id: copy.deepcopy(date_series_dict) for project in project_list
         }
