@@ -13,8 +13,6 @@ import TestStubFixtures from '../fixtures/js-stubs/types';
 
 import {loadFixtures} from './sentry-test/loadFixtures';
 
-export * from './sentry-test/select';
-
 /**
  * XXX(epurkhiser): Gross hack to fix a bug in jsdom which makes testing of
  * framer-motion SVG components fail
