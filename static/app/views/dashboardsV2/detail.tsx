@@ -261,6 +261,9 @@ class DashboardDetail extends Component<Props, State> {
     openDashboardWidgetLibraryModal({
       organization,
       dashboard,
+      handleAddComplete: (widget: Widget) => {
+        this.onUpdateWidget([...this.props.dashboard.widgets, widget]);
+      },
       onAddWidget: (widgets: Widget[]) => {
         const modifiedDashboard = {
           ...cloneDashboard(dashboard),

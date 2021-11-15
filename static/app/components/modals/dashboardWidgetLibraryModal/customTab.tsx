@@ -174,6 +174,8 @@ class DashboardWidgetBody extends React.Component<Props, State> {
       tags,
       querySelection,
       fromDiscover,
+      errors,
+      loading,
       handleFieldChange,
       handleQueryChange,
       handleQueryRemove,
@@ -197,6 +199,7 @@ class DashboardWidgetBody extends React.Component<Props, State> {
             inline={false}
             flexibleControlStateSize
             stacked
+            error={errors?.title}
             required
           >
             <Input
@@ -208,6 +211,7 @@ class DashboardWidgetBody extends React.Component<Props, State> {
               onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
                 handleFieldChange('title')(event.target.value);
               }}
+              disabled={loading}
             />
           </StyledField>
           <StyledField
@@ -216,6 +220,7 @@ class DashboardWidgetBody extends React.Component<Props, State> {
             inline={false}
             flexibleControlStateSize
             stacked
+            error={errors?.displayType}
             required
           >
             <SelectControl
@@ -225,6 +230,7 @@ class DashboardWidgetBody extends React.Component<Props, State> {
               onChange={option => {
                 handleFieldChange('displayType')(option.value);
               }}
+              disabled={loading}
             />
           </StyledField>
         </DoubleFieldWrapper>
@@ -239,6 +245,7 @@ class DashboardWidgetBody extends React.Component<Props, State> {
                 fieldOptions={amendedFieldOptions}
                 displayType={displayType}
                 queries={queries}
+                errors={errors?.queries}
                 onChange={(queryIndex: number, widgetQuery: WidgetQuery) =>
                   handleQueryChange(widgetQuery, queryIndex)
                 }

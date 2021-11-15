@@ -6,8 +6,11 @@ import pick from 'lodash/pick';
 import set from 'lodash/set';
 
 import {validateWidget} from 'app/actionCreators/dashboards';
-import {addSuccessMessage} from 'app/actionCreators/indicator';
-import {ModalRenderProps} from 'app/actionCreators/modal';
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {
+  ModalRenderProps,
+  openDashboardWidgetLibraryModal,
+} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import Button from 'app/components/button';
 import DashboardWidgetBody from 'app/components/modals/dashboardWidgetLibraryModal/customTab';
@@ -25,7 +28,12 @@ import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyt
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withTags from 'app/utils/withTags';
-import {DisplayType, Widget, WidgetQuery} from 'app/views/dashboardsV2/types';
+import {
+  DashboardDetails,
+  DisplayType,
+  Widget,
+  WidgetQuery,
+} from 'app/views/dashboardsV2/types';
 import {
   mapErrors,
   normalizeQueries,
@@ -35,8 +43,10 @@ import ButtonBar from '../buttonBar';
 
 export type DashboardWidgetModalOptions = {
   organization: Organization;
+  dashboard?: DashboardDetails;
   widget?: Widget;
   fromDiscover?: boolean;
+  fromLibrary?: boolean;
   start?: DateString;
   end?: DateString;
   statsPeriod?: RelativePeriod | string;
@@ -47,6 +57,7 @@ export type DashboardWidgetModalOptions = {
   displayType?: DisplayType;
   onAddWidget?: (data: Widget) => void;
   onUpdateWidget?: (nextWidget: Widget) => void;
+  onAddLibraryWidget?: (widgets: Widget[]) => void;
 };
 
 type Props = ModalRenderProps &
@@ -156,7 +167,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         organization,
       });
 
-      return {...newState};
+      return {...newState, errors: undefined};
     });
     if (field === 'displayType') {
       this.handleDefaultFields();
@@ -169,7 +180,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       set(newState, `queries.${index}`, widgetQuery);
       set(newState, 'userHasModified', true);
 
-      return {...newState};
+      return {...newState, errors: undefined};
     });
   };
 
@@ -189,7 +200,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       query.fields = this.state.queries[0].fields;
       newState.queries.push(query);
 
-      return newState;
+      return {...newState, errors: undefined};
     });
   };
 
@@ -216,6 +227,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       onUpdateWidget,
       widget: previousWidget,
       fromDiscover,
+      fromLibrary,
     } = this.props;
     let errors: FlatValidationError = {};
     const widgetData: Widget = pick(this.state, [
@@ -242,7 +254,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         onAddWidget(widgetData);
         addSuccessMessage(t('Added widget.'));
       }
-      if (!fromDiscover) {
+      if (!fromDiscover && !fromLibrary) {
         closeModal();
       }
     } catch (err) {
@@ -252,6 +264,9 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       this.setState({loading: false});
       if (fromDiscover) {
         this.handleSubmitFromDiscover(errors, widgetData);
+      }
+      if (fromLibrary) {
+        this.handleSubmitFromLibrary(errors, widgetData);
       }
     }
   };
@@ -307,6 +322,19 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     }
   };
 
+  handleSubmitFromLibrary = async (errors: FlatValidationError, widgetData: Widget) => {
+    const {closeModal, dashboard, onAddLibraryWidget} = this.props;
+    if (!dashboard) {
+      errors.dashboard = t('This field may not be blank');
+      this.setState({errors});
+      addErrorMessage(t('Widget may only be added to a Dashboard'));
+    }
+    if (!Object.keys(errors).length && dashboard && onAddLibraryWidget) {
+      onAddLibraryWidget([...dashboard.widgets, widgetData]);
+      closeModal();
+    }
+  };
+
   render() {
     const {
       Header,
@@ -314,13 +342,16 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       Footer,
       organization,
       fromDiscover,
+      fromLibrary,
       api,
       tags,
       start,
       end,
       statsPeriod,
       selection,
+      dashboard,
       onUpdateWidget,
+      onAddLibraryWidget,
     } = this.props;
     const isUpdatingWidget = defined(onUpdateWidget);
 
@@ -366,6 +397,23 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         </Body>
         <Footer>
           <ButtonBar gap={1}>
+            {fromLibrary && (
+              <Button
+                data-test-id="add-widget"
+                type="button"
+                onClick={() => {
+                  if (dashboard && onAddLibraryWidget) {
+                    openDashboardWidgetLibraryModal({
+                      organization,
+                      dashboard,
+                      onAddWidget: onAddLibraryWidget,
+                    });
+                  }
+                }}
+              >
+                {t('Back')}
+              </Button>
+            )}
             <Button
               data-test-id="add-widget"
               priority="primary"
