@@ -4,7 +4,8 @@ import {useSortable} from '@dnd-kit/sortable';
 
 import theme from 'app/utils/theme';
 
-import {Widget} from './types';
+import IssueWidgetCard from './issueWidgetCard';
+import {Widget, WidgetType} from './types';
 import WidgetCard from './widgetCard';
 import WidgetWrapper from './widgetWrapper';
 
@@ -84,20 +85,36 @@ function SortableWidget(props: Props) {
         },
       }}
     >
-      <WidgetCard
-        widget={widget}
-        isEditing={isEditing}
-        onDelete={onDelete}
-        onEdit={onEdit}
-        isSorting={isSorting}
-        hideToolbar={isSorting}
-        currentWidgetDragging={currentWidgetDragging}
-        draggableProps={{
-          attributes,
-          listeners,
-        }}
-        showContextMenu
-      />
+      {widget.type === WidgetType.ISSUE ? (
+        <IssueWidgetCard
+          widget={widget}
+          isEditing={isEditing}
+          onDelete={onDelete}
+          onEdit={onEdit}
+          isSorting={isSorting}
+          currentWidgetDragging={currentWidgetDragging}
+          draggableProps={{
+            attributes,
+            listeners,
+          }}
+          showContextMenu
+        />
+      ) : (
+        <WidgetCard
+          widget={widget}
+          isEditing={isEditing}
+          onDelete={onDelete}
+          onEdit={onEdit}
+          isSorting={isSorting}
+          hideToolbar={isSorting}
+          currentWidgetDragging={currentWidgetDragging}
+          draggableProps={{
+            attributes,
+            listeners,
+          }}
+          showContextMenu
+        />
+      )}
     </WidgetWrapper>
   );
 }

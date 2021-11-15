@@ -34,6 +34,16 @@ class TypesClass:
                 return id
 
 
+class DashboardWidgetTypes(TypesClass):
+    DISCOVER = 0
+    ISSUE = 1
+    TYPES = [
+        (DISCOVER, "discover"),
+        (ISSUE, "issue"),
+    ]
+    TYPE_NAMES = [t[1] for t in TYPES]
+
+
 class DashboardWidgetDisplayTypes(TypesClass):
     LINE_CHART = 0
     AREA_CHART = 1
@@ -94,6 +104,7 @@ class DashboardWidget(Model):
     interval = models.CharField(max_length=10, null=True)
     display_type = BoundedPositiveIntegerField(choices=DashboardWidgetDisplayTypes.as_choices())
     date_added = models.DateTimeField(default=timezone.now)
+    type = BoundedPositiveIntegerField(choices=DashboardWidgetTypes.as_choices())
 
     class Meta:
         app_label = "sentry"

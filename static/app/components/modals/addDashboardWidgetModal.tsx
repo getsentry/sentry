@@ -39,6 +39,7 @@ import {
   MAX_WIDGETS,
   Widget,
   WidgetQuery,
+  WidgetType,
 } from 'app/views/dashboardsV2/types';
 import {
   mapErrors,
@@ -90,6 +91,7 @@ type State = {
   dashboards: DashboardListItem[];
   selectedDashboard?: SelectValue<string>;
   userHasModified: boolean;
+  type: WidgetType;
 };
 
 const newQuery = {
@@ -113,6 +115,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         loading: !!fromDiscover,
         dashboards: [],
         userHasModified: false,
+        type: WidgetType.DISCOVER,
       };
       return;
     }
@@ -126,6 +129,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       loading: false,
       dashboards: [],
       userHasModified: false,
+      type: WidgetType.DISCOVER,
     };
   }
 
@@ -156,6 +160,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       'displayType',
       'interval',
       'queries',
+      'type',
     ]);
     // Only Table and Top N views need orderby
     if (![DisplayType.TABLE, DisplayType.TOP_N].includes(widgetData.displayType)) {
