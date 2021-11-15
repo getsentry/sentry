@@ -27,7 +27,7 @@ function withGlobalSelection<P extends InjectedGlobalSelectionProps>(
   > {
     static displayName = `withGlobalSelection(${getDisplayName(WrappedComponent)})`;
 
-    state = GlobalSelectionStore.get();
+    state = GlobalSelectionStore.getState();
 
     componentWillUnmount() {
       this.unsubscribe();

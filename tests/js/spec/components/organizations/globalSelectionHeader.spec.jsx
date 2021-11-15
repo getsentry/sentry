@@ -130,7 +130,7 @@ describe('GlobalSelectionHeader', function () {
 
     await tick();
 
-    expect(GlobalSelectionStore.get().selection).toEqual({
+    expect(GlobalSelectionStore.getState().selection).toEqual({
       datetime: {
         period: '7d',
         utc: null,
@@ -176,7 +176,7 @@ describe('GlobalSelectionHeader', function () {
 
     expect(wrapper.find('MultipleEnvironmentSelector Content').text()).toBe('staging');
 
-    expect(GlobalSelectionStore.get().selection).toEqual({
+    expect(GlobalSelectionStore.getState().selection).toEqual({
       datetime: {
         period: '14d',
         utc: null,
@@ -202,7 +202,7 @@ describe('GlobalSelectionHeader', function () {
     wrapper.update();
 
     // Store should not have any environments selected
-    expect(GlobalSelectionStore.get().selection).toEqual({
+    expect(GlobalSelectionStore.getState().selection).toEqual({
       datetime: {
         period: '14d',
         utc: null,
@@ -260,7 +260,7 @@ describe('GlobalSelectionHeader', function () {
 
     await tick();
 
-    expect(GlobalSelectionStore.get()).toEqual({
+    expect(GlobalSelectionStore.getState()).toEqual({
       isReady: true,
       selection: {
         datetime: {
@@ -287,7 +287,7 @@ describe('GlobalSelectionHeader', function () {
 
     await tick();
 
-    expect(GlobalSelectionStore.get()).toEqual({
+    expect(GlobalSelectionStore.getState()).toEqual({
       isReady: true,
       selection: {
         datetime: {
@@ -313,7 +313,7 @@ describe('GlobalSelectionHeader', function () {
 
     await tick();
 
-    expect(GlobalSelectionStore.get()).toEqual({
+    expect(GlobalSelectionStore.getState()).toEqual({
       isReady: true,
       selection: {
         datetime: {
@@ -358,7 +358,7 @@ describe('GlobalSelectionHeader', function () {
     expect(globalActions.updateProjects).not.toHaveBeenCalled();
     expect(globalActions.updateEnvironments).not.toHaveBeenCalled();
 
-    expect(GlobalSelectionStore.get()).toEqual({
+    expect(GlobalSelectionStore.getState()).toEqual({
       isReady: true,
       selection: {
         datetime: {
@@ -395,7 +395,7 @@ describe('GlobalSelectionHeader', function () {
 
     await tick(); // reflux tick
 
-    expect(GlobalSelectionStore.get().selection.projects).toEqual([3]);
+    expect(GlobalSelectionStore.getState().selection.projects).toEqual([3]);
     // Since these are coming from URL, there should be no changes and
     // router does not need to be called
     expect(initializationObj.router.replace).toHaveBeenLastCalledWith(
@@ -432,7 +432,7 @@ describe('GlobalSelectionHeader', function () {
 
     await tick(); // reflux tick
 
-    expect(GlobalSelectionStore.get().selection.projects).toEqual([1, 2]);
+    expect(GlobalSelectionStore.getState().selection.projects).toEqual([1, 2]);
     // Since these are coming from URL, there should be no changes and
     // router does not need to be called
     expect(initializationObj.router.replace).not.toHaveBeenCalled();
@@ -458,7 +458,7 @@ describe('GlobalSelectionHeader', function () {
 
     await tick(); // reflux tick
 
-    expect(GlobalSelectionStore.get().selection.projects).toEqual([1, 2]);
+    expect(GlobalSelectionStore.getState().selection.projects).toEqual([1, 2]);
     // Since these are coming from URL, there should be no changes and
     // router does not need to be called
     expect(initializationObj.router.replace).not.toHaveBeenCalled();
