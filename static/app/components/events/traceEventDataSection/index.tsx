@@ -117,23 +117,32 @@ function TraceEventDataSection({
           )}
           {!stackTraceNotFound && (
             <Fragment>
-              <RawToggler
-                name="raw-stack-trace"
-                label={t('Raw')}
-                hideControlState
-                value={raw}
-                onChange={() => setState({...state, raw: !raw})}
-              />
-              {raw ? (
-                isNativePlatform(platform) && (
-                  <DownloadButton
+              <RawContentWrapper>
+                <RawToggler
+                  name="raw-stack-trace"
+                  label={t('Raw')}
+                  hideControlState
+                  value={raw}
+                  onChange={() => setState({...state, raw: !raw})}
+                />
+                {raw && isNativePlatform(platform) && (
+                  <LargeScreenDownloadButton
                     size="small"
                     href={getDownloadHref()}
                     title={t('Download raw stack trace file')}
                   >
                     {t('Download')}
-                  </DownloadButton>
-                )
+                  </LargeScreenDownloadButton>
+                )}
+              </RawContentWrapper>
+              {raw && isNativePlatform(platform) ? (
+                <SmallScreenDownloadButton
+                  size="small"
+                  href={getDownloadHref()}
+                  title={t('Download raw stack trace file')}
+                >
+                  {t('Download')}
+                </SmallScreenDownloadButton>
               ) : (
                 <Fragment>
                   <SortOptions
@@ -192,7 +201,7 @@ const Header = styled('div')<{raw: boolean}>`
   z-index: 3;
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: ${p => (p.raw ? '50% 1fr max-content' : 'repeat(2, 1fr)')};
+    grid-template-columns: repeat(2, 1fr);
     grid-template-rows: ${p => (p.raw ? '1fr' : 'repeat(2, 1fr)')};
   }
 
@@ -221,9 +230,25 @@ const RawToggler = styled(BooleanField)`
   }
 `;
 
-const DownloadButton = styled(Button)`
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    grid-column: 1/-1;
+const RawContentWrapper = styled('div')`
+  display: grid;
+  grid-template-columns: repeat(2, max-content);
+  justify-content: flex-end;
+  grid-gap: ${space(1)};
+`;
+
+const LargeScreenDownloadButton = styled(Button)`
+  display: none;
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    display: block;
+  }
+`;
+
+const SmallScreenDownloadButton = styled(Button)`
+  display: block;
+  grid-column: 1/-1;
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    display: none;
   }
 `;
 
