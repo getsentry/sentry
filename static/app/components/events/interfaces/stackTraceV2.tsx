@@ -67,7 +67,7 @@ function StackTrace({
       }
       hasAbsoluteFilePaths={!!data.frames?.find(frame => !!frame.filename)}
       hasAbsoluteAddresses={!!data.frames?.find(frame => !!frame.instructionAddr)}
-      hasAppOnlyFrames={!!data.frames?.find(frame => !!frame.inApp)}
+      hasAppOnlyFrames={!!data.frames?.some(frame => frame.inApp !== true)}
       hasNewestFirst={(data.frames ?? []).length > 1}
       showPermalink
     >
