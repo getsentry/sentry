@@ -233,6 +233,7 @@ class ProjectTest(TestCase):
         rule2.refresh_from_db()
         rule3.refresh_from_db()
         rule4.refresh_from_db()
+        assert alert_rule.organization_id == to_org.id
         assert alert_rule.owner is None
         assert rule1.owner is None
         assert rule2.owner is None

@@ -339,6 +339,8 @@ class Project(Model, PendingDeletionMixin):
             if not is_member:
                 rule.update(owner=None)
 
+        AlertRule.objects.fetch_for_project(self).update(organization=organization)
+
     def add_team(self, team):
         from sentry.models.projectteam import ProjectTeam
 
