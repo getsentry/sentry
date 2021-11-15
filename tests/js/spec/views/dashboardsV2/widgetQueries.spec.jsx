@@ -45,20 +45,16 @@ describe('Dashboards > WidgetQueries', function () {
   });
 
   it('can send multiple API requests', async function () {
-    const errorMock = MockApiClient.addMockResponse(
-      {
-        url: '/organizations/org-slug/events-stats/',
-        body: [],
-      },
-      {
-        predicate(_url, options) {
-          return (
-            options.query.query === 'event.type:error' ||
-            options.query.query === 'event.type:default'
-          );
-        },
-      }
-    );
+    const errorMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: [],
+      match: [MockApiClient.matchQuery({query: 'event.type:error'})],
+    });
+    const defaultMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: [],
+      match: [MockApiClient.matchQuery({query: 'event.type:default'})],
+    });
     const wrapper = mountWithTheme(
       <WidgetQueries
         api={api}
@@ -75,7 +71,8 @@ describe('Dashboards > WidgetQueries', function () {
 
     // Child should be rendered and 2 requests should be sent.
     expect(wrapper.find('[data-test-id="child"]')).toHaveLength(1);
-    expect(errorMock).toHaveBeenCalledTimes(2);
+    expect(errorMock).toHaveBeenCalledTimes(1);
+    expect(defaultMock).toHaveBeenCalledTimes(1);
   });
 
   it('sets errorMessage when the first request fails', async function () {
