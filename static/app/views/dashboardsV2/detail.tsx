@@ -9,7 +9,10 @@ import {
   updateDashboard,
 } from 'app/actionCreators/dashboards';
 import {addSuccessMessage} from 'app/actionCreators/indicator';
-import {openDashboardWidgetLibraryModal} from 'app/actionCreators/modal';
+import {
+  openAddDashboardIssueWidgetModal,
+  openDashboardWidgetLibraryModal,
+} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import Breadcrumbs from 'app/components/breadcrumbs';
 import HookOrDefault from 'app/components/hookOrDefault';
@@ -409,6 +412,21 @@ class DashboardDetail extends Component<Props, State> {
     );
   };
 
+  onAddIssueWidget = () => {
+    const {organization, dashboard} = this.props;
+
+    openAddDashboardIssueWidgetModal({
+      organization,
+      onAddWidget: widget => {
+        this.setState({
+          dashboardState: DashboardState.EDIT,
+          modifiedDashboard: cloneDashboard(dashboard),
+        });
+        this.onUpdateWidget([...dashboard.widgets, widget]);
+      },
+    });
+  };
+
   renderWidgetBuilder(dashboard: DashboardDetails) {
     const {children} = this.props;
     const {modifiedDashboard, widgetToBeUpdated} = this.state;
@@ -455,6 +473,7 @@ class DashboardDetail extends Component<Props, State> {
                 onCommit={this.onCommit}
                 onAddWidget={this.onAddWidget}
                 onDelete={this.onDelete(dashboard)}
+                onAddIssueWidget={this.onAddIssueWidget}
                 dashboardState={dashboardState}
               />
             </StyledPageHeader>
@@ -530,6 +549,7 @@ class DashboardDetail extends Component<Props, State> {
                 onCommit={this.onCommit}
                 onAddWidget={this.onAddWidget}
                 onDelete={this.onDelete(dashboard)}
+                onAddIssueWidget={this.onAddIssueWidget}
                 dashboardState={dashboardState}
               />
             </Layout.HeaderActions>

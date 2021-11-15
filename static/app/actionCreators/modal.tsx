@@ -2,6 +2,7 @@ import * as React from 'react';
 
 import ModalActions from 'app/actions/modalActions';
 import type {ModalTypes} from 'app/components/globalModal';
+import type {DashboardIssueWidgetModalOptions} from 'app/components/modals/addDashboardIssueWidgetModal';
 import type {DashboardWidgetModalOptions} from 'app/components/modals/addDashboardWidgetModal';
 import {DashboardWidgetLibraryModalOptions} from 'app/components/modals/dashboardWidgetLibraryModal';
 import type {DashboardWidgetQuerySelectorModalOptions} from 'app/components/modals/dashboardWidgetQuerySelectorModal';
@@ -229,6 +230,15 @@ export async function openInviteMembersModal({
 export async function openAddDashboardWidgetModal(options: DashboardWidgetModalOptions) {
   const mod = await import('app/components/modals/addDashboardWidgetModal');
   const {default: Modal, modalCss} = mod;
+
+  openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});
+}
+
+export async function openAddDashboardIssueWidgetModal(
+  options: DashboardIssueWidgetModalOptions
+) {
+  const issuesModal = await import('app/components/modals/addDashboardIssueWidgetModal');
+  const {default: Modal, modalCss} = issuesModal;
 
   openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});
 }
