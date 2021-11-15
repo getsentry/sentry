@@ -15,7 +15,6 @@ from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.models import Organization
 from sentry.search.events.builder import QueryBuilder
-from sentry.search.events.fields import get_function_alias
 from sentry.search.events.types import ParamsType
 from sentry.utils.snuba import Dataset, raw_snql_query
 from sentry.utils.time_window import TimeWindow, remove_time_windows, union_time_windows
@@ -23,26 +22,28 @@ from sentry.utils.time_window import TimeWindow, remove_time_windows, union_time
 
 @dataclasses.dataclass(frozen=True)
 class SpanPerformanceColumn:
-    suspect_op_group_column: str
-    suspect_example_column: str
+    suspect_op_group_columns: List[str]
+    suspect_example_columns: List[str]
 
 
 SPAN_PERFORMANCE_COLUMNS: Dict[str, SpanPerformanceColumn] = {
-    "count": SpanPerformanceColumn("count()", "count()"),
+    "count": SpanPerformanceColumn(
+        ["count()", "sumArray(spans_exclusive_time)"], ["count()", "sumArray(spans_exclusive_time)"]
+    ),
     "sumExclusiveTime": SpanPerformanceColumn(
-        "sumArray(spans_exclusive_time)", "sumArray(spans_exclusive_time)"
+        ["sumArray(spans_exclusive_time)"], ["sumArray(spans_exclusive_time)"]
     ),
     "p50ExclusiveTime": SpanPerformanceColumn(
-        "percentileArray(spans_exclusive_time, 0.50)", "maxArray(spans_exclusive_time)"
+        ["percentileArray(spans_exclusive_time, 0.50)"], ["maxArray(spans_exclusive_time)"]
     ),
     "p75ExclusiveTime": SpanPerformanceColumn(
-        "percentileArray(spans_exclusive_time, 0.75)", "maxArray(spans_exclusive_time)"
+        ["percentileArray(spans_exclusive_time, 0.75)"], ["maxArray(spans_exclusive_time)"]
     ),
     "p95ExclusiveTime": SpanPerformanceColumn(
-        "percentileArray(spans_exclusive_time, 0.95)", "maxArray(spans_exclusive_time)"
+        ["percentileArray(spans_exclusive_time, 0.95)"], ["maxArray(spans_exclusive_time)"]
     ),
     "p99ExclusiveTime": SpanPerformanceColumn(
-        "percentileArray(spans_exclusive_time, 0.99)", "maxArray(spans_exclusive_time)"
+        ["percentileArray(spans_exclusive_time, 0.99)"], ["maxArray(spans_exclusive_time)"]
     ),
 }
 
@@ -72,16 +73,16 @@ class OrganizationEventsSpansPerformanceEndpoint(OrganizationEventsEndpointBase)
         direction, orderby_column = self.get_orderby_column(request)
 
         def data_fn(offset: int, limit: int) -> Any:
-            alias = get_function_alias(
-                SPAN_PERFORMANCE_COLUMNS[orderby_column].suspect_op_group_column
-            )
-            orderby = direction + alias
-            suspects = query_suspect_span_groups(params, query, span_ops, orderby, limit, offset)
+            orderbys = [
+                direction + column
+                for column in SPAN_PERFORMANCE_COLUMNS[orderby_column].suspect_op_group_columns
+            ]
+            suspects = query_suspect_span_groups(params, query, span_ops, orderbys, limit, offset)
 
-            alias = get_function_alias(
-                SPAN_PERFORMANCE_COLUMNS[orderby_column].suspect_example_column
-            )
-            orderby = direction + alias
+            orderbys = [
+                direction + column
+                for column in SPAN_PERFORMANCE_COLUMNS[orderby_column].suspect_example_columns
+            ]
 
             # Because we want to support pagination, the limit is 1 more than will be
             # returned and displayed. Since this extra result is only used for
@@ -89,7 +90,7 @@ class OrganizationEventsSpansPerformanceEndpoint(OrganizationEventsEndpointBase)
             suspects_requiring_examples = suspects[: limit - 1]
 
             transaction_ids = query_example_transactions(
-                params, query, orderby, suspects_requiring_examples
+                params, query, orderbys, suspects_requiring_examples
             )
 
             return [
@@ -219,7 +220,7 @@ def query_suspect_span_groups(
     params: ParamsType,
     query: Optional[str],
     span_ops: Optional[List[str]],
-    order_column: str,
+    order_columns: List[str],
     limit: int,
     offset: int,
 ) -> List[SuspectSpan]:
@@ -233,10 +234,14 @@ def query_suspect_span_groups(
             "array_join(spans_op)",
             "array_join(spans_group)",
             "count_unique(id)",
-            *(column.suspect_op_group_column for column in SPAN_PERFORMANCE_COLUMNS.values()),
+            *(
+                col
+                for column in SPAN_PERFORMANCE_COLUMNS.values()
+                for col in column.suspect_op_group_columns
+            ),
         ],
         query=query,
-        orderby=order_column,
+        orderby=order_columns,
         auto_aggregations=True,
         use_aggregate_conditions=True,
         limit=limit,
@@ -280,7 +285,7 @@ def query_suspect_span_groups(
 def query_example_transactions(
     params: ParamsType,
     query: Optional[str],
-    order_column: str,
+    order_columns: List[str],
     suspects: List[SuspectSpan],
     per_suspect: int = 5,
 ) -> Dict[Tuple[str, str], List[str]]:
@@ -295,10 +300,14 @@ def query_example_transactions(
             "id",
             "array_join(spans_op)",
             "array_join(spans_group)",
-            *(column.suspect_example_column for column in SPAN_PERFORMANCE_COLUMNS.values()),
+            *(
+                col
+                for column in SPAN_PERFORMANCE_COLUMNS.values()
+                for col in column.suspect_example_columns
+            ),
         ],
         query=query,
-        orderby=get_function_alias(order_column),
+        orderby=order_columns,
         # we want only `per_suspect` examples for each suspect
         limit=len(suspects) * per_suspect,
         functions_acl=["array_join", "sumArray", "percentileArray", "maxArray"],
