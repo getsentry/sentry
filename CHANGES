@@ -1,3 +1,1186 @@
+21.11.0
+-------
+
+### Frontend Deploys (ongoing)
+
+By: @billyvg (#28878)
+
+### Python: Add support for Apple arm64 development (ongoing)
+
+Apple started moving away from their Intel based chipset to arm64 chipsets (aka as Apple Silicon).
+In order to do Sentry development on this new architecture we need to do various changes to Sentry's development environment. Some of these changes include using a different Python version (arm64 support was added on Python 3.8.10), upgrading Python packages and hosting some Python wheels that third-party maintainers are not yet releasing.
+
+By: @armenzg (#29739, #29449, #29315, #28769, #28607)
+
+### Docker: Add support for Apple arm64 development (ongoing)
+
+In order to do development for Sentry, we need to spin up various Docker containers.
+Apple is moving away from Intel based chipset to arm64 chipsets (aka Apple Silicon).
+
+This milestones track all work required to make sure we can still use these development services on Apple's arm64 architecture.
+
+By: @armenzg (#29494, #29293, #29284, #29157, #29081, #29117, #29084, #28672, #28724)
+
+### Connecting Dashboards and Discover (ongoing)
+
+Open a Dashboard widget in Discover. Add a Discover Query to a Dashboard.
+
+By: @edwardgou-sentry (#28699, #28827, #28745, #28637)
+
+### Various fixes & improvements
+
+- fix(tests) Remove import that wasn't caught in pr (#30018) by @markstory
+- chore(tests) Remove old react-select test helpers (#29998) by @markstory
+- ref(tests) Replace usage of predicate in MockApiClient (#29997) by @markstory
+- feat(dashboards): Add dashboard widget resizing flag (#30000) by @narsaynorath
+- feat(ci): Drop ubuntu from dev env CI (#29956) by @armenzg
+- ref(native-stack-trace-v2): Add more adjusts (#30013) by @priscilawebdev
+- fix(dev): Patch firefox_profile.py from Selenium package (#29887) by @armenzg
+- feat(ui): Add metrics switch to performance page [INGEST-572] (#30011) by @matejminar
+- ref(native-stack-trace-v2): Apply design feedback (#29989) by @priscilawebdev
+- ref(js): Convert GlobalSelectionHeaderRow to a FC (#30004) by @evanpurkhiser
+- meta(py): Upgrade python typing analysis script (#29961) by @mgaeta
+- ref(ts): Make GlobalSelectionStore useLegacyStore compatible (#30002) by @evanpurkhiser
+- security(issue-alerts): Validate the issue alert owner is a member of the organization (#29962) by @wedamija
+- feat(ui): Storybook - Add theme switcher & noBorder option to <Sample /> (#29765) by @vuluongj20
+- feat(notifications): Slack Digests (#29677) by @mgaeta
+- feat(ui): Release Details Sidebar component update (#29842) by @mikellykels
+- feat(release-comparison): Add Regressed tab to issue filter tabs (#27896) by @mikellykels
+- adds hook and experiment (#29976) by @scefali
+- feat(logo-upload): Update serializer to account for popularity (#29978) by @leeandher
+- test(ui): Convert seenByList to RTL (#29983) by @scttcper
+- test(ui): Convert collapsible component to RTL (#29982) by @scttcper
+- feat(widget-library): Add Library Widgets to Dashboard (#29881) by @shruthilayaj
+- feat(tests) Add request matchers to MockApiClient (#29910) by @markstory
+- ref(tests) Move tests for MutedBox to RTL (#29967) by @markstory
+- ref(react-testing-library): Introduce user-event (#29638) by @priscilawebdev
+- feat(dashboards): Add a confirm on dashboard deletion (#29971) by @wmak
+- Revert "perf(alerts): Add noop handler for load test subscriptions (#29428)" (#29987) by @ahmedetefy
+- fix(js-unit-test): Mutilple clean-ups and improvements (#29948) by @priscilawebdev
+- ref(select): Choices -> options keySettings (#29975) by @davidenwang
+- ref(js): Inline the GSH Header component (#29933) by @evanpurkhiser
+- ref(select): Choices -> options permissionSelection (#29977) by @davidenwang
+- fix(alerts): Filter rules by current project on alert edit (#29928) by @scttcper
+- test(ui): Convert narrow layout to RTL (#29974) by @scttcper
+- test(alerts): Convert alert rule modal to RTL (#29959) by @scttcper
+- ref(select): Choices -> options addCodeOwnerModal (#29932) by @davidenwang
+- meta(py): Add Ecosystems files to CODEOWNERS (#29969) by @mgaeta
+- feat(growth): add skip onboarding btn on step 3 (#29965) by @Neo-Zhixing
+- add frontend experiment (#29964) by @Neo-Zhixing
+- test(alerts): Convert alert ruleForm to RTL (#29954) by @scttcper
+- feat(dashboards): feature flags for Issues in Dashboards (#29922) by @edwardgou-sentry
+- security(metric_alerts): Validate the metric alert owner is a member of the organization. (#29939) by @wedamija
+- chore(logo-upload): Migrate SentryApp table to include popularity column (#29955) by @leeandher
+- feat(integrations): Check if data is within an org (#29938) by @NisanthanNanthakumar
+- fix(ci): Setup Sentry action needs workdir for PG health check (#29960) by @rahul-kumar-saini
+- ref(sentryappavatar): Add color, remove avatar_type (#29936) by @ceorourke
+- feat(perf): Add tooltip to closeContainer for widgets (#29949) by @k-fish
+- feat(perf): Add analytics to landing v3 (#29950) by @k-fish
+- fix(perf): Remove display type on default display (#29951) by @k-fish
+- feat(perf): Add remaining frontend vital widgets (#29913) by @k-fish
+- adds invited_member_id to slack member invitation events (#29952) by @scefali
+- fix(alerts): Fix bug where issue alerts could be fetched by users without access permissions. (#29930) by @wedamija
+- ref(ui): Refactor session existence check for % based issues (#29275) by @taylangocmen
+- feat(notifications): adds task for slack notifications (#29720) by @scefali
+- feat(dev): Multi-threaded devservices and move PG health-check out of Docker (#29824) by @joshuarli
+- ref(app-store-connect): Remove unused context consumer (#29945) by @priscilawebdev
+- test(alerts): Convert alert details test to RTL (#29935) by @scttcper
+- ref(tests) Move Access component tests to RTL (#29923) by @markstory
+- typing(discover): Adding some of the files for QueryBuilder to mypy (#29851) by @wmak
+- feat(feature-flag): Add organization:metrics-performance-ui flag (#29944) by @priscilawebdev
+- ref(app-store-connect): Add adjusts (#29843) by @priscilawebdev
+- feat(analytics): adds invited_member_id to analytics event (#29931) by @scefali
+- ref(ui): Deprecate withTeams (#29929) by @davidenwang
+- tests(ts): Convert setup.js -> ts. Improve test typing (#29869) by @evanpurkhiser
+- fix(async-csv): Prevent direct object reference on data exports (#29918) by @leeandher
+- Revert "typing(issue_search): Add typing to issue search backends and executors (#29902)" (9f9870bb) by @getsentry-bot
+- test(alerts): Convert metric field to RTL (#29921) by @scttcper
+- typing(issue_search): Add typing to issue search backends and executors (#29902) by @wedamija
+- Revert "adds invited_member_id to analytics event (#29914)" (9d09086d) by @getsentry-bot
+- adds invited_member_id to analytics event (#29914) by @scefali
+- ref(integrations): Allow pagination on team and user mappings pages (#29862) by @leeandher
+- feat(jira): Add badges to issue glance (#29899) by @ceorourke
+- feat(issue_search): Add `regressed_in_release` search term to issue search (#29890) by @wedamija
+- fix(growth): Copy updates for performance upsell in issue alert emails (#29911) by @Neo-Zhixing
+- fix(perf): Switch error counts to abbreviated (#29916) by @k-fish
+- feat(auth): Implement SSO session expiry (#29422) by @JoshFerge
+- fix(sampling): Missed a spot for this sampling rate (#29915) by @wmak
+- refs(incidents): Remove unused incident stat snapshots and endpoint (#29897) by @wedamija
+- fix(docs): Removing guides from these URLs (#29894) by @wmak
+- fix(ui): Remove adoption stage chart filtering by query (#29903) by @taylangocmen
+- fix(ui): Adjust metric alert chart rule change gray area boundaries (#29727) by @taylangocmen
+- fix(ui): Fix legend label alignment on release charts (#29904) by @taylangocmen
+- test(alerts): Convert alert list to RTL (#29907) by @scttcper
+- fix(settings): Change status to 403 if Identity can't be deleted (#29900) by @RyanSkonnord
+- ref(appstore-connect): Remove iTunes credentials from soft schema (#29865) by @relaxolotl
+- fix(sessions): Disallow querying by issue.id (#29810) by @jjbayer
+- ref(appconnect): remove inaccurate metrics (#29906) by @flub
+- fix(metrics): Accept message without tags (#29905) by @jjbayer
+- fix(grouping): Shorten tag keys (#29878) by @untitaker
+- feat(releasehealth): Add release health delegator [INGEST-253] (#29731) by @RaduW
+- fix(slack): MessageAction dataclass (#29895) by @mgaeta
+- feat(semver): Determine latest release using semver when applicable (#27733) by @wedamija
+- add TargetedUpsellModalExperimentV2 flag (#29896) by @Neo-Zhixing
+- use fine tuning key in org request notifications (#29888) by @scefali
+- fix provider name in analytics (#29885) by @scefali
+- fix(teamStats): Prevent team misery from showing other teams (#29884) by @scttcper
+- fix(perf): Landing issues errors widget switch (#29883) by @k-fish
+- fix(alerts): Search in team dropdown by slug selector (#29861) by @scttcper
+- adds email to context (#29886) by @scefali
+- ref(ui): Use TeamSelector component for organization invite requests (#29864) by @davidenwang
+- ref(appstore-connect): Scrub iTunes credentials from the DB (#29829) by @relaxolotl
+- fix(ui): Change multiple team selector to not have an icon (#29868) by @davidenwang
+- fix(integration dashboard): Show seconds in 24hr time (#29866) by @ceorourke
+- fix(notifications): Guard against no "settings" (#29880) by @mgaeta
+- ref(ratelimit): Change RedisRatelimiter to use redis cluster (#29766) by @AniketDas-Tekky
+- ref(integrations): Clean up Issues Webhooks (#28879) by @mgaeta
+- ref(appstore-connect): Remove deprecated validate endpoint (#29809) by @relaxolotl
+- feat(alerts): Show related issues not available on query error (#29850) by @taylangocmen
+- feat(widget-library): Add initial widget library modal (#29846) by @shruthilayaj
+- feat(settings): Show logos for all Identity providers (#29858) by @RyanSkonnord
+- ref(appstore-connect): Make iTunes credentials optional and stop (re)writing them to DB (#29863) by @relaxolotl
+- fix(sdk): Reduce the sampled rate of some transactions (#29877) by @wmak
+- chore(reports): Add retry and acks_late to tasks (#29853) by @ceorourke
+- ref(integrations): Move methods to Managers (#29159) by @mgaeta
+- feat(notifications): member invite slack requests (#29708) by @scefali
+- fix(appstore-connect): Return more detailed errors when API credentials are unusable during setup (#29808) by @relaxolotl
+- ref(lpq): Remove per-project ID tagging of metrics (#29873) by @flub
+- fix(appstore-connect): Add a new endpoint that returns the status of all configured apps (#29728) by @relaxolotl
+- fix: Update pyright config path to not disable typechecking in VScode (#29874) by @ahmedetefy
+- fix(appstore-connect): Fix empty dSYMUrl detection (#29830) by @relaxolotl
+- py(types): Add type annotations to email utils. (#29854) by @mgaeta
+- test(ts): Add types to js-stubs (#29855) by @evanpurkhiser
+- test(ts): Cleanup typing on the mock api (#29860) by @evanpurkhiser
+- fix(stack-trace): SharedGroupDetails failed to render Exceptions (#29856) by @evanpurkhiser
+- ref(notifications): Only use fallthrough to override unmatched issues (#29835) by @leeandher
+- ref(notifications): Revert-Revert Simplify MessageBuilder hierarchy (#29848) by @mgaeta
+- ci(lint): Avoid changing Optional[int] -> int | None (#29836) by @evanpurkhiser
+- ref(js): Cleanup the Config type (#29837) by @evanpurkhiser
+- fix(growth): Fix demo banner layout on mobile (#29841) by @Neo-Zhixing
+- feat(dashboards): Allow functions in top events widget columns (#29699) by @edwardgou-sentry
+- fix(perf): Fix issues widget for frontend view (#29845) by @k-fish
+- fix(grouping) Don't crash on None (#29847) by @markstory
+- fix(discover): disable bar chart animation on discover (#29783) by @edwardgou-sentry
+- feat(workflow): Team stats link to discover (WOR-1457) (#29832) by @scttcper
+- ref(sentry-metrics): Remove unneeded opition (#29815) by @MeredithAnya
+- ref(tests) Update a few more tests to RTL (#29826) by @markstory
+- feat(growth): pull out helper methods for organization_invite_request_details (#29823) by @scefali
+- convert analytics on eventEntries and issueList/overview (#29762) by @scefali
+- fix(discover): Column does not have alias attribute (#29844) by @shruthilayaj
+- fix(grouping): Correctly handle multiple threads in fingerprinting code (#29231) by @mitsuhiko
+- ref(appconnect) Add tests for the API usage (#29780) by @flub
+- fix(grouping): Tag first grouping variant's name on transaction (#29792) by @untitaker
+- style(codeowners): Update CTA for darkmode (#29797) by @NisanthanNanthakumar
+- test(js): Remove TestStubs.routes (#29840) by @evanpurkhiser
+- ref(js): Normalize two missed js-stubs (#29838) by @evanpurkhiser
+- test(js): Normalize `params = {}` (#29834) by @evanpurkhiser
+- Revert "ref(notifications): Simplify MessageBuilder hierarchy (#29721)" (1d5f89ee) by @getsentry-bot
+- ref(notifications): Simplify MessageBuilder hierarchy (#29721) by @mgaeta
+- chore(weekly reports): Add more logs (#29819) by @ceorourke
+- feat(workflow): Add a link from team release stats to releases (#29825) by @scttcper
+- ref(js): Convert CreateTeamModal to a FC (#29796) by @evanpurkhiser
+- ref(js): Fix weird TestStub definition (#29804) by @evanpurkhiser
+- ref(ui): useTeams and Teams util for alert/incident list (#29773) by @davidenwang
+- fix(perf): Fix widgets using EventsRequest (#29822) by @k-fish
+- fix(ui): Storybook's <DocsContainer /> overwriting theme object (#29770) by @vuluongj20
+- feat(suspect-spans): Add empty state (#29817) by @Zylphrex
+- fix(slack): Allow identity unlinking from slack. (#29818) by @leeandher
+- fix(appconnect): Filter out app clip bundles since they don't have anything we can use (#29704) by @relaxolotl
+- fix(trends): Handle invalid trend functions (#29744) by @wmak
+- fix(perf): Perf Landing v3 UI Tweaks (#29812) by @k-fish
+- feat(settings): Expose all identities in user settings (#29230) by @RyanSkonnord
+- fix(discover): Add validation for invalid span ID (#29784) by @narsaynorath
+- fix(suspect-spans): Clarify the vocabulary used on the span tab (#29782) by @Zylphrex
+- ref: Remove JS tests from precommit (#29155) by @untitaker
+- fix(notification): Correct overriding in `where_should_be_participating` (#29802) by @mgaeta
+- fix(auth): Make build_identity error message more human-friendly (#29803) by @RyanSkonnord
+- feat(ui): Use user 24 hour clock setting on audit log (#29768) by @scttcper
+- ref(notifications): Only notify would-be assignee when alert is triggered (#29767) by @leeandher
+- fix(dashboards): filter out empty entries in timeseriesResult before passing to children (#29800) by @edwardgou-sentry
+- fix(workflow): Catch errors on team insights discover query (#29748) by @scttcper
+- fix(dashboards): added undefined check to data on line chart (#29798) by @edwardgou-sentry
+- ref(sentry-metrics): Run ingest-metrics-consumer in devserver (#29694) by @MeredithAnya
+- fix(idp-migration): added 2fa to idp migration flow (#29701) by @maxiuyuan
+- test(ui): Convert alert badge test to RTL (#29771) by @scttcper
+- fix(perf): Fix vitalWidget request and bar (#29795) by @k-fish
+- fix(api): N+1 db query in GroupSerializerBase._get_permalink (#29717) by @Zylphrex
+- test(js): Normalize fixtures (#29772) by @evanpurkhiser
+- ref(flags): Remove unused feature flags (#29793) by @ceorourke
+- feat: Add API to identify available permissions (#29789) by @dcramer
+- ref(js): remove useOrgSlug (#29759) by @evanpurkhiser
+- feat(dashboards): renamed dashboard top events to top 5 events (#29737) by @edwardgou-sentry
+- fix(dashboards): updated widgetQueries fetchTimeseriesData to preserve query order for timeseriesResults (#29719) by @edwardgou-sentry
+- chore(flag): Add widget library feature flag (#29788) by @shruthilayaj
+- fix(ui): Fix alert condition display for old alert conditions without comparisonType (#29791) by @taylangocmen
+- fix(notifications): Get default settings in `where_should_be_participating` (#29757) by @mgaeta
+- fix(alerts): Preserve team filter on alert rule list pagination (#29769) by @scttcper
+- test: Fix pipeline assertion (#29790) by @matejminar
+- fix(ui): Minor fixes to user-facing text (#29776) by @relaxolotl
+- feat(perf): Remove additional txn filters in summary drilldown (#29684) by @shruthilayaj
+- feat(workflow): Handle data to performance section on release details (#29426) by @mikellykels
+- chore(deps): Upgrade eslint-config-sentry@1.67.0 (#29657) by @matejminar
+- fix(gitlab): Revert change to setup instructions (#29775) by @NisanthanNanthakumar
+- feat(ui): Change crash rate alerts badge from beta to new (#29786) by @matejminar
+- fix(discover): Check BooleanCondition in where clause (#29785) by @shruthilayaj
+- fix(perf): Fix incorrect eventView in one of the widgets (#29778) by @k-fish
+- Reset statement_timeout after project counter increment (#29781) by @beezz
+- fix(perf): Fix eventView move causing chart issues (#29779) by @k-fish
+- fix(suspect-spans): Span ops endpoint should not be paged yet (#29749) by @Zylphrex
+- tests(suspect-spans): Mock snql calls (#29745) by @Zylphrex
+- fix(ui): Suspect card heading alignment (#29750) by @Zylphrex
+- fix(suspect-spans): Span frequency should never exceed 100% (#29754) by @Zylphrex
+- ref(appstore-connect): Remove setup steps asking for iTunes credentials [NATIVE-294] (#29675) by @relaxolotl
+- fix(gitlab): Refresh access token process (#29747) by @NisanthanNanthakumar
+- style(js): Apply no-else-return (#29763) by @evanpurkhiser
+- style(js): Apply curly: ['error'] (#29764) by @evanpurkhiser
+- fix(trace-view): Updating referrer and adding a tag (#29758) by @wmak
+- feat(api-ratelimit): Create a rate limit middleware (#29751) by @AniketDas-Tekky
+- build(deps): bump mobx from 6.3.2 to 6.3.6 (#29703) by @dependabot
+- ref(ui): Change from withTeams to <Teams> for team key transactions (#29223) by @davidenwang
+- ref(js): Rewrite alert rules tests in RTL (#29729) by @evanpurkhiser
+- ref(js): Add aria attributes to sortable alert headers (#29753) by @evanpurkhiser
+- fix(appstore-connect): Relax timeout for build fetching (#29724) by @relaxolotl
+- fix(ui): Remove inf percentage from change alert graphs (#29752) by @taylangocmen
+- ref(js): RuleListRow -> React.FC (#29726) by @evanpurkhiser
+- feat(discover): Add snql support to the events-facets endpoint (#29674) by @wmak
+- perf(project_owners): Lower max length of project owner rules to 100k characters. (#29746) by @wedamija
+- ref(js): Minor cleanup to useTeams (#29723) by @evanpurkhiser
+- fix(ui): Fixed point on change percentage in graph tooltips (#29743) by @taylangocmen
+- chore(reports): Add logging behind feature flag (#29725) by @ceorourke
+- ref: Remove typing_extensions dep (#29521) by @untitaker
+- fix(perf): Add empty state for list widget (#29738) by @k-fish
+- chore(digests): Add more logging to issue alerts to help identify why alerts aren't firing. (#29673) by @wedamija
+- feat(slack): Allow team unlinking from slack in the UI (#29682) by @leeandher
+- feat: Only apply permissions to superusers (#29722) by @dcramer
+- fix(perf): Changing minichart interval on landing (#29741) by @k-fish
+- feat(suspect-spans): Add percentage of sum transaction.duration to spans (#29672) by @Zylphrex
+- fix(grouping): Add missing keyword argument [INGEST-577] (#29732) by @untitaker
+- fix(perf): Landing v3 add min filter for fields (#29740) by @k-fish
+- ref(appconnect): Another metric to count projects (#29733) by @flub
+- chore(deps): Upgrade eslint-config-sentry@1.64.0 (#29656) by @matejminar
+- fix(reprocessing): Add a lot of metrics and explicitly opt tasks into sentry performance product (#29716) by @untitaker
+- feat(native-stack-trace): Add unit tests - Part 4 - [NATIVE-350] (#29697) by @priscilawebdev
+- Remove exception log for lock acquiral failures (#29683) by @beezz
+- feat(cmp_alerts): Update change alert tooltips to reflect the change alert better (#29681) by @taylangocmen
+- feat(notifications): slack request notifications read settings (#29718) by @scefali
+- feat(trace-view): Update trace-view to use snql (#29709) by @wmak
+- wizard(category) add dotnet gcp to serverless (#29693) by @bruno-garcia
+- ref(js): Small code cleanup to ProjectsStore (#29595) by @evanpurkhiser
+- feat: Add user permission API endpoints (#29706) by @dcramer
+- build(ci): Retry failed pulls from devservices (#29691) by @billyvg
+- feat(discover): Render saved Query error messages to MiniGraph (#29700) by @narsaynorath
+- feat(perf): Finish remaining landing v3 views  (#29715) by @k-fish
+- feat(notifications): adds approval notifications to the UI (#29651) by @scefali
+- track invite and join requests (#29711) by @scefali
+- fix(notifications): adds analytics for sending email (#29710) by @scefali
+- feat(discover): Changing order by to sort by in error message to match ui (#29690) by @edwardgou-sentry
+- fix(discover): updated eventView isEqualTo to evaluate undefined display as equal to 'default'(#29688) by @edwardgou-sentry
+- fix(tags): Set filter transaction filter on conditions (#29714) by @shruthilayaj
+- ui(performance): Increase precision of performance duration (#29702) by @Zylphrex
+- feat(suspect-spans): Improve span duration visuals (#29689) by @Zylphrex
+- fix(stack-trace): Forward 403 Errors (#26597) by @mgaeta
+- ref(slack): Clean MessageBuilder (#29063) by @mgaeta
+- fix(ui): Cropped letter descenders in TextOverflow (#29696) by @vuluongj20
+- ref(appstore-connect): Stop asking users to refresh their iTunes credentials (#29654) by @relaxolotl
+- ref(snuba) Hail Mary attempt to figure out parent API (#29698) by @evanh
+- feat(suspect-spans): Add ops filter to spans tab (#29640) by @Zylphrex
+- feat(discover): Add support for top events using snql (#29607) by @wmak
+- fix(ui): Fill colors in IconBusiness & IconTaskcall (#29695) by @vuluongj20
+- feat(suspect-spans): Add rollout percentage option (#29692) by @Zylphrex
+- feat(appconnect): Get dSYMs URL from the App Store Connect API [NATIVE-294] (#29513) by @flub
+- fix(discover): Set field to prev value if required but empty (#269) (#29686) by @narsaynorath
+- ref(digests): Move `Pipeline` to a file (#29679) by @mgaeta
+- fix(discover): Add snql aggregations (#29620) by @wmak
+- ref(snuba) Move this debug log outside the threading (#29669) by @evanh
+- feat(discover): Enable snql on the events-geo endpoint (#29647) by @wmak
+- Juba has changed its time zone (#29667) by @ilhanyumer
+- chore(dashboards): Clean up state updates in widget queries (#29605) by @shruthilayaj
+- fix(suspect-spans): Support has filter on span columns (#29665) by @Zylphrex
+- fix(worldmap): Fix params that are passed to the endpoint (#29671) by @shruthilayaj
+- ref(str): Use f-strings (#29680) by @mgaeta
+- ref(types): Use python 3.8 types in `sentry.notifications` (#29678) by @mgaeta
+- ref(sentry-metrics): Remove temp redis indexer (#29650) by @MeredithAnya
+- ref(plugins): Remove VSTS plugin repo data (#29670) by @ceorourke
+- fix(ui): shortcut icon in dark mode (#29601) by @robinrendle
+- feat(ci): Optimizations for dev env workflow (#29658) by @armenzg
+- fix(alert-rule): Enable flag to use with flagr (#29653) by @NisanthanNanthakumar
+- fix(jira): Only use CDN verification if key_id is presented (#29582) by @leeandher
+- feat(suspect-spans): Show arrow next to sorting key (#29615) by @Zylphrex
+- ref(plugins): Remove deleted plugins project options (#29645) by @ceorourke
+- chore(suspect-spans): Add alpha badge to suspect spans tab (#29617) by @Zylphrex
+- include the provider name in the referrer (#29664) by @scefali
+- fix(suspect-spans): Add occurrences to header when sorting (#29611) by @Zylphrex
+- feat(u2f): Enable renaming u2f device (#29263) by @maxiuyuan
+- ref(tests) Convert a few simple tests to RTL (#29646) by @markstory
+- feat(discover): default add widget values for top n saved queries (#29659) by @edwardgou-sentry
+- fix(discover): Add error boundary around mini graph (#29662) by @Zylphrex
+- feat(suspect-spans): Render suspect span attributes better (#29649) by @Zylphrex
+- fix(discover): Handle empty y-axis (#29661) by @wmak
+- fix(snuba) Add debug logs for parent API mismatch (#29648) by @evanh
+- feat(chart-unfurls): Add chart unfurl support for world map (#29435) by @shruthilayaj
+- ref(stack-trace-interfaces): Add Native Stack Trace V2 - Part 3 (#29631) by @priscilawebdev
+- ref(stack-trace-interfaces): Add Native Stack Trace V2 - Part 2 - (#29532) by @priscilawebdev
+- docs: Point to the sentry celery docs (#29655) by @flub
+- ref(tests): Replace waitFor with waitForElementToBeRemoved in RTL (#29547) by @matejminar
+- ref(stack-trace-interfaces): Add Native Stack Trace V2 - Part 1 - [INGEST-508] (#29434) by @priscilawebdev
+- feat(ui): Handle 404 on alert rule details (#29636) by @matejminar
+- fix(ui): Adjust alert threshold line zindex (#29633) by @matejminar
+- fix(ui): Remove uses of Orange (#29360) by @vuluongj20
+- feat(alert-rule): Instrument analytics for Alert Rule UI Components (#29552) by @NisanthanNanthakumar
+- ref(select): Choices -> options issueAlertOptions (#28808) by @davidenwang
+- fix(codeowners): Handle IndexError when generating regex (#29642) by @NisanthanNanthakumar
+- fix(kafka-headers): Make transaction forwarder header relevant (#29618) by @nikhars
+- fix(devservices): chartcuterie is now latest (#29641) by @joshuarli
+- ref(team): Change alert creation/edit views to not rely on withTeams (#29585) by @davidenwang
+- ref(sentry-metrics): Add async task (#29358) by @MeredithAnya
+- build(ci): *TEMP* increase GHA timeouts to 90 minutes (#29643) by @billyvg
+- feat(cmp_alerts): Change alert data in dashed line in alert details (#29623) by @taylangocmen
+- feat: Restrict hard deletions on users to permission (#29612) by @dcramer
+- fix(project_ownership): Limit size of `raw` in `ProjectOwnership` (#29628) by @wedamija
+- fix(owners): Fix bug in `path` matching for project owners (#29629) by @wedamija
+- ref(plugins): Remove Clubhouse, Teamwork, and VSTS plugins (#29584) by @ceorourke
+- ref(tests): remove sentry.compat (#29626) by @joshuarli
+- feat(cmp_alerts): Show comparison data in dashed line in alert event stat chart (#29603) by @taylangocmen
+- feat: Add logging to user mutations for privileged attrs (#29608) by @dcramer
+- fix(suspect): Increase examples to 5 per suspect (#29613) by @Zylphrex
+- Introduce killswitch for project with too many ownership rules (#29634) by @beezz
+- chore(dashboard): Remove new badge on Dashboard sidebar (#29600) by @shruthilayaj
+- add performance spans around `post_process.handle_owner_assignment` (#29632) by @oioki
+- fix(appconnect): Fix permissions of validate endpoint (#29599) by @flub
+- ref(processing): Add separate task and queue for transactions save_event (#29480) by @beezz
+- ref(sandbox): Demo Header Update & fix email localstorage (#29625) by @Neo-Zhixing
+- fix(cmp_alerts): Allow comparison event frequency percent alerts to set a value > 100 (#29624) by @wedamija
+- feat(workflow): Allow admins to view team stats of all teams (#29616) by @scttcper
+- feat(alerts): Alerts event.type "OR" query compatible w/ issues (#29567) by @scttcper
+- feat(workflow): Enable several GA flags by default (#29557) by @scttcper
+- fix(ui): Prevent usage stats from overflowing on mobile (#29602) by @scttcper
+- fix(discover): Updating limit badge to new (#29614) by @wmak
+- fix(dev): Add .python-version back (#29571) by @armenzg
+- feat(suspect-spans): Add endpoint for listing span ops (#29559) by @Zylphrex
+- fix(discover): Fixed Add to Dashboards modal bug unable to delete last non equation overlay (#29528) by @edwardgou-sentry
+- fix(suspect-spans): Change default sort to total cumulative duration (#29606) by @Zylphrex
+- feat: Restrict superuser attributes to permission (#29604) by @dcramer
+- feat(suspect-span): Show frequency as percentage (#29577) by @Zylphrex
+- fix(teams): useTeams should return all teams for a superuser (#29294) by @davidenwang
+- digests: Add logging to see how often we're missing records from digests (#29596) by @wedamija
+- feat(notifications): org request notifications cleanup (#29589) by @scefali
+- feat(discover): Added world map mini graph to Discover saved query list (#29493) by @edwardgou-sentry
+- feat(discover): Allow sorting on events-geo endpoint (#29572) by @edwardgou-sentry
+- feat(dashboards): Added more tracking around dashboard widget modal (#29575) by @edwardgou-sentry
+- feat(releases): Set default absolute date to release period (#29593) by @scttcper
+- fix(appstore-connect): Detect and use new iTunes credentials when updating ASC creds (#29561) by @relaxolotl
+- fix(custom-repositories): Disable UI components in case of no permission (#29598) by @priscilawebdev
+- Revert "fix(discover): Xfailing some failing tests" (#29548) by @wmak
+- ref(app-store-connect): Update error message mapping (#29597) by @priscilawebdev
+- fix(snql): Auto fields for project (#29573) by @Zylphrex
+- feat(snql): Add support for array join clause (#29555) by @Zylphrex
+- fix: Always allow deletion of custom symbol sources [NATIVE-270] (#29482) by @loewenheim
+- Fix(digests): Fix error with empty digests (#29594) by @wedamija
+- fix(vercel): Get Token (#29526) by @mgaeta
+- fix(cmp_alerts): Fix bug with comparison alerts when using different aggregates. (#29590) by @wedamija
+- ref(js): Introduce simple useProjects (#29457) by @evanpurkhiser
+- chore(digests): Add extra logging to skipped digests (#29566) by @wedamija
+- move logic to styled component (#29588) by @scefali
+- fix select all projects button pos (#29587) by @scefali
+- feat(ui): project selector hook (#29447) by @scefali
+- fix(notification platform): Send issue owner team Slack notifications (#29495) by @ceorourke
+- perf(issue_alerts): Sort conditions in `RuleProcessor` so that expensive conditions are run last (#29558) by @wedamija
+- fix(gitlab): Change instructions to not expire tokens (#29578) by @manuzope
+- fix(discover): Increase query card render height (#29580) by @shruthilayaj
+- fix(alerts): Align alert details icon, disable translation (#29568) by @scttcper
+- test(alerts): Use placeholder in alert details integration test (#29569) by @scttcper
+- ref(notifications): move notification helpers into testutils (#29563) by @scefali
+- feat(perf): Fill out frontend-other tab (#29545) by @k-fish
+- ref(sentry-metrics): Default to using the postgres indexer (#29446) by @MeredithAnya
+- chore(post-process-forwarder): Turn on batching consumer by default (#29562) by @nikhars
+- chore(jira): Use new CDN signed installs  (#29465) by @leeandher
+- feat(suspect-spans): Allow filters on span ops (#29554) by @Zylphrex
+- fix(discover): Correct display when unfurling top events charts (#29537) by @shruthilayaj
+- fix(suspect-spans): Should find span groups prefixed with 0s (#29546) by @Zylphrex
+- fix(futures): Ensure finish time is set before callback function dispatch occurs (#29530) by @tkaemming
+- feat(growth): Export Client to Globals (#29553) by @Neo-Zhixing
+- chore(dx): Add bin path for black in vscode (#29556) by @scttcper
+- fix(alert rules): Ensure Slack channel name is entered (#29551) by @ceorourke
+- feat(dashboards): Added and updated dnd badges to New (#29542) by @edwardgou-sentry
+- fix: Removing TypedDict hack we had to use it early (#29511) by @wmak
+- add typing for mail notifications (#29529) by @scefali
+- fix(trace-view): Doing the TODO that was waiting on py 3.7+ (#29512) by @wmak
+- feat(discover): Update timeseries to support comparison (#29492) by @wmak
+- ref(tests): Replace waitFor with find in RTL (#29544) by @matejminar
+- feat(discover): Use SnQL for some of event-stats (#29471) by @wmak
+- fix(suspect-spans): Validate spans tab sort (#29525) by @Zylphrex
+- ref(interface-files): Move files to appropriate folder (#29538) by @priscilawebdev
+- ref(yarn): Add update version (#29541) by @priscilawebdev
+- build(ci): Fix boolean comparisons for GHA workflow (#29524) by @billyvg
+- ref(package.json): Add ua-parser-js resolution (#29536) by @priscilawebdev
+- ref(ui): Rename and type componentDidUpdate arguments (#29533) by @matejminar
+- ref(crashContent): Move crash content related files to folder (#29509) by @priscilawebdev
+- feat(ui): Reduce the number of re-fetches on release details (#29507) by @matejminar
+- ref(tests): Remove query* for anything except checking for non-existence in RTL (#29517) by @matejminar
+- fix(slack): Enable channel_id field on the backend (#29527) by @leeandher
+- chore: drop Python 3.6 (#29504) by @joshuarli
+- ref: Hacks out use of session dict generator func (#29484) by @ahmedetefy
+- chore(discover): Rename `side` to operand (#29419) by @wmak
+- fix(suspect-spans): No aggregate conditions in examples query (#29522) by @Zylphrex
+- chore(suspect-spans): Give code ownership to performance team (#29523) by @Zylphrex
+- feat(perf): Add vital widget for performance landing (#29489) by @k-fish
+- fix: Mark idp-automatic-migration as entity_feature (#29444) by @RyanSkonnord
+- build(ci): Remove `if: always()` conditions from workflows (#29414) by @billyvg
+- feat(suspect-spans): Add suspect spans tab page (#29453) by @Zylphrex
+- feat(discover): Add to Dashboard default Widget Display Type based on Discover Query (#29518) by @edwardgou-sentry
+- fix(discover): Xfailing some failing tests (#29519) by @wmak
+- feat(dashboards): Open in Discover on a Bar Chart widget now displays in Bar Chart in Discover(#29514) by @edwardgou-sentry
+- feat(workflow): Sort all team stats tables by trend (#29503) by @scttcper
+- fix(discover): Disable y axis equations when in world map view (#29515) by @edwardgou-sentry
+- ref(tests): Use correct assertions in RTL (#29508) by @matejminar
+- ref(notifications): org request notification (#29362) by @scefali
+- fix(appstore): Don't double-send requests for SMS codes during 2FA auth (#29500) by @relaxolotl
+- feat(workflow): Align xAxis dates on team stats bar graphs (#29499) by @scttcper
+- feat(discover): Discover Bar Chart Display Mode (#29485) by @edwardgou-sentry
+- fix(discover): Updates the Add to Dashboard modal in Discover to use query order for Table visualization (#29486) by @edwardgou-sentry
+- fix(discover): Pick the correct y-axis for unfurls (#29488) by @shruthilayaj
+- fix(dashboards): Fix inconsistent labels (#29510) by @shruthilayaj
+- feat(dashboards): Open in Discover on world map widgets opens to world map view in Discover(#29448) by @edwardgou-sentry
+- feat(discover): Hide y axis options checkbox when in a display mode that doesnt support multi y axis (#29450) by @edwardgou-sentry
+- feat(perf): Add histogram widget for perf landing (#29479) by @k-fish
+- fix(discover): Fixed text colour for Open in Discover on dark theme (#29483) by @edwardgou-sentry
+- fix(service-delegator): Better output in callback_timing (#29506) by @tonyo
+- feat(metrics): Use 10s granularity in sessions charts (#29265) by @jjbayer
+- dev: upgrade pre-commit and friends for Python 3.8+ (#29502) by @joshuarli
+- test: remove mock compat (#29501) by @joshuarli
+- py38: switch to Python 3.8 (#29064) by @joshuarli
+- feat(insights): Add `GroupHistory` to group deletions (#29487) by @wedamija
+- feat(perf): Add trends widgets for landing page v3 (#29461) by @k-fish
+- feat(workflow): Disable mouse pointer on insights bar graph (#29467) by @scttcper
+- feat(ui): Switch organizationStats to thirds, reorder dropdowns (#29462) by @scttcper
+- ref(ui): Change release list search autocomplete for release properties to 'Properties' (#29410) by @taylangocmen
+- feat(insights): Remove `organizations:group-history` feature flag. (#29470) by @wedamija
+- feat(workflow): Add team stats feedback button (#29463) by @scttcper
+- feat(insights): Update `GroupHistory.actor` to set null on delete (#29469) by @wedamija
+- feat(insights): Record all instances of `SET_RESOLVED_IN_PULL_REQUEST` activity in `GroupHistory` (#29466) by @wedamija
+- feat(cmp_alerts): Show thresholds for change alerts in the alert details sidebar (#29472) by @taylangocmen
+- ref: Use lstrip instead of replace in ChunkUploadEndpoint (#29481) by @kamilogorek
+- fix(deletions) Only fire pending_delete signal if deletion will happen (#29443) by @markstory
+- fix(ui): Fix alert axis spacing (#29478) by @matejminar
+- fix: Detect sentry-cli version for relative endpoint use in ChunkUploadEndpoint (#29477) by @kamilogorek
+- fix(incidents): Set a threshold in email resolve notifications (#29474) by @ahmedetefy
+- feat(ui): Add beta badge to crash rate alerts in wizard (#29476) by @matejminar
+- fix(releasehealth): Improve reliability of snuba integration tests for sessions release health   (#29445) by @RaduW
+- ref(sentry-test/enzyme): Add migration warning message (#29427) by @priscilawebdev
+- fix(cmp_alerts): Change the default timeWindow and changeDelta options for change alerts (#29468) by @taylangocmen
+- build(deps): bump typescript from 4.4.2 to 4.4.4 (#29342) by @dependabot
+- feat(insights): Record all instances of `SET_RESOLVED_IN_COMMIT` activity in GroupHistory (#29464) by @wedamija
+- fix(insights): Fix time to resolution endpoint to use group date if no previous row available. (#29454) by @wedamija
+- fix(grouping): Actually redirect to the right organization when clicking unmerge issue (#29451) by @untitaker
+- fix(chartcuterie): Render other as gray when included in top-5 (#29455) by @wmak
+- chore(deps): Bump storybook 6.3.7 -> 6.3.12 (#29456) by @evanpurkhiser
+- chore(deps): bump focus-trap from 6.6.0 to 6.7.1 (#29288) by @dependabot
+- test: add required testing on Python 3.8.12 (#29116) by @joshuarli
+- ref: Add types to store and symbolication (#29014) by @loewenheim
+- feat(discover): Moved Add to Dashboard button out of dropdown menu in Discover results page(#29441) by @edwardgou-sentry
+- feat(dashboards): updated Open in Discover buttons to react router Link (#29440) by @edwardgou-sentry
+- feat(discover): World Map support for Discover (#29389) by @edwardgou-sentry
+- types(python): Group API Helpers (#29424) by @mgaeta
+- ref(api): Split up large file (#29302) by @mgaeta
+- ref: Move all symbolicator-related code in store.py to a separate file (NATIVE-259) (#28973) by @relaxolotl
+- fix(insights): Fix `get_prev_history` to fetch the correct previous history row for a status (#29425) by @wedamija
+- feat(perf): Add landing widgets for most issues and errors (un-revert) (#29442) by @k-fish
+- fix aggregation on value. (#29439) by @RaduW
+- feat(suspect-spans): Add new endpoint for suspect spans (#29357) by @Zylphrex
+- fix(discover): Support equation sorting in the snql query builder (#29418) by @wmak
+- fix(ui): GridEditable on resize cleanup (#29392) by @Zylphrex
+- feat(ui): Add absolute numbers to release adoption charts (#29436) by @matejminar
+- ref(feature-flags): Add new flag organizations:native-stack-trace-v2 (#29430) by @priscilawebdev
+- feat(ui): Filter sessions in time window on project details (#29429) by @matejminar
+- ref(threads-interface): Converto from class to func (#29408) by @priscilawebdev
+- perf(alerts): Add noop handler for load test subscriptions (#29428) by @ahmedetefy
+- ref(ui): Restructure releases codebase (#29411) by @matejminar
+- feat(symbolication): Selection logic for low priority queue (#29258) by @flub
+- fix(notifications): backfillMissingProvidersWithFallback (#29420) by @mgaeta
+- feat(workflow): Add team insights page view analytics (#29415) by @scttcper
+- ref(ui): searchBar should expose Input['props'] (#29374) by @leedongwei
+- Revert "feat(perf): Add landing widgets for most issues and errors (#29209)" (a0e0e36f) by @getsentry-bot
+- feat(perf): Add landing widgets for most issues and errors (#29209) by @k-fish
+- fix(slack): Link Team (#29364) by @mgaeta
+- fix(workflow): Add locks to groupowners to prevent duplicates (#29309) by @scttcper
+- feat(discover): Add the snql feature flag to eventsv2 (#29395) by @wmak
+- feat(discover) Add equation support to SnQL (#29394) by @wmak
+- ref(tests): Slack Linking Tests (#29400) by @mgaeta
+- build(ci): Add GH Check for what types of files were changed (#29388) by @billyvg
+- fix(ui): Dropdown menu arrow border (#29402) by @vuluongj20
+- fix(scim): check slugified input instead of using name (#29383) by @JoshFerge
+- ref(plugins): Remove deprecation date for PagerDuty (#29399) by @ceorourke
+- feat(growth): Demo refactor (#29270) by @Neo-Zhixing
+- feat(workflow): Move team insights under stats in the sidebar (#29398) by @scttcper
+- ref(symbolicator): Stagger metrics reporting (#29396) by @relaxolotl
+- chore(performance): Remove org-level apdex threshold setting (#29215) by @shruthilayaj
+- fix: Trim GNU versioning trailers (#29406) by @Swatinem
+- feat(entities): Add `entity_handler=True` to metrics-extraction feature (#29407) by @untitaker
+- fix(project-dsn-config): Fix Slider Rate limit wrong data (#29405) by @priscilawebdev
+- ref(api): Use relative endpoint for ChunkUploadEndpoint if upload-url-prefix is absent (#29347) by @kamilogorek
+- feat(alerts): Formatting for Crash Rate Alert notifications (#29382) by @ahmedetefy
+- ref(releasehealth): switch metric querires to manual aggregation [INGEST-249] (#29319) by @RaduW
+- ref(releasehealth): Implement get_project_releases_by_stability on metrics backend [INGEST-249] (#29352) by @RaduW
+- feat(lpq): Update project lpq status to not be hardcoded [NATIVE-244] (#29351) by @flub
+- feat(ui): Clamp long lasting releases (#29379) by @matejminar
+- fix(ui): made alert wizard chart consistent with Discover (#29397) by @robinrendle
+- meta(repo): Codeowners for authentication (#29376) by @leedongwei
+- ref(input): Add step for input (#29390) by @leedongwei
+- fix(ui): tidied up descriptions for Reports (#29386) by @robinrendle
+- fix(ui): changed table heading to "Last 7 days" (#29387) by @robinrendle
+- fix(insights): Fix bug when resolution row has no prev row data (#29393) by @wedamija
+- fix(integrations): Populate fields with default value to avoid empty labels submitting (#29368) by @leeandher
+- fix(code-mapping): Allow for periods in branch names (#29385) by @leeandher
+- fix(workflow): Remove unused promo flags (#29380) by @scttcper
+- feat(workflow): Remove alert details redesign flag (#29381) by @scttcper
+- feat(auth): Add metrics for automatic IdP migration (#29109) by @RyanSkonnord
+- fix(dashboards): Catch arithmetic errors correctly (#29292) by @wmak
+- feat(alert-rules): Add feature flag for Alert Rule UI Component (#29384) by @NisanthanNanthakumar
+- perf(issue_alerts): Process issue alert filters before conditions (#29367) by @wedamija
+- meta(repo): Codeowners for org stats (#29375) by @leedongwei
+- feat(workflow): Adding some group history entries across app (#29355) by @iProgramStuff
+- feat(u2f): disabled enrolling the same device for u2f (#29276) by @maxiuyuan
+- fix(ui): Fix usages of theme.white (#29344) by @vuluongj20
+- fix(ui): Storybook - Dark mode color aliases (#29332) by @vuluongj20
+- fix(discover): Support release in snql (#29371) by @wmak
+- fix(discover): Fixing auto fields (#29369) by @wmak
+- fix(discover): Update count_miserable return type (#29366) by @wmak
+- fix(discover): Validating aggregates + any(user.display) support (#29333) by @wmak
+- feat(workflow): Switch number of releases average to a markline (#29363) by @scttcper
+- fix(workflow): Adjust two font sizes on team insights (#29365) by @scttcper
+- fix(discover): Support percentiles without an arg (#29370) by @wmak
+- ref(metrics-widget): Move fields around (#29373) by @priscilawebdev
+- ref(ui) Update install wizard to new forms (#29359) by @markstory
+- [WIP] ref(releasehealth): Port get_project_release_stats to releasehealth (#29154) by @untitaker
+- ref(tests) Convert a few simple component tests to RTL (#29361) by @markstory
+- feat(ui): Adjust getSessionsInterval thresholds (#29378) by @matejminar
+- feat: Enable minute resolution sessions (#29377) by @matejminar
+- fix(reprocessing): Batch handle_remaining_events, fix more race conditions [INGEST-452] (#29033) by @untitaker
+- ref(api): De-couple `update_groups()` from requests (#29303) by @mgaeta
+- fix(slack): Remove `organization` from `build_linking_url()` (#29299) by @mgaeta
+- fix(discover): Fixing release stage tests with snql (#29334) by @wmak
+- meta: Bump new development version (b930189d)
+- fix(discover): Support measurements and ops breakdowns on tag key sea… (#29318) by @Zylphrex
+- feat(idp-migration): Authenticate user with their SSO Provider (#28919) by @maxiuyuan
+- fix(discover): Meta for mobile measurements (#29354) by @wmak
+- test(workflow): Fix alert details snapshot diffs (#29343) by @scttcper
+- fix(metric_alerts): Fix bug where transitioning from critical -> warning can still trigger a resolve action (#29345) by @wedamija
+- update experiment name (#29353) by @scefali
+- feat(workflow): Enable issue-percent-filters flag by default (#29325) by @scttcper
+- feat(post-process-forwarder) Allow different types of post process forwarders (#29225) by @nikhars
+- ref(search): Enable search without waiting for search groups to load (#29336) by @davidenwang
+- adds experiment for trial label (#29305) by @scefali
+- fix(discover): Various snql discover fixes (#29219) by @wmak
+- chore(deletion) Drop aborted column (#29323) by @markstory
+- fix(snapshots): Fixes datetime comparison with str issue (#29349) by @ahmedetefy
+- fix(ui): Handle empty alert chart (#29348) by @matejminar
+- feat(dev): Run dev env workflow when .pre-commit-config.yaml changes (#29331) by @armenzg
+- ref(tests): Use screen for querying in RTL (#29312) by @matejminar
+- fix(alerts): Fix logic that creates snapshots for crash rate alerts (#29320) by @ahmedetefy
+- ref(grouprelease):  Buffer GroupRelease.last_seen update per minute (#29328) by @beezz
+- ref(minichart): Add extra empty space on the top - [INGEST-495] (#29321) by @priscilawebdev
+- ref(js): Remove unused withProjects on incidentRules/triggers (#29335) by @evanpurkhiser
+- test(js): Always use our exported act (#29340) by @evanpurkhiser
+- ref(js): Rewrite Sidebar as a functional component (#29278) by @evanpurkhiser
+- test(js): Refactor useLegacyStore test to use testing-library/react-hooks (#29338) by @evanpurkhiser
+- fix(workflow): Filter team release counts by teams projects (#29341) by @scttcper
+- feat(team-insights): Add Number of Releases section (#29101) by @mikellykels
+- Temporarily disable pyright pre-commit checks. (#29326) by @wedamija
+- build(deps): bump nth-check from 2.0.0 to 2.0.1 (#29000) by @dependabot
+- fix(growth): Select the correct project when showing sample transaction banner (#29324) by @Neo-Zhixing
+- fix(visibility): Unbound errors for visibility files (#29330) by @wmak
+- fix(js): Links should not receive router attributes (#29279) by @evanpurkhiser
+- ref: Set defaults for potential unbound errors (#29327) by @ahmedetefy
+- feat(workflow): Remove alert issue redesign flag (#29061) by @scttcper
+- feat(symbolicator): Record metrics for projects being assigned and unassigned to the LPQ (#29229) by @relaxolotl
+- ref(grouprelease): Buffer updates to GroupRelease.last_seen (#29311) by @beezz
+- fix(typo): 'set up' has a space (#29322) by @NisanthanNanthakumar
+- feat(discover): Added analytics for connecting Discover and Dashboards (#29286) by @edwardgou-sentry
+- fix(ui): Add optional chaining to releases adoption chart (#29317) by @matejminar
+- chore(deletion) Remove aborted field from the model (#29297) by @markstory
+- feat(suspect-spans): Add new spans columns to transactions dataset (#29287) by @Zylphrex
+- ref(appconnect): Do not sample metrics for app store connect (#29310) by @flub
+- test: Stabilize release comparison snapshot (#29313) by @matejminar
+- feat(consumer): Add batch timeout for offset commit (#29285) by @ahmedetefy
+- fix: Use counters instead of gauges (#29291) by @loewenheim
+- feat(ui): Add related issues to crash rate alerts (#29283) by @matejminar
+- type comparisonDelta can be null in saved incidents (#29308) by @taylangocmen
+- fix(cmp_alerts): Set type when comparison delta default value when null or undefined (#29306) by @taylangocmen
+- ref(misc): Fix copy and formatting (#29304) by @ceorourke
+- feat(workflow): Adding 'this week' totals, dynamic average, and merging into one query (#29301) by @iProgramStuff
+- ref(teams): Alert team filter now uses team slug instead of team name (#29296) by @davidenwang
+- feat(cmp_alerts): Show change alert status in the metric alert builder chart (#29201) by @taylangocmen
+- ref(tests) Move tests for withTags() HOC off of enzyme (#29300) by @markstory
+- feat(metric-alerts): Fire webhook to Alert Rule UI Component trigger action (#29298) by @NisanthanNanthakumar
+-  ref(Alert Rules): Only pass inputChannelId for Slack (#29295) by @ceorourke
+- fix(migration) Fix exception in data migration 0233 (#29271) by @evanh
+- dev: Add pyright as a pre-commit hook (#29280) by @ahmedetefy
+- fix(deletions) Fix blocked organization integration deletions (#29269) by @markstory
+- ref(releasehealth): Implement get_num_sessions_per_project on metrics backend [INGEST-249] (#29208) by @RaduW
+- ref(ui): Refactor releases adoption request (#29253) by @matejminar
+- feat: Move events in the wrong queue to the right one [NATIVE-203] (#29207) by @loewenheim
+- ref(ui): Rename project session request (#29254) by @matejminar
+- ref(ui): Rename release health request (#29255) by @matejminar
+- test: Update flakey releaes snapshot (#29281) by @matejminar
+- ref(ui): Replace releaseDetailsRequest with SessionsRequest (#29252) by @matejminar
+- feat(ui): Format alert incident tooltip (#29257) by @matejminar
+- ref(ui): Remove legacy release details codepaths (#29150) by @matejminar
+- ref(stores): Make ProjectsStore useLegacyStore compatible (#29247) by @evanpurkhiser
+- ref(js): Swap withConfig HoC to useLegacyStore(ConfigStore) (#29277) by @evanpurkhiser
+- ref(release): Use bulk insert for CommitFileChange in set_commits (#29256) by @beezz
+- ref(ui): Convert metric rule create to functional component (#29274) by @davidenwang
+- feat(alert-rules): Add validation for schema fields attached to alert rules (#29226) by @leeandher
+- fix(ui): Update localstorage when project is deleted (#29104) by @mikellykels
+- feat(metric-alerts): Create/update Alert Rule UI Components (#29236) by @NisanthanNanthakumar
+- fix(ui): Disable scroll hijack with cursor over zoomable charts (#29234) by @scttcper
+- chore(suspect-spans): Add metric for span grouping calculation (#29266) by @Zylphrex
+- ref(teams): Switch TeamCrumb to utilize useTeams (#29242) by @davidenwang
+- feat(workflow): Add team label to team insights dropdown (#29243) by @scttcper
+- ref(js): Small condition refactor (guards) in EditableText (#29267) by @evanpurkhiser
+- ref(js): Make SidebarPanelStore useLegacyStore compatible (#29268) by @evanpurkhiser
+- feat(activity): Disable note input when no text is entered (#29264) by @evanpurkhiser
+- fix(test): Fix flaky test for useTeams (#29214) by @davidenwang
+- ref(js): Convert ActivityNote to a functional component (#29250) by @evanpurkhiser
+- fix(authenticator):  Allow superusers to override 2fa-required org removal (#29089) by @maxiuyuan
+- ref(stores): Rename OrganizationActions.{fetchOrg -> reset} (#29246) by @evanpurkhiser
+- fix(ui): Handle Adoption Stage if project slug invalid (#29227) by @mikellykels
+- feat(snql): Add support for array combinator in snql (#29047) by @Zylphrex
+- fix(ui): Release comparison performance view for smaller screens (#29228) by @mikellykels
+- feat(discover): Beta Badges on Add to Dashboard buttons (#29262) by @edwardgou-sentry
+- feat(cmp_alerts): Return current and comparison count from stats api, instead of percent (#29245) by @wedamija
+- feat(workflow): 'Team' Release Count API (#28836) by @iProgramStuff
+- ref(js): useLegacyStore for DemoHeader sidebar collapsed (#29251) by @evanpurkhiser
+- feat(dev): On Apple arm64 install hosted confluent-kafka wheel (#29013) by @armenzg
+- fix(discover): Check yAxis list contains equation functions when adding widget from discover (#29153) by @edwardgou-sentry
+- fix(ui) Fix issue stats chart colours in dark mode (#29162) by @markstory
+- fix(tests) Add a sleep to /issues test (#29259) by @evanh
+- fix(metrics): Fix some bugs in metrics-based release health [INGEST-249] (#29233) by @jjbayer
+- ref(ui): Refactor sessions existence checks (#29205) by @matejminar
+- fix(ui): Block quote was ugly af (#29249) by @evanpurkhiser
+- style(webpack): Don't use flag style comments for blocks (#29238) by @evanpurkhiser
+- ref(js): Use localeCompare for sort in projectsStore#getAll (#29244) by @evanpurkhiser
+- feat(jobs): Come struggle at react code with us (#29241) by @evanpurkhiser
+- ref(js): Remove unused react-keydown (#29240) by @evanpurkhiser
+- ref(js): Convert a number of withApi's -> useApi's (#29239) by @evanpurkhiser
+- ref(slack): Indicate recipient in referrer (#29235) by @ceorourke
+- fix(activity): check that user exists when seeing if we can edit comment (#29156) by @JoshFerge
+- feat(alert-rule): Render Alert Rule UI Component in Metric Alerts (#29103) by @NisanthanNanthakumar
+- fix(ui): install docs line height (#28998) by @vuluongj20
+- feat(workflow): Collapse team misery on more than 8 results (#29199) by @scttcper
+- fix(itunes): sms auth [NATIVE-265] (#28987) by @flub
+- fix(appstore): Not all pages have includes (#28721) by @flub
+- feat(symbolicator): Add a backoff timer when projects move in/out of the LPQ (#29100) by @relaxolotl
+- feat(notifications): Format Crash Rate alert notifications [WOR-1412] (#29107) by @ahmedetefy
+- ref(releasehealth): Implement get_project_sessions_count on metrics backend [INGEST-249] (#29148) by @RaduW
+- fix(ui): Do not show threshold type on session alerts (#29206) by @matejminar
+- ref(ui): Refactor triggers chart to use SessionsRequest (#29204) by @matejminar
+- feat(growth): Adding targeted upsell modal experiment (#29222) by @Neo-Zhixing
+- ref(sentry-metrics): Add basic caching layer to indexer (#29115) by @MeredithAnya
+- ref(sentry apps): Remove Zepel (#29218) by @ceorourke
+- ref(symbolicator): Add tests for LPQ tasks (#29088) by @relaxolotl
+- fix(scim): fix error when member on team doesnt exist (#29217) by @JoshFerge
+- fix(workflow): Fix issues reviewed when switching teams (#29200) by @scttcper
+- feat(discover): enable multi y axis for previous period view (#28951) by @edwardgou-sentry
+- feat(discover): Previous period on charts (#29211) by @shruthilayaj
+- fix(snql): Orderby duplicate column should work (#29121) by @Zylphrex
+- chore(performance): Drop legacy key transactions table (#29074) by @Zylphrex
+- ref(vsts): Shadow deprecate VSTS plugin (#29202) by @leeandher
+- feat(sentry apps): Add TaskCall to integration directory (#29164) by @ceorourke
+- feat(post-process-forwarder) Add header for transaction processing (#28908) by @nikhars
+- feat(workflow) rate limit ProjectKeyStats endpoint (#29210) by @vladkluev
+- fix(ui) Improve Darkmode for ownership assignments (#29161) by @markstory
+- fix(api): Cast all api log values to string (#29213) by @AniketDas-Tekky
+- fix: Return correct data in get_*_for_project methods (#29037) by @loewenheim
+- feat(internal-metrics): Add gauge support (#29091) by @relaxolotl
+- ref(js): useTheme in DropdownLink (#29176) by @evanpurkhiser
+- ref(js): Convert VitalChart to a functional component (#29168) by @evanpurkhiser
+- ref(js): useTheme in BaseChart (#29175) by @evanpurkhiser
+- ref(js): Convert performance/trends/chart to a functional component (#29172) by @evanpurkhiser
+- ref(js): Convert CommandPalette to a functional component (#29174) by @evanpurkhiser
+- ref(js): Convert RulesPanel to a functional component (#29197) by @evanpurkhiser
+- ref(js): useTheme in doc-ui components (#29198) by @evanpurkhiser
+- ref(js): Convert performance/charts/Chart to a functional component (#29171) by @evanpurkhiser
+- ref(js): Convert DurationChart to functional component (#29166) by @evanpurkhiser
+- ref(js): Convert TrendChart to functional component (#29165) by @evanpurkhiser
+- ref(js): useTheme in the other IntegrationStatus (#29185) by @evanpurkhiser
+- ref(js): Convert VitalsChart to a functional component (#29163) by @evanpurkhiser
+- ref(js): useTheme in ActivityPlaceholder (#29182) by @evanpurkhiser
+- ref(js): useTheme for TransactionRuleModal (#29195) by @evanpurkhiser
+- ref(js): useTheme in HelpSearchModal (#29178) by @evanpurkhiser
+- ref(js): useTheme for customRepositories/Status (#29196) by @evanpurkhiser
+- ref(js): use{Api,Theme} for ReleaseEventsChart (#29193) by @evanpurkhiser
+- ref(js): useTheme for ReleaseComparisonChart (#29192) by @evanpurkhiser
+- ref(js): useTheme for SelectControl (#29191) by @evanpurkhiser
+- ref(js): useTheme for projectsDashboard/Chart (#29190) by @evanpurkhiser
+- ref(js): useTheme in ProjectBaseSessionsChart (#29189) by @evanpurkhiser
+- ref(js): use{Api,Theme} in SidebarCharts (#29188) by @evanpurkhiser
+- ref(js): useTheme in DurationPercentileChart (#29187) by @evanpurkhiser
+- ref(js): useTheme in HistogramChart (#29186) by @evanpurkhiser
+- ref(js): useTheme in IntegrationStatus (#29184) by @evanpurkhiser
+- ref(js): useTheme in MetricWidgetChart (#29183) by @evanpurkhiser
+- ref(js): useTheme in SvgIcon (#29181) by @evanpurkhiser
+- ref(js): useTheme in IconBusiness (#29180) by @evanpurkhiser
+- ref(js): useTheme in ProgressHeader (#29179) by @evanpurkhiser
+- ref(js): useTheme in FeatureBadge (#29177) by @evanpurkhiser
+- ref(js): Convert HealthStatsChart to a functional component (#29173) by @evanpurkhiser
+- ref(js): Remove unused withTheme from TagsDisplay (#29170) by @evanpurkhiser
+- ref(js): Remove unused withTheme from TagsHeatMap (#29169) by @evanpurkhiser
+- ref(js): useTheme for ReleaseAdoption (#29194) by @evanpurkhiser
+- feat(workflow): Add ratelimit to project stats endpoint (#29160) by @scttcper
+- ref(integrations): `sync` helper (#29158) by @mgaeta
+- fix(dev): Install Python 3.6.x with --patch on Big Sur (#29149) by @armenzg
+- ref(Slack): Allow users to enter a channel ID for alert rules on the front end (#29125) by @ceorourke
+- fix(deletion) Fix another failing organization (#29035) by @markstory
+- fix(ui): Revert change to disabled button tooltip (#29139) by @scttcper
+- feat(discover): Added analytics to track widget visualization changes (#29126) by @edwardgou-sentry
+- fix(discover): fixed discover chart component forced to area on all multi series charts (#29075) by @edwardgou-sentry
+- feat(discover): Sort Add to Dashboard dashboards by My Dashboards (#29110) by @edwardgou-sentry
+- feat(dashboards): Add Aggregate Equations to y-axis (#29087) by @shruthilayaj
+- fix(discover): Pass referrer to bulk query (#29132) by @wmak
+- ref(models): Split up Models and Managers (#29114) by @mgaeta
+- fix(ui): Fix incomplete list of member's teams (#29134) by @davidenwang
+-  ref(clubhouse): Shadow deprecate clubhouse plugin (#29082) by @leeandher
+- fix(snql): Array join is not an aggregate (#29120) by @Zylphrex
+- fix(chart-unfurls): Fix unfurls with top events (#29119) by @shruthilayaj
+- fix(appconnect): Improve unauthorized handling (#29108) by @flub
+- ref(js): useLegacyStore for SystemAlerts (#29140) by @evanpurkhiser
+- Revert "ref(js): Properly type hooks in HookStore (#29141)" (#29147) by @evanpurkhiser
+- apply cr feedback (#29077) by @priscilawebdev
+- ref(js): Move logic for modal closing on browser history to a hook (#29146) by @evanpurkhiser
+- ref(ts): Fix discrepency on ModalActions.openModal (#29145) by @evanpurkhiser
+- ref(ts): Adjust how Modal{Options,RenderProps} are imported (#29144) by @evanpurkhiser
+- ref(js): Correct useEffect dependencies in AppRoot (#29143) by @evanpurkhiser
+- style(js): setHaspasswordAuth -> setHasPasswordAuth (#29142) by @evanpurkhiser
+- ref(js): useLegacyStore for config in ThemeAndStyleProvider (#29137) by @evanpurkhiser
+- ref(js): useLegacyStore for config in App (#29136) by @evanpurkhiser
+- ref(js): Properly type hooks in HookStore (#29141) by @evanpurkhiser
+- ref(js): useLegacyStore for config in AppRoot (#29138) by @evanpurkhiser
+- ref(ts): Introduce CommonStoreInterface for useLegacyStore (#29131) by @evanpurkhiser
+- fix(teams): useTeams now correctly sets initiallyLoaded (#29133) by @davidenwang
+- fix(workflow): Adjust insights padding, wrap controls on mobile (#29130) by @scttcper
+- ref(integration): Split Tasks into Files (#28888) by @mgaeta
+- ref(js): Consistent naming for storeConfig objects (#29129) by @evanpurkhiser
+- feat(workflow): Add team issues and time to resolution (#29095) by @scttcper
+- feat(idp-migration): redirection for account confirmation link (#29003) by @maxiuyuan
+- ref(js): Convert Indicators to a function component (#29062) by @evanpurkhiser
+- ref(ts): Store type definition consistency (#29097) by @evanpurkhiser
+- style(js): Move components to the end of ToastIndicators file (#29122) by @evanpurkhiser
+- ref(discover): Reduce the cardinality of this error (#29112) by @wmak
+- ref(js): Minor cleanup in dropdownAutoComplete/menu (#29123) by @evanpurkhiser
+- ref(discover): Tagging when the viewed dashboard is prebuilt or not (#29124) by @wmak
+- feat(ui): Add searchbar to team settings (#29098) by @davidenwang
+- fix(ui): Revert change to disabled button tooltips (#29085) by @scttcper
+- feat(js): adds id for sidebar item (#29113) by @scefali
+- py38: upgrade boto3 (#28693) by @joshuarli
+- feat(discover): Allow custom topEvents in chartcuterie (#29056) by @wmak
+- feat(dashboards): Re-introduce lazy-loading (#29060) by @wmak
+- build(ci): Fix `check migration` job (#29118) by @billyvg
+- feat(comparison_alerts): Change alert threshold selector in metric alerts (#29027) by @taylangocmen
+- devenv: allow for python 3.8, and prepare CI configuration for dual 3.6/3.8 (#29058) by @joshuarli
+- fix(ui) Add id attributes to org create form (#29111) by @markstory
+- ref(lint): Fix typos (#29102) by @mgaeta
+- ref(slack): Utils Directory (#28781) by @mgaeta
+- ref(teamwork): Shadow deprecate teamwork plugin (#29052) by @leeandher
+- ref(discover): Run the top-events queries in parallel (#29055) by @wmak
+- feat(discover): Add beta feature badge to limit (#29050) by @wmak
+- feat(discover-snql): Use the snql query builder for events-meta (#29096) by @wmak
+- remove client discards from totals on orgstats projects (#29079) by @JoshFerge
+- ref(discover): Change the colour of the others series to gray (#28929) by @wmak
+- fix(discover): Update the top-5 label regardless of flag (#29093) by @wmak
+- feat(suspect-spans): Change ingestion to project scope flag (#29076) by @Zylphrex
+- fix: Remove clone annotations during function trimming (NATIVE-110) (#29105) by @Swatinem
+- ref(releasehealth): Implement get_project_releases_count on metrics backend [INGEST-249] (#29044) by @RaduW
+- feat(metrics): Build sessions_v2 with metrics [INGEST-249] (#28870) by @jjbayer
+- feat(ui): Remove session alert 30m window (#29070) by @matejminar
+- ref(releasehealth): Refactor session count calculation before implementing the metrics backend (#29078) by @RaduW
+- feat(ui): Conditionally display filter on session alert (#29073) by @matejminar
+- feat(ui): Distinguish sessions/users in alert summary heading (#29072) by @matejminar
+- feat(ui): Scale alert rule chart (#29069) by @matejminar
+- feat(ui): Remove discover button from session alerts (#29071) by @matejminar
+- fix(ui): Add empty dependency array to useLegacyStore (#29086) by @davidenwang
+- ref(ts): Remove unused `validHookNames` (#29094) by @evanpurkhiser
+- feat(ui-components): Get Alert Rule UI Components in Metric Alerts (#29008) by @NisanthanNanthakumar
+- feat(team): Allow useTeams to provide user teams or teams by slug (#28970) by @davidenwang
+- ref(sentry-metrics): Add MetricsKeyIndexer table  (#28914) by @MeredithAnya
+- feat(release-comparison): Add performance section on release details (#28948) by @mikellykels
+- fix(symbolicator): Correctly start tasks asynchronously (#29048) by @relaxolotl
+- feat(snql): Support array_join in snql (#29019) by @Zylphrex
+- feat(discover): discover add to dashboard button uses y axis from query (#29046) by @edwardgou-sentry
+- ref(utils): Split `email` utils into files (#28614) by @mgaeta
+- ref(releasehealth): Rewrite get_release_health_data_overview to run on metrics [INGEST-249] (#28892) by @untitaker
+- feat(discover): multi y axis support for discover landing page query previews (#29016) by @edwardgou-sentry
+- fix(discover): fixed cell actions dropping multi y axis (#29051) by @edwardgou-sentry
+- fix(ui): Firefox font smoothing (#29020) by @vuluongj20
+- fix(workflow): Inactive alerts should not have a red arrow (#29054) by @scttcper
+- feat(snql): Support limit by clause (#28746) by @Zylphrex
+- chore(performance): Remove legacy key transactions (#29015) by @Zylphrex
+- feat: Query realtime_metrics for low priority selection [NATIVE-203] (#28950) by @loewenheim
+- fix(reprocessing2): Import celery module correctly (#29066) by @untitaker
+- ref(perf): Update AuthIdentity in smaller chunks (#29067) by @beezz
+- fix(ui): Format alert rule details chart axis and value (#29036) by @matejminar
+- feat(ui): Add session chart to alert rule details page (#29034) by @matejminar
+- ref(js): Convert PipelineView to a functional component (#28978) by @evanpurkhiser
+- feat(workflow): Issue Status Breakdown API (#28979) by @iProgramStuff
+- ref(workflow): Alerts Triggered start/end improvement and dict key cleanup (#28981) by @iProgramStuff
+- fix(discover): Add a default for count_unique (#28952) by @shruthilayaj
+- chore(dashboards): Add a comment explaining widget limit (#29053) by @shruthilayaj
+- ref(ui) Update more deprecated forms including ones in manage (#28991) by @markstory
+- fix(growth): Create sample event btn redirect with project id (#29049) by @Neo-Zhixing
+- feat(growth): Alert Bar on issue page for sample events (#28864) by @Neo-Zhixing
+- fix(ui): Merged Issues fill color in dark mode (#28966) by @vuluongj20
+- ref(debug-files): Buffer updates to reprocessing revision project option (#29041) by @beezz
+- feat(releases): Clear the commits associated to a release (#28831) by @NisanthanNanthakumar
+- feat(alert-rules): Append new alert rule payload for issue alerts w/ ui components (#28764) by @leeandher
+- feat(discover): Allow saving queries with topEvents (#28927) by @wmak
+- feat(discover): Allow more options for the topEvents (#28926) by @wmak
+- feat(workflow): Group team alerts triggered by week (WOR-1407) (#29026) by @scttcper
+- feat(integrations): Make `sync_status_inbound` a Task (#28906) by @mgaeta
+- feat(notifications): Parsed Versions (#28971) by @mgaeta
+- feat(dashboards): Add max widget limit (#28917) by @shruthilayaj
+- fix(discover): Actually set referrer on event-stats (#28962) by @wmak
+- Revert "fix: Erroneous apply_async call (#29032)" (#29038) by @tonyo
+- build: Fix defining env var for webpack (#29030) by @billyvg
+- Feat(metrics): Crash free breakdown on metrics backend [INGEST-249] (#28945) by @jjbayer
+- fix: Erroneous apply_async call (#29032) by @loewenheim
+- feat(cmp_alerts): Support `comparisonDelta` parameter in `OrganizationEventsStatsEndpoint` (#29028) by @wedamija
+- feat(cmp_alerts): Allow `timeseries_query` to make comparison queries (#29018) by @wedamija
+- ref(ui): Prepare alert metricsChart for sessions (#28992) by @matejminar
+- feat(alerts): Adds Crash Rate Alerts to Metric Alerts (#28526) by @ahmedetefy
+- ci: Add native as code owners to LPQ-related files (#28972) by @relaxolotl
+- ref(typing): Typing for the low priority symbolication queue (#29017) by @flub
+- feat(symbolicator): Automatically add and remove projects to the LPQ based on their historical perf (#28714) by @relaxolotl
+- feat(symbolicator): Add the ability to manipulate the automatic killswitch for the LPQ (#28757) by @relaxolotl
+- fix(discover): Fix a bug with top events and issues (#28961) by @wmak
+- feat(workflow): Sort group tags alphabetically (#29005) by @scttcper
+- feat(alert-rules): Properly save alert rules with UI components (#28659) by @leeandher
+- feat(post-process-forwarder) Different errors and transaction forwarders (#28954) by @nikhars
+- ref(integrations): Don't fetch done statuses twice (#28884) by @mgaeta
+- feat(team-insights): Update team selector to use TeamSelector (#28989) by @mikellykels
+- ref(select): Choices -> options accountNotificationFineTuning (#28810) by @davidenwang
+- chore(api): Add type hinting to organization events and organization events stats (#29006) by @wedamija
+- feat(workflow): Handle insights users with zero projects/teams (#28923) by @scttcper
+- feat(workflow): Time To Resolution API (#28910) by @iProgramStuff
+- feat(dynamic-sampling): Add autocomplete - INGEST-434 (#28947) by @priscilawebdev
+- fix: take lpq into account when determining from_reprocessing (#29009) by @loewenheim
+- ref(ui): Remove LightWeightNoProjectMessage (#28988) by @matejminar
+- feat(appconnect): Some metrics about project refreshes (#28990) by @flub
+- fix(symbolSources): Deal better with missing hidden secrets (#28996) by @flub
+- ref(js): Mark exports in sentryTypes as deprecated (#28976) by @evanpurkhiser
+- ref(js): Improve app boot ordering (#28980) by @evanpurkhiser
+- perf(ui): Prevent unnecessary endpoint requests (#28924) by @NisanthanNanthakumar
+- fix(codeowners): Return missing member's email (#28907) by @NisanthanNanthakumar
+- docs(js): Add README explaining how the app boots (#28982) by @evanpurkhiser
+- feat(auth): Add copy for account-linking verification (#28931) by @RyanSkonnord
+- fix(deletions) Improve AlertRule deletions (#28999) by @markstory
+- fix(post_process_group): Fix bug where `has_reappared` can be undefined (#29004) by @wedamija
+- fix(workflow): Update triggered alerts copy (#28965) by @scttcper
+- build(deps): bump fork-ts-checker-webpack-plugin from 6.2.12 to 6.3.3 (#28394) by @dependabot
+- feat(ui): Storybook Changelog page (#28995) by @vuluongj20
+- build(ui): Upgrade size-limit to v5 (#28974) by @scttcper
+- feat(idp-migration): Verified one-time-key and stored key in django sessions (#28775) by @maxiuyuan
+- fix(growth): Change sample transaction button text (#28997) by @Neo-Zhixing
+- ref(js): Rewrite ThemeAndStyleProvider as a functional component (#28977) by @evanpurkhiser
+- fix(issue_alerts): Fix bug in event_attribute where we use the wrong attribute for message search (#28967) by @wedamija
+- ref(releasehealth): Implement get_oldest_health_data_for_releases on metrics backend [INGEST-249] (#28943) by @RaduW
+- ref(tasks): Safeguard post_process_group with try/except (#28986) by @ahmedetefy
+- fix(ui): Fix alerts supported search tags (#28985) by @matejminar
+- perf(js): Avoid rebuilding routes w/ memoization (#28975) by @evanpurkhiser
+- ref(js): Minor cleanup to InstallWizard (#28968) by @evanpurkhiser
+- ref(ts): Add some missing typing (#28983) by @evanpurkhiser
+- fix(semver): Set semver cols on pre_save (#28946) by @ahmedetefy
+- feat(ui): Add 30 minutes window to crash rate alerts (#28938) by @matejminar
+- fix(ui): Refetch alert chart total when project changes (#28940) by @matejminar
+- build(sdk): Bump Python SDK to 1.4.3 (#28984) by @mitsuhiko
+- ref(js): Convert App to a functional component (#28936) by @evanpurkhiser
+- ref(js): Fix link to projects install from settings (#28969) by @evanpurkhiser
+- ref(js): Replace react-keydown with react-hotkeys-hook (#28933) by @evanpurkhiser
+- test(ui): Convert checkbox fancy to RTL (#28959) by @scttcper
+- fix(deletion) Fix snuba query deletion problem (#28953) by @markstory
+- fix(slack): Unlink Identity (#28811) by @mgaeta
+- ref(js): Remove context usage from monitors (#28935) by @evanpurkhiser
+- feat(team-store): Support user teams state in TeamStore (#28957) by @davidenwang
+- feat(ui): Move to Roboto Mono (#28956) by @vuluongj20
+- feat(workflow): Team alerts triggered graph (#28845) by @scttcper
+- ref(slack): Clean up tests (#28846) by @mgaeta
+- fix(integrations): User is None (#28955) by @mgaeta
+- feat(post-process-forwarder) Functioning batching batching_kafka_consumer (#28801) by @nikhars
+- ref(integrations): f-strings (#28887) by @mgaeta
+- feat(workflow): GroupHistory model (#28691) by @iProgramStuff
+- feat(docs) Add docs for deletions subsystem (#28915) by @markstory
+- ref(deletion) Remove unused deletion tasks (#28799) by @markstory
+- ref(db): Explicitly use replica for platform stats task (#28897) by @beezz
+- Revert "ref(sdk): Testing default idleTimeout (#28868)" (#28949) by @k-fish
+- fix(integrations): Integration ID TypeError (#28916) by @mgaeta
+- fix(ui): Force refresh projects/teams on project creation (#28886) by @scttcper
+- test(ui): Convert clipboard tooltip component to RTL (#28930) by @scttcper
+- feat(workflow): Team Alerts Triggered API (#28816) by @iProgramStuff
+- test(alert-rules): Add a barebones spec test for the RuleNode component (#28834) by @leeandher
+- ref(integrations): Move functions to Model Managers (#28885) by @mgaeta
+- ref(snql) Add a migration to recreate subscriptions in SnQL (#28835) by @evanh
+- feat(perf): Generic landing widgets (all transactions tab) (#28861) by @k-fish
+- feat(ci): python-deps workflow to install specific packages (#28901) by @armenzg
+- ref: Bump symbolic version (#28911) by @relaxolotl
+- ref(sdk): Testing default idleTimeout (#28868) by @k-fish
+- ref(releasehealth): Implement get_changed_project_release_model_adoptions on metrics backend [INGEST-249] (#28895) by @RaduW
+- fix: Properly export increment_project_duration_counter (#28941) by @loewenheim
+- feat(ui): Scale the alert creation chart (#28896) by @matejminar
+- fix(interface-breadcrumb): Disable linked events (#28939) by @priscilawebdev
+- feat(interface-breadcrumb): Add breadcrumb eventlink (#28889) by @priscilawebdev
+- ref(js): Remove unused location context (#28928) by @evanpurkhiser
+- ref(js): Wrap all route names in translations (#28934) by @evanpurkhiser
+- ref(js): Convert AppRoot to a functional component (#28925) by @evanpurkhiser
+- ref(hooks): Remove routes:organization-root hook (#28913) by @evanpurkhiser
+- ref(js): Remove keydown usage in PlatformPicker (#28932) by @evanpurkhiser
+- ref(js): Convert OrganizationDetails* to functional components (#28921) by @evanpurkhiser
+- ref(routes): Fix legacy /:orgId redirects (#28918) by @evanpurkhiser
+- feat(comparison_alerts): Change alert condition selector for issue alerts (#28733) by @taylangocmen
+- feat(suspect-spans): Add group hashes to spans (#28184) by @Zylphrex
+- feat(ui): Teams render props component (#28909) by @davidenwang
+- ref(discover): Update timeout message to include transaction (#28883) by @wmak
+- feat(discover): allow up to 10 top events (#28862) by @wmak
+- fix(ui): Trace navigator nodes with errors misaligned (#28903) by @Zylphrex
+- ref(js): Convert DashboardsV2Container to a functional component (#28873) by @evanpurkhiser
+- style(routes): Organize frontend routes.tsx (#28875) by @evanpurkhiser
+- feat(idp-migrations): one-time account validation keys (#28732) by @maxiuyuan
+- fix(dashboards): skip renderTag when data.value is undefined (#28899) by @edwardgou-sentry
+- ref(api-logging): Added user agent to api logging (#28881) by @AniketDas-Tekky
+- fix(ui): made event issue look like a link (#28880) by @robinrendle
+- fix(interface-breadcrumb): Fix missing html element for grid (#28904) by @priscilawebdev
+- ref(ui) Update org create to new form library (#28773) by @markstory
+- fix(discover): only disable y axis checkbox if at maximum selected (#28877) by @edwardgou-sentry
+- fix(dependencies): Add typing_extensions as dependency (#28894) by @untitaker
+- fix(breadcrumbs): Fix missing html element in the grid (#28900) by @priscilawebdev
+- feat: Add metric for durations of symbolicate_event requests [NATIVE-185] (#28791) by @loewenheim
+- ref(sessions): Remove unused get_adjacent_releases_based_on_adoption (#28860) by @ahmedetefy
+- feat: Add metric for the rate of symbolicate_event requests [NATIVE-185] (#28565) by @loewenheim
+- fix(typing): Fix typing in master (#28893) by @untitaker
+- fix(metrics): Tag reprocessing in time_to_process metric (#28891) by @untitaker
+- ref(releasehealth): Implement get_release_sessions_time_bounds in metrics backend [INGEST-249] (#28824) by @untitaker
+- fix(metrics): Remove UseCase from indexer calls (#28890) by @jjbayer
+- fix(ui): Fix alert threshold validation (#28857) by @matejminar
+- feat(ui): Format alert session chart percentage (#28856) by @matejminar
+- feat(ui): Do not show event type filter on sessions alert page (#28855) by @matejminar
+- feat(js): Handle in_app detection for webpack namespace output (#28859) by @kamilogorek
+- ref(test): Conver avatar.spec to RTL (#28852) by @priscilawebdev
+- chore: update cbtemulator image source (#28872) by @joshuarli
+- style(js): Spacing between conditions (#28874) by @evanpurkhiser
+- fix(semver): Fix bug when negating a semver build filter (#28882) by @wedamija
+- fix(discover): Allow invalid rollups (#28778) by @wmak
+- feat(discover): Add referrers to the events-stats endpoint (#28848) by @wmak
+- ref(discover): Add a deprecated list to discover (#28830) by @wmak
+- feat(ui): Use tabular figures in tables and charts (#28871) by @vuluongj20
+- fix(ui): LayoutTitle is now a h1 (#28876) by @robinrendle
+- ref(js): Simplify performance routes (#28869) by @evanpurkhiser
+- ref(js): Remove LightWeightOrganization type (#28838) by @evanpurkhiser
+- fix(workflow): Remove color from 0% change in team user misery (#28865) by @scttcper
+- fix(discover): saved queries without y axis default to count() when comparing for changes (#28863) by @edwardgou-sentry
+- ref(routes): Remove SettingsProjectProvider (#28842) by @evanpurkhiser
+- fix(api-logging): leverage getattrs to reduce errors (#28866) by @AniketDas-Tekky
+- ref(api-logging): Added several more metrics (#28844) by @AniketDas-Tekky
+- feat(workflow): Switch project reports date range to weeks (#28847) by @scttcper
+- ref(ui) Convert Saved Issue Search to new forms (#28839) by @markstory
+- (sentry-metrics): Metrics indexer consumer (#28431) by @MeredithAnya
+- ref(discover): Introduce some order to discover columns (#28832) by @wmak
+- feat(ui) Add a checkbox field to new forms (#28809) by @markstory
+- (discover): Remove user id from url query params (#28840) by @shruthilayaj
+- ref(release_health): Rename module to be consistent with function name conventions (#28829) by @untitaker
+- ref(breadcrumbs): Rename breadcrumbs types (#28853) by @priscilawebdev
+- feat(deletions) Move organizationintegration deletes to ScheduledDeletion (#28803) by @markstory
+- fix(semver): Backfill missed semver releases (#28798) by @ahmedetefy
+- feat(ui): Add session chart to alert creation page (#28826) by @matejminar
+- ref(releasehealth): Implement check_releases_have_health_data on metrics backend [INGEST-249]  (#28823) by @RaduW
+- ref(select): Remove useState in teamSelector (#28738) by @davidenwang
+- ref(js): Remove heavyweight organization (#28783) by @evanpurkhiser
+- feat(comparison_alerts): Update subscription processor to perform comparison alerts (#28814) by @wedamija
+- feat(comparison_alerts): Update issue alert api to support comparison values (#28661) by @wedamija
+- feat(ui): Storybook DocsLinks (#28786) by @vuluongj20
+- fix(cdc_search): Fix bug with groups that have no users when sorting by unique users (#28618) by @wedamija
+- fix: safe_urlencode (#28812) by @joshuarli
+- chore(analytics): Add some analytics around chart unfurls (#28807) by @shruthilayaj
+-  fix(alert-rules): Force the RuleNode select values to be strings (#28828) by @leeandher
+- feat(dashboards): Add top n events support (#28734) by @shruthilayaj
+- feat(perf): Add tables to all tabs in landing v3 (#28806) by @k-fish
+- fix(python3): Remove itertools.ifilter use (#28822) by @beezz
+- ref(releasehealth): Implement check_has_health_data on metrics backend [INGEST-249] (#28729) by @RaduW
+- ref(ui) Convert newsletter form to new form components (#28785) by @markstory
+- fix(release-archives): Do not attempt to cache large ZIP files  (#28818) by @jjbayer
+- feat(release-archives): Max. archive size option for disk caching (#28821) by @jjbayer
+- fix(dynamic-sampling): Fix minor bugs on mobile (#28820) by @priscilawebdev
+- fix(dynamic-sampling): Fix sampling rule not remembering  trace flag - INGEST-411 (#28795) by @priscilawebdev
+- fix(semver): Fix failed semver search in issue search/discover when negative search returns too many results (#28813) by @wedamija
+- feat(comparison_alerts): Translate delta percents into comparison percents in the api layer. (#28787) by @wedamija
+- ref(select): Choices -> options monitorForm (#28755) by @davidenwang
+- ref(select): Choices -> options integrationListDirectory (#28756) by @davidenwang
+- fix(test): Preserve default feature flag values when patching in tests (#28686) by @RyanSkonnord
+- fix(alert-rules): Set the correct default value for new SelectControl (#28804) by @leeandher
+- feat(perf): Add page error context (#28805) by @k-fish
+- feat(workflow): Save selected insights team in localstorage (#28774) by @scttcper
+- chore(chart-unfurl): Revert Project permissions warning (#28802) by @shruthilayaj
+- feat(auth): Stub for automatically migrating to new SSO provider (#28621) by @RyanSkonnord
+- test: Fix setup in test_flow_authenticated_without_verified_without_password (#28784) by @RyanSkonnord
+- fix(semver): Handle NOT operator for releases list (#28713) by @mikellykels
+- fix(ui): Remove % from failure rate alert threshold (#28800) by @matejminar
+- fix(discover): Fix a colour mismatch issue with other results (#28736) by @wmak
+- fix(workflow): Add alpha badge to project reports, add title (#28770) by @scttcper
+- fix(discover): Handle field aliases with others correctly (#28751) by @wmak
+- fix(features): Skip the entity handler after batch checking (#28611) by @wmak
+- fix(webhook): Weird JSON array (#28545) by @mgaeta
+- Revert "ref(deletion) Remove unused deletion tasks (#28463)" (b8003f29) by @getsentry-bot
+- feat(snql): Use aliased expression instead of function hack (#28740) by @Zylphrex
+- ref(deletion) Remove unused deletion tasks (#28463) by @markstory
+- feat: Add similarity.index queue (#28793) by @oioki
+- fix(discover): Should reload when payload changes while loading (#28653) by @Zylphrex
+- feat(release-archives): Add spans to fetch_release_archive_for_url (#28790) by @jjbayer
+- feat(alerts): Add project incident aler to proj/issue stream page - NATIVE-216 & NATIVE-217 (#28726) by @priscilawebdev
+- fix(notifications): Include experiment fallback in the serializer (#28772) by @mgaeta
+- fix(codeowners): String split (#28780) by @mgaeta
+- feat(comparison_alerts): Return comparison delta in the metric alert rule apis. (#28711) by @wedamija
+- feat(growth): CTA Performance Upsell in Issue Alert Email (#28752) by @Neo-Zhixing
+- ref(js): Remove organization.projects usage from getOnboardingTasks (#28747) by @evanpurkhiser
+- ref(js): Remove organization.projects from noProjectMessage (#28767) by @evanpurkhiser
+- bug(api): Fix logging so that it shows properly on stackdriver (#28777) by @AniketDas-Tekky
+- fix(workflow): Move insights description on smaller screens (#28776) by @scttcper
+- ref(select): Choices -> options metricSelectField (#28754) by @davidenwang
+- ref(select): Choices -> options metricWidget (#28753) by @davidenwang
+- feat(comparison_alerts): Add `comparison_delta` to metric alerts api. (WOR-1219) (#28707) by @wedamija
+- fix(orgstats): remove client discards from timeseries (#28763) by @JoshFerge
+- feat(alert-rules): Add rule settings modal to alert-rule-actions (#28548) by @leeandher
+- ref(ui): Adjust idleTimeout back to 5000 (#28768) by @k-fish
+- fix(ui): Adjust platform lists for mobile (#28766) by @k-fish
+- fix(discover): Treat spans breakdowns as duration in filter (#28141) by @wmak
+- feat(ui): Storybook – more global components & content for typography page (#28680) by @vuluongj20
+- fix(discover): Escape backslash when matching wildcards (#28372) by @shruthilayaj
+- feat(chart-unfurl): Prompt user to link Slack identity (#28630) by @shruthilayaj
+- ref(api): Initial attempt at api access logging (#28741) by @AniketDas-Tekky
+- feat(discover): Turn tags into external links if they're urls (#28765) by @wmak
+- feat(plugins): Upgradable plugins to SentryApps don't have configurations (#28744) by @NisanthanNanthakumar
+- feat(workflow): Team misery table (#28758) by @scttcper
+- feat(post-process-forwarder) Create batch worker (#28666) by @nikhars
+- fix(api) Don't 500 on invalid broadcast id values (#28760) by @markstory
+- feat(discover): Rename series that match the other series (#28703) by @wmak
+- fix(discover): Handle existing queries correctly for other (#28742) by @wmak
+- feat(workflow): Restyle team insights page with cards (#28749) by @scttcper
+- build(sdk): Update to Python SDK 1.4.1 and enable Client Reports (#28759) by @kamilogorek
+- feat(ui): Add correct filters to crash rate alerts (#28720) by @matejminar
+- feat(ui): Add correct intervals to crash rate alerts (#28717) by @matejminar
+- ref(releasehealth): Implement get_release_adoption with metrics [INGEST-249] (#28725) by @untitaker
+- fix(semver): Populate semver cols when get_or_create is called (#28722) by @ahmedetefy
+- ref(js): Remove usage of organization.projects from SidebarOrgSummary (#28705) by @evanpurkhiser
+- ref(js): Remove organization.projects from MissingProjectMembership (#28750) by @evanpurkhiser
+- ref(notifications): Clean up Team Notifications for Issue Owners (#28624) by @mgaeta
+- test(js): Remove organization.projects from projectSelector.spec (#28748) by @evanpurkhiser
+- ref(js): Add missing type to EventWaitingIndicator (#28743) by @evanpurkhiser
+- ref(kafka): Make batching_kafka_consumer work with existing consumer (#28677) by @nikhars
+- py38: import conversions to collections.abc where applicable (#28432) by @joshuarli
+- py38: cannot set_result more than once (#28700) by @joshuarli
+- ref(js): Remove organization.projects usage in GroupDetails (#28735) by @evanpurkhiser
+- test: stop relying on slash to replace since % is no longer escaped to \\% in python 3.7+ (#28698) by @joshuarli
+- ref(js): Remove organization.projects usage from IntegrationCodeMappings (#28708) by @evanpurkhiser
+- fix: killswitches (#28739) by @joshuarli
+- feat(workflow): Team insights crash free table (#28600) by @scttcper
+- ref(select): Choices -> options RuleNode (#28712) by @davidenwang
+- ref(select): Choices -> options IssueRuleEditor (#28710) by @davidenwang
+- fixing uncaught exception when project is misisng (#28690) by @iProgramStuff
+- fix(ui): Show adoption stats on releases list (#28715) by @mikellykels
+- ref(js): Remove organization.project usage from MonitorForm (#28706) by @evanpurkhiser
+- fix(icon): replaced Clubhouse logo  (#28612) by @robinrendle
+- fix(ui) Stack sidebar panels on top of global-selection (#28728) by @markstory
+-  build(sdk): Lock Python SDK to 1.3.0 (#28727) by @kamilogorek
+- build(sdk): Update to Python SDK 1.14.0 and enable Client Reports (#28671) by @kamilogorek
+- fix(deletions) Fix servicehooks blocking project deletion (#28697) by @markstory
+- fix: Move captured variable before closure (#28627) by @loewenheim
+- feat(ui): Rename project details search placeholder (#28719) by @matejminar
+- fix(intergace-breadcrumbs): Fix data overlap (#28718) by @priscilawebdev
+- fix(interface-crumbs): Fix grid column size on filter (#28687) by @priscilawebdev
+- feat(ui): Crash rate alert creation - part 1 (#28673) by @matejminar
+- ref(js): Refactor OrganizationGeneralSettings (#28704) by @evanpurkhiser
+- ref(js): Remove usage of organization.projects from ReleasesList (#28709) by @evanpurkhiser
+- Fix: recursively match nested folders rule for Flutter grouping (#28669) by @marandaneto
+- ref(ui): Rename RuleConditionsFormForWizard and change legacy choices to options (#28662) by @davidenwang
+- ref(select): Choices -> options SentryAppExternalInstallation (#28619) by @davidenwang
+- ref(select): Choices -> options adminQueue (#28660) by @davidenwang
+- feat(codeowners): CodeOwners header CTA hook (#28602) by @NisanthanNanthakumar
+- fix(plugin): Clubhouse plugin upgrades to Shortcut (#28701) by @NisanthanNanthakumar
+- feat(deploy): Use full commit SHA for Sentry releases (#28688) by @billyvg
+- py38: replace invalid assertRaises kwargs with simpler assertRaisesMessage (#28696) by @joshuarli
+- feat(growth): Sending analytics for admin requests (#28676) by @Neo-Zhixing
+- ref(js): Remove teams list from Organization type (#28692) by @evanpurkhiser
+- meta: Add core-ui as owners of all components (#28682) by @evanpurkhiser
+- fix(notifications): Do not truncate version string (#28695) by @mgaeta
+- fix(js): Make `confirm` prop of SelectField less complex (#28681) by @evanpurkhiser
+- fix(jira): More explicitly excise `itemKey` in `removeRow` (#28664) by @mgaeta
+- fix(slack): Catch bad or expired tokens (#28689) by @mgaeta
+- fix(semver): Fix bug when sorting by unique users on the release page. (#28663) by @wedamija
+- meta: Add prettierignore to stop package.json fights (#28685) by @evanpurkhiser
+- style(js): Fix more "inline" style code-block comments (#28684) by @evanpurkhiser
+- ref(js): Make ParentLabel a functional component (#28683) by @evanpurkhiser
+- ref(ui): Move dashboards nav next to discover (#28678) by @evanpurkhiser
+- feat(comparison_alerts): Add `comparison_delta` field to `AlertRule`. (WOR-1218) (#28665) by @wedamija
+- ref(js): Cleanup notification/utils.tsx (#28679) by @evanpurkhiser
+- ref(js): Remove unused constant (#28640) by @evanpurkhiser
+- feat(discover): multi y axis checkbox dropdown (#28509) by @edwardgou-sentry
+- ref(sdk) Add ThreadingIntegration to sentry_sdk (#28632) by @evanh
+- ref(ui) Convert another batch of components to FCs (#28658) by @markstory
+- ref(interface-breadcrumbs): Apply feedback & fix minor issue (#28674) by @priscilawebdev
+- feat(suspect-spans): Add empty spans tab (#28315) by @Zylphrex
+- allow orgs to modify/delete existing sso regardless of feature flag (#28648) by @scefali
+- ref(interface-breadcrumbs): Make it responsive - INGEST-306 (#28646) by @priscilawebdev
+- build(sdk): Update to JS SDK 6.13.0 (#28670) by @kamilogorek
+- test(metrics): Write all session metrics in test [INGEST-386] (#28667) by @jjbayer
+- ref(appconnect): remove feature flag (NATIVE-241) (#28588) by @flub
+- ref(metrics): Release health service INGEST-376 (#28598) by @jjbayer
+- feat(symbolicator): Check manual low priority queue kill switch when pre-processing events (#28586) by @relaxolotl
+- feat(discover): Allow other to be toggled in discover (#28351) by @wmak
+- fix(ui): Resolved rule status (#28625) by @mikellykels
+- fix(discover): Negate conditions correctly for `other` (#28642) by @wmak
+- feat(comparison_alerts): Modify `BaseEventFrequencyCondition` to be able to perform comparison alerts (#28644) by @wedamija
+- fix(trends): Removed feature check that was breaking ops on trends (#28657) by @k-fish
+- ref(snql) Remove legacy API code (#28631) by @evanh
+- fix(symbolicator): Fix unit tests that were failing due to a missing decorator (#28645) by @relaxolotl
+- chore(performance): Delete is-key-transaction endpoint (#28656) by @Zylphrex
+- chore(api) Reduce spammy queries in ProjectSerializer (#28641) by @markstory
+- feat(snql): Support offsets in event builder (#28635) by @Zylphrex
+- chore(flag): Remove last references to threshold flags (#28650) by @shruthilayaj
+- fix(dashboards): Add y-axis selections to new search filter (#28652) by @shruthilayaj
+- feat: Use semantic versioning for Sentry releases (#28638) by @billyvg
+- chore(integrations): More diagnostic logging for inconsistent sentry apps (#28578) by @leeandher
+- fix(grouping): Hide tree labels for non-mobile/native platforms [INGEST-337] (#28591) by @untitaker
+- feat(ui): Add new session category to the alert wizard (#28590) by @matejminar
+- fix(releases): Create dist in db if necessary [INGEST-240] (#28647) by @jjbayer
+- feat(store): Projects util now updates render-props projects when store emits updates (#28610) by @davidenwang
+- ref(teams): Update teamSelect to use useTeams hook (#28615) by @evanpurkhiser
+- feat(alert-rule): Created an alert rule mediator (#28639) by @AniketDas-Tekky
+- ref(select): Choices -> options AppStoreConnect (#28616) by @davidenwang
+- ref(deletion) Consolidate group deletion and improve logging (#28475) by @markstory
+- fix(deletions) Handle organizations with orphaned commits (#28636) by @markstory
+- chore: upgrade grpcio (#28623) by @joshuarli
+- audit log related stuff for project quotas (#28620) by @maxiuyuan
+- ref(ui): Add performance event view hook (#28572) by @k-fish
+- fix(semver): Fix autocomplete tag functionality to use string prefixes rather than semver cols (#28622) by @wedamija
+- feat(growth): Add default business for all experiment (#28633) by @Neo-Zhixing
+- feat(chart-unfurl): Add multi y-axis for chart unfurl (#28604) by @shruthilayaj
+- chore(performance): Remove legacy key transactions endpoint (#28383) by @Zylphrex
+- feat: Add option for low priority metrics submission rate [NATIVE-185] (#28629) by @loewenheim
+- feat(symbolication): Add symbolication status to project details (NATIVE-209) (#28593) by @flub
+- fix: Type error (#28628) by @loewenheim
+- ref(interface-breadcrumb): Convert main file to func & cleanups (#28594) by @priscilawebdev
+- feat: Add symbolicate_event_low_priority queue and task [NATIVE-184] (#28561) by @loewenheim
+- build(sdk): Update to JS SDK 6.13.0-beta.3 (#28626) by @kamilogorek
+- feat(notification settings): Read team settings issueowners (#28617) by @ceorourke
+- ref(select): Change choices to options in http custom repositories modal (#28557) by @davidenwang
+- fix(deletions) Fix more stuck deletion (#28599) by @markstory
+- style(js): Correct comment on useTeams (#28609) by @evanpurkhiser
+- fix(feature-flag): Lookup `notification-slack-automatic` less often (#28601) by @mgaeta
+- feat(team-selector): Implement useTeams hook for searching (#28547) by @evanpurkhiser
+- fix(snql) Forgot queries are immutable (#28608) by @evanh
+- ref(ui) Improve docs for Form component (#28605) by @markstory
+- chore(cdc_search): Make `sample_rate` configurable in `callback_timing` function (#28583) by @wedamija
+- build(sdk): Update to JS SDK 6.13.0-beta.2 (#28603) by @kamilogorek
+- fix(notification platform): Remove hardcoded email provider (#28577) by @ceorourke
+- feat(spans): Display missing instrumentation docs for react-native (#28537) by @dashed
+- fix(ui): Dont show a dash when alert activity date is missing (#28584) by @taylangocmen
+- meta: Bump new development version (6f11235e)
+
 21.9.0
 ------
 
