@@ -15,10 +15,11 @@ const FEATURE_FLAG = 'metrics-performance-ui';
  * Visible only to small amount of internal users.
  */
 function MetricsSwitch() {
+  const organization = useOrganization();
   const {isMetricsData, setIsMetricsData} = useMetricsSwitch();
 
   return (
-    <Feature features={[FEATURE_FLAG]}>
+    <Feature features={[FEATURE_FLAG]} organization={organization}>
       <Label>
         {t('Metrics Data')}
         <Switch
