@@ -7,6 +7,8 @@ import {PageContent} from 'app/styles/organization';
 import {Organization} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
 
+import {MetricsSwitchContextContainer} from './metricsSwitch';
+
 type Props = {
   organization: Organization;
 };
@@ -30,7 +32,7 @@ class PerformanceContainer extends Component<Props> {
         organization={organization}
         renderDisabled={this.renderNoAccess}
       >
-        {children}
+        <MetricsSwitchContextContainer>{children}</MetricsSwitchContextContainer>
       </Feature>
     );
   }
