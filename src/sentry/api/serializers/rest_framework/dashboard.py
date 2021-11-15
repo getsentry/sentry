@@ -40,6 +40,13 @@ def validate_id(self, value):
         raise serializers.ValidationError("Invalid ID format. Must be a numeric string")
 
 
+def is_table_display_type(display_type):
+    return (
+        display_type
+        == DashboardWidgetDisplayTypes.as_text_choices()[DashboardWidgetDisplayTypes.TABLE][0]
+    )
+
+
 class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
     # Is a string because output serializers also make it a string.
     id = serializers.CharField(required=False)
@@ -68,10 +75,16 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
         fields = self._get_attr(data, "fields", []).copy()
         orderby = self._get_attr(data, "orderby", "")
         equations, fields = categorize_columns(fields)
+        is_table = is_table_display_type(self.context.get("displayType"))
 
         if equations is not None:
             try:
-                resolved_equations, _, _ = resolve_equation_list(equations, fields)
+                resolved_equations, _, _ = resolve_equation_list(
+                    equations,
+                    fields,
+                    auto_add=not is_table,
+                    aggregates_only=not is_table,
+                )
             except (InvalidSearchQuery, ArithmeticError) as err:
                 raise serializers.ValidationError({"fields": f"Invalid fields: {err}"})
         else:

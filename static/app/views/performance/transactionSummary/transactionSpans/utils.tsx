@@ -42,22 +42,22 @@ export function spansRouteWithQuery({
 export const SPAN_SORT_OPTIONS: SpanSortOption[] = [
   {
     prefix: t('Percentile'),
-    label: t('p50'),
+    label: t('p50 Duration'),
     field: SpanSortPercentiles.P50_EXCLUSIVE_TIME,
   },
   {
     prefix: t('Percentile'),
-    label: t('p75'),
+    label: t('p75 Duration'),
     field: SpanSortPercentiles.P75_EXCLUSIVE_TIME,
   },
   {
     prefix: t('Percentile'),
-    label: t('p95'),
+    label: t('p95 Duration'),
     field: SpanSortPercentiles.P95_EXCLUSIVE_TIME,
   },
   {
     prefix: t('Percentile'),
-    label: t('p99'),
+    label: t('p99 Duration'),
     field: SpanSortPercentiles.P99_EXCLUSIVE_TIME,
   },
   {
@@ -72,7 +72,7 @@ export const SPAN_SORT_OPTIONS: SpanSortOption[] = [
   },
 ];
 
-const DEFAULT_SORT = SpanSortPercentiles.P75_EXCLUSIVE_TIME;
+const DEFAULT_SORT = SpanSortOthers.SUM_EXCLUSIVE_TIME;
 
 function getSuspectSpanSort(sort: string): SpanSortOption {
   const selected = SPAN_SORT_OPTIONS.find(option => option.field === sort);

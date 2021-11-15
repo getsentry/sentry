@@ -1,12 +1,17 @@
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import MenuItem from 'app/components/menuItem';
+import {t} from 'app/locale';
 import {Organization} from 'app/types';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import localStorage from 'app/utils/localStorage';
-import {useOrganization} from 'app/utils/useOrganization';
+import {usePerformanceDisplayType} from 'app/utils/performance/contexts/performanceDisplayContext';
+import useOrganization from 'app/utils/useOrganization';
 import withOrganization from 'app/utils/withOrganization';
 import ContextMenu from 'app/views/dashboardsV2/contextMenu';
+import {useMetricsSwitch} from 'app/views/performance/metricsSwitch';
+import {PROJECT_PERFORMANCE_TYPE} from 'app/views/performance/utils';
 
 import {GenericPerformanceWidgetDataType} from '../types';
 import {PerformanceWidgetSetting, WIDGET_DEFINITIONS} from '../widgetDefinitions';
@@ -29,20 +34,38 @@ type Props = {
 } & ChartRowProps;
 
 // Use local storage for chart settings for now.
-const getContainerLocalStorageKey = (index: number, height: number) =>
-  `landing-chart-container#${height}#${index}`;
+const getContainerLocalStorageObjectKey = 'landing-chart-container';
+const getContainerKey = (
+  index: number,
+  performanceType: PROJECT_PERFORMANCE_TYPE,
+  height: number
+) => `landing-chart-container#${performanceType}#${height}#${index}`;
+
+function getWidgetStorageObject() {
+  const localObject = JSON.parse(
+    localStorage.getItem(getContainerLocalStorageObjectKey) || '{}'
+  );
+  return localObject;
+}
+
+function setWidgetStorageObject(localObject: Record<string, string>) {
+  localStorage.setItem(getContainerLocalStorageObjectKey, JSON.stringify(localObject));
+}
 
 const getChartSetting = (
   index: number,
   height: number,
+  performanceType: PROJECT_PERFORMANCE_TYPE,
   defaultType: PerformanceWidgetSetting,
   forceDefaultChartSetting?: boolean // Used for testing.
 ): PerformanceWidgetSetting => {
   if (forceDefaultChartSetting) {
     return defaultType;
   }
-  const key = getContainerLocalStorageKey(index, height);
-  const value = localStorage.getItem(key);
+  const key = getContainerKey(index, performanceType, height);
+  const localObject = getWidgetStorageObject();
+  const value = localObject?.[key];
+
   if (
     value &&
     Object.values(PerformanceWidgetSetting).includes(value as PerformanceWidgetSetting)
@@ -55,32 +78,70 @@ const getChartSetting = (
 const _setChartSetting = (
   index: number,
   height: number,
+  performanceType: PROJECT_PERFORMANCE_TYPE,
   setting: PerformanceWidgetSetting
 ) => {
-  const key = getContainerLocalStorageKey(index, height);
-  localStorage.setItem(key, setting);
+  const key = getContainerKey(index, performanceType, height);
+  const localObject = getWidgetStorageObject();
+  localObject[key] = setting;
+
+  setWidgetStorageObject(localObject);
 };
 
+function trackChartSettingChange(
+  previousChartSetting: PerformanceWidgetSetting,
+  chartSetting: PerformanceWidgetSetting,
+  fromDefault: boolean,
+  organization: Organization
+) {
+  trackAdvancedAnalyticsEvent('performance_views.landingv3.widget.switch', {
+    organization,
+    from_widget: previousChartSetting,
+    to_widget: chartSetting,
+    from_default: fromDefault,
+  });
+}
+
 const _WidgetContainer = (props: Props) => {
-  const {organization, index, chartHeight, ...rest} = props;
-  const _chartSetting = getChartSetting(
+  const {organization, index, chartHeight, allowedCharts, ...rest} = props;
+  const {isMetricsData} = useMetricsSwitch();
+  const performanceType = usePerformanceDisplayType();
+  let _chartSetting = getChartSetting(
     index,
     chartHeight,
+    performanceType,
     rest.defaultChartSetting,
     rest.forceDefaultChartSetting
   );
+
+  if (!allowedCharts.includes(_chartSetting)) {
+    _chartSetting = rest.defaultChartSetting;
+  }
+
   const [chartSetting, setChartSettingState] = useState(_chartSetting);
 
   const setChartSetting = (setting: PerformanceWidgetSetting) => {
     if (!props.forceDefaultChartSetting) {
-      _setChartSetting(index, chartHeight, setting);
+      _setChartSetting(index, chartHeight, performanceType, setting);
     }
     setChartSettingState(setting);
+    trackChartSettingChange(
+      chartSetting,
+      setting,
+      rest.defaultChartSetting === chartSetting,
+      organization
+    );
   };
 
+  useEffect(() => {
+    setChartSettingState(_chartSetting);
+  }, [rest.defaultChartSetting]);
+
+  const chartDefinition = WIDGET_DEFINITIONS({organization})[chartSetting];
   const widgetProps = {
+    ...chartDefinition,
     chartSetting,
-    ...WIDGET_DEFINITIONS({organization})[chartSetting],
+    chartDefinition,
     ContainerActions: containerProps => (
       <WidgetContainerActions
         {...containerProps}
@@ -89,6 +150,10 @@ const _WidgetContainer = (props: Props) => {
       />
     ),
   };
+
+  if (isMetricsData) {
+    return <h1>{t('Using metrics')}</h1>;
+  }
 
   switch (widgetProps.dataType) {
     case GenericPerformanceWidgetDataType.trends:

@@ -23,7 +23,9 @@ class ExternalUserDetailsEndpoint(OrganizationEndpoint, ExternalActorEndpointMix
         **kwargs: Any,
     ) -> Tuple[Any, Any]:
         args, kwargs = super().convert_args(request, organization_slug, *args, **kwargs)
-        kwargs["external_user"] = self.get_external_actor_or_404(external_user_id)
+        kwargs["external_user"] = self.get_external_actor_or_404(
+            external_user_id, kwargs["organization"]
+        )
         return args, kwargs
 
     def put(
@@ -65,7 +67,5 @@ class ExternalUserDetailsEndpoint(OrganizationEndpoint, ExternalActorEndpointMix
         """
         Delete an External Team
         """
-        self.assert_has_feature(request, organization)
-
         external_user.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)

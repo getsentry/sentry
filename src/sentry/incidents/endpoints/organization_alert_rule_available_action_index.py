@@ -89,7 +89,7 @@ class OrganizationAlertRuleAvailableActionIndexEndpoint(OrganizationEndpoint):
             elif registered_type.type == AlertRuleTriggerAction.Type.SENTRY_APP:
                 actions += [
                     build_action_response(registered_type, sentry_app_installation=install)
-                    for install in SentryAppInstallation.get_installed_for_org(
+                    for install in SentryAppInstallation.objects.get_installed_for_organization(
                         organization.id
                     ).filter(
                         sentry_app__is_alertable=True,

@@ -1,5 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {act} from 'sentry-test/reactTestingLibrary';
 
 import {t} from 'app/locale';
 import ProjectsStore from 'app/stores/projectsStore';
@@ -15,10 +16,8 @@ type Data = {
 
 function initializeData({features: additionalFeatures = [], query = {}}: Data = {}) {
   const features = ['discover-basic', 'performance-view', ...additionalFeatures];
-  // @ts-expect-error
   const organization = TestStubs.Organization({
     features,
-    // @ts-expect-error
     projects: [TestStubs.Project()],
     apdexThreshold: 400,
   });
@@ -37,28 +36,24 @@ function initializeData({features: additionalFeatures = [], query = {}}: Data = 
     project: 1,
     projects: [],
   });
-  ProjectsStore.loadInitialData(initialData.organization.projects);
+  act(() => ProjectsStore.loadInitialData(initialData.organization.projects));
   return initialData;
 }
 
 describe('Performance > TransactionSummary', function () {
   beforeEach(function () {
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
     });
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/prompts-activity/',
       body: {},
     });
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',
       body: [],
     });
-    // @ts-expect-error
     MockApiClient.addMockResponse(
       {
         url: '/organizations/org-slug/eventsv2/',
@@ -88,7 +83,6 @@ describe('Performance > TransactionSummary', function () {
       }
     );
     // Transaction list response
-    // @ts-expect-error
     MockApiClient.addMockResponse(
       {
         url: '/organizations/org-slug/eventsv2/',
@@ -135,7 +129,6 @@ describe('Performance > TransactionSummary', function () {
         },
       }
     );
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-has-measurements/',
       body: {measurements: false},
@@ -143,9 +136,8 @@ describe('Performance > TransactionSummary', function () {
   });
 
   afterEach(function () {
-    // @ts-expect-error
     MockApiClient.clearMockResponses();
-    ProjectsStore.reset();
+    act(() => ProjectsStore.reset());
     jest.clearAllMocks();
   });
 
@@ -158,7 +150,6 @@ describe('Performance > TransactionSummary', function () {
       />,
       initialData.routerContext
     );
-    // @ts-expect-error
     await tick();
     wrapper.update();
 
@@ -182,7 +173,6 @@ describe('Performance > TransactionSummary', function () {
       />,
       initialData.routerContext
     );
-    // @ts-expect-error
     await tick();
     wrapper.update();
 
@@ -204,7 +194,6 @@ describe('Performance > TransactionSummary', function () {
       />,
       initialData.routerContext
     );
-    // @ts-expect-error
     await tick();
     wrapper.update();
 
@@ -223,7 +212,6 @@ describe('Performance > TransactionSummary', function () {
       />,
       initialData.routerContext
     );
-    // @ts-expect-error
     await tick();
     wrapper.update();
 
@@ -262,7 +250,6 @@ describe('Performance > TransactionSummary', function () {
       />,
       initialData.routerContext
     );
-    // @ts-expect-error
     await tick();
     wrapper.update();
 

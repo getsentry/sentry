@@ -1,6 +1,8 @@
 import {t} from 'app/locale';
 import {Field, JsonFormObject} from 'app/views/settings/components/forms/type';
 
+// TODO: cleanup unused fields and exports
+
 // Export route to make these forms searchable by label/help
 export const route = '/settings/account/notifications/';
 

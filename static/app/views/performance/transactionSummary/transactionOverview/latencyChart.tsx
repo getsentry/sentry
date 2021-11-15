@@ -247,7 +247,8 @@ class LatencyChart extends Component<Props, State> {
               {({histograms, isLoading, error}) => {
                 if (isLoading) {
                   return this.renderLoading();
-                } else if (error) {
+                }
+                if (error) {
                   return this.renderError();
                 }
 

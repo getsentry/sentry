@@ -1,6 +1,7 @@
 import {Component} from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {act} from 'sentry-test/reactTestingLibrary';
 
 import NoProjectMessage from 'app/components/noProjectMessage';
 import ConfigStore from 'app/stores/configStore';
@@ -8,7 +9,7 @@ import ProjectsStore from 'app/stores/projectsStore';
 
 describe('NoProjectMessage', function () {
   beforeEach(function () {
-    ProjectsStore.reset();
+    act(() => ProjectsStore.reset());
   });
 
   const org = TestStubs.Organization();
@@ -18,7 +19,7 @@ describe('NoProjectMessage', function () {
     const project2 = TestStubs.Project();
     const organization = TestStubs.Organization({slug: 'org-slug'});
     delete organization.projects;
-    ProjectsStore.loadInitialData([project1, project2]);
+    act(() => ProjectsStore.loadInitialData([project1, project2]));
     const wrapper = mountWithTheme(
       <NoProjectMessage organization={organization}>{null}</NoProjectMessage>,
       TestStubs.routerContext()
@@ -28,7 +29,7 @@ describe('NoProjectMessage', function () {
   });
 
   it('shows "Create Project" button when there are no projects', function () {
-    ProjectsStore.loadInitialData([]);
+    act(() => ProjectsStore.loadInitialData([]));
     const wrapper = mountWithTheme(
       <NoProjectMessage organization={org} />,
       TestStubs.routerContext()
@@ -39,7 +40,7 @@ describe('NoProjectMessage', function () {
   });
 
   it('"Create Project" is disabled when no access to `project:write`', function () {
-    ProjectsStore.loadInitialData([]);
+    act(() => ProjectsStore.loadInitialData([]));
     const wrapper = mountWithTheme(
       <NoProjectMessage organization={TestStubs.Organization({access: []})} />,
       TestStubs.routerContext()
@@ -58,7 +59,7 @@ describe('NoProjectMessage', function () {
   });
 
   it('has a "Join a Team" button when no projects but org has projects', function () {
-    ProjectsStore.loadInitialData([TestStubs.Project({hasAccess: false})]);
+    act(() => ProjectsStore.loadInitialData([TestStubs.Project({hasAccess: false})]));
     const wrapper = mountWithTheme(
       <NoProjectMessage organization={org} />,
       TestStubs.routerContext()
@@ -67,7 +68,7 @@ describe('NoProjectMessage', function () {
   });
 
   it('has a disabled "Join a Team" button if no access to `team:read`', function () {
-    ProjectsStore.loadInitialData([TestStubs.Project({hasAccess: false})]);
+    act(() => ProjectsStore.loadInitialData([TestStubs.Project({hasAccess: false})]));
     const wrapper = mountWithTheme(
       <NoProjectMessage organization={{...org, access: []}} />,
       TestStubs.routerContext()
@@ -78,9 +79,11 @@ describe('NoProjectMessage', function () {
   });
 
   it('shows empty message to superusers that are not members', function () {
-    ProjectsStore.loadInitialData([
-      TestStubs.Project({hasAccess: true, isMember: false}),
-    ]);
+    act(() =>
+      ProjectsStore.loadInitialData([
+        TestStubs.Project({hasAccess: true, isMember: false}),
+      ])
+    );
     ConfigStore.config.user = {isSuperuser: true};
     const wrapper = mountWithTheme(
       <NoProjectMessage organization={org} superuserNeedsToBeProjectMember>
@@ -121,7 +124,7 @@ describe('NoProjectMessage', function () {
     expect(mount).toHaveBeenCalledTimes(1);
     expect(wrapper.find('NoProjectMessage')).toHaveLength(1);
     expect(wrapper.find('NoProjectMessage').prop('loadingProjects')).toEqual(true);
-    ProjectsStore.loadInitialData([project1, project2]);
+    act(() => ProjectsStore.loadInitialData([project1, project2]));
     // await for trigger from projects store to resolve
     await tick();
     wrapper.update();

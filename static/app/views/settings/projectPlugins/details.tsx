@@ -65,9 +65,8 @@ class ProjectPluginDetails extends AsyncView<Props, State> {
     const {plugin} = this.state;
     if (plugin && plugin.name) {
       return plugin.name;
-    } else {
-      return 'Sentry';
     }
+    return 'Sentry';
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {

@@ -2671,6 +2671,25 @@ describe('EventView.isEqualTo()', function () {
       expect(eventView.isEqualTo(eventView2)).toBe(false);
     }
   });
+
+  it('undefined display type equals default display type', function () {
+    const state = {
+      id: '1234',
+      name: 'best query',
+      fields: [{field: 'count()'}, {field: 'project.id'}],
+      sorts: generateSorts(['count']),
+      query: 'event.type:error',
+      project: [42],
+      start: '2019-10-01T00:00:00',
+      end: '2019-10-02T00:00:00',
+      statsPeriod: '14d',
+      environment: ['staging'],
+      yAxis: 'fam',
+    };
+    const eventView = new EventView(state);
+    const eventView2 = new EventView({...state, display: 'default'});
+    expect(eventView.isEqualTo(eventView2)).toBe(true);
+  });
 });
 
 describe('EventView.getResultsViewUrlTarget()', function () {

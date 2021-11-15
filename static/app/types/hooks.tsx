@@ -79,6 +79,7 @@ export type ComponentHooks = {
   'component:disabled-member-tooltip': () => React.ComponentType<DisabledMemberTooltipProps>;
   'component:disabled-app-store-connect-item': () => React.ComponentType<DisabledAppStoreConnectItem>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
+  'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
 };
 
 /**
@@ -145,6 +146,7 @@ export type FeatureDisabledHooks = {
   'feature-disabled:sso-saml2': FeatureDisabledHook;
   'feature-disabled:trace-view-link': FeatureDisabledHook;
   'feature-disabled:alert-wizard-performance': FeatureDisabledHook;
+  'feature-disabled:project-selector-all-projects': FeatureDisabledHook;
 };
 
 /**

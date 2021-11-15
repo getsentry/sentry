@@ -115,7 +115,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
       );
       ProjectActions.updateSuccess(updatedProject);
     } catch {
-      addErrorMessage(t('An error occured while fetching project data'));
+      addErrorMessage(t('An error occurred while fetching project data'));
     }
   }
 

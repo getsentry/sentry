@@ -602,6 +602,9 @@ class ReleaseSessionsChart extends React.Component<Props> {
     const legend = {
       right: 10,
       top: 0,
+      textStyle: {
+        padding: [2, 0, 0, 0],
+      },
       data: [...(series ?? []), ...(previousSeries ?? [])].map(s => s.seriesName),
     };
 

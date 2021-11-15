@@ -852,6 +852,59 @@ class ProjectUpdateTest(APITestCase):
                 "symbolSources": ["Sources contain unknown hidden secret"]
             }
 
+    def symbol_sources(self):
+        project = Project.objects.get(id=self.project.id)
+        source1 = {
+            "id": "honk",
+            "name": "honk source",
+            "layout": {
+                "type": "native",
+            },
+            "filetypes": ["pe"],
+            "type": "http",
+            "url": "http://honk.beep",
+            "username": "honkhonk",
+            "password": "beepbeep",
+        }
+
+        source2 = {
+            "id": "bloop",
+            "name": "bloop source",
+            "layout": {
+                "type": "native",
+            },
+            "filetypes": ["pe"],
+            "type": "http",
+            "url": "http://honk.beep",
+            "username": "honkhonk",
+            "password": "beepbeep",
+        }
+
+        project.update_option("sentry:symbol_sources", json.dumps([source1, source2]))
+        return [source1, source2]
+
+    def test_symbol_sources_no_modification(self):
+        source1, source2 = self.symbol_sources()
+        project = Project.objects.get(id=self.project.id)
+        with Feature({"organizations:custom-symbol-sources": False}):
+            resp = self.get_response(
+                self.org_slug, self.proj_slug, symbolSources=json.dumps([source1, source2])
+            )
+
+            assert resp.status_code == 200
+            assert project.get_option("sentry:symbol_sources", json.dumps([source1, source2]))
+
+    def test_symbol_sources_deletion(self):
+        source1, source2 = self.symbol_sources()
+        project = Project.objects.get(id=self.project.id)
+        with Feature({"organizations:custom-symbol-sources": False}):
+            resp = self.get_response(
+                self.org_slug, self.proj_slug, symbolSources=json.dumps([source1])
+            )
+
+            assert resp.status_code == 200
+            assert project.get_option("sentry:symbol_sources", json.dumps([source1]))
+
 
 class CopyProjectSettingsTest(APITestCase):
     endpoint = "sentry-api-0-project-details"

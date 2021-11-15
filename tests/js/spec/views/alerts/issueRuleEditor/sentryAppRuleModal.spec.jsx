@@ -1,5 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {changeInputValue, selectByValue} from 'sentry-test/select-new';
+import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import SentryAppRuleModal from 'app/views/alerts/issueRuleEditor/sentryAppRuleModal';
 
@@ -17,20 +16,24 @@ describe('SentryAppRuleModal', function () {
     sentryAppInstallation = TestStubs.SentryAppInstallation({sentryApp});
   });
 
-  const _submit = wrapper => {
-    wrapper.find('Button[data-test-id="form-submit"]').simulate('submit');
-    return wrapper.find('FieldErrorReason');
+  function openSelectMenu(text) {
+    const placeholder = screen.getByText(text);
+    userEvent.type(placeholder, '{keyDown}');
+  }
+
+  const _submit = () => {
+    userEvent.click(screen.getByText('Save Changes'));
+    return screen.queryAllByText('Field is required');
   };
 
-  const submitSuccess = wrapper => {
-    const errors = _submit(wrapper);
+  const submitSuccess = () => {
+    const errors = _submit();
     expect(errors).toHaveLength(0);
   };
 
-  const submitErrors = (wrapper, errorCount) => {
-    const errors = _submit(wrapper);
+  const submitErrors = errorCount => {
+    const errors = _submit();
     expect(errors).toHaveLength(errorCount);
-    expect(errors.first().text()).toEqual('Field is required');
   };
 
   const defaultConfig = {
@@ -77,40 +80,35 @@ describe('SentryAppRuleModal', function () {
         onSubmitSuccess={() => {}}
         {...props}
       />,
-      TestStubs.routerContext()
+      {context: TestStubs.routerContext()}
     );
   };
 
   describe('Create UI Alert Rule', function () {
-    it('should render the Alert Rule modal with the config fields', async function () {
-      const wrapper = createWrapper();
-      const formFields = wrapper.find('FormField');
+    it('should render the Alert Rule modal with the config fields', function () {
+      createWrapper();
       const {required_fields, optional_fields} = defaultConfig;
       const allFields = [...required_fields, ...optional_fields];
 
-      allFields.forEach((field, index) => {
-        expect(formFields.at(index).prop('label')).toEqual(field.label);
-        expect(formFields.at(index).prop('name')).toEqual(field.name);
+      allFields.forEach(field => {
+        expect(screen.getByText(field.label)).toBeInTheDocument();
       });
     });
 
-    it('should raise validation errors when "Save Changes" is clicked with invalid data', async function () {
-      const wrapper = createWrapper();
-      submitErrors(wrapper, 3);
+    it('should raise validation errors when "Save Changes" is clicked with invalid data', function () {
+      createWrapper();
+      submitErrors(3);
     });
 
-    it('should submit when "Save Changes" is clicked with valid data', async function () {
-      const wrapper = createWrapper();
-      const titleInput = wrapper.find('[data-test-id="title"] input').at(0);
-      const descriptionInput = wrapper
-        .find('[data-test-id="description"] textarea')
-        .at(0);
-      const channelInput = wrapper.find('[data-test-id="channel"] input').at(0);
-      changeInputValue(titleInput, 'v');
-      changeInputValue(descriptionInput, 'v');
-      changeInputValue(channelInput, 'v');
-      selectByValue(wrapper, 'valor', {name: 'channel', control: true});
-      submitSuccess(wrapper);
+    it('should submit when "Save Changes" is clicked with valid data', function () {
+      createWrapper();
+      const titleInput = screen.getByTestId('title');
+      const descriptionInput = screen.getByTestId('description');
+      userEvent.type(titleInput, 'v');
+      userEvent.type(descriptionInput, 'v');
+      openSelectMenu('--');
+      userEvent.click(screen.getByText('valor'));
+      submitSuccess();
     });
   });
 });

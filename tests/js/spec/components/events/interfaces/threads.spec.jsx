@@ -1,10 +1,12 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import Threads from 'app/components/events/interfaces/threads';
+import {OrganizationContext} from 'app/views/organizationContext';
 
 describe('Threads', () => {
   const entries = TestStubs.Entries()[0];
   const event = TestStubs.Event({entries});
+  const organization = TestStubs.Organization();
   const exceptionEntry = entries[0];
   const data = exceptionEntry.data;
   const type = exceptionEntry.type;
@@ -49,13 +51,15 @@ describe('Threads', () => {
     };
 
     const wrapper = mountWithTheme(
-      <Threads
-        type={type}
-        data={data}
-        orgId="org-slug"
-        projectId="project-id"
-        event={newEvent}
-      />
+      <OrganizationContext.Provider value={organization}>
+        <Threads
+          type={type}
+          data={data}
+          orgId="org-slug"
+          projectId="project-id"
+          event={newEvent}
+        />
+      </OrganizationContext.Provider>
     );
 
     // Total frames passed
@@ -68,26 +72,28 @@ describe('Threads', () => {
 
   it('Display no frame', () => {
     const wrapper = mountWithTheme(
-      <Threads
-        type={type}
-        data={{...data, values: [{...data.values[0], stacktrace: null}]}}
-        orgId="org-slug"
-        projectId="project-id"
-        event={{
-          ...event,
-          entries: [
-            {
-              ...event.entries[0],
-              data: {
-                ...event.entries[0].data,
-                values: [{...event.entries[0].data.values[0], id: 0, stacktrace: null}],
+      <OrganizationContext.Provider value={organization}>
+        <Threads
+          type={type}
+          data={{...data, values: [{...data.values[0], stacktrace: null}]}}
+          orgId="org-slug"
+          projectId="project-id"
+          event={{
+            ...event,
+            entries: [
+              {
+                ...event.entries[0],
+                data: {
+                  ...event.entries[0].data,
+                  values: [{...event.entries[0].data.values[0], id: 0, stacktrace: null}],
+                },
               },
-            },
-            event.entries[1],
-            event.entries[2],
-          ],
-        }}
-      />
+              event.entries[1],
+              event.entries[2],
+            ],
+          }}
+        />
+      </OrganizationContext.Provider>
     );
 
     // no exceptions or stacktraces have been found
@@ -99,13 +105,15 @@ describe('Threads', () => {
 
     it('Displays the exception stacktrace', () => {
       const wrapper = mountWithTheme(
-        <Threads
-          type={threadsEntry.type}
-          data={threadsEntry.data}
-          orgId="org-slug"
-          projectId="project-id"
-          event={event}
-        />
+        <OrganizationContext.Provider value={organization}>
+          <Threads
+            type={threadsEntry.type}
+            data={threadsEntry.data}
+            orgId="org-slug"
+            projectId="project-id"
+            event={event}
+          />
+        </OrganizationContext.Provider>
       );
 
       // envent.entries[0].data.values[0].stacktrace is defined
@@ -114,26 +122,28 @@ describe('Threads', () => {
 
     it('Displays the the active thread stacktrace', () => {
       const wrapper = mountWithTheme(
-        <Threads
-          type={threadsEntry.type}
-          data={threadsEntry.data}
-          orgId="org-slug"
-          projectId="project-id"
-          event={{
-            ...event,
-            entries: [
-              {
-                ...event.entries[0],
-                data: {
-                  ...event.entries[0].data,
-                  values: [{...event.entries[0].data.values[0], stacktrace: null}],
+        <OrganizationContext.Provider value={organization}>
+          <Threads
+            type={threadsEntry.type}
+            data={threadsEntry.data}
+            orgId="org-slug"
+            projectId="project-id"
+            event={{
+              ...event,
+              entries: [
+                {
+                  ...event.entries[0],
+                  data: {
+                    ...event.entries[0].data,
+                    values: [{...event.entries[0].data.values[0], stacktrace: null}],
+                  },
                 },
-              },
-              event.entries[1],
-              event.entries[2],
-            ],
-          }}
-        />
+                event.entries[1],
+                event.entries[2],
+              ],
+            }}
+          />
+        </OrganizationContext.Provider>
       );
 
       // the 'threads' entry has a stack trace with 23 frames, but as one of them is duplicated, we only display 22

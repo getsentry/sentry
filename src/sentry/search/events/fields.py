@@ -748,7 +748,7 @@ def resolve_orderby(orderby, fields, aggregations, equations):
     if len(validated) == len(orderby):
         return validated
 
-    raise InvalidSearchQuery("Cannot order by a field that is not selected.")
+    raise InvalidSearchQuery("Cannot sort by a field that is not selected.")
 
 
 def resolve_field(field, params=None, functions_acl=None):
@@ -2279,12 +2279,12 @@ def normalize_percentile_alias(args: Mapping[str, str]) -> str:
 
 
 class SnQLFunction(DiscoverFunction):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         self.snql_aggregate = kwargs.pop("snql_aggregate", None)
         self.snql_column = kwargs.pop("snql_column", None)
         super().__init__(*args, **kwargs)
 
-    def validate(self):
+    def validate(self) -> None:
         # assert that all optional args have defaults available
         for i, arg in enumerate(self.optional_args):
             assert (
@@ -2676,7 +2676,7 @@ class QueryFields(QueryBase):
                 SnQLFunction(
                     "avg",
                     required_args=[NumericColumn("column")],
-                    snql_aggregate=lambda args, alias: Function("max", [args["column"]], alias),
+                    snql_aggregate=lambda args, alias: Function("avg", [args["column"]], alias),
                     result_type_fn=reflective_result_type(),
                     default_result_type="duration",
                     redundant_grouping=True,
@@ -2852,6 +2852,7 @@ class QueryFields(QueryBase):
             # are present.
             if not self.aggregates and "id" not in stripped_columns:
                 resolved_columns.append(self.resolve_column("id", alias=True))
+                stripped_columns.append("id")
             if "id" in stripped_columns and "project.id" not in stripped_columns:
                 resolved_columns.append(self.resolve_column("project.name", alias=True))
 
@@ -2908,6 +2909,9 @@ class QueryFields(QueryBase):
         need to check that the column is a Function
         """
         return isinstance(column, CurriedFunction) and is_equation_alias(column.alias)
+
+    def is_column_function(self, column: SelectType) -> bool:
+        return isinstance(column, CurriedFunction) and column not in self.aggregates
 
     def resolve_orderby(self, orderby: Optional[Union[List[str], str]]) -> List[OrderBy]:
         """Given a list of public aliases, optionally prefixed by a `-` to
@@ -2967,7 +2971,7 @@ class QueryFields(QueryBase):
 
         # TODO: This is no longer true, can order by fields that aren't selected, keeping
         # for now so we're consistent with the existing functionality
-        raise InvalidSearchQuery("Cannot order by a field that is not selected.")
+        raise InvalidSearchQuery("Cannot sort by a field that is not selected.")
 
     def is_field_alias(self, field: str) -> bool:
         """Given a public field, check if it's a field alias"""
@@ -2984,9 +2988,15 @@ class QueryFields(QueryBase):
         """ "Given a public field, check if it's a supported function"""
         return function in self.function_converter
 
-    def resolve_function(self, function: str, match: Optional[Match[str]] = None) -> SelectType:
-        """Given a public function, resolve to the corresponding Snql
-        function
+    def resolve_function(
+        self, function: str, match: Optional[Match[str]] = None, resolve_only: bool = False
+    ) -> SelectType:
+        """Given a public function, resolve to the corresponding Snql function
+
+
+        :param function: the public alias for a function eg. "p50(transaction.duration)"
+        :param match: the Match so we don't have to run the regex twice
+        :param resolve_only: whether we should add the aggregate to self.aggregates
         """
         if match is None:
             match = is_function(function)
@@ -2997,7 +3007,7 @@ class QueryFields(QueryBase):
         if function in self.params.get("aliases", {}):
             raise NotImplementedError("Aggregate aliases not implemented in snql field parsing yet")
 
-        name, combinator_name, arguments, alias = self.parse_function(match)
+        name, combinator_name, parsed_arguments, alias = self.parse_function(match)
         snql_function = self.function_converter[name]
 
         combinator = snql_function.find_combinator(combinator_name)
@@ -3012,7 +3022,9 @@ class QueryFields(QueryBase):
 
         combinator_applied = False
 
-        arguments = snql_function.format_as_arguments(name, arguments, self.params, combinator)
+        arguments = snql_function.format_as_arguments(
+            name, parsed_arguments, self.params, combinator
+        )
 
         self.function_alias_map[alias] = FunctionDetails(function, snql_function, arguments.copy())
 
@@ -3027,7 +3039,8 @@ class QueryFields(QueryBase):
             raise InvalidSearchQuery("Invalid combinator: Arguments passed were incompatible")
 
         if snql_function.snql_aggregate is not None:
-            self.aggregates.append(snql_function.snql_aggregate(arguments, alias))
+            if not resolve_only:
+                self.aggregates.append(snql_function.snql_aggregate(arguments, alias))
             return snql_function.snql_aggregate(arguments, alias)
 
         return snql_function.snql_column(arguments, alias)
@@ -3373,7 +3386,7 @@ class QueryFields(QueryBase):
         self,
         args: Mapping[str, Union[str, Column, SelectType, int, float]],
         alias: str,
-        fixed_percentile: float = None,
+        fixed_percentile: Optional[float] = None,
     ) -> SelectType:
         return (
             Function(

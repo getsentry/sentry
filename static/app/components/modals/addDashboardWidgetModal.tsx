@@ -27,7 +27,6 @@ import {
   TagCollection,
 } from 'app/types';
 import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
-import {Aggregation} from 'app/utils/discover/fields';
 import Measurements from 'app/utils/measurements/measurements';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
@@ -132,7 +131,10 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
 
   componentDidMount() {
     const {fromDiscover} = this.props;
-    if (fromDiscover) this.fetchDashboards();
+    if (fromDiscover) {
+      this.fetchDashboards();
+    }
+    this.handleDefaultFields();
   }
 
   handleSubmit = async (event: React.FormEvent) => {
@@ -155,6 +157,12 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       'interval',
       'queries',
     ]);
+    // Only Table and Top N views need orderby
+    if (![DisplayType.TABLE, DisplayType.TOP_N].includes(widgetData.displayType)) {
+      widgetData.queries.forEach(query => {
+        query.orderby = '';
+      });
+    }
     try {
       await validateWidget(api, organization.slug, widgetData);
       if (typeof onUpdateWidget === 'function' && !!previousWidget) {
@@ -239,44 +247,56 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     }
   };
 
-  handleFieldChange = (field: string) => (value: string) => {
-    const {defaultWidgetQuery, defaultTableColumns, fromDiscover, organization} =
-      this.props;
+  handleDefaultFields = () => {
+    const {defaultWidgetQuery, defaultTableColumns} = this.props;
     this.setState(prevState => {
       const newState = cloneDeep(prevState);
-      set(newState, field, value);
+      const displayType = prevState.displayType as Widget['displayType'];
+      const normalized = normalizeQueries(displayType, prevState.queries);
 
-      if (field === 'displayType') {
-        const displayType = value as Widget['displayType'];
-        const normalized = normalizeQueries(displayType, prevState.queries);
-
-        // If switching to Table visualization, use saved query fields for Y-Axis if user has not made query changes
-        if (defaultWidgetQuery && defaultTableColumns && !prevState.userHasModified) {
-          if (displayType === DisplayType.TABLE) {
-            normalized.forEach(query => {
-              query.fields = [...defaultTableColumns];
-            });
-          } else {
-            normalized.forEach(query => {
-              query.fields = [...defaultWidgetQuery.fields];
-            });
-          }
-        }
-
-        set(newState, 'queries', normalized);
-
-        if (fromDiscover) {
-          trackAdvancedAnalyticsEvent('dashboards_views.add_widget_modal.change', {
-            from: 'discoverv2',
-            field,
-            value: displayType,
-            organization,
+      // If switching to Table visualization, use saved query fields for Y-Axis if user has not made query changes
+      if (defaultWidgetQuery && defaultTableColumns && !prevState.userHasModified) {
+        if (displayType === DisplayType.TABLE) {
+          normalized.forEach(query => {
+            query.fields = [...defaultTableColumns];
+          });
+        } else if (displayType === DisplayType.TOP_N) {
+          normalized.forEach(query => {
+            // Append Y-Axis to query.fields since TOP_N view assumes the last field is the Y-Axis
+            query.fields = [...defaultTableColumns, defaultWidgetQuery.fields[0]];
+            query.orderby = defaultWidgetQuery.orderby;
+          });
+        } else {
+          normalized.forEach(query => {
+            query.fields = [...defaultWidgetQuery.fields];
           });
         }
       }
 
+      set(newState, 'queries', normalized);
       return {...newState, errors: undefined};
     });
+  };
+
+  handleFieldChange = (field: string) => (value: string) => {
+    const {fromDiscover, organization} = this.props;
+    this.setState(prevState => {
+      const newState = cloneDeep(prevState);
+      set(newState, field, value);
+
+      trackAdvancedAnalyticsEvent('dashboards_views.add_widget_modal.change', {
+        from: fromDiscover ? 'discoverv2' : 'dashboards',
+        field,
+        value,
+        organization,
+      });
+
+      return {...newState, errors: undefined};
+    });
+
+    if (field === 'displayType') {
+      this.handleDefaultFields();
+    }
   };
 
   handleQueryChange = (widgetQuery: WidgetQuery, index: number) => {
@@ -437,14 +457,6 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         measurementKeys,
       });
 
-    const topNFieldOptions = (measurementKeys: string[]) =>
-      generateFieldOptions({
-        organization,
-        tagKeys: Object.values(tags).map(({key}) => key),
-        measurementKeys,
-        aggregations: {} as Record<string, Aggregation>,
-      });
-
     const isUpdatingWidget = typeof onUpdateWidget === 'function' && !!previousWidget;
 
     return (
@@ -503,12 +515,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
           <Measurements organization={organization}>
             {({measurements}) => {
               const measurementKeys = Object.values(measurements).map(({key}) => key);
-              let amendedFieldOptions;
-              if (state.displayType === 'top_n') {
-                amendedFieldOptions = topNFieldOptions(measurementKeys);
-              } else {
-                amendedFieldOptions = fieldOptions(measurementKeys);
-              }
+              const amendedFieldOptions = fieldOptions(measurementKeys);
               return (
                 <WidgetQueriesForm
                   organization={organization}

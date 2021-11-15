@@ -9,47 +9,27 @@ import {IconRefresh} from 'app/icons/iconRefresh';
 import {IconWarning} from 'app/icons/iconWarning';
 import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
-import {AppStoreConnectValidationData} from 'app/types/debugFiles';
+import {AppStoreConnectStatusData} from 'app/types/debugFiles';
 
 type Props = {
   onEditRepository: () => void;
-  onRevalidateItunesSession: () => void;
-  details?: AppStoreConnectValidationData;
+  details?: AppStoreConnectStatusData;
 };
 
-function Status({details, onEditRepository, onRevalidateItunesSession}: Props) {
+function Status({details, onEditRepository}: Props) {
   const theme = useTheme();
 
   if (!details) {
     return <Placeholder height="14px" />;
   }
 
-  const {
-    pendingDownloads,
-    promptItunesSession,
-    appstoreCredentialsValid,
-    lastCheckedBuilds,
-  } = details ?? {};
+  const {pendingDownloads, credentials, lastCheckedBuilds} = details;
 
-  if (promptItunesSession) {
-    return (
-      <Wrapper color={theme.red300} onClick={onRevalidateItunesSession}>
-        <StyledTooltip
-          title={t('Revalidate your iTunes session')}
-          containerDisplayMode="inline-flex"
-        >
-          <IconWarning size="sm" />
-        </StyledTooltip>
-        {t('iTunes Authentication required')}
-      </Wrapper>
-    );
-  }
-
-  if (appstoreCredentialsValid === false) {
+  if (credentials.status === 'invalid') {
     return (
       <Wrapper color={theme.red300} onClick={onEditRepository}>
         <StyledTooltip
-          title={t('Recheck your App Store Credentials')}
+          title={t('Re-check your App Store Credentials')}
           containerDisplayMode="inline-flex"
         >
           <IconWarning size="sm" />

@@ -7,7 +7,7 @@ __all__ = ("FlexibleForeignKey",)
 class FlexibleForeignKey(ForeignKey):
     def __init__(self, *args, **kwargs):
         kwargs.setdefault("on_delete", models.CASCADE)
-        return super().__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def db_type(self, connection):
         # This is required to support BigAutoField (or anything similar)

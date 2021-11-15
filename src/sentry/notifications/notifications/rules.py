@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import logging
-from typing import Any, Iterable, Mapping, MutableMapping, Optional, Union
+from typing import Any, Iterable, Mapping, MutableMapping
 
 import pytz
 
@@ -24,15 +26,15 @@ logger = logging.getLogger(__name__)
 
 
 class AlertRuleNotification(ProjectNotification):
+    message_builder = "IssueNotificationMessageBuilder"
     fine_tuning_key = "alerts"
-    is_message_issue_unfurl = True
     metrics_key = "issue_alert"
 
     def __init__(
         self,
         notification: Notification,
         target_type: ActionTargetType,
-        target_identifier: Optional[int] = None,
+        target_identifier: int | None = None,
     ) -> None:
         event = notification.event
         group = event.group
@@ -44,7 +46,7 @@ class AlertRuleNotification(ProjectNotification):
         self.target_identifier = target_identifier
         self.rules = notification.rules
 
-    def get_participants(self) -> Mapping[ExternalProviders, Iterable[Union["Team", "User"]]]:
+    def get_participants(self) -> Mapping[ExternalProviders, Iterable[Team | User]]:
         return get_send_to(
             project=self.project,
             target_type=self.target_type,
@@ -58,33 +60,27 @@ class AlertRuleNotification(ProjectNotification):
     def get_category(self) -> str:
         return "issue_alert_email"
 
-    def get_subject(self, context: Optional[Mapping[str, Any]] = None) -> str:
+    def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
         return str(self.event.get_email_subject())
 
     def get_reference(self) -> Any:
         return self.group
 
     def get_recipient_context(
-        self, recipient: Union["Team", "User"], extra_context: Mapping[str, Any]
+        self, recipient: Team | User, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
-        parent_context = super().get_recipient_context(recipient, extra_context)
-        user_context = {"timezone": pytz.timezone("UTC"), **parent_context}
-        try:
-            # AlertRuleNotification is shared among both email and slack notifications, and in slack
-            # notifications, the `user` arg could be of type `Team` which is why we need this check
-            if isinstance(recipient, User):
-                user_context.update(
-                    {
-                        "timezone": pytz.timezone(
-                            UserOption.objects.get_value(
-                                user=recipient, key="timezone", default="UTC"
-                            )
-                        )
-                    }
-                )
-        except pytz.UnknownTimeZoneError:
-            pass
-        return user_context
+        timezone = pytz.timezone("UTC")
+
+        if isinstance(recipient, User):
+            user_tz = UserOption.objects.get_value(user=recipient, key="timezone", default="UTC")
+            try:
+                timezone = pytz.timezone(user_tz)
+            except pytz.UnknownTimeZoneError:
+                pass
+        return {
+            **super().get_recipient_context(recipient, extra_context),
+            "timezone": timezone,
+        }
 
     def get_context(self) -> MutableMapping[str, Any]:
         environment = self.event.get_tag("environment")
@@ -143,6 +139,15 @@ class AlertRuleNotification(ProjectNotification):
 
         participants_by_provider = self.get_participants()
         if not participants_by_provider:
+            logger.info(
+                "notifications.notification.rules.alertrulenotification.skip.no_participants",
+                extra={
+                    "target_type": self.target_type.value,
+                    "target_identifier": self.target_identifier,
+                    "group": self.group.id,
+                    "project_id": self.project.id,
+                },
+            )
             return
 
         # Only calculate shared context once.

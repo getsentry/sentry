@@ -7,12 +7,7 @@ from django.utils import timezone
 from sentry.discover.arithmetic import ArithmeticValidationError
 from sentry.discover.models import TeamKeyTransaction
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import (
-    ProjectTeam,
-    ProjectTransactionThreshold,
-    ReleaseProjectEnvironment,
-    ReleaseStages,
-)
+from sentry.models import ProjectTeam, ProjectTransactionThreshold, ReleaseStages
 from sentry.models.transaction_threshold import (
     ProjectTransactionThresholdOverride,
     TransactionMetric,
@@ -2190,6 +2185,44 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             assert len(data[0]["stack.filename"]) == len(expected_filenames)
             assert sorted(data[0]["stack.filename"]) == expected_filenames
 
+    @pytest.mark.skip("setting snuba config is too slow")
+    def test_spans_op_array_field(self):
+        trace_context = {
+            "parent_span_id": "8988cec7cc0779c1",
+            "type": "trace",
+            "op": "http.server",
+            "trace_id": "a7d67cf796774551a95be6543cacd459",
+            "span_id": "babaae0d4b7512d9",
+            "status": "ok",
+            "hash": "a" * 16,
+            "exclusive_time": 1.2345,
+        }
+        data = load_data(
+            "transaction", timestamp=before_now(minutes=10), trace_context=trace_context, spans=[]
+        )
+        self.store_event(data=data, project_id=self.project.id)
+
+        queries = [
+            ("has:spans_op", 1),
+            ("!has:spans_op", 0),
+        ]
+
+        for use_snql in [False, True]:
+            for query, expected_len in queries:
+                result = discover.query(
+                    selected_columns=["spans_op"],
+                    query=query,
+                    params={
+                        "organization_id": self.organization.id,
+                        "project_id": [self.project.id],
+                        "start": before_now(minutes=12),
+                        "end": before_now(minutes=8),
+                    },
+                    use_snql=use_snql,
+                )
+                data = result["data"]
+                assert len(data) == expected_len, use_snql
+
     def test_orderby_field_alias(self):
         data = load_data("android-ndk", timestamp=before_now(minutes=10))
         events = (
@@ -2474,32 +2507,17 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
 
     def test_release_stage_condition(self):
         replaced_release = self.create_release(
-            version="replaced_release", environments=[self.environment]
-        )
-        adopted_release = self.create_release(
-            version="adopted_release", environments=[self.environment]
-        )
-        not_adopted_release = self.create_release(
-            version="not_adopted_release", environments=[self.environment]
-        )
-        ReleaseProjectEnvironment.objects.create(
-            project_id=self.project.id,
-            release_id=adopted_release.id,
-            environment_id=self.environment.id,
-            adopted=timezone.now(),
-        )
-        ReleaseProjectEnvironment.objects.create(
-            project_id=self.project.id,
-            release_id=replaced_release.id,
-            environment_id=self.environment.id,
+            version="replaced_release",
+            environments=[self.environment],
             adopted=timezone.now(),
             unadopted=timezone.now(),
         )
-        ReleaseProjectEnvironment.objects.create(
-            project_id=self.project.id,
-            release_id=not_adopted_release.id,
-            environment_id=self.environment.id,
+        adopted_release = self.create_release(
+            version="adopted_release",
+            environments=[self.environment],
+            adopted=timezone.now(),
         )
+        self.create_release(version="not_adopted_release", environments=[self.environment])
 
         adopted_release_e_1 = self.store_event(
             data={"release": adopted_release.version, "environment": self.environment.name},
@@ -6174,12 +6192,16 @@ class GetFacetsTest(SnubaTestCase, TestCase):
     def test_invalid_query(self):
         with pytest.raises(InvalidSearchQuery):
             discover.get_facets(
-                "\n", {"project_id": [self.project.id], "end": self.min_ago, "start": self.day_ago}
+                "\n",
+                {"project_id": [self.project.id], "end": self.min_ago, "start": self.day_ago},
+                "testing.get-facets-test",
             )
 
     def test_no_results(self):
         results = discover.get_facets(
-            "", {"project_id": [self.project.id], "end": self.min_ago, "start": self.day_ago}
+            "",
+            {"project_id": [self.project.id], "end": self.min_ago, "start": self.day_ago},
+            "testing.get-facets-test",
         )
         assert results == []
 
@@ -6203,7 +6225,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
             project_id=self.project.id,
         )
         params = {"project_id": [self.project.id], "start": self.day_ago, "end": self.min_ago}
-        result = discover.get_facets("", params)
+        result = discover.get_facets("", params, "testing.get-facets-test")
         assert len(result) == 5
         assert {r.key for r in result} == {"color", "paying", "level"}
         assert {r.value for r in result} == {"red", "blue", "1", "0", "error"}
@@ -6230,7 +6252,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
             project_id=other_project.id,
         )
         params = {"project_id": [self.project.id], "start": self.day_ago, "end": self.min_ago}
-        result = discover.get_facets("", params)
+        result = discover.get_facets("", params, "testing.get-facets-test")
         keys = {r.key for r in result}
         assert keys == {"color", "level"}
 
@@ -6240,7 +6262,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
             "start": self.day_ago,
             "end": self.min_ago,
         }
-        result = discover.get_facets("", params)
+        result = discover.get_facets("", params, "testing.get-facets-test")
         keys = {r.key for r in result}
         assert keys == {"level", "toy", "color", "project"}
 
@@ -6259,7 +6281,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
                 project_id=self.project.id,
             )
         params = {"project_id": [self.project.id], "start": self.day_ago, "end": self.min_ago}
-        result = discover.get_facets("", params)
+        result = discover.get_facets("", params, "testing.get-facets-test")
         keys = {r.key for r in result}
         assert keys == {"environment", "level"}
         assert {None, "prod", "staging"} == {f.value for f in result if f.key == "environment"}
@@ -6285,12 +6307,12 @@ class GetFacetsTest(SnubaTestCase, TestCase):
             project_id=self.project.id,
         )
         params = {"project_id": [self.project.id], "start": self.day_ago, "end": self.min_ago}
-        result = discover.get_facets("bad", params)
+        result = discover.get_facets("bad", params, "testing.get-facets-test")
         keys = {r.key for r in result}
         assert "color" in keys
         assert "toy" not in keys
 
-        result = discover.get_facets("color:red", params)
+        result = discover.get_facets("color:red", params, "testing.get-facets-test")
         keys = {r.key for r in result}
         assert "color" in keys
         assert "toy" not in keys
@@ -6315,12 +6337,12 @@ class GetFacetsTest(SnubaTestCase, TestCase):
             project_id=self.project.id,
         )
         params = {"project_id": [self.project.id], "start": self.day_ago, "end": self.min_ago}
-        result = discover.get_facets("bad", params)
+        result = discover.get_facets("bad", params, "testing.get-facets-test")
         keys = {r.key for r in result}
         assert "color" in keys
         assert "toy" not in keys
 
-        result = discover.get_facets("color:red p95():>1", params)
+        result = discover.get_facets("color:red p95():>1", params, "testing.get-facets-test")
         keys = {r.key for r in result}
         assert "color" in keys
         assert "toy" not in keys
@@ -6345,7 +6367,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
             project_id=self.project.id,
         )
         params = {"project_id": [self.project.id], "start": self.day_ago, "end": self.min_ago}
-        result = discover.get_facets("", params)
+        result = discover.get_facets("", params, "testing.get-facets-test")
         keys = {r.key for r in result}
         assert "color" in keys
         assert "toy" not in keys

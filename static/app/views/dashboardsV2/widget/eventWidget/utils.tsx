@@ -2,7 +2,6 @@ import isEqual from 'lodash/isEqual';
 
 import {
   aggregateOutputType,
-  getAggregateFields,
   isAggregateFieldOrEquation,
   isLegalYAxisType,
 } from 'app/utils/discover/fields';
@@ -28,7 +27,8 @@ export function mapErrors(
     if (Array.isArray(value) && typeof value[0] === 'string') {
       update[key] = value[0];
       return;
-    } else if (Array.isArray(value) && typeof value[0] === 'object') {
+    }
+    if (Array.isArray(value) && typeof value[0] === 'object') {
       update[key] = (value as ValidationError[]).map(item => mapErrors(item, {}));
     } else {
       update[key] = mapErrors(value as ValidationError, {});
@@ -61,27 +61,7 @@ export function normalizeQueries(
     queries = queries.slice(0, 3);
   }
 
-  if (displayType === DisplayType.TABLE) {
-    return queries;
-  }
-
-  if (displayType === DisplayType.TOP_N) {
-    queries = queries.slice(0, 1);
-    const aggregateFields = getAggregateFields(queries[0].fields);
-
-    let otherFields = queries[0].fields.filter(
-      field => !!!aggregateFields.includes(field)
-    );
-
-    otherFields = otherFields.length ? otherFields : ['title'];
-
-    const fields: string[] = [
-      ...otherFields,
-      aggregateFields.length ? aggregateFields[0] : 'count()',
-    ];
-
-    queries = queries.map(query => ({...query, fields}));
-
+  if ([DisplayType.TABLE, DisplayType.TOP_N].includes(displayType)) {
     return queries;
   }
 

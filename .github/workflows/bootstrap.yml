@@ -10,7 +10,7 @@ jobs:
   bootstrap-script:
     name: bootstrap
     runs-on: macos-11.0
-    timeout-minutes: 45
+    timeout-minutes: 90
     steps:
       - name: Run bootstrap scripts
         run: |

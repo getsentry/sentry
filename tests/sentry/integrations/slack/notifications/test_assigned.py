@@ -5,9 +5,9 @@ import responses
 
 from sentry.models import Activity, Identity, IdentityProvider, IdentityStatus, Integration
 from sentry.notifications.notifications.activity import AssignedActivityNotification
+from sentry.testutils.cases import SlackActivityNotificationTest
+from sentry.testutils.helpers.slack import get_attachment, send_notification
 from sentry.types.activity import ActivityType
-
-from . import SlackActivityNotificationTest, get_attachment, send_notification
 
 
 class SlackAssignedNotificationTest(SlackActivityNotificationTest):

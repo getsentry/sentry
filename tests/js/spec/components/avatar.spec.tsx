@@ -1,13 +1,15 @@
 import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
 import AvatarComponent from 'app/components/avatar';
+import ConfigStore from 'app/stores/configStore';
 import {Avatar} from 'app/types';
 
 const gravatarBaseUrl = 'gravatarBaseUrl';
+const storeConfig = ConfigStore.getConfig();
 
-jest.mock('app/stores/configStore', () => ({
-  getConfig: () => ({gravatarBaseUrl}),
-}));
+jest
+  .spyOn(ConfigStore, 'getConfig')
+  .mockImplementation(() => ({...storeConfig, gravatarBaseUrl}));
 
 describe('Avatar', function () {
   const avatar: Avatar = {
@@ -125,7 +127,6 @@ describe('Avatar', function () {
     });
 
     it('can display a team Avatar', function () {
-      // @ts-expect-error
       const team = TestStubs.Team({slug: 'test-team_test'});
 
       mountWithTheme(<AvatarComponent team={team} />);
@@ -135,7 +136,6 @@ describe('Avatar', function () {
     });
 
     it('can display an organization Avatar', function () {
-      // @ts-expect-error
       const organization = TestStubs.Organization({slug: 'test-organization'});
 
       mountWithTheme(<AvatarComponent organization={organization} />);
@@ -145,7 +145,6 @@ describe('Avatar', function () {
     });
 
     it('displays platform list icons for project Avatar', function () {
-      // @ts-expect-error
       const project = TestStubs.Project({
         platforms: ['python', 'javascript'],
         platform: 'java',
@@ -162,7 +161,6 @@ describe('Avatar', function () {
     });
 
     it('displays a fallback platform list for project Avatar using the `platform` specified during onboarding', function () {
-      // @ts-expect-error
       const project = TestStubs.Project({platform: 'java'});
 
       mountWithTheme(<AvatarComponent project={project} />);
@@ -176,7 +174,6 @@ describe('Avatar', function () {
     });
 
     it('uses onboarding project when platforms is an empty array', function () {
-      // @ts-expect-error
       const project = TestStubs.Project({platforms: [], platform: 'java'});
 
       mountWithTheme(<AvatarComponent project={project} />);

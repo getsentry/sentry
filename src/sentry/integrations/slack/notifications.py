@@ -1,9 +1,14 @@
+from __future__ import annotations
+
 import logging
 from collections import defaultdict
-from typing import Any, Iterable, Mapping, MutableMapping, Optional, Union
+from typing import Any, Iterable, Mapping, MutableMapping
 
-from sentry.integrations.slack.client import SlackClient  # NOQA
-from sentry.integrations.slack.message_builder.notifications import build_notification_attachment
+from sentry.integrations.notifications import NotifyBasicMixin
+from sentry.integrations.slack.client import SlackClient
+from sentry.integrations.slack.message_builder import SlackBody
+from sentry.integrations.slack.message_builder.notifications import get_message_builder
+from sentry.integrations.slack.tasks import post_message
 from sentry.models import ExternalActor, Identity, Integration, Organization, Team, User
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notify import register_notification_provider
@@ -15,9 +20,40 @@ logger = logging.getLogger("sentry.notifications")
 SLACK_TIMEOUT = 5
 
 
+class SlackNotifyBasicMixin(NotifyBasicMixin):  # type: ignore
+    def send_message(self, channel_id: str, message: str) -> None:
+        client = SlackClient()
+        token = self.metadata.get("user_access_token") or self.metadata["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+        payload = {
+            "token": token,
+            "channel": channel_id,
+            "text": message,
+        }
+        try:
+            client.post("/chat.postMessage", headers=headers, data=payload, json=True)
+        except ApiError as e:
+            message = str(e)
+            if message != "Expired url":
+                logger.error("slack.slash-notify.response-error", extra={"error": message})
+        return
+
+
+def get_attachments(
+    notification: BaseNotification,
+    recipient: Team | User,
+    context: Mapping[str, Any],
+) -> SlackBody:
+    klass = get_message_builder(notification.message_builder)
+    attachments = klass(notification, context, recipient).build()
+    if isinstance(attachments, dict):
+        return [attachments]
+    return attachments
+
+
 def get_context(
     notification: BaseNotification,
-    recipient: Union["Team", "User"],
+    recipient: Team | User,
     shared_context: Mapping[str, Any],
     extra_context: Mapping[str, Any],
 ) -> Mapping[str, Any]:
@@ -29,8 +65,8 @@ def get_context(
 
 
 def get_channel_and_integration_by_user(
-    user: "User", organization: "Organization"
-) -> Mapping[str, "Integration"]:
+    user: User, organization: Organization
+) -> Mapping[str, Integration]:
 
     identities = Identity.objects.filter(
         idp__type=EXTERNAL_PROVIDERS[ExternalProviders.SLACK],
@@ -60,8 +96,8 @@ def get_channel_and_integration_by_user(
 
 
 def get_channel_and_integration_by_team(
-    team: "Team", organization: "Organization"
-) -> Mapping[str, "Integration"]:
+    team: Team, organization: Organization
+) -> Mapping[str, Integration]:
     try:
         external_actor = (
             ExternalActor.objects.filter(
@@ -79,9 +115,9 @@ def get_channel_and_integration_by_team(
 
 
 def get_channel_and_token_by_recipient(
-    organization: "Organization", recipients: Iterable[Union["Team", "User"]]
-) -> Mapping[Union["Team", "User"], Mapping[str, str]]:
-    output: MutableMapping[Union["Team", "User"], MutableMapping[str, str]] = defaultdict(dict)
+    organization: Organization, recipients: Iterable[Team | User]
+) -> Mapping[Team | User, Mapping[str, str]]:
+    output: MutableMapping[Team | User, MutableMapping[str, str]] = defaultdict(dict)
     for recipient in recipients:
         channels_to_integrations = (
             get_channel_and_integration_by_user(recipient, organization)
@@ -109,12 +145,11 @@ def get_channel_and_token_by_recipient(
 @register_notification_provider(ExternalProviders.SLACK)
 def send_notification_as_slack(
     notification: BaseNotification,
-    recipients: Iterable[Union["Team", "User"]],
+    recipients: Iterable[Team | User],
     shared_context: Mapping[str, Any],
-    extra_context_by_user_id: Optional[Mapping[int, Mapping[str, Any]]],
+    extra_context_by_actor_id: Mapping[int, Mapping[str, Any]] | None,
 ) -> None:
     """Send an "activity" or "alert rule" notification to a Slack user or team."""
-    client = SlackClient()
     data = get_channel_and_token_by_recipient(notification.organization, recipients)
 
     for recipient, tokens_by_channel in data.items():
@@ -127,9 +162,10 @@ def send_notification_as_slack(
                     "recipient": recipient.id,
                 },
             )
-        extra_context = (extra_context_by_user_id or {}).get(recipient.id, {})
+        extra_context = (extra_context_by_actor_id or {}).get(recipient.actor_id, {})
         context = get_context(notification, recipient, shared_context, extra_context)
-        attachment = [build_notification_attachment(notification, context, recipient)]
+        attachments = get_attachments(notification, recipient, context)
+
         for channel, token in tokens_by_channel.items():
             # unfurl_links and unfurl_media are needed to preserve the intended message format
             # and prevent the app from replying with help text to the unfurl
@@ -140,21 +176,21 @@ def send_notification_as_slack(
                 "unfurl_links": False,
                 "unfurl_media": False,
                 "text": notification.get_notification_title(),
-                "attachments": json.dumps(attachment),
+                "attachments": json.dumps(attachments),
             }
-            try:
-                client.post("/chat.postMessage", data=payload, timeout=5)
-            except ApiError as e:
-                logger.info(
-                    "notification.fail.slack_post",
-                    extra={
-                        "error": str(e),
-                        "notification": notification,
-                        "recipient": recipient.id,
-                        "channel_id": channel,
-                        "is_multiple": is_multiple,
-                    },
-                )
+            log_params = {
+                "notification": notification,
+                "recipient": recipient.id,
+                "channel_id": channel,
+                "is_multiple": is_multiple,
+            }
+            post_message.apply_async(
+                kwargs={
+                    "payload": payload,
+                    "log_error_message": "notification.fail.slack_post",
+                    "log_params": log_params,
+                }
+            )
             notification.record_notification_sent(recipient, ExternalProviders.SLACK)
 
     key = notification.metrics_key

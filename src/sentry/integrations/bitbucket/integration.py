@@ -96,8 +96,8 @@ class BitbucketIntegration(IntegrationInstallation, BitbucketIssueBasicMixin, Re
                 for repo in resp.get("values", [])
             ]
 
-        exact_query = ('name="%s"' % (query)).encode("utf-8")
-        fuzzy_query = ('name~"%s"' % (query)).encode("utf-8")
+        exact_query = f'name="{query}"'.encode()
+        fuzzy_query = f'name~"{query}"'.encode()
         exact_search_resp = self.get_client().search_repositories(username, exact_query)
         fuzzy_search_resp = self.get_client().search_repositories(username, fuzzy_query)
 

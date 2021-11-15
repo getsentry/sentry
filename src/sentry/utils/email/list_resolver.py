@@ -1,7 +1,14 @@
+from __future__ import annotations
+
+from collections import Mapping
+from typing import Callable, Generic, Iterable
+
+from sentry.db.models import Model
+from sentry.db.models.manager import M
 from sentry.utils.strings import is_valid_dot_atom
 
 
-class ListResolver:
+class ListResolver(Generic[M]):
     """
     Manages the generation of RFC 2919 compliant list-id strings from varying
     objects types.
@@ -12,7 +19,9 @@ class ListResolver:
         Error raised when attempting to build a list-id from an unregistered object type.
         """
 
-    def __init__(self, namespace, type_handlers):
+    def __init__(
+        self, namespace: str, type_handlers: Mapping[type[Model], Callable[[M], Iterable[str]]]
+    ) -> None:
         assert is_valid_dot_atom(namespace)
 
         # The list-id-namespace that will be used when generating the list-id
@@ -26,7 +35,7 @@ class ListResolver:
         # values.
         self.__type_handlers = type_handlers
 
-    def __call__(self, instance):
+    def __call__(self, instance: M) -> str:
         """
         Build a list-id string from an instance.
 

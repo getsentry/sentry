@@ -9,6 +9,7 @@ import moment from 'moment';
 import {DateTimeObject} from 'app/components/charts/utils';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import ErrorBoundary from 'app/components/errorBoundary';
+import HookOrDefault from 'app/components/hookOrDefault';
 import * as Layout from 'app/components/layouts/thirds';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {ChangeData} from 'app/components/organizations/timeRangeSelector';
@@ -33,6 +34,8 @@ import HeaderTabs from 'app/views/organizationStats/header';
 import {CHART_OPTIONS_DATACATEGORY, ChartDataTransform} from './usageChart';
 import UsageStatsOrg from './usageStatsOrg';
 import UsageStatsProjects from './usageStatsProjects';
+
+const HookHeader = HookOrDefault({hookName: 'component:org-stats-banner'});
 
 const PAGE_QUERY_PARAMS = [
   'pageStatsPeriod',
@@ -289,6 +292,7 @@ export class OrganizationStats extends Component<Props> {
                   </p>
                 </Fragment>
               )}
+              <HookHeader organization={organization} />
 
               <PageGrid>
                 {this.renderPageControl()}
@@ -303,20 +307,20 @@ export class OrganizationStats extends Component<Props> {
                     handleChangeState={this.setStateOnUrl}
                   />
                 </ErrorBoundary>
-                <ErrorBoundary mini>
-                  <UsageStatsProjects
-                    organization={organization}
-                    dataCategory={this.dataCategory}
-                    dataCategoryName={this.dataCategoryName}
-                    dataDatetime={this.dataDatetime}
-                    tableSort={this.tableSort}
-                    tableQuery={this.tableQuery}
-                    tableCursor={this.tableCursor}
-                    handleChangeState={this.setStateOnUrl}
-                    getNextLocations={this.getNextLocations}
-                  />
-                </ErrorBoundary>
               </PageGrid>
+              <ErrorBoundary mini>
+                <UsageStatsProjects
+                  organization={organization}
+                  dataCategory={this.dataCategory}
+                  dataCategoryName={this.dataCategoryName}
+                  dataDatetime={this.dataDatetime}
+                  tableSort={this.tableSort}
+                  tableQuery={this.tableQuery}
+                  tableCursor={this.tableCursor}
+                  handleChangeState={this.setStateOnUrl}
+                  getNextLocations={this.getNextLocations}
+                />
+              </ErrorBoundary>
             </Layout.Main>
           </Body>
         </Fragment>
