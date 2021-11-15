@@ -13,6 +13,7 @@ import {Widget, WidgetQuery} from './types';
 const MAX_ITEMS = 5;
 const DEFAULT_SORT = IssueSortOptions.DATE;
 const DEFAULT_DISPLAY = IssueDisplayOptions.EVENTS;
+const DEFAULT_COLLAPSE = ['stats', 'filtered', 'lifetime'];
 
 type EndpointParams = Partial<GlobalSelection['datetime']> & {
   project: number[];
@@ -24,6 +25,7 @@ type EndpointParams = Partial<GlobalSelection['datetime']> & {
   cursor?: string;
   page?: number | string;
   display?: string;
+  collapse?: string[];
 };
 
 type Props = {
@@ -98,6 +100,7 @@ class WidgetQueries extends React.Component<Props, State> {
       query: query.conditions,
       sort: DEFAULT_SORT,
       display: DEFAULT_DISPLAY,
+      collapse: DEFAULT_COLLAPSE,
     };
 
     if (selection.datetime.period) {
