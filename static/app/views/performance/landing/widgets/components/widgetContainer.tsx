@@ -2,6 +2,7 @@ import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import MenuItem from 'app/components/menuItem';
+import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import localStorage from 'app/utils/localStorage';
@@ -9,6 +10,7 @@ import {usePerformanceDisplayType} from 'app/utils/performance/contexts/performa
 import useOrganization from 'app/utils/useOrganization';
 import withOrganization from 'app/utils/withOrganization';
 import ContextMenu from 'app/views/dashboardsV2/contextMenu';
+import {useMetricsSwitch} from 'app/views/performance/metricsSwitch';
 import {PROJECT_PERFORMANCE_TYPE} from 'app/views/performance/utils';
 
 import {GenericPerformanceWidgetDataType} from '../types';
@@ -102,6 +104,7 @@ function trackChartSettingChange(
 
 const _WidgetContainer = (props: Props) => {
   const {organization, index, chartHeight, allowedCharts, ...rest} = props;
+  const {isMetricsData} = useMetricsSwitch();
   const performanceType = usePerformanceDisplayType();
   let _chartSetting = getChartSetting(
     index,
@@ -147,6 +150,10 @@ const _WidgetContainer = (props: Props) => {
       />
     ),
   };
+
+  if (isMetricsData) {
+    return <h1>{t('Using metrics')}</h1>;
+  }
 
   switch (widgetProps.dataType) {
     case GenericPerformanceWidgetDataType.trends:
