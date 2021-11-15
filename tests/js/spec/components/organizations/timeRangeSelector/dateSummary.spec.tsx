@@ -6,7 +6,7 @@ const start = new Date('2017-10-14T02:38:00.000Z');
 const end = new Date('2017-10-17T02:38:00.000Z'); // National Pasta Day
 
 describe('DateSummary', () => {
-  it('renders', async () => {
+  it('renders', () => {
     const {container} = mountWithTheme(<DateSummary start={start} end={end} />);
     expect(container).toSnapshot();
   });
