@@ -11,6 +11,8 @@ DEFAULT_PROMPTS = {
     "distributed_tracing": {"required_fields": ["organization_id", "project_id"]},
     "quick_trace_missing": {"required_fields": ["organization_id", "project_id"]},
     "code_owners": {"required_fields": ["organization_id", "project_id"]},
+    "trial_started": {"required_fields": ["organization_id"]},
+    "trial_first_event": {"required_fields": ["organization_id"]},
 }
 
 
