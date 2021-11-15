@@ -7,8 +7,7 @@ import {ModalRenderProps, openAddDashboardWidgetModal} from 'app/actionCreators/
 import Tag from 'app/components/tagDeprecated';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {GlobalSelection, Organization} from 'app/types';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
+import {Organization} from 'app/types';
 import {DashboardDetails, Widget} from 'app/views/dashboardsV2/types';
 import {WidgetTemplate} from 'app/views/dashboardsV2/widgetLibrary/data';
 
@@ -30,10 +29,7 @@ export enum TAB {
   Custom = 'custom',
 }
 
-type Props = ModalRenderProps &
-  DashboardWidgetLibraryModalOptions & {
-    selection: GlobalSelection;
-  };
+type Props = ModalRenderProps & DashboardWidgetLibraryModalOptions;
 
 function DashboardWidgetLibraryModal({
   Header,
@@ -41,7 +37,6 @@ function DashboardWidgetLibraryModal({
   Footer,
   dashboard,
   organization,
-  selection,
   customWidget,
   initialSelectedWidgets,
   closeModal,
@@ -69,7 +64,6 @@ function DashboardWidgetLibraryModal({
             onClick={() => {
               openAddDashboardWidgetModal({
                 organization,
-                selection,
                 dashboard,
                 selectedWidgets,
                 widget: customWidget,
@@ -146,4 +140,4 @@ const SelectedBadge = styled(Tag)`
   top: -1px;
 `;
 
-export default withGlobalSelection(DashboardWidgetLibraryModal);
+export default DashboardWidgetLibraryModal;

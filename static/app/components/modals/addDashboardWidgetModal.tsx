@@ -593,7 +593,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
             <ButtonBar gap={1}>
               {fromLibrary ? (
                 <Button
-                  data-test-id="add-widget"
+                  data-test-id="back-to-library"
                   type="button"
                   onClick={() => {
                     if (dashboard && onAddLibraryWidget) {
