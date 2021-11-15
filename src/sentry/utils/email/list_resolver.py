@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from collections import Mapping
-from typing import Callable, Generic, Iterable
+from typing import Callable, Generic, Iterable, Mapping
 
 from sentry.db.models import Model
 from sentry.db.models.manager import M
