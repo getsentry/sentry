@@ -488,31 +488,6 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
 
     const isUpdatingWidget = typeof onUpdateWidget === 'function' && !!previousWidget;
 
-    const buttonBar = (
-      <ButtonBar gap={1}>
-        <Button
-          external
-          href="https://docs.sentry.io/product/dashboards/custom-dashboards/#widget-builder"
-        >
-          {t('Read the docs')}
-        </Button>
-        <Button
-          data-test-id="add-widget"
-          priority="primary"
-          type="button"
-          onClick={this.handleSubmit}
-          disabled={state.loading}
-          busy={state.loading}
-        >
-          {fromLibrary
-            ? t('Confirm')
-            : isUpdatingWidget
-            ? t('Update Widget')
-            : t('Add Widget')}
-        </Button>
-      </ButtonBar>
-    );
-
     return (
       <React.Fragment>
         <Header closeButton>
@@ -608,30 +583,49 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
           />
         </Body>
         <Footer>
-          {fromLibrary ? (
-            <StyledButtonBar gap={1}>
+          <StyledButtonBar gap={1}>
+            <Button
+              external
+              href="https://docs.sentry.io/product/dashboards/custom-dashboards/#widget-builder"
+            >
+              {t('Read the docs')}
+            </Button>
+            <ButtonBar gap={1}>
+              {fromLibrary ? (
+                <Button
+                  data-test-id="add-widget"
+                  type="button"
+                  onClick={() => {
+                    if (dashboard && onAddLibraryWidget) {
+                      openDashboardWidgetLibraryModal({
+                        organization,
+                        dashboard,
+                        customWidget: this.state,
+                        initialSelectedWidgets: selectedWidgets,
+                        onAddWidget: onAddLibraryWidget,
+                      });
+                    }
+                  }}
+                >
+                  {t('Back to Library')}
+                </Button>
+              ) : null}
               <Button
                 data-test-id="add-widget"
+                priority="primary"
                 type="button"
-                onClick={() => {
-                  if (dashboard && onAddLibraryWidget) {
-                    openDashboardWidgetLibraryModal({
-                      organization,
-                      dashboard,
-                      customWidget: this.state,
-                      initialSelectedWidgets: selectedWidgets,
-                      onAddWidget: onAddLibraryWidget,
-                    });
-                  }
-                }}
+                onClick={this.handleSubmit}
+                disabled={state.loading}
+                busy={state.loading}
               >
-                {t('Back')}
+                {fromLibrary
+                  ? t('Confirm')
+                  : isUpdatingWidget
+                  ? t('Update Widget')
+                  : t('Add Widget')}
               </Button>
-              {buttonBar}
-            </StyledButtonBar>
-          ) : (
-            buttonBar
-          )}
+            </ButtonBar>
+          </StyledButtonBar>
         </Footer>
       </React.Fragment>
     );
