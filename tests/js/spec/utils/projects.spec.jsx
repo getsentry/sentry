@@ -1,8 +1,8 @@
 import {
   act,
-  fireEvent,
   mountWithTheme,
   screen,
+  userEvent,
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
@@ -342,7 +342,7 @@ describe('utils.projects', function () {
         ],
       });
 
-      fireEvent.change(screen.getByRole('textbox'), {target: {value: 'test'}});
+      userEvent.type(screen.getByRole('textbox'), 'test');
 
       expect(request).toHaveBeenCalledWith(
         expect.anything(),
@@ -397,7 +397,7 @@ describe('utils.projects', function () {
         ],
       });
 
-      fireEvent.change(screen.getByRole('textbox'), {target: {value: 'test'}});
+      userEvent.type(screen.getByRole('textbox'), 'test');
 
       expect(request).toHaveBeenCalledWith(
         expect.anything(),
@@ -438,7 +438,7 @@ describe('utils.projects', function () {
       );
 
       // Should not have duplicates
-      fireEvent.change(screen.getByRole('textbox'), {target: {value: 'test'}});
+      userEvent.type(screen.getByRole('textbox'), 'test');
 
       await waitFor(() =>
         expect(myRenderer).toHaveBeenLastCalledWith(
