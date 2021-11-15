@@ -234,16 +234,13 @@ const RawToggler = styled(BooleanField)`
 
 const RawContentWrapper = styled('div')`
   display: grid;
-  grid-template-columns: max-content;
+  grid-auto-flow: column;
   justify-content: flex-end;
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    grid-gap: ${space(1)};
-    grid-template-columns: repeat(2, max-content);
-  }
 `;
 
 const LargeScreenDownloadButton = styled(Button)`
   display: none;
+  margin-left: ${space(1)};
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     display: block;
   }
