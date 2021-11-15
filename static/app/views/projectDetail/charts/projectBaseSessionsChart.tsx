@@ -275,7 +275,6 @@ class Chart extends Component<ChartProps, ChartState> {
         displayMode === DisplayModes.STABILITY
           ? {
               axisLabel: {
-                color: theme.gray200,
                 formatter: (value: number) => displayCrashFreePercent(value),
               },
               scale: true,

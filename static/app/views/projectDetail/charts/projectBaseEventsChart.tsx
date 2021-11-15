@@ -105,7 +105,6 @@ class ProjectBaseEventsChart extends Component<Props> {
             grid: {left: '10px', right: '10px', top: '40px', bottom: '0px'},
             yAxis: {
               axisLabel: {
-                color: theme.gray200,
                 formatter: (value: number) => axisLabelFormatter(value, yAxis),
               },
               scale: true,
