@@ -14,8 +14,8 @@ logger = logging.getLogger(__name__)
 
 
 class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
-    def get(self, request, sentry_app):
-        return Response(serialize(sentry_app, request.user, access=request.access))
+    def get(self, request, sentry_app, access):
+        return Response(serialize(sentry_app, request.user, access=access))
 
     @catch_raised_errors
     def put(self, request, sentry_app):
