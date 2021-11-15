@@ -13,5 +13,20 @@
       },
       {"type": "spaces", "value": ""}
     ]
+  },
+  {
+    "query": "!transaction.duration:500s",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "duration",
+        "negated": true,
+        "key": {"type": "keySimple", "value": "transaction.duration", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueDuration", "value": 500, "unit": "s"}
+      },
+      {"type": "spaces", "value": ""}
+    ]
   }
 ]

@@ -80,16 +80,16 @@ specific_date_filter = search_key sep iso_8601_date_format
 rel_date_filter = search_key sep rel_date_format
 
 # filter for durations
-duration_filter = search_key sep operator? duration_format
+duration_filter = negation? search_key sep operator? duration_format
 
 # boolean comparison filter
 boolean_filter = negation? search_key sep boolean_value
 
 # numeric in filter
-numeric_in_filter = search_key sep numeric_in_list
+numeric_in_filter = negation? search_key sep numeric_in_list
 
 # numeric comparison filter
-numeric_filter = search_key sep operator? numeric_value
+numeric_filter = negation? search_key sep operator? numeric_value
 
 # aggregate duration filter
 aggregate_duration_filter = negation? aggregate_key sep operator? duration_format
@@ -277,12 +277,17 @@ def is_negated(node):
 
 
 def handle_negation(negation, operator):
-    if isinstance(operator, Node):
-        operator = "="
-    elif not isinstance(operator, str):
-        operator = operator[0]
+    operator = get_operator_value(operator)
     if is_negated(negation):
         return OPERATOR_NEGATION_MAP.get(operator, "!=")
+    return operator
+
+
+def get_operator_value(operator):
+    if isinstance(operator, Node):
+        operator = "=" if isinstance(operator.expr, Optional) else operator.text
+    elif isinstance(operator, list):
+        operator = operator[0]
     return operator
 
 
@@ -540,10 +545,7 @@ class SearchVisitor(NodeVisitor):
         return SearchFilter(search_key, operator, search_value)
 
     def _handle_numeric_filter(self, search_key, operator, search_value):
-        if isinstance(operator, Node):
-            operator = "=" if isinstance(operator.expr, Optional) else operator.text
-        else:
-            operator = operator[0]
+        operator = get_operator_value(operator)
 
         if self.is_numeric_key(search_key.name):
             try:
@@ -611,9 +613,12 @@ class SearchVisitor(NodeVisitor):
         return self._handle_basic_filter(search_key, "=", SearchValue(value.text))
 
     def visit_duration_filter(self, node, children):
-        (search_key, sep, operator, search_value) = children
+        (negation, search_key, _, operator, search_value) = children
+        if self.is_duration_key(search_key.name) or self.is_numeric_key(search_key.name):
+            operator = handle_negation(negation, operator)
+        else:
+            operator = get_operator_value(operator)
 
-        operator = operator[0] if not isinstance(operator, Node) else "="
         if self.is_duration_key(search_key.name):
             try:
                 search_value = parse_duration(*search_value)
@@ -626,8 +631,9 @@ class SearchVisitor(NodeVisitor):
             return self._handle_numeric_filter(search_key, operator, search_value)
 
         search_value = "".join(search_value)
-        search_value = operator + search_value if operator != "=" else search_value
-        return self._handle_basic_filter(search_key, "=", SearchValue(search_value))
+        search_value = operator + search_value if operator not in ("=", "!=") else search_value
+        operator = "!=" if is_negated(negation) else "="
+        return self._handle_basic_filter(search_key, operator, SearchValue(search_value))
 
     def visit_boolean_filter(self, node, children):
         (negation, search_key, sep, search_value) = children
@@ -650,8 +656,8 @@ class SearchVisitor(NodeVisitor):
         return self._handle_basic_filter(search_key, "=" if not negated else "!=", search_value)
 
     def visit_numeric_in_filter(self, node, children):
-        (search_key, _, search_value) = children
-        operator = "IN"
+        (negation, search_key, _, search_value) = children
+        operator = handle_negation(negation, "IN")
 
         if self.is_numeric_key(search_key.name):
             try:
@@ -664,8 +670,25 @@ class SearchVisitor(NodeVisitor):
         return self._handle_basic_filter(search_key, operator, search_value)
 
     def visit_numeric_filter(self, node, children):
-        (search_key, _, operator, search_value) = children
-        return self._handle_numeric_filter(search_key, operator, search_value)
+        (negation, search_key, _, operator, search_value) = children
+        if (
+            self.is_numeric_key(search_key.name)
+            or search_key.name in self.config.text_operator_keys
+        ):
+            operator = handle_negation(negation, operator)
+        else:
+            operator = get_operator_value(operator)
+
+        if self.is_numeric_key(search_key.name):
+            return self._handle_numeric_filter(search_key, operator, search_value)
+
+        search_value = SearchValue("".join(search_value))
+        if operator not in ("=", "!=") and search_key.name not in self.config.text_operator_keys:
+            search_value = search_value._replace(raw_value=f"{operator}{search_value.raw_value}")
+
+        if search_key.name not in self.config.text_operator_keys:
+            operator = "!=" if is_negated(negation) else "="
+        return self._handle_basic_filter(search_key, operator, search_value)
 
     def visit_aggregate_duration_filter(self, node, children):
         (negation, search_key, _, operator, search_value) = children
@@ -823,10 +846,7 @@ class SearchVisitor(NodeVisitor):
 
     def visit_text_filter(self, node, children):
         (negation, search_key, _, operator, search_value) = children
-        if isinstance(operator, Node):
-            operator = "="
-        else:
-            operator = operator[0]
+        operator = get_operator_value(operator)
 
         # XXX: We check whether the text in the node itself is actually empty, so
         # we can tell the difference between an empty quoted string and no string
