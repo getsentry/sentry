@@ -294,6 +294,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         from: fromDiscover ? 'discoverv2' : 'dashboards',
         field,
         value,
+        widgetType: 'discover',
         organization,
       });
 
