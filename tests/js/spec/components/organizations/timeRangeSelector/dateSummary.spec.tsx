@@ -1,4 +1,4 @@
-import {cleanup, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
 import DateSummary from 'app/components/organizations/timeRangeSelector/dateSummary';
 
@@ -12,14 +12,13 @@ describe('DateSummary', () => {
   });
 
   it('does not show times when it is midnight for start date and 23:59:59 for end date', () => {
-    mountWithTheme(<DateSummary start={start} end={end} />);
+    const {rerender} = mountWithTheme(<DateSummary start={start} end={end} />);
     // Search by year because day may change depending on timezone
     expect(screen.getAllByText(/Oct.+2017/)[0].childElementCount).toBe(1);
-    cleanup();
 
     // Date Summary formats using system time
     // tests run on EST/EDT
-    mountWithTheme(
+    rerender(
       <DateSummary
         start={new Date('2017-10-14T00:00:00.000-0400')}
         end={new Date('2017-10-17T23:59:59.000-0400')}
