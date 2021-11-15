@@ -1,0 +1,153 @@
+{
+    "openapi": "3.0.3",
+    "info": {
+        "title": "",
+        "version": "0.0.0"
+    },
+    "paths": {
+        "/api/0/organizations/{organization_slug}/scim/v2/Users/{member_id}": {
+            "get": {
+                "operationId": "Query an Individual Organization Member",
+                "description": "Query an individual organization member with a SCIM User GET Request.\n- The `name` object will contain fields `firstName` and `lastName` with the values of `N/A`.\nSentry's SCIM API does not currently support these fields but returns them for compatibility purposes.",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "member_id",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "The id of the member you'd like to query.",
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "organization_slug",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "The slug of the organization the resource belongs to.",
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "SCIM"
+                ],
+                "security": [
+                    {
+                        "auth_token": [
+                            "member:read",
+                            "member:admin",
+                            "member:write"
+                        ]
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/SCIMMember"
+                                    }
+                                },
+                                "examples": {
+                                    "SuccessfulResponse": {
+                                        "value": {
+                                            "schemas": [
+                                                "urn:ietf:params:scim:schemas:core:2.0:User"
+                                            ],
+                                            "id": "102",
+                                            "userName": "test.user@okta.local",
+                                            "emails": [
+                                                {
+                                                    "primary": true,
+                                                    "value": "test.user@okta.local",
+                                                    "type": "work"
+                                                }
+                                            ],
+                                            "name": {
+                                                "familyName": "N/A",
+                                                "givenName": "N/A"
+                                            },
+                                            "active": true,
+                                            "meta": {
+                                                "resourceType": "User"
+                                            }
+                                        },
+                                        "summary": "Successful response"
+                                    }
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Not Found"
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "SCIMMember": {
+                "type": "object",
+                "properties": {
+                    "schemas": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "userName": {
+                        "type": "string"
+                    },
+                    "emails": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SCIMMemberEmails"
+                        }
+                    }
+                },
+                "required": [
+                    "emails",
+                    "id",
+                    "schemas",
+                    "userName"
+                ]
+            },
+            "SCIMMemberEmails": {
+                "type": "object",
+                "properties": {
+                    "primary": {
+                        "type": "boolean"
+                    },
+                    "value": {
+                        "type": "string"
+                    },
+                    "type": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "primary",
+                    "type",
+                    "value"
+                ]
+            }
+        },
+        "securitySchemes": {
+            "auth_token": {
+                "type": "http",
+                "scheme": "bearer"
+            }
+        }
+    }
+}

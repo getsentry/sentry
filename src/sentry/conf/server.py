@@ -886,6 +886,7 @@ REST_FRAMEWORK = {
     "TEST_REQUEST_DEFAULT_FORMAT": "json",
     "DEFAULT_PERMISSION_CLASSES": ("sentry.api.permissions.NoPermission",),
     "EXCEPTION_HANDLER": "sentry.api.handlers.custom_exception_handler",
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
 SPECTACULAR_SETTINGS = {
@@ -895,7 +896,6 @@ SPECTACULAR_SETTINGS = {
     "AUTHENTICATION_WHITELIST": ["sentry.api.authentication.TokenAuthentication"],
 }
 
-from sentry.apidocs.extensions import *
 
 CRISPY_TEMPLATE_PACK = "bootstrap3"
 
@@ -2475,3 +2475,6 @@ SENTRY_POST_PROCESS_FORWARDER_BATCHING = True
 # Whether badly behaving projects will be automatically
 # sent to the low priority queue
 SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE = False
+
+
+from sentry.apidocs.extensions import *  # NOQA  # TODO: figure out better init import
