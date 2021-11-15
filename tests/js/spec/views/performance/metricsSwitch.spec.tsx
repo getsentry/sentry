@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {
   MetricsSwitch,
@@ -45,7 +45,7 @@ describe('MetricsSwitch', () => {
 
     expect(screen.getByText('using transactions')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('checkbox'));
+    userEvent.click(screen.getByRole('checkbox'));
 
     expect(screen.getByText('using metrics')).toBeInTheDocument();
   });
