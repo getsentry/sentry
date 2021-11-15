@@ -2178,7 +2178,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         self.store_event(
             data={"release": release.version, "timestamp": self.min_ago},
             project_id=self.project.id,
-        ).event_id
+        )
 
         query = {"field": ["stack.filename", "release"], "query": "release:test*"}
         response = self.do_request(query)
