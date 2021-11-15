@@ -1000,6 +1000,8 @@ SENTRY_FEATURES = {
     "organizations:sentry-app-debugging": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
+    # Enable widget resizing in dashboards
+    "organizations:dashboard-widget-resizing": False,
     # Enable readonly dashboards
     "organizations:dashboards-basic": True,
     # Enable custom editable dashboards
