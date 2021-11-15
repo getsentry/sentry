@@ -48,7 +48,9 @@ class RedisRateLimiter(RateLimiter):
         except Exception as e:
             raise InvalidConfiguration(str(e))
 
-    def current_value(self, key: int, project: Project = None, window: int = None) -> int:
+    def current_value(
+        self, key: str, project: Project | None = None, window: int | None = None
+    ) -> int:
         """
         Get the current value stored in redis for the rate limit with key "key" and said window
         """
@@ -73,9 +75,10 @@ class RedisRateLimiter(RateLimiter):
             window = self.window
         redis_key = self._construct_redis_key(key, project=project, window=window)
 
+        expiration = window - int(time() % window)
         try:
             result = self.client.incr(redis_key)
-            self.client.expire(redis_key, window)
+            self.client.expire(redis_key, expiration)
         except RedisError:
             # We don't want rate limited endpoints to fail when ratelimits
             # can't be updated. We do want to know when that happens.
