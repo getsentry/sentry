@@ -434,7 +434,9 @@ class OrganizationReleasesEndpoint(
         :auth: required
         """
         bind_organization_context(organization)
-        serializer = ReleaseSerializerWithProjects(data=request.data)
+        serializer = ReleaseSerializerWithProjects(
+            data=request.data, context={"organization": organization}
+        )
 
         with configure_scope() as scope:
             if serializer.is_valid():
