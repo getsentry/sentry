@@ -8,6 +8,7 @@ from sentry.integrations.notifications import NotifyBasicMixin
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder import SlackBody
 from sentry.integrations.slack.message_builder.notifications import get_message_builder
+from sentry.integrations.slack.tasks import post_message
 from sentry.models import ExternalActor, Identity, Integration, Organization, Team, User
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notify import register_notification_provider
@@ -146,10 +147,9 @@ def send_notification_as_slack(
     notification: BaseNotification,
     recipients: Iterable[Team | User],
     shared_context: Mapping[str, Any],
-    extra_context_by_user_id: Mapping[int, Mapping[str, Any]] | None,
+    extra_context_by_actor_id: Mapping[int, Mapping[str, Any]] | None,
 ) -> None:
     """Send an "activity" or "alert rule" notification to a Slack user or team."""
-    client = SlackClient()
     data = get_channel_and_token_by_recipient(notification.organization, recipients)
 
     for recipient, tokens_by_channel in data.items():
@@ -162,7 +162,7 @@ def send_notification_as_slack(
                     "recipient": recipient.id,
                 },
             )
-        extra_context = (extra_context_by_user_id or {}).get(recipient.id, {})
+        extra_context = (extra_context_by_actor_id or {}).get(recipient.actor_id, {})
         context = get_context(notification, recipient, shared_context, extra_context)
         attachments = get_attachments(notification, recipient, context)
 
@@ -178,19 +178,19 @@ def send_notification_as_slack(
                 "text": notification.get_notification_title(),
                 "attachments": json.dumps(attachments),
             }
-            try:
-                client.post("/chat.postMessage", data=payload, timeout=5)
-            except ApiError as e:
-                logger.info(
-                    "notification.fail.slack_post",
-                    extra={
-                        "error": str(e),
-                        "notification": notification,
-                        "recipient": recipient.id,
-                        "channel_id": channel,
-                        "is_multiple": is_multiple,
-                    },
-                )
+            log_params = {
+                "notification": notification,
+                "recipient": recipient.id,
+                "channel_id": channel,
+                "is_multiple": is_multiple,
+            }
+            post_message.apply_async(
+                kwargs={
+                    "payload": payload,
+                    "log_error_message": "notification.fail.slack_post",
+                    "log_params": log_params,
+                }
+            )
             notification.record_notification_sent(recipient, ExternalProviders.SLACK)
 
     key = notification.metrics_key

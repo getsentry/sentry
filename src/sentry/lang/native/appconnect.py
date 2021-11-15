@@ -51,17 +51,6 @@ class NoDsymsError(Exception):
     pass
 
 
-# TODO(itunes): Remove when the fields are removed from DB
-DEPRECATED_FIELDS = [
-    "itunesUser",
-    "itunesCreated",
-    "itunesPassword",
-    "itunesSession",
-    "orgPublicId",
-    "orgName",
-]
-
-
 @dataclasses.dataclass(frozen=True)
 class AppStoreConnectConfig:
     """The symbol source configuration for an App Store Connect source.
@@ -112,18 +101,13 @@ class AppStoreConnectConfig:
     def from_json(cls, data: Dict[str, Any]) -> "AppStoreConnectConfig":
         """Creates a new instance from **deserialised** JSON data.
 
-        This will include the JSON schema validation.  It accepts both a str or a datetime
-        for the ``itunesCreated``.  Thus you can safely use this to create and validate the
-        config as deserialised by both plain JSON deserialiser or by Django Rest Framework's
-        deserialiser.
+        This will include the JSON schema validation.  You can safely use this to create and
+        validate the config as deserialised by both plain JSON deserialiser or by Django Rest
+        Framework's deserialiser.
 
         :raises InvalidConfigError: if the data does not contain a valid App Store Connect
            symbol source configuration.
         """
-        # TODO(itunes): Remove logic related to iTunes fields when the fields are removed
-        for field in DEPRECATED_FIELDS:
-            if field in data:
-                del data[field]
         try:
             jsonschema.validate(data, APP_STORE_CONNECT_SCHEMA)
         except jsonschema.exceptions.ValidationError as e:

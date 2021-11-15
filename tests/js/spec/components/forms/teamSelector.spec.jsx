@@ -1,7 +1,8 @@
-import {act, fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {act, mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {addTeamToProject} from 'app/actionCreators/projects';
 import {TeamSelector} from 'app/components/forms/teamSelector';
+import OrganizationStore from 'app/stores/organizationStore';
 import TeamStore from 'app/stores/teamStore';
 
 jest.mock('app/actionCreators/projects', () => ({
@@ -28,30 +29,27 @@ const teamData = [
 const teams = teamData.map(data => TestStubs.Team(data));
 const project = TestStubs.Project({teams: [teams[0]]});
 const organization = TestStubs.Organization({access: ['project:write']});
+act(() => OrganizationStore.onUpdate(organization, {replace: true}));
 
 function createWrapper(props = {}) {
   return mountWithTheme(
-    <TeamSelector organization={organization} name="teamSelector" {...props} />
+    <TeamSelector
+      organization={organization}
+      name="teamSelector"
+      aria-label="Select a team"
+      {...props}
+    />
   );
-}
-
-function openSelectMenu() {
-  const keyDownEvent = {
-    key: 'ArrowDown',
-  };
-
-  const placeholder = screen.getByText('Select...');
-  fireEvent.keyDown(placeholder, keyDownEvent);
 }
 
 describe('Team Selector', function () {
   beforeEach(function () {
-    act(() => void TeamStore.loadInitialData(teams));
+    TeamStore.loadInitialData(teams);
   });
 
   it('renders options', function () {
     createWrapper();
-    openSelectMenu();
+    userEvent.type(screen.getByText('Select...'), '{keyDown}');
 
     expect(screen.getByText('#team1')).toBeInTheDocument();
     expect(screen.getByText('#team2')).toBeInTheDocument();
@@ -61,17 +59,21 @@ describe('Team Selector', function () {
   it('selects an option', function () {
     const onChangeMock = jest.fn();
     createWrapper({onChange: onChangeMock});
-    openSelectMenu();
+    userEvent.type(screen.getByText('Select...'), '{keyDown}');
 
     const option = screen.getByText('#team1');
-    fireEvent.click(option);
-    expect(onChangeMock).toHaveBeenCalled();
+    userEvent.click(option);
+    expect(onChangeMock).toHaveBeenCalledWith(
+      expect.objectContaining({value: 'team1'}),
+      expect.anything()
+    );
   });
 
   it('respects the team filter', async function () {
     const teamFilter = team => team.slug === 'team1';
     createWrapper({teamFilter});
-    openSelectMenu();
+
+    userEvent.type(screen.getByText('Select...'), '{keyDown}');
 
     expect(screen.getByText('#team1')).toBeInTheDocument();
 
@@ -82,7 +84,7 @@ describe('Team Selector', function () {
 
   it('respects the project filter', async function () {
     createWrapper({project});
-    openSelectMenu();
+    userEvent.type(screen.getByText('Select...'), '{keyDown}');
 
     expect(screen.getByText('#team1')).toBeInTheDocument();
 
@@ -93,7 +95,7 @@ describe('Team Selector', function () {
   it('respects the team and project filter', async function () {
     const teamFilter = team => team.slug === 'team1' || team.slug === 'team2';
     createWrapper({teamFilter, project});
-    openSelectMenu();
+    userEvent.type(screen.getByText('Select...'), '{keyDown}');
 
     expect(screen.getByText('#team1')).toBeInTheDocument();
 
@@ -106,19 +108,30 @@ describe('Team Selector', function () {
 
   it('allows you to add teams outside of project', async function () {
     createWrapper({project});
-    openSelectMenu();
+    userEvent.type(screen.getByText('Select...'), '{keyDown}');
 
     expect(screen.getByText('#team1')).toBeInTheDocument();
 
     // team2 and team3 should have add to project buttons
     const addToProjectButtons = screen.getAllByRole('button');
 
-    await act(async () => {
-      // add team2 to project
-      fireEvent.click(addToProjectButtons[0]);
-      await tick();
-    });
+    userEvent.click(addToProjectButtons[0]);
 
     expect(addTeamToProject).toHaveBeenCalled();
+  });
+
+  it('allows searching by slug with useId', function () {
+    const onChangeMock = jest.fn();
+    createWrapper({useId: true, onChange: onChangeMock});
+    userEvent.type(screen.getByText('Select...'), '{keyDown}');
+
+    userEvent.type(screen.getByLabelText('Select a team'), 'team2');
+
+    expect(screen.getByText('#team2')).toBeInTheDocument();
+    userEvent.click(screen.getByText('#team2'));
+    expect(onChangeMock).toHaveBeenCalledWith(
+      expect.objectContaining({value: '2'}),
+      expect.anything()
+    );
   });
 });

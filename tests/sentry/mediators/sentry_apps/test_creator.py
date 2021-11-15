@@ -34,6 +34,16 @@ class TestCreator(TestCase):
         app = self.creator.call()
         assert app.slug == "nulldb"
 
+    def test_default_popularity(self):
+        app = self.creator.call()
+        assert app.popularity == SentryApp._meta.get_field("popularity").default
+
+    def test_popularity(self):
+        popularity = 27
+        self.creator.popularity = popularity
+        app = self.creator.call()
+        assert app.popularity == popularity
+
     def test_creates_proxy_user(self):
         self.creator.call()
 

@@ -93,8 +93,8 @@ function Exception({
         )
       }
       hasAppOnlyFrames={
-        !!data.values?.find(
-          value => !!value.stacktrace?.frames?.find(frame => defined(frame.inApp))
+        !!data.values?.some(
+          value => !!value.stacktrace?.frames?.some(frame => frame.inApp !== true)
         )
       }
       hasNewestFirst={

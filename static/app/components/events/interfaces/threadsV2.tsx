@@ -252,9 +252,9 @@ function Threads({
         !!activeThread?.stacktrace?.frames?.find(frame => defined(frame.instructionAddr))
       }
       hasAppOnlyFrames={
-        !!exception?.values?.find(
-          value => !!value.stacktrace?.frames?.find(frame => !!frame.inApp)
-        ) || !!activeThread?.stacktrace?.frames?.find(frame => !!frame.inApp)
+        !!exception?.values?.some(
+          value => !!value.stacktrace?.frames?.some(frame => frame.inApp !== true)
+        ) || !!activeThread?.stacktrace?.frames?.some(frame => frame.inApp !== true)
       }
       hasNewestFirst={
         !!exception?.values?.find(value => (value.stacktrace?.frames ?? []).length > 1) ||
