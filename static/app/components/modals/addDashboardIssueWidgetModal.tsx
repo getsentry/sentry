@@ -14,6 +14,7 @@ import IssueWidgetQueriesForm from 'app/components/dashboards/issueWidgetQueries
 import {PanelAlert} from 'app/components/panels';
 import {t} from 'app/locale';
 import {DateString, GlobalSelection, Organization, RelativePeriod} from 'app/types';
+import {defined} from 'app/utils';
 import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
@@ -106,7 +107,7 @@ class AddDashboardIssueWidgetModal extends React.Component<Props, State> {
     };
     try {
       await validateWidget(api, organization.slug, widgetData);
-      if (typeof onUpdateWidget === 'function' && !!previousWidget) {
+      if (defined(onUpdateWidget) && !!previousWidget) {
         onUpdateWidget({
           id: previousWidget?.id,
           ...widgetData,
@@ -134,6 +135,7 @@ class AddDashboardIssueWidgetModal extends React.Component<Props, State> {
         from: 'dashboards',
         field,
         value,
+        widgetType: 'issue',
         organization,
       });
 
@@ -174,7 +176,7 @@ class AddDashboardIssueWidgetModal extends React.Component<Props, State> {
       ? {...selection, datetime: {start, end, period: '', utc: null}}
       : selection;
 
-    const isUpdatingWidget = typeof onUpdateWidget === 'function' && !!previousWidget;
+    const isUpdatingWidget = defined(onUpdateWidget) && !!previousWidget;
 
     return (
       <React.Fragment>
