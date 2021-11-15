@@ -62,15 +62,11 @@ describe('TraceFullQuery', function () {
   });
 
   it('fetches data on mount with detailed param', async function () {
-    const getMock = MockApiClient.addMockResponse(
-      {
-        url: `/organizations/test-org/events-trace/${traceId}/`,
-        body: [],
-      },
-      {
-        predicate: (_, {query}) => query.detailed === '1',
-      }
-    );
+    const getMock = MockApiClient.addMockResponse({
+      url: `/organizations/test-org/events-trace/${traceId}/`,
+      body: [],
+      match: [MockApiClient.matchQuery({detailed: '1'})],
+    });
     const wrapper = mountWithTheme(
       <TraceFullDetailedQuery
         api={api}

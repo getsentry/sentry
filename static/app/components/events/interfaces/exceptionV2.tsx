@@ -4,7 +4,6 @@ import {t} from 'app/locale';
 import {ExceptionType, Group, PlatformType, Project} from 'app/types';
 import {Event} from 'app/types/event';
 import {STACK_TYPE, STACK_VIEW} from 'app/types/stacktrace';
-import {defined} from 'app/utils';
 
 import TraceEventDataSection from '../traceEventDataSection';
 import {DisplayOption} from '../traceEventDataSection/displayOptions';
@@ -31,7 +30,7 @@ function Exception({
   hasHierarchicalGrouping,
   groupingCurrentLevel,
 }: Props) {
-  const eventHasThreads = !!event.entries.find(entry => entry.type === 'threads');
+  const eventHasThreads = !!event.entries.some(entry => entry.type === 'threads');
 
   /* in case there are threads in the event data, we don't render the
    exception block.  Instead the exception is contained within the
@@ -42,7 +41,7 @@ function Exception({
 
   function getPlatform(): PlatformType {
     const dataValue = data.values?.find(
-      value => !!value.stacktrace?.frames?.find(frame => !!frame.platform)
+      value => !!value.stacktrace?.frames?.some(frame => !!frame.platform)
     );
 
     if (dataValue) {
@@ -69,36 +68,35 @@ function Exception({
       recentFirst={isStacktraceNewestFirst()}
       fullStackTrace={!data.hasSystemFrames}
       platform={platform}
-      hasMinified={!!data.values?.find(value => value.rawStacktrace)}
+      hasMinified={!!data.values?.some(value => value.rawStacktrace)}
       hasVerboseFunctionNames={
-        !!data.values?.find(
+        !!data.values?.some(
           value =>
-            !!value.stacktrace?.frames?.find(
+            !!value.stacktrace?.frames?.some(
               frame =>
-                defined(frame.rawFunction) &&
-                defined(frame.function) &&
+                !!frame.rawFunction &&
+                !!frame.function &&
                 frame.rawFunction !== frame.function
             )
         )
       }
       hasAbsoluteFilePaths={
-        !!data.values?.find(
-          value => !!value.stacktrace?.frames?.find(frame => defined(frame.filename))
+        !!data.values?.some(
+          value => !!value.stacktrace?.frames?.some(frame => !!frame.filename)
         )
       }
       hasAbsoluteAddresses={
-        !!data.values?.find(
-          value =>
-            !!value.stacktrace?.frames?.find(frame => defined(frame.instructionAddr))
+        !!data.values?.some(
+          value => !!value.stacktrace?.frames?.some(frame => !!frame.instructionAddr)
         )
       }
       hasAppOnlyFrames={
-        !!data.values?.find(
-          value => !!value.stacktrace?.frames?.find(frame => defined(frame.inApp))
+        !!data.values?.some(
+          value => !!value.stacktrace?.frames?.some(frame => frame.inApp !== true)
         )
       }
       hasNewestFirst={
-        !!data.values?.find(value => (value.stacktrace?.frames ?? []).length > 1)
+        !!data.values?.some(value => (value.stacktrace?.frames ?? []).length > 1)
       }
       stackTraceNotFound={stackTraceNotFound}
       showPermalink
