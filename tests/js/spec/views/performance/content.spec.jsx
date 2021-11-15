@@ -105,42 +105,40 @@ describe('Performance > Content', function () {
       url: '/prompts-activity/',
       body: {},
     });
-    MockApiClient.addMockResponse(
-      {
-        url: '/organizations/org-slug/eventsv2/',
-        body: {
-          meta: {
-            user: 'string',
-            transaction: 'string',
-            'project.id': 'integer',
-            tpm: 'number',
-            p50: 'number',
-            p95: 'number',
-            failure_rate: 'number',
-            apdex_300: 'number',
-            count_unique_user: 'number',
-            count_miserable_user_300: 'number',
-            user_misery_300: 'number',
-          },
-          data: [
-            {
-              transaction: '/apple/cart',
-              'project.id': 1,
-              user: 'uhoh@example.com',
-              tpm: 30,
-              p50: 100,
-              p95: 500,
-              failure_rate: 0.1,
-              apdex_300: 0.6,
-              count_unique_user: 1000,
-              count_miserable_user_300: 122,
-              user_misery_300: 0.114,
-            },
-          ],
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/eventsv2/',
+      body: {
+        meta: {
+          user: 'string',
+          transaction: 'string',
+          'project.id': 'integer',
+          tpm: 'number',
+          p50: 'number',
+          p95: 'number',
+          failure_rate: 'number',
+          apdex_300: 'number',
+          count_unique_user: 'number',
+          count_miserable_user_300: 'number',
+          user_misery_300: 'number',
         },
+        data: [
+          {
+            transaction: '/apple/cart',
+            'project.id': 1,
+            user: 'uhoh@example.com',
+            tpm: 30,
+            p50: 100,
+            p95: 500,
+            failure_rate: 0.1,
+            apdex_300: 0.6,
+            count_unique_user: 1000,
+            count_miserable_user_300: 122,
+            user_misery_300: 0.114,
+          },
+        ],
       },
-      {
-        predicate: (_, options) => {
+      match: [
+        (_, options) => {
           if (!options.hasOwnProperty('query')) {
             return false;
           }
@@ -149,59 +147,57 @@ describe('Performance > Content', function () {
           }
           return !options.query.field.includes('team_key_transaction');
         },
-      }
-    );
-    MockApiClient.addMockResponse(
-      {
-        url: '/organizations/org-slug/eventsv2/',
-        body: {
-          meta: {
-            user: 'string',
-            transaction: 'string',
-            'project.id': 'integer',
-            tpm: 'number',
-            p50: 'number',
-            p95: 'number',
-            failure_rate: 'number',
-            apdex_300: 'number',
-            count_unique_user: 'number',
-            count_miserable_user_300: 'number',
-            user_misery_300: 'number',
-          },
-          data: [
-            {
-              team_key_transaction: 1,
-              transaction: '/apple/cart',
-              'project.id': 1,
-              user: 'uhoh@example.com',
-              tpm: 30,
-              p50: 100,
-              p95: 500,
-              failure_rate: 0.1,
-              apdex_300: 0.6,
-              count_unique_user: 1000,
-              count_miserable_user_300: 122,
-              user_misery_300: 0.114,
-            },
-            {
-              team_key_transaction: 0,
-              transaction: '/apple/checkout',
-              'project.id': 1,
-              user: 'uhoh@example.com',
-              tpm: 30,
-              p50: 100,
-              p95: 500,
-              failure_rate: 0.1,
-              apdex_300: 0.6,
-              count_unique_user: 1000,
-              count_miserable_user_300: 122,
-              user_misery_300: 0.114,
-            },
-          ],
+      ],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/eventsv2/',
+      body: {
+        meta: {
+          user: 'string',
+          transaction: 'string',
+          'project.id': 'integer',
+          tpm: 'number',
+          p50: 'number',
+          p95: 'number',
+          failure_rate: 'number',
+          apdex_300: 'number',
+          count_unique_user: 'number',
+          count_miserable_user_300: 'number',
+          user_misery_300: 'number',
         },
+        data: [
+          {
+            team_key_transaction: 1,
+            transaction: '/apple/cart',
+            'project.id': 1,
+            user: 'uhoh@example.com',
+            tpm: 30,
+            p50: 100,
+            p95: 500,
+            failure_rate: 0.1,
+            apdex_300: 0.6,
+            count_unique_user: 1000,
+            count_miserable_user_300: 122,
+            user_misery_300: 0.114,
+          },
+          {
+            team_key_transaction: 0,
+            transaction: '/apple/checkout',
+            'project.id': 1,
+            user: 'uhoh@example.com',
+            tpm: 30,
+            p50: 100,
+            p95: 500,
+            failure_rate: 0.1,
+            apdex_300: 0.6,
+            count_unique_user: 1000,
+            count_miserable_user_300: 122,
+            user_misery_300: 0.114,
+          },
+        ],
       },
-      {
-        predicate: (_, options) => {
+      match: [
+        (_, options) => {
           if (!options.hasOwnProperty('query')) {
             return false;
           }
@@ -210,8 +206,8 @@ describe('Performance > Content', function () {
           }
           return options.query.field.includes('team_key_transaction');
         },
-      }
-    );
+      ],
+    });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-meta/',
       body: {

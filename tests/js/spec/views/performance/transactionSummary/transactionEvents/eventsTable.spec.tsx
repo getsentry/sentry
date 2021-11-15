@@ -111,33 +111,29 @@ describe('Performance GridEditable Table', function () {
       },
     ];
     // Transaction list response
-    MockApiClient.addMockResponse(
-      {
-        url: '/organizations/org-slug/eventsv2/',
-        headers: {
-          Link:
-            '<http://localhost/api/0/organizations/org-slug/eventsv2/?cursor=2:0:0>; rel="next"; results="true"; cursor="2:0:0",' +
-            '<http://localhost/api/0/organizations/org-slug/eventsv2/?cursor=1:0:0>; rel="previous"; results="false"; cursor="1:0:0"',
-        },
-        body: {
-          meta: {
-            id: 'string',
-            'user.display': 'string',
-            'transaction.duration': 'duration',
-            'project.id': 'integer',
-            timestamp: 'date',
-          },
-          data,
-        },
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/eventsv2/',
+      headers: {
+        Link:
+          '<http://localhost/api/0/organizations/org-slug/eventsv2/?cursor=2:0:0>; rel="next"; results="true"; cursor="2:0:0",' +
+          '<http://localhost/api/0/organizations/org-slug/eventsv2/?cursor=1:0:0>; rel="previous"; results="false"; cursor="1:0:0"',
       },
-      {
-        predicate: (url, options) => {
-          return (
-            url.includes('eventsv2') && options.query?.field.includes('user.display')
-          );
+      body: {
+        meta: {
+          id: 'string',
+          'user.display': 'string',
+          'transaction.duration': 'duration',
+          'project.id': 'integer',
+          timestamp: 'date',
         },
-      }
-    );
+        data,
+      },
+      match: [
+        (_url, options) => {
+          return options.query?.field?.includes('user.display');
+        },
+      ],
+    });
   });
 
   afterEach(function () {

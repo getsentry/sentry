@@ -38,15 +38,11 @@ describe('TraceLiteQuery', function () {
   });
 
   it('fetches data on mount and passes the event id', async function () {
-    const getMock = MockApiClient.addMockResponse(
-      {
-        url: `/organizations/test-org/events-trace-light/${traceId}/`,
-        body: [],
-      },
-      {
-        predicate: (_, {query}) => query.event_id === eventId,
-      }
-    );
+    const getMock = MockApiClient.addMockResponse({
+      url: `/organizations/test-org/events-trace-light/${traceId}/`,
+      body: [],
+      match: [MockApiClient.matchQuery({event_id: eventId})],
+    });
     const wrapper = mountWithTheme(
       <TraceLiteQuery
         api={api}

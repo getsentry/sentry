@@ -72,36 +72,28 @@ describe('TransactionsList', function () {
         }),
       };
 
-      MockApiClient.addMockResponse(
-        {
-          url: `/organizations/${organization.slug}/eventsv2/`,
-          body: {
-            meta: {transaction: 'string', count: 'number'},
-            data: [
-              {transaction: '/a', count: 100},
-              {transaction: '/b', count: 1000},
-            ],
-          },
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/eventsv2/`,
+        body: {
+          meta: {transaction: 'string', count: 'number'},
+          data: [
+            {transaction: '/a', count: 100},
+            {transaction: '/b', count: 1000},
+          ],
         },
-        {
-          predicate: (_, opts) => opts?.query?.sort === 'transaction',
-        }
-      );
-      MockApiClient.addMockResponse(
-        {
-          url: `/organizations/${organization.slug}/eventsv2/`,
-          body: {
-            meta: {transaction: 'string', count: 'number'},
-            data: [
-              {transaction: '/b', count: 1000},
-              {transaction: '/a', count: 100},
-            ],
-          },
+        match: [MockApiClient.matchQuery({sort: 'transaction'})],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/eventsv2/`,
+        body: {
+          meta: {transaction: 'string', count: 'number'},
+          data: [
+            {transaction: '/b', count: 1000},
+            {transaction: '/a', count: 100},
+          ],
         },
-        {
-          predicate: (_, opts) => opts?.query?.sort === '-count',
-        }
-      );
+        match: [MockApiClient.matchQuery({sort: '-count'})],
+      });
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/events-trends/`,
         body: {
