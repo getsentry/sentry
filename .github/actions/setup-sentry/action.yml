@@ -116,7 +116,6 @@ runs:
         # differently if these are set.
         if [ "$NEED_KAFKA" = "true" ]; then
           echo "SENTRY_KAFKA_HOSTS=127.0.0.1:9092" >> $GITHUB_ENV
-          echo "SENTRY_ZOOKEEPER_HOSTS=127.0.0.1:2181" >> $GITHUB_ENV
         fi
 
     - name: Setup python
