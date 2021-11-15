@@ -34,7 +34,10 @@ const getUsername = ({isManaged, username, email}: User) => {
 function withIssueTags<P extends InjectedTagsProps>(
   WrappedComponent: React.ComponentType<P>
 ) {
-  class WithIssueTags extends React.Component<P, State> {
+  class WithIssueTags extends React.Component<
+    Omit<P, keyof InjectedTagsProps> & Partial<InjectedTagsProps>,
+    State
+  > {
     static displayName = `withIssueTags(${getDisplayName(WrappedComponent)})`;
 
     constructor(props, context) {

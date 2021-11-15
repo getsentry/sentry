@@ -17,6 +17,11 @@ export enum DisplayType {
   TOP_N = 'top_n',
 }
 
+export enum WidgetType {
+  DISCOVER = 'discover',
+  ISSUE = 'issue',
+}
+
 export type WidgetQuery = {
   name: string;
   fields: string[];
@@ -30,6 +35,7 @@ export type Widget = {
   displayType: DisplayType;
   interval: string;
   queries: WidgetQuery[];
+  type?: WidgetType;
 };
 
 /**
