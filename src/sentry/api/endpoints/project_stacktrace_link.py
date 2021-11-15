@@ -9,7 +9,6 @@ from sentry.api.serializers import serialize
 from sentry.integrations import IntegrationFeatures
 from sentry.models import Integration, RepositoryProjectPathConfig
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.utils.compat import filter
 
 
 def get_link(
@@ -54,7 +53,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
         if not filepath:
             return Response({"detail": "Filepath is required"}, status=400)
 
-        commitId = request.GET.get("commitId")
+        commit_id = request.GET.get("commitId")
         platform = request.GET.get("platform")
         result = {"config": None, "sourceUrl": None}
 
@@ -63,9 +62,8 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
         # no longer feature gated and is added as an IntegrationFeature
         result["integrations"] = [
             serialize(i, request.user)
-            for i in filter(
-                lambda i: i.has_feature(IntegrationFeatures.STACKTRACE_LINK), integrations
-            )
+            for i in integrations
+            if i.has_feature(IntegrationFeatures.STACKTRACE_LINK)
         ]
 
         # xxx(meredith): if there are ever any changes to this query, make
@@ -77,7 +75,6 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
         )
         with configure_scope() as scope:
             for config in configs:
-
                 result["config"] = serialize(config, request.user)
                 # use the provider key to be able to spilt up stacktrace
                 # link metrics by integration type
@@ -91,7 +88,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                     continue
 
                 link, attempted_url, error = get_link(
-                    config, filepath, config.default_branch, commitId
+                    config, filepath, config.default_branch, commit_id
                 )
 
                 # it's possible for the link to be None, and in that

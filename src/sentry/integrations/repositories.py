@@ -6,7 +6,7 @@ from sentry_sdk import configure_scope
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
-from sentry.models import Repository
+from sentry.models import Identity, Repository
 from sentry.shared_integrations.exceptions import ApiError
 
 
@@ -34,8 +34,12 @@ class RepositoryMixin:
         """
         filepath = filepath.lstrip("/")
         try:
-            resp = self.get_client().check_file(repo, filepath, branch)
-            if resp is None:
+            client = self.get_client()
+        except Identity.DoesNotExist:
+            return None
+        try:
+            response = client.check_file(repo, filepath, branch)
+            if response is None:
                 return None
         except IdentityNotValid:
             return None
