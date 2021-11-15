@@ -40,20 +40,6 @@ type ResponseType = ApiNamespace.ResponseMeta & {
   headers: Record<string, string>;
 };
 
-/**
- * Obviated by MatchCallable and options.match when defining a mock.
- */
-type MockPredicate = (url: string, opts: ApiNamespace.RequestOptions) => boolean;
-
-/**
- * @deprecated. Use response.match instead.
- */
-type MockResponseOptions =
-  | {
-      predicate?: MockPredicate;
-    }
-  | undefined;
-
 type MockResponse = [resp: ResponseType, mock: jest.Mock];
 
 /**
@@ -105,16 +91,8 @@ class Client implements ApiNamespace.Client {
   }
 
   // Returns a jest mock that represents Client.request calls
-  static addMockResponse(response: Partial<ResponseType>, options?: MockResponseOptions) {
+  static addMockResponse(response: Partial<ResponseType>) {
     const mock = jest.fn();
-
-    // Convert predicate into a matcher for backwards compatibility
-    if (options?.predicate) {
-      if (!response.match) {
-        response.match = [];
-      }
-      response.match.push(options.predicate);
-    }
 
     Client.mockResponses.unshift([
       {
