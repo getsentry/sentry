@@ -102,6 +102,12 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         orgs = OrganizationMember.objects.filter(user_id=user.id)
         return orgs
 
+    def _check_webauthn_register_ff(self, user):
+        orgs = self._get_org_from_user(user)
+        if any(features.has("organizations:webauthn-register", org, actor=user) for org in orgs):
+            return True
+        return False
+
     @sudo_required
     def get(self, request, user, interface_id):
         """
@@ -145,11 +151,10 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
             response["qrcode"] = interface.get_provision_url(user.email)
 
         if interface_id == "u2f":
-            orgs = self._get_org_from_user(user)
-            if any(
-                features.has("organizations:webauthn-register", org, actor=user) for org in orgs
-            ):
-                response["challenge"] = b64encode(interface.start_enrollment(user, True))
+            if self._check_webauthn_register_ff(user):
+                publicKeyCredentialCreate, state = interface.start_enrollment(user, True)
+                response["challenge"] = b64encode(publicKeyCredentialCreate)
+                request.session["webauthn_register_state"] = state
             else:
                 response["challenge"] = interface.start_enrollment(user, False)
                 # XXX: Upgrading python-u2flib-server to 5.0.0 changes the response
@@ -237,10 +242,16 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         # Try u2f enrollment
         if interface_id == "u2f":
             # What happens when this fails?
+            is_webauthn_register_ff = False
+            if self._check_webauthn_register_ff(user):
+                is_webauthn_register_ff = True
+            state = request.session["webauthn_register_state"]
             interface.try_enroll(
                 serializer.data["challenge"],
                 serializer.data["response"],
+                is_webauthn_register_ff,
                 serializer.data["deviceName"],
+                state,
             )
             context.update({"device_name": serializer.data["deviceName"]})
 

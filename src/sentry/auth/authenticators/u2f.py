@@ -13,6 +13,7 @@ from u2flib_server import u2f
 from u2flib_server.model import DeviceRegistration
 
 from sentry import options
+from sentry.utils import json
 from sentry.utils.dates import to_datetime
 from sentry.utils.decorators import classproperty
 from sentry.utils.http import absolute_uri
@@ -76,7 +77,7 @@ class U2fInterface(AuthenticatorInterface):
                 user_verification="discouraged",
                 # authenticator_attachment="cross-platform",
             )
-            return cbor.encode(registration_data)
+            return cbor.encode(registration_data), state
 
         return u2f.begin_registration(self.u2f_app_id, self.get_u2f_devices()).data_for_client
 
@@ -119,12 +120,24 @@ class U2fInterface(AuthenticatorInterface):
         rv.sort(key=lambda x: x["name"])
         return rv
 
-    def try_enroll(self, enrollment_data, response_data, device_name=None):
+    def try_enroll(
+        self, enrollment_data, response_data, is_webauthn_register_ff, device_name=None, state=None
+    ):
+        if is_webauthn_register_ff:
+            rp = PublicKeyCredentialRpEntity("richardmasentry.ngrok.io", "Sentry")
+            server = Fido2Server(rp)
+            data = json.loads(response_data)
+            client_data = ClientData(websafe_decode(data["response"]["clientDataJSON"]))
+            att_obj = base.AttestationObject(websafe_decode(data["response"]["attestationObject"]))
+            # breakpoint()
+            binding = server.register_complete(state, client_data, att_obj)
+        else:
+            data, cert = u2f.complete_registration(enrollment_data, response_data, self.u2f_facets)
+            binding = dict(data)
         # breakpoint()
-        binding, cert = u2f.complete_registration(enrollment_data, response_data, self.u2f_facets)
         devices = self.config.setdefault("devices", [])
         devices.append(
-            {"name": device_name or "Security Key", "ts": int(time()), "binding": dict(binding)}
+            {"name": device_name or "Security Key", "ts": int(time()), "binding": binding}
         )
 
     def activate(self, request):

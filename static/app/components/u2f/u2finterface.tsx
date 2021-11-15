@@ -173,6 +173,13 @@ class U2fInterface extends React.Component<Props, State> {
       publicKey: publicKey,
     });
     this.submitU2fResponse(promise);
+
+    // const promise = await navigator.credentials.create({
+    //   publicKey: publicKey
+    // });
+
+    // console.log(promise)
+
   }
 
   invokeU2fFlow() {
