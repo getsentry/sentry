@@ -343,6 +343,7 @@ def test_consumer_rebalance_from_partition_start():
 
             # We should have received a single message.
             # TODO: Can we also assert that the position is unpaused?)
+            received_message = None
             for i in range(5):
                 received_message = consumer.poll(1)
                 if received_message is not None:
@@ -471,6 +472,7 @@ def test_consumer_rebalance_from_committed_offset():
 
             # We should have received a single message.
             # TODO: Can we also assert that the position is unpaused?)
+            received_message = None
             for i in range(5):
                 received_message = consumer.poll(1)
                 if received_message is not None:
