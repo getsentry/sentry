@@ -10,7 +10,6 @@ describe('releases/detail/utils', () => {
   describe('generateReleaseMarkLines', () => {
     const {created, adopted, unadopted} = releaseMarkLinesLabels;
     const {router} = initializeOrg();
-    // @ts-expect-error
     const release = TestStubs.Release();
     const project = release.projects[0];
 

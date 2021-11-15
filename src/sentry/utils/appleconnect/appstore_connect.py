@@ -7,7 +7,7 @@ import pathlib
 import time
 from collections import namedtuple
 from http import HTTPStatus
-from typing import Any, Dict, Generator, List, Mapping, NewType, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Generator, List, Mapping, NewType, Optional, Tuple, Union
 
 import sentry_sdk
 from dateutil.parser import parse as parse_date
@@ -36,7 +36,7 @@ class UnauthorizedError(RequestError):
 
 
 class ForbiddenError(RequestError):
-    """The App Store Connect session does not have access to the requested dSYM."""
+    """Forbidden: authentication token does not have sufficient permissions."""
 
     pass
 
@@ -154,6 +154,8 @@ def _get_appstore_json(
 
             if response.status_code == HTTPStatus.UNAUTHORIZED:
                 raise UnauthorizedError(full_url)
+            elif response.status_code == HTTPStatus.FORBIDDEN:
+                raise ForbiddenError(full_url)
             else:
                 raise RequestError(full_url)
         try:
@@ -171,7 +173,7 @@ def _get_next_page(response_json: Mapping[str, Any]) -> Optional[str]:
 
 def _get_appstore_info_paged(
     session: Session, credentials: AppConnectCredentials, url: str
-) -> Generator[Any, None, None]:
+) -> Generator[JSONData, None, None]:
     """Iterates through all the pages from a paged response.
 
     App Store Connect responses shares the general format:
@@ -266,7 +268,11 @@ class _IncludedRelations:
 
 
 def get_build_info(
-    session: Session, credentials: AppConnectCredentials, app_id: str
+    session: Session,
+    credentials: AppConnectCredentials,
+    app_id: str,
+    *,
+    include_expired: bool = False,
 ) -> List[BuildInfo]:
     """Returns the build infos for an application.
 
@@ -289,16 +295,16 @@ def get_build_info(
             "&limit=200"
             # include related AppStore/PreRelease versions with the response as well as
             # buildBundles which contains metadata on the debug resources (dSYMs)
-            "&include=appStoreVersion,preReleaseVersion,buildBundles"
+            "&include=preReleaseVersion,appStoreVersion,buildBundles"
             # fetch the maximum number of build bundles
             "&limit[buildBundles]=50"
             # sort newer releases first
             "&sort=-uploadedDate"
             # only include valid builds
             "&filter[processingState]=VALID"
-            # and builds that have not expired yet
-            "&filter[expired]=false"
         )
+        if not include_expired:
+            url += "&filter[expired]=false"
         pages = _get_appstore_info_paged(session, credentials, url)
         build_info = []
 
@@ -369,20 +375,38 @@ def _get_dsym_url(bundles: Optional[List[JSONData]]) -> Union[NoDsymUrl, str]:
     # was a bitcode upload or a native upload.  And whether dSYMs are
     # available for download only depends on whether it was a bitcode
     # upload.
-    if bundles is None or len(bundles) == 0:
+
+    if not bundles:
         return NoDsymUrl.NOT_NEEDED
 
-    if len(bundles) > 1:
+    get_bundle_url: Callable[[JSONData], Any] = lambda bundle: safe.get_path(
+        bundle, "attributes", "dSYMUrl", default=NoDsymUrl.NOT_NEEDED
+    )
+
+    app_clip_urls = [
+        get_bundle_url(b)
+        for b in bundles
+        if safe.get_path(b, "attributes", "bundleType", default="APP") == "APP_CLIP"
+    ]
+    if not all(isinstance(url, NoDsymUrl) for url in app_clip_urls):
+        sentry_sdk.capture_message("App Clip's bundle has a dSYMUrl")
+
+    app_bundles = [
+        app_bundle
+        for app_bundle in bundles
+        if safe.get_path(app_bundle, "attributes", "bundleType", default="APP") != "APP_CLIP"
+    ]
+    if not app_bundles:
+        return NoDsymUrl.NOT_NEEDED
+    elif len(app_bundles) > 1:
         # We currently do not know how to handle these, we'll carry on
         # with the first bundle but report this as an error.
         sentry_sdk.capture_message("len(buildBundles) != 1")
 
-    # Because we only ask for processingState=VALID builds we expect the
-    # builds to be finished and if there are no dSYMs that means the
-    # build doesn't need dSYMs, i.e. it not a bitcode build.
-    bundle = bundles[0]
-    url = safe.get_path(bundle, "attributes", "dSYMUrl", default=NoDsymUrl.NOT_NEEDED)
-
+    # Because we only ask for processingState=VALID builds we expect the builds to be
+    # finished and if there are no dSYMs that means the build doesn't need dSYMs, i.e. it is
+    # not a bitcode build.
+    url = get_bundle_url(app_bundles[0])
     if isinstance(url, (NoDsymUrl, str)):
         return url
     else:

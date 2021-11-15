@@ -16,6 +16,8 @@ export type DashboardsEventParameters = {
   'dashboards_views.open_in_discover.opened': {
     widget_type: string;
   };
+  'dashboards_views.add_widget_modal.confirm': {};
+  'dashboards_views.edit_widget_modal.confirm': {};
 };
 
 export type DashboardsEventKey = keyof DashboardsEventParameters;
@@ -30,4 +32,8 @@ export const dashboardsEventMap: Record<DashboardsEventKey, string | null> = {
   'dashboards_views.query_selector.selected':
     'Dashboards2: Query selected in Query Selector',
   'dashboards_views.open_in_discover.opened': 'Dashboards2: Widget Opened In Discover',
+  'dashboards_views.add_widget_modal.confirm':
+    'Discover2: Add Widget to Dashboard modal form submitted',
+  'dashboards_views.edit_widget_modal.confirm':
+    'Discover2: Edit Dashboard Widget modal form submitted',
 };

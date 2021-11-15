@@ -5,7 +5,6 @@ import Dashboard from 'app/views/dashboardsV2/dashboard';
 import {DisplayType} from 'app/views/dashboardsV2/types';
 
 describe('Dashboards > Dashboard', () => {
-  // @ts-expect-error
   const organization = TestStubs.Organization({
     features: ['dashboards-basic', 'dashboards-edit'],
   });
@@ -33,7 +32,6 @@ describe('Dashboards > Dashboard', () => {
 
   beforeEach(() => {
     initialData = initializeOrg({organization, router: {}, project: 1, projects: []});
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/dashboards/widgets/`,
       method: 'POST',
@@ -56,7 +54,6 @@ describe('Dashboards > Dashboard', () => {
       />,
       initialData.routerContext
     );
-    // @ts-expect-error
     await tick();
     wrapper.update();
     expect(mock).toHaveBeenCalled();
@@ -79,7 +76,6 @@ describe('Dashboards > Dashboard', () => {
     );
     expect(mock).not.toHaveBeenCalled();
     wrapper.setProps({newWidget});
-    // @ts-expect-error
     await tick();
     wrapper.update();
     expect(mock).toHaveBeenCalled();

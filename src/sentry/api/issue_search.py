@@ -65,7 +65,10 @@ def convert_user_value(value, projects, user, environments):
 def convert_release_value(value, projects, user, environments) -> Union[str, List[str]]:
     # TODO: This will make N queries. This should be ok, we don't typically have large
     # lists of versions here, but we can look into batching it if needed.
-    releases = [parse_release(version, projects, environments) for version in value]
+    releases = set()
+    for version in value:
+        releases.update(parse_release(version, projects, environments))
+    releases = list(releases)
     if len(releases) == 1:
         return releases[0]
     return releases
@@ -74,7 +77,10 @@ def convert_release_value(value, projects, user, environments) -> Union[str, Lis
 def convert_first_release_value(value, projects, user, environments) -> List[str]:
     # TODO: This will make N queries. This should be ok, we don't typically have large
     # lists of versions here, but we can look into batching it if needed.
-    return [parse_release(version, projects, environments) for version in value]
+    releases = set()
+    for version in value:
+        releases.update(parse_release(version, projects, environments))
+    return list(releases)
 
 
 def convert_status_value(value, projects, user, environments):
@@ -95,6 +101,7 @@ value_converters = {
     "first_release": convert_first_release_value,
     "release": convert_release_value,
     "status": convert_status_value,
+    "regressed_in_release": convert_first_release_value,
 }
 
 

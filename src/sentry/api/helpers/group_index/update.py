@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 from collections import defaultdict
 from datetime import timedelta
-from typing import Any, Mapping, MutableMapping, Optional, Sequence
+from typing import Any, Mapping, MutableMapping, Sequence
 from uuid import uuid4
 
 from django.db import IntegrityError, transaction
@@ -60,9 +62,9 @@ from .validators import GroupValidator, ValidationError
 
 def handle_discard(
     request: Request,
-    group_list: Sequence["Group"],
-    projects: Sequence["Project"],
-    user: "User",
+    group_list: Sequence[Group],
+    projects: Sequence[Project],
+    user: User,
 ) -> Response:
     for project in projects:
         if not features.has("projects:discard-groups", project, actor=user):
@@ -98,9 +100,7 @@ def handle_discard(
     return Response(status=204)
 
 
-def self_subscribe_and_assign_issue(
-    acting_user: Optional["User"], group: "Group"
-) -> Optional["ActorTuple"]:
+def self_subscribe_and_assign_issue(acting_user: User | None, group: Group) -> ActorTuple | None:
     # Used during issue resolution to assign to acting user
     # returns None if the user didn't elect to self assign on resolution
     # or the group is assigned already, otherwise returns Actor
@@ -118,8 +118,8 @@ def self_subscribe_and_assign_issue(
 
 
 def get_current_release_version_of_group(
-    group: "Group", follows_semver: bool = False
-) -> Optional[Release]:
+    group: Group, follows_semver: bool = False
+) -> Release | None:
     """
     Function that returns the latest release version associated with a Group, and by latest we
     mean either most recent (date) or latest in semver versioning scheme
@@ -161,12 +161,12 @@ def get_current_release_version_of_group(
 
 def update_groups(
     request: Request,
-    group_ids: Sequence["Group"],
-    projects: Sequence["Project"],
+    group_ids: Sequence[Group],
+    projects: Sequence[Project],
     organization_id: int,
-    search_fn: SearchFunction,
-    user: Optional["User"] = None,
-    data: Optional[Mapping[str, Any]] = None,
+    search_fn: SearchFunction | None,
+    user: User | None = None,
+    data: Mapping[str, Any] | None = None,
 ) -> Response:
     # If `user` and `data` are passed as parameters then they should override
     # the values in `request`.
@@ -183,6 +183,8 @@ def update_groups(
             return Response(status=204)
     else:
         group_list = None
+
+    serializer = None
     # TODO(jess): We may want to look into refactoring GroupValidator
     # to support multiple projects, but this is pretty complicated
     # because of the assignee validation. Punting on this for now.
@@ -190,10 +192,17 @@ def update_groups(
         serializer = GroupValidator(
             data=data,
             partial=True,
-            context={"project": project, "access": getattr(request, "access", None)},
+            context={
+                "project": project,
+                "organization": project.organization,
+                "access": getattr(request, "access", None),
+            },
         )
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
+
+    if serializer is None:
+        return
 
     result = dict(serializer.validated_data)
 
@@ -202,7 +211,7 @@ def update_groups(
 
     acting_user = user if user.is_authenticated else None
 
-    if not group_ids:
+    if search_fn and not group_ids:
         try:
             cursor_result, _ = search_fn(
                 {
@@ -233,7 +242,11 @@ def update_groups(
     status = result.get("status")
     release = None
     commit = None
+    res_type = None
+    activity_type = None
+    activity_data: MutableMapping[str, Any | None] | None = None
     if status in ("resolved", "resolvedInNextRelease"):
+        res_status = None
         if status == "resolvedInNextRelease" or statusDetails.get("inNextRelease"):
             # TODO(jess): We may want to support this for multi project, but punting on it for now
             if len(projects) > 1:
@@ -250,7 +263,7 @@ def update_groups(
                 .order_by("-sort")[0]
             )
             activity_type = Activity.SET_RESOLVED_IN_RELEASE
-            activity_data: MutableMapping[str, Optional[Any]] = {
+            activity_data = {
                 # no version yet
                 "version": ""
             }
@@ -330,6 +343,7 @@ def update_groups(
         for group in group_list:
             with transaction.atomic():
                 resolution = None
+                created = None
                 if release:
                     resolution_params = {
                         "release": release,
@@ -495,6 +509,12 @@ def update_groups(
 
     elif status:
         new_status = STATUS_UPDATE_CHOICES[result["status"]]
+        ignore_duration = None
+        ignore_count = None
+        ignore_window = None
+        ignore_user_count = None
+        ignore_user_window = None
+        ignore_until = None
 
         with transaction.atomic():
             happened = queryset.exclude(status=new_status).update(status=new_status)
@@ -561,7 +581,7 @@ def update_groups(
                 for group in group_list:
                     if group.status == GroupStatus.IGNORED:
                         issue_unignored.send_robust(
-                            project=project,
+                            project=project_lookup[group.project_id],
                             user=acting_user,
                             group=group,
                             transition_type="manual",
@@ -569,7 +589,7 @@ def update_groups(
                         )
                     else:
                         issue_unresolved.send_robust(
-                            project=project,
+                            project=project_lookup[group.project_id],
                             user=acting_user,
                             group=group,
                             transition_type="manual",
@@ -813,7 +833,7 @@ def update_groups(
                     referrer=request.META.get("HTTP_REFERER"),
                 )
                 issue_mark_reviewed.send_robust(
-                    project=project,
+                    project=project_lookup[group.project_id],
                     user=acting_user,
                     group=group,
                     sender=update_groups,

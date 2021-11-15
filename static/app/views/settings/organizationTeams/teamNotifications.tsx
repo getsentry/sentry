@@ -141,7 +141,7 @@ class TeamNotificationSettings extends AsyncView<Props, State> {
         <DeleteButtonWrapper>
           <Tooltip
             title={t(
-              "You must have the 'team:write' permission to remove a Slack team link"
+              'You must be an organization owner, manager or admin to remove a Slack team link'
             )}
             disabled={hasAccess}
           >

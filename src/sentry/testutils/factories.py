@@ -72,6 +72,7 @@ from sentry.models import (
     ReleaseCommit,
     ReleaseEnvironment,
     ReleaseFile,
+    ReleaseProjectEnvironment,
     Repository,
     RepositoryProjectPathConfig,
     Rule,
@@ -371,6 +372,9 @@ class Factories:
         date_added: Optional[datetime] = None,
         additional_projects: Optional[Sequence[Project]] = None,
         environments: Optional[Sequence[Environment]] = None,
+        date_released: Optional[datetime] = None,
+        adopted: Optional[datetime] = None,
+        unadopted: Optional[datetime] = None,
     ):
         if version is None:
             version = force_text(hexlify(os.urandom(20)))
@@ -382,7 +386,10 @@ class Factories:
             additional_projects = []
 
         release = Release.objects.create(
-            version=version, organization_id=project.organization_id, date_added=date_added
+            version=version,
+            organization_id=project.organization_id,
+            date_added=date_added,
+            date_released=date_released,
         )
 
         release.add_project(project)
@@ -393,6 +400,14 @@ class Factories:
             ReleaseEnvironment.objects.create(
                 organization=project.organization, release=release, environment=environment
             )
+            for project in [project] + additional_projects:
+                ReleaseProjectEnvironment.objects.create(
+                    project=project,
+                    release=release,
+                    environment=environment,
+                    adopted=adopted,
+                    unadopted=unadopted,
+                )
 
         Activity.objects.create(
             type=Activity.RELEASE,

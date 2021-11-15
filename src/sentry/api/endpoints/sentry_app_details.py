@@ -53,7 +53,6 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
 
         if serializer.is_valid():
             result = serializer.validated_data
-
             updated_app = Updater.run(
                 user=request.user,
                 sentry_app=sentry_app,
@@ -69,6 +68,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
                 schema=result.get("schema"),
                 overview=result.get("overview"),
                 allowed_origins=result.get("allowedOrigins"),
+                popularity=result.get("popularity"),
             )
 
             return Response(serialize(updated_app, request.user, access=request.access))
