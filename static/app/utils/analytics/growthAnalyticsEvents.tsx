@@ -71,6 +71,10 @@ export type GrowthEventParameters = {
     platform?: string;
   };
   'growth.issue_open_in_discover_btn_clicked': {};
+  'member_settings_page.loaded': {
+    num_members: number;
+    num_invite_requests: number;
+  };
 };
 
 type GrowthAnalyticsKey = keyof GrowthEventParameters;
@@ -109,4 +113,5 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string> = {
     'Growth: Sample Transacton Onboarding Link Clicked',
   'growth.issue_open_in_discover_btn_clicked':
     'Growth: Open in Discover Button in Issue Details clicked',
+  'member_settings_page.loaded': 'Member Settings Page Loaded',
 };
