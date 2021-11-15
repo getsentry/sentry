@@ -135,14 +135,16 @@ function TraceEventDataSection({
                   </LargeScreenDownloadButton>
                 )}
               </RawContentWrapper>
-              {raw && isNativePlatform(platform) ? (
-                <SmallScreenDownloadButton
-                  size="small"
-                  href={getDownloadHref()}
-                  title={t('Download raw stack trace file')}
-                >
-                  {t('Download')}
-                </SmallScreenDownloadButton>
+              {raw ? (
+                isNativePlatform(platform) && (
+                  <SmallScreenDownloadButton
+                    size="small"
+                    href={getDownloadHref()}
+                    title={t('Download raw stack trace file')}
+                  >
+                    {t('Download')}
+                  </SmallScreenDownloadButton>
+                )
               ) : (
                 <Fragment>
                   <SortOptions
