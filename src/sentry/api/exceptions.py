@@ -97,6 +97,12 @@ class TwoFactorRequired(SentryAPIException):
     message = "Organization requires two-factor authentication to be enabled"
 
 
+class AppConnectForbiddenError(SentryAPIException):
+    status_code = status.HTTP_403_FORBIDDEN
+    code = "app-connect-forbidden-error"
+    message = "App connect Forbidden error"
+
+
 class AppConnectAuthenticationError(SentryAPIException):
     status_code = status.HTTP_401_UNAUTHORIZED
     code = "app-connect-authentication-error"

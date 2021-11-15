@@ -16,10 +16,8 @@ type Data = {
 
 function initializeData({features: additionalFeatures = [], query = {}}: Data = {}) {
   const features = ['discover-basic', 'performance-view', ...additionalFeatures];
-  // @ts-expect-error
   const organization = TestStubs.Organization({
     features,
-    // @ts-expect-error
     projects: [TestStubs.Project()],
     apdexThreshold: 400,
   });
@@ -44,99 +42,87 @@ function initializeData({features: additionalFeatures = [], query = {}}: Data = 
 
 describe('Performance > TransactionSummary', function () {
   beforeEach(function () {
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
     });
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/prompts-activity/',
       body: {},
     });
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',
       body: [],
     });
-    // @ts-expect-error
-    MockApiClient.addMockResponse(
-      {
-        url: '/organizations/org-slug/eventsv2/',
-        body: {
-          data: [
-            {
-              p100: 9502,
-              p99: 9285.7,
-              p95: 7273.6,
-              p75: 3639.5,
-              p50: 755.5,
-            },
-          ],
-          meta: {
-            p100: 'duration',
-            p99: 'duration',
-            p95: 'duration',
-            p75: 'duration',
-            p50: 'duration',
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/eventsv2/',
+      body: {
+        data: [
+          {
+            p100: 9502,
+            p99: 9285.7,
+            p95: 7273.6,
+            p75: 3639.5,
+            p50: 755.5,
           },
+        ],
+        meta: {
+          p100: 'duration',
+          p99: 'duration',
+          p95: 'duration',
+          p75: 'duration',
+          p50: 'duration',
         },
       },
-      {
-        predicate: (url, options) => {
-          return url.includes('eventsv2') && options.query?.field.includes('p95()');
+      match: [
+        (_, options) => {
+          return options.query?.field?.includes('p95()');
         },
-      }
-    );
+      ],
+    });
     // Transaction list response
-    // @ts-expect-error
-    MockApiClient.addMockResponse(
-      {
-        url: '/organizations/org-slug/eventsv2/',
-        headers: {
-          Link:
-            '<http://localhost/api/0/organizations/org-slug/eventsv2/?cursor=2:0:0>; rel="next"; results="true"; cursor="2:0:0",' +
-            '<http://localhost/api/0/organizations/org-slug/eventsv2/?cursor=1:0:0>; rel="previous"; results="false"; cursor="1:0:0"',
-        },
-        body: {
-          meta: {
-            id: 'string',
-            'user.display': 'string',
-            'transaction.duration': 'duration',
-            'project.id': 'integer',
-            timestamp: 'date',
-          },
-          data: [
-            {
-              id: 'deadbeef',
-              'user.display': 'uhoh@example.com',
-              'transaction.duration': 400,
-              'project.id': 1,
-              timestamp: '2020-05-21T15:31:18+00:00',
-              trace: '1234',
-              'measurements.lcp': 200,
-            },
-            {
-              id: 'moredeadbeef',
-              'user.display': 'moreuhoh@example.com',
-              'transaction.duration': 600,
-              'project.id': 1,
-              timestamp: '2020-05-22T15:31:18+00:00',
-              trace: '4321',
-              'measurements.lcp': 300,
-            },
-          ],
-        },
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/eventsv2/',
+      headers: {
+        Link:
+          '<http://localhost/api/0/organizations/org-slug/eventsv2/?cursor=2:0:0>; rel="next"; results="true"; cursor="2:0:0",' +
+          '<http://localhost/api/0/organizations/org-slug/eventsv2/?cursor=1:0:0>; rel="previous"; results="false"; cursor="1:0:0"',
       },
-      {
-        predicate: (url, options) => {
-          return (
-            url.includes('eventsv2') && options.query?.field.includes('user.display')
-          );
+      body: {
+        meta: {
+          id: 'string',
+          'user.display': 'string',
+          'transaction.duration': 'duration',
+          'project.id': 'integer',
+          timestamp: 'date',
         },
-      }
-    );
-    // @ts-expect-error
+        data: [
+          {
+            id: 'deadbeef',
+            'user.display': 'uhoh@example.com',
+            'transaction.duration': 400,
+            'project.id': 1,
+            timestamp: '2020-05-21T15:31:18+00:00',
+            trace: '1234',
+            'measurements.lcp': 200,
+          },
+          {
+            id: 'moredeadbeef',
+            'user.display': 'moreuhoh@example.com',
+            'transaction.duration': 600,
+            'project.id': 1,
+            timestamp: '2020-05-22T15:31:18+00:00',
+            trace: '4321',
+            'measurements.lcp': 300,
+          },
+        ],
+      },
+      match: [
+        (_url, options) => {
+          return options.query?.field?.includes('user.display');
+        },
+      ],
+    });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-has-measurements/',
       body: {measurements: false},
@@ -144,7 +130,6 @@ describe('Performance > TransactionSummary', function () {
   });
 
   afterEach(function () {
-    // @ts-expect-error
     MockApiClient.clearMockResponses();
     act(() => ProjectsStore.reset());
     jest.clearAllMocks();
@@ -159,7 +144,6 @@ describe('Performance > TransactionSummary', function () {
       />,
       initialData.routerContext
     );
-    // @ts-expect-error
     await tick();
     wrapper.update();
 
@@ -183,7 +167,6 @@ describe('Performance > TransactionSummary', function () {
       />,
       initialData.routerContext
     );
-    // @ts-expect-error
     await tick();
     wrapper.update();
 
@@ -205,7 +188,6 @@ describe('Performance > TransactionSummary', function () {
       />,
       initialData.routerContext
     );
-    // @ts-expect-error
     await tick();
     wrapper.update();
 
@@ -224,7 +206,6 @@ describe('Performance > TransactionSummary', function () {
       />,
       initialData.routerContext
     );
-    // @ts-expect-error
     await tick();
     wrapper.update();
 
@@ -263,7 +244,6 @@ describe('Performance > TransactionSummary', function () {
       />,
       initialData.routerContext
     );
-    // @ts-expect-error
     await tick();
     wrapper.update();
 

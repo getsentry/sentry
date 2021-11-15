@@ -12,8 +12,11 @@ import {Chart as HistogramChart} from 'app/views/performance/landing/chart/histo
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import {transformHistogramQuery} from '../transforms/transformHistogramQuery';
 import {WidgetDataResult} from '../types';
+import {ChartDefinition, PerformanceWidgetSetting} from '../widgetDefinitions';
 
 type Props = {
+  chartSetting: PerformanceWidgetSetting;
+  chartDefinition: ChartDefinition;
   title: string;
   titleTooltip: string;
   fields: string[];
@@ -50,7 +53,7 @@ export function HistogramWidget(props: Props) {
         transform: transformHistogramQuery,
       },
     };
-  }, [props.eventView.query, props.fields[0], props.organization.slug]);
+  }, [props.eventView, props.fields[0], props.organization.slug]);
 
   const onFilterChange = () => {};
 
@@ -80,6 +83,7 @@ export function HistogramWidget(props: Props) {
               field={props.fields[0]}
               chartData={provided.widgetData.chart?.data?.[props.fields[0]]}
               disableXAxis
+              disableZoom
             />
           ),
           height: 160,

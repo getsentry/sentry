@@ -10,6 +10,8 @@ type InjectedTeamsProps = {
 
 /**
  * Higher order component that provides a list of teams
+ *
+ * @deprecated Prefer `useTeams` or `<Teams />`.
  */
 const withTeams = <P extends InjectedTeamsProps>(
   WrappedComponent: React.ComponentType<P>

@@ -119,6 +119,13 @@ install-py-dev() {
         # https://github.com/unbit/uwsgi/issues/2361
         pip install https://storage.googleapis.com/python-arm64-wheels/uWSGI-2.0.19.1-cp38-cp38-macosx_11_0_universal2.whl
     fi
+    # This hack is until we can upgrade to a newer version of Selenium
+    fx_profile=.venv/lib/python3.8/site-packages/selenium/webdriver/firefox/firefox_profile.py
+    # Remove this block when upgrading the selenium package
+    if grep -q "or setting is" "${fx_profile}"; then
+        echo "We are patching ${fx_profile}. You will see this message only once."
+        patch -p0 <scripts/patches/firefox_profile.diff
+    fi
     # SENTRY_LIGHT_BUILD=1 disables webpacking during setup.py.
     # Webpacked assets are only necessary for devserver (which does it lazily anyways)
     # and acceptance tests, which webpack automatically if run.

@@ -114,3 +114,26 @@ class GetSettingMappingFromMappingTest(TestCase):
             ExternalProviders.EMAIL: NotificationSettingOptionValues.ALWAYS,
             ExternalProviders.SLACK: NotificationSettingOptionValues.ALWAYS,
         }
+
+    def test_get_setting_mapping_from_mapping_project(self):
+        notification_settings = {
+            self.user: {
+                NotificationScopeType.USER: {
+                    ExternalProviders.EMAIL: NotificationSettingOptionValues.NEVER,
+                    ExternalProviders.SLACK: NotificationSettingOptionValues.ALWAYS,
+                },
+                NotificationScopeType.PROJECT: {
+                    ExternalProviders.EMAIL: NotificationSettingOptionValues.NEVER,
+                },
+            }
+        }
+
+        mapping = _get_setting_mapping_from_mapping(
+            notification_settings,
+            self.user,
+            NotificationSettingTypes.ISSUE_ALERTS,
+        )
+        assert mapping == {
+            ExternalProviders.EMAIL: NotificationSettingOptionValues.NEVER,
+            ExternalProviders.SLACK: NotificationSettingOptionValues.ALWAYS,
+        }

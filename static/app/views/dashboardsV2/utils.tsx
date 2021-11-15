@@ -2,6 +2,13 @@ import {Query} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import pick from 'lodash/pick';
 
+import WidgetArea from 'sentry-images/dashboard/widget-area.svg';
+import WidgetBar from 'sentry-images/dashboard/widget-bar.svg';
+import WidgetBigNumber from 'sentry-images/dashboard/widget-big-number.svg';
+import WidgetLine from 'sentry-images/dashboard/widget-line-1.svg';
+import WidgetTable from 'sentry-images/dashboard/widget-table.svg';
+import WidgetWorldMap from 'sentry-images/dashboard/widget-world-map.svg';
+
 import {GlobalSelection} from 'app/types';
 import {getUtcDateString} from 'app/utils/dates';
 import EventView from 'app/utils/discover/eventView';
@@ -84,4 +91,23 @@ export function constructWidgetFromQuery(query?: Query): Widget | undefined {
     }
   }
   return undefined;
+}
+
+export function miniWidget(displayType: DisplayType): string {
+  switch (displayType) {
+    case DisplayType.BAR:
+      return WidgetBar;
+    case DisplayType.AREA:
+    case DisplayType.TOP_N:
+      return WidgetArea;
+    case DisplayType.BIG_NUMBER:
+      return WidgetBigNumber;
+    case DisplayType.TABLE:
+      return WidgetTable;
+    case DisplayType.WORLD_MAP:
+      return WidgetWorldMap;
+    case DisplayType.LINE:
+    default:
+      return WidgetLine;
+  }
 }

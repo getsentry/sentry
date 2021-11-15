@@ -221,6 +221,7 @@ function RuleModal({
                   );
                   return {
                     value: conditionCategory[0],
+                    'data-test-id': 'condition',
                     disabled,
                     label: (
                       <Tooltip

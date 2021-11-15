@@ -5,10 +5,8 @@ import TeamStore from 'app/stores/teamStore';
 import useTeams from 'app/utils/useTeams';
 
 describe('useTeams', function () {
-  // @ts-expect-error
   const org = TestStubs.Organization();
 
-  // @ts-expect-error
   const mockTeams = [TestStubs.Team()];
 
   it('provides teams from the team store', function () {
@@ -24,16 +22,12 @@ describe('useTeams', function () {
     act(() => void TeamStore.loadInitialData(mockTeams));
     act(() => void OrganizationStore.onUpdate(org, {replace: true}));
 
-    // @ts-expect-error
     const newTeam2 = TestStubs.Team({id: '2', slug: 'test-team2'});
-    // @ts-expect-error
     const newTeam3 = TestStubs.Team({id: '3', slug: 'test-team3'});
 
-    // @ts-expect-error
     const mockRequest = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/teams/`,
       method: 'GET',
-      query: {query: 'test'},
       body: [newTeam2, newTeam3],
     });
 
@@ -63,9 +57,7 @@ describe('useTeams', function () {
   });
 
   it('provides only the users teams', async function () {
-    // @ts-expect-error
     const userTeams = [TestStubs.Team({isMember: true})];
-    // @ts-expect-error
     const nonUserTeams = [TestStubs.Team({isMember: false})];
     act(() => void TeamStore.loadInitialData([...userTeams, ...nonUserTeams]));
 
@@ -80,13 +72,10 @@ describe('useTeams', function () {
 
   it('provides only the specified slugs', async function () {
     act(() => void TeamStore.loadInitialData(mockTeams));
-    // @ts-expect-error
     const teamFoo = TestStubs.Team({slug: 'foo'});
-    // @ts-expect-error
     const mockRequest = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/teams/`,
       method: 'GET',
-      query: {slug: 'foo'},
       body: [teamFoo],
     });
 

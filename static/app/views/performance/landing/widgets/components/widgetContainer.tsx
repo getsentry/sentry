@@ -1,13 +1,16 @@
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import MenuItem from 'app/components/menuItem';
+import {t} from 'app/locale';
 import {Organization} from 'app/types';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import localStorage from 'app/utils/localStorage';
 import {usePerformanceDisplayType} from 'app/utils/performance/contexts/performanceDisplayContext';
 import useOrganization from 'app/utils/useOrganization';
 import withOrganization from 'app/utils/withOrganization';
 import ContextMenu from 'app/views/dashboardsV2/contextMenu';
+import {useMetricsSwitch} from 'app/views/performance/metricsSwitch';
 import {PROJECT_PERFORMANCE_TYPE} from 'app/views/performance/utils';
 
 import {GenericPerformanceWidgetDataType} from '../types';
@@ -85,8 +88,23 @@ const _setChartSetting = (
   setWidgetStorageObject(localObject);
 };
 
+function trackChartSettingChange(
+  previousChartSetting: PerformanceWidgetSetting,
+  chartSetting: PerformanceWidgetSetting,
+  fromDefault: boolean,
+  organization: Organization
+) {
+  trackAdvancedAnalyticsEvent('performance_views.landingv3.widget.switch', {
+    organization,
+    from_widget: previousChartSetting,
+    to_widget: chartSetting,
+    from_default: fromDefault,
+  });
+}
+
 const _WidgetContainer = (props: Props) => {
   const {organization, index, chartHeight, allowedCharts, ...rest} = props;
+  const {isMetricsData} = useMetricsSwitch();
   const performanceType = usePerformanceDisplayType();
   let _chartSetting = getChartSetting(
     index,
@@ -107,11 +125,23 @@ const _WidgetContainer = (props: Props) => {
       _setChartSetting(index, chartHeight, performanceType, setting);
     }
     setChartSettingState(setting);
+    trackChartSettingChange(
+      chartSetting,
+      setting,
+      rest.defaultChartSetting === chartSetting,
+      organization
+    );
   };
 
+  useEffect(() => {
+    setChartSettingState(_chartSetting);
+  }, [rest.defaultChartSetting]);
+
+  const chartDefinition = WIDGET_DEFINITIONS({organization})[chartSetting];
   const widgetProps = {
+    ...chartDefinition,
     chartSetting,
-    ...WIDGET_DEFINITIONS({organization})[chartSetting],
+    chartDefinition,
     ContainerActions: containerProps => (
       <WidgetContainerActions
         {...containerProps}
@@ -120,6 +150,10 @@ const _WidgetContainer = (props: Props) => {
       />
     ),
   };
+
+  if (isMetricsData) {
+    return <h1>{t('Using metrics')}</h1>;
+  }
 
   switch (widgetProps.dataType) {
     case GenericPerformanceWidgetDataType.trends:
