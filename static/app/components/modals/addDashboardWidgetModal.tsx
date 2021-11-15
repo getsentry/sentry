@@ -488,12 +488,39 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
 
     const isUpdatingWidget = typeof onUpdateWidget === 'function' && !!previousWidget;
 
+    const buttonBar = (
+      <ButtonBar gap={1}>
+        <Button
+          external
+          href="https://docs.sentry.io/product/dashboards/custom-dashboards/#widget-builder"
+        >
+          {t('Read the docs')}
+        </Button>
+        <Button
+          data-test-id="add-widget"
+          priority="primary"
+          type="button"
+          onClick={this.handleSubmit}
+          disabled={state.loading}
+          busy={state.loading}
+        >
+          {fromLibrary
+            ? t('Confirm')
+            : isUpdatingWidget
+            ? t('Update Widget')
+            : t('Add Widget')}
+        </Button>
+      </ButtonBar>
+    );
+
     return (
       <React.Fragment>
         <Header closeButton>
           <h4>
             {fromDiscover
               ? t('Add Widget to Dashboard')
+              : fromLibrary
+              ? t('Add Custom Widget')
               : isUpdatingWidget
               ? t('Edit Widget')
               : t('Add Widget')}
@@ -581,14 +608,8 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
           />
         </Body>
         <Footer>
-          <ButtonBar gap={1}>
-            <Button
-              external
-              href="https://docs.sentry.io/product/dashboards/custom-dashboards/#widget-builder"
-            >
-              {t('Read the docs')}
-            </Button>
-            {fromLibrary && (
+          {fromLibrary ? (
+            <StyledButtonBar gap={1}>
               <Button
                 data-test-id="add-widget"
                 type="button"
@@ -606,18 +627,11 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
               >
                 {t('Back')}
               </Button>
-            )}
-            <Button
-              data-test-id="add-widget"
-              priority="primary"
-              type="button"
-              onClick={this.handleSubmit}
-              disabled={state.loading}
-              busy={state.loading}
-            >
-              {isUpdatingWidget ? t('Update Widget') : t('Add Widget')}
-            </Button>
-          </ButtonBar>
+              {buttonBar}
+            </StyledButtonBar>
+          ) : (
+            buttonBar
+          )}
         </Footer>
       </React.Fragment>
     );
@@ -639,6 +653,11 @@ export const modalCss = css`
 
 const StyledField = styled(Field)`
   position: relative;
+`;
+
+const StyledButtonBar = styled(ButtonBar)`
+  justify-content: space-between;
+  width: 100%;
 `;
 
 export default withApi(withGlobalSelection(withTags(AddDashboardWidgetModal)));
