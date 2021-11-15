@@ -171,9 +171,15 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
           ...widgetData,
         });
         addSuccessMessage(t('Updated widget.'));
+        trackAdvancedAnalyticsEvent('dashboards_views.edit_widget_modal.confirm', {
+          organization,
+        });
       } else if (onAddWidget) {
         onAddWidget(widgetData);
         addSuccessMessage(t('Added widget.'));
+        trackAdvancedAnalyticsEvent('dashboards_views.add_widget_modal.confirm', {
+          organization,
+        });
       }
       if (!fromDiscover) {
         closeModal();
@@ -288,6 +294,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         from: fromDiscover ? 'discoverv2' : 'dashboards',
         field,
         value,
+        widgetType: 'discover',
         organization,
       });
 

@@ -28,6 +28,7 @@ class Updater(Mediator, SentryAppMixin):
     schema = Param(dict, required=False)
     overview = Param((str,), required=False)
     allowed_origins = Param(Iterable, required=False)
+    popularity = Param(int, required=False)
     user = Param("sentry.models.User")
 
     def call(self):
@@ -44,6 +45,7 @@ class Updater(Mediator, SentryAppMixin):
         self._update_allowed_origins()
         self._update_schema()
         self._update_service_hooks()
+        self._update_popularity()
         self.sentry_app.save()
         return self.sentry_app
 
@@ -142,6 +144,11 @@ class Updater(Mediator, SentryAppMixin):
     def _update_allowed_origins(self):
         self.sentry_app.application.allowed_origins = "\n".join(self.allowed_origins)
         self.sentry_app.application.save()
+
+    @if_param("popularity")
+    def _update_popularity(self):
+        if self.user.is_superuser:
+            self.sentry_app.popularity = self.popularity
 
     @if_param("schema")
     def _update_schema(self):

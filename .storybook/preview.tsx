@@ -134,7 +134,7 @@ addParameters({
         'Getting Started',
         'Changelog',
         'Core',
-        ['Overview'],
+        ['Overview', 'Colors', 'Typography'],
         'Assets',
         ['Logo', 'Icons', 'Platforms'],
         'Components',

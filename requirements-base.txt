@@ -89,5 +89,5 @@ phabricator==0.7.0
 
 # test dependencies, but unable to move to requirements-test until
 # sentry.utils.pytest and sentry.testutils are moved to tests/
-selenium==3.141.0
+selenium==3.141.0  # When upgrading, remove hack from lib.sh (see https://github.com/getsentry/sentry/pull/29887 for details)
 sqlparse==0.2.4

@@ -1,11 +1,17 @@
 from typing import TYPE_CHECKING, Optional, Union
 
 from django.db import models
-from django.db.models import SET_NULL
+from django.db.models import SET_NULL, Q
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import (
+    BaseManager,
+    BoundedPositiveIntegerField,
+    FlexibleForeignKey,
+    Model,
+    sane_repr,
+)
 
 if TYPE_CHECKING:
     from sentry.models import Group, Release, Team, User
@@ -65,6 +71,21 @@ PREVIOUS_STATUSES = {
 }
 
 
+class GroupHistoryManager(BaseManager):
+    def filter_to_team(self, team):
+        from sentry.models import GroupAssignee, Project
+
+        project_list = Project.objects.get_for_team_ids(team_ids=[team.id])
+        user_ids = list(team.member_set.values_list("user_id", flat=True))
+        assigned_groups = GroupAssignee.objects.filter(
+            Q(team=team) | Q(user_id__in=user_ids)
+        ).values_list("group_id", flat=True)
+        return self.filter(
+            project__in=project_list,
+            group_id__in=assigned_groups,
+        )
+
+
 class GroupHistory(Model):
     """
     This model is used to track certain status changes for groups,
@@ -75,6 +96,8 @@ class GroupHistory(Model):
     """
 
     __include_in_export__ = False
+
+    objects = GroupHistoryManager()
 
     organization = FlexibleForeignKey("sentry.Organization", db_constraint=False)
     group = FlexibleForeignKey("sentry.Group", db_constraint=False)

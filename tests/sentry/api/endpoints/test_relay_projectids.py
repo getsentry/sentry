@@ -134,4 +134,3 @@ class RelayProjectIdsEndpointTest(APITestCase):
     def test_statically_configured_relay(self):
         result, status_code = self._call_endpoint_static_relay(internal=True)
         assert status_code < 400
-        print(result)

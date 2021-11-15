@@ -87,85 +87,75 @@ describe('Performance > VitalDetail', function () {
         },
       },
     });
-    MockApiClient.addMockResponse(
-      {
-        url: '/organizations/org-slug/eventsv2/',
-        body: {
-          meta: {
-            count: 'integer',
-            p95_measurements_lcp: 'duration',
-            transaction: 'string',
-            p50_measurements_lcp: 'duration',
-            project: 'string',
-            compare_numeric_aggregate_p75_measurements_lcp_greater_4000: 'number',
-            'project.id': 'integer',
-            count_unique_user: 'integer',
-            p75_measurements_lcp: 'duration',
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/eventsv2/',
+      body: {
+        meta: {
+          count: 'integer',
+          p95_measurements_lcp: 'duration',
+          transaction: 'string',
+          p50_measurements_lcp: 'duration',
+          project: 'string',
+          compare_numeric_aggregate_p75_measurements_lcp_greater_4000: 'number',
+          'project.id': 'integer',
+          count_unique_user: 'integer',
+          p75_measurements_lcp: 'duration',
+        },
+        data: [
+          {
+            count: 100000,
+            p95_measurements_lcp: 5000,
+            transaction: 'something',
+            p50_measurements_lcp: 3500,
+            project: 'javascript',
+            compare_numeric_aggregate_p75_measurements_lcp_greater_4000: 1,
+            count_unique_user: 10000,
+            p75_measurements_lcp: 4500,
           },
-          data: [
-            {
-              count: 100000,
-              p95_measurements_lcp: 5000,
-              transaction: 'something',
-              p50_measurements_lcp: 3500,
-              project: 'javascript',
-              compare_numeric_aggregate_p75_measurements_lcp_greater_4000: 1,
-              count_unique_user: 10000,
-              p75_measurements_lcp: 4500,
-            },
-          ],
-        },
+        ],
       },
-      {
-        predicate: (url, options) => {
-          return (
-            url.includes('eventsv2') &&
-            options.query?.field.find(f => f === 'p50(measurements.lcp)')
-          );
+      match: [
+        (_url, options) => {
+          return options.query?.field?.find(f => f === 'p50(measurements.lcp)');
         },
-      }
-    );
-    MockApiClient.addMockResponse(
-      {
-        url: '/organizations/org-slug/eventsv2/',
-        body: {
-          meta: {
-            compare_numeric_aggregate_p75_measurements_cls_greater_0_1: 'number',
-            compare_numeric_aggregate_p75_measurements_cls_greater_0_25: 'number',
-            count: 'integer',
-            count_unique_user: 'integer',
-            team_key_transaction: 'boolean',
-            p50_measurements_cls: 'number',
-            p75_measurements_cls: 'number',
-            p95_measurements_cls: 'number',
-            project: 'string',
-            transaction: 'string',
+      ],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/eventsv2/',
+      body: {
+        meta: {
+          compare_numeric_aggregate_p75_measurements_cls_greater_0_1: 'number',
+          compare_numeric_aggregate_p75_measurements_cls_greater_0_25: 'number',
+          count: 'integer',
+          count_unique_user: 'integer',
+          team_key_transaction: 'boolean',
+          p50_measurements_cls: 'number',
+          p75_measurements_cls: 'number',
+          p95_measurements_cls: 'number',
+          project: 'string',
+          transaction: 'string',
+        },
+        data: [
+          {
+            compare_numeric_aggregate_p75_measurements_cls_greater_0_1: 1,
+            compare_numeric_aggregate_p75_measurements_cls_greater_0_25: 0,
+            count: 10000,
+            count_unique_user: 2740,
+            team_key_transaction: 1,
+            p50_measurements_cls: 0.143,
+            p75_measurements_cls: 0.215,
+            p95_measurements_cls: 0.302,
+            project: 'javascript',
+            transaction: 'something',
           },
-          data: [
-            {
-              compare_numeric_aggregate_p75_measurements_cls_greater_0_1: 1,
-              compare_numeric_aggregate_p75_measurements_cls_greater_0_25: 0,
-              count: 10000,
-              count_unique_user: 2740,
-              team_key_transaction: 1,
-              p50_measurements_cls: 0.143,
-              p75_measurements_cls: 0.215,
-              p95_measurements_cls: 0.302,
-              project: 'javascript',
-              transaction: 'something',
-            },
-          ],
-        },
+        ],
       },
-      {
-        predicate: (url, options) => {
-          return (
-            url.includes('eventsv2') &&
-            options.query?.field.find(f => f === 'p50(measurements.cls)')
-          );
+      match: [
+        (_url, options) => {
+          return options.query?.field?.find(f => f === 'p50(measurements.cls)');
         },
-      }
-    );
+      ],
+    });
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/key-transactions-list/`,
