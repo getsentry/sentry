@@ -3,7 +3,7 @@ from datetime import timedelta
 from django.utils.timezone import now
 from freezegun import freeze_time
 
-from sentry.models import GroupHistoryStatus
+from sentry.models import GroupAssignee, GroupHistoryStatus
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now
 
@@ -19,6 +19,8 @@ class TeamTimeToResolutionTest(APITestCase):
         group2 = self.create_group(
             checksum="b" * 32, project=project2, times_seen=5, first_seen=before_now(days=20)
         )
+        GroupAssignee.objects.assign(group1, self.user)
+        GroupAssignee.objects.assign(group2, self.user)
 
         gh1 = self.create_group_history(
             group1,
