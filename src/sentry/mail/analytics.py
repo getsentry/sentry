@@ -6,7 +6,7 @@ class EmailNotificationSent(analytics.Event):  # type: ignore
 
     attributes = (
         analytics.Attribute("organization_id"),
-        analytics.Attribute("project_id"),
+        analytics.Attribute("project_id", required=False),
         analytics.Attribute("category"),
         analytics.Attribute("actor_id"),
     )

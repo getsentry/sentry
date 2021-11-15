@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from sentry.models import Organization, Project, Team, User
 
 
-class BaseNotification:
+class BaseNotification(abc.ABC):
     message_builder = "SlackNotificationsMessageBuilder"
     fine_tuning_key: str | None = None
     metrics_key: str = ""
@@ -36,12 +36,12 @@ class BaseNotification:
     def get_category(self) -> str:
         raise NotImplementedError
 
+    def get_base_context(self) -> MutableMapping[str, Any]:
+        return {}
+
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
         """The subject line when sending this notifications as an email."""
         raise NotImplementedError
-
-    def get_subject_with_prefix(self, context: Mapping[str, Any] | None = None) -> bytes:
-        return self.get_subject(context).encode()
 
     def get_reference(self) -> Any:
         raise NotImplementedError
@@ -74,7 +74,9 @@ class BaseNotification:
         raise NotImplementedError
 
     def build_notification_footer(self, recipient: Team | User) -> str:
-        raise NotImplementedError
+        from sentry.integrations.slack.utils.notifications import build_notification_footer
+
+        return build_notification_footer(self, recipient)
 
     def get_message_description(self) -> Any:
         context = getattr(self, "context", None)
@@ -86,8 +88,15 @@ class BaseNotification:
     def get_unsubscribe_key(self) -> tuple[str, int, str | None] | None:
         return None
 
-    def record_notification_sent(self, recipient: Team | User, provider: ExternalProviders) -> None:
-        raise NotImplementedError
+    def record_notification_sent(
+        self, recipient: Team | User, provider: ExternalProviders, **kwargs: Any
+    ) -> None:
+        analytics.record(
+            f"integrations.{provider.name}.notification_sent",
+            category=self.get_category(),
+            **self.get_log_params(recipient),
+            **kwargs,
+        )
 
     def get_log_params(self, recipient: Team | User) -> Mapping[str, Any]:
         return {
@@ -108,45 +117,9 @@ class ProjectNotification(BaseNotification, abc.ABC):
         super().__init__(project.organization)
 
     def get_project_link(self) -> str:
-        return str(absolute_uri(f"/{self.organization.slug}/{self.project.slug}/"))
-
-    def record_notification_sent(self, recipient: Team | User, provider: ExternalProviders) -> None:
-        analytics.record(
-            f"integrations.{provider.name.lower()}.notification_sent",
-            actor_id=recipient.id,
-            category=self.get_category(),
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-        )
+        # Explicitly typing to satisfy mypy.
+        project_link: str = absolute_uri(f"/{self.organization.slug}/{self.project.slug}/")
+        return project_link
 
     def get_log_params(self, recipient: Team | User) -> Mapping[str, Any]:
-        from sentry.notifications.notifications.activity.base import ActivityNotification
-        from sentry.notifications.notifications.rules import AlertRuleNotification
-
-        extra = {"project_id": self.project.id, **super().get_log_params(recipient)}
-        group = getattr(self, "group", None)
-        if group:
-            extra.update({"group": group.id})
-
-        # TODO: move logic to child classes
-        if isinstance(self, AlertRuleNotification):
-            extra.update(
-                {
-                    "target_type": self.target_type,
-                    "target_identifier": self.target_identifier,
-                }
-            )
-        elif isinstance(self, ActivityNotification):
-            extra.update({"activity": self.activity})
-        return extra
-
-    def get_subject_with_prefix(self, context: Mapping[str, Any] | None = None) -> bytes:
-        from sentry.mail.notifications import build_subject_prefix
-
-        prefix = build_subject_prefix(self.project)
-        return f"{prefix}{self.get_subject(context)}".encode()
-
-    def build_notification_footer(self, recipient: Team | User) -> str:
-        from sentry.integrations.slack.utils.notifications import build_notification_footer
-
-        return build_notification_footer(self, recipient)
+        return {"project_id": self.project.id, **super().get_log_params(recipient)}
