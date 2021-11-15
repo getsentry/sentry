@@ -335,10 +335,9 @@ class Project(Model, PendingDeletionMixin):
             if actor.type == ACTOR_TYPES["user"]:
                 is_member = organization.member_set.filter(user=actor.resolve()).exists()
             if actor.type == ACTOR_TYPES["team"]:
-                is_member = actor.resolve().organization.id == organization.id
+                is_member = actor.resolve().organization_id == organization.id
             if not is_member:
-                rule.owner = None
-                rule.save()
+                rule.update(owner=None)
 
     def add_team(self, team):
         from sentry.models.projectteam import ProjectTeam
