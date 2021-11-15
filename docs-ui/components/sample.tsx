@@ -21,6 +21,7 @@ type Props = {
    * Remove the outer border and padding
    */
   noBorder?: boolean;
+};
 
 /**
  * Expose the selected theme to children of <Sample />
