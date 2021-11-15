@@ -4,9 +4,9 @@ import selectEvent from 'react-select-event';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mockRouterPush} from 'sentry-test/mockRouterPush';
 import {
-  fireEvent,
   mountWithTheme,
   screen,
+  userEvent,
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
@@ -168,8 +168,7 @@ describe('ProjectAlertsCreate', function () {
     it('loads default values', async function () {
       createWrapper();
 
-      const allEnvironments = await screen.findByDisplayValue('__all_environments__');
-      expect(allEnvironments).toBeInTheDocument();
+      expect(await screen.findByDisplayValue('__all_environments__')).toBeInTheDocument();
       expect(screen.getByDisplayValue('all')).toBeInTheDocument();
       expect(screen.getByDisplayValue('30')).toBeInTheDocument();
     });
@@ -191,16 +190,14 @@ describe('ProjectAlertsCreate', function () {
       });
 
       // Change name of alert rule
-      fireEvent.change(screen.getByPlaceholderText('My Rule Name'), {
-        target: {value: 'My Rule Name'},
-      });
+      userEvent.type(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
 
       // Add a condition and remove it
       await selectEvent.select(screen.getByText('Add optional condition...'), [
         'A new issue is created',
       ]);
 
-      fireEvent.click(screen.getByLabelText('Delete Node'));
+      userEvent.click(screen.getByLabelText('Delete Node'));
 
       expect(trackAnalyticsEvent).toHaveBeenCalledWith({
         eventKey: 'edit_alert_rule.add_row',
@@ -216,15 +213,16 @@ describe('ProjectAlertsCreate', function () {
         'The issue is {comparison_type} than {value} {time}',
       ]);
 
-      fireEvent.click(screen.getByLabelText('Delete Node'));
+      userEvent.click(screen.getByLabelText('Delete Node'));
 
       // Add an action and remove it
       await selectEvent.select(screen.getByText('Add action...'), [
         'Send a notification (for all legacy integrations)',
       ]);
-      fireEvent.click(screen.getByLabelText('Delete Node'));
 
-      fireEvent.click(screen.getByText('Save Rule'));
+      userEvent.click(screen.getByLabelText('Delete Node'));
+
+      userEvent.click(screen.getByText('Save Rule'));
 
       await waitFor(() => {
         expect(mock).toHaveBeenCalledWith(
@@ -268,31 +266,29 @@ describe('ProjectAlertsCreate', function () {
       await selectEvent.select(screen.getAllByText('all')[0], ['any']);
       await selectEvent.select(screen.getAllByText('all')[0], ['any']);
 
+      // `userEvent.paste` isn't really ideal, but since `userEvent.type` doesn't provide good performance and
+      // the purpose of this test is not focused on how the user interacts with the fields,
+      // but rather on whether the form will be saved and updated, we decided use `userEvent.paste`
+      // so that this test does not time out from the default jest value of 5000ms
+
       // Change name of alert rule
-      fireEvent.change(screen.getByPlaceholderText('My Rule Name'), {
-        target: {value: 'My Rule Name'},
-      });
+      userEvent.paste(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
 
       // Add another condition
       await selectEvent.select(screen.getByText('Add optional condition...'), [
         "An event's tags match {key} {match} {value}",
       ]);
       // Edit new Condition
-      fireEvent.change(screen.getByPlaceholderText('key'), {
-        target: {value: 'conditionKey'},
-      });
-      fireEvent.change(screen.getByPlaceholderText('value'), {
-        target: {value: 'conditionValue'},
-      });
+      userEvent.paste(screen.getByPlaceholderText('key'), 'conditionKey');
+
+      userEvent.paste(screen.getByPlaceholderText('value'), 'conditionValue');
       await selectEvent.select(screen.getByText('equals'), ['does not equal']);
 
       // Add a new filter
       await selectEvent.select(screen.getByText('Add optional filter...'), [
         'The issue is {comparison_type} than {value} {time}',
       ]);
-      fireEvent.change(screen.getByPlaceholderText('10'), {
-        target: {value: '12'},
-      });
+      userEvent.paste(screen.getByPlaceholderText('10'), '12');
 
       // Add a new action
       await selectEvent.select(screen.getByText('Add action...'), [
@@ -302,7 +298,7 @@ describe('ProjectAlertsCreate', function () {
       // Update action interval
       await selectEvent.select(screen.getByText('30 minutes'), ['60 minutes']);
 
-      fireEvent.click(screen.getByText('Save Rule'));
+      userEvent.click(screen.getByText('Save Rule'));
 
       await waitFor(() => {
         expect(mock).toHaveBeenCalledWith(
@@ -343,7 +339,10 @@ describe('ProjectAlertsCreate', function () {
       });
       expect(metric.startTransaction).toHaveBeenCalledWith({name: 'saveAlertRule'});
 
-      expect(router.push).toHaveBeenCalledWith('/organizations/org-slug/alerts/rules/');
+      expect(router.push).toHaveBeenCalledWith({
+        pathname: '/organizations/org-slug/alerts/rules/',
+        query: {project: '2'},
+      });
     });
   });
 });

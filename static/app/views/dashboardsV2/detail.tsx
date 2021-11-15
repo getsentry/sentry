@@ -9,6 +9,7 @@ import {
   updateDashboard,
 } from 'app/actionCreators/dashboards';
 import {addSuccessMessage} from 'app/actionCreators/indicator';
+import {openDashboardWidgetLibraryModal} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import Breadcrumbs from 'app/components/breadcrumbs';
 import HookOrDefault from 'app/components/hookOrDefault';
@@ -252,6 +253,42 @@ class DashboardDetail extends Component<Props, State> {
     });
   };
 
+  onAddWidget = () => {
+    const {organization, dashboard, api, reloadData, location} = this.props;
+    this.setState({
+      modifiedDashboard: cloneDashboard(dashboard),
+    });
+    openDashboardWidgetLibraryModal({
+      organization,
+      dashboard,
+      onAddWidget: (widgets: Widget[]) => {
+        const modifiedDashboard = {
+          ...cloneDashboard(dashboard),
+          widgets,
+        };
+        updateDashboard(api, organization.slug, modifiedDashboard).then(
+          (newDashboard: DashboardDetails) => {
+            addSuccessMessage(t('Dashboard updated'));
+
+            if (reloadData) {
+              reloadData();
+            }
+            if (dashboard && newDashboard.id !== dashboard.id) {
+              browserHistory.replace({
+                pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
+                query: {
+                  ...location.query,
+                },
+              });
+              return;
+            }
+          },
+          () => undefined
+        );
+      },
+    });
+  };
+
   onCommit = () => {
     const {api, organization, location, dashboard, reloadData} = this.props;
     const {modifiedDashboard, dashboardState} = this.state;
@@ -416,6 +453,7 @@ class DashboardDetail extends Component<Props, State> {
                 onEdit={this.onEdit}
                 onCancel={this.onCancel}
                 onCommit={this.onCommit}
+                onAddWidget={this.onAddWidget}
                 onDelete={this.onDelete(dashboard)}
                 dashboardState={dashboardState}
               />
@@ -490,6 +528,7 @@ class DashboardDetail extends Component<Props, State> {
                 onEdit={this.onEdit}
                 onCancel={this.onCancel}
                 onCommit={this.onCommit}
+                onAddWidget={this.onAddWidget}
                 onDelete={this.onDelete(dashboard)}
                 dashboardState={dashboardState}
               />

@@ -217,10 +217,17 @@ GROUPBY_MAP = {
 }
 
 CONDITION_COLUMNS = ["project", "environment", "release"]
+FILTER_KEY_COLUMNS = ["project_id"]
 
 
 def resolve_column(col):
     if col in CONDITION_COLUMNS:
+        return col
+    raise InvalidField(f'Invalid query field: "{col}"')
+
+
+def resolve_filter_key(col):
+    if col in FILTER_KEY_COLUMNS:
         return col
     raise InvalidField(f'Invalid query field: "{col}"')
 
@@ -289,10 +296,13 @@ class QueryDefinition:
         # this makes sure that literals in complex queries are properly quoted,
         # and unknown fields are raised as errors
         conditions = [resolve_condition(c, resolve_column) for c in snuba_filter.conditions]
+        filter_keys = {
+            resolve_filter_key(key): value for key, value in snuba_filter.filter_keys.items()
+        }
 
         self.aggregations = snuba_filter.aggregations
         self.conditions = conditions
-        self.filter_keys = snuba_filter.filter_keys
+        self.filter_keys = filter_keys
 
 
 MAX_POINTS = 1000

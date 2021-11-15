@@ -1,5 +1,3 @@
-import isEqual from 'lodash/isEqual';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
@@ -21,199 +19,145 @@ describe('ReleasesRequest', function () {
     },
   };
 
-  // @ts-expect-error
-  MockApiClient.addMockResponse(
-    {
-      url: `/organizations/org-slug/sessions/`,
-      // @ts-ignore Cannot find TestStubs
-      body: TestStubs.SessionStatusCountByReleaseInPeriod(),
-    },
-    {
-      predicate(_url, {query}) {
-        return isEqual(query, {
-          query:
-            'release:7a82c130be9143361f20bc77252df783cf91e4fc OR release:e102abb2c46e7fe8686441091005c12aed90da99',
-          interval: '1d',
-          statsPeriod: '14d',
-          project: [projectId],
-          field: ['sum(session)'],
-          groupBy: ['project', 'release', 'session.status'],
-        });
-      },
-    }
-  );
+  MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/sessions/`,
+    body: TestStubs.SessionStatusCountByReleaseInPeriod(),
+    match: [
+      MockApiClient.matchQuery({
+        query:
+          'release:7a82c130be9143361f20bc77252df783cf91e4fc OR release:e102abb2c46e7fe8686441091005c12aed90da99',
+        interval: '1d',
+        statsPeriod: '14d',
+        project: [projectId],
+        field: ['sum(session)'],
+        groupBy: ['project', 'release', 'session.status'],
+      }),
+    ],
+  });
 
-  // @ts-expect-error
-  const requestForAutoHealthStatsPeriodSessionHistogram = MockApiClient.addMockResponse(
-    {
-      url: `/organizations/org-slug/sessions/`,
-      // @ts-ignore Cannot find TestStubs
-      body: TestStubs.SessionStatusCountByProjectInPeriod(),
-    },
-    {
-      predicate(_url, {query}) {
-        return isEqual(query, {
-          query: undefined,
-          interval: '1d',
-          statsPeriod: '14d',
-          project: [projectId],
-          field: ['sum(session)'],
-          groupBy: ['project', 'session.status'],
-        });
-      },
-    }
-  );
+  const requestForAutoHealthStatsPeriodSessionHistogram = MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/sessions/`,
+    body: TestStubs.SessionStatusCountByProjectInPeriod(),
+    match: [
+      MockApiClient.matchQuery({
+        query: undefined,
+        interval: '1d',
+        statsPeriod: '14d',
+        project: [projectId],
+        field: ['sum(session)'],
+        groupBy: ['project', 'session.status'],
+      }),
+    ],
+  });
 
-  // @ts-expect-error
-  const requestForAutoTotalCountByProjectInPeriod = MockApiClient.addMockResponse(
-    {
-      url: `/organizations/org-slug/sessions/`,
-      // @ts-expect-error
-      body: TestStubs.SessionTotalCountByProjectIn24h(),
-    },
-    {
-      predicate(_url, {query}) {
-        return isEqual(query, {
-          query: undefined,
-          interval: '1d',
-          statsPeriod: '14d',
-          project: [123],
-          field: ['sum(session)'],
-          groupBy: ['project'],
-        });
-      },
-    }
-  );
+  const requestForAutoTotalCountByProjectInPeriod = MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/sessions/`,
+    body: TestStubs.SessionTotalCountByProjectIn24h(),
+    match: [
+      MockApiClient.matchQuery({
+        query: undefined,
+        interval: '1d',
+        statsPeriod: '14d',
+        project: [123],
+        field: ['sum(session)'],
+        groupBy: ['project'],
+      }),
+    ],
+  });
 
-  // @ts-expect-error
-  const requestForAutoTotalCountByReleaseInPeriod = MockApiClient.addMockResponse(
-    {
-      url: `/organizations/org-slug/sessions/`,
-      // @ts-expect-error
-      body: TestStubs.SesssionTotalCountByReleaseIn24h(),
-    },
-    {
-      predicate(_url, {query}) {
-        return isEqual(query, {
-          query:
-            'release:7a82c130be9143361f20bc77252df783cf91e4fc OR release:e102abb2c46e7fe8686441091005c12aed90da99',
-          interval: '1d',
-          statsPeriod: '14d',
-          project: [123],
-          field: ['sum(session)'],
-          groupBy: ['project', 'release'],
-        });
-      },
-    }
-  );
+  const requestForAutoTotalCountByReleaseInPeriod = MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/sessions/`,
+    body: TestStubs.SesssionTotalCountByReleaseIn24h(),
+    match: [
+      MockApiClient.matchQuery({
+        query:
+          'release:7a82c130be9143361f20bc77252df783cf91e4fc OR release:e102abb2c46e7fe8686441091005c12aed90da99',
+        interval: '1d',
+        statsPeriod: '14d',
+        project: [123],
+        field: ['sum(session)'],
+        groupBy: ['project', 'release'],
+      }),
+    ],
+  });
 
-  // @ts-expect-error
-  MockApiClient.addMockResponse(
-    {
-      url: `/organizations/${organization.slug}/sessions/`,
-      // @ts-ignore Cannot find TestStubs
-      body: TestStubs.SesssionTotalCountByReleaseIn24h(),
-    },
-    {
-      predicate(_url, {query}) {
-        return isEqual(query, {
-          query:
-            'release:7a82c130be9143361f20bc77252df783cf91e4fc OR release:e102abb2c46e7fe8686441091005c12aed90da99',
-          interval: '1h',
-          statsPeriod: '24h',
-          project: [projectId],
-          field: ['sum(session)'],
-          groupBy: ['project', 'release'],
-        });
-      },
-    }
-  );
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/sessions/`,
+    body: TestStubs.SesssionTotalCountByReleaseIn24h(),
+    match: [
+      MockApiClient.matchQuery({
+        query:
+          'release:7a82c130be9143361f20bc77252df783cf91e4fc OR release:e102abb2c46e7fe8686441091005c12aed90da99',
+        interval: '1h',
+        statsPeriod: '24h',
+        project: [projectId],
+        field: ['sum(session)'],
+        groupBy: ['project', 'release'],
+      }),
+    ],
+  });
 
-  // @ts-expect-error
-  MockApiClient.addMockResponse(
-    {
-      url: `/organizations/org-slug/sessions/`,
-      // @ts-ignore Cannot find TestStubs
-      body: TestStubs.SessionTotalCountByProjectIn24h(),
-    },
-    {
-      predicate(_url, {query}) {
-        return isEqual(query, {
-          query: undefined,
-          interval: '1h',
-          statsPeriod: '24h',
-          project: [projectId],
-          field: ['sum(session)'],
-          groupBy: ['project'],
-        });
-      },
-    }
-  );
+  MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/sessions/`,
+    body: TestStubs.SessionTotalCountByProjectIn24h(),
+    match: [
+      MockApiClient.matchQuery({
+        query: undefined,
+        interval: '1h',
+        statsPeriod: '24h',
+        project: [projectId],
+        field: ['sum(session)'],
+        groupBy: ['project'],
+      }),
+    ],
+  });
 
-  // @ts-expect-error
-  MockApiClient.addMockResponse(
-    {
-      url: `/organizations/org-slug/sessions/`,
-      // @ts-ignore Cannot find TestStubs
-      body: TestStubs.SessionUserStatusCountByReleaseInPeriod(),
-    },
-    {
-      predicate(_url, {query}) {
-        return isEqual(query, {
-          query:
-            'release:7a82c130be9143361f20bc77252df783cf91e4fc OR release:e102abb2c46e7fe8686441091005c12aed90da99',
-          interval: '1d',
-          statsPeriod: '14d',
-          project: [projectId],
-          field: ['count_unique(user)', 'sum(session)'],
-          groupBy: ['project', 'release', 'session.status'],
-        });
-      },
-    }
-  );
+  MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/sessions/`,
+    body: TestStubs.SessionUserStatusCountByReleaseInPeriod(),
+    match: [
+      MockApiClient.matchQuery({
+        query:
+          'release:7a82c130be9143361f20bc77252df783cf91e4fc OR release:e102abb2c46e7fe8686441091005c12aed90da99',
+        interval: '1d',
+        statsPeriod: '14d',
+        project: [projectId],
+        field: ['count_unique(user)', 'sum(session)'],
+        groupBy: ['project', 'release', 'session.status'],
+      }),
+    ],
+  });
 
-  // @ts-expect-error
-  MockApiClient.addMockResponse(
-    {
-      url: `/organizations/${organization.slug}/sessions/`,
-      // @ts-ignore Cannot find TestStubs
-      body: TestStubs.UserTotalCountByReleaseIn24h(),
-    },
-    {
-      predicate(_url, {query}) {
-        return isEqual(query, {
-          query:
-            'release:7a82c130be9143361f20bc77252df783cf91e4fc OR release:e102abb2c46e7fe8686441091005c12aed90da99',
-          interval: '1h',
-          statsPeriod: '24h',
-          project: [projectId],
-          field: ['count_unique(user)'],
-          groupBy: ['project', 'release'],
-        });
-      },
-    }
-  );
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/sessions/`,
+    body: TestStubs.UserTotalCountByReleaseIn24h(),
+    match: [
+      MockApiClient.matchQuery({
+        query:
+          'release:7a82c130be9143361f20bc77252df783cf91e4fc OR release:e102abb2c46e7fe8686441091005c12aed90da99',
+        interval: '1h',
+        statsPeriod: '24h',
+        project: [projectId],
+        field: ['count_unique(user)'],
+        groupBy: ['project', 'release'],
+      }),
+    ],
+  });
 
-  // @ts-expect-error
-  MockApiClient.addMockResponse(
-    {
-      url: `/organizations/org-slug/sessions/`,
-      // @ts-ignore Cannot find TestStubs
-      body: TestStubs.UserTotalCountByProjectIn24h(),
-    },
-    {
-      predicate(_url, {query}) {
-        return isEqual(query, {
-          query: undefined,
-          interval: '1h',
-          statsPeriod: '24h',
-          project: [projectId],
-          field: ['count_unique(user)'],
-          groupBy: ['project'],
-        });
-      },
-    }
-  );
+  MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/sessions/`,
+    body: TestStubs.UserTotalCountByProjectIn24h(),
+    match: [
+      MockApiClient.matchQuery({
+        query: undefined,
+        interval: '1h',
+        statsPeriod: '24h',
+        project: [projectId],
+        field: ['count_unique(user)'],
+        groupBy: ['project'],
+      }),
+    ],
+  });
 
   it('calculates correct session health data', async function () {
     let healthData;
@@ -242,7 +186,6 @@ describe('ReleasesRequest', function () {
       routerContext
     );
 
-    // @ts-expect-error
     await tick();
     wrapper.update();
 
@@ -474,7 +417,6 @@ describe('ReleasesRequest', function () {
       routerContext
     );
 
-    // @ts-expect-error
     await tick();
     wrapper.update();
 
@@ -705,7 +647,6 @@ describe('ReleasesRequest', function () {
       routerContext
     );
 
-    // @ts-expect-error
     await tick();
     wrapper.update();
 

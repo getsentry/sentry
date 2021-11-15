@@ -145,6 +145,7 @@ class ThresholdControl extends React.Component<Props, State> {
               <StyledInput
                 disabled={disabled}
                 name={`${type}Threshold`}
+                data-test-id={`${type}-threshold`}
                 placeholder={placeholder}
                 value={currentValue ?? threshold ?? ''}
                 onChange={this.handleThresholdChange}

@@ -1,9 +1,7 @@
 import logging
 from urllib.parse import urlencode
 
-from django.db import transaction
 from django.urls import reverse
-from django.utils import timezone
 
 from sentry.auth.access import from_user
 from sentry.incidents.models import (
@@ -13,11 +11,8 @@ from sentry.incidents.models import (
     Incident,
     IncidentActivity,
     IncidentActivityType,
-    IncidentProject,
-    IncidentSnapshot,
     IncidentStatus,
     IncidentStatusMethod,
-    PendingIncidentSnapshot,
 )
 from sentry.models import Project
 from sentry.snuba.query_subscription_consumer import register_subscriber
@@ -29,7 +24,6 @@ from sentry.utils.http import absolute_uri
 logger = logging.getLogger(__name__)
 
 INCIDENTS_SNUBA_SUBSCRIPTION_TYPE = "incidents"
-SUBSCRIPTION_LOAD_TEST_SUBSCRIPTION_TYPE = "load_test_sessions_subscription"
 INCIDENT_SNAPSHOT_BATCH_SIZE = 50
 
 
@@ -120,14 +114,6 @@ def handle_snuba_query_update(subscription_update, subscription):
         SubscriptionProcessor(subscription).process_update(subscription_update)
 
 
-@register_subscriber(SUBSCRIPTION_LOAD_TEST_SUBSCRIPTION_TYPE)
-def handle_load_test_snuba_fake_query_update(subscription_update, subscription):
-    # ToDo(ahmed): Remove this handler. This is only added as part of a load test for crash rate
-    #  alerts. In this case, we don't really care about the actual subscriptions as much as the
-    #  load crash rate alerts will have on our infra, and so we just drop the updates here
-    metrics.incr("incidents.crash_rate_alerts.load_test")
-
-
 @instrumented_task(
     name="sentry.incidents.tasks.handle_trigger_action",
     queue="incidents",
@@ -200,54 +186,3 @@ def auto_resolve_snapshot_incidents(alert_rule_id, **kwargs):
         auto_resolve_snapshot_incidents.apply_async(
             kwargs={"alert_rule_id": alert_rule_id}, countdown=1
         )
-
-
-@instrumented_task(
-    name="sentry.incidents.tasks.process_pending_incident_snapshots", queue="incident_snapshots"
-)
-def process_pending_incident_snapshots(next_id=None):
-    """
-    Processes PendingIncidentSnapshots and creates a snapshot for any snapshot that
-    has passed it's target_run_date.
-    """
-    from sentry.incidents.logic import create_incident_snapshot
-
-    pending_snapshots = PendingIncidentSnapshot.objects.filter(target_run_date__lte=timezone.now())
-    if next_id is None:
-        # When next_id is None we know we just started running the task. Take the count
-        # of total pending snapshots so that we can alert if we notice the queue
-        # constantly growing.
-        metrics.incr(
-            "incidents.pending_snapshots",
-            amount=pending_snapshots.count(),
-            sample_rate=1.0,
-        )
-
-    if next_id is not None:
-        pending_snapshots = pending_snapshots.filter(id__lte=next_id)
-    pending_snapshots = pending_snapshots.order_by("-id").select_related("incident")[
-        : INCIDENT_SNAPSHOT_BATCH_SIZE + 1
-    ]
-
-    if not pending_snapshots:
-        return
-
-    for processed, pending_snapshot in enumerate(pending_snapshots):
-        incident = pending_snapshot.incident
-        if processed >= INCIDENT_SNAPSHOT_BATCH_SIZE:
-            process_pending_incident_snapshots.apply_async(
-                countdown=1, kwargs={"next_id": pending_snapshot.id}
-            )
-            break
-        else:
-            try:
-                with transaction.atomic():
-                    if (
-                        incident.status == IncidentStatus.CLOSED.value
-                        and not IncidentSnapshot.objects.filter(incident=incident).exists()
-                    ):
-                        if IncidentProject.objects.filter(incident=incident).exists():
-                            create_incident_snapshot(incident, windowed_stats=True)
-                    pending_snapshot.delete()
-            except Exception:
-                logger.exception("An error occurred while taking an incident snapshot")

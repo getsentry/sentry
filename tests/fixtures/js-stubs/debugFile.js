@@ -1,4 +1,4 @@
-export function DebugFile(params) {
+export function DebugFile(params = {}) {
   return {
     objectName: 'libS.so',
     symbolType: 'elf',

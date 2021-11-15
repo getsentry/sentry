@@ -28,7 +28,7 @@ inputs:
     required: false
     default: ${{ hashFiles('requirements-*.txt', '!requirements-pre-commit.txt') }}
   python-version:
-    description: "python version to install"
+    description: 'python version to install'
     required: false
   pip-cache-version:
     description: 'pip cache version in order to bust cache'
@@ -37,29 +37,29 @@ inputs:
 
 outputs:
   yarn-cache-dir:
-    description: "Path to yarn cache"
+    description: 'Path to yarn cache'
     value: ${{ steps.config.outputs.yarn-cache-dir }}
   pip-cache-dir:
-    description: "Path to pip cache"
+    description: 'Path to pip cache'
     value: ${{ steps.setup-python.outputs.pip-cache-dir }}
   pip-version:
-    description: "pip version"
+    description: 'pip version'
     value: ${{ steps.setup-python.outputs.pip-version }}
   python-version:
-    description: "python version"
+    description: 'python version'
     value: ${{ steps.setup-python.outputs.python-version }}
   acceptance-dir:
-    description: "Path to acceptance visual snapshot artifacts"
+    description: 'Path to acceptance visual snapshot artifacts'
     value: ${{ steps.config.outputs.acceptance-dir }}
   matrix-instance-number:
-    description: "The matrix instance number (starting at 1)"
+    description: 'The matrix instance number (starting at 1)'
     value: ${{ steps.config.outputs.matrix-instance-number }}
   matrix-instance-total:
-    description: "Reexport of MATRIX_INSTANCE_TOTAL."
+    description: 'Reexport of MATRIX_INSTANCE_TOTAL.'
     value: ${{ steps.config.outputs.matrix-instance-total }}
 
 runs:
-  using: "composite"
+  using: 'composite'
   steps:
     - name: Setup default environment variables
       shell: bash
@@ -159,6 +159,7 @@ runs:
         NEED_SNUBA: ${{ inputs.snuba }}
         NEED_CLICKHOUSE: ${{ inputs.clickhouse }}
         NEED_CHARTCUTERIE: ${{ inputs.chartcuterie }}
+        WORKDIR: ${{ inputs.workdir }}
       run: |
         sentry init
 
@@ -206,3 +207,5 @@ runs:
         fi
 
         docker ps -a
+
+        ./$WORKDIR/scripts/devservices-healthcheck.sh

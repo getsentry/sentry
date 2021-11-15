@@ -1,6 +1,10 @@
 import * as Sentry from '@sentry/react';
 
 import {t} from 'app/locale';
+import {
+  getAppStoreValidationErrorMessage,
+  unexpectedErrorMessage,
+} from 'app/utils/appStoreValidationErrorMessage';
 
 import {StepOneData} from './types';
 
@@ -28,19 +32,14 @@ const fieldErrorMessageMapping = {
   },
 };
 
-type ErrorCodeDetailed =
-  | 'app-connect-authentication-error'
-  | 'app-connect-multiple-sources-error';
-
 type ResponseJSONDetailed = {
-  detail: {
-    code: ErrorCodeDetailed;
+  detail: Parameters<typeof getAppStoreValidationErrorMessage>[0] & {
     extra: Record<string, any>;
     message: string;
   };
 };
 
-export type AppStoreConnectField = keyof typeof fieldErrorMessageMapping;
+type AppStoreConnectField = keyof typeof fieldErrorMessageMapping;
 
 type ResponseJSON = Record<AppStoreConnectField, string[]>;
 
@@ -48,10 +47,6 @@ type Error = {
   status: number;
   responseJSON?: ResponseJSON | ResponseJSONDetailed;
 };
-
-export const unexpectedErrorMessage = t(
-  'An unexpected error occurred while configuring the App Store Connect integration'
-);
 
 export function getAppStoreErrorMessage(
   error: Error | string
@@ -64,21 +59,7 @@ export function getAppStoreErrorMessage(
     ?.detail;
 
   if (detailedErrorResponse) {
-    switch (detailedErrorResponse.code) {
-      case 'app-connect-authentication-error':
-        return t(
-          'We could not establish a connection with App Store Connect. Please check the entered App Store Connect credentials'
-        );
-      case 'app-connect-multiple-sources-error':
-        return t(
-          'Only one Apple App Store Connect application is allowed in this project'
-        );
-      default: {
-        // this shall not happen
-        Sentry.captureException(new Error('Unknown app store connect error'));
-        return unexpectedErrorMessage;
-      }
-    }
+    return getAppStoreValidationErrorMessage(detailedErrorResponse) as string;
   }
 
   const errorResponse = error.responseJSON as undefined | ResponseJSON;

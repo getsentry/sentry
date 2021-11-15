@@ -33,11 +33,14 @@ type Props = {
  */
 function IncidentRulesCreate(props: Props) {
   function handleSubmitSuccess() {
-    const {router} = props;
+    const {router, project} = props;
     const {orgId} = props.params;
 
     metric.endTransaction({name: 'saveAlertRule'});
-    router.push(`/organizations/${orgId}/alerts/rules/`);
+    router.push({
+      pathname: `/organizations/${orgId}/alerts/rules/`,
+      query: {project: project.id},
+    });
   }
 
   const {project, eventView, wizardTemplate, sessionId, userTeamIds, ...otherProps} =

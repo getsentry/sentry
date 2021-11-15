@@ -13,7 +13,6 @@ import {
   valueSuggestions,
 } from 'app/views/settings/components/dataScrubbing/utils';
 
-// @ts-expect-error
 const relayPiiConfig = TestStubs.DataScrubbingRelayPiiConfig();
 const stringRelayPiiConfig = JSON.stringify(relayPiiConfig);
 const organizationSlug = 'sentry';
@@ -23,7 +22,6 @@ const rule = rules[2];
 const successfullySaved = jest.fn();
 const projectId = 'foo';
 const endpoint = `/projects/${organizationSlug}/${projectId}/`;
-// @ts-expect-error
 const api = new MockApiClient();
 
 jest.mock('app/views/settings/components/dataScrubbing/submitRules');
@@ -44,7 +42,6 @@ async function renderComponent() {
     />
   ));
 
-  // @ts-expect-error
   await tick();
   modal.update();
 
@@ -145,7 +142,6 @@ describe('Edit Modal', () => {
     expect(cancelButton.exists()).toBe(true);
     cancelButton.simulate('click');
 
-    // @ts-expect-error
     await tick();
     wrapper.update();
 
