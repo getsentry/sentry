@@ -122,6 +122,7 @@ function _DataDisplay<T extends WidgetDataConstraint>(
             key={index}
             noPadding={Visualization.noPadding}
             bottomPadding={Visualization.bottomPadding}
+            data-test-id="widget-state-has-data"
             onClick={() =>
               trackDataComponentClicks(props.chartSetting, props.organization)
             }
