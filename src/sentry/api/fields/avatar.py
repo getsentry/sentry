@@ -16,6 +16,7 @@ ALLOWED_MIMETYPES = ("image/gif", "image/jpeg", "image/png")
 
 SVG_R = r"(?:<\?xml\b[^>]*>[^<]*)?(?:<!--.*?-->[^<]*)*(?:<svg|<!DOCTYPE svg)\b"
 SVG_RE = re.compile(SVG_R, re.DOTALL)
+INVALID_ELEMENTS = ("script", "onload", "javascript")
 
 
 class ImageTooLarge(SentryAPIException):
@@ -88,6 +89,10 @@ class SentryAppLogoField(AvatarField):
         if SVG_RE.match(data.decode("utf-8")) is not None:
             svg = load_svg_file(BytesIO(data))
             if svg is not None:
+                if any(element in str(data) for element in INVALID_ELEMENTS):
+                    raise serializers.ValidationError(
+                        "SVG may not contain the following elements: " + ", ".join(INVALID_ELEMENTS)
+                    )
                 viewbox = svg.get("viewBox").split()
                 width, height = [int(dimension) for dimension in viewbox][-2:]
                 if width != height:

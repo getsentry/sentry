@@ -39,6 +39,15 @@ class SentryAppAvatarPutTest(SentryAppAvatarTestBase):
         assert resp.data["avatar"]["avatarUuid"] is not None
         assert resp.data["avatar"]["color"] is True
 
+    def test_upload_bad_file(self):
+        with self.feature("organizations:sentry-app-logo-upload"):
+            data = {
+                "color": 1,
+                "avatar_type": "upload",
+                "avatar_photo": b64encode(self.load_fixture("dirty_avatar.svg")),
+            }
+            self.get_error_response(self.unpublished_app.slug, **data, status_code=400)
+
     def test_put_bad(self):
         SentryAppAvatar.objects.create(sentry_app=self.unpublished_app)
         with self.feature("organizations:sentry-app-logo-upload"):
