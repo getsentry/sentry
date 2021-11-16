@@ -5,6 +5,7 @@ import ChartZoom from 'app/components/charts/chartZoom';
 import LineChart from 'app/components/charts/lineChart';
 import TransitionChart from 'app/components/charts/transitionChart';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
+import {getTooltipArrow} from 'app/components/charts/utils';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {t} from 'app/locale';
 import {EventsStatsData, OrganizationSummary, Project} from 'app/types';
@@ -171,7 +172,7 @@ function getIntervalLine(
         tooltipFormatter(transaction.aggregate_range_1, 'p50()'),
         '</div>',
         '</div>',
-        '<div class="tooltip-arrow"></div>',
+        getTooltipArrow(),
       ].join('');
     },
   } as any;
@@ -191,7 +192,7 @@ function getIntervalLine(
         tooltipFormatter(transaction.aggregate_range_2, 'p50()'),
         '</div>',
         '</div>',
-        '<div class="tooltip-arrow"></div>',
+        getTooltipArrow(),
       ].join('');
     },
   } as any;

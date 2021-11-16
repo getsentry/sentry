@@ -295,17 +295,23 @@ export default function Tooltip({
       // And the right edge taking into account the chart left offset
       const rightEdge = chartLeft + Number(pos[0]) + tipWidth / 2;
 
+      let arrowPosition: string | undefined;
       if (rightEdge >= window.innerWidth - 20) {
         // If the tooltip would leave viewport on the right, pin it.
         leftPos -= rightEdge - window.innerWidth + 20;
-        setTooltipPosition(`${Number(pos[0]) - leftPos}px`);
+        arrowPosition = setTooltipPosition(`${Number(pos[0]) - leftPos}px`);
       } else if (leftPos + chartLeft - 20 <= 0) {
         // If the tooltip would leave viewport on the left, pin it.
         leftPos = chartLeft * -1 + 20;
-        setTooltipPosition(`${Number(pos[0]) - leftPos}px`);
+        arrowPosition = setTooltipPosition(`${Number(pos[0]) - leftPos}px`);
       } else {
         // Tooltip not near the window edge, reset position
-        setTooltipPosition('50%');
+        arrowPosition = setTooltipPosition('50%');
+      }
+
+      const arrow = dom.querySelector<HTMLDivElement>('.tooltip-arrow');
+      if (arrow) {
+        arrow.style.left = arrowPosition;
       }
 
       return {left: leftPos, top: Number(pos[1]) - tipHeight - 20};

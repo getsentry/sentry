@@ -10,6 +10,7 @@ import {Theme} from 'app/utils/theme';
 import VisualMap from './components/visualMap';
 import MapSeries from './series/mapSeries';
 import BaseChart from './baseChart';
+import {getTooltipArrow} from './utils';
 
 type ChartProps = Omit<React.ComponentProps<typeof BaseChart>, 'css'>;
 
@@ -135,7 +136,7 @@ class WorldMapChart extends React.Component<Props, State> {
         `<div class="tooltip-series tooltip-series-solo">
                  <div><span class="tooltip-label">${marker} <strong>${countryOrCode}</strong></span> ${formattedValue}</div>
               </div>`,
-        '<div class="tooltip-arrow"></div>',
+        getTooltipArrow(),
       ].join('');
     };
 

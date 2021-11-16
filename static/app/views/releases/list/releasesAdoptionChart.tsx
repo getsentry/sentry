@@ -20,6 +20,7 @@ import TransitionChart from 'app/components/charts/transitionChart';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import {
   getDiffInMinutes,
+  getTooltipArrow,
   ONE_WEEK,
   truncationFormatter,
 } from 'app/components/charts/utils';
@@ -259,7 +260,7 @@ class ReleasesAdoptionChart extends Component<Props> {
                                 .join(''),
                               '</div>',
                               `<div class="tooltip-date">${intervalStart} &mdash; ${intervalEnd}</div>`,
-                              `<div class="tooltip-arrow"></div>`,
+                              getTooltipArrow(),
                             ].join('');
                           },
                         }}

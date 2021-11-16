@@ -21,6 +21,8 @@ import {Theme} from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
+import {getTooltipArrow} from './utils';
+
 type ReleaseMetaBasic = {
   version: string;
   date: string;
@@ -290,7 +292,7 @@ class ReleaseSeries extends React.Component<Props, State> {
             time,
             '</div>',
             '</div>',
-            '<div class="tooltip-arrow"></div>',
+            getTooltipArrow(),
           ].join('');
         },
       } as ToolboxComponentOption);

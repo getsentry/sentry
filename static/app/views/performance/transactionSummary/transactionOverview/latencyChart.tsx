@@ -7,6 +7,7 @@ import ErrorPanel from 'app/components/charts/errorPanel';
 import LoadingPanel from 'app/components/charts/loadingPanel';
 import OptionSelector from 'app/components/charts/optionSelector';
 import {HeaderTitleLegend} from 'app/components/charts/styles';
+import {getTooltipArrow} from 'app/components/charts/utils';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
@@ -145,7 +146,7 @@ class LatencyChart extends Component<Props, State> {
             '</div>',
           ];
         }
-        contents.push('<div class="tooltip-arrow"></div>');
+        contents.push(getTooltipArrow());
         return contents.join('');
       },
     };

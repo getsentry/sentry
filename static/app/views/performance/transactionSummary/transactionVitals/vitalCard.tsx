@@ -10,6 +10,7 @@ import BarChart, {BarChartSeries} from 'app/components/charts/barChart';
 import BarChartZoom from 'app/components/charts/barChartZoom';
 import MarkLine from 'app/components/charts/components/markLine';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
+import {getTooltipArrow} from 'app/components/charts/utils';
 import DiscoverButton from 'app/components/discoverButton';
 import Placeholder from 'app/components/placeholder';
 import {t} from 'app/locale';
@@ -474,7 +475,7 @@ class VitalCard extends Component<Props, State> {
             `<strong>${t('p75')}</strong>`,
             '</span>',
             '</div>',
-            '<div class="tooltip-arrow"></div>',
+            getTooltipArrow(),
           ].join('');
         },
       },

@@ -8,7 +8,7 @@ import moment from 'moment';
 import AsyncComponent from 'app/components/asyncComponent';
 import BarChart from 'app/components/charts/barChart';
 import MarkLine from 'app/components/charts/components/markLine';
-import {DateTimeObject} from 'app/components/charts/utils';
+import {DateTimeObject, getTooltipArrow} from 'app/components/charts/utils';
 import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
@@ -238,7 +238,7 @@ class TeamReleases extends AsyncComponent<Props, State> {
                   `<div><span class="tooltip-label"><strong>Last ${period} Average</strong></span> ${totalPeriodAverage}</div>`,
                   '</div>',
                   `<div class="tooltip-date">${startDate} - ${endDate}</div>`,
-                  '<div class="tooltip-arrow"></div>',
+                  getTooltipArrow(),
                 ].join('');
               },
             }}
