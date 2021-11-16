@@ -556,6 +556,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
             }
             isSorting={false}
             currentWidgetDragging={false}
+            noLazyLoad
           />
         </Body>
         <Footer>
