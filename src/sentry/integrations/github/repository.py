@@ -1,15 +1,16 @@
-import logging
+from __future__ import annotations
 
-from sentry.models import Integration
-from sentry.plugins import providers
+from typing import Any, Mapping, MutableMapping
+
+from sentry.models import Integration, Organization
+from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 
 WEBHOOK_EVENTS = ["push", "pull_request"]
 
 
-class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
+class GitHubRepositoryProvider(IntegrationRepositoryProvider):
     name = "GitHub"
-    logger = logging.getLogger("sentry.integrations.github")
     repo_provider = "github"
 
     def _validate_repo(self, client, installation, repo):
@@ -29,14 +30,15 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
 
         return repo_data
 
-    def get_repository_data(self, organization, config):
-        integration = Integration.objects.get(id=config["installation"], organizations=organization)
-        installation = integration.get_installation(organization.id)
+    def get_repository_data(
+        self, organization: Organization, config: MutableMapping[str, Any]
+    ) -> Mapping[str, Any]:
+        installation = self.get_installation(config.get("installation"), organization.id)
         client = installation.get_client()
 
         repo = self._validate_repo(client, installation, config["identifier"])
         config["external_id"] = str(repo["id"])
-        config["integration_id"] = integration.id
+        config["integration_id"] = installation.model.id
 
         return config
 

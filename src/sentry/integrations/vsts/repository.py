@@ -1,31 +1,14 @@
-import logging
 from typing import Any, Mapping, MutableMapping, Optional, Sequence
 
-from sentry.integrations import IntegrationInstallation
-from sentry.models import Commit, Integration, Organization, Repository
-from sentry.plugins import providers
-from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.models import Commit, Organization, Repository
+from sentry.plugins.providers import IntegrationRepositoryProvider
 
 MAX_COMMIT_DATA_REQUESTS = 90
 
 
-class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):  # type: ignore
+class VstsRepositoryProvider(IntegrationRepositoryProvider):
     name = "Azure DevOps"
-    logger = logging.getLogger("sentry.integrations.vsts")
-
-    def get_installation(
-        self, integration_id: Optional[int], organization_id: int
-    ) -> IntegrationInstallation:
-        if integration_id is None:
-            raise IntegrationError(f"{self.name} requires an integration id.")
-
-        integration_model = Integration.objects.get(
-            id=integration_id, organizations=organization_id, provider="vsts"
-        )
-
-        # Explicitly typing to satisfy mypy.
-        installation: IntegrationInstallation = integration_model.get_installation(organization_id)
-        return installation
+    repo_provider = "vsts"
 
     def get_repository_data(
         self, organization: Organization, config: MutableMapping[str, Any]

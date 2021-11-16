@@ -1,27 +1,16 @@
-import logging
-
 from sentry.app import locks
-from sentry.models import Integration, OrganizationOption
+from sentry.models import OrganizationOption
 from sentry.models.apitoken import generate_token
-from sentry.plugins import providers
-from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.plugins.providers import IntegrationRepositoryProvider
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.http import absolute_uri
 
 from .webhook import parse_raw_user_email, parse_raw_user_name
 
 
-class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
+class BitbucketRepositoryProvider(IntegrationRepositoryProvider):
     name = "Bitbucket"
-    logger = logging.getLogger("sentry.integrations.bitbucket")
-
-    def get_installation(self, integration_id, organization_id):
-        if integration_id is None:
-            raise IntegrationError("Bitbucket requires an integration id.")
-        integration_model = Integration.objects.get(
-            id=integration_id, organizations=organization_id, provider="bitbucket"
-        )
-
-        return integration_model.get_installation(organization_id)
+    repo_provider = "bitbucket"
 
     def get_repository_data(self, organization, config):
         installation = self.get_installation(config.get("installation"), organization.id)
