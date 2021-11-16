@@ -133,7 +133,7 @@ test-plugins:
 
 test-relay-integration:
 	@echo "--> Running Relay integration tests"
-	pytest tests/relay_integration -vv
+	pytest 'tests/relay_integration/test_integration.py::SentryRemoteTest::test_csp' -vv
 	@echo ""
 
 test-api-docs:

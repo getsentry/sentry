@@ -35,8 +35,12 @@ class _KafkaAdminWrapper:
         try:
             futures_dict = self.admin_client.delete_topics([topic_name])
             self._sync_wait_on_result(futures_dict)
-        except Exception:  # noqa
+        except Exception as e:  # noqa
             _log.warning("Could not delete topic %s", topic_name)
+            import subprocess
+            subprocess.run(("docker", "logs", "sentry_kafka"))
+            subprocess.run(("docker", "logs", "sentry_zookeeper"))
+            exit(e)
 
     def _sync_wait_on_result(self, futures_dict):
         """
@@ -219,6 +223,7 @@ def wait_for_ingest_consumer(session_ingest_consumer, task_runner):
             _log.warning(
                 "Ingest consumer waiter timed-out after %d seconds", time.time() - start_wait
             )
+
             return None  # timout without any success
 
         return waiter
