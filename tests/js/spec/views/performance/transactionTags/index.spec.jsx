@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
@@ -30,6 +30,8 @@ function initializeData({query} = {query: {}}) {
 }
 
 describe('Performance > Transaction Tags', function () {
+  enforceActOnUseLegacyStoreHook();
+
   let histogramMock;
   let wrapper;
 
