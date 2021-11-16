@@ -8,6 +8,7 @@ import isEqual from 'lodash/isEqual';
 
 import {openDashboardWidgetQuerySelectorModal} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
+import Feature from 'app/components/acl/feature';
 import {HeaderTitle} from 'app/components/charts/styles';
 import ErrorBoundary from 'app/components/errorBoundary';
 import FeatureBadge from 'app/components/featureBadge';
@@ -29,6 +30,7 @@ import {eventViewFromWidget} from 'app/views/dashboardsV2/utils';
 import {DisplayType} from 'app/views/dashboardsV2/widget/utils';
 
 import ContextMenu from './contextMenu';
+import SizeSelector from './sizeSelector';
 import {Widget} from './types';
 import WidgetCardChart from './widgetCardChart';
 import WidgetQueries from './widgetQueries';
@@ -81,6 +83,9 @@ class WidgetCard extends React.Component<Props> {
 
     return (
       <ToolbarPanel>
+        <Feature features={['organizations:dashboard-widget-resizing']}>
+          <SizeSelector size="medium" onSizeChange={() => {}} />
+        </Feature>
         <IconContainer style={{visibility: hideToolbar ? 'hidden' : 'visible'}}>
           <IconClick>
             <StyledIconGrabbable
