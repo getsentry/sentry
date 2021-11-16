@@ -35,9 +35,9 @@
                 "security": [
                     {
                         "auth_token": [
+                            "member:write",
                             "member:read",
-                            "member:admin",
-                            "member:write"
+                            "member:admin"
                         ]
                     }
                 ],

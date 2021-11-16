@@ -1,8 +1,7 @@
 PUBLIC_ENDPOINTS = {}
 
 
-def custom_preprocessing_hook(endpoints):
-    # your modifications to the list of operations that are exposed in the schema
+def custom_preprocessing_hook(endpoints):  # TODO: organize method, rename
     filtered = []
     for (path, path_regex, method, callback) in endpoints:
 
