@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequen
 
 from django.urls import reverse
 
-from sentry import analytics, roles
+from sentry import roles
 from sentry.models import InviteStatus, OrganizationMember
 from sentry.notifications.notifications.organization_request import OrganizationRequestNotification
 from sentry.notifications.utils.actions import MessageAction
@@ -84,12 +84,14 @@ class AbstractInviteRequestNotification(OrganizationRequestNotification):
     def get_callback_data(self) -> Mapping[str, Any]:
         return {"member_id": self.pending_member.id, "member_email": self.pending_member.email}
 
-    def record_notification_sent(self, recipient: Team | User, provider: ExternalProviders) -> None:
-        analytics.record(
-            self.analytics_event,
-            organization_id=self.organization.id,
+    def record_notification_sent(
+        self, recipient: Team | User, provider: ExternalProviders, **kwargs: Any
+    ) -> None:
+        super().record_notification_sent(
+            recipient,
+            provider,
             user_id=self.pending_member.inviter.id if self.pending_member.inviter else None,
             target_user_id=recipient.id,
             invited_member_id=self.pending_member.id,
-            providers=provider.name.lower(),
+            **kwargs,
         )
