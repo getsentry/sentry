@@ -1,20 +1,24 @@
+import {SelectField} from 'app/components/forms';
+
 type Props = {
   size: string;
   onSizeChange: (size: string) => void;
 };
 
 const SizeSelector = ({size, onSizeChange}: Props) => {
-  const handleChange = e => {
-    e.preventDefault();
-    onSizeChange(e.target.value);
-  };
-
   return (
-    <select value={size} onChange={handleChange}>
-      <option value="small">Small</option>
-      <option value="medium">Medium</option>
-      <option value="large">Large</option>
-    </select>
+    <SelectField
+      name="size"
+      choices={[
+        ['small', 'Small'],
+        ['medium', 'Medium'],
+        ['large', 'Large'],
+      ]}
+      onChange={value => onSizeChange(value as string)}
+      value={size}
+      style={{width: '120px', marginTop: '8px'}}
+      clearable={false}
+    />
   );
 };
 

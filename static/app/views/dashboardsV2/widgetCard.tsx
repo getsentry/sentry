@@ -84,7 +84,7 @@ class WidgetCard extends React.Component<Props> {
     return (
       <ToolbarPanel>
         <Feature features={['organizations:dashboard-widget-resizing']}>
-          <SizeSelector size="medium" onSizeChange={() => {}} />
+          <SizeSelector size="medium" onSizeChange={_ => {}} />
         </Feature>
         <IconContainer style={{visibility: hideToolbar ? 'hidden' : 'visible'}}>
           <IconClick>
@@ -293,7 +293,7 @@ const ToolbarPanel = styled('div')`
   position: absolute;
   top: 0;
   left: 0;
-  z-index: 1;
+  z-index: auto;
 
   width: 100%;
   height: 100%;
