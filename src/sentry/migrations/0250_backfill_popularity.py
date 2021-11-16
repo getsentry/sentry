@@ -33,7 +33,7 @@ class Migration(migrations.Migration):
     # You'll also usually want to set this to `False` if you're writing a data
     # migration, since we don't want the entire migration to run in one long-running
     # transaction.
-    atomic = True
+    atomic = False
 
     dependencies = [
         ("sentry", "0249_add_avatar_type_back"),
