@@ -208,12 +208,9 @@ class GitHubIntegrationProvider(IntegrationProvider):
             "Accept": "application/vnd.github.machine-man-preview+json",
         }
         headers.update(jwt.authorization_header(get_jwt()))
-        resp = client.request(
-            method="GET", headers=headers, path=f"/app/installations/{installation_id}34"
-        )
-        installation_resp = resp.json()
+        resp = client.get(headers=headers, path=f"/app/installations/{installation_id}")
 
-        return installation_resp
+        return resp
 
     def build_integration(self, state):
         installation = self.get_installation_info(state["installation_id"])
