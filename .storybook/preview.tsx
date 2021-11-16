@@ -142,7 +142,6 @@ addParameters({
           'Buttons',
           'Tables',
           'Forms',
-          'Sidebar Section',
           'Data Visualization',
           'Alerts',
           'Tags',
@@ -160,6 +159,7 @@ addParameters({
         [
           'Layout - Narrow',
           'Layout - Thirds',
+          'Sidebar Section',
           'Modals',
           'Activity',
           'Empty States',

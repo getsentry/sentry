@@ -10,7 +10,7 @@ import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 
 export default {
-  title: 'Components/Sidebar Section',
+  title: 'Views/Sidebar Section',
 };
 
 export const Default = () => (
