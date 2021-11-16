@@ -38,7 +38,9 @@ class IntegrationRepositoryProvider:
             raise IntegrationError(f"{self.name} requires an integration id.")
 
         integration_model = Integration.objects.get(
-            id=integration_id, organizations=organization_id, provider=self.repo_provider
+            id=integration_id,
+            organizationintegration__organization_id=organization_id,
+            provider=self.repo_provider,
         )
 
         # Explicitly typing to satisfy mypy.

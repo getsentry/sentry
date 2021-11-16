@@ -8,7 +8,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View
 
-from sentry.models import Commit, CommitAuthor, Organization, Repository
+from sentry.models import Commit, CommitAuthor, Integration, Organization, Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.utils import json
 
@@ -44,7 +44,13 @@ class PushEventWebhook(Webhook):
         except Repository.DoesNotExist:
             raise Http404()
 
-        client = repo.get_provider().get_installation(integration_id, organization.id).get_client()
+        provider = repo.get_provider()
+        try:
+            installation = provider.get_installation(integration_id, organization.id)
+        except Integration.DoesNotExist:
+            raise Http404()
+
+        client = installation.get_client()
 
         # while we're here, make sure repo data is up to date
         self.update_repo_data(repo, event)
