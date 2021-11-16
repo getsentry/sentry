@@ -50,6 +50,7 @@ class OrganizationMixin:
         # TODO(dcramer): this is a huge hack, and we should refactor this
         # it is currently needed to handle the is_auth_required check on
         # OrganizationBase
+        organizations = None
         active_organization = getattr(self, "_active_org", None)
         cached_active_org = (
             active_organization
@@ -80,7 +81,7 @@ class OrganizationMixin:
         if active_organization is None:
             organizations = Organization.objects.get_for_user(user=request.user)
 
-        if active_organization is None and organization_slug:
+        if active_organization is None and organization_slug and organizations:
             try:
                 active_organization = next(o for o in organizations if o.slug == organization_slug)
             except StopIteration:
@@ -89,7 +90,7 @@ class OrganizationMixin:
                     del request.session["activeorg"]
                 active_organization = None
 
-        if active_organization is None:
+        if active_organization is None and organizations:
             if not is_implicit:
                 return None
 
@@ -561,7 +562,7 @@ class AvatarPhotoView(View):
                 return HttpResponseBadRequest()
             else:
                 photo_file = avatar.get_cached_photo(size)
-
+        # this is a comment
         content_type = "image/svg+xml" if "svg" in photo_file.name else "image/png"
         res = HttpResponse(photo_file, content_type=content_type)
         res["Cache-Control"] = FOREVER_CACHE
