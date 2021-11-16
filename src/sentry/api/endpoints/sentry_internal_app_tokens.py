@@ -12,7 +12,7 @@ from sentry.models.sentryapp import MASKED_VALUE
 class SentryInternalAppTokensEndpoint(SentryAppBaseEndpoint):
     permission_classes = (SentryInternalAppTokenPermission,)
 
-    def get(self, request, sentry_app, **kwargs):
+    def get(self, request, sentry_app):
         if not sentry_app.is_internal:
             return Response([])
 
@@ -30,7 +30,7 @@ class SentryInternalAppTokensEndpoint(SentryAppBaseEndpoint):
 
         return Response(token_list)
 
-    def post(self, request, sentry_app, **kwargs):
+    def post(self, request, sentry_app):
         if not sentry_app.is_internal:
             return Response(
                 "This route is limited to internal integrations only",

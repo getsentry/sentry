@@ -8,7 +8,7 @@ from sentry.utils import email
 
 
 class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
-    def post(self, request, sentry_app, **kwargs):
+    def post(self, request, sentry_app):
         # check status of app to make sure it is unpublished
         if sentry_app.is_published:
             return Response({"detail": "Cannot publish already published integration."}, status=400)

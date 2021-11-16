@@ -50,7 +50,7 @@ class SentryAppRequestsEndpoint(SentryAppBaseEndpoint):
 
         return formatted_request
 
-    def get(self, request, sentry_app, **kwargs):
+    def get(self, request, sentry_app):
         """
         :qparam string eventType: Optionally specify a specific event type to filter requests
         :qparam bool errorsOnly: If this is true, only return error/warning requests (300-599)

@@ -9,7 +9,7 @@ from sentry.models import SentryAppInstallation
 class SentryAppStatsEndpoint(SentryAppBaseEndpoint, StatsMixin):
     permission_classes = (SentryAppStatsPermission,)
 
-    def get(self, request, sentry_app, **kwargs):
+    def get(self, request, sentry_app):
         """
         :qparam float since
         :qparam float until

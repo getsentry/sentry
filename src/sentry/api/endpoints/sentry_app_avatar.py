@@ -14,7 +14,7 @@ class SentryAppAvatarEndpoint(AvatarMixin, SentryAppBaseEndpoint):
         sentry_app = kwargs.get("sentry_app", None)
 
         if features.has("organizations:sentry-app-logo-upload", sentry_app.owner):
-            return super().get(request, **kwargs)
+            return super().get(request, access=request.access, **kwargs)
         else:
             return Response({"detail": ["You do not have that feature enabled"]}, status=400)
 
@@ -22,7 +22,7 @@ class SentryAppAvatarEndpoint(AvatarMixin, SentryAppBaseEndpoint):
         sentry_app = kwargs.get("sentry_app", None)
 
         if features.has("organizations:sentry-app-logo-upload", sentry_app.owner):
-            return super().put(request, **kwargs)
+            return super().put(request, access=request.access, **kwargs)
         else:
             return Response({"detail": ["You do not have that feature enabled"]}, status=400)
 

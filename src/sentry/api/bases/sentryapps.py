@@ -240,7 +240,6 @@ class SentryAppBaseEndpoint(IntegrationPlatformEndpoint):
         with configure_scope() as scope:
             scope.set_tag("sentry_app", sentry_app.slug)
 
-        kwargs["access"] = request.access
         kwargs["sentry_app"] = sentry_app
         return (args, kwargs)
 

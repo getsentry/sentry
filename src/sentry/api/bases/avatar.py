@@ -34,7 +34,7 @@ class SentryAppLogoSerializer(serializers.Serializer):
         attrs = super().validate(attrs)
         if attrs.get("avatar_type") != "upload":
             raise serializers.ValidationError(
-                {"avatar_type": "Cannot set avatar_type to anything but upload."}
+                {"avatar_type": "avatar_type must be set to 'upload'."}
             )
         if not attrs.get("avatar_photo"):
             raise serializers.ValidationError({"avatar_photo": "Must upload a logo."})
@@ -57,14 +57,11 @@ class AvatarMixin:
 
     def put(self, request, **kwargs):
         obj = kwargs.pop(self.object_type, None)
-        if self.object_type == "sentry_app":
-            serializer = SentryAppLogoSerializer(
-                data=request.data, context=self.get_serializer_context(obj)
-            )
-        else:
-            serializer = AvatarSerializer(
-                data=request.data, context=self.get_serializer_context(obj)
-            )
+        serializer = (
+            SentryAppLogoSerializer(data=request.data, context=self.get_serializer_context(obj))
+            if self.object_type == "sentry_app"
+            else AvatarSerializer(data=request.data, context=self.get_serializer_context(obj))
+        )
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
