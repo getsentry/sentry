@@ -8,6 +8,7 @@ import {
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
+import GlobalModal from 'app/components/globalModal';
 import {Organization} from 'app/types';
 import {lightTheme} from 'app/utils/theme';
 import {OrganizationContext} from 'app/views/organizationContext';
@@ -79,5 +80,9 @@ export * from '@testing-library/react';
  * More details: https://kentcdodds.com/blog/common-mistakes-with-react-testing-library#not-using-testing-libraryuser-event
  */
 const fireEvent = reactRtlFireEvent;
+
+export function mountGlobalModal(context) {
+  return mountWithTheme(<GlobalModal />, {context});
+}
 
 export {mountWithTheme, userEvent, fireEvent};
