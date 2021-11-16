@@ -5,7 +5,8 @@ import u2f from 'u2f-api';
 import {base64urlToBuffer, bufferToBase64url} from 'app/components/u2f/webAuthnHelper';
 import {t, tct} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
-import {ChallengeData} from 'app/types';
+import {ChallengeData, Organization} from 'app/types';
+import withOrganization from 'app/utils/withOrganization';
 // @ts-ignore
 import * as cbor from 'cbor-web';
 
@@ -15,6 +16,7 @@ type TapParams = {
 };
 
 type Props = {
+  organization: Organization;
   challengeData: ChallengeData;
   isWebauthnSigninFFEnabled: boolean;
   flowMode: string;
@@ -173,13 +175,6 @@ class U2fInterface extends React.Component<Props, State> {
       publicKey: publicKey,
     });
     this.submitU2fResponse(promise);
-
-    // const promise = await navigator.credentials.create({
-    //   publicKey: publicKey
-    // });
-
-    // console.log(promise)
-
   }
 
   invokeU2fFlow() {
@@ -192,15 +187,17 @@ class U2fInterface extends React.Component<Props, State> {
         this.submitU2fResponse(promise);
       }
     } else if (this.props.flowMode === 'enroll') {
-      // webauthn
-      const challengeArray = base64urlToBuffer(this.props.challengeData)
-      const challenge = cbor.decodeAllSync(challengeArray)
-      this.webAuthnRegister(challenge[0]['publicKey']);
-
-      // u2f
-      // const {registerRequests, registeredKeys} = this.props.challengeData;
-      // promise = u2f.register(registerRequests as any, registeredKeys as any);
-      // this.submitU2fResponse(promise);
+      const {organization} = this.props;
+      if(organization.features.includes('webauthn-register')){
+        const challengeArray = base64urlToBuffer(this.props.challengeData)
+        const challenge = cbor.decodeAllSync(challengeArray)
+        this.webAuthnRegister(challenge[0]['publicKey']);
+      }
+      else{
+        const {registerRequests, registeredKeys} = this.props.challengeData;
+        promise = u2f.register(registerRequests as any, registeredKeys as any);
+        this.submitU2fResponse(promise);
+      }
     } else {
       throw new Error(`Unsupported flow mode '${this.props.flowMode}'`);
     }
@@ -340,4 +337,5 @@ class U2fInterface extends React.Component<Props, State> {
   }
 }
 
-export default U2fInterface;
+// export default U2fInterface;
+export default withOrganization(U2fInterface);

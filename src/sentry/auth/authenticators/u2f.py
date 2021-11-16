@@ -58,24 +58,26 @@ class U2fInterface(AuthenticatorInterface):
             websafe_decode(registeredKey["publicKey"]),
         )
 
+    def _create_fido2_server(self):
+        rp_id = options.get("system.url-prefix").replace("https://", "")
+        rp = PublicKeyCredentialRpEntity(rp_id, "Sentry")
+        return Fido2Server(rp)
+
     def generate_new_config(self):
         return {}
 
     def start_enrollment(self, user, is_webauthn_register_ff):
         if is_webauthn_register_ff:
-            # u2f_app_id needs to be changed to return sentry.io or dev name
-            rp = PublicKeyCredentialRpEntity("richardmasentry.ngrok.io", "Sentry")
-            server = Fido2Server(rp)
+            server = self._create_fido2_server()
             credentials = []
             for registeredKey in self.get_u2f_devices():
                 c = self._create_credential_object(registeredKey)
                 credentials.append(c)
 
             registration_data, state = server.register_begin(
-                user={"id": bytes(user.id), "name": user.username, "displayName": user.name},
+                user={"id": bytes(user.id), "name": user.username, "displayName": user.username},
                 credentials=credentials,
                 user_verification="discouraged",
-                # authenticator_attachment="cross-platform",
             )
             return cbor.encode(registration_data), state
 
@@ -124,17 +126,14 @@ class U2fInterface(AuthenticatorInterface):
         self, enrollment_data, response_data, is_webauthn_register_ff, device_name=None, state=None
     ):
         if is_webauthn_register_ff:
-            rp = PublicKeyCredentialRpEntity("richardmasentry.ngrok.io", "Sentry")
-            server = Fido2Server(rp)
+            server = self._create_fido2_server()
             data = json.loads(response_data)
             client_data = ClientData(websafe_decode(data["response"]["clientDataJSON"]))
             att_obj = base.AttestationObject(websafe_decode(data["response"]["attestationObject"]))
-            # breakpoint()
             binding = server.register_complete(state, client_data, att_obj)
         else:
             data, cert = u2f.complete_registration(enrollment_data, response_data, self.u2f_facets)
             binding = dict(data)
-        # breakpoint()
         devices = self.config.setdefault("devices", [])
         devices.append(
             {"name": device_name or "Security Key", "ts": int(time()), "binding": binding}
