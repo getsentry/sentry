@@ -602,15 +602,15 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         # of 1 or more, and resolve on values of 0 or less. This is valid, but
         # without modifying the values, this boundary case will fail.
         if threshold_type == AlertRuleThresholdType.ABOVE:
-            alert_op = operator.lt
+            alert_op = operator.le
             alert_add, resolve_add = (1, -1) if is_integer else (0, 0)
         else:
-            alert_op = operator.gt
+            alert_op = operator.ge
             alert_add, resolve_add = (-1, 1) if is_integer else (0, 0)
 
         if alert_op(trigger["alert_threshold"] + alert_add, resolve_threshold + resolve_add):
             raise serializers.ValidationError(
-                "{} alert threshold must be above resolution threshold".format(trigger["label"])
+                f"{trigger['label']} alert threshold must be {threshold_type.name.lower()} resolution threshold"
             )
 
     def _validate_critical_warning_triggers(self, threshold_type, critical, warning):

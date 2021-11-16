@@ -47,7 +47,7 @@ describe('useTeams', function () {
     expect(mockRequest).toHaveBeenCalled();
     expect(result.current.teams).toEqual([...mockTeams, newTeam2, newTeam3]);
 
-    // de-duplicates itesm in the query results
+    // de-duplicates items in the query results
     mockRequest.mockClear();
     await act(() => onSearch('test'));
 

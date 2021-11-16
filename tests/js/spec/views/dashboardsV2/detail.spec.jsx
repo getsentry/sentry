@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
 
 import {createListeners} from 'sentry-test/createListeners';
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
 import {act} from 'sentry-test/reactTestingLibrary';
@@ -12,6 +12,8 @@ import * as types from 'app/views/dashboardsV2/types';
 import ViewEditDashboard from 'app/views/dashboardsV2/view';
 
 describe('Dashboards > Detail', function () {
+  enforceActOnUseLegacyStoreHook();
+
   const organization = TestStubs.Organization({
     features: ['global-views', 'dashboards-basic', 'dashboards-edit', 'discover-query'],
   });
