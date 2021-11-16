@@ -21,7 +21,7 @@ class SentryInternalAppTokenDetailsEndpoint(SentryAppBaseEndpoint):
 
         return (args, kwargs)
 
-    def delete(self, request, sentry_app, api_token):
+    def delete(self, request, sentry_app, api_token, **kwargs):
         # Validate the token is associated with the application
         if api_token.application_id != sentry_app.application_id:
             raise Http404
