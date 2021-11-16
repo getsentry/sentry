@@ -142,6 +142,7 @@ addParameters({
           'Buttons',
           'Tables',
           'Forms',
+          'Sidebar Section',
           'Data Visualization',
           'Alerts',
           'Tags',
