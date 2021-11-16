@@ -111,7 +111,6 @@ export const HeaderNavTabs = styled(NavTabs)`
   }
   & > li > a {
     padding: ${space(1)} 0;
-    font-size: ${p => p.theme.fontSizeLarge};
     margin-bottom: 4px;
   }
   & > li.active > a {
