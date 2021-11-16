@@ -28,8 +28,8 @@ describe('ContextPickerModal', function () {
   });
 
   afterEach(async function () {
-    OrganizationsStore.load([]);
-    OrganizationStore.reset();
+    act(() => OrganizationsStore.load([]));
+    act(() => OrganizationStore.reset());
     await act(tick);
   });
 

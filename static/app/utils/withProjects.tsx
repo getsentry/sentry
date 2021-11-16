@@ -18,7 +18,8 @@ function withProjects<P extends InjectedProjectsProps>(
   type Props = Omit<P, keyof InjectedProjectsProps>;
 
   const Wrapper: React.FC<Props> = props => {
-    const {projects, loadingProjects} = useProjects();
+    const {projects, initiallyLoaded} = useProjects();
+    const loadingProjects = !initiallyLoaded;
 
     return <WrappedComponent {...(props as P)} {...{projects, loadingProjects}} />;
   };
