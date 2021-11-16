@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
@@ -27,6 +27,8 @@ const generateFields = () => ({
 });
 
 describe('EventsV2 > Results', function () {
+  enforceActOnUseLegacyStoreHook();
+
   const eventTitle = 'Oh no something bad';
   const features = ['discover-basic'];
   let eventResultsMock, mockSaved, eventsStatsMock, mockVisit;
@@ -169,7 +171,7 @@ describe('EventsV2 > Results', function () {
       },
     });
 
-    act(() => ProjectsStore.loadInitialData([TestStubs.Project()]));
+    ProjectsStore.loadInitialData([TestStubs.Project()]);
 
     const wrapper = mountWithTheme(
       <Results
@@ -216,7 +218,7 @@ describe('EventsV2 > Results', function () {
       },
     });
 
-    act(() => ProjectsStore.loadInitialData([TestStubs.Project()]));
+    ProjectsStore.loadInitialData([TestStubs.Project()]);
 
     const wrapper = mountWithTheme(
       <Results
@@ -273,7 +275,7 @@ describe('EventsV2 > Results', function () {
       },
     });
 
-    act(() => ProjectsStore.loadInitialData([TestStubs.Project()]));
+    ProjectsStore.loadInitialData([TestStubs.Project()]);
 
     const wrapper = mountWithTheme(
       <Results
@@ -356,7 +358,7 @@ describe('EventsV2 > Results', function () {
       },
     });
 
-    act(() => ProjectsStore.loadInitialData([TestStubs.Project()]));
+    ProjectsStore.loadInitialData([TestStubs.Project()]);
 
     const wrapper = mountWithTheme(
       <Results
@@ -633,7 +635,7 @@ describe('EventsV2 > Results', function () {
       },
     });
 
-    act(() => ProjectsStore.loadInitialData([TestStubs.Project()]));
+    ProjectsStore.loadInitialData([TestStubs.Project()]);
 
     const wrapper = mountWithTheme(
       <Results
@@ -693,7 +695,7 @@ describe('EventsV2 > Results', function () {
       },
     });
 
-    act(() => ProjectsStore.loadInitialData([TestStubs.Project()]));
+    ProjectsStore.loadInitialData([TestStubs.Project()]);
 
     const wrapper = mountWithTheme(
       <Results
@@ -753,7 +755,7 @@ describe('EventsV2 > Results', function () {
       },
     });
 
-    act(() => ProjectsStore.loadInitialData([TestStubs.Project()]));
+    ProjectsStore.loadInitialData([TestStubs.Project()]);
 
     const wrapper = mountWithTheme(
       <Results
