@@ -19,7 +19,7 @@ def get_component_interaction_key(sentry_app, component_type):
 class SentryAppInteractionEndpoint(SentryAppBaseEndpoint, StatsMixin):
     permission_classes = (SentryAppStatsPermission,)
 
-    def get(self, request, sentry_app):
+    def get(self, request, sentry_app, **kwargs):
         """
         :qparam float since
         :qparam float until
@@ -48,7 +48,7 @@ class SentryAppInteractionEndpoint(SentryAppBaseEndpoint, StatsMixin):
             }
         )
 
-    def post(self, request, sentry_app):
+    def post(self, request, sentry_app, **kwargs):
         """
         Increment a TSDB metric relating to Sentry App interactions
 
@@ -56,6 +56,7 @@ class SentryAppInteractionEndpoint(SentryAppBaseEndpoint, StatsMixin):
         :param string componentType     required for 'sentry_app_component_interacted' metric
         """
         # Request should have identifier field stored in TSDBModel
+        key = None
         tsdb_field = request.data.get("tsdbField", "")
 
         model = getattr(tsdb.models, tsdb_field, None)
