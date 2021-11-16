@@ -51,12 +51,14 @@ class OrganizationMixin:
         # it is currently needed to handle the is_auth_required check on
         # OrganizationBase
         organizations = None
+        cached_active_org = None
         active_organization = getattr(self, "_active_org", None)
-        cached_active_org = (
-            active_organization
-            and active_organization[0].slug == organization_slug
-            and active_organization[1] == request.user
-        )
+        if active_organization and active_organization[0]:
+            cached_active_org = (
+                active_organization
+                and active_organization[0].slug == organization_slug
+                and active_organization[1] == request.user
+            )
         if cached_active_org:
             return active_organization[0]
 
