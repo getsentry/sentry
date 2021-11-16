@@ -274,7 +274,6 @@ def post_process_group(
                 event=event,
             )
 
-            event_processing_store.delete_by_key(cache_key)
             return
 
         is_reprocessed = is_reprocessed_event(event.data)
