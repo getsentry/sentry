@@ -417,9 +417,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         alert_rule.refresh_from_db()
         alert_rule.snuba_query.refresh_from_db()
         assert resp.data == serialize(alert_rule, self.user)
-        assert (
-            resp.data["owner"] == self.user.actor.get_actor_identifier()
-        )  # Doesn't unassign yet - TDB in future though
+        assert resp.data["owner"] is None
 
 
 class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):

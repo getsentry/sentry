@@ -554,7 +554,7 @@ def update_alert_rule(
     dataset=None,
     projects=None,
     name=None,
-    owner=None,
+    owner=NOT_SET,
     query=None,
     aggregate=None,
     time_window=None,
@@ -626,8 +626,10 @@ def update_alert_rule(
         updated_query_fields["dataset"] = dataset
     if event_types is not None:
         updated_query_fields["event_types"] = event_types
-    if owner is not None:
-        updated_fields["owner"] = owner.resolve_to_actor()
+    if owner is not NOT_SET:
+        if owner is not None:
+            owner = owner.resolve_to_actor()
+        updated_fields["owner"] = owner
     if comparison_delta is not NOT_SET:
         resolution = DEFAULT_ALERT_RULE_RESOLUTION
         if comparison_delta is not None:

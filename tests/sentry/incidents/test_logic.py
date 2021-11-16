@@ -845,6 +845,12 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         )
         assert alert_rule.owner.id == self.user.actor.id
 
+        update_alert_rule(
+            alert_rule=alert_rule,
+            owner=None,
+        )
+        assert alert_rule.owner is None
+
     def test_comparison_delta(self):
         comparison_delta = 60
 
