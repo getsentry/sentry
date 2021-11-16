@@ -16,8 +16,6 @@ ALLOWED_MIMETYPES = ("image/gif", "image/jpeg", "image/png")
 
 SVG_R = r"(?:<\?xml\b[^>]*>[^<]*)?(?:<!--.*?-->[^<]*)*(?:<svg|<!DOCTYPE svg)\b"
 SVG_RE = re.compile(SVG_R, re.DOTALL)
-MIN_SVG_DIMENSION = 16
-MAX_SVG_DIMENSION = 80
 
 
 class ImageTooLarge(SentryAPIException):
@@ -75,14 +73,10 @@ class SentryAppLogoField(AvatarField):
     def __init__(
         self,
         max_size=settings.SENTRY_MAX_AVATAR_SIZE,
-        min_dimension=MIN_SVG_DIMENSION,
-        max_dimension=MAX_SVG_DIMENSION,
         **kwargs,
     ):
         super().__init__(**kwargs)
         self.max_size = max_size
-        self.min_dimension = min_dimension
-        self.max_dimension = max_dimension
 
     def to_internal_value(self, data):
         if not data:
@@ -96,8 +90,8 @@ class SentryAppLogoField(AvatarField):
             if svg is not None:
                 viewbox = svg.get("viewBox").split()
                 width, height = [int(dimension) for dimension in viewbox][-2:]
-                if not self.is_valid_size(width, height):
-                    raise serializers.ValidationError("Invalid image dimensions.")
+                if width != height:
+                    raise serializers.ValidationError("Viewbox height and width must be equal.")
 
                 return BytesIO(data)
             raise serializers.ValidationError("Could not open file.")
