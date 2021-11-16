@@ -73,9 +73,14 @@ def should_demote_symbolication(project_id: int) -> bool:
     elif always_lowpri:
         return True
     else:
-        return settings.SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE and realtime_metrics.is_lpq_project(
-            project_id
-        )
+        try:
+            return (
+                settings.SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE
+                and realtime_metrics.is_lpq_project(project_id)
+            )
+        # realtime_metrics is empty in getsentry
+        except AttributeError:
+            return False
 
 
 def submit_symbolicate(
