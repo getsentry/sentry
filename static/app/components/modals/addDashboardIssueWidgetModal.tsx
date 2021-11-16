@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 import set from 'lodash/set';
 
-import {validateWidget} from 'app/actionCreators/dashboards';
 import {addSuccessMessage} from 'app/actionCreators/indicator';
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
@@ -52,7 +51,7 @@ type State = {
   queries: WidgetQuery[];
   loading: boolean;
   errors?: Record<string, any>;
-  type: WidgetType;
+  widgetType: WidgetType;
 };
 
 const newQuery = {
@@ -74,7 +73,7 @@ class AddDashboardIssueWidgetModal extends React.Component<Props, State> {
         queries: [{...newQuery}],
         errors: undefined,
         loading: false,
-        type: WidgetType.ISSUE,
+        widgetType: WidgetType.ISSUE,
       };
       return;
     }
@@ -85,21 +84,14 @@ class AddDashboardIssueWidgetModal extends React.Component<Props, State> {
       queries: widget.queries,
       errors: undefined,
       loading: false,
-      type: WidgetType.ISSUE,
+      widgetType: WidgetType.ISSUE,
     };
   }
 
   handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
-    const {
-      api,
-      organization,
-      onAddWidget,
-      onUpdateWidget,
-      closeModal,
-      widget: previousWidget,
-    } = this.props;
+    const {onAddWidget, onUpdateWidget, closeModal, widget: previousWidget} = this.props;
     this.setState({loading: true});
     let errors: FlatValidationError = {};
     const widgetData: Widget = {
@@ -107,10 +99,9 @@ class AddDashboardIssueWidgetModal extends React.Component<Props, State> {
       interval: this.state.interval,
       queries: this.state.queries,
       displayType: DisplayType.TABLE,
-      type: this.state.type,
+      widgetType: this.state.widgetType,
     };
     try {
-      await validateWidget(api, organization.slug, widgetData);
       if (defined(onUpdateWidget) && !!previousWidget) {
         onUpdateWidget({
           id: previousWidget?.id,

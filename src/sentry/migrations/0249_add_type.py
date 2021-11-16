@@ -35,14 +35,14 @@ class Migration(migrations.Migration):
             database_operations=[
                 migrations.AddField(
                     model_name="dashboardwidget",
-                    name="type",
+                    name="widget_type",
                     field=sentry.db.models.fields.bounded.BoundedPositiveIntegerField(null=True),
                 ),
             ],
             state_operations=[
                 migrations.AddField(
                     model_name="dashboardwidget",
-                    name="type",
+                    name="widget_type",
                     field=sentry.db.models.fields.bounded.BoundedPositiveIntegerField(
                         default=0, null=True
                     ),

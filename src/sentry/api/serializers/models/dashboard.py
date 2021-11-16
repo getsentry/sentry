@@ -40,7 +40,7 @@ class DashboardWidgetSerializer(Serializer):
             "dashboardId": str(obj.dashboard_id),
             "queries": attrs["queries"],
             # Default to discover type if null
-            "type": DashboardWidgetTypes.get_type_name(obj.type)
+            "widgetType": DashboardWidgetTypes.get_type_name(obj.widget_type)
             or DashboardWidgetTypes.TYPE_NAMES[0],
         }
 

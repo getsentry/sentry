@@ -85,7 +85,7 @@ function SortableWidget(props: Props) {
         },
       }}
     >
-      {widget.type === WidgetType.ISSUE ? (
+      {widget.widgetType === WidgetType.ISSUE ? (
         <IssueWidgetCard
           widget={widget}
           isEditing={isEditing}

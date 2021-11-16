@@ -91,7 +91,7 @@ type State = {
   dashboards: DashboardListItem[];
   selectedDashboard?: SelectValue<string>;
   userHasModified: boolean;
-  type: WidgetType;
+  widgetType: WidgetType;
 };
 
 const newQuery = {
@@ -115,7 +115,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         loading: !!fromDiscover,
         dashboards: [],
         userHasModified: false,
-        type: WidgetType.DISCOVER,
+        widgetType: WidgetType.DISCOVER,
       };
       return;
     }
@@ -129,7 +129,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       loading: false,
       dashboards: [],
       userHasModified: false,
-      type: WidgetType.DISCOVER,
+      widgetType: WidgetType.DISCOVER,
     };
   }
 
@@ -160,7 +160,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       'displayType',
       'interval',
       'queries',
-      'type',
+      'widgetType',
     ]);
     // Only Table and Top N views need orderby
     if (![DisplayType.TABLE, DisplayType.TOP_N].includes(widgetData.displayType)) {

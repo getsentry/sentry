@@ -89,7 +89,7 @@ export function constructWidgetFromQuery(query?: Query): Widget | undefined {
           title: string;
           displayType: DisplayType;
           interval: string;
-          type: WidgetType.DISCOVER;
+          widgetType: WidgetType.DISCOVER;
         }),
         queries,
       };
