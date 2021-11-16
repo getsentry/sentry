@@ -208,7 +208,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
             "Accept": "application/vnd.github.machine-man-preview+json",
         }
         headers.update(jwt.authorization_header(get_jwt()))
-        resp = client.get(headers=headers, path=f"/app/installations/{installation_id}")
+        resp = client.get(f"/app/installations/{installation_id}", headers=headers)
 
         return resp
 
