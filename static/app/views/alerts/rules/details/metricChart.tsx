@@ -672,7 +672,7 @@ class MetricChart extends React.PureComponent<Props, State> {
                               Math.sign(changePercentage) === 1 ? '+' : '-'
                             }${Math.abs(changePercentage).toFixed(2)}%</span>`,
                           `</div>`,
-                          `<div class="tooltip-arrow"></div>`,
+                          getTooltipArrow(),
                         ]
                           .filter(e => e)
                           .join('');

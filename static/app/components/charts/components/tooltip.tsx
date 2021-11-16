@@ -6,7 +6,7 @@ import moment from 'moment';
 import BaseChart from 'app/components/charts/baseChart';
 import {getFormattedDate, getTimeFormat} from 'app/utils/dates';
 
-import {getTooltipArrow, truncationFormatter} from '../utils';
+import {getTooltipArrow, setTooltipPosition, truncationFormatter} from '../utils';
 
 type ChartProps = React.ComponentProps<typeof BaseChart>;
 
@@ -292,32 +292,20 @@ export default function Tooltip({
 
       // Determine the new left edge.
       let leftPos = Number(pos[0]) - tipWidth / 2;
-      let arrowPosition = '50%';
-
       // And the right edge taking into account the chart left offset
       const rightEdge = chartLeft + Number(pos[0]) + tipWidth / 2;
 
-      // If the tooltip would leave viewport on the right, pin it.
-      // and adjust the arrow position.
       if (rightEdge >= window.innerWidth - 20) {
+        // If the tooltip would leave viewport on the right, pin it.
         leftPos -= rightEdge - window.innerWidth + 20;
-        arrowPosition = `${Number(pos[0]) - leftPos}px`;
-      }
-
-      // If the tooltip would leave viewport on the left, pin it.
-      if (leftPos + chartLeft - 20 <= 0) {
+        setTooltipPosition(`${Number(pos[0]) - leftPos}px`);
+      } else if (leftPos + chartLeft - 20 <= 0) {
+        // If the tooltip would leave viewport on the left, pin it.
         leftPos = chartLeft * -1 + 20;
-        arrowPosition = `${Number(pos[0]) - leftPos}px`;
-      }
-
-      // Unset other arrows
-      const arrows = document.querySelectorAll<HTMLDivElement>('.tooltip-arrow');
-      arrows.forEach(arrow => (arrow.style.left = ''));
-
-      // Reposition the arrow.
-      const arrow = dom.querySelector<HTMLDivElement>('.tooltip-arrow');
-      if (arrow) {
-        arrow.style.left = arrowPosition;
+        setTooltipPosition(`${Number(pos[0]) - leftPos}px`);
+      } else {
+        // Tooltip not near the window edge, reset position
+        setTooltipPosition('50%');
       }
 
       return {left: leftPos, top: Number(pos[1]) - tipHeight - 20};
