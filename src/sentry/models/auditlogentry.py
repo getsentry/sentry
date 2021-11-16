@@ -361,7 +361,9 @@ class AuditLogEntry(Model):
         elif self.event == AuditLogEntryEvent.SET_ONDEMAND:
             if self.data["ondemand"] == -1:
                 return "changed on-demand spend to unlimited"
-            return "changed on-demand max spend to $%d" % (self.data["ondemand"] / 100,)
+            next_ondemand_max_spend = self.data["ondemand"] / 100
+            prev_ondemand_max_spend = self.data["prev_ondemand"] / 100
+            return f"changed on-demand max spend to ${next_ondemand_max_spend} from ${prev_ondemand_max_spend}"
         elif self.event == AuditLogEntryEvent.TRIAL_STARTED:
             return "started trial"
         elif self.event == AuditLogEntryEvent.PLAN_CHANGED:
