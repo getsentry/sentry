@@ -34,7 +34,7 @@ class SentryAppLogoSerializer(serializers.Serializer):
         attrs = super().validate(attrs)
         if attrs.get("avatar_type") != "upload":
             raise serializers.ValidationError(
-                {"avatar_type": "Cannot set avatar_type to anything but upload"}
+                {"avatar_type": "Cannot set avatar_type to anything but upload."}
             )
         if not attrs.get("avatar_photo"):
             raise serializers.ValidationError({"avatar_photo": "Must upload a logo."})
