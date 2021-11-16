@@ -14,7 +14,7 @@ from sentry.models import Project, SentryAppComponent, SentryAppInstallation
 
 
 class SentryAppComponentsEndpoint(SentryAppBaseEndpoint):
-    def get(self, request, sentry_app):
+    def get(self, request, sentry_app, **kwargs):
         return self.paginate(
             request=request,
             queryset=sentry_app.components.all(),

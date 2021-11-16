@@ -5,7 +5,7 @@ from sentry.models import IntegrationFeature
 
 
 class SentryAppFeaturesEndpoint(SentryAppBaseEndpoint):
-    def get(self, request, sentry_app):
+    def get(self, request, sentry_app, **kwargs):
         features = IntegrationFeature.objects.filter(sentry_app_id=sentry_app.id)
 
         return self.paginate(
