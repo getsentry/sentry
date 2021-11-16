@@ -119,7 +119,7 @@ class Controls extends React.Component<Props> {
                 <Button
                   data-test-id="add-widget-library"
                   priority="primary"
-                  icon={<IconAdd isCircled size="s" />}
+                  icon={<IconAdd isCircled />}
                   onClick={e => {
                     e.preventDefault();
                     onAddWidget();
