@@ -9,6 +9,7 @@ const SizeSelector = ({size, onSizeChange}: Props) => {
   return (
     <SelectField
       name="size"
+      clearable={false}
       choices={[
         ['small', 'Small'],
         ['medium', 'Medium'],
@@ -16,8 +17,6 @@ const SizeSelector = ({size, onSizeChange}: Props) => {
       ]}
       onChange={value => onSizeChange(value as string)}
       value={size}
-      style={{width: '120px', marginTop: '8px'}}
-      clearable={false}
     />
   );
 };
