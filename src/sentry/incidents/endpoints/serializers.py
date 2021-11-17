@@ -7,7 +7,7 @@ from django.utils import timezone
 from django.utils.encoding import force_text
 from rest_framework import serializers
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.api.fields.actor import ActorField
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.serializers.rest_framework.environment import EnvironmentField
@@ -470,6 +470,11 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         both alert and resolve 'after' the warning trigger (whether that means
         > or < the value depends on threshold type).
         """
+        if data.get("comparison_delta") and not features.has(
+            "organizations:change-alerts", self.context["organization"]
+        ):
+            raise serializers.ValidationError("You don't have access to the change alerts feature")
+
         data.setdefault("dataset", QueryDatasets.EVENTS)
         project_id = data.get("projects")
         if not project_id:

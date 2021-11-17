@@ -6,6 +6,7 @@ from sentry.api.serializers.rest_framework.list import ListField
 from sentry.constants import MIGRATED_CONDITIONS, SCHEMA_FORM_ACTIONS, TICKET_ACTIONS
 from sentry.models import Environment
 from sentry.rules import rules
+from sentry.rules.conditions.event_frequency import COMPARISON_TYPE_PERCENT
 
 ValidationError = serializers.ValidationError
 
@@ -55,6 +56,13 @@ class RuleNodeField(serializers.Field):
                 raise ValidationError(first_error)
 
             raise ValidationError("Ensure all required fields are filled in.")
+
+        # XXX: We don't have access to the project inside of the forms, so we need to check at this
+        # level.
+        if form.cleaned_data.get("comparisonType") == COMPARISON_TYPE_PERCENT and not features.has(
+            "organizations:change-alerts", self.context["project"].organization
+        ):
+            raise ValidationError("You don't have access to the change alerts feature")
 
         # Update data from cleaned form values
         data.update(form.cleaned_data)
