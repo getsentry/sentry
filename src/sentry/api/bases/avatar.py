@@ -58,11 +58,13 @@ class AvatarMixin:
 
     def put(self, request, **kwargs):
         obj = kwargs.pop(self.object_type, None)
-        serializer = (
-            SentryAppLogoSerializer(data=request.data, context=self.get_serializer_context(obj))
-            if self.object_type == "sentry_app"
-            else AvatarSerializer(data=request.data, context=self.get_serializer_context(obj))
-        )
+
+        SerializerCls = AvatarSerializer
+        if self.object_type == "sentry_app":
+            SerializerCls = SentryAppLogoSerializer
+
+        serializer = SerializerCls(data=request.data, context=self.get_serializer_context(obj))
+
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

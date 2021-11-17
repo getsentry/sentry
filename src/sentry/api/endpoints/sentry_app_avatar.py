@@ -13,18 +13,18 @@ class SentryAppAvatarEndpoint(AvatarMixin, SentryAppBaseEndpoint):
     def get(self, request, **kwargs):
         sentry_app = kwargs.get("sentry_app", None)
 
-        if features.has("organizations:sentry-app-logo-upload", sentry_app.owner):
-            return super().get(request, access=request.access, **kwargs)
-        else:
+        if not features.has("organizations:sentry-app-logo-upload", sentry_app.owner):
             return Response({"detail": ["You do not have that feature enabled"]}, status=400)
+
+        return super().get(request, access=request.access, **kwargs)
 
     def put(self, request, **kwargs):
         sentry_app = kwargs.get("sentry_app", None)
 
-        if features.has("organizations:sentry-app-logo-upload", sentry_app.owner):
-            return super().put(request, access=request.access, **kwargs)
-        else:
+        if not features.has("organizations:sentry-app-logo-upload", sentry_app.owner):
             return Response({"detail": ["You do not have that feature enabled"]}, status=400)
+
+        return super().put(request, access=request.access, **kwargs)
 
     def get_avatar_filename(self, obj):
         return f"{obj.slug}.svg"
