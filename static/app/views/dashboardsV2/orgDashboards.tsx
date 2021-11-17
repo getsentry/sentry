@@ -10,6 +10,7 @@ import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {assignWidgetSize} from 'app/utils/widgetResizing';
 
 import {DashboardDetails, DashboardListItem} from './types';
 
@@ -82,6 +83,11 @@ class OrgDashboards extends AsyncComponent<Props, State> {
   onRequestSuccess({stateKey, data}) {
     const {params, organization, location} = this.props;
     if (params.dashboardId || stateKey === 'selectedDashboard') {
+      if (organization.features.includes('dashboard-widget-resizing')) {
+        this.setState({
+          [stateKey]: {...data, widgets: data.widgets.map(assignWidgetSize)},
+        });
+      }
       return;
     }
 

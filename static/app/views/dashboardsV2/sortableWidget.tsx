@@ -18,10 +18,11 @@ type Props = {
   isEditing: boolean;
   onDelete: () => void;
   onEdit: () => void;
+  onSizeChange: (size: string) => void;
 };
 
 function SortableWidget(props: Props) {
-  const {widget, dragId, isEditing, onDelete, onEdit} = props;
+  const {widget, dragId, isEditing, onDelete, onEdit, onSizeChange} = props;
 
   const {
     attributes,
@@ -51,6 +52,7 @@ function SortableWidget(props: Props) {
     <WidgetWrapper
       ref={setNodeRef}
       displayType={widget.displayType}
+      size={widget.size}
       layoutId={dragId}
       style={{
         // Origin is set to top right-hand corner where the drag handle is placed.
@@ -89,6 +91,7 @@ function SortableWidget(props: Props) {
         isEditing={isEditing}
         onDelete={onDelete}
         onEdit={onEdit}
+        onSizeChange={onSizeChange}
         isSorting={isSorting}
         hideToolbar={isSorting}
         currentWidgetDragging={currentWidgetDragging}

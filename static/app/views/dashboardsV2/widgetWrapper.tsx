@@ -3,7 +3,36 @@ import {motion} from 'framer-motion';
 
 import {Widget} from './types';
 
-const WidgetWrapper = styled(motion.div)<{displayType: Widget['displayType']}>`
+const getBigNumberArea = size => {
+  switch (size) {
+    case 'small':
+      return `span 1/ span 1`;
+    case 'medium':
+      return `span 1/ span 2`;
+    case 'large':
+      return `span 1/ span 3`;
+    default:
+      return `span 1/ span 2`;
+  }
+};
+
+const getDefaultWidgetArea = size => {
+  switch (size) {
+    case 'small':
+      return `span 2/ span 2`;
+    case 'medium':
+      return `span 2/ span 3`;
+    case 'large':
+      return `span 2/ span 4`;
+    default:
+      return `span 2/ span 2`;
+  }
+};
+
+const WidgetWrapper = styled(motion.div)<{
+  displayType: Widget['displayType'];
+  size?: string;
+}>`
   position: relative;
   touch-action: manipulation;
 
@@ -21,13 +50,13 @@ const WidgetWrapper = styled(motion.div)<{displayType: Widget['displayType']}>`
 
           @media (min-width: ${p.theme.breakpoints[3]}) {
             /* 6 and 8 cols */
-            grid-area: span 1 / span 2;
+            grid-area: ${getBigNumberArea(p.size)};
           }
         `;
       default:
         return `
           /* 2, 4, 6 and 8 cols */
-          grid-area: span 2 / span 2;
+          grid-area: ${getDefaultWidgetArea(p.size)};
         `;
     }
   }};

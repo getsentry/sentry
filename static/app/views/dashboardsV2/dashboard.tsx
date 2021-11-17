@@ -124,6 +124,12 @@ class Dashboard extends Component<Props> {
     this.props.onUpdate(nextList);
   };
 
+  handleSizeChange = (index: number) => (size: string) => {
+    const nextList = [...this.props.dashboard.widgets];
+    nextList[index] = {...nextList[index], size};
+    this.props.onUpdate(nextList);
+  };
+
   handleDeleteWidget = (index: number) => () => {
     const nextList = [...this.props.dashboard.widgets];
     nextList.splice(index, 1);
@@ -200,6 +206,7 @@ class Dashboard extends Component<Props> {
         isEditing={isEditing}
         onDelete={this.handleDeleteWidget(index)}
         onEdit={this.handleEditWidget(widget, index)}
+        onSizeChange={this.handleSizeChange(index)}
       />
     );
   }
@@ -253,7 +260,7 @@ export default withApi(withGlobalSelection(Dashboard));
 const WidgetContainer = styled('div')`
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-auto-flow: row dense;
+  grid-auto-flow: row;
   grid-gap: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {

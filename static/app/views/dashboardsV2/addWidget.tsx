@@ -37,6 +37,7 @@ function AddWidget({onAddWidget, onOpenWidgetBuilder, orgFeatures}: Props) {
       key="add"
       ref={setNodeRef}
       displayType={DisplayType.BIG_NUMBER}
+      size="medium"
       layoutId={ADD_WIDGET_BUTTON_DRAG_ID}
       style={{originX: 0, originY: 0}}
       animate={

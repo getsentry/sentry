@@ -46,6 +46,7 @@ type Props = WithRouterProps & {
   selection: GlobalSelection;
   onDelete: () => void;
   onEdit: () => void;
+  onSizeChange?: (size: string) => void;
   isSorting: boolean;
   currentWidgetDragging: boolean;
   showContextMenu?: boolean;
@@ -75,7 +76,15 @@ class WidgetCard extends React.Component<Props> {
   }
 
   renderToolbar() {
-    const {onEdit, onDelete, draggableProps, hideToolbar, isEditing} = this.props;
+    const {
+      onEdit,
+      onDelete,
+      onSizeChange,
+      draggableProps,
+      hideToolbar,
+      isEditing,
+      widget,
+    } = this.props;
 
     if (!isEditing) {
       return null;
@@ -84,9 +93,11 @@ class WidgetCard extends React.Component<Props> {
     return (
       <ToolbarPanel>
         <Feature features={['organizations:dashboard-widget-resizing']}>
-          <SizeSelectContainer style={{visibility: hideToolbar ? 'hidden' : 'visible'}}>
-            <SizeSelector size="medium" onSizeChange={_ => {}} />
-          </SizeSelectContainer>
+          {widget.size && onSizeChange && (
+            <SizeSelectContainer style={{visibility: hideToolbar ? 'hidden' : 'visible'}}>
+              <SizeSelector size={widget.size} onSizeChange={onSizeChange} />
+            </SizeSelectContainer>
+          )}
         </Feature>
         <IconContainer style={{visibility: hideToolbar ? 'hidden' : 'visible'}}>
           <IconClick>
