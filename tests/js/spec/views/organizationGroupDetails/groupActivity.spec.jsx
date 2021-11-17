@@ -5,7 +5,9 @@ import {act} from 'sentry-test/reactTestingLibrary';
 import NoteInput from 'app/components/activity/note/input';
 import ConfigStore from 'app/stores/configStore';
 import GroupStore from 'app/stores/groupStore';
+import OrganizationStore from 'app/stores/organizationStore';
 import ProjectsStore from 'app/stores/projectsStore';
+import TeamStore from 'app/stores/teamStore';
 import {GroupActivity} from 'app/views/organizationGroupDetails/groupActivity';
 
 describe('GroupActivity', function () {
@@ -36,6 +38,8 @@ describe('GroupActivity', function () {
       organization: additionalOrg,
       group,
     });
+    act(() => TeamStore.loadInitialData([TestStubs.Team({id: '999', slug: 'no-team'})]));
+    act(() => OrganizationStore.onUpdate(organization, {replace: true}));
     return mountWithTheme(
       <GroupActivity
         api={new MockApiClient()}
@@ -60,6 +64,37 @@ describe('GroupActivity', function () {
     });
     expect(wrapper.find('GroupActivityItem').text()).toContain(
       'marked this issue as reviewed'
+    );
+  });
+
+  it('requests assignees that are not in the team store', async function () {
+    const team = TestStubs.Team({id: '123', name: 'workflow'});
+    const teamRequest = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/teams/`,
+      body: [team],
+    });
+    const wrapper = createWrapper({
+      activity: [
+        {
+          id: '123',
+          user: null,
+          type: 'assigned',
+          data: {
+            assignee: team.id,
+            assigneeEmail: null,
+            assigneeType: 'team',
+          },
+          dateCreated: '2021-10-28T13:40:10.634821Z',
+        },
+      ],
+    });
+
+    await act(() => tick());
+    wrapper.update();
+
+    expect(teamRequest).toHaveBeenCalledTimes(1);
+    expect(wrapper.find('GroupActivityItem').text()).toContain(
+      'assigned this issue to #team-slug'
     );
   });
 
