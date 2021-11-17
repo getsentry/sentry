@@ -193,9 +193,9 @@ function useTeams({limit, slugs, ids, provideUserTeams}: Options = {}) {
 
     if (
       slugsOrIds.length !== slugOrIdRef.current.size ||
-      slugsOrIds.some(slug => !slugOrIdRef.current?.has(slug))
+      slugsOrIds.some(slugOrId => !slugOrIdRef.current?.has(slugOrId))
     ) {
-      slugOrIdRef.current = new Set(slugs);
+      slugOrIdRef.current = new Set(slugsOrIds);
     }
   }
 
