@@ -143,6 +143,11 @@ type Props = WithRouterProps & {
    * Set an optional default value to prefill absolute date with
    */
   defaultAbsolute?: {start?: Date; end?: Date};
+
+  /**
+   * The maximum number of days in the past you can pick
+   */
+  maxPickableDays?: number;
 } & Partial<typeof defaultProps>;
 
 type State = {
@@ -366,6 +371,7 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
       hint,
       label,
       relativeOptions,
+      maxPickableDays,
     } = this.props;
     const {start, end, relative} = this.state;
 
@@ -435,6 +441,7 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
                       utc={this.state.utc}
                       onChange={this.handleSelectDateRange}
                       onChangeUtc={this.handleUseUtc}
+                      maxPickableDays={maxPickableDays}
                     />
                     <SubmitRow>
                       <MultipleSelectorSubmitRow

@@ -45,6 +45,8 @@ type Props = {
   getDocumentTitle: (name: string) => string;
   generateEventView: (location: Location, transactionName: string) => EventView;
   childComponent: (props: ChildProps) => JSX.Element;
+  relativeDateOptions?: Record<string, ReactNode>;
+  maxPickableDays?: number;
   features?: string[];
 };
 
@@ -57,6 +59,8 @@ function PageLayout(props: Props) {
     getDocumentTitle,
     generateEventView,
     childComponent: ChildComponent,
+    relativeDateOptions,
+    maxPickableDays,
     features = [],
   } = props;
 
@@ -110,6 +114,8 @@ function PageLayout(props: Props) {
             specificProjectSlugs={defined(project) ? [project.slug] : []}
             disableMultipleProjectSelection
             showProjectSettingsLink
+            relativeDateOptions={relativeDateOptions}
+            maxPickableDays={maxPickableDays}
           >
             <StyledPageContent>
               <NoProjectMessage organization={organization}>
