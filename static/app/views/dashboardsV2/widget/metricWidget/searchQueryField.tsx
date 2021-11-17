@@ -42,7 +42,7 @@ function SearchQueryField({api, orgSlug, projectSlug, tags, onSearch, onBlur}: P
 
   function getTagValues(tag: Tag, _query: string): Promise<string[]> {
     return fetchTagValues(tag.key).then(
-      tagValues => tagValues,
+      tagValues => tagValues.map(({value}) => value),
       () => {
         throw new Error('Unable to fetch tag values');
       }

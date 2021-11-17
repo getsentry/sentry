@@ -10,11 +10,11 @@ import {t} from 'app/locale';
 import {inputStyles} from 'app/styles/input';
 import space from 'app/styles/space';
 
-import {MetricQuery} from './types';
+import {MetricQuery, MetricTags} from './types';
 
 type Props = {
   onChange: (groupBy: MetricQuery['groupBy']) => void;
-  metricTags: string[];
+  metricTags: MetricTags;
   groupBy?: MetricQuery['groupBy'];
 };
 
@@ -38,7 +38,7 @@ function GroupByField({metricTags, groupBy = [], onChange}: Props) {
   return (
     <DropdownAutoComplete
       searchPlaceholder={t('Search tag')}
-      items={metricTags.map(metricTag => ({
+      items={metricTags.map(({key: metricTag}) => ({
         value: metricTag,
         searchKey: metricTag,
         label: ({inputValue}) => (
