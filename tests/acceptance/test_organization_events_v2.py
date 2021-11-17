@@ -541,7 +541,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             # Delete the query
             card.find_element_by_css_selector('[data-test-id="delete-query"]').click()
             # Confirm deletion
-            card.find_element_by_css_selector('[data-test-id="confirm-button"]').click()
+            self.browser.click_when_visible(selector='[data-test-id="confirm-button"]')
 
             # Wait for card to clear
             self.browser.wait_until_not(card_selector)

@@ -59,12 +59,8 @@ class QueryList extends React.Component<Props> {
     resetGlobalSelection();
   }
 
-  handleDeleteQuery = (eventView: EventView) => (event: React.MouseEvent<Element>) => {
-    event.preventDefault();
-    event.stopPropagation();
-
+  handleDeleteQuery = (eventView: EventView) => {
     const {api, organization, onQueryChange, location, savedQueries} = this.props;
-
     handleDeleteQuery(api, organization, eventView).then(() => {
       if (savedQueries.length === 1 && location.query.cursor) {
         browserHistory.push({

@@ -1,6 +1,7 @@
 import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountGlobalModal} from 'sentry-test/modal';
 
 import QueryList from 'app/views/eventsV2/queryList';
 
@@ -182,6 +183,9 @@ describe('EventsV2 > QueryList', function () {
 
     card = wrapper.find('QueryCard').last();
     clickMenuItem(card, 'delete-query');
+    // Confirm
+    const FirstModal = await mountGlobalModal();
+    FirstModal.find('Button').last().simulate('click');
 
     // wait for request
     await wrapper.update();
