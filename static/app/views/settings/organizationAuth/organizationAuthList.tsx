@@ -20,6 +20,7 @@ const providerPopularity = {
   onelogin: 5,
   rippling: 6,
   auth0: 7,
+  jumpcloud: 8,
 };
 
 type Props = {

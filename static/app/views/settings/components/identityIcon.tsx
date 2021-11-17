@@ -10,6 +10,7 @@ import githubEnterprise from 'sentry-logos/logo-github-enterprise.svg';
 import gitlab from 'sentry-logos/logo-gitlab.svg';
 import google from 'sentry-logos/logo-google.svg';
 import jiraserver from 'sentry-logos/logo-jira-server.svg';
+import jumpcloud from 'sentry-logos/logo-jumpcloud.svg';
 import msteams from 'sentry-logos/logo-msteams.svg';
 import okta from 'sentry-logos/logo-okta.svg';
 import onelogin from 'sentry-logos/logo-onelogin.svg';
@@ -33,6 +34,7 @@ export const ICON_PATHS = {
   gitlab,
   google,
   jira_server: jiraserver,
+  jumpcloud,
   msteams,
   okta,
   onelogin,
