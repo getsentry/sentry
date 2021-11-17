@@ -9,7 +9,6 @@ import exportGlobals from 'app/bootstrap/exportGlobals';
 import Alert from 'app/components/alert';
 import {getInterval} from 'app/components/charts/utils';
 import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
-import {CredentialCreationOptionsJSON} from 'app/components/u2f/webAuthnHelper';
 import {API_ACCESS_SCOPES, DEFAULT_RELATIVE_PERIODS} from 'app/constants';
 import {PlatformKey} from 'app/data/platformCategories';
 import {OrgExperiments, UserExperiments} from 'app/types/experiments';
@@ -733,7 +732,8 @@ export type ChallengeData = {
   authenticateRequests: u2f.SignRequest;
   registerRequests: u2f.RegisterRequest;
   registeredKeys: u2f.RegisteredKey[];
-  credentialCreationOptions: CredentialCreationOptionsJSON;
+  // for WebAuthn register
+  webAuthnRegisterData: string;
 };
 
 export type EnrolledAuthenticator = {

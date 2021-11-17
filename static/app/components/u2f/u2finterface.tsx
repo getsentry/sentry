@@ -189,8 +189,8 @@ class U2fInterface extends React.Component<Props, State> {
     } else if (this.props.flowMode === 'enroll') {
       const {organization} = this.props;
       if(organization.features.includes('webauthn-register')){
-        const challengeArray = base64urlToBuffer(this.props.challengeData)
-        const challenge = cbor.decodeAllSync(challengeArray)
+        const challengeArray = base64urlToBuffer(this.props.challengeData.webAuthnRegisterData);
+        const challenge = cbor.decodeAllSync(challengeArray);
         this.webAuthnRegister(challenge[0]['publicKey']);
       }
       else{

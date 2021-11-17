@@ -153,7 +153,8 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         if interface_id == "u2f":
             if self._check_webauthn_register_ff(user):
                 publicKeyCredentialCreate, state = interface.start_enrollment(user, True)
-                response["challenge"] = b64encode(publicKeyCredentialCreate)
+                response["challenge"] = {}
+                response["challenge"]["webAuthnRegisterData"] = b64encode(publicKeyCredentialCreate)
                 request.session["webauthn_register_state"] = state
             else:
                 response["challenge"] = interface.start_enrollment(user, False)
