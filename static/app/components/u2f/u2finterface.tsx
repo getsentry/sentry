@@ -1,5 +1,7 @@
 import * as React from 'react';
 import * as Sentry from '@sentry/react';
+// @ts-ignore
+import * as cbor from 'cbor-web';
 import u2f from 'u2f-api';
 
 import {base64urlToBuffer, bufferToBase64url} from 'app/components/u2f/webAuthnHelper';
@@ -7,8 +9,6 @@ import {t, tct} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import {ChallengeData, Organization} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
-// @ts-ignore
-import * as cbor from 'cbor-web';
 
 type TapParams = {
   response: string;
@@ -77,8 +77,10 @@ class U2fInterface extends React.Component<Props, State> {
                 authenticatorData: bufferToBase64url(data.response.authenticatorData),
               };
               u2fResponse = JSON.stringify(authenticatorData);
-            }
-            else if(typeof data.response !== 'undefined' && this.props.flowMode === 'enroll'){
+            } else if (
+              typeof data.response !== 'undefined' &&
+              this.props.flowMode === 'enroll'
+            ) {
               const authenticatorData = {
                 id: data.id,
                 rawId: bufferToBase64url(data.rawId),
@@ -168,9 +170,9 @@ class U2fInterface extends React.Component<Props, State> {
     this.submitU2fResponse(promise);
   }
 
-  webAuthnRegister(publicKey){
+  webAuthnRegister(publicKey) {
     const promise = navigator.credentials.create({
-      publicKey: publicKey,
+      publicKey,
     });
     this.submitU2fResponse(promise);
   }
@@ -186,12 +188,13 @@ class U2fInterface extends React.Component<Props, State> {
       }
     } else if (this.props.flowMode === 'enroll') {
       const {organization} = this.props;
-      if(organization.features.includes('webauthn-register')){
-        const challengeArray = base64urlToBuffer(this.props.challengeData.webAuthnRegisterData);
+      if (organization.features.includes('webauthn-register')) {
+        const challengeArray = base64urlToBuffer(
+          this.props.challengeData.webAuthnRegisterData
+        );
         const challenge = cbor.decodeAllSync(challengeArray);
-        this.webAuthnRegister(challenge[0]['publicKey']);
-      }
-      else{
+        this.webAuthnRegister(challenge[0].publicKey);
+      } else {
         const {registerRequests, registeredKeys} = this.props.challengeData;
         promise = u2f.register(registerRequests as any, registeredKeys as any);
         this.submitU2fResponse(promise);

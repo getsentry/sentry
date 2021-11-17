@@ -243,9 +243,10 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         if interface_id == "u2f":
             # What happens when this fails?
             is_webauthn_register_ff = False
+            state = None
             if self._check_webauthn_register_ff(user):
                 is_webauthn_register_ff = True
-            state = request.session["webauthn_register_state"]
+                state = request.session["webauthn_register_state"]
             interface.try_enroll(
                 serializer.data["challenge"],
                 serializer.data["response"],
