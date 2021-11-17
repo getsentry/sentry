@@ -17,7 +17,7 @@ class GitHubRepositoryProvider(IntegrationRepositoryProvider):
         try:
             repo_data = client.get_repo(repo)
         except Exception as e:
-            installation.raise_error(e)
+            raise installation.raise_error(e)
 
         try:
             # make sure installation has access to this specific repo
@@ -77,7 +77,7 @@ class GitHubRepositoryProvider(IntegrationRepositoryProvider):
                     client.get_token(force_refresh=True)
                     return eval_commits(client)
                 except Exception as e:
-                    installation.raise_error(e)
+                    raise installation.raise_error(e)
             installation.raise_error(e)
         except Exception as e:
             installation.raise_error(e)

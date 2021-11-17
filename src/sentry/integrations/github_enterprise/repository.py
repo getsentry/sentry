@@ -13,7 +13,7 @@ class GitHubEnterpriseRepositoryProvider(GitHubRepositoryProvider):
         try:
             repo_data = client.get_repo(repo)
         except Exception as e:
-            installation.raise_error(e)
+            raise installation.raise_error(e)
 
         try:
             # make sure installation has access to this specific repo

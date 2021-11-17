@@ -6,7 +6,7 @@ from sentry.plugins.providers import IntegrationRepositoryProvider
 MAX_COMMIT_DATA_REQUESTS = 90
 
 
-class VstsRepositoryProvider(IntegrationRepositoryProvider):
+class VstsRepositoryProvider(IntegrationRepositoryProvider):  # type: ignore
     name = "Azure DevOps"
     repo_provider = "vsts"
 
@@ -22,7 +22,7 @@ class VstsRepositoryProvider(IntegrationRepositoryProvider):
         try:
             repo = client.get_repo(instance, repo_id)
         except Exception as e:
-            installation.raise_error(e)
+            raise installation.raise_error(e)
         config.update(
             {
                 "instance": instance,
@@ -106,7 +106,7 @@ class VstsRepositoryProvider(IntegrationRepositoryProvider):
             else:
                 res = client.get_commit_range(instance, repo.external_id, start_sha, end_sha)
         except Exception as e:
-            installation.raise_error(e)
+            raise installation.raise_error(e)
 
         commits = self.zip_commit_data(repo, res["value"], repo.organization_id)
         return self._format_commits(repo, commits)
