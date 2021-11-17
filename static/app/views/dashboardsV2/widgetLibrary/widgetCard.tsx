@@ -27,7 +27,7 @@ function WidgetLibraryCard({
   const selectButton = (
     <StyledButton
       type="button"
-      icon={<IconAdd size="small" isCircled color="gray300" />}
+      icon={<IconAdd size="sm" isCircled color="gray300" />}
       onClick={() => {
         const updatedWidgets = selectedWidgets.slice().concat(widget);
         setErrored(false);
@@ -41,7 +41,7 @@ function WidgetLibraryCard({
   const selectedButton = (
     <StyledButton
       type="button"
-      icon={<IconCheckmark size="small" isCircled color="gray300" />}
+      icon={<IconCheckmark size="sm" isCircled color="gray300" />}
       onClick={() => {
         const updatedWidgets = selectedWidgets.filter(selected => widget !== selected);
         setSelectedWidgets(updatedWidgets);
