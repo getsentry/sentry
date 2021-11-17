@@ -34,6 +34,9 @@ class U2fInterface(AuthenticatorInterface):
         "Chrome)."
     )
     allow_multi_enrollment = True
+    rp_id = options.get("system.url-prefix").replace("https://", "")
+    rp = PublicKeyCredentialRpEntity(rp_id, "Sentry")
+    server = Fido2Server(rp)
 
     @classproperty
     def u2f_app_id(cls):
@@ -58,23 +61,17 @@ class U2fInterface(AuthenticatorInterface):
             websafe_decode(registeredKey["publicKey"]),
         )
 
-    def _create_fido2_server(self):
-        rp_id = options.get("system.url-prefix").replace("https://", "")
-        rp = PublicKeyCredentialRpEntity(rp_id, "Sentry")
-        return Fido2Server(rp)
-
     def generate_new_config(self):
         return {}
 
     def start_enrollment(self, user, is_webauthn_register_ff):
         if is_webauthn_register_ff:
-            server = self._create_fido2_server()
             credentials = []
             for registeredKey in self.get_u2f_devices():
                 c = self._create_credential_object(registeredKey)
                 credentials.append(c)
 
-            registration_data, state = server.register_begin(
+            registration_data, state = self.server.register_begin(
                 user={"id": bytes(user.id), "name": user.username, "displayName": user.username},
                 credentials=credentials,
                 user_verification="discouraged",
@@ -126,11 +123,10 @@ class U2fInterface(AuthenticatorInterface):
         self, enrollment_data, response_data, is_webauthn_register_ff, device_name=None, state=None
     ):
         if is_webauthn_register_ff:
-            server = self._create_fido2_server()
             data = json.loads(response_data)
             client_data = ClientData(websafe_decode(data["response"]["clientDataJSON"]))
             att_obj = base.AttestationObject(websafe_decode(data["response"]["attestationObject"]))
-            binding = server.register_complete(state, client_data, att_obj)
+            binding = self.server.register_complete(state, client_data, att_obj)
         else:
             data, cert = u2f.complete_registration(enrollment_data, response_data, self.u2f_facets)
             binding = dict(data)
