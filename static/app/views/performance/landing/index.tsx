@@ -15,11 +15,13 @@ import {MAX_QUERY_LENGTH} from 'app/constants';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
+import {defined} from 'app/utils';
 import EventView from 'app/utils/discover/eventView';
 import {generateAggregateFields} from 'app/utils/discover/fields';
 import {OpBreakdownFilterProvider} from 'app/utils/performance/contexts/operationBreakdownFilter';
 import useTeams from 'app/utils/useTeams';
 
+import MetricsSearchBar from '../metricsSearchBar';
 import {MetricsSwitch} from '../metricsSwitch';
 import Filter, {SpanOperationBreakdownFilter} from '../transactionSummary/filter';
 import {getTransactionSearchQuery} from '../utils';
@@ -45,6 +47,7 @@ type Props = {
   setError: (msg: string | undefined) => void;
   handleSearch: (searchQuery: string) => void;
   handleTrendsClick: () => void;
+  isMetricsData?: boolean;
 };
 
 const fieldToViewMap: Record<LandingDisplayField, FC<Props>> = {
@@ -64,6 +67,7 @@ export function PerformanceLanding(props: Props) {
     handleSearch,
     handleTrendsClick,
     shouldShowOnboarding,
+    isMetricsData,
   } = props;
 
   const {teams, initiallyLoaded} = useTeams({provideUserTeams: true});
@@ -87,9 +91,9 @@ export function PerformanceLanding(props: Props) {
           <StyledHeading>{t('Performance')}</StyledHeading>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
-          {!showOnboarding && (
-            <ButtonBar gap={3}>
-              <MetricsSwitch />
+          <ButtonBar gap={3}>
+            <MetricsSwitch />
+            {!showOnboarding && (
               <Button
                 priority="primary"
                 data-test-id="landing-header-trends"
@@ -97,8 +101,8 @@ export function PerformanceLanding(props: Props) {
               >
                 {t('View Trends')}
               </Button>
-            </ButtonBar>
-          )}
+            )}
+          </ButtonBar>
         </Layout.HeaderActions>
 
         <StyledNavTabs>
@@ -129,19 +133,30 @@ export function PerformanceLanding(props: Props) {
                 currentFilter={spanFilter}
                 onChangeFilter={setSpanFilter}
               />
-              <SearchBar
-                searchSource="performance_landing"
-                organization={organization}
-                projectIds={eventView.project}
-                query={filterString}
-                fields={generateAggregateFields(
-                  organization,
-                  [...eventView.fields, {field: 'tps()'}],
-                  ['epm()', 'eps()']
-                )}
-                onSearch={handleSearch}
-                maxQueryLength={MAX_QUERY_LENGTH}
-              />
+              {isMetricsData && defined(eventView.project[0]) ? (
+                <MetricsSearchBar
+                  searchSource="performance_landing"
+                  orgSlug={organization.slug}
+                  query={filterString}
+                  onSearch={handleSearch}
+                  maxQueryLength={MAX_QUERY_LENGTH}
+                  projectId={eventView.project[0]}
+                />
+              ) : (
+                <SearchBar
+                  searchSource="performance_landing"
+                  organization={organization}
+                  projectIds={eventView.project}
+                  query={filterString}
+                  fields={generateAggregateFields(
+                    organization,
+                    [...eventView.fields, {field: 'tps()'}],
+                    ['epm()', 'eps()']
+                  )}
+                  onSearch={handleSearch}
+                  maxQueryLength={MAX_QUERY_LENGTH}
+                />
+              )}
             </SearchContainerWithFilter>
             {initiallyLoaded ? (
               <TeamKeyTransactionManager.Provider

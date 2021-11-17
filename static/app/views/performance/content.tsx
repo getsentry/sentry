@@ -29,6 +29,7 @@ import withProjects from 'app/utils/withProjects';
 import LandingContent from './landing/content';
 import {DEFAULT_STATS_PERIOD, generatePerformanceEventView} from './data';
 import {PerformanceLanding} from './landing';
+import {MetricsSwitchContext} from './metricsSwitch';
 import Onboarding from './onboarding';
 import {addRoutePerformanceContext, handleTrendsClick} from './utils';
 
@@ -40,6 +41,7 @@ type Props = {
   router: InjectedRouter;
   projects: Project[];
   loadingProjects: boolean;
+  isMetricsData: boolean;
   demoMode?: boolean;
 };
 
@@ -53,18 +55,20 @@ class PerformanceContent extends Component<Props, State> {
     return {
       ...prevState,
       eventView: generatePerformanceEventView(
-        nextProps.organization,
         nextProps.location,
-        nextProps.projects
+        nextProps.projects,
+        false,
+        nextProps.isMetricsData
       ),
     };
   }
 
   state: State = {
     eventView: generatePerformanceEventView(
-      this.props.organization,
       this.props.location,
-      this.props.projects
+      this.props.projects,
+      false,
+      this.props.isMetricsData
     ),
     error: undefined,
   };
@@ -249,6 +253,18 @@ class PerformanceContent extends Component<Props, State> {
   }
 }
 
+class PerformanceContentContainer extends Component<Props> {
+  render() {
+    return (
+      <MetricsSwitchContext.Consumer>
+        {({isMetricsData}) => (
+          <PerformanceContent {...this.props} isMetricsData={isMetricsData} />
+        )}
+      </MetricsSwitchContext.Consumer>
+    );
+  }
+}
+
 export default withApi(
-  withOrganization(withProjects(withGlobalSelection(PerformanceContent)))
+  withOrganization(withProjects(withGlobalSelection(PerformanceContentContainer)))
 );

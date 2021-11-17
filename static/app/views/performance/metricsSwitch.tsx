@@ -39,6 +39,8 @@ const Label = styled('label')`
   margin-bottom: 0;
   gap: ${space(1)};
   font-weight: normal;
+  /* to match the height of the 'view trends' button */
+  height: 40px;
 `;
 
 const MetricsSwitchContext = createContext({
@@ -76,4 +78,9 @@ function useMetricsSwitch() {
   return contextValue;
 }
 
-export {MetricsSwitch, MetricsSwitchContextContainer, useMetricsSwitch};
+export {
+  MetricsSwitch,
+  MetricsSwitchContext,
+  MetricsSwitchContextContainer,
+  useMetricsSwitch,
+};

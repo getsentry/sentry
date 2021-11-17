@@ -35,7 +35,6 @@ class TrendsSummary extends React.Component<Props, State> {
     return {
       ...prevState,
       eventView: generatePerformanceEventView(
-        nextProps.organization,
         nextProps.location,
         nextProps.projects,
         true
@@ -45,7 +44,6 @@ class TrendsSummary extends React.Component<Props, State> {
 
   state: State = {
     eventView: generatePerformanceEventView(
-      this.props.organization,
       this.props.location,
       this.props.projects,
       true
