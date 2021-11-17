@@ -26,8 +26,8 @@ logger = logging.getLogger(__name__)
 
 
 class AlertRuleNotification(ProjectNotification):
+    message_builder = "IssueNotificationMessageBuilder"
     fine_tuning_key = "alerts"
-    is_message_issue_unfurl = True
     metrics_key = "issue_alert"
 
     def __init__(
@@ -69,24 +69,18 @@ class AlertRuleNotification(ProjectNotification):
     def get_recipient_context(
         self, recipient: Team | User, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
-        parent_context = super().get_recipient_context(recipient, extra_context)
-        user_context = {"timezone": pytz.timezone("UTC"), **parent_context}
-        try:
-            # AlertRuleNotification is shared among both email and slack notifications, and in slack
-            # notifications, the `user` arg could be of type `Team` which is why we need this check
-            if isinstance(recipient, User):
-                user_context.update(
-                    {
-                        "timezone": pytz.timezone(
-                            UserOption.objects.get_value(
-                                user=recipient, key="timezone", default="UTC"
-                            )
-                        )
-                    }
-                )
-        except pytz.UnknownTimeZoneError:
-            pass
-        return user_context
+        timezone = pytz.timezone("UTC")
+
+        if isinstance(recipient, User):
+            user_tz = UserOption.objects.get_value(user=recipient, key="timezone", default="UTC")
+            try:
+                timezone = pytz.timezone(user_tz)
+            except pytz.UnknownTimeZoneError:
+                pass
+        return {
+            **super().get_recipient_context(recipient, extra_context),
+            "timezone": timezone,
+        }
 
     def get_context(self) -> MutableMapping[str, Any]:
         environment = self.event.get_tag("environment")
@@ -145,6 +139,15 @@ class AlertRuleNotification(ProjectNotification):
 
         participants_by_provider = self.get_participants()
         if not participants_by_provider:
+            logger.info(
+                "notifications.notification.rules.alertrulenotification.skip.no_participants",
+                extra={
+                    "target_type": self.target_type.value,
+                    "target_identifier": self.target_identifier,
+                    "group": self.group.id,
+                    "project_id": self.project.id,
+                },
+            )
             return
 
         # Only calculate shared context once.
@@ -152,3 +155,10 @@ class AlertRuleNotification(ProjectNotification):
 
         for provider, participants in participants_by_provider.items():
             notify(provider, self, participants, shared_context)
+
+    def get_log_params(self, recipient: Team | User) -> Mapping[str, Any]:
+        return {
+            "target_type": self.target_type,
+            "target_identifier": self.target_identifier,
+            **super().get_log_params(recipient),
+        }

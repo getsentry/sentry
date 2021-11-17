@@ -7,10 +7,8 @@ this.
 import dataclasses
 import logging
 import pathlib
-from datetime import datetime
 from typing import Any, Dict, List
 
-import dateutil
 import jsonschema
 import requests
 import sentry_sdk
@@ -19,14 +17,13 @@ from django.db import transaction
 from sentry.lang.native.symbolicator import APP_STORE_CONNECT_SCHEMA, secret_fields
 from sentry.models import Project
 from sentry.utils import json
-from sentry.utils.appleconnect import appstore_connect, itunes_connect
+from sentry.utils.appleconnect import appstore_connect
 
 logger = logging.getLogger(__name__)
 
 # This might be odd, but it convinces mypy that this is part of this module's API.
 BuildInfo = appstore_connect.BuildInfo
 NoDsymUrl = appstore_connect.NoDsymUrl
-PublicProviderId = itunes_connect.PublicProviderId
 
 
 # The key in the project options under which all symbol sources are stored.
@@ -81,25 +78,6 @@ class AppStoreConnectConfig:
     # Private key for the API credentials.
     appconnectPrivateKey: str
 
-    # Username for the iTunes credentials.
-    itunesUser: str
-
-    # Password for the iTunes credentials.
-    itunesPassword: str
-
-    # The iTunes session cookie.
-    #
-    # Loading this cookie into ``requests.Session`` (see
-    # ``sentry.utils.appleconnect.itunes_connect.load_session_cookie``) will allow this
-    # session to make API iTunes requests as the user.
-    itunesSession: str
-
-    # The time the ``itunesSession`` cookie was created.
-    #
-    # The cookie only has a valid session for a limited time and needs user-interaction to
-    # create it.  So we keep track of when it was created.
-    itunesCreated: datetime
-
     # The name of the application, as supplied by the App Store Connect API.
     appName: str
 
@@ -113,15 +91,6 @@ class AppStoreConnectConfig:
     # This is guaranteed to be unique and should map 1:1 to ``appId``.
     bundleId: str
 
-    # The publicProviderId of the organisation according to iTunes.
-    #
-    # An iTunes session can have multiple organisations and needs this ID to be able to
-    # select the correct organisation to operate on.
-    orgPublicId: PublicProviderId
-
-    # The name of an organisation, as supplied by iTunes.
-    orgName: str
-
     def __post_init__(self) -> None:
         # All fields are required.
         for field in dataclasses.fields(self):
@@ -132,21 +101,17 @@ class AppStoreConnectConfig:
     def from_json(cls, data: Dict[str, Any]) -> "AppStoreConnectConfig":
         """Creates a new instance from **deserialised** JSON data.
 
-        This will include the JSON schema validation.  It accepts both a str or a datetime
-        for the ``itunesCreated``.  Thus you can safely use this to create and validate the
-        config as deserialised by both plain JSON deserialiser or by Django Rest Framework's
-        deserialiser.
+        This will include the JSON schema validation.  You can safely use this to create and
+        validate the config as deserialised by both plain JSON deserialiser or by Django Rest
+        Framework's deserialiser.
 
         :raises InvalidConfigError: if the data does not contain a valid App Store Connect
            symbol source configuration.
         """
-        if isinstance(data["itunesCreated"], datetime):
-            data["itunesCreated"] = data["itunesCreated"].isoformat()
         try:
             jsonschema.validate(data, APP_STORE_CONNECT_SCHEMA)
         except jsonschema.exceptions.ValidationError as e:
             raise InvalidConfigError from e
-        data["itunesCreated"] = dateutil.parser.isoparse(data["itunesCreated"])
         return cls(**data)
 
     @classmethod
@@ -197,8 +162,6 @@ class AppStoreConnectConfig:
         data = dict()
         for field in dataclasses.fields(self):
             value = getattr(self, field.name)
-            if field.name == "itunesCreated":
-                value = value.isoformat()
             data[field.name] = value
         try:
             jsonschema.validate(data, APP_STORE_CONNECT_SCHEMA)
@@ -216,7 +179,8 @@ class AppStoreConnectConfig:
         """
         data = self.to_json()
         for to_redact in secret_fields("appStoreConnect"):
-            data[to_redact] = {"hidden-secret": True}
+            if to_redact in data:
+                data[to_redact] = {"hidden-secret": True}
         return data
 
     def update_project_symbol_source(self, project: Project, allow_multiple: bool) -> json.JSONData:
@@ -254,12 +218,7 @@ class AppStoreConnectConfig:
 
 
 class AppConnectClient:
-    """Client to interact with a single app from App Store Connect.
-
-    Note that on creating this instance it will already connect to iTunes to set the
-    provider for this session.  You also don't want to use the same iTunes cookie in
-    multiple connections, so only make one client for a project.
-    """
+    """Client to interact with a single app from App Store Connect."""
 
     def __init__(
         self,

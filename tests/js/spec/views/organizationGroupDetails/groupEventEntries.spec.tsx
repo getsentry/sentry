@@ -10,7 +10,6 @@ import {OrganizationContext} from 'app/views/organizationContext';
 
 const {organization, project} = initializeOrg();
 
-// @ts-expect-error
 const api = new MockApiClient();
 
 async function renderComponent(event: Event, errors?: Array<Error>) {
@@ -26,7 +25,6 @@ async function renderComponent(event: Event, errors?: Array<Error>) {
     </OrganizationContext.Provider>
   );
 
-  // @ts-expect-error
   await tick();
   wrapper.update();
 
@@ -43,7 +41,6 @@ async function renderComponent(event: Event, errors?: Array<Error>) {
 
   toggleButton.simulate('click');
 
-  // @ts-expect-error
   await tick();
   wrapper.update();
 
@@ -53,16 +50,13 @@ async function renderComponent(event: Event, errors?: Array<Error>) {
 }
 
 describe('GroupEventEntries', function () {
-  // @ts-expect-error
   const event = TestStubs.Event();
 
   beforeEach(() => {
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/grouping-info/`,
       body: {},
     });
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/files/dsyms/`,
       body: [],

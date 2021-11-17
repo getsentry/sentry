@@ -76,9 +76,8 @@ class ReleasesAdoptionChart extends Component<Props> {
 
     if (diffInMinutes >= ONE_WEEK) {
       return '1d';
-    } else {
-      return '1h';
     }
+    return '1h';
   }
 
   getReleasesSeries(response: SessionApiResponse | null) {
@@ -89,18 +88,16 @@ class ReleasesAdoptionChart extends Component<Props> {
       return null;
     }
 
-    return releases.map(release => {
-      return {
-        id: release as string,
-        seriesName: formatVersion(release as string),
-        data: getAdoptionSeries(
-          [response?.groups.find(({by}) => by.release === release)!],
-          response?.groups,
-          response?.intervals,
-          sessionDisplayToField(activeDisplay)
-        ),
-      };
-    });
+    return releases.map(release => ({
+      id: release as string,
+      seriesName: formatVersion(release as string),
+      data: getAdoptionSeries(
+        [response?.groups.find(({by}) => by.release === release)!],
+        response?.groups,
+        response?.intervals,
+        sessionDisplayToField(activeDisplay)
+      ),
+    }));
   }
 
   handleClick = (params: {seriesId: string}) => {
@@ -135,8 +132,6 @@ class ReleasesAdoptionChart extends Component<Props> {
   render() {
     const {activeDisplay, router, selection, api, organization, location} = this.props;
     const {start, end, period, utc} = selection.datetime;
-    const query = decodeScalar(location.query.query);
-    const hasSemver = organization.features.includes('semver');
     const interval = this.getInterval();
     const field = sessionDisplayToField(activeDisplay);
 
@@ -147,7 +142,6 @@ class ReleasesAdoptionChart extends Component<Props> {
         interval={interval}
         groupBy={['release']}
         field={[field]}
-        query={query ? (hasSemver ? query : `release:${query}`) : undefined}
         {...getParams(pick(location.query, Object.values(URL_PARAM)))}
       >
         {({response, loading, reloading}) => {

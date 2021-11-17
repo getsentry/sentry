@@ -1,9 +1,8 @@
-import {fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import Button from 'app/components/button';
 
 describe('Button', function () {
-  // @ts-expect-error
   const routerContext = TestStubs.routerContext();
 
   it('renders', function () {
@@ -39,7 +38,7 @@ describe('Button', function () {
     mountWithTheme(<Button onClick={spy}>Click me</Button>, {
       context: routerContext,
     });
-    fireEvent.click(screen.getByText('Click me'));
+    userEvent.click(screen.getByText('Click me'));
 
     expect(spy).toHaveBeenCalled();
   });
@@ -52,7 +51,7 @@ describe('Button', function () {
       </Button>,
       {context: routerContext}
     );
-    fireEvent.click(screen.getByText('Click me'));
+    userEvent.click(screen.getByText('Click me'));
 
     expect(spy).not.toHaveBeenCalled();
   });

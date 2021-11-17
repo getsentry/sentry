@@ -1,8 +1,9 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act} from 'sentry-test/reactTestingLibrary';
+import {act, mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import OrganizationStore from 'app/stores/organizationStore';
 import ProjectsStore from 'app/stores/projectsStore';
+import TeamStore from 'app/stores/teamStore';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import AlertRulesList from 'app/views/alerts/rules';
 import {IncidentStatus} from 'app/views/alerts/types';
@@ -11,28 +12,30 @@ jest.mock('app/utils/analytics');
 
 describe('OrganizationRuleList', () => {
   const {routerContext, organization, router} = initializeOrg();
+  TeamStore.loadInitialData([]);
   let rulesMock;
   let projectMock;
-  let wrapper;
+  const pageLinks =
+    '<https://sentry.io/api/0/organizations/org-slug/combined-rules/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", ' +
+    '<https://sentry.io/api/0/organizations/org-slug/combined-rules/?cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"';
 
-  const createWrapper = async props => {
-    wrapper = mountWithTheme(
-      <AlertRulesList
-        organization={organization}
-        params={{orgId: organization.slug}}
-        location={{query: {}, search: ''}}
-        router={router}
-        {...props}
-      />,
-      routerContext
-    );
-    await tick();
-    wrapper.update();
-  };
+  const getComponent = props => (
+    <AlertRulesList
+      organization={organization}
+      params={{orgId: organization.slug}}
+      location={{query: {}, search: ''}}
+      router={router}
+      {...props}
+    />
+  );
+
+  const createWrapper = props =>
+    mountWithTheme(getComponent(props), {context: routerContext});
 
   beforeEach(() => {
     rulesMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/combined-rules/',
+      headers: {Link: pageLinks},
       body: [
         TestStubs.ProjectAlertRule({
           id: '123',
@@ -59,25 +62,20 @@ describe('OrganizationRuleList', () => {
       body: [TestStubs.Project({slug: 'earth', platform: 'javascript'})],
     });
 
+    act(() => OrganizationStore.onUpdate(organization, {replace: true}));
     act(() => ProjectsStore.loadInitialData([]));
   });
 
   afterEach(() => {
-    wrapper.unmount();
     act(() => ProjectsStore.reset());
     MockApiClient.clearMockResponses();
     trackAnalyticsEvent.mockClear();
   });
 
   it('displays list', async () => {
-    await createWrapper();
+    createWrapper();
 
-    const row = wrapper.find('RuleListRow').at(0);
-    expect(row.find('AlertName').text()).toBe('First Issue Alert');
-
-    // GlobalSelectionHeader loads projects + the Projects render-prop
-    // component to load projects for all rows.
-    expect(projectMock).toHaveBeenCalledTimes(2);
+    expect(await screen.findByText('First Issue Alert')).toBeInTheDocument();
 
     expect(projectMock).toHaveBeenLastCalledWith(
       expect.anything(),
@@ -85,9 +83,9 @@ describe('OrganizationRuleList', () => {
         query: expect.objectContaining({query: 'slug:earth'}),
       })
     );
-    expect(wrapper.find('IdBadge').at(0).prop('project')).toMatchObject({
-      slug: 'earth',
-    });
+
+    expect(screen.getAllByTestId('badge-display-name')[0]).toHaveTextContent('earth');
+
     expect(trackAnalyticsEvent).toHaveBeenCalledWith({
       eventKey: 'alert_rules.viewed',
       eventName: 'Alert Rules: Viewed',
@@ -102,59 +100,70 @@ describe('OrganizationRuleList', () => {
       body: [],
     });
 
-    await createWrapper();
+    createWrapper();
+
+    expect(
+      await screen.findByText('No alert rules found for the current query.')
+    ).toBeInTheDocument();
 
     expect(rulesMock).toHaveBeenCalledTimes(0);
-
-    expect(wrapper.find('PanelItem')).toHaveLength(0);
-    expect(wrapper.text()).toContain('No alert rules found for the current query');
   });
 
   it('sorts by date created', async () => {
-    await createWrapper();
+    const {rerender} = createWrapper();
 
-    expect(wrapper.find('IconArrow').at(0).prop('direction')).toBe('down');
+    // The created column is not used for sorting
+    expect(await screen.findByText('Created')).toHaveAttribute('aria-sort', 'none');
 
-    wrapper.setProps({
-      location: {query: {asc: '1'}, search: '?asc=1`'},
-    });
+    // Sort by created (date_added)
+    rerender(
+      getComponent({
+        location: {
+          query: {asc: '1', sort: 'date_added'},
+          search: '?asc=1&sort=date_added`',
+        },
+      })
+    );
 
-    expect(wrapper.find('IconArrow').at(0).prop('direction')).toBe('up');
+    expect(await screen.findByText('Created')).toHaveAttribute('aria-sort', 'ascending');
 
     expect(rulesMock).toHaveBeenCalledTimes(2);
 
     expect(rulesMock).toHaveBeenCalledWith(
       '/organizations/org-slug/combined-rules/',
-      expect.objectContaining({query: expect.objectContaining({asc: '1'})})
+      expect.objectContaining({
+        query: expect.objectContaining({asc: '1'}),
+      })
     );
   });
 
   it('sorts by name', async () => {
-    await createWrapper();
+    const {rerender} = createWrapper();
 
-    const nameHeader = wrapper.find('StyledSortLink').first();
-    expect(nameHeader.text()).toContain('Alert Rule');
-    expect(nameHeader.props().to).toEqual(
-      expect.objectContaining({
-        query: {
-          sort: 'name',
-          asc: '1',
-          team: ['myteams', 'unassigned'],
-          expand: ['latestIncident'],
+    // The name column is not used for sorting
+    expect(await screen.findByText('Alert Rule')).toHaveAttribute('aria-sort', 'none');
+
+    // Sort by the name column
+    rerender(
+      getComponent({
+        location: {
+          query: {asc: '1', sort: 'name'},
+          search: '?asc=1&sort=name`',
         },
       })
     );
 
-    wrapper.setProps({
-      location: {query: {sort: 'name'}, search: '?asc=1&sort=name`'},
-    });
+    expect(await screen.findByText('Alert Rule')).toHaveAttribute(
+      'aria-sort',
+      'ascending'
+    );
 
-    expect(wrapper.find('StyledSortLink').first().props().to).toEqual(
+    expect(rulesMock).toHaveBeenCalledTimes(2);
+
+    expect(rulesMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/combined-rules/',
       expect.objectContaining({
-        query: {
-          sort: 'name',
-          asc: '1',
-        },
+        query: expect.objectContaining({sort: 'name', asc: '1'}),
       })
     );
   });
@@ -165,29 +174,23 @@ describe('OrganizationRuleList', () => {
       access: [],
     };
 
-    await createWrapper({organization: noAccessOrg});
+    const {rerender} = createWrapper({organization: noAccessOrg});
 
-    const addButton = wrapper.find('button[aria-label="Create Alert Rule"]');
-    expect(addButton.props()['aria-disabled']).toBe(true);
-    wrapper.unmount();
+    expect(await screen.findByLabelText('Create Alert Rule')).toBeDisabled();
 
     // Enabled with access
-    await createWrapper();
-
-    const addLink = wrapper.find('button[aria-label="Create Alert Rule"]');
-    expect(addLink.props()['aria-disabled']).toBe(false);
+    rerender(getComponent());
+    expect(await screen.findByLabelText('Create Alert Rule')).toBeEnabled();
   });
 
   it('searches by name', async () => {
-    await createWrapper();
-    expect(wrapper.find('StyledSearchBar').exists()).toBe(true);
+    createWrapper();
+
+    const search = await screen.findByPlaceholderText('Search by name');
+    expect(search).toBeInTheDocument();
 
     const testQuery = 'test name';
-    wrapper
-      .find('StyledSearchBar')
-      .find('input')
-      .simulate('change', {target: {value: testQuery}})
-      .simulate('submit', {preventDefault() {}});
+    userEvent.type(search, `${testQuery}{enter}`);
 
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -202,16 +205,18 @@ describe('OrganizationRuleList', () => {
   });
 
   it('uses empty team query parameter when removing all teams', async () => {
-    await createWrapper();
+    const {rerender} = createWrapper();
 
-    wrapper.setProps({
-      location: {query: {team: 'myteams'}, search: '?team=myteams`'},
-    });
-    wrapper.find('Button[data-test-id="filter-button"]').simulate('click');
+    expect(await screen.findByText('First Issue Alert')).toBeInTheDocument();
+
+    rerender(
+      getComponent({location: {query: {team: 'myteams'}, search: '?team=myteams`'}})
+    );
+
+    userEvent.click(await screen.findByTestId('filter-button'));
+
     // Uncheck myteams
-    const myTeamsItem = wrapper.find('Filter').find('ListItem').at(0);
-    expect(myTeamsItem.text()).toBe('My Teams');
-    myTeamsItem.simulate('click');
+    userEvent.click(await screen.findByText('My Teams'));
 
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -225,19 +230,21 @@ describe('OrganizationRuleList', () => {
   });
 
   it('displays alert status', async () => {
-    await createWrapper({organization});
-    let row = wrapper.find('RuleListRow').at(1);
-    expect(row.find('AlertNameAndStatus').text()).toContain('My Incident Rule');
-    expect(row.find('AlertNameAndStatus').text()).toContain('Triggered');
-    expect(row.find('TriggerText').text()).toBe('Above 70');
+    createWrapper();
+    const rules = await screen.findAllByText('My Incident Rule');
 
-    row = wrapper.find('RuleListRow').at(2);
-    expect(row.find('TriggerText').text()).toBe('Below 36');
-    expect(wrapper.find('AlertIconWrapper').exists()).toBe(true);
+    expect(rules[0]).toBeInTheDocument();
+
+    expect(screen.getByText('Triggered')).toBeInTheDocument();
+    expect(screen.getByText('Above 70')).toBeInTheDocument();
+    expect(screen.getByText('Below 36')).toBeInTheDocument();
+    expect(screen.getAllByTestId('alert-badge')[0]).toBeInTheDocument();
   });
 
   it('sorts by alert rule', async () => {
-    await createWrapper({organization});
+    createWrapper({organization});
+
+    expect(await screen.findByText('First Issue Alert')).toBeInTheDocument();
 
     expect(rulesMock).toHaveBeenCalledWith(
       '/organizations/org-slug/combined-rules/',
@@ -246,6 +253,27 @@ describe('OrganizationRuleList', () => {
           expand: ['latestIncident'],
           sort: ['incident_status', 'date_triggered'],
           team: ['myteams', 'unassigned'],
+        },
+      })
+    );
+  });
+
+  it('preserves empty team query parameter on pagination', async () => {
+    createWrapper({
+      organization,
+      location: {query: {team: ''}, search: '?team=`'},
+    });
+    expect(await screen.findByText('First Issue Alert')).toBeInTheDocument();
+
+    userEvent.click(screen.getByLabelText('Next'));
+
+    expect(router.push).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: {
+          expand: ['latestIncident'],
+          sort: ['incident_status', 'date_triggered'],
+          team: '',
+          cursor: '0:100:0',
         },
       })
     );

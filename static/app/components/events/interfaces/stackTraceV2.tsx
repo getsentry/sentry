@@ -5,7 +5,6 @@ import {t} from 'app/locale';
 import {Group, PlatformType, Project} from 'app/types';
 import {Event} from 'app/types/event';
 import {STACK_TYPE, STACK_VIEW} from 'app/types/stacktrace';
-import {defined} from 'app/utils';
 
 import TraceEventDataSection from '../traceEventDataSection';
 import {DisplayOption} from '../traceEventDataSection/displayOptions';
@@ -36,8 +35,13 @@ function StackTrace({
   hasHierarchicalGrouping,
   groupingCurrentLevel,
 }: Props) {
+  function getPlatform(): PlatformType {
+    const framePlatform = data.frames?.find(frame => !!frame.platform);
+    return framePlatform?.platform ?? event.platform ?? 'other';
+  }
+
+  const platform = getPlatform();
   const stackTraceNotFound = !(data.frames ?? []).length;
-  const platform = (event.platform ?? 'other') as PlatformType;
 
   return (
     <TraceEventDataSection
@@ -53,16 +57,16 @@ function StackTrace({
       wrapTitle={false}
       hasMinified={false}
       hasVerboseFunctionNames={
-        !!data.frames?.find(
+        !!data.frames?.some(
           frame =>
-            defined(frame.rawFunction) &&
-            defined(frame.function) &&
+            !!frame.rawFunction &&
+            !!frame.function &&
             frame.rawFunction !== frame.function
         )
       }
-      hasAbsoluteFilePaths={!!data.frames?.find(frame => defined(frame.filename))}
-      hasAbsoluteAddresses={!!data.frames?.find(frame => defined(frame.instructionAddr))}
-      hasAppOnlyFrames={!!data.frames?.find(frame => !!frame.inApp)}
+      hasAbsoluteFilePaths={!!data.frames?.some(frame => !!frame.filename)}
+      hasAbsoluteAddresses={!!data.frames?.some(frame => !!frame.instructionAddr)}
+      hasAppOnlyFrames={!!data.frames?.some(frame => frame.inApp !== true)}
       hasNewestFirst={(data.frames ?? []).length > 1}
       showPermalink
     >

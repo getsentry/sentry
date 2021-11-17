@@ -4,41 +4,44 @@ import styled from '@emotion/styled';
 import CheckboxFancy from 'app/components/checkboxFancy/checkboxFancy';
 import space from 'app/styles/space';
 
-const defaultProps = {
-  /**
-   * This is a render prop which may be used to augment the checkbox rendered
-   * to the right of the row. It will receive the default `checkbox` as a
-   * prop along with the `checked` boolean.
-   */
-  renderCheckbox: (({checkbox}) => checkbox) as (options: {
-    checkbox: React.ReactNode;
-    checked?: boolean;
-  }) => React.ReactNode,
-  multi: true,
+const defaultRenderCheckbox = ({checkbox}) => checkbox;
+
+type CheckboxRenderOptions = {
+  checkbox: React.ReactNode;
+  checked?: boolean;
 };
 
 type Props = {
   checked: boolean;
   onCheckClick: (event: React.MouseEvent) => void;
   children: React.ReactNode;
-} & typeof defaultProps;
+  multi?: boolean;
+  /**
+   * This is a render prop which may be used to augment the checkbox rendered
+   * to the right of the row. It will receive the default `checkbox` as a
+   * prop along with the `checked` boolean.
+   */
+  renderCheckbox?: (options: CheckboxRenderOptions) => React.ReactNode;
+};
 
-class GlobalSelectionHeaderRow extends React.Component<Props> {
-  static defaultProps = defaultProps;
-  render() {
-    const {checked, onCheckClick, multi, renderCheckbox, children, ...props} = this.props;
+function GlobalSelectionHeaderRow({
+  checked,
+  onCheckClick,
+  children,
+  multi = true,
+  renderCheckbox = defaultRenderCheckbox,
+  ...props
+}: Props) {
+  const checkbox = <CheckboxFancy isDisabled={!multi} isChecked={checked} />;
 
-    const checkbox = <CheckboxFancy isDisabled={!multi} isChecked={checked} />;
-
-    return (
-      <Container isChecked={checked} {...props}>
-        <Content multi={multi}>{children}</Content>
-        <CheckboxHitbox onClick={multi ? onCheckClick : undefined}>
-          {renderCheckbox({checkbox, checked})}
-        </CheckboxHitbox>
-      </Container>
-    );
-  }
+  return (
+    <Container isChecked={checked} {...props}>
+      <Content multi={multi}>{children}</Content>
+      <CheckboxHitbox onClick={multi ? onCheckClick : undefined}>
+        {renderCheckbox({checkbox, checked})}
+      </CheckboxHitbox>
+    </Container>
+  );
 }
 
 const Container = styled('div')<{isChecked: boolean}>`

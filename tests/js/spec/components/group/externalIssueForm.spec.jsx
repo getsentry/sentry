@@ -35,15 +35,11 @@ describe('ExternalIssueForm', () => {
   });
 
   const generateWrapper = (action = 'create') => {
-    MockApiClient.addMockResponse(
-      {
-        url: `/groups/${group.id}/integrations/${integration.id}/`,
-        body: formConfig,
-      },
-      {
-        predicate: (_, options) => options?.query?.action === 'create',
-      }
-    );
+    MockApiClient.addMockResponse({
+      url: `/groups/${group.id}/integrations/${integration.id}/`,
+      body: formConfig,
+      match: [MockApiClient.matchQuery({action: 'create'})],
+    });
     const component = mountWithTheme(
       <ExternalIssueForm
         Body={p => p.children}
@@ -134,15 +130,11 @@ describe('ExternalIssueForm', () => {
         },
         id: '5',
       };
-      getFormConfigRequest = MockApiClient.addMockResponse(
-        {
-          url: `/groups/${group.id}/integrations/${integration.id}/`,
-          body: formConfig,
-        },
-        {
-          predicate: (_, options) => options?.query?.action === 'link',
-        }
-      );
+      getFormConfigRequest = MockApiClient.addMockResponse({
+        url: `/groups/${group.id}/integrations/${integration.id}/`,
+        body: formConfig,
+        match: [MockApiClient.matchQuery({action: 'link'})],
+      });
     });
     it('renders', () => {
       wrapper = generateWrapper('link');

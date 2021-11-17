@@ -17,10 +17,12 @@ export function WidgetHeader<T extends WidgetDataConstraint>(
   return (
     <WidgetHeaderContainer>
       <TitleContainer>
-        <StyledHeaderTitleLegend data-test-id="performance-widget-title">
-          {title}
-          <QuestionTooltip position="top" size="sm" title={titleTooltip} />
-        </StyledHeaderTitleLegend>
+        <div>
+          <StyledHeaderTitleLegend data-test-id="performance-widget-title">
+            <div className="truncate">{title}</div>
+            <QuestionTooltip position="top" size="sm" title={titleTooltip} />
+          </StyledHeaderTitleLegend>
+        </div>
         <div>{Subtitle ? <Subtitle {...props} /> : null}</div>
       </TitleContainer>
 

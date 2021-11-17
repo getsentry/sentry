@@ -748,7 +748,7 @@ def resolve_orderby(orderby, fields, aggregations, equations):
     if len(validated) == len(orderby):
         return validated
 
-    raise InvalidSearchQuery("Cannot order by a field that is not selected.")
+    raise InvalidSearchQuery("Cannot sort by a field that is not selected.")
 
 
 def resolve_field(field, params=None, functions_acl=None):
@@ -2279,12 +2279,12 @@ def normalize_percentile_alias(args: Mapping[str, str]) -> str:
 
 
 class SnQLFunction(DiscoverFunction):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         self.snql_aggregate = kwargs.pop("snql_aggregate", None)
         self.snql_column = kwargs.pop("snql_column", None)
         super().__init__(*args, **kwargs)
 
-    def validate(self):
+    def validate(self) -> None:
         # assert that all optional args have defaults available
         for i, arg in enumerate(self.optional_args):
             assert (
@@ -2971,7 +2971,7 @@ class QueryFields(QueryBase):
 
         # TODO: This is no longer true, can order by fields that aren't selected, keeping
         # for now so we're consistent with the existing functionality
-        raise InvalidSearchQuery("Cannot order by a field that is not selected.")
+        raise InvalidSearchQuery("Cannot sort by a field that is not selected.")
 
     def is_field_alias(self, field: str) -> bool:
         """Given a public field, check if it's a field alias"""
@@ -2989,7 +2989,7 @@ class QueryFields(QueryBase):
         return function in self.function_converter
 
     def resolve_function(
-        self, function: str, match: Optional[Match[str]] = None, resolve_only=False
+        self, function: str, match: Optional[Match[str]] = None, resolve_only: bool = False
     ) -> SelectType:
         """Given a public function, resolve to the corresponding Snql function
 
@@ -3007,7 +3007,7 @@ class QueryFields(QueryBase):
         if function in self.params.get("aliases", {}):
             raise NotImplementedError("Aggregate aliases not implemented in snql field parsing yet")
 
-        name, combinator_name, arguments, alias = self.parse_function(match)
+        name, combinator_name, parsed_arguments, alias = self.parse_function(match)
         snql_function = self.function_converter[name]
 
         combinator = snql_function.find_combinator(combinator_name)
@@ -3022,7 +3022,9 @@ class QueryFields(QueryBase):
 
         combinator_applied = False
 
-        arguments = snql_function.format_as_arguments(name, arguments, self.params, combinator)
+        arguments = snql_function.format_as_arguments(
+            name, parsed_arguments, self.params, combinator
+        )
 
         self.function_alias_map[alias] = FunctionDetails(function, snql_function, arguments.copy())
 
@@ -3384,7 +3386,7 @@ class QueryFields(QueryBase):
         self,
         args: Mapping[str, Union[str, Column, SelectType, int, float]],
         alias: str,
-        fixed_percentile: float = None,
+        fixed_percentile: Optional[float] = None,
     ) -> SelectType:
         return (
             Function(

@@ -1,6 +1,8 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeData} from 'sentry-test/performance/initializePerformanceData';
+import {act} from 'sentry-test/reactTestingLibrary';
 
+import TeamStore from 'app/stores/teamStore';
 import EventView from 'app/utils/discover/eventView';
 import {OrganizationContext} from 'app/views/organizationContext';
 import {PerformanceLanding} from 'app/views/performance/landing';
@@ -28,42 +30,36 @@ const WrappedComponent = ({data}) => {
 describe('Performance > Landing > Index', function () {
   let eventStatsMock: any;
   let eventsV2Mock: any;
+  act(() => void TeamStore.loadInitialData([]));
   beforeEach(function () {
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',
       body: [],
     });
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/prompts-activity/',
       body: {},
     });
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/key-transactions-list/`,
       body: [],
     });
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/legacy-key-transactions-count/`,
       body: [],
     });
-    // @ts-expect-error
     eventStatsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/events-stats/`,
       body: [],
     });
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/events-trends-stats/`,
       body: [],
     });
-    // @ts-expect-error
     eventsV2Mock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/eventsv2/`,
@@ -72,7 +68,6 @@ describe('Performance > Landing > Index', function () {
   });
 
   afterEach(function () {
-    // @ts-expect-error
     MockApiClient.clearMockResponses();
   });
 
@@ -80,7 +75,6 @@ describe('Performance > Landing > Index', function () {
     const data = initializeData();
 
     const wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
-    // @ts-expect-error
     await tick();
     wrapper.update();
 
@@ -95,7 +89,6 @@ describe('Performance > Landing > Index', function () {
     });
 
     const wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
-    // @ts-expect-error
     await tick();
     wrapper.update();
 
@@ -111,8 +104,8 @@ describe('Performance > Landing > Index', function () {
     expect(titles.at(0).text()).toEqual('p75 LCP');
     expect(titles.at(1).text()).toEqual('LCP Distribution');
     expect(titles.at(2).text()).toEqual('FCP Distribution');
-    expect(titles.at(3).text()).toEqual('Most Related Errors');
-    expect(titles.at(4).text()).toEqual('Most Related Issues');
+    expect(titles.at(3).text()).toEqual('Worst LCP Web Vitals');
+    expect(titles.at(4).text()).toEqual('Worst FCP Web Vitals');
   });
 
   it('renders frontend other view', async function () {
@@ -121,7 +114,6 @@ describe('Performance > Landing > Index', function () {
     });
 
     const wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
-    // @ts-expect-error
     await tick();
     wrapper.update();
 
@@ -134,7 +126,6 @@ describe('Performance > Landing > Index', function () {
     });
 
     const wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
-    // @ts-expect-error
     await tick();
     wrapper.update();
 
@@ -147,7 +138,6 @@ describe('Performance > Landing > Index', function () {
     });
 
     const wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
-    // @ts-expect-error
     await tick();
     wrapper.update();
 
@@ -160,7 +150,6 @@ describe('Performance > Landing > Index', function () {
     });
 
     const wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
-    // @ts-expect-error
     await tick();
     wrapper.update();
 

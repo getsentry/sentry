@@ -6,7 +6,7 @@ from django.db import models
 from django.db.models import QuerySet
 from django.utils import timezone
 
-from sentry.db.models import BaseManager, BoundedPositiveIntegerField, JSONField, Model, sane_repr
+from sentry.db.models import BaseManager, FlexibleForeignKey, JSONField, Model, sane_repr
 
 if TYPE_CHECKING:
     from sentry.models import Integration
@@ -16,10 +16,9 @@ class ExternalIssueManager(BaseManager):
     def get_for_integration(
         self, integration: Integration, external_issue_key: str | None = None
     ) -> QuerySet:
-        """TODO(mgaeta): Migrate the model to use FlexibleForeignKey."""
         kwargs = dict(
-            integration_id=integration.id,
-            organization_id__in={_.id for _ in integration.organizations.all()},
+            integration=integration,
+            organization__organizationintegration__integration=integration,
         )
 
         if external_issue_key is not None:
@@ -31,8 +30,12 @@ class ExternalIssueManager(BaseManager):
 class ExternalIssue(Model):
     __include_in_export__ = False
 
-    organization_id = BoundedPositiveIntegerField()
-    integration_id = BoundedPositiveIntegerField()
+    # The foreign key here is an `int`, not `bigint`.
+    organization = FlexibleForeignKey("sentry.Organization", db_constraint=False)
+
+    # The foreign key here is an `int`, not `bigint`.
+    integration = FlexibleForeignKey("sentry.Integration", db_constraint=False)
+
     key = models.CharField(max_length=128)  # example APP-123 in jira
     date_added = models.DateTimeField(default=timezone.now)
     title = models.TextField(null=True)
@@ -44,7 +47,7 @@ class ExternalIssue(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_externalissue"
-        unique_together = (("organization_id", "integration_id", "key"),)
+        unique_together = (("organization", "integration", "key"),)
 
     __repr__ = sane_repr("organization_id", "integration_id", "key")
 

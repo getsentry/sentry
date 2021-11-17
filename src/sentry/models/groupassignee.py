@@ -1,4 +1,6 @@
-from typing import TYPE_CHECKING, Optional, Union
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 from django.conf import settings
 from django.db import models
@@ -18,9 +20,9 @@ if TYPE_CHECKING:
 class GroupAssigneeManager(BaseManager):
     def assign(
         self,
-        group: "Group",
-        assigned_to: Union["Team", "User"],
-        acting_user: Optional["User"] = None,
+        group: Group,
+        assigned_to: Team | User,
+        acting_user: User | None = None,
     ):
         from sentry import features
         from sentry.integrations.utils import sync_group_assignee_outbound
@@ -79,7 +81,7 @@ class GroupAssigneeManager(BaseManager):
 
         return {"new_assignment": created, "updated_assignment": bool(not created and affected)}
 
-    def deassign(self, group, acting_user=None):
+    def deassign(self, group: Group, acting_user: User | None = None) -> None:
         from sentry import features
         from sentry.integrations.utils import sync_group_assignee_outbound
         from sentry.models import Activity
@@ -88,12 +90,9 @@ class GroupAssigneeManager(BaseManager):
         self.filter(group=group).delete()
 
         if affected > 0:
-            activity = Activity.objects.create(
-                project=group.project, group=group, type=Activity.UNASSIGNED, user=acting_user
-            )
+            Activity.objects.create_group_activity(group, ActivityType.UNASSIGNED, user=acting_user)
             record_group_history(group, GroupHistoryStatus.UNASSIGNED, actor=acting_user)
 
-            activity.send_notification()
             metrics.incr("group.assignee.change", instance="deassigned", skip_internal=True)
             # sync Sentry assignee to external issues
             if features.has(
@@ -143,7 +142,7 @@ class GroupAssignee(Model):
 
         raise NotImplementedError("Unknown Assignee")
 
-    def assigned_actor(self) -> "ActorTuple":
+    def assigned_actor(self) -> ActorTuple:
         from sentry.models import ActorTuple
 
         return ActorTuple.from_actor_identifier(self.assigned_actor_id())

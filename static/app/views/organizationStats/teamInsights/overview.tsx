@@ -20,7 +20,7 @@ import {DateString, RelativePeriod, TeamWithProjects} from 'app/types';
 import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import {isActiveSuperuser} from 'app/utils/isActiveSuperuser';
 import localStorage from 'app/utils/localStorage';
-import {useOrganization} from 'app/utils/useOrganization';
+import useOrganization from 'app/utils/useOrganization';
 import useTeams from 'app/utils/useTeams';
 
 import Header from '../header';
@@ -262,6 +262,7 @@ function TeamInsightsOverview({location, router}: Props) {
               <TeamMisery
                 organization={organization}
                 projects={projects}
+                teamId={currentTeam!.id}
                 period={period}
                 start={start?.toString()}
                 end={end?.toString()}

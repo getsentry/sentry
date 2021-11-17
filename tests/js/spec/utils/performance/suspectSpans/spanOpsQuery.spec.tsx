@@ -25,7 +25,6 @@ describe('SuspectSpansQuery', function () {
   });
 
   it('fetches data on mount', async function () {
-    // @ts-expect-error
     const getMock = MockApiClient.addMockResponse({
       url: '/organizations/test-org/events-span-ops/',
       // just asserting that the data is being fetched, no need for actual data here

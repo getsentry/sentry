@@ -7,8 +7,8 @@ from . import AvatarBase
 
 class SentryAppAvatar(AvatarBase):
     """
-    A SentryAppAvatar associates a SentryApp with an avatar photo File
-    and contains the preferences for avatar type.
+    A SentryAppAvatar associates a SentryApp with a logo photo File
+    and specifies which type of logo it is.
     """
 
     AVATAR_TYPES = ((0, "letter_avatar"), (1, "upload"))
@@ -17,6 +17,8 @@ class SentryAppAvatar(AvatarBase):
 
     sentry_app = FlexibleForeignKey("sentry.SentryApp", unique=True, related_name="avatar")
     avatar_type = models.PositiveSmallIntegerField(default=0, choices=AVATAR_TYPES)
+    color = models.BooleanField(default=False)
+    # e.g. issue linking logos will not have color
 
     class Meta:
         app_label = "sentry"

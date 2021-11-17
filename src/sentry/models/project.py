@@ -1,6 +1,7 @@
 import logging
 import warnings
 from collections import defaultdict
+from itertools import chain
 from typing import TYPE_CHECKING, Iterable, Mapping, Sequence
 from uuid import uuid1
 
@@ -263,6 +264,7 @@ class Project(Model, PendingDeletionMixin):
         # org than the existing one, which is currently the only use case in
         # production
         # TODO(jess): refactor this to make it an org transfer only
+        from sentry.incidents.models import AlertRule
         from sentry.models import (
             Environment,
             EnvironmentProject,
@@ -271,6 +273,7 @@ class Project(Model, PendingDeletionMixin):
             ReleaseProjectEnvironment,
             Rule,
         )
+        from sentry.models.actor import ACTOR_TYPES
 
         if organization is None:
             organization = team.organization
@@ -323,6 +326,20 @@ class Project(Model, PendingDeletionMixin):
         # ensure this actually exists in case from team was null
         if team is not None:
             self.add_team(team)
+
+        # Remove alert owners not in new org
+        alert_rules = AlertRule.objects.fetch_for_project(self).filter(owner_id__isnull=False)
+        rules = Rule.objects.filter(owner_id__isnull=False, project=self)
+        for rule in list(chain(alert_rules, rules)):
+            actor = rule.owner
+            if actor.type == ACTOR_TYPES["user"]:
+                is_member = organization.member_set.filter(user=actor.resolve()).exists()
+            if actor.type == ACTOR_TYPES["team"]:
+                is_member = actor.resolve().organization_id == organization.id
+            if not is_member:
+                rule.update(owner=None)
+
+        AlertRule.objects.fetch_for_project(self).update(organization=organization)
 
     def add_team(self, team):
         from sentry.models.projectteam import ProjectTeam

@@ -7,6 +7,7 @@ from django.db import transaction
 from sentry import eventstore, eventstream, nodestore
 from sentry.eventstore.models import Event
 from sentry.tasks.base import instrumented_task, retry
+from sentry.utils import metrics
 from sentry.utils.query import celery_run_batch_query
 
 
@@ -27,6 +28,8 @@ def reprocess_group(
     acting_user_id=None,
 ):
     sentry_sdk.set_tag("project", project_id)
+    sentry_sdk.set_tag("group_id", group_id)
+
     from sentry.reprocessing2 import (
         CannotReprocess,
         buffered_handle_remaining_events,
@@ -35,9 +38,13 @@ def reprocess_group(
         start_group_reprocessing,
     )
 
+    sentry_sdk.set_tag("is_start", "false")
+
     if start_time is None:
         assert new_group_id is None
         start_time = time.time()
+        metrics.incr("events.reprocessing.start_group_reprocessing", sample_rate=1.0)
+        sentry_sdk.set_tag("is_start", "true")
         new_group_id = start_group_reprocessing(
             project_id,
             group_id,
@@ -153,6 +160,12 @@ def handle_remaining_events(
         event_ids, from_timestamp, to_timestamp = pop_remaining_event_ids_from_redis(
             event_ids_redis_key
         )
+
+    metrics.timing(
+        "events.reprocessing.handle_remaining_events.batch_size",
+        len(event_ids),
+        sample_rate=1.0,
+    )
 
     assert remaining_events in ("delete", "keep")
 

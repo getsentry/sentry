@@ -35,18 +35,16 @@ jest.mock('app/components/charts/eventsGeoRequest', () =>
 
 describe('EventsV2 > MiniGraph', function () {
   const features = ['discover-basic', 'connect-discover-and-dashboards'];
-  const location = {
+  const location = TestStubs.location({
     query: {query: 'tag:value'},
     pathname: '/',
-  };
+  });
 
   let organization, eventView, initialData;
 
   beforeEach(() => {
-    // @ts-expect-error
     organization = TestStubs.Organization({
       features,
-      // @ts-expect-error
       projects: [TestStubs.Project()],
     });
     initialData = initializeOrg({
@@ -57,15 +55,19 @@ describe('EventsV2 > MiniGraph', function () {
       project: 1,
       projects: [],
     });
-    // @ts-expect-error
     eventView = EventView.fromSavedQueryOrLocation(undefined, location);
+
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      statusCode: 200,
+    });
   });
 
   it('makes an EventsRequest with all selected multi y axis', async function () {
     const yAxis = ['count()', 'failure_count()'];
     const wrapper = mountWithTheme(
       <MiniGraph
-        // @ts-expect-error
         location={location}
         eventView={eventView}
         organization={organization}
@@ -82,7 +84,6 @@ describe('EventsV2 > MiniGraph', function () {
     eventView.display = 'bar';
     const wrapper = mountWithTheme(
       <MiniGraph
-        // @ts-expect-error
         location={location}
         eventView={eventView}
         organization={organization}
@@ -99,7 +100,6 @@ describe('EventsV2 > MiniGraph', function () {
     eventView.display = 'worldmap';
     const wrapper = mountWithTheme(
       <MiniGraph
-        // @ts-expect-error
         location={location}
         eventView={eventView}
         organization={organization}
@@ -117,5 +117,33 @@ describe('EventsV2 > MiniGraph', function () {
         seriesName: 'Country',
       },
     ]);
+  });
+
+  it('renders error message', async function () {
+    const errorMessage = 'something went wrong';
+    const api = new MockApiClient();
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: {
+        detail: errorMessage,
+      },
+      statusCode: 400,
+    });
+
+    const wrapper = mountWithTheme(
+      <MiniGraph
+        location={location}
+        eventView={eventView}
+        organization={organization}
+        api={api}
+      />,
+      initialData.routerContext
+    );
+
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('MiniGraph').text()).toBe(errorMessage);
   });
 });

@@ -58,10 +58,6 @@ def is_active_superuser(request):
     return su.is_active
 
 
-def has_superuser_permission(request, permission):
-    return is_active_superuser(request) and request.access.has_permission(permission)
-
-
 class Superuser:
     allowed_ips = [ipaddress.ip_network(str(v), strict=False) for v in ALLOWED_IPS]
 
@@ -131,7 +127,7 @@ class Superuser:
                     "superuser.missing-cookie-token",
                     extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
                 )
-            return False
+            return
         elif not data:
             logger.warning(
                 "superuser.missing-session-data",
