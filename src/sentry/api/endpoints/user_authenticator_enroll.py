@@ -164,7 +164,6 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
                 app_id = response["challenge"]["appId"]
                 for register_request in response["challenge"]["registerRequests"]:
                     register_request["appId"] = app_id
-        # breakpoint()
         return Response(response)
 
     @sudo_required
@@ -181,7 +180,7 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         """
         if ratelimiter.is_limited(
             f"auth:authenticator-enroll:{request.user.id}:{interface_id}",
-            limit=100,
+            limit=10,
             window=86400,  # 10 per day should be fine
         ):
             return HttpResponse(

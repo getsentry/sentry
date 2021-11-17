@@ -89,8 +89,6 @@ class U2fInterface extends React.Component<Props, State> {
                 type: bufferToBase64url(data.type),
               };
               u2fResponse = JSON.stringify(authenticatorData);
-              // const challengeArray = base64urlToBuffer(this.props.challengeData)
-              // challenge = cbor.decodeAllSync(challengeArray)
             }
 
             if (this.state.responseElement) {
@@ -337,5 +335,4 @@ class U2fInterface extends React.Component<Props, State> {
   }
 }
 
-// export default U2fInterface;
 export default withOrganization(U2fInterface);
