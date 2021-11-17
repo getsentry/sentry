@@ -5,6 +5,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
+from sentry.api.helpers.group_index import rate_limit_endpoint
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.search.utils import InvalidQuery
 from sentry.snuba.outcomes import (
@@ -17,6 +18,7 @@ from sentry.snuba.sessions_v2 import InvalidField, InvalidParams
 
 
 class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
+    @rate_limit_endpoint(limit=20, window=1)
     def get(self, request, organization):
         with self.handle_query_errors():
             with sentry_sdk.start_span(op="outcomes.endpoint", description="build_outcomes_query"):
