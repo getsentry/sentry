@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 
-import dateutil.parser
+from dateutil.parser import parse as parse_date
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework.response import Response
@@ -163,7 +163,7 @@ class IntegrationRepositoryProvider:
     def format_date(self, date):
         if not date:
             return None
-        return dateutil.parser.parse(date).astimezone(timezone.utc)
+        return parse_date(date).astimezone(timezone.utc)
 
     def compare_commits(self, repo, start_sha, end_sha):
         """
