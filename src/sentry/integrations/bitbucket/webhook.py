@@ -1,6 +1,5 @@
 import ipaddress
 import logging
-import re
 
 import dateutil.parser
 from django.db import IntegrityError, transaction
@@ -14,23 +13,11 @@ from sentry.integrations.bitbucket.constants import BITBUCKET_IP_RANGES, BITBUCK
 from sentry.models import Commit, CommitAuthor, Organization, Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.utils import json
+from sentry.utils.email import parse_email
 
 logger = logging.getLogger("sentry.webhooks")
 
 PROVIDER_NAME = "integrations:bitbucket"
-
-
-def parse_raw_user_email(raw):
-    # captures content between angle brackets
-    match = re.search("(?<=<).*(?=>$)", raw)
-    if match is None:
-        return
-    return match.group(0)
-
-
-def parse_raw_user_name(raw):
-    # captures content before angle bracket
-    return raw.split("<")[0].strip()
 
 
 class Webhook:
@@ -87,7 +74,7 @@ class PushEventWebhook(Webhook):
                 if IntegrationRepositoryProvider.should_ignore_commit(commit["message"]):
                     continue
 
-                author_email = parse_raw_user_email(commit["author"]["raw"])
+                author_email = parse_email(commit["author"]["raw"])
 
                 # TODO(dcramer): we need to deal with bad values here, but since
                 # its optional, lets just throw it out for now

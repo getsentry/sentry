@@ -3,9 +3,8 @@ from sentry.models import OrganizationOption
 from sentry.models.apitoken import generate_token
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.utils.email import parse_email, parse_user_name
 from sentry.utils.http import absolute_uri
-
-from .webhook import parse_raw_user_email, parse_raw_user_name
 
 
 class BitbucketRepositoryProvider(IntegrationRepositoryProvider):
@@ -80,8 +79,8 @@ class BitbucketRepositoryProvider(IntegrationRepositoryProvider):
             {
                 "id": c["hash"],
                 "repository": repo.name,
-                "author_email": parse_raw_user_email(c["author"]["raw"]),
-                "author_name": parse_raw_user_name(c["author"]["raw"]),
+                "author_email": parse_email(c["author"]["raw"]),
+                "author_name": parse_user_name(c["author"]["raw"]),
                 "message": c["message"],
                 "timestamp": self.format_date(c["date"]),
                 "patch_set": c.get("patch_set"),

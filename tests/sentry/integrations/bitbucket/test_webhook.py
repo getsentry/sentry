@@ -2,15 +2,10 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import Any
-from unittest import TestCase
 
 from django.utils import timezone
 
-from sentry.integrations.bitbucket.webhook import (
-    PROVIDER_NAME,
-    parse_raw_user_email,
-    parse_raw_user_name,
-)
+from sentry.integrations.bitbucket.webhook import PROVIDER_NAME
 from sentry.models import Commit, CommitAuthor, Repository
 from sentry.testutils import APITestCase
 
@@ -19,16 +14,6 @@ from .testutils import PUSH_EVENT_EXAMPLE
 BAD_IP = "109.111.111.10"
 BITBUCKET_IP_IN_RANGE = "104.192.143.10"
 BITBUCKET_IP = "34.198.178.64"
-
-
-class UtilityFunctionTest(TestCase):
-    def test_parse_raw_user_email(self):
-        assert parse_raw_user_email("Max Bittker <max@getsentry.com>") == "max@getsentry.com"
-
-        assert parse_raw_user_email("Jess MacQueen@JessMacqueen") is None
-
-    def parse_raw_user_name(self):
-        assert parse_raw_user_name("Max Bittker <max@getsentry.com>") == "Max Bittker"
 
 
 class WebhookBaseTest(APITestCase):
