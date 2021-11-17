@@ -12,6 +12,7 @@ import Feature from 'app/components/acl/feature';
 import {HeaderTitle} from 'app/components/charts/styles';
 import ErrorBoundary from 'app/components/errorBoundary';
 import FeatureBadge from 'app/components/featureBadge';
+import {SelectField} from 'app/components/forms';
 import MenuItem from 'app/components/menuItem';
 import {isSelectionEqual} from 'app/components/organizations/globalSelectionHeader/utils';
 import {Panel} from 'app/components/panels';
@@ -30,10 +31,30 @@ import {eventViewFromWidget} from 'app/views/dashboardsV2/utils';
 import {DisplayType} from 'app/views/dashboardsV2/widget/utils';
 
 import ContextMenu from './contextMenu';
-import SizeSelector from './sizeSelector';
 import {Widget} from './types';
 import WidgetCardChart from './widgetCardChart';
 import WidgetQueries from './widgetQueries';
+
+type SizeSelectorProps = {
+  size: string;
+  onSizeChange: (size: string) => void;
+};
+
+export const SizeSelector = ({size, onSizeChange}: SizeSelectorProps) => {
+  return (
+    <SelectField
+      name="size"
+      clearable={false}
+      choices={[
+        ['small', 'Small'],
+        ['medium', 'Medium'],
+        ['large', 'Large'],
+      ]}
+      onChange={value => onSizeChange(value as string)}
+      value={size}
+    />
+  );
+};
 
 type DraggableProps = Pick<ReturnType<typeof useSortable>, 'attributes' | 'listeners'>;
 
@@ -83,7 +104,7 @@ class WidgetCard extends React.Component<Props> {
 
     return (
       <ToolbarPanel>
-        <Feature features={['organizations:dashboard-widget-resizing']}>
+        <Feature features={['dashboard-widget-resizing']}>
           <SizeSelectContainer style={{visibility: hideToolbar ? 'hidden' : 'visible'}}>
             <SizeSelector size="medium" onSizeChange={_ => {}} />
           </SizeSelectContainer>
