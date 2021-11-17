@@ -23,7 +23,6 @@ import {IconAdd, IconDelete} from 'app/icons';
 import {t} from 'app/locale';
 import {InternalAppApiToken, Scope, SentryApp} from 'app/types';
 import getDynamicText from 'app/utils/getDynamicText';
-import routeTitleGen from 'app/utils/routeTitle';
 import AsyncView from 'app/views/asyncView';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import Form from 'app/views/settings/components/forms/form';
@@ -140,8 +139,10 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
   }
 
   getTitle() {
-    const {orgId} = this.props.params;
-    return routeTitleGen(t('Sentry Integration Details'), orgId, false);
+    const {app} = this.state;
+    const integrationAction = app ? 'Edit' : 'Create';
+    const integrationType = this.isInternal ? 'Internal' : 'Public';
+    return t('%s %s Integration', integrationAction, integrationType);
   }
 
   // Events may come from the API as "issue.created" when we just want "issue" here.

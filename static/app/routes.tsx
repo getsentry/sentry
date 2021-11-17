@@ -817,7 +817,7 @@ function buildRoutes() {
           component={SafeLazyLoad}
         />
         <Route
-          name={t('New Public Integration')}
+          name={t('Create Integration')}
           path="new-public/"
           componentPromise={() =>
             import(
@@ -827,7 +827,7 @@ function buildRoutes() {
           component={SafeLazyLoad}
         />
         <Route
-          name={t('New Internal Integration')}
+          name={t('Create Integration')}
           path="new-internal/"
           componentPromise={() =>
             import(
