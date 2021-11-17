@@ -160,7 +160,7 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
                 <ExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/" />
               ),
               committed: (
-                <ExternalLink href="https://docs.sentry.io/product/sentry-basics/guides/integrate-frontend/configure-scms/" />
+                <ExternalLink href="https://docs.sentry.io/product/sentry-basics/integrate-frontend/configure-scms/" />
               ),
             }
           ),
