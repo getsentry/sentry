@@ -4,7 +4,7 @@ export type MetricTags = {
   key: string;
 }[];
 
-export type MetricValues = {
+export type MetricTagValues = {
   key: string;
   value: string;
 }[];
