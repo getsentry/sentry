@@ -183,8 +183,8 @@ function useTeams({limit, slugs, ids, provideUserTeams}: Options = {}) {
 
   const slugOrIdRef = useRef<Set<string> | null>(null);
 
-  // Only initialize slugsRef.current once and modify it when we receive new
-  // slugs determined through set equality
+  // Only initialize slugOrIdRef.current once and modify it when we receive new
+  // slugs or ids determined through set equality
   if (slugs !== undefined || ids !== undefined) {
     const slugsOrIds = (slugs || ids) ?? [];
     if (slugOrIdRef.current === null) {
