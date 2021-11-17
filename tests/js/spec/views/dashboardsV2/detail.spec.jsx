@@ -517,7 +517,7 @@ describe('Dashboards > Detail', function () {
       await tick();
       await modal.update();
 
-      modal.find('Button').at(4).simulate('click');
+      modal.find('Button').at(3).simulate('click');
 
       expect(modal.find('SelectedBadge').text()).toEqual('1 Selected');
 
