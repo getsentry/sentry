@@ -66,6 +66,10 @@ type Options = {
    */
   slugs?: string[];
   /**
+   * When provided, fetches specified teams by id if necessary and only provides those teams.
+   */
+  ids?: string[];
+  /**
    * When true, fetches user's teams if necessary and only provides user's
    * teams (isMember = true).
    */
@@ -74,6 +78,7 @@ type Options = {
 
 type FetchTeamOptions = {
   slugs?: string[];
+  ids?: string[];
   limit?: Options['limit'];
   cursor?: State['nextCursor'];
   search?: State['lastSearch'];
@@ -86,7 +91,7 @@ type FetchTeamOptions = {
 async function fetchTeams(
   api: Client,
   orgId: string,
-  {slugs, search, limit, lastSearch, cursor}: FetchTeamOptions = {}
+  {slugs, ids, search, limit, lastSearch, cursor}: FetchTeamOptions = {}
 ) {
   const query: {
     query?: string;
@@ -96,6 +101,10 @@ async function fetchTeams(
 
   if (slugs !== undefined && slugs.length > 0) {
     query.query = slugs.map(slug => `slug:${slug}`).join(' ');
+  }
+
+  if (ids !== undefined && ids.length > 0) {
+    query.query = ids.map(id => `id:${id}`).join(' ');
   }
 
   if (search) {
@@ -144,7 +153,7 @@ async function fetchTeams(
  * slugs, or loading more through search.
  *
  */
-function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
+function useTeams({limit, slugs, ids, provideUserTeams}: Options = {}) {
   const api = useApi();
   const {organization} = useLegacyStore(OrganizationStore);
   const store = useLegacyStore(TeamStore);
@@ -153,12 +162,15 @@ function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
 
   const storeSlugs = new Set(store.teams.map(t => t.slug));
   const slugsToLoad = slugs?.filter(slug => !storeSlugs.has(slug)) ?? [];
+  const storeIds = new Set(store.teams.map(t => t.id));
+  const idsToLoad = ids?.filter(id => !storeIds.has(id)) ?? [];
   const shouldLoadSlugs = slugsToLoad.length > 0;
+  const shouldLoadIds = idsToLoad.length > 0;
   const shouldLoadTeams = provideUserTeams && !store.loadedUserTeams;
 
   // If we don't need to make a request either for slugs or user teams, set
   // initiallyLoaded to true
-  const initiallyLoaded = !shouldLoadSlugs && !shouldLoadTeams;
+  const initiallyLoaded = !shouldLoadSlugs && !shouldLoadTeams && !shouldLoadIds;
 
   const [state, setState] = useState<State>({
     initiallyLoaded,
@@ -169,20 +181,21 @@ function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
     fetchError: null,
   });
 
-  const slugsRef = useRef<Set<string> | null>(null);
+  const slugOrIdRef = useRef<Set<string> | null>(null);
 
-  // Only initialize slugsRef.current once and modify it when we receive new
-  // slugs determined through set equality
-  if (slugs !== undefined) {
-    if (slugsRef.current === null) {
-      slugsRef.current = new Set(slugs);
+  // Only initialize slugOrIdRef.current once and modify it when we receive new
+  // slugs or ids determined through set equality
+  if (slugs !== undefined || ids !== undefined) {
+    const slugsOrIds = (slugs || ids) ?? [];
+    if (slugOrIdRef.current === null) {
+      slugOrIdRef.current = new Set(slugsOrIds);
     }
 
     if (
-      slugs.length !== slugsRef.current.size ||
-      slugs.some(slug => !slugsRef.current?.has(slug))
+      slugsOrIds.length !== slugOrIdRef.current.size ||
+      slugsOrIds.some(slugOrId => !slugOrIdRef.current?.has(slugOrId))
     ) {
-      slugsRef.current = new Set(slugs);
+      slugOrIdRef.current = new Set(slugsOrIds);
     }
   }
 
@@ -203,7 +216,7 @@ function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
     }
   }
 
-  async function loadTeamsBySlug() {
+  async function loadTeamsBySlugOrId() {
     if (orgId === undefined) {
       return;
     }
@@ -212,6 +225,7 @@ function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
     try {
       const {results, hasMore, nextCursor} = await fetchTeams(api, orgId, {
         slugs: slugsToLoad,
+        ids: idsToLoad,
         limit,
       });
 
@@ -280,8 +294,8 @@ function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
 
   useEffect(() => {
     // Load specified team slugs
-    if (shouldLoadSlugs) {
-      loadTeamsBySlug();
+    if (shouldLoadSlugs || shouldLoadIds) {
+      loadTeamsBySlugOrId();
       return;
     }
 
@@ -289,12 +303,14 @@ function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
     if (shouldLoadTeams) {
       loadUserTeams();
     }
-  }, [slugsRef.current, provideUserTeams]);
+  }, [slugOrIdRef.current, provideUserTeams]);
 
   const isSuperuser = isActiveSuperuser();
 
   const filteredTeams = slugs
     ? store.teams.filter(t => slugs.includes(t.slug))
+    : ids
+    ? store.teams.filter(t => ids.includes(t.id))
     : provideUserTeams && !isSuperuser
     ? store.teams.filter(t => t.isMember)
     : store.teams;
