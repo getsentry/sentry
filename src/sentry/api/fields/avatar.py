@@ -86,17 +86,18 @@ class SentryAppLogoField(AvatarField):
         if len(data) > self.max_size:
             raise ImageTooLarge()
 
-        if SVG_RE.match(data.decode("utf-8")) is not None:
-            svg = load_svg_file(BytesIO(data))
-            if svg is not None:
-                if any(element in str(data) for element in INVALID_ELEMENTS):
-                    raise serializers.ValidationError(
-                        "SVG may not contain the following elements: " + ", ".join(INVALID_ELEMENTS)
-                    )
-                viewbox = svg.get("viewBox").split()
-                width, height = [int(dimension) for dimension in viewbox][-2:]
-                if width != height:
-                    raise serializers.ValidationError("Viewbox height and width must be equal.")
+        if SVG_RE.match(data.decode("utf-8")) is None:
+            return None
+        svg = load_svg_file(BytesIO(data))
+        if svg is not None:
+            if any(element in str(data) for element in INVALID_ELEMENTS):
+                raise serializers.ValidationError(
+                    "SVG may not contain the following elements: " + ", ".join(INVALID_ELEMENTS)
+                )
+            viewbox = svg.get("viewBox").split()
+            width, height = [int(dimension) for dimension in viewbox][-2:]
+            if width != height:
+                raise serializers.ValidationError("Viewbox height and width must be equal.")
 
-                return BytesIO(data)
-            raise serializers.ValidationError("Could not open file.")
+            return BytesIO(data)
+        raise serializers.ValidationError("Could not open file.")

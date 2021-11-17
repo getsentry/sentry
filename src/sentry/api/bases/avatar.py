@@ -10,6 +10,7 @@ class AvatarSerializer(serializers.Serializer):
     avatar_type = serializers.ChoiceField(
         choices=(("upload", "upload"), ("gravatar", "gravatar"), ("letter_avatar", "letter_avatar"))
     )
+    color = serializers.BooleanField(required=False)
 
     def validate(self, attrs):
         attrs = super().validate(attrs)
@@ -37,7 +38,7 @@ class SentryAppLogoSerializer(serializers.Serializer):
                 {"avatar_type": "avatar_type must be set to 'upload'."}
             )
         if not attrs.get("avatar_photo"):
-            raise serializers.ValidationError({"avatar_photo": "Must upload a logo."})
+            raise serializers.ValidationError({"avatar_photo": "A logo is required."})
         return attrs
 
 
