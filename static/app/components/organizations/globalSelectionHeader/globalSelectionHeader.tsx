@@ -149,6 +149,16 @@ type Props = {
    * Message to display at the bottom of project list
    */
   projectsFooterMessage?: React.ReactNode;
+
+  /**
+   * Override default relative date options from DEFAULT_RELATIVE_PERIODS
+   */
+  relativeDateOptions?: Record<string, React.ReactNode>;
+
+  /**
+   * The maximum number of days in the past you can pick
+   */
+  maxPickableDays?: number;
 } & Partial<typeof defaultProps> &
   Omit<WithRouterProps, 'router'> & {
     router: WithRouterProps['router'] | null;
@@ -290,6 +300,8 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
       disableMultipleProjectSelection,
       projectsFooterMessage,
       defaultSelection,
+      relativeDateOptions,
+      maxPickableDays,
     } = this.props;
 
     const {period, start, end, utc} = this.props.selection.datetime || {};
@@ -387,6 +399,8 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
                   organization={organization}
                   defaultPeriod={defaultPeriod}
                   hint={timeRangeHint}
+                  relativeOptions={relativeDateOptions}
+                  maxPickableDays={maxPickableDays}
                 />
               </HeaderItemPosition>
             </React.Fragment>
