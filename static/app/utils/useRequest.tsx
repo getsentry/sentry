@@ -2,8 +2,6 @@ import {useState} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {Client} from 'app/api';
-import OrganizationStore from 'app/stores/organizationStore';
-import {useLegacyStore} from 'app/stores/useLegacyStore';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import RequestError from 'app/utils/requestError/requestError';
 import useApi from 'app/utils/useApi';
@@ -40,12 +38,12 @@ export type Result = {
    *
    * Will always add new options into the store.
    */
-  onSearch: (searchTerm: string) => Promise<void>;
+  onSearch: (searchTerm: string) => Promise<any>;
   nextPage: () => Promise<void>;
-  get: () => Promise<void>;
-  post: (_) => Promise<void>;
-  update: (_) => Promise<void>;
-  del: () => Promise<void>;
+  get: () => Promise<any>;
+  post: (_) => Promise<any>;
+  update: (_) => Promise<any>;
+  del: () => Promise<any>;
 } & State;
 
 type Options = {
@@ -107,16 +105,8 @@ async function fetch(
   return {results: data, hasMore, nextCursor};
 }
 
-function useRequest(
-  url: string,
-  {limit}: Options = {},
-  onSuccessCb = _ => {},
-  onErrorCb = _ => {}
-) {
+function useRequest(url: string, {limit}: Options = {}) {
   const api = useApi();
-  const {organization} = useLegacyStore(OrganizationStore);
-
-  const orgId = organization?.slug;
 
   const [state, setState] = useState<State>({
     data: null,
@@ -134,7 +124,6 @@ function useRequest(
         limit,
         cursor,
       });
-      onSuccessCb(results);
       setState({
         ...state,
         data: results,
@@ -142,10 +131,11 @@ function useRequest(
         loading: false,
         nextCursor,
       });
+      return Promise.resolve(results);
     } catch (err) {
       Sentry.captureException(err);
       setState({...state, loading: false, error: err});
-      onErrorCb(err);
+      return Promise.reject(err);
     }
   }
 
@@ -154,13 +144,8 @@ function useRequest(
     const cursor = state.nextCursor;
 
     if (search === '') {
-      return;
-    }
-
-    if (orgId === undefined) {
-      // eslint-disable-next-line no-console
-      console.error('Cannot use useRequest.onSearch without an organization in context');
-      return;
+      // For empty search params, do a simple GET request
+      return get();
     }
 
     setState({...state, loading: true});
@@ -174,8 +159,6 @@ function useRequest(
         cursor,
       });
 
-      onSuccessCb(results);
-
       setState({
         ...state,
         data: results,
@@ -184,10 +167,11 @@ function useRequest(
         lastSearch: search,
         nextCursor,
       });
+      return Promise.resolve(results);
     } catch (err) {
       Sentry.captureException(err);
       setState({...state, loading: false, error: err});
-      onErrorCb(err);
+      return Promise.reject(err);
     }
   }
 
@@ -198,16 +182,16 @@ function useRequest(
         method,
         data,
       });
-      onSuccessCb(results);
       setState({
         ...state,
         data: results,
         loading: false,
       });
+      return Promise.resolve(results);
     } catch (err) {
       Sentry.captureException(err);
       setState({...state, loading: false, error: err});
-      onErrorCb(err);
+      return Promise.reject(err);
     }
   }
 
@@ -217,16 +201,16 @@ function useRequest(
       const [results] = await api.requestPromise(url, {
         method: 'DELETE',
       });
-      onSuccessCb(results);
       setState({
         ...state,
         data: results,
         loading: false,
       });
+      return Promise.resolve(results);
     } catch (err) {
       Sentry.captureException(err);
       setState({...state, loading: false, error: err});
-      onErrorCb(err);
+      return Promise.reject(err);
     }
   }
   const result: Result = {
@@ -237,9 +221,7 @@ function useRequest(
     nextCursor: state.nextCursor,
     lastSearch: state.lastSearch,
     onSearch: handleSearch,
-    nextPage: state.hasMore
-      ? () => get(state.nextCursor)
-      : () => new Promise(resolve => resolve()),
+    nextPage: state.hasMore ? () => get(state.nextCursor) : () => Promise.resolve(),
     get: () => get(),
     post: data => createOrUpdate(data),
     update: data => createOrUpdate(data, 'PUT'),
