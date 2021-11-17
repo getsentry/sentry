@@ -506,6 +506,12 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                 )
 
             dataset = Dataset(data["dataset"].value)
+            if dataset == Dataset.Sessions and not features.has(
+                "organizations:crash-rate-alerts", self.context["organization"]
+            ):
+                raise serializers.ValidationError(
+                    "You don't have access to the crash rate alerts feature"
+                )
             self._validate_time_window(dataset, data.get("time_window"))
 
             try:
