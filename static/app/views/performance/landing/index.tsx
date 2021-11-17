@@ -91,9 +91,9 @@ export function PerformanceLanding(props: Props) {
           <StyledHeading>{t('Performance')}</StyledHeading>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
-          <ButtonBar gap={3}>
-            <MetricsSwitch />
-            {!showOnboarding && (
+          {!showOnboarding && (
+            <ButtonBar gap={3}>
+              <MetricsSwitch />
               <Button
                 priority="primary"
                 data-test-id="landing-header-trends"
@@ -101,8 +101,8 @@ export function PerformanceLanding(props: Props) {
               >
                 {t('View Trends')}
               </Button>
-            )}
-          </ButtonBar>
+            </ButtonBar>
+          )}
         </Layout.HeaderActions>
 
         <StyledNavTabs>
