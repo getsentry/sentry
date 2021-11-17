@@ -5,7 +5,7 @@ jobs:
   should-check:
     name: did files change
     runs-on: ubuntu-20.04
-    timeout-minutes: 3
+    timeout-minutes: 90
     # Map a step output to a job output
     outputs:
       changed: ${{ steps.changes.outputs.migration_lockfile }}

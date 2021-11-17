@@ -18,7 +18,7 @@ from sentry.app import tsdb
 from sentry.constants import LOG_LEVELS
 from sentry.digests import Record
 from sentry.digests.notifications import Notification, build_digest
-from sentry.digests.utilities import get_digest_metadata
+from sentry.digests.utils import get_digest_metadata
 from sentry.event_manager import EventManager, get_event_type
 from sentry.http import get_server_hostname
 from sentry.models import (
@@ -382,7 +382,7 @@ def digest(request):
             state["event_counts"][group.id] = random.randint(10, 1e4)
             state["user_counts"][group.id] = random.randint(10, 1e4)
 
-    digest = build_digest(project, records, state)
+    digest = build_digest(project, records, state)[0]
     start, end, counts = get_digest_metadata(digest)
 
     context = {

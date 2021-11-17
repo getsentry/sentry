@@ -1,13 +1,16 @@
 import {browserHistory} from 'react-router';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
+import {act} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'app/stores/projectsStore';
 import OrganizationGeneralSettings from 'app/views/settings/organizationGeneralSettings';
 
 describe('OrganizationGeneralSettings', function () {
+  enforceActOnUseLegacyStoreHook();
+
   let organization;
   let routerContext;
   const ENDPOINT = '/organizations/org-slug/';
@@ -59,13 +62,22 @@ describe('OrganizationGeneralSettings', function () {
 
     await tick();
     wrapper.update();
-    // Change slug
-    wrapper
-      .find('input[id="slug"]')
-      .simulate('change', {target: {value: 'new-slug'}})
-      .simulate('blur');
 
-    wrapper.find('button[aria-label="Save"]').simulate('click');
+    // Change slug
+    act(() => {
+      wrapper
+        .find('input[id="slug"]')
+        .simulate('change', {target: {value: 'new-slug'}})
+        .simulate('blur');
+    });
+
+    await tick();
+    wrapper.update();
+
+    act(() => {
+      wrapper.find('button[aria-label="Save"]').simulate('click');
+    });
+
     expect(mock).toHaveBeenCalledWith(
       ENDPOINT,
       expect.objectContaining({
@@ -117,7 +129,7 @@ describe('OrganizationGeneralSettings', function () {
   });
 
   it('can remove organization when org admin', async function () {
-    ProjectsStore.loadInitialData([TestStubs.Project({slug: 'project'})]);
+    act(() => ProjectsStore.loadInitialData([TestStubs.Project({slug: 'project'})]));
 
     const wrapper = mountWithTheme(
       <OrganizationGeneralSettings

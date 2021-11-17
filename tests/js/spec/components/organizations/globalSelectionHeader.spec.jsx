@@ -1,6 +1,7 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mockRouterPush} from 'sentry-test/mockRouterPush';
+import {act} from 'sentry-test/reactTestingLibrary';
 
 import * as globalActions from 'app/actionCreators/globalSelection';
 import OrganizationActions from 'app/actions/organizationActions';
@@ -29,6 +30,8 @@ jest.mock('app/utils/localStorage', () => ({
 }));
 
 describe('GlobalSelectionHeader', function () {
+  enforceActOnUseLegacyStoreHook();
+
   let wrapper;
   const {organization, router, routerContext} = initializeOrg({
     organization: {features: ['global-views']},
@@ -59,8 +62,7 @@ describe('GlobalSelectionHeader', function () {
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
-    jest.spyOn(ProjectsStore, 'getAll').mockImplementation(() => organization.projects);
-    jest.spyOn(ProjectsStore, 'isLoading').mockImplementation(() => false);
+    ProjectsStore.loadInitialData(organization.projects);
 
     getItem.mockImplementation(() => null);
     MockApiClient.addMockResponse({
@@ -130,7 +132,7 @@ describe('GlobalSelectionHeader', function () {
 
     await tick();
 
-    expect(GlobalSelectionStore.get().selection).toEqual({
+    expect(GlobalSelectionStore.getState().selection).toEqual({
       datetime: {
         period: '7d',
         utc: null,
@@ -176,7 +178,7 @@ describe('GlobalSelectionHeader', function () {
 
     expect(wrapper.find('MultipleEnvironmentSelector Content').text()).toBe('staging');
 
-    expect(GlobalSelectionStore.get().selection).toEqual({
+    expect(GlobalSelectionStore.getState().selection).toEqual({
       datetime: {
         period: '14d',
         utc: null,
@@ -202,7 +204,7 @@ describe('GlobalSelectionHeader', function () {
     wrapper.update();
 
     // Store should not have any environments selected
-    expect(GlobalSelectionStore.get().selection).toEqual({
+    expect(GlobalSelectionStore.getState().selection).toEqual({
       datetime: {
         period: '14d',
         utc: null,
@@ -229,8 +231,7 @@ describe('GlobalSelectionHeader', function () {
         params: {orgId: 'org-slug'},
       },
     });
-    jest.spyOn(ProjectsStore, 'getAll').mockImplementation(() => initialData.projects);
-    jest.spyOn(ProjectsStore, 'isLoading').mockImplementation(() => false);
+    ProjectsStore.loadInitialData(initialData.projects);
 
     wrapper = mountWithTheme(
       <GlobalSelectionHeader
@@ -261,7 +262,7 @@ describe('GlobalSelectionHeader', function () {
 
     await tick();
 
-    expect(GlobalSelectionStore.get()).toEqual({
+    expect(GlobalSelectionStore.getState()).toEqual({
       isReady: true,
       selection: {
         datetime: {
@@ -288,7 +289,7 @@ describe('GlobalSelectionHeader', function () {
 
     await tick();
 
-    expect(GlobalSelectionStore.get()).toEqual({
+    expect(GlobalSelectionStore.getState()).toEqual({
       isReady: true,
       selection: {
         datetime: {
@@ -314,7 +315,7 @@ describe('GlobalSelectionHeader', function () {
 
     await tick();
 
-    expect(GlobalSelectionStore.get()).toEqual({
+    expect(GlobalSelectionStore.getState()).toEqual({
       isReady: true,
       selection: {
         datetime: {
@@ -359,7 +360,7 @@ describe('GlobalSelectionHeader', function () {
     expect(globalActions.updateProjects).not.toHaveBeenCalled();
     expect(globalActions.updateEnvironments).not.toHaveBeenCalled();
 
-    expect(GlobalSelectionStore.get()).toEqual({
+    expect(GlobalSelectionStore.getState()).toEqual({
       isReady: true,
       selection: {
         datetime: {
@@ -396,7 +397,7 @@ describe('GlobalSelectionHeader', function () {
 
     await tick(); // reflux tick
 
-    expect(GlobalSelectionStore.get().selection.projects).toEqual([3]);
+    expect(GlobalSelectionStore.getState().selection.projects).toEqual([3]);
     // Since these are coming from URL, there should be no changes and
     // router does not need to be called
     expect(initializationObj.router.replace).toHaveBeenLastCalledWith(
@@ -433,7 +434,7 @@ describe('GlobalSelectionHeader', function () {
 
     await tick(); // reflux tick
 
-    expect(GlobalSelectionStore.get().selection.projects).toEqual([1, 2]);
+    expect(GlobalSelectionStore.getState().selection.projects).toEqual([1, 2]);
     // Since these are coming from URL, there should be no changes and
     // router does not need to be called
     expect(initializationObj.router.replace).not.toHaveBeenCalled();
@@ -459,7 +460,7 @@ describe('GlobalSelectionHeader', function () {
 
     await tick(); // reflux tick
 
-    expect(GlobalSelectionStore.get().selection.projects).toEqual([1, 2]);
+    expect(GlobalSelectionStore.getState().selection.projects).toEqual([1, 2]);
     // Since these are coming from URL, there should be no changes and
     // router does not need to be called
     expect(initializationObj.router.replace).not.toHaveBeenCalled();
@@ -527,13 +528,13 @@ describe('GlobalSelectionHeader', function () {
           location: {query: {project: [1]}},
         },
       });
-      ProjectsStore.isLoading.mockRestore();
-      ProjectsStore.getAll.mockRestore();
 
       MockApiClient.addMockResponse({
         url: '/organizations/old-org-slug/projects/',
         body: [],
       });
+
+      ProjectsStore.reset();
 
       // This can happen when you switch organization so params.orgId !== the
       // current org in context In this case params.orgId = 'org-slug'
@@ -568,7 +569,7 @@ describe('GlobalSelectionHeader', function () {
       });
       wrapper.setProps({organization: updatedOrganization});
 
-      ProjectsStore.loadInitialData(updatedOrganization.projects);
+      act(() => ProjectsStore.loadInitialData(updatedOrganization.projects));
 
       expect(initialData.router.replace).toHaveBeenLastCalledWith(
         expect.objectContaining({
@@ -603,8 +604,7 @@ describe('GlobalSelectionHeader', function () {
       const project = TestStubs.Project({id: '3'});
       const org = TestStubs.Organization({projects: [project]});
 
-      jest.spyOn(ProjectsStore, 'getAll').mockImplementation(() => org.projects);
-      jest.spyOn(ProjectsStore, 'isLoading').mockImplementation(() => false);
+      ProjectsStore.loadInitialData(org.projects);
 
       const initializationObj = initializeOrg({
         organization: org,
@@ -644,8 +644,7 @@ describe('GlobalSelectionHeader', function () {
         },
       });
 
-      jest.spyOn(ProjectsStore, 'getAll').mockImplementation(() => initialData.projects);
-      jest.spyOn(ProjectsStore, 'isLoading').mockImplementation(() => false);
+      ProjectsStore.loadInitialData(initialData.projects);
 
       wrapper = mountWithTheme(
         <GlobalSelectionHeader
@@ -700,10 +699,7 @@ describe('GlobalSelectionHeader', function () {
       };
 
       beforeEach(function () {
-        jest
-          .spyOn(ProjectsStore, 'getAll')
-          .mockImplementation(() => initialData.projects);
-        jest.spyOn(ProjectsStore, 'isLoading').mockImplementation(() => false);
+        ProjectsStore.loadInitialData(initialData.projects);
 
         initialData.router.push.mockClear();
         initialData.router.replace.mockClear();
@@ -712,34 +708,26 @@ describe('GlobalSelectionHeader', function () {
       it('uses first project in org projects when mounting', async function () {
         createWrapper();
 
-        await tick();
-        wrapper.update();
-
+        // Projects are returned in sorted slug order, so `prod-project` would
+        // be the first project
         expect(initialData.router.replace).toHaveBeenLastCalledWith({
           pathname: undefined,
-          query: {environment: [], project: [0]},
+          query: {cursor: undefined, environment: [], project: [2]},
         });
       });
 
       it('appends projectId to URL when `forceProject` becomes available (async)', async function () {
-        jest.spyOn(ProjectsStore, 'getAll').mockImplementation(() => []);
-        jest.spyOn(ProjectsStore, 'isLoading').mockImplementation(() => true);
+        ProjectsStore.reset();
 
         // forceProject generally starts undefined
         createWrapper({shouldForceProject: true});
-
-        // load the projects
-        jest
-          .spyOn(ProjectsStore, 'getAll')
-          .mockImplementation(() => initialData.projects);
-        jest.spyOn(ProjectsStore, 'isLoading').mockImplementation(() => false);
 
         wrapper.setProps({
           forceProject: initialData.projects[1],
         });
 
-        // Force the withProjects HoC to re-render
-        ProjectsStore.trigger();
+        // load the projects
+        act(() => ProjectsStore.loadInitialData(initialData.projects));
 
         wrapper.update();
 
@@ -803,7 +791,7 @@ describe('GlobalSelectionHeader', function () {
           params: {orgId: 'org-slug'},
         },
       });
-      jest.spyOn(ProjectsStore, 'getAll').mockImplementation(() => initialData.projects);
+      ProjectsStore.loadInitialData(initialData.projects);
 
       const createWrapper = props => {
         wrapper = mountWithTheme(
@@ -870,10 +858,7 @@ describe('GlobalSelectionHeader', function () {
       };
 
       beforeEach(function () {
-        jest
-          .spyOn(ProjectsStore, 'getAll')
-          .mockImplementation(() => initialData.projects);
-        jest.spyOn(ProjectsStore, 'isLoading').mockImplementation(() => false);
+        ProjectsStore.loadInitialData(initialData.projects);
 
         initialData.router.push.mockClear();
         initialData.router.replace.mockClear();
@@ -889,46 +874,32 @@ describe('GlobalSelectionHeader', function () {
       });
 
       it('does not append projectId to URL when `loadingProjects` changes and finishes loading', async function () {
-        jest.spyOn(ProjectsStore, 'getAll').mockImplementation(() => []);
-        jest.spyOn(ProjectsStore, 'isLoading').mockImplementation(() => true);
+        ProjectsStore.reset();
 
         createWrapper();
 
         // load the projects
-        jest
-          .spyOn(ProjectsStore, 'getAll')
-          .mockImplementation(() => initialData.projects);
-        jest.spyOn(ProjectsStore, 'isLoading').mockImplementation(() => false);
+        act(() => ProjectsStore.loadInitialData(initialData.projects));
 
         wrapper.setProps({
           forceProject: initialData.projects[1],
         });
-
-        // Force the withProjects HoC to re-render
-        ProjectsStore.trigger();
 
         expect(initialData.router.replace).not.toHaveBeenCalled();
       });
 
       it('appends projectId to URL when `forceProject` becomes available (async)', async function () {
-        jest.spyOn(ProjectsStore, 'getAll').mockImplementation(() => []);
-        jest.spyOn(ProjectsStore, 'isLoading').mockImplementation(() => true);
+        ProjectsStore.reset();
 
         // forceProject generally starts undefined
         createWrapper({shouldForceProject: true});
-
-        // load the projects
-        jest
-          .spyOn(ProjectsStore, 'getAll')
-          .mockImplementation(() => initialData.projects);
-        jest.spyOn(ProjectsStore, 'isLoading').mockImplementation(() => false);
 
         wrapper.setProps({
           forceProject: initialData.projects[1],
         });
 
-        // Force the withProjects HoC to re-render
-        ProjectsStore.trigger();
+        // load the projects
+        act(() => ProjectsStore.loadInitialData(initialData.projects));
 
         expect(initialData.router.replace).toHaveBeenLastCalledWith({
           pathname: undefined,
@@ -973,8 +944,7 @@ describe('GlobalSelectionHeader', function () {
         },
       });
 
-      jest.spyOn(ProjectsStore, 'getAll').mockImplementation(() => initialData.projects);
-      jest.spyOn(ProjectsStore, 'isLoading').mockImplementation(() => false);
+      ProjectsStore.loadInitialData(initialData.projects);
 
       wrapper = mountWithTheme(
         <GlobalSelectionHeader organization={initialData.organization} />,
@@ -1031,7 +1001,7 @@ describe('GlobalSelectionHeader', function () {
       // My projects in the footer
       expect(
         projectSelector.find('SelectorFooterControls Button').first().text()
-      ).toEqual('View My Projects');
+      ).toEqual('Select My Projects');
     });
 
     it('shows "All Projects" button based on features', async function () {
@@ -1056,7 +1026,7 @@ describe('GlobalSelectionHeader', function () {
       // All projects in the footer
       expect(
         projectSelector.find('SelectorFooterControls Button').first().text()
-      ).toEqual('View All Projects');
+      ).toEqual('Select All Projects');
     });
 
     it('shows "All Projects" button based on role', async function () {
@@ -1081,7 +1051,7 @@ describe('GlobalSelectionHeader', function () {
       // All projects in the footer
       expect(
         projectSelector.find('SelectorFooterControls Button').first().text()
-      ).toEqual('View All Projects');
+      ).toEqual('Select All Projects');
     });
 
     it('shows "My Projects" when "all projects" is selected', async function () {
@@ -1106,7 +1076,7 @@ describe('GlobalSelectionHeader', function () {
       // My projects in the footer
       expect(
         projectSelector.find('SelectorFooterControls Button').first().text()
-      ).toEqual('View My Projects');
+      ).toEqual('Select My Projects');
     });
   });
 
@@ -1125,8 +1095,7 @@ describe('GlobalSelectionHeader', function () {
     });
 
     beforeEach(function () {
-      jest.spyOn(ProjectsStore, 'getAll').mockImplementation(() => initialData.projects);
-      jest.spyOn(ProjectsStore, 'isLoading').mockImplementation(() => false);
+      ProjectsStore.loadInitialData(initialData.projects);
     });
 
     it('shows IconProject when no projects are selected', async function () {

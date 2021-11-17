@@ -104,6 +104,13 @@ declare global {
      * See sentry/js/ads.js for how this global is disabled.
      */
     adblockSuspected?: boolean;
+    /**
+     * This is used for testing purposes as an interem while we translate tests
+     * to React Testing Library.
+     *
+     * See the useLegacyStore hook for more unformation about this.
+     */
+    _legacyStoreHookUpdate: (update: () => void) => void;
 
     // typing currently used for demo add on
     // TODO: improve typing
@@ -395,6 +402,7 @@ export type EventMetadata = {
   current_tree_label?: TreeLabelPart[];
   finest_tree_label?: TreeLabelPart[];
   current_level?: number;
+  display_title_with_tree_label?: boolean;
 };
 
 // endpoint: /api/0/issues/:issueId/attachments/?limit=50
@@ -450,6 +458,7 @@ export type ProjectSdkUpdates = {
 };
 
 export type EventsStatsData = [number, {count: number; comparisonCount?: number}[]][];
+export type EventsGeoData = {'geo.country_code': string; count: number}[];
 
 // API response format for a single series
 export type EventsStats = {
@@ -752,6 +761,7 @@ export interface Config {
 
   invitesEnabled: boolean;
   privacyUrl: string | null;
+  termsUrl: string | null;
   isOnPremise: boolean;
   lastOrganization: string | null;
   gravatarBaseUrl: string;
@@ -761,14 +771,18 @@ export interface Config {
    */
   messages: {message: string; level: string}[];
   dsn: string;
-  userIdentity: {ip_address: string; email: string; id: string; isStaff: boolean};
-  termsUrl: string | null;
+  userIdentity: {
+    ip_address: string;
+    email: string;
+    id: string;
+    isStaff: boolean;
+  };
   isAuthenticated: boolean;
   version: {
     current: string;
+    latest: string;
     build: string;
     upgradeAvailable: boolean;
-    latest: string;
   };
   sentryConfig: {
     dsn: string;
@@ -2048,7 +2062,7 @@ export type ExceptionValue = {
   rawStacktrace: RawStacktrace;
   mechanism: StackTraceMechanism | null;
   module: string | null;
-  frames: Frame[] | null;
+  frames?: Frame[] | null;
 };
 
 export type ExceptionType = {
@@ -2057,13 +2071,34 @@ export type ExceptionType = {
   values?: Array<ExceptionValue>;
 };
 
+export enum UserIdentityCategory {
+  SOCIAL_IDENTITY = 'social-identity',
+  GLOBAL_IDENTITY = 'global-identity',
+  ORG_IDENTITY = 'org-identity',
+}
+
+export enum UserIdentityStatus {
+  CAN_DISCONNECT = 'can_disconnect',
+  NEEDED_FOR_GLOBAL_AUTH = 'needed_for_global_auth',
+  NEEDED_FOR_ORG_AUTH = 'needed_for_org_auth',
+}
+
+export type UserIdentityProvider = {
+  key: string;
+  name: string;
+};
+
 /**
- * Identity is used in Account Identities for SocialAuths
+ * UserIdentityConfig is used in Account Identities
  */
-export type Identity = {
+export type UserIdentityConfig = {
+  category: UserIdentityCategory;
   id: string;
-  provider: IntegrationProvider;
-  providerLabel: string;
+  provider: UserIdentityProvider;
+  status: UserIdentityStatus;
+  isLogin: boolean;
+  organization: Organization | null;
+  dateAdded: DateString;
 };
 
 // taken from https://stackoverflow.com/questions/46634876/how-can-i-change-a-readonly-property-in-typescript
@@ -2250,4 +2285,16 @@ export type EventIdResponse = {
   groupId: string;
   eventId: string;
   event: Event;
+};
+
+export type AuditLog = {
+  id: string;
+  actor: User;
+  event: string;
+  ipAddress: string;
+  note: string;
+  targetObject: number;
+  targetUser: Actor | null;
+  data: any;
+  dateCreated: string;
 };

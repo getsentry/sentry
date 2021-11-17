@@ -23,6 +23,7 @@ class AlertRuleDetailsBase(AlertRuleBase):
             context={
                 "organization": self.organization,
                 "access": OrganizationGlobalAccess(self.organization),
+                "user": self.user,
             },
             data=data,
         )
@@ -392,9 +393,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
 
         alert_rule.refresh_from_db()
         assert resp.data == serialize(alert_rule, self.user)
-        assert (
-            resp.data["owner"] == self.user.actor.get_actor_identifier()
-        )  # Doesn't unassign yet - TDB in future though
+        assert resp.data["owner"] is None
 
     def test_team_permission(self):
         # Test ensures you can only edit alerts owned by your team or no one.

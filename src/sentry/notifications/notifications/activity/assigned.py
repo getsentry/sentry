@@ -1,4 +1,6 @@
-from typing import Any, Mapping, Tuple
+from __future__ import annotations
+
+from typing import Any, Mapping
 
 from sentry.models import Team, User
 
@@ -9,7 +11,7 @@ class AssignedActivityNotification(GroupActivityNotification):
     def get_activity_name(self) -> str:
         return "Assigned"
 
-    def get_description(self) -> Tuple[str, Mapping[str, Any], Mapping[str, Any]]:
+    def get_description(self) -> tuple[str, Mapping[str, Any], Mapping[str, Any]]:
         activity = self.activity
         data = activity.data
 
@@ -57,7 +59,7 @@ class AssignedActivityNotification(GroupActivityNotification):
     def get_category(self) -> str:
         return "assigned_activity_email"
 
-    def build_notification_title(self) -> Tuple[str, str]:
+    def build_notification_title(self) -> tuple[str, str]:
         activity = self.activity
         data = activity.data
         user = self.activity.user

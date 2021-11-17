@@ -1,13 +1,11 @@
 import {Fragment} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import {css} from '@emotion/react';
-import {Location} from 'history';
 
 import {ModalRenderProps} from 'app/actionCreators/modal';
-import {AppStoreConnectContextProps} from 'app/components/projects/appStoreConnectContext';
 import {getDebugSourceName} from 'app/data/debugFileSources';
 import {tct} from 'app/locale';
-import {CustomRepoType} from 'app/types/debugFiles';
+import {AppStoreConnectStatusData, CustomRepoType} from 'app/types/debugFiles';
 import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
 import Form from 'app/views/settings/components/forms/form';
 
@@ -36,7 +34,7 @@ type Props = WithRouterProps<RouteParams, {}> & {
    */
   sourceType: CustomRepoType;
 
-  appStoreConnectContext?: AppStoreConnectContextProps;
+  appStoreConnectStatusData?: AppStoreConnectStatusData;
   /**
    * The sourceConfig. May be empty to create a new one.
    */
@@ -51,8 +49,7 @@ function DebugFileCustomRepository({
   sourceConfig,
   sourceType,
   params: {orgId, projectId: projectSlug},
-  location,
-  appStoreConnectContext,
+  appStoreConnectStatusData,
   closeModal,
 }: Props) {
   function handleSave(data?: Record<string, any>) {
@@ -77,8 +74,7 @@ function DebugFileCustomRepository({
         projectSlug={projectSlug}
         onSubmit={handleSave}
         initialData={sourceConfig as AppStoreConnectInitialData}
-        location={location as Location}
-        appStoreConnectContext={appStoreConnectContext}
+        appStoreConnectStatusData={appStoreConnectStatusData}
       />
     );
   }

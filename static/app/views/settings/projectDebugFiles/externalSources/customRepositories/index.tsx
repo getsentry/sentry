@@ -7,6 +7,7 @@ import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {openDebugFileSourceModal} from 'app/actionCreators/modal';
 import ProjectActions from 'app/actions/projectActions';
 import {Client} from 'app/api';
+import Access from 'app/components/acl/access';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
@@ -85,7 +86,10 @@ function CustomRepositories({
       return;
     }
 
-    const itemIndex = repositories.findIndex(v => v.id === customRepository);
+    const itemIndex = repositories.findIndex(
+      repository => repository.id === customRepository
+    );
+
     const item = repositories[itemIndex];
 
     if (!item) {
@@ -95,7 +99,7 @@ function CustomRepositories({
     openDebugFileSourceModal({
       sourceConfig: item,
       sourceType: item.type,
-      appStoreConnectContext,
+      appStoreConnectStatusData: appStoreConnectContext?.[item.id],
       onSave: updatedItem =>
         persistData({updatedItem: updatedItem as CustomRepo, index: itemIndex}),
       onClose: handleCloseModal,
@@ -157,7 +161,6 @@ function CustomRepositories({
       query: {
         ...location.query,
         customRepository: undefined,
-        revalidateItunesSession: undefined,
       },
     });
   }
@@ -180,16 +183,12 @@ function CustomRepositories({
     });
   }
 
-  function handleEditRepository(
-    repoId: CustomRepo['id'],
-    revalidateItunesSession?: boolean
-  ) {
+  function handleEditRepository(repoId: CustomRepo['id']) {
     router.push({
       ...location,
       query: {
         ...location.query,
         customRepository: repoId,
-        revalidateItunesSession,
       },
     });
   }
@@ -229,9 +228,22 @@ function CustomRepositories({
           })}
         >
           {({isOpen}) => (
-            <DropdownButton isOpen={isOpen} size="small">
-              {t('Add Repository')}
-            </DropdownButton>
+            <Access access={['project:write']}>
+              {({hasAccess}) => (
+                <DropdownButton
+                  isOpen={isOpen}
+                  title={
+                    !hasAccess
+                      ? t('You do not have permission to add custom repositories.')
+                      : undefined
+                  }
+                  disabled={!hasAccess}
+                  size="small"
+                >
+                  {t('Add Repository')}
+                </DropdownButton>
+              )}
+            </Access>
           )}
         </DropdownAutoComplete>
       </PanelHeader>
@@ -241,23 +253,21 @@ function CustomRepositories({
             <p>{t('No custom repositories configured')}</p>
           </EmptyStateWarning>
         ) : (
-          repositories.map((repository, index) => {
-            const repositoryCopy = {...repository};
-            if (
-              repositoryCopy.type === CustomRepoType.APP_STORE_CONNECT &&
-              repositoryCopy.id === appStoreConnectContext?.id
-            ) {
-              repositoryCopy.details = appStoreConnectContext;
-            }
-            return (
-              <Repository
-                key={index}
-                repository={repositoryCopy}
-                onDelete={handleDeleteRepository}
-                onEdit={handleEditRepository}
-              />
-            );
-          })
+          repositories.map((repository, index) => (
+            <Repository
+              key={index}
+              repository={
+                repository.type === CustomRepoType.APP_STORE_CONNECT
+                  ? {
+                      ...repository,
+                      details: appStoreConnectContext?.[repository.id],
+                    }
+                  : repository
+              }
+              onDelete={handleDeleteRepository}
+              onEdit={handleEditRepository}
+            />
+          ))
         )}
       </PanelBody>
     </Panel>

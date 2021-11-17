@@ -1,5 +1,6 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {act} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'app/stores/projectsStore';
 import ReleasesList from 'app/views/releases/list/';
@@ -8,6 +9,8 @@ import {ReleasesSortOption} from 'app/views/releases/list/releasesSortOptions';
 import {ReleasesStatusOption} from 'app/views/releases/list/releasesStatusOptions';
 
 describe('ReleasesList', function () {
+  enforceActOnUseLegacyStoreHook();
+
   const {organization, routerContext, router} = initializeOrg();
 
   const props = {
@@ -71,7 +74,7 @@ describe('ReleasesList', function () {
 
   afterEach(function () {
     wrapper.unmount();
-    ProjectsStore.reset();
+    act(() => ProjectsStore.reset());
     MockApiClient.clearMockResponses();
   });
 

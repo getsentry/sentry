@@ -87,6 +87,19 @@ class UserAuthenticatorDeviceDetailsTest(UserAuthenticatorDetailsTestBase):
         self._require_2fa_for_organization()
         self.test_u2f_remove_device()
 
+    def test_rename_device(self):
+        data = {"name": "for testing"}
+        auth = get_auth(self.user)
+        self.get_success_response(self.user.id, auth.id, "devicekeyhandle", **data, method="put")
+
+        authenticator = Authenticator.objects.get(id=auth.id)
+        assert authenticator.interface.get_device_name("devicekeyhandle") == "for testing"
+
+    def test_rename_device_not_found(self):
+        data = {"name": "for testing"}
+        auth = get_auth(self.user)
+        self.get_error_response(self.user.id, auth.id, "not_a_real_device", **data, method="put")
+
 
 class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
     endpoint = "sentry-api-0-user-authenticator-details"

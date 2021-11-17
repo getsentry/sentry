@@ -7,13 +7,13 @@ from django.test import RequestFactory
 from sentry.charts.types import ChartType
 from sentry.discover.models import DiscoverSavedQuery
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
-from sentry.integrations.slack.message_builder.discover import build_discover_attachment
-from sentry.integrations.slack.message_builder.incidents import build_incident_attachment
-from sentry.integrations.slack.message_builder.issues import build_group_attachment
+from sentry.integrations.slack.message_builder.discover import SlackDiscoverMessageBuilder
+from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
+from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
 from sentry.integrations.slack.unfurl import LinkType, UnfurlableUrl, link_handlers, match_link
 from sentry.testutils import TestCase
+from sentry.testutils.helpers import install_slack
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from tests.sentry.integrations.slack import install_slack
 
 
 @pytest.mark.parametrize(
@@ -68,8 +68,11 @@ class UnfurlTest(TestCase):
 
         unfurls = link_handlers[LinkType.ISSUES].fn(self.request, self.integration, links)
 
-        assert unfurls[links[0].url] == build_group_attachment(self.group)
-        assert unfurls[links[1].url] == build_group_attachment(group2, event, link_to_event=True)
+        assert unfurls[links[0].url] == SlackIssuesMessageBuilder(self.group).build()
+        assert (
+            unfurls[links[1].url]
+            == SlackIssuesMessageBuilder(group2, event, link_to_event=True).build()
+        )
 
     def test_unfurl_incidents(self):
         alert_rule = self.create_alert_rule()
@@ -91,7 +94,7 @@ class UnfurlTest(TestCase):
         ]
         unfurls = link_handlers[LinkType.INCIDENTS].fn(self.request, self.integration, links)
 
-        assert unfurls[links[0].url] == build_incident_attachment(action, incident)
+        assert unfurls[links[0].url] == SlackIncidentsMessageBuilder(incident, action).build()
 
     @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
     def test_unfurl_discover(self, mock_generate_chart):
@@ -121,8 +124,11 @@ class UnfurlTest(TestCase):
         ):
             unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
 
-        assert unfurls[url] == build_discover_attachment(
-            title=args["query"].get("name"), chart_url="chart-url"
+        assert (
+            unfurls[url]
+            == SlackDiscoverMessageBuilder(
+                title=args["query"].get("name"), chart_url="chart-url"
+            ).build()
         )
         assert len(mock_generate_chart.mock_calls) == 1
         chart_data = mock_generate_chart.call_args[0][1]
@@ -157,8 +163,11 @@ class UnfurlTest(TestCase):
         ):
             unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
 
-        assert unfurls[url] == build_discover_attachment(
-            title=args["query"].get("name"), chart_url="chart-url"
+        assert (
+            unfurls[url]
+            == SlackDiscoverMessageBuilder(
+                title=args["query"].get("name"), chart_url="chart-url"
+            ).build()
         )
         assert len(mock_generate_chart.mock_calls) == 1
         assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_DISCOVER_PREVIOUS_PERIOD
@@ -194,8 +203,11 @@ class UnfurlTest(TestCase):
         ):
             unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
 
-        assert unfurls[url] == build_discover_attachment(
-            title=args["query"].get("name"), chart_url="chart-url"
+        assert (
+            unfurls[url]
+            == SlackDiscoverMessageBuilder(
+                title=args["query"].get("name"), chart_url="chart-url"
+            ).build()
         )
         assert len(mock_generate_chart.mock_calls) == 1
         chart_data = mock_generate_chart.call_args[0][1]
@@ -231,8 +243,11 @@ class UnfurlTest(TestCase):
         ):
             unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
 
-        assert unfurls[url] == build_discover_attachment(
-            title=args["query"].get("name"), chart_url="chart-url"
+        assert (
+            unfurls[url]
+            == SlackDiscoverMessageBuilder(
+                title=args["query"].get("name"), chart_url="chart-url"
+            ).build()
         )
         assert len(mock_generate_chart.mock_calls) == 1
         chart_data = mock_generate_chart.call_args[0][1]
@@ -287,8 +302,11 @@ class UnfurlTest(TestCase):
         ):
             unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
 
-        assert unfurls[url] == build_discover_attachment(
-            title=args["query"].get("name"), chart_url="chart-url"
+        assert (
+            unfurls[url]
+            == SlackDiscoverMessageBuilder(
+                title=args["query"].get("name"), chart_url="chart-url"
+            ).build()
         )
         assert len(mock_generate_chart.mock_calls) == 1
 
@@ -351,8 +369,11 @@ class UnfurlTest(TestCase):
         ):
             unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
 
-        assert unfurls[url] == build_discover_attachment(
-            title=args["query"].get("name"), chart_url="chart-url"
+        assert (
+            unfurls[url]
+            == SlackDiscoverMessageBuilder(
+                title=args["query"].get("name"), chart_url="chart-url"
+            ).build()
         )
         assert len(mock_generate_chart.mock_calls) == 1
 
@@ -393,8 +414,11 @@ class UnfurlTest(TestCase):
         ):
             unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
 
-        assert unfurls[url] == build_discover_attachment(
-            title=args["query"].get("name"), chart_url="chart-url"
+        assert (
+            unfurls[url]
+            == SlackDiscoverMessageBuilder(
+                title=args["query"].get("name"), chart_url="chart-url"
+            ).build()
         )
         assert len(mock_generate_chart.mock_calls) == 1
 
@@ -448,8 +472,11 @@ class UnfurlTest(TestCase):
         ):
             unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
 
-        assert unfurls[url] == build_discover_attachment(
-            title=args["query"].get("name"), chart_url="chart-url"
+        assert (
+            unfurls[url]
+            == SlackDiscoverMessageBuilder(
+                title=args["query"].get("name"), chart_url="chart-url"
+            ).build()
         )
         assert len(mock_generate_chart.mock_calls) == 1
 
@@ -487,10 +514,65 @@ class UnfurlTest(TestCase):
         ):
             unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
 
-        assert unfurls[url] == build_discover_attachment(
-            title=args["query"].get("name"), chart_url="chart-url"
+        assert (
+            unfurls[url]
+            == SlackDiscoverMessageBuilder(
+                title=args["query"].get("name"), chart_url="chart-url"
+            ).build()
         )
         assert len(mock_generate_chart.mock_calls) == 1
         chart_data = mock_generate_chart.call_args[0][1]
         assert chart_data["seriesName"] == "count()"
         assert len(chart_data["stats"]["data"]) == 288
+
+    @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
+    def test_unfurl_world_map(self, mock_generate_chart):
+        min_ago = iso_format(before_now(minutes=1))
+        self.store_event(
+            data={
+                "fingerprint": ["group2"],
+                "timestamp": min_ago,
+                "user": {"geo": {"country_code": "CA", "region": "Canada"}},
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "fingerprint": ["group2"],
+                "timestamp": min_ago,
+                "user": {"geo": {"country_code": "AU", "region": "Australia"}},
+            },
+            project_id=self.project.id,
+        )
+
+        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?display=worldmap&field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All+Events&project={self.project.id}&query=&sort=-timestamp&statsPeriod=24h&yAxis=count%28%29"
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise Exception("Missing link_type/args")
+
+        links = [
+            UnfurlableUrl(url=url, args=args),
+        ]
+
+        with self.feature(
+            [
+                "organizations:discover-basic",
+                "organizations:chart-unfurls",
+            ]
+        ):
+            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+
+        assert (
+            unfurls[url]
+            == SlackDiscoverMessageBuilder(
+                title=args["query"].get("name"), chart_url="chart-url"
+            ).build()
+        )
+        assert len(mock_generate_chart.mock_calls) == 1
+
+        assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_DISCOVER_WORLDMAP
+        chart_data = mock_generate_chart.call_args[0][1]
+        assert chart_data["seriesName"] == "count()"
+        assert len(chart_data["stats"]["data"]) == 2
+        assert sorted(x["geo.country_code"] for x in chart_data["stats"]["data"]) == ["AU", "CA"]

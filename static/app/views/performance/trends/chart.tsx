@@ -3,7 +3,6 @@ import {useTheme} from '@emotion/react';
 
 import ChartZoom from 'app/components/charts/chartZoom';
 import LineChart from 'app/components/charts/lineChart';
-import ReleaseSeries from 'app/components/charts/releaseSeries';
 import TransitionChart from 'app/components/charts/transitionChart';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
@@ -236,13 +235,10 @@ export function Chart({
   trendChangeType,
   router,
   statsPeriod,
-  project,
-  environment,
   transaction,
   statsData,
   isLoading,
   location,
-  projects,
   start: propsStart,
   end: propsEnd,
   trendFunctionField,
@@ -311,11 +307,6 @@ export function Chart({
   const loading = isLoading;
   const reloading = isLoading;
 
-  const transactionProject = parseInt(
-    projects.find(({slug}) => transaction?.project === slug)?.id || '',
-    10
-  );
-
   const yMax = Math.max(
     maxValue,
     transaction?.aggregate_range_2 || 0,
@@ -328,11 +319,6 @@ export function Chart({
   );
   const yDiff = yMax - yMin;
   const yMargin = yDiff * 0.1;
-
-  const queryExtra = {
-    showTransactions: trendChangeType,
-    yAxis: 'countDuration',
-  };
 
   const chartOptions = {
     tooltip: {
@@ -380,50 +366,37 @@ export function Chart({
         );
 
         return (
-          <ReleaseSeries
-            start={start}
-            end={end}
-            queryExtra={queryExtra}
-            period={statsPeriod}
-            utc={utc === 'true'}
-            projects={isNaN(transactionProject) ? project : [transactionProject]}
-            environments={environment}
-            memoized
-          >
-            {({releaseSeries}) => (
-              <TransitionChart loading={loading} reloading={reloading}>
-                <TransparentLoadingMask visible={reloading} />
-                {getDynamicText({
-                  value: (
-                    <LineChart
-                      height={height}
-                      {...zoomRenderProps}
-                      {...chartOptions}
-                      onLegendSelectChanged={handleLegendSelectChanged}
-                      series={[...smoothedSeries, ...releaseSeries, ...intervalSeries]}
-                      seriesOptions={{
-                        showSymbol: false,
-                      }}
-                      legend={legend}
-                      toolBox={{
-                        show: false,
-                      }}
-                      grid={
-                        grid ?? {
-                          left: '10px',
-                          right: '10px',
-                          top: '40px',
-                          bottom: '0px',
-                        }
-                      }
-                      xAxis={disableXAxis ? {show: false} : undefined}
-                    />
-                  ),
-                  fixed: 'Duration Chart',
-                })}
-              </TransitionChart>
-            )}
-          </ReleaseSeries>
+          <TransitionChart loading={loading} reloading={reloading}>
+            <TransparentLoadingMask visible={reloading} />
+            {getDynamicText({
+              value: (
+                <LineChart
+                  height={height}
+                  {...zoomRenderProps}
+                  {...chartOptions}
+                  onLegendSelectChanged={handleLegendSelectChanged}
+                  series={[...smoothedSeries, ...intervalSeries]}
+                  seriesOptions={{
+                    showSymbol: false,
+                  }}
+                  legend={legend}
+                  toolBox={{
+                    show: false,
+                  }}
+                  grid={
+                    grid ?? {
+                      left: '10px',
+                      right: '10px',
+                      top: '40px',
+                      bottom: '0px',
+                    }
+                  }
+                  xAxis={disableXAxis ? {show: false} : undefined}
+                />
+              ),
+              fixed: 'Duration Chart',
+            })}
+          </TransitionChart>
         );
       }}
     </ChartZoom>

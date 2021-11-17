@@ -8,7 +8,6 @@ from sentry.models import (
 )
 from sentry.testutils import OrganizationDashboardWidgetTestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.utils.compat import zip
 
 
 class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):

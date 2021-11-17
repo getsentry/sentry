@@ -34,6 +34,16 @@ class TestCreator(TestCase):
         app = self.creator.call()
         assert app.slug == "nulldb"
 
+    def test_default_popularity(self):
+        app = self.creator.call()
+        assert app.popularity == SentryApp._meta.get_field("popularity").default
+
+    def test_popularity(self):
+        popularity = 27
+        self.creator.popularity = popularity
+        app = self.creator.call()
+        assert app.popularity == popularity
+
     def test_creates_proxy_user(self):
         self.creator.call()
 
@@ -147,6 +157,7 @@ class TestCreator(TestCase):
             user_id=self.user.id,
             organization_id=self.org.id,
             sentry_app=sentry_app.slug,
+            created_alert_rule_ui_component=False,
         )
 
     def test_allows_name_that_exists_as_username_already(self):

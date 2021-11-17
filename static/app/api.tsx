@@ -108,9 +108,6 @@ export const initApiClientErrorHandling = () =>
         'ignore',
         '2fa-required',
         'app-connect-authentication-error',
-        'itunes-authentication-error',
-        'itunes-2fa-required',
-        'itunes-sms-blocked-error',
       ].includes(code)
     ) {
       return;
@@ -220,7 +217,7 @@ export type RequestOptions = RequestCallbacks & {
   /**
    * Query parameters to add to the requested URL.
    */
-  query?: Array<any> | object;
+  query?: Record<string, any>;
   /**
    * Because of the async nature of API requests, errors will happen outside of
    * the stack that initated the request. a preservedError can be passed to

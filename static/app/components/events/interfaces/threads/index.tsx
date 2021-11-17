@@ -3,13 +3,14 @@ import {useState} from 'react';
 import EventDataSection from 'app/components/events/eventDataSection';
 import CrashActions from 'app/components/events/interfaces/crashHeader/crashActions';
 import CrashTitle from 'app/components/events/interfaces/crashHeader/crashTitle';
-import {isStacktraceNewestFirst} from 'app/components/events/interfaces/stacktrace';
 import {t} from 'app/locale';
 import {Project} from 'app/types';
 import {Event} from 'app/types/event';
 import {Thread} from 'app/types/events';
 import {STACK_TYPE, STACK_VIEW} from 'app/types/stacktrace';
 import {defined} from 'app/utils';
+
+import {isStacktraceNewestFirst} from '../utils';
 
 import findBestThread from './threadSelector/findBestThread';
 import getThreadException from './threadSelector/getThreadException';

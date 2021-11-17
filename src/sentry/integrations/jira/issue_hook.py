@@ -14,6 +14,7 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.sdk import configure_scope
 
 from .base_hook import JiraBaseHook
+from .client import JiraApiClient, JiraCloud
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +25,14 @@ def accum(tot, item):
 
 class JiraIssueHookView(JiraBaseHook):
     html_file = "sentry/integrations/jira-issue.html"
+
+    def set_badge(self, integration, issue_key, group_link_num):
+        client = JiraApiClient(
+            integration.metadata["base_url"],
+            JiraCloud(integration.metadata["shared_secret"]),
+            verify_ssl=True,
+        )
+        return client.set_issue_property(issue_key, group_link_num)
 
     def get(self, request, issue_key, *args, **kwargs):
         with configure_scope() as scope:
@@ -51,6 +60,7 @@ class JiraIssueHookView(JiraBaseHook):
                 group = Group.objects.get(id=group_link.group_id)
             except (ExternalIssue.DoesNotExist, GroupLink.DoesNotExist, Group.DoesNotExist) as e:
                 scope.set_tag("failure", e.__class__.__name__)
+                self.set_badge(integration, issue_key, 0)
                 return self.get_response({"issue_not_linked": True})
             scope.set_tag("organization.slug", group.organization.slug)
 
@@ -112,4 +122,6 @@ class JiraIssueHookView(JiraBaseHook):
             )
             result = self.get_response(context)
             scope.set_tag("status_code", result.status_code)
+            # XXX(CEO): group_link_num is hardcoded as 1 now, but when we handle displaying multiple linked issues this should be updated to the actual count
+            self.set_badge(integration, issue_key, 1)
             return result

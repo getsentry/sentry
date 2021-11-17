@@ -8,14 +8,15 @@ import HighlightModalContainer from 'app/components/highlightModalContainer';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
-import {emailQueryParameter, extraQueryParameter} from 'app/utils/demoMode';
+import {extraQueryParameterWithEmail, urlAttachQueryParams} from 'app/utils/demoMode';
 
 type Props = ModalRenderProps;
 
 const DemoSignUpModal = ({closeModal}: Props) => {
-  const queryParameter = emailQueryParameter();
-  const getStartedExtraParameter = extraQueryParameter(true);
-  const signupUrl = `https://sentry.io/signup/${queryParameter}${getStartedExtraParameter}`;
+  const signupUrl = urlAttachQueryParams(
+    'https://sentry.io/signup/',
+    extraQueryParameterWithEmail()
+  );
 
   return (
     <HighlightModalContainer>

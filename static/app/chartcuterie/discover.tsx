@@ -1,16 +1,19 @@
-import {EChartOption} from 'echarts/lib/echarts';
+import {EChartOption} from 'echarts';
 import isArray from 'lodash/isArray';
+import max from 'lodash/max';
 
 import XAxis from 'app/components/charts/components/xAxis';
 import AreaSeries from 'app/components/charts/series/areaSeries';
 import BarSeries from 'app/components/charts/series/barSeries';
 import LineSeries from 'app/components/charts/series/lineSeries';
+import MapSeries from 'app/components/charts/series/mapSeries';
 import {lightenHexToRgb} from 'app/components/charts/utils';
+import * as countryCodesMap from 'app/data/countryCodesMap';
 import {t} from 'app/locale';
-import {EventsStats} from 'app/types';
+import {EventsGeoData, EventsStats} from 'app/types';
 import {lightTheme as theme} from 'app/utils/theme';
 
-import {slackChartDefaults, slackChartSize} from './slack';
+import {slackChartDefaults, slackChartSize, slackGeoChartSize} from './slack';
 import {ChartType, RenderDescriptor} from './types';
 
 const discoverxAxis = XAxis({
@@ -404,4 +407,54 @@ discoverCharts.push({
     };
   },
   ...slackChartSize,
+});
+
+discoverCharts.push({
+  key: ChartType.SLACK_DISCOVER_WORLDMAP,
+  getOption: (data: {seriesName: string; stats: {data: EventsGeoData}}) => {
+    const mapSeries = MapSeries({
+      map: 'sentryWorld',
+      name: data.seriesName,
+      data: data.stats.data.map(country => ({
+        name: country['geo.country_code'],
+        value: country.count,
+      })),
+      nameMap: countryCodesMap.default,
+      aspectScale: 0.85,
+      zoom: 1.1,
+      center: [10.97, 9.71],
+      itemStyle: {
+        areaColor: theme.gray200,
+        borderColor: theme.backgroundSecondary,
+      } as any, // TODO(ts): Echarts types aren't correct for these colors as they don't allow for basic strings
+    });
+
+    // For absolute values, we want min/max to based on min/max of series
+    // Otherwise it should be 0-100
+    const maxValue = max(data.stats.data.map(value => value.count)) || 1;
+
+    return {
+      backgroundColor: theme.background,
+      visualMap: [
+        {
+          left: 'right',
+          min: 0,
+          max: maxValue,
+          inRange: {
+            color: [theme.purple200, theme.purple300],
+          },
+          text: ['High', 'Low'],
+          textStyle: {
+            color: theme.textColor,
+          },
+
+          // Whether show handles, which can be dragged to adjust "selected range".
+          // False because the handles are pretty ugly
+          calculable: false,
+        },
+      ],
+      series: [mapSeries],
+    };
+  },
+  ...slackGeoChartSize,
 });

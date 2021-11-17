@@ -230,6 +230,19 @@ class ProjectOwnershipTestCase(TestCase):
             self.project.id, {"stacktrace": {"frames": [{"filename": "src/foo.py"}]}}
         ) == (True, [self.user, self.team], False)
 
+    def test_abs_path_when_filename_present(self):
+        frame = {
+            "filename": "computer.cpp",
+            "abs_path": "C:\\My\\Path\\computer.cpp",
+        }
+        rule = Rule(Matcher("path", "*My\\Path*"), [Owner("team", self.team.slug)])
+        ProjectOwnership.objects.create(
+            project_id=self.project.id, schema=dump_schema([rule]), fallthrough=True
+        )
+        assert ProjectOwnership.get_owners(
+            self.project.id, {"stacktrace": {"frames": [frame]}}
+        ) == ([ActorTuple(self.team.id, Team)], [rule])
+
 
 class ResolveActorsTestCase(TestCase):
     def test_no_actors(self):

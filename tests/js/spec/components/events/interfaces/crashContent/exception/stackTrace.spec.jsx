@@ -3,9 +3,12 @@ import cloneDeep from 'lodash/cloneDeep';
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ExceptionStacktraceContent from 'app/components/events/interfaces/crashContent/exception/stackTrace';
+import {OrganizationContext} from 'app/views/organizationContext';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 describe('ExceptionStacktraceContent', () => {
+  const organization = TestStubs.Organization();
+
   const stacktrace = {
     frames: [
       {
@@ -86,19 +89,29 @@ describe('ExceptionStacktraceContent', () => {
   };
 
   it('default behaviour', () => {
-    const wrapper = mountWithTheme(<ExceptionStacktraceContent {...props} />);
+    const wrapper = mountWithTheme(
+      <OrganizationContext.Provider value={organization}>
+        <ExceptionStacktraceContent {...props} />
+      </OrganizationContext.Provider>
+    );
     expect(wrapper).toSnapshot();
   });
 
   it('should return an emptyRender', () => {
     const wrapper = mountWithTheme(
-      <ExceptionStacktraceContent {...props} stacktrace={undefined} />
+      <OrganizationContext.Provider value={organization}>
+        <ExceptionStacktraceContent {...props} stacktrace={undefined} />
+      </OrganizationContext.Provider>
     );
     expect(wrapper.isEmptyRender()).toBe(true);
   });
 
   it('should return the EmptyMessage component', () => {
-    const wrapper = mountWithTheme(<ExceptionStacktraceContent {...props} />);
+    const wrapper = mountWithTheme(
+      <OrganizationContext.Provider value={organization}>
+        <ExceptionStacktraceContent {...props} />
+      </OrganizationContext.Provider>
+    );
     const emptyMessageElement = wrapper.find(EmptyMessage).exists();
     expect(emptyMessageElement).toBe(true);
   });
@@ -106,14 +119,20 @@ describe('ExceptionStacktraceContent', () => {
   it('should not return the EmptyMessage component', () => {
     const modifiedProps = cloneDeep(props);
     modifiedProps.stacktrace.frames[0].inApp = true;
-    const wrapper = mountWithTheme(<ExceptionStacktraceContent {...modifiedProps} />);
+    const wrapper = mountWithTheme(
+      <OrganizationContext.Provider value={organization}>
+        <ExceptionStacktraceContent {...modifiedProps} />
+      </OrganizationContext.Provider>
+    );
     const emptyMessageElement = wrapper.find(EmptyMessage).exists();
     expect(emptyMessageElement).toBe(false);
   });
 
   it('should render system frames if "stackView: app" and there are no inApp frames and is a chained exceptions', () => {
     const wrapper = mountWithTheme(
-      <ExceptionStacktraceContent {...props} chainedException />
+      <OrganizationContext.Provider value={organization}>
+        <ExceptionStacktraceContent {...props} chainedException />
+      </OrganizationContext.Provider>
     );
     expect(wrapper.find('Line').length).toBe(2);
   });
@@ -121,8 +140,11 @@ describe('ExceptionStacktraceContent', () => {
   it('should not render system frames if "stackView: app" and there are inApp frames and is a chained exceptions', () => {
     const modifiedProps = cloneDeep(props);
     modifiedProps.stacktrace.frames[0].inApp = true;
+
     const wrapper = mountWithTheme(
-      <ExceptionStacktraceContent {...modifiedProps} chainedException />
+      <OrganizationContext.Provider value={organization}>
+        <ExceptionStacktraceContent {...modifiedProps} chainedException />
+      </OrganizationContext.Provider>
     );
 
     // There must be two elements, one being the inApp frame and the other

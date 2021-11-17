@@ -2,6 +2,7 @@ import * as React from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import color from 'color';
+import capitalize from 'lodash/capitalize';
 import moment from 'moment';
 import momentTimezone from 'moment-timezone';
 
@@ -9,11 +10,11 @@ import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import Button from 'app/components/button';
 import ChartZoom from 'app/components/charts/chartZoom';
-import Graphic from 'app/components/charts/components/graphic';
 import MarkArea from 'app/components/charts/components/markArea';
 import MarkLine from 'app/components/charts/components/markLine';
 import EventsRequest from 'app/components/charts/eventsRequest';
 import LineChart, {LineChartSeries} from 'app/components/charts/lineChart';
+import LineSeries from 'app/components/charts/series/lineSeries';
 import SessionsRequest from 'app/components/charts/sessionsRequest';
 import {SectionHeading} from 'app/components/charts/styles';
 import {
@@ -29,12 +30,15 @@ import space from 'app/styles/space';
 import {AvatarProject, DateString, Organization, Project} from 'app/types';
 import {ReactEchartsRef, Series} from 'app/types/echarts';
 import {getUtcDateString} from 'app/utils/dates';
+import getDynamicText from 'app/utils/getDynamicText';
 import {
   getCrashFreeRateSeries,
   MINUTES_THRESHOLD_TO_DISPLAY_SECONDS,
 } from 'app/utils/sessions';
 import theme from 'app/utils/theme';
+import {checkChangeStatus} from 'app/views/alerts/changeAlerts/comparisonMarklines';
 import {alertDetailsLink} from 'app/views/alerts/details';
+import {COMPARISON_DELTA_OPTIONS} from 'app/views/alerts/incidentRules/constants';
 import {makeDefaultCta} from 'app/views/alerts/incidentRules/incidentRulePresets';
 import {Dataset, IncidentRule} from 'app/views/alerts/incidentRules/types';
 import {AlertWizardAlertNames} from 'app/views/alerts/wizard/options';
@@ -51,9 +55,6 @@ import {
 } from '../../utils';
 
 import {TimePeriodType} from './constants';
-
-const X_AXIS_BOUNDARY_GAP = 20;
-const VERTICAL_PADDING = 22;
 
 type Props = WithRouterProps & {
   api: Client;
@@ -221,8 +222,7 @@ class MetricChart extends React.PureComponent<Props, State> {
     }
   };
 
-  getRuleChangeThresholdElements = (data: LineChartSeries[]): any[] => {
-    const {height, width} = this.state;
+  getRuleChangeSeries = (data: LineChartSeries[]): any[] => {
     const {dateModified} = this.props.rule || {};
 
     if (!data.length || !data[0].data.length || !dateModified) {
@@ -231,40 +231,31 @@ class MetricChart extends React.PureComponent<Props, State> {
 
     const seriesData = data[0].data;
     const seriesStart = moment(seriesData[0].name).valueOf();
-    const seriesEnd = moment(seriesData[seriesData.length - 1].name).valueOf();
     const ruleChanged = moment(dateModified).valueOf();
 
     if (ruleChanged < seriesStart) {
       return [];
     }
 
-    const chartWidth = width - X_AXIS_BOUNDARY_GAP;
-    const position =
-      X_AXIS_BOUNDARY_GAP +
-      Math.round((chartWidth * (ruleChanged - seriesStart)) / (seriesEnd - seriesStart));
-
     return [
       {
         type: 'line',
-        draggable: false,
-        position: [position, 0],
-        shape: {y1: 0, y2: height - VERTICAL_PADDING, x1: 1, x2: 1},
-        style: {
-          stroke: theme.gray200,
-        },
-      },
-      {
-        type: 'rect',
-        draggable: false,
-        position: [X_AXIS_BOUNDARY_GAP, 0],
-        shape: {
-          // +1 makes the gray area go midway onto the dashed line above
-          width: position - X_AXIS_BOUNDARY_GAP + 1,
-          height: height - VERTICAL_PADDING,
-        },
-        style: {
-          fill: color(theme.gray100).alpha(0.42).rgb().string(),
-        },
+        markLine: MarkLine({
+          silent: true,
+          lineStyle: {color: theme.gray200, type: 'solid', width: 1},
+          data: [{xAxis: ruleChanged} as any],
+          label: {
+            show: false,
+          },
+        }),
+        markArea: MarkArea({
+          silent: true,
+          itemStyle: {
+            color: color(theme.gray100).alpha(0.42).rgb().string(),
+          },
+          data: [[{xAxis: seriesStart}, {xAxis: ruleChanged}]] as any,
+        }),
+        data: [],
       },
     ];
   };
@@ -325,7 +316,8 @@ class MetricChart extends React.PureComponent<Props, State> {
   renderChart(
     loading: boolean,
     timeseriesData?: Series[],
-    minutesThresholdToDisplaySeconds?: number
+    minutesThresholdToDisplaySeconds?: number,
+    comparisonTimeseriesData?: Series[]
   ) {
     const {
       router,
@@ -381,6 +373,7 @@ class MetricChart extends React.PureComponent<Props, State> {
     series.push(
       createStatusAreaSeries(theme.green300, firstPoint, lastPoint, minChartValue)
     );
+
     if (incidents) {
       // select incidents that fall within the graph range
       const periodStart = moment.utc(firstPoint);
@@ -519,6 +512,11 @@ class MetricChart extends React.PureComponent<Props, State> {
       maxThresholdValue = Math.max(maxThresholdValue, alertThreshold);
     }
 
+    const comparisonSeriesName = capitalize(
+      COMPARISON_DELTA_OPTIONS.find(({value}) => value === rule.comparisonDelta)?.label ||
+        ''
+    );
+
     return (
       <ChartPanel>
         <StyledPanelBody withPadding>
@@ -528,93 +526,162 @@ class MetricChart extends React.PureComponent<Props, State> {
             </ChartTitle>
             {query ? filter : null}
           </ChartHeader>
-          <ChartZoom
-            router={router}
-            start={start}
-            end={end}
-            onZoom={zoomArgs => handleZoom(zoomArgs.start, zoomArgs.end)}
-          >
-            {zoomRenderProps => (
-              <LineChart
-                {...zoomRenderProps}
-                isGroupedByDate
-                showTimeInTooltip
-                minutesThresholdToDisplaySeconds={minutesThresholdToDisplaySeconds}
-                forwardedRef={this.handleRef}
-                grid={{
-                  left: space(0.25),
-                  right: space(2),
-                  top: space(2),
-                  bottom: 0,
-                }}
-                yAxis={{
-                  axisLabel: {
-                    formatter: (value: number) =>
-                      alertAxisFormatter(
-                        value,
-                        timeseriesData[0].seriesName,
-                        rule.aggregate
+          {getDynamicText({
+            value: (
+              <ChartZoom
+                router={router}
+                start={start}
+                end={end}
+                onZoom={zoomArgs => handleZoom(zoomArgs.start, zoomArgs.end)}
+              >
+                {zoomRenderProps => (
+                  <LineChart
+                    {...zoomRenderProps}
+                    isGroupedByDate
+                    showTimeInTooltip
+                    minutesThresholdToDisplaySeconds={minutesThresholdToDisplaySeconds}
+                    forwardedRef={this.handleRef}
+                    grid={{
+                      left: space(0.25),
+                      right: space(2),
+                      top: space(2),
+                      bottom: 0,
+                    }}
+                    yAxis={{
+                      axisLabel: {
+                        formatter: (value: number) =>
+                          alertAxisFormatter(
+                            value,
+                            timeseriesData[0].seriesName,
+                            rule.aggregate
+                          ),
+                      },
+                      max:
+                        maxThresholdValue > maxSeriesValue
+                          ? maxThresholdValue
+                          : undefined,
+                      min: minChartValue || undefined,
+                    }}
+                    series={[...series, ...areaSeries]}
+                    additionalSeries={[
+                      ...(comparisonTimeseriesData || []).map(
+                        ({data: _data, ...otherSeriesProps}) =>
+                          LineSeries({
+                            name: comparisonSeriesName,
+                            data: _data.map(({name, value}) => [name, value]),
+                            lineStyle: {color: theme.gray200, type: 'dashed', width: 1},
+                            itemStyle: {color: theme.gray200},
+                            animation: false,
+                            animationThreshold: 1,
+                            animationDuration: 0,
+                            ...otherSeriesProps,
+                          })
                       ),
-                  },
-                  max: maxThresholdValue > maxSeriesValue ? maxThresholdValue : undefined,
-                  min: minChartValue || undefined,
-                }}
-                series={[...series, ...areaSeries]}
-                graphic={Graphic({
-                  elements: this.getRuleChangeThresholdElements(timeseriesData),
-                })}
-                tooltip={{
-                  formatter: seriesParams => {
-                    // seriesParams can be object instead of array
-                    const pointSeries = Array.isArray(seriesParams)
-                      ? seriesParams
-                      : [seriesParams];
-                    const {marker, data: pointData, seriesName} = pointSeries[0];
-                    const [pointX, pointY] = pointData as [number, number];
-                    const pointYFormatted = alertTooltipValueFormatter(
-                      pointY,
-                      seriesName ?? '',
-                      rule.aggregate
-                    );
-                    const isModified =
-                      dateModified && pointX <= new Date(dateModified).getTime();
+                      ...this.getRuleChangeSeries(timeseriesData),
+                    ]}
+                    tooltip={{
+                      formatter: seriesParams => {
+                        // seriesParams can be object instead of array
+                        const pointSeries = Array.isArray(seriesParams)
+                          ? seriesParams
+                          : [seriesParams];
+                        const {marker, data: pointData, seriesName} = pointSeries[0];
+                        const [pointX, pointY] = pointData as [number, number];
+                        const pointYFormatted = alertTooltipValueFormatter(
+                          pointY,
+                          seriesName ?? '',
+                          rule.aggregate
+                        );
 
-                    const startTime = formatTooltipDate(moment(pointX), 'MMM D LT');
-                    const {period, periodLength} = parseStatsPeriod(interval) ?? {
-                      periodLength: 'm',
-                      period: `${timeWindow}`,
-                    };
-                    const endTime = formatTooltipDate(
-                      moment(pointX).add(
-                        parseInt(period, 10),
-                        periodLength as StatsPeriodType
-                      ),
-                      'MMM D LT'
-                    );
-                    const title = isModified
-                      ? `<strong>${t('Alert Rule Modified')}</strong>`
-                      : `${marker} <strong>${seriesName}</strong>`;
-                    const value = isModified
-                      ? `${seriesName} ${pointYFormatted}`
-                      : pointYFormatted;
+                        const isModified =
+                          dateModified && pointX <= new Date(dateModified).getTime();
 
-                    return [
-                      `<div class="tooltip-series"><div>`,
-                      `<span class="tooltip-label">${title}</span>${value}`,
-                      `</div></div>`,
-                      `<div class="tooltip-date">${startTime} &mdash; ${endTime}</div>`,
-                      `<div class="tooltip-arrow"></div>`,
-                    ].join('');
-                  },
-                }}
-                onFinished={() => {
-                  // We want to do this whenever the chart finishes re-rendering so that we can update the dimensions of
-                  // any graphics related to the triggers (e.g. the threshold areas + boundaries)
-                  this.updateDimensions();
-                }}
-              />
-            )}
-          </ChartZoom>
+                        const startTime = formatTooltipDate(moment(pointX), 'MMM D LT');
+                        const {period, periodLength} = parseStatsPeriod(interval) ?? {
+                          periodLength: 'm',
+                          period: `${timeWindow}`,
+                        };
+                        const endTime = formatTooltipDate(
+                          moment(pointX).add(
+                            parseInt(period, 10),
+                            periodLength as StatsPeriodType
+                          ),
+                          'MMM D LT'
+                        );
+
+                        const comparisonSeries =
+                          pointSeries.length > 1
+                            ? pointSeries.find(
+                                ({seriesName: _sn}) => _sn === comparisonSeriesName
+                              )
+                            : undefined;
+
+                        const comparisonPointY = comparisonSeries?.data[1] as
+                          | number
+                          | undefined;
+                        const comparisonPointYFormatted =
+                          comparisonPointY !== undefined
+                            ? alertTooltipValueFormatter(
+                                comparisonPointY,
+                                seriesName ?? '',
+                                rule.aggregate
+                              )
+                            : undefined;
+
+                        const changePercentage =
+                          comparisonPointY === undefined
+                            ? NaN
+                            : ((pointY - comparisonPointY) * 100) / comparisonPointY;
+
+                        const changeStatus = checkChangeStatus(
+                          changePercentage,
+                          rule.thresholdType,
+                          rule.triggers
+                        );
+
+                        const changeStatusColor =
+                          changeStatus === 'critical'
+                            ? theme.red300
+                            : changeStatus === 'warning'
+                            ? theme.yellow300
+                            : theme.green300;
+
+                        return [
+                          `<div class="tooltip-series">`,
+                          isModified &&
+                            `<div><span class="tooltip-label"><strong>${t(
+                              'Alert Rule Modified'
+                            )}</strong></span></div>`,
+                          `<div><span class="tooltip-label">${marker} <strong>${seriesName}</strong></span>${pointYFormatted}</div>`,
+                          comparisonSeries &&
+                            `<div><span class="tooltip-label">${comparisonSeries.marker} <strong>${comparisonSeriesName}</strong></span>${comparisonPointYFormatted}</div>`,
+                          `</div>`,
+                          `<div class="tooltip-date">`,
+                          `<span>${startTime} &mdash; ${endTime}</span>`,
+                          comparisonPointY !== undefined &&
+                            Math.abs(changePercentage) !== Infinity &&
+                            !isNaN(changePercentage) &&
+                            `<span style="color:${changeStatusColor};margin-left:10px;">${
+                              Math.sign(changePercentage) === 1 ? '+' : '-'
+                            }${Math.abs(changePercentage).toFixed(2)}%</span>`,
+                          `</div>`,
+                          `<div class="tooltip-arrow"></div>`,
+                        ]
+                          .filter(e => e)
+                          .join('');
+                      },
+                    }}
+                    onFinished={() => {
+                      // We want to do this whenever the chart finishes re-rendering so that we can update the dimensions of
+                      // any graphics related to the triggers (e.g. the threshold areas + boundaries)
+                      this.updateDimensions();
+                    }}
+                  />
+                )}
+              </ChartZoom>
+            ),
+            fixed: <Placeholder height="200px" testId="skeleton-ui" />,
+          })}
         </StyledPanelBody>
         {this.renderChartActions(totalDuration, criticalDuration, warningDuration)}
       </ChartPanel>
@@ -694,6 +761,7 @@ class MetricChart extends React.PureComponent<Props, State> {
           .filter(p => p && p.slug)
           .map(project => Number(project.id))}
         interval={interval}
+        comparisonDelta={rule.comparisonDelta ? rule.comparisonDelta * 60 : undefined}
         start={viableStartDate}
         end={viableEndDate}
         yAxis={aggregate}
@@ -702,7 +770,9 @@ class MetricChart extends React.PureComponent<Props, State> {
         partial={false}
         referrer="api.alerts.alert-rule-chart"
       >
-        {({loading, timeseriesData}) => this.renderChart(loading, timeseriesData)}
+        {({loading, timeseriesData, comparisonTimeseriesData}) =>
+          this.renderChart(loading, timeseriesData, undefined, comparisonTimeseriesData)
+        }
       </EventsRequest>
     );
   }

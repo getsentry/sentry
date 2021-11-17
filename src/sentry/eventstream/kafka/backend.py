@@ -69,9 +69,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         def strip_none_values(value: Mapping[str, Optional[str]]) -> Mapping[str, str]:
             return {key: value for key, value in value.items() if value is not None}
 
-        # TODO: Change transaction_forwarder to be intelligent once transaction post process forwarder
-        #       is implemented and caught up with current events post process forwarder.
-        transaction_forwarder = False
+        transaction_forwarder = True if event.group_id is None else False
 
         send_new_headers = options.get("eventstream:kafka-headers")
 

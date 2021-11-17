@@ -5,7 +5,6 @@ import pytest
 from sentry.lang.native import symbolicator
 from sentry.lang.native.symbolicator import get_sources_for_project, redact_internal_sources
 from sentry.testutils.helpers import Feature
-from sentry.utils.compat import map
 
 CUSTOM_SOURCE_CONFIG = """
 [{
@@ -39,7 +38,7 @@ def test_sources_builtin(default_project):
         sources = get_sources_for_project(default_project)
 
     # XXX: The order matters here! Project is always first, then builtin sources
-    source_ids = map(lambda s: s["id"], sources)
+    source_ids = list(map(lambda s: s["id"], sources))
     assert source_ids == ["sentry:project", "sentry:microsoft"]
 
 
@@ -54,7 +53,7 @@ def test_sources_builtin_unknown(default_project):
     with Feature(features):
         sources = get_sources_for_project(default_project)
 
-    source_ids = map(lambda s: s["id"], sources)
+    source_ids = list(map(lambda s: s["id"], sources))
     assert source_ids == ["sentry:project"]
 
 
@@ -69,7 +68,7 @@ def test_sources_builtin_disabled(default_project):
     with Feature(features):
         sources = get_sources_for_project(default_project)
 
-    source_ids = map(lambda s: s["id"], sources)
+    source_ids = list(map(lambda s: s["id"], sources))
     assert source_ids == ["sentry:project"]
 
 
@@ -85,7 +84,7 @@ def test_sources_custom(default_project):
         sources = get_sources_for_project(default_project)
 
     # XXX: The order matters here! Project is always first, then custom sources
-    source_ids = map(lambda s: s["id"], sources)
+    source_ids = list(map(lambda s: s["id"], sources))
     assert source_ids == ["sentry:project", "custom"]
 
 
@@ -101,7 +100,7 @@ def test_sources_custom_disabled(default_project):
     with Feature(features):
         sources = get_sources_for_project(default_project)
 
-    source_ids = map(lambda s: s["id"], sources)
+    source_ids = list(map(lambda s: s["id"], sources))
     assert source_ids == ["sentry:project"]
 
 

@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import re
 
 from django.utils.text import slugify
 from django.utils.translation import ugettext_lazy as _
 
-from sentry import http, options
+from sentry import options
 from sentry.integrations import (
     FeatureDescription,
     IntegrationFeatures,
@@ -118,7 +120,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
     def search_issues(self, query):
         return self.get_client().search_issues(query)
 
-    def format_source_url(self, repo, filepath, branch):
+    def format_source_url(self, repo: Repository, filepath: str, branch: str) -> str:
         # Must format the url ourselves since `check_file` is a head request
         # "https://github.com/octokit/octokit.rb/blob/master/README.md"
         return f"https://github.com/{repo.name}/blob/{branch}/{filepath}"
@@ -177,6 +179,9 @@ class GitHubIntegrationProvider(IntegrationProvider):
 
     setup_dialog_config = {"width": 1030, "height": 1000}
 
+    def get_client(self):
+        return GitHubAppsClient(integration=self.integration_cls)
+
     def post_install(self, integration, organization, extra=None):
         repo_ids = Repository.objects.filter(
             organization_id=organization.id,
@@ -197,19 +202,15 @@ class GitHubIntegrationProvider(IntegrationProvider):
         return [GitHubInstallationRedirect()]
 
     def get_installation_info(self, installation_id):
+        client = self.get_client()
         headers = {
             # TODO(jess): remove this whenever it's out of preview
             "Accept": "application/vnd.github.machine-man-preview+json",
         }
         headers.update(jwt.authorization_header(get_jwt()))
-        with http.build_session() as session:
-            resp = session.get(
-                f"https://api.github.com/app/installations/{installation_id}", headers=headers
-            )
-            resp.raise_for_status()
-        installation_resp = resp.json()
+        resp = client.get(f"/app/installations/{installation_id}", headers=headers)
 
-        return installation_resp
+        return resp
 
     def build_integration(self, state):
         installation = self.get_installation_info(state["installation_id"])

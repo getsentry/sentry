@@ -152,12 +152,16 @@ class RawContent extends React.Component<Props, State> {
   }
 
   render() {
-    const {values} = this.props;
+    const {values, organization} = this.props;
     const isNative = this.isNative();
 
     if (!values) {
       return null;
     }
+
+    const hasNativeStackTraceV2 = !!organization?.features?.includes(
+      'native-stack-trace-v2'
+    );
 
     return (
       <React.Fragment>
@@ -167,8 +171,8 @@ class RawContent extends React.Component<Props, State> {
             return null;
           }
           return (
-            <div key={excIdx}>
-              {downloadButton}
+            <div key={excIdx} data-test-id="raw-stack-trace">
+              {!hasNativeStackTraceV2 ? downloadButton : null}
               <pre className="traceback plain">{content}</pre>
             </div>
           );

@@ -1,10 +1,13 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {act} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'app/stores/projectsStore';
 import UserFeedback from 'app/views/userFeedback';
 
 describe('UserFeedback', function () {
+  enforceActOnUseLegacyStoreHook();
+
   const {organization, routerContext} = initializeOrg();
   const pageLinks =
     '<https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", ' +
@@ -13,7 +16,7 @@ describe('UserFeedback', function () {
   const project = TestStubs.Project({isMember: true});
 
   beforeEach(function () {
-    ProjectsStore.loadInitialData([project]);
+    act(() => ProjectsStore.loadInitialData([project]));
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/user-feedback/',
@@ -28,7 +31,7 @@ describe('UserFeedback', function () {
   });
 
   afterEach(function () {
-    ProjectsStore.reset();
+    act(() => ProjectsStore.reset());
   });
 
   it('renders', async function () {
@@ -54,7 +57,7 @@ describe('UserFeedback', function () {
   });
 
   it('renders no project message', function () {
-    ProjectsStore.loadInitialData([]);
+    act(() => ProjectsStore.loadInitialData([]));
 
     const params = {
       organization: TestStubs.Organization(),

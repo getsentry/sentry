@@ -228,28 +228,6 @@ def js_lint_format(file_list=None):
     return has_errors or has_package_json_errors
 
 
-def js_test(file_list=None):
-    """
-    Run JavaScript unit tests on relevant files ONLY as part of pre-commit hook
-    """
-    jest_path = get_node_modules_bin("jest")
-
-    if not os.path.exists(jest_path):
-        sys.stdout.write(
-            "[sentry.test] Skipping JavaScript testing because jest is not installed.\n"
-        )
-        return False
-
-    js_file_list = get_js_files(file_list)
-
-    has_errors = False
-    if js_file_list:
-        status = Popen(["yarn", "test-precommit"] + js_file_list).wait()
-        has_errors = status != 0
-
-    return has_errors
-
-
 def less_format(file_list=None):
     """
     We only format less code as part of this pre-commit hook. It is not part
@@ -300,10 +278,8 @@ def run(
     format=True,
     lint=True,
     js=True,
-    py=True,
     less=True,
     yarn=True,
-    test=False,
     parseable=False,
 ):
     old_sysargv = sys.argv
@@ -321,9 +297,6 @@ def run(
             return 1
 
         if format:
-            if py:
-                # python autoformatting is now done via pre-commit (black)
-                pass
             if js:
                 # run eslint with --fix and skip these linters down below
                 results.append(js_lint_format(file_list))
@@ -335,8 +308,6 @@ def run(
             return 1
 
         if lint:
-            if py:
-                pass  # flake8 linting was moved to pre-commit
             if js:
                 # stylelint `--fix` doesn't work well
                 results.append(js_stylelint(file_list, parseable=parseable, format=format))
@@ -344,10 +315,6 @@ def run(
                 if not format:
                     # these tasks are called when we need to format, so skip it here
                     results.append(js_lint(file_list, parseable=parseable, format=format))
-
-        if test:
-            if js:
-                results.append(js_test(file_list))
 
         if any(results):
             return 1

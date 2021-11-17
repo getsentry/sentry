@@ -11,20 +11,20 @@ const eventId = '0987654321fedcba';
 function renderQuickTrace({isLoading, error, trace, type}) {
   if (isLoading) {
     return 'loading';
-  } else if (error !== null) {
-    return error;
-  } else {
-    return (
-      <Fragment>
-        <div key="type" data-test-id="type">
-          {type}
-        </div>
-        <div key="trace" data-test-id="trace">
-          {trace.length}
-        </div>
-      </Fragment>
-    );
   }
+  if (error !== null) {
+    return error;
+  }
+  return (
+    <Fragment>
+      <div key="type" data-test-id="type">
+        {type}
+      </div>
+      <div key="trace" data-test-id="trace">
+        {trace.length}
+      </div>
+    </Fragment>
+  );
 }
 
 describe('TraceLiteQuery', function () {
@@ -44,15 +44,11 @@ describe('TraceLiteQuery', function () {
       },
       type: 'transaction',
     };
-    traceLiteMock = MockApiClient.addMockResponse(
-      {
-        url: `/organizations/test-org/events-trace-light/${traceId}/`,
-        body: [],
-      },
-      {
-        predicate: (_, {query}) => query.event_id === eventId,
-      }
-    );
+    traceLiteMock = MockApiClient.addMockResponse({
+      url: `/organizations/test-org/events-trace-light/${traceId}/`,
+      body: [],
+      match: [MockApiClient.matchQuery({event_id: eventId})],
+    });
     traceFullMock = MockApiClient.addMockResponse({
       url: `/organizations/test-org/events-trace/${traceId}/`,
       body: [],
@@ -127,15 +123,11 @@ describe('TraceLiteQuery', function () {
   });
 
   it('uses full results when it finds current event', async function () {
-    traceLiteMock = MockApiClient.addMockResponse(
-      {
-        url: `/organizations/test-org/events-trace-light/0${traceId}/`,
-        body: [],
-      },
-      {
-        predicate: (_, {query}) => query.event_id === eventId,
-      }
-    );
+    traceLiteMock = MockApiClient.addMockResponse({
+      url: `/organizations/test-org/events-trace-light/0${traceId}/`,
+      body: [],
+      match: [MockApiClient.matchQuery({event_id: eventId})],
+    });
     traceFullMock = MockApiClient.addMockResponse({
       url: `/organizations/test-org/events-trace/0${traceId}/`,
       body: [{event_id: eventId, children: []}],

@@ -17,14 +17,9 @@ from sentry.models import (
 )
 from sentry.notifications.types import NotificationScopeType
 from sentry.testutils import TestCase
+from sentry.testutils.helpers import add_identity, get_response_text, install_slack, link_team
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
-from tests.sentry.integrations.slack import (
-    add_identity,
-    get_response_text,
-    install_slack,
-    link_team,
-)
 
 
 class SlackIntegrationLinkTeamTestBase(TestCase):

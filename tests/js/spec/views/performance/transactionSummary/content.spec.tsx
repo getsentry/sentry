@@ -7,7 +7,6 @@ import SummaryContent from 'app/views/performance/transactionSummary/transaction
 
 function initialize(projects, query, additionalFeatures: string[] = []) {
   const features = ['transaction-event', 'performance-view', ...additionalFeatures];
-  // @ts-expect-error
   const organization = TestStubs.Organization({
     features,
     projects,
@@ -48,48 +47,39 @@ function initialize(projects, query, additionalFeatures: string[] = []) {
 
 describe('Transaction Summary Content', function () {
   beforeEach(function () {
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       method: 'GET',
       url: '/prompts-activity/',
       body: {},
     });
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',
       body: [],
     });
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/eventsv2/',
       body: {data: [{'event.type': 'error'}], meta: {'event.type': 'string'}},
     });
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/',
       body: [],
     });
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/?limit=5&query=is%3Aunresolved%20transaction%3Aexample-transaction&sort=new&statsPeriod=14d',
       body: [],
     });
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-facets/',
       body: [],
     });
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/stats/',
       body: [],
     });
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: [],
     });
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-facets-performance/',
       body: {},
@@ -102,12 +92,10 @@ describe('Transaction Summary Content', function () {
   });
 
   afterEach(function () {
-    // @ts-expect-error
     MockApiClient.clearMockResponses();
   });
 
   it('Basic Rendering', async function () {
-    // @ts-expect-error
     const projects = [TestStubs.Project()];
     const {
       organization,
@@ -116,7 +104,6 @@ describe('Transaction Summary Content', function () {
       spanOperationBreakdownFilter,
       transactionName,
     } = initialize(projects, {});
-    // @ts-expect-error
     const routerContext = TestStubs.routerContext([{organization}]);
 
     const wrapper = mountWithTheme(
@@ -134,7 +121,6 @@ describe('Transaction Summary Content', function () {
       routerContext
     );
 
-    // @ts-expect-error
     await tick();
     wrapper.update();
 
@@ -155,7 +141,6 @@ describe('Transaction Summary Content', function () {
   });
 
   it('Renders with generatePerformanceTransactionEventsView instead when feature flagged', async function () {
-    // @ts-expect-error
     const projects = [TestStubs.Project()];
     const {
       organization,
@@ -164,7 +149,6 @@ describe('Transaction Summary Content', function () {
       spanOperationBreakdownFilter,
       transactionName,
     } = initialize(projects, {}, ['performance-events-page']);
-    // @ts-expect-error
     const routerContext = TestStubs.routerContext([{organization}]);
 
     const wrapper = mountWithTheme(
@@ -182,7 +166,6 @@ describe('Transaction Summary Content', function () {
       routerContext
     );
 
-    // @ts-expect-error
     await tick();
     wrapper.update();
 
@@ -203,7 +186,6 @@ describe('Transaction Summary Content', function () {
   });
 
   it('Renders TransactionSummaryCharts withoutZerofill when feature flagged', async function () {
-    // @ts-expect-error
     const projects = [TestStubs.Project()];
     const {
       organization,
@@ -215,7 +197,6 @@ describe('Transaction Summary Content', function () {
       'performance-events-page',
       'performance-chart-interpolation',
     ]);
-    // @ts-expect-error
     const routerContext = TestStubs.routerContext([{organization}]);
 
     const wrapper = mountWithTheme(
@@ -233,7 +214,6 @@ describe('Transaction Summary Content', function () {
       routerContext
     );
 
-    // @ts-expect-error
     await tick();
     wrapper.update();
 

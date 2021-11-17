@@ -24,8 +24,9 @@ class ExternalTeamDetailsEndpoint(TeamEndpoint, ExternalActorEndpointMixin):  # 
         **kwargs: Any,
     ) -> Tuple[Any, Any]:
         args, kwargs = super().convert_args(request, organization_slug, team_slug, *args, **kwargs)
-
-        kwargs["external_team"] = self.get_external_actor_or_404(external_team_id)
+        kwargs["external_team"] = self.get_external_actor_or_404(
+            external_team_id, kwargs["team"].organization
+        )
         return args, kwargs
 
     def put(self, request: Request, team: Team, external_team: ExternalActor) -> Response:
@@ -63,7 +64,5 @@ class ExternalTeamDetailsEndpoint(TeamEndpoint, ExternalActorEndpointMixin):  # 
         """
         Delete an External Team
         """
-        self.assert_has_feature(request, team.organization)
-
         external_team.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
