@@ -6,6 +6,7 @@ from django.db.models.functions import TruncDay
 from django.utils.timezone import now
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.utils import get_date_range_from_params
@@ -17,6 +18,8 @@ class TeamReleaseCountEndpoint(TeamEndpoint, EnvironmentMixin):
         """
         Returns a dict of team projects, and a time-series list of release counts for each.
         """
+        if not features.has("organizations:team-insights", team.organization, actor=request.user):
+            return Response({"detail": "You do not have the insights feature enabled"}, status=400)
         project_list = Project.objects.get_for_team_ids(team_ids=[team.id])
         start, end = get_date_range_from_params(request.GET)
         end = end.date() + timedelta(days=1)
