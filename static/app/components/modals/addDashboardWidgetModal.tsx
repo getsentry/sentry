@@ -599,20 +599,18 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
               {t('Read the docs')}
             </Button>
             <ButtonBar gap={1}>
-              {fromLibrary ? (
+              {fromLibrary && dashboard && onAddLibraryWidget ? (
                 <Button
                   data-test-id="back-to-library"
                   type="button"
                   onClick={() => {
-                    if (dashboard && onAddLibraryWidget) {
-                      openDashboardWidgetLibraryModal({
-                        organization,
-                        dashboard,
-                        customWidget: this.state,
-                        initialSelectedWidgets: selectedWidgets,
-                        onAddWidget: onAddLibraryWidget,
-                      });
-                    }
+                    openDashboardWidgetLibraryModal({
+                      organization,
+                      dashboard,
+                      customWidget: this.state,
+                      initialSelectedWidgets: selectedWidgets,
+                      onAddWidget: onAddLibraryWidget,
+                    });
                   }}
                 >
                   {t('Back to Library')}
