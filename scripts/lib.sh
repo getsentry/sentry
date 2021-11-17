@@ -117,7 +117,7 @@ install-py-dev() {
         pip install https://storage.googleapis.com/python-arm64-wheels/confluent_kafka-1.5.0-cp38-cp38-macosx_11_0_arm64.whl
         # uwsgi does not properly install via pyenv Python installations
         # https://github.com/unbit/uwsgi/issues/2361
-        pip install https://storage.googleapis.com/python-arm64-wheels/uWSGI-2.0.19.1-cp38-cp38-macosx_11_0_universal2.whl
+        LDFLAGS=-L/opt/homebrew/Cellar/gettext/0.21/lib  pip install "uWSGI==2.0.19.1"
     fi
     # This hack is until we can upgrade to a newer version of Selenium
     fx_profile=.venv/lib/python3.8/site-packages/selenium/webdriver/firefox/firefox_profile.py
