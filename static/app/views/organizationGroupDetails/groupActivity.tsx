@@ -184,10 +184,11 @@ class GroupActivity extends Component<Props, State> {
                         item.data.assigneeType === 'team'
                     )
                     .map(item => (item as GroupActivityAssigned).data?.assignee)
+                    .filter(id => id)
                 )}
               >
-                {({fetching}) =>
-                  !fetching ? (
+                {({initiallyLoaded}) =>
+                  initiallyLoaded ? (
                     group.activity.map(item => {
                       const authorName = item.user ? item.user.name : 'Sentry';
 
