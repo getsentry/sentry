@@ -5,7 +5,7 @@ from django.utils.translation import ugettext as _
 
 from sentry import features, options
 from sentry.app import ratelimiter
-from sentry.models import Authenticator, OrganizationMember
+from sentry.models import Authenticator
 from sentry.utils import auth, json
 from sentry.web.forms.accounts import TwoFactorForm
 from sentry.web.frontend.base import BaseView
@@ -18,9 +18,13 @@ COOKIE_MAX_AGE = 60 * 60 * 24 * 31
 class TwoFactorAuthView(BaseView):
     auth_required = False
 
-    def _get_org_from_user(self, user):
-        orgs = OrganizationMember.objects.filter(user_id=user.id)
-        return orgs
+    def _is_webauthn_signin_ff_enabled(self, user, request_user):
+        orgs = user.get_orgs()
+        if any(
+            features.has("organizations:webauthn-login", org, actor=request_user) for org in orgs
+        ):
+            return True
+        return False
 
     def perform_signin(self, request, user, interface=None):
         assert auth.login(request, user, passed_2fa=True)
@@ -147,21 +151,14 @@ class TwoFactorAuthView(BaseView):
             self.fail_signin(request, user, form)
 
         # check if webauthn-login feature flag is enabled for frontend
-        is_webauthn_signin_ff_enabled = False
-        orgs = self._get_org_from_user(user)
-        if any(
-            features.has("organizations:webauthn-login", org, actor=request.user) for org in orgs
-        ):
-            is_webauthn_signin_ff_enabled = True
+        webauthn_signin_ff = self._is_webauthn_signin_ff_enabled(user, request.user)
 
         #  If a challenge and response exists, validate
         if challenge:
             response = request.POST.get("response")
             if response:
                 response = json.loads(response)
-                if interface.validate_response(
-                    request, challenge, response, is_webauthn_signin_ff_enabled
-                ):
+                if interface.validate_response(request, challenge, response, webauthn_signin_ff):
                     return self.perform_signin(request, user, interface)
                 self.fail_signin(request, user, form)
 
@@ -172,7 +169,7 @@ class TwoFactorAuthView(BaseView):
                 "interface": interface,
                 "other_interfaces": self.get_other_interfaces(interface, interfaces),
                 "activation": activation,
-                "isWebauthnSigninFFEnabled": is_webauthn_signin_ff_enabled,
+                "isWebauthnSigninFFEnabled": webauthn_signin_ff,
             },
             request,
             status=200,

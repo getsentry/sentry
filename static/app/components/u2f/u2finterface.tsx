@@ -41,10 +41,7 @@ class U2fInterface extends React.Component<Props, State> {
   };
 
   async componentDidMount() {
-    let supported = false;
-    if (window.PublicKeyCredential) {
-      supported = true;
-    }
+    const supported = !!window.PublicKeyCredential;
 
     // eslint-disable-next-line react/no-did-mount-set-state
     this.setState({isSupported: supported});
@@ -52,6 +49,19 @@ class U2fInterface extends React.Component<Props, State> {
     if (supported) {
       this.invokeU2fFlow();
     }
+  }
+
+  getU2FResponse(data) {
+    if (data.response) {
+      const authenticatorData = {
+        keyHandle: data.id,
+        clientData: bufferToBase64url(data.response.clientDataJSON),
+        signatureData: bufferToBase64url(data.response.signature),
+        authenticatorData: bufferToBase64url(data.response.authenticatorData),
+      };
+      return JSON.stringify(authenticatorData);
+    }
+    return JSON.stringify(data);
   }
 
   submitU2fResponse(promise) {
@@ -62,17 +72,7 @@ class U2fInterface extends React.Component<Props, State> {
             hasBeenTapped: true,
           },
           () => {
-            let u2fResponse = JSON.stringify(data);
-            // below is to check if its a webauthn returned object which is a AuthenticatorAssertionResponse
-            if (typeof data.response !== 'undefined') {
-              const authenticatorData = {
-                keyHandle: data.id,
-                clientData: bufferToBase64url(data.response.clientDataJSON),
-                signatureData: bufferToBase64url(data.response.signature),
-                authenticatorData: bufferToBase64url(data.response.authenticatorData),
-              };
-              u2fResponse = JSON.stringify(authenticatorData);
-            }
+            const u2fResponse = this.getU2FResponse(data);
             const challenge = JSON.stringify(this.props.challengeData);
 
             if (this.state.responseElement) {
@@ -126,10 +126,13 @@ class U2fInterface extends React.Component<Props, State> {
       });
   }
 
-  webAuthnSignIn(authRequest) {
+  webAuthnSignIn(authenticateRequests) {
     const credentials = [] as any;
+    // challenge and appId are the same for each device in authenticateRequests
+    const challenge = authenticateRequests[0].challenge;
+    const appId = authenticateRequests[0].appId;
 
-    authRequest.forEach(device => {
+    authenticateRequests.forEach(device => {
       credentials.push({
         id: base64urlToBuffer(device.keyHandle),
         type: 'public-key',
@@ -138,11 +141,11 @@ class U2fInterface extends React.Component<Props, State> {
     });
 
     const publicKeyCredentialRequestOptions = {
-      challenge: base64urlToBuffer(authRequest[0].challenge),
+      challenge: base64urlToBuffer(challenge),
       allowCredentials: credentials,
       userVerification: 'discouraged',
       extensions: {
-        appid: authRequest[0].appId,
+        appid: appId,
       },
     } as PublicKeyCredentialRequestOptions;
 
