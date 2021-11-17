@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 import set from 'lodash/set';
 
+import {validateWidget} from 'app/actionCreators/dashboards';
 import {addSuccessMessage} from 'app/actionCreators/indicator';
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
@@ -91,7 +92,14 @@ class AddDashboardIssueWidgetModal extends React.Component<Props, State> {
   handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
-    const {onAddWidget, onUpdateWidget, closeModal, widget: previousWidget} = this.props;
+    const {
+      api,
+      organization,
+      onAddWidget,
+      onUpdateWidget,
+      closeModal,
+      widget: previousWidget,
+    } = this.props;
     this.setState({loading: true});
     let errors: FlatValidationError = {};
     const widgetData: Widget = {
@@ -102,6 +110,7 @@ class AddDashboardIssueWidgetModal extends React.Component<Props, State> {
       widgetType: this.state.widgetType,
     };
     try {
+      await validateWidget(api, organization.slug, widgetData);
       if (defined(onUpdateWidget) && !!previousWidget) {
         onUpdateWidget({
           id: previousWidget?.id,

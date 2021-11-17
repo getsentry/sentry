@@ -181,8 +181,7 @@ class IssueWidgetCard extends React.Component<Props> {
                       ? renderErrorMessage(errorMessage)
                       : null}
                     <LoadingScreen loading={loading} />
-                    {tableResults &&
-                      this.tableResultComponent({tableResults, loading, errorMessage})}
+                    {this.tableResultComponent({tableResults, loading, errorMessage})}
                     {this.renderToolbar()}
                   </React.Fragment>
                 );

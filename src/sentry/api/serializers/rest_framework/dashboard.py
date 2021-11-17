@@ -92,35 +92,49 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
         else:
             resolved_equations = []
 
-        if False:  # Query is issue query
-            try:
-                parse_search_query(conditions)
-            except InvalidSearchQuery as err:
-                raise serializers.ValidationError({"conditions": f"Invalid conditions: {err}"})
+        try:
+            parse_search_query(conditions)
+        except InvalidSearchQuery as err:
+            # We don't know if the widget that this query belongs to is an
+            # Issue widget or Discover widget. Pass the error back to the
+            # Widget serializer to decide if whether or not to raise this
+            # error based on the Widget's type
+            data["issue_query_error"] = serializers.ValidationError(
+                {"conditions": f"Invalid conditions: {err}"}
+            )
 
-        else:  # Query is discover query
-            try:
-                # When using the eps/epm functions, they require an interval argument
-                # or to provide the start/end so that the interval can be computed.
-                # This uses a hard coded start/end to ensure the validation succeeds
-                # since the values themselves don't matter.
-                params = {
-                    "start": datetime.now() - timedelta(days=1),
-                    "end": datetime.now(),
-                    "project_id": [p.id for p in self.context.get("projects")],
-                    "organization_id": self.context.get("organization").id,
-                }
+        try:
+            # When using the eps/epm functions, they require an interval argument
+            # or to provide the start/end so that the interval can be computed.
+            # This uses a hard coded start/end to ensure the validation succeeds
+            # since the values themselves don't matter.
+            params = {
+                "start": datetime.now() - timedelta(days=1),
+                "end": datetime.now(),
+                "project_id": [p.id for p in self.context.get("projects")],
+                "organization_id": self.context.get("organization").id,
+            }
 
-                snuba_filter = get_filter(conditions, params=params)
-            except InvalidSearchQuery as err:
-                raise serializers.ValidationError({"conditions": f"Invalid conditions: {err}"})
+            snuba_filter = get_filter(conditions, params=params)
+        except InvalidSearchQuery as err:
+            data["discover_query_error"] = serializers.ValidationError(
+                {"conditions": f"Invalid conditions: {err}"}
+            )
+            return data
 
-            if orderby:
-                snuba_filter.orderby = get_function_alias(orderby)
-            try:
-                resolve_field_list(fields, snuba_filter, resolved_equations=resolved_equations)
-            except InvalidSearchQuery as err:
-                raise serializers.ValidationError({"fields": f"Invalid fields: {err}"})
+        if orderby:
+            snuba_filter.orderby = get_function_alias(orderby)
+        try:
+            resolve_field_list(fields, snuba_filter, resolved_equations=resolved_equations)
+        except InvalidSearchQuery as err:
+            # We don't know if the widget that this query belongs to is an
+            # Issue widget or Discover widget. Pass the error back to the
+            # Widget serializer to decide if whether or not to raise this
+            # error based on the Widget's type
+            data["discover_query_error"] = serializers.ValidationError(
+                {"fields": f"Invalid fields: {err}"}
+            )
+
         return data
 
     def _get_attr(self, data, attr, empty_value=None):
@@ -140,11 +154,9 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
         choices=DashboardWidgetDisplayTypes.as_text_choices(), required=False
     )
     interval = serializers.CharField(required=False, max_length=10)
+    queries = DashboardWidgetQuerySerializer(many=True, required=False)
     widget_type = serializers.ChoiceField(
         choices=DashboardWidgetTypes.as_text_choices(), required=False
-    )
-    queries = DashboardWidgetQuerySerializer(
-        many=True, required=False, context={"widget_type": widget_type}
     )
 
     def validate_display_type(self, display_type):
@@ -161,11 +173,21 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
         return interval
 
     def validate(self, data):
+        is_issue_widget = (
+            data.get("widget_type")
+            == DashboardWidgetTypes.as_text_choices()[DashboardWidgetTypes.ISSUE][0]
+        )
         if not data.get("id"):
             if not data.get("queries"):
                 raise serializers.ValidationError(
                     {"queries": "One or more queries are required to create a widget"}
                 )
+            # Check each query to see if they have an issue or discover error depending on the type of the widget
+            for query in data.get("queries"):
+                if is_issue_widget and "issue_query_error" in query:
+                    raise query["issue_query_error"]
+                elif not is_issue_widget and "discover_query_error" in query:
+                    raise query["discover_query_error"]
             if not data.get("title"):
                 raise serializers.ValidationError({"title": "Title is required during creation."})
             if data.get("display_type") is None:
