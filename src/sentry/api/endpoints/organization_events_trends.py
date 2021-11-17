@@ -57,7 +57,7 @@ class TrendQueryBuilder(QueryBuilder):
     ) -> Optional[WhereType]:
         name = aggregate_filter.key.name
 
-        if name in self.params.get("aliases"):
+        if name in self.params.get("aliases", {}):
             return self.params["aliases"][name].converter(aggregate_filter)
         else:
             return super().convert_aggregate_filter_to_condition(aggregate_filter)
