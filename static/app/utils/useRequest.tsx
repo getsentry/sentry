@@ -17,8 +17,8 @@ type State = {
    */
   error: null | RequestError;
   /**
-   * Indicates that Team results (from API) are paginated and there are more
-   * Teams that are not in the initial response.
+   * Indicates that results (from API) are paginated and there are more
+   * that are not in the initial response.
    */
   hasMore: null | boolean;
   /**
