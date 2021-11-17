@@ -50,6 +50,7 @@ type Props = WithRouterProps & {
   hideToolbar?: boolean;
   draggableProps?: DraggableProps;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
+  noLazyLoad?: boolean;
 };
 
 class WidgetCard extends React.Component<Props> {
@@ -199,9 +200,43 @@ class WidgetCard extends React.Component<Props> {
     );
   }
 
-  render() {
+  renderChart() {
     const {widget, api, organization, selection, renderErrorMessage, location, router} =
       this.props;
+    return (
+      <WidgetQueries
+        api={api}
+        organization={organization}
+        widget={widget}
+        selection={selection}
+      >
+        {({tableResults, timeseriesResults, errorMessage, loading}) => {
+          return (
+            <React.Fragment>
+              {typeof renderErrorMessage === 'function'
+                ? renderErrorMessage(errorMessage)
+                : null}
+              <WidgetCardChart
+                timeseriesResults={timeseriesResults}
+                tableResults={tableResults}
+                errorMessage={errorMessage}
+                loading={loading}
+                location={location}
+                widget={widget}
+                selection={selection}
+                router={router}
+                organization={organization}
+              />
+              {this.renderToolbar()}
+            </React.Fragment>
+          );
+        }}
+      </WidgetQueries>
+    );
+  }
+
+  render() {
+    const {widget, noLazyLoad} = this.props;
     return (
       <ErrorBoundary
         customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
@@ -211,36 +246,13 @@ class WidgetCard extends React.Component<Props> {
             <WidgetTitle>{widget.title}</WidgetTitle>
             {this.renderContextMenu()}
           </WidgetHeader>
-          <LazyLoad once height={200}>
-            <WidgetQueries
-              api={api}
-              organization={organization}
-              widget={widget}
-              selection={selection}
-            >
-              {({tableResults, timeseriesResults, errorMessage, loading}) => {
-                return (
-                  <React.Fragment>
-                    {typeof renderErrorMessage === 'function'
-                      ? renderErrorMessage(errorMessage)
-                      : null}
-                    <WidgetCardChart
-                      timeseriesResults={timeseriesResults}
-                      tableResults={tableResults}
-                      errorMessage={errorMessage}
-                      loading={loading}
-                      location={location}
-                      widget={widget}
-                      selection={selection}
-                      router={router}
-                      organization={organization}
-                    />
-                    {this.renderToolbar()}
-                  </React.Fragment>
-                );
-              }}
-            </WidgetQueries>
-          </LazyLoad>
+          {noLazyLoad ? (
+            this.renderChart()
+          ) : (
+            <LazyLoad once resize height={200}>
+              {this.renderChart()}
+            </LazyLoad>
+          )}
         </StyledPanel>
       </ErrorBoundary>
     );

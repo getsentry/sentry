@@ -83,6 +83,7 @@ def _filter_releases_by_query(queryset, organization, query, filter_params):
             queryset = queryset.filter(query_q)
 
         if search_filter.key.name == RELEASE_ALIAS:
+            query_q = Q()
             if search_filter.value.is_wildcard():
                 raw_value = search_filter.value.raw_value
                 if raw_value.endswith("*") and raw_value.startswith("*"):
@@ -185,17 +186,17 @@ def debounce_update_release_health_data(organization, project_ids):
                 # should not happen
                 continue
 
-        # We might have never observed the release.  This for instance can
-        # happen if the release only had health data so far.  For these cases
-        # we want to create the release the first time we observed it on the
-        # health side.
-        release = Release.get_or_create(
-            project=project, version=version, date_added=dates.get((project_id, version))
-        )
+            # We might have never observed the release.  This for instance can
+            # happen if the release only had health data so far.  For these cases
+            # we want to create the release the first time we observed it on the
+            # health side.
+            release = Release.get_or_create(
+                project=project, version=version, date_added=dates.get((project_id, version))
+            )
 
-        # Make sure that the release knows about this project.  Like we had before
-        # the project might not have been associated with this release yet.
-        release.add_project(project)
+            # Make sure that the release knows about this project.  Like we had before
+            # the project might not have been associated with this release yet.
+            release.add_project(project)
 
     # Debounce updates for a minute
     cache.set_many(dict(izip(should_update.values(), [True] * len(should_update))), 60)
@@ -433,7 +434,9 @@ class OrganizationReleasesEndpoint(
         :auth: required
         """
         bind_organization_context(organization)
-        serializer = ReleaseSerializerWithProjects(data=request.data)
+        serializer = ReleaseSerializerWithProjects(
+            data=request.data, context={"organization": organization}
+        )
 
         with configure_scope() as scope:
             if serializer.is_valid():

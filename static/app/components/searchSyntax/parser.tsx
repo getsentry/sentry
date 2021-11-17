@@ -169,19 +169,19 @@ export const filterTypeConfig = {
     validKeys: [Token.KeySimple],
     validOps: allOperators,
     validValues: [Token.ValueDuration],
-    canNegate: false,
+    canNegate: true,
   },
   [FilterType.Numeric]: {
     validKeys: [Token.KeySimple],
     validOps: allOperators,
     validValues: [Token.ValueNumber],
-    canNegate: false,
+    canNegate: true,
   },
   [FilterType.NumericIn]: {
     validKeys: [Token.KeySimple],
     validOps: [],
     validValues: [Token.ValueNumberList],
-    canNegate: false,
+    canNegate: true,
   },
   [FilterType.Boolean]: {
     validKeys: [Token.KeySimple],
