@@ -181,10 +181,10 @@ class GroupActivity extends Component<Props, State> {
                     .filter(
                       (item): item is GroupActivityAssigned =>
                         item.type === GroupActivityType.ASSIGNED &&
-                        item.data.assigneeType === 'team'
+                        item.data.assigneeType === 'team' &&
+                        item.data.assignee?.length > 0
                     )
-                    .map(item => (item as GroupActivityAssigned).data?.assignee)
-                    .filter(id => id)
+                    .map(item => item.data.assignee)
                 )}
               >
                 {({initiallyLoaded}) =>
