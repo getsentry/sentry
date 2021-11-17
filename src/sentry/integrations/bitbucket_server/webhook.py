@@ -115,7 +115,7 @@ class BitbucketServerWebhookEndpoint(View):
             organization = Organization.objects.get_from_cache(id=organization_id)
         except Organization.DoesNotExist:
             logger.error(
-                PROVIDER_NAME + ".webhook.invalid-organization",
+                f"{PROVIDER_NAME}.webhook.invalid-organization",
                 extra={"organization_id": organization_id, "integration_id": integration_id},
             )
             return HttpResponse(status=400)
@@ -123,7 +123,7 @@ class BitbucketServerWebhookEndpoint(View):
         body = bytes(request.body)
         if not body:
             logger.error(
-                PROVIDER_NAME + ".webhook.missing-body", extra={"organization_id": organization.id}
+                f"{PROVIDER_NAME}.webhook.missing-body", extra={"organization_id": organization.id}
             )
             return HttpResponse(status=400)
 
@@ -131,7 +131,7 @@ class BitbucketServerWebhookEndpoint(View):
             handler = self.get_handler(request.META["HTTP_X_EVENT_KEY"])
         except KeyError:
             logger.error(
-                PROVIDER_NAME + ".webhook.missing-event",
+                f"{PROVIDER_NAME}.webhook.missing-event",
                 extra={"organization_id": organization.id, "integration_id": integration_id},
             )
             return HttpResponse(status=400)
@@ -143,7 +143,7 @@ class BitbucketServerWebhookEndpoint(View):
             event = json.loads(body.decode("utf-8"))
         except json.JSONDecodeError:
             logger.error(
-                PROVIDER_NAME + ".webhook.invalid-json",
+                f"{PROVIDER_NAME}.webhook.invalid-json",
                 extra={"organization_id": organization.id, "integration_id": integration_id},
                 exc_info=True,
             )
