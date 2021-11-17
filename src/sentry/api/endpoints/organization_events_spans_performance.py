@@ -224,22 +224,23 @@ def query_suspect_span_groups(
     limit: int,
     offset: int,
 ) -> List[SuspectSpan]:
+    selected_columns: List[str] = [
+        "project.id",
+        "project",
+        "transaction",
+        "array_join(spans_op)",
+        "array_join(spans_group)",
+        "count_unique(id)",
+    ]
+
+    for column in SPAN_PERFORMANCE_COLUMNS.values():
+        for col in column.suspect_op_group_columns:
+            selected_columns.append(col)
+
     builder = QueryBuilder(
         dataset=Dataset.Discover,
         params=params,
-        selected_columns=[
-            "project.id",
-            "project",
-            "transaction",
-            "array_join(spans_op)",
-            "array_join(spans_group)",
-            "count_unique(id)",
-            *(
-                col
-                for column in SPAN_PERFORMANCE_COLUMNS.values()
-                for col in column.suspect_op_group_columns
-            ),
-        ],
+        selected_columns=selected_columns,
         query=query,
         orderby=order_columns,
         auto_aggregations=True,
@@ -293,19 +294,20 @@ def query_example_transactions(
     if not suspects:
         return {}
 
+    selected_columns: List[str] = [
+        "id",
+        "array_join(spans_op)",
+        "array_join(spans_group)",
+    ]
+
+    for column in SPAN_PERFORMANCE_COLUMNS.values():
+        for col in column.suspect_example_columns:
+            selected_columns.append(col)
+
     builder = QueryBuilder(
         dataset=Dataset.Discover,
         params=params,
-        selected_columns=[
-            "id",
-            "array_join(spans_op)",
-            "array_join(spans_group)",
-            *(
-                col
-                for column in SPAN_PERFORMANCE_COLUMNS.values()
-                for col in column.suspect_example_columns
-            ),
-        ],
+        selected_columns=selected_columns,
         query=query,
         orderby=order_columns,
         # we want only `per_suspect` examples for each suspect
