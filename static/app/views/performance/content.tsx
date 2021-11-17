@@ -71,13 +71,7 @@ function PerformanceContent({selection, location, demoMode}: Props) {
   useEffect(() => {
     setState({
       ...state,
-      eventView: generatePerformanceEventView(
-        organization,
-        location,
-        projects,
-        false,
-        isMetricsData
-      ),
+      eventView: generatePerformanceEventView(organization, location, projects),
     });
   }, [organization, location, projects]);
 
