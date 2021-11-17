@@ -42,7 +42,7 @@ class Migration(migrations.Migration):
     atomic = False
 
     dependencies = [
-        ("sentry", "0243_delete_visualstudio_repo_data"),
+        ("sentry", "0250_backfill_popularity"),
     ]
 
     operations = [
