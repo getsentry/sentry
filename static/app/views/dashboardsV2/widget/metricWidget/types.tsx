@@ -4,6 +4,11 @@ export type MetricTags = {
   key: string;
 }[];
 
+export type MetricValues = {
+  key: string;
+  value: string;
+}[];
+
 export type MetricMeta = {
   name: string;
   operations: string[];
