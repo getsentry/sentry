@@ -8,7 +8,7 @@ import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'app/constants';
 import {t} from 'app/locale';
 import {Organization, Project, Tag} from 'app/types';
 
-import {MetricTagValues} from './types';
+import {MetricTagValue} from './types';
 
 const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   `^${NEGATION_OPERATOR}|\\${SEARCH_WILDCARD}`,
@@ -44,7 +44,7 @@ function SearchQueryField({api, orgSlug, projectSlug, tags, onSearch, onBlur}: P
 
   function getTagValues(tag: Tag, _query: string): Promise<string[]> {
     return fetchTagValues(tag.key).then(
-      tagValues => (tagValues as MetricTagValues).map(({value}) => value),
+      tagValues => (tagValues as MetricTagValue[]).map(({value}) => value),
       () => {
         throw new Error('Unable to fetch tag values');
       }

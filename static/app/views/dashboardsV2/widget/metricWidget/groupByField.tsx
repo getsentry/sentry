@@ -10,11 +10,11 @@ import {t} from 'app/locale';
 import {inputStyles} from 'app/styles/input';
 import space from 'app/styles/space';
 
-import {MetricQuery, MetricTags} from './types';
+import {MetricQuery, MetricTag} from './types';
 
 type Props = {
   onChange: (groupBy: MetricQuery['groupBy']) => void;
-  metricTags: MetricTags;
+  metricTags: MetricTag[];
   groupBy?: MetricQuery['groupBy'];
 };
 

@@ -6,13 +6,13 @@ import {Organization, Project} from 'app/types';
 
 import GroupByField from './groupByField';
 import SearchQueryField from './searchQueryField';
-import {MetricTags} from './types';
+import {MetricTag} from './types';
 
 type Props = {
   api: Client;
   orgSlug: Organization['slug'];
   projSlug: Project['slug'];
-  metricTags: MetricTags;
+  metricTags: MetricTag[];
   onChangeSearchQuery: (searchQuery?: string) => void;
   onChangeGroupBy: (groupBy?: string[]) => void;
   searchQuery?: string;

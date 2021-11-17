@@ -1,13 +1,13 @@
 import {DisplayType} from '../utils';
 
-export type MetricTags = {
+export type MetricTag = {
   key: string;
-}[];
+};
 
-export type MetricTagValues = {
+export type MetricTagValue = {
   key: string;
   value: string;
-}[];
+};
 
 export type MetricMeta = {
   name: string;
