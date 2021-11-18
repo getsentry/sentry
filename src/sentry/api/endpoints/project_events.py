@@ -1,5 +1,7 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 from functools import partial
+
+from django.utils import timezone
 
 from sentry import eventstore, features
 from sentry.api.bases.project import ProjectEndpoint
@@ -34,20 +36,17 @@ class ProjectEventsEndpoint(ProjectEndpoint):
         if query:
             conditions.append([["positionCaseInsensitive", ["message", f"'{query}'"]], "!=", 0])
 
+        event_filter = eventstore.Filter(conditions=conditions, project_ids=[project.id])
         if features.has(
             "organizations:project-event-date-limit", project.organization, actor=request.user
         ):
-            conditions.extend(
-                [
-                    ["timestamp", ">", datetime.now() - timedelta(days=7)],
-                ]
-            )
+            event_filter.start = timezone.now() - timedelta(days=7)
 
         full = request.GET.get("full", False)
 
         data_fn = partial(
             eventstore.get_events,
-            filter=eventstore.Filter(conditions=conditions, project_ids=[project.id]),
+            filter=event_filter,
             referrer="api.project-events",
         )
 
