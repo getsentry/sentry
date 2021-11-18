@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Mapping, MutableMapping
+from typing import Any, Mapping, MutableMapping, Sequence
 
 from rest_framework import status as status_
 from rest_framework.request import Request
@@ -222,3 +222,9 @@ class SlackDMRequest(SlackRequest):
         # Found in different places, so this is implemented in each request's
         # specific object (``SlackEventRequest`` and ``SlackActionRequest``).
         raise NotImplementedError
+
+    def get_command_and_args(self) -> tuple[str, Sequence[str]]:
+        command = self.text.lower().split()
+        if not command:
+            return "", []
+        return command[0], command[1:]

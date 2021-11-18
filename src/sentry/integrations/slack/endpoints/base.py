@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import abc
-from typing import Sequence
 
 from rest_framework.response import Response
 
@@ -26,7 +25,7 @@ class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
         All Slack commands are handled by this endpoint. This block just
         validates the request and dispatches it to the right handler.
         """
-        command, args = self.get_command_and_args(request)
+        command, args = request.get_command_and_args()
 
         if command in ["help", ""]:
             return self.respond(SlackHelpMessageBuilder().build())
@@ -49,12 +48,6 @@ class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
         request_data = request.data
         unknown_command = request_data.get("text", "").lower()
         return self.respond(SlackHelpMessageBuilder(unknown_command).build())
-
-    @staticmethod
-    def get_command_and_args(slack_request: SlackDMRequest) -> tuple[str, Sequence[str]]:
-        data = slack_request.data.get("event", {})
-        command = data.get("text", "").lower().split()
-        return command[0], command[1:]
 
     def reply(self, slack_request: SlackDMRequest, message: str) -> Response:
         raise NotImplementedError

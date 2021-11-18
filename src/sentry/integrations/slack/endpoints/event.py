@@ -207,7 +207,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
             if slack_request.is_bot():
                 return self.respond()
 
-            command, _ = self.get_command_and_args(slack_request)
+            command, _ = slack_request.get_command_and_args()
             if command in COMMANDS:
                 resp = super().post_dispatcher(slack_request)
 
