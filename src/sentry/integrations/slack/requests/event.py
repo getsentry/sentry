@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import Any
 
 from rest_framework import status
+from typing import Any, Mapping
 
 from sentry.integrations.slack.requests.base import SlackDMRequest, SlackRequestError
 from sentry.integrations.slack.unfurl import LinkType, match_link
@@ -34,12 +34,6 @@ class SlackEventRequest(SlackDMRequest):
     def identity_str(self) -> str | None:
         return self.user.email if self.user else None
 
-    @property
-    def channel_name(self) -> str:
-        # Explicitly typing to satisfy mypy.
-        channel: str = self.data.get("event", {}).get("channel", "")
-        return channel
-
     def validate(self) -> None:
         if self.is_challenge():
             # Challenge requests only include the Token and data to verify the
@@ -56,19 +50,8 @@ class SlackEventRequest(SlackDMRequest):
         return self.data.get("type") == "url_verification"
 
     @property
-    def type(self) -> str:
-        return str(self.data.get("event", {}).get("type"))
-
-    @property
-    def user_id(self) -> str:
-        # Explicitly typing to satisfy mypy.
-        user: str = self.request.data.get("event", {}).get("user", "")
-        return user
-
-    @property
-    def text(self) -> Any:
-        data = self.request.data.get("event")
-        return data.get("text")
+    def dm_data(self) -> Mapping[str, Any]:
+        return self.data.get("event", {})
 
     @property
     def links(self) -> list[str]:
@@ -76,11 +59,11 @@ class SlackEventRequest(SlackDMRequest):
         return [link["url"] for link in links if "url" in link]
 
     def _validate_event(self) -> None:
-        if not self.data.get("event"):
+        if not self.dm_data:
             self._error("slack.event.invalid-event-data")
             raise SlackRequestError(status=400)
 
-        if not self.data.get("event", {}).get("type"):
+        if not self.dm_data.get("type"):
             self._error("slack.event.invalid-event-type")
             raise SlackRequestError(status=400)
 
@@ -101,4 +84,4 @@ class SlackEventRequest(SlackDMRequest):
         self._info(f"slack.event.{self.type}")
 
     def is_bot(self) -> bool:
-        return bool(self.data.get("event", {}).get("bot_id"))
+        return bool(self.dm_data.get("bot_id"))

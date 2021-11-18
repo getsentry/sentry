@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 from typing import Any, Mapping, MutableMapping, Sequence
 
 from rest_framework import status as status_
@@ -11,15 +12,13 @@ from sentry.models import Identity, IdentityProvider, Integration, User
 from ..utils import check_signing_secret, logger
 
 
+@dataclasses.dataclass(frozen=True)
 class SlackRequestError(Exception):
     """
     Something was invalid about the request from Slack.
-
     Includes the status the endpoint should return, based on the error.
     """
-
-    def __init__(self, status: int) -> None:
-        self.status = status
+    status: int
 
 
 class SlackRequest:
@@ -214,14 +213,24 @@ class SlackDMRequest(SlackRequest):
         raise NotImplementedError
 
     @property
-    def channel_name(self) -> str:
+    def dm_data(self) -> Mapping[str, str]:
         raise NotImplementedError
 
     @property
     def type(self) -> str:
-        # Found in different places, so this is implemented in each request's
-        # specific object (``SlackEventRequest`` and ``SlackActionRequest``).
-        raise NotImplementedError
+        return self.dm_data.get("type", "")
+
+    @property
+    def text(self) -> str:
+        return self.dm_data.get("text", "")
+
+    @property
+    def channel_name(self) -> str:
+        return self.dm_data.get("channel", "")
+
+    @property
+    def user_id(self) -> str:
+        return self.dm_data.get("user", "")
 
     def get_command_and_args(self) -> tuple[str, Sequence[str]]:
         command = self.text.lower().split()

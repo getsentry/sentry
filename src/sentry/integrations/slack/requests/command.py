@@ -1,12 +1,11 @@
 from __future__ import annotations
 
+from typing import Any, Mapping
 from urllib.parse import parse_qs
 
 from rest_framework import status
-from rest_framework.request import Request
 
 from sentry.integrations.slack.requests.base import SlackDMRequest, SlackRequestError
-from sentry.models import IdentityProvider
 
 
 class SlackCommandRequest(SlackDMRequest):
@@ -18,17 +17,9 @@ class SlackCommandRequest(SlackDMRequest):
     value pairs are all automatically wrapped in arrays.
     """
 
-    def __init__(self, request: Request) -> None:
-        super().__init__(request)
-        self._identity_str: str | None = None
-
     @property
-    def channel_name(self) -> str:
-        return self.data.get("channel_name", "")
-
-    @property
-    def identity_str(self) -> str | None:
-        return self._identity_str
+    def dm_data(self) -> Mapping[str, Any]:
+        return self.data
 
     def _validate_data(self) -> None:
         try:
@@ -44,9 +35,4 @@ class SlackCommandRequest(SlackDMRequest):
 
     def _validate_integration(self) -> None:
         super()._validate_integration()
-        try:
-            identity = self.get_identity()
-        except IdentityProvider.DoesNotExist:
-            raise SlackRequestError(status=status.HTTP_403_FORBIDDEN)
-
-        self._identity_str = identity.user.email if identity else None
+        self._validate_identity()
