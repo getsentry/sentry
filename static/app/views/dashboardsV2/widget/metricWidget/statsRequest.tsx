@@ -39,7 +39,7 @@ type ChildrenArgs = {
 type Props = {
   api: Client;
   organization: Organization;
-  projectSlug: Project['slug'];
+  projectId: Project['id'];
   environments: GlobalSelection['environments'];
   datetime: GlobalSelection['datetime'];
   location: Location;
@@ -51,7 +51,7 @@ type Props = {
 function StatsRequest({
   api,
   organization,
-  projectSlug,
+  projectId,
   groupings,
   environments,
   datetime,
@@ -69,7 +69,7 @@ function StatsRequest({
 
   useEffect(() => {
     fetchData();
-  }, [projectSlug, environments, datetime, groupings, searchQuery]);
+  }, [projectId, environments, datetime, groupings, searchQuery]);
 
   function fetchData() {
     if (!filteredGroupings.length) {
@@ -113,7 +113,7 @@ function StatsRequest({
         }
       }
 
-      const metricDataEndpoint = `/projects/${organization.slug}/${projectSlug}/metrics/data/`;
+      const metricDataEndpoint = `/organizations/${organization.slug}/metrics/data/?project=${projectId}`;
 
       if (!!groupBy?.length) {
         const groupByParameter = [...groupBy].join('&groupBy=');
