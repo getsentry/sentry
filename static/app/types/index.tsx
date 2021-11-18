@@ -1355,6 +1355,7 @@ export type SentryApp = {
     slug: string;
   };
   featureData: IntegrationFeature[];
+  avatars?: Avatar[];
 };
 
 export type Integration = {

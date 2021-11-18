@@ -10,6 +10,7 @@ import {
   addSentryAppToken,
   removeSentryAppToken,
 } from 'app/actionCreators/sentryAppTokens';
+import Avatar from 'app/components/avatar';
 import AvatarChooser from 'app/components/avatarChooser';
 import Button from 'app/components/button';
 import DateTime from 'app/components/dateTime';
@@ -22,6 +23,7 @@ import {
 } from 'app/data/forms/sentryApplication';
 import {IconAdd, IconDelete} from 'app/icons';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {InternalAppApiToken, Scope, SentryApp} from 'app/types';
 import getDynamicText from 'app/utils/getDynamicText';
 import AsyncView from 'app/views/asyncView';
@@ -322,6 +324,12 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
             {() => {
               const webhookDisabled =
                 this.isInternal && !this.form.getValue('webhookUrl');
+              const model: {avatar: {avatarType: 'default'; avatarUuid: null}} = {
+                avatar: {
+                  avatarType: 'default',
+                  avatarUuid: null,
+                },
+              };
               return (
                 <React.Fragment>
                   <JsonForm additionalFieldProps={{webhookDisabled}} forms={forms} />
@@ -330,17 +338,32 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
                       type="sentryApp"
                       allowGravatar={false}
                       allowLetter={false}
-                      allowDefault
                       endpoint={`${endpoint}avatar/`}
-                      model={{
-                        avatar: {
-                          avatarType: 'default',
-                          avatarUuid: null,
-                        },
-                      }}
+                      model={model}
                       onSave={() => {}}
+                      title={t('Logo')}
+                      defaultChoice={{
+                        allowDefault: true,
+                        choiceText: t('Default logo'),
+                        avatar: (
+                          <AvatarPreview>
+                            <Avatar
+                              gravatar={false}
+                              style={{width: 50, height: 50}}
+                              sentryApp={{}}
+                            />
+                            <AvatarPreviewTextContainer>
+                              <AvatarPreviewTitle>{t('Icon Example')}</AvatarPreviewTitle>
+                              <AvatarPreviewText>
+                                {t('The default icon for integrations')}
+                              </AvatarPreviewText>
+                            </AvatarPreviewTextContainer>
+                          </AvatarPreview>
+                        ),
+                      }}
                     />
                   )}
+
                   <PermissionsObserver
                     webhookDisabled={webhookDisabled}
                     appPublished={app ? app.status === 'published' : false}
@@ -431,4 +454,26 @@ const CreatedDate = styled('div')`
   flex-direction: column;
   font-size: 14px;
   margin: 0 10px;
+`;
+
+const AvatarPreview = styled('div')`
+  display: flex;
+  flex: 1;
+`;
+
+const AvatarPreviewTextContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  padding-left: ${space(2)};
+`;
+
+const AvatarPreviewTitle = styled('span')`
+  display: block;
+  flex: 1;
+  font-weight: bold;
+`;
+
+const AvatarPreviewText = styled('span')`
+  display: block;
+  flex: 1;
 `;
