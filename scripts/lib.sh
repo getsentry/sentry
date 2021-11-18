@@ -105,7 +105,7 @@ install-py-dev() {
     upgrade-pip
     # It places us within top src dir to be at the same path as setup.py
     # This helps when getsentry calls into this script
-    cd "${HERE}/.." || exit
+    cd "${HERE}/.." :|| exit
 
     echo "--> Installing Sentry (for development)"
     if query-apple-m1; then
@@ -143,7 +143,7 @@ export LDFLAGS=-L/opt/homebrew/Cellar/gettext/0.21/lib:\${LDFLAGS}"
     if [ "$SHELL" == "/bin/zsh" ]; then
         if ! grep -qF "${header}" "${zshrc_path}"; then
             echo "Added the following to ${zshrc_path}"
-
+            cp "${zshrc_path}" "${zshrc_path}.bak"
             echo -e "$body" >> "${zshrc_path}"
             echo -e "$body"
         fi
@@ -232,6 +232,7 @@ build-platform-assets() {
 }
 
 bootstrap() {
+    setup-apple-m1
     develop
     init-config
     run-dependent-services

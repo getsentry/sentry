@@ -3,6 +3,8 @@ boto3==1.13.16
 botocore==1.16.16
 celery==4.4.7
 click==7.1.2
+# See if we can remove CPATH from lib.sh
+# https://github.com/getsentry/sentry/pull/30094
 confluent-kafka==1.5.0; python_version == '3.8'
 confluent-kafka==1.6.0; python_version == '3.9'
 croniter==0.3.37
@@ -60,6 +62,8 @@ toronado==0.1.0
 ua-parser==0.10.0
 unidiff==0.6.0
 urllib3==1.24.2
+# See if we can remove LDFLAGS from lib.sh
+# https://github.com/getsentry/sentry/pull/30094
 uWSGI==2.0.19.1
 zstandard==0.14.1
 
