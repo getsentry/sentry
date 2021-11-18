@@ -85,6 +85,7 @@ function XAxis({
         show: false,
       },
       lineStyle: {
+        type: 'solid',
         width: 0.5,
       },
     },
