@@ -230,8 +230,6 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
 
     @transaction_start("SlackActionEndpoint")
     def post(self, request: Request) -> Response:
-        logging_data: MutableMapping[str, str] = {}
-
         try:
             slack_request = SlackActionRequest(request)
             slack_request.validate()
@@ -269,18 +267,9 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
 
             return self.respond()
 
-        logging_data.update(
-            {
-                "channel_id": slack_request.channel_id,
-                "slack_user_id": slack_request.user_id,
-                "response_url": slack_request.response_url,
-                "integration_id": slack_request.integration.id,
-            }
-        )
-
         # Determine the issue group action is being taken on
         group_id = slack_request.callback_data["issue"]
-        logging_data["group_id"] = group_id
+        logging_data = {**slack_request.logging_data, "group_id": group_id}
 
         try:
             group = Group.objects.select_related("project__organization").get(
