@@ -1,7 +1,7 @@
 from django.urls import reverse
 
 from sentry.api.endpoints.organization_code_mappings import BRANCH_NAME_ERROR_MESSAGE
-from sentry.models import Integration, Repository, RepositoryProjectPathConfig
+from sentry.models import Integration, Repository
 from sentry.testutils import APITestCase
 
 
@@ -14,10 +14,6 @@ class OrganizationCodeMappingsTest(APITestCase):
         self.team = self.create_team(organization=self.org, name="Mariachi Band")
         self.project1 = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
         self.project2 = self.create_project(organization=self.org, teams=[self.team], name="Tiger")
-        self.integration = Integration.objects.create(
-            provider="github", name="Example", external_id="abcd"
-        )
-        self.org_integration = self.integration.add_organization(self.org, self.user)
         self.repo1 = Repository.objects.create(
             name="example", organization_id=self.org.id, integration_id=self.integration.id
         )
@@ -40,14 +36,12 @@ class OrganizationCodeMappingsTest(APITestCase):
 
     def test_basic_get_with_integrationId(self):
         path_config1 = self.create_code_mapping(
-            organization_integration=self.org_integration,
             project=self.project1,
             repo=self.repo1,
             stack_root="stack/root",
             source_root="source/root",
         )
         path_config2 = self.create_code_mapping(
-            organization_integration=self.org_integration,
             project=self.project2,
             repo=self.repo1,
             stack_root="another/path",
@@ -102,8 +96,7 @@ class OrganizationCodeMappingsTest(APITestCase):
         }
 
     def test_basic_get_with_projectId(self):
-        path_config1 = RepositoryProjectPathConfig.objects.create(
-            organization_integration=self.org_integration,
+        path_config1 = self.create_code_mapping(
             project=self.project1,
             repository=self.repo1,
             stack_root="stack/root",
@@ -138,17 +131,15 @@ class OrganizationCodeMappingsTest(APITestCase):
         }
 
     def test_basic_get_with_no_integrationId_and_projectId(self):
-        RepositoryProjectPathConfig.objects.create(
-            organization_integration=self.org_integration,
+
+        self.create_code_mapping(
             project=self.project1,
             repository=self.repo1,
             stack_root="stack/root",
             source_root="source/root",
             default_branch="master",
         )
-
-        RepositoryProjectPathConfig.objects.create(
-            organization_integration=self.org_integration,
+        self.create_code_mapping(
             project=self.project2,
             repository=self.repo1,
             stack_root="another/path",

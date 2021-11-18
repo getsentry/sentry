@@ -42,7 +42,7 @@ class OrganizationIntegrationDeletionTask(ModelDeletionTask):
         ).update(integration_id=None)
 
         # Delete Code Owners with a Code Mapping using the OrganizationIntegration
-        ProjectCodeOwners.filter(
+        ProjectCodeOwners.objects.filter(
             repository_project_path_config__in=RepositoryProjectPathConfig.objects.filter(
                 organization_integration_id=instance.id
             ).values_list("id", flat=True)
