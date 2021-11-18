@@ -11,10 +11,23 @@ import space from 'app/styles/space';
 export default {
   title: 'Views/Sidebar Section',
   component: SidebarSection,
+  argTypes: {
+    title: {control: {type: 'text'}},
+    icon: {
+      control: {type: 'boolean'},
+    },
+  },
 };
 
-export const Default = () => (
-  <SidebarSection title="Subheading">{'16 hours'}</SidebarSection>
+export const Default = ({title, icon}) => (
+  <SidebarSection
+    title={title}
+    icon={
+      icon && <QuestionTooltip position="top" title="Tooltip description" size="sm" />
+    }
+  >
+    {'16 hours'}
+  </SidebarSection>
 );
 
 Default.storyName = 'With text';
@@ -25,11 +38,17 @@ Default.parameters = {
     },
   },
 };
+Default.args = {
+  title: 'Subheading',
+  icon: false,
+};
 
-export const WithIconTagsText = () => (
+export const WithIconTagsText = ({title, icon}) => (
   <SidebarSection
-    title="Icon, Tag, and Text"
-    icon={<QuestionTooltip position="top" title="Tooltip description" size="sm" />}
+    title={title}
+    icon={
+      icon && <QuestionTooltip position="top" title="Tooltip description" size="sm" />
+    }
   >
     <div>
       <Tooltip title="Tooltip description" isHoverable>
@@ -48,9 +67,18 @@ WithIconTagsText.parameters = {
     },
   },
 };
+WithIconTagsText.args = {
+  title: 'Icon, Tag, and Text',
+  icon: true,
+};
 
-export const WithRows = () => (
-  <SidebarSection title="With Multiple Rows">
+export const WithRows = ({title, icon}) => (
+  <SidebarSection
+    title={title}
+    icon={
+      icon && <QuestionTooltip position="top" title="Tooltip description" size="sm" />
+    }
+  >
     <KeyValueTable>
       <KeyValueTableRow
         keyName="Created"
@@ -88,6 +116,10 @@ WithRows.parameters = {
         'Section of the sidebar with multiple rows using the KeyValueTable component (label with date, etc).',
     },
   },
+};
+WithRows.args = {
+  title: 'With Multiple Rows',
+  icon: false,
 };
 
 const Environment = styled('span')`
