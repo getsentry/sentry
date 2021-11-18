@@ -1,11 +1,14 @@
+from datetime import datetime, timedelta
 from functools import partial
 
-from sentry import eventstore
+from sentry import eventstore, features
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.helpers.group_index import rate_limit_endpoint
 from sentry.api.serializers import EventSerializer, SimpleEventSerializer, serialize
 
 
 class ProjectEventsEndpoint(ProjectEndpoint):
+    @rate_limit_endpoint(limit=1, window=1)
     def get(self, request, project):
         """
         List a Project's Events
@@ -30,6 +33,15 @@ class ProjectEventsEndpoint(ProjectEndpoint):
         conditions = []
         if query:
             conditions.append([["positionCaseInsensitive", ["message", f"'{query}'"]], "!=", 0])
+
+        if features.has(
+            "organizations:project-event-date-limit", project.organization, actor=request.user
+        ):
+            conditions.extend(
+                [
+                    ["timestamp", ">", datetime.now() - timedelta(days=7)],
+                ]
+            )
 
         full = request.GET.get("full", False)
 
