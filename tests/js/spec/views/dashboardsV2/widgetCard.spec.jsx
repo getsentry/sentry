@@ -176,4 +176,42 @@ describe('Dashboards > WidgetCard', function () {
       })
     );
   });
+
+  it('renders a select field for choosing widget size when editing', async function () {
+    const resizeFeatureData = initializeOrg({
+      organization: TestStubs.Organization({
+        features: [
+          'connect-discover-and-dashboards',
+          'dashboards-edit',
+          'discover-basic',
+          'dashboard-widget-resizing',
+        ],
+        projects: [TestStubs.Project()],
+      }),
+    });
+
+    const wrapper = mountWithTheme(
+      <WidgetCard
+        isEditing
+        api={api}
+        organization={resizeFeatureData.organization}
+        widget={multipleQueryWidget}
+        selection={selection}
+        onDelete={() => undefined}
+        onEdit={() => undefined}
+        renderErrorMessage={() => undefined}
+        isSorting={false}
+        currentWidgetDragging={false}
+        showContextMenu
+      >
+        {() => <div data-test-id="child" />}
+      </WidgetCard>,
+      resizeFeatureData.routerContext
+    );
+
+    await tick();
+
+    const sizeSelector = wrapper.find('SizeSelector');
+    expect(sizeSelector.length).toEqual(1);
+  });
 });

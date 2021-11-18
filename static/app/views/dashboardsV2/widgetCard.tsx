@@ -8,9 +8,11 @@ import isEqual from 'lodash/isEqual';
 
 import {openDashboardWidgetQuerySelectorModal} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
+import Feature from 'app/components/acl/feature';
 import {HeaderTitle} from 'app/components/charts/styles';
 import ErrorBoundary from 'app/components/errorBoundary';
 import FeatureBadge from 'app/components/featureBadge';
+import {SelectField} from 'app/components/forms';
 import MenuItem from 'app/components/menuItem';
 import {isSelectionEqual} from 'app/components/organizations/globalSelectionHeader/utils';
 import {Panel} from 'app/components/panels';
@@ -32,6 +34,27 @@ import ContextMenu from './contextMenu';
 import {Widget} from './types';
 import WidgetCardChart from './widgetCardChart';
 import WidgetQueries from './widgetQueries';
+
+type SizeSelectorProps = {
+  size: string;
+  onSizeChange: (size: string) => void;
+};
+
+const SizeSelector = ({size, onSizeChange}: SizeSelectorProps) => {
+  return (
+    <SelectField
+      name="size"
+      clearable={false}
+      choices={[
+        ['small', 'Small'],
+        ['medium', 'Medium'],
+        ['large', 'Large'],
+      ]}
+      onChange={value => onSizeChange(value as string)}
+      value={size}
+    />
+  );
+};
 
 type DraggableProps = Pick<ReturnType<typeof useSortable>, 'attributes' | 'listeners'>;
 
@@ -81,6 +104,11 @@ class WidgetCard extends React.Component<Props> {
 
     return (
       <ToolbarPanel>
+        <Feature features={['dashboard-widget-resizing']}>
+          <SizeSelectContainer style={{visibility: hideToolbar ? 'hidden' : 'visible'}}>
+            <SizeSelector size="medium" onSizeChange={_ => {}} />
+          </SizeSelectContainer>
+        </Feature>
         <IconContainer style={{visibility: hideToolbar ? 'hidden' : 'visible'}}>
           <IconClick>
             <StyledIconGrabbable
@@ -288,7 +316,7 @@ const ToolbarPanel = styled('div')`
   position: absolute;
   top: 0;
   left: 0;
-  z-index: 1;
+  z-index: auto;
 
   width: 100%;
   height: 100%;
@@ -299,6 +327,11 @@ const ToolbarPanel = styled('div')`
 
   background-color: ${p => p.theme.overlayBackgroundAlpha};
   border-radius: ${p => p.theme.borderRadius};
+`;
+
+const SizeSelectContainer = styled(`div`)`
+  width: 120px;
+  margin-top: 8px;
 `;
 
 const IconContainer = styled('div')`
