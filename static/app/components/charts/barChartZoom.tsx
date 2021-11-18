@@ -65,6 +65,8 @@ type Props = {
 };
 
 class BarChartZoom extends React.Component<Props> {
+  zooming: (() => void) | null = null;
+
   /**
    * Enable zoom immediately instead of having to toggle to zoom
    */
@@ -72,7 +74,19 @@ class BarChartZoom extends React.Component<Props> {
     callIfFunction(this.props.onChartReady, chart);
   };
 
+  /**
+   * Chart event when *any* rendering+animation finishes
+   *
+   * `this.zooming` acts as a callback function so that
+   * we can let the native zoom animation on the chart complete
+   * before we update URL state and re-render
+   */
   handleChartFinished = (_props, chart) => {
+    if (typeof this.zooming === 'function') {
+      this.zooming();
+      this.zooming = null;
+    }
+
     // This attempts to activate the area zoom toolbox feature
     const zoom = chart._componentsViews?.find(c => c._features && c._features.dataZoom);
     if (zoom && !zoom._features.dataZoom._isZoomActive) {
