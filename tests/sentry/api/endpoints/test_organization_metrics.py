@@ -1,4 +1,5 @@
 from copy import deepcopy
+from typing import Optional
 from unittest import mock
 
 from django.urls import reverse
@@ -6,6 +7,7 @@ from django.urls import reverse
 from sentry.models import ApiToken
 from sentry.snuba.metrics import _METRICS
 from sentry.testutils import APITestCase
+from sentry.testutils.cases import SessionMetricsTestCase
 from sentry.testutils.helpers import with_feature
 
 FEATURE_FLAG = "organizations:metrics"
@@ -312,3 +314,40 @@ class OrganizationMetricDataTest(APITestCase):
                 query=query,
             )
             assert response.data.keys() == {"start", "end", "query", "intervals", "groups"}
+
+
+class OrganizationMetricIntegrationTest(SessionMetricsTestCase, APITestCase):
+    endpoint = "sentry-api-0-organization-metrics-data"
+
+    def setUp(self):
+        super().setUp()
+        self.project2 = self.create_project()
+        self.login_as(user=self.user)
+
+    @with_feature(FEATURE_FLAG)
+    def test_separate_projects(self):
+        # Insert session metrics:
+        self.store_session(self.build_session(project_id=self.project.id))
+        self.store_session(self.build_session(project_id=self.project2.id))
+
+        def count_sessions(project_id: Optional[int]) -> int:
+            kwargs = dict(
+                field="sum(session)",
+                statsPeriod="1h",
+                interval="1h",
+                datasource="snuba",
+            )
+            if project_id is not None:
+                kwargs["project"] = project_id
+
+            response = self.get_success_response(self.organization.slug, **kwargs)
+            groups = response.data["groups"]
+            assert len(groups) == 1
+
+            return groups[0]["totals"]["sum(session)"]
+
+        # Request for entire org gives a counter of two:
+        assert count_sessions(project_id=None) == 2
+
+        # Request for single project gives a counter of one:
+        assert count_sessions(project_id=self.project2.id) == 1
