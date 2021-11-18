@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Any, Callable, Dict, List, Mapping, Match, Optional, Sequence, Set, Tuple, Union
 
 import sentry_sdk
+from django.utils.functional import cached_property
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 from snuba_sdk.aliased_expression import AliasedExpression
 from snuba_sdk.column import Column
@@ -2328,7 +2329,7 @@ class QueryFields(QueryBase):
             TIMESTAMP_TO_HOUR_ALIAS: self._resolve_timestamp_to_hour_alias,
             TIMESTAMP_TO_DAY_ALIAS: self._resolve_timestamp_to_day_alias,
             USER_DISPLAY_ALIAS: self._resolve_user_display_alias,
-            PROJECT_THRESHOLD_CONFIG_ALIAS: self._resolve_project_threshold_config,
+            PROJECT_THRESHOLD_CONFIG_ALIAS: lambda _: self._resolve_project_threshold_config,
             ERROR_UNHANDLED_ALIAS: self._resolve_error_unhandled_alias,
             TEAM_KEY_TRANSACTION_ALIAS: self._resolve_team_key_transaction_alias,
             MEASUREMENTS_FRAMES_SLOW_RATE: self._resolve_measurements_frames_slow_rate,
@@ -3113,7 +3114,8 @@ class QueryFields(QueryBase):
         columns = ["user.email", "user.username", "user.ip"]
         return Function("coalesce", [self.column(column) for column in columns], USER_DISPLAY_ALIAS)
 
-    def _resolve_project_threshold_config(self, _: str) -> SelectType:
+    @cached_property
+    def _resolve_project_threshold_config(self) -> SelectType:
         org_id = self.params.get("organization_id")
         project_ids = self.params.get("project_id")
 
