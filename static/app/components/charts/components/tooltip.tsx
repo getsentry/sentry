@@ -270,18 +270,27 @@ export default function Tooltip({
   return {
     show: true,
     trigger: 'item',
-    backgroundColor: 'transparent',
+    backgroundColor: 'unset',
     borderWidth: 0,
     transitionDuration: 0,
     padding: 0,
+    className: 'tooltip-container',
     // Default hideDelay in echarts docs is 100ms
     hideDelay: hideDelay || 100,
-    position(pos, _params, dom, _rec, _size) {
+    /**
+     * @link https://echarts.apache.org/en/option.html#tooltip.position
+     *
+     * @param pos mouse position
+     * @param _params same as formatter
+     * @param dom dom object of tooltip
+     * @param _rec graphic elements
+     * @param _size The size of dom echarts container.
+     */
+    position(pos, _params, dom, _rec, size) {
       // Types seem to be broken on dom
       dom = dom as HTMLDivElement;
       // Center the tooltip slightly above the cursor.
-      const tipWidth = dom.clientWidth;
-      const tipHeight = dom.clientHeight;
+      const [tipWidth, tipHeight] = size.contentSize;
 
       // Get the left offset of the tip container (the chart)
       // so that we can estimate overflows

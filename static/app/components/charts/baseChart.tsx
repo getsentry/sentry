@@ -508,6 +508,9 @@ function BaseChartUnwrapped({
 // elements directly
 const ChartContainer = styled('div')`
   /* Tooltip styling */
+  .tooltip-container {
+    box-shadow: none !important;
+  }
   .tooltip-series,
   .tooltip-date {
     color: ${p => p.theme.gray300};
