@@ -21,7 +21,7 @@ type Model = Pick<AvatarUser, 'avatar'>;
 type Props = {
   model: Model;
   updateDataUrlState: (opts: {savedDataUrl?: string | null; dataUrl?: string}) => void;
-  type: 'user' | 'team' | 'organization' | 'project';
+  type: 'user' | 'team' | 'organization' | 'project' | 'sentryApp';
   savedDataUrl?: string;
 };
 

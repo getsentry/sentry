@@ -146,7 +146,7 @@ export type ObjectStatus =
 
 export type Avatar = {
   avatarUuid: string | null;
-  avatarType: 'letter_avatar' | 'upload' | 'gravatar' | 'background';
+  avatarType: 'letter_avatar' | 'upload' | 'gravatar' | 'background' | 'default';
 };
 
 export type Actor = {

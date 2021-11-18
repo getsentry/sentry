@@ -2,18 +2,20 @@ import * as React from 'react';
 
 import OrganizationAvatar from 'app/components/avatar/organizationAvatar';
 import ProjectAvatar from 'app/components/avatar/projectAvatar';
+import SentryAppAvatar from 'app/components/avatar/sentryAppAvatar';
 import TeamAvatar from 'app/components/avatar/teamAvatar';
 import UserAvatar from 'app/components/avatar/userAvatar';
-import {AvatarProject, OrganizationSummary, Team} from 'app/types';
+import {AvatarProject, OrganizationSummary, SentryApp, Team} from 'app/types';
 
 type Props = {
   team?: Team;
   organization?: OrganizationSummary;
   project?: AvatarProject;
+  sentryApp?: SentryApp;
 } & UserAvatar['props'];
 
 const Avatar = React.forwardRef(function Avatar(
-  {hasTooltip = false, user, team, project, organization, ...props}: Props,
+  {hasTooltip = false, user, team, project, sentryApp, organization, ...props}: Props,
   ref: React.Ref<HTMLSpanElement>
 ) {
   const commonProps = {hasTooltip, forwardedRef: ref, ...props};
@@ -28,6 +30,10 @@ const Avatar = React.forwardRef(function Avatar(
 
   if (project) {
     return <ProjectAvatar project={project} {...commonProps} />;
+  }
+
+  if (sentryApp) {
+    return <SentryAppAvatar sentryApp={sentryApp} {...commonProps} />;
   }
 
   return <OrganizationAvatar organization={organization} {...commonProps} />;
