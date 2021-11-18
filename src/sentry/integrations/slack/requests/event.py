@@ -48,8 +48,7 @@ class SlackEventRequest(SlackDMRequest):
 
     @property
     def links(self) -> list[str]:
-        links = self.data.get("event", {}).get("links", [])
-        return [link["url"] for link in links if "url" in link]
+        return [link["url"] for link in self.dm_data.get("links", []) if "url" in link]
 
     def _validate_event(self) -> None:
         if not self.dm_data:

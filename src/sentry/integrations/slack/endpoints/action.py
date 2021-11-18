@@ -14,6 +14,8 @@ from sentry.api.helpers.group_index import update_groups
 from sentry.auth.access import from_member
 from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.integrations.slack.client import SlackClient
+from sentry.integrations.slack.message_builder import SlackBody
+from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
 from sentry.integrations.slack.requests.action import SlackActionRequest
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.views.link_identity import build_linking_url
@@ -33,8 +35,6 @@ from sentry.utils import json
 from sentry.utils.http import absolute_uri
 from sentry.web.decorators import transaction_start
 
-from ..message_builder import SlackBody
-from ..message_builder.issues import SlackIssuesMessageBuilder
 from ..utils import logger
 
 LINK_IDENTITY_MESSAGE = (
@@ -242,15 +242,12 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         action_list_raw = data.get("actions", [])
         action_list = [MessageAction(**action_data) for action_data in action_list_raw]
 
-        channel_id = slack_request.channel_id
-        user_id = slack_request.user_id
-        integration = slack_request.integration
-        response_url = data.get("response_url")
+        organizations = slack_request.integration.organizations.all()
 
         if action_option in ["link", "ignore"]:
             analytics.record(
                 "integrations.slack.chart_unfurl_action",
-                organization_id=integration.organizations.all()[0].id,
+                organization_id=organizations[0].id,
                 action=action_option,
             )
             payload = {"delete_original": "true"}
@@ -262,10 +259,14 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
 
             return self.respond()
 
-        logging_data["channel_id"] = channel_id
-        logging_data["slack_user_id"] = user_id
-        logging_data["response_url"] = response_url
-        logging_data["integration_id"] = integration.id
+        logging_data.update(
+            {
+                "channel_id": slack_request.channel_id,
+                "slack_user_id": slack_request.user_id,
+                "response_url": slack_request.response_url,
+                "integration_id": slack_request.integration.id,
+            }
+        )
 
         # Determine the issue group action is being taken on
         group_id = slack_request.callback_data["issue"]
@@ -291,7 +292,12 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
             return self.respond(status=403)
 
         if not identity:
-            associate_url = build_linking_url(integration, user_id, channel_id, response_url)
+            associate_url = build_linking_url(
+                integration=slack_request.integration,
+                slack_id=slack_request.user_id,
+                channel_id=slack_request.channel_id,
+                response_url=slack_request.response_url,
+            )
             return self.respond_ephemeral(LINK_IDENTITY_MESSAGE.format(associate_url=associate_url))
 
         # Handle status dialog submission
