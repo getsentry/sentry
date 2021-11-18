@@ -7,11 +7,11 @@ type Props = {
   isDefault?: boolean;
 } & BaseAvatar['props'];
 
-const SentryAppAvatar = ({isDefault, size, ...props}: Props) => {
+const SentryAppAvatar = ({isDefault, ...props}: Props) => {
   return isDefault ? (
-    <IconGeneric size={`${size}`} />
+    <IconGeneric size={`${props.size}`} className={props.className} />
   ) : (
-    <BaseAvatar size={size} {...props} />
+    <BaseAvatar {...props} />
   );
 };
 

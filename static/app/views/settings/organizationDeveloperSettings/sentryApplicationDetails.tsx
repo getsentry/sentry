@@ -490,7 +490,6 @@ const AvatarPreview = styled('div')`
 const StyledPreviewAvatar = styled(Avatar)`
   grid-area: 1 / 1 / 3 / 2;
   justify-self: end;
-  text-align: right;
 `;
 
 const AvatarPreviewTitle = styled('span')`
