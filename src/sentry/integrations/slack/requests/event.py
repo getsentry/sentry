@@ -1,12 +1,9 @@
 from __future__ import annotations
 
-
-from rest_framework import status
 from typing import Any, Mapping
 
 from sentry.integrations.slack.requests.base import SlackDMRequest, SlackRequestError
 from sentry.integrations.slack.unfurl import LinkType, match_link
-from sentry.models import IdentityProvider
 
 COMMANDS = ["link", "unlink", "link team", "unlink team"]
 
@@ -29,10 +26,6 @@ class SlackEventRequest(SlackDMRequest):
 
     Challenge requests will have a ``type`` of ``url_verification``.
     """
-
-    @property
-    def identity_str(self) -> str | None:
-        return self.user.email if self.user else None
 
     def validate(self) -> None:
         if self.is_challenge():
@@ -73,12 +66,7 @@ class SlackEventRequest(SlackDMRequest):
         if (self.text in COMMANDS) or (
             self.type == "link_shared" and has_discover_links(self.links)
         ):
-            try:
-                identity = self.get_identity()
-            except IdentityProvider.DoesNotExist:
-                raise SlackRequestError(status=status.HTTP_403_FORBIDDEN)
-
-            self._user = identity.user if identity else None
+            self._validate_identity()
 
     def _log_request(self) -> None:
         self._info(f"slack.event.{self.type}")

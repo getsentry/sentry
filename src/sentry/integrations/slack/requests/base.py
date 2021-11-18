@@ -198,19 +198,15 @@ class SlackRequest:
 class SlackDMRequest(SlackRequest):
     def __init__(self, request: Request) -> None:
         super().__init__(request)
-        self._user: User | None = None
-
-    @property
-    def user(self) -> User | None:
-        return self._user
+        self.user: User | None = None
 
     @property
     def has_identity(self) -> bool:
-        return self.identity_str is not None
+        return self.user is not None
 
     @property
     def identity_str(self) -> str | None:
-        raise NotImplementedError
+        return self.user.email if self.user else None
 
     @property
     def dm_data(self) -> Mapping[str, str]:
@@ -237,3 +233,11 @@ class SlackDMRequest(SlackRequest):
         if not command:
             return "", []
         return command[0], command[1:]
+
+    def _validate_identity(self) -> None:
+        try:
+            identity = self.get_identity()
+        except IdentityProvider.DoesNotExist:
+            raise SlackRequestError(status=status_.HTTP_403_FORBIDDEN)
+
+        self.user = identity.user if identity else None
