@@ -226,6 +226,13 @@ from .endpoints.organization_member_team_details import OrganizationMemberTeamDe
 from .endpoints.organization_member_unreleased_commits import (
     OrganizationMemberUnreleasedCommitsEndpoint,
 )
+from .endpoints.organization_metrics import (
+    OrganizationMetricDetailsEndpoint,
+    OrganizationMetricsDataEndpoint,
+    OrganizationMetricsEndpoint,
+    OrganizationMetricsTagDetailsEndpoint,
+    OrganizationMetricsTagsEndpoint,
+)
 from .endpoints.organization_monitors import OrganizationMonitorsEndpoint
 from .endpoints.organization_onboarding_tasks import OrganizationOnboardingTaskEndpoint
 from .endpoints.organization_pinned_searches import OrganizationPinnedSearchEndpoint
@@ -305,13 +312,6 @@ from .endpoints.project_key_details import ProjectKeyDetailsEndpoint
 from .endpoints.project_key_stats import ProjectKeyStatsEndpoint
 from .endpoints.project_keys import ProjectKeysEndpoint
 from .endpoints.project_member_index import ProjectMemberIndexEndpoint
-from .endpoints.project_metrics import (
-    ProjectMetricDetailsEndpoint,
-    ProjectMetricsDataEndpoint,
-    ProjectMetricsEndpoint,
-    ProjectMetricsTagDetailsEndpoint,
-    ProjectMetricsTagsEndpoint,
-)
 from .endpoints.project_ownership import ProjectOwnershipEndpoint
 from .endpoints.project_platforms import ProjectPlatformsEndpoint
 from .endpoints.project_plugin_details import ProjectPluginDetailsEndpoint
@@ -1453,6 +1453,31 @@ urlpatterns = [
                         ]
                     ),
                 ),
+                url(
+                    r"^(?P<organization_slug>[^/]+)/metrics/meta/$",
+                    OrganizationMetricsEndpoint.as_view(),
+                    name="sentry-api-0-organization-metrics-index",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^/]+)/metrics/meta/(?P<metric_name>[^/]+)/$",
+                    OrganizationMetricDetailsEndpoint.as_view(),
+                    name="sentry-api-0-organization-metric-details",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^/]+)/metrics/data/$",
+                    OrganizationMetricsDataEndpoint.as_view(),
+                    name="sentry-api-0-organization-metrics-data",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^/]+)/metrics/tags/$",
+                    OrganizationMetricsTagsEndpoint.as_view(),
+                    name="sentry-api-0-organization-metrics-tags",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^/]+)/metrics/tags/(?P<tag_name>[^/]+)/$",
+                    OrganizationMetricsTagDetailsEndpoint.as_view(),
+                    name="sentry-api-0-organization-metrics-tag-details",
+                ),
             ]
         ),
     ),
@@ -1758,31 +1783,6 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^/]+)/members/$",
                     ProjectMemberIndexEndpoint.as_view(),
                     name="sentry-api-0-project-member-index",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^/]+)/metrics/meta/$",
-                    ProjectMetricsEndpoint.as_view(),
-                    name="sentry-api-0-project-metrics-index",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^/]+)/metrics/meta/(?P<metric_name>[^/]+)/$",
-                    ProjectMetricDetailsEndpoint.as_view(),
-                    name="sentry-api-0-project-metric-details",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^/]+)/metrics/data/$",
-                    ProjectMetricsDataEndpoint.as_view(),
-                    name="sentry-api-0-project-metrics-data",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^/]+)/metrics/tags/$",
-                    ProjectMetricsTagsEndpoint.as_view(),
-                    name="sentry-api-0-project-metrics-tags",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^/]+)/metrics/tags/(?P<tag_name>[^/]+)/$",
-                    ProjectMetricsTagDetailsEndpoint.as_view(),
-                    name="sentry-api-0-project-metrics-tag-details",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/$",
