@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import AsyncComponent from 'app/components/asyncComponent';
+import Button from 'app/components/button';
 import {DateTimeObject} from 'app/components/charts/utils';
 import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
@@ -82,6 +83,16 @@ function TeamMisery({
     <Fragment>
       <StyledPanelTable
         isEmpty={projects.length === 0 || periodTableData?.data.length === 0}
+        emptyMessage={t('No key Transactions Starred By This Team')}
+        emptyAction={
+          <Button
+            size="small"
+            external
+            href="https://docs.sentry.io/product/performance/transaction-summary/#starring-key-transactions"
+          >
+            {t('Learn More')}
+          </Button>
+        }
         headers={[
           t('Key transaction'),
           t('Project'),

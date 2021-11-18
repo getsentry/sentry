@@ -114,7 +114,9 @@ describe('TeamMisery', () => {
       {context: routerContext}
     );
 
-    expect(screen.getByText('There are no items to display')).toBeInTheDocument();
+    expect(
+      screen.getByText('No key Transactions Starred By This Team')
+    ).toBeInTheDocument();
   });
 
   it('should render empty state on error', async () => {
