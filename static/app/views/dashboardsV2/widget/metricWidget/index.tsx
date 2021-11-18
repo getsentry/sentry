@@ -83,11 +83,16 @@ class MetricWidget extends AsyncView<Props, State> {
     }
 
     const orgSlug = organization.slug;
-    const projectSlug = this.project.slug;
 
     return [
-      ['metricMetas', `/projects/${orgSlug}/${projectSlug}/metrics/meta/`],
-      ['metricTags', `/projects/${orgSlug}/${projectSlug}/metrics/tags/`],
+      [
+        'metricMetas',
+        `/organizations/${orgSlug}/metrics/meta/?project=${this.project.id}`,
+      ],
+      [
+        'metricTags',
+        `/organizations/${orgSlug}/metrics/tags/?project=${this.project.id}`,
+      ],
     ];
   }
 
@@ -343,7 +348,7 @@ class MetricWidget extends AsyncView<Props, State> {
               <FiltersAndGroups
                 api={this.api}
                 orgSlug={organization.slug}
-                projSlug={selectedProject.slug}
+                projectId={selectedProject.id}
                 metricTags={metricTags}
                 searchQuery={searchQuery}
                 groupBy={groupBy}

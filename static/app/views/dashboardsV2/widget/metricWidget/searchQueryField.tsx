@@ -21,11 +21,11 @@ type Props = Pick<
 > & {
   api: Client;
   orgSlug: Organization['slug'];
-  projectSlug: Project['slug'];
+  projectId: Project['id'];
   tags: string[];
 };
 
-function SearchQueryField({api, orgSlug, projectSlug, tags, onSearch, onBlur}: Props) {
+function SearchQueryField({api, orgSlug, projectId, tags, onSearch, onBlur}: Props) {
   /**
    * Prepare query string (e.g. strip special characters like negation operator)
    */
@@ -35,7 +35,7 @@ function SearchQueryField({api, orgSlug, projectSlug, tags, onSearch, onBlur}: P
 
   function fetchTagValues(tagKey: string) {
     return api.requestPromise(
-      `/projects/${orgSlug}/${projectSlug}/metrics/tags/${tagKey}/`,
+      `/organizations/${orgSlug}/metrics/tags/${tagKey}/?project=${projectId}`,
       {
         method: 'GET',
       }
