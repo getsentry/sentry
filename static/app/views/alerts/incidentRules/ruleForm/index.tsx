@@ -251,8 +251,8 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     // without modifying the values, this boundary case will fail.
     const isValid =
       thresholdType === AlertRuleThresholdType.BELOW
-        ? alertThreshold - 1 <= resolveThreshold + 1
-        : alertThreshold + 1 >= resolveThreshold - 1;
+        ? alertThreshold - 1 < resolveThreshold + 1
+        : alertThreshold + 1 > resolveThreshold - 1;
 
     const otherErrors = errors.get(triggerIndex) || {};
 

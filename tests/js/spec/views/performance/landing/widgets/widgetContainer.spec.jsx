@@ -52,33 +52,29 @@ describe('Performance > Widgets > WidgetContainer', function () {
       url: `/organizations/org-slug/events-stats/`,
       body: [],
     });
-    eventsV2Mock = MockApiClient.addMockResponse(
-      {
-        method: 'GET',
-        url: `/organizations/org-slug/eventsv2/`,
-        body: [],
+    eventsV2Mock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/eventsv2/`,
+      body: [],
+      match: [(...args) => !issuesPredicate(...args)],
+    });
+    issuesListMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/eventsv2/`,
+      body: {
+        data: [
+          {
+            'issue.id': 123,
+            transaction: '/issue/:id/',
+            title: 'Error: Something is broken.',
+            'project.id': 1,
+            count: 3100,
+            issue: 'JAVASCRIPT-ABCD',
+          },
+        ],
       },
-      {predicate: (...args) => !issuesPredicate(...args)}
-    );
-    issuesListMock = MockApiClient.addMockResponse(
-      {
-        method: 'GET',
-        url: `/organizations/org-slug/eventsv2/`,
-        body: {
-          data: [
-            {
-              'issue.id': 123,
-              transaction: '/issue/:id/',
-              title: 'Error: Something is broken.',
-              'project.id': 1,
-              count: 3100,
-              issue: 'JAVASCRIPT-ABCD',
-            },
-          ],
-        },
-      },
-      {predicate: (...args) => issuesPredicate(...args)}
-    );
+      match: [(...args) => issuesPredicate(...args)],
+    });
 
     eventsTrendsStats = MockApiClient.addMockResponse({
       method: 'GET',

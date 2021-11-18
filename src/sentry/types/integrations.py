@@ -15,6 +15,10 @@ class ExternalProviders(Enum):
 
     CUSTOM = 700
 
+    @property
+    def name(self) -> Optional[str]:
+        return get_provider_name(self.value)
+
 
 EXTERNAL_PROVIDERS = {
     ExternalProviders.EMAIL: "email",

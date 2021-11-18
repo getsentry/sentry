@@ -5,7 +5,7 @@ import re
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from datetime import datetime, timedelta
-from typing import List, Optional, Protocol, Tuple, Union
+from typing import List, Optional, Protocol, Sequence, Tuple, TypedDict, Union
 
 from snuba_sdk import And, Column, Condition, Entity, Granularity, Limit, Offset, Op, Or, Query
 from snuba_sdk.conditions import BooleanCondition
@@ -49,6 +49,8 @@ TS_COL_GROUP = "bucketed_time"
 def parse_field(field: str) -> Tuple[str, str]:
     matches = FIELD_REGEX.match(field)
     try:
+        if matches is None:
+            raise TypeError
         operation = matches[1]
         metric_name = matches[2]
     except (IndexError, TypeError):
@@ -135,6 +137,15 @@ def get_intervals(query: TimeRange):
         start += delta
 
 
+class Tag(TypedDict):
+    key: str
+
+
+class TagValue(TypedDict):
+    key: str
+    value: str
+
+
 class DataSource(ABC):
     """Base class for metrics data sources"""
 
@@ -151,7 +162,7 @@ class DataSource(ABC):
         """Get time series for the given query"""
 
     @abstractmethod
-    def get_tag_names(self, project: Project, metric_names=None):
+    def get_tags(self, project: Project, metric_names=None) -> Sequence[Tag]:
         """Get all available tag names for this project
 
         If ``metric_names`` is provided, the list of available tag names will
@@ -159,7 +170,9 @@ class DataSource(ABC):
         """
 
     @abstractmethod
-    def get_tag_values(self, project: Project, tag_name: str, metric_names=None) -> List[str]:
+    def get_tag_values(
+        self, project: Project, tag_name: str, metric_names=None
+    ) -> Sequence[TagValue]:
         """Get all known values for a specific tag"""
 
 
@@ -264,20 +277,22 @@ class IndexMockingDataSource(DataSource):
 
         return metric_names
 
-    def get_tag_names(self, project: Project, metric_names=None):
+    def get_tags(self, project: Project, metric_names=None) -> Sequence[Tag]:
         """Get all available tag names for this project
 
         If ``metric_names`` is provided, the list of available tag names will
         only contain tags that appear in *all* these metrics.
         """
         if metric_names is None:
-            return sorted({tag_name for metric in _METRICS.values() for tag_name in metric["tags"]})
+            tag_names = sorted(
+                {tag_name for metric in _METRICS.values() for tag_name in metric["tags"]}
+            )
+        else:
+            metric_names = self._validate_metric_names(metric_names)
+            key_sets = [set(_METRICS[metric_name]["tags"].keys()) for metric_name in metric_names]
+            tag_names = sorted(set.intersection(*key_sets))
 
-        metric_names = self._validate_metric_names(metric_names)
-
-        key_sets = [set(_METRICS[metric_name]["tags"].keys()) for metric_name in metric_names]
-
-        return sorted(set.intersection(*key_sets))
+        return [{"key": tag_name} for tag_name in tag_names]
 
     @classmethod
     def _get_tag_values(cls, metric_name: str, tag_name: str) -> List[str]:
@@ -289,10 +304,11 @@ class IndexMockingDataSource(DataSource):
 
         return tags
 
-    def get_tag_values(self, project: Project, tag_name: str, metric_names=None) -> List[str]:
-
+    def get_tag_values(
+        self, project: Project, tag_name: str, metric_names=None
+    ) -> Sequence[TagValue]:
         if metric_names is None:
-            return sorted(
+            tag_values = sorted(
                 {
                     tag_value
                     for metric in _METRICS.values()
@@ -301,14 +317,14 @@ class IndexMockingDataSource(DataSource):
                     )  # TODO: validation of tag name
                 }
             )
+        else:
+            metric_names = self._validate_metric_names(metric_names)
+            value_sets = [
+                set(self._get_tag_values(metric_name, tag_name)) for metric_name in metric_names
+            ]
+            tag_values = sorted(set.intersection(*value_sets))
 
-        metric_names = self._validate_metric_names(metric_names)
-
-        value_sets = [
-            set(self._get_tag_values(metric_name, tag_name)) for metric_name in metric_names
-        ]
-
-        return sorted(set.intersection(*value_sets))
+        return [{"key": tag_name, "value": tag_value} for tag_value in tag_values]
 
 
 class MockDataSource(IndexMockingDataSource):

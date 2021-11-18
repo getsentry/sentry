@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
@@ -78,6 +78,8 @@ function initializeTrendsData(
 }
 
 describe('Performance > Trends', function () {
+  enforceActOnUseLegacyStoreHook();
+
   let trendsStatsMock;
   let wrapper;
   beforeEach(function () {

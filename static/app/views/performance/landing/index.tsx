@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 import SearchBar from 'app/components/events/searchBar';
 import GlobalSdkUpdateAlert from 'app/components/globalSdkUpdateAlert';
 import * as Layout from 'app/components/layouts/thirds';
@@ -19,6 +20,7 @@ import {generateAggregateFields} from 'app/utils/discover/fields';
 import {OpBreakdownFilterProvider} from 'app/utils/performance/contexts/operationBreakdownFilter';
 import useTeams from 'app/utils/useTeams';
 
+import {MetricsSwitch} from '../metricsSwitch';
 import Filter, {SpanOperationBreakdownFilter} from '../transactionSummary/filter';
 import {getTransactionSearchQuery} from '../utils';
 
@@ -86,13 +88,16 @@ export function PerformanceLanding(props: Props) {
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           {!showOnboarding && (
-            <Button
-              priority="primary"
-              data-test-id="landing-header-trends"
-              onClick={() => handleTrendsClick()}
-            >
-              {t('View Trends')}
-            </Button>
+            <ButtonBar gap={3}>
+              <MetricsSwitch />
+              <Button
+                priority="primary"
+                data-test-id="landing-header-trends"
+                onClick={() => handleTrendsClick()}
+              >
+                {t('View Trends')}
+              </Button>
+            </ButtonBar>
           )}
         </Layout.HeaderActions>
 

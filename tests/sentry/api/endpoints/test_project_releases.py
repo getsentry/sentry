@@ -4,6 +4,7 @@ import pytz
 from django.urls import reverse
 from django.utils import timezone
 from exam import fixture
+from rest_framework.exceptions import ErrorDetail
 
 from sentry.api.endpoints.project_releases import ReleaseWithVersionSerializer
 from sentry.constants import BAD_RELEASE_CHARS, MAX_VERSION_LENGTH
@@ -624,7 +625,8 @@ class ReleaseSerializerTest(TestCase):
                 "url": self.url,
                 "dateReleased": self.dateReleased,
                 "commits": self.commits,
-            }
+            },
+            context={"organization": self.organization},
         )
 
         assert serializer.is_valid()
@@ -641,46 +643,95 @@ class ReleaseSerializerTest(TestCase):
         assert result["commits"] == self.commits
 
     def test_fields_not_required(self):
-        serializer = ReleaseWithVersionSerializer(data={"version": self.version})
+        serializer = ReleaseWithVersionSerializer(
+            data={"version": self.version},
+            context={"organization": self.organization},
+        )
         assert serializer.is_valid()
 
     def test_do_not_allow_null_commits(self):
-        serializer = ReleaseWithVersionSerializer(data={"version": self.version, "commits": None})
+        serializer = ReleaseWithVersionSerializer(
+            data={"version": self.version, "commits": None},
+            context={"organization": self.organization},
+        )
         assert not serializer.is_valid()
 
     def test_ref_limited_by_max_version_length(self):
         serializer = ReleaseWithVersionSerializer(
-            data={"version": self.version, "ref": "a" * MAX_VERSION_LENGTH}
+            data={"version": self.version, "ref": "a" * MAX_VERSION_LENGTH},
+            context={"organization": self.organization},
         )
         assert serializer.is_valid()
         serializer = ReleaseWithVersionSerializer(
-            data={"version": self.version, "ref": "a" * (MAX_VERSION_LENGTH + 1)}
+            data={"version": self.version, "ref": "a" * (MAX_VERSION_LENGTH + 1)},
+            context={"organization": self.organization},
         )
         assert not serializer.is_valid()
 
     def test_version_limited_by_max_version_length(self):
-        serializer = ReleaseWithVersionSerializer(data={"version": "a" * MAX_VERSION_LENGTH})
+        serializer = ReleaseWithVersionSerializer(
+            data={"version": "a" * MAX_VERSION_LENGTH},
+            context={"organization": self.organization},
+        )
         assert serializer.is_valid()
-        serializer = ReleaseWithVersionSerializer(data={"version": "a" * (MAX_VERSION_LENGTH + 1)})
+        serializer = ReleaseWithVersionSerializer(
+            data={"version": "a" * (MAX_VERSION_LENGTH + 1)},
+            context={"organization": self.organization},
+        )
         assert not serializer.is_valid()
 
     def test_version_does_not_allow_whitespace(self):
         for char in BAD_RELEASE_CHARS:
-            serializer = ReleaseWithVersionSerializer(data={"version": char})
+            serializer = ReleaseWithVersionSerializer(
+                data={"version": char},
+                context={"organization": self.organization},
+            )
             assert not serializer.is_valid()
 
     def test_version_does_not_allow_current_dir_path(self):
-        serializer = ReleaseWithVersionSerializer(data={"version": "."})
+        serializer = ReleaseWithVersionSerializer(
+            data={"version": "."},
+            context={"organization": self.organization},
+        )
         assert not serializer.is_valid()
-        serializer = ReleaseWithVersionSerializer(data={"version": ".."})
+        serializer = ReleaseWithVersionSerializer(
+            data={"version": ".."},
+            context={"organization": self.organization},
+        )
         assert not serializer.is_valid()
 
     def test_version_does_not_allow_null_or_empty_value(self):
-        serializer = ReleaseWithVersionSerializer(data={"version": None})
+        serializer = ReleaseWithVersionSerializer(
+            data={"version": None},
+            context={"organization": self.organization},
+        )
         assert not serializer.is_valid()
-        serializer = ReleaseWithVersionSerializer(data={"version": ""})
+        serializer = ReleaseWithVersionSerializer(
+            data={"version": ""},
+            context={"organization": self.organization},
+        )
         assert not serializer.is_valid()
 
     def test_version_cannot_be_latest(self):
-        serializer = ReleaseWithVersionSerializer(data={"version": "Latest"})
+        serializer = ReleaseWithVersionSerializer(
+            data={"version": "Latest"},
+            context={"organization": self.organization},
+        )
         assert not serializer.is_valid()
+
+    def test_owner_must_have_org_access(self):
+        serializer = ReleaseWithVersionSerializer(
+            data={
+                "version": self.version,
+                "owner": self.create_user().username,
+                "ref": self.ref,
+                "url": self.url,
+                "dateReleased": self.dateReleased,
+                "commits": self.commits,
+            },
+            context={"organization": self.organization},
+        )
+        assert not serializer.is_valid()
+        assert serializer.errors == {
+            "owner": [ErrorDetail("User does not have access to this organization", "invalid")]
+        }

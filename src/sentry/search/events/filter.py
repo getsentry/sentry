@@ -980,7 +980,12 @@ def format_search_filter(term, params):
                 conditions.append(converted_filter)
     elif name == ISSUE_ID_ALIAS and value != "":
         # A blank term value means that this is a has filter
-        group_ids = to_list(value)
+        if term.operator in EQUALITY_OPERATORS:
+            group_ids = to_list(value)
+        else:
+            converted_filter = convert_search_filter_to_snuba_query(term, params=params)
+            if converted_filter:
+                conditions.append(converted_filter)
     elif name == ISSUE_ALIAS:
         operator = term.operator
         value = to_list(value)
@@ -1687,30 +1692,30 @@ class QueryFilter(QueryFields):
 
     def _release_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         """Parse releases for potential aliases like `latest`"""
-        values = reduce(
-            lambda x, y: x + y,
-            [
-                parse_release(
-                    v,
-                    self.params["project_id"],
-                    self.params.get("environment_objects"),
-                    self.params.get("organization_id"),
+
+        if search_filter.value.is_wildcard():
+            operator = search_filter.operator
+            value = search_filter.value
+        else:
+            operator_conversions = {"=": "IN", "!=": "NOT IN"}
+            operator = operator_conversions.get(search_filter.operator, search_filter.operator)
+            value = SearchValue(
+                reduce(
+                    lambda x, y: x + y,
+                    [
+                        parse_release(
+                            v,
+                            self.params["project_id"],
+                            self.params.get("environment_objects"),
+                            self.params.get("organization_id"),
+                        )
+                        for v in to_list(search_filter.value.value)
+                    ],
+                    [],
                 )
-                for v in to_list(search_filter.value.value)
-            ],
-            [],
-        )
-
-        operator_conversions = {"=": "IN", "!=": "NOT IN"}
-        operator = operator_conversions.get(search_filter.operator, search_filter.operator)
-
-        return self._default_filter_converter(
-            SearchFilter(
-                search_filter.key,
-                operator,
-                SearchValue(values),
             )
-        )
+
+        return self._default_filter_converter(SearchFilter(search_filter.key, operator, value))
 
     def _semver_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         """

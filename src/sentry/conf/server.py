@@ -906,11 +906,11 @@ SENTRY_FEATURES = {
     # Enable the linked event feature in the issue details breadcrumb.
     "organizations:breadcrumb-linked-event": False,
     # Enable change alerts for an org
-    "organizations:change-alerts": False,
+    "organizations:change-alerts": True,
     # Enable unfurling charts using the Chartcuterie service
     "organizations:chart-unfurls": False,
     # Enable alerting based on crash free sessions/users
-    "organizations:crash-rate-alerts": False,
+    "organizations:crash-rate-alerts": True,
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
     # is not enabled).
     "organizations:create": True,
@@ -1000,6 +1000,8 @@ SENTRY_FEATURES = {
     "organizations:sentry-app-debugging": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
+    # Enable widget resizing in dashboards
+    "organizations:dashboard-widget-resizing": False,
     # Enable readonly dashboards
     "organizations:dashboards-basic": True,
     # Enable custom editable dashboards
@@ -1094,7 +1096,7 @@ SENTRY_FEATURES = {
     # send organization request notifications through Slack
     "organizations:slack-requests": False,
     # Enable team insights page
-    "organizations:team-insights": False,
+    "organizations:team-insights": True,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
