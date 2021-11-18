@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+from django.conf import settings
 from django.utils.deprecation import MiddlewareMixin
 from rest_framework.request import Request
 
@@ -17,6 +18,12 @@ def get_rate_limit_key(view_func: EndpointFunction, request: Request) -> str | N
 
     view = view_func.__qualname__
     http_method = request.method
+
+    # This avoids touching user session, which means we avoid
+    # setting `Vary: Cookie` as a response header which will
+    # break HTTP caching entirely.
+    if request.path_info.startswith(settings.ANONYMOUS_STATIC_PREFIXES):
+        return None
 
     request_user = getattr(request, "user", None)
     user_id = getattr(request_user, "id", None)
