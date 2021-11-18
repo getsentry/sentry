@@ -255,9 +255,10 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
         equations: Optional[List[str]] = None,
         limit: Optional[int] = 10000,
     ):
-        timeseries_equations, timeseries_functions = categorize_columns(
-            timeseries_columns if timeseries_columns is not None else []
-        )
+        selected_columns = [] if selected_columns is None else selected_columns
+        timeseries_columns = [] if timeseries_columns is None else timeseries_columns
+        equations = [] if equations is None else equations
+        timeseries_equations, timeseries_functions = categorize_columns(timeseries_columns)
         super().__init__(
             dataset,
             params,
