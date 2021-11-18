@@ -105,7 +105,7 @@ install-py-dev() {
     upgrade-pip
     # It places us within top src dir to be at the same path as setup.py
     # This helps when getsentry calls into this script
-    cd "${HERE}/.." :|| exit
+    cd "${HERE}/.." || exit
 
     echo "--> Installing Sentry (for development)"
     if query-apple-m1; then
