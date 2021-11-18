@@ -4,10 +4,15 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {getOptionByLabel, openMenu, selectByLabel} from 'sentry-test/select-new';
 
+import {openDashboardWidgetLibraryModal} from 'app/actionCreators/modal';
 import AddDashboardWidgetModal from 'app/components/modals/addDashboardWidgetModal';
 import {t} from 'app/locale';
 import TagStore from 'app/stores/tagStore';
 import * as types from 'app/views/dashboardsV2/types';
+
+jest.mock('app/actionCreators/modal', () => ({
+  openDashboardWidgetLibraryModal: jest.fn(),
+}));
 
 const stubEl = props => <div>{props.children}</div>;
 
@@ -16,10 +21,14 @@ function mountModal({
   onAddWidget,
   onUpdateWidget,
   widget,
+  dashboard,
   fromDiscover,
+  fromLibrary,
   defaultWidgetQuery,
   displayType,
   defaultTableColumns,
+  selectedWidgets,
+  onAddLibraryWidget,
 }) {
   return mountWithTheme(
     <AddDashboardWidgetModal
@@ -30,11 +39,15 @@ function mountModal({
       onAddWidget={onAddWidget}
       onUpdateWidget={onUpdateWidget}
       widget={widget}
+      dashboard={dashboard}
       closeModal={() => void 0}
       fromDiscover={fromDiscover}
+      fromLibrary={fromLibrary}
       defaultWidgetQuery={defaultWidgetQuery}
       displayType={displayType}
       defaultTableColumns={defaultTableColumns}
+      selectedWidgets={selectedWidgets}
+      onAddLibraryWidget={onAddLibraryWidget}
     />,
     initialData.routerContext
   );
@@ -81,6 +94,11 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     {name: 'browser.name', key: 'browser.name'},
     {name: 'custom-field', key: 'custom-field'},
   ];
+  const dashboard = TestStubs.Dashboard([], {
+    id: '1',
+    title: 'Test Dashboard',
+    widgetDisplay: ['area'],
+  });
 
   let eventsStatsMock;
 
@@ -110,13 +128,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
-      body: [
-        TestStubs.Dashboard([], {
-          id: '1',
-          title: 'Test Dashboard',
-          widgetDisplay: ['area'],
-        }),
-      ],
+      body: [dashboard],
     });
   });
 
@@ -972,6 +984,38 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(wrapper.find('WidgetQueriesForm').props().queries[0].orderby).toEqual(
       '-count_unique_user'
     );
+    wrapper.unmount();
+  });
+
+  it('submits custom widget correctly', async function () {
+    const onAddLibraryWidgetMock = jest.fn();
+    const wrapper = mountModal({
+      initialData,
+      dashboard,
+      onAddLibraryWidget: onAddLibraryWidgetMock,
+      fromLibrary: true,
+    });
+
+    const input = wrapper.find('Input[name="title"] input');
+    input.simulate('change', {target: {value: 'All Events'}});
+
+    await clickSubmit(wrapper);
+    expect(onAddLibraryWidgetMock).toHaveBeenCalledTimes(1);
+    wrapper.unmount();
+  });
+
+  it('renders the back button from library', async function () {
+    const onAddLibraryWidgetMock = jest.fn();
+    const wrapper = mountModal({
+      initialData,
+      dashboard,
+      onAddLibraryWidget: onAddLibraryWidgetMock,
+      fromLibrary: true,
+    });
+
+    expect(wrapper.find('Button[data-test-id="back-to-library"]')).toHaveLength(1);
+    wrapper.find('Button[data-test-id="back-to-library"] button').simulate('click');
+    expect(openDashboardWidgetLibraryModal).toHaveBeenCalledTimes(1);
     wrapper.unmount();
   });
 });
