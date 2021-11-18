@@ -15,7 +15,6 @@ from sentry.api.serializers import serialize
 from sentry.app import ratelimiter
 from sentry.auth.authenticators.base import EnrollmentStatus
 from sentry.models import Authenticator
-from sentry.models.organizationmember import OrganizationMember
 from sentry.security import capture_security_activity
 
 logger = logging.getLogger(__name__)
@@ -98,12 +97,8 @@ def get_serializer_field_metadata(serializer, fields=None):
 
 
 class UserAuthenticatorEnrollEndpoint(UserEndpoint):
-    def _get_org_from_user(self, user):
-        orgs = OrganizationMember.objects.filter(user_id=user.id)
-        return orgs
-
     def _check_webauthn_register_ff(self, user):
-        orgs = self._get_org_from_user(user)
+        orgs = user.get_orgs()
         if any(features.has("organizations:webauthn-register", org, actor=user) for org in orgs):
             return True
         return False
@@ -242,11 +237,8 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         # Try u2f enrollment
         if interface_id == "u2f":
             # What happens when this fails?
-            is_webauthn_register_ff = False
-            state = None
-            if self._check_webauthn_register_ff(user):
-                is_webauthn_register_ff = True
-                state = request.session["webauthn_register_state"]
+            is_webauthn_register_ff = self._check_webauthn_register_ff(user)
+            state = request.session["webauthn_register_state"] if is_webauthn_register_ff else None
             interface.try_enroll(
                 serializer.data["challenge"],
                 serializer.data["response"],
