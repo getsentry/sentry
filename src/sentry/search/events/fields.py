@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Any, Callable, Dict, List, Mapping, Match, Optional, Sequence, Set, Tuple, Union
 
 import sentry_sdk
+from django.utils.functional import cached_property
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 from snuba_sdk.aliased_expression import AliasedExpression
 from snuba_sdk.column import Column
@@ -2279,12 +2280,12 @@ def normalize_percentile_alias(args: Mapping[str, str]) -> str:
 
 
 class SnQLFunction(DiscoverFunction):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         self.snql_aggregate = kwargs.pop("snql_aggregate", None)
         self.snql_column = kwargs.pop("snql_column", None)
         super().__init__(*args, **kwargs)
 
-    def validate(self):
+    def validate(self) -> None:
         # assert that all optional args have defaults available
         for i, arg in enumerate(self.optional_args):
             assert (
@@ -2328,7 +2329,7 @@ class QueryFields(QueryBase):
             TIMESTAMP_TO_HOUR_ALIAS: self._resolve_timestamp_to_hour_alias,
             TIMESTAMP_TO_DAY_ALIAS: self._resolve_timestamp_to_day_alias,
             USER_DISPLAY_ALIAS: self._resolve_user_display_alias,
-            PROJECT_THRESHOLD_CONFIG_ALIAS: self._resolve_project_threshold_config,
+            PROJECT_THRESHOLD_CONFIG_ALIAS: lambda _: self._resolve_project_threshold_config,
             ERROR_UNHANDLED_ALIAS: self._resolve_error_unhandled_alias,
             TEAM_KEY_TRANSACTION_ALIAS: self._resolve_team_key_transaction_alias,
             MEASUREMENTS_FRAMES_SLOW_RATE: self._resolve_measurements_frames_slow_rate,
@@ -3041,9 +3042,10 @@ class QueryFields(QueryBase):
         if function in self.params.get("aliases", {}):
             raise NotImplementedError("Aggregate aliases not implemented in snql field parsing yet")
 
-        name, combinator_name, arguments, alias = self.parse_function(match)
+        name, combinator_name, parsed_arguments, alias = self.parse_function(match)
         if overwrite_alias is not None:
             alias = overwrite_alias
+
         snql_function = self.function_converter[name]
 
         combinator = snql_function.find_combinator(combinator_name)
@@ -3058,7 +3060,9 @@ class QueryFields(QueryBase):
 
         combinator_applied = False
 
-        arguments = snql_function.format_as_arguments(name, arguments, self.params, combinator)
+        arguments = snql_function.format_as_arguments(
+            name, parsed_arguments, self.params, combinator
+        )
 
         self.function_alias_map[alias] = FunctionDetails(function, snql_function, arguments.copy())
 
@@ -3147,7 +3151,8 @@ class QueryFields(QueryBase):
         columns = ["user.email", "user.username", "user.ip"]
         return Function("coalesce", [self.column(column) for column in columns], USER_DISPLAY_ALIAS)
 
-    def _resolve_project_threshold_config(self, _: str) -> SelectType:
+    @cached_property
+    def _resolve_project_threshold_config(self) -> SelectType:
         org_id = self.params.get("organization_id")
         project_ids = self.params.get("project_id")
 
@@ -3420,7 +3425,7 @@ class QueryFields(QueryBase):
         self,
         args: Mapping[str, Union[str, Column, SelectType, int, float]],
         alias: str,
-        fixed_percentile: float = None,
+        fixed_percentile: Optional[float] = None,
     ) -> SelectType:
         return (
             Function(

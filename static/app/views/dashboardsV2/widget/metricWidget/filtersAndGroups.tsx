@@ -6,12 +6,13 @@ import {Organization, Project} from 'app/types';
 
 import GroupByField from './groupByField';
 import SearchQueryField from './searchQueryField';
+import {MetricTag} from './types';
 
 type Props = {
   api: Client;
   orgSlug: Organization['slug'];
   projSlug: Project['slug'];
-  metricTags: string[];
+  metricTags: MetricTag[];
   onChangeSearchQuery: (searchQuery?: string) => void;
   onChangeGroupBy: (groupBy?: string[]) => void;
   searchQuery?: string;
@@ -32,7 +33,7 @@ function FiltersAndGroups({
     <Wrapper>
       <SearchQueryField
         api={api}
-        tags={metricTags}
+        tags={metricTags.map(({key}) => key)}
         orgSlug={orgSlug}
         projectSlug={projSlug}
         query={searchQuery}

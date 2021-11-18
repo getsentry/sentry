@@ -26,7 +26,7 @@ class UserReportNotification(ProjectNotification):
 
     def get_participants_with_group_subscription_reason(
         self,
-    ) -> Mapping[ExternalProviders, Mapping[User, int]]:
+    ) -> Mapping[ExternalProviders, Mapping[Team | User, int]]:
         data_by_provider = GroupSubscription.objects.get_participants(group=self.group)
         return {
             provider: data
@@ -75,7 +75,8 @@ class UserReportNotification(ProjectNotification):
     def get_recipient_context(
         self, recipient: Team | User, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
-        return get_reason_context(extra_context)
+        context = super().get_recipient_context(recipient, extra_context)
+        return {**context, **get_reason_context(context)}
 
     def send(self) -> None:
         return send_activity_notification(self)

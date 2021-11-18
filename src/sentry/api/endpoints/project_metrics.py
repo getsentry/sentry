@@ -70,11 +70,11 @@ class ProjectMetricsTagsEndpoint(ProjectEndpoint):
             return Response(status=404)
 
         try:
-            tag_names = get_datasource(request).get_tag_names(project, metric_names)
+            tags = get_datasource(request).get_tags(project, metric_names)
         except InvalidParams as exc:
             raise (ParseError(detail=str(exc)))
 
-        return Response(tag_names, status=200)
+        return Response(tags, status=200)
 
 
 class ProjectMetricsTagDetailsEndpoint(ProjectEndpoint):

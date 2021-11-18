@@ -8,56 +8,56 @@ class OrganizationIntegrationRequestTest(APITestCase):
     method = "post"
 
     def setUp(self):
-        self.owner = self.create_user(email="owner@example.com", is_superuser=True)
+        self.owner = self.user
         self.member = self.create_user(email="member@example.com")
-        self.org = self.create_organization(owner=self.owner, name="My Org")
-        self.create_member(user=self.member, organization=self.org, role="member")
+        self.create_member(user=self.member, organization=self.organization, role="member")
+        self.login_as(user=self.member)
 
     def test_integration_request(self):
-        self.login_as(user=self.member)
-        response = self.get_response(
-            self.org.slug,
+        self.get_success_response(
+            self.organization.slug,
             providerSlug="github",
             providerType="first_party",
         )
 
-        assert response.status_code == 201, response.content
-
     def test_integration_request_with_invalid_plugin(self):
-        self.login_as(user=self.member)
-        response = self.get_response(
-            self.org.slug,
+        self.get_error_response(
+            self.organization.slug,
             providerSlug="ERROR",
             providerType="plugin",
+            status_code=400,
         )
-
-        assert response.status_code == 400, response.content
 
     def test_integration_request_with_invalid_sentryapp(self):
-        self.login_as(user=self.member)
-        response = self.get_response(
-            self.org.slug,
+        self.get_error_response(
+            self.organization.slug,
             providerSlug="ERROR",
             providerType="sentry_app",
+            status_code=400,
         )
 
-        assert response.status_code == 400, response.content
+    def test_integration_request_with_invalid_integration(self):
+        self.get_error_response(
+            self.organization.slug,
+            providerSlug="ERROR",
+            providerType="first_party",
+            status_code=400,
+        )
 
     def test_integration_request_as_owner(self):
         self.login_as(user=self.owner)
-        response = self.get_response(
-            self.org.slug,
+        response = self.get_success_response(
+            self.organization.slug,
             providerSlug="github",
             providerType="first_party",
         )
-        assert response.status_code == 200, response.content
         assert response.data["detail"] == "User can install integration"
 
     def test_integration_request_without_permissions(self):
         self.login_as(user=self.create_user(email="nonmember@example.com"))
-        response = self.get_response(
-            self.org.slug,
+        self.get_error_response(
+            self.organization.slug,
             providerSlug="github",
             providerType="first_party",
+            status_code=403,
         )
-        assert response.status_code == 403, response.content

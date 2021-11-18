@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import re
-from typing import Mapping, Union
+from typing import Mapping
 from urllib.parse import urljoin
 
 from sentry.constants import ObjectStatus
@@ -8,7 +10,7 @@ from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
 from sentry.models import Environment, Integration, Team, User
 from sentry.notifications.notifications.activity.release import ReleaseActivityNotification
-from sentry.notifications.notifications.base import BaseNotification, ProjectNotification
+from sentry.notifications.notifications.base import BaseNotification
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
@@ -48,7 +50,7 @@ def send_incident_alert_notification(
         logger.info("rule.fail.slack_post", extra={"error": str(e)})
 
 
-def get_referrer_qstring(notification: BaseNotification, recipient: Union["Team", "User"]) -> str:
+def get_referrer_qstring(notification: BaseNotification, recipient: Team | User) -> str:
     # TODO: make a generic version that works for other notification types
     return (
         "?referrer="
@@ -57,16 +59,14 @@ def get_referrer_qstring(notification: BaseNotification, recipient: Union["Team"
     )
 
 
-def get_settings_url(notification: BaseNotification, recipient: Union["Team", "User"]) -> str:
+def get_settings_url(notification: BaseNotification, recipient: Team | User) -> str:
     url_str = "/settings/account/notifications/"
     if notification.fine_tuning_key:
         url_str += f"{notification.fine_tuning_key}/"
     return str(urljoin(absolute_uri(url_str), get_referrer_qstring(notification, recipient)))
 
 
-def build_notification_footer(
-    notification: ProjectNotification, recipient: Union["Team", "User"]
-) -> str:
+def build_notification_footer(notification: BaseNotification, recipient: Team | User) -> str:
     if isinstance(recipient, Team):
         team = Team.objects.get(id=recipient.id)
         url_str = f"/settings/{notification.organization.slug}/teams/{team.slug}/notifications/"
@@ -82,7 +82,8 @@ def build_notification_footer(
             return f"{notification.release.projects.all()[0].slug} | <{settings_url}|Notification Settings>"
         return f"<{settings_url}|Notification Settings>"
 
-    footer: str = notification.project.slug
+    parent = getattr(notification, "project", notification.organization)
+    footer: str = parent.slug
     group = getattr(notification, "group", None)
     latest_event = group.get_latest_event() if group else None
     environment = None

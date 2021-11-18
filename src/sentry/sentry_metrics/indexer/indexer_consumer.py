@@ -38,7 +38,7 @@ class MetricsIndexerWorker(AbstractBatchWorker):  # type: ignore
         parsed_message: MutableMapping[str, Any] = json.loads(message.value(), use_rapid_json=True)
 
         metric_name = parsed_message["name"]
-        tags = parsed_message["tags"]
+        tags = parsed_message.get("tags", {})
 
         strings = {
             metric_name,

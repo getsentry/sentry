@@ -104,6 +104,13 @@ declare global {
      * See sentry/js/ads.js for how this global is disabled.
      */
     adblockSuspected?: boolean;
+    /**
+     * This is used for testing purposes as an interem while we translate tests
+     * to React Testing Library.
+     *
+     * See the useLegacyStore hook for more unformation about this.
+     */
+    _legacyStoreHookUpdate: (update: () => void) => void;
 
     // typing currently used for demo add on
     // TODO: improve typing
@@ -754,6 +761,7 @@ export interface Config {
 
   invitesEnabled: boolean;
   privacyUrl: string | null;
+  termsUrl: string | null;
   isOnPremise: boolean;
   lastOrganization: string | null;
   gravatarBaseUrl: string;
@@ -763,14 +771,18 @@ export interface Config {
    */
   messages: {message: string; level: string}[];
   dsn: string;
-  userIdentity: {ip_address: string; email: string; id: string; isStaff: boolean};
-  termsUrl: string | null;
+  userIdentity: {
+    ip_address: string;
+    email: string;
+    id: string;
+    isStaff: boolean;
+  };
   isAuthenticated: boolean;
   version: {
     current: string;
+    latest: string;
     build: string;
     upgradeAvailable: boolean;
-    latest: string;
   };
   sentryConfig: {
     dsn: string;

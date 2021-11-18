@@ -110,12 +110,11 @@ def excessive_event_rate(project_id: int, event_counts: BucketedCounts) -> bool:
     total_rate = event_counts.rate(event_counts.TOTAL_PERIOD)
     recent_rate = event_counts.rate(period=60)
 
-    metrics.gauge(
-        "symbolication.lpq.computation.rate.total", total_rate, tags={"project_id": project_id}
-    )
-    metrics.gauge(
-        "symbolication.lpq.computation.rate.recent", recent_rate, tags={"project_id": project_id}
-    )
+    # Note, We had these tagged with tags={"project_id": project_id} during our initial
+    # evaluation, however the cardinality for this is really too high to leave that on
+    # forever in production.
+    metrics.gauge("symbolication.lpq.computation.rate.total", total_rate)
+    metrics.gauge("symbolication.lpq.computation.rate.recent", recent_rate)
 
     if recent_rate > 50 and recent_rate > 5 * total_rate:
         return True
@@ -135,14 +134,11 @@ def excessive_event_duration(project_id: int, durations: BucketedDurationsHistog
         return False
     events_per_minute = total_histogram.total_count() / (durations.total_time() / 60)
 
-    metrics.gauge(
-        "symbolication.lpq.computation.durations.p75", p75_duration, tags={"project_id": project_id}
-    )
-    metrics.gauge(
-        "symbolication.lpq.computation.durations.events_per_minutes",
-        events_per_minute,
-        tags={"project_id": project_id},
-    )
+    # Note, We had these tagged with tags={"project_id": project_id} during our initial
+    # evaluation, however the cardinality for this is really too high to leave that on
+    # forever in production.
+    metrics.gauge("symbolication.lpq.computation.durations.p75", p75_duration)
+    metrics.gauge("symbolication.lpq.computation.durations.events_per_minutes", events_per_minute)
 
     if events_per_minute > 15 and p75_duration > 6 * 60:
         return True

@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import AsyncComponent from 'app/components/asyncComponent';
+import Button from 'app/components/button';
 import {DateTimeObject} from 'app/components/charts/utils';
 import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
@@ -18,8 +19,6 @@ import DiscoverQuery, {TableData, TableDataRow} from 'app/utils/discover/discove
 import EventView from 'app/utils/discover/eventView';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import type {Color} from 'app/utils/theme';
-
-import {transactionSummaryRouteWithQuery} from '../../performance/transactionSummary/utils';
 
 import {groupByTrend} from './utils';
 
@@ -84,6 +83,16 @@ function TeamMisery({
     <Fragment>
       <StyledPanelTable
         isEmpty={projects.length === 0 || periodTableData?.data.length === 0}
+        emptyMessage={t('No key Transactions Starred By This Team')}
+        emptyAction={
+          <Button
+            size="small"
+            external
+            href="https://docs.sentry.io/product/performance/transaction-summary/#starring-key-transactions"
+          >
+            {t('Learn More')}
+          </Button>
+        }
         headers={[
           t('Key transaction'),
           t('Project'),
@@ -113,17 +122,20 @@ function TeamMisery({
             return null;
           }
 
+          const linkEventView = EventView.fromSavedQuery({
+            id: undefined,
+            name: dataRow.transaction as string,
+            projects: [Number(project?.id)],
+            query: `transaction.duration:<15m transaction:${dataRow.transaction}`,
+            version: 2 as SavedQueryVersions,
+            range: '7d',
+            fields: ['id', 'title', 'event.type', 'project', 'user.display', 'timestamp'],
+          });
+
           return (
             <Fragment key={idx}>
               <TransactionWrapper>
-                <Link
-                  to={transactionSummaryRouteWithQuery({
-                    orgSlug: organization.slug,
-                    transaction: dataRow.transaction as string,
-                    projectID: project?.id,
-                    query: {query: 'transaction.duration:<15m'},
-                  })}
-                >
+                <Link to={linkEventView.getResultsViewUrlTarget(organization.slug)}>
                   {dataRow.transaction}
                 </Link>
               </TransactionWrapper>
@@ -165,6 +177,7 @@ function TeamMisery({
 
 type Props = AsyncComponent['props'] & {
   organization: Organization;
+  teamId: string;
   projects: Project[];
   location: Location;
   period?: string;
@@ -174,6 +187,7 @@ type Props = AsyncComponent['props'] & {
 
 function TeamMiseryWrapper({
   organization,
+  teamId,
   projects,
   location,
   period,
@@ -197,9 +211,10 @@ function TeamMiseryWrapper({
   const commonEventView = {
     id: undefined,
     query: 'transaction.duration:<15m team_key_transaction:true',
-    projects: projects.map(project => Number(project.id)),
+    projects: [],
     version: 2 as SavedQueryVersions,
     orderby: '-tpm',
+    teams: [Number(teamId)],
     fields: [
       'transaction',
       'project',

@@ -68,3 +68,7 @@ export function Authenticators() {
     }),
   };
 }
+
+export function AllAuthenticators() {
+  return Object.values(Authenticators()).map(x => x());
+}

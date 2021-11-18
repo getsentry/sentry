@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import logging
-from typing import Any, Iterable, Mapping, Optional, Union
+from typing import Any, Iterable, Mapping
 
 from django.utils.encoding import force_text
 
@@ -35,16 +37,27 @@ def get_headers(notification: BaseNotification) -> Mapping[str, Any]:
     return headers
 
 
-def build_subject_prefix(project: "Project") -> str:
-    key = "mail:subject_prefix"
-    out: str = force_text(
-        ProjectOption.objects.get_value(project, key) or options.get("mail.subject-prefix")
+def build_subject_prefix(project: Project) -> str:
+    # Explicitly typing to satisfy mypy.
+    subject_prefix: str = force_text(
+        ProjectOption.objects.get_value(project, "mail:subject_prefix")
+        or options.get("mail.subject-prefix")
     )
-    return out
+    return subject_prefix
+
+
+def get_subject_with_prefix(
+    notification: BaseNotification,
+    context: Mapping[str, Any] | None = None,
+) -> bytes:
+    prefix = ""
+    if isinstance(notification, ProjectNotification):
+        prefix = build_subject_prefix(notification.project)
+    return f"{prefix}{notification.get_subject(context)}".encode()
 
 
 def get_unsubscribe_link(
-    user_id: int, resource_id: int, key: str = "issue", referrer: Optional[str] = None
+    user_id: int, resource_id: int, key: str = "issue", referrer: str | None = None
 ) -> str:
     signed_link: str = generate_signed_link(
         user_id,
@@ -55,14 +68,15 @@ def get_unsubscribe_link(
     return signed_link
 
 
-def log_message(notification: BaseNotification, recipient: Union["Team", "User"]) -> None:
+def log_message(notification: BaseNotification, recipient: Team | User) -> None:
     extra = notification.get_log_params(recipient)
     logger.info("mail.adapter.notify.mail_user", extra={**extra})
+    notification.record_notification_sent(recipient, ExternalProviders.EMAIL)
 
 
 def get_context(
     notification: BaseNotification,
-    recipient: Union["Team", "User"],
+    recipient: Team | User,
     shared_context: Mapping[str, Any],
     extra_context: Mapping[str, Any],
 ) -> Mapping[str, Any]:
@@ -90,22 +104,25 @@ def get_context(
 @register_notification_provider(ExternalProviders.EMAIL)
 def send_notification_as_email(
     notification: BaseNotification,
-    recipients: Iterable[Union["Team", "User"]],
+    recipients: Iterable[Team | User],
     shared_context: Mapping[str, Any],
-    extra_context_by_user_id: Optional[Mapping[int, Mapping[str, Any]]],
+    extra_context_by_actor_id: Mapping[int, Mapping[str, Any]] | None,
 ) -> None:
     for recipient in recipients:
         if isinstance(recipient, Team):
             # TODO(mgaeta): MessageBuilder only works with Users so filter out Teams for now.
             continue
         log_message(notification, recipient)
+
         msg = MessageBuilder(
-            **get_builder_args(notification, recipient, shared_context, extra_context_by_user_id)
+            **get_builder_args(notification, recipient, shared_context, extra_context_by_actor_id)
         )
+
         # TODO: find better way of handling this
         add_users_kwargs = {}
         if isinstance(notification, ProjectNotification):
             add_users_kwargs["project"] = notification.project
+
         msg.add_users([recipient.id], **add_users_kwargs)
         msg.send_async()
         notification.record_notification_sent(recipient, ExternalProviders.EMAIL)
@@ -113,15 +130,15 @@ def send_notification_as_email(
 
 def get_builder_args(
     notification: BaseNotification,
-    recipient: "User",
-    shared_context: Optional[Mapping[str, Any]] = None,
-    extra_context_by_user_id: Optional[Mapping[int, Mapping[str, Any]]] = None,
+    recipient: User,
+    shared_context: Mapping[str, Any] | None = None,
+    extra_context_by_actor_id: Mapping[int, Mapping[str, Any]] | None = None,
 ) -> Mapping[str, Any]:
     # TODO: move context logic to single notification class method
-    extra_context = (extra_context_by_user_id or {}).get(recipient.id, {})
+    extra_context = (extra_context_by_actor_id or {}).get(recipient.actor_id, {})
     context = get_context(notification, recipient, shared_context or {}, extra_context)
     return {
-        "subject": notification.get_subject_with_prefix(context=context),
+        "subject": get_subject_with_prefix(notification, context),
         "context": context,
         "template": notification.get_template(),
         "html_template": notification.get_html_template(),
