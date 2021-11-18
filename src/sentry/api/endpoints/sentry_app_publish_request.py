@@ -1,6 +1,6 @@
 from rest_framework.response import Response
 
-from sentry import options
+from sentry import features, options
 from sentry.api.bases.sentryapps import SentryAppBaseEndpoint
 from sentry.constants import SentryAppStatus
 from sentry.mediators.sentry_apps import Updater
@@ -21,18 +21,20 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
         if sentry_app.is_publish_request_inprogress:
             return Response({"detail": "Publish request in progress."}, status=400)
 
-        # TODO: add feature flag after other PR is merged
-        if not SentryAppAvatar.objects.filter(sentry_app=sentry_app, color=True).exists():
-            return Response({"detail": "Must upload a logo for the integration."}, status=400)
+        if features.has("organizations:sentry-app-logo-upload", sentry_app.owner):
+            if not SentryAppAvatar.objects.filter(sentry_app=sentry_app, color=True).exists():
+                return Response({"detail": "Must upload a logo for the integration."}, status=400)
 
-        if (
-            self.is_issue_link_integration(sentry_app)
-            and not SentryAppAvatar.objects.filter(sentry_app=sentry_app, color=False).exists()
-        ):
-            return Response(
-                {"detail": "Must upload a black and white logo for issue linking integrations."},
-                status=400,
-            )
+            if (
+                self.is_issue_link_integration(sentry_app)
+                and not SentryAppAvatar.objects.filter(sentry_app=sentry_app, color=False).exists()
+            ):
+                return Response(
+                    {
+                        "detail": "Must upload a black and white logo for issue linking integrations."
+                    },
+                    status=400,
+                )
 
         Updater.run(
             user=request.user,
