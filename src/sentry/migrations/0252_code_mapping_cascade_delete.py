@@ -42,7 +42,7 @@ class Migration(migrations.Migration):
     atomic = False
 
     dependencies = [
-        ("sentry", "0250_backfill_popularity"),
+        ("sentry", "0251_sentryappavatar_sentryapp_not_unique"),
     ]
 
     operations = [
