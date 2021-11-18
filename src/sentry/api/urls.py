@@ -364,6 +364,7 @@ from .endpoints.relay_publickeys import RelayPublicKeysEndpoint
 from .endpoints.relay_register import RelayRegisterChallengeEndpoint, RelayRegisterResponseEndpoint
 from .endpoints.release_deploys import ReleaseDeploysEndpoint
 from .endpoints.sentry_app_authorizations import SentryAppAuthorizationsEndpoint
+from .endpoints.sentry_app_avatar import SentryAppAvatarEndpoint
 from .endpoints.sentry_app_components import (
     OrganizationSentryAppComponentsEndpoint,
     SentryAppComponentsEndpoint,
@@ -2062,6 +2063,11 @@ urlpatterns = [
         r"^sentry-apps/(?P<sentry_app_slug>[^\/]+)/components/$",
         SentryAppComponentsEndpoint.as_view(),
         name="sentry-api-0-sentry-app-components",
+    ),
+    url(
+        r"^sentry-apps/(?P<sentry_app_slug>[^\/]+)/avatar/$",
+        SentryAppAvatarEndpoint.as_view(),
+        name="sentry-api-0-sentry-app-avatar",
     ),
     url(
         r"^sentry-apps/(?P<sentry_app_slug>[^\/]+)/api-tokens/$",

@@ -91,6 +91,7 @@ class GetSentryAppsTest(SentryAppsTest):
                 }
             ],
             "popularity": self.default_popularity,
+            "avatars": [],
         } in json.loads(response.content)
 
     def test_users_filter_on_internal_apps(self):
@@ -119,6 +120,7 @@ class GetSentryAppsTest(SentryAppsTest):
             "owner": {"id": self.internal_org.id, "slug": self.internal_org.slug},
             "featureData": [],
             "popularity": self.default_popularity,
+            "avatars": [],
         } in json.loads(response.content)
 
         response_uuids = {o["uuid"] for o in response.data}
@@ -157,6 +159,7 @@ class GetSentryAppsTest(SentryAppsTest):
             "owner": {"id": self.internal_org.id, "slug": self.internal_org.slug},
             "featureData": [],
             "popularity": self.default_popularity,
+            "avatars": [],
         } in json.loads(response.content)
 
         response_uuids = {o["uuid"] for o in response.data}
@@ -196,6 +199,7 @@ class GetSentryAppsTest(SentryAppsTest):
                 }
             ],
             "popularity": self.default_popularity,
+            "avatars": [],
         } in json.loads(response.content)
 
         response_uuids = {o["uuid"] for o in response.data}
@@ -244,6 +248,7 @@ class GetSentryAppsTest(SentryAppsTest):
                 }
             ],
             "popularity": self.default_popularity,
+            "avatars": [],
         } in json.loads(response.content)
 
         response_uuids = {o["uuid"] for o in response.data}
@@ -296,6 +301,7 @@ class GetSentryAppsTest(SentryAppsTest):
                 }
             ],
             "popularity": self.default_popularity,
+            "avatars": [],
         } in json.loads(response.content)
 
     def test_users_dont_see_unpublished_apps_their_org_owns(self):

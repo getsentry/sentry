@@ -138,6 +138,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
                 }
             ],
             "popularity": self.popularity,
+            "avatars": [],
         }
 
     def test_update_unpublished_app(self):
