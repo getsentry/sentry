@@ -492,7 +492,7 @@ describe('Dashboards > Detail', function () {
       );
     });
 
-    it('can add library widgets', async function () {
+    it.only('can add library widgets', async function () {
       initialData = initializeOrg({
         organization: TestStubs.Organization({
           features: [
@@ -590,6 +590,7 @@ describe('Dashboards > Detail', function () {
                   },
                 ],
                 title: 'All Events',
+                widgetType: 'discover',
               },
             ],
           }),
