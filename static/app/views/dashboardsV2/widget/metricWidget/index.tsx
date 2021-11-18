@@ -29,7 +29,7 @@ import {DataSet, DisplayType, displayTypes} from '../utils';
 import Card from './card';
 import FiltersAndGroups from './filtersAndGroups';
 import Queries from './queries';
-import {MetricMeta, MetricQuery} from './types';
+import {MetricMeta, MetricQuery, MetricTag} from './types';
 
 type Props = AsyncView['props'] & {
   dashboardTitle: DashboardDetails['title'];
@@ -49,7 +49,7 @@ type State = AsyncView['state'] &
     title: string;
     displayType: DisplayType;
     metricMetas: MetricMeta[] | null;
-    metricTags: string[] | null;
+    metricTags: MetricTag[] | null;
     queries: MetricQuery[];
   };
 

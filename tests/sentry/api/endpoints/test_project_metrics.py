@@ -123,12 +123,13 @@ class ProjectMetricsTagsTest(APITestCase):
 
         # Check if data are sane:
         assert isinstance(response.data, list)
-        assert all(isinstance(item, str) for item in response.data)
+        assert all(isinstance(item, dict) for item in response.data)
 
         # Check if intersection works:
-        assert "environment" in response.data
-        assert "custom_session_tag" in response.data  # from 'session' tags
-        assert "custom_user_tag" in response.data  # from 'user' tags
+        tags = {tag["key"] for tag in response.data}
+        assert "environment" in tags
+        assert "custom_session_tag" in tags  # from 'session' tags
+        assert "custom_user_tag" in tags  # from 'user' tags
 
     @with_feature(FEATURE_FLAG)
     @mock.patch("sentry.snuba.metrics._METRICS", _EXTENDED_METRICS)
@@ -139,9 +140,10 @@ class ProjectMetricsTagsTest(APITestCase):
         )
 
         # Check that only tags from this metrics appear:
-        assert "environment" in response.data
-        assert "custom_session_tag" in response.data  # from 'session' tags
-        assert "custom_user_tag" not in response.data  # from 'user' tags
+        tags = {tag["key"] for tag in response.data}
+        assert "environment" in tags
+        assert "custom_session_tag" in tags  # from 'session' tags
+        assert "custom_user_tag" not in tags  # from 'user' tags
 
     @with_feature(FEATURE_FLAG)
     def test_two_filters(self):
@@ -151,9 +153,10 @@ class ProjectMetricsTagsTest(APITestCase):
         )
 
         # Check that only tags from this metrics appear:
-        assert "environment" in response.data
-        assert "custom_session_tag" not in response.data  # from 'session' tags
-        assert "custom_user_tag" not in response.data  # from 'user' tags
+        tags = {tag["key"] for tag in response.data}
+        assert "environment" in tags
+        assert "custom_session_tag" not in tags  # from 'session' tags
+        assert "custom_user_tag" not in tags  # from 'user' tags
 
     @with_feature(FEATURE_FLAG)
     def test_bad_filter(self):
@@ -191,9 +194,9 @@ class ProjectMetricsTagDetailsTest(APITestCase):
         # Check if data are sane:
         assert isinstance(response.data, list)
         for item in response.data:
-            assert isinstance(item, str), item
+            assert isinstance(item, dict), item
 
-        assert "production" in response.data
+        assert "production" in {tag["value"] for tag in response.data}
 
     @with_feature(FEATURE_FLAG)
     @mock.patch("sentry.snuba.metrics._METRICS", _EXTENDED_METRICS)
@@ -207,7 +210,7 @@ class ProjectMetricsTagDetailsTest(APITestCase):
         )
 
         # Check that only tags from this metrics appear:
-        assert set(response.data) == {"foo", "bar"}
+        assert {tag["value"] for tag in response.data} == {"foo", "bar"}
 
     @with_feature(FEATURE_FLAG)
     def test_two_filters(self):
@@ -219,7 +222,7 @@ class ProjectMetricsTagDetailsTest(APITestCase):
             metric=["user", "session"],
         )
 
-        assert set(response.data) == {"production", "staging"}
+        assert {tag["value"] for tag in response.data} == {"production", "staging"}
 
     @with_feature(FEATURE_FLAG)
     def test_bad_filter(self):
