@@ -8,6 +8,12 @@ from sentry.models import SentryAppAvatar
 from sentry.utils import email
 
 
+def is_issue_link_integration(sentry_app):
+    """Determine if the sentry app supports issue linking"""
+    elements = (sentry_app.schema or {}).get("elements", [])
+    return any(element.get("type") == "issue-link" for element in elements)
+
+
 class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
     def post(self, request, sentry_app):
 
@@ -26,7 +32,7 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
                 return Response({"detail": "Must upload a logo for the integration."}, status=400)
 
             if (
-                self.is_issue_link_integration(sentry_app)
+                is_issue_link_integration(sentry_app)
                 and not SentryAppAvatar.objects.filter(sentry_app=sentry_app, color=False).exists()
             ):
                 return Response(
@@ -58,14 +64,3 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
         )
 
         return Response(status=201)
-
-    def is_issue_link_integration(self, sentry_app):
-        """Determine if the sentry app supports issue linking"""
-        if not sentry_app.schema:
-            return False
-
-        for element in sentry_app.schema.get("elements"):
-            if element.get("type") and element.get("type") == "issue-link":
-                return True
-
-        return False
