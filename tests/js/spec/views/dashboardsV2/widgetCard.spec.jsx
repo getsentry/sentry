@@ -6,7 +6,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import * as modal from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import {t} from 'app/locale';
-import WidgetCard, {SizeSelector} from 'app/views/dashboardsV2/widgetCard';
+import WidgetCard from 'app/views/dashboardsV2/widgetCard';
 
 describe('Dashboards > WidgetCard', function () {
   const initialData = initializeOrg({
@@ -213,17 +213,5 @@ describe('Dashboards > WidgetCard', function () {
 
     const sizeSelector = wrapper.find('SizeSelector');
     expect(sizeSelector.length).toEqual(1);
-  });
-});
-
-describe('Dashboards > SizeSelector', function () {
-  it('triggers the onSizeChange callback with the selected value when changed', async function () {
-    const mock = jest.fn(val => val);
-    const wrapper = mountWithTheme(<SizeSelector size="medium" onSizeChange={mock} />);
-
-    expect(wrapper.text()).toContain('Medium');
-
-    wrapper.find('Select').props().onChange({value: 'small'});
-    expect(mock).toHaveBeenCalledWith('small');
   });
 });
