@@ -482,7 +482,7 @@ describe('Dashboards > Detail', function () {
       );
     });
 
-    it.only('can add library widgets', async function () {
+    it('can add library widgets', async function () {
       initialData = initializeOrg({
         organization: TestStubs.Organization({
           features: [
