@@ -99,7 +99,10 @@ class AvatarBase(Model):
                 router.db_for_write(File),
             )
         ):
-            instance, created = cls.objects.get_or_create(**relation)
+            if relation.get("sentry_app") and color is not None:
+                instance, created = cls.objects.get_or_create(**relation, color=color)
+            else:
+                instance, created = cls.objects.get_or_create(**relation)
             file = instance.get_file()
             if file and photo:
                 file.delete()
@@ -109,9 +112,6 @@ class AvatarBase(Model):
                 instance.ident = uuid4().hex
 
             instance.avatar_type = [i for i, n in cls.AVATAR_TYPES if n == type][0]
-
-            if color:
-                instance.color = color
 
             instance.save()
 

@@ -1,7 +1,7 @@
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
-from sentry.api.fields import AvatarField, SentryAppLogoField
+from sentry.api.fields import AvatarField
 from sentry.api.serializers import serialize
 
 
@@ -10,7 +10,6 @@ class AvatarSerializer(serializers.Serializer):
     avatar_type = serializers.ChoiceField(
         choices=(("upload", "upload"), ("gravatar", "gravatar"), ("letter_avatar", "letter_avatar"))
     )
-    color = serializers.BooleanField(required=False)
 
     def validate(self, attrs):
         attrs = super().validate(attrs)
@@ -27,9 +26,9 @@ class AvatarSerializer(serializers.Serializer):
 
 
 class SentryAppLogoSerializer(serializers.Serializer):
-    avatar_photo = SentryAppLogoField(required=True)
+    avatar_photo = AvatarField(required=True)
     avatar_type = serializers.ChoiceField(choices=(("upload", "upload")))
-    color = serializers.BooleanField(required=False)
+    color = serializers.BooleanField(required=True)
 
     def validate(self, attrs):
         attrs = super().validate(attrs)

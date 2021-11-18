@@ -53,15 +53,16 @@ class SentryAppSerializer(Serializer):
                 }
             )
 
-        for img in SentryAppAvatar.objects.filter(sentry_app=obj):
-            data.update(
-                {
-                    "avatar": {
+        data.update(
+            {
+                "avatars": [
+                    {
                         "avatarType": img.avatar_type,
                         "avatarUuid": img.ident,
                         "color": img.color,
                     }
-                }
-            )
-
+                    for img in SentryAppAvatar.objects.filter(sentry_app=obj)
+                ]
+            }
+        )
         return data

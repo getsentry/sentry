@@ -565,7 +565,6 @@ class AvatarPhotoView(View):
             else:
                 photo_file = avatar.get_cached_photo(size)
 
-        content_type = "image/svg+xml" if "svg" in photo_file.name else "image/png"
-        res = HttpResponse(photo_file, content_type=content_type)
+        res = HttpResponse(photo_file, content_type="image/png")
         res["Cache-Control"] = FOREVER_CACHE
         return res

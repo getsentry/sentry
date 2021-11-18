@@ -27,4 +27,4 @@ class SentryAppAvatarEndpoint(AvatarMixin, SentryAppBaseEndpoint):
         return super().put(request, access=request.access, **kwargs)
 
     def get_avatar_filename(self, obj):
-        return f"{obj.slug}.svg"
+        return f"{obj.slug}.png"
