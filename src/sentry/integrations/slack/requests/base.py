@@ -12,12 +12,24 @@ from sentry.models import Identity, IdentityProvider, Integration, User
 from ..utils import check_signing_secret, logger
 
 
+def get_field_id(data: Mapping[str, Any], field_name: str) -> str:
+    """
+    TODO(mgaeta): Hack to convert optional strings to string. SlackRequest
+     should be refactored to deserialize `data` in the constructor.
+    """
+    id_option = data.get(f"{field_name}_id") or data.get(field_name, {}).get("id")
+    if not id_option:
+        raise RuntimeError
+    return id_option
+
+
 @dataclasses.dataclass(frozen=True)
 class SlackRequestError(Exception):
     """
     Something was invalid about the request from Slack.
     Includes the status the endpoint should return, based on the error.
     """
+
     status: int
 
 
@@ -66,15 +78,7 @@ class SlackRequest:
 
     @property
     def channel_id(self) -> str:
-        """
-        Provide a normalized interface to ``channel_id``, which Action and Event
-        requests provide in different places.
-        """
-        # Explicitly typing to satisfy mypy.
-        channel_id: str = (
-            self.data.get("channel_id") or self.data.get("channel", {}).get("id") or ""
-        )
-        return channel_id
+        return get_field_id(self.data, "channel")
 
     @property
     def response_url(self) -> str:
@@ -83,23 +87,11 @@ class SlackRequest:
 
     @property
     def team_id(self) -> str:
-        """
-        Provide a normalized interface to ``team_id``, which Action and Event
-        requests provide in different places.
-        """
-        # Explicitly typing to satisfy mypy.
-        team_id: str = self.data.get("team_id") or self.data.get("team", {}).get("id") or ""
-        return team_id
+        return get_field_id(self.data, "team")
 
     @property
     def user_id(self) -> str:
-        """
-        Provide a normalized interface to ``user_id``, which Action and Event
-        requests provide in different places.
-        """
-        # Explicitly typing to satisfy mypy.
-        user_id: str = self.data.get("user_id") or self.data.get("user", {}).get("id") or ""
-        return user_id
+        return get_field_id(self.data, "user")
 
     @property
     def data(self) -> Mapping[str, Any]:
