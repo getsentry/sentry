@@ -1,3 +1,4 @@
+import time
 from copy import deepcopy
 from typing import Optional
 from unittest import mock
@@ -5,6 +6,7 @@ from unittest import mock
 from django.urls import reverse
 
 from sentry.models import ApiToken
+from sentry.sentry_metrics import indexer
 from sentry.snuba.metrics import _METRICS
 from sentry.testutils import APITestCase
 from sentry.testutils.cases import SessionMetricsTestCase
@@ -351,3 +353,63 @@ class OrganizationMetricIntegrationTest(SessionMetricsTestCase, APITestCase):
 
         # Request for single project gives a counter of one:
         assert count_sessions(project_id=self.project2.id) == 1
+
+    @with_feature(FEATURE_FLAG)
+    def test_orderby(self):
+        # Record some strings
+        metric_id = indexer.record("measurements.lcp")
+        k_transaction = indexer.record("transaction")
+        v_foo = indexer.record("/foo")
+        v_bar = indexer.record("/bar")
+        v_baz = indexer.record("/baz")
+        k_rating = indexer.record("rating")
+        v_good = indexer.record("good")
+        v_meh = indexer.record("meh")
+        v_poor = indexer.record("poor")
+
+        self._send_buckets(
+            [
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": metric_id,
+                    "timestamp": int(time.time()),
+                    "tags": {
+                        k_transaction: v_transaction,
+                        k_rating: v_rating,
+                    },
+                    "type": "d",
+                    "value": count
+                    * [123.4],  # count decides the cardinality of this distribution bucket
+                    "retention_days": 90,
+                }
+                for v_transaction, count in ((v_foo, 1), (v_bar, 3), (v_baz, 2))
+                for v_rating in (v_good, v_meh, v_poor)
+            ],
+            entity="metrics_distributions",
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field="count(measurements.lcp)",
+            query="rating:poor",
+            statsPeriod="1h",
+            interval="1h",
+            datasource="snuba",
+            groupBy="transaction",
+            orderBy="-count(measurements.lcp)",
+            limit=2,
+        )
+        groups = response.data["groups"]
+        assert len(groups) == 2
+
+        expected = [
+            ("/bar", 3),
+            ("/baz", 2),
+        ]
+        for (expected_transaction, expected_count), group in zip(expected, groups):
+            # With orderBy, you only get totals:
+            assert "series" not in group
+            assert group["by"] == {"transaction": expected_transaction}
+            totals = group["totals"]
+            assert totals == {"count(measurements.lcp)": expected_count}

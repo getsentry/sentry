@@ -251,6 +251,11 @@ _METRICS = {
         "operations": _FIELDS_BY_ENTITY["metrics_sets"],
         "tags": _BASE_TAGS,
     },
+    "measurements.lcp": {
+        "type": "distribution",
+        "operations": _FIELDS_BY_ENTITY["metrics_distributions"],
+        "tags": _BASE_TAGS,
+    },
 }
 
 

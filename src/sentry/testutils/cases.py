@@ -1049,14 +1049,14 @@ class SessionMetricsTestCase(SnubaTestCase):
             "retention_days": 90,
         }
 
-        cls._send(msg, entity=f"metrics_{type}s")
+        cls._send_buckets([msg], entity=f"metrics_{type}s")
 
     @classmethod
-    def _send(cls, msg, entity):
+    def _send_buckets(cls, buckets, entity):
         assert (
             requests.post(
                 settings.SENTRY_SNUBA + cls.snuba_endpoint.format(entity=entity),
-                data=json.dumps([msg]),
+                data=json.dumps(buckets),
             ).status_code
             == 200
         )
