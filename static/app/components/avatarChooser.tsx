@@ -12,16 +12,17 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import Well from 'app/components/well';
 import {t} from 'app/locale';
-import {AvatarUser, Organization, Team} from 'app/types';
+import {AvatarUser, Organization, SentryApp, Team} from 'app/types';
 import withApi from 'app/utils/withApi';
 import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
 
 type Model = Pick<AvatarUser, 'avatar'>;
 type AvatarType = Required<Model>['avatar']['avatarType'];
-type AvatarChooserType = 'user' | 'team' | 'organization';
+type AvatarChooserType = 'user' | 'team' | 'organization' | 'sentryApp';
 
 type DefaultProps = {
   onSave: (model: Model) => void;
+  allowDefault?: boolean;
   allowGravatar?: boolean;
   allowLetter?: boolean;
   allowUpload?: boolean;
@@ -46,6 +47,7 @@ type State = {
 
 class AvatarChooser extends React.Component<Props, State> {
   static defaultProps: DefaultProps = {
+    allowDefault: false,
     allowGravatar: true,
     allowLetter: true,
     allowUpload: true,
@@ -114,6 +116,7 @@ class AvatarChooser extends React.Component<Props, State> {
 
   render() {
     const {
+      allowDefault,
       allowGravatar,
       allowUpload,
       allowLetter,
@@ -133,11 +136,16 @@ class AvatarChooser extends React.Component<Props, State> {
 
     const avatarType = model.avatar?.avatarType ?? 'letter_avatar';
     const isLetter = avatarType === 'letter_avatar';
+    const isDefault = avatarType === 'default';
 
     const isTeam = type === 'team';
     const isOrganization = type === 'organization';
+    const isSentryApp = type === 'sentryApp';
     const choices: [AvatarType, string][] = [];
 
+    if (allowDefault) {
+      choices.push(['default', t('Use default avatar')]);
+    }
     if (allowLetter) {
       choices.push(['letter_avatar', t('Use initials')]);
     }
@@ -169,6 +177,17 @@ class AvatarChooser extends React.Component<Props, State> {
                   user={isUser ? (model as AvatarUser) : undefined}
                   organization={isOrganization ? (model as Organization) : undefined}
                   team={isTeam ? (model as Team) : undefined}
+                  sentryApp={isSentryApp ? (model as SentryApp) : undefined}
+                />
+              )}
+              {isDefault && (
+                <Avatar
+                  gravatar={false}
+                  style={{width: 90, height: 90}}
+                  user={isUser ? (model as AvatarUser) : undefined}
+                  organization={isOrganization ? (model as Organization) : undefined}
+                  team={isTeam ? (model as Team) : undefined}
+                  sentryApp={isSentryApp ? (model as SentryApp) : undefined}
                 />
               )}
             </AvatarGroup>

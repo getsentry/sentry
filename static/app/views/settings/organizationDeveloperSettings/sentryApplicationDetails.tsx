@@ -10,6 +10,7 @@ import {
   addSentryAppToken,
   removeSentryAppToken,
 } from 'app/actionCreators/sentryAppTokens';
+import AvatarChooser from 'app/components/avatarChooser';
 import Button from 'app/components/button';
 import DateTime from 'app/components/dateTime';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
@@ -324,7 +325,22 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
               return (
                 <React.Fragment>
                   <JsonForm additionalFieldProps={{webhookDisabled}} forms={forms} />
-
+                  {app && (
+                    <AvatarChooser
+                      type="sentryApp"
+                      allowGravatar={false}
+                      allowLetter={false}
+                      allowDefault
+                      endpoint={`${endpoint}avatar/`}
+                      model={{
+                        avatar: {
+                          avatarType: 'default',
+                          avatarUuid: null,
+                        },
+                      }}
+                      onSave={() => {}}
+                    />
+                  )}
                   <PermissionsObserver
                     webhookDisabled={webhookDisabled}
                     appPublished={app ? app.status === 'published' : false}
