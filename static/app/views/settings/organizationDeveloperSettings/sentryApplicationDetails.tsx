@@ -281,6 +281,19 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
     }
   };
 
+  getAvatarPreview = (size: number, title: string, description: string) => {
+    const {app} = this.state;
+    return (
+      app && (
+        <AvatarPreview>
+          <StyledPreviewAvatar size={size} sentryApp={app} isDefault />
+          <AvatarPreviewTitle>{title}</AvatarPreviewTitle>
+          <AvatarPreviewText>{description}</AvatarPreviewText>
+        </AvatarPreview>
+      )
+    );
+  };
+
   renderBody() {
     const {orgId} = this.props.params;
     const {app} = this.state;
@@ -342,23 +355,35 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
                       model={model}
                       onSave={() => {}}
                       title={t('Logo')}
+                      extraFields={{color: true}}
                       defaultChoice={{
                         allowDefault: true,
                         choiceText: t('Default logo'),
-                        avatar: (
-                          <AvatarPreview>
-                            <Avatar
-                              gravatar={false}
-                              style={{width: 50, height: 50}}
-                              sentryApp={{}}
-                            />
-                            <AvatarPreviewTextContainer>
-                              <AvatarPreviewTitle>{t('Icon Example')}</AvatarPreviewTitle>
-                              <AvatarPreviewText>
-                                {t('The default icon for integrations')}
-                              </AvatarPreviewText>
-                            </AvatarPreviewTextContainer>
-                          </AvatarPreview>
+                        avatar: this.getAvatarPreview(
+                          50,
+                          t('Default Logo'),
+                          t('The default icon for integrations')
+                        ),
+                      }}
+                    />
+                  )}
+                  {app && (
+                    <AvatarChooser
+                      type="sentryApp"
+                      allowGravatar={false}
+                      allowLetter={false}
+                      endpoint={`${endpoint}avatar/`}
+                      model={model}
+                      onSave={() => {}}
+                      title={t('Small Icon')}
+                      extraFields={{color: false}}
+                      defaultChoice={{
+                        allowDefault: true,
+                        choiceText: t('Default small icon'),
+                        avatar: this.getAvatarPreview(
+                          20,
+                          t('Default Icon'),
+                          t('This is an optional icon used for Issue Linking')
                         ),
                       }}
                     />
@@ -457,23 +482,26 @@ const CreatedDate = styled('div')`
 `;
 
 const AvatarPreview = styled('div')`
-  display: flex;
   flex: 1;
+  display: grid;
+  grid: 25px 25px / 50px 1fr;
 `;
 
-const AvatarPreviewTextContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  padding-left: ${space(2)};
+const StyledPreviewAvatar = styled(Avatar)`
+  grid-area: 1 / 1 / 3 / 2;
+  justify-self: end;
+  text-align: right;
 `;
 
 const AvatarPreviewTitle = styled('span')`
   display: block;
-  flex: 1;
+  grid-area: 1 / 2 / 2 / 3;
+  padding-left: ${space(2)};
   font-weight: bold;
 `;
 
 const AvatarPreviewText = styled('span')`
   display: block;
-  flex: 1;
+  grid-area: 2 / 2 / 3 / 3;
+  padding-left: ${space(2)};
 `;

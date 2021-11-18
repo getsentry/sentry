@@ -41,7 +41,14 @@ type Props = {
   disabled?: boolean;
   savedDataUrl?: string;
   isUser?: boolean;
+  /**
+   * Title in the PanelHeader component (default: 'Avatar')
+   */
   title?: string;
+  /**
+   * Addtional form data to submit with the request
+   */
+  extraFields?: {[key: string]: any};
 } & DefaultProps;
 
 type State = {
@@ -93,7 +100,7 @@ class AvatarChooser extends React.Component<Props, State> {
   }
 
   handleSaveSettings = (ev: React.MouseEvent) => {
-    const {endpoint, api} = this.props;
+    const {endpoint, api, extraFields} = this.props;
     const {model, dataUrl} = this.state;
     ev.preventDefault();
     let data = {};
@@ -103,6 +110,7 @@ class AvatarChooser extends React.Component<Props, State> {
     data = {
       avatar_photo: avatarPhoto,
       avatar_type: avatarType,
+      ...extraFields,
     };
 
     api.request(endpoint, {

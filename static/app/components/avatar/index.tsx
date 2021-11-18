@@ -12,10 +12,20 @@ type Props = {
   organization?: OrganizationSummary;
   project?: AvatarProject;
   sentryApp?: SentryApp;
+  isDefault?: boolean;
 } & UserAvatar['props'];
 
 const Avatar = React.forwardRef(function Avatar(
-  {hasTooltip = false, user, team, project, sentryApp, organization, ...props}: Props,
+  {
+    hasTooltip = false,
+    user,
+    team,
+    project,
+    organization,
+    sentryApp,
+    isDefault,
+    ...props
+  }: Props,
   ref: React.Ref<HTMLSpanElement>
 ) {
   const commonProps = {hasTooltip, forwardedRef: ref, ...props};
@@ -33,7 +43,9 @@ const Avatar = React.forwardRef(function Avatar(
   }
 
   if (sentryApp) {
-    return <SentryAppAvatar sentryApp={sentryApp} {...commonProps} />;
+    return (
+      <SentryAppAvatar sentryApp={sentryApp} isDefault={isDefault} {...commonProps} />
+    );
   }
 
   return <OrganizationAvatar organization={organization} {...commonProps} />;
