@@ -40,7 +40,6 @@ class AvatarField(serializers.Field):
     def to_internal_value(self, data):
         if not data:
             return None
-
         data = b64decode(data)
         if len(data) > self.max_size:
             raise ImageTooLarge()
@@ -52,6 +51,7 @@ class AvatarField(serializers.Field):
             width, height = img.size
             if not self.is_valid_size(width, height):
                 raise serializers.ValidationError("Invalid image dimensions.")
+
         return BytesIO(data)
 
     def is_valid_size(self, width, height):
