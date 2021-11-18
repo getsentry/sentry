@@ -1644,7 +1644,10 @@ def resolve_snql_fieldlist(fields):
                 "quantileIf(0.50)",
                 [
                     Column("duration"),
-                    Function("greater", ["2020-05-03T06:48:57", Column("timestamp")]),
+                    Function(
+                        "greater",
+                        [Function("toDateTime", ["2020-05-03T06:48:57"]), Column("timestamp")],
+                    ),
                 ],
                 "percentile_range_1",
             ),
@@ -1655,7 +1658,10 @@ def resolve_snql_fieldlist(fields):
                 "avgIf",
                 [
                     Column("duration"),
-                    Function("greater", ["2020-05-03T06:48:57", Column("timestamp")]),
+                    Function(
+                        "greater",
+                        [Function("toDateTime", ["2020-05-03T06:48:57"]), Column("timestamp")],
+                    ),
                 ],
                 "avg_range_1",
             ),
@@ -1666,7 +1672,10 @@ def resolve_snql_fieldlist(fields):
                 "varSampIf",
                 [
                     Column("duration"),
-                    Function("greater", ["2020-05-03T06:48:57", Column("timestamp")]),
+                    Function(
+                        "greater",
+                        [Function("toDateTime", ["2020-05-03T06:48:57"]), Column("timestamp")],
+                    ),
                 ],
                 "variance_range_1",
             ),
@@ -1676,7 +1685,10 @@ def resolve_snql_fieldlist(fields):
             Function(
                 "countIf",
                 [
-                    Function("greater", ["2020-05-03T06:48:57", Column("timestamp")]),
+                    Function(
+                        "greater",
+                        [Function("toDateTime", ["2020-05-03T06:48:57"]), Column("timestamp")],
+                    ),
                 ],
                 "count_range_1",
             ),
