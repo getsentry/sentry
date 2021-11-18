@@ -40,7 +40,7 @@ type SizeSelectorProps = {
   onSizeChange: (size: string) => void;
 };
 
-export const SizeSelector = ({size, onSizeChange}: SizeSelectorProps) => {
+const SizeSelector = ({size, onSizeChange}: SizeSelectorProps) => {
   return (
     <SelectField
       name="size"
