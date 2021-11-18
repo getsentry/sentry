@@ -41,8 +41,6 @@ describe('TeamStability', () => {
       <TeamStability projects={[]} organization={TestStubs.Organization()} period="7d" />
     );
 
-    expect(
-      screen.getByText('No key Transactions Starred By This Team')
-    ).toBeInTheDocument();
+    expect(screen.getByText('There are no items to display')).toBeInTheDocument();
   });
 });
