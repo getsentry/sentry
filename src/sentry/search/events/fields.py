@@ -2,6 +2,7 @@ import re
 from collections import defaultdict, namedtuple
 from copy import deepcopy
 from datetime import datetime
+from functools import lru_cache
 from typing import Any, Callable, Dict, List, Mapping, Match, Optional, Sequence, Set, Tuple, Union
 
 import sentry_sdk
@@ -3113,6 +3114,7 @@ class QueryFields(QueryBase):
         columns = ["user.email", "user.username", "user.ip"]
         return Function("coalesce", [self.column(column) for column in columns], USER_DISPLAY_ALIAS)
 
+    @lru_cache
     def _resolve_project_threshold_config(self, _: str) -> SelectType:
         org_id = self.params.get("organization_id")
         project_ids = self.params.get("project_id")
