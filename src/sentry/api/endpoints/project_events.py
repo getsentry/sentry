@@ -1,8 +1,11 @@
 from functools import partial
 
+from rest_framework.response import Response
+
 from sentry import eventstore
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import EventSerializer, SimpleEventSerializer, serialize
+from sentry.utils.cursors import Cursor
 
 
 class ProjectEventsEndpoint(ProjectEndpoint):
@@ -32,6 +35,22 @@ class ProjectEventsEndpoint(ProjectEndpoint):
             conditions.append([["positionCaseInsensitive", ["message", f"'{query}'"]], "!=", 0])
 
         full = request.GET.get("full", False)
+
+        # XXX: Temporary hack to limit on offset
+        cursor_string = request.GET.get("cursor")
+        if cursor_string:
+            try:
+                cursor = Cursor.from_string(cursor_string)
+            except ValueError:
+                pass
+            else:
+                if cursor.offset > 10000:
+                    return Response(
+                        {
+                            "detail": "Fetching large offsets is temporarily disabled for performance reasons"
+                        },
+                        status=400,
+                    )
 
         data_fn = partial(
             eventstore.get_events,

@@ -74,3 +74,16 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["eventID"] == event_2.event_id
+
+    def test_cursor_limit(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        url = reverse(
+            "sentry-api-0-project-events",
+            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+        )
+        response = self.client.get(url + "?cursor=0:10000:0", format="json")
+        assert response.status_code == 200, response.content
+        response = self.client.get(url + "?cursor=0:10001:0", format="json")
+        assert response.status_code == 400, response.content
