@@ -317,6 +317,53 @@ class OrganizationMetricDataTest(APITestCase):
             )
             assert response.data.keys() == {"start", "end", "query", "intervals", "groups"}
 
+    @with_feature(FEATURE_FLAG)
+    def test_bad_order_by(self):
+        response = self.get_response(
+            self.project.organization.slug, field="sum(session)", orderBy="foo"
+        )
+        assert response.status_code == 400
+
+    @with_feature(FEATURE_FLAG)
+    def test_bad_order_by_tag(self):
+        """Order by tag is not supported (yet)"""
+        response = self.get_response(
+            self.project.organization.slug,
+            field="sum(session)",
+            groupBy="environment",
+            orderBy="environment",
+        )
+        assert response.status_code == 400
+
+    @with_feature(FEATURE_FLAG)
+    def test_bad_order_by_2(self):
+        """Only one order by is supported"""
+        response = self.get_response(
+            self.project.organization.slug,
+            field=["sum(session)", "count_unique(user)"],
+            orderBy=["sum(session)", "count_unique(user)"],
+        )
+        assert response.status_code == 400
+
+    @with_feature(FEATURE_FLAG)
+    def test_limit_without_orderby(self):
+        response = self.get_response(
+            self.project.organization.slug,
+            field="sum(session)",
+            limit=3,
+        )
+        assert response.status_code == 400
+
+    @with_feature(FEATURE_FLAG)
+    def test_limit_invalid(self):
+        for limit in (-1, 0, "foo"):
+            response = self.get_response(
+                self.project.organization.slug,
+                field="sum(session)",
+                limit=limit,
+            )
+            assert response.status_code == 400
+
 
 class OrganizationMetricIntegrationTest(SessionMetricsTestCase, APITestCase):
     endpoint = "sentry-api-0-organization-metrics-data"

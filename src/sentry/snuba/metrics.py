@@ -121,11 +121,39 @@ class QueryDefinition:
         self.parsed_query = parse_query(self.query) if self.query else None
         raw_fields = query_params.getlist("field", [])
         self.groupby = query_params.getlist("groupBy", [])
+        orderby = query_params.getlist("orderBy", [])
+        limit = query_params.get("limit", None)
 
         if len(raw_fields) == 0:
             raise InvalidField('Request is missing a "field"')
 
         self.fields = {key: parse_field(key) for key in raw_fields}
+
+        if not orderby:
+            self.orderby = None
+        elif len(orderby) > 1:
+            raise InvalidParams("Only one 'orderBy' is supported")
+        else:
+            orderby = orderby[0]
+            direction = "asc"  # TODO: enum
+            if orderby[0] == "-":
+                orderby = orderby[1:]
+                direction = "desc"
+            if orderby not in self.fields:
+                raise InvalidParams("'orderBy' must be one of the provided fields")
+            self.orderby = orderby, direction
+
+        if not self.orderby and limit:
+            raise InvalidParams("'limit' is only supported in combination with 'orderBy'")
+
+        if limit is not None:
+            try:
+                limit = int(limit)
+                if limit < 1:
+                    raise ValueError
+            except (ValueError, TypeError):
+                raise InvalidParams("'limit' must be integer >= 1")
+        self.limit = limit
 
         start, end, rollup = get_constrained_date_range(
             query_params, AllowedResolution.ten_seconds, max_points=MAX_POINTS
