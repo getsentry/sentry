@@ -17,7 +17,7 @@ def get_field_id(data: Mapping[str, Any], field_name: str) -> str:
     TODO(mgaeta): Hack to convert optional strings to string. SlackRequest
      should be refactored to deserialize `data` in the constructor.
     """
-    id_option = data.get(f"{field_name}_id") or data.get(field_name, {}).get("id")
+    id_option: str | None = data.get(f"{field_name}_id") or data.get(field_name, {}).get("id")
     if not id_option:
         raise RuntimeError
     return id_option
@@ -117,7 +117,7 @@ class SlackRequest:
             "slack_api_app_id": self.data.get("api_app_id"),
         }
 
-        if self.integration:
+        if self._integration:
             data["integration_id"] = self.integration.id
 
         return {k: v for k, v in data.items() if v}

@@ -127,6 +127,9 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
     def on_assign(
         self, request: Request, identity: Identity, group: Group, action: MessageAction
     ) -> None:
+        if not (action.selected_options and len(action.selected_options)):
+            # Short-circuit if action is invalid
+            return
         assignee = action.selected_options[0]["value"]
         if assignee == "none":
             assignee = None
@@ -144,7 +147,10 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         integration: Integration,
     ) -> None:
         status_data = (action.value or "").split(":", 1)
-        status = {"status": status_data[0]}
+        if not len(status_data):
+            return
+
+        status: MutableMapping[str, Any] = {"status": status_data[0]}
 
         resolve_type = status_data[-1]
 
@@ -214,9 +220,13 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         return attachment
 
     def is_message(self, data: Mapping[str, Any]) -> bool:
-        # XXX(epurkhsier): Used in coordination with construct_reply. Bot
-        # posted messages will not have the type at all.
-        return data.get("original_message", {}).get("type") == "message"
+        """
+        XXX(epurkhiser): Used in coordination with construct_reply.
+         Bot posted messages will not have the type at all.
+        """
+        # Explicitly typing to satisfy mypy.
+        is_message_: bool = data.get("original_message", {}).get("type") == "message"
+        return is_message_
 
     @transaction_start("SlackActionEndpoint")
     def post(self, request: Request) -> Response:
@@ -274,13 +284,11 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
 
         try:
             group = Group.objects.select_related("project__organization").get(
-                project__in=Project.objects.filter(
-                    organization__in=integration.organizations.all()
-                ),
+                project__in=Project.objects.filter(organization__in=organizations),
                 id=group_id,
             )
         except Group.DoesNotExist:
-            logger.info("slack.action.invalid-issue", extra=logging_data)
+            logger.info("slack.action.invalid-issue", extra={**logging_data})
             return self.respond(status=403)
 
         logging_data["organization_id"] = group.organization.id
@@ -309,7 +317,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
             )
 
             try:
-                self.on_status(request, identity, group, action, data, integration)
+                self.on_status(request, identity, group, action, data, slack_request.integration)
             except client.ApiError as error:
                 return self.api_error(slack_request, group, identity, error, "status_dialog")
 
@@ -340,20 +348,20 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         defer_attachment_update = False
 
         # Handle interaction actions
-        action_type = None
-        try:
-            for action in action_list:
-                action_type = action.name
-
+        for action in action_list:
+            action_type = action.name
+            try:
                 if action_type == "status":
-                    self.on_status(request, identity, group, action, data, integration)
+                    self.on_status(
+                        request, identity, group, action, data, slack_request.integration
+                    )
                 elif action_type == "assign":
                     self.on_assign(request, identity, group, action)
                 elif action_type == "resolve_dialog":
-                    self.open_resolve_dialog(data, group, integration)
+                    self.open_resolve_dialog(data, group, slack_request.integration)
                     defer_attachment_update = True
-        except client.ApiError as error:
-            return self.api_error(slack_request, group, identity, error, action_type)
+            except client.ApiError as error:
+                return self.api_error(slack_request, group, identity, error, action_type)
 
         if defer_attachment_update:
             return self.respond()
@@ -368,9 +376,9 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
 
         return self.respond(body)
 
-    def handle_member_approval(self, slack_request: SlackActionRequest):
+    def handle_member_approval(self, slack_request: SlackActionRequest) -> Response:
         try:
-            # get_identity can return Noone
+            # get_identity can return nobody
             identity = slack_request.get_identity()
         except IdentityProvider.DoesNotExist:
             identity = None
