@@ -74,3 +74,34 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["eventID"] == event_2.event_id
+
+    def test_limited_to_week(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(days=2))}, project_id=project.id
+        )
+        event_2 = self.store_event(
+            data={"timestamp": iso_format(before_now(days=8))}, project_id=project.id
+        )
+
+        url = reverse(
+            "sentry-api-0-project-events",
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_slug": project.slug,
+            },
+        )
+
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
+        assert response.data[0]["eventID"] == event.event_id
+        assert response.data[1]["eventID"] == event_2.event_id
+
+        with self.feature("organizations:project-event-date-limit"):
+            response = self.client.get(url, format="json")
+            assert response.status_code == 200, response.content
+            assert len(response.data) == 1
+            assert response.data[0]["eventID"] == event.event_id
