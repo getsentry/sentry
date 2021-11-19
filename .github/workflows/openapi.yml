@@ -18,8 +18,6 @@ jobs:
 
       - name: Checkout getsentry/sentry
         uses: actions/checkout@v2
-        with:
-          path: sentry
 
       - name: Checkout getsentry/sentry-api-schema
         uses: actions/checkout@v2
