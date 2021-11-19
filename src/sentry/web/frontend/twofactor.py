@@ -1,4 +1,5 @@
 import time
+from base64 import b64encode
 
 from django.http import HttpResponse, HttpResponseRedirect
 from django.utils.translation import ugettext as _
@@ -132,14 +133,24 @@ class TwoFactorAuthView(BaseView):
                 content_type="text/plain",
                 status=429,
             )
+        # check if webauthn-login feature flag is enabled for frontend
+        webauthn_signin_ff = self._is_webauthn_signin_ff_enabled(user, request.user)
 
         if request.method == "GET":
-            activation = interface.activate(request)
+            # old
+            activation = interface.activate(request, webauthn_signin_ff)
+            # # new
+            # activation, state = interface.activate(request)
+            # request.session["webauthn_authentication_state"] = state
             if activation is not None and activation.type == "challenge":
                 challenge = activation.challenge
+
+                if webauthn_signin_ff:
+                    activation.challenge = {}
+                    activation.challenge["webAuthnAuthenticationData"] = b64encode(challenge)
+
         elif "challenge" in request.POST:
             challenge = json.loads(request.POST["challenge"])
-
         form = TwoFactorForm()
 
         # If an OTP response was supplied, we try to make it pass.
@@ -149,9 +160,6 @@ class TwoFactorAuthView(BaseView):
             if used_interface is not None:
                 return self.perform_signin(request, user, used_interface)
             self.fail_signin(request, user, form)
-
-        # check if webauthn-login feature flag is enabled for frontend
-        webauthn_signin_ff = self._is_webauthn_signin_ff_enabled(user, request.user)
 
         #  If a challenge and response exists, validate
         if challenge:
