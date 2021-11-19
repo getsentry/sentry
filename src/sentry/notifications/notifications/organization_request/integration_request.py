@@ -97,7 +97,7 @@ class IntegrationRequestNotification(OrganizationRequestNotification):
     def record_notification_sent(
         self, recipient: Team | User, provider: ExternalProviders, **kwargs: Any
     ) -> None:
-        # TODO: refactor since this is identical to BaseNotification.record_notification_sent
+        # TODO: refactor since this is identical to ProjectNotification.record_notification_sent
         analytics.record(
             f"integrations.{provider.name}.notification_sent",
             category=self.get_category(),
