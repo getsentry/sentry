@@ -31,9 +31,23 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name="dashboardwidget",
-            name="widget_type",
-            field=sentry.db.models.fields.bounded.BoundedPositiveIntegerField(default=0),
-        ),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.AddField(
+                    model_name="dashboardwidget",
+                    name="widget_type",
+                    field=sentry.db.models.fields.bounded.BoundedPositiveIntegerField(null=True),
+                ),
+            ],
+            state_operations=[
+                migrations.AddField(
+                    model_name="dashboardwidget",
+                    name="widget_type",
+                    # Use the default in Django, new rows will use the specified default
+                    field=sentry.db.models.fields.bounded.BoundedPositiveIntegerField(
+                        null=True, default=0
+                    ),
+                ),
+            ],
+        )
     ]
