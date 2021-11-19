@@ -117,7 +117,7 @@ function StatsRequest({
 
       if (!!groupBy?.length) {
         const groupByParameter = [...groupBy].join('&groupBy=');
-        return api.requestPromise(`${metricDataEndpoint}?groupBy=${groupByParameter}`, {
+        return api.requestPromise(`${metricDataEndpoint}&groupBy=${groupByParameter}`, {
           query,
         });
       }

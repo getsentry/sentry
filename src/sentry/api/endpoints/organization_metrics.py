@@ -24,7 +24,6 @@ class OrganizationMetricsEndpoint(OrganizationEndpoint):
     """Get metric name, available operations and the metric unit"""
 
     def get(self, request, organization):
-
         if not features.has("organizations:metrics", organization, actor=request.user):
             return Response(status=404)
 
@@ -109,7 +108,6 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
     """
 
     def get(self, request, organization):
-
         if not features.has("organizations:metrics", organization, actor=request.user):
             return Response(status=404)
 
