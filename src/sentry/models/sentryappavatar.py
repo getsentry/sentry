@@ -11,7 +11,7 @@ class SentryAppAvatar(AvatarBase):
     and specifies which type of logo it is.
     """
 
-    AVATAR_TYPES = ((0, "letter_avatar"), (1, "upload"))
+    AVATAR_TYPES = ((0, "default"), (1, "upload"))
 
     FILE_TYPE = "avatar.file"
 
