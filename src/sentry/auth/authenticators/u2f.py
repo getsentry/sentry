@@ -1,4 +1,4 @@
-from base64 import b64encode
+from base64 import urlsafe_b64encode
 from time import time
 
 from cryptography.exceptions import InvalidKey, InvalidSignature
@@ -72,6 +72,8 @@ class U2fInterface(AuthenticatorInterface):
                 if not type(registeredKey) == AuthenticatorData:
                     c = self._create_credential_object(registeredKey)
                     credentials.append(c)
+                else:
+                    credentials.append(registeredKey.credential_data)
 
             registration_data, state = self.webauthn_registration_server.register_begin(
                 user={"id": bytes(user.id), "name": user.username, "displayName": user.username},
@@ -99,7 +101,15 @@ class U2fInterface(AuthenticatorInterface):
         """Removes a U2F device but never removes the last one.  This returns
         False if the last device would be removed.
         """
-        devices = [x for x in self.config.get("devices") or () if x["binding"]["keyHandle"] != key]
+        devices = [
+            x
+            for x in self.config.get("devices") or ()
+            if (
+                urlsafe_b64encode(x["binding"].credential_data.credential_id).decode("ascii") != key
+                if type(x["binding"]) == AuthenticatorData
+                else x["binding"]["keyHandle"] != key
+            )
+        ]
         if devices:
             self.config["devices"] = devices
             return True
@@ -107,7 +117,14 @@ class U2fInterface(AuthenticatorInterface):
 
     def get_device_name(self, key):
         for device in self.config.get("devices") or ():
-            if device["binding"]["keyHandle"] == key:
+            if not type(device["binding"]) == AuthenticatorData:
+                if device["binding"]["keyHandle"] == key:
+                    return device["name"]
+                return None
+            if (
+                urlsafe_b64encode(device["binding"].credential_data.credential_id).decode("ascii")
+                == key
+            ):
                 return device["name"]
 
     def get_registered_devices(self):
@@ -118,7 +135,7 @@ class U2fInterface(AuthenticatorInterface):
                     {
                         "timestamp": to_datetime(device["ts"]),
                         "name": device["name"],
-                        "key_handle": b64encode(
+                        "key_handle": urlsafe_b64encode(
                             device["binding"].credential_data.credential_id
                         ).decode("ascii"),
                         "app_id": self.rp_id,
