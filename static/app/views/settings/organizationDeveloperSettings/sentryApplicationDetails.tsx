@@ -281,20 +281,36 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
     }
   };
 
-  getAvatarPreview = (size: number, title: string, description: string) => {
+  getAvatarPreview = (avatarStyle: 'color' | 'simple') => {
     const {app} = this.state;
+    const styleMap = {
+      color: {
+        size: 50,
+        title: t('Default Logo'),
+        description: t('The default icon for integrations'),
+      },
+      simple: {
+        size: 20,
+        title: t('Default Icon'),
+        description: t('This is an optional icon used for Issue Linking'),
+      },
+    };
     return (
       app && (
         <AvatarPreview>
-          <StyledPreviewAvatar size={size} sentryApp={app} isDefault />
-          <AvatarPreviewTitle>{title}</AvatarPreviewTitle>
-          <AvatarPreviewText>{description}</AvatarPreviewText>
+          <StyledPreviewAvatar
+            size={styleMap[avatarStyle].size}
+            sentryApp={app}
+            isDefault
+          />
+          <AvatarPreviewTitle>{styleMap[avatarStyle].title}</AvatarPreviewTitle>
+          <AvatarPreviewText>{styleMap[avatarStyle].description}</AvatarPreviewText>
         </AvatarPreview>
       )
     );
   };
 
-  getAvatarModel = (isColor: boolean): Model => {
+  getAvatarModel = (avatarStyle: 'color' | 'simple'): Model => {
     const {app} = this.state;
     const defaultModel: Model = {
       avatar: {
@@ -302,10 +318,38 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
         avatarUuid: null,
       },
     };
+    const isColor = avatarStyle === 'color';
     return !app
       ? defaultModel
       : {avatar: (app?.avatars || []).find(({color}) => color === isColor)} ||
           defaultModel;
+  };
+
+  getAvatarChooser = (avatarStyle: 'color' | 'simple') => {
+    const {app} = this.state;
+    if (!app) {
+      // AND FEATURE CHECK
+      return null;
+    }
+    const isColor = avatarStyle === 'color';
+
+    return (
+      <AvatarChooser
+        type={isColor ? 'sentryAppColor' : 'sentryAppSimple'}
+        allowGravatar={false}
+        allowLetter={false}
+        endpoint={`/sentry-apps/${app.slug}/avatar/`}
+        model={this.getAvatarModel(avatarStyle)}
+        // TODO(Leander): Implement
+        onSave={() => {}}
+        title={isColor ? t('Logo') : t('Small Icon')}
+        defaultChoice={{
+          allowDefault: true,
+          choiceText: isColor ? t('Default logo') : t('Default small icon'),
+          avatar: this.getAvatarPreview(avatarStyle),
+        }}
+      />
+    );
   };
 
   renderBody() {
@@ -325,6 +369,8 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
       // use the existing value for verifyInstall if the app exists, otherwise default to true
       verifyInstall = app ? app.verifyInstall : true;
     }
+
+    // organizations:sentry-app-logo-upload
 
     return (
       <div>
@@ -354,49 +400,8 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
               return (
                 <React.Fragment>
                   <JsonForm additionalFieldProps={{webhookDisabled}} forms={forms} />
-                  {app && (
-                    <AvatarChooser
-                      type="sentryAppColor"
-                      allowGravatar={false}
-                      allowLetter={false}
-                      endpoint={`${endpoint}avatar/`}
-                      model={this.getAvatarModel(true)}
-                      // TODO(Leander): Implement
-                      onSave={() => {}}
-                      title={t('Logo')}
-                      defaultChoice={{
-                        allowDefault: true,
-                        choiceText: t('Default logo'),
-                        avatar: this.getAvatarPreview(
-                          50,
-                          t('Default Logo'),
-                          t('The default icon for integrations')
-                        ),
-                      }}
-                    />
-                  )}
-                  {app && (
-                    <AvatarChooser
-                      type="sentryAppSimple"
-                      allowGravatar={false}
-                      allowLetter={false}
-                      endpoint={`${endpoint}avatar/`}
-                      model={this.getAvatarModel(false)}
-                      // TODO(Leander): Implement
-                      onSave={() => {}}
-                      title={t('Small Icon')}
-                      defaultChoice={{
-                        allowDefault: true,
-                        choiceText: t('Default small icon'),
-                        avatar: this.getAvatarPreview(
-                          20,
-                          t('Default Icon'),
-                          t('This is an optional icon used for Issue Linking')
-                        ),
-                      }}
-                    />
-                  )}
-
+                  {this.getAvatarChooser('color')}
+                  {this.getAvatarChooser('simple')}
                   <PermissionsObserver
                     webhookDisabled={webhookDisabled}
                     appPublished={app ? app.status === 'published' : false}

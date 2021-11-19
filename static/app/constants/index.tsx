@@ -185,6 +185,8 @@ export const AVATAR_URL_MAP = {
   organization: 'organization-avatar',
   project: 'project-avatar',
   user: 'avatar',
+  sentryAppColor: 'sentry-app-avatar',
+  sentryAppSimple: 'sentry-app-avatar',
 };
 
 export const MENU_CLOSE_DELAY = 200;
