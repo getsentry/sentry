@@ -1,11 +1,13 @@
 """
 Used for notifying a *specific* plugin
 """
+from typing import Sequence
 
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.models import Integration, OrganizationIntegration, PagerDutyService
+from sentry.constants import ObjectStatus
+from sentry.models import Integration, PagerDutyService
 from sentry.rules.actions.base import IntegrationEventAction
 from sentry.shared_integrations.exceptions import ApiError
 
@@ -44,24 +46,22 @@ class PagerDutyNotifyServiceForm(forms.Form):
                 raise forms.ValidationError(_("Invalid account"), code="invalid")
 
         service_id = cleaned_data.get("service")
+        if service_id:
+            service = PagerDutyService.objects.filter(id=service_id).first()
 
-        service = PagerDutyService.objects.get(id=service_id)
-
-        # need to make sure that the service actually belongs to that integration - meaning
-        # that it belongs under the appropriate account in PagerDuty
-        if not service.organization_integration.integration_id == integration_id:
-            params = {
-                "account": dict(self.fields["account"].choices).get(integration_id),
-                "service": dict(self.fields["service"].choices).get(int(service_id)),
-            }
-
-            raise forms.ValidationError(
-                _(
-                    'The service "%(service)s" does not exist or has not been granted access in the %(account)s Pagerduty account.'
-                ),
-                code="invalid",
-                params=params,
-            )
+            # We need to make sure that the service actually belongs to that integration,
+            # meaning that it belongs under the appropriate account in PagerDuty.
+            if not (service and service.organization_integration.integration_id == integration_id):
+                raise forms.ValidationError(
+                    _(
+                        'The service "%(service)s" does not exist or has not been granted access in the %(account)s Pagerduty account.'
+                    ),
+                    code="invalid",
+                    params={
+                        "account": dict(self.fields["account"].choices).get(integration_id),
+                        "service": dict(self.fields["service"].choices).get(int(service_id)),
+                    },
+                )
 
         return cleaned_data
 
@@ -128,16 +128,12 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
         key = f"pagerduty:{integration.id}"
         yield self.future(send_notification, key=key)
 
-    def get_services(self):
-        return [
-            service
-            for integration in self.get_integrations()
-            for service in PagerDutyService.objects.filter(
-                organization_integration_id=OrganizationIntegration.objects.get(
-                    organization=self.project.organization, integration=integration
-                )
-            ).values_list("id", "service_name")
-        ]
+    def get_services(self) -> Sequence[PagerDutyService]:
+        return PagerDutyService.objects.filter(
+            organizationintegration__organization=self.project.organization,
+            organizationintegration__integration__provider=self.provider,
+            organizationintegration__integration__status=ObjectStatus.VISIBLE,
+        ).values_list("id", "service_name")
 
     def render_label(self):
         try:
