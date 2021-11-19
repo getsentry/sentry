@@ -39,7 +39,7 @@ function BuilderBreadCrumbs(props: Props) {
   const isSuperuser = isActiveSuperuser();
 
   const label = (
-    <IdBadge project={project ?? {slug: projectSlug}} avatarSize={99} disableLink />
+    <IdBadge project={project ?? {slug: projectSlug}} avatarSize={18} disableLink />
   );
 
   const projectCrumbLink = {
