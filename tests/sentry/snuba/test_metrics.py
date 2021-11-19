@@ -46,7 +46,7 @@ def test_build_snuba_query(mock_now, mock_now2, mock_indexer):
         }
     )
     query_definition = QueryDefinition(query_params)
-    snuba_queries = SnubaQueryBuilder(PseudoProject(1, 1), query_definition).get_snuba_queries()
+    snuba_queries = SnubaQueryBuilder([PseudoProject(1, 1)], query_definition).get_snuba_queries()
 
     def expected_query(match, select, extra_groupby):
         function, column, alias = select
@@ -57,7 +57,7 @@ def test_build_snuba_query(mock_now, mock_now2, mock_indexer):
             groupby=[Column("metric_id"), Column("tags[8]"), Column("tags[2]")] + extra_groupby,
             where=[
                 Condition(Column("org_id"), Op.EQ, 1),
-                Condition(Column("project_id"), Op.EQ, 1),
+                Condition(Column("project_id"), Op.IN, [1]),
                 Condition(Column("metric_id"), Op.IN, [9, 11, 7]),
                 Condition(Column("timestamp"), Op.GTE, datetime(2021, 5, 28, 0, tzinfo=pytz.utc)),
                 Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
