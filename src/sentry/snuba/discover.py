@@ -53,6 +53,7 @@ from sentry.utils.snuba import (
 __all__ = (
     "PaginationResult",
     "InvalidSearchQuery",
+    "transform_results",
     "query",
     "prepare_discover_query",
     "timeseries_query",

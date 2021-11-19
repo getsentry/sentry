@@ -29,7 +29,7 @@ import {DataSet, DisplayType, displayTypes} from '../utils';
 import Card from './card';
 import FiltersAndGroups from './filtersAndGroups';
 import Queries from './queries';
-import {MetricMeta, MetricQuery} from './types';
+import {MetricMeta, MetricQuery, MetricTag} from './types';
 
 type Props = AsyncView['props'] & {
   dashboardTitle: DashboardDetails['title'];
@@ -49,7 +49,7 @@ type State = AsyncView['state'] &
     title: string;
     displayType: DisplayType;
     metricMetas: MetricMeta[] | null;
-    metricTags: string[] | null;
+    metricTags: MetricTag[] | null;
     queries: MetricQuery[];
   };
 
@@ -83,11 +83,19 @@ class MetricWidget extends AsyncView<Props, State> {
     }
 
     const orgSlug = organization.slug;
-    const projectSlug = this.project.slug;
+    const projectId = this.project.id;
 
     return [
-      ['metricMetas', `/projects/${orgSlug}/${projectSlug}/metrics/meta/`],
-      ['metricTags', `/projects/${orgSlug}/${projectSlug}/metrics/tags/`],
+      [
+        'metricMetas',
+        `/organizations/${orgSlug}/metrics/meta/`,
+        {query: {project: projectId}},
+      ],
+      [
+        'metricTags',
+        `/organizations/${orgSlug}/metrics/tags/`,
+        {query: {project: projectId}},
+      ],
     ];
   }
 
@@ -343,7 +351,7 @@ class MetricWidget extends AsyncView<Props, State> {
               <FiltersAndGroups
                 api={this.api}
                 orgSlug={organization.slug}
-                projSlug={selectedProject.slug}
+                projectId={selectedProject.id}
                 metricTags={metricTags}
                 searchQuery={searchQuery}
                 groupBy={groupBy}
