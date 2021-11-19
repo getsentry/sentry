@@ -15,7 +15,6 @@ import {MAX_QUERY_LENGTH} from 'app/constants';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
-import {defined} from 'app/utils';
 import EventView from 'app/utils/discover/eventView';
 import {generateAggregateFields} from 'app/utils/discover/fields';
 import {OpBreakdownFilterProvider} from 'app/utils/performance/contexts/operationBreakdownFilter';
@@ -133,14 +132,14 @@ export function PerformanceLanding(props: Props) {
                 currentFilter={spanFilter}
                 onChangeFilter={setSpanFilter}
               />
-              {isMetricsData && defined(eventView.project[0]) ? (
+              {isMetricsData ? (
                 <MetricsSearchBar
                   searchSource="performance_landing"
                   orgSlug={organization.slug}
                   query={filterString}
                   onSearch={handleSearch}
                   maxQueryLength={MAX_QUERY_LENGTH}
-                  projectId={eventView.project[0]}
+                  projectIds={eventView.project}
                 />
               ) : (
                 <SearchBar

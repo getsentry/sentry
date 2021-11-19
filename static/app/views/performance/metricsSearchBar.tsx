@@ -8,7 +8,6 @@ import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'app/constants';
 import {t} from 'app/locale';
 import {Organization, Tag} from 'app/types';
 import useApi from 'app/utils/useApi';
-import useProjects from 'app/utils/useProjects';
 
 const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   `^${NEGATION_OPERATOR}|\\${SEARCH_WILDCARD}`,
@@ -20,39 +19,31 @@ type Props = Pick<
   'onSearch' | 'onBlur' | 'query' | 'maxQueryLength' | 'searchSource'
 > & {
   orgSlug: Organization['slug'];
-  /**
-   * This is a temp solution, since the metrics tags endpoint currently only
-   * supports one project selection but it wwill soon support multiple projects
-   */
-  projectId: number;
+  projectIds: number[] | readonly number[];
 };
 
 function MetricsSearchBar({
   orgSlug,
-  projectId,
   onSearch,
   onBlur,
   maxQueryLength,
   searchSource,
+  projectIds,
 }: Props) {
   const api = useApi();
-  const {projects} = useProjects();
   const [tags, setTags] = useState<string[]>([]);
-
-  const projectSlug = projects.find(project => project.id === String(projectId))?.slug;
 
   useEffect(() => {
     fetchTags();
-  }, [projectSlug]);
+  }, [projectIds]);
 
   async function fetchTags() {
-    if (!projectSlug) {
-      return;
-    }
-
     try {
       const response = await api.requestPromise(
-        `/projects/${orgSlug}/${projectSlug}/metrics/tags/`
+        `/organizations/${orgSlug}/metrics/tags/`,
+        {
+          query: {project: !projectIds.length ? undefined : projectIds},
+        }
       );
       setTags(response);
     } catch {
@@ -68,12 +59,9 @@ function MetricsSearchBar({
   }
 
   function fetchTagValues(tagKey: string) {
-    return api.requestPromise(
-      `/projects/${orgSlug}/${projectSlug}/metrics/tags/${tagKey}/`,
-      {
-        method: 'GET',
-      }
-    );
+    return api.requestPromise(`/organizations/${orgSlug}/metrics/tags/${tagKey}/`, {
+      query: {project: projectIds},
+    });
   }
 
   function getTagValues(tag: Tag, _query: string): Promise<string[]> {
