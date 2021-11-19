@@ -35,7 +35,7 @@ export type Widget = {
   displayType: DisplayType;
   interval: string;
   queries: WidgetQuery[];
-  widgetType: WidgetType;
+  widgetType?: WidgetType;
 };
 
 /**
