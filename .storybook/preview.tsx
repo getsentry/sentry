@@ -159,6 +159,7 @@ addParameters({
         [
           'Layout - Narrow',
           'Layout - Thirds',
+          'Sidebar Section',
           'Modals',
           'Activity',
           'Empty States',
