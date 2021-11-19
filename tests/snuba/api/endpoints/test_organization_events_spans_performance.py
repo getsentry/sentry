@@ -522,7 +522,15 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
 
         # the first call is the get the suspects, and should be using the specified sort
         assert mock_raw_snql_query.call_args_list[0][0][0].orderby == [
-            OrderBy(exp=Function("count", [], "count"), direction=Direction.DESC)
+            OrderBy(exp=Function("count", [], "count"), direction=Direction.DESC),
+            OrderBy(
+                exp=Function(
+                    "sum",
+                    [Function("arrayJoin", [Column("spans.exclusive_time")])],
+                    "sumArray_spans_exclusive_time",
+                ),
+                direction=Direction.DESC,
+            ),
         ]
         assert (
             mock_raw_snql_query.call_args_list[0][0][1]
@@ -531,7 +539,15 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
 
         # the second call is the get the examples, and should also be using the specified sort
         assert mock_raw_snql_query.call_args_list[1][0][0].orderby == [
-            OrderBy(exp=Function("count", [], "count"), direction=Direction.DESC)
+            OrderBy(exp=Function("count", [], "count"), direction=Direction.DESC),
+            OrderBy(
+                exp=Function(
+                    "sum",
+                    [Function("arrayJoin", [Column("spans.exclusive_time")])],
+                    "sumArray_spans_exclusive_time",
+                ),
+                direction=Direction.DESC,
+            ),
         ]
         assert (
             mock_raw_snql_query.call_args_list[1][0][1]
@@ -629,8 +645,8 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
         event = self.create_event()
 
         mock_raw_snql_query.side_effect = [
-            {"data": [self.suspect_span_group_snuba_results("http.server", event)]},
-            {"data": [self.suspect_span_examples_snuba_results("http.server", event)]},
+            {"data": [self.suspect_span_group_snuba_results("django.middleware", event)]},
+            {"data": [self.suspect_span_examples_snuba_results("django.middleware", event)]},
         ]
 
         with self.feature(self.FEATURES):
@@ -638,8 +654,8 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
                 self.url,
                 data={
                     "project": self.project.id,
-                    "sort": "-count",
-                    "spanOp": "http.server",
+                    "sort": "-sumExclusiveTime",
+                    "spanOp": "django.middleware",
                 },
                 format="json",
             )
@@ -649,21 +665,28 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
             response.data,
             # when sorting by -count, this should be the last of the 3 results
             # but the spanOp filter means it should be the only result
-            [self.suspect_span_results("http.server", event)],
+            [self.suspect_span_results("django.middleware", event)],
         )
 
         assert mock_raw_snql_query.call_count == 2
 
         # the first call is the get the suspects, and should be using the specified sort
         assert mock_raw_snql_query.call_args_list[0][0][0].orderby == [
-            OrderBy(exp=Function("count", [], "count"), direction=Direction.DESC)
+            OrderBy(
+                exp=Function(
+                    "sum",
+                    [Function("arrayJoin", [Column("spans.exclusive_time")])],
+                    "sumArray_spans_exclusive_time",
+                ),
+                direction=Direction.DESC,
+            )
         ]
         # the first call should also contain the additional condition on the span op
         assert (
             Condition(
                 lhs=Function("arrayJoin", [Column("spans.op")], "array_join_spans_op"),
                 op=Op.IN,
-                rhs=Function("tuple", ["http.server"]),
+                rhs=Function("tuple", ["django.middleware"]),
             )
             in mock_raw_snql_query.call_args_list[0][0][0].where
         )
@@ -674,7 +697,14 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
 
         # the second call is the get the examples, and should also be using the specified sort
         assert mock_raw_snql_query.call_args_list[1][0][0].orderby == [
-            OrderBy(exp=Function("count", [], "count"), direction=Direction.DESC)
+            OrderBy(
+                exp=Function(
+                    "sum",
+                    [Function("arrayJoin", [Column("spans.exclusive_time")])],
+                    "sumArray_spans_exclusive_time",
+                ),
+                direction=Direction.DESC,
+            )
         ]
         assert (
             mock_raw_snql_query.call_args_list[1][0][1]
