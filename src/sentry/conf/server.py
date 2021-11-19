@@ -889,12 +889,26 @@ REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
-SPECTACULAR_SETTINGS = {
-    "PREPROCESSING_HOOKS": ["sentry.apidocs.preprocessor.custom_preprocessing_hook"],
-    "DISABLE_ERRORS_AND_WARNINGS": False,
-    "COMPONENT_SPLIT_REQUEST": True,
-    "AUTHENTICATION_WHITELIST": ["sentry.api.authentication.TokenAuthentication"],
-}
+
+if os.environ.get("OPENAPIGENERATE", False):
+    OLD_OPENAPI_JSON = "tests/apidocs/openapi-deprecated.json"
+    from sentry.apidocs.build import OPENAPI_TAGS, get_old_json_paths
+
+    SPECTACULAR_SETTINGS = {
+        "PREPROCESSING_HOOKS": ["sentry.apidocs.preprocessor.custom_preprocessing_hook"],
+        "DISABLE_ERRORS_AND_WARNINGS": False,
+        "COMPONENT_SPLIT_REQUEST": True,
+        "AUTHENTICATION_WHITELIST": ["sentry.api.authentication.TokenAuthentication"],
+        "TAGS": OPENAPI_TAGS,
+        "TITLE": "API Reference",
+        "DESCRIPTION": "Sentry Public API",
+        "TOS": "http://sentry.io/terms/",
+        "CONTACT": {"email": "partners@sentry.io"},
+        "LICENSE": {"name": "Apache 2.0", "url": "http://www.apache.org/licenses/LICENSE-2.0.html"},
+        "VERSION": "v0",
+        "SERVERS": [{"url": "https://sentry.io/"}],
+        "APPEND_PATHS": get_old_json_paths(OLD_OPENAPI_JSON),
+    }
 
 
 CRISPY_TEMPLATE_PACK = "bootstrap3"
