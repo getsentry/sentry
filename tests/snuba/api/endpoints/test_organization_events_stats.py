@@ -3,8 +3,8 @@ from datetime import timedelta
 from unittest import mock
 from uuid import uuid4
 
-import dateutil.parser as parse_date
 import pytest
+from dateutil.parser import parse as parse_date
 from django.urls import reverse
 from pytz import utc
 from snuba_sdk.column import Column
@@ -779,8 +779,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             [{"count": 1}],
             [{"count": 2}],
         ]
-        assert response.data["start"] == parse_date.parse(start).timestamp()
-        assert response.data["end"] == parse_date.parse(end).timestamp()
+        assert response.data["start"] == parse_date(start).timestamp()
+        assert response.data["end"] == parse_date(end).timestamp()
 
     def test_comparison(self):
         self.store_event(
