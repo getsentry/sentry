@@ -163,19 +163,19 @@ class DataSource(ABC):
     """Base class for metrics data sources"""
 
     @abstractmethod
-    def get_metrics(self, project: Project) -> List[dict]:
+    def get_metrics(self, projects: Sequence[Project]) -> List[dict]:
         """Get metrics metadata, without tags"""
 
     @abstractmethod
-    def get_single_metric(self, project: Project, metric_name: str) -> dict:
+    def get_single_metric(self, projects: Sequence[Project], metric_name: str) -> dict:
         """Get metadata for a single metric, without tag values"""
 
     @abstractmethod
-    def get_series(self, project: Project, query: QueryDefinition) -> dict:
+    def get_series(self, projects: Sequence[Project], query: QueryDefinition) -> dict:
         """Get time series for the given query"""
 
     @abstractmethod
-    def get_tags(self, project: Project, metric_names=None) -> Sequence[Tag]:
+    def get_tags(self, projects: Sequence[Project], metric_names=None) -> Sequence[Tag]:
         """Get all available tag names for this project
 
         If ``metric_names`` is provided, the list of available tag names will
@@ -184,7 +184,7 @@ class DataSource(ABC):
 
     @abstractmethod
     def get_tag_values(
-        self, project: Project, tag_name: str, metric_names=None
+        self, projects: Sequence[Project], tag_name: str, metric_names=None
     ) -> Sequence[TagValue]:
         """Get all known values for a specific tag"""
 
@@ -264,7 +264,7 @@ def _get_metric(metric_name: str) -> dict:
 
 
 class IndexMockingDataSource(DataSource):
-    def get_metrics(self, project: Project) -> List[dict]:
+    def get_metrics(self, projects: Sequence[Project]) -> List[dict]:
         """Get metrics metadata, without tags"""
         return [
             dict(
@@ -274,7 +274,7 @@ class IndexMockingDataSource(DataSource):
             for name, metric in _METRICS.items()
         ]
 
-    def get_single_metric(self, project: Project, metric_name: str) -> dict:
+    def get_single_metric(self, projects: Sequence[Project], metric_name: str) -> dict:
         """Get metadata for a single metric, without tag values"""
         try:
             metric = _METRICS[metric_name]
@@ -298,7 +298,7 @@ class IndexMockingDataSource(DataSource):
 
         return metric_names
 
-    def get_tags(self, project: Project, metric_names=None) -> Sequence[Tag]:
+    def get_tags(self, projects: Sequence[Project], metric_names=None) -> Sequence[Tag]:
         """Get all available tag names for this project
 
         If ``metric_names`` is provided, the list of available tag names will
@@ -326,7 +326,7 @@ class IndexMockingDataSource(DataSource):
         return tags
 
     def get_tag_values(
-        self, project: Project, tag_name: str, metric_names=None
+        self, projects: Sequence[Project], tag_name: str, metric_names=None
     ) -> Sequence[TagValue]:
         if metric_names is None:
             tag_values = sorted(
@@ -390,7 +390,7 @@ class MockDataSource(IndexMockingDataSource):
             "series": series,
         }
 
-    def get_series(self, project: Project, query: QueryDefinition) -> dict:
+    def get_series(self, projects: Sequence[Project], query: QueryDefinition) -> dict:
         """Get time series for the given query"""
 
         intervals = list(get_intervals(query))
@@ -448,8 +448,8 @@ class SnubaQueryBuilder:
         "metrics_sets",
     }
 
-    def __init__(self, project: Project, query_definition: QueryDefinition):
-        self._project = project
+    def __init__(self, projects: Sequence[Project], query_definition: QueryDefinition):
+        self._projects = projects
         self._queries = self._build_queries(query_definition)
 
     def _build_logical(self, operator, operands) -> Optional[BooleanCondition]:
@@ -494,9 +494,11 @@ class SnubaQueryBuilder:
     def _build_where(
         self, query_definition: QueryDefinition
     ) -> List[Union[BooleanCondition, Condition]]:
+        assert self._projects
+        org_id = self._projects[0].organization_id
         where: List[Union[BooleanCondition, Condition]] = [
-            Condition(Column("org_id"), Op.EQ, self._project.organization_id),
-            Condition(Column("project_id"), Op.EQ, self._project.id),
+            Condition(Column("org_id"), Op.EQ, org_id),
+            Condition(Column("project_id"), Op.IN, [p.id for p in self._projects]),
             Condition(
                 Column("metric_id"),
                 Op.IN,
@@ -673,12 +675,12 @@ class SnubaResultConverter:
 class SnubaDataSource(IndexMockingDataSource):
     """Mocks metrics metadata and string indexing, but fetches real time series"""
 
-    def get_series(self, project: Project, query: QueryDefinition) -> dict:
+    def get_series(self, projects: Sequence[Project], query: QueryDefinition) -> dict:
         """Get time series for the given query"""
 
         intervals = list(get_intervals(query))
 
-        snuba_queries = SnubaQueryBuilder(project, query).get_snuba_queries()
+        snuba_queries = SnubaQueryBuilder(projects, query).get_snuba_queries()
         results = {
             entity: {
                 # TODO: Should we use cache?
@@ -688,7 +690,8 @@ class SnubaDataSource(IndexMockingDataSource):
             for entity, queries in snuba_queries.items()
         }
 
-        converter = SnubaResultConverter(project.organization_id, query, intervals, results)
+        assert projects
+        converter = SnubaResultConverter(projects[0].organization_id, query, intervals, results)
 
         return {
             "start": query.start,
