@@ -43,7 +43,6 @@ class Migration(migrations.Migration):
                 migrations.AddField(
                     model_name="dashboardwidget",
                     name="widget_type",
-                    # Use the default in Django, new rows will use the specified default
                     field=sentry.db.models.fields.bounded.BoundedPositiveIntegerField(
                         null=True, default=0
                     ),
