@@ -13,8 +13,6 @@ jobs:
     steps:
       - name: Checkout getsentry/sentry
         uses: actions/checkout@v2
-        with:
-          path: sentry
 
       - name: Setup sentry env (python ${{ matrix.python-version }})
         uses: ./sentry/.github/actions/setup-sentry
@@ -43,10 +41,9 @@ jobs:
 
       - name: Build OpenAPI Derefed JSON
         run: |
-          cd sentry
           yarn install --frozen-lockfile
           yarn run build-derefed-docs api-docs/openapi-derefed.json
 
       - name: Compare OpenAPI Derefed JSON
         run: |
-          npx json-diff --color sentry-api-schema/openapi-derefed.json sentry/api-docs/openapi-derefed.json
+          npx json-diff --color sentry-api-schema/openapi-derefed.json api-docs/openapi-derefed.json
