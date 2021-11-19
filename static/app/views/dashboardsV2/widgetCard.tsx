@@ -9,7 +9,10 @@ import isEqual from 'lodash/isEqual';
 import {openDashboardWidgetQuerySelectorModal} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
+import ActionLink from 'app/components/actions/actionLink';
+import ActionButton from 'app/components/actions/button';
 import {HeaderTitle} from 'app/components/charts/styles';
+import DropdownLink from 'app/components/dropdownLink';
 import ErrorBoundary from 'app/components/errorBoundary';
 import FeatureBadge from 'app/components/featureBadge';
 import {SelectField} from 'app/components/forms';
@@ -17,7 +20,7 @@ import MenuItem from 'app/components/menuItem';
 import {isSelectionEqual} from 'app/components/organizations/globalSelectionHeader/utils';
 import {Panel} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
-import {IconDelete, IconEdit, IconGrabbable} from 'app/icons';
+import {IconCopy, IconDelete, IconEdit, IconEllipsis, IconGrabbable} from 'app/icons';
 import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
@@ -67,6 +70,7 @@ type Props = WithRouterProps & {
   selection: GlobalSelection;
   onDelete: () => void;
   onEdit: () => void;
+  onDuplicate: () => void;
   isSorting: boolean;
   currentWidgetDragging: boolean;
   showContextMenu?: boolean;
@@ -96,19 +100,48 @@ class WidgetCard extends React.Component<Props> {
   }
 
   renderToolbar() {
-    const {onEdit, onDelete, draggableProps, hideToolbar, isEditing} = this.props;
+    const {onEdit, onDelete, onDuplicate, draggableProps, hideToolbar, isEditing} =
+      this.props;
 
     if (!isEditing) {
       return null;
     }
 
+    const contextMenu = (
+      <EditContextWrapper>
+        <DropdownLink
+          key="actions"
+          anchorMiddle
+          customTitle={
+            <ActionButton label={t('Widget Actions')} icon={<IconEllipsis size="xs" />} />
+          }
+        >
+          <MenuItem
+            data-test-id="widget-edit"
+            icon={<IconEdit color="textColor" />}
+            onClick={event => {
+              event.preventDefault();
+              onEdit();
+            }}
+          >
+            {t('Edit')}
+          </MenuItem>
+          <DangerMenuItem
+            data-test-id="widget-delete"
+            icon={<IconDelete color="red300" />}
+            onClick={event => {
+              event.preventDefault();
+              onDelete();
+            }}
+          >
+            {t('Delete')}
+          </DangerMenuItem>
+        </DropdownLink>
+      </EditContextWrapper>
+    );
+
     return (
       <ToolbarPanel>
-        <Feature features={['dashboard-widget-resizing']}>
-          <SizeSelectContainer style={{visibility: hideToolbar ? 'hidden' : 'visible'}}>
-            <SizeSelector size="medium" onSizeChange={_ => {}} />
-          </SizeSelectContainer>
-        </Feature>
         <IconContainer style={{visibility: hideToolbar ? 'hidden' : 'visible'}}>
           <IconClick>
             <StyledIconGrabbable
@@ -117,22 +150,22 @@ class WidgetCard extends React.Component<Props> {
               {...draggableProps?.attributes}
             />
           </IconClick>
-          <IconClick
-            data-test-id="widget-edit"
-            onClick={() => {
-              onEdit();
-            }}
-          >
-            <IconEdit color="textColor" />
-          </IconClick>
-          <IconClick
-            data-test-id="widget-delete"
-            onClick={() => {
-              onDelete();
-            }}
-          >
-            <IconDelete color="textColor" />
-          </IconClick>
+          <Wrapper>
+            <Feature features={['dashboard-widget-resizing']}>
+              <SizeSelectContainer>
+                <SizeSelector size="medium" onSizeChange={_ => {}} />
+              </SizeSelectContainer>
+            </Feature>
+            <StyledActionLink
+              type="button"
+              onAction={() => onDuplicate()}
+              title={t('Duplicate')}
+              icon={<IconCopy />}
+            >
+              {t('Duplicate')}
+            </StyledActionLink>
+            {contextMenu}
+          </Wrapper>
         </IconContainer>
       </ToolbarPanel>
     );
@@ -331,12 +364,22 @@ const ToolbarPanel = styled('div')`
 
 const SizeSelectContainer = styled(`div`)`
   width: 120px;
-  margin-top: 8px;
+  height: 26px;
+  margin-right: ${space(1)};
 `;
 
 const IconContainer = styled('div')`
+  position: absolute;
+  bottom: 0;
+  left: 0;
+
+  justify-content: space-between;
+  width: 100%;
+
   display: flex;
-  margin: 10px ${space(2)};
+  align-items: flex-start;
+  margin-right: ${space(2)};
+  margin-bottom: 10px;
   touch-action: none;
 `;
 
@@ -349,6 +392,7 @@ const IconClick = styled('div')`
 `;
 
 const StyledIconGrabbable = styled(IconGrabbable)`
+  margin-left: ${space(2)};
   &:hover {
     cursor: grab;
   }
@@ -369,10 +413,27 @@ const ContextWrapper = styled('div')`
   margin-left: ${space(1)};
 `;
 
+const Wrapper = styled('div')`
+  display: flex;
+`;
+
+const EditContextWrapper = styled('div')`
+  margin-right: ${space(3)};
+`;
+
 const StyledMenuItem = styled(MenuItem)`
   white-space: nowrap;
   color: ${p => p.theme.textColor};
   :hover {
     color: ${p => p.theme.textColor};
   }
+`;
+
+const DangerMenuItem = styled(MenuItem)`
+  color: ${p => p.theme.red300};
+`;
+
+const StyledActionLink = styled(ActionLink)`
+  padding: ${space(0.75)};
+  margin-right: ${space(1)};
 `;

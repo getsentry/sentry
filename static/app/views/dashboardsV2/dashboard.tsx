@@ -4,6 +4,7 @@ import {closestCenter, DndContext} from '@dnd-kit/core';
 import {arrayMove, rectSortingStrategy, SortableContext} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 import {Location} from 'history';
+import cloneDeep from 'lodash/cloneDeep';
 
 import {validateWidget} from 'app/actionCreators/dashboards';
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -177,6 +178,18 @@ class Dashboard extends Component<Props> {
     });
   };
 
+  handleDuplicateWidget = (widget: Widget, index: number) => () => {
+    const {dashboard, onUpdate} = this.props;
+
+    const widgetCopy = cloneDeep(widget);
+    widgetCopy.id = undefined;
+
+    const nextList = [...dashboard.widgets];
+    nextList.splice(index, 0, widgetCopy);
+
+    onUpdate(nextList);
+  };
+
   getWidgetIds() {
     return [
       ...this.props.dashboard.widgets.map((widget, index): string => {
@@ -200,6 +213,7 @@ class Dashboard extends Component<Props> {
         isEditing={isEditing}
         onDelete={this.handleDeleteWidget(index)}
         onEdit={this.handleEditWidget(widget, index)}
+        onDuplicate={this.handleDuplicateWidget(widget, index)}
       />
     );
   }
