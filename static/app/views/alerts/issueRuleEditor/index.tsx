@@ -585,7 +585,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
               frequency: `${frequency}`,
             }}
             submitDisabled={!hasAccess || !canEdit}
-            submitLabel={isSavedAlertRule(rule) ? t('Save Rule') : t('Save Rule')}
+            submitLabel={t('Save Rule')}
             extraButton={
               isSavedAlertRule(rule) ? (
                 <Confirm
