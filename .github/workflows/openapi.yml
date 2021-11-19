@@ -28,7 +28,7 @@ jobs:
           token: ${{ steps.getsentry.outputs.token }}
 
       - name: Setup sentry env (python ${{ matrix.python-version }})
-        uses: ./sentry/.github/actions/setup-sentry
+        uses: /home/runner/work/sentry/sentry/sentry/.github/actions/setup-sentry
         id: setup
         with:
           python-version: ${{ matrix.python-version }}
