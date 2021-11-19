@@ -28,12 +28,16 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
             return Response({"detail": "Publish request in progress."}, status=400)
 
         if features.has("organizations:sentry-app-logo-upload", sentry_app.owner):
-            if not SentryAppAvatar.objects.filter(sentry_app=sentry_app, color=True).exists():
+            if not SentryAppAvatar.objects.filter(
+                sentry_app=sentry_app, color=True, avatar_type=1
+            ).exists():
                 return Response({"detail": "Must upload a logo for the integration."}, status=400)
 
             if (
                 is_issue_link_integration(sentry_app)
-                and not SentryAppAvatar.objects.filter(sentry_app=sentry_app, color=False).exists()
+                and not SentryAppAvatar.objects.filter(
+                    sentry_app=sentry_app, color=False, avatar_type=1
+                ).exists()
             ):
                 return Response(
                     {
