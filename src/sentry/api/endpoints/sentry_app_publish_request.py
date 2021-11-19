@@ -4,7 +4,7 @@ from sentry import features, options
 from sentry.api.bases.sentryapps import SentryAppBaseEndpoint
 from sentry.constants import SentryAppStatus
 from sentry.mediators.sentry_apps import Updater
-from sentry.models import SentryAppAvatar
+from sentry.models import SentryAppAvatar, SentryAppAvatarTypes
 from sentry.utils import email
 
 
@@ -29,14 +29,16 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
 
         if features.has("organizations:sentry-app-logo-upload", sentry_app.owner):
             if not SentryAppAvatar.objects.filter(
-                sentry_app=sentry_app, color=True, avatar_type=1
+                sentry_app=sentry_app, color=True, avatar_type=SentryAppAvatarTypes.UPLOAD.value
             ).exists():
                 return Response({"detail": "Must upload a logo for the integration."}, status=400)
 
             if (
                 is_issue_link_integration(sentry_app)
                 and not SentryAppAvatar.objects.filter(
-                    sentry_app=sentry_app, color=False, avatar_type=1
+                    sentry_app=sentry_app,
+                    color=False,
+                    avatar_type=SentryAppAvatarTypes.UPLOAD.value,
                 ).exists()
             ):
                 return Response(
