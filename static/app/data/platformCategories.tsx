@@ -94,6 +94,7 @@ export const backend = [
   'ruby-rails',
   'ruby-rack',
   'rust',
+  'kotlin',
 ] as const;
 
 export const serverless = [
@@ -121,6 +122,9 @@ export const desktop = [
   'native-qt',
   'minidump',
   'unity',
+  'flutter',
+  'dart-flutter',
+  'kotlin',
 ] as const;
 
 const categoryList = [
