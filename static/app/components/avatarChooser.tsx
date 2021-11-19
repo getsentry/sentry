@@ -16,9 +16,14 @@ import {AvatarUser, Organization, SentryApp, Team} from 'app/types';
 import withApi from 'app/utils/withApi';
 import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
 
-type Model = Pick<AvatarUser, 'avatar'>;
+export type Model = Pick<AvatarUser, 'avatar'>;
 type AvatarType = Required<Model>['avatar']['avatarType'];
-type AvatarChooserType = 'user' | 'team' | 'organization' | 'sentryApp';
+type AvatarChooserType =
+  | 'user'
+  | 'team'
+  | 'organization'
+  | 'sentryAppColor'
+  | 'sentryAppSimple';
 type DefaultChoice = {
   avatar?: React.ReactNode;
   allowDefault?: boolean;
@@ -45,9 +50,6 @@ type Props = {
    * Title in the PanelHeader component (default: 'Avatar')
    */
   title?: string;
-  /**
-   * Addtional form data to submit with the request
-   */
   extraFields?: {[key: string]: any};
 } & DefaultProps;
 
@@ -100,18 +102,23 @@ class AvatarChooser extends React.Component<Props, State> {
   }
 
   handleSaveSettings = (ev: React.MouseEvent) => {
-    const {endpoint, api, extraFields} = this.props;
+    const {endpoint, api, type} = this.props;
     const {model, dataUrl} = this.state;
+    const isSentryApp = type?.startsWith('sentryApp');
+
     ev.preventDefault();
-    let data = {};
     const avatarType = model && model.avatar ? model.avatar.avatarType : undefined;
     const avatarPhoto = dataUrl ? dataUrl.split(',')[1] : undefined;
 
-    data = {
+    // TODO(Leander): Fix this payload's type
+    const data: any = {
       avatar_photo: avatarPhoto,
       avatar_type: avatarType,
-      ...extraFields,
     };
+
+    if (isSentryApp) {
+      data.color = type === 'sentryAppColor';
+    }
 
     api.request(endpoint, {
       method: 'PUT',
@@ -162,7 +169,8 @@ class AvatarChooser extends React.Component<Props, State> {
 
     const isTeam = type === 'team';
     const isOrganization = type === 'organization';
-    const isSentryApp = type === 'sentryApp';
+    const isSentryApp = type?.startsWith('sentryApp');
+
     const choices: [AvatarType, string][] = [];
 
     if (allowDefault && defaultAvatar) {
@@ -204,36 +212,33 @@ class AvatarChooser extends React.Component<Props, State> {
               )}
               {isDefault && defaultAvatar}
             </AvatarGroup>
-            {!isDefault && (
-              <AvatarUploadSection>
-                {allowGravatar && avatarType === 'gravatar' && (
-                  <Well>
-                    {t('Gravatars are managed through ')}
-                    <ExternalLink href="http://gravatar.com">Gravatar.com</ExternalLink>
-                  </Well>
-                )}
-
-                {model.avatar && avatarType === 'upload' && (
-                  <AvatarCropper
-                    {...this.props}
-                    type={type!}
-                    model={model}
-                    savedDataUrl={savedDataUrl}
-                    updateDataUrlState={dataState => this.setState(dataState)}
-                  />
-                )}
-                <AvatarSubmit className="form-actions">
-                  <Button
-                    type="button"
-                    priority="primary"
-                    onClick={this.handleSaveSettings}
-                    disabled={disabled}
-                  >
-                    {t('Save Avatar')}
-                  </Button>
-                </AvatarSubmit>
-              </AvatarUploadSection>
-            )}
+            <AvatarUploadSection>
+              {allowGravatar && avatarType === 'gravatar' && (
+                <Well>
+                  {t('Gravatars are managed through ')}
+                  <ExternalLink href="http://gravatar.com">Gravatar.com</ExternalLink>
+                </Well>
+              )}
+              {model.avatar && avatarType === 'upload' && (
+                <AvatarCropper
+                  {...this.props}
+                  type={type!}
+                  model={model}
+                  savedDataUrl={savedDataUrl}
+                  updateDataUrlState={dataState => this.setState(dataState)}
+                />
+              )}
+              <AvatarSubmit className="form-actions">
+                <Button
+                  type="button"
+                  priority="primary"
+                  onClick={this.handleSaveSettings}
+                  disabled={disabled}
+                >
+                  {t('Save Avatar')}
+                </Button>
+              </AvatarSubmit>
+            </AvatarUploadSection>
           </AvatarForm>
         </PanelBody>
       </Panel>
@@ -249,7 +254,7 @@ const AvatarGroup = styled('div')<{inline: boolean}>`
 const AvatarForm = styled('div')`
   line-height: 1.5em;
   padding: 1em 1.25em;
-  margin: 1em 0.5em;
+  margin: 1em 0.5em 0;
 `;
 
 const AvatarSubmit = styled('fieldset')`

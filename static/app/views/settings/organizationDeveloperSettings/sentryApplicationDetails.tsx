@@ -11,7 +11,7 @@ import {
   removeSentryAppToken,
 } from 'app/actionCreators/sentryAppTokens';
 import Avatar from 'app/components/avatar';
-import AvatarChooser from 'app/components/avatarChooser';
+import AvatarChooser, {Model} from 'app/components/avatarChooser';
 import Button from 'app/components/button';
 import DateTime from 'app/components/dateTime';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
@@ -294,6 +294,20 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
     );
   };
 
+  getAvatarModel = (isColor: boolean): Model => {
+    const {app} = this.state;
+    const defaultModel: Model = {
+      avatar: {
+        avatarType: 'default',
+        avatarUuid: null,
+      },
+    };
+    return !app
+      ? defaultModel
+      : {avatar: (app?.avatars || []).find(({color}) => color === isColor)} ||
+          defaultModel;
+  };
+
   renderBody() {
     const {orgId} = this.props.params;
     const {app} = this.state;
@@ -337,25 +351,18 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
             {() => {
               const webhookDisabled =
                 this.isInternal && !this.form.getValue('webhookUrl');
-              const model: {avatar: {avatarType: 'default'; avatarUuid: null}} = {
-                avatar: {
-                  avatarType: 'default',
-                  avatarUuid: null,
-                },
-              };
               return (
                 <React.Fragment>
                   <JsonForm additionalFieldProps={{webhookDisabled}} forms={forms} />
                   {app && (
                     <AvatarChooser
-                      type="sentryApp"
+                      type="sentryAppColor"
                       allowGravatar={false}
                       allowLetter={false}
                       endpoint={`${endpoint}avatar/`}
-                      model={model}
+                      model={this.getAvatarModel(true)}
                       onSave={() => {}}
                       title={t('Logo')}
-                      extraFields={{color: true}}
                       defaultChoice={{
                         allowDefault: true,
                         choiceText: t('Default logo'),
@@ -369,14 +376,13 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
                   )}
                   {app && (
                     <AvatarChooser
-                      type="sentryApp"
+                      type="sentryAppSimple"
                       allowGravatar={false}
                       allowLetter={false}
                       endpoint={`${endpoint}avatar/`}
-                      model={model}
+                      model={this.getAvatarModel(false)}
                       onSave={() => {}}
                       title={t('Small Icon')}
-                      extraFields={{color: false}}
                       defaultChoice={{
                         allowDefault: true,
                         choiceText: t('Default small icon'),

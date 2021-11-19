@@ -147,6 +147,10 @@ export type ObjectStatus =
 export type Avatar = {
   avatarUuid: string | null;
   avatarType: 'letter_avatar' | 'upload' | 'gravatar' | 'background' | 'default';
+  /**
+   * Whether or not the avatar is colorful
+   */
+  color?: boolean;
 };
 
 export type Actor = {

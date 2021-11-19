@@ -12,6 +12,13 @@ type Props = {
   organization?: OrganizationSummary;
   project?: AvatarProject;
   sentryApp?: SentryApp;
+  /**
+   * True if the Avatar is full color, rather than B&W (Used for SentryAppAvatar)
+   */
+  isColor?: boolean;
+  /**
+   * True if the rendered Avatar should be a static asset
+   */
   isDefault?: boolean;
 } & UserAvatar['props'];
 
@@ -23,7 +30,8 @@ const Avatar = React.forwardRef(function Avatar(
     project,
     organization,
     sentryApp,
-    isDefault,
+    isDefault = false,
+    isColor = true,
     ...props
   }: Props,
   ref: React.Ref<HTMLSpanElement>
@@ -44,7 +52,12 @@ const Avatar = React.forwardRef(function Avatar(
 
   if (sentryApp) {
     return (
-      <SentryAppAvatar sentryApp={sentryApp} isDefault={isDefault} {...commonProps} />
+      <SentryAppAvatar
+        sentryApp={sentryApp}
+        isColor={isColor}
+        isDefault={isDefault}
+        {...commonProps}
+      />
     );
   }
 
