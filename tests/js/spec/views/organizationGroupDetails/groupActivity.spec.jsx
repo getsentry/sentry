@@ -67,6 +67,28 @@ describe('GroupActivity', function () {
     );
   });
 
+  it('renders a assigned to self activity', function () {
+    const user = TestStubs.User({id: '301', name: 'Mark'});
+    const wrapper = createWrapper({
+      activity: [
+        {
+          data: {
+            assignee: user.id,
+            assigneeEmail: user.email,
+            assigneeType: 'user',
+          },
+          dateCreated: '2021-10-01T15:31:38.950115Z',
+          id: '117',
+          type: 'assigned',
+          user,
+        },
+      ],
+    });
+    expect(wrapper.find('GroupActivityItem').text()).toContain(
+      'assigned this issue to themselves'
+    );
+  });
+
   it('requests assignees that are not in the team store', async function () {
     const team = TestStubs.Team({id: '123', name: 'workflow'});
     const teamRequest = MockApiClient.addMockResponse({
