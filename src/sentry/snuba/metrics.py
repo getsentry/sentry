@@ -4,15 +4,29 @@ import random
 import re
 from abc import ABC, abstractmethod
 from collections import OrderedDict
+from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import List, Optional, Protocol, Sequence, Tuple, TypedDict, Union
+from typing import List, Literal, Optional, Protocol, Sequence, Tuple, TypedDict, Union
 
-from snuba_sdk import And, Column, Condition, Entity, Granularity, Limit, Offset, Op, Or, Query
+from snuba_sdk import (
+    And,
+    Column,
+    Condition,
+    Entity,
+    Function,
+    Granularity,
+    Limit,
+    Offset,
+    Op,
+    Or,
+    Query,
+)
 from snuba_sdk.conditions import BooleanCondition
 from snuba_sdk.query import SelectableExpression
 
 from sentry.models import Project
 from sentry.sentry_metrics import indexer
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.sessions_v2 import (  # TODO: unite metrics and sessions_v2
     AllowedResolution,
     InvalidField,
@@ -20,7 +34,7 @@ from sentry.snuba.sessions_v2 import (  # TODO: unite metrics and sessions_v2
     finite_or_none,
     get_constrained_date_range,
 )
-from sentry.utils.snuba import raw_snql_query
+from sentry.utils.snuba import parse_snuba_datetime, raw_snql_query
 
 FIELD_REGEX = re.compile(r"^(\w+)\(((\w|\.|_)+)\)$")
 TAG_REGEX = re.compile(r"^(\w|\.|_)+$")
@@ -96,7 +110,6 @@ class QueryDefinition:
     This is the definition of the query the user wants to execute.
     This is constructed out of the request params, and also contains a list of
     `fields` and `groupby` definitions as [`ColumnDefinition`] objects.
-
 
     Adapted from [`sentry.snuba.sessions_v2`].
 
@@ -176,20 +189,28 @@ class DataSource(ABC):
         """Get all known values for a specific tag"""
 
 
+@dataclass
+class SnubaField:
+    snuba_function: Literal[
+        "sum", "uniq", "avg", "count", "max", "min", "quantiles(0.5,0.75,0.9,0.95,0.99)"
+    ]
+    snuba_alias: Literal["value", "avg", "count", "max", "min", "percentiles"]
+
+
 _OP_TO_FIELD = {
-    "metrics_counters": {"sum": "value"},
+    "metrics_counters": {"sum": SnubaField("sum", "value")},
     "metrics_distributions": {
-        "avg": "avg",
-        "count": "count",
-        "max": "max",
-        "min": "min",
-        "p50": "percentiles",
-        "p75": "percentiles",
-        "p90": "percentiles",
-        "p95": "percentiles",
-        "p99": "percentiles",
+        "avg": SnubaField("avg", "avg"),
+        "count": SnubaField("count", "count"),
+        "max": SnubaField("max", "max"),
+        "min": SnubaField("min", "min"),
+        "p50": SnubaField("quantiles(0.5,0.75,0.9,0.95,0.99)", "percentiles"),
+        "p75": SnubaField("quantiles(0.5,0.75,0.9,0.95,0.99)", "percentiles"),
+        "p90": SnubaField("quantiles(0.5,0.75,0.9,0.95,0.99)", "percentiles"),
+        "p95": SnubaField("quantiles(0.5,0.75,0.9,0.95,0.99)", "percentiles"),
+        "p99": SnubaField("quantiles(0.5,0.75,0.9,0.95,0.99)", "percentiles"),
     },
-    "metrics_sets": {"count_unique": "value"},
+    "metrics_sets": {"count_unique": SnubaField("uniq", "value")},
 }
 _FIELDS_BY_ENTITY = {type_: sorted(mapping.keys()) for type_, mapping in _OP_TO_FIELD.items()}
 
@@ -511,17 +532,18 @@ class SnubaQueryBuilder:
             for entity, fields in queries_by_entity.items()
         }
 
+    @staticmethod
+    def _build_select(entity, fields):
+        for op, _ in fields:
+            field = _OP_TO_FIELD[entity][op]
+            yield Function(field.snuba_function, [Column("value")], field.snuba_alias)
+
     def _build_queries_for_entity(self, query_definition, entity, fields, where, groupby):
         totals_query = Query(
-            dataset="metrics",
+            dataset=Dataset.Metrics.value,
             match=Entity(entity),
             groupby=groupby,
-            select=list(
-                map(
-                    Column,
-                    {_OP_TO_FIELD[entity][op] for op, _ in fields},
-                )
-            ),
+            select=list(self._build_select(entity, fields)),
             where=where,
             limit=Limit(MAX_POINTS),
             offset=Offset(0),
@@ -603,6 +625,8 @@ class SnubaResultConverter:
         )
 
         timestamp = data.pop(TS_COL_GROUP, None)
+        if timestamp is not None:
+            timestamp = parse_snuba_datetime(timestamp)
 
         for op in ops:
             key = f"{op}({metric_name})"
@@ -610,7 +634,7 @@ class SnubaResultConverter:
                 key, len(self._intervals) * [_DEFAULT_AGGREGATES[op]]
             )
 
-            field = _OP_TO_FIELD[entity][op]
+            field = _OP_TO_FIELD[entity][op].snuba_alias
             value = data[field]
             if field == "percentiles":
                 value = value[Percentile[op].value]
