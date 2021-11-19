@@ -138,8 +138,8 @@ setup-apple-m1() {
     # The LDFLAGS is needed for uWSGI --> https://github.com/unbit/uwsgi/issues/2361
     body="
 $header
-export CPATH=/opt/homebrew/Cellar/librdkafka/1.8.2/include:\${CPATH}
-export LDFLAGS=-L/opt/homebrew/Cellar/gettext/0.21/lib:\${LDFLAGS}"
+export CPATH=/opt/homebrew/Cellar/librdkafka/1.8.2/include
+export LDFLAGS=-L/opt/homebrew/Cellar/gettext/0.21/lib"
     if [ "$SHELL" == "/bin/zsh" ]; then
         if ! grep -qF "${header}" "${zshrc_path}"; then
             echo "Added the following to ${zshrc_path}"
