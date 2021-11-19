@@ -137,11 +137,8 @@ class TwoFactorAuthView(BaseView):
         webauthn_signin_ff = self._is_webauthn_signin_ff_enabled(user, request.user)
 
         if request.method == "GET":
-            # old
             activation = interface.activate(request, webauthn_signin_ff)
-            # # new
-            # activation, state = interface.activate(request)
-            # request.session["webauthn_authentication_state"] = state
+
             if activation is not None and activation.type == "challenge":
                 challenge = activation.challenge
 
