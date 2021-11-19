@@ -361,6 +361,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
                       allowLetter={false}
                       endpoint={`${endpoint}avatar/`}
                       model={this.getAvatarModel(true)}
+                      // TODO(Leander): Implement
                       onSave={() => {}}
                       title={t('Logo')}
                       defaultChoice={{
@@ -381,6 +382,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
                       allowLetter={false}
                       endpoint={`${endpoint}avatar/`}
                       model={this.getAvatarModel(false)}
+                      // TODO(Leander): Implement
                       onSave={() => {}}
                       title={t('Small Icon')}
                       defaultChoice={{
