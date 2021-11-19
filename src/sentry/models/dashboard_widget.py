@@ -104,7 +104,9 @@ class DashboardWidget(Model):
     interval = models.CharField(max_length=10, null=True)
     display_type = BoundedPositiveIntegerField(choices=DashboardWidgetDisplayTypes.as_choices())
     date_added = models.DateTimeField(default=timezone.now)
-    widget_type = BoundedPositiveIntegerField(choices=DashboardWidgetTypes.as_choices())
+    widget_type = BoundedPositiveIntegerField(
+        choices=DashboardWidgetTypes.as_choices(), default=DashboardWidgetTypes.DISCOVER
+    )
 
     class Meta:
         app_label = "sentry"
