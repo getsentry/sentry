@@ -959,9 +959,6 @@ class SnubaTestCase(BaseTestCase):
 class SessionMetricsTestCase(SnubaTestCase):
     """Store metrics instead of sessions"""
 
-    # NOTE: This endpoint does not exist yet, but we need something alike
-    # because /tests/<dataset>/insert always writes to the default entity
-    # (in the case of metrics, that's "metrics_sets")
     snuba_endpoint = "/tests/entities/{entity}/insert"
 
     def store_session(self, session):
