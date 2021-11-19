@@ -2,7 +2,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
 from sentry import features
-from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.snuba.metrics import (
     InvalidField,
@@ -20,35 +20,36 @@ def get_datasource(request):
     return MockDataSource()
 
 
-class ProjectMetricsEndpoint(ProjectEndpoint):
+class OrganizationMetricsEndpoint(OrganizationEndpoint):
     """Get metric name, available operations and the metric unit"""
 
-    def get(self, request, project):
-
-        if not features.has("organizations:metrics", project.organization, actor=request.user):
+    def get(self, request, organization):
+        if not features.has("organizations:metrics", organization, actor=request.user):
             return Response(status=404)
 
-        metrics = get_datasource(request).get_metrics(project)
+        projects = self.get_projects(request, organization)
+        metrics = get_datasource(request).get_metrics(projects)
         return Response(metrics, status=200)
 
 
-class ProjectMetricDetailsEndpoint(ProjectEndpoint):
+class OrganizationMetricDetailsEndpoint(OrganizationEndpoint):
     """Get metric name, available operations, metric unit and available tags"""
 
-    def get(self, request, project, metric_name):
+    def get(self, request, organization, metric_name):
 
-        if not features.has("organizations:metrics", project.organization, actor=request.user):
+        if not features.has("organizations:metrics", organization, actor=request.user):
             return Response(status=404)
 
+        projects = self.get_projects(request, organization)
         try:
-            metric = get_datasource(request).get_single_metric(project, metric_name)
+            metric = get_datasource(request).get_single_metric(projects, metric_name)
         except InvalidParams:
             raise ResourceDoesNotExist(detail=f"metric '{metric_name}'")
 
         return Response(metric, status=200)
 
 
-class ProjectMetricsTagsEndpoint(ProjectEndpoint):
+class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
     """Get list of tag names for this project
 
     If the ``metric`` query param is provided, only tags for a certain metric
@@ -59,36 +60,35 @@ class ProjectMetricsTagsEndpoint(ProjectEndpoint):
 
     """
 
-    def get(self, request, project):
+    def get(self, request, organization):
 
-        if not features.has("organizations:metrics", project.organization, actor=request.user):
+        if not features.has("organizations:metrics", organization, actor=request.user):
             return Response(status=404)
 
         metric_names = request.GET.getlist("metric") or None
 
-        if not features.has("organizations:metrics", project.organization, actor=request.user):
-            return Response(status=404)
-
+        projects = self.get_projects(request, organization)
         try:
-            tags = get_datasource(request).get_tags(project, metric_names)
+            tags = get_datasource(request).get_tags(projects, metric_names)
         except InvalidParams as exc:
             raise (ParseError(detail=str(exc)))
 
         return Response(tags, status=200)
 
 
-class ProjectMetricsTagDetailsEndpoint(ProjectEndpoint):
+class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
     """Get all existing tag values for a metric"""
 
-    def get(self, request, project, tag_name):
+    def get(self, request, organization, tag_name):
 
-        if not features.has("organizations:metrics", project.organization, actor=request.user):
+        if not features.has("organizations:metrics", organization, actor=request.user):
             return Response(status=404)
 
         metric_names = request.GET.getlist("metric") or None
 
+        projects = self.get_projects(request, organization)
         try:
-            tag_values = get_datasource(request).get_tag_values(project, tag_name, metric_names)
+            tag_values = get_datasource(request).get_tag_values(projects, tag_name, metric_names)
         except InvalidParams as exc:
             msg = str(exc)
             # TODO: Use separate error type once we have real data
@@ -100,21 +100,21 @@ class ProjectMetricsTagDetailsEndpoint(ProjectEndpoint):
         return Response(tag_values, status=200)
 
 
-class ProjectMetricsDataEndpoint(ProjectEndpoint):
+class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
     """Get the time series data for one or more metrics.
 
     The data can be filtered and grouped by tags.
     Based on `OrganizationSessionsEndpoint`.
     """
 
-    def get(self, request, project):
-
-        if not features.has("organizations:metrics", project.organization, actor=request.user):
+    def get(self, request, organization):
+        if not features.has("organizations:metrics", organization, actor=request.user):
             return Response(status=404)
 
+        projects = self.get_projects(request, organization)
         try:
             query = QueryDefinition(request.GET)
-            data = get_datasource(request).get_series(project, query)
+            data = get_datasource(request).get_series(projects, query)
         except (InvalidField, InvalidParams) as exc:
             raise (ParseError(detail=str(exc)))
 

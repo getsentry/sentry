@@ -39,7 +39,7 @@ function Card({widget, api, location, router, organization, project, selection}:
           api={api}
           location={location}
           organization={organization}
-          projectSlug={project.slug}
+          projectId={project.id}
           groupings={groupings}
           searchQuery={searchQuery}
           environments={selection.environments}
