@@ -99,6 +99,7 @@ def inner_dsym_download(project_id: int, config_id: str) -> None:
             else:
                 create_difs_from_dsyms_zip(dsyms_zip.name, project)
                 logger.debug("Uploaded dSYMs for build %s", build)
+                metrics.incr("tasks.app_store_connect.builds_ingested", sample_rate=1)
 
         build_state.fetched = True
         build_state.save()
