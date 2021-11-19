@@ -16,8 +16,8 @@ jobs:
         with:
           path: sentry
 
-      - name: Setup Python ${{ matrix.python-version }}
-        uses: ./sentry/.github/actions/setup-python
+      - name: Setup sentry env (python ${{ matrix.python-version }})
+        uses: ./sentry/.github/actions/setup-sentry
         with:
           python-version: ${{ matrix.python-version }}
           # Note this uses a different cache key than other backend-based workflows because this workflows dependencies are different
