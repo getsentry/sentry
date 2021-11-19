@@ -1,7 +1,7 @@
 """
 Used for notifying a *specific* plugin
 """
-from typing import Sequence
+from typing import Any, Mapping, Sequence
 
 from django import forms
 from django.utils.translation import ugettext_lazy as _
@@ -35,7 +35,7 @@ class PagerDutyNotifyServiceForm(forms.Form):
         self.fields["service"].choices = services
         self.fields["service"].widget.choices = self.fields["service"].choices
 
-    def clean(self):
+    def clean(self) -> Mapping[str, Any]:
         cleaned_data = super().clean()
 
         integration_id = cleaned_data.get("account")
@@ -47,20 +47,34 @@ class PagerDutyNotifyServiceForm(forms.Form):
 
         service_id = cleaned_data.get("service")
         if service_id:
-            service = PagerDutyService.objects.filter(id=service_id).first()
+            try:
+                service_id = int(service_id)
+            except ValueError:
+                raise forms.ValidationError(_("Invalid service"), code="invalid")
 
-            # We need to make sure that the service actually belongs to that integration,
-            # meaning that it belongs under the appropriate account in PagerDuty.
-            if not (service and service.organization_integration.integration_id == integration_id):
+            account_choice = dict(self.fields["account"].choices).get(integration_id)
+            service_choice = dict(self.fields["service"].choices).get(service_id)
+
+            try:
+                service = PagerDutyService.objects.get(id=service_id)
+            except PagerDutyService.DoesNotExist:
                 raise forms.ValidationError(
                     _(
-                        'The service "%(service)s" does not exist or has not been granted access in the %(account)s Pagerduty account.'
+                        'The service "%(service)s" does not exist in the %(account)s Pagerduty account.'
                     ),
                     code="invalid",
-                    params={
-                        "account": dict(self.fields["account"].choices).get(integration_id),
-                        "service": dict(self.fields["service"].choices).get(int(service_id)),
-                    },
+                    params={"account": account_choice, "service": service_choice},
+                )
+
+            if service.organization_integration.integration_id != integration_id:
+                # We need to make sure that the service actually belongs to that integration,
+                # meaning that it belongs under the appropriate account in PagerDuty.
+                raise forms.ValidationError(
+                    _(
+                        'The service "%(service)s" has not been granted access in the %(account)s Pagerduty account.'
+                    ),
+                    code="invalid",
+                    params={"account": account_choice, "service": service_choice},
                 )
 
         return cleaned_data
