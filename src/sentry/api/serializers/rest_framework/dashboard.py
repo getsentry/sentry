@@ -170,11 +170,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
         is_issue_widget = data.get("widget_type") == DashboardWidgetTypes.ISSUE
         query_errors = []
         has_query_error = False
-        if not data.get("id"):
-            if not data.get("queries"):
-                raise serializers.ValidationError(
-                    {"queries": "One or more queries are required to create a widget"}
-                )
+        if data.get("queries"):
             # Check each query to see if they have an issue or discover error depending on the type of the widget
             for query in data.get("queries"):
                 if is_issue_widget and "issue_query_error" in query:
@@ -185,9 +181,13 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
                     has_query_error = True
                 else:
                     query_errors.append({})
-            if has_query_error:
-                raise serializers.ValidationError({"queries": query_errors})
-
+        if has_query_error:
+            raise serializers.ValidationError({"queries": query_errors})
+        if not data.get("id"):
+            if not data.get("queries"):
+                raise serializers.ValidationError(
+                    {"queries": "One or more queries are required to create a widget"}
+                )
             if not data.get("title"):
                 raise serializers.ValidationError({"title": "Title is required during creation."})
             if data.get("display_type") is None:

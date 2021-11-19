@@ -6,8 +6,8 @@ from sentry.models import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
     DashboardWidgetQuery,
+    DashboardWidgetTypes,
 )
-from sentry.models.dashboard_widget import DashboardWidgetTypes
 from sentry.testutils import OrganizationDashboardWidgetTestCase
 
 
@@ -679,6 +679,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             ),
             title="Widget 200",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.DISCOVER,
         )
         response = self.do_request(
             "put",
