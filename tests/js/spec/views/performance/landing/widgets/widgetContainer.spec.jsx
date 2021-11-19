@@ -22,14 +22,15 @@ const WrappedComponent = ({data, ...rest}) => {
     <PerformanceDisplayProvider value={{performanceType: PROJECT_PERFORMANCE_TYPE.ANY}}>
       <OrganizationContext.Provider value={data.organization}>
         <WidgetContainer
-          {...data}
-          {...rest}
           allowedCharts={[
             PerformanceWidgetSetting.TPM_AREA,
             PerformanceWidgetSetting.FAILURE_RATE_AREA,
             PerformanceWidgetSetting.USER_MISERY_AREA,
           ]}
+          rowChartSettings={[]}
           forceDefaultChartSetting
+          {...data}
+          {...rest}
         />
       </OrganizationContext.Provider>
     </PerformanceDisplayProvider>
@@ -576,10 +577,13 @@ describe('Performance > Widgets > WidgetContainer', function () {
   it('Able to change widget type from menu', async function () {
     const data = initializeData();
 
+    const setRowChartSettings = jest.fn(() => {});
+
     const wrapper = mountWithTheme(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.FAILURE_RATE_AREA}
+        setRowChartSettings={setRowChartSettings}
       />,
       data.routerContext
     );
@@ -590,6 +594,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       'Failure Rate'
     );
     expect(eventStatsMock).toHaveBeenCalledTimes(1);
+    expect(setRowChartSettings).toHaveBeenCalledTimes(0);
 
     wrapper.find('IconEllipsis[data-test-id="context-menu"]').simulate('click');
 
@@ -597,6 +602,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     wrapper.update();
 
     expect(wrapper.find('MenuItem').at(2).text()).toEqual('User Misery');
+
     wrapper.find('MenuItem').at(2).simulate('click');
 
     await tick();
@@ -606,5 +612,35 @@ describe('Performance > Widgets > WidgetContainer', function () {
       'User Misery'
     );
     expect(eventStatsMock).toHaveBeenCalledTimes(2);
+    expect(setRowChartSettings).toHaveBeenCalledTimes(1);
+  });
+
+  it('Chart settings passed from the row are not shown in menu', async function () {
+    const data = initializeData();
+
+    const setRowChartSettings = jest.fn(() => {});
+
+    const wrapper = mountWithTheme(
+      <WrappedComponent
+        data={data}
+        defaultChartSetting={PerformanceWidgetSetting.FAILURE_RATE_AREA}
+        setRowChartSettings={setRowChartSettings}
+        rowChartSettings={[PerformanceWidgetSetting.FAILURE_RATE_AREA]}
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+      'Failure Rate'
+    );
+
+    wrapper.find('IconEllipsis[data-test-id="context-menu"]').simulate('click');
+
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('MenuItem').at(1).text()).toEqual('User Misery');
   });
 });
