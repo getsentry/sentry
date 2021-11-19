@@ -4,8 +4,19 @@ from unittest import mock
 
 import pytz
 from django.utils.datastructures import MultiValueDict
-from snuba_sdk import Column, Condition, Entity, Function, Granularity, Limit, Offset, Op, Query
-from snuba_sdk.orderby import Direction, OrderBy
+from snuba_sdk import (
+    Column,
+    Condition,
+    Direction,
+    Entity,
+    Function,
+    Granularity,
+    Limit,
+    Offset,
+    Op,
+    OrderBy,
+    Query,
+)
 
 from sentry.sentry_metrics.indexer.mock import MockIndexer
 from sentry.snuba.metrics import (

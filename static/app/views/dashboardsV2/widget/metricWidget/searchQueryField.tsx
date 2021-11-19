@@ -34,12 +34,10 @@ function SearchQueryField({api, orgSlug, projectId, tags, onSearch, onBlur}: Pro
   }
 
   function fetchTagValues(tagKey: string) {
-    return api.requestPromise(
-      `/organizations/${orgSlug}/metrics/tags/${tagKey}/?project=${projectId}`,
-      {
-        method: 'GET',
-      }
-    );
+    return api.requestPromise(`/organizations/${orgSlug}/metrics/tags/${tagKey}/`, {
+      method: 'GET',
+      query: {project: projectId},
+    });
   }
 
   function getTagValues(tag: Tag, _query: string): Promise<string[]> {
