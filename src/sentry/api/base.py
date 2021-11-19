@@ -168,7 +168,7 @@ class Endpoint(APIView):
         try:
 
             token_class = getattr(self.request.auth, "__class__", None)
-            token_name = token_class.__name__
+            token_name = token_class.__name__ if token_class else None
 
             view_obj = self.request.parser_context["view"]
 
