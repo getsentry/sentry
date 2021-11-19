@@ -4,7 +4,7 @@ import abc
 import logging
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequence
 
-from sentry import features, roles
+from sentry import analytics, features, roles
 from sentry.models import NotificationSetting, OrganizationMember, Team
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notify import notification_providers
@@ -131,8 +131,13 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
     def get_title_link(self) -> str | None:
         return None
 
-    def record_notification_sent(
-        self, recipient: Team | User, provider: ExternalProviders, **kwargs: Any
-    ) -> None:
-        user_id = kwargs.pop("user_id", None) or self.requester.id
-        super().record_notification_sent(recipient, provider, user_id=user_id, **kwargs)
+    def record_notification_sent(self, recipient: Team | User, provider: ExternalProviders) -> None:
+        # this event is meant to work for multiple providers but architecture
+        # limitations mean we will fire individual for each provider
+        analytics.record(
+            self.analytics_event,
+            organization_id=self.organization.id,
+            user_id=self.requester.id,
+            target_user_id=recipient.id,
+            providers=provider.name.lower(),
+        )
