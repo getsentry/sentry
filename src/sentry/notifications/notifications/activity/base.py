@@ -41,7 +41,6 @@ class ActivityNotification(ProjectNotification, ABC):
             "title": self.get_title(),
             "project": self.project,
             "project_link": self.get_project_link(),
-            **super().get_base_context(),
         }
 
     def get_recipient_context(
@@ -66,9 +65,6 @@ class ActivityNotification(ProjectNotification, ABC):
 
     def send(self) -> None:
         return send_activity_notification(self)
-
-    def get_log_params(self, recipient: Team | User) -> Mapping[str, Any]:
-        return {"activity": self.activity, **super().get_log_params(recipient)}
 
 
 class GroupActivityNotification(ActivityNotification, ABC):
@@ -191,6 +187,3 @@ class GroupActivityNotification(ActivityNotification, ABC):
         from sentry.integrations.slack.message_builder.issues import build_attachment_title
 
         return build_attachment_title(self.group)
-
-    def get_log_params(self, recipient: Team | User, **kwargs: Any) -> Mapping[str, Any]:
-        return {"group": self.group.id, **super().get_log_params(recipient)}

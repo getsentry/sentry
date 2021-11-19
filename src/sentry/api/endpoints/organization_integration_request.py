@@ -1,17 +1,34 @@
-from __future__ import annotations
-
+from django.urls import reverse
+from django.utils.encoding import force_text
 from rest_framework.response import Response
 
 from sentry import integrations
 from sentry.api.bases.organization_request_change import OrganizationRequestChangeEndpoint
 from sentry.models import SentryApp
-from sentry.notifications.notifications.organization_request.integration_request import (
-    IntegrationRequestNotification,
-)
 from sentry.plugins.base import plugins
+from sentry.utils.email import MessageBuilder
+from sentry.utils.http import absolute_uri
 
 
-def get_provider_name(provider_type: str, provider_slug: str) -> str | None:
+def get_url(organization, provider_type, provider_slug):
+    return absolute_uri(
+        "/".join(
+            [
+                "/settings",
+                organization.slug,
+                {
+                    "first_party": "integrations",
+                    "plugin": "plugins",
+                    "sentry_app": "sentry-apps",
+                }.get(provider_type),
+                provider_slug,
+                "?referrer=request_email",
+            ]
+        )
+    )
+
+
+def get_provider_name(provider_type, provider_slug):
     """
     The things that users think of as "integrations" are actually three
     different things: integrations, plugins, and sentryapps. A user requesting
@@ -21,19 +38,22 @@ def get_provider_name(provider_type: str, provider_slug: str) -> str | None:
 
     :param provider_type: One of: "first_party", "plugin", or "sentry_app".
     :param provider_slug: The unique identifier for the provider.
-    :return: The display name for the provider or None.
+    :return: The display name for the provider.
+
+    :raises: ValueError if provider_type is not one of the three from above.
+    :raises: RuntimeError if the provider is not found.
     """
-    if provider_type == "first_party":
-        if integrations.exists(provider_slug):
+    try:
+        if provider_type == "first_party":
             return integrations.get(provider_slug).name
-    elif provider_type == "plugin":
-        if plugins.exists(provider_slug):
+        elif provider_type == "plugin":
             return plugins.get(provider_slug).title
-    elif provider_type == "sentry_app":
-        sentry_app = SentryApp.objects.filter(slug=provider_slug).first()
-        if sentry_app:
-            return sentry_app.name
-    return None
+        elif provider_type == "sentry_app":
+            return SentryApp.objects.get(slug=provider_slug).name
+        else:
+            raise ValueError(f"Invalid providerType {provider_type}")
+    except (KeyError, SentryApp.DoesNotExist):
+        raise RuntimeError(f"Provider {provider_slug} not found")
 
 
 class OrganizationIntegrationRequestEndpoint(OrganizationRequestChangeEndpoint):
@@ -54,16 +74,37 @@ class OrganizationIntegrationRequestEndpoint(OrganizationRequestChangeEndpoint):
         provider_slug = request.data.get("providerSlug")
         message_option = request.data.get("message", "").strip()
 
+        try:
+            provider_name = get_provider_name(provider_type, provider_slug)
+        except RuntimeError as error:
+            return Response({"detail": force_text(error)}, status=400)
+
         requester = request.user
-        if requester.id in [user.id for user in organization.get_owners()]:
+        owners_list = organization.get_owners()
+
+        # If for some reason the user had permissions all along, silently fail.
+        if requester.id in [user.id for user in owners_list]:
             return Response({"detail": "User can install integration"}, status=200)
 
-        provider_name = get_provider_name(provider_type, provider_slug)
-        if not provider_name:
-            return Response({"detail": f"Provider {provider_slug} not found"}, status=400)
-
-        IntegrationRequestNotification(
-            organization, requester, provider_type, provider_slug, provider_name, message_option
-        ).send()
+        msg = MessageBuilder(
+            subject="Your team member requested the %s integration on Sentry" % provider_name,
+            template="sentry/emails/requests/organization-integration.txt",
+            html_template="sentry/emails/requests/organization-integration.html",
+            type="organization.integration.request",
+            context={
+                "integration_link": get_url(organization, provider_type, provider_slug),
+                "integration_name": provider_name,
+                "message": message_option,
+                "organization_name": organization.name,
+                "requester_name": requester.name or requester.username,
+                "requester_link": absolute_uri(
+                    f"/settings/{organization.slug}/members/{requester.id}/"
+                ),
+                "settings_link": absolute_uri(
+                    reverse("sentry-organization-settings", args=[organization.slug])
+                ),
+            },
+        )
+        msg.send([user.email for user in owners_list])
 
         return Response(status=201)

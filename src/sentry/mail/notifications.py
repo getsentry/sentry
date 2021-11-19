@@ -38,22 +38,11 @@ def get_headers(notification: BaseNotification) -> Mapping[str, Any]:
 
 
 def build_subject_prefix(project: Project) -> str:
-    # Explicitly typing to satisfy mypy.
-    subject_prefix: str = force_text(
-        ProjectOption.objects.get_value(project, "mail:subject_prefix")
-        or options.get("mail.subject-prefix")
+    key = "mail:subject_prefix"
+    out: str = force_text(
+        ProjectOption.objects.get_value(project, key) or options.get("mail.subject-prefix")
     )
-    return subject_prefix
-
-
-def get_subject_with_prefix(
-    notification: BaseNotification,
-    context: Mapping[str, Any] | None = None,
-) -> bytes:
-    prefix = ""
-    if isinstance(notification, ProjectNotification):
-        prefix = build_subject_prefix(notification.project)
-    return f"{prefix}{notification.get_subject(context)}".encode()
+    return out
 
 
 def get_unsubscribe_link(
@@ -71,7 +60,6 @@ def get_unsubscribe_link(
 def log_message(notification: BaseNotification, recipient: Team | User) -> None:
     extra = notification.get_log_params(recipient)
     logger.info("mail.adapter.notify.mail_user", extra={**extra})
-    notification.record_notification_sent(recipient, ExternalProviders.EMAIL)
 
 
 def get_context(
@@ -113,16 +101,13 @@ def send_notification_as_email(
             # TODO(mgaeta): MessageBuilder only works with Users so filter out Teams for now.
             continue
         log_message(notification, recipient)
-
         msg = MessageBuilder(
             **get_builder_args(notification, recipient, shared_context, extra_context_by_actor_id)
         )
-
         # TODO: find better way of handling this
         add_users_kwargs = {}
         if isinstance(notification, ProjectNotification):
             add_users_kwargs["project"] = notification.project
-
         msg.add_users([recipient.id], **add_users_kwargs)
         msg.send_async()
         notification.record_notification_sent(recipient, ExternalProviders.EMAIL)
@@ -138,7 +123,7 @@ def get_builder_args(
     extra_context = (extra_context_by_actor_id or {}).get(recipient.actor_id, {})
     context = get_context(notification, recipient, shared_context or {}, extra_context)
     return {
-        "subject": get_subject_with_prefix(notification, context),
+        "subject": notification.get_subject_with_prefix(context=context),
         "context": context,
         "template": notification.get_template(),
         "html_template": notification.get_html_template(),

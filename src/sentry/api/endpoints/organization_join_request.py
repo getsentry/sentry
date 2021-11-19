@@ -9,7 +9,7 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.validators import AllowedEmailField
 from sentry.app import ratelimiter
 from sentry.models import AuthProvider, InviteStatus, OrganizationMember
-from sentry.notifications.notifications.organization_request import JoinRequestNotification
+from sentry.notifications.notifications.invitations.join_request import JoinRequestNotification
 from sentry.signals import join_request_created
 
 logger = logging.getLogger(__name__)

@@ -10,7 +10,7 @@ from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
 from sentry.models import Environment, Integration, Team, User
 from sentry.notifications.notifications.activity.release import ReleaseActivityNotification
-from sentry.notifications.notifications.base import BaseNotification
+from sentry.notifications.notifications.base import BaseNotification, ProjectNotification
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
@@ -66,7 +66,7 @@ def get_settings_url(notification: BaseNotification, recipient: Team | User) -> 
     return str(urljoin(absolute_uri(url_str), get_referrer_qstring(notification, recipient)))
 
 
-def build_notification_footer(notification: BaseNotification, recipient: Team | User) -> str:
+def build_notification_footer(notification: ProjectNotification, recipient: Team | User) -> str:
     if isinstance(recipient, Team):
         team = Team.objects.get(id=recipient.id)
         url_str = f"/settings/{notification.organization.slug}/teams/{team.slug}/notifications/"
@@ -82,8 +82,7 @@ def build_notification_footer(notification: BaseNotification, recipient: Team | 
             return f"{notification.release.projects.all()[0].slug} | <{settings_url}|Notification Settings>"
         return f"<{settings_url}|Notification Settings>"
 
-    parent = getattr(notification, "project", notification.organization)
-    footer: str = parent.slug
+    footer: str = notification.project.slug
     group = getattr(notification, "group", None)
     latest_event = group.get_latest_event() if group else None
     environment = None

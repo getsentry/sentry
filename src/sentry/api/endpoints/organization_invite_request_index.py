@@ -9,7 +9,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberWithTeamsSerializer
 from sentry.app import locks
 from sentry.models import AuditLogEntryEvent, InviteStatus, OrganizationMember
-from sentry.notifications.notifications.organization_request import InviteRequestNotification
+from sentry.notifications.notifications.invitations.invite_request import InviteRequestNotification
 from sentry.utils.retries import TimedRetryPolicy
 
 from .organization_member_index import OrganizationMemberSerializer, save_team_assignments

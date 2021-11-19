@@ -305,8 +305,6 @@ def get_color(event_for_tags: Event | None, notification: BaseNotification | Non
 
 
 class SlackIssuesMessageBuilder(SlackMessageBuilder):
-    """We're keeping around this awkward interface so that we can share logic with unfurling."""
-
     def __init__(
         self,
         group: Group,
