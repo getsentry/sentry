@@ -145,28 +145,6 @@ class U2fInterface extends React.Component<Props, State> {
   }
 
   webAuthnSignIn(publicKeyCredentialRequestOptions) {
-    // const credentials = [] as any;
-    // // challenge and appId are the same for each device in authenticateRequests
-    // const challenge = authenticateRequests[0].challenge;
-    // const appId = authenticateRequests[0].appId;
-
-    // authenticateRequests.forEach(device => {
-    //   credentials.push({
-    //     id: base64urlToBuffer(device.keyHandle),
-    //     type: 'public-key',
-    //     transports: ['usb', 'ble', 'nfc'],
-    //   });
-    // });
-
-    // const publicKeyCredentialRequestOptions = {
-    //   challenge: base64urlToBuffer(challenge),
-    //   allowCredentials: credentials,
-    //   userVerification: 'discouraged',
-    //   extensions: {
-    //     appid: appId,
-    //   },
-    // } as PublicKeyCredentialRequestOptions;
-
     const promise = navigator.credentials.get({
       publicKey: publicKeyCredentialRequestOptions,
     });

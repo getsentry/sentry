@@ -14,6 +14,7 @@ from u2flib_server import u2f
 from u2flib_server.model import DeviceRegistration
 
 from sentry import options
+from sentry.auth.authenticators.base import EnrollmentStatus
 from sentry.utils import json
 from sentry.utils.dates import to_datetime
 from sentry.utils.decorators import classproperty
@@ -38,6 +39,13 @@ class U2fInterface(AuthenticatorInterface):
     rp_id = options.get("system.url-prefix").replace("https://", "")
     rp = PublicKeyCredentialRpEntity(rp_id, "Sentry")
     webauthn_registration_server = Fido2Server(rp)
+
+    def __init__(self, authenticator=None, status=EnrollmentStatus.EXISTING):
+        super().__init__(authenticator, status)
+
+        self.webauthn_authentication_server = U2FFido2Server(
+            app_id=self.u2f_app_id, rp={"id": self.rp_id, "name": "Example RP"}
+        )
 
     @classproperty
     def u2f_app_id(cls):
@@ -193,10 +201,6 @@ class U2fInterface(AuthenticatorInterface):
 
             return ActivationChallengeResult(challenge=challenge)
 
-        # TODO for completeness change to webauthn when functionalities for everything else is done
-        webauthn_begin_sign_server = U2FFido2Server(
-            app_id=self.u2f_app_id, rp={"id": self.rp_id, "name": "Example RP"}
-        )
         credentials = []
 
         for device in self.get_u2f_devices():
@@ -204,7 +208,9 @@ class U2fInterface(AuthenticatorInterface):
                 credentials.append(device.credential_data)
             else:
                 credentials.append(self._create_credential_object(device))
-        challenge, state = webauthn_begin_sign_server.authenticate_begin(credentials=credentials)
+        challenge, state = self.webauthn_authentication_server.authenticate_begin(
+            credentials=credentials
+        )
         request.session["webauthn_authentication_state"] = state
 
         return ActivationChallengeResult(challenge=cbor.encode(challenge["publicKey"]))
@@ -215,11 +221,6 @@ class U2fInterface(AuthenticatorInterface):
                 u2f.complete_authentication(challenge, response, self.u2f_facets)
                 return True
 
-            webauthn_finish_sign_server = U2FFido2Server(
-                app_id=self.u2f_app_id,
-                rp={"id": self.rp_id, "name": "Sentry"},
-            )
-
             credentials = []
             for device in self.get_u2f_devices():
                 if type(device) == AuthenticatorData:
@@ -227,7 +228,7 @@ class U2fInterface(AuthenticatorInterface):
                 else:
                     credentials.append(self._create_credential_object(device))
 
-            webauthn_finish_sign_server.authenticate_complete(
+            self.webauthn_authentication_server.authenticate_complete(
                 state=request.session["webauthn_authentication_state"],
                 credentials=credentials,
                 credential_id=websafe_decode(response["keyHandle"]),
