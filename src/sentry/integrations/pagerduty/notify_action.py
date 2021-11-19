@@ -52,8 +52,10 @@ class PagerDutyNotifyServiceForm(forms.Form):
             except ValueError:
                 raise forms.ValidationError(_("Invalid service"), code="invalid")
 
-            account_choice = dict(self.fields["account"].choices).get(integration_id)
-            service_choice = dict(self.fields["service"].choices).get(service_id)
+            params = {
+                "account": dict(self.fields["account"].choices).get(integration_id),
+                "service": dict(self.fields["service"].choices).get(service_id),
+            }
 
             try:
                 service = PagerDutyService.objects.get(id=service_id)
@@ -63,7 +65,7 @@ class PagerDutyNotifyServiceForm(forms.Form):
                         'The service "%(service)s" does not exist in the %(account)s Pagerduty account.'
                     ),
                     code="invalid",
-                    params={"account": account_choice, "service": service_choice},
+                    params=params,
                 )
 
             if service.organization_integration.integration_id != integration_id:
@@ -74,7 +76,7 @@ class PagerDutyNotifyServiceForm(forms.Form):
                         'The service "%(service)s" has not been granted access in the %(account)s Pagerduty account.'
                     ),
                     code="invalid",
-                    params={"account": account_choice, "service": service_choice},
+                    params=params,
                 )
 
         return cleaned_data
