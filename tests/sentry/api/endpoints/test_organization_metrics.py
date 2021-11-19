@@ -337,11 +337,11 @@ class OrganizationMetricDataTest(APITestCase):
 
     @with_feature(FEATURE_FLAG)
     def test_bad_order_by_2(self):
-        """Only one order by is supported"""
+        """Only one field is supported with order by"""
         response = self.get_response(
             self.project.organization.slug,
             field=["sum(session)", "count_unique(user)"],
-            orderBy=["sum(session)", "count_unique(user)"],
+            orderBy=["sum(session)"],
         )
         assert response.status_code == 400
 
