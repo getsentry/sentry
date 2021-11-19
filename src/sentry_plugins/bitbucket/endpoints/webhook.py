@@ -1,8 +1,7 @@
 import ipaddress
 import logging
-import re
 
-import dateutil.parser
+from dateutil.parser import parse as parse_date
 from django.db import IntegrityError, transaction
 from django.http import Http404, HttpResponse
 from django.utils import timezone
@@ -14,6 +13,7 @@ from sentry.integrations.bitbucket.constants import BITBUCKET_IP_RANGES, BITBUCK
 from sentry.models import Commit, CommitAuthor, Organization, Repository
 from sentry.plugins.providers import RepositoryProvider
 from sentry.utils import json
+from sentry.utils.email import parse_email
 
 logger = logging.getLogger("sentry.webhooks")
 
@@ -21,19 +21,6 @@ logger = logging.getLogger("sentry.webhooks")
 class Webhook:
     def __call__(self, organization, event):
         raise NotImplementedError
-
-
-def parse_raw_user_email(raw):
-    # captures content between angle brackets
-    match = re.search("(?<=<).*(?=>$)", raw)
-    if match is None:
-        return
-    return match.group(0)
-
-
-def parse_raw_user_name(raw):
-    # captures content before angle bracket
-    return raw.split("<")[0].strip()
 
 
 class PushEventWebhook(Webhook):
@@ -59,7 +46,7 @@ class PushEventWebhook(Webhook):
                 if RepositoryProvider.should_ignore_commit(commit["message"]):
                     continue
 
-                author_email = parse_raw_user_email(commit["author"]["raw"])
+                author_email = parse_email(commit["author"]["raw"])
 
                 # TODO(dcramer): we need to deal with bad values here, but since
                 # its optional, lets just throw it out for now
@@ -82,9 +69,7 @@ class PushEventWebhook(Webhook):
                             key=commit["hash"],
                             message=commit["message"],
                             author=author,
-                            date_added=dateutil.parser.parse(commit["date"]).astimezone(
-                                timezone.utc
-                            ),
+                            date_added=parse_date(commit["date"]).astimezone(timezone.utc),
                         )
 
                 except IntegrityError:

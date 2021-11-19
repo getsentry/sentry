@@ -2,15 +2,15 @@ from uuid import uuid4
 
 from sentry.app import locks
 from sentry.models import OrganizationOption
-from sentry.plugins import providers
+from sentry.plugins.providers import RepositoryProvider
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.utils.email import parse_email, parse_user_name
 from sentry.utils.http import absolute_uri
 
-from .endpoints.webhook import parse_raw_user_email, parse_raw_user_name
 from .mixins import BitbucketMixin
 
 
-class BitbucketRepositoryProvider(BitbucketMixin, providers.RepositoryProvider):
+class BitbucketRepositoryProvider(BitbucketMixin, RepositoryProvider):
     name = "Bitbucket"
     auth_provider = "bitbucket"
 
@@ -101,8 +101,8 @@ class BitbucketRepositoryProvider(BitbucketMixin, providers.RepositoryProvider):
             {
                 "id": c["hash"],
                 "repository": repo.name,
-                "author_email": parse_raw_user_email(c["author"]["raw"]),
-                "author_name": parse_raw_user_name(c["author"]["raw"]),
+                "author_email": parse_email(c["author"]["raw"]),
+                "author_name": parse_user_name(c["author"]["raw"]),
                 "message": c["message"],
                 "patch_set": c.get("patch_set"),
             }

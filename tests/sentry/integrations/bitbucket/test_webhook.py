@@ -1,14 +1,13 @@
+from __future__ import annotations
+
 from datetime import datetime
+from typing import Any
 
 from django.utils import timezone
 
-from sentry.integrations.bitbucket.webhook import (
-    PROVIDER_NAME,
-    parse_raw_user_email,
-    parse_raw_user_name,
-)
+from sentry.integrations.bitbucket.webhook import PROVIDER_NAME
 from sentry.models import Commit, CommitAuthor, Repository
-from sentry.testutils import APITestCase, TestCase
+from sentry.testutils import APITestCase
 
 from .testutils import PUSH_EVENT_EXAMPLE
 
@@ -17,85 +16,28 @@ BITBUCKET_IP_IN_RANGE = "104.192.143.10"
 BITBUCKET_IP = "34.198.178.64"
 
 
-class UtilityFunctionTest(TestCase):
-    def test_parse_raw_user_email(self):
-        assert parse_raw_user_email("Max Bittker <max@getsentry.com>") == "max@getsentry.com"
+class WebhookBaseTest(APITestCase):
+    endpoint = "sentry-extensions-bitbucket-webhook"
 
-        assert parse_raw_user_email("Jess MacQueen@JessMacqueen") is None
-
-    def parse_raw_user_name(self):
-        assert parse_raw_user_name("Max Bittker <max@getsentry.com>") == "Max Bittker"
-
-
-class WebhookTest(APITestCase):
     def setUp(self):
         super().setUp()
         project = self.project  # force creation
-        self.url = "/extensions/bitbucket/organizations/%s/webhook/" % project.organization_id
+        self.organization_id = project.organization.id
 
-    def test_get_request_fails(self):
-        response = self.client.get(self.url)
-        assert response.status_code == 405
-
-    def test_unregistered_event(self):
-        response = self.client.post(
-            path=self.url,
-            data=PUSH_EVENT_EXAMPLE,
-            content_type="application/json",
-            HTTP_X_EVENT_KEY="UnregisteredEvent",
-            REMOTE_ADDR=BITBUCKET_IP,
+    def send_webhook(self) -> None:
+        self.get_success_response(
+            self.organization_id,
+            raw_data=PUSH_EVENT_EXAMPLE,
+            extra_headers=dict(
+                HTTP_X_EVENT_KEY="repo:push",
+                REMOTE_ADDR=BITBUCKET_IP,
+            ),
+            status_code=204,
         )
 
-        assert response.status_code == 204
-
-        response = self.client.post(
-            path=self.url,
-            data=PUSH_EVENT_EXAMPLE,
-            content_type="application/json",
-            HTTP_X_EVENT_KEY="UnregisteredEvent",
-            REMOTE_ADDR=BITBUCKET_IP_IN_RANGE,
-        )
-
-        assert response.status_code == 204
-
-    def test_invalid_signature_ip(self):
-        response = self.client.post(
-            path=self.url,
-            data=PUSH_EVENT_EXAMPLE,
-            content_type="application/json",
-            HTTP_X_EVENT_KEY="repo:push",
-            REMOTE_ADDR=BAD_IP,
-        )
-
-        assert response.status_code == 401
-
-
-class PushEventWebhookTest(APITestCase):
-    def setUp(self):
-        super().setUp()
-        project = self.project  # force creation
-        self.url = "/extensions/bitbucket/organizations/%s/webhook/" % project.organization.id
-
-    def test_simple(self):
-        Repository.objects.create(
-            organization_id=self.project.organization.id,
-            external_id="{c78dfb25-7882-4550-97b1-4e0d38f32859}",
-            provider=PROVIDER_NAME,
-            name="maxbittker/newsdiffs",
-        )
-
-        response = self.client.post(
-            path=self.url,
-            data=PUSH_EVENT_EXAMPLE,
-            content_type="application/json",
-            HTTP_X_EVENT_KEY="repo:push",
-            REMOTE_ADDR=BITBUCKET_IP,
-        )
-
-        assert response.status_code == 204
-
+    def assert_commit(self) -> None:
         commit_list = list(
-            Commit.objects.filter(organization_id=self.project.organization_id)
+            Commit.objects.filter(organization_id=self.organization_id)
             .select_related("author")
             .order_by("-date_added")
         )
@@ -111,13 +53,71 @@ class PushEventWebhookTest(APITestCase):
         assert commit.author.external_id is None
         assert commit.date_added == datetime(2017, 5, 24, 1, 5, 47, tzinfo=timezone.utc)
 
-    def test_anonymous_lookup(self):
-        Repository.objects.create(
-            organization_id=self.project.organization.id,
-            external_id="{c78dfb25-7882-4550-97b1-4e0d38f32859}",
-            provider=PROVIDER_NAME,
-            name="maxbittker/newsdiffs",
+    def create_repository(self, **kwargs: Any) -> Repository:
+        return Repository.objects.create(
+            **{
+                **dict(
+                    organization_id=self.organization_id,
+                    external_id="{c78dfb25-7882-4550-97b1-4e0d38f32859}",
+                    provider=PROVIDER_NAME,
+                    name="maxbittker/newsdiffs",
+                ),
+                **kwargs,
+            }
         )
+
+
+class WebhookGetTest(WebhookBaseTest):
+    def test_get_request_fails(self):
+        self.get_error_response(self.organization_id, status_code=405)
+
+
+class WebhookTest(WebhookBaseTest):
+    method = "post"
+
+    def test_unregistered_event(self):
+        self.get_success_response(
+            self.organization_id,
+            raw_data=PUSH_EVENT_EXAMPLE,
+            extra_headers=dict(
+                HTTP_X_EVENT_KEY="UnregisteredEvent",
+                REMOTE_ADDR=BITBUCKET_IP,
+            ),
+            status_code=204,
+        )
+        self.get_success_response(
+            self.organization_id,
+            raw_data=PUSH_EVENT_EXAMPLE,
+            extra_headers=dict(
+                HTTP_X_EVENT_KEY="UnregisteredEvent",
+                REMOTE_ADDR=BITBUCKET_IP_IN_RANGE,
+            ),
+            status_code=204,
+        )
+
+    def test_invalid_signature_ip(self):
+        self.get_error_response(
+            self.organization_id,
+            raw_data=PUSH_EVENT_EXAMPLE,
+            extra_headers=dict(
+                HTTP_X_EVENT_KEY="repo:push",
+                REMOTE_ADDR=BAD_IP,
+            ),
+            status_code=401,
+        )
+
+
+class PushEventWebhookTest(WebhookBaseTest):
+    method = "post"
+
+    def test_simple(self):
+        self.create_repository()
+
+        self.send_webhook()
+        self.assert_commit()
+
+    def test_anonymous_lookup(self):
+        self.create_repository()
 
         CommitAuthor.objects.create(
             external_id="bitbucket:baxterthehacker",
@@ -126,101 +126,43 @@ class PushEventWebhookTest(APITestCase):
             name="baxterthehacker",
         )
 
-        response = self.client.post(
-            path=self.url,
-            data=PUSH_EVENT_EXAMPLE,
-            content_type="application/json",
-            HTTP_X_EVENT_KEY="repo:push",
-            REMOTE_ADDR=BITBUCKET_IP,
-        )
-
-        assert response.status_code == 204
-
-        commit_list = list(
-            Commit.objects.filter(organization_id=self.project.organization_id)
-            .select_related("author")
-            .order_by("-date_added")
-        )
-
+        self.send_webhook()
         # should be skipping the #skipsentry commit
-        assert len(commit_list) == 1
-
-        commit = commit_list[0]
-
-        assert commit.key == "e0e377d186e4f0e937bdb487a23384fe002df649"
-        assert commit.message == "README.md edited online with Bitbucket"
-        assert commit.author.name == "Max Bittker"
-        assert commit.author.email == "max@getsentry.com"
-        assert commit.author.external_id is None
-        assert commit.date_added == datetime(2017, 5, 24, 1, 5, 47, tzinfo=timezone.utc)
+        self.assert_commit()
 
     def test_update_repo_name(self):
-        repo_out_of_date_name = Repository.objects.create(
-            organization_id=self.project.organization.id,
-            external_id="{c78dfb25-7882-4550-97b1-4e0d38f32859}",
-            provider=PROVIDER_NAME,
+        repo_out_of_date_name = self.create_repository(
             name="maxbittker/newssames",  # out of date
             url="https://bitbucket.org/maxbittker/newsdiffs",
             config={"name": "maxbittker/newsdiffs"},
         )
 
-        response = self.client.post(
-            path=self.url,
-            data=PUSH_EVENT_EXAMPLE,
-            content_type="application/json",
-            HTTP_X_EVENT_KEY="repo:push",
-            REMOTE_ADDR=BITBUCKET_IP,
-        )
-
-        assert response.status_code == 204
+        self.send_webhook()
 
         # name has been updated
         repo_out_of_date_name.refresh_from_db()
         assert repo_out_of_date_name.name == "maxbittker/newsdiffs"
 
     def test_update_repo_config_name(self):
-        repo_out_of_date_config_name = Repository.objects.create(
-            organization_id=self.project.organization.id,
-            external_id="{c78dfb25-7882-4550-97b1-4e0d38f32859}",
-            provider=PROVIDER_NAME,
+        repo_out_of_date_config_name = self.create_repository(
             name="maxbittker/newsdiffs",
             url="https://bitbucket.org/maxbittker/newsdiffs",
             config={"name": "maxbittker/newssames"},  # out of date
         )
-
-        response = self.client.post(
-            path=self.url,
-            data=PUSH_EVENT_EXAMPLE,
-            content_type="application/json",
-            HTTP_X_EVENT_KEY="repo:push",
-            REMOTE_ADDR=BITBUCKET_IP,
-        )
-
-        assert response.status_code == 204
+        self.send_webhook()
 
         # config name has been updated
         repo_out_of_date_config_name.refresh_from_db()
         assert repo_out_of_date_config_name.config["name"] == "maxbittker/newsdiffs"
 
     def test_update_repo_url(self):
-        repo_out_of_date_url = Repository.objects.create(
-            organization_id=self.project.organization.id,
-            external_id="{c78dfb25-7882-4550-97b1-4e0d38f32859}",
-            provider=PROVIDER_NAME,
+        repo_out_of_date_url = self.create_repository(
             name="maxbittker/newsdiffs",
             url="https://bitbucket.org/maxbittker/newssames",  # out of date
             config={"name": "maxbittker/newsdiffs"},
         )
 
-        response = self.client.post(
-            path=self.url,
-            data=PUSH_EVENT_EXAMPLE,
-            content_type="application/json",
-            HTTP_X_EVENT_KEY="repo:push",
-            REMOTE_ADDR=BITBUCKET_IP,
-        )
-
-        assert response.status_code == 204
+        self.send_webhook()
 
         # url has been updated
         repo_out_of_date_url.refresh_from_db()

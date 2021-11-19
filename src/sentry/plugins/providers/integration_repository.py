@@ -1,4 +1,8 @@
-import dateutil.parser
+from __future__ import annotations
+
+import logging
+
+from dateutil.parser import parse as parse_date
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework.response import Response
@@ -6,6 +10,7 @@ from rest_framework.response import Response
 from sentry import analytics
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
+from sentry.integrations import IntegrationInstallation
 from sentry.models import Integration, Repository
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.signals import repo_linked
@@ -18,11 +23,29 @@ class IntegrationRepositoryProvider:
     """
 
     name = None
-    logger = None
     repo_provider = None
 
     def __init__(self, id):
         self.id = id
+        self.logger = logging.getLogger(f"sentry.integrations.{self.repo_provider}")
+
+    def get_installation(
+        self,
+        integration_id: int | None,
+        organization_id: int,
+    ) -> IntegrationInstallation:
+        if integration_id is None:
+            raise IntegrationError(f"{self.name} requires an integration id.")
+
+        integration_model = Integration.objects.get(
+            id=integration_id,
+            organizationintegration__organization_id=organization_id,
+            provider=self.repo_provider,
+        )
+
+        # Explicitly typing to satisfy mypy.
+        installation: IntegrationInstallation = integration_model.get_installation(organization_id)
+        return installation
 
     def dispatch(self, request, organization, **kwargs):
         try:
@@ -140,7 +163,7 @@ class IntegrationRepositoryProvider:
     def format_date(self, date):
         if not date:
             return None
-        return dateutil.parser.parse(date).astimezone(timezone.utc)
+        return parse_date(date).astimezone(timezone.utc)
 
     def compare_commits(self, repo, start_sha, end_sha):
         """

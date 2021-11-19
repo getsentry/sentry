@@ -1,16 +1,14 @@
-import logging
-
 from django.http import Http404
 from rest_framework.response import Response
 
 from sentry.api.serializers import serialize
 from sentry.models import Integration, Repository
-from sentry.plugins import providers
+from sentry.plugins.providers import IntegrationRepositoryProvider
 
 
-class CustomSCMRepositoryProvider(providers.IntegrationRepositoryProvider):
+class CustomSCMRepositoryProvider(IntegrationRepositoryProvider):
     name = "CustomSCM"
-    logger = logging.getLogger("sentry.integrations.custom_scm")
+    repo_provider = "custom_scm"
 
     def repository_external_slug(self, repo):
         return repo.name

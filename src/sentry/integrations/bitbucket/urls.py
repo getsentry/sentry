@@ -11,7 +11,9 @@ urlpatterns = [
     url(r"^installed/$", BitbucketInstalledEndpoint.as_view()),
     url(r"^uninstalled/$", BitbucketUninstalledEndpoint.as_view()),
     url(
-        r"^organizations/(?P<organization_id>[^\/]+)/webhook/$", BitbucketWebhookEndpoint.as_view()
+        r"^organizations/(?P<organization_id>[^\/]+)/webhook/$",
+        BitbucketWebhookEndpoint.as_view(),
+        name="sentry-extensions-bitbucket-webhook",
     ),
     url(
         r"^search/(?P<organization_slug>[^\/]+)/(?P<integration_id>\d+)/$",

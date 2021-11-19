@@ -2,7 +2,7 @@ import hashlib
 import hmac
 import logging
 
-import dateutil.parser
+from dateutil.parser import parse as parse_date
 from django.db import IntegrityError, transaction
 from django.http import Http404, HttpResponse
 from django.utils import timezone
@@ -220,9 +220,7 @@ class PushEventWebhook(Webhook):
                         key=commit["id"],
                         message=commit["message"],
                         author=author,
-                        date_added=dateutil.parser.parse(commit["timestamp"]).astimezone(
-                            timezone.utc
-                        ),
+                        date_added=parse_date(commit["timestamp"]).astimezone(timezone.utc),
                     )
                     for fname in commit["added"]:
                         CommitFileChange.objects.create(
