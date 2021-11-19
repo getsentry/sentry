@@ -1,4 +1,4 @@
-import {FC, useState} from 'react';
+import {FC} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -17,11 +17,9 @@ import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {generateAggregateFields} from 'app/utils/discover/fields';
-import {OpBreakdownFilterProvider} from 'app/utils/performance/contexts/operationBreakdownFilter';
 import useTeams from 'app/utils/useTeams';
 
 import {MetricsSwitch} from '../metricsSwitch';
-import Filter, {SpanOperationBreakdownFilter} from '../transactionSummary/filter';
 import {getTransactionSearchQuery} from '../utils';
 
 import {AllTransactionsView} from './views/allTransactionsView';
@@ -71,7 +69,6 @@ export function PerformanceLanding(props: Props) {
   const currentLandingDisplay = getCurrentLandingDisplay(location, projects, eventView);
   const filterString = getTransactionSearchQuery(location, eventView.query);
 
-  const [spanFilter, setSpanFilter] = useState(SpanOperationBreakdownFilter.None);
   const showOnboarding = shouldShowOnboarding;
 
   const shownLandingDisplays = LANDING_DISPLAYS.filter(
@@ -122,40 +119,33 @@ export function PerformanceLanding(props: Props) {
       <Layout.Body>
         <Layout.Main fullWidth>
           <GlobalSdkUpdateAlert />
-          <OpBreakdownFilterProvider>
-            <SearchContainerWithFilter>
-              <Filter
-                organization={organization}
-                currentFilter={spanFilter}
-                onChangeFilter={setSpanFilter}
-              />
-              <SearchBar
-                searchSource="performance_landing"
-                organization={organization}
-                projectIds={eventView.project}
-                query={filterString}
-                fields={generateAggregateFields(
-                  organization,
-                  [...eventView.fields, {field: 'tps()'}],
-                  ['epm()', 'eps()']
-                )}
-                onSearch={handleSearch}
-                maxQueryLength={MAX_QUERY_LENGTH}
-              />
-            </SearchContainerWithFilter>
-            {initiallyLoaded ? (
-              <TeamKeyTransactionManager.Provider
-                organization={organization}
-                teams={teams}
-                selectedTeams={['myteams']}
-                selectedProjects={eventView.project.map(String)}
-              >
-                <ViewComponent {...props} />
-              </TeamKeyTransactionManager.Provider>
-            ) : (
-              <LoadingIndicator />
-            )}
-          </OpBreakdownFilterProvider>
+          <SearchContainerWithFilter>
+            <SearchBar
+              searchSource="performance_landing"
+              organization={organization}
+              projectIds={eventView.project}
+              query={filterString}
+              fields={generateAggregateFields(
+                organization,
+                [...eventView.fields, {field: 'tps()'}],
+                ['epm()', 'eps()']
+              )}
+              onSearch={handleSearch}
+              maxQueryLength={MAX_QUERY_LENGTH}
+            />
+          </SearchContainerWithFilter>
+          {initiallyLoaded ? (
+            <TeamKeyTransactionManager.Provider
+              organization={organization}
+              teams={teams}
+              selectedTeams={['myteams']}
+              selectedProjects={eventView.project.map(String)}
+            >
+              <ViewComponent {...props} />
+            </TeamKeyTransactionManager.Provider>
+          ) : (
+            <LoadingIndicator />
+          )}
         </Layout.Main>
       </Layout.Body>
     </div>
@@ -178,6 +168,6 @@ const SearchContainerWithFilter = styled('div')`
   margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: min-content 1fr;
+    grid-template-columns: 1fr;
   }
 `;

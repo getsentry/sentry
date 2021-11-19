@@ -11,7 +11,7 @@ import {MetricTag} from './types';
 type Props = {
   api: Client;
   orgSlug: Organization['slug'];
-  projSlug: Project['slug'];
+  projectId: Project['id'];
   metricTags: MetricTag[];
   onChangeSearchQuery: (searchQuery?: string) => void;
   onChangeGroupBy: (groupBy?: string[]) => void;
@@ -22,7 +22,7 @@ type Props = {
 function FiltersAndGroups({
   api,
   orgSlug,
-  projSlug,
+  projectId,
   searchQuery,
   groupBy,
   metricTags,
@@ -35,7 +35,7 @@ function FiltersAndGroups({
         api={api}
         tags={metricTags.map(({key}) => key)}
         orgSlug={orgSlug}
-        projectSlug={projSlug}
+        projectId={projectId}
         query={searchQuery}
         onSearch={onChangeSearchQuery}
         onBlur={onChangeSearchQuery}

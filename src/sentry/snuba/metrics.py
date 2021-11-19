@@ -4,15 +4,29 @@ import random
 import re
 from abc import ABC, abstractmethod
 from collections import OrderedDict
+from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import List, Optional, Protocol, Sequence, Tuple, TypedDict, Union
+from typing import List, Literal, Optional, Protocol, Sequence, Tuple, TypedDict, Union
 
-from snuba_sdk import And, Column, Condition, Entity, Granularity, Limit, Offset, Op, Or, Query
+from snuba_sdk import (
+    And,
+    Column,
+    Condition,
+    Entity,
+    Function,
+    Granularity,
+    Limit,
+    Offset,
+    Op,
+    Or,
+    Query,
+)
 from snuba_sdk.conditions import BooleanCondition
 from snuba_sdk.query import SelectableExpression
 
 from sentry.models import Project
 from sentry.sentry_metrics import indexer
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.sessions_v2 import (  # TODO: unite metrics and sessions_v2
     AllowedResolution,
     InvalidField,
@@ -20,7 +34,7 @@ from sentry.snuba.sessions_v2 import (  # TODO: unite metrics and sessions_v2
     finite_or_none,
     get_constrained_date_range,
 )
-from sentry.utils.snuba import raw_snql_query
+from sentry.utils.snuba import parse_snuba_datetime, raw_snql_query
 
 FIELD_REGEX = re.compile(r"^(\w+)\(((\w|\.|_)+)\)$")
 TAG_REGEX = re.compile(r"^(\w|\.|_)+$")
@@ -97,7 +111,6 @@ class QueryDefinition:
     This is constructed out of the request params, and also contains a list of
     `fields` and `groupby` definitions as [`ColumnDefinition`] objects.
 
-
     Adapted from [`sentry.snuba.sessions_v2`].
 
     """
@@ -150,19 +163,19 @@ class DataSource(ABC):
     """Base class for metrics data sources"""
 
     @abstractmethod
-    def get_metrics(self, project: Project) -> List[dict]:
+    def get_metrics(self, projects: Sequence[Project]) -> List[dict]:
         """Get metrics metadata, without tags"""
 
     @abstractmethod
-    def get_single_metric(self, project: Project, metric_name: str) -> dict:
+    def get_single_metric(self, projects: Sequence[Project], metric_name: str) -> dict:
         """Get metadata for a single metric, without tag values"""
 
     @abstractmethod
-    def get_series(self, project: Project, query: QueryDefinition) -> dict:
+    def get_series(self, projects: Sequence[Project], query: QueryDefinition) -> dict:
         """Get time series for the given query"""
 
     @abstractmethod
-    def get_tags(self, project: Project, metric_names=None) -> Sequence[Tag]:
+    def get_tags(self, projects: Sequence[Project], metric_names=None) -> Sequence[Tag]:
         """Get all available tag names for this project
 
         If ``metric_names`` is provided, the list of available tag names will
@@ -171,25 +184,33 @@ class DataSource(ABC):
 
     @abstractmethod
     def get_tag_values(
-        self, project: Project, tag_name: str, metric_names=None
+        self, projects: Sequence[Project], tag_name: str, metric_names=None
     ) -> Sequence[TagValue]:
         """Get all known values for a specific tag"""
 
 
+@dataclass
+class SnubaField:
+    snuba_function: Literal[
+        "sum", "uniq", "avg", "count", "max", "min", "quantiles(0.5,0.75,0.9,0.95,0.99)"
+    ]
+    snuba_alias: Literal["value", "avg", "count", "max", "min", "percentiles"]
+
+
 _OP_TO_FIELD = {
-    "metrics_counters": {"sum": "value"},
+    "metrics_counters": {"sum": SnubaField("sum", "value")},
     "metrics_distributions": {
-        "avg": "avg",
-        "count": "count",
-        "max": "max",
-        "min": "min",
-        "p50": "percentiles",
-        "p75": "percentiles",
-        "p90": "percentiles",
-        "p95": "percentiles",
-        "p99": "percentiles",
+        "avg": SnubaField("avg", "avg"),
+        "count": SnubaField("count", "count"),
+        "max": SnubaField("max", "max"),
+        "min": SnubaField("min", "min"),
+        "p50": SnubaField("quantiles(0.5,0.75,0.9,0.95,0.99)", "percentiles"),
+        "p75": SnubaField("quantiles(0.5,0.75,0.9,0.95,0.99)", "percentiles"),
+        "p90": SnubaField("quantiles(0.5,0.75,0.9,0.95,0.99)", "percentiles"),
+        "p95": SnubaField("quantiles(0.5,0.75,0.9,0.95,0.99)", "percentiles"),
+        "p99": SnubaField("quantiles(0.5,0.75,0.9,0.95,0.99)", "percentiles"),
     },
-    "metrics_sets": {"count_unique": "value"},
+    "metrics_sets": {"count_unique": SnubaField("uniq", "value")},
 }
 _FIELDS_BY_ENTITY = {type_: sorted(mapping.keys()) for type_, mapping in _OP_TO_FIELD.items()}
 
@@ -243,7 +264,7 @@ def _get_metric(metric_name: str) -> dict:
 
 
 class IndexMockingDataSource(DataSource):
-    def get_metrics(self, project: Project) -> List[dict]:
+    def get_metrics(self, projects: Sequence[Project]) -> List[dict]:
         """Get metrics metadata, without tags"""
         return [
             dict(
@@ -253,7 +274,7 @@ class IndexMockingDataSource(DataSource):
             for name, metric in _METRICS.items()
         ]
 
-    def get_single_metric(self, project: Project, metric_name: str) -> dict:
+    def get_single_metric(self, projects: Sequence[Project], metric_name: str) -> dict:
         """Get metadata for a single metric, without tag values"""
         try:
             metric = _METRICS[metric_name]
@@ -277,7 +298,7 @@ class IndexMockingDataSource(DataSource):
 
         return metric_names
 
-    def get_tags(self, project: Project, metric_names=None) -> Sequence[Tag]:
+    def get_tags(self, projects: Sequence[Project], metric_names=None) -> Sequence[Tag]:
         """Get all available tag names for this project
 
         If ``metric_names`` is provided, the list of available tag names will
@@ -305,7 +326,7 @@ class IndexMockingDataSource(DataSource):
         return tags
 
     def get_tag_values(
-        self, project: Project, tag_name: str, metric_names=None
+        self, projects: Sequence[Project], tag_name: str, metric_names=None
     ) -> Sequence[TagValue]:
         if metric_names is None:
             tag_values = sorted(
@@ -369,7 +390,7 @@ class MockDataSource(IndexMockingDataSource):
             "series": series,
         }
 
-    def get_series(self, project: Project, query: QueryDefinition) -> dict:
+    def get_series(self, projects: Sequence[Project], query: QueryDefinition) -> dict:
         """Get time series for the given query"""
 
         intervals = list(get_intervals(query))
@@ -427,8 +448,8 @@ class SnubaQueryBuilder:
         "metrics_sets",
     }
 
-    def __init__(self, project: Project, query_definition: QueryDefinition):
-        self._project = project
+    def __init__(self, projects: Sequence[Project], query_definition: QueryDefinition):
+        self._projects = projects
         self._queries = self._build_queries(query_definition)
 
     def _build_logical(self, operator, operands) -> Optional[BooleanCondition]:
@@ -473,9 +494,11 @@ class SnubaQueryBuilder:
     def _build_where(
         self, query_definition: QueryDefinition
     ) -> List[Union[BooleanCondition, Condition]]:
+        assert self._projects
+        org_id = self._projects[0].organization_id
         where: List[Union[BooleanCondition, Condition]] = [
-            Condition(Column("org_id"), Op.EQ, self._project.organization_id),
-            Condition(Column("project_id"), Op.EQ, self._project.id),
+            Condition(Column("org_id"), Op.EQ, org_id),
+            Condition(Column("project_id"), Op.IN, [p.id for p in self._projects]),
             Condition(
                 Column("metric_id"),
                 Op.IN,
@@ -511,17 +534,18 @@ class SnubaQueryBuilder:
             for entity, fields in queries_by_entity.items()
         }
 
+    @staticmethod
+    def _build_select(entity, fields):
+        for op, _ in fields:
+            field = _OP_TO_FIELD[entity][op]
+            yield Function(field.snuba_function, [Column("value")], field.snuba_alias)
+
     def _build_queries_for_entity(self, query_definition, entity, fields, where, groupby):
         totals_query = Query(
-            dataset="metrics",
+            dataset=Dataset.Metrics.value,
             match=Entity(entity),
             groupby=groupby,
-            select=list(
-                map(
-                    Column,
-                    {_OP_TO_FIELD[entity][op] for op, _ in fields},
-                )
-            ),
+            select=list(self._build_select(entity, fields)),
             where=where,
             limit=Limit(MAX_POINTS),
             offset=Offset(0),
@@ -603,6 +627,8 @@ class SnubaResultConverter:
         )
 
         timestamp = data.pop(TS_COL_GROUP, None)
+        if timestamp is not None:
+            timestamp = parse_snuba_datetime(timestamp)
 
         for op in ops:
             key = f"{op}({metric_name})"
@@ -610,7 +636,7 @@ class SnubaResultConverter:
                 key, len(self._intervals) * [_DEFAULT_AGGREGATES[op]]
             )
 
-            field = _OP_TO_FIELD[entity][op]
+            field = _OP_TO_FIELD[entity][op].snuba_alias
             value = data[field]
             if field == "percentiles":
                 value = value[Percentile[op].value]
@@ -649,12 +675,12 @@ class SnubaResultConverter:
 class SnubaDataSource(IndexMockingDataSource):
     """Mocks metrics metadata and string indexing, but fetches real time series"""
 
-    def get_series(self, project: Project, query: QueryDefinition) -> dict:
+    def get_series(self, projects: Sequence[Project], query: QueryDefinition) -> dict:
         """Get time series for the given query"""
 
         intervals = list(get_intervals(query))
 
-        snuba_queries = SnubaQueryBuilder(project, query).get_snuba_queries()
+        snuba_queries = SnubaQueryBuilder(projects, query).get_snuba_queries()
         results = {
             entity: {
                 # TODO: Should we use cache?
@@ -664,7 +690,8 @@ class SnubaDataSource(IndexMockingDataSource):
             for entity, queries in snuba_queries.items()
         }
 
-        converter = SnubaResultConverter(project.organization_id, query, intervals, results)
+        assert projects
+        converter = SnubaResultConverter(projects[0].organization_id, query, intervals, results)
 
         return {
             "start": query.start,
