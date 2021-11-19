@@ -28,12 +28,13 @@ jobs:
           path: sentry-api-schema
           token: ${{ steps.getsentry.outputs.token }}
 
-      - name: Setup sentry env (python ${{ matrix.python-version }})
-        uses: ./sentry/.github/actions/setup-sentry
-        id: setup
+      - name: Setup Python ${{ matrix.python-version }}
+        uses: ./.github/actions/setup-python
+        if: steps.changes.outputs.backend == 'true'
         with:
           python-version: ${{ matrix.python-version }}
-          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
+          # Note this uses a different cache key than other backend-based workflows because this workflows dependencies are different
+          cache-files-hash: ${{ hashFiles('requirements-pre-commit.txt') }}
 
       - name: Install/setup node
         uses: volta-cli/action@v1
