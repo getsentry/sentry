@@ -39,18 +39,21 @@ from sentry.utils.snuba import parse_snuba_datetime, raw_snql_query
 FIELD_REGEX = re.compile(r"^(\w+)\(((\w|\.|_)+)\)$")
 TAG_REGEX = re.compile(r"^(\w|\.|_)+$")
 
-OPERATIONS = (
-    "avg",
-    "count_unique",
-    "count",
-    "max",
+_OPERATIONS_PERCENTILES = (
     "p50",
     "p75",
     "p90",
     "p95",
     "p99",
-    "sum",
 )
+
+OPERATIONS = (
+    "avg",
+    "count_unique",
+    "count",
+    "max",
+    "sum",
+) + _OPERATIONS_PERCENTILES
 
 #: Max number of data points per time series:
 MAX_POINTS = 10000
@@ -121,42 +124,60 @@ class QueryDefinition:
         self.parsed_query = parse_query(self.query) if self.query else None
         raw_fields = query_params.getlist("field", [])
         self.groupby = query_params.getlist("groupBy", [])
-        orderby = query_params.getlist("orderBy", [])
-        limit = query_params.get("limit", None)
 
         if len(raw_fields) == 0:
             raise InvalidField('Request is missing a "field"')
 
         self.fields = {key: parse_field(key) for key in raw_fields}
 
+        self.orderby = self._parse_orderby(query_params)
+        self.limit = self._parse_limit(query_params)
+
+        start, end, rollup = get_constrained_date_range(
+            query_params, AllowedResolution.ten_seconds, max_points=MAX_POINTS
+        )
+        self.rollup = rollup
+        self.start = start
+        self.end = end
+
+    def _parse_orderby(self, query_params):
+        orderby = query_params.getlist("orderBy", [])
         if not orderby:
-            self.orderby = None
+            return None
         elif len(orderby) > 1:
             raise InvalidParams("Only one 'orderBy' is supported")
-        else:
-            if len(self.fields) != 1:
-                # We support querying multiple metrics at once, and present them as columns.
-                # In snuba, however, different metrics are different rows, so we can only "ORDER BY value".
-                # E.g.
-                #   &field=sum(foo)&field=sum(bar)&orderBy=sum(foo)&limit=3
-                # becomes
-                #   SELECT sum(value) WHERE metric_id in (foo, bar) ORDER BY sum(value) LIMIT 3
-                # This would return three rows, but we need six. And what if all bar < foo?
-                #
-                # => Let's keep it simple and only allow orderBy with a single field
-                #
-                raise InvalidParams("Cannot provide multiple 'field's when 'orderBy' is given")
-            orderby = orderby[0]
-            direction = Direction.ASC
-            if orderby[0] == "-":
-                orderby = orderby[1:]
-                direction = Direction.DESC
-            try:
-                orderby = self.fields[orderby]
-            except KeyError:
-                raise InvalidParams("'orderBy' must be one of the provided 'fields'")
-            self.orderby = orderby, direction
 
+        if len(self.fields) != 1:
+            # We support querying multiple metrics at once, and present them as columns.
+            # In snuba, however, different metrics are different rows, so we can only "ORDER BY value".
+            # E.g.
+            #   &field=sum(foo)&field=sum(bar)&orderBy=sum(foo)&limit=3
+            # becomes
+            #   SELECT sum(value) WHERE metric_id in (foo, bar) ORDER BY sum(value) LIMIT 3
+            # This would return three rows, but we need six. And what if all bar < foo?
+            #
+            # => Let's keep it simple and only allow orderBy with a single field
+            #
+            raise InvalidParams("Cannot provide multiple 'field's when 'orderBy' is given")
+        orderby = orderby[0]
+        direction = Direction.ASC
+        if orderby[0] == "-":
+            orderby = orderby[1:]
+            direction = Direction.DESC
+        try:
+            op, metric_name = self.fields[orderby]
+        except KeyError:
+            # orderBy one of the group by fields may be supported in the future
+            raise InvalidParams("'orderBy' must be one of the provided 'fields'")
+
+        if op in _OPERATIONS_PERCENTILES:
+            # NOTE(jjbayer): This should work, will fix later
+            raise InvalidParams("'orderBy' percentiles is not yet supported")
+
+        return (op, metric_name), direction
+
+    def _parse_limit(self, query_params):
+        limit = query_params.get("limit", None)
         if not self.orderby and limit:
             raise InvalidParams("'limit' is only supported in combination with 'orderBy'")
 
@@ -167,14 +188,8 @@ class QueryDefinition:
                     raise ValueError
             except (ValueError, TypeError):
                 raise InvalidParams("'limit' must be integer >= 1")
-        self.limit = limit
 
-        start, end, rollup = get_constrained_date_range(
-            query_params, AllowedResolution.ten_seconds, max_points=MAX_POINTS
-        )
-        self.rollup = rollup
-        self.start = start
-        self.end = end
+        return limit
 
 
 class TimeRange(Protocol):

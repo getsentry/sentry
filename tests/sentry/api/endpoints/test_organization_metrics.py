@@ -284,7 +284,6 @@ class OrganizationMetricDataTest(APITestCase):
 
     @with_feature(FEATURE_FLAG)
     def test_invalid_filter(self):
-
         for query in [
             "%w45698u",
             "release:foo or ",
@@ -318,14 +317,14 @@ class OrganizationMetricDataTest(APITestCase):
             assert response.data.keys() == {"start", "end", "query", "intervals", "groups"}
 
     @with_feature(FEATURE_FLAG)
-    def test_bad_order_by(self):
+    def test_orderby_unknown(self):
         response = self.get_response(
             self.project.organization.slug, field="sum(session)", orderBy="foo"
         )
         assert response.status_code == 400
 
     @with_feature(FEATURE_FLAG)
-    def test_bad_order_by_tag(self):
+    def test_orderby_tag(self):
         """Order by tag is not supported (yet)"""
         response = self.get_response(
             self.project.organization.slug,
@@ -336,12 +335,20 @@ class OrganizationMetricDataTest(APITestCase):
         assert response.status_code == 400
 
     @with_feature(FEATURE_FLAG)
-    def test_bad_order_by_2(self):
+    def test_orderby_2(self):
         """Only one field is supported with order by"""
         response = self.get_response(
             self.project.organization.slug,
             field=["sum(session)", "count_unique(user)"],
             orderBy=["sum(session)"],
+        )
+        assert response.status_code == 400
+
+    @with_feature(FEATURE_FLAG)
+    def test_orderby_percentile(self):
+        """Order by tag is not supported yet"""
+        response = self.get_response(
+            self.project.organization.slug, field="p95(session)", orderBy="p95(session)"
         )
         assert response.status_code == 400
 
