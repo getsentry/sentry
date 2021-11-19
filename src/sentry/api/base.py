@@ -161,7 +161,7 @@ class Endpoint(APIView):
         except json.JSONDecodeError:
             return
 
-    def _create_api_access_log(self):
+    def _create_api_access_log(self, request_start_time: float):
         """
         Create a log entry to be used for api metrics gathering
         """
@@ -195,6 +195,7 @@ class Endpoint(APIView):
                 caller_ip=str(self.request.META.get("REMOTE_ADDR")),
                 user_agent=str(self.request.META.get("HTTP_USER_AGENT")),
                 rate_limited=str(getattr(self.request, "will_be_rate_limited", False)),
+                request_duration_seconds=time.perf_counter() - request_start_time,
             )
             api_access_logger.info("api.access", extra=log_metrics)
         except Exception:
@@ -237,8 +238,7 @@ class Endpoint(APIView):
         # the request (happens via middleware/stats.py).
         request._metric_tags = {}
 
-        if settings.SENTRY_API_RESPONSE_DELAY:
-            start_time = time.time()
+        start_time = time.time()
 
         origin = request.META.get("HTTP_ORIGIN", "null")
         # A "null" value should be treated as no Origin for us.
@@ -299,7 +299,7 @@ class Endpoint(APIView):
                     span.set_data("SENTRY_API_RESPONSE_DELAY", settings.SENTRY_API_RESPONSE_DELAY)
                     time.sleep(settings.SENTRY_API_RESPONSE_DELAY / 1000.0 - duration)
 
-        self._create_api_access_log()
+        self._create_api_access_log(start_time)
 
         return self.response
 
