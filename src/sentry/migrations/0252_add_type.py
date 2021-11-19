@@ -27,7 +27,7 @@ class Migration(migrations.Migration):
     atomic = True
 
     dependencies = [
-        ("sentry", "0248_add_popularity_column"),
+        ("sentry", "0251_sentryappavatar_sentryapp_not_unique"),
     ]
 
     operations = [
