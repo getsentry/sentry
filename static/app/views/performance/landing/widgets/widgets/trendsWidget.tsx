@@ -83,6 +83,8 @@ export function TrendsWidget(props: Props) {
           trendChangeType={trendChangeType}
           trendFunctionField={trendFunctionField}
           limit={3}
+          cursor="0:0:1"
+          noPagination
         />
       ),
       transform: transformTrendsDiscover,

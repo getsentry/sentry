@@ -118,6 +118,8 @@ export function LineChartListWidget(props: Props) {
             eventView={eventView}
             location={props.location}
             limit={3}
+            cursor="0:0:1"
+            noPagination
           />
         );
       },
