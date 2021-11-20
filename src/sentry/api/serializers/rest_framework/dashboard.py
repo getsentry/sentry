@@ -179,9 +179,9 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
                     query_errors.append(query["issue_query_error"])
                     has_query_error = True
                 elif (
-                    data.get("widget_type") == DashboardWidgetTypes.DISCOVER
-                    and "discover_query_error" in query
-                ):
+                    "widget_type" not in data
+                    or data.get("widget_type") == DashboardWidgetTypes.DISCOVER
+                ) and "discover_query_error" in query:
                     query_errors.append(query["discover_query_error"])
                     has_query_error = True
                 else:
