@@ -167,16 +167,21 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
         return interval
 
     def validate(self, data):
-        is_issue_widget = data.get("widget_type") == DashboardWidgetTypes.ISSUE
         query_errors = []
         has_query_error = False
         if data.get("queries"):
             # Check each query to see if they have an issue or discover error depending on the type of the widget
             for query in data.get("queries"):
-                if is_issue_widget and "issue_query_error" in query:
+                if (
+                    data.get("widget_type") == DashboardWidgetTypes.ISSUE
+                    and "issue_query_error" in query
+                ):
                     query_errors.append(query["issue_query_error"])
                     has_query_error = True
-                elif not is_issue_widget and "discover_query_error" in query:
+                elif (
+                    data.get("widget_type") == DashboardWidgetTypes.DISCOVER
+                    and "discover_query_error" in query
+                ):
                     query_errors.append(query["discover_query_error"])
                     has_query_error = True
                 else:
