@@ -137,12 +137,15 @@ class TwoFactorAuthView(BaseView):
         webauthn_signin_ff = self._is_webauthn_signin_ff_enabled(user, request.user)
 
         if request.method == "GET":
-            activation = interface.activate(request, webauthn_signin_ff)
+            if interface.type == 3:
+                activation = interface.activate(request, webauthn_signin_ff)
+            else:
+                activation = interface.activate(request)
 
             if activation is not None and activation.type == "challenge":
                 challenge = activation.challenge
 
-                if webauthn_signin_ff:
+                if webauthn_signin_ff and interface.type == 3:
                     activation.challenge = {}
                     activation.challenge["webAuthnAuthenticationData"] = b64encode(challenge)
 

@@ -128,8 +128,7 @@ class U2fInterface(AuthenticatorInterface):
             if not type(device["binding"]) == AuthenticatorData:
                 if device["binding"]["keyHandle"] == key:
                     return device["name"]
-                return None
-            if (
+            elif (
                 urlsafe_b64encode(device["binding"].credential_data.credential_id).decode("ascii")
                 == key
             ):
@@ -182,7 +181,6 @@ class U2fInterface(AuthenticatorInterface):
     def activate(self, request, is_webauthn_signin_ff_enabled):
         if not is_webauthn_signin_ff_enabled:
             challenge = dict(u2f.begin_authentication(self.u2f_app_id, self.get_u2f_devices()))
-
             # XXX: Upgrading python-u2flib-server to 5.0.0 changes the response
             # format. Our current js u2f library expects the old format, so
             # massaging the data to include the old `authenticateRequests` key here.
