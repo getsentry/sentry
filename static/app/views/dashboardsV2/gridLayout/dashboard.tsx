@@ -1,8 +1,5 @@
-import {Component} from 'react';
+import React, {Component} from 'react';
 import {InjectedRouter} from 'react-router';
-import {closestCenter, DndContext} from '@dnd-kit/core';
-import {arrayMove, rectSortingStrategy, SortableContext} from '@dnd-kit/sortable';
-import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {validateWidget} from 'app/actionCreators/dashboards';
@@ -13,7 +10,6 @@ import {
 } from 'app/actionCreators/modal';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
 import {Client} from 'app/api';
-import space from 'app/styles/space';
 import {GlobalSelection, Organization} from 'app/types';
 import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import withApi from 'app/utils/withApi';
@@ -216,67 +212,29 @@ class Dashboard extends Component<Props> {
   render() {
     const {
       isEditing,
-      onUpdate,
+      // onUpdate,
       dashboard: {widgets},
       organization,
     } = this.props;
 
-    const items = this.getWidgetIds();
+    // const items = this.getWidgetIds();
 
     return (
-      <DndContext
-        collisionDetection={closestCenter}
-        onDragEnd={({over, active}) => {
-          const activeDragId = active.id;
-          const getIndex = items.indexOf.bind(items);
-
-          const activeIndex = activeDragId ? getIndex(activeDragId) : -1;
-
-          if (over && over.id !== ADD_WIDGET_BUTTON_DRAG_ID) {
-            const overIndex = getIndex(over.id);
-            if (activeIndex !== overIndex) {
-              onUpdate(arrayMove(widgets, activeIndex, overIndex));
-            }
-          }
-        }}
-      >
-        <WidgetContainer>
-          <SortableContext items={items} strategy={rectSortingStrategy}>
-            {widgets.map((widget, index) => this.renderWidget(widget, index))}
-            {isEditing && widgets.length < MAX_WIDGETS && (
-              <AddWidget
-                orgFeatures={organization.features}
-                onAddWidget={this.handleStartAdd}
-                onOpenWidgetBuilder={this.handleOpenWidgetBuilder}
-              />
-            )}
-          </SortableContext>
-        </WidgetContainer>
-      </DndContext>
+      <React.Fragment>
+        {widgets.map((widget, index) => this.renderWidget(widget, index))}
+        {isEditing && widgets.length < MAX_WIDGETS && (
+          <AddWidget
+            orgFeatures={organization.features}
+            onAddWidget={this.handleStartAdd}
+            onOpenWidgetBuilder={this.handleOpenWidgetBuilder}
+          />
+        )}
+      </React.Fragment>
     );
   }
 }
 
 export default withApi(withGlobalSelection(Dashboard));
-
-const WidgetContainer = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-auto-flow: row dense;
-  grid-gap: ${space(2)};
-
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints[4]}) {
-    grid-template-columns: repeat(8, minmax(0, 1fr));
-  }
-`;
 
 function generateWidgetId(widget: Widget, index: number) {
   return widget.id ? `${widget.id}-index-${index}` : `index-${index}`;
