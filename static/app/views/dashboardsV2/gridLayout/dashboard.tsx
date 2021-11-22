@@ -1,4 +1,8 @@
+import 'react-grid-layout/css/styles.css';
+import 'react-resizable/css/styles.css';
+
 import React, {Component} from 'react';
+import RGL, {WidthProvider} from 'react-grid-layout';
 import {InjectedRouter} from 'react-router';
 import {Location} from 'history';
 
@@ -16,9 +20,23 @@ import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from '../addWidget';
-import SortableWidget from '../sortableWidget';
 import {DashboardDetails, MAX_WIDGETS, Widget, WidgetType} from '../types';
 import {DataSet} from '../widget/utils';
+
+import SortableWidget from './sortableWidget';
+
+const NUM_COLS = 6;
+const ROW_HEIGHT = 120;
+const WIDGET_MARGINS = [16, 16];
+const ADD_BUTTON_POSITION = {
+  x: 0,
+  y: Number.MAX_VALUE,
+  w: 2,
+  h: 1,
+  isResizable: false,
+};
+
+const GridLayout = WidthProvider(RGL);
 
 type Props = {
   api: Client;
@@ -197,39 +215,55 @@ class Dashboard extends Component<Props> {
     const key = generateWidgetId(widget, index);
     const dragId = key;
 
+    const layout = {
+      x: 0,
+      y: Number.MAX_VALUE,
+      w: 2,
+      h: widget.displayType === 'big_number' ? 1 : 2,
+      minH: widget.displayType === 'big_number' ? 1 : 2,
+    };
+
     return (
-      <SortableWidget
-        key={key}
-        widget={widget}
-        dragId={dragId}
-        isEditing={isEditing}
-        onDelete={this.handleDeleteWidget(index)}
-        onEdit={this.handleEditWidget(widget, index)}
-      />
+      <div key={key} data-grid={layout}>
+        <SortableWidget
+          widget={widget}
+          dragId={dragId}
+          isEditing={isEditing}
+          onDelete={this.handleDeleteWidget(index)}
+          onEdit={this.handleEditWidget(widget, index)}
+        />
+      </div>
     );
   }
 
   render() {
     const {
       isEditing,
-      // onUpdate,
       dashboard: {widgets},
       organization,
     } = this.props;
 
-    // const items = this.getWidgetIds();
-
     return (
-      <React.Fragment>
+      <GridLayout
+        cols={NUM_COLS}
+        rowHeight={ROW_HEIGHT}
+        margin={WIDGET_MARGINS}
+        draggableHandle="#grid-layout-drag-handle"
+        isDraggable={isEditing}
+        isResizable={isEditing}
+        isBounded
+      >
         {widgets.map((widget, index) => this.renderWidget(widget, index))}
         {isEditing && widgets.length < MAX_WIDGETS && (
-          <AddWidget
-            orgFeatures={organization.features}
-            onAddWidget={this.handleStartAdd}
-            onOpenWidgetBuilder={this.handleOpenWidgetBuilder}
-          />
+          <div key="add" data-grid={ADD_BUTTON_POSITION}>
+            <AddWidget
+              orgFeatures={organization.features}
+              onAddWidget={this.handleStartAdd}
+              onOpenWidgetBuilder={this.handleOpenWidgetBuilder}
+            />
+          </div>
         )}
-      </React.Fragment>
+      </GridLayout>
     );
   }
 }
