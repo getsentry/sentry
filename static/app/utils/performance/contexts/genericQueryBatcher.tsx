@@ -136,7 +136,7 @@ type nodeContext = {
   batchProperty: string;
 };
 
-const batchNodeContext = createContext<nodeContext | undefined>(undefined);
+const BatchNodeContext = createContext<nodeContext | undefined>(undefined);
 
 export type QueryBatching = {
   batchRequest: (_: Client, path: string, query: Record<string, any>) => Promise<any>;
@@ -181,13 +181,13 @@ export function QueryBatchNode(props: {
   };
 
   return (
-    <batchNodeContext.Provider
+    <BatchNodeContext.Provider
       value={{
         id,
         batchProperty,
       }}
     >
       {children({queryBatching})}
-    </batchNodeContext.Provider>
+    </BatchNodeContext.Provider>
   );
 }
