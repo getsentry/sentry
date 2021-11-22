@@ -16,7 +16,7 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import {isSelectionEqual} from 'app/components/organizations/globalSelectionHeader/utils';
 import {Panel} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
-import {IconWarning} from 'app/icons';
+import {IconDelete, IconEdit, IconGrabbable, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
@@ -55,6 +55,7 @@ type Props = WithRouterProps & {
   isSorting: boolean;
   currentWidgetDragging: boolean;
   showContextMenu?: boolean;
+  hideToolbar?: boolean;
   draggableProps?: DraggableProps;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
 };
@@ -65,7 +66,8 @@ class IssueWidgetCard extends React.Component<Props> {
       !isEqual(nextProps.widget, this.props.widget) ||
       !isSelectionEqual(nextProps.selection, this.props.selection) ||
       this.props.isEditing !== nextProps.isEditing ||
-      this.props.isSorting !== nextProps.isSorting
+      this.props.isSorting !== nextProps.isSorting ||
+      this.props.hideToolbar !== nextProps.hideToolbar
     ) {
       return true;
     }
@@ -117,6 +119,34 @@ class IssueWidgetCard extends React.Component<Props> {
     );
   }
 
+  renderToolbar() {
+    const {onEdit, onDelete, draggableProps, hideToolbar, isEditing} = this.props;
+
+    if (!isEditing) {
+      return null;
+    }
+
+    return (
+      <ToolbarPanel>
+        <IconContainer style={{visibility: hideToolbar ? 'hidden' : 'visible'}}>
+          <IconClick>
+            <StyledIconGrabbable
+              color="textColor"
+              {...draggableProps?.listeners}
+              {...draggableProps?.attributes}
+            />
+          </IconClick>
+          <IconClick data-test-id="widget-edit" onClick={onEdit}>
+            <IconEdit color="textColor" />
+          </IconClick>
+          <IconClick data-test-id="widget-delete" onClick={onDelete}>
+            <IconDelete color="textColor" />
+          </IconClick>
+        </IconContainer>
+      </ToolbarPanel>
+    );
+  }
+
   render() {
     const {widget, api, organization, selection, renderErrorMessage} = this.props;
     return (
@@ -141,8 +171,8 @@ class IssueWidgetCard extends React.Component<Props> {
                       ? renderErrorMessage(errorMessage)
                       : null}
                     <LoadingScreen loading={loading} />
-                    {tableResults &&
-                      this.tableResultComponent({tableResults, loading, errorMessage})}
+                    {this.tableResultComponent({tableResults, loading, errorMessage})}
+                    {this.renderToolbar()}
                   </React.Fragment>
                 );
               }}
@@ -216,4 +246,41 @@ const StyledSimpleTableChart = styled(SimpleTableChart)`
   border-bottom-right-radius: ${p => p.theme.borderRadius};
   font-size: ${p => p.theme.fontSizeMedium};
   box-shadow: none;
+`;
+
+const ToolbarPanel = styled('div')`
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+
+  width: 100%;
+  height: 100%;
+
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
+
+  background-color: ${p => p.theme.overlayBackgroundAlpha};
+  border-radius: ${p => p.theme.borderRadius};
+`;
+
+const IconContainer = styled('div')`
+  display: flex;
+  margin: 10px ${space(2)};
+  touch-action: none;
+`;
+
+const IconClick = styled('div')`
+  padding: ${space(1)};
+
+  &:hover {
+    cursor: pointer;
+  }
+`;
+
+const StyledIconGrabbable = styled(IconGrabbable)`
+  &:hover {
+    cursor: grab;
+  }
 `;

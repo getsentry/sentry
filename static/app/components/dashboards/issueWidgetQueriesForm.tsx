@@ -63,6 +63,7 @@ class IssueWidgetQueriesForm extends React.Component<Props> {
               query={query.conditions || ''}
               sort=""
               onSearch={this.handleFieldChange('conditions')}
+              onBlur={this.handleFieldChange('conditions')}
               excludeEnvironment
               supportedTags={tags}
               tagValueLoader={() => new Promise(() => [])}

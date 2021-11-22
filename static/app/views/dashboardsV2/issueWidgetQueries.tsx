@@ -4,6 +4,7 @@ import * as qs from 'query-string';
 
 import {Client} from 'app/api';
 import {isSelectionEqual} from 'app/components/organizations/globalSelectionHeader/utils';
+import {t} from 'app/locale';
 import {GlobalSelection, Group, OrganizationSummary} from 'app/types';
 import {getUtcDateString} from 'app/utils/dates';
 import {IssueDisplayOptions, IssueSortOptions} from 'app/views/issueList/utils';
@@ -41,14 +42,14 @@ type Props = {
 type State = {
   errorMessage: undefined | string;
   loading: boolean;
-  tableResults: undefined | Group[];
+  tableResults: Group[];
 };
 
 class WidgetQueries extends React.Component<Props, State> {
   state: State = {
     loading: true,
     errorMessage: undefined,
-    tableResults: undefined,
+    tableResults: [],
   };
 
   componentDidMount() {
@@ -123,13 +124,18 @@ class WidgetQueries extends React.Component<Props, State> {
         limit: MAX_ITEMS,
       }),
     });
-
-    const promises = [groupListPromise];
-
-    promises.forEach(async promise => {
-      const data = await promise;
-      this.setState({loading: false, errorMessage: undefined, tableResults: data});
-    });
+    groupListPromise
+      .then(data => {
+        this.setState({loading: false, errorMessage: undefined, tableResults: data});
+      })
+      .catch(response => {
+        const errorResponse = response?.responseJSON?.detail ?? null;
+        this.setState({
+          loading: false,
+          errorMessage: errorResponse ?? t('Unable to load Widget'),
+          tableResults: [],
+        });
+      });
   }
 
   fetchData() {
