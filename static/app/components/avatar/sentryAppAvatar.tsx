@@ -4,18 +4,13 @@ import {SentryApp} from 'app/types';
 
 type Props = {
   sentryApp?: SentryApp;
-  isDefault?: boolean;
   isColor?: boolean;
 } & BaseAvatar['props'];
 
-const SentryAppAvatar = ({
-  isDefault = false,
-  isColor = true,
-  sentryApp,
-  ...props
-}: Props) => {
+const SentryAppAvatar = ({isColor = true, sentryApp, ...props}: Props) => {
   const avatarDetails = (sentryApp?.avatars || []).find(({color}) => color === isColor);
-  return isDefault || !avatarDetails ? (
+  const isDefault = !avatarDetails || avatarDetails.avatarType === 'default';
+  return isDefault ? (
     <IconGeneric size={`${props.size}`} className={props.className} />
   ) : (
     <BaseAvatar
