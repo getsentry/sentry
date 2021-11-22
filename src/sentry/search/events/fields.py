@@ -3122,7 +3122,8 @@ class QueryFields(QueryBase):
         }
 
         # Try to reduce the size of the transform by using any existing conditions on projects
-        if len(self.projects_to_filter) > 0:
+        # Do not optimize projects list if conditions contain OR operator
+        if not self.has_or_condition and len(self.projects_to_filter) > 0:
             project_ids &= self.projects_to_filter
 
         projects = Project.objects.filter(id__in=project_ids).values("slug", "id")
