@@ -310,7 +310,13 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
                 ][0]
                 self.where.remove(project_condition)
                 if field == "project":
-                    projects = list({self.project_slugs[event["project"]] for event in top_events})
+                    projects = list(
+                        {
+                            self.project_slugs[event["project"]]
+                            for event in top_events
+                            if event["project"]
+                        }
+                    )
                 else:
                     projects = list({event["project.id"] for event in top_events})
                 self.where.append(Condition(self.column("project_id"), Op.IN, projects))
