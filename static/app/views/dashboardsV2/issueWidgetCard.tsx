@@ -136,20 +136,10 @@ class IssueWidgetCard extends React.Component<Props> {
               {...draggableProps?.attributes}
             />
           </IconClick>
-          <IconClick
-            data-test-id="widget-edit"
-            onClick={() => {
-              onEdit();
-            }}
-          >
+          <IconClick data-test-id="widget-edit" onClick={onEdit}>
             <IconEdit color="textColor" />
           </IconClick>
-          <IconClick
-            data-test-id="widget-delete"
-            onClick={() => {
-              onDelete();
-            }}
-          >
+          <IconClick data-test-id="widget-delete" onClick={onDelete}>
             <IconDelete color="textColor" />
           </IconClick>
         </IconContainer>

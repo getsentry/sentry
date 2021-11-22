@@ -45,7 +45,7 @@ describe('Dashboards > SortableWidget', () => {
   it('renders an IssueWidgetCard', async () => {
     const wrapper = mountWithTheme(
       <SortableWidget
-        widget={widget}
+        widget={{...widget, widgetType: WidgetType.ISSUE}}
         dragId=""
         isEditing={false}
         onDelete={() => undefined}
@@ -53,7 +53,7 @@ describe('Dashboards > SortableWidget', () => {
       />,
       initialData.routerContext
     );
-    expect(wrapper.find('IssueWidgetCard').length).toBe(0);
-    expect(wrapper.find('WidgetCard').length).toBe(1);
+    expect(wrapper.find('IssueWidgetCard').length).toBe(1);
+    expect(wrapper.find('WidgetCard').length).toBe(0);
   });
 });

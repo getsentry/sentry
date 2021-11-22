@@ -169,22 +169,19 @@ class Dashboard extends Component<Props> {
     trackAdvancedAnalyticsEvent('dashboards_views.edit_widget_modal.opened', {
       organization,
     });
+    const modalProps = {
+      organization,
+      widget,
+      selection,
+      onAddWidget: this.handleAddComplete,
+      onUpdateWidget: this.handleUpdateComplete(index),
+    };
     if (widget.widgetType === WidgetType.ISSUE) {
-      openAddDashboardIssueWidgetModal({
-        organization,
-        widget,
-        selection,
-        onAddWidget: this.handleAddComplete,
-        onUpdateWidget: this.handleUpdateComplete(index),
-      });
+      openAddDashboardIssueWidgetModal(modalProps);
     } else {
       openAddDashboardWidgetModal({
-        organization,
+        ...modalProps,
         dashboard,
-        widget,
-        selection,
-        onAddWidget: this.handleAddComplete,
-        onUpdateWidget: this.handleUpdateComplete(index),
       });
     }
   };

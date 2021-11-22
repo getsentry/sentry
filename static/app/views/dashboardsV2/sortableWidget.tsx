@@ -48,6 +48,21 @@ function SortableWidget(props: Props) {
     };
   }, [currentWidgetDragging]);
 
+  const widgetProps = {
+    widget,
+    isEditing,
+    onDelete,
+    onEdit,
+    isSorting,
+    hideToolbar: isSorting,
+    currentWidgetDragging,
+    draggableProps: {
+      attributes,
+      listeners,
+    },
+    showContextMenu: true,
+  };
+
   return (
     <WidgetWrapper
       ref={setNodeRef}
@@ -86,34 +101,9 @@ function SortableWidget(props: Props) {
       }}
     >
       {widget.widgetType === WidgetType.ISSUE ? (
-        <IssueWidgetCard
-          widget={widget}
-          isEditing={isEditing}
-          onDelete={onDelete}
-          onEdit={onEdit}
-          isSorting={isSorting}
-          currentWidgetDragging={currentWidgetDragging}
-          draggableProps={{
-            attributes,
-            listeners,
-          }}
-          showContextMenu
-        />
+        <IssueWidgetCard {...widgetProps} />
       ) : (
-        <WidgetCard
-          widget={widget}
-          isEditing={isEditing}
-          onDelete={onDelete}
-          onEdit={onEdit}
-          isSorting={isSorting}
-          hideToolbar={isSorting}
-          currentWidgetDragging={currentWidgetDragging}
-          draggableProps={{
-            attributes,
-            listeners,
-          }}
-          showContextMenu
-        />
+        <WidgetCard {...widgetProps} />
       )}
     </WidgetWrapper>
   );
