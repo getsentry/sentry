@@ -139,6 +139,8 @@ export function VitalWidget(props: Props) {
               eventView={_eventView}
               location={props.location}
               limit={3}
+              cursor="0:0:1"
+              noPagination
             />
           );
         },

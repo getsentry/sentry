@@ -8,6 +8,7 @@ from sentry import features
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.helpers.group_index.index import rate_limit_endpoint
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.discover.utils import transform_aliases_and_query
 from sentry.utils import snuba
@@ -104,6 +105,7 @@ class DiscoverQueryEndpoint(OrganizationEndpoint):
                 self.handle_results(snuba_results, requested_query, projects), status=200
             )
 
+    @rate_limit_endpoint(limit=4)
     def post(self, request, organization):
         if not self.has_feature(request, organization):
             return Response(status=404)

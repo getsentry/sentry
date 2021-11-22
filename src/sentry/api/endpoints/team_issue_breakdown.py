@@ -6,6 +6,7 @@ from django.db.models.functions import TruncDay
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.utils import get_date_range_from_params
@@ -20,6 +21,8 @@ class TeamIssueBreakdownEndpoint(TeamEndpoint, EnvironmentMixin):  # type: ignor
 
         Right now the stats we return are the count of reviewed issues and the total count of issues.
         """
+        if not features.has("organizations:team-insights", team.organization, actor=request.user):
+            return Response({"detail": "You do not have the insights feature enabled"}, status=400)
         start, end = get_date_range_from_params(request.GET)
         end = end.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
         start = start.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
