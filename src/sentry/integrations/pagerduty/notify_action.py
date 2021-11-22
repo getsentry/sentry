@@ -145,11 +145,13 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
         yield self.future(send_notification, key=key)
 
     def get_services(self) -> Sequence[PagerDutyService]:
-        return PagerDutyService.objects.filter(
-            organization_integration__organization=self.project.organization,
-            organization_integration__integration__provider=self.provider,
-            organization_integration__integration__status=ObjectStatus.VISIBLE,
-        ).values_list("id", "service_name")
+        return list(
+            PagerDutyService.objects.filter(
+                organization_integration__organization=self.project.organization,
+                organization_integration__integration__provider=self.provider,
+                organization_integration__integration__status=ObjectStatus.VISIBLE,
+            ).values_list("id", "service_name")
+        )
 
     def render_label(self):
         try:
