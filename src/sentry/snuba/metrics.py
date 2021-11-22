@@ -5,8 +5,8 @@ import re
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from dataclasses import dataclass
-from datetime import datetime, timedelta
-from typing import List, Literal, Optional, Protocol, Sequence, Tuple, TypedDict, Union
+from datetime import datetime, timedelta, timezone
+from typing import Collection, List, Literal, Optional, Protocol, Sequence, Tuple, TypedDict, Union
 
 from snuba_sdk import (
     And,
@@ -26,7 +26,7 @@ from snuba_sdk.query import SelectableExpression
 
 from sentry.models import Project
 from sentry.sentry_metrics import indexer
-from sentry.snuba.dataset import Dataset
+from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.sessions_v2 import (  # TODO: unite metrics and sessions_v2
     AllowedResolution,
     InvalidField,
@@ -150,6 +150,22 @@ def get_intervals(query: TimeRange):
         start += delta
 
 
+#: The type of metric, which determines the snuba entity to query
+MetricType = Literal["counter", "set", "distribution"]
+
+#: A function that can be applied to a metric
+MetricOperation = Literal["avg", "count", "max", "min", "p50", "p75", "p90", "p95", "p99"]
+
+MetricUnit = Literal["seconds"]
+
+
+class MetricMeta(TypedDict):
+    name: str
+    type: MetricType
+    operations: Collection[MetricOperation]
+    unit: Optional[MetricUnit]
+
+
 class Tag(TypedDict):
     key: str
 
@@ -159,15 +175,21 @@ class TagValue(TypedDict):
     value: str
 
 
+class MetricMetaWithTagKeys(MetricMeta):
+    tags: Sequence[Tag]
+
+
 class DataSource(ABC):
     """Base class for metrics data sources"""
 
     @abstractmethod
-    def get_metrics(self, projects: Sequence[Project]) -> List[dict]:
+    def get_metrics(self, projects: Sequence[Project]) -> Sequence[MetricMeta]:
         """Get metrics metadata, without tags"""
 
     @abstractmethod
-    def get_single_metric(self, projects: Sequence[Project], metric_name: str) -> dict:
+    def get_single_metric(
+        self, projects: Sequence[Project], metric_name: str
+    ) -> MetricMetaWithTagKeys:
         """Get metadata for a single metric, without tag values"""
 
     @abstractmethod
@@ -264,27 +286,29 @@ def _get_metric(metric_name: str) -> dict:
 
 
 class IndexMockingDataSource(DataSource):
-    def get_metrics(self, projects: Sequence[Project]) -> List[dict]:
+    def get_metrics(self, projects: Sequence[Project]) -> Sequence[MetricMeta]:
         """Get metrics metadata, without tags"""
         return [
-            dict(
+            MetricMeta(
                 name=name,
                 **{key: value for key, value in metric.items() if key != "tags"},
             )
             for name, metric in _METRICS.items()
         ]
 
-    def get_single_metric(self, projects: Sequence[Project], metric_name: str) -> dict:
+    def get_single_metric(
+        self, projects: Sequence[Project], metric_name: str
+    ) -> MetricMetaWithTagKeys:
         """Get metadata for a single metric, without tag values"""
         try:
             metric = _METRICS[metric_name]
         except KeyError:
             raise InvalidParams()
 
-        return dict(
+        return MetricMetaWithTagKeys(
             name=metric_name,
             **{
-                # Only return metric names
+                # Only return tag names
                 key: (sorted(value.keys()) if key == "tags" else value)
                 for key, value in metric.items()
             },
@@ -672,7 +696,58 @@ class SnubaResultConverter:
         return groups
 
 
-class SnubaDataSource(IndexMockingDataSource):
+class MetaFromSnubaMixin:
+    """Fetch metrics metadata (metric names, tag names, tag values, ...) from snuba.
+    This is not intended for production use, but rather as an intermediate solution
+    until we have a proper metadata store set up.
+
+    To keep things simple, and hopefully reasonably efficient, we only look at
+    the past 24 hours.
+    """
+
+    _granularity = 24 * 60 * 60  # coarsest granularity
+
+    def _get_query(self, org_id: int, projects: Sequence[Project]) -> Query:
+        now = datetime.now()
+        return Query(
+            dataset=Dataset.Metrics.value,
+            match=Entity(EntityKey.MetricsCounters.value),  # makes sense?
+            select=[Column("metric_id")],
+            groupby=[Column("metric_id")],
+            where=[
+                Condition(Column("org_id"), Op.EQ, org_id),
+                Condition(Column("project_id"), Op.IN, [p.id for p in projects]),
+                Condition(Column(TS_COL_QUERY), Op.GTE, now - timedelta(hours=24)),
+                Condition(Column(TS_COL_QUERY), Op.LT, now),
+            ],
+            granularity=Granularity(self._granularity),
+        )
+
+    def get_metrics(self, projects: Sequence[Project]) -> Sequence[MetricMeta]:
+        assert projects
+        org_id = projects[0].organization_id
+
+        return {}
+
+    def get_single_metric(
+        self, projects: Sequence[Project], metric_name: str
+    ) -> MetricMetaWithTagKeys:
+        """Get metadata for a single metric, without tag values"""
+
+    def get_tags(self, projects: Sequence[Project], metric_names=None) -> Sequence[Tag]:
+        """Get all available tag names for this project
+
+        If ``metric_names`` is provided, the list of available tag names will
+        only contain tags that appear in *all* these metrics.
+        """
+
+    def get_tag_values(
+        self, projects: Sequence[Project], tag_name: str, metric_names=None
+    ) -> Sequence[TagValue]:
+        """Get all known values for a specific tag"""
+
+
+class SnubaDataSource(DataSource, MetaFromSnubaMixin):
     """Mocks metrics metadata and string indexing, but fetches real time series"""
 
     def get_series(self, projects: Sequence[Project], query: QueryDefinition) -> dict:
