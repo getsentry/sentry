@@ -146,9 +146,9 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
 
     def get_services(self) -> Sequence[PagerDutyService]:
         return PagerDutyService.objects.filter(
-            organizationintegration__organization=self.project.organization,
-            organizationintegration__integration__provider=self.provider,
-            organizationintegration__integration__status=ObjectStatus.VISIBLE,
+            organization_integration__organization=self.project.organization,
+            organization_integration__integration__provider=self.provider,
+            organization_integration__integration__status=ObjectStatus.VISIBLE,
         ).values_list("id", "service_name")
 
     def render_label(self):
