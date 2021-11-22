@@ -1,6 +1,6 @@
 from collections import namedtuple
 from datetime import datetime, timedelta
-from typing import Dict, Optional, TypedDict
+from typing import Dict, Match, Optional, TypedDict
 
 import sentry_sdk
 from rest_framework.exceptions import ParseError
@@ -22,7 +22,7 @@ from sentry.snuba import discover
 from sentry.utils.snuba import Dataset, raw_snql_query
 
 # converter is to convert the aggregate filter to snuba query
-Alias = namedtuple("Alias", "converter aggregate")
+Alias = namedtuple("Alias", "converter aggregate resolved_function")
 
 
 class TrendColumns(TypedDict):
@@ -61,6 +61,18 @@ class TrendQueryBuilder(QueryBuilder):
             return self.params["aliases"][name].converter(aggregate_filter)
         else:
             return super().convert_aggregate_filter_to_condition(aggregate_filter)
+
+    def resolve_function(
+        self,
+        function: str,
+        match: Optional[Match[str]] = None,
+        resolve_only=False,
+        overwrite_alias: Optional[str] = None,
+    ) -> SelectType:
+        if function in self.params.get("aliases", {}):
+            return self.params["aliases"][function].resolved_function
+        else:
+            return super().resolve_function(function, match, resolve_only, overwrite_alias)
 
 
 class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
@@ -230,6 +242,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
                     1 + (aggregate_filter.value.value * (-1 if trend_type == IMPROVED else 1)),
                 ),
                 ["percentage", "transaction.duration"],
+                trend_columns["trend_percentage"],
             ),
             "trend_difference()": Alias(
                 lambda aggregate_filter: Condition(
@@ -244,6 +257,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
                     else aggregate_filter.value.value,
                 ),
                 ["minus", "transaction.duration"],
+                trend_columns["trend_difference"],
             ),
             "confidence()": Alias(
                 lambda aggregate_filter: Condition(
@@ -258,6 +272,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
                     else aggregate_filter.value.value,
                 ),
                 None,
+                trend_columns["t_test"],
             ),
             "count_percentage()": Alias(
                 lambda aggregate_filter: Condition(
@@ -266,6 +281,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
                     aggregate_filter.value.value,
                 ),
                 ["percentage", "count"],
+                trend_columns["count_percentage"],
             ),
         }
 
@@ -285,6 +301,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
                     1 + (aggregate_filter.value.value * (-1 if trend_type == IMPROVED else 1)),
                 ],
                 ["percentage", "transaction.duration"],
+                None,
             ),
             "trend_difference()": Alias(
                 lambda aggregate_filter: [
@@ -297,6 +314,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
                     else aggregate_filter.value.value,
                 ],
                 ["minus", "transaction.duration"],
+                None,
             ),
             "confidence()": Alias(
                 lambda aggregate_filter: [
@@ -309,6 +327,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
                     else aggregate_filter.value.value,
                 ],
                 None,
+                None,
             ),
             "count_percentage()": Alias(
                 lambda aggregate_filter: [
@@ -317,6 +336,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
                     aggregate_filter.value.value,
                 ],
                 ["percentage", "count"],
+                None,
             ),
         }
 
@@ -448,7 +468,6 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
                 dataset=Dataset.Discover,
                 params=params,
                 selected_columns=selected_columns,
-                orderby=orderby,
                 auto_fields=False,
                 auto_aggregations=True,
                 use_aggregate_conditions=True,
@@ -459,7 +478,8 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
             trend_query.params["aliases"] = self.get_snql_function_aliases(
                 snql_trend_columns, trend_type
             )
-            # Query needs to be resolved after columns because of the aliasing
+            # Both orderby and conditions need to be resolved after the columns because of aliasing
+            trend_query.orderby = trend_query.resolve_orderby(orderby)
             where, having = trend_query.resolve_conditions(query, use_aggregate_conditions=True)
             trend_query.where += where
             trend_query.having += having
