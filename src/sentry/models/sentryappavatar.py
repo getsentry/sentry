@@ -1,8 +1,19 @@
+from enum import Enum
+
 from django.db import models
 
 from sentry.db.models import FlexibleForeignKey
 
 from . import AvatarBase
+
+
+class SentryAppAvatarTypes(Enum):
+    DEFAULT = 0
+    UPLOAD = 1
+
+    @classmethod
+    def get_choices(cls):
+        return tuple((_.value, _.name.lower()) for _ in SentryAppAvatarTypes)
 
 
 class SentryAppAvatar(AvatarBase):
@@ -11,7 +22,7 @@ class SentryAppAvatar(AvatarBase):
     and specifies which type of logo it is.
     """
 
-    AVATAR_TYPES = ((0, "default"), (1, "upload"))
+    AVATAR_TYPES = SentryAppAvatarTypes.get_choices()
 
     FILE_TYPE = "avatar.file"
 
