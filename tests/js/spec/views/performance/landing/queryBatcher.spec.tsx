@@ -227,6 +227,46 @@ describe('Performance > Widgets > Query Batching', function () {
   });
 
   it('Errors work correctly', async function () {
-    expect(true).toBe(true);
+    eventStatsMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/events-stats/`,
+      statusCode: 404,
+      body: {},
+    });
+
+    const data = initializeData();
+
+    mountWithTheme(
+      <GenericQueryBatcher>
+        <WrappedComponent
+          data={data}
+          defaultChartSetting={PerformanceWidgetSetting.TPM_AREA}
+        />
+        <WrappedComponent
+          data={data}
+          defaultChartSetting={PerformanceWidgetSetting.FAILURE_RATE_AREA}
+        />
+        <WrappedComponent
+          data={data}
+          defaultChartSetting={PerformanceWidgetSetting.USER_MISERY_AREA}
+        />
+      </GenericQueryBatcher>
+    );
+
+    expect(await screen.findAllByTestId('performance-widget-title')).toHaveLength(3);
+
+    expect(eventStatsMock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          ...BASIC_QUERY_PARAMS,
+          yAxis: ['tpm()', 'failure_rate()', 'user_misery()'],
+        }),
+      })
+    );
+    expect(eventStatsMock).toHaveBeenCalledTimes(1);
+
+    expect(await screen.findAllByTestId('widget-state-is-errored')).toHaveLength(3);
   });
 });

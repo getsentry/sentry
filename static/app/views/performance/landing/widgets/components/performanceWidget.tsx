@@ -152,7 +152,7 @@ export const DataDisplay = withRouter(_DataDisplay);
 
 const DefaultErrorComponent = (props: {height: number}) => {
   return (
-    <ErrorPanel height={`${props.height}px`}>
+    <ErrorPanel data-test-id="widget-state-is-errored" height={`${props.height}px`}>
       <IconWarning color="gray300" size="lg" />
     </ErrorPanel>
   );
