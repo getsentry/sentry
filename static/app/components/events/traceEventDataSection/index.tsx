@@ -127,65 +127,52 @@ function TraceEventDataSection({
           )}
           {!stackTraceNotFound && (
             <Fragment>
-              <RawContentWrapper>
-                <RawToggler
-                  name="raw-stack-trace"
-                  label={t('Raw')}
-                  hideControlState
-                  value={raw}
-                  onChange={() => setState({...state, raw: !raw})}
-                />
-                {raw && isNativePlatform(platform) && (
-                  <LargeScreenDownloadButton
-                    size="small"
-                    href={getDownloadHref()}
-                    title={t('Download raw stack trace file')}
-                  >
-                    {t('Download')}
-                  </LargeScreenDownloadButton>
-                )}
-              </RawContentWrapper>
-              {raw ? (
-                isNativePlatform(platform) && (
-                  <SmallScreenDownloadButton
-                    size="small"
-                    href={getDownloadHref()}
-                    title={t('Download raw stack trace file')}
-                  >
-                    {t('Download')}
-                  </SmallScreenDownloadButton>
-                )
-              ) : (
-                <Fragment>
-                  <SortOptions
-                    disabled={!hasNewestFirst}
-                    activeSortOption={
-                      recentFirst ? SortOption.RECENT_FIRST : SortOption.RECENT_LAST
-                    }
-                    onChange={newSortOption =>
-                      setState({
-                        ...state,
-                        recentFirst: newSortOption === SortOption.RECENT_FIRST,
-                      })
-                    }
-                  />
-                  <DisplayOptions
-                    platform={platform}
-                    hasAppOnlyFrames={hasAppOnlyFrames}
-                    hasAbsoluteAddresses={hasAbsoluteAddresses}
-                    hasAbsoluteFilePaths={hasAbsoluteFilePaths}
-                    hasVerboseFunctionNames={hasVerboseFunctionNames}
-                    hasMinified={hasMinified}
-                    activeDisplayOptions={activeDisplayOptions}
-                    onChange={newActiveDisplayOptions =>
-                      setState({
-                        ...state,
-                        activeDisplayOptions: newActiveDisplayOptions,
-                      })
-                    }
-                  />
-                </Fragment>
+              <RawToggler
+                name="raw-stack-trace"
+                label={t('Raw')}
+                hideControlState
+                value={raw}
+                onChange={() => setState({...state, raw: !raw})}
+              />
+              {raw && isNativePlatform(platform) && (
+                <DownloadButton
+                  size="small"
+                  href={getDownloadHref()}
+                  title={t('Download raw stack trace file')}
+                >
+                  {t('Download')}
+                </DownloadButton>
               )}
+              {!raw && (
+                <SortOptions
+                  disabled={!hasNewestFirst}
+                  activeSortOption={
+                    recentFirst ? SortOption.RECENT_FIRST : SortOption.RECENT_LAST
+                  }
+                  onChange={newSortOption =>
+                    setState({
+                      ...state,
+                      recentFirst: newSortOption === SortOption.RECENT_FIRST,
+                    })
+                  }
+                />
+              )}
+              <DisplayOptions
+                raw={raw}
+                platform={platform}
+                hasAppOnlyFrames={hasAppOnlyFrames}
+                hasAbsoluteAddresses={hasAbsoluteAddresses}
+                hasAbsoluteFilePaths={hasAbsoluteFilePaths}
+                hasVerboseFunctionNames={hasVerboseFunctionNames}
+                hasMinified={hasMinified}
+                activeDisplayOptions={activeDisplayOptions}
+                onChange={newActiveDisplayOptions =>
+                  setState({
+                    ...state,
+                    activeDisplayOptions: newActiveDisplayOptions,
+                  })
+                }
+              />
             </Fragment>
           )}
         </Header>
@@ -206,7 +193,7 @@ export default TraceEventDataSection;
 const Header = styled('div')<{raw: boolean}>`
   display: grid;
   grid-template-columns: 1fr max-content;
-  grid-template-rows: ${p => (p.raw ? 'repeat(2, 1f)' : 'repeat(3, 1fr)')};
+  grid-template-rows: repeat(3, 1fr);
   grid-gap: ${space(1)};
   align-items: center;
   flex: 1;
@@ -214,13 +201,13 @@ const Header = styled('div')<{raw: boolean}>`
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-columns: repeat(2, 1fr);
-    grid-template-rows: ${p => (p.raw ? '1fr' : 'repeat(2, 1fr)')};
+    grid-template-rows: repeat(2, 1fr);
   }
 
   @media (min-width: ${p => p.theme.breakpoints[3]}) {
     grid-template-columns: ${p =>
       p.raw
-        ? '1fr repeat(2, max-content)'
+        ? '1fr max-content max-content minmax(140px, auto)'
         : '1fr max-content minmax(159px, auto) minmax(140px, auto)'};
     grid-template-rows: 1fr;
   }
@@ -242,25 +229,9 @@ const RawToggler = styled(BooleanField)`
   }
 `;
 
-const RawContentWrapper = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  justify-content: flex-end;
-`;
-
-const LargeScreenDownloadButton = styled(Button)`
-  display: none;
-  margin-left: ${space(1)};
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    display: block;
-  }
-`;
-
-const SmallScreenDownloadButton = styled(Button)`
-  display: block;
-  grid-column: 1/-1;
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    display: none;
+const DownloadButton = styled(Button)`
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    grid-column: 1/-1;
   }
 `;
 

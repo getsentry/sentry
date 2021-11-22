@@ -28,6 +28,7 @@ type Props = {
   hasAbsoluteFilePaths: boolean;
   hasAbsoluteAddresses: boolean;
   hasAppOnlyFrames: boolean;
+  raw: boolean;
 };
 
 function DisplayOptions({
@@ -39,9 +40,21 @@ function DisplayOptions({
   hasAbsoluteAddresses,
   hasAppOnlyFrames,
   platform,
+  raw,
 }: Props) {
   function getDisplayOptions(): SelectValue<string>[] {
     if (platform === 'objc' || platform === 'native' || platform === 'cocoa') {
+      if (raw) {
+        return [
+          {
+            label: t('Unsymbolicated'),
+            value: DisplayOption.MINIFIED,
+            disabled: !hasMinified,
+            tooltip: !hasMinified ? t('Unsymbolicated version not available') : undefined,
+          },
+        ];
+      }
+
       return [
         {
           label: t('Unsymbolicated'),
@@ -78,6 +91,17 @@ function DisplayOptions({
           value: DisplayOption.FULL_STACK_TRACE,
           disabled: !hasAppOnlyFrames,
           tooltip: !hasAppOnlyFrames ? t('Only full version available') : undefined,
+        },
+      ];
+    }
+
+    if (raw) {
+      return [
+        {
+          label: t('Minified'),
+          value: DisplayOption.MINIFIED,
+          disabled: !hasMinified,
+          tooltip: !hasMinified ? t('Minified version not available') : undefined,
         },
       ];
     }
@@ -119,7 +143,11 @@ function DisplayOptions({
           hideBottomBorder={false}
         >
           {tct('[activeOptionsQuantity] Active', {
-            activeOptionsQuantity: activeDisplayOptions.length,
+            activeOptionsQuantity: raw
+              ? activeDisplayOptions.includes(DisplayOption.MINIFIED)
+                ? 1
+                : 0
+              : activeDisplayOptions.length,
           })}
         </OptionsButton>
       )}
