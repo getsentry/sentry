@@ -20,13 +20,13 @@ export const experimentList = [
     assignments: ['none', 'on_signup', 'on_first_event'],
   },
   {
-    key: 'TargetedUpsellModalExperimentV2',
+    key: 'SubscriptionMemberViewExperiment',
     type: ExperimentType.Organization,
     parameter: 'exposed',
     assignments: [0, 1],
   },
   {
-    key: 'TrialLabelExperiment',
+    key: 'TargetedUpsellModalExperimentV3',
     type: ExperimentType.Organization,
     parameter: 'exposed',
     assignments: [0, 1],

@@ -57,6 +57,7 @@ class SentryAppInteractionEndpoint(SentryAppBaseEndpoint, StatsMixin):
         """
         # Request should have identifier field stored in TSDBModel
         tsdb_field = request.data.get("tsdbField", "")
+        key = None
 
         model = getattr(tsdb.models, tsdb_field, None)
         if model is None or model not in TSDB_MODELS:

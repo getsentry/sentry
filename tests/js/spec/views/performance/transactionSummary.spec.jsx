@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
@@ -41,6 +41,8 @@ function initializeData({features: additionalFeatures = [], query = {}} = {}) {
 }
 
 describe('Performance > TransactionSummary', function () {
+  enforceActOnUseLegacyStoreHook();
+
   beforeEach(function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({

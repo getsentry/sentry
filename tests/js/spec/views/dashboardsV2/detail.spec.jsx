@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
 
 import {createListeners} from 'sentry-test/createListeners';
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
 import {act} from 'sentry-test/reactTestingLibrary';
@@ -12,6 +12,8 @@ import * as types from 'app/views/dashboardsV2/types';
 import ViewEditDashboard from 'app/views/dashboardsV2/view';
 
 describe('Dashboards > Detail', function () {
+  enforceActOnUseLegacyStoreHook();
+
   const organization = TestStubs.Organization({
     features: ['global-views', 'dashboards-basic', 'dashboards-edit', 'discover-query'],
   });
@@ -253,6 +255,16 @@ describe('Dashboards > Detail', function () {
       MockApiClient.addMockResponse({
         method: 'POST',
         url: '/organizations/org-slug/dashboards/widgets/',
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        method: 'GET',
+        url: '/organizations/org-slug/recent-searches/',
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        method: 'GET',
+        url: '/organizations/org-slug/issues/',
         body: [],
       });
     });
@@ -515,7 +527,7 @@ describe('Dashboards > Detail', function () {
       await tick();
       await modal.update();
 
-      modal.find('Button').at(4).simulate('click');
+      modal.find('Button').at(3).simulate('click');
 
       expect(modal.find('SelectedBadge').text()).toEqual('1 Selected');
 
@@ -578,8 +590,72 @@ describe('Dashboards > Detail', function () {
                   },
                 ],
                 title: 'All Events',
+                widgetType: 'discover',
               },
             ],
+          }),
+        })
+      );
+    });
+
+    it('adds an Issue widget to the dashboard', async function () {
+      initialData = initializeOrg({
+        organization: TestStubs.Organization({
+          features: [
+            'global-views',
+            'dashboards-basic',
+            'dashboards-edit',
+            'discover-query',
+            'issues-in-dashboards',
+          ],
+          projects: [TestStubs.Project()],
+        }),
+      });
+
+      wrapper = mountWithTheme(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        initialData.routerContext
+      );
+      await tick();
+      wrapper.update();
+
+      // Enter Add Issue Widget mode
+      wrapper
+        .find('Controls Button[data-test-id="dashboard-add-issues-widget"]')
+        .simulate('click');
+
+      const modal = await mountGlobalModal();
+      await tick();
+      await modal.update();
+
+      modal.find('ModalBody input').simulate('change', {target: {value: 'Issue Widget'}});
+      modal.find('ModalFooter button').simulate('click');
+
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find('DashboardDetail').state().dashboardState).toEqual(
+        DashboardState.VIEW
+      );
+      expect(mockPut).toHaveBeenCalledTimes(1);
+      expect(mockPut).toHaveBeenCalledWith(
+        '/organizations/org-slug/dashboards/1/',
+        expect.objectContaining({
+          data: expect.objectContaining({
+            widgets: expect.arrayContaining([
+              {
+                displayType: 'table',
+                interval: '5m',
+                queries: [{conditions: '', fields: [], name: '', orderby: ''}],
+                title: 'Issue Widget',
+                widgetType: 'issue',
+              },
+            ]),
           }),
         })
       );

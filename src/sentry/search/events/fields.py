@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Any, Callable, Dict, List, Mapping, Match, Optional, Sequence, Set, Tuple, Union
 
 import sentry_sdk
+from django.utils.functional import cached_property
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 from snuba_sdk.aliased_expression import AliasedExpression
 from snuba_sdk.column import Column
@@ -2328,7 +2329,7 @@ class QueryFields(QueryBase):
             TIMESTAMP_TO_HOUR_ALIAS: self._resolve_timestamp_to_hour_alias,
             TIMESTAMP_TO_DAY_ALIAS: self._resolve_timestamp_to_day_alias,
             USER_DISPLAY_ALIAS: self._resolve_user_display_alias,
-            PROJECT_THRESHOLD_CONFIG_ALIAS: self._resolve_project_threshold_config,
+            PROJECT_THRESHOLD_CONFIG_ALIAS: lambda _: self._resolve_project_threshold_config,
             ERROR_UNHANDLED_ALIAS: self._resolve_error_unhandled_alias,
             TEAM_KEY_TRANSACTION_ALIAS: self._resolve_team_key_transaction_alias,
             MEASUREMENTS_FRAMES_SLOW_RATE: self._resolve_measurements_frames_slow_rate,
@@ -2544,7 +2545,13 @@ class QueryFields(QueryBase):
                             # in the json query syntax.
                             # TODO(snql-migration): Once the trends endpoint is using snql, we should update it
                             # and flip these conditions back
-                            Function(args["condition"], [args["middle"], self.column("timestamp")]),
+                            Function(
+                                args["condition"],
+                                [
+                                    Function("toDateTime", [args["middle"]]),
+                                    self.column("timestamp"),
+                                ],
+                            ),
                         ],
                         alias,
                     ),
@@ -2564,7 +2571,10 @@ class QueryFields(QueryBase):
                             # see `percentile_range` for why this condition feels backwards
                             Function(
                                 args["condition"],
-                                [args["middle"], self.column("timestamp")],
+                                [
+                                    Function("toDateTime", [args["middle"]]),
+                                    self.column("timestamp"),
+                                ],
                             ),
                         ],
                         alias,
@@ -2585,7 +2595,10 @@ class QueryFields(QueryBase):
                             # see `percentile_range` for why this condition feels backwards
                             Function(
                                 args["condition"],
-                                [args["middle"], self.column("timestamp")],
+                                [
+                                    Function("toDateTime", [args["middle"]]),
+                                    self.column("timestamp"),
+                                ],
                             ),
                         ],
                         alias,
@@ -2601,7 +2614,10 @@ class QueryFields(QueryBase):
                             # see `percentile_range` for why this condition feels backwards
                             Function(
                                 args["condition"],
-                                [args["middle"], self.column("timestamp")],
+                                [
+                                    Function("toDateTime", [args["middle"]]),
+                                    self.column("timestamp"),
+                                ],
                             ),
                         ],
                         alias,
@@ -2786,11 +2802,25 @@ class QueryFields(QueryBase):
                     default_result_type="string",
                     private=True,
                 ),
+                SnQLFunction(
+                    "absolute_correlation",
+                    snql_aggregate=lambda _, alias: Function(
+                        "abs",
+                        [
+                            Function(
+                                "corr",
+                                [
+                                    Function("toUnixTimestamp", [self.column("timestamp")]),
+                                    self.column("transaction.duration"),
+                                ],
+                            ),
+                        ],
+                        alias,
+                    ),
+                    default_result_type="number",
+                ),
                 # TODO: implement these
                 SnQLFunction("histogram", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("percentage", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("t_test", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("minus", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("absolute_delta", snql_aggregate=self._resolve_unimplemented_function),
             ]
         }
@@ -2989,7 +3019,11 @@ class QueryFields(QueryBase):
         return function in self.function_converter
 
     def resolve_function(
-        self, function: str, match: Optional[Match[str]] = None, resolve_only: bool = False
+        self,
+        function: str,
+        match: Optional[Match[str]] = None,
+        resolve_only=False,
+        overwrite_alias: Optional[str] = None,
     ) -> SelectType:
         """Given a public function, resolve to the corresponding Snql function
 
@@ -2997,6 +3031,7 @@ class QueryFields(QueryBase):
         :param function: the public alias for a function eg. "p50(transaction.duration)"
         :param match: the Match so we don't have to run the regex twice
         :param resolve_only: whether we should add the aggregate to self.aggregates
+        :param overwrite_alias: ignore the alias in the parsed_function and use this string instead
         """
         if match is None:
             match = is_function(function)
@@ -3004,10 +3039,10 @@ class QueryFields(QueryBase):
         if not match:
             raise InvalidSearchQuery(f"Invalid characters in field {function}")
 
-        if function in self.params.get("aliases", {}):
-            raise NotImplementedError("Aggregate aliases not implemented in snql field parsing yet")
-
         name, combinator_name, parsed_arguments, alias = self.parse_function(match)
+        if overwrite_alias is not None:
+            alias = overwrite_alias
+
         snql_function = self.function_converter[name]
 
         combinator = snql_function.find_combinator(combinator_name)
@@ -3113,7 +3148,8 @@ class QueryFields(QueryBase):
         columns = ["user.email", "user.username", "user.ip"]
         return Function("coalesce", [self.column(column) for column in columns], USER_DISPLAY_ALIAS)
 
-    def _resolve_project_threshold_config(self, _: str) -> SelectType:
+    @cached_property
+    def _resolve_project_threshold_config(self) -> SelectType:
         org_id = self.params.get("organization_id")
         project_ids = self.params.get("project_id")
 
@@ -3402,19 +3438,23 @@ class QueryFields(QueryBase):
             )
         )
 
-    def _resolve_division(self, dividend: str, divisor: str, alias: str) -> SelectType:
+    def _resolve_aliased_division(self, dividend: str, divisor: str, alias: str) -> SelectType:
+        """Given public aliases resolve division"""
+        return self.resolve_division(self.column(dividend), self.column(divisor), alias)
+
+    def resolve_division(self, dividend: SelectType, divisor: SelectType, alias: str) -> SelectType:
         return Function(
             "if",
             [
                 Function(
                     "greater",
-                    [self.column(divisor), 0],
+                    [divisor, 0],
                 ),
                 Function(
                     "divide",
                     [
-                        self.column(dividend),
-                        self.column(divisor),
+                        dividend,
+                        divisor,
                     ],
                 ),
                 None,
@@ -3423,19 +3463,19 @@ class QueryFields(QueryBase):
         )
 
     def _resolve_measurements_frames_slow_rate(self, _: str) -> SelectType:
-        return self._resolve_division(
+        return self._resolve_aliased_division(
             "measurements.frames_slow", "measurements.frames_total", MEASUREMENTS_FRAMES_SLOW_RATE
         )
 
     def _resolve_measurements_frames_frozen_rate(self, _: str) -> SelectType:
-        return self._resolve_division(
+        return self._resolve_aliased_division(
             "measurements.frames_frozen",
             "measurements.frames_total",
             MEASUREMENTS_FRAMES_FROZEN_RATE,
         )
 
     def _resolve_measurements_stall_percentage(self, _: str) -> SelectType:
-        return self._resolve_division(
+        return self._resolve_aliased_division(
             "measurements.stall_total_time", "transaction.duration", MEASUREMENTS_STALL_PERCENTAGE
         )
 

@@ -9,7 +9,10 @@ import set from 'lodash/set';
 
 import {validateWidget} from 'app/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {ModalRenderProps} from 'app/actionCreators/modal';
+import {
+  ModalRenderProps,
+  openDashboardWidgetLibraryModal,
+} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
@@ -39,12 +42,14 @@ import {
   MAX_WIDGETS,
   Widget,
   WidgetQuery,
+  WidgetType,
 } from 'app/views/dashboardsV2/types';
 import {
   mapErrors,
   normalizeQueries,
 } from 'app/views/dashboardsV2/widget/eventWidget/utils';
 import WidgetCard from 'app/views/dashboardsV2/widgetCard';
+import {WidgetTemplate} from 'app/views/dashboardsV2/widgetLibrary/data';
 import {generateFieldOptions} from 'app/views/eventsV2/utils';
 import Input from 'app/views/settings/components/forms/controls/input';
 import Field from 'app/views/settings/components/forms/field';
@@ -63,9 +68,12 @@ export type DashboardWidgetModalOptions = {
   defaultTitle?: string;
   displayType?: DisplayType;
   fromDiscover?: boolean;
+  fromLibrary?: boolean;
   start?: DateString;
   end?: DateString;
   statsPeriod?: RelativePeriod | string;
+  selectedWidgets?: WidgetTemplate[];
+  onAddLibraryWidget?: (widgets: Widget[]) => void;
 };
 
 type Props = ModalRenderProps &
@@ -90,6 +98,7 @@ type State = {
   dashboards: DashboardListItem[];
   selectedDashboard?: SelectValue<string>;
   userHasModified: boolean;
+  widgetType: WidgetType;
 };
 
 const newQuery = {
@@ -113,6 +122,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         loading: !!fromDiscover,
         dashboards: [],
         userHasModified: false,
+        widgetType: WidgetType.DISCOVER,
       };
       return;
     }
@@ -126,6 +136,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       loading: false,
       dashboards: [],
       userHasModified: false,
+      widgetType: WidgetType.DISCOVER,
     };
   }
 
@@ -148,6 +159,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       onUpdateWidget,
       widget: previousWidget,
       fromDiscover,
+      fromLibrary,
     } = this.props;
     this.setState({loading: true});
     let errors: FlatValidationError = {};
@@ -156,6 +168,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       'displayType',
       'interval',
       'queries',
+      'widgetType',
     ]);
     // Only Table and Top N views need orderby
     if (![DisplayType.TABLE, DisplayType.TOP_N].includes(widgetData.displayType)) {
@@ -171,11 +184,17 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
           ...widgetData,
         });
         addSuccessMessage(t('Updated widget.'));
+        trackAdvancedAnalyticsEvent('dashboards_views.edit_widget_modal.confirm', {
+          organization,
+        });
       } else if (onAddWidget) {
         onAddWidget(widgetData);
         addSuccessMessage(t('Added widget.'));
+        trackAdvancedAnalyticsEvent('dashboards_views.add_widget_modal.confirm', {
+          organization,
+        });
       }
-      if (!fromDiscover) {
+      if (!fromDiscover && !fromLibrary) {
         closeModal();
       }
     } catch (err) {
@@ -185,6 +204,9 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       this.setState({loading: false});
       if (fromDiscover) {
         this.handleSubmitFromDiscover(errors, widgetData);
+      }
+      if (fromLibrary) {
+        this.handleSubmitFromLibrary(errors, widgetData);
       }
     }
   };
@@ -247,6 +269,20 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     }
   };
 
+  handleSubmitFromLibrary = async (errors: FlatValidationError, widgetData: Widget) => {
+    const {closeModal, dashboard, onAddLibraryWidget} = this.props;
+    if (!dashboard) {
+      errors.dashboard = t('This field may not be blank');
+      this.setState({errors});
+      addErrorMessage(t('Widget may only be added to a Dashboard'));
+    }
+
+    if (!Object.keys(errors).length && dashboard && onAddLibraryWidget) {
+      onAddLibraryWidget([...dashboard.widgets, widgetData]);
+      closeModal();
+    }
+  };
+
   handleDefaultFields = () => {
     const {defaultWidgetQuery, defaultTableColumns} = this.props;
     this.setState(prevState => {
@@ -288,6 +324,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         from: fromDiscover ? 'discoverv2' : 'dashboards',
         field,
         value,
+        widgetType: 'discover',
         organization,
       });
 
@@ -435,11 +472,15 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       selection,
       tags,
       fromDiscover,
-      onUpdateWidget,
+      fromLibrary,
       widget: previousWidget,
       start,
       end,
       statsPeriod,
+      dashboard,
+      selectedWidgets,
+      onUpdateWidget,
+      onAddLibraryWidget,
     } = this.props;
     const state = this.state;
     const errors = state.errors;
@@ -465,6 +506,8 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
           <h4>
             {fromDiscover
               ? t('Add Widget to Dashboard')
+              : fromLibrary
+              ? t('Add Custom Widget')
               : isUpdatingWidget
               ? t('Edit Widget')
               : t('Add Widget')}
@@ -549,27 +592,51 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
             }
             isSorting={false}
             currentWidgetDragging={false}
+            noLazyLoad
           />
         </Body>
         <Footer>
-          <ButtonBar gap={1}>
+          <StyledButtonBar gap={1}>
             <Button
               external
               href="https://docs.sentry.io/product/dashboards/custom-dashboards/#widget-builder"
             >
               {t('Read the docs')}
             </Button>
-            <Button
-              data-test-id="add-widget"
-              priority="primary"
-              type="button"
-              onClick={this.handleSubmit}
-              disabled={state.loading}
-              busy={state.loading}
-            >
-              {isUpdatingWidget ? t('Update Widget') : t('Add Widget')}
-            </Button>
-          </ButtonBar>
+            <ButtonBar gap={1}>
+              {fromLibrary && dashboard && onAddLibraryWidget ? (
+                <Button
+                  data-test-id="back-to-library"
+                  type="button"
+                  onClick={() => {
+                    openDashboardWidgetLibraryModal({
+                      organization,
+                      dashboard,
+                      customWidget: this.state,
+                      initialSelectedWidgets: selectedWidgets,
+                      onAddWidget: onAddLibraryWidget,
+                    });
+                  }}
+                >
+                  {t('Back to Library')}
+                </Button>
+              ) : null}
+              <Button
+                data-test-id="add-widget"
+                priority="primary"
+                type="button"
+                onClick={this.handleSubmit}
+                disabled={state.loading}
+                busy={state.loading}
+              >
+                {fromLibrary
+                  ? t('Confirm')
+                  : isUpdatingWidget
+                  ? t('Update Widget')
+                  : t('Add Widget')}
+              </Button>
+            </ButtonBar>
+          </StyledButtonBar>
         </Footer>
       </React.Fragment>
     );
@@ -591,6 +658,11 @@ export const modalCss = css`
 
 const StyledField = styled(Field)`
   position: relative;
+`;
+
+const StyledButtonBar = styled(ButtonBar)`
+  justify-content: space-between;
+  width: 100%;
 `;
 
 export default withApi(withGlobalSelection(withTags(AddDashboardWidgetModal)));

@@ -1,6 +1,6 @@
 import logging
 
-import dateutil.parser
+from dateutil.parser import parse as parse_date
 from django.db import IntegrityError, transaction
 from django.http import Http404, HttpResponse
 from django.utils import timezone
@@ -111,6 +111,8 @@ class MergeEventWebhook(Webhook):
                 "gitlab.webhook.invalid-merge-data",
                 extra={"integration_id": integration.id, "error": str(e)},
             )
+            # TODO(mgaeta): This try/catch is full of reportUnboundVariable errors.
+            return
 
         if not author_email:
             raise Http404()
@@ -129,7 +131,7 @@ class MergeEventWebhook(Webhook):
                     "author": author,
                     "message": body,
                     "merge_commit_sha": merge_commit_sha,
-                    "date_added": dateutil.parser.parse(created_at).astimezone(timezone.utc),
+                    "date_added": parse_date(created_at).astimezone(timezone.utc),
                 },
             )
         except IntegrityError:
@@ -183,9 +185,7 @@ class PushEventWebhook(Webhook):
                         key=commit["id"],
                         message=commit["message"],
                         author=author,
-                        date_added=dateutil.parser.parse(commit["timestamp"]).astimezone(
-                            timezone.utc
-                        ),
+                        date_added=parse_date(commit["timestamp"]).astimezone(timezone.utc),
                     )
             except IntegrityError:
                 pass

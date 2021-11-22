@@ -8,9 +8,11 @@ import isEqual from 'lodash/isEqual';
 
 import {openDashboardWidgetQuerySelectorModal} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
+import Feature from 'app/components/acl/feature';
 import {HeaderTitle} from 'app/components/charts/styles';
 import ErrorBoundary from 'app/components/errorBoundary';
 import FeatureBadge from 'app/components/featureBadge';
+import {SelectField} from 'app/components/forms';
 import MenuItem from 'app/components/menuItem';
 import {isSelectionEqual} from 'app/components/organizations/globalSelectionHeader/utils';
 import {Panel} from 'app/components/panels';
@@ -33,6 +35,27 @@ import {Widget} from './types';
 import WidgetCardChart from './widgetCardChart';
 import WidgetQueries from './widgetQueries';
 
+type SizeSelectorProps = {
+  size: string;
+  onSizeChange: (size: string) => void;
+};
+
+const SizeSelector = ({size, onSizeChange}: SizeSelectorProps) => {
+  return (
+    <SelectField
+      name="size"
+      clearable={false}
+      choices={[
+        ['small', 'Small'],
+        ['medium', 'Medium'],
+        ['large', 'Large'],
+      ]}
+      onChange={value => onSizeChange(value as string)}
+      value={size}
+    />
+  );
+};
+
 type DraggableProps = Pick<ReturnType<typeof useSortable>, 'attributes' | 'listeners'>;
 
 type Props = WithRouterProps & {
@@ -50,6 +73,7 @@ type Props = WithRouterProps & {
   hideToolbar?: boolean;
   draggableProps?: DraggableProps;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
+  noLazyLoad?: boolean;
 };
 
 class WidgetCard extends React.Component<Props> {
@@ -80,6 +104,11 @@ class WidgetCard extends React.Component<Props> {
 
     return (
       <ToolbarPanel>
+        <Feature features={['dashboard-widget-resizing']}>
+          <SizeSelectContainer style={{visibility: hideToolbar ? 'hidden' : 'visible'}}>
+            <SizeSelector size="medium" onSizeChange={_ => {}} />
+          </SizeSelectContainer>
+        </Feature>
         <IconContainer style={{visibility: hideToolbar ? 'hidden' : 'visible'}}>
           <IconClick>
             <StyledIconGrabbable
@@ -199,9 +228,43 @@ class WidgetCard extends React.Component<Props> {
     );
   }
 
-  render() {
+  renderChart() {
     const {widget, api, organization, selection, renderErrorMessage, location, router} =
       this.props;
+    return (
+      <WidgetQueries
+        api={api}
+        organization={organization}
+        widget={widget}
+        selection={selection}
+      >
+        {({tableResults, timeseriesResults, errorMessage, loading}) => {
+          return (
+            <React.Fragment>
+              {typeof renderErrorMessage === 'function'
+                ? renderErrorMessage(errorMessage)
+                : null}
+              <WidgetCardChart
+                timeseriesResults={timeseriesResults}
+                tableResults={tableResults}
+                errorMessage={errorMessage}
+                loading={loading}
+                location={location}
+                widget={widget}
+                selection={selection}
+                router={router}
+                organization={organization}
+              />
+              {this.renderToolbar()}
+            </React.Fragment>
+          );
+        }}
+      </WidgetQueries>
+    );
+  }
+
+  render() {
+    const {widget, noLazyLoad} = this.props;
     return (
       <ErrorBoundary
         customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
@@ -211,36 +274,13 @@ class WidgetCard extends React.Component<Props> {
             <WidgetTitle>{widget.title}</WidgetTitle>
             {this.renderContextMenu()}
           </WidgetHeader>
-          <LazyLoad once height={200}>
-            <WidgetQueries
-              api={api}
-              organization={organization}
-              widget={widget}
-              selection={selection}
-            >
-              {({tableResults, timeseriesResults, errorMessage, loading}) => {
-                return (
-                  <React.Fragment>
-                    {typeof renderErrorMessage === 'function'
-                      ? renderErrorMessage(errorMessage)
-                      : null}
-                    <WidgetCardChart
-                      timeseriesResults={timeseriesResults}
-                      tableResults={tableResults}
-                      errorMessage={errorMessage}
-                      loading={loading}
-                      location={location}
-                      widget={widget}
-                      selection={selection}
-                      router={router}
-                      organization={organization}
-                    />
-                    {this.renderToolbar()}
-                  </React.Fragment>
-                );
-              }}
-            </WidgetQueries>
-          </LazyLoad>
+          {noLazyLoad ? (
+            this.renderChart()
+          ) : (
+            <LazyLoad once resize height={200}>
+              {this.renderChart()}
+            </LazyLoad>
+          )}
         </StyledPanel>
       </ErrorBoundary>
     );
@@ -276,7 +316,7 @@ const ToolbarPanel = styled('div')`
   position: absolute;
   top: 0;
   left: 0;
-  z-index: 1;
+  z-index: auto;
 
   width: 100%;
   height: 100%;
@@ -287,6 +327,11 @@ const ToolbarPanel = styled('div')`
 
   background-color: ${p => p.theme.overlayBackgroundAlpha};
   border-radius: ${p => p.theme.borderRadius};
+`;
+
+const SizeSelectContainer = styled(`div`)`
+  width: 120px;
+  margin-top: 8px;
 `;
 
 const IconContainer = styled('div')`

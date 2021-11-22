@@ -46,6 +46,7 @@ from sentry.search.events.constants import (
     SEMVER_PACKAGE_ALIAS,
     SEMVER_WILDCARDS,
     TEAM_KEY_TRANSACTION_ALIAS,
+    TIMESTAMP_FIELDS,
     TRANSACTION_STATUS_ALIAS,
     USER_DISPLAY_ALIAS,
 )
@@ -980,7 +981,12 @@ def format_search_filter(term, params):
                 conditions.append(converted_filter)
     elif name == ISSUE_ID_ALIAS and value != "":
         # A blank term value means that this is a has filter
-        group_ids = to_list(value)
+        if term.operator in EQUALITY_OPERATORS:
+            group_ids = to_list(value)
+        else:
+            converted_filter = convert_search_filter_to_snuba_query(term, params=params)
+            if converted_filter:
+                conditions.append(converted_filter)
     elif name == ISSUE_ALIAS:
         operator = term.operator
         value = to_list(value)
@@ -1310,9 +1316,6 @@ class QueryFilter(QueryFields):
         name = aggregate_filter.key.name
         value = aggregate_filter.value.value
 
-        if name in self.params.get("aliases", {}):
-            raise NotImplementedError("Aggregate aliases not implemented in snql field parsing yet")
-
         value = (
             int(to_timestamp(value))
             if isinstance(value, datetime) and name != "timestamp"
@@ -1342,6 +1345,7 @@ class QueryFilter(QueryFields):
 
     def _default_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         name = search_filter.key.name
+        operator = search_filter.operator
         value = search_filter.value.value
 
         lhs = self.resolve_column(name)
@@ -1353,7 +1357,7 @@ class QueryFilter(QueryFields):
                 # be replaced with '\%%'.
                 return Condition(
                     lhs,
-                    Op.LIKE if search_filter.operator == "=" else Op.NOT_LIKE,
+                    Op.LIKE if operator == "=" else Op.NOT_LIKE,
                     # Slashes have to be double escaped so they are
                     # interpreted as a string literal.
                     search_filter.value.raw_value.replace("\\", "\\\\")
@@ -1364,23 +1368,19 @@ class QueryFilter(QueryFields):
             elif name in ARRAY_FIELDS and search_filter.is_in_filter:
                 return Condition(
                     Function("hasAny", [self.column(name), value]),
-                    Op.EQ if search_filter.operator == "IN" else Op.NEQ,
+                    Op.EQ if operator == "IN" else Op.NEQ,
                     1,
                 )
             elif name in ARRAY_FIELDS and search_filter.value.raw_value == "":
                 return Condition(
                     Function("notEmpty", [self.column(name)]),
-                    Op.EQ if search_filter.operator == "!=" else Op.NEQ,
+                    Op.EQ if operator == "!=" else Op.NEQ,
                     1,
                 )
 
         # timestamp{,.to_{hour,day}} need a datetime string
         # last_seen needs an integer
-        if isinstance(value, datetime) and name not in {
-            "timestamp",
-            "timestamp.to_hour",
-            "timestamp.to_day",
-        }:
+        if isinstance(value, datetime) and name not in TIMESTAMP_FIELDS:
             value = int(to_timestamp(value)) * 1000
 
         if name in {"trace.span", "trace.parent_span"}:
@@ -1396,6 +1396,17 @@ class QueryFilter(QueryFields):
             elif not search_filter.value.is_event_id():
                 label = "Filter ID" if name == "id" else "Filter Trace ID"
                 raise InvalidSearchQuery(INVALID_ID_DETAILS.format(label))
+
+        if name in TIMESTAMP_FIELDS:
+            if (
+                operator in ["<", "<="]
+                and value < self.params["start"]
+                or operator in [">", ">="]
+                and value > self.params["end"]
+            ):
+                raise InvalidSearchQuery(
+                    "Filter on timestamp is outside of the selected date range."
+                )
 
         # Tags are never null, but promoted tags are columns and so can be null.
         # To handle both cases, use `ifNull` to convert to an empty string and
@@ -1687,30 +1698,30 @@ class QueryFilter(QueryFields):
 
     def _release_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         """Parse releases for potential aliases like `latest`"""
-        values = reduce(
-            lambda x, y: x + y,
-            [
-                parse_release(
-                    v,
-                    self.params["project_id"],
-                    self.params.get("environment_objects"),
-                    self.params.get("organization_id"),
+
+        if search_filter.value.is_wildcard():
+            operator = search_filter.operator
+            value = search_filter.value
+        else:
+            operator_conversions = {"=": "IN", "!=": "NOT IN"}
+            operator = operator_conversions.get(search_filter.operator, search_filter.operator)
+            value = SearchValue(
+                reduce(
+                    lambda x, y: x + y,
+                    [
+                        parse_release(
+                            v,
+                            self.params["project_id"],
+                            self.params.get("environment_objects"),
+                            self.params.get("organization_id"),
+                        )
+                        for v in to_list(search_filter.value.value)
+                    ],
+                    [],
                 )
-                for v in to_list(search_filter.value.value)
-            ],
-            [],
-        )
-
-        operator_conversions = {"=": "IN", "!=": "NOT IN"}
-        operator = operator_conversions.get(search_filter.operator, search_filter.operator)
-
-        return self._default_filter_converter(
-            SearchFilter(
-                search_filter.key,
-                operator,
-                SearchValue(values),
             )
-        )
+
+        return self._default_filter_converter(SearchFilter(search_filter.key, operator, value))
 
     def _semver_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         """

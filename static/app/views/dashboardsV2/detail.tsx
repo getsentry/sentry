@@ -9,7 +9,10 @@ import {
   updateDashboard,
 } from 'app/actionCreators/dashboards';
 import {addSuccessMessage} from 'app/actionCreators/indicator';
-import {openDashboardWidgetLibraryModal} from 'app/actionCreators/modal';
+import {
+  openAddDashboardIssueWidgetModal,
+  openDashboardWidgetLibraryModal,
+} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import Breadcrumbs from 'app/components/breadcrumbs';
 import HookOrDefault from 'app/components/hookOrDefault';
@@ -409,6 +412,36 @@ class DashboardDetail extends Component<Props, State> {
     );
   };
 
+  onAddIssueWidget = () => {
+    const {api, organization, location, dashboard, reloadData} = this.props;
+
+    openAddDashboardIssueWidgetModal({
+      organization,
+      onAddWidget: widget => {
+        updateDashboard(api, organization.slug, {
+          ...dashboard,
+          widgets: [...dashboard.widgets, widget],
+        }).then(
+          (newDashboard: DashboardDetails) => {
+            if (reloadData) {
+              reloadData();
+            }
+            if (dashboard && newDashboard.id !== dashboard.id) {
+              browserHistory.replace({
+                pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
+                query: {
+                  ...location.query,
+                },
+              });
+              return;
+            }
+          },
+          () => undefined
+        );
+      },
+    });
+  };
+
   renderWidgetBuilder(dashboard: DashboardDetails) {
     const {children} = this.props;
     const {modifiedDashboard, widgetToBeUpdated} = this.state;
@@ -455,6 +488,7 @@ class DashboardDetail extends Component<Props, State> {
                 onCommit={this.onCommit}
                 onAddWidget={this.onAddWidget}
                 onDelete={this.onDelete(dashboard)}
+                onAddIssueWidget={this.onAddIssueWidget}
                 dashboardState={dashboardState}
               />
             </StyledPageHeader>
@@ -493,63 +527,66 @@ class DashboardDetail extends Component<Props, State> {
           },
         }}
       >
-        <NoProjectMessage organization={organization}>
-          <Layout.Header>
-            <Layout.HeaderContent>
-              <Breadcrumbs
-                crumbs={[
-                  {
-                    label: t('Dashboards'),
-                    to: `/organizations/${organization.slug}/dashboards/`,
-                  },
-                  {
-                    label:
-                      dashboardState === DashboardState.CREATE
-                        ? t('Create Dashboard')
-                        : organization.features.includes('dashboards-edit') &&
-                          dashboard.id === 'default-overview'
-                        ? 'Default Dashboard'
-                        : this.dashboardTitle,
-                  },
-                ]}
-              />
-              <Layout.Title>
-                <DashboardTitle
-                  dashboard={modifiedDashboard ?? dashboard}
-                  onUpdate={this.setModifiedDashboard}
-                  isEditing={this.isEditing}
+        <StyledPageContent>
+          <NoProjectMessage organization={organization}>
+            <Layout.Header>
+              <Layout.HeaderContent>
+                <Breadcrumbs
+                  crumbs={[
+                    {
+                      label: t('Dashboards'),
+                      to: `/organizations/${organization.slug}/dashboards/`,
+                    },
+                    {
+                      label:
+                        dashboardState === DashboardState.CREATE
+                          ? t('Create Dashboard')
+                          : organization.features.includes('dashboards-edit') &&
+                            dashboard.id === 'default-overview'
+                          ? 'Default Dashboard'
+                          : this.dashboardTitle,
+                    },
+                  ]}
                 />
-              </Layout.Title>
-            </Layout.HeaderContent>
-            <Layout.HeaderActions>
-              <Controls
-                organization={organization}
-                dashboards={dashboards}
-                onEdit={this.onEdit}
-                onCancel={this.onCancel}
-                onCommit={this.onCommit}
-                onAddWidget={this.onAddWidget}
-                onDelete={this.onDelete(dashboard)}
-                dashboardState={dashboardState}
-              />
-            </Layout.HeaderActions>
-          </Layout.Header>
-          <Layout.Body>
-            <Layout.Main fullWidth>
-              <Dashboard
-                paramDashboardId={dashboardId}
-                dashboard={modifiedDashboard ?? dashboard}
-                organization={organization}
-                isEditing={this.isEditing}
-                onUpdate={this.onUpdateWidget}
-                onSetWidgetToBeUpdated={this.onSetWidgetToBeUpdated}
-                router={router}
-                location={location}
-                newWidget={newWidget}
-              />
-            </Layout.Main>
-          </Layout.Body>
-        </NoProjectMessage>
+                <Layout.Title>
+                  <DashboardTitle
+                    dashboard={modifiedDashboard ?? dashboard}
+                    onUpdate={this.setModifiedDashboard}
+                    isEditing={this.isEditing}
+                  />
+                </Layout.Title>
+              </Layout.HeaderContent>
+              <Layout.HeaderActions>
+                <Controls
+                  organization={organization}
+                  dashboards={dashboards}
+                  onEdit={this.onEdit}
+                  onCancel={this.onCancel}
+                  onCommit={this.onCommit}
+                  onAddWidget={this.onAddWidget}
+                  onDelete={this.onDelete(dashboard)}
+                  onAddIssueWidget={this.onAddIssueWidget}
+                  dashboardState={dashboardState}
+                />
+              </Layout.HeaderActions>
+            </Layout.Header>
+            <Layout.Body>
+              <Layout.Main fullWidth>
+                <Dashboard
+                  paramDashboardId={dashboardId}
+                  dashboard={modifiedDashboard ?? dashboard}
+                  organization={organization}
+                  isEditing={this.isEditing}
+                  onUpdate={this.onUpdateWidget}
+                  onSetWidgetToBeUpdated={this.onSetWidgetToBeUpdated}
+                  router={router}
+                  location={location}
+                  newWidget={newWidget}
+                />
+              </Layout.Main>
+            </Layout.Body>
+          </NoProjectMessage>
+        </StyledPageContent>
       </GlobalSelectionHeader>
     );
   }
@@ -583,6 +620,10 @@ const StyledPageHeader = styled('div')`
     grid-column-gap: ${space(2)};
     height: 40px;
   }
+`;
+
+const StyledPageContent = styled(PageContent)`
+  padding: 0;
 `;
 
 export default withApi(withOrganization(DashboardDetail));

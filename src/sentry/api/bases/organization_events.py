@@ -194,6 +194,8 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):  # type: ignore
             ):
                 sentry_sdk.capture_exception(error)
                 message = "Internal error. Your query failed to run."
+            else:
+                sentry_sdk.capture_exception(error)
             raise APIException(detail=message)
 
 

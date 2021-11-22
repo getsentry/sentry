@@ -74,7 +74,7 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
     const container = mountModal({initialData}, mockApply, closeModal);
     // Select some widgets
     const selectButtons = screen.getAllByRole('button');
-    userEvent.click(selectButtons[3]);
+    userEvent.click(selectButtons[2]);
 
     expect(screen.getByTestId('selected-badge')).toHaveTextContent('1 Selected');
     userEvent.click(screen.getByTestId('confirm-widgets'));
@@ -94,6 +94,7 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
           },
         ],
         title: 'All Events',
+        widgetType: 'discover',
       },
     ]);
     expect(closeModal).toHaveBeenCalledTimes(1);
