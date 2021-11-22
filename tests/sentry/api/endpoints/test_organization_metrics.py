@@ -1,3 +1,4 @@
+import time
 from copy import deepcopy
 from typing import Optional
 from unittest import mock
@@ -5,6 +6,7 @@ from unittest import mock
 from django.urls import reverse
 
 from sentry.models import ApiToken
+from sentry.sentry_metrics import indexer
 from sentry.snuba.metrics import _METRICS
 from sentry.testutils import APITestCase
 from sentry.testutils.cases import SessionMetricsTestCase
@@ -351,3 +353,62 @@ class OrganizationMetricIntegrationTest(SessionMetricsTestCase, APITestCase):
 
         # Request for single project gives a counter of one:
         assert count_sessions(project_id=self.project2.id) == 1
+
+
+class OrganizationMetricMetaIntegrationTest(SessionMetricsTestCase, APITestCase):
+    endpoint = "sentry-api-0-organization-metrics-index"
+
+    def setUp(self):
+        super().setUp()
+        self.login_as(user=self.user)
+
+    @with_feature(FEATURE_FLAG)
+    def test_meta_endpoints(self):
+        """
+
+        Note that this test will fail once we have a metrics meta store,
+        because the setUp bypasses it.
+        """
+
+        # TODO: move _send to SnubaMetricsTestCase
+        self._send(
+            {
+                "org_id": self.organization.id,
+                "project_id": self.project.id,
+                "metric_id": indexer.record("metric1"),
+                "timestamp": int(time.time()),
+                "tags": {
+                    indexer.record("tag1"): indexer.record("value1"),
+                    indexer.record("tag2"): indexer.record("value2"),
+                    indexer.record("tag3"): indexer.record("value3"),
+                },
+                "type": "c",
+                "value": 1,
+                "retention_days": 90,
+            },
+            entity="metrics_counters",
+        )
+        self._send(
+            {
+                "org_id": self.organization.id,
+                "project_id": self.project.id,
+                "metric_id": indexer.record("metric2"),
+                "timestamp": int(time.time()),
+                "tags": {
+                    indexer.record("tag1"): indexer.record("value2"),
+                    indexer.record("tag2"): indexer.record("value1"),
+                    indexer.record("tag4"): indexer.record("value3"),
+                },
+                "type": "s",
+                "value": [123],
+                "retention_days": 90,
+            },
+            entity="metrics_sets",
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            datasource="snuba",  # TODO: remove datasource arg
+        )
+
+        print(response.data)
