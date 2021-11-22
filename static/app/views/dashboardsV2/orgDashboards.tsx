@@ -6,8 +6,10 @@ import isEqual from 'lodash/isEqual';
 import {Client} from 'app/api';
 import AsyncComponent from 'app/components/asyncComponent';
 import NotFound from 'app/components/errors/notFound';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
+import {PageContent} from 'app/styles/organization';
 import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 
@@ -95,6 +97,14 @@ class OrgDashboards extends AsyncComponent<Props, State> {
         ...location.query,
       },
     });
+  }
+
+  renderLoading() {
+    return (
+      <PageContent>
+        <LoadingIndicator />
+      </PageContent>
+    );
   }
 
   renderBody() {
