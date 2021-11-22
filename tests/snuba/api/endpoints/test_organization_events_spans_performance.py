@@ -365,7 +365,7 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
         assert response.status_code == 404, response.content
 
     def test_bad_per_suspect(self):
-        for per_suspect in [-1000, 1000]:
+        for per_suspect in [-1, 11]:
             with self.feature(self.FEATURES):
                 response = self.client.get(
                     self.url,
@@ -376,7 +376,7 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
                     format="json",
                 )
             assert response.status_code == 400, response.content
-            assert response.data == {"detail": "perSuspect must be integer between 0 and 4."}
+            assert response.data == {"detail": "perSuspect must be integer between 0 and 10."}
 
     @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
     def test_default_per_suspect(self, mock_raw_snql_query):
@@ -445,7 +445,7 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
     def test_custom_per_suspect(self, mock_raw_snql_query):
         event = self.create_event()
 
-        for i, per_suspect in enumerate(range(1, 5)):
+        for i, per_suspect in enumerate(range(1, 11)):
             mock_raw_snql_query.side_effect = [
                 {
                     "data": [

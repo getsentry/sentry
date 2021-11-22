@@ -72,10 +72,10 @@ class OrganizationEventsSpansPerformanceEndpoint(OrganizationEventsEndpointBase)
 
         try:
             per_suspect = int(request.GET.get("perSuspect", 4))
-            if per_suspect < 0 or per_suspect > 4:
+            if per_suspect < 0 or per_suspect > 10:
                 raise ValueError
         except ValueError:
-            raise ParseError(detail="perSuspect must be integer between 0 and 4.")
+            raise ParseError(detail="perSuspect must be integer between 0 and 10.")
 
         direction, orderby_column = self.get_orderby_column(request)
 
