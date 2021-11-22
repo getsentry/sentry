@@ -10,16 +10,20 @@ class OrganizationCodeMappingsTest(APITestCase):
         super().setUp()
 
         self.login_as(user=self.user)
-        self.org = self.create_organization(owner=self.user, name="baz")
-        self.team = self.create_team(organization=self.org, name="Mariachi Band")
-        self.project1 = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
-        self.project2 = self.create_project(organization=self.org, teams=[self.team], name="Tiger")
+
+        self.team = self.create_team(organization=self.organization, name="Mariachi Band")
+        self.project1 = self.create_project(
+            organization=self.organization, teams=[self.team], name="Bengal"
+        )
+        self.project2 = self.create_project(
+            organization=self.organization, teams=[self.team], name="Tiger"
+        )
         self.repo1 = Repository.objects.create(
-            name="example", organization_id=self.org.id, integration_id=self.integration.id
+            name="example", organization_id=self.organization.id, integration_id=self.integration.id
         )
         self.url = reverse(
             "sentry-api-0-organization-code-mappings",
-            args=[self.org.slug],
+            args=[self.organization.slug],
         )
 
     def make_post(self, data=None):
@@ -29,6 +33,7 @@ class OrganizationCodeMappingsTest(APITestCase):
             "stackRoot": "/stack/root",
             "sourceRoot": "/source/root",
             "defaultBranch": "master",
+            "integrationId": self.integration.id,
         }
         if data:
             config_data.update(data)
@@ -98,7 +103,7 @@ class OrganizationCodeMappingsTest(APITestCase):
     def test_basic_get_with_projectId(self):
         path_config1 = self.create_code_mapping(
             project=self.project1,
-            repository=self.repo1,
+            repo=self.repo1,
             stack_root="stack/root",
             source_root="source/root",
             default_branch="master",
@@ -134,14 +139,14 @@ class OrganizationCodeMappingsTest(APITestCase):
 
         self.create_code_mapping(
             project=self.project1,
-            repository=self.repo1,
+            repo=self.repo1,
             stack_root="stack/root",
             source_root="source/root",
             default_branch="master",
         )
         self.create_code_mapping(
             project=self.project2,
-            repository=self.repo1,
+            repo=self.repo1,
             stack_root="another/path",
             source_root="hey/there",
         )
@@ -167,7 +172,7 @@ class OrganizationCodeMappingsTest(APITestCase):
         assert response.status_code == 404, response.content
 
     def test_basic_post_with_valid_integrationId(self):
-        response = self.make_post({"integrationId": self.integration.id})
+        response = self.make_post()
         assert response.status_code == 201, response.content
         assert response.data == {
             "id": str(response.data["id"]),
@@ -195,20 +200,9 @@ class OrganizationCodeMappingsTest(APITestCase):
         assert response.status_code == 404, response.content
 
     def test_basic_post_with_no_integrationId(self):
-        response = self.make_post()
-        assert response.status_code == 201, response.content
-        assert response.data == {
-            "id": str(response.data["id"]),
-            "projectId": str(self.project1.id),
-            "projectSlug": self.project1.slug,
-            "repoId": str(self.repo1.id),
-            "repoName": self.repo1.name,
-            "provider": None,
-            "integrationId": None,
-            "stackRoot": "/stack/root",
-            "sourceRoot": "/source/root",
-            "defaultBranch": "master",
-        }
+        response = self.make_post({"integrationId": None})
+        assert response.status_code == 400, response.content
+        assert response.data == "Missing param: integration_id"
 
     def test_empty_roots_post(self):
         response = self.make_post({"stackRoot": "", "sourceRoot": ""})
@@ -223,9 +217,9 @@ class OrganizationCodeMappingsTest(APITestCase):
 
     def test_repo_does_not_exist_on_given_integrationId(self):
         bad_integration = Integration.objects.create(provider="github", external_id="radsfas")
-        bad_integration.add_organization(self.org, self.user)
+        bad_integration.add_organization(self.organization, self.user)
         bad_repo = Repository.objects.create(
-            name="another", organization_id=self.org.id, integration_id=bad_integration.id
+            name="another", organization_id=self.organization.id, integration_id=bad_integration.id
         )
         response = self.make_post(
             {"repositoryId": bad_repo.id, "integrationId": self.integration.id}
