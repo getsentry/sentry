@@ -114,7 +114,12 @@ const _WidgetContainer = (props: Props) => {
     return <h1>{t('Using metrics')}</h1>;
   }
 
-  const passedProps = pick(props, ['eventView', 'location', 'organization']);
+  const passedProps = pick(props, [
+    'eventView',
+    'location',
+    'organization',
+    'chartHeight',
+  ]);
 
   switch (widgetProps.dataType) {
     case GenericPerformanceWidgetDataType.trends:
