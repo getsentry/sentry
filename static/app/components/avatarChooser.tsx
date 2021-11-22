@@ -90,6 +90,18 @@ class AvatarChooser extends React.Component<Props, State> {
     this.setState({model});
   }
 
+  getModelFromResponse(resp: any): Model {
+    const {type} = this.props;
+    const isSentryApp = type?.startsWith('sentryApp');
+    const isColor = type === 'sentryAppColor';
+    // SentryApp endpoint returns all avatars, we need to return only the edited one
+    if (isSentryApp) {
+      const {avatars} = resp || {};
+      return {avatar: avatars.find(({color}) => color === isColor)};
+    }
+    return resp;
+  }
+
   handleError(msg: string) {
     addErrorMessage(msg);
   }
@@ -125,7 +137,7 @@ class AvatarChooser extends React.Component<Props, State> {
       data,
       success: resp => {
         this.setState({savedDataUrl: this.state.dataUrl});
-        this.handleSuccess(resp);
+        this.handleSuccess(this.getModelFromResponse(resp));
       },
       error: this.handleError.bind(this, 'There was an error saving your preferences.'),
     });
@@ -185,7 +197,6 @@ class AvatarChooser extends React.Component<Props, State> {
     if (allowGravatar) {
       choices.push(['gravatar', t('Use Gravatar')]);
     }
-
     return (
       <Panel>
         <PanelHeader>{title ?? t('Avatar')}</PanelHeader>

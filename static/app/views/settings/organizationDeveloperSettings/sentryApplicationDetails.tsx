@@ -162,11 +162,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
     const {orgId} = this.props.params;
     const baseUrl = `/settings/${orgId}/developer-settings/`;
     const url = app ? baseUrl : `${baseUrl}${data.slug}/`;
-    if (app) {
-      addSuccessMessage(t('%s successfully saved.', data.name));
-    } else {
-      addSuccessMessage(t('%s successfully created.', data.name));
-    }
+    addSuccessMessage(t('%s successfully %s.', data.name, app ? 'saved' : 'created'));
     browserHistory.push(url);
   };
 
@@ -340,8 +336,16 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
         allowLetter={false}
         endpoint={`/sentry-apps/${app.slug}/avatar/`}
         model={this.getAvatarModel(avatarStyle)}
-        // TODO(Leander): Implement
-        onSave={() => {}}
+        onSave={({avatar}) => {
+          if (avatar && avatar.color) {
+            const prevAvatars = app?.avatars ?? [];
+            const avatars = prevAvatars.filter(
+              prevAvatar => prevAvatar?.color && prevAvatar.color !== avatar.color
+            );
+            avatars.push(avatar);
+            this.setState({app: {...app, avatars}});
+          }
+        }}
         title={isColor ? t('Logo') : t('Small Icon')}
         defaultChoice={{
           allowDefault: true,
@@ -369,8 +373,6 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
       // use the existing value for verifyInstall if the app exists, otherwise default to true
       verifyInstall = app ? app.verifyInstall : true;
     }
-
-    // organizations:sentry-app-logo-upload
 
     return (
       <div>
