@@ -12,7 +12,7 @@ from sentry.types.activity import ActivityType
     max_retries=5,
 )
 # TODO(jess): Add more retry exclusions once ApiClients have better error handling
-@retry(exclude=(ExternalIssue.DoesNotExist, Integration.DoesNotExist))
+@retry(exclude=(Integration.DoesNotExist))
 def create_comment(external_issue_id: int, user_id: int, group_note_id: int) -> None:
     try:
         external_issue = ExternalIssue.objects.get(id=external_issue_id)
