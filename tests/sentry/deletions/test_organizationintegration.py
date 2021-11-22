@@ -100,8 +100,6 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase):
             run_deletion(deletion.id)
 
         assert not OrganizationIntegration.objects.filter(id=organization_integration.id).exists()
-        assert ProjectCodeOwners.objects.filter(id=code_owner.id).exists()
-        assert ProjectCodeOwners.objects.filter(id=code_owner.id).exists()
-
-        updated = RepositoryProjectPathConfig.objects.get(id=code_mapping.id)
-        assert updated.organization_integration_id is None
+        # We expect to delete all associated Code Owners and Code Mappings
+        assert not ProjectCodeOwners.objects.filter(id=code_owner.id).exists()
+        assert not RepositoryProjectPathConfig.objects.filter(id=code_owner.id).exists()

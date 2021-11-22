@@ -4,12 +4,8 @@ from rest_framework import status
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
 from sentry.models import OrganizationIntegration, RepositoryProjectPathConfig
 
-from .organization_code_mappings import NullableOrganizationIntegrationMixin
 
-
-class OrganizationCodeMappingCodeOwnersEndpoint(
-    OrganizationEndpoint, NullableOrganizationIntegrationMixin
-):
+class OrganizationCodeMappingCodeOwnersEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationIntegrationsPermission,)
 
     def convert_args(self, request, organization_slug, config_id, *args, **kwargs):

@@ -53,7 +53,9 @@ class RepositoryProjectPathConfig(DefaultFieldsModel):
 
     repository = FlexibleForeignKey("sentry.Repository")
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
-    organization_integration = FlexibleForeignKey("sentry.OrganizationIntegration", null=True)
+    organization_integration = FlexibleForeignKey(
+        "sentry.OrganizationIntegration", on_delete=models.CASCADE
+    )
     stack_root = models.TextField()
     source_root = models.TextField()
     default_branch = models.TextField(null=True)

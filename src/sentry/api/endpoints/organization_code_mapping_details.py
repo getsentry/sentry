@@ -7,14 +7,12 @@ from sentry.api.serializers import serialize
 from sentry.models import OrganizationIntegration, RepositoryProjectPathConfig
 
 from .organization_code_mappings import (
-    NullableOrganizationIntegrationMixin,
+    OrganizationIntegrationMixin,
     RepositoryProjectPathConfigSerializer,
 )
 
 
-class OrganizationCodeMappingDetailsEndpoint(
-    OrganizationEndpoint, NullableOrganizationIntegrationMixin
-):
+class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationIntegrationMixin):
     permission_classes = (OrganizationIntegrationsPermission,)
 
     def convert_args(self, request, organization_slug, config_id, *args, **kwargs):

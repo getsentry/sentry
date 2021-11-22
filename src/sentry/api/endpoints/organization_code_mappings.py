@@ -68,11 +68,10 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
         repo_query = Repository.objects.filter(
             id=repository_id, organization_id=self.organization.id
         )
-        # if there is an integration, validate that repo exists on integration
-        if self.org_integration:
-            repo_query = repo_query.filter(
-                integration_id=self.org_integration.integration_id,
-            )
+        # validate that repo exists on integration
+        repo_query = repo_query.filter(
+            integration_id=self.org_integration.integration_id,
+        )
         if not repo_query.exists():
             raise serializers.ValidationError("Repository does not exist")
         return repository_id
@@ -98,7 +97,7 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
         return self.instance
 
 
-class NullableOrganizationIntegrationMixin:
+class OrganizationIntegrationMixin:
     def get_organization_integration(self, organization, integration_id):
         try:
             return OrganizationIntegration.objects.get(
@@ -116,7 +115,7 @@ class NullableOrganizationIntegrationMixin:
             raise Http404
 
 
-class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, NullableOrganizationIntegrationMixin):
+class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegrationMixin):
     permission_classes = (OrganizationIntegrationsPermission,)
 
     def get(self, request, organization):
@@ -168,21 +167,23 @@ class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, NullableOrganizatio
         :param string stackRoot:
         :param string sourceRoot:
         :param string defaultBranch:
-        :param int optional integrationId:
+        :param int required integrationId:
         :auth: required
         """
         integration_id = request.data.get("integrationId")
-        org_integration = None
 
-        if integration_id:
-            try:
-                org_integration = self.get_organization_integration(organization, integration_id)
-            except Http404:
-                # Human friendly error response.
-                return self.respond(
-                    "Could not find this integration installed on your organization",
-                    status=status.HTTP_404_NOT_FOUND,
-                )
+        if not integration_id:
+            return self.respond("Missing param: integration_id", status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # We expect there to exist an org_integration
+            org_integration = self.get_organization_integration(organization, integration_id)
+        except Http404:
+            # Human friendly error response.
+            return self.respond(
+                "Could not find this integration installed on your organization",
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
         serializer = RepositoryProjectPathConfigSerializer(
             context={"organization": organization, "organization_integration": org_integration},
