@@ -315,11 +315,14 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
         avatarUuid: null,
       },
     };
+    if (!app) {
+      return defaultModel;
+    }
     const isColor = avatarStyle === 'color';
-    return !app
-      ? defaultModel
-      : {avatar: (app?.avatars || []).find(({color}) => color === isColor)} ||
-          defaultModel;
+    return {
+      avatar:
+        (app?.avatars || []).find(({color}) => color === isColor) || defaultModel.avatar,
+    };
   };
 
   getAvatarChooser = (avatarStyle: 'color' | 'simple') => {
@@ -348,10 +351,11 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
             }
           }}
           title={isColor ? t('Logo') : t('Small Icon')}
+          savedDataUrl={undefined}
           defaultChoice={{
             allowDefault: true,
             choiceText: isColor ? t('Default logo') : t('Default small icon'),
-            avatar: this.getAvatarPreview(avatarStyle),
+            preview: this.getAvatarPreview(avatarStyle),
           }}
         />
       </Feature>

@@ -25,7 +25,7 @@ type AvatarChooserType =
   | 'sentryAppColor'
   | 'sentryAppSimple';
 type DefaultChoice = {
-  avatar?: React.ReactNode;
+  preview?: React.ReactNode;
   allowDefault?: boolean;
   choiceText?: string;
 };
@@ -50,7 +50,6 @@ type Props = {
    * Title in the PanelHeader component (default: 'Avatar')
    */
   title?: string;
-  extraFields?: {[key: string]: any};
 } & DefaultProps;
 
 type State = {
@@ -169,15 +168,11 @@ class AvatarChooser extends React.Component<Props, State> {
     if (!model) {
       return <LoadingIndicator />;
     }
-    const {
-      allowDefault,
-      avatar: defaultAvatar,
-      choiceText: defaultChoiceText,
-    } = defaultChoice || {};
+    const {allowDefault, preview, choiceText: defaultChoiceText} = defaultChoice || {};
 
     const avatarType = model.avatar?.avatarType ?? 'letter_avatar';
     const isLetter = avatarType === 'letter_avatar';
-    const isDefault = defaultAvatar !== undefined && avatarType === 'default';
+    const isDefault = preview !== undefined && avatarType === 'default';
 
     const isTeam = type === 'team';
     const isOrganization = type === 'organization';
@@ -185,7 +180,7 @@ class AvatarChooser extends React.Component<Props, State> {
 
     const choices: [AvatarType, string][] = [];
 
-    if (allowDefault && defaultAvatar) {
+    if (allowDefault && preview) {
       choices.push(['default', defaultChoiceText ?? t('Use default avatar')]);
     }
     if (allowLetter) {
@@ -221,7 +216,7 @@ class AvatarChooser extends React.Component<Props, State> {
                   sentryApp={isSentryApp ? (model as SentryApp) : undefined}
                 />
               )}
-              {isDefault && defaultAvatar}
+              {isDefault && preview}
             </AvatarGroup>
             <AvatarUploadSection>
               {allowGravatar && avatarType === 'gravatar' && (
