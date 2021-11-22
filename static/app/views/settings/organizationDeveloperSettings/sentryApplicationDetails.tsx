@@ -337,10 +337,10 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
         endpoint={`/sentry-apps/${app.slug}/avatar/`}
         model={this.getAvatarModel(avatarStyle)}
         onSave={({avatar}) => {
-          if (avatar && avatar.color) {
+          if (avatar) {
             const prevAvatars = app?.avatars ?? [];
             const avatars = prevAvatars.filter(
-              prevAvatar => prevAvatar?.color && prevAvatar.color !== avatar.color
+              prevAvatar => prevAvatar.color !== avatar.color
             );
             avatars.push(avatar);
             this.setState({app: {...app, avatars}});
