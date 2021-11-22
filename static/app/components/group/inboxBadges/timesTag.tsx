@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import TimeSince from 'app/components/timeSince';
 import {IconClock} from 'app/icons';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 import getDynamicText from 'app/utils/getDynamicText';
 
 /**
@@ -63,7 +64,7 @@ const Separator = styled('span')`
 `;
 
 const StyledIconClock = styled(IconClock)`
-  margin-right: 2px;
+  margin-right: ${space(0.5)};
 `;
 
 export default TimesTag;
