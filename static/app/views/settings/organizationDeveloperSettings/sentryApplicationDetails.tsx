@@ -330,7 +330,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
     const isColor = avatarStyle === 'color';
 
     return (
-      <Feature features={['organizations:sentry-app-logo-uplokad']}>
+      <Feature features={['organizations:sentry-app-logo-upload']}>
         <AvatarChooser
           type={isColor ? 'sentryAppColor' : 'sentryAppSimple'}
           allowGravatar={false}
