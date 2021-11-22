@@ -35,6 +35,7 @@ const ADD_BUTTON_POSITION = {
   h: 1,
   isResizable: false,
 };
+const DEFAULT_WIDGET_WIDTH = 2;
 
 const GridLayout = WidthProvider(RGL);
 
@@ -216,9 +217,9 @@ class Dashboard extends Component<Props> {
     const dragId = key;
 
     const layout = {
-      x: 0,
+      x: (DEFAULT_WIDGET_WIDTH * index) % NUM_COLS,
       y: Number.MAX_VALUE,
-      w: 2,
+      w: DEFAULT_WIDGET_WIDTH,
       h: widget.displayType === 'big_number' ? 1 : 2,
       minH: widget.displayType === 'big_number' ? 1 : 2,
     };
