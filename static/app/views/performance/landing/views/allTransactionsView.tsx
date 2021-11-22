@@ -20,6 +20,7 @@ export function AllTransactionsView(props: BasePerformanceViewProps) {
             PerformanceWidgetSetting.FAILURE_RATE_AREA,
             PerformanceWidgetSetting.APDEX_AREA,
             PerformanceWidgetSetting.P50_DURATION_AREA,
+            PerformanceWidgetSetting.P75_DURATION_AREA,
             PerformanceWidgetSetting.P95_DURATION_AREA,
             PerformanceWidgetSetting.P99_DURATION_AREA,
           ]}

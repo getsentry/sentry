@@ -34,9 +34,9 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         super().setUp()
         self.environment = self.create_environment(self.project, name="prod")
         self.release = self.create_release(self.project, version="first-release")
-        self.now = before_now()
-        self.one_min_ago = before_now(minutes=1)
-        self.two_min_ago = before_now(minutes=2)
+        self.now = before_now().replace(tzinfo=timezone.utc)
+        self.one_min_ago = before_now(minutes=1).replace(tzinfo=timezone.utc)
+        self.two_min_ago = before_now(minutes=2).replace(tzinfo=timezone.utc)
 
         self.event_time = self.one_min_ago
         self.event = self.store_event(
@@ -401,9 +401,9 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             ], use_snql
 
     def test_timestamp_rounding_filters(self):
-        one_day_ago = before_now(days=1)
-        two_day_ago = before_now(days=2)
-        three_day_ago = before_now(days=3)
+        one_day_ago = before_now(days=1).replace(tzinfo=timezone.utc)
+        two_day_ago = before_now(days=2).replace(tzinfo=timezone.utc)
+        three_day_ago = before_now(days=3).replace(tzinfo=timezone.utc)
 
         self.store_event(
             data={
