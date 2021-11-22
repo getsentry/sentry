@@ -580,6 +580,7 @@ describe('Dashboards > Detail', function () {
                   },
                 ],
                 title: 'All Events',
+                widgetType: 'discover',
               },
             ],
           }),
