@@ -3039,9 +3039,6 @@ class QueryFields(QueryBase):
         if not match:
             raise InvalidSearchQuery(f"Invalid characters in field {function}")
 
-        if function in self.params.get("aliases", {}):
-            raise NotImplementedError("Aggregate aliases not implemented in snql field parsing yet")
-
         name, combinator_name, parsed_arguments, alias = self.parse_function(match)
         if overwrite_alias is not None:
             alias = overwrite_alias
