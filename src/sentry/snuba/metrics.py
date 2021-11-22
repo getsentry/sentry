@@ -148,15 +148,39 @@ class QueryDefinition:
             raise InvalidParams("Only one 'orderBy' is supported")
 
         if len(self.fields) != 1:
-            # We support querying multiple metrics at once, and present them as columns.
-            # In snuba, however, different metrics are different rows, so we can only "ORDER BY value".
-            # E.g.
-            #   &field=sum(foo)&field=sum(bar)&orderBy=sum(foo)&limit=3
-            # becomes
-            #   SELECT sum(value) WHERE metric_id in (foo, bar) ORDER BY sum(value) LIMIT 3
-            # This would return three rows, but we need six. And what if all bar < foo?
+            # If we were to allow multiple fields when `orderBy` is set,
+            # we would require two snuba queries: one to get the sorted metric,
+            # And one to get the fields that we are not currently sorting by.
             #
-            # => Let's keep it simple and only allow orderBy with a single field
+            # For example, the query
+            #
+            #   ?field=sum(foo)&field=sum(bar)&groupBy=tag1&orderBy=sum(foo)&limit=1
+            #
+            # with snuba entries (simplified)
+            #
+            #   | metric | tag1 | sum(value) |
+            #   |----------------------------|
+            #   | foo    | val1 |          2 |
+            #   | foo    | val2 |          1 |
+            #   | bar    | val1 |          3 |
+            #   | bar    | val2 |          4 |
+            #
+            # Would require a query (simplified)
+            #
+            #   SELECT sum(value) BY tag1 WHERE metric = foo ORDER BY sum(value)
+            #
+            # ->
+            #
+            #   {tag1: val2, sum(value): 1}
+            #
+            # and then
+            #
+            #   SELECT sum(value) BY metric, tag WHERE metric in [bar] and tag1 in [val2]
+            #
+            # to get the values for the other requested field(s).
+            #
+            # Since we do not have a requirement for ordered multi-field results (yet),
+            # let's keep it simple and only allow a single field when `orderBy` is set.
             #
             raise InvalidParams("Cannot provide multiple 'field's when 'orderBy' is given")
         orderby = orderby[0]
