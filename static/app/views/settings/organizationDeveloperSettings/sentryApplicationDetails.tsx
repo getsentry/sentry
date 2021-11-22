@@ -295,7 +295,11 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
     return (
       app && (
         <AvatarPreview>
-          <StyledPreviewAvatar size={styleMap[avatarStyle].size} sentryApp={app} />
+          <StyledPreviewAvatar
+            size={styleMap[avatarStyle].size}
+            sentryApp={app}
+            isDefault
+          />
           <AvatarPreviewTitle>{styleMap[avatarStyle].title}</AvatarPreviewTitle>
           <AvatarPreviewText>{styleMap[avatarStyle].description}</AvatarPreviewText>
         </AvatarPreview>
