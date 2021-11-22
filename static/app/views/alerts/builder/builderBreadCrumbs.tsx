@@ -38,9 +38,13 @@ function BuilderBreadCrumbs(props: Props) {
   const project = projects.find(({slug}) => projectSlug === slug);
   const isSuperuser = isActiveSuperuser();
 
+  const label = (
+    <IdBadge project={project ?? {slug: projectSlug}} avatarSize={18} disableLink />
+  );
+
   const projectCrumbLink = {
     to: `/organizations/${orgSlug}/alerts/rules/?project=${project?.id}`,
-    label: <IdBadge project={project} avatarSize={18} disableLink />,
+    label,
     preserveGlobalSelection: true,
   };
   const projectCrumbDropdown = {
@@ -53,7 +57,7 @@ function BuilderBreadCrumbs(props: Props) {
         })
       );
     },
-    label: <IdBadge project={project} avatarSize={18} disableLink />,
+    label,
     items: projects
       .filter(proj => proj.isMember || isSuperuser)
       .map((proj, index) => ({
