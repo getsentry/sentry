@@ -10,6 +10,7 @@ import {
   addSentryAppToken,
   removeSentryAppToken,
 } from 'app/actionCreators/sentryAppTokens';
+import Feature from 'app/components/acl/feature';
 import Avatar from 'app/components/avatar';
 import AvatarChooser, {Model} from 'app/components/avatarChooser';
 import Button from 'app/components/button';
@@ -324,35 +325,36 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
   getAvatarChooser = (avatarStyle: 'color' | 'simple') => {
     const {app} = this.state;
     if (!app) {
-      // AND FEATURE CHECK
       return null;
     }
     const isColor = avatarStyle === 'color';
 
     return (
-      <AvatarChooser
-        type={isColor ? 'sentryAppColor' : 'sentryAppSimple'}
-        allowGravatar={false}
-        allowLetter={false}
-        endpoint={`/sentry-apps/${app.slug}/avatar/`}
-        model={this.getAvatarModel(avatarStyle)}
-        onSave={({avatar}) => {
-          if (avatar) {
-            const prevAvatars = app?.avatars ?? [];
-            const avatars = prevAvatars.filter(
-              prevAvatar => prevAvatar.color !== avatar.color
-            );
-            avatars.push(avatar);
-            this.setState({app: {...app, avatars}});
-          }
-        }}
-        title={isColor ? t('Logo') : t('Small Icon')}
-        defaultChoice={{
-          allowDefault: true,
-          choiceText: isColor ? t('Default logo') : t('Default small icon'),
-          avatar: this.getAvatarPreview(avatarStyle),
-        }}
-      />
+      <Feature features={['organizations:sentry-app-logo-uplokad']}>
+        <AvatarChooser
+          type={isColor ? 'sentryAppColor' : 'sentryAppSimple'}
+          allowGravatar={false}
+          allowLetter={false}
+          endpoint={`/sentry-apps/${app.slug}/avatar/`}
+          model={this.getAvatarModel(avatarStyle)}
+          onSave={({avatar}) => {
+            if (avatar) {
+              const prevAvatars = app?.avatars ?? [];
+              const avatars = prevAvatars.filter(
+                prevAvatar => prevAvatar.color !== avatar.color
+              );
+              avatars.push(avatar);
+              this.setState({app: {...app, avatars}});
+            }
+          }}
+          title={isColor ? t('Logo') : t('Small Icon')}
+          defaultChoice={{
+            allowDefault: true,
+            choiceText: isColor ? t('Default logo') : t('Default small icon'),
+            avatar: this.getAvatarPreview(avatarStyle),
+          }}
+        />
+      </Feature>
     );
   };
 
