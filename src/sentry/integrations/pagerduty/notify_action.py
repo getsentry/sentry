@@ -1,6 +1,8 @@
 """
 Used for notifying a *specific* plugin
 """
+from __future__ import annotations
+
 from typing import Any, Mapping, Sequence
 
 from django import forms
@@ -12,6 +14,17 @@ from sentry.rules.actions.base import IntegrationEventAction
 from sentry.shared_integrations.exceptions import ApiError
 
 from .client import PagerDutyClient
+
+
+def _validate_int_field(field: str, cleaned_data: Mapping[str, Any]) -> int | None:
+    value_option = cleaned_data.get(field)
+    if value_option is None:
+        return None
+
+    try:
+        return int(value_option)
+    except ValueError:
+        raise forms.ValidationError(_(f"Invalid {field}"), code="invalid")
 
 
 class PagerDutyNotifyServiceForm(forms.Form):
@@ -35,49 +48,40 @@ class PagerDutyNotifyServiceForm(forms.Form):
         self.fields["service"].choices = services
         self.fields["service"].widget.choices = self.fields["service"].choices
 
+    def _validate_service(self, service_id: int, integration_id: int | None) -> None:
+        params = {
+            "account": dict(self.fields["account"].choices).get(integration_id),
+            "service": dict(self.fields["service"].choices).get(service_id),
+        }
+
+        try:
+            service = PagerDutyService.objects.get(id=service_id)
+        except PagerDutyService.DoesNotExist:
+            raise forms.ValidationError(
+                _('The service "%(service)s" does not exist in the %(account)s Pagerduty account.'),
+                code="invalid",
+                params=params,
+            )
+
+        if service.organization_integration.integration_id != integration_id:
+            # We need to make sure that the service actually belongs to that integration,
+            # meaning that it belongs under the appropriate account in PagerDuty.
+            raise forms.ValidationError(
+                _(
+                    'The service "%(service)s" has not been granted access in the %(account)s Pagerduty account.'
+                ),
+                code="invalid",
+                params=params,
+            )
+
     def clean(self) -> Mapping[str, Any]:
         cleaned_data = super().clean()
 
-        integration_id = cleaned_data.get("account")
-        if integration_id is not None:
-            try:
-                integration_id = int(integration_id)
-            except ValueError:
-                raise forms.ValidationError(_("Invalid account"), code="invalid")
+        integration_id = _validate_int_field("account", cleaned_data)
+        service_id = _validate_int_field("service", cleaned_data)
 
-        service_id = cleaned_data.get("service")
         if service_id:
-            try:
-                service_id = int(service_id)
-            except ValueError:
-                raise forms.ValidationError(_("Invalid service"), code="invalid")
-
-            params = {
-                "account": dict(self.fields["account"].choices).get(integration_id),
-                "service": dict(self.fields["service"].choices).get(service_id),
-            }
-
-            try:
-                service = PagerDutyService.objects.get(id=service_id)
-            except PagerDutyService.DoesNotExist:
-                raise forms.ValidationError(
-                    _(
-                        'The service "%(service)s" does not exist in the %(account)s Pagerduty account.'
-                    ),
-                    code="invalid",
-                    params=params,
-                )
-
-            if service.organization_integration.integration_id != integration_id:
-                # We need to make sure that the service actually belongs to that integration,
-                # meaning that it belongs under the appropriate account in PagerDuty.
-                raise forms.ValidationError(
-                    _(
-                        'The service "%(service)s" has not been granted access in the %(account)s Pagerduty account.'
-                    ),
-                    code="invalid",
-                    params=params,
-                )
+            self._validate_service(service_id, integration_id)
 
         return cleaned_data
 
