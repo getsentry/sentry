@@ -53,7 +53,7 @@ type Props = WithRouterProps & {
   noLazyLoad?: boolean;
 };
 
-class WidgetCard extends React.Component<Props> {
+export class WidgetCard extends React.Component<Props> {
   shouldComponentUpdate(nextProps: Props): boolean {
     if (
       !isEqual(nextProps.widget, this.props.widget) ||
