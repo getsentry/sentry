@@ -438,7 +438,7 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
                 format="json",
             )
         assert response.status_code == 200, response.content
-        # since per suspect is 0, the second
+        # since per suspect is 0, the second query to get examples is skipped entirely
         assert mock_raw_snql_query.call_count == 1
 
     @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
