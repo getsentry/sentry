@@ -12,17 +12,11 @@ type QueryObject = {
 }; // TODO(k-fish): Fix to ensure exact types for all requests. Simplified type for now, need to pull this in from events file.
 
 type BatchQueryDefinition = {
-  requestFunction: () => any;
-
   // Intermediate promise functions
   resolve: (value: any) => void;
   reject: (reason?: string) => void;
 
-  // Batch query node props
   batchProperty: string;
-  pathMatches: string;
-
-  // Query props
   requestQueryObject: QueryObject;
   path: string;
   api: Client;
@@ -38,7 +32,7 @@ const [GenericQueryBatcherProvider, _useGenericQueryBatcher] =
   });
 
 function mergeKey(query: BatchQueryDefinition) {
-  return `${query.batchProperty}.${query.pathMatches}`;
+  return `${query.batchProperty}.${query.path}`;
 }
 
 type MergeMap = Record<string, BatchQueryDefinition[]>;
@@ -61,6 +55,19 @@ function queriesToMap(collectedQueries: Record<symbol, BatchQueryDefinition>) {
   return mergeMap;
 }
 
+function requestFunction(api: Client, path: string, queryObject: QueryObject) {
+  return api.requestPromise(path, queryObject);
+}
+
+function _handleUnmergeableQuery(queryDefinition: BatchQueryDefinition) {
+  const result = requestFunction(
+    queryDefinition.api,
+    queryDefinition.path,
+    queryDefinition.requestQueryObject
+  );
+  queryDefinition.resolve(result);
+}
+
 function _handleUnmergeableQueries(mergeMap: MergeMap) {
   Object.keys(mergeMap).forEach(async k => {
     // Using async forEach to ensure calls start in parallel.
@@ -71,13 +78,11 @@ function _handleUnmergeableQueries(mergeMap: MergeMap) {
     }
 
     const [queryDefinition] = mergeList;
-    const result = queryDefinition.requestFunction();
-    queryDefinition.resolve(result);
+    _handleUnmergeableQuery(queryDefinition);
   });
 }
 
 function _handleMergeableQueries(mergeMap: MergeMap) {
-  // Only remaining keys should be mergable.
   Object.keys(mergeMap).forEach(async k => {
     const mergeList = mergeMap[k];
 
@@ -86,23 +91,23 @@ function _handleMergeableQueries(mergeMap: MergeMap) {
     }
 
     const [exampleDefinition] = mergeList;
-
-    // Merge into a single query
-    const newQuery = exampleDefinition.requestQueryObject;
     const batchProperty = exampleDefinition.batchProperty;
+    const requestQueryObject = {...exampleDefinition.requestQueryObject};
 
     const batchValues = mergeList.map(q => {
-      const v = q.requestQueryObject.query[batchProperty];
-      if (Array.isArray(v)) {
-        return v[0];
+      const batchFieldValue = q.requestQueryObject.query[batchProperty];
+      if (Array.isArray(batchFieldValue)) {
+        return batchFieldValue[0];
       }
-      return v;
+      return batchFieldValue;
     });
-    newQuery.query[batchProperty] = batchValues;
 
-    const requestPromise = exampleDefinition.api.requestPromise(
+    requestQueryObject.query[batchProperty] = batchValues;
+
+    const requestPromise = requestFunction(
+      exampleDefinition.api,
       exampleDefinition.path,
-      newQuery
+      requestQueryObject
     );
 
     try {
@@ -156,13 +161,8 @@ export const GenericQueryBatcher = ({children}: {children: React.ReactNode}) => 
     timeoutId.current = tID;
   };
 
-  useEffect(() => {
-    return () => {
-      if (timeoutId.current) {
-        clearTimeout(timeoutId.current);
-      }
-    };
-  }, []);
+  // Cleanup timeout after component unmounts.
+  useEffect(() => () => timeoutId.current && clearTimeout(timeoutId.current), []);
 
   return (
     <GenericQueryBatcherProvider
@@ -175,17 +175,19 @@ export const GenericQueryBatcher = ({children}: {children: React.ReactNode}) => 
   );
 };
 
-type nodeContext = {
+type NodeContext = {
   id: Ref<Symbol>;
   batchProperty: string;
 };
 
-const BatchNodeContext = createContext<nodeContext | undefined>(undefined);
+const BatchNodeContext = createContext<NodeContext | undefined>(undefined);
 
 export type QueryBatching = {
   batchRequest: (_: Client, path: string, query: QueryObject) => Promise<any>;
 };
 
+// Wraps api request components to collect at most one request per frame / render pass using symbol as a unique id.
+// Transforms these requests into an intermediate promise and adds a query definition that the batch function will use.
 export function QueryBatchNode(props: {
   batchProperty: string;
   children(_: any): React.ReactNode;
@@ -207,14 +209,11 @@ export function QueryBatchNode(props: {
     path: string,
     requestQueryObject: QueryObject
   ): Promise<any> {
-    const requestFunction = () => api.requestPromise(path, requestQueryObject);
     const queryPromise = new Promise((resolve, reject) => {
       const queryDefinition: BatchQueryDefinition = {
         resolve,
         reject,
-        requestFunction,
         batchProperty,
-        pathMatches: path,
         path,
         requestQueryObject,
         api,
