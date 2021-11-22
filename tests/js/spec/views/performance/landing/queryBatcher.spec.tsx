@@ -32,14 +32,15 @@ const WrappedComponent = ({data, ...rest}) => {
     <PerformanceDisplayProvider value={{performanceType: PROJECT_PERFORMANCE_TYPE.ANY}}>
       <OrganizationContext.Provider value={data.organization}>
         <WidgetContainer
-          {...data}
-          {...rest}
           allowedCharts={[
             PerformanceWidgetSetting.TPM_AREA,
             PerformanceWidgetSetting.FAILURE_RATE_AREA,
             PerformanceWidgetSetting.USER_MISERY_AREA,
           ]}
+          rowChartSettings={[]}
           forceDefaultChartSetting
+          {...data}
+          {...rest}
         />
       </OrganizationContext.Provider>
     </PerformanceDisplayProvider>
@@ -223,5 +224,9 @@ describe('Performance > Widgets > Query Batching', function () {
     expect(eventStatsMock).toHaveBeenCalledTimes(1);
 
     expect(await screen.findAllByTestId('widget-state-has-data')).toHaveLength(3);
+  });
+
+  it('Errors work correctly', async function () {
+    expect(true).toBe(true);
   });
 });

@@ -5,14 +5,25 @@ import useApi from 'app/utils/useApi';
 
 import {createDefinedContext} from './utils';
 
+type QueryObject = {
+  query: {
+    [k: string]: any;
+  };
+}; // TODO(k-fish): Fix to ensure exact types for all requests. Simplified type for now, need to pull this in from events file.
+
 type BatchQueryDefinition = {
+  requestFunction: () => any;
+
+  // Intermediate promise functions
   resolve: (value: any) => void;
   reject: (reason?: string) => void;
-  fallback: () => any;
-  isFulfilled: boolean;
+
+  // Batch query node props
   batchProperty: string;
   pathMatches: string;
-  query: any;
+
+  // Query props
+  requestQueryObject: QueryObject;
   path: string;
   api: Client;
 };
@@ -30,46 +41,58 @@ function mergeKey(query: BatchQueryDefinition) {
   return `${query.batchProperty}.${query.pathMatches}`;
 }
 
-function handleBatching(queries: Record<symbol, BatchQueryDefinition>) {
-  const keys = Reflect.ownKeys(queries);
+type MergeMap = Record<string, BatchQueryDefinition[]>;
+
+// Builds a map that will contain an array of query definitions by mergeable key (using batch property and path)
+function queriesToMap(collectedQueries: Record<symbol, BatchQueryDefinition>) {
+  const keys = Reflect.ownKeys(collectedQueries);
   if (!keys.length) {
-    return;
+    return false;
   }
-  const mergeMap = {};
+  const mergeMap: MergeMap = {};
 
   keys.forEach(async key => {
-    const query = queries[key];
+    const query = collectedQueries[key];
     mergeMap[mergeKey(query)] = mergeMap[mergeKey(query)] || [];
     mergeMap[mergeKey(query)].push(query);
-    delete queries[key];
+    delete collectedQueries[key];
   });
 
+  return mergeMap;
+}
+
+function _handleUnmergeableQueries(mergeMap: MergeMap) {
   Object.keys(mergeMap).forEach(async k => {
-    const value = mergeMap[k];
-    if (value.length <= 1) {
-      // Run unmergable queries (<= 1)
-      delete mergeMap[k];
-      if (value.length === 1) {
-        const query = value[0];
-        const result = value[0].fallback();
-        await result;
-        query.isFulfilled = true;
-        query.resolve(result);
-      }
+    // Using async forEach to ensure calls start in parallel.
+    const mergeList = mergeMap[k];
+
+    if (mergeList.length !== 1) {
       return;
     }
-  });
 
+    const [queryDefinition] = mergeList;
+    const result = queryDefinition.requestFunction();
+    queryDefinition.resolve(result);
+  });
+}
+
+function _handleMergeableQueries(mergeMap: MergeMap) {
   // Only remaining keys should be mergable.
   Object.keys(mergeMap).forEach(async k => {
     const mergeList = mergeMap[k];
-    const first = mergeList[0];
+
+    if (mergeList.length <= 1) {
+      return;
+    }
+
+    const [exampleDefinition] = mergeList;
 
     // Merge into a single query
-    const newQuery = first.query;
-    const batchProperty = first.batchProperty;
+    const newQuery = exampleDefinition.requestQueryObject;
+    const batchProperty = exampleDefinition.batchProperty;
+
     const batchValues = mergeList.map(q => {
-      const v = q.query.query[batchProperty];
+      const v = q.requestQueryObject.query[batchProperty];
       if (Array.isArray(v)) {
         return v[0];
       }
@@ -77,19 +100,40 @@ function handleBatching(queries: Record<symbol, BatchQueryDefinition>) {
     });
     newQuery.query[batchProperty] = batchValues;
 
-    const requestPromise = first.api.requestPromise(first.path, newQuery);
-    const result = await requestPromise;
+    const requestPromise = exampleDefinition.api.requestPromise(
+      exampleDefinition.path,
+      newQuery
+    );
 
-    // Unmerge back into individual results
-    mergeList.forEach(q => {
-      const propertyName = Array.isArray(q.query.query[q.batchProperty])
-        ? q.query.query[q.batchProperty][0]
-        : q.query.query[q.batchProperty];
-      const singleResult = result[propertyName];
-      q.isFulfilled = true;
-      q.resolve(singleResult);
-    });
+    try {
+      const result = await requestPromise;
+      // Unmerge back into individual results
+      mergeList.forEach(queryDefinition => {
+        const propertyName = Array.isArray(
+          queryDefinition.requestQueryObject.query[queryDefinition.batchProperty]
+        )
+          ? queryDefinition.requestQueryObject.query[queryDefinition.batchProperty][0]
+          : queryDefinition.requestQueryObject.query[queryDefinition.batchProperty];
+
+        const singleResult = result[propertyName];
+        queryDefinition.resolve(singleResult);
+      });
+    } catch (e) {
+      // On error fail all requests relying on this merged query (for now)
+      mergeList.forEach(q => q.reject(e));
+    }
   });
+}
+
+function handleBatching(queries: Record<symbol, BatchQueryDefinition>) {
+  const mergeMap = queriesToMap(queries);
+
+  if (!mergeMap) {
+    return;
+  }
+
+  _handleUnmergeableQueries(mergeMap);
+  _handleMergeableQueries(mergeMap);
 }
 
 export const GenericQueryBatcher = ({children}: {children: React.ReactNode}) => {
@@ -139,7 +183,7 @@ type nodeContext = {
 const BatchNodeContext = createContext<nodeContext | undefined>(undefined);
 
 export type QueryBatching = {
-  batchRequest: (_: Client, path: string, query: Record<string, any>) => Promise<any>;
+  batchRequest: (_: Client, path: string, query: QueryObject) => Promise<any>;
 };
 
 export function QueryBatchNode(props: {
@@ -158,22 +202,26 @@ export function QueryBatchNode(props: {
 
   const api = useApi();
 
-  function batchRequest(_: Client, path: string, query: Object): Promise<any> {
-    const fallback = () => api.requestPromise(path, query);
-    return new Promise((resolve, reject) => {
+  function batchRequest(
+    _: Client,
+    path: string,
+    requestQueryObject: QueryObject
+  ): Promise<any> {
+    const requestFunction = () => api.requestPromise(path, requestQueryObject);
+    const queryPromise = new Promise((resolve, reject) => {
       const queryDefinition: BatchQueryDefinition = {
         resolve,
         reject,
-        fallback,
-        isFulfilled: false,
+        requestFunction,
         batchProperty,
         pathMatches: path,
         path,
-        query,
+        requestQueryObject,
         api,
       };
       batchContext?.addQuery(queryDefinition, id.current);
     });
+    return queryPromise;
   }
 
   const queryBatching: QueryBatching = {
