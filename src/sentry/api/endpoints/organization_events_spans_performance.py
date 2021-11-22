@@ -70,6 +70,13 @@ class OrganizationEventsSpansPerformanceEndpoint(OrganizationEventsEndpointBase)
         query = request.GET.get("query")
         span_ops = request.GET.getlist("spanOp")
 
+        try:
+            per_suspect = int(request.GET.get("perSuspect", 4))
+            if per_suspect < 0 or per_suspect > 4:
+                raise ValueError
+        except ValueError:
+            raise ParseError(detail="perSuspect must be integer between 0 and 4.")
+
         direction, orderby_column = self.get_orderby_column(request)
 
         def data_fn(offset: int, limit: int) -> Any:
@@ -90,7 +97,7 @@ class OrganizationEventsSpansPerformanceEndpoint(OrganizationEventsEndpointBase)
             suspects_requiring_examples = suspects[: limit - 1]
 
             transaction_ids = query_example_transactions(
-                params, query, orderbys, suspects_requiring_examples
+                params, query, orderbys, suspects_requiring_examples, per_suspect
             )
 
             return [
@@ -291,7 +298,7 @@ def query_example_transactions(
     per_suspect: int = 5,
 ) -> Dict[Tuple[str, str], List[str]]:
     # there aren't any suspects, early return to save an empty query
-    if not suspects:
+    if not suspects or per_suspect == 0:
         return {}
 
     selected_columns: List[str] = [

@@ -5,6 +5,7 @@ from unittest.mock import patch
 from django.urls import reverse
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op
+from snuba_sdk.expressions import Limit
 from snuba_sdk.function import Function
 from snuba_sdk.orderby import Direction, OrderBy
 
@@ -362,6 +363,125 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
         with self.feature(self.FEATURES):
             response = self.client.get(url, format="json")
         assert response.status_code == 404, response.content
+
+    def test_bad_per_suspect(self):
+        for per_suspect in [-1000, 1000]:
+            with self.feature(self.FEATURES):
+                response = self.client.get(
+                    self.url,
+                    data={
+                        "project": self.project.id,
+                        "perSuspect": per_suspect,
+                    },
+                    format="json",
+                )
+            assert response.status_code == 400, response.content
+            assert response.data == {"detail": "perSuspect must be integer between 0 and 4."}
+
+    @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
+    def test_default_per_suspect(self, mock_raw_snql_query):
+        event = self.create_event()
+
+        mock_raw_snql_query.side_effect = [
+            {
+                "data": [
+                    self.suspect_span_group_snuba_results("django.middleware", event),
+                    self.suspect_span_group_snuba_results("http.server", event),
+                    self.suspect_span_group_snuba_results("django.view", event),
+                ],
+            },
+            {
+                "data": [
+                    self.suspect_span_examples_snuba_results("django.middleware", event),
+                    self.suspect_span_examples_snuba_results("http.server", event),
+                    self.suspect_span_examples_snuba_results("django.view", event),
+                ],
+            },
+        ]
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={
+                    "project": self.project.id,
+                },
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+        assert mock_raw_snql_query.call_count == 2
+
+        # there are 3 suspect, and the default per_suspect is 4
+        assert mock_raw_snql_query.call_args_list[1][0][0].limit == Limit(3 * 4)
+
+    @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
+    def test_zero_per_suspect(self, mock_raw_snql_query):
+        event = self.create_event()
+
+        mock_raw_snql_query.side_effect = [
+            {
+                "data": [
+                    self.suspect_span_group_snuba_results("django.middleware", event),
+                    self.suspect_span_group_snuba_results("http.server", event),
+                    self.suspect_span_group_snuba_results("django.view", event),
+                ],
+            },
+        ]
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={
+                    "project": self.project.id,
+                    "perSuspect": 0,
+                },
+                format="json",
+            )
+        assert response.status_code == 200, response.content
+        # since per suspect is 0, the second
+        assert mock_raw_snql_query.call_count == 1
+
+    @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
+    def test_custom_per_suspect(self, mock_raw_snql_query):
+        event = self.create_event()
+
+        for i, per_suspect in enumerate(range(1, 5)):
+            mock_raw_snql_query.side_effect = [
+                {
+                    "data": [
+                        self.suspect_span_group_snuba_results("django.middleware", event),
+                        self.suspect_span_group_snuba_results("http.server", event),
+                        self.suspect_span_group_snuba_results("django.view", event),
+                    ],
+                },
+                {
+                    "data": [
+                        self.suspect_span_examples_snuba_results("django.middleware", event),
+                        self.suspect_span_examples_snuba_results("http.server", event),
+                        self.suspect_span_examples_snuba_results("django.view", event),
+                    ],
+                },
+            ]
+
+            with self.feature(self.FEATURES):
+                response = self.client.get(
+                    self.url,
+                    data={
+                        "project": self.project.id,
+                        "perSuspect": per_suspect,
+                    },
+                    format="json",
+                )
+
+            offset = 2 * i
+
+            assert response.status_code == 200, response.content
+            assert mock_raw_snql_query.call_count == offset + 2
+
+            # there are 3 suspect
+            assert mock_raw_snql_query.call_args_list[offset + 1][0][0].limit == Limit(
+                3 * per_suspect
+            )
 
     def test_bad_sort(self):
         with self.feature(self.FEATURES):
