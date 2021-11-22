@@ -123,7 +123,7 @@ class QueryList extends React.Component<Props> {
         start: eventView.start,
         end: eventView.end,
         statsPeriod: eventView.statsPeriod,
-        fromDiscover: true,
+        source: 'discoverv2',
         defaultWidgetQuery,
         defaultTableColumns: eventView.fields.map(({field}) => field),
         defaultTitle:

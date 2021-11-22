@@ -67,7 +67,7 @@ function DashboardWidgetLibraryModal({
                 dashboard,
                 selectedWidgets,
                 widget: customWidget,
-                fromLibrary: true,
+                source: 'library',
                 onAddLibraryWidget: onAddWidget,
               });
             }}

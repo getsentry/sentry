@@ -1,6 +1,9 @@
 import {Fragment, memo} from 'react';
 import styled from '@emotion/styled';
+import moment from 'moment';
 
+import {openAddDashboardWidgetModal} from 'app/actionCreators/modal';
+import Button from 'app/components/button';
 import GroupReleaseChart from 'app/components/group/releaseChart';
 import SeenInfo from 'app/components/group/seenInfo';
 import Placeholder from 'app/components/placeholder';
@@ -10,6 +13,7 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {CurrentRelease, Environment, Group, Organization, Project} from 'app/types';
 import getDynamicText from 'app/utils/getDynamicText';
+import {DisplayType} from 'app/views/dashboardsV2/types';
 
 import SidebarSection from './sidebarSection';
 
@@ -47,12 +51,37 @@ const GroupReleaseStats = ({
   const hasRelease = new Set(project.features).has('releases');
   const releaseTrackingUrl = `/settings/${organization.slug}/projects/${project.slug}/release-tracking/`;
 
+  const time30dAgo = moment().subtract(30, 'days');
+
+  const openWidget = () =>
+    group &&
+    openAddDashboardWidgetModal({
+      organization,
+      widget: {
+        title: group.title,
+        displayType: DisplayType.AREA,
+        interval: '1h',
+        queries: [
+          {
+            name: '',
+            fields: ['count()'],
+            conditions: `issue.id:${group.id}`,
+            orderby: '',
+          },
+        ],
+      },
+      start: time30dAgo.toDate().toString(),
+      end: moment().toDate().toString(),
+      source: 'issueDetail',
+    });
+
   return (
     <SidebarSection title={<span data-test-id="env-label">{environmentLabel}</span>}>
       {!group || !allEnvironments ? (
         <Placeholder height="288px" />
       ) : (
         <Fragment>
+          <Button onClick={openWidget}>Add to Dashoard</Button>
           <GroupReleaseChart
             group={allEnvironments}
             environment={environmentLabel}

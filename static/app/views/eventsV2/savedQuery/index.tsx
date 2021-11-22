@@ -247,7 +247,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
 
     openAddDashboardWidgetModal({
       organization,
-      fromDiscover: true,
+      source: 'discoverv2',
       defaultWidgetQuery,
       defaultTableColumns: eventView.fields.map(({field}) => field),
       defaultTitle:

@@ -93,6 +93,7 @@ class Dashboard extends Component<Props> {
       dashboard,
       selection,
       onAddWidget: this.handleAddComplete,
+      source: 'dashboards',
     });
   };
 
@@ -182,6 +183,7 @@ class Dashboard extends Component<Props> {
       openAddDashboardWidgetModal({
         ...modalProps,
         dashboard,
+        source: 'dashboards',
       });
     }
   };
