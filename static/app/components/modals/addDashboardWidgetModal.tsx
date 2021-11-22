@@ -147,6 +147,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
   }
 
   get omitDashboardProp() {
+    // when opening from discover or issues page, the user selects the dashboard in the widget UI
     return ['discoverv2', 'issueDetails'].includes(this.props.source || '');
   }
 
