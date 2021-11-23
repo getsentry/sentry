@@ -1,6 +1,8 @@
 import re
 from typing import Dict, TypedDict
 
+from snuba_sdk import Op
+
 from sentry.snuba.dataset import Dataset
 from sentry.utils.snuba import DATASETS
 
@@ -183,6 +185,16 @@ OPERATOR_NEGATION_MAP = {
     "NOT IN": "IN",
 }
 OPERATOR_TO_DJANGO = {">=": "gte", "<=": "lte", ">": "gt", "<": "lt", "=": "exact"}
+OPERATOR_TO_SNQL = {
+    ">=": Op.GTE,
+    "<=": Op.LTE,
+    ">": Op.GT,
+    "<": Op.LT,
+    "=": Op.EQ,
+    "!=": Op.NEQ,
+    "IN": Op.IN,
+    "NOT IN": Op.NOT_IN,
+}
 
 MAX_SEARCH_RELEASES = 1000
 SEMVER_EMPTY_RELEASE = "____SENTRY_EMPTY_RELEASE____"
