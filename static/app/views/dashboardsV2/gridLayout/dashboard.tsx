@@ -6,10 +6,9 @@ import RGL, {WidthProvider} from 'react-grid-layout';
 
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
-
-import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from '../addWidget';
-import {Dashboard as DnDKitDashboard} from '../dashboard';
-import {DisplayType, MAX_WIDGETS, Widget} from '../types';
+import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from 'app/views/dashboardsV2/addWidget';
+import {Dashboard as DnDKitDashboard} from 'app/views/dashboardsV2/dashboard';
+import {DisplayType, MAX_WIDGETS, Widget} from 'app/views/dashboardsV2/types';
 
 import SortableWidget from './sortableWidget';
 import {DRAG_HANDLE_ID} from './widgetCard';

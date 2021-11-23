@@ -6,8 +6,7 @@ import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
-
-import {WidgetCard} from '../widgetCard';
+import {WidgetCard} from 'app/views/dashboardsV2/widgetCard';
 
 export const DRAG_HANDLE_ID = 'grid-layout-drag-handle';
 
