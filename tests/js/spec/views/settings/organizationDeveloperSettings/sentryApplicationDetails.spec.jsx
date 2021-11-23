@@ -22,7 +22,7 @@ describe('Sentry Application Details', function () {
   beforeEach(() => {
     Client.clearMockResponses();
 
-    org = TestStubs.Organization();
+    org = TestStubs.Organization({features: ['sentry-app-logo-upload']});
     orgId = org.slug;
   });
 
@@ -36,7 +36,7 @@ describe('Sentry Application Details', function () {
 
       wrapper = mountWithTheme(
         <SentryApplicationDetails params={{orgId}} route={{path: 'new-public/'}} />,
-        TestStubs.routerContext()
+        TestStubs.routerContext([{organization: org}])
       );
     });
 
@@ -51,6 +51,12 @@ describe('Sentry Application Details', function () {
       expect(
         wrapper.find('PanelHeader').findWhere(h => h.text() === 'Permissions')
       ).toBeDefined();
+    });
+
+    it('does not show logo upload fields', function () {
+      expect(wrapper.find('PanelHeader').at(1).text()).not.toContain('Logo');
+      expect(wrapper.find('PanelHeader').at(2).text()).not.toContain('Small Icon');
+      expect(wrapper.exists('AvatarChooser')).toBe(false);
     });
 
     it('saves', function () {
@@ -118,9 +124,16 @@ describe('Sentry Application Details', function () {
     beforeEach(() => {
       wrapper = mountWithTheme(
         <SentryApplicationDetails params={{orgId}} route={{path: 'new-internal/'}} />,
-        TestStubs.routerContext()
+        TestStubs.routerContext([{organization: org}])
       );
     });
+
+    it('does not show logo upload fields', function () {
+      expect(wrapper.find('PanelHeader').at(1).text()).not.toContain('Logo');
+      expect(wrapper.find('PanelHeader').at(2).text()).not.toContain('Small Icon');
+      expect(wrapper.exists('AvatarChooser')).toBe(false);
+    });
+
     it('no inputs for redirectUrl and verifyInstall', () => {
       expect(wrapper.exists(verifyInstallToggle)).toBeFalsy();
       expect(wrapper.exists(redirectUrlInput)).toBeFalsy();
@@ -144,8 +157,14 @@ describe('Sentry Application Details', function () {
 
       wrapper = mountWithTheme(
         <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
-        TestStubs.routerContext()
+        TestStubs.routerContext([{organization: org}])
       );
+    });
+
+    it('shows logo upload fields', function () {
+      expect(wrapper.find('PanelHeader').at(1).text()).toContain('Logo');
+      expect(wrapper.find('PanelHeader').at(2).text()).toContain('Small Icon');
+      expect(wrapper.find('AvatarChooser')).toHaveLength(2);
     });
 
     it('has inputs for redirectUrl and verifyInstall', () => {
@@ -186,7 +205,7 @@ describe('Sentry Application Details', function () {
 
       wrapper = mountWithTheme(
         <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
-        TestStubs.routerContext()
+        TestStubs.routerContext([{organization: org}])
       );
     });
 
@@ -195,8 +214,14 @@ describe('Sentry Application Details', function () {
       expect(wrapper.exists(redirectUrlInput)).toBeFalsy();
     });
 
+    it('shows logo upload fields', function () {
+      expect(wrapper.find('PanelHeader').at(1).text()).toContain('Logo');
+      expect(wrapper.find('PanelHeader').at(2).text()).toContain('Small Icon');
+      expect(wrapper.find('AvatarChooser')).toHaveLength(2);
+    });
+
     it('shows tokens', function () {
-      expect(wrapper.find('PanelHeader').at(3).text()).toContain('Tokens');
+      expect(wrapper.find('PanelHeader').at(5).text()).toContain('Tokens');
       expect(wrapper.find('TokenItem').exists()).toBe(true);
     });
 
@@ -227,7 +252,7 @@ describe('Sentry Application Details', function () {
 
       wrapper = mountWithTheme(
         <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
-        TestStubs.routerContext()
+        TestStubs.routerContext([{organization: org}])
       );
     });
 
@@ -239,6 +264,8 @@ describe('Sentry Application Details', function () {
       expect(wrapper.find('#clientSecret input').prop('value')).toBe(maskedValue);
     });
   });
+
+  describe('Renders avatar upload fields on Edit', () => {});
 
   describe('Editing internal app tokens', () => {
     beforeEach(() => {
@@ -261,7 +288,7 @@ describe('Sentry Application Details', function () {
 
       wrapper = mountWithTheme(
         <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
-        TestStubs.routerContext()
+        TestStubs.routerContext([{organization: org}])
       );
     });
     it('adding token to list', async function () {
@@ -331,7 +358,7 @@ describe('Sentry Application Details', function () {
 
       wrapper = mountWithTheme(
         <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
-        TestStubs.routerContext()
+        TestStubs.routerContext([{organization: org}])
       );
     });
 
@@ -413,7 +440,7 @@ describe('Sentry Application Details', function () {
 
       wrapper = mountWithTheme(
         <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
-        TestStubs.routerContext()
+        TestStubs.routerContext([{organization: org}])
       );
     });
 
