@@ -34,7 +34,7 @@ from snuba_sdk import (
     Query,
 )
 from snuba_sdk.conditions import BooleanCondition
-from snuba_sdk.query import SelectableExpression
+from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry.models import Project
 from sentry.sentry_metrics import indexer
@@ -51,18 +51,21 @@ from sentry.utils.snuba import parse_snuba_datetime, raw_snql_query
 FIELD_REGEX = re.compile(r"^(\w+)\(((\w|\.|_)+)\)$")
 TAG_REGEX = re.compile(r"^(\w|\.|_)+$")
 
-OPERATIONS = (
-    "avg",
-    "count_unique",
-    "count",
-    "max",
+_OPERATIONS_PERCENTILES = (
     "p50",
     "p75",
     "p90",
     "p95",
     "p99",
-    "sum",
 )
+
+OPERATIONS = (
+    "avg",
+    "count_unique",
+    "count",
+    "max",
+    "sum",
+) + _OPERATIONS_PERCENTILES
 
 #: Max number of data points per time series:
 MAX_POINTS = 10000
@@ -148,12 +151,90 @@ class QueryDefinition:
 
         self.fields = {key: parse_field(key) for key in raw_fields}
 
+        self.orderby = self._parse_orderby(query_params)
+        self.limit = self._parse_limit(query_params)
+
         start, end, rollup = get_constrained_date_range(
             query_params, AllowedResolution.ten_seconds, max_points=MAX_POINTS
         )
         self.rollup = rollup
         self.start = start
         self.end = end
+
+    def _parse_orderby(self, query_params):
+        orderby = query_params.getlist("orderBy", [])
+        if not orderby:
+            return None
+        elif len(orderby) > 1:
+            raise InvalidParams("Only one 'orderBy' is supported")
+
+        if len(self.fields) != 1:
+            # If we were to allow multiple fields when `orderBy` is set,
+            # we would require two snuba queries: one to get the sorted metric,
+            # And one to get the fields that we are not currently sorting by.
+            #
+            # For example, the query
+            #
+            #   ?field=sum(foo)&field=sum(bar)&groupBy=tag1&orderBy=sum(foo)&limit=1
+            #
+            # with snuba entries (simplified)
+            #
+            #   | metric | tag1 | sum(value) |
+            #   |----------------------------|
+            #   | foo    | val1 |          2 |
+            #   | foo    | val2 |          1 |
+            #   | bar    | val1 |          3 |
+            #   | bar    | val2 |          4 |
+            #
+            # Would require a query (simplified)
+            #
+            #   SELECT sum(value) BY tag1 WHERE metric = foo ORDER BY sum(value)
+            #
+            # ->
+            #
+            #   {tag1: val2, sum(value): 1}
+            #
+            # and then
+            #
+            #   SELECT sum(value) BY metric, tag WHERE metric in [bar] and tag1 in [val2]
+            #
+            # to get the values for the other requested field(s).
+            #
+            # Since we do not have a requirement for ordered multi-field results (yet),
+            # let's keep it simple and only allow a single field when `orderBy` is set.
+            #
+            raise InvalidParams("Cannot provide multiple 'field's when 'orderBy' is given")
+        orderby = orderby[0]
+        direction = Direction.ASC
+        if orderby[0] == "-":
+            orderby = orderby[1:]
+            direction = Direction.DESC
+        try:
+            op, metric_name = self.fields[orderby]
+        except KeyError:
+            # orderBy one of the group by fields may be supported in the future
+            raise InvalidParams("'orderBy' must be one of the provided 'fields'")
+
+        if op in _OPERATIONS_PERCENTILES:
+            # NOTE(jjbayer): This should work, will fix later
+            raise InvalidParams("'orderBy' percentiles is not yet supported")
+
+        return (op, metric_name), direction
+
+    def _parse_limit(self, query_params):
+        limit = query_params.get("limit", None)
+        if not self.orderby and limit:
+            raise InvalidParams("'limit' is only supported in combination with 'orderBy'")
+
+        if limit is not None:
+            try:
+                limit = int(limit)
+                if limit < 1:
+                    raise ValueError
+            except (ValueError, TypeError):
+                raise InvalidParams("'limit' must be integer >= 1")
+
+        return limit
 
 
 class TimeRange(Protocol):
@@ -262,7 +343,8 @@ _OP_TO_FIELD = {
     },
     "metrics_sets": {"count_unique": SnubaField("uniq", "value")},
 }
-_FIELDS_BY_ENTITY = {type_: sorted(mapping.keys()) for type_, mapping in _OP_TO_FIELD.items()}
+
+_AVAILABLE_OPERATIONS = {type_: sorted(mapping.keys()) for type_, mapping in _OP_TO_FIELD.items()}
 
 
 _BASE_TAGS = {
@@ -282,23 +364,28 @@ _BASE_TAGS = {
 _METRICS = {
     "session": {
         "type": "counter",
-        "operations": _FIELDS_BY_ENTITY["metrics_counters"],
+        "operations": _AVAILABLE_OPERATIONS["metrics_counters"],
         "tags": _BASE_TAGS,
     },
     "user": {
         "type": "set",
-        "operations": _FIELDS_BY_ENTITY["metrics_sets"],
+        "operations": _AVAILABLE_OPERATIONS["metrics_sets"],
         "tags": _BASE_TAGS,
     },
     "session.duration": {
         "type": "distribution",
-        "operations": _FIELDS_BY_ENTITY["metrics_distributions"],
+        "operations": _AVAILABLE_OPERATIONS["metrics_distributions"],
         "tags": _BASE_TAGS,
         "unit": "seconds",
     },
     "session.error": {
         "type": "set",
-        "operations": _FIELDS_BY_ENTITY["metrics_sets"],
+        "operations": _AVAILABLE_OPERATIONS["metrics_sets"],
+        "tags": _BASE_TAGS,
+    },
+    "measurements.lcp": {
+        "type": "distribution",
+        "operations": _AVAILABLE_OPERATIONS["metrics_distributions"],
         "tags": _BASE_TAGS,
     },
 }
@@ -558,13 +645,22 @@ class SnubaQueryBuilder:
 
         return where
 
-    def _build_groupby(self, query_definition: QueryDefinition) -> List[SelectableExpression]:
+    def _build_groupby(self, query_definition: QueryDefinition) -> List[Column]:
         return [Column("metric_id")] + [
             Column(f"tags[{indexer.resolve(field)}]") for field in query_definition.groupby
         ]
 
-    def _build_queries(self, query_definition):
+    def _build_orderby(
+        self, query_definition: QueryDefinition, entity: str
+    ) -> Optional[List[OrderBy]]:
+        if query_definition.orderby is None:
+            return None
+        (op, metric_name), direction = query_definition.orderby
+        snuba_field = _OP_TO_FIELD[entity][op]
 
+        return [OrderBy(Column(snuba_field.snuba_alias), direction)]
+
+    def _build_queries(self, query_definition):
         queries_by_entity = OrderedDict()
         for op, metric_name in query_definition.fields.values():
             type_ = _get_metric(metric_name)["type"]
@@ -592,13 +688,18 @@ class SnubaQueryBuilder:
             groupby=groupby,
             select=list(self._build_select(entity, fields)),
             where=where,
-            limit=Limit(MAX_POINTS),
+            limit=Limit(query_definition.limit or MAX_POINTS),
             offset=Offset(0),
             granularity=Granularity(query_definition.rollup),
+            orderby=self._build_orderby(query_definition, entity),
         )
-        series_query = totals_query.set_groupby(
-            (totals_query.groupby or []) + [Column(TS_COL_GROUP)]
-        )
+
+        if totals_query.orderby is None:
+            series_query = totals_query.set_groupby(
+                (totals_query.groupby or []) + [Column(TS_COL_GROUP)]
+            )
+        else:
+            series_query = None
 
         return {
             "totals": totals_query,
@@ -610,7 +711,7 @@ class SnubaQueryBuilder:
 
     def _get_entity(self, metric_type: MetricType) -> str:
 
-        entity = METRIC_TYPE_TO_ENTITY[metric_type]
+        entity = METRIC_TYPE_TO_ENTITY[metric_type].value
 
         if entity not in self._implemented_datasets:
             raise NotImplementedError(f"Dataset not yet implemented: {entity}")
@@ -667,7 +768,6 @@ class SnubaResultConverter:
             tags,
             {
                 "totals": {},
-                "series": {},
             },
         )
 
@@ -677,9 +777,6 @@ class SnubaResultConverter:
 
         for op in ops:
             key = f"{op}({metric_name})"
-            series = tag_data["series"].setdefault(
-                key, len(self._intervals) * [_DEFAULT_AGGREGATES[op]]
-            )
 
             field = _OP_TO_FIELD[entity][op].snuba_alias
             value = data[field]
@@ -691,6 +788,9 @@ class SnubaResultConverter:
             if timestamp is None:
                 tag_data["totals"][key] = finite_or_none(value)
             else:
+                series = tag_data.setdefault("series", {}).setdefault(
+                    key, len(self._intervals) * [_DEFAULT_AGGREGATES[op]]
+                )
                 series_index = self._timestamp_index[timestamp]
                 series[series_index] = finite_or_none(value)
 
@@ -702,9 +802,10 @@ class SnubaResultConverter:
             for data in totals:
                 self._extract_data(entity, data, groups)
 
-            series = subresults["series"]["data"]
-            for data in series:
-                self._extract_data(entity, data, groups)
+            if "series" in subresults:
+                series = subresults["series"]["data"]
+                for data in series:
+                    self._extract_data(entity, data, groups)
 
         groups = [
             dict(
@@ -765,7 +866,7 @@ class MetaFromSnuba:
             MetricMeta(
                 name=reverse_resolve(row["metric_id"]),
                 type=metric_type,
-                operations=_FIELDS_BY_ENTITY[METRIC_TYPE_TO_ENTITY[metric_type].value],
+                operations=_AVAILABLE_OPERATIONS[METRIC_TYPE_TO_ENTITY[metric_type].value],
                 unit=None,  # snuba does not know the unit
             )
             for metric_type, row in metric_names
@@ -826,6 +927,7 @@ class SnubaDataSource(DataSource):
                 # TODO: Should we use cache?
                 key: raw_snql_query(query, use_cache=False, referrer=f"api.metrics.{key}")
                 for key, query in queries.items()
+                if query is not None
             }
             for entity, queries in snuba_queries.items()
         }
