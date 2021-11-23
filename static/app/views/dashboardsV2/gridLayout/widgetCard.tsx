@@ -9,6 +9,8 @@ import withOrganization from 'app/utils/withOrganization';
 
 import {WidgetCard} from '../widgetCard';
 
+export const DRAG_HANDLE_ID = 'grid-layout-drag-handle';
+
 class GridWidgetCard extends WidgetCard {
   renderToolbar() {
     const {onEdit, onDelete, hideToolbar, isEditing} = this.props;
@@ -21,7 +23,7 @@ class GridWidgetCard extends WidgetCard {
       <ToolbarPanel>
         <IconContainer style={{visibility: hideToolbar ? 'hidden' : 'visible'}}>
           <IconClick>
-            <StyledIconGrabbable id="grid-layout-drag-handle" color="textColor" />
+            <StyledIconGrabbable id={DRAG_HANDLE_ID} color="textColor" />
           </IconClick>
           <IconClick
             data-test-id="widget-edit"

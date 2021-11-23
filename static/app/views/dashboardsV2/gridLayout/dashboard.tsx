@@ -12,6 +12,7 @@ import {Dashboard as DnDKitDashboard} from '../dashboard';
 import {DisplayType, MAX_WIDGETS, Widget} from '../types';
 
 import SortableWidget from './sortableWidget';
+import {DRAG_HANDLE_ID} from './widgetCard';
 
 const NUM_COLS = 6;
 const ROW_HEIGHT = 120;
@@ -67,7 +68,7 @@ class Dashboard extends DnDKitDashboard {
         cols={NUM_COLS}
         rowHeight={ROW_HEIGHT}
         margin={WIDGET_MARGINS}
-        draggableHandle="#grid-layout-drag-handle"
+        draggableHandle={`#${DRAG_HANDLE_ID}`}
         isDraggable={isEditing}
         isResizable={isEditing}
         isBounded
