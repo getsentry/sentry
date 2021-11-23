@@ -225,13 +225,11 @@ export class IntegrationListDirectory extends AsyncComponent<
   }
 
   getPopularityWeight = (integration: AppOrProviderOrPlugin) => {
-    for (const sentryapp of this.state.publishedApps || []) {
-      if (sentryapp === integration) {
-        return integration.popularity ?? 1;
-      }
-    }
-
-    return POPULARITY_WEIGHT[integration.slug] ?? 1;
+    return (
+      (this.state.publishedApps || []).find(i => i === integration)?.popularity ||
+      POPULARITY_WEIGHT[integration.slug] ||
+      1
+    );
   };
 
   sortByName = (a: AppOrProviderOrPlugin, b: AppOrProviderOrPlugin) =>
