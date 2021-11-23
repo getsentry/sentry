@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import theme from 'app/utils/theme';
-import ColorBar from 'app/views/performance/vitalDetail/colorBar.tsx';
+import theme from 'sentry/utils/theme';
+import ColorBar from 'sentry/views/performance/vitalDetail/colorBar.tsx';
 
 export default {
   title: 'Components/Data Visualization/Charts/Color Bar',

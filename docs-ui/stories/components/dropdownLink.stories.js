@@ -1,5 +1,5 @@
-import DropdownLink from 'app/components/dropdownLink';
-import MenuItem from 'app/components/menuItem';
+import DropdownLink from 'sentry/components/dropdownLink';
+import MenuItem from 'sentry/components/menuItem';
 
 export default {
   title: 'Components/Buttons/Dropdowns/Dropdown Link',
