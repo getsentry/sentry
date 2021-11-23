@@ -298,13 +298,13 @@ class DashboardDetail extends Component<Props, State> {
     });
   };
 
-  // TODO(nar): Wrap this and inject layout
   onCommit = () => {
     const {api, organization, location, dashboard, reloadData} = this.props;
     const {modifiedDashboard, dashboardState} = this.state;
 
     switch (dashboardState) {
       case DashboardState.CREATE: {
+        // TODO(nar): How to save dashboard layouts on create because the widget ids get modified after
         if (modifiedDashboard) {
           createDashboard(api, organization.slug, modifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
@@ -333,7 +333,7 @@ class DashboardDetail extends Component<Props, State> {
         break;
       }
       case DashboardState.EDIT: {
-        // TODO: This should only fire when there are changes to the layout
+        // TODO(nar): This should only fire when there are changes to the layout
         if (organization.features.includes('dashboard-grid-layout')) {
           saveDashboardLayout(organization.id, dashboard.id, this.state.layout);
         }
