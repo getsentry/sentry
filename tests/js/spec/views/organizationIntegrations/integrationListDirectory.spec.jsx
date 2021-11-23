@@ -54,7 +54,6 @@ describe('IntegrationListDirectory', function () {
         'bitbucket',
         'pagerduty',
         'my-headband-washer-289499',
-        'clickup',
         'asayer',
         'bitbucket_pipelines',
         'datadog',
@@ -64,6 +63,7 @@ describe('IntegrationListDirectory', function () {
         'octohook',
         'rocketchat',
         'amazon-sqs',
+        'clickup',
         'la-croix-monitor',
       ].map((name, index) =>
         expect(wrapper.find('IntegrationRow').at(index).props().slug).toEqual(name)
