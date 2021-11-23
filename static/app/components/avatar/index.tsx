@@ -30,8 +30,8 @@ const Avatar = React.forwardRef(function Avatar(
     project,
     organization,
     sentryApp,
-    isDefault = false,
     isColor = true,
+    isDefault = false,
     ...props
   }: Props,
   ref: React.Ref<HTMLSpanElement>

@@ -14,7 +14,11 @@ const SentryAppAvatar = ({isColor = true, sentryApp, isDefault, ...props}: Props
   const shouldRenderDefault =
     isDefault || !avatarDetails || avatarDetails.avatarType === 'default';
   return shouldRenderDefault ? (
-    <IconGeneric size={`${props.size}`} className={props.className} />
+    <IconGeneric
+      size={`${props.size}`}
+      className={props.className}
+      data-test-id="default-sentry-app-avatar"
+    />
   ) : (
     <BaseAvatar
       {...props}
