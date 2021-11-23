@@ -152,7 +152,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     return [
       DashboardWidgetSource.DISCOVERV2,
       DashboardWidgetSource.ISSUE_DETAILS,
-    ].includes(this.props.source ?? '');
+    ].includes(this.props.source);
   }
 
   get fromLibrary() {
