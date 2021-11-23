@@ -12,7 +12,6 @@ import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import DropdownMenu from 'app/components/dropdownMenu';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
-import FeatureBadge from 'app/components/featureBadge';
 import MenuItem from 'app/components/menuItem';
 import Pagination from 'app/components/pagination';
 import TimeSince from 'app/components/timeSince';
@@ -222,7 +221,7 @@ class QueryList extends React.Component<Props> {
                         data-test-id="add-query-to-dashboard"
                         onClick={this.handleAddQueryToDashboard(eventView)}
                       >
-                        {t('Add to Dashboard')} <FeatureBadge type="new" noTooltip />
+                        {t('Add to Dashboard')}
                       </StyledMenuItem>
                     </ContextMenu>
                   )
@@ -304,7 +303,7 @@ class QueryList extends React.Component<Props> {
                       data-test-id="add-query-to-dashboard"
                       onClick={this.handleAddQueryToDashboard(eventView, savedQuery)}
                     >
-                      {t('Add to Dashboard')} <FeatureBadge type="new" noTooltip />
+                      {t('Add to Dashboard')}
                     </StyledMenuItem>
                   )
                 }
