@@ -5,6 +5,8 @@
 
 from __future__ import annotations
 
+from enum import Enum
+
 from django.conf import settings
 from django.utils.deprecation import MiddlewareMixin
 from rest_framework.request import Request
@@ -12,6 +14,13 @@ from rest_framework.request import Request
 from sentry.api.base import Endpoint
 from sentry.api.helpers.group_index.index import EndpointFunction
 from sentry.app import ratelimiter
+
+
+# Fixed set of rate limit categories
+class RateLimitCategory(str, Enum):
+    IP = "ip"
+    USER = "user"
+    ORGANIZATION = "org"
 
 
 def get_rate_limit_key(view_func: EndpointFunction, request: Request) -> str | None:
@@ -78,20 +87,21 @@ def above_rate_limit_check(key, limit, window):
 
 
 class RatelimitMiddleware(MiddlewareMixin):
-    def _can_be_ratelimited(self, request: Request):
-        return True
+    def _can_be_ratelimited(self, request: Request, view_func: EndpointFunction):
+        return hasattr(view_func, "view_class") and not request.path_info.startswith(
+            settings.ANONYMOUS_STATIC_PREFIXES
+        )
 
     def process_view(self, request, view_func, view_args, view_kwargs):
         """Check if the endpoint call will violate"""
-        if not self._can_be_ratelimited(request):
+        if not self._can_be_ratelimited(request, view_func):
             request.will_be_rate_limited = False
             return
 
         key = get_rate_limit_key(view_func, request)
         if key is not None:
-            limit, window = get_rate_limit_value(
-                request.method, view_func.view_class, key.split(":", 1)[0]
-            )
+            category = key.split(":", 1)[0]
+            limit, window = get_rate_limit_value(request.method, view_func.view_class, category)
             request.will_be_rate_limited = (
                 above_rate_limit_check(key, limit, window)["is_limited"]
                 if window is not None

@@ -8,6 +8,7 @@ from freezegun import freeze_time
 from sentry.api.base import Endpoint
 from sentry.auth.access import from_request
 from sentry.middleware.ratelimit import (
+    RateLimitCategory,
     RatelimitMiddleware,
     above_rate_limit_check,
     get_rate_limit_key,
@@ -125,7 +126,10 @@ class TestGetRateLimitValue(TestCase):
         """Override one or more of the default rate limits"""
 
         class TestEndpoint(Endpoint):
-            rate_limits = {"GET": {"ip": (100, 5)}, "POST": {"user": (20, 4)}}
+            rate_limits = {
+                "GET": {RateLimitCategory.IP: (100, 5)},
+                "POST": {RateLimitCategory.USER: (20, 4)},
+            }
 
         assert get_rate_limit_value("GET", TestEndpoint, "ip") == (100, 5)
         assert (
