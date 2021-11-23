@@ -733,7 +733,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     expect(setRowChartSettings).toHaveBeenCalledTimes(1);
   });
 
-  it('Chart settings passed from the row are not shown in menu', async function () {
+  it('Chart settings passed from the row are disabled in the menu', async function () {
     const data = initializeData();
 
     const setRowChartSettings = jest.fn(() => {});
@@ -743,7 +743,10 @@ describe('Performance > Widgets > WidgetContainer', function () {
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.FAILURE_RATE_AREA}
         setRowChartSettings={setRowChartSettings}
-        rowChartSettings={[PerformanceWidgetSetting.FAILURE_RATE_AREA]}
+        rowChartSettings={[
+          PerformanceWidgetSetting.FAILURE_RATE_AREA,
+          PerformanceWidgetSetting.USER_MISERY_AREA,
+        ]}
       />,
       data.routerContext
     );
@@ -759,6 +762,11 @@ describe('Performance > Widgets > WidgetContainer', function () {
     await tick();
     wrapper.update();
 
-    expect(wrapper.find('MenuItem').at(1).text()).toEqual('User Misery');
+    expect(wrapper.find('MenuItem').at(1).text()).toEqual('Failure Rate');
+    expect(wrapper.find('MenuItem').at(1).props().isActive).toBe(true);
+    expect(wrapper.find('MenuItem').at(1).props().disabled).toBe(false);
+
+    expect(wrapper.find('MenuItem').at(2).text()).toEqual('User Misery');
+    expect(wrapper.find('MenuItem').at(2).props().disabled).toBe(true);
   });
 });
