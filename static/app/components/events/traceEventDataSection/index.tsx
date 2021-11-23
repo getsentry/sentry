@@ -110,11 +110,13 @@ function TraceEventDataSection({
 
   const childProps = {recentFirst, raw, activeDisplayOptions};
 
+  const nativePlatform = isNativePlatform(platform);
+
   return (
     <EventDataSection
       type={type}
       title={
-        <Header raw={raw}>
+        <Header raw={raw} nativePlatform={nativePlatform}>
           {showPermalink ? (
             <div>
               <Permalink href={'#' + type} className="permalink">
@@ -134,7 +136,7 @@ function TraceEventDataSection({
                 value={raw}
                 onChange={() => setState({...state, raw: !raw})}
               />
-              {raw && isNativePlatform(platform) && (
+              {raw && nativePlatform && (
                 <DownloadButton
                   size="small"
                   href={getDownloadHref()}
@@ -190,24 +192,30 @@ function TraceEventDataSection({
 export {TraceEventDataSectionContext};
 export default TraceEventDataSection;
 
-const Header = styled('div')<{raw: boolean}>`
+const Header = styled('div')<{raw: boolean; nativePlatform: boolean}>`
   display: grid;
   grid-template-columns: 1fr max-content;
-  grid-template-rows: repeat(3, 1fr);
+  grid-template-rows: ${p =>
+    p.raw && !p.nativePlatform ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)'};
   grid-gap: ${space(1)};
   align-items: center;
   flex: 1;
   z-index: 3;
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: repeat(2, 1fr);
-    grid-template-rows: repeat(2, 1fr);
+    grid-template-columns: ${p =>
+      p.raw && !p.nativePlatform
+        ? '1fr max-content minmax(140px, auto)'
+        : 'repeat(2, 1fr)'};
+    grid-template-rows: ${p => (p.raw && !p.nativePlatform ? '1fr' : 'repeat(2, 1fr)')};
   }
 
   @media (min-width: ${p => p.theme.breakpoints[3]}) {
     grid-template-columns: ${p =>
       p.raw
-        ? '1fr max-content max-content minmax(140px, auto)'
+        ? p.nativePlatform
+          ? '1fr max-content max-content minmax(140px, auto)'
+          : '1fr max-content minmax(140px, auto)'
         : '1fr max-content minmax(159px, auto) minmax(140px, auto)'};
     grid-template-rows: 1fr;
   }

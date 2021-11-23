@@ -203,17 +203,9 @@ const Wrapper = styled(DropdownControl)`
     width: 100%;
     max-width: 100%;
   }
-  grid-column: 1/-1;
-  grid-row: 3/3;
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    grid-column: 2/2;
-    grid-row: 2/2;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
-    grid-column: auto;
-    grid-row: auto;
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    grid-column: 1/-1;
   }
 `;
 
