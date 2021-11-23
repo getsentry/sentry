@@ -95,6 +95,10 @@ class Endpoint(APIView):
 
     cursor_name = "cursor"
 
+    # Default Rate Limit Values, override in subclass
+    # Should be of format: { <http function>: { <category>: (limit, window) } }
+    rate_limits = {}
+
     def build_cursor_link(self, request, name, cursor):
         querystring = None
         if request.GET.get("cursor") is None:

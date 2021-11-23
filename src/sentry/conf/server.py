@@ -1336,6 +1336,11 @@ SENTRY_RELAY_PROJECTCONFIG_DEBOUNCE_CACHE_OPTIONS = {}
 # Rate limiting backend
 SENTRY_RATELIMITER = "sentry.ratelimits.base.RateLimiter"
 SENTRY_RATELIMITER_OPTIONS = {}
+SENTRY_RATELIMITER_DEFAULTS = {
+    "ip": (1000, 1),
+    "user": (3230, 1),
+    "org": (620, 1),
+}
 
 # The default value for project-level quotas
 SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE = "90%"
