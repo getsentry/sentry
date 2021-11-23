@@ -193,20 +193,22 @@ describe('Performance > Widgets > Query Batching', function () {
     const data = initializeData();
 
     mountWithTheme(
-      <GenericQueryBatcher>
-        <WrappedComponent
-          data={data}
-          defaultChartSetting={PerformanceWidgetSetting.TPM_AREA}
-        />
-        <WrappedComponent
-          data={data}
-          defaultChartSetting={PerformanceWidgetSetting.FAILURE_RATE_AREA}
-        />
-        <WrappedComponent
-          data={data}
-          defaultChartSetting={PerformanceWidgetSetting.USER_MISERY_AREA}
-        />
-      </GenericQueryBatcher>
+      <OrganizationContext.Provider value={data.organization}>
+        <GenericQueryBatcher>
+          <WrappedComponent
+            data={data}
+            defaultChartSetting={PerformanceWidgetSetting.TPM_AREA}
+          />
+          <WrappedComponent
+            data={data}
+            defaultChartSetting={PerformanceWidgetSetting.FAILURE_RATE_AREA}
+          />
+          <WrappedComponent
+            data={data}
+            defaultChartSetting={PerformanceWidgetSetting.USER_MISERY_AREA}
+          />
+        </GenericQueryBatcher>
+      </OrganizationContext.Provider>
     );
 
     expect(await screen.findAllByTestId('performance-widget-title')).toHaveLength(3);
@@ -237,20 +239,22 @@ describe('Performance > Widgets > Query Batching', function () {
     const data = initializeData();
 
     mountWithTheme(
-      <GenericQueryBatcher>
-        <WrappedComponent
-          data={data}
-          defaultChartSetting={PerformanceWidgetSetting.TPM_AREA}
-        />
-        <WrappedComponent
-          data={data}
-          defaultChartSetting={PerformanceWidgetSetting.FAILURE_RATE_AREA}
-        />
-        <WrappedComponent
-          data={data}
-          defaultChartSetting={PerformanceWidgetSetting.USER_MISERY_AREA}
-        />
-      </GenericQueryBatcher>
+      <OrganizationContext.Provider value={data.organization}>
+        <GenericQueryBatcher>
+          <WrappedComponent
+            data={data}
+            defaultChartSetting={PerformanceWidgetSetting.TPM_AREA}
+          />
+          <WrappedComponent
+            data={data}
+            defaultChartSetting={PerformanceWidgetSetting.FAILURE_RATE_AREA}
+          />
+          <WrappedComponent
+            data={data}
+            defaultChartSetting={PerformanceWidgetSetting.USER_MISERY_AREA}
+          />
+        </GenericQueryBatcher>
+      </OrganizationContext.Provider>
     );
 
     expect(await screen.findAllByTestId('performance-widget-title')).toHaveLength(3);
