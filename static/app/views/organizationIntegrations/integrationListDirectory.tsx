@@ -226,8 +226,8 @@ export class IntegrationListDirectory extends AsyncComponent<
 
   getPopularityWeight = (integration: AppOrProviderOrPlugin) => {
     return (
-      (this.state.publishedApps || []).find(i => i === integration)?.popularity ||
-      POPULARITY_WEIGHT[integration.slug] ||
+      this.state.publishedApps?.find(i => i === integration)?.popularity ??
+      POPULARITY_WEIGHT[integration.slug] ??
       1
     );
   };
