@@ -4,7 +4,19 @@ from unittest import mock
 
 import pytz
 from django.utils.datastructures import MultiValueDict
-from snuba_sdk import Column, Condition, Entity, Function, Granularity, Limit, Offset, Op, Query
+from snuba_sdk import (
+    Column,
+    Condition,
+    Direction,
+    Entity,
+    Function,
+    Granularity,
+    Limit,
+    Offset,
+    Op,
+    OrderBy,
+    Query,
+)
 
 from sentry.sentry_metrics.indexer.mock import MockIndexer
 from sentry.snuba.metrics import (
@@ -95,6 +107,56 @@ def test_build_snuba_query(mock_now, mock_now2, mock_indexer):
             ),
         },
     }
+
+
+@mock.patch("sentry.snuba.metrics.indexer")
+@mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
+@mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
+def test_build_snuba_query_orderby(mock_now, mock_now2, mock_indexer):
+
+    mock_indexer.resolve = MockIndexer().resolve
+    query_params = MultiValueDict(
+        {
+            "query": [
+                "release:staging"
+            ],  # weird release but we need a string exising in mock indexer
+            "groupBy": ["session.status", "environment"],
+            "field": [
+                "sum(session)",
+            ],
+            "orderBy": ["-sum(session)"],
+            "limit": [3],
+        }
+    )
+    query_definition = QueryDefinition(query_params)
+    snuba_queries = SnubaQueryBuilder([PseudoProject(1, 1)], query_definition).get_snuba_queries()
+
+    counter_queries = snuba_queries.pop("metrics_counters")
+    assert not snuba_queries
+    assert counter_queries["series"] is None  # No series because of orderBy
+
+    assert counter_queries["totals"] == Query(
+        dataset="metrics",
+        match=Entity("metrics_counters"),
+        select=[Function("sum", [Column("value")], "value")],
+        groupby=[
+            Column("metric_id"),
+            Column("tags[8]"),
+            Column("tags[2]"),
+        ],
+        where=[
+            Condition(Column("org_id"), Op.EQ, 1),
+            Condition(Column("project_id"), Op.IN, [1]),
+            Condition(Column("metric_id"), Op.IN, [9]),
+            Condition(Column("timestamp"), Op.GTE, datetime(2021, 5, 28, 0, tzinfo=pytz.utc)),
+            Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
+            Condition(Column("tags[6]", entity=None), Op.EQ, 10),
+        ],
+        orderby=[OrderBy(Column("value"), Direction.DESC)],
+        limit=Limit(3),
+        offset=Offset(0),
+        granularity=Granularity(query_definition.rollup),
+    )
 
 
 @mock.patch("sentry.snuba.metrics.indexer")
