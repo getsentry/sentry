@@ -224,8 +224,15 @@ export class IntegrationListDirectory extends AsyncComponent<
     return integrations?.find(i => i.provider.key === integration.key) ? 2 : 0;
   }
 
-  getPopularityWeight = (integration: AppOrProviderOrPlugin) =>
-    POPULARITY_WEIGHT[integration.slug] ?? 1;
+  getPopularityWeight = (integration: AppOrProviderOrPlugin) => {
+    for (const sentryapp of this.state.publishedApps || []) {
+      if (sentryapp === integration) {
+        return integration.popularity ?? 1;
+      }
+    }
+
+    return POPULARITY_WEIGHT[integration.slug] ?? 1;
+  };
 
   sortByName = (a: AppOrProviderOrPlugin, b: AppOrProviderOrPlugin) =>
     a.slug.localeCompare(b.slug);
