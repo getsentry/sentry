@@ -38,6 +38,7 @@ import {DISPLAY_TYPE_CHOICES} from 'app/views/dashboardsV2/data';
 import {
   DashboardDetails,
   DashboardListItem,
+  DashboardWidgetSource,
   DisplayType,
   MAX_WIDGETS,
   Widget,
@@ -67,7 +68,7 @@ export type DashboardWidgetModalOptions = {
   defaultTableColumns?: readonly string[];
   defaultTitle?: string;
   displayType?: DisplayType;
-  source: 'discoverv2' | 'dashboards' | 'library' | 'issueDetail';
+  source: DashboardWidgetSource;
   start?: DateString;
   end?: DateString;
   statsPeriod?: RelativePeriod | string;
@@ -148,11 +149,14 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
 
   get omitDashboardProp() {
     // when opening from discover or issues page, the user selects the dashboard in the widget UI
-    return ['discoverv2', 'issueDetails'].includes(this.props.source || '');
+    return [
+      DashboardWidgetSource.DISCOVERV2,
+      DashboardWidgetSource.ISSUE_DETAILS,
+    ].includes(this.props.source || '');
   }
 
   get fromLibrary() {
-    return this.props.source === 'library';
+    return this.props.source === DashboardWidgetSource.LIBRARY;
   }
 
   handleSubmit = async (event: React.FormEvent) => {
@@ -200,7 +204,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
           organization,
         });
       }
-      if (source === 'dashboards') {
+      if (source === DashboardWidgetSource.DASHBOARDS) {
         closeModal();
       }
     } catch (err) {

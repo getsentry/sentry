@@ -27,7 +27,7 @@ import {DisplayModes} from 'app/utils/discover/types';
 import {getDiscoverLandingUrl} from 'app/utils/discover/urls';
 import withApi from 'app/utils/withApi';
 import withProjects from 'app/utils/withProjects';
-import {WidgetQuery} from 'app/views/dashboardsV2/types';
+import {DashboardWidgetSource, WidgetQuery} from 'app/views/dashboardsV2/types';
 import InputControl from 'app/views/settings/components/forms/controls/input';
 
 import {
@@ -247,7 +247,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
 
     openAddDashboardWidgetModal({
       organization,
-      source: 'discoverv2',
+      source: DashboardWidgetSource.DISCOVERV2,
       defaultWidgetQuery,
       defaultTableColumns: eventView.fields.map(({field}) => field),
       defaultTitle:
