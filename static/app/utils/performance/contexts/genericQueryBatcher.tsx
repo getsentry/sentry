@@ -73,12 +73,10 @@ function _handleUnmergeableQueries(mergeMap: MergeMap) {
     // Using async forEach to ensure calls start in parallel.
     const mergeList = mergeMap[k];
 
-    if (mergeList.length !== 1) {
-      return;
+    if (mergeList.length === 1) {
+      const [queryDefinition] = mergeList;
+      _handleUnmergeableQuery(queryDefinition);
     }
-
-    const [queryDefinition] = mergeList;
-    _handleUnmergeableQuery(queryDefinition);
   });
 }
 
@@ -92,14 +90,24 @@ function _handleMergeableQueries(mergeMap: MergeMap) {
 
     const [exampleDefinition] = mergeList;
     const batchProperty = exampleDefinition.batchProperty;
-    const requestQueryObject = {...exampleDefinition.requestQueryObject};
+    const query = {...exampleDefinition.requestQueryObject.query};
+    const requestQueryObject = {...exampleDefinition.requestQueryObject, query};
 
-    const batchValues = mergeList.map(q => {
+    const batchValues: string[] = [];
+
+    mergeList.forEach(q => {
       const batchFieldValue = q.requestQueryObject.query[batchProperty];
       if (Array.isArray(batchFieldValue)) {
-        return batchFieldValue[0];
+        if (batchFieldValue.length > 1) {
+          // Omit multiple requests with multi fields (eg. yAxis) for now and run them as single queries
+          _handleUnmergeableQuery(q);
+          return;
+        }
+        // Unwrap array value if it is a single value
+        batchValues.push(batchFieldValue[0]);
+      } else {
+        batchValues.push(batchFieldValue);
       }
-      return batchFieldValue;
     });
 
     requestQueryObject.query[batchProperty] = batchValues;
