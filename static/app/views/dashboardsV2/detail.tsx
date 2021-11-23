@@ -405,7 +405,7 @@ class DashboardDetail extends Component<Props, State> {
     this.setState({widgetToBeUpdated: widget});
   };
 
-  onUpdateWidget = (widgets: Widget[], layout: RGLLayout[] = []) => {
+  onUpdateWidget = (widgets: Widget[], layout?: RGLLayout[]) => {
     const {modifiedDashboard} = this.state;
 
     if (modifiedDashboard === null) {
@@ -419,7 +419,7 @@ class DashboardDetail extends Component<Props, State> {
           ...state.modifiedDashboard!,
           widgets,
         },
-        layout,
+        layout: layout ? layout : this.state.layout,
       }),
       this.updateRouteAfterSavingWidget
     );
