@@ -16,6 +16,7 @@ import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {Series} from 'app/types/echarts';
 import EventView from 'app/utils/discover/eventView';
+import {formatAbbreviatedNumber} from 'app/utils/formatters';
 import getDynamicText from 'app/utils/getDynamicText';
 import HistogramQuery from 'app/utils/performance/histogram/histogramQuery';
 import {HistogramData} from 'app/utils/performance/histogram/types';
@@ -165,6 +166,7 @@ export function Chart(props: ChartProps) {
     type: 'value' as const,
     axisLabel: {
       color: theme.chartLabel,
+      formatter: formatAbbreviatedNumber,
     },
   };
 

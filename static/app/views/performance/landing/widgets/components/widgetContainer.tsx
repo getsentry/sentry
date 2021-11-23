@@ -1,19 +1,19 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import pick from 'lodash/pick';
 
 import MenuItem from 'app/components/menuItem';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
-import localStorage from 'app/utils/localStorage';
 import {usePerformanceDisplayType} from 'app/utils/performance/contexts/performanceDisplayContext';
 import useOrganization from 'app/utils/useOrganization';
 import withOrganization from 'app/utils/withOrganization';
 import ContextMenu from 'app/views/dashboardsV2/contextMenu';
 import {useMetricsSwitch} from 'app/views/performance/metricsSwitch';
-import {PROJECT_PERFORMANCE_TYPE} from 'app/views/performance/utils';
 
 import {GenericPerformanceWidgetDataType} from '../types';
+import {_setChartSetting, getChartSetting} from '../utils';
 import {PerformanceWidgetSetting, WIDGET_DEFINITIONS} from '../widgetDefinitions';
 import {HistogramWidget} from '../widgets/histogramWidget';
 import {LineChartListWidget} from '../widgets/lineChartListWidget';
@@ -30,63 +30,10 @@ type Props = {
   allowedCharts: PerformanceWidgetSetting[];
   chartHeight: number;
   chartColor?: string;
-  forceDefaultChartSetting?: boolean; // Used for testing.
+  forceDefaultChartSetting?: boolean;
+  rowChartSettings: PerformanceWidgetSetting[];
+  setRowChartSettings: (settings: PerformanceWidgetSetting[]) => void;
 } & ChartRowProps;
-
-// Use local storage for chart settings for now.
-const getContainerLocalStorageObjectKey = 'landing-chart-container';
-const getContainerKey = (
-  index: number,
-  performanceType: PROJECT_PERFORMANCE_TYPE,
-  height: number
-) => `landing-chart-container#${performanceType}#${height}#${index}`;
-
-function getWidgetStorageObject() {
-  const localObject = JSON.parse(
-    localStorage.getItem(getContainerLocalStorageObjectKey) || '{}'
-  );
-  return localObject;
-}
-
-function setWidgetStorageObject(localObject: Record<string, string>) {
-  localStorage.setItem(getContainerLocalStorageObjectKey, JSON.stringify(localObject));
-}
-
-const getChartSetting = (
-  index: number,
-  height: number,
-  performanceType: PROJECT_PERFORMANCE_TYPE,
-  defaultType: PerformanceWidgetSetting,
-  forceDefaultChartSetting?: boolean // Used for testing.
-): PerformanceWidgetSetting => {
-  if (forceDefaultChartSetting) {
-    return defaultType;
-  }
-  const key = getContainerKey(index, performanceType, height);
-  const localObject = getWidgetStorageObject();
-  const value = localObject?.[key];
-
-  if (
-    value &&
-    Object.values(PerformanceWidgetSetting).includes(value as PerformanceWidgetSetting)
-  ) {
-    const _value: PerformanceWidgetSetting = value as PerformanceWidgetSetting;
-    return _value;
-  }
-  return defaultType;
-};
-const _setChartSetting = (
-  index: number,
-  height: number,
-  performanceType: PROJECT_PERFORMANCE_TYPE,
-  setting: PerformanceWidgetSetting
-) => {
-  const key = getContainerKey(index, performanceType, height);
-  const localObject = getWidgetStorageObject();
-  localObject[key] = setting;
-
-  setWidgetStorageObject(localObject);
-};
 
 function trackChartSettingChange(
   previousChartSetting: PerformanceWidgetSetting,
@@ -103,7 +50,15 @@ function trackChartSettingChange(
 }
 
 const _WidgetContainer = (props: Props) => {
-  const {organization, index, chartHeight, allowedCharts, ...rest} = props;
+  const {
+    organization,
+    index,
+    chartHeight,
+    allowedCharts,
+    rowChartSettings,
+    setRowChartSettings,
+    ...rest
+  } = props;
   const {isMetricsData} = useMetricsSwitch();
   const performanceType = usePerformanceDisplayType();
   let _chartSetting = getChartSetting(
@@ -125,6 +80,9 @@ const _WidgetContainer = (props: Props) => {
       _setChartSetting(index, chartHeight, performanceType, setting);
     }
     setChartSettingState(setting);
+    const newSettings = [...rowChartSettings];
+    newSettings[index] = setting;
+    setRowChartSettings(newSettings);
     trackChartSettingChange(
       chartSetting,
       setting,
@@ -147,6 +105,7 @@ const _WidgetContainer = (props: Props) => {
         {...containerProps}
         allowedCharts={props.allowedCharts}
         setChartSetting={setChartSetting}
+        rowChartSettings={rowChartSettings}
       />
     ),
   };
@@ -155,17 +114,24 @@ const _WidgetContainer = (props: Props) => {
     return <h1>{t('Using metrics')}</h1>;
   }
 
+  const passedProps = pick(props, [
+    'eventView',
+    'location',
+    'organization',
+    'chartHeight',
+  ]);
+
   switch (widgetProps.dataType) {
     case GenericPerformanceWidgetDataType.trends:
-      return <TrendsWidget {...props} {...widgetProps} />;
+      return <TrendsWidget {...passedProps} {...widgetProps} />;
     case GenericPerformanceWidgetDataType.area:
-      return <SingleFieldAreaWidget {...props} {...widgetProps} />;
+      return <SingleFieldAreaWidget {...passedProps} {...widgetProps} />;
     case GenericPerformanceWidgetDataType.vitals:
-      return <VitalWidget {...props} {...widgetProps} />;
+      return <VitalWidget {...passedProps} {...widgetProps} />;
     case GenericPerformanceWidgetDataType.line_list:
-      return <LineChartListWidget {...props} {...widgetProps} />;
+      return <LineChartListWidget {...passedProps} {...widgetProps} />;
     case GenericPerformanceWidgetDataType.histogram:
-      return <HistogramWidget {...props} {...widgetProps} />;
+      return <HistogramWidget {...passedProps} {...widgetProps} />;
     default:
       throw new Error(`Widget type "${widgetProps.dataType}" has no implementation.`);
   }
@@ -174,16 +140,19 @@ const _WidgetContainer = (props: Props) => {
 export const WidgetContainerActions = ({
   setChartSetting,
   allowedCharts,
+  rowChartSettings,
 }: {
-  loading: boolean;
   setChartSetting: (setting: PerformanceWidgetSetting) => void;
   allowedCharts: PerformanceWidgetSetting[];
+  rowChartSettings: PerformanceWidgetSetting[];
 }) => {
   const organization = useOrganization();
   const menuOptions: React.ReactNode[] = [];
 
+  const inactiveCharts = allowedCharts.filter(chart => !rowChartSettings.includes(chart));
+
   const settingsMap = WIDGET_DEFINITIONS({organization});
-  for (const setting of allowedCharts) {
+  for (const setting of inactiveCharts) {
     const options = settingsMap[setting];
     menuOptions.push(
       <MenuItem

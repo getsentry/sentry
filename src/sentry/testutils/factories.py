@@ -489,16 +489,18 @@ class Factories:
         return update_artifact_index(release, dist, file_)
 
     @staticmethod
-    def create_code_mapping(project, repo=None, **kwargs):
+    def create_code_mapping(project, repo=None, organization_integration=None, **kwargs):
         kwargs.setdefault("stack_root", "")
         kwargs.setdefault("source_root", "")
         kwargs.setdefault("default_branch", "master")
 
         if not repo:
             repo = Factories.create_repo(project=project)
-
         return RepositoryProjectPathConfig.objects.create(
-            project=project, repository=repo, **kwargs
+            project=project,
+            repository=repo,
+            organization_integration_id=organization_integration.id,
+            **kwargs,
         )
 
     @staticmethod
