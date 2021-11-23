@@ -104,6 +104,7 @@ const _WidgetContainer = (props: Props) => {
       <WidgetContainerActions
         {...containerProps}
         allowedCharts={props.allowedCharts}
+        chartSetting={chartSetting}
         setChartSetting={setChartSetting}
         rowChartSettings={rowChartSettings}
       />
@@ -138,10 +139,12 @@ const _WidgetContainer = (props: Props) => {
 };
 
 export const WidgetContainerActions = ({
+  chartSetting,
   setChartSetting,
   allowedCharts,
   rowChartSettings,
 }: {
+  chartSetting: PerformanceWidgetSetting;
   setChartSetting: (setting: PerformanceWidgetSetting) => void;
   allowedCharts: PerformanceWidgetSetting[];
   rowChartSettings: PerformanceWidgetSetting[];
@@ -149,15 +152,15 @@ export const WidgetContainerActions = ({
   const organization = useOrganization();
   const menuOptions: React.ReactNode[] = [];
 
-  const inactiveCharts = allowedCharts.filter(chart => !rowChartSettings.includes(chart));
-
   const settingsMap = WIDGET_DEFINITIONS({organization});
-  for (const setting of inactiveCharts) {
+  for (const setting of allowedCharts) {
     const options = settingsMap[setting];
     menuOptions.push(
       <MenuItem
         key={setting}
         onClick={() => setChartSetting(setting)}
+        isActive={setting === chartSetting}
+        disabled={setting !== chartSetting && rowChartSettings.includes(setting)}
         data-test-id="performance-widget-menu-item"
       >
         {options.title}
