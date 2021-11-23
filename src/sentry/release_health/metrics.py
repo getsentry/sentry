@@ -636,7 +636,12 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         end: datetime,
     ) -> Set[ReleaseName]:
 
-        release_column_name = tag_key(organization_id, "release")
+        try:
+            metric_id_session = metric_id(organization_id, "session")
+            release_column_name = tag_key(organization_id, "release")
+        except MetricIndexNotFound:
+            return set()
+
         releases_ids = get_tag_values_list(organization_id, release_versions)
         query = Query(
             dataset=Dataset.Metrics.value,
@@ -645,7 +650,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             where=[
                 Condition(Column("org_id"), Op.EQ, organization_id),
                 Condition(Column("project_id"), Op.IN, project_ids),
-                Condition(Column("metric_id"), Op.EQ, metric_id(organization_id, "session")),
+                Condition(Column("metric_id"), Op.EQ, metric_id_session),
                 Condition(Column(release_column_name), Op.IN, releases_ids),
                 Condition(Column("timestamp"), Op.GTE, start),
                 Condition(Column("timestamp"), Op.LT, end),
