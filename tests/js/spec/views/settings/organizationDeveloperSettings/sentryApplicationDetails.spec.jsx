@@ -265,8 +265,6 @@ describe('Sentry Application Details', function () {
     });
   });
 
-  describe('Renders avatar upload fields on Edit', () => {});
-
   describe('Editing internal app tokens', () => {
     beforeEach(() => {
       sentryApp = TestStubs.SentryApp({
