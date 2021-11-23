@@ -1,4 +1,4 @@
-from typing import Optional, Sequence, Tuple
+from __future__ import annotations
 
 from django.http import HttpResponse
 from rest_framework import status
@@ -6,7 +6,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.integrations.slack.message_builder.disconnected import SlackDisconnectedMessageBuilder
-from sentry.integrations.slack.requests.base import SlackRequest, SlackRequestError
+from sentry.integrations.slack.requests.base import SlackDMRequest, SlackRequestError
 from sentry.integrations.slack.requests.command import SlackCommandRequest
 from sentry.integrations.slack.utils.auth import is_valid_role
 from sentry.integrations.slack.views.link_team import build_team_linking_url
@@ -38,20 +38,20 @@ DIRECT_MESSAGE_CHANNEL_NAME = "directmessage"
 INSUFFICIENT_ROLE_MESSAGE = "You must be a Sentry admin, manager, or owner to link or unlink teams."
 
 
-def is_team_linked_to_channel(
-    organization: Organization, slack_request: SlackCommandRequest
-) -> bool:
+def is_team_linked_to_channel(organization: Organization, slack_request: SlackDMRequest) -> bool:
     """Check if a Slack channel already has a team linked to it"""
-    return ExternalActor.objects.filter(
+    # Explicitly typing to satisfy mypy.
+    is_linked: bool = ExternalActor.objects.filter(
         organization=organization,
         integration=slack_request.integration,
         provider=ExternalProviders.SLACK.value,
         external_name=slack_request.channel_name,
         external_id=slack_request.channel_id,
     ).exists()
+    return is_linked
 
 
-def get_identity(slack_request: SlackRequest) -> Optional[Identity]:
+def get_identity(slack_request: SlackDMRequest) -> Identity | None:
     try:
         identity = slack_request.get_identity()
     except IdentityProvider.DoesNotExist:
@@ -59,19 +59,11 @@ def get_identity(slack_request: SlackRequest) -> Optional[Identity]:
     return identity
 
 
-class SlackCommandsEndpoint(SlackDMEndpoint):  # type: ignore
+class SlackCommandsEndpoint(SlackDMEndpoint):
     authentication_classes = ()
     permission_classes = ()
 
-    def get_command_and_args(self, payload: SlackRequest) -> Tuple[str, Sequence[str]]:
-        payload = payload.data
-        text = payload.get("text", "").lower().split()
-        if not text:
-            return "", []
-
-        return text[0], text[1:]
-
-    def reply(self, slack_request: SlackRequest, message: str) -> Response:
+    def reply(self, slack_request: SlackDMRequest, message: str) -> Response:
         return self.respond(
             {
                 "response_type": "ephemeral",
@@ -80,7 +72,7 @@ class SlackCommandsEndpoint(SlackDMEndpoint):  # type: ignore
             }
         )
 
-    def link_team(self, slack_request: SlackCommandRequest) -> Response:
+    def link_team(self, slack_request: SlackDMRequest) -> Response:
         if slack_request.channel_name == DIRECT_MESSAGE_CHANNEL_NAME:
             return self.reply(slack_request, LINK_FROM_CHANNEL_MESSAGE)
 
@@ -113,7 +105,7 @@ class SlackCommandsEndpoint(SlackDMEndpoint):  # type: ignore
         )
         return self.reply(slack_request, LINK_TEAM_MESSAGE.format(associate_url=associate_url))
 
-    def unlink_team(self, slack_request: SlackCommandRequest) -> Response:
+    def unlink_team(self, slack_request: SlackDMRequest) -> Response:
         if slack_request.channel_name == DIRECT_MESSAGE_CHANNEL_NAME:
             return self.reply(slack_request, LINK_FROM_CHANNEL_MESSAGE)
 
@@ -126,7 +118,7 @@ class SlackCommandsEndpoint(SlackDMEndpoint):  # type: ignore
             integration, identity.user
         )
 
-        found: Optional[OrganizationMember] = None
+        found: OrganizationMember | None = None
         for organization_membership in organization_memberships:
             if is_team_linked_to_channel(organization_membership.organization, slack_request):
                 found = organization_membership

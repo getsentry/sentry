@@ -11,7 +11,7 @@ from sentry.api import client
 from sentry.charts import generate_chart
 from sentry.charts.types import ChartType
 from sentry.discover.arithmetic import is_equation
-from sentry.integrations.slack.message_builder.discover import build_discover_attachment
+from sentry.integrations.slack.message_builder.discover import SlackDiscoverMessageBuilder
 from sentry.models import ApiKey, Integration
 from sentry.models.user import User
 from sentry.search.events.filter import to_list
@@ -218,10 +218,10 @@ def unfurl_discover(
             )
             continue
 
-        unfurls[link.url] = build_discover_attachment(
+        unfurls[link.url] = SlackDiscoverMessageBuilder(
             title=link.args["query"].get("name", "Dashboards query"),
             chart_url=url,
-        )
+        ).build()
 
     analytics.record(
         "integrations.slack.chart_unfurl",

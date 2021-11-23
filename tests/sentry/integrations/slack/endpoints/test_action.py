@@ -44,7 +44,8 @@ class BaseEventTest(APITestCase):
         )
 
     @patch(
-        "sentry.integrations.slack.requests.SlackRequest._check_signing_secret", return_value=True
+        "sentry.integrations.slack.requests.base.SlackRequest._check_signing_secret",
+        return_value=True,
     )
     def post_webhook(
         self,

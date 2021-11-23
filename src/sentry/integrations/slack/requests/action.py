@@ -1,6 +1,8 @@
-from typing import Mapping, MutableMapping, Optional
+from __future__ import annotations
 
-from rest_framework.request import Request
+from typing import Mapping, MutableMapping
+
+from rest_framework import status
 
 from sentry.integrations.slack.requests.base import SlackRequest, SlackRequestError
 from sentry.models import Group
@@ -17,10 +19,6 @@ class SlackActionRequest(SlackRequest):
     body, for some reason. Therefore they require an extra bit of data
     validation.
     """
-
-    def __init__(self, request: Request) -> None:
-        super().__init__(request)
-        self._callback_data = None
 
     @property
     def type(self) -> str:
@@ -49,21 +47,21 @@ class SlackActionRequest(SlackRequest):
         super()._validate_data()
 
         if "payload" not in self.request.data:
-            raise SlackRequestError(status=400)
+            raise SlackRequestError(status=status.HTTP_400_BAD_REQUEST)
 
         try:
             self._data = json.loads(self.data["payload"])
         except (KeyError, IndexError, TypeError, ValueError):
-            raise SlackRequestError(status=400)
+            raise SlackRequestError(status=status.HTTP_400_BAD_REQUEST)
 
     def _log_request(self) -> None:
         self._info("slack.action")
 
     def get_logging_data(
         self,
-        group: Optional[Group] = None,
-    ) -> Mapping[str, Optional[str]]:
-        logging_data: MutableMapping[str, Optional[str]] = {
+        group: Group | None = None,
+    ) -> Mapping[str, str | None]:
+        logging_data: MutableMapping[str, str | None] = {
             **self.logging_data,
             "response_url": self.response_url,
         }
