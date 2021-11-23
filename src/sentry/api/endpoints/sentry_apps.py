@@ -11,7 +11,7 @@ from sentry.api.serializers.rest_framework import SentryAppSerializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import SentryAppStatus
 from sentry.mediators.sentry_apps import Creator, InternalCreator
-from sentry.models import SentryApp, SentryAppAvatar
+from sentry.models import SentryApp
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
@@ -106,10 +106,6 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
             except ValidationError as e:
                 # we generate and validate the slug here instead of the serializer since the slug never changes
                 return Response(e.detail, status=400)
-
-            if features.has("organizations:sentry-app-logo-upload", sentry_app.owner):
-                SentryAppAvatar.objects.create(sentry_app=sentry_app, color=True, avatar_type=0)
-                SentryAppAvatar.objects.create(sentry_app=sentry_app, color=False, avatar_type=0)
 
             return Response(serialize(sentry_app, access=request.access), status=201)
 
