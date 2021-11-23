@@ -1,6 +1,7 @@
 import {ReactNode} from 'react';
 import omit from 'lodash/omit';
 
+import {defined} from 'app/utils';
 import GenericDiscoverQuery, {
   DiscoverQueryProps,
   GenericChildrenProps,
@@ -10,7 +11,8 @@ import withApi from 'app/utils/withApi';
 import {SuspectSpans} from './types';
 
 type SuspectSpansProps = {
-  spanOps: string[];
+  perSuspect?: number;
+  spanOps?: string[];
 };
 
 type RequestProps = DiscoverQueryProps & SuspectSpansProps;
@@ -24,7 +26,14 @@ type Props = RequestProps & {
 };
 
 function getSuspectSpanPayload(props: RequestProps) {
-  const payload = {spanOp: props.spanOps};
+  const {perSuspect, spanOps} = props;
+  const payload = {perSuspect, spanOp: spanOps};
+  if (!defined(payload.perSuspect)) {
+    delete payload.perSuspect;
+  }
+  if (!defined(payload.spanOp)) {
+    delete payload.spanOp;
+  }
   const additionalPayload = omit(props.eventView.getEventsAPIPayload(props.location), [
     'field',
   ]);

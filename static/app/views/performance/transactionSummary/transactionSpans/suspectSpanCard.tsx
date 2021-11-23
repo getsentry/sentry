@@ -39,32 +39,35 @@ import {getSuspectSpanSortFromEventView} from './utils';
 const SPANS_TABLE_COLUMN_ORDER: SuspectSpanTableColumn[] = [
   {
     key: 'id',
-    name: 'Example Transaction',
+    name: t('Example Transaction'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
     key: 'timestamp',
-    name: 'Timestamp',
+    name: t('Timestamp'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
     key: 'spanDuration',
-    name: 'Span Duration',
+    name: t('Span Duration'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
     key: 'occurrences',
-    name: 'Occurrences',
+    name: t('Occurrences'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
     key: 'cumulativeDuration',
-    name: 'Cumulative Duration',
+    name: t('Cumulative Duration'),
     width: COL_WIDTH_UNDEFINED,
   },
 ];
 
-const SPANS_TABLE_COLUMN_TYPE: Partial<Record<SuspectSpanTableColumnKeys, ColumnType>> = {
+const SPANS_TABLE_COLUMN_TYPE: Omit<
+  Record<SuspectSpanTableColumnKeys, ColumnType>,
+  'spans' | 'transactionDuration'
+> = {
   id: 'string',
   timestamp: 'date',
   spanDuration: 'duration',

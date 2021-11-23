@@ -551,6 +551,28 @@ describe('Performance > TransactionSummary', function () {
     expect(issueGet).toHaveBeenCalled();
   });
 
+  it('renders the suspect spans table if the feature is enabled', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-spans-performance/',
+      body: [],
+    });
+
+    const initialData = initializeData({
+      features: ['performance-suspect-spans-view'],
+    });
+    const wrapper = mountWithTheme(
+      <TransactionSummary
+        organization={initialData.organization}
+        location={initialData.router.location}
+      />,
+      initialData.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('SuspectSpans')).toHaveLength(1);
+  });
+
   it('adds search condition on transaction status when clicking on status breakdown', async function () {
     const initialData = initializeData();
     const wrapper = mountWithTheme(

@@ -52,12 +52,14 @@ import TransactionSummaryCharts from './charts';
 import RelatedIssues from './relatedIssues';
 import SidebarCharts from './sidebarCharts';
 import StatusBreakdown from './statusBreakdown';
+import SuspectSpans from './suspectSpans';
 import {TagExplorer} from './tagExplorer';
 import UserStats from './userStats';
 
 type Props = {
   location: Location;
   eventView: EventView;
+  projectId: string;
   transactionName: string;
   organization: Organization;
   isLoading: boolean;
@@ -185,6 +187,7 @@ class SummaryContent extends React.Component<Props> {
   render() {
     let {eventView} = this.props;
     const {
+      projectId,
       transactionName,
       location,
       organization,
@@ -349,6 +352,18 @@ class SummaryContent extends React.Component<Props> {
             })}
             forceLoading={isLoading}
           />
+          <Feature
+            requireAll={false}
+            features={['organizations:performance-suspect-spans-view']}
+          >
+            <SuspectSpans
+              location={location}
+              organization={organization}
+              eventView={eventView}
+              projectId={projectId}
+              transactionName={transactionName}
+            />
+          </Feature>
           <Feature
             requireAll={false}
             features={['performance-tag-explorer', 'performance-tag-page']}
