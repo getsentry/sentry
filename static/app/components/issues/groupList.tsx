@@ -22,6 +22,7 @@ import {callIfFunction} from 'sentry/utils/callIfFunction';
 import StreamManager from 'sentry/utils/streamManager';
 import withApi from 'sentry/utils/withApi';
 import {TimePeriodType} from 'sentry/views/alerts/rules/details/constants';
+import {RELATED_ISSUES_BOOLEAN_QUERY_ERROR} from 'app/views/alerts/rules/details/relatedIssuesNotAvailable';
 
 import GroupListHeader from './groupListHeader';
 
@@ -114,7 +115,7 @@ class GroupList extends React.Component<Props, State> {
 
   fetchData = () => {
     GroupStore.loadInitialData([]);
-    const {api, orgId} = this.props;
+    const {api, orgId, queryParams} = this.props;
     api.clear();
 
     this.setState({loading: true, error: false, errorData: null});
@@ -124,6 +125,18 @@ class GroupList extends React.Component<Props, State> {
     });
 
     const endpoint = this.getGroupListEndpoint();
+
+    const query = (queryParams ?? this.getQueryParams()).query;
+
+    // Check if the alert rule query
+    if (/ or | and /i.test(query)) {
+      this.setState({
+        error: true,
+        errorData: {detail: RELATED_ISSUES_BOOLEAN_QUERY_ERROR},
+        loading: false,
+      });
+      return;
+    }
 
     api.request(endpoint, {
       success: (data, _, resp) => {
