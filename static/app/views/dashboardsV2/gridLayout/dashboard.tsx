@@ -207,15 +207,6 @@ class Dashboard extends Component<Props> {
     }
   };
 
-  getWidgetIds() {
-    return [
-      ...this.props.dashboard.widgets.map((widget, index): string => {
-        return generateWidgetId(widget, index);
-      }),
-      ADD_WIDGET_BUTTON_DRAG_ID,
-    ];
-  }
-
   renderWidget(widget: Widget, index: number) {
     const {isEditing} = this.props;
 
