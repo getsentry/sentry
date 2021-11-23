@@ -11,7 +11,6 @@ import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import {HeaderTitle} from 'app/components/charts/styles';
 import ErrorBoundary from 'app/components/errorBoundary';
-import FeatureBadge from 'app/components/featureBadge';
 import {SelectField} from 'app/components/forms';
 import MenuItem from 'app/components/menuItem';
 import {isSelectionEqual} from 'app/components/organizations/globalSelectionHeader/utils';
@@ -189,12 +188,7 @@ class WidgetCard extends React.Component<Props> {
                 });
               }}
             >
-              <StyledMenuItem key="open-discover">
-                {t('Open in Discover')}
-                {widget.displayType !== DisplayType.TABLE && (
-                  <FeatureBadge type="new" noTooltip />
-                )}
-              </StyledMenuItem>
+              <StyledMenuItem key="open-discover">{t('Open in Discover')}</StyledMenuItem>
             </Link>
           );
         } else {
