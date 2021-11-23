@@ -249,7 +249,7 @@ class Chart extends Component<ChartProps, ChartState> {
   }
 
   get chartOptions() {
-    const {theme, displayMode} = this.props;
+    const {displayMode} = this.props;
 
     return {
       grid: {left: '10px', right: '10px', top: '40px', bottom: '0px'},
