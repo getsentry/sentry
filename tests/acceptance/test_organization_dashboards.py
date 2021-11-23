@@ -1,4 +1,9 @@
-from sentry.models import Dashboard, DashboardWidget, DashboardWidgetDisplayTypes
+from sentry.models import (
+    Dashboard,
+    DashboardWidget,
+    DashboardWidgetDisplayTypes,
+    DashboardWidgetTypes,
+)
 from sentry.testutils import AcceptanceTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
@@ -91,6 +96,7 @@ class OrganizationDashboardsManageAcceptanceTest(AcceptanceTestCase):
             order=0,
             title="Widget 1",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.DISCOVER,
             interval="1d",
         )
         self.widget_2 = DashboardWidget.objects.create(
@@ -98,6 +104,7 @@ class OrganizationDashboardsManageAcceptanceTest(AcceptanceTestCase):
             order=1,
             title="Widget 2",
             display_type=DashboardWidgetDisplayTypes.TABLE,
+            widget_type=DashboardWidgetTypes.DISCOVER,
             interval="1d",
         )
         self.login_as(self.user)
