@@ -46,7 +46,7 @@ export function initializeData(settings?: {
   return {...initialData, location, eventView};
 }
 
-const sampleSpans = [
+export const SAMPLE_SPANS = [
   {
     op: 'op1',
     group: 'aaaaaaaaaaaaaaaa',
@@ -138,9 +138,9 @@ function makeSuspectSpan(opt: SuspectOpt): SuspectSpan {
   };
 }
 
-export function generateSuspectSpansResponse(opts: {examples?: number}) {
-  const {examples} = opts;
-  return sampleSpans.map(sampleSpan => {
+export function generateSuspectSpansResponse(opts?: {examples?: number}) {
+  const {examples} = opts ?? {};
+  return SAMPLE_SPANS.map(sampleSpan => {
     const span = {...sampleSpan};
     if (defined(examples)) {
       span.examples = span.examples.slice(0, examples);

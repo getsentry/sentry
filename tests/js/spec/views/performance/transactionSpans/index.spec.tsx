@@ -1,5 +1,8 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {generateSuspectSpansResponse} from 'sentry-test/performance/initializePerformanceData';
+import {
+  generateSuspectSpansResponse,
+  SAMPLE_SPANS,
+} from 'sentry-test/performance/initializePerformanceData';
 import {act, mountWithTheme, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'app/stores/projectsStore';
@@ -125,7 +128,7 @@ describe('Performance > Transaction Spans', function () {
           await within(card).findByText('Total Cumulative Duration')
         ).toBeInTheDocument();
 
-        for (const example of spans[i].examples) {
+        for (const example of SAMPLE_SPANS[i].examples) {
           expect(
             await within(card).findByText(getShortEventId(example.id))
           ).toBeInTheDocument();
