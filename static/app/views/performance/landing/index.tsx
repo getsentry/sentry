@@ -17,6 +17,7 @@ import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {generateAggregateFields} from 'app/utils/discover/fields';
+import {GenericQueryBatcher} from 'app/utils/performance/contexts/genericQueryBatcher';
 import useTeams from 'app/utils/useTeams';
 
 import {MetricsSwitch} from '../metricsSwitch';
@@ -141,7 +142,9 @@ export function PerformanceLanding(props: Props) {
               selectedTeams={['myteams']}
               selectedProjects={eventView.project.map(String)}
             >
-              <ViewComponent {...props} />
+              <GenericQueryBatcher>
+                <ViewComponent {...props} />
+              </GenericQueryBatcher>
             </TeamKeyTransactionManager.Provider>
           ) : (
             <LoadingIndicator />
