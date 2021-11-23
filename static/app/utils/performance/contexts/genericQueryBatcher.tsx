@@ -1,7 +1,10 @@
 import {createContext, Fragment, Ref, useEffect, useRef} from 'react';
 
 import {Client} from 'app/api';
+import {Organization} from 'app/types';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import useApi from 'app/utils/useApi';
+import useOrganization from 'app/utils/useOrganization';
 
 import {createDefinedContext} from './utils';
 
@@ -69,18 +72,23 @@ function _handleUnmergeableQuery(queryDefinition: BatchQueryDefinition) {
 }
 
 function _handleUnmergeableQueries(mergeMap: MergeMap) {
+  let queriesSent = 0;
   Object.keys(mergeMap).forEach(async k => {
     // Using async forEach to ensure calls start in parallel.
     const mergeList = mergeMap[k];
 
     if (mergeList.length === 1) {
       const [queryDefinition] = mergeList;
+      queriesSent++;
       _handleUnmergeableQuery(queryDefinition);
     }
   });
+
+  return queriesSent;
 }
 
 function _handleMergeableQueries(mergeMap: MergeMap) {
+  let queriesSent = 0;
   Object.keys(mergeMap).forEach(async k => {
     const mergeList = mergeMap[k];
 
@@ -100,6 +108,7 @@ function _handleMergeableQueries(mergeMap: MergeMap) {
       if (Array.isArray(batchFieldValue)) {
         if (batchFieldValue.length > 1) {
           // Omit multiple requests with multi fields (eg. yAxis) for now and run them as single queries
+          queriesSent++;
           _handleUnmergeableQuery(q);
           return;
         }
@@ -112,6 +121,7 @@ function _handleMergeableQueries(mergeMap: MergeMap) {
 
     requestQueryObject.query[batchProperty] = batchValues;
 
+    queriesSent++;
     const requestPromise = requestFunction(
       exampleDefinition.api,
       exampleDefinition.path,
@@ -136,23 +146,43 @@ function _handleMergeableQueries(mergeMap: MergeMap) {
       mergeList.forEach(q => q.reject(e));
     }
   });
+  return queriesSent;
 }
 
-function handleBatching(queries: Record<symbol, BatchQueryDefinition>) {
+function handleBatching(
+  organization: Organization,
+  queries: Record<symbol, BatchQueryDefinition>
+) {
   const mergeMap = queriesToMap(queries);
 
   if (!mergeMap) {
     return;
   }
 
-  _handleUnmergeableQueries(mergeMap);
-  _handleMergeableQueries(mergeMap);
+  let queriesSent = 0;
+  queriesSent += _handleUnmergeableQueries(mergeMap);
+  queriesSent += _handleMergeableQueries(mergeMap);
+
+  const queriesCollected = Object.values(mergeMap).reduce(
+    (acc, mergeList) => acc + mergeList.length,
+    0
+  );
+
+  const queriesSaved = queriesCollected - queriesSent;
+
+  trackAdvancedAnalyticsEvent('performance_views.landingv3.batch_queries', {
+    organization,
+    num_collected: queriesCollected,
+    num_saved: queriesSaved,
+    num_sent: queriesSent,
+  });
 }
 
 export const GenericQueryBatcher = ({children}: {children: React.ReactNode}) => {
   const queries = useRef<Record<symbol, BatchQueryDefinition>>({});
 
   const timeoutId = useRef<NodeJS.Timeout | undefined>();
+  const organization = useOrganization();
 
   const addQuery = (q: BatchQueryDefinition, id: symbol) => {
     queries.current[id] = q;
@@ -163,7 +193,7 @@ export const GenericQueryBatcher = ({children}: {children: React.ReactNode}) => 
     }
     // Put batch function in the next macro task to aggregate all requests in this frame.
     const tID = setTimeout(() => {
-      handleBatching(queries.current);
+      handleBatching(organization, queries.current);
       timeoutId.current = undefined;
     }, 0);
     timeoutId.current = tID;
