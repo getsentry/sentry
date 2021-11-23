@@ -21,7 +21,6 @@ class SentryAppAvatarTestBase(APITestCase):
 
     def create_avatar(self, is_color):
         with self.feature("organizations:sentry-app-logo-upload"):
-            # upload the regular logo
             data = {
                 "color": is_color,
                 "avatar_type": "upload",
