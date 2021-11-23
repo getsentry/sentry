@@ -25,20 +25,10 @@ class GridWidgetCard extends WidgetCard {
           <IconClick>
             <StyledIconGrabbable id={DRAG_HANDLE_ID} color="textColor" />
           </IconClick>
-          <IconClick
-            data-test-id="widget-edit"
-            onClick={() => {
-              onEdit();
-            }}
-          >
+          <IconClick data-test-id="widget-edit" onClick={onEdit}>
             <IconEdit color="textColor" />
           </IconClick>
-          <IconClick
-            data-test-id="widget-delete"
-            onClick={() => {
-              onDelete();
-            }}
-          >
+          <IconClick data-test-id="widget-delete" onClick={onDelete}>
             <IconDelete color="textColor" />
           </IconClick>
         </IconContainer>
