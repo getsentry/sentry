@@ -16,11 +16,12 @@ const QuestionIconContainer = styled('span')<ContainerProps>`
   line-height: ${p => p.theme.iconSizes[p.size] ?? p.size};
 
   & svg {
-    transition: 120ms color;
-    color: ${p => p.theme.gray200};
+    transition: 120ms opacity;
+    color: ${p => p.theme.gray300};
+    opacity: 0.6;
 
     &:hover {
-      color: ${p => p.theme.gray300};
+      opacity: 1;
     }
   }
 `;
