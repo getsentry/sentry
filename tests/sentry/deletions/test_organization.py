@@ -8,6 +8,7 @@ from sentry.models import (
     Dashboard,
     DashboardWidget,
     DashboardWidgetQuery,
+    DashboardWidgetTypes,
     Environment,
     ExternalIssue,
     Group,
@@ -59,10 +60,18 @@ class DeleteOrganizationTest(TransactionTestCase):
             organization_id=org.id, title="The Dashboard", created_by=self.user
         )
         widget_1 = DashboardWidget.objects.create(
-            dashboard=dashboard, order=1, title="Widget 1", display_type=0
+            dashboard=dashboard,
+            order=1,
+            title="Widget 1",
+            display_type=0,
+            widget_type=DashboardWidgetTypes.DISCOVER,
         )
         widget_2 = DashboardWidget.objects.create(
-            dashboard=dashboard, order=2, title="Widget 2", display_type=5
+            dashboard=dashboard,
+            order=2,
+            title="Widget 2",
+            display_type=5,
+            widget_type=DashboardWidgetTypes.DISCOVER,
         )
         widget_1_data = DashboardWidgetQuery.objects.create(
             widget=widget_1, order=1, name="Incoming data"

@@ -5,6 +5,7 @@ from sentry.models import (
     DashboardTombstone,
     DashboardWidget,
     DashboardWidgetDisplayTypes,
+    DashboardWidgetTypes,
 )
 from sentry.testutils import OrganizationDashboardWidgetTestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -26,6 +27,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             order=0,
             title="Widget 1",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.DISCOVER,
             interval="1d",
         )
 
