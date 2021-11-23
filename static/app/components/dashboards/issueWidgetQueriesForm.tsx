@@ -93,6 +93,9 @@ export const SearchConditionsWrapper = styled('div')`
 
 const StyledIssueListSearchBar = styled(IssueListSearchBar)`
   flex-grow: 1;
+  button:not([aria-label='Clear search']) {
+    display: none;
+  }
 `;
 
 export default withIssueTags(IssueWidgetQueriesForm);
