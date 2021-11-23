@@ -81,13 +81,23 @@ function TraceEventDataSection({
   const {recentFirst, raw, activeDisplayOptions} = state;
 
   useEffect(() => {
-    if (raw || activeDisplayOptions.includes(DisplayOption.FULL_STACK_TRACE)) {
+    if (
+      raw ||
+      (!defaultStateProps.fullStackTrace &&
+        !activeDisplayOptions.includes(DisplayOption.FULL_STACK_TRACE)) ||
+      (defaultStateProps.fullStackTrace &&
+        activeDisplayOptions.includes(DisplayOption.FULL_STACK_TRACE))
+    ) {
       return;
     }
 
     setState({
       ...state,
-      activeDisplayOptions: [...activeDisplayOptions, DisplayOption.FULL_STACK_TRACE],
+      activeDisplayOptions: !defaultStateProps.fullStackTrace
+        ? activeDisplayOptions.filter(
+            activeDisplayOption => activeDisplayOption !== DisplayOption.FULL_STACK_TRACE
+          )
+        : [...activeDisplayOptions, DisplayOption.FULL_STACK_TRACE],
     });
   }, [defaultStateProps.fullStackTrace]);
 

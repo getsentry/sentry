@@ -215,7 +215,7 @@ describe('ThreadsV2', function () {
         expect(screen.getByRole('checkbox', {name: 'Raw'})).not.toBeChecked();
 
         expect(
-          screen.getByRole('button', {name: 'Options 1 Active'})
+          screen.getByRole('button', {name: 'Options 0 Active'})
         ).toBeInTheDocument();
         expect(
           screen.getByRole('button', {name: 'Sort By Recent first'})
@@ -228,7 +228,7 @@ describe('ThreadsV2', function () {
         expect(screen.getByText('divided by 0')).toBeInTheDocument();
 
         expect(screen.getByTestId('stack-trace')).toBeInTheDocument();
-        expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(4);
+        expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
 
         expect(container).toSnapshot();
       });
@@ -280,7 +280,7 @@ describe('ThreadsV2', function () {
 
         expect(
           within(screen.queryAllByTestId('stack-trace-frame')[0]).getByText(
-            'puma (3.12.6) lib/puma/thread_pool.rb'
+            'puma (3.12.6) lib/puma/server.rb'
           )
         ).toBeInTheDocument();
 
@@ -297,10 +297,10 @@ describe('ThreadsV2', function () {
         mountWithTheme(<ThreadsV2 {...props} />, {organization: org});
 
         expect(
-          screen.getByRole('button', {name: 'Options 1 Active'})
+          screen.getByRole('button', {name: 'Options 0 Active'})
         ).toBeInTheDocument();
 
-        userEvent.click(screen.getByRole('button', {name: 'Options 1 Active'}));
+        userEvent.click(screen.getByRole('button', {name: 'Options 0 Active'}));
 
         expect(screen.queryAllByLabelText('Display option')).toHaveLength(2);
 
@@ -320,23 +320,23 @@ describe('ThreadsV2', function () {
 
         const displayOption1 = screen.queryAllByLabelText('Display option')[1];
         expect(displayOption1).toHaveTextContent('Full Stack Trace');
-        expect(within(displayOption1).getByRole('checkbox')).toBeChecked();
+        expect(within(displayOption1).getByRole('checkbox')).not.toBeChecked();
         expect(within(displayOption1).getByRole('checkbox')).toHaveAttribute(
           'aria-disabled',
           'false'
         );
 
         expect(screen.getByTestId('stack-trace')).toBeInTheDocument();
-        expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(4);
+        expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
 
-        // Uncheck Full Stack Trace
+        // Check Full Stack Trace
         userEvent.click(screen.queryAllByLabelText('Display option')[1]);
         expect(
           within(screen.queryAllByLabelText('Display option')[1]).getByRole('checkbox')
-        ).not.toBeChecked();
+        ).toBeChecked();
 
-        // Display less frames
-        expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
+        // Display more frames
+        expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(4);
       });
     });
   });
@@ -870,7 +870,7 @@ describe('ThreadsV2', function () {
         expect(screen.getByRole('checkbox', {name: 'Raw'})).not.toBeChecked();
 
         expect(
-          screen.getByRole('button', {name: 'Options 1 Active'})
+          screen.getByRole('button', {name: 'Options 0 Active'})
         ).toBeInTheDocument();
         expect(
           screen.getByRole('button', {name: 'Sort By Recent first'})
@@ -885,7 +885,7 @@ describe('ThreadsV2', function () {
         ).toBeInTheDocument();
 
         expect(screen.getByTestId('stack-trace')).toBeInTheDocument();
-        expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(4);
+        expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
 
         expect(container).toSnapshot();
       });
@@ -936,9 +936,7 @@ describe('ThreadsV2', function () {
         ).toBeInTheDocument();
 
         expect(
-          within(screen.queryAllByTestId('stack-trace-frame')[0]).getByText(
-            '__44-[SentryBreadcrumbTracker swizzleSendAction]_block_invoke_2'
-          )
+          within(screen.queryAllByTestId('stack-trace-frame')[0]).getByText('UIKit')
         ).toBeInTheDocument();
 
         userEvent.click(screen.getByRole('button', {name: 'Sort By Recent last'}));
@@ -954,9 +952,9 @@ describe('ThreadsV2', function () {
         mountWithTheme(<ThreadsV2 {...props} />, {organization: org});
 
         expect(
-          screen.getByRole('button', {name: 'Options 1 Active'})
+          screen.getByRole('button', {name: 'Options 0 Active'})
         ).toBeInTheDocument();
-        userEvent.click(screen.getByRole('button', {name: 'Options 1 Active'}));
+        userEvent.click(screen.getByRole('button', {name: 'Options 0 Active'}));
 
         expect(screen.queryAllByLabelText('Display option')).toHaveLength(5);
 
@@ -994,14 +992,14 @@ describe('ThreadsV2', function () {
 
         const displayOption4 = screen.queryAllByLabelText('Display option')[4];
         expect(displayOption4).toHaveTextContent('Full Stack Trace');
-        expect(within(displayOption4).getByRole('checkbox')).toBeChecked();
+        expect(within(displayOption4).getByRole('checkbox')).not.toBeChecked();
         expect(within(displayOption4).getByRole('checkbox')).toHaveAttribute(
           'aria-disabled',
           'false'
         );
 
         expect(screen.getByTestId('stack-trace')).toBeInTheDocument();
-        expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(4);
+        expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
 
         // Check Verbose Function Names
         expect(
@@ -1033,14 +1031,14 @@ describe('ThreadsV2', function () {
           within(screen.queryAllByTestId('stack-trace-frame')[1]).getByText('0x10008c5ac')
         ).toBeInTheDocument();
 
-        // Uncheck Full Stack Trace
+        // Check Full Stack Trace
         userEvent.click(screen.queryAllByLabelText('Display option')[4]);
         expect(
           within(screen.queryAllByLabelText('Display option')[4]).getByRole('checkbox')
-        ).not.toBeChecked();
+        ).toBeChecked();
 
-        // Display less frames
-        expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
+        // Display more frames
+        expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(4);
       });
     });
   });
