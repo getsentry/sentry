@@ -24,6 +24,7 @@ from sentry.db.models import (
     ParanoidModel,
 )
 from sentry.models.apiscopes import HasApiScopes
+from sentry.models.sentryappavatar import SentryAppAvatar
 from sentry.models.sentryappinstallation import SentryAppInstallation
 from sentry.utils import metrics
 
@@ -215,3 +216,7 @@ class SentryApp(ParanoidModel, HasApiScopes):
     def show_auth_info(self, access):
         encoded_scopes = set({"%s" % scope for scope in list(access.scopes)})
         return set(self.scope_list).issubset(encoded_scopes)
+
+    def delete(self):
+        SentryAppAvatar.objects.filter(sentry_app=self).delete()
+        return super().delete()
