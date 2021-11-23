@@ -61,7 +61,12 @@ export function HistogramWidget(props: Props) {
     <GenericPerformanceWidget<AreaDataType>
       {...props}
       Subtitle={() => (
-        <Subtitle>{t('Compared to last %s ', globalSelection.datetime.period)}</Subtitle>
+        <Subtitle>
+          {t(
+            'In the last %s ',
+            globalSelection.datetime.period ? globalSelection.datetime.period : 'period'
+          )}
+        </Subtitle>
       )}
       HeaderActions={provided => (
         <Fragment>

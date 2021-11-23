@@ -88,7 +88,12 @@ export function SingleFieldAreaWidget(props: Props) {
     <GenericPerformanceWidget<DataType>
       {...props}
       Subtitle={() => (
-        <Subtitle>{t('Compared to last %s ', globalSelection.datetime.period)}</Subtitle>
+        <Subtitle>
+          {t(
+            'Compared to last %s ',
+            globalSelection.datetime.period ? globalSelection.datetime.period : 'period'
+          )}
+        </Subtitle>
       )}
       HeaderActions={provided => (
         <Fragment>
