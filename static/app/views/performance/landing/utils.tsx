@@ -110,7 +110,7 @@ export function handleLandingDisplayChange(
   searchConditions.removeFilter('transaction.op');
 
   const queryWithConditions = {
-    ...omit(location.query, 'landingDisplay'),
+    ...omit(location.query, ['landingDisplay', 'sort']),
     query: searchConditions.formatString(),
   };
 
