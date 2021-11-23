@@ -34,6 +34,7 @@ describe('Dashboards util', () => {
           orderby: '',
         },
       ]);
+      expect(widget?.widgetType).toEqual('discover');
     });
     it('returns undefined if query is missing title', () => {
       baseQuery.title = '';

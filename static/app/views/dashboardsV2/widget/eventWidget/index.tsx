@@ -25,7 +25,13 @@ import AsyncView from 'app/views/asyncView';
 import WidgetCard from 'app/views/dashboardsV2/widgetCard';
 import {generateFieldOptions} from 'app/views/eventsV2/utils';
 
-import {DashboardDetails, DisplayType, Widget, WidgetQuery} from '../../types';
+import {
+  DashboardDetails,
+  DisplayType,
+  Widget,
+  WidgetQuery,
+  WidgetType,
+} from '../../types';
 import BuildStep from '../buildStep';
 import BuildSteps from '../buildSteps';
 import ChooseDataSetStep from '../choseDataStep';
@@ -59,6 +65,7 @@ type Props = AsyncView['props'] & {
 type State = AsyncView['state'] & {
   title: string;
   displayType: DisplayType;
+  widgetType: WidgetType;
   interval: string;
   queries: Widget['queries'];
   widgetErrors?: Record<string, any>;
@@ -75,6 +82,7 @@ class EventWidget extends AsyncView<Props, State> {
         ...super.getDefaultState(),
         title: t('Custom %s Widget', displayTypes[DisplayType.AREA]),
         displayType: DisplayType.AREA,
+        widgetType: WidgetType.DISCOVER,
         interval: '5m',
         queries: [{...newQuery}],
       };
@@ -84,6 +92,7 @@ class EventWidget extends AsyncView<Props, State> {
       ...super.getDefaultState(),
       title: widget.title,
       displayType: widget.displayType,
+      widgetType: widget.widgetType,
       interval: widget.interval,
       queries: normalizeQueries(widget.displayType, widget.queries),
       widgetErrors: undefined,
@@ -168,6 +177,7 @@ class EventWidget extends AsyncView<Props, State> {
       const widgetData: Widget = pick(this.state, [
         'title',
         'displayType',
+        'widgetType',
         'interval',
         'queries',
       ]);
@@ -208,7 +218,7 @@ class EventWidget extends AsyncView<Props, State> {
       dashboardTitle,
       onDelete,
     } = this.props;
-    const {title, displayType, queries, interval, widgetErrors} = this.state;
+    const {title, displayType, queries, interval, widgetType, widgetErrors} = this.state;
     const orgSlug = organization.slug;
 
     const explodedFields = queries[0].fields.map(field => explodeField({field}));
@@ -259,7 +269,7 @@ class EventWidget extends AsyncView<Props, State> {
                   api={this.api}
                   organization={organization}
                   selection={selection}
-                  widget={{title, queries, displayType, interval}}
+                  widget={{title, queries, displayType, interval, widgetType}}
                   isEditing={false}
                   onDelete={() => undefined}
                   onEdit={() => undefined}

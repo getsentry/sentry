@@ -238,6 +238,28 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
 
             assert len(events["data"]) == query_data[2], query_data
 
+    def test_trend_percentage_query_alias_as_sort(self):
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": iso_format(self.day_ago),
+                    "field": ["project", "transaction"],
+                    "query": "event.type:transaction",
+                    "trendType": "improved",
+                    "trendFunction": "p50()",
+                    "sort": "trend_percentage()",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+
+        events = response.data
+
+        assert len(events["data"]) == 1
+
     def test_trend_difference_query_alias(self):
         queries = [
             ("trend_difference():>7s", "regression", 1),

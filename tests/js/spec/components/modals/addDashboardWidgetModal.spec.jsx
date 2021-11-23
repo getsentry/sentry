@@ -1016,4 +1016,17 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(openDashboardWidgetLibraryModal).toHaveBeenCalledTimes(1);
     wrapper.unmount();
   });
+
+  it('sets widgetType to dashboard', async function () {
+    const onAdd = jest.fn();
+    const wrapper = mountModal({
+      initialData,
+      onAddWidget: onAdd,
+      onUpdateWidget: () => undefined,
+    });
+    await clickSubmit(wrapper);
+
+    expect(onAdd).toHaveBeenCalledWith(expect.objectContaining({widgetType: 'discover'}));
+    wrapper.unmount();
+  });
 });

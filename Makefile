@@ -10,6 +10,7 @@ drop-db \
 create-db \
 apply-migrations \
 reset-db \
+setup-apple-m1 \
 setup-git \
 node-version-check \
 install-js-dev \
