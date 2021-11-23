@@ -94,6 +94,7 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
           },
         ],
         title: 'All Events',
+        widgetType: 'discover',
       },
     ]);
     expect(closeModal).toHaveBeenCalledTimes(1);
