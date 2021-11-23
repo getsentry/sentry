@@ -29,6 +29,7 @@ import SelectableList, {
   ListClose,
   RightAlignedCell,
   Subtitle,
+  WidgetEmptyStateWarning,
 } from '../components/selectableList';
 import {transformDiscoverToList} from '../transforms/transformDiscoverToList';
 import {transformEventsRequestToVitals} from '../transforms/transformEventsToVitals';
@@ -225,6 +226,7 @@ export function VitalWidget(props: Props) {
           </Subtitle>
         );
       }}
+      EmptyComponent={WidgetEmptyStateWarning}
       HeaderActions={provided => {
         const vital = settingToVital[props.chartSetting];
         const target = vitalDetailRouteWithQuery({

@@ -2,6 +2,7 @@ import {Fragment, FunctionComponent, useMemo, useState} from 'react';
 import {withRouter} from 'react-router';
 import {Location} from 'history';
 
+import Button from 'app/components/button';
 import Truncate from 'app/components/truncate';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
@@ -10,7 +11,7 @@ import TrendsDiscoverQuery from 'app/utils/performance/trends/trendsDiscoverQuer
 import {MutableSearch} from 'app/utils/tokenizeSearch';
 import withProjects from 'app/utils/withProjects';
 import {CompareDurations} from 'app/views/performance/trends/changedTransactions';
-import {trendsTargetRoute} from 'app/views/performance/utils';
+import {handleTrendsClick, trendsTargetRoute} from 'app/views/performance/utils';
 
 import {Chart} from '../../../trends/chart';
 import {TrendChangeType, TrendFunctionField} from '../../../trends/types';
@@ -49,7 +50,7 @@ type DataType = {
 const fields = [{field: 'transaction'}, {field: 'project'}];
 
 export function TrendsWidget(props: Props) {
-  const {eventView: _eventView, ContainerActions} = props;
+  const {eventView: _eventView, ContainerActions, location, organization} = props;
   const trendChangeType =
     props.chartSetting === PerformanceWidgetSetting.MOST_IMPROVED
       ? TrendChangeType.IMPROVED
@@ -100,7 +101,22 @@ export function TrendsWidget(props: Props) {
     <GenericPerformanceWidget<DataType>
       {...rest}
       Subtitle={() => <Subtitle>{t('Trending Transactions')}</Subtitle>}
-      HeaderActions={provided => <ContainerActions {...provided.widgetData.chart} />}
+      HeaderActions={provided => {
+        return (
+          <Fragment>
+            <div>
+              <Button
+                onClick={() => handleTrendsClick({location, organization})}
+                size="small"
+                data-test-id="view-all-button"
+              >
+                {t('View All')}
+              </Button>
+            </div>
+            <ContainerActions {...provided.widgetData.chart} />
+          </Fragment>
+        );
+      }}
       EmptyComponent={WidgetEmptyStateWarning}
       Queries={Queries}
       Visualizations={[
