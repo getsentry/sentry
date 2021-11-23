@@ -62,6 +62,7 @@ export function SingleFieldAreaWidget(props: Props) {
               includeTransformedData
               partial
               currentSeriesNames={[field]}
+              previousSeriesNames={[`previous ${field}`]}
               query={provided.eventView.getQueryWithAdditionalConditions()}
               interval={getInterval(
                 {

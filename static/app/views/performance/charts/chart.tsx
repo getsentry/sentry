@@ -170,7 +170,10 @@ function Chart({
     colors: [colors[0], colors[1]] as string[],
     tooltip: {
       valueFormatter: (value, seriesName) => {
-        return tooltipFormatter(value, seriesName);
+        return tooltipFormatter(
+          value,
+          data && data.length ? data[0].seriesName : seriesName
+        );
       },
       nameFormatter(value: string) {
         return value === 'epm()' ? 'tpm()' : value;
