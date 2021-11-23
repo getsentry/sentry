@@ -8,7 +8,11 @@ import Tag from 'app/components/tagDeprecated';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
-import {DashboardDetails, Widget} from 'app/views/dashboardsV2/types';
+import {
+  DashboardDetails,
+  DashboardWidgetSource,
+  Widget,
+} from 'app/views/dashboardsV2/types';
 import {WidgetTemplate} from 'app/views/dashboardsV2/widgetLibrary/data';
 
 import Button from '../../button';
@@ -67,7 +71,7 @@ function DashboardWidgetLibraryModal({
                 dashboard,
                 selectedWidgets,
                 widget: customWidget,
-                fromLibrary: true,
+                source: DashboardWidgetSource.LIBRARY,
                 onAddLibraryWidget: onAddWidget,
               });
             }}

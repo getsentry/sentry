@@ -38,6 +38,7 @@ import {DISPLAY_TYPE_CHOICES} from 'app/views/dashboardsV2/data';
 import {
   DashboardDetails,
   DashboardListItem,
+  DashboardWidgetSource,
   DisplayType,
   MAX_WIDGETS,
   Widget,
@@ -67,8 +68,7 @@ export type DashboardWidgetModalOptions = {
   defaultTableColumns?: readonly string[];
   defaultTitle?: string;
   displayType?: DisplayType;
-  fromDiscover?: boolean;
-  fromLibrary?: boolean;
+  source: DashboardWidgetSource;
   start?: DateString;
   end?: DateString;
   statsPeriod?: RelativePeriod | string;
@@ -111,7 +111,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
 
-    const {widget, defaultWidgetQuery, defaultTitle, displayType, fromDiscover} = props;
+    const {widget, defaultWidgetQuery, defaultTitle, displayType} = props;
     if (!widget) {
       this.state = {
         title: defaultTitle ?? '',
@@ -119,7 +119,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         interval: '5m',
         queries: [defaultWidgetQuery ? {...defaultWidgetQuery} : {...newQuery}],
         errors: undefined,
-        loading: !!fromDiscover,
+        loading: !!this.omitDashboardProp,
         dashboards: [],
         userHasModified: false,
         widgetType: WidgetType.DISCOVER,
@@ -141,11 +141,22 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
   }
 
   componentDidMount() {
-    const {fromDiscover} = this.props;
-    if (fromDiscover) {
+    if (this.omitDashboardProp) {
       this.fetchDashboards();
     }
     this.handleDefaultFields();
+  }
+
+  get omitDashboardProp() {
+    // when opening from discover or issues page, the user selects the dashboard in the widget UI
+    return [
+      DashboardWidgetSource.DISCOVERV2,
+      DashboardWidgetSource.ISSUE_DETAILS,
+    ].includes(this.props.source);
+  }
+
+  get fromLibrary() {
+    return this.props.source === DashboardWidgetSource.LIBRARY;
   }
 
   handleSubmit = async (event: React.FormEvent) => {
@@ -158,8 +169,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       onAddWidget,
       onUpdateWidget,
       widget: previousWidget,
-      fromDiscover,
-      fromLibrary,
+      source,
     } = this.props;
     this.setState({loading: true});
     let errors: FlatValidationError = {};
@@ -194,7 +204,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
           organization,
         });
       }
-      if (!fromDiscover && !fromLibrary) {
+      if (source === DashboardWidgetSource.DASHBOARDS) {
         closeModal();
       }
     } catch (err) {
@@ -202,16 +212,19 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       this.setState({errors});
     } finally {
       this.setState({loading: false});
-      if (fromDiscover) {
-        this.handleSubmitFromDiscover(errors, widgetData);
+      if (this.omitDashboardProp) {
+        this.handleSubmitFromSelectedDashboard(errors, widgetData);
       }
-      if (fromLibrary) {
+      if (this.fromLibrary) {
         this.handleSubmitFromLibrary(errors, widgetData);
       }
     }
   };
 
-  handleSubmitFromDiscover = async (errors: FlatValidationError, widgetData: Widget) => {
+  handleSubmitFromSelectedDashboard = async (
+    errors: FlatValidationError,
+    widgetData: Widget
+  ) => {
     const {closeModal, organization} = this.props;
     const {selectedDashboard, dashboards} = this.state;
     // Validate that a dashboard was selected since api call to /dashboards/widgets/ does not check for dashboard
@@ -315,13 +328,13 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
   };
 
   handleFieldChange = (field: string) => (value: string) => {
-    const {fromDiscover, organization} = this.props;
+    const {organization, source} = this.props;
     this.setState(prevState => {
       const newState = cloneDeep(prevState);
       set(newState, field, value);
 
       trackAdvancedAnalyticsEvent('dashboards_views.add_widget_modal.change', {
-        from: fromDiscover ? 'discoverv2' : 'dashboards',
+        from: source,
         field,
         value,
         widgetType: 'discover',
@@ -471,8 +484,6 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       organization,
       selection,
       tags,
-      fromDiscover,
-      fromLibrary,
       widget: previousWidget,
       start,
       end,
@@ -499,14 +510,13 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       });
 
     const isUpdatingWidget = typeof onUpdateWidget === 'function' && !!previousWidget;
-
     return (
       <React.Fragment>
         <Header closeButton>
           <h4>
-            {fromDiscover
+            {this.omitDashboardProp
               ? t('Add Widget to Dashboard')
-              : fromLibrary
+              : this.fromLibrary
               ? t('Add Custom Widget')
               : isUpdatingWidget
               ? t('Edit Widget')
@@ -514,7 +524,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
           </h4>
         </Header>
         <Body>
-          {fromDiscover && this.renderDashboardSelector()}
+          {this.omitDashboardProp && this.renderDashboardSelector()}
           <DoubleFieldWrapper>
             <StyledField
               data-test-id="widget-name"
@@ -604,7 +614,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
               {t('Read the docs')}
             </Button>
             <ButtonBar gap={1}>
-              {fromLibrary && dashboard && onAddLibraryWidget ? (
+              {this.fromLibrary && dashboard && onAddLibraryWidget ? (
                 <Button
                   data-test-id="back-to-library"
                   type="button"
@@ -629,7 +639,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
                 disabled={state.loading}
                 busy={state.loading}
               >
-                {fromLibrary
+                {this.fromLibrary
                   ? t('Confirm')
                   : isUpdatingWidget
                   ? t('Update Widget')
