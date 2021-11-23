@@ -14,7 +14,6 @@ import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
 import DropdownControl from 'app/components/dropdownControl';
-import FeatureBadge from 'app/components/featureBadge';
 import Hovercard from 'app/components/hovercard';
 import {IconDelete, IconStar} from 'app/icons';
 import {t} from 'app/locale';
@@ -377,7 +376,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
         key="add-dashboard-widget-from-discover"
         onClick={this.handleAddDashboardWidget}
       >
-        {t('Add to Dashboard')} <StyledFeatureBadge type="new" noTooltip />
+        {t('Add to Dashboard')}
       </AddToDashboardButton>
     );
   }
@@ -464,7 +463,4 @@ const AddToDashboardButton = styled(Button)`
   }
 `;
 
-const StyledFeatureBadge = styled(FeatureBadge)`
-  overflow: auto;
-`;
 export default withProjects(withApi(SavedQueryButtonGroup));
