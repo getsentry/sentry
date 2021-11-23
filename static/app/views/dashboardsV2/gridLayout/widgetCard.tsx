@@ -31,7 +31,7 @@ import {DisplayType} from 'app/views/dashboardsV2/widget/utils';
 import WidgetCardChart from 'app/views/dashboardsV2/widgetCardChart';
 import WidgetQueries from 'app/views/dashboardsV2/widgetQueries';
 
-export const DRAG_HANDLE_ID = 'grid-layout-drag-handle';
+export const DRAG_HANDLE_CLASS = 'grid-layout-drag-handle';
 
 type Props = WithRouterProps & {
   api: Client;
@@ -80,7 +80,7 @@ export class WidgetCard extends React.Component<Props> {
       <ToolbarPanel>
         <IconContainer style={{visibility: hideToolbar ? 'hidden' : 'visible'}}>
           <IconClick>
-            <StyledIconGrabbable id={DRAG_HANDLE_ID} color="textColor" />
+            <StyledIconGrabbable className={DRAG_HANDLE_CLASS} color="textColor" />
           </IconClick>
           <IconClick data-test-id="widget-edit" onClick={onEdit}>
             <IconEdit color="textColor" />

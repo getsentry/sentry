@@ -29,7 +29,7 @@ import {
 import {DataSet} from 'app/views/dashboardsV2/widget/utils';
 
 import SortableWidget from './sortableWidget';
-import {DRAG_HANDLE_ID} from './widgetCard';
+import {DRAG_HANDLE_CLASS} from './widgetCard';
 
 const NUM_COLS = 6;
 const ROW_HEIGHT = 120;
@@ -247,7 +247,7 @@ class Dashboard extends Component<Props> {
         cols={NUM_COLS}
         rowHeight={ROW_HEIGHT}
         margin={WIDGET_MARGINS}
-        draggableHandle={`#${DRAG_HANDLE_ID}`}
+        draggableHandle={`.${DRAG_HANDLE_CLASS}`}
         isDraggable={isEditing}
         isResizable={isEditing}
         isBounded
