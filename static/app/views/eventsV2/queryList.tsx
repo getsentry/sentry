@@ -26,7 +26,7 @@ import {DisplayModes} from 'app/utils/discover/types';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import {decodeList} from 'app/utils/queryString';
 import withApi from 'app/utils/withApi';
-import {WidgetQuery} from 'app/views/dashboardsV2/types';
+import {DashboardWidgetSource, WidgetQuery} from 'app/views/dashboardsV2/types';
 
 import {
   displayModeToDisplayType,
@@ -122,7 +122,7 @@ class QueryList extends React.Component<Props> {
         start: eventView.start,
         end: eventView.end,
         statsPeriod: eventView.statsPeriod,
-        fromDiscover: true,
+        source: DashboardWidgetSource.DISCOVERV2,
         defaultWidgetQuery,
         defaultTableColumns: eventView.fields.map(({field}) => field),
         defaultTitle:
