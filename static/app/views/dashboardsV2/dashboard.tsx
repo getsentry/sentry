@@ -41,7 +41,7 @@ type Props = {
   newWidget?: Widget;
 };
 
-export class Dashboard extends Component<Props> {
+class Dashboard extends Component<Props> {
   async componentDidMount() {
     const {isEditing} = this.props;
     // Load organization tags when in edit mode.
