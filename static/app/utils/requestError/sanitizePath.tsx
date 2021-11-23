@@ -13,15 +13,12 @@ export function sanitizePath(path: string) {
     /(?<start>.*?)\/(?<type>organizations|projects|teams)\/(?<primarySlug>[^/]+)\/(?<contentType>[^/]+\/)?(?<tertiarySlug>[^/]+\/)?(?<end>.*)/,
     function (...args) {
       const matches = args[args.length - 1];
-
-      // console.log({matches});
-      // console.log(args);
       const {start, type, contentType, tertiarySlug, end} = matches;
-
-      let suffix = `${tertiarySlug}${end}`;
       const isOrg = type === 'organizations';
       const isProject = type === 'projects';
       const isRuleConditions = isProject && contentType === 'rule-conditions/';
+
+      let suffix = `${tertiarySlug}${end}`;
 
       if (isOrg && contentType === 'events/') {
         // https://github.com/getsentry/sentry/blob/8d4482f01aa2122c6f6670ab84f9263e6f021467/src/sentry/api/urls.py#L1004
