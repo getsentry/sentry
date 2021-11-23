@@ -1,5 +1,5 @@
 /**
- * Remove organization slugs from the path - we do not want them displayed in the Issues Stream (having them in issue details is ok)
+ * Remove slugs from the path - we do not want them displayed in the Issues Stream (having them in issue details is ok)
  */
 
 const SHORTENED_TYPE = {
