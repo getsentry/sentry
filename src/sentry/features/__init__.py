@@ -64,7 +64,7 @@ default_manager.add("organizations:connect-discover-and-dashboards", Organizatio
 default_manager.add("organizations:crash-rate-alerts", OrganizationFeature, True)
 default_manager.add("organizations:custom-event-title", OrganizationFeature)
 default_manager.add("organizations:custom-symbol-sources", OrganizationFeature)
-default_manager.add("organizations:dashboard-widget-resizing", OrganizationFeature, True)
+default_manager.add("organizations:dashboard-grid-layout", OrganizationFeature, True)
 default_manager.add("organizations:dashboards-basic", OrganizationFeature)
 default_manager.add("organizations:dashboards-edit", OrganizationFeature)
 default_manager.add("organizations:widget-library", OrganizationFeature, True)
