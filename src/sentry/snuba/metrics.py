@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 from collections import OrderedDict
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from operator import itemgetter
 from typing import (
     Any,
     Collection,
@@ -276,7 +277,7 @@ class MetricMeta(TypedDict):
 
 
 class Tag(TypedDict):
-    key: str
+    key: str  # Called key here to be consistent with JS type
 
 
 class TagValue(TypedDict):
@@ -834,26 +835,41 @@ class MetaFromSnuba:
         self._org_id = projects[0].organization_id
         self._projects = projects
 
-    def _get_query(self, entity_key: EntityKey) -> Query:
+    def _get_data(
+        self,
+        *,
+        entity_key: EntityKey,
+        select: List[Column],
+        where: List[Condition],
+        groupby: List[Column],
+        referrer: str,
+    ) -> Query:
         now = datetime.now()
-        return Query(
+        query = Query(
             dataset=Dataset.Metrics.value,
             match=Entity(entity_key.value),
-            select=[Column("metric_id")],
-            groupby=[Column("metric_id")],
+            select=select,
+            groupby=groupby,
             where=[
                 Condition(Column("org_id"), Op.EQ, self._org_id),
                 Condition(Column("project_id"), Op.IN, [p.id for p in self._projects]),
                 Condition(Column(TS_COL_QUERY), Op.GTE, now - timedelta(hours=24)),
                 Condition(Column(TS_COL_QUERY), Op.LT, now),
-            ],
+            ]
+            + where,
             granularity=Granularity(self._granularity),
         )
+        result = raw_snql_query(query, referrer)
+        return result["data"]
 
     def _get_metrics_for_entity(self, entity_key: EntityKey) -> Mapping[str, Any]:
-        query = self._get_query(entity_key)
-        result = raw_snql_query(query, referrer="snuba.metrics.get_metrics_names_for_entity")
-        return result["data"]
+        return self._get_data(
+            entity_key=entity_key,
+            select=[Column("metric_id")],
+            groupby=[Column("metric_id")],
+            where=[],
+            referrer="snuba.metrics.get_metrics_names_for_entity",
+        )
 
     def get_metrics(self) -> Sequence[MetricMeta]:
         metric_names = (
@@ -874,6 +890,39 @@ class MetaFromSnuba:
 
     def get_single_metric(self, metric_name: str) -> MetricMetaWithTagKeys:
         """Get metadata for a single metric, without tag values"""
+
+        metric_id = indexer.resolve(metric_name)
+        if metric_id is None:
+            # TODO: throw exception here
+            raise NotImplementedError()
+
+        for metric_type in ("counter", "set", "distribution"):
+            entity_key = METRIC_TYPE_TO_ENTITY[metric_type]
+            # TODO: What if exists in multiple?
+            data = self._get_data(
+                entity_key=entity_key,
+                select=[Column("metric_id"), Column("tags.key")],
+                where=[Condition(Column("metric_id"), Op.EQ, metric_id)],
+                groupby=[Column("metric_id"), Column("tags.key")],
+                referrer="snuba.metrics.meta.get_single_metric",
+            )
+            # TODO: does this work when metric has no tags?
+            if data:
+                tag_ids = {tag_id for row in data for tag_id in row["tags.key"]}
+                return MetricMetaWithTagKeys(
+                    name=metric_name,
+                    type=metric_type,
+                    operations=_AVAILABLE_OPERATIONS[entity_key.value],
+                    tags=sorted(
+                        (
+                            # If an index cannot be resolved, consider it a bug
+                            Tag(key=indexer.reverse_resolve(tag_id))
+                            for tag_id in tag_ids
+                        ),
+                        key=itemgetter("key"),
+                    ),
+                    unit=None,
+                )
 
     def get_tags(self, metric_names=Optional[Sequence[str]]) -> Sequence[Tag]:
         """Get all available tag names for this project

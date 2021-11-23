@@ -484,6 +484,8 @@ class OrganizationMetricMetaIntegrationTest(SessionMetricsTestCase, APITestCase)
         because the setUp bypasses it.
         """
 
+        now = int(time.time())
+
         # TODO: move _send to SnubaMetricsTestCase
         self._send_buckets(
             [
@@ -491,16 +493,27 @@ class OrganizationMetricMetaIntegrationTest(SessionMetricsTestCase, APITestCase)
                     "org_id": self.organization.id,
                     "project_id": self.project.id,
                     "metric_id": indexer.record("metric1"),
-                    "timestamp": int(time.time()),
+                    "timestamp": now,
                     "tags": {
                         indexer.record("tag1"): indexer.record("value1"),
                         indexer.record("tag2"): indexer.record("value2"),
+                    },
+                    "type": "c",
+                    "value": 1,
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": indexer.record("metric1"),
+                    "timestamp": now,
+                    "tags": {
                         indexer.record("tag3"): indexer.record("value3"),
                     },
                     "type": "c",
                     "value": 1,
                     "retention_days": 90,
-                }
+                },
             ],
             entity="metrics_counters",
         )
@@ -510,11 +523,11 @@ class OrganizationMetricMetaIntegrationTest(SessionMetricsTestCase, APITestCase)
                     "org_id": self.organization.id,
                     "project_id": self.project.id,
                     "metric_id": indexer.record("metric2"),
-                    "timestamp": int(time.time()),
+                    "timestamp": now,
                     "tags": {
+                        indexer.record("tag4"): indexer.record("value3"),
                         indexer.record("tag1"): indexer.record("value2"),
                         indexer.record("tag2"): indexer.record("value1"),
-                        indexer.record("tag4"): indexer.record("value3"),
                     },
                     "type": "s",
                     "value": [123],
@@ -529,4 +542,43 @@ class OrganizationMetricMetaIntegrationTest(SessionMetricsTestCase, APITestCase)
             datasource="snuba",  # TODO: remove datasource arg
         )
 
-        print(response.data)
+        assert response.data == [
+            {"name": "metric1", "type": "counter", "operations": ["sum"], "unit": None},
+            {"name": "metric2", "type": "set", "operations": ["count_unique"], "unit": None},
+        ]
+
+        url = reverse(
+            "sentry-api-0-organization-metric-details",
+            kwargs={"organization_slug": self.organization.slug, "metric_name": "metric1"},
+        )
+        response = self.client.get(url + "?datasource=snuba")  # TODO: remove datasource arg
+        assert response.status_code == 200
+        assert response.json() == {
+            "name": "metric1",
+            "type": "counter",
+            "operations": ["sum"],
+            "unit": None,
+            "tags": [
+                {"key": "tag1"},
+                {"key": "tag2"},
+                {"key": "tag3"},
+            ],
+        }
+
+        url = reverse(
+            "sentry-api-0-organization-metric-details",
+            kwargs={"organization_slug": self.organization.slug, "metric_name": "metric2"},
+        )
+        response = self.client.get(url + "?datasource=snuba")  # TODO: remove datasource arg
+        assert response.status_code == 200
+        assert response.json() == {
+            "name": "metric2",
+            "type": "set",
+            "operations": ["count_unique"],
+            "unit": None,
+            "tags": [
+                {"key": "tag1"},
+                {"key": "tag2"},
+                {"key": "tag4"},
+            ],
+        }
