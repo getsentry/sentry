@@ -25,7 +25,7 @@ import {Organization, Project} from 'app/types';
 import {Event, EventTag} from 'app/types/event';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
-import {FIELD_TAGS} from 'app/utils/discover/fields';
+import {formatTagKey} from 'app/utils/discover/fields';
 import {eventDetailsRoute} from 'app/utils/discover/urls';
 import {getMessage} from 'app/utils/events';
 import * as QuickTraceContext from 'app/utils/performance/quickTrace/quickTraceContext';
@@ -43,12 +43,6 @@ import DiscoverBreadcrumb from '../breadcrumb';
 import {generateTitle, getExpandedResults} from '../utils';
 
 import LinkedIssue from './linkedIssue';
-
-/**
- * Some tag keys should never be formatted as `tag[...]`
- * when used as a filter because they are predefined.
- */
-const EXCLUDED_TAG_KEYS = new Set(['release']);
 
 type Props = Pick<
   RouteComponentProps<{eventSlug: string}, {}>,
@@ -101,16 +95,6 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     return this.props.eventSlug.split(':')[0];
   }
 
-  generateTagKey = (tag: EventTag) => {
-    // Some tags may be normalized from context, but not all of them are.
-    // This supports a user making a custom tag with the same name as one
-    // that comes from context as all of these are also tags.
-    if (tag.key in FIELD_TAGS && !EXCLUDED_TAG_KEYS.has(tag.key)) {
-      return `tags[${tag.key}]`;
-    }
-    return tag.key;
-  };
-
   generateTagUrl = (tag: EventTag) => {
     const {eventView, organization} = this.props;
     const {event} = this.state;
@@ -121,7 +105,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     if (eventReference.id) {
       delete (eventReference as any).id;
     }
-    const tagKey = this.generateTagKey(tag);
+    const tagKey = formatTagKey(tag.key);
     const nextView = getExpandedResults(eventView, {[tagKey]: tag.value}, eventReference);
     return nextView.getResultsViewUrlTarget(organization.slug);
   };

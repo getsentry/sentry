@@ -105,7 +105,12 @@ function renderEditButton(canEdit: boolean, props: Props) {
 
 function renderSummaryButton({onChangeShowTags, showTags}: Props) {
   return (
-    <Button size="small" onClick={onChangeShowTags} icon={<IconTag size="xs" />}>
+    <Button
+      data-test-id="toggle-show-tags"
+      size="small"
+      onClick={onChangeShowTags}
+      icon={<IconTag size="xs" />}
+    >
       {showTags ? t('Hide Tags') : t('Show Tags')}
     </Button>
   );

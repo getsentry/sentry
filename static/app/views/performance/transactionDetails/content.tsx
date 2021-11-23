@@ -20,6 +20,7 @@ import {t} from 'app/locale';
 import {Organization, Project} from 'app/types';
 import {Event, EventTag} from 'app/types/event';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {formatTagKey} from 'app/utils/discover/fields';
 import * as QuickTraceContext from 'app/utils/performance/quickTrace/quickTraceContext';
 import QuickTraceQuery from 'app/utils/performance/quickTrace/quickTraceQuery';
 import TraceMetaQuery from 'app/utils/performance/quickTrace/traceMetaQuery';
@@ -85,7 +86,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     const query = decodeScalar(location.query.query, '');
     const newQuery = {
       ...location.query,
-      query: appendTagCondition(query, tag.key, tag.value),
+      query: appendTagCondition(query, formatTagKey(tag.key), tag.value),
     };
     return transactionSummaryRouteWithQuery({
       orgSlug: organization.slug,

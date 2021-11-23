@@ -184,11 +184,15 @@ describe('Performance > TransactionSummary', function () {
       body: [
         {
           key: 'release',
-          topValues: [{count: 2, value: 'abcd123', name: 'abcd123'}],
+          topValues: [{count: 3, value: 'abcd123', name: 'abcd123'}],
         },
         {
           key: 'environment',
-          topValues: [{count: 2, value: 'abcd123', name: 'abcd123'}],
+          topValues: [{count: 2, value: 'dev', name: 'dev'}],
+        },
+        {
+          key: 'foo',
+          topValues: [{count: 1, value: 'bar', name: 'bar'}],
         },
       ],
     });
@@ -575,5 +579,29 @@ describe('Performance > TransactionSummary', function () {
         }),
       })
     );
+  });
+
+  it('appends tag value to existing query when clicked', async function () {
+    const initialData = initializeData();
+    const wrapper = mountWithTheme(
+      <TransactionSummary
+        organization={initialData.organization}
+        location={initialData.router.location}
+      />,
+      initialData.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    // since environment collides with the environment field, it is wrapped with `tags[...]`
+    const envSegment = wrapper.find(
+      '[data-test-id="tag-environment-segment-dev"] Segment'
+    );
+    const envTarget = envSegment.props().to;
+    expect(envTarget.query.query).toEqual('tags[environment]:dev');
+
+    const fooSegment = wrapper.find('[data-test-id="tag-foo-segment-bar"] Segment');
+    const fooTarget = fooSegment.props().to;
+    expect(fooTarget.query.query).toEqual('foo:bar');
   });
 });

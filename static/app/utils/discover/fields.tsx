@@ -638,6 +638,22 @@ export const SEMVER_TAGS = {
   },
 };
 
+/**
+ * Some tag keys should never be formatted as `tag[...]`
+ * when used as a filter because they are predefined.
+ */
+const EXCLUDED_TAG_KEYS = new Set(['release']);
+
+export function formatTagKey(key: string): string {
+  // Some tags may be normalized from context, but not all of them are.
+  // This supports a user making a custom tag with the same name as one
+  // that comes from context as all of these are also tags.
+  if (key in FIELD_TAGS && !EXCLUDED_TAG_KEYS.has(key)) {
+    return `tags[${key}]`;
+  }
+  return key;
+}
+
 // Allows for a less strict field key definition in cases we are returning custom strings as fields
 export type LooseFieldKey = FieldKey | string | '';
 
