@@ -12,12 +12,17 @@ from sentry.models import Identity, IdentityProvider, Integration, User
 from ..utils import check_signing_secret, logger
 
 
+def _get_field_id_option(data: Mapping[str, Any], field_name: str) -> str | None:
+    id_option: str | None = data.get(f"{field_name}_id") or data.get(field_name, {}).get("id")
+    return id_option
+
+
 def get_field_id(data: Mapping[str, Any], field_name: str) -> str:
     """
     TODO(mgaeta): Hack to convert optional strings to string. SlackRequest
      should be refactored to deserialize `data` in the constructor.
     """
-    id_option: str | None = data.get(f"{field_name}_id") or data.get(field_name, {}).get("id")
+    id_option = _get_field_id_option(data, field_name)
     if not id_option:
         raise RuntimeError
     return id_option
@@ -50,12 +55,12 @@ class SlackRequest:
         self.request = request
         self._integration: Integration | None = None
         self._data: MutableMapping[str, Any] = {}
-        self._log_request()
 
     def validate(self) -> None:
         """
         Ensure everything is present to properly process this request
         """
+        self._log_request()
         self._authorize()
         self._validate_data()
         self._validate_integration()
@@ -82,7 +87,6 @@ class SlackRequest:
 
     @property
     def response_url(self) -> str:
-        """Provide an interface to ``response_url`` for convenience."""
         return self.data.get("response_url", "")
 
     @property
@@ -108,13 +112,14 @@ class SlackRequest:
 
     @property
     def logging_data(self) -> Mapping[str, str]:
+        _data = self.request.data
         data = {
-            "slack_team_id": self.team_id,
-            "slack_channel_id": self.data.get("channel", {}).get("id"),
-            "slack_user_id": self.data.get("user", {}).get("id"),
-            "slack_event_id": self.data.get("event_id"),
-            "slack_callback_id": self.data.get("callback_id"),
-            "slack_api_app_id": self.data.get("api_app_id"),
+            "slack_team_id": _get_field_id_option(_data, "team"),
+            "slack_channel_id": _get_field_id_option(_data, "channel"),
+            "slack_user_id": _get_field_id_option(_data, "user"),
+            "slack_event_id": _data.get("event_id"),
+            "slack_callback_id": _data.get("callback_id"),
+            "slack_api_app_id": _data.get("api_app_id"),
         }
 
         if self._integration:
@@ -201,7 +206,7 @@ class SlackDMRequest(SlackRequest):
         return self.user.email if self.user else None
 
     @property
-    def dm_data(self) -> Mapping[str, str]:
+    def dm_data(self) -> Mapping[str, Any]:
         raise NotImplementedError
 
     @property
@@ -214,11 +219,7 @@ class SlackDMRequest(SlackRequest):
 
     @property
     def channel_name(self) -> str:
-        return self.dm_data.get("channel", "")
-
-    @property
-    def user_id(self) -> str:
-        return self.dm_data.get("user", "")
+        return self.dm_data.get("channel_name", "")
 
     def get_command_and_args(self) -> tuple[str, Sequence[str]]:
         command = self.text.lower().split()

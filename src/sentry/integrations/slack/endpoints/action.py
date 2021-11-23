@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping, MutableMapping
 
-import requests
+import requests as requests_
 from django.urls import reverse
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -260,7 +260,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
             )
             payload = {"delete_original": "true"}
             try:
-                requests.post(slack_request.response_url, json=payload)
+                requests_.post(slack_request.response_url, json=payload)
             except ApiError as e:
                 logger.error("slack.action.response-error", extra={"error": str(e)})
                 return self.respond(status=403)

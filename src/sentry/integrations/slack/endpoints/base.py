@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import abc
 
+from rest_framework import status
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
@@ -58,8 +59,8 @@ class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
                 slack_request, ALREADY_LINKED_MESSAGE.format(username=slack_request.identity_str)
             )
 
-        if not (slack_request.user_id and slack_request.channel_id and slack_request.response_url):
-            raise SlackRequestError(status=400)
+        if not (slack_request.integration and slack_request.user_id and slack_request.channel_id):
+            raise SlackRequestError(status=status.HTTP_400_BAD_REQUEST)
 
         associate_url = build_linking_url(
             integration=slack_request.integration,
@@ -73,17 +74,11 @@ class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
         if not slack_request.has_identity:
             return self.reply(slack_request, NOT_LINKED_MESSAGE)
 
-        if not (
-            slack_request.integration
-            and slack_request.user_id
-            and slack_request.channel_id
-            and slack_request.response_url
-        ):
-            raise SlackRequestError(status=400)
+        if not (slack_request.integration and slack_request.user_id and slack_request.channel_id):
+            raise SlackRequestError(status=status.HTTP_400_BAD_REQUEST)
 
-        integration = slack_request.integration
         associate_url = build_unlinking_url(
-            integration_id=integration.id,
+            integration_id=slack_request.integration.id,
             slack_id=slack_request.user_id,
             channel_id=slack_request.channel_id,
             response_url=slack_request.response_url,

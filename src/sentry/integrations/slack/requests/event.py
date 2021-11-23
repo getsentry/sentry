@@ -31,8 +31,9 @@ class SlackEventRequest(SlackDMRequest):
         if self.is_challenge():
             # Challenge requests only include the Token and data to verify the
             # request, so only validate those.
+            self._info("slack.event.url_verification")
             self._authorize()
-            self._validate_data()
+            super(SlackDMRequest, self)._validate_data()
         else:
             # Non-Challenge requests need to validate everything plus the data
             # about the event.
@@ -40,11 +41,21 @@ class SlackEventRequest(SlackDMRequest):
             self._validate_event()
 
     def is_challenge(self) -> bool:
-        return self.data.get("type") == "url_verification"
+        """We need to call this before validation."""
+        _is_challenge: bool = self.request.data.get("type") == "url_verification"
+        return _is_challenge
 
     @property
     def dm_data(self) -> Mapping[str, Any]:
         return self.data.get("event", {})
+
+    @property
+    def channel_id(self) -> str:
+        return self.dm_data.get("channel", "")
+
+    @property
+    def user_id(self) -> str:
+        return self.dm_data.get("user", "")
 
     @property
     def links(self) -> list[str]:

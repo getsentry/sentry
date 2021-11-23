@@ -58,7 +58,7 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
 
     @staticmethod
     def _build_blocks(*args: SlackBlock) -> SlackBody:
-        return {"blocks": args}
+        return {"blocks": list(args)}
 
     def as_payload(self) -> Mapping[str, Any]:
         return self.build()  # type: ignore

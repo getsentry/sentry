@@ -43,6 +43,7 @@ class SlackCommandsTest(APITestCase, TestCase):
                 "text": command,
                 "team_id": self.external_id,
                 "user_id": self.slack_id,
+                "channel_id": self.channel_id,
                 **kwargs,
             }
         )
