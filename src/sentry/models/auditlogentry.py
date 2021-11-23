@@ -372,7 +372,7 @@ class AuditLogEntry(Model):
             next_ondemand_max_spend = format_ondemand_max_spend(self.data["ondemand"])
             if "prev_ondemand" in self.data:
                 prev_ondemand_max_spend = format_ondemand_max_spend(self.data["prev_ondemand"])
-                return f"changed on-demand max spend to {next_ondemand_max_spend} from {prev_ondemand_max_spend}"
+                return f"changed on-demand max spend from {prev_ondemand_max_spend} to {next_ondemand_max_spend}"
             return f"changed on-demand max spend to {next_ondemand_max_spend}"
         elif self.event == AuditLogEntryEvent.TRIAL_STARTED:
             return "started trial"
