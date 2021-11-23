@@ -66,6 +66,7 @@ export function GenericPerformanceWidget<T extends WidgetDataConstraint>(
   return (
     <Fragment>
       <QueryHandler
+        eventView={props.eventView}
         widgetData={widgetData}
         setWidgetDataForKey={setWidgetDataForKey}
         removeWidgetDataForKey={removeWidgetDataForKey}

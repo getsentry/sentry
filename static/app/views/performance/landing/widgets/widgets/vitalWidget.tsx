@@ -118,7 +118,7 @@ export function VitalWidget(props: Props) {
       () => ({
         fields: sortField,
         component: provided => {
-          const _eventView = props.eventView.clone();
+          const _eventView = provided.eventView.clone();
 
           const fieldFromProps = fieldsList.map(propField => ({
             field: propField,
@@ -156,7 +156,7 @@ export function VitalWidget(props: Props) {
         },
         fields: fieldsList,
         component: provided => {
-          const _eventView = props.eventView.clone();
+          const _eventView = provided.eventView.clone();
 
           _eventView.additionalConditions.setFilterValues('transaction', [
             provided.widgetData.list.data[selectedListIndex].transaction as string,
@@ -184,7 +184,7 @@ export function VitalWidget(props: Props) {
         },
         transform: transformEventsRequestToVitals,
       }),
-      [props.eventView, selectedListIndex, props.chartSetting, props.organization.slug]
+      [props.chartSetting, selectedListIndex]
     ),
   };
 

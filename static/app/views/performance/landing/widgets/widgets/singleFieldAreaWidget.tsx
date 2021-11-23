@@ -56,13 +56,13 @@ export function SingleFieldAreaWidget(props: Props) {
           {({queryBatching}) => (
             <EventsRequest
               {...pick(provided, eventsRequestQueryProps)}
-              queryBatching={queryBatching}
               limit={1}
+              queryBatching={queryBatching}
               includePrevious
               includeTransformedData
               partial
               currentSeriesNames={[field]}
-              query={props.eventView.getQueryWithAdditionalConditions()}
+              query={provided.eventView.getQueryWithAdditionalConditions()}
               interval={getInterval(
                 {
                   start: provided.start,
@@ -77,7 +77,7 @@ export function SingleFieldAreaWidget(props: Props) {
       ),
       transform: transformEventsRequestToArea,
     }),
-    [props.eventView, field, props.organization.slug]
+    [props.chartSetting]
   );
 
   const Queries = {
