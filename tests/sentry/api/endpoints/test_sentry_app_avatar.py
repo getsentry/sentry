@@ -19,6 +19,16 @@ class SentryAppAvatarTestBase(APITestCase):
             if avatar.get("color") == is_color:
                 return avatar
 
+    def create_avatar(self, is_color):
+        with self.feature("organizations:sentry-app-logo-upload"):
+            # upload the regular logo
+            data = {
+                "color": is_color,
+                "avatar_type": "upload",
+                "avatar_photo": b64encode(self.load_fixture("avatar.jpg")),
+            }
+            return self.get_success_response(self.unpublished_app.slug, **data)
+
 
 class SentryAppAvatarTest(SentryAppAvatarTestBase):
     def test_get(self):
@@ -42,13 +52,7 @@ class SentryAppAvatarPutTest(SentryAppAvatarTestBase):
     method = "put"
 
     def test_upload(self):
-        with self.feature("organizations:sentry-app-logo-upload"):
-            data = {
-                "color": True,
-                "avatar_type": "upload",
-                "avatar_photo": b64encode(self.load_fixture("avatar.jpg")),
-            }
-            resp = self.get_success_response(self.unpublished_app.slug, **data)
+        resp = self.create_avatar(is_color=True)
 
         avatar = SentryAppAvatar.objects.get(sentry_app=self.unpublished_app, color=True)
         assert avatar.file_id
@@ -59,22 +63,8 @@ class SentryAppAvatarPutTest(SentryAppAvatarTestBase):
         assert color_avatar["color"] is True
 
     def test_upload_both(self):
-        with self.feature("organizations:sentry-app-logo-upload"):
-            # upload the regular logo
-            data = {
-                "color": True,
-                "avatar_type": "upload",
-                "avatar_photo": b64encode(self.load_fixture("avatar.jpg")),
-            }
-            self.get_success_response(self.unpublished_app.slug, **data)
-
-            # upload the issue link logo
-            data2 = {
-                "color": False,
-                "avatar_type": "upload",
-                "avatar_photo": b64encode(self.load_fixture("avatar.jpg")),
-            }
-            resp = self.get_success_response(self.unpublished_app.slug, **data2)
+        self.create_avatar(is_color=True)
+        resp = self.create_avatar(is_color=False)
 
         avatars = SentryAppAvatar.objects.filter(sentry_app=self.unpublished_app)
 
@@ -95,23 +85,10 @@ class SentryAppAvatarPutTest(SentryAppAvatarTestBase):
 
     def test_revert_to_default(self):
         """Test that a user can go back to the default avatars after having uploaded one"""
+        self.create_avatar(is_color=True)
+        self.create_avatar(is_color=False)
+
         with self.feature("organizations:sentry-app-logo-upload"):
-            # upload the regular logo
-            data = {
-                "color": True,
-                "avatar_type": "upload",
-                "avatar_photo": b64encode(self.load_fixture("avatar.jpg")),
-            }
-            self.get_success_response(self.unpublished_app.slug, **data)
-
-            # upload the issue link logo
-            data2 = {
-                "color": False,
-                "avatar_type": "upload",
-                "avatar_photo": b64encode(self.load_fixture("avatar.jpg")),
-            }
-            self.get_success_response(self.unpublished_app.slug, **data2)
-
             # revert to default
             data = {
                 "color": True,
@@ -143,3 +120,14 @@ class SentryAppAvatarPutTest(SentryAppAvatarTestBase):
             self.get_error_response(
                 self.unpublished_app.slug, avatar_type="upload", status_code=400
             )
+
+
+class SentryAppAvatarDeleteTest(SentryAppAvatarTestBase):
+    def test_delete(self):
+        """Test that when the related sentryapp is deleted (not really deleted, but date_deleted is set), the associated avatars are deleted"""
+        self.create_avatar(is_color=True)
+        self.create_avatar(is_color=False)
+
+        assert SentryAppAvatar.objects.count() == 2
+        self.unpublished_app.delete()
+        assert SentryAppAvatar.objects.count() == 0
