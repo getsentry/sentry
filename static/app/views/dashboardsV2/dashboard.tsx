@@ -1,4 +1,5 @@
 import {Component} from 'react';
+import {Layout} from 'react-grid-layout';
 import {InjectedRouter} from 'react-router';
 import {closestCenter, DndContext} from '@dnd-kit/core';
 import {arrayMove, rectSortingStrategy, SortableContext} from '@dnd-kit/sortable';
@@ -35,10 +36,11 @@ type Props = {
   /**
    * Fired when widgets are added/removed/sorted.
    */
-  onUpdate: (widgets: Widget[]) => void;
+  onUpdate: (widgets: Widget[], newLayout?: Layout[]) => void;
   onSetWidgetToBeUpdated: (widget: Widget) => void;
   paramDashboardId?: string;
   newWidget?: Widget;
+  layout?: Layout[];
 };
 
 export class Dashboard extends Component<Props> {

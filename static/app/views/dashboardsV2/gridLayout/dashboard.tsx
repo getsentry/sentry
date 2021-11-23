@@ -60,7 +60,9 @@ class Dashboard extends DnDKitDashboard {
     const {
       isEditing,
       dashboard: {widgets},
+      onUpdate,
       organization,
+      layout,
     } = this.props;
 
     return (
@@ -69,6 +71,8 @@ class Dashboard extends DnDKitDashboard {
         rowHeight={ROW_HEIGHT}
         margin={WIDGET_MARGINS}
         draggableHandle={`#${DRAG_HANDLE_ID}`}
+        layout={layout}
+        onLayoutChange={newLayout => onUpdate(widgets, newLayout)}
         isDraggable={isEditing}
         isResizable={isEditing}
         isBounded

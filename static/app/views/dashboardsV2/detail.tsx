@@ -1,4 +1,5 @@
 import {cloneElement, Component, isValidElement} from 'react';
+import type {Layout as RGLLayout} from 'react-grid-layout';
 import {browserHistory, PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
@@ -28,6 +29,7 @@ import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
 import GridLayoutDashboard from './gridLayout/dashboard';
+import {getDashboardLayout, saveDashboardLayout} from './gridLayout/utils';
 import Controls from './controls';
 import DnDKitDashboard from './dashboard';
 import {DEFAULT_STATS_PERIOD, EMPTY_DASHBOARD} from './data';
@@ -60,12 +62,14 @@ type State = {
   dashboardState: DashboardState;
   modifiedDashboard: DashboardDetails | null;
   widgetToBeUpdated?: Widget;
+  layout: RGLLayout[];
 };
 
 class DashboardDetail extends Component<Props, State> {
   state: State = {
     dashboardState: this.props.initialState,
     modifiedDashboard: this.updateModifiedDashboard(this.props.initialState),
+    layout: getDashboardLayout(this.props.organization.id, this.props.dashboard.id),
   };
 
   componentDidMount() {
@@ -233,7 +237,7 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   onCancel = () => {
-    const {organization, location, params} = this.props;
+    const {organization, dashboard, location, params} = this.props;
     if (params.dashboardId) {
       trackAnalyticsEvent({
         eventKey: 'dashboards2.edit.cancel',
@@ -243,6 +247,7 @@ class DashboardDetail extends Component<Props, State> {
       this.setState({
         dashboardState: DashboardState.VIEW,
         modifiedDashboard: null,
+        layout: getDashboardLayout(organization.id, dashboard.id),
       });
       return;
     }
@@ -293,6 +298,7 @@ class DashboardDetail extends Component<Props, State> {
     });
   };
 
+  // TODO(nar): Wrap this and inject layout
   onCommit = () => {
     const {api, organization, location, dashboard, reloadData} = this.props;
     const {modifiedDashboard, dashboardState} = this.state;
@@ -327,6 +333,11 @@ class DashboardDetail extends Component<Props, State> {
         break;
       }
       case DashboardState.EDIT: {
+        // TODO: This should only fire when there are changes to the layout
+        if (organization.features.includes('dashboard-grid-layout')) {
+          saveDashboardLayout(organization.id, dashboard.id, this.state.layout);
+        }
+
         // only update the dashboard if there are changes
         if (modifiedDashboard) {
           if (isEqual(dashboard, modifiedDashboard)) {
@@ -394,7 +405,7 @@ class DashboardDetail extends Component<Props, State> {
     this.setState({widgetToBeUpdated: widget});
   };
 
-  onUpdateWidget = (widgets: Widget[]) => {
+  onUpdateWidget = (widgets: Widget[], layout: RGLLayout[] = []) => {
     const {modifiedDashboard} = this.state;
 
     if (modifiedDashboard === null) {
@@ -408,6 +419,7 @@ class DashboardDetail extends Component<Props, State> {
           ...state.modifiedDashboard!,
           widgets,
         },
+        layout,
       }),
       this.updateRouteAfterSavingWidget
     );
@@ -591,6 +603,7 @@ class DashboardDetail extends Component<Props, State> {
                   router={router}
                   location={location}
                   newWidget={newWidget}
+                  layout={this.state.layout}
                 />
               </Layout.Main>
             </Layout.Body>
