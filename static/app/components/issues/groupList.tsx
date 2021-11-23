@@ -12,6 +12,8 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {Panel, PanelBody} from 'sentry/components/panels';
+import {parseSearch, Token} from 'app/components/searchSyntax/parser';
+import {treeResultLocator} from 'app/components/searchSyntax/utils';
 import StreamGroup, {
   DEFAULT_STREAM_GROUP_STATS_PERIOD,
 } from 'sentry/components/stream/group';
@@ -126,10 +128,19 @@ class GroupList extends React.Component<Props, State> {
 
     const endpoint = this.getGroupListEndpoint();
 
-    const query = (queryParams ?? this.getQueryParams()).query;
+    const parsedQuery = parseSearch((queryParams ?? this.getQueryParams()).query);
+    const hasLogicBoolean = parsedQuery
+      ? treeResultLocator<boolean>({
+          tree: parsedQuery,
+          noResultValue: false,
+          visitorTest: ({token, returnResult}) => {
+            return token.type === Token.LogicBoolean ? returnResult(true) : null;
+          },
+        })
+      : false;
 
     // Check if the alert rule query
-    if (/ or | and /i.test(query)) {
+    if (hasLogicBoolean) {
       this.setState({
         error: true,
         errorData: {detail: RELATED_ISSUES_BOOLEAN_QUERY_ERROR},
