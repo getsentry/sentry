@@ -79,7 +79,7 @@ export function TrendsWidget(props: Props) {
       component: provided => (
         <TrendsDiscoverQuery
           {...provided}
-          eventView={eventView}
+          eventView={provided.eventView}
           location={props.location}
           trendChangeType={trendChangeType}
           trendFunctionField={trendFunctionField}
@@ -90,7 +90,7 @@ export function TrendsWidget(props: Props) {
       ),
       transform: transformTrendsDiscover,
     }),
-    [eventView, trendChangeType]
+    [props.chartSetting, trendChangeType]
   );
 
   const Queries = {
