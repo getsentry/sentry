@@ -49,6 +49,7 @@ export type QueryFC<T extends WidgetDataConstraint> = FunctionComponent<
     team?: Readonly<string | string[]>;
     query?: string;
     orgSlug: string;
+    eventView: EventView;
     organization: OrganizationSummary;
     widgetData: T;
   }
@@ -142,6 +143,7 @@ export type QueryHandlerProps<T extends WidgetDataConstraint> = {
   api: Client;
   queries: QueryDefinitionWithKey<T>[];
   children?: ReactNode;
+  eventView: EventView;
   queryProps: WidgetPropUnion<T>;
 } & WidgetDataProps<T>;
 

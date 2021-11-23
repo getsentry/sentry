@@ -60,6 +60,7 @@ function SingleQueryHandler<T extends WidgetDataConstraint>(
       environment={globalSelection.environments}
       organization={props.queryProps.organization}
       orgSlug={props.queryProps.organization.slug}
+      eventView={props.queryProps.eventView}
       query={props.queryProps.eventView.getQueryWithAdditionalConditions()}
       widgetData={props.widgetData}
     >

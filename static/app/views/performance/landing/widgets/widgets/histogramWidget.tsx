@@ -44,7 +44,7 @@ export function HistogramWidget(props: Props) {
         component: provided => (
           <HistogramQuery
             {...provided}
-            eventView={props.eventView}
+            eventView={provided.eventView}
             location={props.location}
             numBuckets={20}
             dataFilter="exclude_outliers"
@@ -53,7 +53,7 @@ export function HistogramWidget(props: Props) {
         transform: transformHistogramQuery,
       },
     };
-  }, [props.eventView, props.fields[0], props.organization.slug]);
+  }, [props.chartSetting]);
 
   const onFilterChange = () => {};
 

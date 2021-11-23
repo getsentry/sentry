@@ -6,6 +6,7 @@ import MenuItem from 'app/components/menuItem';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
+import EventView from 'app/utils/discover/eventView';
 import {usePerformanceDisplayType} from 'app/utils/performance/contexts/performanceDisplayContext';
 import useOrganization from 'app/utils/useOrganization';
 import withOrganization from 'app/utils/withOrganization';
@@ -30,6 +31,7 @@ type Props = {
   allowedCharts: PerformanceWidgetSetting[];
   chartHeight: number;
   chartColor?: string;
+  eventView: EventView;
   forceDefaultChartSetting?: boolean;
   rowChartSettings: PerformanceWidgetSetting[];
   setRowChartSettings: (settings: PerformanceWidgetSetting[]) => void;

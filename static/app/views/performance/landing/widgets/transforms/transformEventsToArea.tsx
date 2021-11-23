@@ -29,7 +29,7 @@ export function transformEventsRequestToArea<T extends WidgetDataConstraint>(
 
   const childData = {
     ...results,
-    isLoading: results.loading,
+    isLoading: results.loading || results.reloading,
     isErrored: results.errored,
     hasData: defined(data) && !!data.length && !!data[0].data.length,
     data,
