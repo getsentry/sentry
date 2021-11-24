@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import {Panel, PanelHeader} from 'app/components/panels';
-import {IconTelescope, IconUser} from 'app/icons';
-import space from 'app/styles/space';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import Button from 'sentry/components/button';
+import {Panel, PanelHeader} from 'sentry/components/panels';
+import {IconTelescope, IconUser} from 'sentry/icons';
+import space from 'sentry/styles/space';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 export default {
   title: 'Views/Empty States/Empty Messages',

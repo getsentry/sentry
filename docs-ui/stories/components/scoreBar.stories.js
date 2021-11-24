@@ -1,4 +1,4 @@
-import ScoreBar from 'app/components/scoreBar';
+import ScoreBar from 'sentry/components/scoreBar';
 
 export default {
   title: 'Components/Data Visualization/Score Bar',
