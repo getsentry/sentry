@@ -5,7 +5,7 @@ import StreamGroup from 'sentry/components/stream/group';
 import GroupStore from 'sentry/stores/groupStore';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 
-jest.mock('app/utils/analytics');
+jest.mock('sentry/utils/analytics');
 
 describe('StreamGroup', function () {
   let GROUP_1;

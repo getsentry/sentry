@@ -11,10 +11,10 @@ import OrganizationsStore from 'sentry/stores/organizationsStore';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import OrganizationMembersList from 'sentry/views/settings/organizationMembers/organizationMembersList';
 
-jest.mock('app/utils/analytics/trackAdvancedAnalyticsEvent', () => jest.fn());
+jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent', () => jest.fn());
 
-jest.mock('app/api');
-jest.mock('app/actionCreators/indicator');
+jest.mock('sentry/api');
+jest.mock('sentry/actionCreators/indicator');
 
 const roles = [
   {

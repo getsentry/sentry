@@ -5,7 +5,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import DataScrubbing from 'sentry/views/settings/components/dataScrubbing';
 import {ProjectId} from 'sentry/views/settings/components/dataScrubbing/types';
 
-jest.mock('app/actionCreators/modal');
+jest.mock('sentry/actionCreators/modal');
 
 const relayPiiConfig = TestStubs.DataScrubbingRelayPiiConfig();
 const stringRelayPiiConfig = JSON.stringify(relayPiiConfig);
@@ -13,7 +13,7 @@ const organizationSlug = 'sentry';
 const handleUpdateOrganization = jest.fn();
 const additionalContext = 'These rules can be configured for each project.';
 
-jest.mock('app/actionCreators/indicator');
+jest.mock('sentry/actionCreators/indicator');
 
 function getOrganization(piiConfig?: string) {
   return TestStubs.Organization(

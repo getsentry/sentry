@@ -10,7 +10,7 @@ import {t} from 'sentry/locale';
 import TagStore from 'sentry/stores/tagStore';
 import * as types from 'sentry/views/dashboardsV2/types';
 
-jest.mock('app/actionCreators/modal', () => ({
+jest.mock('sentry/actionCreators/modal', () => ({
   openDashboardWidgetLibraryModal: jest.fn(),
 }));
 

@@ -10,9 +10,9 @@ import {metric} from 'sentry/utils/analytics';
 import IssueRuleEditor from 'sentry/views/alerts/issueRuleEditor';
 import ProjectAlerts from 'sentry/views/settings/projectAlerts';
 
-jest.unmock('app/utils/recreateRoute');
-jest.mock('app/actionCreators/onboardingTasks');
-jest.mock('app/utils/analytics', () => ({
+jest.unmock('sentry/utils/recreateRoute');
+jest.mock('sentry/actionCreators/onboardingTasks');
+jest.mock('sentry/utils/analytics', () => ({
   metric: {
     startTransaction: jest.fn(() => ({
       setTag: jest.fn(),

@@ -5,7 +5,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import EventCauseEmpty from 'sentry/components/events/eventCauseEmpty';
 import {trackAnalyticsEventV2} from 'sentry/utils/analytics';
 
-jest.mock('app/utils/analytics');
+jest.mock('sentry/utils/analytics');
 
 describe('EventCauseEmpty', function () {
   let putMock;
