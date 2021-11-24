@@ -3,7 +3,7 @@ import itertools
 import random
 import re
 from abc import ABC, abstractmethod
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from operator import itemgetter
@@ -80,7 +80,7 @@ def reverse_resolve(index: int) -> str:
     resolved = indexer.reverse_resolve(index)
 
     # If we cannot find a string for an integer index, that's a bug:
-    assert resolved is not None
+    assert resolved is not None, index
 
     return resolved
 
@@ -843,7 +843,7 @@ class MetaFromSnuba:
         where: List[Condition],
         groupby: List[Column],
         referrer: str,
-    ) -> Query:
+    ) -> Mapping[str, Any]:
         now = datetime.now()
         query = Query(
             dataset=Dataset.Metrics.value,
@@ -893,12 +893,11 @@ class MetaFromSnuba:
 
         metric_id = indexer.resolve(metric_name)
         if metric_id is None:
-            # TODO: throw exception here
-            raise NotImplementedError()
+            raise InvalidParams
 
         for metric_type in ("counter", "set", "distribution"):
+            # TODO: What if metric_id exists for multiple types / units?
             entity_key = METRIC_TYPE_TO_ENTITY[metric_type]
-            # TODO: What if exists in multiple?
             data = self._get_data(
                 entity_key=entity_key,
                 select=[Column("metric_id"), Column("tags.key")],
@@ -924,17 +923,101 @@ class MetaFromSnuba:
                     unit=None,
                 )
 
-    def get_tags(self, metric_names=Optional[Sequence[str]]) -> Sequence[Tag]:
-        """Get all available tag names for this project
+        raise InvalidParams
+
+    def get_tags(self, metric_names: Optional[Sequence[str]]) -> Sequence[Tag]:
+        """Get all available tag names for these projects.
 
         If ``metric_names`` is provided, the list of available tag names will
         only contain tags that appear in *all* these metrics.
         """
+        where = []
+        if metric_names is not None:
+            metric_ids = []
+            for name in metric_names:
+                resolved = indexer.resolve(name)
+                if resolved is None:
+                    # We are looking for tags that appear in all given metrics.
+                    # A tag cannot appear in a metric if the metric is not even indexed.
+                    return []
+                metric_ids.append(resolved)
+            where.append(Condition(Column("metric_id"), Op.IN, metric_ids))
+
+        tag_ids_per_metric_id = defaultdict(list)
+
+        for metric_type in ("counter", "set", "distribution"):
+            # TODO: What if metric_id exists for multiple types / units?
+            entity_key = METRIC_TYPE_TO_ENTITY[metric_type]
+            rows = self._get_data(
+                entity_key=entity_key,
+                select=[Column("metric_id"), Column("tags.key")],
+                where=where,
+                groupby=[Column("metric_id"), Column("tags.key")],
+                referrer="snuba.metrics.meta.get_tags",
+            )
+            for row in rows:
+                tag_ids_per_metric_id[row["metric_id"]].extend(row["tags.key"])
+
+        tag_id_lists = tag_ids_per_metric_id.values()
+        if metric_names is not None:
+            tag_ids = set.intersection(*map(set, tag_id_lists))
+        else:
+            tag_ids = {tag_id for ids in tag_id_lists for tag_id in ids}
+
+        tags = [{"key": indexer.reverse_resolve(tag_id)} for tag_id in tag_ids]
+        tags.sort(key=itemgetter("key"))
+
+        return tags
 
     def get_tag_values(
-        self, projects: Sequence[Project], tag_name: str, metric_names=Optional[Sequence[str]]
+        self, tag_name: str, metric_names: Optional[Sequence[str]]
     ) -> Sequence[TagValue]:
         """Get all known values for a specific tag"""
+        tag_id = indexer.resolve(tag_name)
+        if tag_id is None:
+            raise InvalidParams
+
+        where = []
+        if metric_names is not None:
+            metric_ids = []
+            for name in metric_names:
+                resolved = indexer.resolve(name)
+                if resolved is None:
+                    # We are looking for tags that appear in all given metrics.
+                    # A tag cannot appear in a metric if the metric is not even indexed.
+                    return []
+                metric_ids.append(resolved)
+            where.append(Condition(Column("metric_id"), Op.IN, metric_ids))
+
+        tags = defaultdict(list)
+
+        column_name = f"tags[{tag_id}]"
+        for metric_type in ("counter", "set", "distribution"):
+            # TODO: What if metric_id exists for multiple types / units?
+            entity_key = METRIC_TYPE_TO_ENTITY[metric_type]
+            rows = self._get_data(
+                entity_key=entity_key,
+                select=[Column("metric_id"), Column(column_name)],
+                where=where,
+                groupby=[Column("metric_id"), Column(column_name)],
+                referrer="snuba.metrics.meta.get_tag_values",
+            )
+            for row in rows:
+                value_id = row[column_name]
+                if value_id > 0:
+                    metric_id = row["metric_id"]
+                    tags[metric_id].append(value_id)
+
+        value_id_lists = tags.values()
+        if metric_names is not None:
+            value_ids = set.intersection(*[set(ids) for ids in value_id_lists])
+        else:
+            value_ids = {value_id for ids in value_id_lists for value_id in ids}
+
+        tags = [{"key": tag_name, "value": reverse_resolve(value_id)} for value_id in value_ids]
+        tags.sort(key=itemgetter("key"))
+
+        return tags
 
 
 class SnubaDataSource(DataSource):
@@ -957,6 +1040,8 @@ class SnubaDataSource(DataSource):
         If ``metric_names`` is provided, the list of available tag names will
         only contain tags that appear in *all* these metrics.
         """
+        meta = MetaFromSnuba(projects)
+        return meta.get_tags(metric_names)
 
     def get_tag_values(
         self, projects: Sequence[Project], tag_name: str, metric_names=None
