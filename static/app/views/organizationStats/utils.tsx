@@ -64,7 +64,7 @@ export function getFormatUsageOptions(dataCategory: DataCategory): FormatOptions
  * provide clarity on usage of errors/transactions/attachments to the user.
  *
  * If you are not displaying usage numbers, it might be better to use
- * `formatAbbreviatedNumber` in 'app/utils/formatters'
+ * `formatAbbreviatedNumber` in 'sentry/utils/formatters'
  */
 export function abbreviateUsageNumber(n: number) {
   if (n >= BILLION) {
