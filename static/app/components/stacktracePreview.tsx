@@ -20,7 +20,8 @@ import withApi from 'app/utils/withApi';
 import findBestThread from './events/interfaces/threads/threadSelector/findBestThread';
 import getThreadStacktrace from './events/interfaces/threads/threadSelector/getThreadStacktrace';
 
-const HOVERCARD_DELAY = 500;
+const REQUEST_DELAY = 100;
+const HOVERCARD_DELAY = 400;
 export const STACKTRACE_PREVIEW_TOOLTIP_DELAY = 1000;
 
 type Props = {
@@ -48,6 +49,18 @@ class StacktracePreview extends React.Component<Props, State> {
   };
 
   loaderTimeout: number | null = null;
+  delayTimeout: number | null = null;
+
+  handleMouseEnter = () => {
+    this.delayTimeout = window.setTimeout(this.fetchData, REQUEST_DELAY);
+  };
+
+  handleMouseLeave = () => {
+    if (this.delayTimeout) {
+      window.clearTimeout(this.delayTimeout);
+      this.delayTimeout = null;
+    }
+  };
 
   fetchData = async () => {
     const {organization, api, issueId, eventId, projectSlug} = this.props;
@@ -185,7 +198,11 @@ class StacktracePreview extends React.Component<Props, State> {
     }
 
     return (
-      <span className={className} onMouseEnter={this.fetchData}>
+      <span
+        className={className}
+        onMouseEnter={this.handleMouseEnter}
+        onMouseLeave={this.handleMouseLeave}
+      >
         <StyledHovercard
           body={this.renderHovercardBody(stacktrace)}
           position="right"
