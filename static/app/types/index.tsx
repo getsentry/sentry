@@ -1343,6 +1343,7 @@ export type SentryApp = {
     elements?: SentryAppSchemaElement[];
   };
   // possible null params
+  popularity: number | null;
   webhookUrl: string | null;
   redirectUrl: string | null;
   overview: string | null;

@@ -13,7 +13,9 @@ export const COLORS = {
 } as const;
 
 /**
- * Integrations in the integration directory should be sorted by their popularity (weight). The weights should reflect the relative popularity of each integration are hardcoded.
+ * Integrations in the integration directory should be sorted by their popularity (weight).
+ * The weights should reflect the relative popularity of each integration are hardcoded, except for
+ * Sentry-apps which read popularity from the db.
  */
 
 export const POPULARITY_WEIGHT: {
@@ -33,20 +35,6 @@ export const POPULARITY_WEIGHT: {
   vercel: 10,
   msteams: 10,
   aws_lambda: 10,
-
-  // Sentry-apps
-  amixr: 9,
-  calixa: 9,
-  clickup: 9,
-  clubhouse: 9,
-  komodor: 9,
-  linear: 9,
-  quill: 9,
-  rookout: 9,
-  spikesh: 9,
-  split: 9,
-  taskcall: 9,
-  teamwork: 9,
 
   // Plugins
   webhooks: 10,
