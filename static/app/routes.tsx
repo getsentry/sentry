@@ -847,7 +847,7 @@ function buildRoutes() {
           path="new-public/"
           componentPromise={() =>
             import(
-              'app/views/settings/organizationDeveloperSettings/sentryApplicationDetails'
+              'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails'
             )
           }
           component={SafeLazyLoad}
@@ -857,7 +857,7 @@ function buildRoutes() {
           path="new-internal/"
           componentPromise={() =>
             import(
-              'app/views/settings/organizationDeveloperSettings/sentryApplicationDetails'
+              'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails'
             )
           }
           component={SafeLazyLoad}
@@ -867,7 +867,7 @@ function buildRoutes() {
           path=":appSlug/"
           componentPromise={() =>
             import(
-              'app/views/settings/organizationDeveloperSettings/sentryApplicationDetails'
+              'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails'
             )
           }
           component={SafeLazyLoad}
@@ -877,7 +877,7 @@ function buildRoutes() {
           path=":appSlug/dashboard/"
           componentPromise={() =>
             import(
-              'app/views/settings/organizationDeveloperSettings/sentryApplicationDashboard'
+              'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDashboard'
             )
           }
           component={SafeLazyLoad}
