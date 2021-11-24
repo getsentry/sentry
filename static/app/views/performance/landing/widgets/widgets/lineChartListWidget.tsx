@@ -81,7 +81,7 @@ export function LineChartListWidget(props: Props) {
     () => ({
       fields: field,
       component: provided => {
-        const eventView = props.eventView.clone();
+        const eventView = provided.eventView.clone();
         eventView.sorts = [{kind: 'desc', field}];
         if (props.chartSetting === PerformanceWidgetSetting.MOST_RELATED_ISSUES) {
           eventView.fields = [
@@ -125,7 +125,7 @@ export function LineChartListWidget(props: Props) {
       },
       transform: transformDiscoverToList,
     }),
-    [props.eventView, field, props.organization.slug]
+    [props.chartSetting]
   );
 
   const chartQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(() => {
@@ -187,7 +187,7 @@ export function LineChartListWidget(props: Props) {
       },
       transform: transformEventsRequestToArea,
     };
-  }, [props.eventView, field, props.organization.slug, selectedListIndex]);
+  }, [props.chartSetting, selectedListIndex]);
 
   const Queries = {
     list: listQuery,

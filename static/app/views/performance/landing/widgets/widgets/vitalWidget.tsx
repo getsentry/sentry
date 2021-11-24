@@ -29,6 +29,7 @@ import SelectableList, {
   ListClose,
   RightAlignedCell,
   Subtitle,
+  WidgetEmptyStateWarning,
 } from '../components/selectableList';
 import {transformDiscoverToList} from '../transforms/transformDiscoverToList';
 import {transformEventsRequestToVitals} from '../transforms/transformEventsToVitals';
@@ -117,7 +118,7 @@ export function VitalWidget(props: Props) {
       () => ({
         fields: sortField,
         component: provided => {
-          const _eventView = props.eventView.clone();
+          const _eventView = provided.eventView.clone();
 
           const fieldFromProps = fieldsList.map(propField => ({
             field: propField,
@@ -155,7 +156,7 @@ export function VitalWidget(props: Props) {
         },
         fields: fieldsList,
         component: provided => {
-          const _eventView = props.eventView.clone();
+          const _eventView = provided.eventView.clone();
 
           _eventView.additionalConditions.setFilterValues('transaction', [
             provided.widgetData.list.data[selectedListIndex].transaction as string,
@@ -183,7 +184,7 @@ export function VitalWidget(props: Props) {
         },
         transform: transformEventsRequestToVitals,
       }),
-      [props.eventView, selectedListIndex, props.chartSetting, props.organization.slug]
+      [props.chartSetting, selectedListIndex]
     ),
   };
 
@@ -225,6 +226,7 @@ export function VitalWidget(props: Props) {
           </Subtitle>
         );
       }}
+      EmptyComponent={WidgetEmptyStateWarning}
       HeaderActions={provided => {
         const vital = settingToVital[props.chartSetting];
         const target = vitalDetailRouteWithQuery({
