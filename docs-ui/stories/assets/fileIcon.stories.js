@@ -1,4 +1,4 @@
-import FileIcon from 'app/components/fileIcon';
+import FileIcon from 'sentry/components/fileIcon';
 
 export default {
   title: 'Assets/Icons/File Icon',

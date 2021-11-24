@@ -1,4 +1,4 @@
-import Well from 'app/components/well';
+import Well from 'sentry/components/well';
 
 export default {
   title: 'Components/Well',

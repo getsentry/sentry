@@ -1,6 +1,6 @@
-import ActivityItem from 'app/components/activity/item';
-import ActivityAvatar from 'app/components/activity/item/avatar';
-import ActivityBubble from 'app/components/activity/item/bubble';
+import ActivityItem from 'sentry/components/activity/item';
+import ActivityAvatar from 'sentry/components/activity/item/avatar';
+import ActivityBubble from 'sentry/components/activity/item/bubble';
 
 const user = {
   username: 'billy@sentry.io',

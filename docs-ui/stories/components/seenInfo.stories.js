@@ -1,4 +1,4 @@
-import SeenInfo from 'app/components/group/seenInfo';
+import SeenInfo from 'sentry/components/group/seenInfo';
 
 export default {
   title: 'Features/Issues/Seen Info',

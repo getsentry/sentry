@@ -2,7 +2,7 @@ import {useContext} from 'react';
 import styled from '@emotion/styled';
 import Sample, {SampleThemeContext} from 'docs-ui/components/sample';
 
-import space from 'app/styles/space';
+import space from 'sentry/styles/space';
 
 import ColorSwatch from './colorSwatch';
 

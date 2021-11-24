@@ -1,4 +1,4 @@
-import ClippedBox from 'app/components/clippedBox';
+import ClippedBox from 'sentry/components/clippedBox';
 
 export default {
   title: 'Utilities/Hidden Content/Clipped Box',

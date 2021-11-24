@@ -1,5 +1,5 @@
-import Clipboard from 'app/components/clipboard';
-import Tooltip from 'app/components/tooltip';
+import Clipboard from 'sentry/components/clipboard';
+import Tooltip from 'sentry/components/tooltip';
 
 export default {
   title: 'Utilities/Clipboard',

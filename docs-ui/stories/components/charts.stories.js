@@ -1,5 +1,5 @@
-import BarChart from 'app/components/charts/barChart';
-import LineChart from 'app/components/charts/lineChart';
+import BarChart from 'sentry/components/charts/barChart';
+import LineChart from 'sentry/components/charts/lineChart';
 
 export default {
   title: 'Components/Data Visualization/Charts/Playground',

@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import IdBadge from 'app/components/idBadge';
+import IdBadge from 'sentry/components/idBadge';
 
 // TODO(scttcper): Handle dark mode
 const Item = styled('div')`

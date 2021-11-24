@@ -1,5 +1,5 @@
-import AlertBadge from 'app/views/alerts/alertBadge';
-import {IncidentStatus} from 'app/views/alerts/types';
+import AlertBadge from 'sentry/views/alerts/alertBadge';
+import {IncidentStatus} from 'sentry/views/alerts/types';
 
 export default {
   title: 'Components/Alerts/Alert Badge',

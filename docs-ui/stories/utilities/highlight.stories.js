@@ -1,4 +1,4 @@
-import Highlight, {HighlightComponent} from 'app/components/highlight';
+import Highlight, {HighlightComponent} from 'sentry/components/highlight';
 
 export default {
   title: 'Utilities/Highlight',

@@ -1,4 +1,4 @@
-import Badge from 'app/components/badge';
+import Badge from 'sentry/components/badge';
 
 export default {
   title: 'Components/Badges/Badge',

@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import AreaChart from 'app/components/charts/areaChart';
-import space from 'app/styles/space';
+import AreaChart from 'sentry/components/charts/areaChart';
+import space from 'sentry/styles/space';
 
 export default {
   title: 'Components/Data Visualization/Charts/Area Chart',

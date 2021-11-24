@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import getDynamicText from 'app/utils/getDynamicText';
+import getDynamicText from 'sentry/utils/getDynamicText';
 
 export default {
   title: 'Utilities/Get Dynamic Text',

@@ -1,5 +1,5 @@
-import Pill from 'app/components/pill';
-import Pills from 'app/components/pills';
+import Pill from 'sentry/components/pill';
+import Pills from 'sentry/components/pills';
 
 export default {
   title: 'Components/Pills',

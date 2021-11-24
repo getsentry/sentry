@@ -1,5 +1,5 @@
-import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
-import MenuItem from 'app/components/menuItem';
+import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
+import MenuItem from 'sentry/components/menuItem';
 
 export default {
   title: 'Components/Buttons/Dropdowns/Dropdown Control',

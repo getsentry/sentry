@@ -1,4 +1,4 @@
-import TagsTable from 'app/components/tagsTable';
+import TagsTable from 'sentry/components/tagsTable';
 
 const event = {
   id: 'deadbeef',

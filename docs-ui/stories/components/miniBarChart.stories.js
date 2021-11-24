@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
-import MiniBarChart from 'app/components/charts/miniBarChart';
-import theme from 'app/utils/theme';
+import MiniBarChart from 'sentry/components/charts/miniBarChart';
+import theme from 'sentry/utils/theme';
 
 export default {
   title: 'Components/Data Visualization/Charts/MiniBarChart',

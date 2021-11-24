@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {KeyValueTable, KeyValueTableRow} from 'app/components/keyValueTable';
+import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 
 const Wrapper = styled('div')`
   width: 250px;

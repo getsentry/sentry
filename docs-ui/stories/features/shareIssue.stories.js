@@ -1,7 +1,7 @@
 import {Component} from 'react';
 import {action} from '@storybook/addon-actions';
 
-import ShareIssue from 'app/views/organizationGroupDetails/actions/shareIssue';
+import ShareIssue from 'sentry/views/organizationGroupDetails/actions/shareIssue';
 
 export default {
   title: 'Features/Issues/Share Issue',

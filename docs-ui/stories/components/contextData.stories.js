@@ -1,4 +1,4 @@
-import ContextData from 'app/components/contextData';
+import ContextData from 'sentry/components/contextData';
 
 export default {
   title: 'Components/Context Data',

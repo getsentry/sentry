@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Truncate from 'app/components/truncate';
+import Truncate from 'sentry/components/truncate';
 
 export default {
   title: 'Utilities/Text/Truncate',
