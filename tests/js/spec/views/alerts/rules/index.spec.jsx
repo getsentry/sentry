@@ -8,7 +8,7 @@ import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import AlertRulesList from 'sentry/views/alerts/rules';
 import {IncidentStatus} from 'sentry/views/alerts/types';
 
-jest.mock('app/utils/analytics');
+jest.mock('sentry/utils/analytics');
 
 describe('OrganizationRuleList', () => {
   const {routerContext, organization, router} = initializeOrg();

@@ -6,9 +6,9 @@ import TagStore from 'sentry/stores/tagStore';
 import IssueList from 'sentry/views/issueList/overview';
 
 // Mock <IssueListSidebar> (need <IssueListActions> to toggling real time polling)
-jest.mock('app/views/issueList/sidebar', () => jest.fn(() => null));
-jest.mock('app/views/issueList/filters', () => jest.fn(() => null));
-jest.mock('app/components/stream/group', () => jest.fn(() => null));
+jest.mock('sentry/views/issueList/sidebar', () => jest.fn(() => null));
+jest.mock('sentry/views/issueList/filters', () => jest.fn(() => null));
+jest.mock('sentry/components/stream/group', () => jest.fn(() => null));
 
 jest.mock('js-cookie', () => ({
   get: jest.fn(),

@@ -12,7 +12,7 @@ import * as incidentActions from 'sentry/actionCreators/serviceIncidents';
 import SidebarContainer from 'sentry/components/sidebar';
 import ConfigStore from 'sentry/stores/configStore';
 
-jest.mock('app/actionCreators/serviceIncidents');
+jest.mock('sentry/actionCreators/serviceIncidents');
 
 describe('Sidebar', function () {
   const {organization, router} = initializeOrg();

@@ -7,10 +7,10 @@ import EventsChart from 'sentry/components/charts/eventsChart';
 import WorldMapChart from 'sentry/components/charts/worldMapChart';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 
-jest.mock('app/components/charts/eventsRequest', () => jest.fn(() => null));
+jest.mock('sentry/components/charts/eventsRequest', () => jest.fn(() => null));
 jest.spyOn(globalSelection, 'updateDateTime');
 jest.mock(
-  'app/components/charts/eventsGeoRequest',
+  'sentry/components/charts/eventsGeoRequest',
   () =>
     ({children}) =>
       children({

@@ -7,7 +7,7 @@ import {
 import {Client} from 'sentry/api';
 import TeamMembers from 'sentry/views/settings/organizationTeams/teamMembers';
 
-jest.mock('app/actionCreators/modal', () => ({
+jest.mock('sentry/actionCreators/modal', () => ({
   openInviteMembersModal: jest.fn(),
   openTeamAccessRequestModal: jest.fn(),
 }));

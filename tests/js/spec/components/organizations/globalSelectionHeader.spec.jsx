@@ -24,7 +24,7 @@ const changeQuery = (routerContext, query) => ({
   },
 });
 
-jest.mock('app/utils/localStorage', () => ({
+jest.mock('sentry/utils/localStorage', () => ({
   getItem: jest.fn(),
   setItem: jest.fn(),
 }));

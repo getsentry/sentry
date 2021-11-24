@@ -4,7 +4,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Button from 'sentry/components/button';
 import WrappedDataExport from 'sentry/components/dataExport';
 
-jest.mock('app/actionCreators/indicator');
+jest.mock('sentry/actionCreators/indicator');
 
 describe('DataExport', function () {
   const mockUnauthorizedOrg = TestStubs.Organization({

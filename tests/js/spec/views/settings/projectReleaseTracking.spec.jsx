@@ -6,7 +6,7 @@ import ProjectReleaseTrackingContainer, {
   ProjectReleaseTracking,
 } from 'sentry/views/settings/project/projectReleaseTracking';
 
-jest.mock('app/actionCreators/plugins', () => ({
+jest.mock('sentry/actionCreators/plugins', () => ({
   fetchPlugins: jest.fn().mockResolvedValue([]),
 }));
 

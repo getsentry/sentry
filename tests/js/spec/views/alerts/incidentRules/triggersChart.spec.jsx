@@ -5,7 +5,7 @@ import {Client} from 'sentry/api';
 import AreaChart from 'sentry/components/charts/areaChart';
 import TriggersChart from 'sentry/views/alerts/incidentRules/triggers/chart';
 
-jest.mock('app/components/charts/areaChart');
+jest.mock('sentry/components/charts/areaChart');
 
 describe('Incident Rules Create', () => {
   let eventStatsMock;

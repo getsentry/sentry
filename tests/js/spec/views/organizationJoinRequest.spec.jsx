@@ -4,10 +4,10 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {trackAdhocEvent} from 'sentry/utils/analytics';
 import OrganizationJoinRequest from 'sentry/views/organizationJoinRequest';
 
-jest.mock('app/utils/analytics', () => ({
+jest.mock('sentry/utils/analytics', () => ({
   trackAdhocEvent: jest.fn(),
 }));
-jest.mock('app/actionCreators/indicator');
+jest.mock('sentry/actionCreators/indicator');
 
 describe('OrganizationJoinRequest', function () {
   const org = TestStubs.Organization({slug: 'test-org'});

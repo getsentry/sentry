@@ -3,7 +3,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {saveOnBlurUndoMessage} from 'sentry/actionCreators/indicator';
 import OrganizationSettingsForm from 'sentry/views/settings/organizationGeneralSettings/organizationSettingsForm';
 
-jest.mock('app/actionCreators/indicator');
+jest.mock('sentry/actionCreators/indicator');
 
 describe('OrganizationSettingsForm', function () {
   const organization = TestStubs.Organization();

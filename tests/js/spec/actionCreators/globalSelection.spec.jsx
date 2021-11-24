@@ -9,7 +9,7 @@ import {
 import GlobalSelectionActions from 'sentry/actions/globalSelectionActions';
 import localStorage from 'sentry/utils/localStorage';
 
-jest.mock('app/utils/localStorage');
+jest.mock('sentry/utils/localStorage');
 
 describe('GlobalSelection ActionCreators', function () {
   const organization = TestStubs.Organization();

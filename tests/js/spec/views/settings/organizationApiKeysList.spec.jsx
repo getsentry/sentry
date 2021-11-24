@@ -3,7 +3,7 @@ import {mountGlobalModal} from 'sentry-test/modal';
 
 import OrganizationApiKeysList from 'sentry/views/settings/organizationApiKeys/organizationApiKeysList';
 
-jest.unmock('app/utils/recreateRoute');
+jest.unmock('sentry/utils/recreateRoute');
 
 const routes = [
   {path: '/'},

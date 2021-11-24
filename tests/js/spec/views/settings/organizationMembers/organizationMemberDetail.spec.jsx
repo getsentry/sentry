@@ -5,7 +5,7 @@ import {updateMember} from 'sentry/actionCreators/members';
 import TeamStore from 'sentry/stores/teamStore';
 import OrganizationMemberDetail from 'sentry/views/settings/organizationMembers/organizationMemberDetail';
 
-jest.mock('app/actionCreators/members', () => ({
+jest.mock('sentry/actionCreators/members', () => ({
   updateMember: jest.fn().mockReturnValue(new Promise(() => {})),
 }));
 

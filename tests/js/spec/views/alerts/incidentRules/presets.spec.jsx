@@ -6,11 +6,11 @@ import {Dataset} from 'sentry/views/alerts/incidentRules/types';
 import {getIncidentDiscoverUrl} from 'sentry/views/alerts/utils/getIncidentDiscoverUrl';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
-jest.mock('app/views/performance/transactionSummary/utils', () => ({
+jest.mock('sentry/views/performance/transactionSummary/utils', () => ({
   transactionSummaryRouteWithQuery: jest.fn(),
 }));
 
-jest.mock('app/views/alerts/utils/getIncidentDiscoverUrl', () => {
+jest.mock('sentry/views/alerts/utils/getIncidentDiscoverUrl', () => {
   return {
     getIncidentDiscoverUrl: jest.fn(),
   };

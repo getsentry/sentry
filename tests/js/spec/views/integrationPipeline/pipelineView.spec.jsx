@@ -7,7 +7,7 @@ function MockAwsLambdaProjectSelect() {
 }
 
 jest.mock(
-  'app/views/integrationPipeline/awsLambdaProjectSelect',
+  'sentry/views/integrationPipeline/awsLambdaProjectSelect',
   () => MockAwsLambdaProjectSelect
 );
 

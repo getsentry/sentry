@@ -4,8 +4,8 @@ import {navigateTo} from 'sentry/actionCreators/navigation';
 import FormSearchStore from 'sentry/stores/formSearchStore';
 import SettingsSearch from 'sentry/views/settings/components/settingsSearch';
 
-jest.mock('app/actionCreators/formSearch');
-jest.mock('app/actionCreators/navigation');
+jest.mock('sentry/actionCreators/formSearch');
+jest.mock('sentry/actionCreators/navigation');
 
 describe('SettingsSearch', function () {
   let orgsMock;

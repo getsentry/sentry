@@ -11,8 +11,8 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import ProjectContext from 'sentry/views/projects/projectContext';
 import ProjectGeneralSettings from 'sentry/views/settings/projectGeneralSettings';
 
-jest.mock('app/actionCreators/indicator');
-jest.mock('app/components/organizations/globalSelectionHeader/utils');
+jest.mock('sentry/actionCreators/indicator');
+jest.mock('sentry/components/organizations/globalSelectionHeader/utils');
 
 describe('projectGeneralSettings', function () {
   const org = TestStubs.Organization();
