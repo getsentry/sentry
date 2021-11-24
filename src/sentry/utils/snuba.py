@@ -672,7 +672,7 @@ def raw_snql_query(
     # other functions do here. It does not add any automatic conditions, format
     # results, nothing. Use at your own risk.
     metrics.incr("snql.sdk.api", tags={"referrer": referrer or "unknown"})
-    params: SnubaQuery = (query, lambda x: x, lambda x: x)
+    params: SnubaQueryBody = (query, lambda x: x, lambda x: x)
     return _apply_cache_and_build_results([params], referrer=referrer, use_cache=use_cache)[0]
 
 
@@ -723,7 +723,7 @@ def _apply_cache_and_build_results(
     results = []
 
     if use_cache:
-        cache_keys = [get_cache_key(query_params) for _, query_params in query_param_list]
+        cache_keys = [get_cache_key(query_params[0]) for _, query_params in query_param_list]
         cache_data = cache.get_many(cache_keys)
         to_query: List[Tuple[int, SnubaQueryBody, Optional[str]]] = []
         for (query_pos, query_params), cache_key in zip(query_param_list, cache_keys):

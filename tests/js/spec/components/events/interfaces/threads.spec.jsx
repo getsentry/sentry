@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import Threads from 'app/components/events/interfaces/threads';
-import {OrganizationContext} from 'app/views/organizationContext';
+import Threads from 'sentry/components/events/interfaces/threads';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 describe('Threads', () => {
   const entries = TestStubs.Entries()[0];

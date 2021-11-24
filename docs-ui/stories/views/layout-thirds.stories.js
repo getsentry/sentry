@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
 
-import Breadcrumbs from 'app/components/breadcrumbs';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import * as Layout from 'app/components/layouts/thirds';
-import Link from 'app/components/links/link';
-import space from 'app/styles/space';
+import Breadcrumbs from 'sentry/components/breadcrumbs';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import * as Layout from 'sentry/components/layouts/thirds';
+import Link from 'sentry/components/links/link';
+import space from 'sentry/styles/space';
 
 const crumbs = [
   {

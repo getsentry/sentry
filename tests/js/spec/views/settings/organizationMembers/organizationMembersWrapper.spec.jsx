@@ -1,12 +1,12 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {openInviteMembersModal} from 'app/actionCreators/modal';
-import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
-import OrganizationMembersList from 'app/views/settings/organizationMembers/organizationMembersList';
-import OrganizationMembersWrapper from 'app/views/settings/organizationMembers/organizationMembersWrapper';
+import {openInviteMembersModal} from 'sentry/actionCreators/modal';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import OrganizationMembersList from 'sentry/views/settings/organizationMembers/organizationMembersList';
+import OrganizationMembersWrapper from 'sentry/views/settings/organizationMembers/organizationMembersWrapper';
 
-jest.mock('app/utils/analytics/trackAdvancedAnalyticsEvent', () => jest.fn());
-jest.mock('app/actionCreators/modal', () => ({
+jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent', () => jest.fn());
+jest.mock('sentry/actionCreators/modal', () => ({
   openInviteMembersModal: jest.fn(),
 }));
 

@@ -1,14 +1,14 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import ConfigStore from 'app/stores/configStore';
-import {logExperiment} from 'app/utils/analytics';
-import withExperiment from 'app/utils/withExperiment';
+import ConfigStore from 'sentry/stores/configStore';
+import {logExperiment} from 'sentry/utils/analytics';
+import withExperiment from 'sentry/utils/withExperiment';
 
-jest.mock('app/utils/analytics', () => ({
+jest.mock('sentry/utils/analytics', () => ({
   logExperiment: jest.fn(),
 }));
 
-jest.mock('app/data/experimentConfig', () => ({
+jest.mock('sentry/data/experimentConfig', () => ({
   experimentConfig: {
     orgExperiment: {
       key: 'orgExperiment',

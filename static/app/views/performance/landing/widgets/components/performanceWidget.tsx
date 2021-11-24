@@ -66,6 +66,7 @@ export function GenericPerformanceWidget<T extends WidgetDataConstraint>(
   return (
     <Fragment>
       <QueryHandler
+        eventView={props.eventView}
         widgetData={widgetData}
         setWidgetDataForKey={setWidgetDataForKey}
         removeWidgetDataForKey={removeWidgetDataForKey}
@@ -122,6 +123,7 @@ function _DataDisplay<T extends WidgetDataConstraint>(
             key={index}
             noPadding={Visualization.noPadding}
             bottomPadding={Visualization.bottomPadding}
+            data-test-id="widget-state-has-data"
             onClick={() =>
               trackDataComponentClicks(props.chartSetting, props.organization)
             }
@@ -151,7 +153,7 @@ export const DataDisplay = withRouter(_DataDisplay);
 
 const DefaultErrorComponent = (props: {height: number}) => {
   return (
-    <ErrorPanel height={`${props.height}px`}>
+    <ErrorPanel data-test-id="widget-state-is-errored" height={`${props.height}px`}>
       <IconWarning color="gray300" size="lg" />
     </ErrorPanel>
   );

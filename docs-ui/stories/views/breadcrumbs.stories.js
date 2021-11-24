@@ -1,6 +1,6 @@
 import {action} from '@storybook/addon-actions';
 
-import Breadcrumbs from 'app/components/breadcrumbs';
+import Breadcrumbs from 'sentry/components/breadcrumbs';
 
 export default {
   title: 'Views/Breadcrumbs',

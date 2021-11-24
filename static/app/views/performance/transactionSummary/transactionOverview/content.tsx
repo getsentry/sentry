@@ -18,6 +18,7 @@ import {generateQueryWithTag} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
 import {
+  formatTagKey,
   getAggregateAlias,
   isRelativeSpanOperationBreakdownField,
   SPAN_OP_BREAKDOWN_FIELDS,
@@ -90,7 +91,7 @@ class SummaryContent extends React.Component<Props> {
 
   generateTagUrl = (key: string, value: string) => {
     const {location} = this.props;
-    const query = generateQueryWithTag(location.query, {key, value});
+    const query = generateQueryWithTag(location.query, {key: formatTagKey(key), value});
 
     return {
       ...location,
@@ -364,19 +365,14 @@ class SummaryContent extends React.Component<Props> {
               transactionName={transactionName}
             />
           </Feature>
-          <Feature
-            requireAll={false}
-            features={['performance-tag-explorer', 'performance-tag-page']}
-          >
-            <TagExplorer
-              eventView={eventView}
-              organization={organization}
-              location={location}
-              projects={projects}
-              transactionName={transactionName}
-              currentFilter={spanOperationBreakdownFilter}
-            />
-          </Feature>
+          <TagExplorer
+            eventView={eventView}
+            organization={organization}
+            location={location}
+            projects={projects}
+            transactionName={transactionName}
+            currentFilter={spanOperationBreakdownFilter}
+          />
           <RelatedIssues
             organization={organization}
             location={location}

@@ -13,7 +13,7 @@ import {IconAdd, IconCheckmark, IconWarning} from 'app/icons';
 import {t, tct, tn} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import {uniqueId} from 'app/utils/guid';
 import withLatestContext from 'app/utils/withLatestContext';
 
@@ -62,11 +62,8 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
     this.sessionId = uniqueId();
 
     const {organization, source} = this.props;
-
-    trackAnalyticsEvent({
-      eventKey: 'invite_modal.opened',
-      eventName: 'Invite Modal: Opened',
-      organization_id: organization.id,
+    trackAdvancedAnalyticsEvent('invite_modal.opened', {
+      organization,
       modal_session: this.sessionId,
       can_invite: this.willInvite,
       source,
@@ -106,11 +103,8 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
       complete: false,
       sendingInvites: false,
     });
-
-    trackAnalyticsEvent({
-      eventKey: 'invite_modal.add_more',
-      eventName: 'Invite Modal: Add More',
-      organization_id: this.props.organization.id,
+    trackAdvancedAnalyticsEvent('invite_modal.add_more', {
+      organization: this.props.organization,
       modal_session: this.sessionId,
     });
   };
@@ -163,16 +157,13 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
     await Promise.all(this.invites.map(this.sendInvite));
     this.setState({sendingInvites: false, complete: true});
 
-    trackAnalyticsEvent({
-      eventKey: this.willInvite
-        ? 'invite_modal.invites_sent'
-        : 'invite_modal.requests_sent',
-      eventName: this.willInvite
-        ? 'Invite Modal: Invites Sent'
-        : 'Invite Modal: Requests Sent',
-      organization_id: this.props.organization.id,
-      modal_session: this.sessionId,
-    });
+    trackAdvancedAnalyticsEvent(
+      this.willInvite ? 'invite_modal.invites_sent' : 'invite_modal.requests_sent',
+      {
+        organization: this.props.organization,
+        modal_session: this.sessionId,
+      }
+    );
   };
 
   addInviteRow = () =>
@@ -404,10 +395,8 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
                   priority="primary"
                   size="small"
                   onClick={() => {
-                    trackAnalyticsEvent({
-                      eventKey: 'invite_modal.closed',
-                      eventName: 'Invite Modal: Closed',
-                      organization_id: this.props.organization.id,
+                    trackAdvancedAnalyticsEvent('invite_modal.closed', {
+                      organization: this.props.organization,
                       modal_session: this.sessionId,
                     });
                     closeModal();

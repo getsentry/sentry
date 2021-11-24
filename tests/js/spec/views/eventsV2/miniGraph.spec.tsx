@@ -1,10 +1,10 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import EventView from 'app/utils/discover/eventView';
-import MiniGraph from 'app/views/eventsV2/miniGraph';
+import EventView from 'sentry/utils/discover/eventView';
+import MiniGraph from 'sentry/views/eventsV2/miniGraph';
 
-jest.mock('app/components/charts/eventsGeoRequest', () =>
+jest.mock('sentry/components/charts/eventsGeoRequest', () =>
   jest.fn(({children}) =>
     children({
       errored: false,

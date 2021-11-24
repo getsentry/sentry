@@ -31,7 +31,6 @@ function TransactionTags(props: Props) {
       getDocumentTitle={getDocumentTitle}
       generateEventView={generateEventView}
       childComponent={TagsPageContent}
-      features={['performance-tag-page']}
     />
   );
 }

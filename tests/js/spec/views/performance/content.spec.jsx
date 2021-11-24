@@ -4,14 +4,14 @@ import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
-import * as globalSelection from 'app/actionCreators/globalSelection';
-import OrganizationStore from 'app/stores/organizationStore';
-import ProjectsStore from 'app/stores/projectsStore';
-import TeamStore from 'app/stores/teamStore';
-import {OrganizationContext} from 'app/views/organizationContext';
-import PerformanceContent from 'app/views/performance/content';
-import {DEFAULT_MAX_DURATION} from 'app/views/performance/trends/utils';
-import {vitalAbbreviations} from 'app/views/performance/vitalDetail/utils';
+import * as globalSelection from 'sentry/actionCreators/globalSelection';
+import OrganizationStore from 'sentry/stores/organizationStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import TeamStore from 'sentry/stores/teamStore';
+import {OrganizationContext} from 'sentry/views/organizationContext';
+import PerformanceContent from 'sentry/views/performance/content';
+import {DEFAULT_MAX_DURATION} from 'sentry/views/performance/trends/utils';
+import {vitalAbbreviations} from 'sentry/views/performance/vitalDetail/utils';
 
 const FEATURES = ['transaction-event', 'performance-view'];
 

@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import Hook from 'app/components/hook';
-import HookStore from 'app/stores/hookStore';
+import Hook from 'sentry/components/hook';
+import HookStore from 'sentry/stores/hookStore';
 
 describe('Hook', function () {
   const Wrapper = function Wrapper(props) {

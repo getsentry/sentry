@@ -9,6 +9,7 @@ import {getInterval} from 'app/components/charts/utils';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
+import {QueryBatchNode} from 'app/utils/performance/contexts/genericQueryBatcher';
 import withApi from 'app/utils/withApi';
 import _DurationChart from 'app/views/performance/charts/chart';
 
@@ -51,27 +52,33 @@ export function SingleFieldAreaWidget(props: Props) {
     () => ({
       fields: props.fields[0],
       component: provided => (
-        <EventsRequest
-          {...pick(provided, eventsRequestQueryProps)}
-          limit={1}
-          includePrevious
-          includeTransformedData
-          partial
-          currentSeriesNames={[field]}
-          query={props.eventView.getQueryWithAdditionalConditions()}
-          interval={getInterval(
-            {
-              start: provided.start,
-              end: provided.end,
-              period: provided.period,
-            },
-            'medium'
+        <QueryBatchNode batchProperty="yAxis">
+          {({queryBatching}) => (
+            <EventsRequest
+              {...pick(provided, eventsRequestQueryProps)}
+              limit={1}
+              queryBatching={queryBatching}
+              includePrevious
+              includeTransformedData
+              partial
+              currentSeriesNames={[field]}
+              previousSeriesNames={[`previous ${field}`]}
+              query={provided.eventView.getQueryWithAdditionalConditions()}
+              interval={getInterval(
+                {
+                  start: provided.start,
+                  end: provided.end,
+                  period: provided.period,
+                },
+                'medium'
+              )}
+            />
           )}
-        />
+        </QueryBatchNode>
       ),
       transform: transformEventsRequestToArea,
     }),
-    [props.eventView, field, props.organization.slug]
+    [props.chartSetting]
   );
 
   const Queries = {
@@ -82,7 +89,11 @@ export function SingleFieldAreaWidget(props: Props) {
     <GenericPerformanceWidget<DataType>
       {...props}
       Subtitle={() => (
-        <Subtitle>{t('Compared to last %s ', globalSelection.datetime.period)}</Subtitle>
+        <Subtitle>
+          {globalSelection.datetime.period
+            ? t('Compared to last %s ', globalSelection.datetime.period)
+            : t('Compared to the last period')}
+        </Subtitle>
       )}
       HeaderActions={provided => (
         <Fragment>

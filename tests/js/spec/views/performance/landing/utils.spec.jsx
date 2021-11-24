@@ -1,8 +1,8 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import ProjectsStore from 'app/stores/projectsStore';
-import EventView from 'app/utils/discover/eventView';
-import {getCurrentLandingDisplay} from 'app/views/performance/landing/utils';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import EventView from 'sentry/utils/discover/eventView';
+import {getCurrentLandingDisplay} from 'sentry/views/performance/landing/utils';
 
 function initializeData(projects, query) {
   const organization = TestStubs.Organization({

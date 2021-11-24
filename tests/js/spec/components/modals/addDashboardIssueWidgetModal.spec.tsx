@@ -1,9 +1,9 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import AddDashboardIssueWidgetModal from 'app/components/modals/addDashboardIssueWidgetModal';
+import AddDashboardIssueWidgetModal from 'sentry/components/modals/addDashboardIssueWidgetModal';
 
-jest.mock('app/actionCreators/modal', () => ({
+jest.mock('sentry/actionCreators/modal', () => ({
   openDashboardWidgetLibraryModal: jest.fn(),
 }));
 
