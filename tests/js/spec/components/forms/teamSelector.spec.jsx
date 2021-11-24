@@ -5,7 +5,7 @@ import {TeamSelector} from 'sentry/components/forms/teamSelector';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import TeamStore from 'sentry/stores/teamStore';
 
-jest.mock('app/actionCreators/projects', () => ({
+jest.mock('sentry/actionCreators/projects', () => ({
   addTeamToProject: jest.fn(),
 }));
 

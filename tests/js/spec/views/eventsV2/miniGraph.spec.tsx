@@ -4,7 +4,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import EventView from 'sentry/utils/discover/eventView';
 import MiniGraph from 'sentry/views/eventsV2/miniGraph';
 
-jest.mock('app/components/charts/eventsGeoRequest', () =>
+jest.mock('sentry/components/charts/eventsGeoRequest', () =>
   jest.fn(({children}) =>
     children({
       errored: false,

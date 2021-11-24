@@ -7,7 +7,7 @@ import TeamStore from 'sentry/stores/teamStore';
 import App from 'sentry/views/app';
 import ProjectTeams from 'sentry/views/settings/project/projectTeams';
 
-jest.unmock('app/actionCreators/modal');
+jest.unmock('sentry/actionCreators/modal');
 
 describe('ProjectTeams', function () {
   let org;

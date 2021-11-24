@@ -5,7 +5,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {Client} from 'sentry/api';
 import {GroupMergedView} from 'sentry/views/organizationGroupDetails/groupMerged';
 
-jest.mock('app/api');
+jest.mock('sentry/api');
 
 describe('Issues -> Merged View', function () {
   const events = TestStubs.DetailedEvents();

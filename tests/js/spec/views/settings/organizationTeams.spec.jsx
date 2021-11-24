@@ -9,7 +9,7 @@ import OrganizationTeams from 'sentry/views/settings/organizationTeams/organizat
 
 recreateRoute.mockReturnValue('');
 
-jest.mock('app/actionCreators/modal', () => ({
+jest.mock('sentry/actionCreators/modal', () => ({
   openCreateTeamModal: jest.fn(),
 }));
 

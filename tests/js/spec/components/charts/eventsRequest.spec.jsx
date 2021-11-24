@@ -7,7 +7,7 @@ const COUNT_OBJ = {
   count: 123,
 };
 
-jest.mock('app/actionCreators/events', () => ({
+jest.mock('sentry/actionCreators/events', () => ({
   doEventsRequest: jest.fn(),
 }));
 

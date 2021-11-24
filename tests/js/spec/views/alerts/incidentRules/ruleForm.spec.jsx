@@ -11,8 +11,8 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {metric} from 'sentry/utils/analytics';
 import RuleFormContainer from 'sentry/views/alerts/incidentRules/ruleForm';
 
-jest.mock('app/actionCreators/indicator');
-jest.mock('app/utils/analytics', () => ({
+jest.mock('sentry/actionCreators/indicator');
+jest.mock('sentry/utils/analytics', () => ({
   metric: {
     startTransaction: jest.fn(() => ({
       setTag: jest.fn(),

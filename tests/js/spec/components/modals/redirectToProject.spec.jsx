@@ -2,7 +2,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {RedirectToProjectModal} from 'sentry/components/modals/redirectToProject';
 
-jest.unmock('app/utils/recreateRoute');
+jest.unmock('sentry/utils/recreateRoute');
 describe('RedirectToProjectModal', function () {
   jest.useFakeTimers();
   const routes = [

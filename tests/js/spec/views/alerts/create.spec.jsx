@@ -18,9 +18,9 @@ import AlertsContainer from 'sentry/views/alerts';
 import AlertBuilderProjectProvider from 'sentry/views/alerts/builder/projectProvider';
 import ProjectAlertsCreate from 'sentry/views/alerts/create';
 
-jest.unmock('app/utils/recreateRoute');
+jest.unmock('sentry/utils/recreateRoute');
 jest.mock('react-router');
-jest.mock('app/utils/analytics', () => ({
+jest.mock('sentry/utils/analytics', () => ({
   metric: {
     startTransaction: jest.fn(() => ({
       setTag: jest.fn(),

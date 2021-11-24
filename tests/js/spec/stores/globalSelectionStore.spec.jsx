@@ -5,7 +5,7 @@ import {
 } from 'sentry/actionCreators/globalSelection';
 import GlobalSelectionStore from 'sentry/stores/globalSelectionStore';
 
-jest.mock('app/utils/localStorage', () => ({
+jest.mock('sentry/utils/localStorage', () => ({
   getItem: () => JSON.stringify({projects: [5], environments: ['staging']}),
   setItem: jest.fn(),
 }));

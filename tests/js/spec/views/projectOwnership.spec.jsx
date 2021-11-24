@@ -4,7 +4,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import ProjectOwnership from 'sentry/views/settings/project/projectOwnership';
 
-jest.mock('app/actionCreators/modal');
+jest.mock('sentry/actionCreators/modal');
 
 describe('Project Ownership', function () {
   let org = TestStubs.Organization();

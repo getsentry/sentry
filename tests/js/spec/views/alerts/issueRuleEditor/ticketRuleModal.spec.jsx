@@ -6,8 +6,8 @@ import {selectByQuery, selectByValue} from 'sentry-test/select-new';
 
 import TicketRuleModal from 'sentry/views/alerts/issueRuleEditor/ticketRuleModal';
 
-jest.unmock('app/utils/recreateRoute');
-jest.mock('app/actionCreators/onboardingTasks');
+jest.unmock('sentry/utils/recreateRoute');
+jest.mock('sentry/actionCreators/onboardingTasks');
 
 describe('ProjectAlerts -> TicketRuleModal', function () {
   const closeModal = jest.fn();

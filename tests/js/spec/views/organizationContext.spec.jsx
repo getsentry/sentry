@@ -8,10 +8,10 @@ import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import {OrganizationLegacyContext} from 'sentry/views/organizationContext';
 
-jest.mock('app/stores/configStore', () => ({
+jest.mock('sentry/stores/configStore', () => ({
   get: jest.fn(),
 }));
-jest.mock('app/actionCreators/modal', () => ({
+jest.mock('sentry/actionCreators/modal', () => ({
   openSudo: jest.fn(),
 }));
 

@@ -4,7 +4,7 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import OrganizationDetails from 'sentry/views/organizationDetails';
 
-jest.mock('app/components/sidebar', () => () => <div />);
+jest.mock('sentry/components/sidebar', () => () => <div />);
 
 describe('OrganizationDetails', function () {
   let getTeamsMock;
