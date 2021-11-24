@@ -2396,7 +2396,7 @@ SENTRY_REPROCESSING_REMAINING_EVENTS_BUF_SIZE = 500
 #
 # Currently, only redis is supported.
 SENTRY_REALTIME_METRICS_BACKEND = (
-    "sentry.processing.realtime_metrics.redis.RedisRealtimeMetricsStore"
+    "sentry.processing.realtime_metrics.dummy.DummyRealtimeMetricsStore"
 )
 SENTRY_REALTIME_METRICS_OPTIONS = {
     # The redis cluster used for the realtime store redis backend.
