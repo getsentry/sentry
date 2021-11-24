@@ -2,30 +2,30 @@ import * as React from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 
-import {doEventsRequest} from 'app/actionCreators/events';
-import {Client} from 'app/api';
+import {doEventsRequest} from 'sentry/actionCreators/events';
+import {Client} from 'sentry/api';
 import {
   getDiffInMinutes,
   getInterval,
   isMultiSeriesStats,
-} from 'app/components/charts/utils';
-import {isSelectionEqual} from 'app/components/organizations/globalSelectionHeader/utils';
-import {t} from 'app/locale';
+} from 'sentry/components/charts/utils';
+import {isSelectionEqual} from 'sentry/components/organizations/globalSelectionHeader/utils';
+import {t} from 'sentry/locale';
 import {
   EventsStats,
   GlobalSelection,
   MultiSeriesEventsStats,
   OrganizationSummary,
-} from 'app/types';
-import {Series} from 'app/types/echarts';
-import {parsePeriodToHours} from 'app/utils/dates';
-import {TableData, TableDataWithTitle} from 'app/utils/discover/discoverQuery';
-import {getAggregateFields} from 'app/utils/discover/fields';
+} from 'sentry/types';
+import {Series} from 'sentry/types/echarts';
+import {parsePeriodToHours} from 'sentry/utils/dates';
+import {TableData, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {getAggregateFields} from 'sentry/utils/discover/fields';
 import {
   DiscoverQueryRequestParams,
   doDiscoverQuery,
-} from 'app/utils/discover/genericDiscoverQuery';
-import {TOP_N} from 'app/utils/discover/types';
+} from 'sentry/utils/discover/genericDiscoverQuery';
+import {TOP_N} from 'sentry/utils/discover/types';
 
 import {DisplayType, Widget, WidgetQuery} from './types';
 import {eventViewFromWidget} from './utils';

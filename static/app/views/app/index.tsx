@@ -5,22 +5,22 @@ import styled from '@emotion/styled';
 import {
   displayDeployPreviewAlert,
   displayExperimentalSpaAlert,
-} from 'app/actionCreators/deployPreview';
-import {fetchGuides} from 'app/actionCreators/guides';
-import {openCommandPalette} from 'app/actionCreators/modal';
-import AlertActions from 'app/actions/alertActions';
-import {initApiClientErrorHandling} from 'app/api';
-import ErrorBoundary from 'app/components/errorBoundary';
-import GlobalModal from 'app/components/globalModal';
-import HookOrDefault from 'app/components/hookOrDefault';
-import Indicators from 'app/components/indicators';
-import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA} from 'app/constants';
-import ConfigStore from 'app/stores/configStore';
-import HookStore from 'app/stores/hookStore';
-import OrganizationsStore from 'app/stores/organizationsStore';
-import OrganizationStore from 'app/stores/organizationStore';
-import {useLegacyStore} from 'app/stores/useLegacyStore';
-import useApi from 'app/utils/useApi';
+} from 'sentry/actionCreators/deployPreview';
+import {fetchGuides} from 'sentry/actionCreators/guides';
+import {openCommandPalette} from 'sentry/actionCreators/modal';
+import AlertActions from 'sentry/actions/alertActions';
+import {initApiClientErrorHandling} from 'sentry/api';
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import GlobalModal from 'sentry/components/globalModal';
+import HookOrDefault from 'sentry/components/hookOrDefault';
+import Indicators from 'sentry/components/indicators';
+import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA} from 'sentry/constants';
+import ConfigStore from 'sentry/stores/configStore';
+import HookStore from 'sentry/stores/hookStore';
+import OrganizationsStore from 'sentry/stores/organizationsStore';
+import OrganizationStore from 'sentry/stores/organizationStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import useApi from 'sentry/utils/useApi';
 
 import SystemAlerts from './systemAlerts';
 

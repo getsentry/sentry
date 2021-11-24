@@ -4,23 +4,23 @@ import {EChartOption} from 'echarts';
 import debounce from 'lodash/debounce';
 import flatten from 'lodash/flatten';
 
-import AreaChart, {AreaChartSeries} from 'app/components/charts/areaChart';
-import Graphic from 'app/components/charts/components/graphic';
-import {defaultFormatAxisLabel} from 'app/components/charts/components/tooltip';
-import {LineChartSeries} from 'app/components/charts/lineChart';
-import LineSeries from 'app/components/charts/series/lineSeries';
-import space from 'app/styles/space';
-import {GlobalSelection} from 'app/types';
-import {ReactEchartsRef, Series} from 'app/types/echarts';
-import theme from 'app/utils/theme';
-import {checkChangeStatus} from 'app/views/alerts/changeAlerts/comparisonMarklines';
+import AreaChart, {AreaChartSeries} from 'sentry/components/charts/areaChart';
+import Graphic from 'sentry/components/charts/components/graphic';
+import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
+import {LineChartSeries} from 'sentry/components/charts/lineChart';
+import LineSeries from 'sentry/components/charts/series/lineSeries';
+import space from 'sentry/styles/space';
+import {GlobalSelection} from 'sentry/types';
+import {ReactEchartsRef, Series} from 'sentry/types/echarts';
+import theme from 'sentry/utils/theme';
+import {checkChangeStatus} from 'sentry/views/alerts/changeAlerts/comparisonMarklines';
 import {
   ALERT_CHART_MIN_MAX_BUFFER,
   alertAxisFormatter,
   alertTooltipValueFormatter,
   isSessionAggregate,
   shouldScaleAlertChart,
-} from 'app/views/alerts/utils';
+} from 'sentry/views/alerts/utils';
 
 import {AlertRuleThresholdType, IncidentRule, Trigger} from '../../types';
 

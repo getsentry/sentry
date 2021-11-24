@@ -1,18 +1,18 @@
 import {Component, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 
-import Link from 'app/components/links/link';
-import NavTabs from 'app/components/navTabs';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import {t} from 'app/locale';
-import {Project} from 'app/types';
-import recreateRoute from 'app/utils/recreateRoute';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import TextBlock from 'app/views/settings/components/text/textBlock';
-import PermissionAlert from 'app/views/settings/project/permissionAlert';
-import GroupTombstones from 'app/views/settings/project/projectFilters/groupTombstones';
-import ProjectFiltersChart from 'app/views/settings/project/projectFilters/projectFiltersChart';
-import ProjectFiltersSettings from 'app/views/settings/project/projectFilters/projectFiltersSettings';
+import Link from 'sentry/components/links/link';
+import NavTabs from 'sentry/components/navTabs';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {t} from 'sentry/locale';
+import {Project} from 'sentry/types';
+import recreateRoute from 'sentry/utils/recreateRoute';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
+import GroupTombstones from 'sentry/views/settings/project/projectFilters/groupTombstones';
+import ProjectFiltersChart from 'sentry/views/settings/project/projectFilters/projectFiltersChart';
+import ProjectFiltersSettings from 'sentry/views/settings/project/projectFilters/projectFiltersSettings';
 
 type Props = {
   project: Project;

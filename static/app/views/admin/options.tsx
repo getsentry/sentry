@@ -1,14 +1,14 @@
 import * as React from 'react';
 import keyBy from 'lodash/keyBy';
 
-import {t, tct} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
+import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import {
   BooleanField,
   EmailField,
   RadioBooleanField,
   TextField,
-} from 'app/views/settings/components/forms';
+} from 'sentry/views/settings/components/forms';
 
 type Section = {
   key: string;

@@ -1,9 +1,9 @@
 import * as React from 'react';
 
-import Confirm from 'app/components/confirm';
-import {t} from 'app/locale';
-import ConfirmHeader from 'app/views/settings/account/accountSecurity/components/confirmHeader';
-import TextBlock from 'app/views/settings/components/text/textBlock';
+import Confirm from 'sentry/components/confirm';
+import {t} from 'sentry/locale';
+import ConfirmHeader from 'sentry/views/settings/account/accountSecurity/components/confirmHeader';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 type Props = React.ComponentProps<typeof Confirm>;
 

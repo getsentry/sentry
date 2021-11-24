@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {slideInUp} from 'app/styles/animations';
+import {slideInUp} from 'sentry/styles/animations';
 
 const FieldErrorReason = styled('div')`
   color: ${p => p.theme.red300};

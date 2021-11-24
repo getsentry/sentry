@@ -2,11 +2,11 @@ import {Component, Fragment} from 'react';
 import {components} from 'react-select';
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import SelectControl from 'app/components/forms/selectControl';
-import IdBadge from 'app/components/idBadge';
-import ExternalLink from 'app/components/links/externalLink';
-import {PanelAlert} from 'app/components/panels';
+import Button from 'sentry/components/button';
+import SelectControl from 'sentry/components/forms/selectControl';
+import IdBadge from 'sentry/components/idBadge';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {PanelAlert} from 'sentry/components/panels';
 import {
   IconAdd,
   IconArrow,
@@ -14,16 +14,16 @@ import {
   IconGeneric,
   IconOpen,
   IconVercel,
-} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {safeGetQsParam} from 'app/utils/integrationUtil';
-import {removeAtArrayIndex} from 'app/utils/removeAtArrayIndex';
-import FieldErrorReason from 'app/views/settings/components/forms/field/fieldErrorReason';
-import FormFieldControlState from 'app/views/settings/components/forms/formField/controlState';
-import InputField from 'app/views/settings/components/forms/inputField';
-import FormModel from 'app/views/settings/components/forms/model';
-import {ProjectMapperType} from 'app/views/settings/components/forms/type';
+} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {safeGetQsParam} from 'sentry/utils/integrationUtil';
+import {removeAtArrayIndex} from 'sentry/utils/removeAtArrayIndex';
+import FieldErrorReason from 'sentry/views/settings/components/forms/field/fieldErrorReason';
+import FormFieldControlState from 'sentry/views/settings/components/forms/formField/controlState';
+import InputField from 'sentry/views/settings/components/forms/inputField';
+import FormModel from 'sentry/views/settings/components/forms/model';
+import {ProjectMapperType} from 'sentry/views/settings/components/forms/type';
 
 type MappedValue = string | number;
 

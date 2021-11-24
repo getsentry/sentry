@@ -3,21 +3,21 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import moment from 'moment-timezone';
 
-import DateTime from 'app/components/dateTime';
-import FileSize from 'app/components/fileSize';
-import GlobalAppStoreConnectUpdateAlert from 'app/components/globalAppStoreConnectUpdateAlert';
-import ExternalLink from 'app/components/links/externalLink';
-import Link from 'app/components/links/link';
-import NavigationButtonGroup from 'app/components/navigationButtonGroup';
-import Tooltip from 'app/components/tooltip';
-import {IconWarning} from 'app/icons';
-import {t} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
-import space from 'app/styles/space';
-import {Group, Organization, Project} from 'app/types';
-import {Event} from 'app/types/event';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import getDynamicText from 'app/utils/getDynamicText';
+import DateTime from 'sentry/components/dateTime';
+import FileSize from 'sentry/components/fileSize';
+import GlobalAppStoreConnectUpdateAlert from 'sentry/components/globalAppStoreConnectUpdateAlert';
+import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
+import NavigationButtonGroup from 'sentry/components/navigationButtonGroup';
+import Tooltip from 'sentry/components/tooltip';
+import {IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import space from 'sentry/styles/space';
+import {Group, Organization, Project} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import getDynamicText from 'sentry/utils/getDynamicText';
 
 import QuickTrace from './quickTrace';
 

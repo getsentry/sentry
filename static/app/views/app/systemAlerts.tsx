@@ -1,5 +1,5 @@
-import AlertStore from 'app/stores/alertStore';
-import {useLegacyStore} from 'app/stores/useLegacyStore';
+import AlertStore from 'sentry/stores/alertStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 
 import AlertMessage from './alertMessage';
 

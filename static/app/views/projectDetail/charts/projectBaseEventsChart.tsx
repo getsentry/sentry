@@ -1,17 +1,17 @@
 import {Component} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {fetchTotalCount} from 'app/actionCreators/events';
-import EventsChart, {EventsChartProps} from 'app/components/charts/eventsChart';
-import {HeaderTitleLegend} from 'app/components/charts/styles';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {isSelectionEqual} from 'app/components/organizations/globalSelectionHeader/utils';
-import QuestionTooltip from 'app/components/questionTooltip';
-import {t} from 'app/locale';
-import {GlobalSelection} from 'app/types';
-import {axisLabelFormatter} from 'app/utils/discover/charts';
-import getDynamicText from 'app/utils/getDynamicText';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
+import {fetchTotalCount} from 'sentry/actionCreators/events';
+import EventsChart, {EventsChartProps} from 'sentry/components/charts/eventsChart';
+import {HeaderTitleLegend} from 'sentry/components/charts/styles';
+import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {isSelectionEqual} from 'sentry/components/organizations/globalSelectionHeader/utils';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import {t} from 'sentry/locale';
+import {GlobalSelection} from 'sentry/types';
+import {axisLabelFormatter} from 'sentry/utils/discover/charts';
+import getDynamicText from 'sentry/utils/getDynamicText';
+import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 
 type Props = Omit<
   EventsChartProps,

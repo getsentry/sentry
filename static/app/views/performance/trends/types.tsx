@@ -1,8 +1,8 @@
 import moment from 'moment';
 
-import {EventQuery} from 'app/actionCreators/events';
-import {EventsStatsData} from 'app/types';
-import EventView, {LocationQuery} from 'app/utils/discover/eventView';
+import {EventQuery} from 'sentry/actionCreators/events';
+import {EventsStatsData} from 'sentry/types';
+import EventView, {LocationQuery} from 'sentry/utils/discover/eventView';
 
 export type TrendView = EventView & {
   orderby?: string;

@@ -5,25 +5,25 @@ import cloneDeep from 'lodash/cloneDeep';
 import pick from 'lodash/pick';
 import set from 'lodash/set';
 
-import {validateWidget} from 'app/actionCreators/dashboards';
-import {addSuccessMessage} from 'app/actionCreators/indicator';
-import WidgetQueryFields from 'app/components/dashboards/widgetQueryFields';
-import SelectControl from 'app/components/forms/selectControl';
-import * as Layout from 'app/components/layouts/thirds';
-import {PanelAlert} from 'app/components/panels';
-import {t} from 'app/locale';
-import {PageContent} from 'app/styles/organization';
-import space from 'app/styles/space';
-import {GlobalSelection, Organization, TagCollection} from 'app/types';
-import {defined} from 'app/utils';
-import {explodeField, generateFieldAsString} from 'app/utils/discover/fields';
-import Measurements from 'app/utils/measurements/measurements';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import withOrganization from 'app/utils/withOrganization';
-import withTags from 'app/utils/withTags';
-import AsyncView from 'app/views/asyncView';
-import WidgetCard from 'app/views/dashboardsV2/widgetCard';
-import {generateFieldOptions} from 'app/views/eventsV2/utils';
+import {validateWidget} from 'sentry/actionCreators/dashboards';
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import WidgetQueryFields from 'sentry/components/dashboards/widgetQueryFields';
+import SelectControl from 'sentry/components/forms/selectControl';
+import * as Layout from 'sentry/components/layouts/thirds';
+import {PanelAlert} from 'sentry/components/panels';
+import {t} from 'sentry/locale';
+import {PageContent} from 'sentry/styles/organization';
+import space from 'sentry/styles/space';
+import {GlobalSelection, Organization, TagCollection} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import {explodeField, generateFieldAsString} from 'sentry/utils/discover/fields';
+import Measurements from 'sentry/utils/measurements/measurements';
+import withGlobalSelection from 'sentry/utils/withGlobalSelection';
+import withOrganization from 'sentry/utils/withOrganization';
+import withTags from 'sentry/utils/withTags';
+import AsyncView from 'sentry/views/asyncView';
+import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
+import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 
 import {
   DashboardDetails,

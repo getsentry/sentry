@@ -1,4 +1,4 @@
-import {Organization, Project, Scope} from 'app/types';
+import {Organization, Project, Scope} from 'sentry/types';
 
 export type NavigationProps = {
   id?: string;

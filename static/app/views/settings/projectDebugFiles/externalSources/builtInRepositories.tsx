@@ -1,14 +1,14 @@
 import styled from '@emotion/styled';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import ProjectActions from 'app/actions/projectActions';
-import {Client} from 'app/api';
-import Access from 'app/components/acl/access';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import {t} from 'app/locale';
-import {Organization, Project} from 'app/types';
-import {BuiltinSymbolSource} from 'app/types/debugFiles';
-import SelectField from 'app/views/settings/components/forms/selectField';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import ProjectActions from 'sentry/actions/projectActions';
+import {Client} from 'sentry/api';
+import Access from 'sentry/components/acl/access';
+import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import {t} from 'sentry/locale';
+import {Organization, Project} from 'sentry/types';
+import {BuiltinSymbolSource} from 'sentry/types/debugFiles';
+import SelectField from 'sentry/views/settings/components/forms/selectField';
 
 type Props = {
   api: Client;

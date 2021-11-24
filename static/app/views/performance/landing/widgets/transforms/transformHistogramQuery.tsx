@@ -1,4 +1,4 @@
-import {HistogramQueryChildrenProps} from 'app/utils/performance/histogram/histogramQuery';
+import {HistogramQueryChildrenProps} from 'sentry/utils/performance/histogram/histogramQuery';
 
 export function transformHistogramQuery(_: any, results: HistogramQueryChildrenProps) {
   const {histograms} = results;

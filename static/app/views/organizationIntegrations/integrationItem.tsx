@@ -1,9 +1,9 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
-import {Integration} from 'app/types';
-import IntegrationIcon from 'app/views/organizationIntegrations/integrationIcon';
+import space from 'sentry/styles/space';
+import {Integration} from 'sentry/types';
+import IntegrationIcon from 'sentry/views/organizationIntegrations/integrationIcon';
 
 type DefaultProps = {
   compact: boolean;

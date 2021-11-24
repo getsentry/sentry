@@ -1,10 +1,10 @@
 import {useEffect} from 'react';
 import {browserHistory} from 'react-router';
 
-import {DEFAULT_APP_ROUTE} from 'app/constants';
-import ConfigStore from 'app/stores/configStore';
-import {useLegacyStore} from 'app/stores/useLegacyStore';
-import replaceRouterParams from 'app/utils/replaceRouterParams';
+import {DEFAULT_APP_ROUTE} from 'sentry/constants';
+import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 
 /**
  * This view is used when a user lands on the route `/` which historically

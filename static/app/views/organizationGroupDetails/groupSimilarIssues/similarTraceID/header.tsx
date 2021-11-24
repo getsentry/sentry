@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 
-import Clipboard from 'app/components/clipboard';
-import {IconCopy} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {getShortEventId} from 'app/utils/events';
+import Clipboard from 'sentry/components/clipboard';
+import {IconCopy} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {getShortEventId} from 'sentry/utils/events';
 
 type Props = {
   traceID?: string;

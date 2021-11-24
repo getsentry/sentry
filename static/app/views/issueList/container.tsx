@@ -1,13 +1,13 @@
 import React, {Component} from 'react';
 import DocumentTitle from 'react-document-title';
 
-import NoProjectMessage from 'app/components/noProjectMessage';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import GroupStore from 'app/stores/groupStore';
-import {Organization, Project} from 'app/types';
-import {callIfFunction} from 'app/utils/callIfFunction';
-import withOrganization from 'app/utils/withOrganization';
-import SampleEventAlert from 'app/views/organizationGroupDetails/sampleEventAlert';
+import NoProjectMessage from 'sentry/components/noProjectMessage';
+import GlobalSelectionHeader from 'sentry/components/organizations/globalSelectionHeader';
+import GroupStore from 'sentry/stores/groupStore';
+import {Organization, Project} from 'sentry/types';
+import {callIfFunction} from 'sentry/utils/callIfFunction';
+import withOrganization from 'sentry/utils/withOrganization';
+import SampleEventAlert from 'sentry/views/organizationGroupDetails/sampleEventAlert';
 
 type Props = {
   organization: Organization;

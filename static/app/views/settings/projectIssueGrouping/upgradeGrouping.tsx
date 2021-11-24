@@ -1,19 +1,19 @@
 import {Fragment, useEffect} from 'react';
 import {Location} from 'history';
 
-import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
-import ProjectActions from 'app/actions/projectActions';
-import {Client} from 'app/api';
-import Alert from 'app/components/alert';
-import Button from 'app/components/button';
-import {openConfirmModal} from 'app/components/confirm';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import {t, tct} from 'app/locale';
-import {EventGroupingConfig, Organization, Project} from 'app/types';
-import handleXhrErrorResponse from 'app/utils/handleXhrErrorResponse';
-import marked from 'app/utils/marked';
-import Field from 'app/views/settings/components/forms/field';
-import TextBlock from 'app/views/settings/components/text/textBlock';
+import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
+import ProjectActions from 'sentry/actions/projectActions';
+import {Client} from 'sentry/api';
+import Alert from 'sentry/components/alert';
+import Button from 'sentry/components/button';
+import {openConfirmModal} from 'sentry/components/confirm';
+import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import {t, tct} from 'sentry/locale';
+import {EventGroupingConfig, Organization, Project} from 'sentry/types';
+import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
+import marked from 'sentry/utils/marked';
+import Field from 'sentry/views/settings/components/forms/field';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {getGroupingChanges, getGroupingRisk} from './utils';
 

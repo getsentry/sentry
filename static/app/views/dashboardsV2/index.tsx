@@ -1,12 +1,12 @@
 import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 
-import {Client} from 'app/api';
-import NotFound from 'app/components/errors/notFound';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {Organization} from 'app/types';
-import withApi from 'app/utils/withApi';
-import withOrganization from 'app/utils/withOrganization';
+import {Client} from 'sentry/api';
+import NotFound from 'sentry/components/errors/notFound';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Organization} from 'sentry/types';
+import withApi from 'sentry/utils/withApi';
+import withOrganization from 'sentry/utils/withOrganization';
 
 import DashboardDetail from './detail';
 import OrgDashboards from './orgDashboards';

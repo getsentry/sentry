@@ -1,8 +1,8 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import {Choices} from 'app/types';
-import {defined} from 'app/utils';
+import {Choices} from 'sentry/types';
+import {defined} from 'sentry/utils';
 
 const MultipleCheckboxWrapper = styled('div')`
   display: flex;

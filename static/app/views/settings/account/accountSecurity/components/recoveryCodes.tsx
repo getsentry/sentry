@@ -1,19 +1,19 @@
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import Clipboard from 'app/components/clipboard';
-import Confirm from 'app/components/confirm';
+import Button from 'sentry/components/button';
+import Clipboard from 'sentry/components/clipboard';
+import Confirm from 'sentry/components/confirm';
 import {
   Panel,
   PanelAlert,
   PanelBody,
   PanelHeader,
   PanelItem,
-} from 'app/components/panels';
-import {IconCopy, IconDownload, IconPrint} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
+} from 'sentry/components/panels';
+import {IconCopy, IconDownload, IconPrint} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 type Props = {
   isEnrolled: boolean;

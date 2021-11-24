@@ -2,10 +2,10 @@ import {Location} from 'history';
 import pick from 'lodash/pick';
 import moment from 'moment';
 
-import MarkLine from 'app/components/charts/components/markLine';
-import {parseStatsPeriod} from 'app/components/organizations/timeRangeSelector/utils';
-import {URL_PARAM} from 'app/constants/globalSelectionHeader';
-import {t} from 'app/locale';
+import MarkLine from 'sentry/components/charts/components/markLine';
+import {parseStatsPeriod} from 'sentry/components/organizations/timeRangeSelector/utils';
+import {URL_PARAM} from 'sentry/constants/globalSelectionHeader';
+import {t} from 'sentry/locale';
 import {
   Commit,
   CommitFile,
@@ -14,10 +14,10 @@ import {
   ReleaseProject,
   ReleaseWithHealth,
   Repository,
-} from 'app/types';
-import {Series} from 'app/types/echarts';
-import {decodeList} from 'app/utils/queryString';
-import {Theme} from 'app/utils/theme';
+} from 'sentry/types';
+import {Series} from 'sentry/types/echarts';
+import {decodeList} from 'sentry/utils/queryString';
+import {Theme} from 'sentry/utils/theme';
 
 import {getReleaseBounds, getReleaseParams, isMobileRelease} from '../utils';
 import {commonTermsDescription, SessionTerm} from '../utils/sessionTerm';

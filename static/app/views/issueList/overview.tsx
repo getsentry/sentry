@@ -11,29 +11,29 @@ import omit from 'lodash/omit';
 import pickBy from 'lodash/pickBy';
 import * as qs from 'query-string';
 
-import {fetchOrgMembers, indexMembersByProject} from 'app/actionCreators/members';
+import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
 import {
   deleteSavedSearch,
   fetchSavedSearches,
   resetSavedSearches,
-} from 'app/actionCreators/savedSearches';
-import {fetchTagValues, loadOrganizationTags} from 'app/actionCreators/tags';
-import GroupActions from 'app/actions/groupActions';
-import {Client} from 'app/api';
-import GuideAnchor from 'app/components/assistant/guideAnchor';
-import LoadingError from 'app/components/loadingError';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
-import Pagination, {CursorHandler} from 'app/components/pagination';
-import {Panel, PanelBody} from 'app/components/panels';
-import QueryCount from 'app/components/queryCount';
-import StreamGroup from 'app/components/stream/group';
-import ProcessingIssueList from 'app/components/stream/processingIssueList';
-import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'app/constants';
-import {tct} from 'app/locale';
-import GroupStore from 'app/stores/groupStore';
-import {PageContent} from 'app/styles/organization';
-import space from 'app/styles/space';
+} from 'sentry/actionCreators/savedSearches';
+import {fetchTagValues, loadOrganizationTags} from 'sentry/actionCreators/tags';
+import GroupActions from 'sentry/actions/groupActions';
+import {Client} from 'sentry/api';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {extractSelectionParameters} from 'sentry/components/organizations/globalSelectionHeader/utils';
+import Pagination, {CursorHandler} from 'sentry/components/pagination';
+import {Panel, PanelBody} from 'sentry/components/panels';
+import QueryCount from 'sentry/components/queryCount';
+import StreamGroup from 'sentry/components/stream/group';
+import ProcessingIssueList from 'sentry/components/stream/processingIssueList';
+import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'sentry/constants';
+import {tct} from 'sentry/locale';
+import GroupStore from 'sentry/stores/groupStore';
+import {PageContent} from 'sentry/styles/organization';
+import space from 'sentry/styles/space';
 import {
   BaseGroup,
   GlobalSelection,
@@ -42,22 +42,22 @@ import {
   Organization,
   SavedSearch,
   TagCollection,
-} from 'app/types';
-import {defined} from 'app/utils';
-import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
-import {callIfFunction} from 'app/utils/callIfFunction';
-import CursorPoller from 'app/utils/cursorPoller';
-import {getUtcDateString} from 'app/utils/dates';
-import {SEMVER_TAGS} from 'app/utils/discover/fields';
-import getCurrentSentryReactTransaction from 'app/utils/getCurrentSentryReactTransaction';
-import parseApiError from 'app/utils/parseApiError';
-import parseLinkHeader from 'app/utils/parseLinkHeader';
-import StreamManager from 'app/utils/streamManager';
-import withApi from 'app/utils/withApi';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import withIssueTags from 'app/utils/withIssueTags';
-import withOrganization from 'app/utils/withOrganization';
-import withSavedSearches from 'app/utils/withSavedSearches';
+} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {callIfFunction} from 'sentry/utils/callIfFunction';
+import CursorPoller from 'sentry/utils/cursorPoller';
+import {getUtcDateString} from 'sentry/utils/dates';
+import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
+import getCurrentSentryReactTransaction from 'sentry/utils/getCurrentSentryReactTransaction';
+import parseApiError from 'sentry/utils/parseApiError';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import StreamManager from 'sentry/utils/streamManager';
+import withApi from 'sentry/utils/withApi';
+import withGlobalSelection from 'sentry/utils/withGlobalSelection';
+import withIssueTags from 'sentry/utils/withIssueTags';
+import withOrganization from 'sentry/utils/withOrganization';
+import withSavedSearches from 'sentry/utils/withSavedSearches';
 
 import IssueListActions from './actions';
 import IssueListFilters from './filters';

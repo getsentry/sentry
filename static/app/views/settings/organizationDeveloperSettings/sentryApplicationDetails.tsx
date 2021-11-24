@@ -5,34 +5,34 @@ import omit from 'lodash/omit';
 import {Observer} from 'mobx-react';
 import scrollToElement from 'scroll-to-element';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {
   addSentryAppToken,
   removeSentryAppToken,
-} from 'app/actionCreators/sentryAppTokens';
-import Button from 'app/components/button';
-import DateTime from 'app/components/dateTime';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
-import Tooltip from 'app/components/tooltip';
-import {SENTRY_APP_PERMISSIONS} from 'app/constants';
+} from 'sentry/actionCreators/sentryAppTokens';
+import Button from 'sentry/components/button';
+import DateTime from 'sentry/components/dateTime';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
+import Tooltip from 'sentry/components/tooltip';
+import {SENTRY_APP_PERMISSIONS} from 'sentry/constants';
 import {
   internalIntegrationForms,
   publicIntegrationForms,
-} from 'app/data/forms/sentryApplication';
-import {IconAdd, IconDelete} from 'app/icons';
-import {t} from 'app/locale';
-import {InternalAppApiToken, Scope, SentryApp} from 'app/types';
-import getDynamicText from 'app/utils/getDynamicText';
-import routeTitleGen from 'app/utils/routeTitle';
-import AsyncView from 'app/views/asyncView';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import Form from 'app/views/settings/components/forms/form';
-import FormField from 'app/views/settings/components/forms/formField';
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import FormModel, {FieldValue} from 'app/views/settings/components/forms/model';
-import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import PermissionsObserver from 'app/views/settings/organizationDeveloperSettings/permissionsObserver';
+} from 'sentry/data/forms/sentryApplication';
+import {IconAdd, IconDelete} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {InternalAppApiToken, Scope, SentryApp} from 'sentry/types';
+import getDynamicText from 'sentry/utils/getDynamicText';
+import routeTitleGen from 'sentry/utils/routeTitle';
+import AsyncView from 'sentry/views/asyncView';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
+import Form from 'sentry/views/settings/components/forms/form';
+import FormField from 'sentry/views/settings/components/forms/formField';
+import JsonForm from 'sentry/views/settings/components/forms/jsonForm';
+import FormModel, {FieldValue} from 'sentry/views/settings/components/forms/model';
+import TextCopyInput from 'sentry/views/settings/components/forms/textCopyInput';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import PermissionsObserver from 'sentry/views/settings/organizationDeveloperSettings/permissionsObserver';
 
 type Resource = 'Project' | 'Team' | 'Release' | 'Event' | 'Organization' | 'Member';
 

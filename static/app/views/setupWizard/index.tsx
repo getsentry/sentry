@@ -1,9 +1,9 @@
 import {Component} from 'react';
 
-import {Client} from 'app/api';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {t} from 'app/locale';
-import withApi from 'app/utils/withApi';
+import {Client} from 'sentry/api';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {t} from 'sentry/locale';
+import withApi from 'sentry/utils/withApi';
 
 type Props = {
   api: Client;

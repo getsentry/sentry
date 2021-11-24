@@ -2,41 +2,41 @@ import * as React from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
-import {bulkDelete, bulkUpdate} from 'app/actionCreators/group';
+import {bulkDelete, bulkUpdate} from 'sentry/actionCreators/group';
 import {
   addErrorMessage,
   addLoadingMessage,
   clearIndicators,
-} from 'app/actionCreators/indicator';
-import {openReprocessEventModal} from 'app/actionCreators/modal';
-import GroupActions from 'app/actions/groupActions';
-import {Client} from 'app/api';
-import Feature from 'app/components/acl/feature';
-import ActionButton from 'app/components/actions/button';
-import IgnoreActions from 'app/components/actions/ignore';
-import ResolveActions from 'app/components/actions/resolve';
-import GuideAnchor from 'app/components/assistant/guideAnchor';
-import Tooltip from 'app/components/tooltip';
-import {IconStar} from 'app/icons';
-import {IconRefresh} from 'app/icons/iconRefresh';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
+} from 'sentry/actionCreators/indicator';
+import {openReprocessEventModal} from 'sentry/actionCreators/modal';
+import GroupActions from 'sentry/actions/groupActions';
+import {Client} from 'sentry/api';
+import Feature from 'sentry/components/acl/feature';
+import ActionButton from 'sentry/components/actions/button';
+import IgnoreActions from 'sentry/components/actions/ignore';
+import ResolveActions from 'sentry/components/actions/resolve';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import Tooltip from 'sentry/components/tooltip';
+import {IconStar} from 'sentry/icons';
+import {IconRefresh} from 'sentry/icons/iconRefresh';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {
   Group,
   Organization,
   Project,
   SavedQueryVersions,
   UpdateResolutionStatus,
-} from 'app/types';
-import {Event} from 'app/types/event';
-import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
-import EventView from 'app/utils/discover/eventView';
-import {displayReprocessEventAction} from 'app/utils/displayReprocessEventAction';
-import {uniqueId} from 'app/utils/guid';
-import withApi from 'app/utils/withApi';
-import withOrganization from 'app/utils/withOrganization';
-import ReviewAction from 'app/views/issueList/actions/reviewAction';
-import ShareIssue from 'app/views/organizationGroupDetails/actions/shareIssue';
+} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import EventView from 'sentry/utils/discover/eventView';
+import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAction';
+import {uniqueId} from 'sentry/utils/guid';
+import withApi from 'sentry/utils/withApi';
+import withOrganization from 'sentry/utils/withOrganization';
+import ReviewAction from 'sentry/views/issueList/actions/reviewAction';
+import ShareIssue from 'sentry/views/organizationGroupDetails/actions/shareIssue';
 
 import DeleteAction from './deleteAction';
 import SubscribeAction from './subscribeAction';

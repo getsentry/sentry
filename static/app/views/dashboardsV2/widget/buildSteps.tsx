@@ -1,8 +1,8 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import List from 'app/components/list';
-import space from 'app/styles/space';
+import List from 'sentry/components/list';
+import space from 'sentry/styles/space';
 
 type Props = {
   children: React.ReactNode;

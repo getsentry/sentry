@@ -3,17 +3,17 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import isString from 'lodash/isString';
 
-import {Client, ResponseMeta} from 'app/api';
-import Alert from 'app/components/alert';
-import LoadingError from 'app/components/loadingError';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Project} from 'app/types';
-import {analytics} from 'app/utils/analytics';
-import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
-import Redirect from 'app/utils/redirect';
-import withApi from 'app/utils/withApi';
+import {Client, ResponseMeta} from 'sentry/api';
+import Alert from 'sentry/components/alert';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Project} from 'sentry/types';
+import {analytics} from 'sentry/utils/analytics';
+import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import Redirect from 'sentry/utils/redirect';
+import withApi from 'sentry/utils/withApi';
 
 type DetailsProps = {
   api: Client;

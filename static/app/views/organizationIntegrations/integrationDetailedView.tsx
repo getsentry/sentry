@@ -1,17 +1,17 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {RequestOptions} from 'app/api';
-import Alert from 'app/components/alert';
-import AsyncComponent from 'app/components/asyncComponent';
-import Button from 'app/components/button';
-import {IconFlag, IconOpen, IconWarning} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Integration, IntegrationProvider} from 'app/types';
-import {getAlertText} from 'app/utils/integrationUtil';
-import withOrganization from 'app/utils/withOrganization';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {RequestOptions} from 'sentry/api';
+import Alert from 'sentry/components/alert';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import Button from 'sentry/components/button';
+import {IconFlag, IconOpen, IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Integration, IntegrationProvider} from 'sentry/types';
+import {getAlertText} from 'sentry/utils/integrationUtil';
+import withOrganization from 'sentry/utils/withOrganization';
 
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
 import AddIntegrationButton from './addIntegrationButton';

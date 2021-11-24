@@ -3,12 +3,12 @@ import {components, MultiValueProps, OptionProps} from 'react-select';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {fetchTagValues} from 'app/actionCreators/tags';
-import {t, tct} from 'app/locale';
-import {Organization, Project} from 'app/types';
-import {DynamicSamplingInnerName} from 'app/types/dynamicSampling';
-import useApi from 'app/utils/useApi';
-import SelectField from 'app/views/settings/components/forms/selectField';
+import {fetchTagValues} from 'sentry/actionCreators/tags';
+import {t, tct} from 'sentry/locale';
+import {Organization, Project} from 'sentry/types';
+import {DynamicSamplingInnerName} from 'sentry/types/dynamicSampling';
+import useApi from 'sentry/utils/useApi';
+import SelectField from 'sentry/views/settings/components/forms/selectField';
 
 import {getMatchFieldPlaceholder} from './utils';
 

@@ -5,18 +5,18 @@ import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
-} from 'app/actionCreators/indicator';
-import {disablePlugin, enablePlugin} from 'app/actionCreators/plugins';
-import Button from 'app/components/button';
-import ExternalLink from 'app/components/links/externalLink';
-import PluginConfig from 'app/components/pluginConfig';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Plugin, Project} from 'app/types';
-import {trackIntegrationAnalytics} from 'app/utils/integrationUtil';
-import withPlugins from 'app/utils/withPlugins';
-import AsyncView from 'app/views/asyncView';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+} from 'sentry/actionCreators/indicator';
+import {disablePlugin, enablePlugin} from 'sentry/actionCreators/plugins';
+import Button from 'sentry/components/button';
+import ExternalLink from 'sentry/components/links/externalLink';
+import PluginConfig from 'sentry/components/pluginConfig';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Plugin, Project} from 'sentry/types';
+import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
+import withPlugins from 'sentry/utils/withPlugins';
+import AsyncView from 'sentry/views/asyncView';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 type Props = {
   organization: Organization;

@@ -2,12 +2,12 @@ import {Component, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import * as Layout from 'app/components/layouts/thirds';
-import {Panel} from 'app/components/panels';
-import {t} from 'app/locale';
-import {Organization} from 'app/types';
-import {Event} from 'app/types/event';
-import Breadcrumb from 'app/views/performance/breadcrumb';
+import * as Layout from 'sentry/components/layouts/thirds';
+import {Panel} from 'sentry/components/panels';
+import {t} from 'sentry/locale';
+import {Organization} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import Breadcrumb from 'sentry/views/performance/breadcrumb';
 
 import TraceView from './traceView';
 import TransactionSummary from './transactionSummary';

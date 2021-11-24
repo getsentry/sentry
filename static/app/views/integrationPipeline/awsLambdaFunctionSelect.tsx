@@ -4,17 +4,17 @@ import reduce from 'lodash/reduce';
 import {computed, makeObservable} from 'mobx';
 import {Observer} from 'mobx-react';
 
-import List from 'app/components/list';
-import ListItem from 'app/components/list/listItem';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {PanelHeader} from 'app/components/panels';
-import Switch from 'app/components/switchButton';
-import Tooltip from 'app/components/tooltip';
-import {t, tn} from 'app/locale';
-import Form from 'app/views/settings/components/forms/form';
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import FormModel from 'app/views/settings/components/forms/model';
-import {JsonFormObject} from 'app/views/settings/components/forms/type';
+import List from 'sentry/components/list';
+import ListItem from 'sentry/components/list/listItem';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {PanelHeader} from 'sentry/components/panels';
+import Switch from 'sentry/components/switchButton';
+import Tooltip from 'sentry/components/tooltip';
+import {t, tn} from 'sentry/locale';
+import Form from 'sentry/views/settings/components/forms/form';
+import JsonForm from 'sentry/views/settings/components/forms/jsonForm';
+import FormModel from 'sentry/views/settings/components/forms/model';
+import {JsonFormObject} from 'sentry/views/settings/components/forms/type';
 
 import FooterWithButtons from './components/footerWithButtons';
 import HeaderWithHelp from './components/headerWithHelp';

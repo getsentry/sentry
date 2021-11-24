@@ -1,4 +1,4 @@
-import {Client} from 'app/api';
+import {Client} from 'sentry/api';
 
 import {Applications, MethodType, PiiConfig, Rule, RuleType} from './types';
 

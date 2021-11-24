@@ -3,25 +3,25 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import uniq from 'lodash/uniq';
 
-import {createNote, deleteNote, updateNote} from 'app/actionCreators/group';
+import {createNote, deleteNote, updateNote} from 'sentry/actionCreators/group';
 import {
   addErrorMessage,
   addLoadingMessage,
   clearIndicators,
-} from 'app/actionCreators/indicator';
-import {Client} from 'app/api';
-import ActivityAuthor from 'app/components/activity/author';
-import ActivityItem from 'app/components/activity/item';
-import Note from 'app/components/activity/note';
-import NoteInputWithStorage from 'app/components/activity/note/inputWithStorage';
-import {CreateError} from 'app/components/activity/note/types';
-import ErrorBoundary from 'app/components/errorBoundary';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import ReprocessedBox from 'app/components/reprocessedBox';
-import {DEFAULT_ERROR_JSON} from 'app/constants';
-import {t} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
-import space from 'app/styles/space';
+} from 'sentry/actionCreators/indicator';
+import {Client} from 'sentry/api';
+import ActivityAuthor from 'sentry/components/activity/author';
+import ActivityItem from 'sentry/components/activity/item';
+import Note from 'sentry/components/activity/note';
+import NoteInputWithStorage from 'sentry/components/activity/note/inputWithStorage';
+import {CreateError} from 'sentry/components/activity/note/types';
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import ReprocessedBox from 'sentry/components/reprocessedBox';
+import {DEFAULT_ERROR_JSON} from 'sentry/constants';
+import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import space from 'sentry/styles/space';
 import {
   Group,
   GroupActivityAssigned,
@@ -29,11 +29,11 @@ import {
   GroupActivityType,
   Organization,
   User,
-} from 'app/types';
-import {uniqueId} from 'app/utils/guid';
-import Teams from 'app/utils/teams';
-import withApi from 'app/utils/withApi';
-import withOrganization from 'app/utils/withOrganization';
+} from 'sentry/types';
+import {uniqueId} from 'sentry/utils/guid';
+import Teams from 'sentry/utils/teams';
+import withApi from 'sentry/utils/withApi';
+import withOrganization from 'sentry/utils/withOrganization';
 
 import GroupActivityItem from './groupActivityItem';
 import {

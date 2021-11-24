@@ -1,20 +1,20 @@
 import {RouteComponentProps} from 'react-router';
 
-import Access from 'app/components/acl/access';
-import ExternalLink from 'app/components/links/externalLink';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import PreviewFeature from 'app/components/previewFeature';
-import formGroups from 'app/data/forms/cspReports';
-import {t, tct} from 'app/locale';
-import {Project, ProjectKey} from 'app/types';
-import routeTitleGen from 'app/utils/routeTitle';
-import AsyncView from 'app/views/asyncView';
-import Form from 'app/views/settings/components/forms/form';
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import Access from 'sentry/components/acl/access';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import PreviewFeature from 'sentry/components/previewFeature';
+import formGroups from 'sentry/data/forms/cspReports';
+import {t, tct} from 'sentry/locale';
+import {Project, ProjectKey} from 'sentry/types';
+import routeTitleGen from 'sentry/utils/routeTitle';
+import AsyncView from 'sentry/views/asyncView';
+import Form from 'sentry/views/settings/components/forms/form';
+import JsonForm from 'sentry/views/settings/components/forms/jsonForm';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import ReportUri, {
   getSecurityDsn,
-} from 'app/views/settings/projectSecurityHeaders/reportUri';
+} from 'sentry/views/settings/projectSecurityHeaders/reportUri';
 
 type Props = RouteComponentProps<{orgId: string; projectId: string}, {}>;
 

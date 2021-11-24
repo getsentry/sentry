@@ -1,14 +1,14 @@
-import {updateUser} from 'app/actionCreators/account';
-import {APIRequestMethod} from 'app/api';
-import AvatarChooser from 'app/components/avatarChooser';
-import accountDetailsFields from 'app/data/forms/accountDetails';
-import accountPreferencesFields from 'app/data/forms/accountPreferences';
-import {t} from 'app/locale';
-import {User} from 'app/types';
-import AsyncView from 'app/views/asyncView';
-import Form from 'app/views/settings/components/forms/form';
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import {updateUser} from 'sentry/actionCreators/account';
+import {APIRequestMethod} from 'sentry/api';
+import AvatarChooser from 'sentry/components/avatarChooser';
+import accountDetailsFields from 'sentry/data/forms/accountDetails';
+import accountPreferencesFields from 'sentry/data/forms/accountPreferences';
+import {t} from 'sentry/locale';
+import {User} from 'sentry/types';
+import AsyncView from 'sentry/views/asyncView';
+import Form from 'sentry/views/settings/components/forms/form';
+import JsonForm from 'sentry/views/settings/components/forms/jsonForm';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 const ENDPOINT = '/users/me/';
 

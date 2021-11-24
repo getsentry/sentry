@@ -3,21 +3,21 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import Feature from 'app/components/acl/feature';
-import Alert from 'app/components/alert';
-import GlobalSdkUpdateAlert from 'app/components/globalSdkUpdateAlert';
-import * as Layout from 'app/components/layouts/thirds';
-import NoProjectMessage from 'app/components/noProjectMessage';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import {IconFlag} from 'app/icons';
-import {t} from 'app/locale';
-import {PageContent} from 'app/styles/organization';
-import {Organization, Project} from 'app/types';
-import {defined} from 'app/utils';
-import EventView from 'app/utils/discover/eventView';
-import {PerformanceEventViewProvider} from 'app/utils/performance/contexts/performanceEventViewContext';
-import {decodeScalar} from 'app/utils/queryString';
+import Feature from 'sentry/components/acl/feature';
+import Alert from 'sentry/components/alert';
+import GlobalSdkUpdateAlert from 'sentry/components/globalSdkUpdateAlert';
+import * as Layout from 'sentry/components/layouts/thirds';
+import NoProjectMessage from 'sentry/components/noProjectMessage';
+import GlobalSelectionHeader from 'sentry/components/organizations/globalSelectionHeader';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {IconFlag} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {PageContent} from 'sentry/styles/organization';
+import {Organization, Project} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import EventView from 'sentry/utils/discover/eventView';
+import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/performanceEventViewContext';
+import {decodeScalar} from 'sentry/utils/queryString';
 
 import {getTransactionName} from '../utils';
 

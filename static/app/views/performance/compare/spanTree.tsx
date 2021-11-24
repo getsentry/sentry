@@ -1,12 +1,12 @@
 import {Component, createRef, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import * as DividerHandlerManager from 'app/components/events/interfaces/spans/dividerHandlerManager';
+import * as DividerHandlerManager from 'sentry/components/events/interfaces/spans/dividerHandlerManager';
 import {
   OrphanTreeDepth,
   TreeDepthType,
-} from 'app/components/events/interfaces/spans/types';
-import {EventTransaction} from 'app/types/event';
+} from 'sentry/components/events/interfaces/spans/types';
+import {EventTransaction} from 'sentry/types/event';
 
 import SpanGroup from './spanGroup';
 import {

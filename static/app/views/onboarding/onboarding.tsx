@@ -4,16 +4,16 @@ import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, MotionProps, useAnimation} from 'framer-motion';
 
-import Button from 'app/components/button';
-import Hook from 'app/components/hook';
-import LogoSentry from 'app/components/logoSentry';
-import {IconChevron} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import testableTransition from 'app/utils/testableTransition';
-import withOrganization from 'app/utils/withOrganization';
-import withProjects from 'app/utils/withProjects';
+import Button from 'sentry/components/button';
+import Hook from 'sentry/components/hook';
+import LogoSentry from 'sentry/components/logoSentry';
+import {IconChevron} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import testableTransition from 'sentry/utils/testableTransition';
+import withOrganization from 'sentry/utils/withOrganization';
+import withProjects from 'sentry/utils/withProjects';
 
 import PageCorners from './components/pageCorners';
 import OnboardingPlatform from './platform';

@@ -1,10 +1,10 @@
 import * as React from 'react';
 import * as queryString from 'query-string';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {t} from 'app/locale';
-import {IntegrationProvider, IntegrationWithConfig, Organization} from 'app/types';
-import {trackIntegrationAnalytics} from 'app/utils/integrationUtil';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {t} from 'sentry/locale';
+import {IntegrationProvider, IntegrationWithConfig, Organization} from 'sentry/types';
+import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 
 type Props = {
   children: (

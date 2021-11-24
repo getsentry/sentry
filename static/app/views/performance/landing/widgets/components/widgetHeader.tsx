@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-import {HeaderTitleLegend} from 'app/components/charts/styles';
-import QuestionTooltip from 'app/components/questionTooltip';
-import space from 'app/styles/space';
+import {HeaderTitleLegend} from 'sentry/components/charts/styles';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import space from 'sentry/styles/space';
 
 import {
   GenericPerformanceWidgetProps,

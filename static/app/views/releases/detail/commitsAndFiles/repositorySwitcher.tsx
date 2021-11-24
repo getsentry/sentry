@@ -3,11 +3,11 @@ import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
-import {t} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {Repository} from 'app/types';
+import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
+import {t} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {Repository} from 'sentry/types';
 
 type Props = {
   repositories: Array<Repository>;

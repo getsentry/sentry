@@ -1,8 +1,8 @@
-import {GuideAnchor} from 'app/components/assistant/guideAnchor';
-import SmartSearchBar from 'app/components/smartSearchBar';
-import {t} from 'app/locale';
-import {Tag} from 'app/types';
-import {SEMVER_TAGS} from 'app/utils/discover/fields';
+import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
+import SmartSearchBar from 'sentry/components/smartSearchBar';
+import {t} from 'sentry/locale';
+import {Tag} from 'sentry/types';
+import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 
 import {TagValueLoader} from '../issueList/types';
 

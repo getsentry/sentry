@@ -4,17 +4,17 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import * as queryString from 'query-string';
 
-import GroupingActions from 'app/actions/groupingActions';
-import Alert from 'app/components/alert';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import LoadingError from 'app/components/loadingError';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {t} from 'app/locale';
-import GroupingStore from 'app/stores/groupingStore';
-import space from 'app/styles/space';
-import {Project} from 'app/types';
-import {callIfFunction} from 'app/utils/callIfFunction';
+import GroupingActions from 'sentry/actions/groupingActions';
+import Alert from 'sentry/components/alert';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {t} from 'sentry/locale';
+import GroupingStore from 'sentry/stores/groupingStore';
+import space from 'sentry/styles/space';
+import {Project} from 'sentry/types';
+import {callIfFunction} from 'sentry/utils/callIfFunction';
 
 import List from './list';
 

@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {ROW_HEIGHT, ROW_PADDING} from 'app/components/performance/waterfall/constants';
+import {ROW_HEIGHT, ROW_PADDING} from 'sentry/components/performance/waterfall/constants';
 
 export const SpanBarRectangle = styled('div')`
   position: relative;

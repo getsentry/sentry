@@ -1,13 +1,13 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Feature from 'app/components/acl/feature';
-import Alert from 'app/components/alert';
-import Button from 'app/components/button';
-import Link from 'app/components/links/link';
-import {Panel} from 'app/components/panels';
-import {IconInfo} from 'app/icons';
-import space from 'app/styles/space';
+import Feature from 'sentry/components/acl/feature';
+import Alert from 'sentry/components/alert';
+import Button from 'sentry/components/button';
+import Link from 'sentry/components/links/link';
+import {Panel} from 'sentry/components/panels';
+import {IconInfo} from 'sentry/icons';
+import space from 'sentry/styles/space';
 
 type Props = {
   buttonTo: React.ComponentProps<typeof Link>['to'];

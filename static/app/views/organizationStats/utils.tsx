@@ -1,7 +1,7 @@
-import {DateTimeObject, getSeriesApiInterval} from 'app/components/charts/utils';
-import {DataCategory} from 'app/types';
-import {formatBytesBase10} from 'app/utils';
-import {parsePeriodToHours} from 'app/utils/dates';
+import {DateTimeObject, getSeriesApiInterval} from 'sentry/components/charts/utils';
+import {DataCategory} from 'sentry/types';
+import {formatBytesBase10} from 'sentry/utils';
+import {parsePeriodToHours} from 'sentry/utils/dates';
 
 export const MILLION = 10 ** 6;
 export const BILLION = 10 ** 9;

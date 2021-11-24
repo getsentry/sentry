@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import ExternalLink from 'app/components/links/externalLink';
-import {Panel, PanelItem} from 'app/components/panels';
-import {IconCheckmark, IconWarning} from 'app/icons';
-import {t, tct, tn} from 'app/locale';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {Panel, PanelItem} from 'sentry/components/panels';
+import {IconCheckmark, IconWarning} from 'sentry/icons';
+import {t, tct, tn} from 'sentry/locale';
 
 import FooterWithButtons from './components/footerWithButtons';
 import HeaderWithHelp from './components/headerWithHelp';

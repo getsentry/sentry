@@ -1,12 +1,12 @@
 import {RouteComponentProps} from 'react-router';
 
-import {loadStats} from 'app/actionCreators/projects';
-import TeamActions from 'app/actions/teamActions';
-import {Client} from 'app/api';
-import {AccessRequest, Organization, Team} from 'app/types';
-import withApi from 'app/utils/withApi';
-import withOrganization from 'app/utils/withOrganization';
-import AsyncView from 'app/views/asyncView';
+import {loadStats} from 'sentry/actionCreators/projects';
+import TeamActions from 'sentry/actions/teamActions';
+import {Client} from 'sentry/api';
+import {AccessRequest, Organization, Team} from 'sentry/types';
+import withApi from 'sentry/utils/withApi';
+import withOrganization from 'sentry/utils/withOrganization';
+import AsyncView from 'sentry/views/asyncView';
 
 import OrganizationTeams from './organizationTeams';
 

@@ -3,21 +3,21 @@ import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
 import moment from 'moment';
 
-import ActorAvatar from 'app/components/avatar/actorAvatar';
-import Duration from 'app/components/duration';
-import ErrorBoundary from 'app/components/errorBoundary';
-import IdBadge from 'app/components/idBadge';
-import Link from 'app/components/links/link';
-import Tag from 'app/components/tag';
-import TimeSince from 'app/components/timeSince';
-import {t} from 'app/locale';
-import TeamStore from 'app/stores/teamStore';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {Actor, Organization, Project} from 'app/types';
-import {getUtcDateString} from 'app/utils/dates';
-import getDynamicText from 'app/utils/getDynamicText';
-import {alertDetailsLink} from 'app/views/alerts/details';
+import ActorAvatar from 'sentry/components/avatar/actorAvatar';
+import Duration from 'sentry/components/duration';
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import IdBadge from 'sentry/components/idBadge';
+import Link from 'sentry/components/links/link';
+import Tag from 'sentry/components/tag';
+import TimeSince from 'sentry/components/timeSince';
+import {t} from 'sentry/locale';
+import TeamStore from 'sentry/stores/teamStore';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {Actor, Organization, Project} from 'sentry/types';
+import {getUtcDateString} from 'sentry/utils/dates';
+import getDynamicText from 'sentry/utils/getDynamicText';
+import {alertDetailsLink} from 'sentry/views/alerts/details';
 
 import {
   API_INTERVAL_POINTS_LIMIT,

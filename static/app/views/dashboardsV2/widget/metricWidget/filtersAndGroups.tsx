@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-import {Client} from 'app/api';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
+import {Client} from 'sentry/api';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
 
 import GroupByField from './groupByField';
 import SearchQueryField from './searchQueryField';

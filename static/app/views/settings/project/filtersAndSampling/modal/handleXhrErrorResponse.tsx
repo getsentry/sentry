@@ -1,5 +1,5 @@
-import {t} from 'app/locale';
-import {DynamicSamplingRule} from 'app/types/dynamicSampling';
+import {t} from 'sentry/locale';
+import {DynamicSamplingRule} from 'sentry/types/dynamicSampling';
 
 type Error = {
   type: 'sampleRate' | 'unknown';

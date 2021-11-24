@@ -1,15 +1,15 @@
 import * as React from 'react';
 
-import {fetchAnyReleaseExistence} from 'app/actionCreators/projects';
-import AsyncComponent from 'app/components/asyncComponent';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {parseStatsPeriod} from 'app/components/organizations/timeRangeSelector/utils';
-import ScoreCard from 'app/components/scoreCard';
-import {IconArrow} from 'app/icons';
-import {t} from 'app/locale';
-import {GlobalSelection, Organization} from 'app/types';
-import {defined} from 'app/utils';
-import {getPeriod} from 'app/utils/getPeriod';
+import {fetchAnyReleaseExistence} from 'sentry/actionCreators/projects';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {parseStatsPeriod} from 'sentry/components/organizations/timeRangeSelector/utils';
+import ScoreCard from 'sentry/components/scoreCard';
+import {IconArrow} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {GlobalSelection, Organization} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import {getPeriod} from 'sentry/utils/getPeriod';
 
 import MissingReleasesButtons from '../missingFeatureButtons/missingReleasesButtons';
 import {shouldFetchPreviousPeriod} from '../utils';

@@ -2,20 +2,27 @@ import * as React from 'react';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Count from 'app/components/count';
-import * as DividerHandlerManager from 'app/components/events/interfaces/spans/dividerHandlerManager';
-import {TreeDepthType} from 'app/components/events/interfaces/spans/types';
+import Count from 'sentry/components/count';
+import * as DividerHandlerManager from 'sentry/components/events/interfaces/spans/dividerHandlerManager';
+import {TreeDepthType} from 'sentry/components/events/interfaces/spans/types';
 import {
   isOrphanTreeDepth,
   unwrapTreeDepth,
-} from 'app/components/events/interfaces/spans/utils';
-import {ROW_HEIGHT, ROW_PADDING} from 'app/components/performance/waterfall/constants';
-import {Row, RowCell, RowCellContainer} from 'app/components/performance/waterfall/row';
+} from 'sentry/components/events/interfaces/spans/utils';
+import {ROW_HEIGHT, ROW_PADDING} from 'sentry/components/performance/waterfall/constants';
+import {
+  Row,
+  RowCell,
+  RowCellContainer,
+} from 'sentry/components/performance/waterfall/row';
 import {
   DividerLine,
   DividerLineGhostContainer,
-} from 'app/components/performance/waterfall/rowDivider';
-import {RowTitle, RowTitleContainer} from 'app/components/performance/waterfall/rowTitle';
+} from 'sentry/components/performance/waterfall/rowDivider';
+import {
+  RowTitle,
+  RowTitleContainer,
+} from 'sentry/components/performance/waterfall/rowTitle';
 import {
   ConnectorBar,
   TOGGLE_BORDER_BOX,
@@ -23,16 +30,16 @@ import {
   TreeToggle,
   TreeToggleContainer,
   TreeToggleIcon,
-} from 'app/components/performance/waterfall/treeConnector';
+} from 'sentry/components/performance/waterfall/treeConnector';
 import {
   getBackgroundColor,
   getHatchPattern,
   getHumanDuration,
   toPercent,
-} from 'app/components/performance/waterfall/utils';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Theme} from 'app/utils/theme';
+} from 'sentry/components/performance/waterfall/utils';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Theme} from 'sentry/utils/theme';
 
 import SpanDetail from './spanDetail';
 import {SpanBarRectangle} from './styles';

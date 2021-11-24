@@ -3,22 +3,22 @@ import styled from '@emotion/styled';
 
 import quickTraceExample from 'sentry-images/spot/performance-quick-trace.svg';
 
-import {promptsCheck, promptsUpdate} from 'app/actionCreators/prompts';
-import {Client} from 'app/api';
-import Feature from 'app/components/acl/feature';
-import FeatureDisabled from 'app/components/acl/featureDisabled';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import Hovercard from 'app/components/hovercard';
-import {Panel} from 'app/components/panels';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import {Event} from 'app/types/event';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {getConfigureTracingDocsLink} from 'app/utils/docs';
-import {promptCanShow, promptIsDismissed} from 'app/utils/promptIsDismissed';
-import withApi from 'app/utils/withApi';
+import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
+import {Client} from 'sentry/api';
+import Feature from 'sentry/components/acl/feature';
+import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import Hovercard from 'sentry/components/hovercard';
+import {Panel} from 'sentry/components/panels';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {getConfigureTracingDocsLink} from 'sentry/utils/docs';
+import {promptCanShow, promptIsDismissed} from 'sentry/utils/promptIsDismissed';
+import withApi from 'sentry/utils/withApi';
 
 const DISTRIBUTED_TRACING_FEATURE = 'distributed_tracing';
 

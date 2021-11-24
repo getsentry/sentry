@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import replaceRouterParams from 'app/utils/replaceRouterParams';
-import SettingsNavItem from 'app/views/settings/components/settingsNavItem';
-import {NavigationGroupProps} from 'app/views/settings/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import replaceRouterParams from 'sentry/utils/replaceRouterParams';
+import SettingsNavItem from 'sentry/views/settings/components/settingsNavItem';
+import {NavigationGroupProps} from 'sentry/views/settings/types';
 
 const SettingsNavigationGroup = (props: NavigationGroupProps) => {
   const {organization, project, name, items} = props;

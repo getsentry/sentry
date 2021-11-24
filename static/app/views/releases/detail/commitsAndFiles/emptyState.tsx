@@ -1,7 +1,7 @@
 import * as React from 'react';
 
-import EmptyStateWarning from 'app/components/emptyStateWarning';
-import {Panel, PanelBody} from 'app/components/panels';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {Panel, PanelBody} from 'sentry/components/panels';
 
 type Props = {
   children: React.ReactNode;

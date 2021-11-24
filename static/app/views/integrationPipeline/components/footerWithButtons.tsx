@@ -1,8 +1,8 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'app/components/actions/button';
-import space from 'app/styles/space';
+import Button from 'sentry/components/actions/button';
+import space from 'sentry/styles/space';
 
 type Props = {buttonText: string} & Partial<
   Pick<React.ComponentProps<typeof Button>, 'disabled' | 'onClick' | 'href'>

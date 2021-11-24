@@ -1,8 +1,8 @@
 import moment from 'moment';
 
-import {parseStatsPeriod} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {DataCategory, IntervalPeriod} from 'app/types';
-import {parsePeriodToHours} from 'app/utils/dates';
+import {parseStatsPeriod} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {DataCategory, IntervalPeriod} from 'sentry/types';
+import {parsePeriodToHours} from 'sentry/utils/dates';
 
 import {formatUsageWithUnits} from '../utils';
 

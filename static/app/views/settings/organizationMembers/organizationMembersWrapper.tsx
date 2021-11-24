@@ -1,15 +1,15 @@
 import {cloneElement, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 
-import {openInviteMembersModal} from 'app/actionCreators/modal';
-import Button from 'app/components/button';
-import {IconMail} from 'app/icons';
-import {t} from 'app/locale';
-import {Member, Organization} from 'app/types';
-import routeTitleGen from 'app/utils/routeTitle';
-import withOrganization from 'app/utils/withOrganization';
-import AsyncView from 'app/views/asyncView';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import {openInviteMembersModal} from 'sentry/actionCreators/modal';
+import Button from 'sentry/components/button';
+import {IconMail} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {Member, Organization} from 'sentry/types';
+import routeTitleGen from 'sentry/utils/routeTitle';
+import withOrganization from 'sentry/utils/withOrganization';
+import AsyncView from 'sentry/views/asyncView';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 type Props = {
   children?: any;

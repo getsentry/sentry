@@ -1,13 +1,13 @@
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import IdBadge from 'app/components/idBadge';
-import {Organization} from 'app/types';
-import recreateRoute from 'app/utils/recreateRoute';
-import withLatestContext from 'app/utils/withLatestContext';
-import BreadcrumbDropdown from 'app/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
-import findFirstRouteWithoutRouteParam from 'app/views/settings/components/settingsBreadcrumb/findFirstRouteWithoutRouteParam';
-import MenuItem from 'app/views/settings/components/settingsBreadcrumb/menuItem';
+import IdBadge from 'sentry/components/idBadge';
+import {Organization} from 'sentry/types';
+import recreateRoute from 'sentry/utils/recreateRoute';
+import withLatestContext from 'sentry/utils/withLatestContext';
+import BreadcrumbDropdown from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
+import findFirstRouteWithoutRouteParam from 'sentry/views/settings/components/settingsBreadcrumb/findFirstRouteWithoutRouteParam';
+import MenuItem from 'sentry/views/settings/components/settingsBreadcrumb/menuItem';
 
 import {RouteWithName} from './types';
 import {CrumbLink} from '.';

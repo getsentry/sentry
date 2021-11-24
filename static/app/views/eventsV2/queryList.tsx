@@ -6,27 +6,27 @@ import classNames from 'classnames';
 import {Location, Query} from 'history';
 import moment from 'moment';
 
-import {resetGlobalSelection} from 'app/actionCreators/globalSelection';
-import {openAddDashboardWidgetModal} from 'app/actionCreators/modal';
-import {Client} from 'app/api';
-import Feature from 'app/components/acl/feature';
-import DropdownMenu from 'app/components/dropdownMenu';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
-import MenuItem from 'app/components/menuItem';
-import Pagination from 'app/components/pagination';
-import TimeSince from 'app/components/timeSince';
-import {IconEllipsis} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, SavedQuery} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
-import EventView from 'app/utils/discover/eventView';
-import {DisplayModes} from 'app/utils/discover/types';
-import parseLinkHeader from 'app/utils/parseLinkHeader';
-import {decodeList} from 'app/utils/queryString';
-import withApi from 'app/utils/withApi';
-import {DashboardWidgetSource, WidgetQuery} from 'app/views/dashboardsV2/types';
+import {resetGlobalSelection} from 'sentry/actionCreators/globalSelection';
+import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
+import {Client} from 'sentry/api';
+import Feature from 'sentry/components/acl/feature';
+import DropdownMenu from 'sentry/components/dropdownMenu';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import MenuItem from 'sentry/components/menuItem';
+import Pagination from 'sentry/components/pagination';
+import TimeSince from 'sentry/components/timeSince';
+import {IconEllipsis} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, SavedQuery} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import EventView from 'sentry/utils/discover/eventView';
+import {DisplayModes} from 'sentry/utils/discover/types';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {decodeList} from 'sentry/utils/queryString';
+import withApi from 'sentry/utils/withApi';
+import {DashboardWidgetSource, WidgetQuery} from 'sentry/views/dashboardsV2/types';
 
 import {
   displayModeToDisplayType,

@@ -1,6 +1,6 @@
-import {t} from 'app/locale';
-import {Action, ActionType, TargetType} from 'app/views/alerts/incidentRules/types';
-import Input from 'app/views/settings/components/forms/controls/input';
+import {t} from 'sentry/locale';
+import {Action, ActionType, TargetType} from 'sentry/views/alerts/incidentRules/types';
+import Input from 'sentry/views/settings/components/forms/controls/input';
 
 type Props = {
   action: Action;

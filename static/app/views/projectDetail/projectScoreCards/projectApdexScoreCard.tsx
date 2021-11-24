@@ -1,19 +1,19 @@
 import * as React from 'react';
 import round from 'lodash/round';
 
-import AsyncComponent from 'app/components/asyncComponent';
-import Count from 'app/components/count';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {parseStatsPeriod} from 'app/components/organizations/timeRangeSelector/utils';
-import ScoreCard from 'app/components/scoreCard';
-import {IconArrow} from 'app/icons';
-import {t} from 'app/locale';
-import {GlobalSelection, Organization} from 'app/types';
-import {defined} from 'app/utils';
-import {TableData} from 'app/utils/discover/discoverQuery';
-import {getAggregateAlias} from 'app/utils/discover/fields';
-import {getPeriod} from 'app/utils/getPeriod';
-import {getTermHelp, PERFORMANCE_TERM} from 'app/views/performance/data';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import Count from 'sentry/components/count';
+import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {parseStatsPeriod} from 'sentry/components/organizations/timeRangeSelector/utils';
+import ScoreCard from 'sentry/components/scoreCard';
+import {IconArrow} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {GlobalSelection, Organization} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import {TableData} from 'sentry/utils/discover/discoverQuery';
+import {getAggregateAlias} from 'sentry/utils/discover/fields';
+import {getPeriod} from 'sentry/utils/getPeriod';
+import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
 
 import MissingPerformanceButtons from '../missingFeatureButtons/missingPerformanceButtons';
 import {shouldFetchPreviousPeriod} from '../utils';

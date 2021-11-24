@@ -1,21 +1,21 @@
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import ErrorPanel from 'app/components/charts/errorPanel';
-import EventsRequest from 'app/components/charts/eventsRequest';
-import {HeaderTitleLegend} from 'app/components/charts/styles';
-import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
-import {getInterval} from 'app/components/charts/utils';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import Placeholder from 'app/components/placeholder';
-import QuestionTooltip from 'app/components/questionTooltip';
-import {IconWarning} from 'app/icons';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import {getUtcToLocalDateObject} from 'app/utils/dates';
-import EventView from 'app/utils/discover/eventView';
-import getDynamicText from 'app/utils/getDynamicText';
-import useApi from 'app/utils/useApi';
+import ErrorPanel from 'sentry/components/charts/errorPanel';
+import EventsRequest from 'sentry/components/charts/eventsRequest';
+import {HeaderTitleLegend} from 'sentry/components/charts/styles';
+import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import {getInterval} from 'sentry/components/charts/utils';
+import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import Placeholder from 'sentry/components/placeholder';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import {IconWarning} from 'sentry/icons';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {getUtcToLocalDateObject} from 'sentry/utils/dates';
+import EventView from 'sentry/utils/discover/eventView';
+import getDynamicText from 'sentry/utils/getDynamicText';
+import useApi from 'sentry/utils/useApi';
 
 import Chart from '../../charts/chart';
 import {DoubleHeaderContainer} from '../../styles';

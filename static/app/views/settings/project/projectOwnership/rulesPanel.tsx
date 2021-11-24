@@ -3,11 +3,11 @@ import TextareaAutosize from 'react-autosize-textarea';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
-import FeatureBadge from 'app/components/featureBadge';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import {IconGithub, IconGitlab, IconSentry} from 'app/icons';
-import {inputStyles} from 'app/styles/input';
-import space from 'app/styles/space';
+import FeatureBadge from 'sentry/components/featureBadge';
+import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import {IconGithub, IconGitlab, IconSentry} from 'sentry/icons';
+import {inputStyles} from 'sentry/styles/input';
+import space from 'sentry/styles/space';
 
 type Props = {
   raw: string;

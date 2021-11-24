@@ -1,17 +1,17 @@
 import set from 'lodash/set';
 
-import {t} from 'app/locale';
-import {OrganizationSummary, Project} from 'app/types';
+import {t} from 'sentry/locale';
+import {OrganizationSummary, Project} from 'sentry/types';
 import {
   ALL_PROVIDERS,
   MIN_PROJECTS_FOR_CONFIRMATION,
   NotificationSettingsByProviderObject,
   NotificationSettingsObject,
   VALUE_MAPPING,
-} from 'app/views/settings/account/notifications/constants';
-import {NOTIFICATION_SETTING_FIELDS} from 'app/views/settings/account/notifications/fields2';
-import ParentLabel from 'app/views/settings/account/notifications/parentLabel';
-import {FieldObject} from 'app/views/settings/components/forms/type';
+} from 'sentry/views/settings/account/notifications/constants';
+import {NOTIFICATION_SETTING_FIELDS} from 'sentry/views/settings/account/notifications/fields2';
+import ParentLabel from 'sentry/views/settings/account/notifications/parentLabel';
+import {FieldObject} from 'sentry/views/settings/components/forms/type';
 
 /**
  * Which fine-tuning parts are grouped by project

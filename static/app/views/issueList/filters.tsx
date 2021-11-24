@@ -2,10 +2,10 @@ import * as React from 'react';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import GuideAnchor from 'app/components/assistant/guideAnchor';
-import ProjectsStore from 'app/stores/projectsStore';
-import space from 'app/styles/space';
-import {Organization, SavedSearch} from 'app/types';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import space from 'sentry/styles/space';
+import {Organization, SavedSearch} from 'sentry/types';
 
 import IssueListDisplayOptions from './displayOptions';
 import IssueListSearchBar from './searchBar';

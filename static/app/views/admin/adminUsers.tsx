@@ -1,10 +1,10 @@
 import {Location} from 'history';
 import moment from 'moment';
 
-import Link from 'app/components/links/link';
-import ResultGrid from 'app/components/resultGrid';
-import {t} from 'app/locale';
-import AsyncView from 'app/views/asyncView';
+import Link from 'sentry/components/links/link';
+import ResultGrid from 'sentry/components/resultGrid';
+import {t} from 'sentry/locale';
+import AsyncView from 'sentry/views/asyncView';
 
 export const prettyDate = function (x) {
   return moment(x).format('ll');

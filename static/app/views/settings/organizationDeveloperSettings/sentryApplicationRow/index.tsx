@@ -1,14 +1,14 @@
 import {PureComponent} from 'react';
 import styled from '@emotion/styled';
 
-import {openModal} from 'app/actionCreators/modal';
-import Link from 'app/components/links/link';
-import SentryAppPublishRequestModal from 'app/components/modals/sentryAppPublishRequestModal';
-import {PanelItem} from 'app/components/panels';
-import {t} from 'app/locale';
-import PluginIcon from 'app/plugins/components/pluginIcon';
-import space from 'app/styles/space';
-import {Organization, SentryApp} from 'app/types';
+import {openModal} from 'sentry/actionCreators/modal';
+import Link from 'sentry/components/links/link';
+import SentryAppPublishRequestModal from 'sentry/components/modals/sentryAppPublishRequestModal';
+import {PanelItem} from 'sentry/components/panels';
+import {t} from 'sentry/locale';
+import PluginIcon from 'sentry/plugins/components/pluginIcon';
+import space from 'sentry/styles/space';
+import {Organization, SentryApp} from 'sentry/types';
 
 import SentryApplicationRowButtons from './sentryApplicationRowButtons';
 

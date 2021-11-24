@@ -9,16 +9,16 @@ import WidgetLine from 'sentry-images/dashboard/widget-line-1.svg';
 import WidgetTable from 'sentry-images/dashboard/widget-table.svg';
 import WidgetWorldMap from 'sentry-images/dashboard/widget-world-map.svg';
 
-import {GlobalSelection} from 'app/types';
-import {getUtcDateString} from 'app/utils/dates';
-import EventView from 'app/utils/discover/eventView';
+import {GlobalSelection} from 'sentry/types';
+import {getUtcDateString} from 'sentry/utils/dates';
+import EventView from 'sentry/utils/discover/eventView';
 import {
   DashboardDetails,
   DisplayType,
   Widget,
   WidgetQuery,
   WidgetType,
-} from 'app/views/dashboardsV2/types';
+} from 'sentry/views/dashboardsV2/types';
 
 export function cloneDashboard(dashboard: DashboardDetails): DashboardDetails {
   return cloneDeep(dashboard);

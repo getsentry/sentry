@@ -1,11 +1,11 @@
 import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 
-import Pagination from 'app/components/pagination';
-import {t} from 'app/locale';
-import {Repository} from 'app/types';
-import routeTitleGen from 'app/utils/routeTitle';
-import AsyncView from 'app/views/asyncView';
+import Pagination from 'sentry/components/pagination';
+import {t} from 'sentry/locale';
+import {Repository} from 'sentry/types';
+import routeTitleGen from 'sentry/utils/routeTitle';
+import AsyncView from 'sentry/views/asyncView';
 
 import OrganizationRepositories from './organizationRepositories';
 

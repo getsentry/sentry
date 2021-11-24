@@ -1,14 +1,14 @@
 import {Component} from 'react';
 
-import {Client} from 'app/api';
-import MiniBarChart from 'app/components/charts/miniBarChart';
-import LoadingError from 'app/components/loadingError';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {t} from 'app/locale';
-import {TimeseriesValue} from 'app/types';
-import {SeriesDataUnit} from 'app/types/echarts';
-import theme from 'app/utils/theme';
-import withApi from 'app/utils/withApi';
+import {Client} from 'sentry/api';
+import MiniBarChart from 'sentry/components/charts/miniBarChart';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {t} from 'sentry/locale';
+import {TimeseriesValue} from 'sentry/types';
+import {SeriesDataUnit} from 'sentry/types/echarts';
+import theme from 'sentry/utils/theme';
+import withApi from 'sentry/utils/withApi';
 
 type Props = {
   api: Client;

@@ -1,19 +1,19 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import AsyncComponent from 'app/components/asyncComponent';
-import Avatar from 'app/components/avatar';
-import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
-import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
-import Pagination from 'app/components/pagination';
-import {Panel, PanelItem} from 'app/components/panels';
-import Tooltip from 'app/components/tooltip';
-import {IconDelete} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {GroupTombstone} from 'app/types';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import Avatar from 'sentry/components/avatar';
+import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
+import LinkWithConfirmation from 'sentry/components/links/linkWithConfirmation';
+import Pagination from 'sentry/components/pagination';
+import {Panel, PanelItem} from 'sentry/components/panels';
+import Tooltip from 'sentry/components/tooltip';
+import {IconDelete} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {GroupTombstone} from 'sentry/types';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 type RowProps = {
   data: GroupTombstone;

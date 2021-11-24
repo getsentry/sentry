@@ -1,8 +1,8 @@
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {defined} from 'app/utils';
-import {TableData} from 'app/utils/discover/discoverQuery';
-import {GenericChildrenProps} from 'app/utils/discover/genericDiscoverQuery';
-import {DEFAULT_STATS_PERIOD} from 'app/views/performance/data';
+import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {defined} from 'sentry/utils';
+import {TableData} from 'sentry/utils/discover/discoverQuery';
+import {GenericChildrenProps} from 'sentry/utils/discover/genericDiscoverQuery';
+import {DEFAULT_STATS_PERIOD} from 'sentry/views/performance/data';
 
 import {QueryDefinitionWithKey, WidgetDataConstraint, WidgetPropUnion} from '../types';
 

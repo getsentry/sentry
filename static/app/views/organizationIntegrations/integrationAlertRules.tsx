@@ -1,13 +1,13 @@
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import ProjectBadge from 'app/components/idBadge/projectBadge';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
-import {t} from 'app/locale';
-import {Organization, Project} from 'app/types';
-import withOrganization from 'app/utils/withOrganization';
-import withProjects from 'app/utils/withProjects';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import Button from 'sentry/components/button';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
+import {t} from 'sentry/locale';
+import {Organization, Project} from 'sentry/types';
+import withOrganization from 'sentry/utils/withOrganization';
+import withProjects from 'sentry/utils/withProjects';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 type Props = {
   projects: Project[];

@@ -1,12 +1,12 @@
 import styled from '@emotion/styled';
 
-import DeployBadge from 'app/components/deployBadge';
-import SidebarSection from 'app/components/sidebarSection';
-import TextOverflow from 'app/components/textOverflow';
-import TimeSince from 'app/components/timeSince';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Deploy} from 'app/types';
+import DeployBadge from 'sentry/components/deployBadge';
+import SidebarSection from 'sentry/components/sidebarSection';
+import TextOverflow from 'sentry/components/textOverflow';
+import TimeSince from 'sentry/components/timeSince';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Deploy} from 'sentry/types';
 
 type Props = {
   version: string;

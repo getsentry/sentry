@@ -2,13 +2,13 @@ import React from 'react';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
 
-import {GridColumnOrder} from 'app/components/gridEditable';
-import {CursorHandler} from 'app/components/pagination';
-import {Organization, Project} from 'app/types';
-import EventView, {fromSorts} from 'app/utils/discover/eventView';
-import SegmentExplorerQuery from 'app/utils/performance/segmentExplorer/segmentExplorerQuery';
-import TagKeyHistogramQuery from 'app/utils/performance/segmentExplorer/tagKeyHistogramQuery';
-import {decodeScalar} from 'app/utils/queryString';
+import {GridColumnOrder} from 'sentry/components/gridEditable';
+import {CursorHandler} from 'sentry/components/pagination';
+import {Organization, Project} from 'sentry/types';
+import EventView, {fromSorts} from 'sentry/utils/discover/eventView';
+import SegmentExplorerQuery from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
+import TagKeyHistogramQuery from 'sentry/utils/performance/segmentExplorer/tagKeyHistogramQuery';
+import {decodeScalar} from 'sentry/utils/queryString';
 
 import {SpanOperationBreakdownFilter} from '../filter';
 import {getTransactionField} from '../transactionOverview/tagExplorer';

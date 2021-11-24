@@ -1,7 +1,7 @@
 import * as React from 'react';
 
-import SelectAsyncControl from 'app/components/forms/selectAsyncControl';
-import InputField from 'app/views/settings/components/forms/inputField';
+import SelectAsyncControl from 'sentry/components/forms/selectAsyncControl';
+import InputField from 'sentry/views/settings/components/forms/inputField';
 
 // projects can be passed as a direct prop as well
 type Props = Omit<InputField['props'], 'highlighted' | 'visible' | 'required'>;

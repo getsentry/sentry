@@ -3,19 +3,19 @@ import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import round from 'lodash/round';
 
-import AsyncComponent from 'app/components/asyncComponent';
-import {DateTimeObject} from 'app/components/charts/utils';
-import IdBadge from 'app/components/idBadge';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import PanelTable from 'app/components/panels/panelTable';
-import Placeholder from 'app/components/placeholder';
-import {IconArrow} from 'app/icons';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project, SessionApiResponse, SessionField} from 'app/types';
-import {getCrashFreeRate} from 'app/utils/sessions';
-import {Color} from 'app/utils/theme';
-import {displayCrashFreePercent} from 'app/views/releases/utils';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import {DateTimeObject} from 'sentry/components/charts/utils';
+import IdBadge from 'sentry/components/idBadge';
+import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import PanelTable from 'sentry/components/panels/panelTable';
+import Placeholder from 'sentry/components/placeholder';
+import {IconArrow} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project, SessionApiResponse, SessionField} from 'sentry/types';
+import {getCrashFreeRate} from 'sentry/utils/sessions';
+import {Color} from 'sentry/utils/theme';
+import {displayCrashFreePercent} from 'sentry/views/releases/utils';
 
 import {groupByTrend} from './utils';
 

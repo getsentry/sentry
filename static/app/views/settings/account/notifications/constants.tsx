@@ -1,4 +1,4 @@
-import {t} from 'app/locale';
+import {t} from 'sentry/locale';
 
 export const ALL_PROVIDERS = {
   email: 'default',

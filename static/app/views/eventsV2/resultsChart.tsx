@@ -4,28 +4,28 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
-import {Client} from 'app/api';
-import AreaChart from 'app/components/charts/areaChart';
-import BarChart from 'app/components/charts/barChart';
-import EventsChart from 'app/components/charts/eventsChart';
-import {getInterval} from 'app/components/charts/utils';
-import WorldMapChart from 'app/components/charts/worldMapChart';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {Panel} from 'app/components/panels';
-import Placeholder from 'app/components/placeholder';
-import {t} from 'app/locale';
-import {Organization} from 'app/types';
-import {getUtcToLocalDateObject} from 'app/utils/dates';
-import EventView from 'app/utils/discover/eventView';
-import {isEquation} from 'app/utils/discover/fields';
+import {Client} from 'sentry/api';
+import AreaChart from 'sentry/components/charts/areaChart';
+import BarChart from 'sentry/components/charts/barChart';
+import EventsChart from 'sentry/components/charts/eventsChart';
+import {getInterval} from 'sentry/components/charts/utils';
+import WorldMapChart from 'sentry/components/charts/worldMapChart';
+import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {Panel} from 'sentry/components/panels';
+import Placeholder from 'sentry/components/placeholder';
+import {t} from 'sentry/locale';
+import {Organization} from 'sentry/types';
+import {getUtcToLocalDateObject} from 'sentry/utils/dates';
+import EventView from 'sentry/utils/discover/eventView';
+import {isEquation} from 'sentry/utils/discover/fields';
 import {
   DisplayModes,
   MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES,
   TOP_N,
-} from 'app/utils/discover/types';
-import getDynamicText from 'app/utils/getDynamicText';
-import {decodeScalar} from 'app/utils/queryString';
-import withApi from 'app/utils/withApi';
+} from 'sentry/utils/discover/types';
+import getDynamicText from 'sentry/utils/getDynamicText';
+import {decodeScalar} from 'sentry/utils/queryString';
+import withApi from 'sentry/utils/withApi';
 
 import ChartFooter from './chartFooter';
 

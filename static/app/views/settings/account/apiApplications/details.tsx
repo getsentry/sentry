@@ -1,18 +1,18 @@
 import {RouteComponentProps} from 'react-router';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import apiApplication from 'app/data/forms/apiApplication';
-import {t} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
-import {ApiApplication} from 'app/types';
-import getDynamicText from 'app/utils/getDynamicText';
-import AsyncView from 'app/views/asyncView';
-import Form from 'app/views/settings/components/forms/form';
-import FormField from 'app/views/settings/components/forms/formField';
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import apiApplication from 'sentry/data/forms/apiApplication';
+import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import {ApiApplication} from 'sentry/types';
+import getDynamicText from 'sentry/utils/getDynamicText';
+import AsyncView from 'sentry/views/asyncView';
+import Form from 'sentry/views/settings/components/forms/form';
+import FormField from 'sentry/views/settings/components/forms/formField';
+import JsonForm from 'sentry/views/settings/components/forms/jsonForm';
+import TextCopyInput from 'sentry/views/settings/components/forms/textCopyInput';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 type Props = RouteComponentProps<{appId: string}, {}>;
 type State = {

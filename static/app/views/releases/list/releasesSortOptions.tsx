@@ -1,8 +1,8 @@
 import {ComponentProps} from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
-import {Organization} from 'app/types';
+import {t} from 'sentry/locale';
+import {Organization} from 'sentry/types';
 
 import {ReleasesDisplayOption} from './releasesDisplayOptions';
 import ReleasesDropdown from './releasesDropdown';

@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import xor from 'lodash/xor';
 
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 
 const crashReportTypes = ['event.minidump', 'event.applecrashreport'];
 

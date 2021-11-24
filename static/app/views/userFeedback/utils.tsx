@@ -1,7 +1,7 @@
 import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
-import {URL_PARAM} from 'app/constants/globalSelectionHeader';
+import {URL_PARAM} from 'sentry/constants/globalSelectionHeader';
 
 const DEFAULT_STATUS = 'unresolved';
 

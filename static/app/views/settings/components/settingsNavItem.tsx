@@ -2,12 +2,12 @@ import * as React from 'react';
 import {Link as RouterLink} from 'react-router';
 import styled from '@emotion/styled';
 
-import Badge from 'app/components/badge';
-import FeatureBadge from 'app/components/featureBadge';
-import HookOrDefault from 'app/components/hookOrDefault';
-import Tooltip from 'app/components/tooltip';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
+import Badge from 'sentry/components/badge';
+import FeatureBadge from 'sentry/components/featureBadge';
+import HookOrDefault from 'sentry/components/hookOrDefault';
+import Tooltip from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 
 type Props = {
   to: React.ComponentProps<RouterLink>['to'];

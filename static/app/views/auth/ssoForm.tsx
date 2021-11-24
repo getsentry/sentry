@@ -1,11 +1,11 @@
 import {Component} from 'react';
 import {browserHistory} from 'react-router';
 
-import {Client} from 'app/api';
-import Form from 'app/components/forms/form';
-import TextField from 'app/components/forms/textField';
-import {t, tct} from 'app/locale';
-import {AuthConfig} from 'app/types';
+import {Client} from 'sentry/api';
+import Form from 'sentry/components/forms/form';
+import TextField from 'sentry/components/forms/textField';
+import {t, tct} from 'sentry/locale';
+import {AuthConfig} from 'sentry/types';
 
 type Props = {
   api: Client;

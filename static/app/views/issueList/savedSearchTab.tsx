@@ -1,13 +1,13 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Badge from 'app/components/badge';
-import DropdownLink from 'app/components/dropdownLink';
-import QueryCount from 'app/components/queryCount';
-import {t} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {Organization, SavedSearch} from 'app/types';
+import Badge from 'sentry/components/badge';
+import DropdownLink from 'sentry/components/dropdownLink';
+import QueryCount from 'sentry/components/queryCount';
+import {t} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {Organization, SavedSearch} from 'sentry/types';
 
 import SavedSearchMenu from './savedSearchMenu';
 

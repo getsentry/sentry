@@ -1,8 +1,8 @@
 import {cloneElement, Component, Fragment, isValidElement} from 'react';
 
-import Feature from 'app/components/acl/feature';
-import {Organization} from 'app/types';
-import withOrganization from 'app/utils/withOrganization';
+import Feature from 'sentry/components/acl/feature';
+import {Organization} from 'sentry/types';
+import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {
   organization: Organization;

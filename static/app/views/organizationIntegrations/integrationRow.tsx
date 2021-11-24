@@ -1,24 +1,24 @@
 import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 
-import Alert from 'app/components/alert';
-import Button from 'app/components/button';
-import Link from 'app/components/links/link';
-import {PanelItem} from 'app/components/panels';
-import {IconWarning} from 'app/icons';
-import {t} from 'app/locale';
-import PluginIcon from 'app/plugins/components/pluginIcon';
-import space from 'app/styles/space';
+import Alert from 'sentry/components/alert';
+import Button from 'sentry/components/button';
+import Link from 'sentry/components/links/link';
+import {PanelItem} from 'sentry/components/panels';
+import {IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import PluginIcon from 'sentry/plugins/components/pluginIcon';
+import space from 'sentry/styles/space';
 import {
   IntegrationInstallationStatus,
   Organization,
   PluginWithProjectList,
   SentryApp,
-} from 'app/types';
+} from 'sentry/types';
 import {
   convertIntegrationTypeToSnakeCase,
   trackIntegrationAnalytics,
-} from 'app/utils/integrationUtil';
+} from 'sentry/utils/integrationUtil';
 
 import IntegrationStatus from './integrationStatus';
 import PluginDeprecationAlert from './pluginDeprecationAlert';

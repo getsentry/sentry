@@ -2,20 +2,20 @@ import * as React from 'react';
 import {RouteComponentProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {Client} from 'app/api';
-import Button from 'app/components/button';
-import {Body, Main} from 'app/components/layouts/thirds';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {Panel} from 'app/components/panels';
-import {IconCommit} from 'app/icons';
-import {t} from 'app/locale';
-import {Organization, Repository} from 'app/types';
-import getDisplayName from 'app/utils/getDisplayName';
-import withApi from 'app/utils/withApi';
-import withOrganization from 'app/utils/withOrganization';
-import withRepositories from 'app/utils/withRepositories';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {Client} from 'sentry/api';
+import Button from 'sentry/components/button';
+import {Body, Main} from 'sentry/components/layouts/thirds';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels';
+import {IconCommit} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {Organization, Repository} from 'sentry/types';
+import getDisplayName from 'sentry/utils/getDisplayName';
+import withApi from 'sentry/utils/withApi';
+import withOrganization from 'sentry/utils/withOrganization';
+import withRepositories from 'sentry/utils/withRepositories';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 import {ReleaseContext} from '..';
 

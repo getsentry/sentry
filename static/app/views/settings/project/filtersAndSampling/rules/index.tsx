@@ -2,11 +2,11 @@ import {PureComponent} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {PanelTable} from 'app/components/panels';
-import {t} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import {DynamicSamplingRule, DynamicSamplingRuleType} from 'app/types/dynamicSampling';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {PanelTable} from 'sentry/components/panels';
+import {t} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import {DynamicSamplingRule, DynamicSamplingRuleType} from 'sentry/types/dynamicSampling';
 
 import DraggableList, {UpdateItemsProps} from './draggableList';
 import Rule from './rule';

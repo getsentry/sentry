@@ -1,7 +1,7 @@
 import * as React from 'react';
 
-import TimeSince from 'app/components/timeSince';
-import {t} from 'app/locale';
+import TimeSince from 'sentry/components/timeSince';
+import {t} from 'sentry/locale';
 
 import MonitorHeaderActions from './monitorHeaderActions';
 import MonitorIcon from './monitorIcon';

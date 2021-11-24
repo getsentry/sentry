@@ -2,8 +2,8 @@ import * as React from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
-import TextBlock from 'app/views/settings/components/text/textBlock';
+import space from 'sentry/styles/space';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 type Props = {
   title?: React.ReactNode;

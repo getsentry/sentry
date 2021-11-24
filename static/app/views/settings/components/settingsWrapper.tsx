@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import PropTypes from 'prop-types';
 
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import withLatestContext from 'app/utils/withLatestContext';
-import ScrollToTop from 'app/views/settings/components/scrollToTop';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import withLatestContext from 'sentry/utils/withLatestContext';
+import ScrollToTop from 'sentry/views/settings/components/scrollToTop';
 
 type Props = {
   location: Location;

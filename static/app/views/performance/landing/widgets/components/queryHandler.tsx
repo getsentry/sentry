@@ -1,6 +1,6 @@
 import {Fragment, useEffect} from 'react';
 
-import {getUtcToLocalDateObject} from 'app/utils/dates';
+import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 
 import {QueryDefinitionWithKey, QueryHandlerProps, WidgetDataConstraint} from '../types';
 

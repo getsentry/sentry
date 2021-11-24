@@ -1,16 +1,16 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
-import {Item} from 'app/components/dropdownAutoComplete/types';
-import DropdownButton from 'app/components/dropdownButton';
-import SelectControl, {ControlProps} from 'app/components/forms/selectControl';
-import {IconAdd, IconDelete} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {defined, objectIsEmpty} from 'app/utils';
-import InputField from 'app/views/settings/components/forms/inputField';
+import Button from 'sentry/components/button';
+import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
+import {Item} from 'sentry/components/dropdownAutoComplete/types';
+import DropdownButton from 'sentry/components/dropdownButton';
+import SelectControl, {ControlProps} from 'sentry/components/forms/selectControl';
+import {IconAdd, IconDelete} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {defined, objectIsEmpty} from 'sentry/utils';
+import InputField from 'sentry/views/settings/components/forms/inputField';
 
 type InputFieldProps = React.ComponentProps<typeof InputField>;
 

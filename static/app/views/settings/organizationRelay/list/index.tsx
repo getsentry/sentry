@@ -1,7 +1,7 @@
 import * as React from 'react';
 import orderBy from 'lodash/orderBy';
 
-import {Relay, RelayActivity} from 'app/types';
+import {Relay, RelayActivity} from 'sentry/types';
 
 import ActivityList from './activityList';
 import CardHeader from './cardHeader';

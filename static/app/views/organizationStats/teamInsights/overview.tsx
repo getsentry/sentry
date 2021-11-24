@@ -6,22 +6,22 @@ import {LocationDescriptorObject} from 'history';
 import pick from 'lodash/pick';
 import moment from 'moment';
 
-import {DateTimeObject} from 'app/components/charts/utils';
-import TeamSelector from 'app/components/forms/teamSelector';
-import * as Layout from 'app/components/layouts/thirds';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import NoProjectMessage from 'app/components/noProjectMessage';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {ChangeData} from 'app/components/organizations/timeRangeSelector';
-import PageTimeRangeSelector from 'app/components/pageTimeRangeSelector';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {DateString, RelativePeriod, TeamWithProjects} from 'app/types';
-import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
-import {isActiveSuperuser} from 'app/utils/isActiveSuperuser';
-import localStorage from 'app/utils/localStorage';
-import useOrganization from 'app/utils/useOrganization';
-import useTeams from 'app/utils/useTeams';
+import {DateTimeObject} from 'sentry/components/charts/utils';
+import TeamSelector from 'sentry/components/forms/teamSelector';
+import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import NoProjectMessage from 'sentry/components/noProjectMessage';
+import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
+import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {DateString, RelativePeriod, TeamWithProjects} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import localStorage from 'sentry/utils/localStorage';
+import useOrganization from 'sentry/utils/useOrganization';
+import useTeams from 'sentry/utils/useTeams';
 
 import Header from '../header';
 

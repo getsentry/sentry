@@ -1,6 +1,6 @@
-import {RenderProps} from 'app/components/charts/eventsRequest';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {defined} from 'app/utils';
+import {RenderProps} from 'sentry/components/charts/eventsRequest';
+import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {defined} from 'sentry/utils';
 
 import {QueryDefinitionWithKey, WidgetDataConstraint, WidgetPropUnion} from '../types';
 

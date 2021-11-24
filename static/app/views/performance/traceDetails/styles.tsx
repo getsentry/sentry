@@ -1,23 +1,23 @@
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import EventTagsPill from 'app/components/events/eventTags/eventTagsPill';
-import {SecondaryHeader} from 'app/components/events/interfaces/spans/header';
-import {Panel} from 'app/components/panels';
-import Pills from 'app/components/pills';
-import SearchBar from 'app/components/searchBar';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import {defined} from 'app/utils';
-import {TraceFullDetailed} from 'app/utils/performance/quickTrace/types';
-import {appendTagCondition} from 'app/utils/queryString';
-import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
+import EventTagsPill from 'sentry/components/events/eventTags/eventTagsPill';
+import {SecondaryHeader} from 'sentry/components/events/interfaces/spans/header';
+import {Panel} from 'sentry/components/panels';
+import Pills from 'sentry/components/pills';
+import SearchBar from 'sentry/components/searchBar';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
+import {appendTagCondition} from 'sentry/utils/queryString';
+import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 export {
   Row,
   SpanDetails as TransactionDetails,
   SpanDetailContainer as TransactionDetailsContainer,
-} from 'app/components/events/interfaces/spans/spanDetail';
+} from 'sentry/components/events/interfaces/spans/spanDetail';
 
 export const TraceSearchContainer = styled('div')`
   display: flex;

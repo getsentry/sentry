@@ -4,8 +4,8 @@ import {
   aggregateOutputType,
   isAggregateFieldOrEquation,
   isLegalYAxisType,
-} from 'app/utils/discover/fields';
-import {Widget} from 'app/views/dashboardsV2/types';
+} from 'sentry/utils/discover/fields';
+import {Widget} from 'sentry/views/dashboardsV2/types';
 
 import {DisplayType} from '../utils';
 

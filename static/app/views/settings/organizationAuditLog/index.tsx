@@ -1,10 +1,10 @@
 import {browserHistory, RouteComponentProps} from 'react-router';
 
-import {t} from 'app/locale';
-import {AuditLog, Organization} from 'app/types';
-import routeTitleGen from 'app/utils/routeTitle';
-import withOrganization from 'app/utils/withOrganization';
-import AsyncView from 'app/views/asyncView';
+import {t} from 'sentry/locale';
+import {AuditLog, Organization} from 'sentry/types';
+import routeTitleGen from 'sentry/utils/routeTitle';
+import withOrganization from 'sentry/utils/withOrganization';
+import AsyncView from 'sentry/views/asyncView';
 
 import AuditLogList from './auditLogList';
 

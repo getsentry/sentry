@@ -3,17 +3,17 @@ import {RouteComponentProps} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Access from 'app/components/acl/access';
-import ExternalLink from 'app/components/links/externalLink';
-import Link from 'app/components/links/link';
-import Switch from 'app/components/switchButton';
-import {t} from 'app/locale';
-import PluginIcon from 'app/plugins/components/pluginIcon';
-import {Organization, Plugin, Project} from 'app/types';
-import getDynamicText from 'app/utils/getDynamicText';
-import {trackIntegrationAnalytics} from 'app/utils/integrationUtil';
-import recreateRoute from 'app/utils/recreateRoute';
-import withOrganization from 'app/utils/withOrganization';
+import Access from 'sentry/components/acl/access';
+import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
+import Switch from 'sentry/components/switchButton';
+import {t} from 'sentry/locale';
+import PluginIcon from 'sentry/plugins/components/pluginIcon';
+import {Organization, Plugin, Project} from 'sentry/types';
+import getDynamicText from 'sentry/utils/getDynamicText';
+import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
+import recreateRoute from 'sentry/utils/recreateRoute';
+import withOrganization from 'sentry/utils/withOrganization';
 
 const grayText = css`
   color: #979ba0;

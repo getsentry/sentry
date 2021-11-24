@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
-import {Color} from 'app/utils/theme';
+import space from 'sentry/styles/space';
+import {Color} from 'sentry/utils/theme';
 
 type ColorStop = {
   percent: number;

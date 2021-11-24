@@ -1,7 +1,7 @@
 import isPropValid from '@emotion/is-prop-valid';
 import styled, {StyledComponent} from '@emotion/styled';
 
-import {inputStyles} from 'app/styles/input';
+import {inputStyles} from 'sentry/styles/input';
 
 type Props = Omit<Parameters<typeof inputStyles>[0], 'theme'>;
 

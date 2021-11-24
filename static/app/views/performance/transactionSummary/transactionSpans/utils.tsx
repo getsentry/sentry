@@ -1,8 +1,8 @@
 import {Location, Query} from 'history';
 
-import {t} from 'app/locale';
-import EventView from 'app/utils/discover/eventView';
-import {decodeScalar} from 'app/utils/queryString';
+import {t} from 'sentry/locale';
+import EventView from 'sentry/utils/discover/eventView';
+import {decodeScalar} from 'sentry/utils/queryString';
 
 import {SpanSortOption, SpanSortOthers, SpanSortPercentiles} from './types';
 

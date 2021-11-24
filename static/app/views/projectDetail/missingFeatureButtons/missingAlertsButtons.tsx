@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import CreateAlertButton from 'app/components/createAlertButton';
-import {t} from 'app/locale';
-import {Organization} from 'app/types';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import CreateAlertButton from 'sentry/components/createAlertButton';
+import {t} from 'sentry/locale';
+import {Organization} from 'sentry/types';
 
 const DOCS_URL = 'https://docs.sentry.io/product/alerts-notifications/metric-alerts/';
 

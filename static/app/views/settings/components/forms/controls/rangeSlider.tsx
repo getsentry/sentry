@@ -1,10 +1,10 @@
 import React, {ChangeEvent, KeyboardEvent, MouseEvent, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {defined} from 'app/utils';
-import Input from 'app/views/settings/components/forms/controls/input';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
+import Input from 'sentry/views/settings/components/forms/controls/input';
 
 type Props = {
   name: string;

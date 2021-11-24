@@ -2,21 +2,21 @@ import {Component, createRef} from 'react';
 import DocumentTitle from 'react-document-title';
 import styled from '@emotion/styled';
 
-import {fetchOrgMembers} from 'app/actionCreators/members';
-import {setActiveProject} from 'app/actionCreators/projects';
-import {Client} from 'app/api';
-import LoadingError from 'app/components/loadingError';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import MissingProjectMembership from 'app/components/projects/missingProjectMembership';
-import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
-import MemberListStore from 'app/stores/memberListStore';
-import ProjectsStore from 'app/stores/projectsStore';
-import space from 'app/styles/space';
-import {Organization, Project, User} from 'app/types';
-import withApi from 'app/utils/withApi';
-import withOrganization from 'app/utils/withOrganization';
-import withProjects from 'app/utils/withProjects';
+import {fetchOrgMembers} from 'sentry/actionCreators/members';
+import {setActiveProject} from 'sentry/actionCreators/projects';
+import {Client} from 'sentry/api';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import MissingProjectMembership from 'sentry/components/projects/missingProjectMembership';
+import {t} from 'sentry/locale';
+import SentryTypes from 'sentry/sentryTypes';
+import MemberListStore from 'sentry/stores/memberListStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import space from 'sentry/styles/space';
+import {Organization, Project, User} from 'sentry/types';
+import withApi from 'sentry/utils/withApi';
+import withOrganization from 'sentry/utils/withOrganization';
+import withProjects from 'sentry/utils/withProjects';
 
 enum ErrorTypes {
   MISSING_MEMBERSHIP = 'MISSING_MEMBERSHIP',

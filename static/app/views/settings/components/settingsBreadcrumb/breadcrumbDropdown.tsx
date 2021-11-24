@@ -1,9 +1,9 @@
 import * as React from 'react';
 
-import DropdownAutoCompleteMenu from 'app/components/dropdownAutoComplete/menu';
-import {Item} from 'app/components/dropdownAutoComplete/types';
-import Crumb from 'app/views/settings/components/settingsBreadcrumb/crumb';
-import Divider from 'app/views/settings/components/settingsBreadcrumb/divider';
+import DropdownAutoCompleteMenu from 'sentry/components/dropdownAutoComplete/menu';
+import {Item} from 'sentry/components/dropdownAutoComplete/types';
+import Crumb from 'sentry/views/settings/components/settingsBreadcrumb/crumb';
+import Divider from 'sentry/views/settings/components/settingsBreadcrumb/divider';
 
 import {RouteWithName} from './types';
 

@@ -6,12 +6,12 @@ import styled from '@emotion/styled';
 import {Location, LocationDescriptorObject} from 'history';
 import * as PopperJS from 'popper.js';
 
-import {GetActorPropsFn} from 'app/components/dropdownMenu';
-import MenuItem from 'app/components/menuItem';
-import Radio from 'app/components/radio';
-import {t} from 'app/locale';
-import {TableData} from 'app/utils/discover/discoverQuery';
-import EventView from 'app/utils/discover/eventView';
+import {GetActorPropsFn} from 'sentry/components/dropdownMenu';
+import MenuItem from 'sentry/components/menuItem';
+import Radio from 'sentry/components/radio';
+import {t} from 'sentry/locale';
+import {TableData} from 'sentry/utils/discover/discoverQuery';
+import EventView from 'sentry/utils/discover/eventView';
 
 export type TitleProps = Partial<ReturnType<GetActorPropsFn>>;
 

@@ -4,39 +4,39 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import moment from 'moment';
 
-import {Client} from 'app/api';
-import Alert from 'app/components/alert';
-import ActorAvatar from 'app/components/avatar/actorAvatar';
-import {SectionHeading} from 'app/components/charts/styles';
-import {getInterval} from 'app/components/charts/utils';
-import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
-import Duration from 'app/components/duration';
-import IdBadge from 'app/components/idBadge';
-import {KeyValueTable, KeyValueTableRow} from 'app/components/keyValueTable';
-import * as Layout from 'app/components/layouts/thirds';
-import NotAvailable from 'app/components/notAvailable';
-import {Panel, PanelBody} from 'app/components/panels';
-import Placeholder from 'app/components/placeholder';
-import {parseSearch} from 'app/components/searchSyntax/parser';
-import HighlightQuery from 'app/components/searchSyntax/renderer';
-import TimeSince from 'app/components/timeSince';
-import Tooltip from 'app/components/tooltip';
-import {IconInfo, IconRectangle} from 'app/icons';
-import {t, tct} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {Actor, DateString, Organization, Project} from 'app/types';
-import getDynamicText from 'app/utils/getDynamicText';
-import Projects from 'app/utils/projects';
-import {COMPARISON_DELTA_OPTIONS} from 'app/views/alerts/incidentRules/constants';
+import {Client} from 'sentry/api';
+import Alert from 'sentry/components/alert';
+import ActorAvatar from 'sentry/components/avatar/actorAvatar';
+import {SectionHeading} from 'sentry/components/charts/styles';
+import {getInterval} from 'sentry/components/charts/utils';
+import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
+import Duration from 'sentry/components/duration';
+import IdBadge from 'sentry/components/idBadge';
+import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
+import * as Layout from 'sentry/components/layouts/thirds';
+import NotAvailable from 'sentry/components/notAvailable';
+import {Panel, PanelBody} from 'sentry/components/panels';
+import Placeholder from 'sentry/components/placeholder';
+import {parseSearch} from 'sentry/components/searchSyntax/parser';
+import HighlightQuery from 'sentry/components/searchSyntax/renderer';
+import TimeSince from 'sentry/components/timeSince';
+import Tooltip from 'sentry/components/tooltip';
+import {IconInfo, IconRectangle} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {Actor, DateString, Organization, Project} from 'sentry/types';
+import getDynamicText from 'sentry/utils/getDynamicText';
+import Projects from 'sentry/utils/projects';
+import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/incidentRules/constants';
 import {
   Action,
   AlertRuleThresholdType,
   Dataset,
   IncidentRule,
-} from 'app/views/alerts/incidentRules/types';
-import {extractEventTypeFilterFromRule} from 'app/views/alerts/incidentRules/utils/getEventTypeFilter';
-import Timeline from 'app/views/alerts/rules/details/timeline';
+} from 'sentry/views/alerts/incidentRules/types';
+import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/incidentRules/utils/getEventTypeFilter';
+import Timeline from 'sentry/views/alerts/rules/details/timeline';
 
 import AlertBadge from '../../alertBadge';
 import {AlertRuleStatus, Incident, IncidentStatus} from '../../types';

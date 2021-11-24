@@ -1,7 +1,7 @@
 import {Component} from 'react';
 import {Location} from 'history';
 
-import {callIfFunction} from 'app/utils/callIfFunction';
+import {callIfFunction} from 'sentry/utils/callIfFunction';
 
 type Props = {
   location: Location;

@@ -1,18 +1,18 @@
 import {Component, Fragment} from 'react';
 import {Observer} from 'mobx-react';
 
-import Access from 'app/components/acl/access';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import {t, tct} from 'app/locale';
-import {GlobalSelection, Project, SelectValue} from 'app/types';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import withProjects from 'app/utils/withProjects';
-import Field from 'app/views/settings/components/forms/field';
-import Form from 'app/views/settings/components/forms/form';
-import NumberField from 'app/views/settings/components/forms/numberField';
-import SelectField from 'app/views/settings/components/forms/selectField';
-import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
-import TextField from 'app/views/settings/components/forms/textField';
+import Access from 'sentry/components/acl/access';
+import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import {t, tct} from 'sentry/locale';
+import {GlobalSelection, Project, SelectValue} from 'sentry/types';
+import withGlobalSelection from 'sentry/utils/withGlobalSelection';
+import withProjects from 'sentry/utils/withProjects';
+import Field from 'sentry/views/settings/components/forms/field';
+import Form from 'sentry/views/settings/components/forms/form';
+import NumberField from 'sentry/views/settings/components/forms/numberField';
+import SelectField from 'sentry/views/settings/components/forms/selectField';
+import TextCopyInput from 'sentry/views/settings/components/forms/textCopyInput';
+import TextField from 'sentry/views/settings/components/forms/textField';
 
 import MonitorModel from './monitorModel';
 import {Monitor, MonitorConfig, MonitorTypes, ScheduleType} from './types';

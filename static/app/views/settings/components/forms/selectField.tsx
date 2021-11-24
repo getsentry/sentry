@@ -1,11 +1,11 @@
 import * as React from 'react';
 import {OptionsType, ValueType} from 'react-select';
 
-import {openConfirmModal} from 'app/components/confirm';
-import SelectControl, {ControlProps} from 'app/components/forms/selectControl';
-import {t} from 'app/locale';
-import {Choices, SelectValue} from 'app/types';
-import InputField from 'app/views/settings/components/forms/inputField';
+import {openConfirmModal} from 'sentry/components/confirm';
+import SelectControl, {ControlProps} from 'sentry/components/forms/selectControl';
+import {t} from 'sentry/locale';
+import {Choices, SelectValue} from 'sentry/types';
+import InputField from 'sentry/views/settings/components/forms/inputField';
 
 type InputFieldProps = React.ComponentProps<typeof InputField>;
 

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as qs from 'query-string';
 
-import {platformToIntegrationMap} from 'app/utils/integrationUtil';
+import {platformToIntegrationMap} from 'sentry/utils/integrationUtil';
 
 import DocumentationSetup from './documentationSetup';
 import IntegrationSetup from './integrationSetup';

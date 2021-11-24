@@ -2,7 +2,7 @@ import {useEffect} from 'react';
 import * as React from 'react';
 import {useSortable} from '@dnd-kit/sortable';
 
-import theme from 'app/utils/theme';
+import theme from 'sentry/utils/theme';
 
 import IssueWidgetCard from './issueWidgetCard';
 import {Widget, WidgetType} from './types';

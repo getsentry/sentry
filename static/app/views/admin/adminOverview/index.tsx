@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import DocumentTitle from 'react-document-title';
 
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import {t} from 'app/locale';
+import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import {t} from 'sentry/locale';
 
 import ApiChart from './apiChart';
 import EventChart from './eventChart';

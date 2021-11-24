@@ -2,17 +2,17 @@ import * as React from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Access from 'app/components/acl/access';
-import Alert from 'app/components/alert';
-import Button from 'app/components/button';
-import CircleIndicator from 'app/components/circleIndicator';
-import Confirm from 'app/components/confirm';
-import Tooltip from 'app/components/tooltip';
-import {IconDelete, IconFlag, IconSettings, IconWarning} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Integration, IntegrationProvider, ObjectStatus, Organization} from 'app/types';
-import {IntegrationAnalyticsKey} from 'app/utils/analytics/integrationAnalyticsEvents';
+import Access from 'sentry/components/acl/access';
+import Alert from 'sentry/components/alert';
+import Button from 'sentry/components/button';
+import CircleIndicator from 'sentry/components/circleIndicator';
+import Confirm from 'sentry/components/confirm';
+import Tooltip from 'sentry/components/tooltip';
+import {IconDelete, IconFlag, IconSettings, IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Integration, IntegrationProvider, ObjectStatus, Organization} from 'sentry/types';
+import {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrationAnalyticsEvents';
 
 import AddIntegrationButton from './addIntegrationButton';
 import IntegrationItem from './integrationItem';

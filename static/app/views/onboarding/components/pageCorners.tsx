@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import {AnimationControls, motion} from 'framer-motion';
 
-import testableTransition from 'app/utils/testableTransition';
+import testableTransition from 'sentry/utils/testableTransition';
 
 type Props = {
   animateVariant: AnimationControls;
