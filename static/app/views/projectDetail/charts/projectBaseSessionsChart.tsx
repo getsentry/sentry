@@ -249,7 +249,7 @@ class Chart extends Component<ChartProps, ChartState> {
   }
 
   get chartOptions() {
-    const {theme, displayMode} = this.props;
+    const {displayMode} = this.props;
 
     return {
       grid: {left: '10px', right: '10px', top: '40px', bottom: '0px'},
@@ -275,7 +275,6 @@ class Chart extends Component<ChartProps, ChartState> {
         displayMode === DisplayModes.STABILITY
           ? {
               axisLabel: {
-                color: theme.gray200,
                 formatter: (value: number) => displayCrashFreePercent(value),
               },
               scale: true,

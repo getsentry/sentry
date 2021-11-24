@@ -10,7 +10,6 @@ import {openDashboardWidgetQuerySelectorModal} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import {HeaderTitle} from 'app/components/charts/styles';
 import ErrorBoundary from 'app/components/errorBoundary';
-import FeatureBadge from 'app/components/featureBadge';
 import MenuItem from 'app/components/menuItem';
 import {isSelectionEqual} from 'app/components/organizations/globalSelectionHeader/utils';
 import {Panel} from 'app/components/panels';
@@ -28,6 +27,7 @@ import withOrganization from 'app/utils/withOrganization';
 import {eventViewFromWidget} from 'app/views/dashboardsV2/utils';
 import {DisplayType} from 'app/views/dashboardsV2/widget/utils';
 
+import {DRAG_HANDLE_CLASS} from './gridLayout/dashboard';
 import ContextMenu from './contextMenu';
 import {Widget} from './types';
 import WidgetCardChart from './widgetCardChart';
@@ -53,7 +53,7 @@ type Props = WithRouterProps & {
   noLazyLoad?: boolean;
 };
 
-export class WidgetCard extends React.Component<Props> {
+class WidgetCard extends React.Component<Props> {
   shouldComponentUpdate(nextProps: Props): boolean {
     if (
       !isEqual(nextProps.widget, this.props.widget) ||
@@ -85,6 +85,7 @@ export class WidgetCard extends React.Component<Props> {
           <IconClick>
             <StyledIconGrabbable
               color="textColor"
+              className={DRAG_HANDLE_CLASS}
               {...draggableProps?.listeners}
               {...draggableProps?.attributes}
             />
@@ -161,12 +162,7 @@ export class WidgetCard extends React.Component<Props> {
                 });
               }}
             >
-              <StyledMenuItem key="open-discover">
-                {t('Open in Discover')}
-                {widget.displayType !== DisplayType.TABLE && (
-                  <FeatureBadge type="new" noTooltip />
-                )}
-              </StyledMenuItem>
+              <StyledMenuItem key="open-discover">{t('Open in Discover')}</StyledMenuItem>
             </Link>
           );
         } else {

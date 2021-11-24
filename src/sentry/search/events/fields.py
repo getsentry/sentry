@@ -2915,7 +2915,7 @@ class QueryFields(QueryBase):
         field = tag_match.group("tag") if tag_match else raw_field
 
         if VALID_FIELD_PATTERN.match(field):
-            return self.aliased_column(field, raw_field) if alias else self.column(field)
+            return self.aliased_column(raw_field) if alias else self.column(raw_field)
         else:
             raise InvalidSearchQuery(f"Invalid characters in field {field}")
 

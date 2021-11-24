@@ -12,6 +12,7 @@ import {
 import {LocationQuery} from 'app/utils/discover/eventView';
 import {getPeriod} from 'app/utils/getPeriod';
 import {PERFORMANCE_URL_PARAM} from 'app/utils/performance/constants';
+import {QueryBatching} from 'app/utils/performance/contexts/genericQueryBatcher';
 
 type Options = {
   organization: OrganizationSummary;
@@ -33,6 +34,7 @@ type Options = {
   partial: boolean;
   withoutZerofill?: boolean;
   referrer?: string;
+  queryBatching?: QueryBatching;
 };
 
 /**
@@ -50,6 +52,7 @@ type Options = {
  * @param {Boolean} options.includePrevious Should request also return reqsults for previous period?
  * @param {Number} options.limit The number of rows to return
  * @param {String} options.query Search query
+ * @param {QueryBatching} options.queryBatching A container for batching functions from a provider
  */
 export const doEventsRequest = (
   api: Client,
@@ -72,6 +75,7 @@ export const doEventsRequest = (
     partial,
     withoutZerofill,
     referrer,
+    queryBatching,
   }: Options
 ): Promise<EventsStats | MultiSeriesEventsStats> => {
   const shouldDoublePeriod = canIncludePreviousPeriod(includePrevious, period);
@@ -98,12 +102,19 @@ export const doEventsRequest = (
   // the tradeoff for now.
   const periodObj = getPeriod({period, start, end}, {shouldDoublePeriod});
 
-  return api.requestPromise(`/organizations/${organization.slug}/events-stats/`, {
+  const queryObject = {
     query: {
       ...urlQuery,
       ...periodObj,
     },
-  });
+  };
+  const pathname = `/organizations/${organization.slug}/events-stats/`;
+
+  if (queryBatching?.batchRequest) {
+    return queryBatching.batchRequest(api, pathname, queryObject);
+  }
+
+  return api.requestPromise(pathname, queryObject);
 };
 
 export type EventQuery = {

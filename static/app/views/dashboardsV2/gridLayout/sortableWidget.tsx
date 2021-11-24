@@ -1,10 +1,9 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import IssueWidgetCard from '../issueWidgetCard';
-import {Widget, WidgetType} from '../types';
-
-import WidgetCard from './widgetCard';
+import IssueWidgetCard from 'app/views/dashboardsV2/issueWidgetCard';
+import {Widget, WidgetType} from 'app/views/dashboardsV2/types';
+import WidgetCard from 'app/views/dashboardsV2/widgetCard';
 
 type Props = {
   widget: Widget;
@@ -14,9 +13,7 @@ type Props = {
   onEdit: () => void;
 };
 
-function SortableWidget(props: Props) {
-  const {widget, isEditing, onDelete, onEdit} = props;
-
+function SortableWidget({widget, isEditing, onDelete, onEdit}: Props) {
   const widgetProps = {
     widget,
     isEditing,

@@ -1,5 +1,4 @@
 import {Component} from 'react';
-import {Layout} from 'react-grid-layout';
 import {InjectedRouter} from 'react-router';
 import {closestCenter, DndContext} from '@dnd-kit/core';
 import {arrayMove, rectSortingStrategy, SortableContext} from '@dnd-kit/sortable';
@@ -23,7 +22,13 @@ import withGlobalSelection from 'app/utils/withGlobalSelection';
 import {DataSet} from './widget/utils';
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
 import SortableWidget from './sortableWidget';
-import {DashboardDetails, MAX_WIDGETS, Widget, WidgetType} from './types';
+import {
+  DashboardDetails,
+  DashboardWidgetSource,
+  MAX_WIDGETS,
+  Widget,
+  WidgetType,
+} from './types';
 
 type Props = {
   api: Client;
@@ -36,14 +41,13 @@ type Props = {
   /**
    * Fired when widgets are added/removed/sorted.
    */
-  onUpdate: (widgets: Widget[], newLayout?: Layout[]) => void;
+  onUpdate: (widgets: Widget[]) => void;
   onSetWidgetToBeUpdated: (widget: Widget) => void;
   paramDashboardId?: string;
   newWidget?: Widget;
-  layout?: Layout[];
 };
 
-export class Dashboard extends Component<Props> {
+class Dashboard extends Component<Props> {
   async componentDidMount() {
     const {isEditing} = this.props;
     // Load organization tags when in edit mode.
@@ -95,6 +99,7 @@ export class Dashboard extends Component<Props> {
       dashboard,
       selection,
       onAddWidget: this.handleAddComplete,
+      source: DashboardWidgetSource.DASHBOARDS,
     });
   };
 
@@ -184,6 +189,7 @@ export class Dashboard extends Component<Props> {
       openAddDashboardWidgetModal({
         ...modalProps,
         dashboard,
+        source: DashboardWidgetSource.DASHBOARDS,
       });
     }
   };
