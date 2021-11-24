@@ -1,5 +1,4 @@
 import {Component} from 'react';
-import {withTheme} from '@emotion/react';
 import * as Sentry from '@sentry/react';
 
 import {fetchTotalCount} from 'app/actionCreators/events';
@@ -12,7 +11,6 @@ import {t} from 'app/locale';
 import {GlobalSelection} from 'app/types';
 import {axisLabelFormatter} from 'app/utils/discover/charts';
 import getDynamicText from 'app/utils/getDynamicText';
-import {Theme} from 'app/utils/theme';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 
 type Props = Omit<
@@ -22,7 +20,6 @@ type Props = Omit<
   title: string;
   selection: GlobalSelection;
   onTotalValuesChange: (value: number | null) => void;
-  theme: Theme;
   help?: string;
   yAxis: string;
 };
@@ -67,7 +64,6 @@ class ProjectBaseEventsChart extends Component<Props> {
       query,
       field,
       title,
-      theme,
       help,
       ...eventsChartProps
     } = this.props;
@@ -105,7 +101,6 @@ class ProjectBaseEventsChart extends Component<Props> {
             grid: {left: '10px', right: '10px', top: '40px', bottom: '0px'},
             yAxis: {
               axisLabel: {
-                color: theme.gray200,
                 formatter: (value: number) => axisLabelFormatter(value, yAxis),
               },
               scale: true,
@@ -118,4 +113,4 @@ class ProjectBaseEventsChart extends Component<Props> {
   }
 }
 
-export default withGlobalSelection(withTheme(ProjectBaseEventsChart));
+export default withGlobalSelection(ProjectBaseEventsChart);
