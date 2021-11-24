@@ -456,7 +456,7 @@ export const SidebarWrapper = styled('nav')<{collapsed: boolean}>`
   bottom: 0;
   justify-content: space-between;
   z-index: ${p => p.theme.zIndex.sidebar};
-  border-right: solid 1px ${p => p.theme.innerBorder};
+  border-right: solid 1px ${p => p.theme.sidebarBorder};
   ${responsiveFlex};
   ${p => p.collapsed && `width: ${p.theme.sidebar.collapsedWidth};`};
 
@@ -470,7 +470,7 @@ export const SidebarWrapper = styled('nav')<{collapsed: boolean}>`
     padding: 0 ${space(1)};
     align-items: center;
     border-right: none;
-    border-bottom: solid 1px ${p => p.theme.innerBorder};
+    border-bottom: solid 1px ${p => p.theme.sidebarBorder};
   }
 `;
 

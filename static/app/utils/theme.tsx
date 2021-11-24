@@ -690,6 +690,7 @@ export const lightTheme = {
   level: generateLevelTheme(lightColors),
   sidebarGradient:
     'linear-gradient(294.17deg,#2f1937 35.57%,#452650 92.42%,#452650 92.42%)',
+  sidebarBorder: 'transparent',
 };
 
 const darkAliases = generateAliases(darkColors);
@@ -705,6 +706,7 @@ export const darkTheme: Theme = {
   tag: generateTagTheme(darkColors),
   level: generateLevelTheme(darkColors),
   sidebarGradient: 'linear-gradient(180deg, #181622 0%, #1B1825 100%)',
+  sidebarBorder: darkAliases.border,
 };
 
 export type Theme = typeof lightTheme;
