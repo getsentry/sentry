@@ -2,8 +2,8 @@ import '@emotion/react';
 
 import color from 'color';
 
-import CHART_PALETTE from 'app/constants/chartPalette';
-import {DataCategory} from 'app/types';
+import CHART_PALETTE from 'sentry/constants/chartPalette';
+import {DataCategory} from 'sentry/types';
 
 const lightColors = {
   black: '#1D1127',

@@ -1,13 +1,13 @@
 import {useState} from 'react';
 
-import EventDataSection from 'app/components/events/eventDataSection';
-import CrashContent from 'app/components/events/interfaces/crashContent';
-import CrashActions from 'app/components/events/interfaces/crashHeader/crashActions';
-import CrashTitle from 'app/components/events/interfaces/crashHeader/crashTitle';
-import {t} from 'app/locale';
-import {Group, Project} from 'app/types';
-import {Event} from 'app/types/event';
-import {STACK_TYPE, STACK_VIEW} from 'app/types/stacktrace';
+import EventDataSection from 'sentry/components/events/eventDataSection';
+import CrashContent from 'sentry/components/events/interfaces/crashContent';
+import CrashActions from 'sentry/components/events/interfaces/crashHeader/crashActions';
+import CrashTitle from 'sentry/components/events/interfaces/crashHeader/crashTitle';
+import {t} from 'sentry/locale';
+import {Group, Project} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import {STACK_TYPE, STACK_VIEW} from 'sentry/types/stacktrace';
 
 import NoStackTraceMessage from './noStackTraceMessage';
 import {isStacktraceNewestFirst} from './utils';

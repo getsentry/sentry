@@ -6,9 +6,9 @@ import isString from 'lodash/isString';
 import set from 'lodash/set';
 import moment from 'moment';
 
-import {EntryType, EventTransaction} from 'app/types/event';
-import {assert} from 'app/types/utils';
-import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
+import {EntryType, EventTransaction} from 'sentry/types/event';
+import {assert} from 'sentry/types/utils';
+import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 
 import {
   GapSpanType,

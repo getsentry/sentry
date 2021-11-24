@@ -6,7 +6,7 @@ import moment from 'moment';
 import PropTypes from 'prop-types';
 import Reflux from 'reflux';
 
-import plugins from 'app/plugins';
+import plugins from 'sentry/plugins';
 
 const globals = {
   // The following globals are used in sentry-plugins webpack externals

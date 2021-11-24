@@ -4,9 +4,9 @@ import isObject from 'lodash/isObject';
 import isString from 'lodash/isString';
 import isUndefined from 'lodash/isUndefined';
 
-import {Project} from 'app/types';
-import {EventTag} from 'app/types/event';
-import {appendTagCondition} from 'app/utils/queryString';
+import {Project} from 'sentry/types';
+import {EventTag} from 'sentry/types/event';
+import {appendTagCondition} from 'sentry/utils/queryString';
 
 function arrayIsEqual(arr?: any[], other?: any[], deep?: boolean): boolean {
   // if the other array is a falsy value, return

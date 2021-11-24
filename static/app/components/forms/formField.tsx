@@ -2,10 +2,10 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import FormContext, {FormContextData} from 'app/components/forms/formContext';
-import QuestionTooltip from 'app/components/questionTooltip';
-import {Meta} from 'app/types';
-import {defined} from 'app/utils';
+import FormContext, {FormContextData} from 'sentry/components/forms/formContext';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import {Meta} from 'sentry/types';
+import {defined} from 'sentry/utils';
 
 type Value = string | number | boolean;
 

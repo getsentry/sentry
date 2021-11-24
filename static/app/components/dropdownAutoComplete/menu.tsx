@@ -1,12 +1,12 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import AutoComplete from 'app/components/autoComplete';
-import DropdownBubble from 'app/components/dropdownBubble';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import Input from 'app/views/settings/components/forms/controls/input';
+import AutoComplete from 'sentry/components/autoComplete';
+import DropdownBubble from 'sentry/components/dropdownBubble';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import Input from 'sentry/views/settings/components/forms/controls/input';
 
 import autoCompleteFilter from './autoCompleteFilter';
 import List from './list';

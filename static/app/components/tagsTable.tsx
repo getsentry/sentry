@@ -3,16 +3,16 @@ import styled from '@emotion/styled';
 import {LocationDescriptor} from 'history';
 import capitalize from 'lodash/capitalize';
 
-import {SectionHeading} from 'app/components/charts/styles';
-import {getMeta, withMeta} from 'app/components/events/meta/metaProxy';
-import {KeyValueTable, KeyValueTableRow} from 'app/components/keyValueTable';
-import Link from 'app/components/links/link';
-import Tooltip from 'app/components/tooltip';
-import Version from 'app/components/version';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {MetaError} from 'app/types';
-import {Event, EventTag} from 'app/types/event';
+import {SectionHeading} from 'sentry/components/charts/styles';
+import {getMeta, withMeta} from 'sentry/components/events/meta/metaProxy';
+import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
+import Link from 'sentry/components/links/link';
+import Tooltip from 'sentry/components/tooltip';
+import Version from 'sentry/components/version';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {MetaError} from 'sentry/types';
+import {Event, EventTag} from 'sentry/types/event';
 
 type Props = {
   event: Event;

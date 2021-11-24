@@ -1,9 +1,9 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import {IconChevron} from 'app/icons';
-import space from 'app/styles/space';
+import Button from 'sentry/components/button';
+import {IconChevron} from 'sentry/icons';
+import space from 'sentry/styles/space';
 
 type Props = Omit<React.ComponentProps<typeof Button>, 'type' | 'priority'> & {
   /**

@@ -1,10 +1,10 @@
 import {createContext, Fragment, Ref, useEffect, useRef} from 'react';
 
-import {Client} from 'app/api';
-import {Organization} from 'app/types';
-import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
-import useApi from 'app/utils/useApi';
-import useOrganization from 'app/utils/useOrganization';
+import {Client} from 'sentry/api';
+import {Organization} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import {createDefinedContext} from './utils';
 

@@ -5,23 +5,23 @@ import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
-import Checkbox from 'app/components/checkbox';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import TimePicker from 'app/components/organizations/timeRangeSelector/timePicker';
-import Placeholder from 'app/components/placeholder';
-import {MAX_PICKABLE_DAYS} from 'app/constants';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import {analytics} from 'app/utils/analytics';
+import Checkbox from 'sentry/components/checkbox';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import TimePicker from 'sentry/components/organizations/timeRangeSelector/timePicker';
+import Placeholder from 'sentry/components/placeholder';
+import {MAX_PICKABLE_DAYS} from 'sentry/constants';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {analytics} from 'sentry/utils/analytics';
 import {
   getEndOfDay,
   getStartOfPeriodAgo,
   isValidTime,
   setDateToTime,
-} from 'app/utils/dates';
-import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
-import {Theme} from 'app/utils/theme';
+} from 'sentry/utils/dates';
+import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import {Theme} from 'sentry/utils/theme';
 
 const DateRangePicker = React.lazy(() => import('./dateRangeWrapper'));
 

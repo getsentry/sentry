@@ -2,11 +2,11 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {t} from 'app/locale';
-import plugins from 'app/plugins';
-import ConfigStore from 'app/stores/configStore';
-import space from 'app/styles/space';
-import {defined} from 'app/utils';
+import {t} from 'sentry/locale';
+import plugins from 'sentry/plugins';
+import ConfigStore from 'sentry/stores/configStore';
+import space from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 
 const CONTEXT_TYPES = {
   default: require('sentry/components/events/contexts/default').default,

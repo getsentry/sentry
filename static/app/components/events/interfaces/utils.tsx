@@ -4,12 +4,12 @@ import isString from 'lodash/isString';
 import uniq from 'lodash/uniq';
 import * as qs from 'query-string';
 
-import {FILTER_MASK} from 'app/constants';
-import ConfigStore from 'app/stores/configStore';
-import {Frame, PlatformType} from 'app/types';
-import {EntryRequest} from 'app/types/event';
-import {defined} from 'app/utils';
-import {fileExtensionToPlatform, getFileExtension} from 'app/utils/fileExtension';
+import {FILTER_MASK} from 'sentry/constants';
+import ConfigStore from 'sentry/stores/configStore';
+import {Frame, PlatformType} from 'sentry/types';
+import {EntryRequest} from 'sentry/types/event';
+import {defined} from 'sentry/utils';
+import {fileExtensionToPlatform, getFileExtension} from 'sentry/utils/fileExtension';
 
 import {DebugImage} from './debugMeta/types';
 

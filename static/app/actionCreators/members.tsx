@@ -1,9 +1,9 @@
 import * as Sentry from '@sentry/react';
 
-import MemberActions from 'app/actions/memberActions';
-import {Client} from 'app/api';
-import MemberListStore from 'app/stores/memberListStore';
-import {Member} from 'app/types';
+import MemberActions from 'sentry/actions/memberActions';
+import {Client} from 'sentry/api';
+import MemberListStore from 'sentry/stores/memberListStore';
+import {Member} from 'sentry/types';
 
 function getMemberUser(member: Member) {
   return {

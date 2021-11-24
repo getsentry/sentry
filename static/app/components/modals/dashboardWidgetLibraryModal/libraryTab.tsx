@@ -1,11 +1,14 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Alert from 'app/components/alert';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {DEFAULT_WIDGETS, WidgetTemplate} from 'app/views/dashboardsV2/widgetLibrary/data';
-import WidgetLibraryCard from 'app/views/dashboardsV2/widgetLibrary/widgetCard';
+import Alert from 'sentry/components/alert';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {
+  DEFAULT_WIDGETS,
+  WidgetTemplate,
+} from 'sentry/views/dashboardsV2/widgetLibrary/data';
+import WidgetLibraryCard from 'sentry/views/dashboardsV2/widgetLibrary/widgetCard';
 
 type Props = {
   selectedWidgets: WidgetTemplate[];

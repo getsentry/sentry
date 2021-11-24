@@ -4,9 +4,9 @@ import omit from 'lodash/omit';
 import GenericDiscoverQuery, {
   DiscoverQueryProps,
   GenericChildrenProps,
-} from 'app/utils/discover/genericDiscoverQuery';
-import {DataFilter, HistogramData} from 'app/utils/performance/histogram/types';
-import withApi from 'app/utils/withApi';
+} from 'sentry/utils/discover/genericDiscoverQuery';
+import {DataFilter, HistogramData} from 'sentry/utils/performance/histogram/types';
+import withApi from 'sentry/utils/withApi';
 
 type Histograms = Record<string, HistogramData>;
 

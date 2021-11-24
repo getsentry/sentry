@@ -1,7 +1,7 @@
 import Reflux from 'reflux';
 
-import PluginActions from 'app/actions/pluginActions';
-import {Plugin} from 'app/types';
+import PluginActions from 'sentry/actions/pluginActions';
+import {Plugin} from 'sentry/types';
 
 type PluginStoreInterface = {
   state: {
