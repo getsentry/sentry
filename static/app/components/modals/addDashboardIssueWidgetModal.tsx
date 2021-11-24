@@ -214,7 +214,7 @@ class AddDashboardIssueWidgetModal extends React.Component<Props, State> {
             organization={organization}
             selection={querySelection}
             query={state.queries[0]}
-            error={errors?.queries[0]}
+            error={errors?.queries?.[0]}
             onChange={(widgetQuery: WidgetQuery) => this.handleQueryChange(widgetQuery)}
           />
           <IssueWidgetCard
