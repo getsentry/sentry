@@ -237,6 +237,16 @@ const DocumentationWrapper = styled('div')`
     word-break: break-all;
     white-space: pre-wrap;
   }
+
+  blockquote {
+    padding: ${space(1)};
+    margin-left: 0;
+    background: ${p => p.theme.alert.info.backgroundLight};
+    border-left: 2px solid ${p => p.theme.alert.info.border};
+  }
+  blockquote > *:last-child {
+    margin-bottom: 0;
+  }
 `;
 
 const StyledButtonBar = styled(ButtonBar)`

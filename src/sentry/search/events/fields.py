@@ -2915,7 +2915,7 @@ class QueryFields(QueryBase):
         field = tag_match.group("tag") if tag_match else raw_field
 
         if VALID_FIELD_PATTERN.match(field):
-            return self.aliased_column(field, raw_field) if alias else self.column(field)
+            return self.aliased_column(raw_field) if alias else self.column(raw_field)
         else:
             raise InvalidSearchQuery(f"Invalid characters in field {field}")
 
@@ -3122,7 +3122,8 @@ class QueryFields(QueryBase):
         }
 
         # Try to reduce the size of the transform by using any existing conditions on projects
-        if len(self.projects_to_filter) > 0:
+        # Do not optimize projects list if conditions contain OR operator
+        if not self.has_or_condition and len(self.projects_to_filter) > 0:
             project_ids &= self.projects_to_filter
 
         projects = Project.objects.filter(id__in=project_ids).values("slug", "id")

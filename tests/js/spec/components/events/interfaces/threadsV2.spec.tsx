@@ -1,9 +1,9 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import ThreadsV2 from 'app/components/events/interfaces/threadsV2';
-import {EventOrGroupType} from 'app/types';
-import {EntryType, Event} from 'app/types/event';
+import ThreadsV2 from 'sentry/components/events/interfaces/threadsV2';
+import {EventOrGroupType} from 'sentry/types';
+import {EntryType, Event} from 'sentry/types/event';
 
 describe('ThreadsV2', function () {
   const {project, organization} = initializeOrg();
@@ -68,8 +68,8 @@ describe('ThreadsV2', function () {
                         vars: null,
                       },
                       {
-                        filename: 'app/controllers/welcome_controller.rb',
-                        absPath: 'app/controllers/welcome_controller.rb',
+                        filename: 'sentry/controllers/welcome_controller.rb',
+                        absPath: 'sentry/controllers/welcome_controller.rb',
                         module: null,
                         package: null,
                         platform: null,
@@ -96,8 +96,8 @@ describe('ThreadsV2', function () {
                         minGroupingLevel: 1,
                       },
                       {
-                        filename: 'app/controllers/welcome_controller.rb',
-                        absPath: 'app/controllers/welcome_controller.rb',
+                        filename: 'sentry/controllers/welcome_controller.rb',
+                        absPath: 'sentry/controllers/welcome_controller.rb',
                         module: null,
                         package: null,
                         platform: null,
@@ -156,7 +156,7 @@ describe('ThreadsV2', function () {
         dist: null,
         message: '',
         title: 'ZeroDivisionError: divided by 0',
-        location: 'app/controllers/welcome_controller.rb',
+        location: 'sentry/controllers/welcome_controller.rb',
         user: null,
         contexts: {},
         sdk: null,
@@ -165,7 +165,7 @@ describe('ThreadsV2', function () {
         type: EventOrGroupType.ERROR,
         metadata: {
           display_title_with_tree_label: false,
-          filename: 'app/controllers/welcome_controller.rb',
+          filename: 'sentry/controllers/welcome_controller.rb',
           finest_tree_label: [
             {filebase: 'welcome_controller.rb', function: '/'},
             {filebase: 'welcome_controller.rb', function: 'index'},
@@ -179,7 +179,7 @@ describe('ThreadsV2', function () {
         dateReceived: '2021-10-28T12:28:22.318469Z',
         errors: [],
         crashFile: null,
-        culprit: 'app/controllers/welcome_controller.rb in /',
+        culprit: 'sentry/controllers/welcome_controller.rb in /',
         dateCreated: '2021-10-28T12:28:22.318469Z',
         fingerprints: ['58f1f47bea5239ea25397888dc9253d1'],
         groupingConfig: {
@@ -258,7 +258,7 @@ describe('ThreadsV2', function () {
 
         expect(
           within(screen.queryAllByTestId('stack-trace-frame')[0]).getByText(
-            'app/controllers/welcome_controller.rb'
+            'sentry/controllers/welcome_controller.rb'
           )
         ).toBeInTheDocument();
 

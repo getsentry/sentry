@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 
-import ProjectKeyDetails from 'app/views/settings/project/projectKeys/details';
+import ProjectKeyDetails from 'sentry/views/settings/project/projectKeys/details';
 
 describe('ProjectKeyDetails', function () {
   let org;

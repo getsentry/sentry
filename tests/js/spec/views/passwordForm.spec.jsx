@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {Client} from 'app/api';
-import PasswordForm from 'app/views/settings/account/passwordForm';
+import {Client} from 'sentry/api';
+import PasswordForm from 'sentry/views/settings/account/passwordForm';
 
 const ENDPOINT = '/users/me/password/';
 

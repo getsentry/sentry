@@ -1,10 +1,10 @@
 import {act, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
-import OrganizationStore from 'app/stores/organizationStore';
-import ProjectsStore from 'app/stores/projectsStore';
-import OrganizationDetails from 'app/views/organizationDetails';
+import OrganizationStore from 'sentry/stores/organizationStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import OrganizationDetails from 'sentry/views/organizationDetails';
 
-jest.mock('app/components/sidebar', () => () => <div />);
+jest.mock('sentry/components/sidebar', () => () => <div />);
 
 describe('OrganizationDetails', function () {
   let getTeamsMock;

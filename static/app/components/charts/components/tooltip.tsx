@@ -201,7 +201,7 @@ function getFormatter({
         seriesParamsOrParam
       );
 
-    return [
+    const tooltipContent = [
       '<div class="tooltip-series">',
       seriesParams
         .filter(getFilter)
@@ -224,6 +224,8 @@ function getFormatter({
       `<div class="tooltip-date">${date}</div>`,
       getTooltipArrow(),
     ].join('');
+
+    return `<div class="tooltip-container">${tooltipContent}</div>`;
   };
 
   return formatter;

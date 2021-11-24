@@ -286,6 +286,7 @@ export type _VitalChartProps = Props & {
   reloading: boolean;
   field: string;
   height?: number;
+  utc?: boolean;
   grid: LineChart['props']['grid'];
   vitalFields?: {
     poorCountField: string;
@@ -319,6 +320,7 @@ function __VitalChart(props: _VitalChartProps) {
     reloading,
     height,
     grid,
+    utc,
     vitalFields,
   } = props;
   if (!_results || !vitalFields) {
@@ -333,7 +335,12 @@ function __VitalChart(props: _VitalChartProps) {
     },
     tooltip: {
       trigger: 'axis' as const,
-      valueFormatter: tooltipFormatter,
+      valueFormatter: (value: number, seriesName?: string) => {
+        return tooltipFormatter(
+          value,
+          vitalFields[0] === WebVital.CLS ? seriesName : yAxis
+        );
+      },
     },
     xAxis: {
       axisLine: {
@@ -353,6 +360,9 @@ function __VitalChart(props: _VitalChartProps) {
         formatter: (value: number) => axisLabelFormatter(value, yAxis),
       },
     },
+    utc,
+    isGroupedByDate: true,
+    showTimeInTooltip: true,
   };
 
   const results = _results.filter(s => !!fieldToVitalType(s.seriesName, vitalFields));
@@ -383,6 +393,7 @@ function __VitalChart(props: _VitalChartProps) {
               {...chartOptions}
               onLegendSelectChanged={() => {}}
               series={[...smoothedSeries]}
+              isGroupedByDate
             />
           ),
           fixed: 'Web Vitals Chart',

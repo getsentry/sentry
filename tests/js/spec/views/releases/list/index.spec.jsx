@@ -2,11 +2,11 @@ import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'app/stores/projectsStore';
-import ReleasesList from 'app/views/releases/list/';
-import {ReleasesDisplayOption} from 'app/views/releases/list/releasesDisplayOptions';
-import {ReleasesSortOption} from 'app/views/releases/list/releasesSortOptions';
-import {ReleasesStatusOption} from 'app/views/releases/list/releasesStatusOptions';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import ReleasesList from 'sentry/views/releases/list/';
+import {ReleasesDisplayOption} from 'sentry/views/releases/list/releasesDisplayOptions';
+import {ReleasesSortOption} from 'sentry/views/releases/list/releasesSortOptions';
+import {ReleasesStatusOption} from 'sentry/views/releases/list/releasesStatusOptions';
 
 describe('ReleasesList', function () {
   enforceActOnUseLegacyStoreHook();

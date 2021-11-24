@@ -1,4 +1,4 @@
-import retryableImport from 'app/utils/retryableImport';
+import retryableImport from 'sentry/utils/retryableImport';
 
 describe('retryableImport', function () {
   it('can dynamically import successfully on first try', async function () {

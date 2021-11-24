@@ -22,7 +22,13 @@ import withGlobalSelection from 'app/utils/withGlobalSelection';
 import {DataSet} from './widget/utils';
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
 import SortableWidget from './sortableWidget';
-import {DashboardDetails, MAX_WIDGETS, Widget, WidgetType} from './types';
+import {
+  DashboardDetails,
+  DashboardWidgetSource,
+  MAX_WIDGETS,
+  Widget,
+  WidgetType,
+} from './types';
 
 type Props = {
   api: Client;
@@ -93,6 +99,7 @@ class Dashboard extends Component<Props> {
       dashboard,
       selection,
       onAddWidget: this.handleAddComplete,
+      source: DashboardWidgetSource.DASHBOARDS,
     });
   };
 
@@ -182,6 +189,7 @@ class Dashboard extends Component<Props> {
       openAddDashboardWidgetModal({
         ...modalProps,
         dashboard,
+        source: DashboardWidgetSource.DASHBOARDS,
       });
     }
   };

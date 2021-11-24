@@ -1,10 +1,10 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import {openModal} from 'app/actionCreators/modal';
-import {navigateTo} from 'app/actionCreators/navigation';
-import ProjectsStore from 'app/stores/projectsStore';
+import {openModal} from 'sentry/actionCreators/modal';
+import {navigateTo} from 'sentry/actionCreators/navigation';
+import ProjectsStore from 'sentry/stores/projectsStore';
 
-jest.mock('app/actionCreators/modal');
+jest.mock('sentry/actionCreators/modal');
 
 describe('navigation ActionCreator', () => {
   let router;

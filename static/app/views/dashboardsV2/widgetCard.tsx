@@ -27,6 +27,7 @@ import withOrganization from 'app/utils/withOrganization';
 import {eventViewFromWidget} from 'app/views/dashboardsV2/utils';
 import {DisplayType} from 'app/views/dashboardsV2/widget/utils';
 
+import {DRAG_HANDLE_CLASS} from './gridLayout/dashboard';
 import ContextMenu from './contextMenu';
 import {Widget} from './types';
 import WidgetCardChart from './widgetCardChart';
@@ -84,6 +85,7 @@ class WidgetCard extends React.Component<Props> {
           <IconClick>
             <StyledIconGrabbable
               color="textColor"
+              className={DRAG_HANDLE_CLASS}
               {...draggableProps?.listeners}
               {...draggableProps?.attributes}
             />

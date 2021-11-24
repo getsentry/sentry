@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import omit from 'lodash/omit';
 
-import Feature from 'app/components/acl/feature';
 import TransactionsList, {DropdownOption} from 'app/components/discover/transactionsList';
 import SearchBar from 'app/components/events/searchBar';
 import GlobalSdkUpdateAlert from 'app/components/globalSdkUpdateAlert';
@@ -18,6 +17,7 @@ import {generateQueryWithTag} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
 import {
+  formatTagKey,
   getAggregateAlias,
   isRelativeSpanOperationBreakdownField,
   SPAN_OP_BREAKDOWN_FIELDS,
@@ -88,7 +88,7 @@ class SummaryContent extends React.Component<Props> {
 
   generateTagUrl = (key: string, value: string) => {
     const {location} = this.props;
-    const query = generateQueryWithTag(location.query, {key, value});
+    const query = generateQueryWithTag(location.query, {key: formatTagKey(key), value});
 
     return {
       ...location,
@@ -349,19 +349,14 @@ class SummaryContent extends React.Component<Props> {
             })}
             forceLoading={isLoading}
           />
-          <Feature
-            requireAll={false}
-            features={['performance-tag-explorer', 'performance-tag-page']}
-          >
-            <TagExplorer
-              eventView={eventView}
-              organization={organization}
-              location={location}
-              projects={projects}
-              transactionName={transactionName}
-              currentFilter={spanOperationBreakdownFilter}
-            />
-          </Feature>
+          <TagExplorer
+            eventView={eventView}
+            organization={organization}
+            location={location}
+            projects={projects}
+            transactionName={transactionName}
+            currentFilter={spanOperationBreakdownFilter}
+          />
           <RelatedIssues
             organization={organization}
             location={location}
