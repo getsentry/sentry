@@ -89,10 +89,9 @@ export function SingleFieldAreaWidget(props: Props) {
       {...props}
       Subtitle={() => (
         <Subtitle>
-          {t(
-            'Compared to last %s ',
-            globalSelection.datetime.period ? globalSelection.datetime.period : 'period'
-          )}
+          {globalSelection.datetime.period
+            ? t('Compared to last %s ', globalSelection.datetime.period)
+            : t('Compared to the last period')}
         </Subtitle>
       )}
       HeaderActions={provided => (

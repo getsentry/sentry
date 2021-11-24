@@ -62,10 +62,9 @@ export function HistogramWidget(props: Props) {
       {...props}
       Subtitle={() => (
         <Subtitle>
-          {t(
-            'In the last %s ',
-            globalSelection.datetime.period ? globalSelection.datetime.period : 'period'
-          )}
+          {globalSelection.datetime.period
+            ? t('In the last %s ', globalSelection.datetime.period)
+            : t('In the last period')}
         </Subtitle>
       )}
       HeaderActions={provided => (
