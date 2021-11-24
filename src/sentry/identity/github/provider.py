@@ -1,4 +1,4 @@
-from rest_framework.response import Response
+from django.core.exceptions import PermissionDenied
 
 from sentry import http, options
 from sentry.identity.oauth2 import OAuth2Provider
@@ -42,7 +42,7 @@ class GitHubIdentityProvider(OAuth2Provider):
         data = data["data"]
         access_token = data.get("access_token")
         if not access_token:
-            return Response(status=403)
+            raise PermissionDenied()
         user = get_user_info(access_token)
 
         return {
