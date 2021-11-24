@@ -48,6 +48,15 @@ class StacktracePreview extends React.Component<Props, State> {
     loadingVisible: false,
   };
 
+  componentWillUnmount() {
+    if (this.delayTimeout) {
+      window.clearTimeout(this.delayTimeout);
+    }
+    if (this.loaderTimeout) {
+      window.clearTimeout(this.loaderTimeout);
+    }
+  }
+
   loaderTimeout: number | null = null;
   delayTimeout: number | null = null;
 
