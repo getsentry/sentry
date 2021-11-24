@@ -7,7 +7,7 @@ import {setupColorScheme} from 'app/utils/matchMedia';
 
 export function commonInitialization(config: Config) {
   if (NODE_ENV === 'development') {
-    import(/* webpackMode: "eager" */ 'app/utils/silence-react-unsafe-warnings');
+    import(/* webpackMode: "eager" */ 'sentry/utils/silence-react-unsafe-warnings');
   }
 
   ConfigStore.loadInitialData(config);

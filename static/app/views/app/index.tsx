@@ -33,8 +33,8 @@ type Props = {
   children: React.ReactNode;
 };
 
-const InstallWizard = lazy(() => import('app/views/admin/installWizard'));
-const NewsletterConsent = lazy(() => import('app/views/newsletterConsent'));
+const InstallWizard = lazy(() => import('sentry/views/admin/installWizard'));
+const NewsletterConsent = lazy(() => import('sentry/views/newsletterConsent'));
 
 /**
  * App is the root level container for all uathenticated routes.

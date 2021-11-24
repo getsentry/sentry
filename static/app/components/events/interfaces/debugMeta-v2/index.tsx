@@ -232,7 +232,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
         : undefined;
 
     const mod = await import(
-      'app/components/events/interfaces/debugMeta-v2/debugImageDetails'
+      'sentry/components/events/interfaces/debugMeta-v2/debugImageDetails'
     );
 
     const {default: Modal, modalCss} = mod;

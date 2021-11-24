@@ -54,8 +54,8 @@ class WorldMapChart extends React.Component<Props, State> {
 
   async componentDidMount() {
     const [countryToCodeMap, worldMap] = await Promise.all([
-      import('app/data/countryCodesMap'),
-      import('app/data/world.json'),
+      import('sentry/data/countryCodesMap'),
+      import('sentry/data/world.json'),
     ]);
 
     echarts.registerMap('sentryWorld', worldMap.default);
