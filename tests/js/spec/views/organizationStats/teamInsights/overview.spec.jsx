@@ -5,12 +5,12 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'app/stores/projectsStore';
-import TeamStore from 'app/stores/teamStore';
-import {isActiveSuperuser} from 'app/utils/isActiveSuperuser';
-import localStorage from 'app/utils/localStorage';
-import {OrganizationContext} from 'app/views/organizationContext';
-import TeamInsightsOverview from 'app/views/organizationStats/teamInsights/overview';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import TeamStore from 'sentry/stores/teamStore';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import localStorage from 'sentry/utils/localStorage';
+import {OrganizationContext} from 'sentry/views/organizationContext';
+import TeamInsightsOverview from 'sentry/views/organizationStats/teamInsights/overview';
 
 jest.mock('app/utils/localStorage');
 jest.mock('app/utils/isActiveSuperuser', () => ({

@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {EmailField, Form} from 'app/components/forms';
+import {EmailField, Form} from 'sentry/components/forms';
 
 describe('EmailField', function () {
   describe('render()', function () {

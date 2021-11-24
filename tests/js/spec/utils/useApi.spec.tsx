@@ -1,7 +1,7 @@
 import {renderHook} from '@testing-library/react-hooks';
 
-import {Client} from 'app/api';
-import useApi from 'app/utils/useApi';
+import {Client} from 'sentry/api';
+import useApi from 'sentry/utils/useApi';
 
 describe('useApi', function () {
   it('provides an api client ', function () {

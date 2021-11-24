@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 
 import {shallow} from 'sentry-test/enzyme';
 
-import BulkController from 'app/components/bulkController';
+import BulkController from 'sentry/components/bulkController';
 
 function renderedComponent(
   renderProp: Function,

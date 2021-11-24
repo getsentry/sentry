@@ -5,9 +5,9 @@ import {
   updateParams,
   updateParamsWithoutHistory,
   updateProjects,
-} from 'app/actionCreators/globalSelection';
-import GlobalSelectionActions from 'app/actions/globalSelectionActions';
-import localStorage from 'app/utils/localStorage';
+} from 'sentry/actionCreators/globalSelection';
+import GlobalSelectionActions from 'sentry/actions/globalSelectionActions';
+import localStorage from 'sentry/utils/localStorage';
 
 jest.mock('app/utils/localStorage');
 

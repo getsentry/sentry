@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {Form, TextField} from 'app/components/forms';
+import {Form, TextField} from 'sentry/components/forms';
 
 describe('TextField', function () {
   describe('render()', function () {

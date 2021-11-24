@@ -1,8 +1,8 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import {Project} from 'app/types';
-import NotificationSettingsByProjects from 'app/views/settings/account/notifications/notificationSettingsByProjects';
+import {Project} from 'sentry/types';
+import NotificationSettingsByProjects from 'sentry/views/settings/account/notifications/notificationSettingsByProjects';
 
 const createWrapper = (projects: Project[]) => {
   const {routerContext} = initializeOrg();
