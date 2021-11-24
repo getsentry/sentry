@@ -44,7 +44,7 @@ export function normalizeId(id?: string) {
   return id?.trim().toLowerCase().replace(/[- ]/g, '') ?? '';
 }
 
-// TODO(ts): When replacing debugMeta with debugMetaV2, also replace {type: string} with the Image type defined in 'app/types/debugImage'
+// TODO(ts): When replacing debugMeta with debugMetaV2, also replace {type: string} with the Image type defined in 'sentry/types/debugImage'
 export function shouldSkipSection(
   filteredImages: Array<{type: string}>,
   images: Array<{type: string} | null>
