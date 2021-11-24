@@ -1,14 +1,14 @@
 import React, {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import EmptyStateWarning from 'app/components/emptyStateWarning';
-import Link from 'app/components/links/link';
-import Radio from 'app/components/radio';
-import Tooltip from 'app/components/tooltip';
-import {IconClose} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {RadioLineItem} from 'app/views/settings/components/forms/controls/radioGroup';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import Link from 'sentry/components/links/link';
+import Radio from 'sentry/components/radio';
+import Tooltip from 'sentry/components/tooltip';
+import {IconClose} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {RadioLineItem} from 'sentry/views/settings/components/forms/controls/radioGroup';
 
 type Props = {
   selectedIndex: number;

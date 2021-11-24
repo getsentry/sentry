@@ -5,26 +5,26 @@ import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
-} from 'app/actionCreators/indicator';
-import {Client} from 'app/api';
-import Access from 'app/components/acl/access';
-import Button from 'app/components/button';
-import Confirm from 'app/components/confirm';
-import DateTime from 'app/components/dateTime';
-import ExternalLink from 'app/components/links/externalLink';
-import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
-import {IconFlag} from 'app/icons';
-import {t, tct} from 'app/locale';
-import getDynamicText from 'app/utils/getDynamicText';
-import BooleanField from 'app/views/settings/components/forms/booleanField';
-import Field from 'app/views/settings/components/forms/field';
-import Form from 'app/views/settings/components/forms/form';
-import SelectField from 'app/views/settings/components/forms/selectField';
-import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
-import TextField from 'app/views/settings/components/forms/textField';
-import KeyRateLimitsForm from 'app/views/settings/project/projectKeys/details/keyRateLimitsForm';
-import ProjectKeyCredentials from 'app/views/settings/project/projectKeys/projectKeyCredentials';
-import {ProjectKey} from 'app/views/settings/project/projectKeys/types';
+} from 'sentry/actionCreators/indicator';
+import {Client} from 'sentry/api';
+import Access from 'sentry/components/acl/access';
+import Button from 'sentry/components/button';
+import Confirm from 'sentry/components/confirm';
+import DateTime from 'sentry/components/dateTime';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
+import {IconFlag} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import getDynamicText from 'sentry/utils/getDynamicText';
+import BooleanField from 'sentry/views/settings/components/forms/booleanField';
+import Field from 'sentry/views/settings/components/forms/field';
+import Form from 'sentry/views/settings/components/forms/form';
+import SelectField from 'sentry/views/settings/components/forms/selectField';
+import TextCopyInput from 'sentry/views/settings/components/forms/textCopyInput';
+import TextField from 'sentry/views/settings/components/forms/textField';
+import KeyRateLimitsForm from 'sentry/views/settings/project/projectKeys/details/keyRateLimitsForm';
+import ProjectKeyCredentials from 'sentry/views/settings/project/projectKeys/projectKeyCredentials';
+import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
 
 type Props = {
   api: Client;

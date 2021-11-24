@@ -2,39 +2,39 @@ import * as React from 'react';
 import {RouteComponentProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 
-import Alert from 'app/components/alert';
-import GuideAnchor from 'app/components/assistant/guideAnchor';
-import ButtonBar from 'app/components/buttonBar';
-import DiscoverFeature from 'app/components/discover/discoverFeature';
-import DiscoverButton from 'app/components/discoverButton';
-import * as AnchorLinkManager from 'app/components/events/interfaces/spans/anchorLinkManager';
-import * as DividerHandlerManager from 'app/components/events/interfaces/spans/dividerHandlerManager';
-import * as ScrollbarManager from 'app/components/events/interfaces/spans/scrollbarManager';
-import * as Layout from 'app/components/layouts/thirds';
-import ExternalLink from 'app/components/links/externalLink';
-import Link from 'app/components/links/link';
-import LoadingError from 'app/components/loadingError';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {MessageRow} from 'app/components/performance/waterfall/messageRow';
+import Alert from 'sentry/components/alert';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import ButtonBar from 'sentry/components/buttonBar';
+import DiscoverFeature from 'sentry/components/discover/discoverFeature';
+import DiscoverButton from 'sentry/components/discoverButton';
+import * as AnchorLinkManager from 'sentry/components/events/interfaces/spans/anchorLinkManager';
+import * as DividerHandlerManager from 'sentry/components/events/interfaces/spans/dividerHandlerManager';
+import * as ScrollbarManager from 'sentry/components/events/interfaces/spans/scrollbarManager';
+import * as Layout from 'sentry/components/layouts/thirds';
+import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {MessageRow} from 'sentry/components/performance/waterfall/messageRow';
 import {
   DividerSpacer,
   ScrollbarContainer,
   VirtualScrollbar,
   VirtualScrollbarGrip,
-} from 'app/components/performance/waterfall/miniHeader';
-import {pickBarColor, toPercent} from 'app/components/performance/waterfall/utils';
-import TimeSince from 'app/components/timeSince';
-import {IconInfo} from 'app/icons';
-import {t, tct, tn} from 'app/locale';
-import {Organization} from 'app/types';
-import {createFuzzySearch} from 'app/utils/createFuzzySearch';
-import EventView from 'app/utils/discover/eventView';
-import {getDuration} from 'app/utils/formatters';
-import getDynamicText from 'app/utils/getDynamicText';
-import {TraceFullDetailed, TraceMeta} from 'app/utils/performance/quickTrace/types';
-import {filterTrace, reduceTrace} from 'app/utils/performance/quickTrace/utils';
-import Breadcrumb from 'app/views/performance/breadcrumb';
-import {MetaData} from 'app/views/performance/transactionDetails/styles';
+} from 'sentry/components/performance/waterfall/miniHeader';
+import {pickBarColor, toPercent} from 'sentry/components/performance/waterfall/utils';
+import TimeSince from 'sentry/components/timeSince';
+import {IconInfo} from 'sentry/icons';
+import {t, tct, tn} from 'sentry/locale';
+import {Organization} from 'sentry/types';
+import {createFuzzySearch} from 'sentry/utils/createFuzzySearch';
+import EventView from 'sentry/utils/discover/eventView';
+import {getDuration} from 'sentry/utils/formatters';
+import getDynamicText from 'sentry/utils/getDynamicText';
+import {TraceFullDetailed, TraceMeta} from 'sentry/utils/performance/quickTrace/types';
+import {filterTrace, reduceTrace} from 'sentry/utils/performance/quickTrace/utils';
+import Breadcrumb from 'sentry/views/performance/breadcrumb';
+import {MetaData} from 'sentry/views/performance/transactionDetails/styles';
 
 import {
   TraceDetailBody,

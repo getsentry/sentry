@@ -1,12 +1,12 @@
 import {createContext, ReactNode, useContext, useState} from 'react';
 import styled from '@emotion/styled';
 
-import Feature from 'app/components/acl/feature';
-import Switch from 'app/components/switchButton';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import localStorage from 'app/utils/localStorage';
-import useOrganization from 'app/utils/useOrganization';
+import Feature from 'sentry/components/acl/feature';
+import Switch from 'sentry/components/switchButton';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import localStorage from 'sentry/utils/localStorage';
+import useOrganization from 'sentry/utils/useOrganization';
 
 const FEATURE_FLAG = 'metrics-performance-ui';
 

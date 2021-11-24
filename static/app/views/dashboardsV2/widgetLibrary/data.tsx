@@ -1,4 +1,4 @@
-import {t} from 'app/locale';
+import {t} from 'sentry/locale';
 
 import {DisplayType, Widget, WidgetType} from '../types';
 

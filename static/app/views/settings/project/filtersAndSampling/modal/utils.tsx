@@ -1,14 +1,14 @@
 import {css} from '@emotion/react';
 import * as Sentry from '@sentry/react';
 
-import {t} from 'app/locale';
+import {t} from 'sentry/locale';
 import {
   DynamicSamplingConditionLogicalInner,
   DynamicSamplingInnerName,
   DynamicSamplingInnerOperator,
   LegacyBrowser,
-} from 'app/types/dynamicSampling';
-import theme from 'app/utils/theme';
+} from 'sentry/types/dynamicSampling';
+import theme from 'sentry/utils/theme';
 
 import {LEGACY_BROWSER_LIST} from '../utils';
 

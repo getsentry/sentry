@@ -2,12 +2,12 @@ import {Fragment, FunctionComponent, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import _EventsRequest from 'app/components/charts/eventsRequest';
-import {t} from 'app/locale';
-import {Organization} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
-import HistogramQuery from 'app/utils/performance/histogram/histogramQuery';
-import {Chart as HistogramChart} from 'app/views/performance/landing/chart/histogramChart';
+import _EventsRequest from 'sentry/components/charts/eventsRequest';
+import {t} from 'sentry/locale';
+import {Organization} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
+import HistogramQuery from 'sentry/utils/performance/histogram/histogramQuery';
+import {Chart as HistogramChart} from 'sentry/views/performance/landing/chart/histogramChart';
 
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import {transformHistogramQuery} from '../transforms/transformHistogramQuery';

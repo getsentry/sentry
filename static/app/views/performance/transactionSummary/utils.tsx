@@ -1,12 +1,12 @@
 import styled from '@emotion/styled';
 import {LocationDescriptor, Query} from 'history';
 
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import {TableDataRow} from 'app/utils/discover/discoverQuery';
-import {generateEventSlug} from 'app/utils/discover/urls';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
-import {getTraceDetailsUrl} from 'app/views/performance/traceDetails/utils';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import {generateEventSlug} from 'sentry/utils/discover/urls';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 import {getTransactionDetailsUrl} from '../utils';
 

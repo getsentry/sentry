@@ -1,6 +1,6 @@
-import ActionLink from 'app/components/actions/actionLink';
-import {IconIssues} from 'app/icons';
-import {t} from 'app/locale';
+import ActionLink from 'sentry/components/actions/actionLink';
+import {IconIssues} from 'sentry/icons';
+import {t} from 'sentry/locale';
 
 type Props = {
   onUpdate: (data?: any) => void;

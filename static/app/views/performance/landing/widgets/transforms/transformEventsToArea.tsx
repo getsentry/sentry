@@ -1,10 +1,10 @@
 import mean from 'lodash/mean';
 
-import {RenderProps} from 'app/components/charts/eventsRequest';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {defined} from 'app/utils';
-import {axisLabelFormatter} from 'app/utils/discover/charts';
-import {aggregateOutputType} from 'app/utils/discover/fields';
+import {RenderProps} from 'sentry/components/charts/eventsRequest';
+import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {defined} from 'sentry/utils';
+import {axisLabelFormatter} from 'sentry/utils/discover/charts';
+import {aggregateOutputType} from 'sentry/utils/discover/fields';
 
 import {QueryDefinitionWithKey, WidgetDataConstraint, WidgetPropUnion} from '../types';
 

@@ -1,12 +1,12 @@
 import * as React from 'react';
 
-import {Client} from 'app/api';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import Placeholder from 'app/components/placeholder';
-import {DEFAULT_QUERY} from 'app/constants';
-import {t} from 'app/locale';
-import {Organization, Project} from 'app/types';
+import {Client} from 'sentry/api';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Placeholder from 'sentry/components/placeholder';
+import {DEFAULT_QUERY} from 'sentry/constants';
+import {t} from 'sentry/locale';
+import {Organization, Project} from 'sentry/types';
 
 import NoUnresolvedIssues from './noUnresolvedIssues';
 
