@@ -21,6 +21,7 @@ import withGlobalSelection from 'app/utils/withGlobalSelection';
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from 'app/views/dashboardsV2/addWidget';
 import {
   DashboardDetails,
+  DashboardWidgetSource,
   DisplayType,
   MAX_WIDGETS,
   Widget,
@@ -114,6 +115,7 @@ class Dashboard extends Component<Props> {
       dashboard,
       selection,
       onAddWidget: this.handleAddComplete,
+      source: DashboardWidgetSource.DASHBOARDS,
     });
   };
 
@@ -203,6 +205,7 @@ class Dashboard extends Component<Props> {
       openAddDashboardWidgetModal({
         ...modalProps,
         dashboard,
+        source: DashboardWidgetSource.DASHBOARDS,
       });
     }
   };
