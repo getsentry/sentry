@@ -81,6 +81,10 @@ describe('Transaction Summary Content', function () {
       body: [],
     });
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-facets-performance/',
+      body: {},
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-has-measurements/',
       body: {measurements: false},
     });

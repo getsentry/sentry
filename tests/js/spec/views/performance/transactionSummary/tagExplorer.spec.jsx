@@ -173,7 +173,7 @@ describe('TagExplorer', function () {
       {
         project: '123',
       },
-      ['performance-tag-page']
+      []
     );
 
     const wrapper = mountWithTheme(
