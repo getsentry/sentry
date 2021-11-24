@@ -57,7 +57,7 @@ type Props = {
   /**
    * Fired when widgets are added/removed/sorted.
    */
-  onUpdate: (widgets: Widget[]) => void;
+  onUpdate: (widgets: Widget[], layout?: Layout[]) => void;
   onSetWidgetToBeUpdated: (widget: Widget) => void;
   paramDashboardId?: string;
   newWidget?: Widget;
