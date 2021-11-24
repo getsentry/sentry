@@ -15,6 +15,14 @@ import {vitalAbbreviations} from 'app/views/performance/vitalDetail/utils';
 
 const FEATURES = ['transaction-event', 'performance-view'];
 
+function WrappedComponent({organization, location}) {
+  return (
+    <OrganizationContext.Provider value={organization}>
+      <PerformanceContent organization={organization} location={location} />
+    </OrganizationContext.Provider>
+  );
+}
+
 function initializeData(projects, query, features = FEATURES) {
   const organization = TestStubs.Organization({
     features,
@@ -262,12 +270,10 @@ describe('Performance > Content', function () {
     const data = initializeData(projects, {});
 
     const wrapper = mountWithTheme(
-      <OrganizationContext.Provider value={data.organization}>
-        <PerformanceContent
-          organization={data.organization}
-          location={data.router.location}
-        />
-      </OrganizationContext.Provider>,
+      <WrappedComponent
+        organization={data.organization}
+        location={data.router.location}
+      />,
       data.routerContext
     );
     await tick();
@@ -292,12 +298,10 @@ describe('Performance > Content', function () {
     const data = initializeData(projects, {project: [1]});
 
     const wrapper = mountWithTheme(
-      <OrganizationContext.Provider value={data.organization}>
-        <PerformanceContent
-          organization={data.organization}
-          location={data.router.location}
-        />
-      </OrganizationContext.Provider>,
+      <WrappedComponent
+        organization={data.organization}
+        location={data.router.location}
+      />,
       data.routerContext
     );
     await tick();
@@ -318,12 +322,10 @@ describe('Performance > Content', function () {
     const data = initializeData(projects, {project: ['-1']});
 
     const wrapper = mountWithTheme(
-      <OrganizationContext.Provider value={data.organization}>
-        <PerformanceContent
-          organization={data.organization}
-          location={data.router.location}
-        />
-      </OrganizationContext.Provider>,
+      <WrappedComponent
+        organization={data.organization}
+        location={data.router.location}
+      />,
       data.routerContext
     );
     await tick();
@@ -336,12 +338,10 @@ describe('Performance > Content', function () {
     const data = initializeData(projects, {project: ['1'], query: 'sentry:yes'});
 
     const wrapper = mountWithTheme(
-      <OrganizationContext.Provider value={data.organization}>
-        <PerformanceContent
-          organization={data.organization}
-          location={data.router.location}
-        />
-      </OrganizationContext.Provider>,
+      <WrappedComponent
+        organization={data.organization}
+        location={data.router.location}
+      />,
       data.routerContext
     );
     await tick();
@@ -363,12 +363,10 @@ describe('Performance > Content', function () {
   it('Default period for trends does not call updateDateTime', async function () {
     const data = initializeTrendsData({query: 'tag:value'}, false);
     mountWithTheme(
-      <OrganizationContext.Provider value={data.organization}>
-        <PerformanceContent
-          organization={data.organization}
-          location={data.router.location}
-        />
-      </OrganizationContext.Provider>,
+      <WrappedComponent
+        organization={data.organization}
+        location={data.router.location}
+      />,
       data.routerContext
     );
     await tick();
@@ -382,12 +380,10 @@ describe('Performance > Content', function () {
     });
 
     const wrapper = mountWithTheme(
-      <OrganizationContext.Provider value={data.organization}>
-        <PerformanceContent
-          organization={data.organization}
-          location={data.router.location}
-        />
-      </OrganizationContext.Provider>,
+      <WrappedComponent
+        organization={data.organization}
+        location={data.router.location}
+      />,
       data.routerContext
     );
     await tick();
@@ -416,12 +412,10 @@ describe('Performance > Content', function () {
     const data = initializeData(projects, {view: undefined});
 
     mountWithTheme(
-      <OrganizationContext.Provider value={data.organization}>
-        <PerformanceContent
-          organization={data.organization}
-          location={data.router.location}
-        />
-      </OrganizationContext.Provider>,
+      <WrappedComponent
+        organization={data.organization}
+        location={data.router.location}
+      />,
       data.routerContext
     );
     await tick();
@@ -433,12 +427,10 @@ describe('Performance > Content', function () {
     const data = initializeTrendsData({view: undefined}, false);
 
     mountWithTheme(
-      <OrganizationContext.Provider value={data.organization}>
-        <PerformanceContent
-          organization={data.organization}
-          location={data.router.location}
-        />
-      </OrganizationContext.Provider>,
+      <WrappedComponent
+        organization={data.organization}
+        location={data.router.location}
+      />,
       data.routerContext
     );
     await tick();
@@ -450,12 +442,10 @@ describe('Performance > Content', function () {
     const data = initializeTrendsData({query: 'device.family:Mac'}, false);
 
     const wrapper = mountWithTheme(
-      <OrganizationContext.Provider value={data.organization}>
-        <PerformanceContent
-          organization={data.organization}
-          location={data.router.location}
-        />
-      </OrganizationContext.Provider>,
+      <WrappedComponent
+        organization={data.organization}
+        location={data.router.location}
+      />,
       data.routerContext
     );
     await tick();
@@ -480,12 +470,10 @@ describe('Performance > Content', function () {
     ]);
 
     const wrapper = mountWithTheme(
-      <OrganizationContext.Provider value={data.organization}>
-        <PerformanceContent
-          organization={data.organization}
-          location={data.router.location}
-        />
-      </OrganizationContext.Provider>,
+      <WrappedComponent
+        organization={data.organization}
+        location={data.router.location}
+      />,
       data.routerContext
     );
     await tick();
@@ -507,12 +495,10 @@ describe('Performance > Content', function () {
     ]);
 
     const wrapper = mountWithTheme(
-      <OrganizationContext.Provider value={data.organization}>
-        <PerformanceContent
-          organization={data.organization}
-          location={data.router.location}
-        />
-      </OrganizationContext.Provider>,
+      <WrappedComponent
+        organization={data.organization}
+        location={data.router.location}
+      />,
       data.routerContext
     );
     await tick();
@@ -539,12 +525,10 @@ describe('Performance > Content', function () {
     const data = initializeData(projects, {view: undefined});
 
     const wrapper = mountWithTheme(
-      <OrganizationContext.Provider value={data.organization}>
-        <PerformanceContent
-          organization={data.organization}
-          location={data.router.location}
-        />
-      </OrganizationContext.Provider>,
+      <WrappedComponent
+        organization={data.organization}
+        location={data.router.location}
+      />,
       data.routerContext
     );
 
@@ -560,12 +544,10 @@ describe('Performance > Content', function () {
     ]);
 
     const wrapper = mountWithTheme(
-      <OrganizationContext.Provider value={data.organization}>
-        <PerformanceContent
-          organization={data.organization}
-          location={data.router.location}
-        />
-      </OrganizationContext.Provider>,
+      <WrappedComponent
+        organization={data.organization}
+        location={data.router.location}
+      />,
       data.routerContext
     );
 
