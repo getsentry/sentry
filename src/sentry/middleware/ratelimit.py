@@ -9,8 +9,10 @@ from django.conf import settings
 from django.utils.deprecation import MiddlewareMixin
 from rest_framework.request import Request
 
+from sentry.api.base import Endpoint
 from sentry.api.helpers.group_index.index import EndpointFunction
 from sentry.app import ratelimiter
+from sentry.types.ratelimit import RateLimit
 
 
 def get_rate_limit_key(view_func: EndpointFunction, request: Request) -> str | None:
@@ -49,39 +51,52 @@ def get_rate_limit_key(view_func: EndpointFunction, request: Request) -> str | N
     return f"{category}:{view}:{http_method}:{id}"
 
 
-def get_default_rate_limit() -> tuple[int, int]:
+def get_rate_limit_value(http_method: str, endpoint: Endpoint, category: str) -> RateLimit | None:
     """
     Read the rate limit from the view function to be used for the rate limit check
     """
+    rate_limit_lookup_dict = getattr(endpoint, "rate_limits", None)
 
-    # TODO: Remove hard coded value with actual function logic
-    return 100, 1
+    # if the endpoint doesn't have a rate limit property, then it isn't a subclass to our Endpoint
+    # it should not be rate limited
+    if rate_limit_lookup_dict is None:
+        return None
+    rate_limits = rate_limit_lookup_dict.get(http_method, settings.SENTRY_RATELIMITER_DEFAULTS)
+    return rate_limits.get(category, settings.SENTRY_RATELIMITER_DEFAULTS[category])
 
 
-def above_rate_limit_check(key, limit=None, window=None):
-    if limit is None:
-        limit, window = get_default_rate_limit()
+def above_rate_limit_check(key: str, rate_limit: RateLimit):
 
-    is_limited, current = ratelimiter.is_limited_with_value(key, limit=limit, window=window)
+    is_limited, current = ratelimiter.is_limited_with_value(
+        key, limit=rate_limit.limit, window=rate_limit.window
+    )
     return {
         "is_limited": is_limited,
         "current": current,
-        "limit": limit,
-        "window": window,
+        "limit": rate_limit.limit,
+        "window": rate_limit.window,
     }
 
 
 class RatelimitMiddleware(MiddlewareMixin):
-    def _can_be_ratelimited(self, request: Request):
-        return True
+    def _can_be_ratelimited(self, request: Request, view_func: EndpointFunction):
+        return hasattr(view_func, "view_class") and not request.path_info.startswith(
+            settings.ANONYMOUS_STATIC_PREFIXES
+        )
 
     def process_view(self, request, view_func, view_args, view_kwargs):
         """Check if the endpoint call will violate"""
-        if not self._can_be_ratelimited(request):
+        if not self._can_be_ratelimited(request, view_func):
+            request.will_be_rate_limited = False
             return
 
         key = get_rate_limit_key(view_func, request)
-        request.will_be_rate_limited = (
-            above_rate_limit_check(key)["is_limited"] if key is not None else False
-        )
+        if key is not None:
+            category = key.split(":", 1)[0]
+            rate_limit = get_rate_limit_value(request.method, view_func.view_class, category)
+            request.will_be_rate_limited = (
+                above_rate_limit_check(key, rate_limit)["is_limited"]
+                if rate_limit is not None
+                else False
+            )
         return
