@@ -1,4 +1,4 @@
-import {fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import RadioGroupPanel from 'app/views/alerts/wizard/radioPanelGroup';
 
@@ -19,7 +19,7 @@ describe('RadioGroupPanel', function () {
       />
     );
 
-    fireEvent.click(screen.getByText('Choice Three'));
+    userEvent.click(screen.getByText('Choice Three'));
 
     expect(mock).toHaveBeenCalledWith(expect.any(String), expect.any(Object));
   });

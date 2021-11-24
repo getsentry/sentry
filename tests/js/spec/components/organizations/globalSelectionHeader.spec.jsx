@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mockRouterPush} from 'sentry-test/mockRouterPush';
 import {act} from 'sentry-test/reactTestingLibrary';
@@ -30,6 +30,8 @@ jest.mock('app/utils/localStorage', () => ({
 }));
 
 describe('GlobalSelectionHeader', function () {
+  enforceActOnUseLegacyStoreHook();
+
   let wrapper;
   const {organization, router, routerContext} = initializeOrg({
     organization: {features: ['global-views']},
@@ -60,7 +62,7 @@ describe('GlobalSelectionHeader', function () {
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
-    act(() => ProjectsStore.loadInitialData(organization.projects));
+    ProjectsStore.loadInitialData(organization.projects);
 
     getItem.mockImplementation(() => null);
     MockApiClient.addMockResponse({
@@ -130,7 +132,7 @@ describe('GlobalSelectionHeader', function () {
 
     await tick();
 
-    expect(GlobalSelectionStore.get().selection).toEqual({
+    expect(GlobalSelectionStore.getState().selection).toEqual({
       datetime: {
         period: '7d',
         utc: null,
@@ -176,7 +178,7 @@ describe('GlobalSelectionHeader', function () {
 
     expect(wrapper.find('MultipleEnvironmentSelector Content').text()).toBe('staging');
 
-    expect(GlobalSelectionStore.get().selection).toEqual({
+    expect(GlobalSelectionStore.getState().selection).toEqual({
       datetime: {
         period: '14d',
         utc: null,
@@ -202,7 +204,7 @@ describe('GlobalSelectionHeader', function () {
     wrapper.update();
 
     // Store should not have any environments selected
-    expect(GlobalSelectionStore.get().selection).toEqual({
+    expect(GlobalSelectionStore.getState().selection).toEqual({
       datetime: {
         period: '14d',
         utc: null,
@@ -229,7 +231,7 @@ describe('GlobalSelectionHeader', function () {
         params: {orgId: 'org-slug'},
       },
     });
-    act(() => ProjectsStore.loadInitialData(initialData.projects));
+    ProjectsStore.loadInitialData(initialData.projects);
 
     wrapper = mountWithTheme(
       <GlobalSelectionHeader
@@ -260,7 +262,7 @@ describe('GlobalSelectionHeader', function () {
 
     await tick();
 
-    expect(GlobalSelectionStore.get()).toEqual({
+    expect(GlobalSelectionStore.getState()).toEqual({
       isReady: true,
       selection: {
         datetime: {
@@ -287,7 +289,7 @@ describe('GlobalSelectionHeader', function () {
 
     await tick();
 
-    expect(GlobalSelectionStore.get()).toEqual({
+    expect(GlobalSelectionStore.getState()).toEqual({
       isReady: true,
       selection: {
         datetime: {
@@ -313,7 +315,7 @@ describe('GlobalSelectionHeader', function () {
 
     await tick();
 
-    expect(GlobalSelectionStore.get()).toEqual({
+    expect(GlobalSelectionStore.getState()).toEqual({
       isReady: true,
       selection: {
         datetime: {
@@ -358,7 +360,7 @@ describe('GlobalSelectionHeader', function () {
     expect(globalActions.updateProjects).not.toHaveBeenCalled();
     expect(globalActions.updateEnvironments).not.toHaveBeenCalled();
 
-    expect(GlobalSelectionStore.get()).toEqual({
+    expect(GlobalSelectionStore.getState()).toEqual({
       isReady: true,
       selection: {
         datetime: {
@@ -395,7 +397,7 @@ describe('GlobalSelectionHeader', function () {
 
     await tick(); // reflux tick
 
-    expect(GlobalSelectionStore.get().selection.projects).toEqual([3]);
+    expect(GlobalSelectionStore.getState().selection.projects).toEqual([3]);
     // Since these are coming from URL, there should be no changes and
     // router does not need to be called
     expect(initializationObj.router.replace).toHaveBeenLastCalledWith(
@@ -432,7 +434,7 @@ describe('GlobalSelectionHeader', function () {
 
     await tick(); // reflux tick
 
-    expect(GlobalSelectionStore.get().selection.projects).toEqual([1, 2]);
+    expect(GlobalSelectionStore.getState().selection.projects).toEqual([1, 2]);
     // Since these are coming from URL, there should be no changes and
     // router does not need to be called
     expect(initializationObj.router.replace).not.toHaveBeenCalled();
@@ -458,7 +460,7 @@ describe('GlobalSelectionHeader', function () {
 
     await tick(); // reflux tick
 
-    expect(GlobalSelectionStore.get().selection.projects).toEqual([1, 2]);
+    expect(GlobalSelectionStore.getState().selection.projects).toEqual([1, 2]);
     // Since these are coming from URL, there should be no changes and
     // router does not need to be called
     expect(initializationObj.router.replace).not.toHaveBeenCalled();
@@ -532,7 +534,7 @@ describe('GlobalSelectionHeader', function () {
         body: [],
       });
 
-      act(() => ProjectsStore.reset());
+      ProjectsStore.reset();
 
       // This can happen when you switch organization so params.orgId !== the
       // current org in context In this case params.orgId = 'org-slug'
@@ -602,7 +604,7 @@ describe('GlobalSelectionHeader', function () {
       const project = TestStubs.Project({id: '3'});
       const org = TestStubs.Organization({projects: [project]});
 
-      act(() => ProjectsStore.loadInitialData(org.projects));
+      ProjectsStore.loadInitialData(org.projects);
 
       const initializationObj = initializeOrg({
         organization: org,
@@ -642,7 +644,7 @@ describe('GlobalSelectionHeader', function () {
         },
       });
 
-      act(() => ProjectsStore.loadInitialData(initialData.projects));
+      ProjectsStore.loadInitialData(initialData.projects);
 
       wrapper = mountWithTheme(
         <GlobalSelectionHeader
@@ -697,7 +699,7 @@ describe('GlobalSelectionHeader', function () {
       };
 
       beforeEach(function () {
-        act(() => ProjectsStore.loadInitialData(initialData.projects));
+        ProjectsStore.loadInitialData(initialData.projects);
 
         initialData.router.push.mockClear();
         initialData.router.replace.mockClear();
@@ -715,7 +717,7 @@ describe('GlobalSelectionHeader', function () {
       });
 
       it('appends projectId to URL when `forceProject` becomes available (async)', async function () {
-        act(() => ProjectsStore.reset());
+        ProjectsStore.reset();
 
         // forceProject generally starts undefined
         createWrapper({shouldForceProject: true});
@@ -789,7 +791,7 @@ describe('GlobalSelectionHeader', function () {
           params: {orgId: 'org-slug'},
         },
       });
-      act(() => ProjectsStore.loadInitialData(initialData.projects));
+      ProjectsStore.loadInitialData(initialData.projects);
 
       const createWrapper = props => {
         wrapper = mountWithTheme(
@@ -856,7 +858,7 @@ describe('GlobalSelectionHeader', function () {
       };
 
       beforeEach(function () {
-        act(() => ProjectsStore.loadInitialData(initialData.projects));
+        ProjectsStore.loadInitialData(initialData.projects);
 
         initialData.router.push.mockClear();
         initialData.router.replace.mockClear();
@@ -872,7 +874,7 @@ describe('GlobalSelectionHeader', function () {
       });
 
       it('does not append projectId to URL when `loadingProjects` changes and finishes loading', async function () {
-        act(() => ProjectsStore.reset());
+        ProjectsStore.reset();
 
         createWrapper();
 
@@ -887,7 +889,7 @@ describe('GlobalSelectionHeader', function () {
       });
 
       it('appends projectId to URL when `forceProject` becomes available (async)', async function () {
-        act(() => ProjectsStore.reset());
+        ProjectsStore.reset();
 
         // forceProject generally starts undefined
         createWrapper({shouldForceProject: true});
@@ -942,7 +944,7 @@ describe('GlobalSelectionHeader', function () {
         },
       });
 
-      act(() => ProjectsStore.loadInitialData(initialData.projects));
+      ProjectsStore.loadInitialData(initialData.projects);
 
       wrapper = mountWithTheme(
         <GlobalSelectionHeader organization={initialData.organization} />,
@@ -1093,7 +1095,7 @@ describe('GlobalSelectionHeader', function () {
     });
 
     beforeEach(function () {
-      act(() => ProjectsStore.loadInitialData(initialData.projects));
+      ProjectsStore.loadInitialData(initialData.projects);
     });
 
     it('shows IconProject when no projects are selected', async function () {

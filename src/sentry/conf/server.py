@@ -906,11 +906,11 @@ SENTRY_FEATURES = {
     # Enable the linked event feature in the issue details breadcrumb.
     "organizations:breadcrumb-linked-event": False,
     # Enable change alerts for an org
-    "organizations:change-alerts": False,
+    "organizations:change-alerts": True,
     # Enable unfurling charts using the Chartcuterie service
     "organizations:chart-unfurls": False,
     # Enable alerting based on crash free sessions/users
-    "organizations:crash-rate-alerts": False,
+    "organizations:crash-rate-alerts": True,
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
     # is not enabled).
     "organizations:create": True,
@@ -996,10 +996,14 @@ SENTRY_FEATURES = {
     "organizations:integrations-stacktrace-link": False,
     # Allow orgs to install a custom source code management integration
     "organizations:integrations-custom-scm": False,
+    # Limit project events endpoint to only query back a certain number of days
+    "organizations:project-event-date-limit": False,
     # Allow orgs to debug internal/unpublished sentry apps with logging
     "organizations:sentry-app-debugging": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
+    # Enable react-grid-layout dashboards
+    "organizations:dashboard-grid-layout": False,
     # Enable readonly dashboards
     "organizations:dashboards-basic": True,
     # Enable custom editable dashboards
@@ -1052,6 +1056,8 @@ SENTRY_FEATURES = {
     "organizations:notification-all-recipients": False,
     # Enable the new native stack trace design
     "organizations:native-stack-trace-v2": False,
+    # Enable the sentryapp logo upload feature
+    "organizations:sentry-app-logo-upload": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
     # Enable sorting+filtering by semantic version of a release
@@ -1094,7 +1100,7 @@ SENTRY_FEATURES = {
     # send organization request notifications through Slack
     "organizations:slack-requests": False,
     # Enable team insights page
-    "organizations:team-insights": False,
+    "organizations:team-insights": True,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.

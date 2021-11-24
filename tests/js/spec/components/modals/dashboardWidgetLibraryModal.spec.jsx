@@ -1,12 +1,13 @@
-// import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import DashboardWidgetLibraryModal from 'app/components/modals/dashboardWidgetLibraryModal';
 
 const stubEl = props => <div>{props.children}</div>;
+const alertText =
+  'Please select at least one Widget from our Library. Alternatively, you can build a custom widget from scratch.';
 
-function mountModal({initialData}) {
+function mountModal({initialData}, onApply, closeModal) {
   const routerContext = TestStubs.routerContext();
   return mountWithTheme(
     <DashboardWidgetLibraryModal
@@ -21,6 +22,8 @@ function mountModal({initialData}) {
         createdBy: {id: '1'},
         widgetDisplay: [],
       })}
+      onAddWidget={onApply}
+      closeModal={closeModal}
     />,
     {context: routerContext}
   );
@@ -38,7 +41,7 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders the widget library modal', function () {
+  it('selects and unselcts widgets correctly', function () {
     // Checking initial modal states
     const container = mountModal({initialData});
     expect(screen.getByText('6 WIDGETS')).toBeInTheDocument();
@@ -48,12 +51,69 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
 
     // Select some widgets
     const selectButtons = screen.getAllByRole('button');
-    fireEvent.click(selectButtons[4]);
-    fireEvent.click(selectButtons[5]);
+    userEvent.click(selectButtons[3]);
+    userEvent.click(selectButtons[4]);
+    userEvent.click(selectButtons[5]);
 
+    expect(screen.getByTestId('selected-badge')).toHaveTextContent('3 Selected');
+    expect(screen.queryAllByText('Select')).toHaveLength(3);
+    expect(screen.queryAllByText('Selected')).toHaveLength(3);
+
+    // Deselect a widget
+    userEvent.click(selectButtons[4]);
     expect(screen.getByTestId('selected-badge')).toHaveTextContent('2 Selected');
     expect(screen.queryAllByText('Select')).toHaveLength(4);
     expect(screen.queryAllByText('Selected')).toHaveLength(2);
+
+    container.unmount();
+  });
+  it('submits selected widgets correctly', function () {
+    // Checking initial modal states
+    const mockApply = jest.fn();
+    const closeModal = jest.fn();
+    const container = mountModal({initialData}, mockApply, closeModal);
+    // Select some widgets
+    const selectButtons = screen.getAllByRole('button');
+    userEvent.click(selectButtons[2]);
+
+    expect(screen.getByTestId('selected-badge')).toHaveTextContent('1 Selected');
+    userEvent.click(screen.getByTestId('confirm-widgets'));
+
+    expect(mockApply).toHaveBeenCalledTimes(1);
+    expect(mockApply).toHaveBeenCalledWith([
+      {
+        displayType: 'area',
+        id: undefined,
+        interval: '5m',
+        queries: [
+          {
+            conditions: '!event.type:transaction',
+            fields: ['count()'],
+            name: '',
+            orderby: '',
+          },
+        ],
+        title: 'All Events',
+        widgetType: 'discover',
+      },
+    ]);
+    expect(closeModal).toHaveBeenCalledTimes(1);
+
+    container.unmount();
+  });
+  it('raises warning if widget not selected', function () {
+    // Checking initial modal states
+    const mockApply = jest.fn();
+    const closeModal = jest.fn();
+    const container = mountModal({initialData}, mockApply, closeModal);
+    expect(screen.queryByText(alertText)).not.toBeInTheDocument();
+
+    expect(screen.getByTestId('selected-badge')).toHaveTextContent('0 Selected');
+    userEvent.click(screen.getByTestId('confirm-widgets'));
+
+    expect(mockApply).toHaveBeenCalledTimes(0);
+    expect(closeModal).toHaveBeenCalledTimes(0);
+    expect(screen.getByText(alertText)).toBeInTheDocument();
 
     container.unmount();
   });

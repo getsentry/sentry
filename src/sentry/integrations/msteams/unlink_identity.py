@@ -1,3 +1,4 @@
+from django.core.signing import BadSignature, SignatureExpired
 from django.urls import reverse
 from django.views.decorators.cache import never_cache
 
@@ -30,7 +31,13 @@ class MsTeamsUnlinkIdentityView(BaseView):
     @transaction_start("MsTeamsUnlinkIdentityView")
     @never_cache
     def handle(self, request, signed_params):
-        params = unsign(signed_params)
+        try:
+            params = unsign(signed_params)
+        except (SignatureExpired, BadSignature):
+            return render_to_response(
+                "sentry/integrations/msteams/expired-link.html",
+                request=request,
+            )
 
         if request.method != "POST":
             return render_to_response(

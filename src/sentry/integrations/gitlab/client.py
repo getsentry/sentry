@@ -47,9 +47,9 @@ class GitLabSetupClient(ApiClient):
     integration_name = "gitlab_setup"
 
     def __init__(self, base_url, access_token, verify_ssl):
+        super().__init__(verify_ssl)
         self.base_url = base_url
         self.token = access_token
-        self.verify_ssl = verify_ssl
 
     def get_group(self, group):
         """Get a group based on `path` which is a slug.

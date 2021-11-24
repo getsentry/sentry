@@ -5,10 +5,11 @@ from django.db.models import Avg, F
 from django.db.models.functions import Coalesce, TruncDay
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.utils import get_date_range_from_params
-from sentry.models import GroupHistory, GroupHistoryStatus, Project
+from sentry.models import GroupHistory, GroupHistoryStatus
 
 
 class TeamTimeToResolutionEndpoint(TeamEndpoint, EnvironmentMixin):
@@ -16,14 +17,16 @@ class TeamTimeToResolutionEndpoint(TeamEndpoint, EnvironmentMixin):
         """
         Return a a time bucketed list of mean group resolution times for a given team.
         """
-        project_list = Project.objects.get_for_team_ids(team_ids=[team.id])
+        if not features.has("organizations:team-insights", team.organization, actor=request.user):
+            return Response({"detail": "You do not have the insights feature enabled"}, status=400)
+
         start, end = get_date_range_from_params(request.GET)
         end = end.date() + timedelta(days=1)
         start = start.date() + timedelta(days=1)
         history_list = (
-            GroupHistory.objects.filter(
+            GroupHistory.objects.filter_to_team(team)
+            .filter(
                 status=GroupHistoryStatus.RESOLVED,
-                project__in=project_list,
                 date_added__gte=start,
                 date_added__lte=end,
             )

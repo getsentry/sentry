@@ -1,9 +1,9 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   act,
-  fireEvent,
   mountWithTheme,
   screen,
+  userEvent,
   waitFor,
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
@@ -55,7 +55,7 @@ describe('Sidebar', function () {
     expect(screen.getByText(user.name)).toBeInTheDocument();
     expect(screen.getByText(user.email)).toBeInTheDocument();
 
-    fireEvent.click(screen.getByTestId('sidebar-dropdown'));
+    userEvent.click(screen.getByTestId('sidebar-dropdown'));
     expect(container).toSnapshot();
   });
 
@@ -71,8 +71,8 @@ describe('Sidebar', function () {
       organization: TestStubs.Organization({access: ['member:read']}),
     });
 
-    fireEvent.click(screen.getByTestId('sidebar-dropdown'));
-    fireEvent.click(screen.getByTestId('sidebar-signout'));
+    userEvent.click(screen.getByTestId('sidebar-dropdown'));
+    userEvent.click(screen.getByTestId('sidebar-signout'));
 
     await waitFor(() => expect(mock).toHaveBeenCalled());
 
@@ -80,26 +80,10 @@ describe('Sidebar', function () {
     window.location.assign.mockRestore();
   });
 
-  it('can toggle collapsed state', async function () {
-    renderSidebar();
-
-    expect(screen.getByText(user.name)).toBeInTheDocument();
-    expect(screen.getByText(organization.name)).toBeInTheDocument();
-
-    fireEvent.click(screen.getByTestId('sidebar-collapse'));
-
-    // Check that the organization name is no longer visible
-    await waitForElementToBeRemoved(() => screen.getByText(organization.name));
-
-    // Un-collapse he sidebar and make sure the org name is visible again
-    fireEvent.click(screen.getByTestId('sidebar-collapse'));
-    expect(await screen.findByText(organization.name)).toBeInTheDocument();
-  });
-
   it('can toggle help menu', function () {
     const {container} = renderSidebar();
 
-    fireEvent.click(screen.getByText('Help'));
+    userEvent.click(screen.getByText('Help'));
 
     expect(screen.getByText('Visit Help Center')).toBeInTheDocument();
     expect(container).toSnapshot();
@@ -109,7 +93,7 @@ describe('Sidebar', function () {
     it('can open Sidebar org/name dropdown menu', function () {
       const {container} = renderSidebar();
 
-      fireEvent.click(screen.getByTestId('sidebar-dropdown'));
+      userEvent.click(screen.getByTestId('sidebar-dropdown'));
 
       const orgSettingsLink = screen.getByText('Organization settings');
       expect(orgSettingsLink).toBeInTheDocument();
@@ -121,7 +105,7 @@ describe('Sidebar', function () {
         organization: TestStubs.Organization({access: ['member:read']}),
       });
 
-      fireEvent.click(screen.getByTestId('sidebar-dropdown'));
+      userEvent.click(screen.getByTestId('sidebar-dropdown'));
 
       expect(screen.getByText('Members')).toBeInTheDocument();
     });
@@ -131,10 +115,10 @@ describe('Sidebar', function () {
 
       const {container} = renderSidebar();
 
-      fireEvent.click(screen.getByTestId('sidebar-dropdown'));
+      userEvent.click(screen.getByTestId('sidebar-dropdown'));
 
       jest.useFakeTimers();
-      fireEvent.mouseEnter(screen.getByText('Switch organization'));
+      userEvent.type(screen.getByText('Switch organization'), '{enter}');
       act(() => jest.advanceTimersByTime(500));
       jest.useRealTimers();
 
@@ -149,7 +133,7 @@ describe('Sidebar', function () {
     it('hides when path changes', async function () {
       const {rerender} = renderSidebar();
 
-      fireEvent.click(screen.getByText("What's new"));
+      userEvent.click(screen.getByText("What's new"));
       expect(await screen.findByRole('dialog')).toBeInTheDocument();
       expect(screen.getByText("What's new in Sentry")).toBeInTheDocument();
 
@@ -166,7 +150,7 @@ describe('Sidebar', function () {
       const quickStart = screen.getByText('Quick Start');
 
       expect(quickStart).toBeInTheDocument();
-      fireEvent.click(quickStart);
+      userEvent.click(quickStart);
 
       expect(await screen.findByRole('dialog')).toBeInTheDocument();
       expect(screen.getByText('Capture your first error')).toBeInTheDocument();
@@ -179,7 +163,7 @@ describe('Sidebar', function () {
       });
       renderSidebar();
 
-      fireEvent.click(screen.getByText("What's new"));
+      userEvent.click(screen.getByText("What's new"));
 
       expect(await screen.findByRole('dialog')).toBeInTheDocument();
       expect(screen.getByText("What's new in Sentry")).toBeInTheDocument();
@@ -188,7 +172,7 @@ describe('Sidebar', function () {
       ).toBeInTheDocument();
 
       // Close the sidebar
-      fireEvent.click(screen.getByText("What's new"));
+      userEvent.click(screen.getByText("What's new"));
       await waitForElementToBeRemoved(() => screen.getByText("What's new in Sentry"));
     });
 
@@ -198,7 +182,7 @@ describe('Sidebar', function () {
 
       expect(apiMocks.broadcasts).toHaveBeenCalled();
 
-      fireEvent.click(screen.getByText("What's new"));
+      userEvent.click(screen.getByText("What's new"));
 
       expect(await screen.findByRole('dialog')).toBeInTheDocument();
       expect(screen.getByText("What's new in Sentry")).toBeInTheDocument();
@@ -220,7 +204,7 @@ describe('Sidebar', function () {
       jest.useRealTimers();
 
       // Close the sidebar
-      fireEvent.click(screen.getByText("What's new"));
+      userEvent.click(screen.getByText("What's new"));
       await waitForElementToBeRemoved(() => screen.getByText("What's new in Sentry"));
     });
 
@@ -229,7 +213,7 @@ describe('Sidebar', function () {
       const {unmount} = renderSidebar();
 
       // This will start timer to mark as seen
-      fireEvent.click(screen.getByRole('link', {name: "What's new"}));
+      userEvent.click(screen.getByRole('link', {name: "What's new"}));
       expect(await screen.findByText("What's new in Sentry")).toBeInTheDocument();
 
       act(() => jest.advanceTimersByTime(500));
@@ -251,9 +235,25 @@ describe('Sidebar', function () {
 
       const {container} = renderSidebar();
 
-      fireEvent.click(await screen.findByText('Service status'));
+      userEvent.click(await screen.findByText('Service status'));
 
       expect(container).toSnapshot();
     });
+  });
+
+  it('can toggle collapsed state', async function () {
+    renderSidebar();
+
+    expect(screen.getByText(user.name)).toBeInTheDocument();
+    expect(screen.getByText(organization.name)).toBeInTheDocument();
+
+    userEvent.click(screen.getByTestId('sidebar-collapse'));
+
+    // Check that the organization name is no longer visible
+    await waitForElementToBeRemoved(() => screen.getByText(organization.name));
+
+    // Un-collapse he sidebar and make sure the org name is visible again
+    userEvent.click(screen.getByTestId('sidebar-collapse'));
+    expect(await screen.findByText(organization.name)).toBeInTheDocument();
   });
 });

@@ -34,9 +34,9 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         super().setUp()
         self.environment = self.create_environment(self.project, name="prod")
         self.release = self.create_release(self.project, version="first-release")
-        self.now = before_now()
-        self.one_min_ago = before_now(minutes=1)
-        self.two_min_ago = before_now(minutes=2)
+        self.now = before_now().replace(tzinfo=timezone.utc)
+        self.one_min_ago = before_now(minutes=1).replace(tzinfo=timezone.utc)
+        self.two_min_ago = before_now(minutes=2).replace(tzinfo=timezone.utc)
 
         self.event_time = self.one_min_ago
         self.event = self.store_event(
@@ -328,10 +328,49 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                         "end": self.now,
                     },
                     orderby=column,
-                    use_snql=True,
+                    use_snql=use_snql,
                 )
                 data = result["data"]
                 assert len(data) == len(expected), (use_snql, column, query, expected)
+                assert [item[column] for item in data] == expected, use_snql
+
+    def test_tags_colliding_with_fields(self):
+        event = self.store_event(
+            data={
+                "message": "oh no",
+                "release": "first-release",
+                "environment": "prod",
+                "platform": "python",
+                "user": {"id": "99", "email": "bruce@example.com", "username": "brucew"},
+                "timestamp": iso_format(self.event_time),
+                "tags": [["id", "new"]],
+            },
+            project_id=self.project.id,
+        )
+
+        tests = [
+            ("id", "", sorted([self.event.event_id, event.event_id])),
+            ("id", f"id:{event.event_id}", [event.event_id]),
+            ("tags[id]", "", ["", "new"]),
+            ("tags[id]", "tags[id]:new", ["new"]),
+        ]
+
+        for use_snql in [False, True]:
+            for column, query, expected in tests:
+                result = discover.query(
+                    selected_columns=[column],
+                    query=query,
+                    params={
+                        "organization_id": self.organization.id,
+                        "project_id": [self.project.id],
+                        "start": self.two_min_ago,
+                        "end": self.now,
+                    },
+                    orderby=column,
+                    use_snql=use_snql,
+                )
+                data = result["data"]
+                assert len(data) == len(expected), (use_snql, query, expected)
                 assert [item[column] for item in data] == expected, use_snql
 
     def test_reverse_sorting_issue(self):
@@ -401,9 +440,9 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             ], use_snql
 
     def test_timestamp_rounding_filters(self):
-        one_day_ago = before_now(days=1)
-        two_day_ago = before_now(days=2)
-        three_day_ago = before_now(days=3)
+        one_day_ago = before_now(days=1).replace(tzinfo=timezone.utc)
+        two_day_ago = before_now(days=2).replace(tzinfo=timezone.utc)
+        three_day_ago = before_now(days=3).replace(tzinfo=timezone.utc)
 
         self.store_event(
             data={
