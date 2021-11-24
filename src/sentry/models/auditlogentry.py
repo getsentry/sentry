@@ -13,6 +13,14 @@ from sentry.utils.strings import truncatechars
 MAX_ACTOR_LABEL_LENGTH = 64
 
 
+def format_ondemand_max_spend(max_spend_in_cents):
+    ondemand_max_spend = max_spend_in_cents / 100
+    has_cents = (ondemand_max_spend % 1) != 0
+    if has_cents:
+        return f"${ondemand_max_spend:.2f}"
+    return f"${int(ondemand_max_spend)}"
+
+
 class AuditLogEntryEvent:
     MEMBER_INVITE = 1
     MEMBER_ADD = 2
@@ -361,7 +369,11 @@ class AuditLogEntry(Model):
         elif self.event == AuditLogEntryEvent.SET_ONDEMAND:
             if self.data["ondemand"] == -1:
                 return "changed on-demand spend to unlimited"
-            return "changed on-demand max spend to $%d" % (self.data["ondemand"] / 100,)
+            next_ondemand_max_spend = format_ondemand_max_spend(self.data["ondemand"])
+            if "prev_ondemand" in self.data:
+                prev_ondemand_max_spend = format_ondemand_max_spend(self.data["prev_ondemand"])
+                return f"changed on-demand max spend from {prev_ondemand_max_spend} to {next_ondemand_max_spend}"
+            return f"changed on-demand max spend to {next_ondemand_max_spend}"
         elif self.event == AuditLogEntryEvent.TRIAL_STARTED:
             return "started trial"
         elif self.event == AuditLogEntryEvent.PLAN_CHANGED:
