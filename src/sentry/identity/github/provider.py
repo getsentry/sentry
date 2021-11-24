@@ -38,7 +38,7 @@ class GitHubIdentityProvider(OAuth2Provider):
 
     def build_identity(self, data):
         data = data["data"]
-        user = get_user_info(data["access_token"])
+        user = get_user_info(data.get("access_token"))
 
         return {
             "type": "github",
