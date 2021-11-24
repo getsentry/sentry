@@ -1,17 +1,17 @@
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import IdBadge from 'app/components/idBadge';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import recreateRoute from 'app/utils/recreateRoute';
-import replaceRouterParams from 'app/utils/replaceRouterParams';
-import withLatestContext from 'app/utils/withLatestContext';
-import withProjects from 'app/utils/withProjects';
-import BreadcrumbDropdown from 'app/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
-import findFirstRouteWithoutRouteParam from 'app/views/settings/components/settingsBreadcrumb/findFirstRouteWithoutRouteParam';
-import MenuItem from 'app/views/settings/components/settingsBreadcrumb/menuItem';
+import IdBadge from 'sentry/components/idBadge';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import recreateRoute from 'sentry/utils/recreateRoute';
+import replaceRouterParams from 'sentry/utils/replaceRouterParams';
+import withLatestContext from 'sentry/utils/withLatestContext';
+import withProjects from 'sentry/utils/withProjects';
+import BreadcrumbDropdown from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
+import findFirstRouteWithoutRouteParam from 'sentry/views/settings/components/settingsBreadcrumb/findFirstRouteWithoutRouteParam';
+import MenuItem from 'sentry/views/settings/components/settingsBreadcrumb/menuItem';
 
 import {RouteWithName} from './types';
 import {CrumbLink} from '.';

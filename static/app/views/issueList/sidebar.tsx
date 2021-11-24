@@ -3,12 +3,12 @@ import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import map from 'lodash/map';
 
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {IconClose} from 'app/icons/iconClose';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Tag, TagCollection} from 'app/types';
-import {objToQuery, QueryObj, queryToObj} from 'app/utils/stream';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {IconClose} from 'sentry/icons/iconClose';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Tag, TagCollection} from 'sentry/types';
+import {objToQuery, QueryObj, queryToObj} from 'sentry/utils/stream';
 
 import IssueListTagFilter from './tagFilter';
 import {TagValueLoader} from './types';

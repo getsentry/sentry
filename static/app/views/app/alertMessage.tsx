@@ -1,14 +1,14 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import AlertActions from 'app/actions/alertActions';
-import Alert from 'app/components/alert';
-import Button from 'app/components/button';
-import ExternalLink from 'app/components/links/externalLink';
-import {IconCheckmark, IconClose, IconWarning} from 'app/icons';
-import {t} from 'app/locale';
-import AlertStore from 'app/stores/alertStore';
-import space from 'app/styles/space';
+import AlertActions from 'sentry/actions/alertActions';
+import Alert from 'sentry/components/alert';
+import Button from 'sentry/components/button';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {IconCheckmark, IconClose, IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import AlertStore from 'sentry/stores/alertStore';
+import space from 'sentry/styles/space';
 
 type Props = {
   alert: ReturnType<typeof AlertStore['getState']>[number];

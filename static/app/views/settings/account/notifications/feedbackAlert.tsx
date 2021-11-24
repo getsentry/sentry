@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-import Alert from 'app/components/alert';
-import {IconInfo} from 'app/icons';
-import {tct} from 'app/locale';
+import Alert from 'sentry/components/alert';
+import {IconInfo} from 'sentry/icons';
+import {tct} from 'sentry/locale';
 
 type Props = {
   className?: string;

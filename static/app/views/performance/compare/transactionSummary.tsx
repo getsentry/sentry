@@ -2,13 +2,13 @@ import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {parseTrace} from 'app/components/events/interfaces/spans/utils';
-import Link from 'app/components/links/link';
-import {getHumanDuration} from 'app/components/performance/waterfall/utils';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import {Event} from 'app/types/event';
+import {parseTrace} from 'sentry/components/events/interfaces/spans/utils';
+import Link from 'sentry/components/links/link';
+import {getHumanDuration} from 'sentry/components/performance/waterfall/utils';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {Event} from 'sentry/types/event';
 
 import {getTransactionDetailsUrl} from '../utils';
 

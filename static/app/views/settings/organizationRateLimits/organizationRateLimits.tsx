@@ -1,13 +1,13 @@
 import {RouteComponentProps} from 'react-router';
 
-import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
-import {t, tct} from 'app/locale';
-import {Organization} from 'app/types';
-import Field from 'app/views/settings/components/forms/field';
-import Form from 'app/views/settings/components/forms/form';
-import RangeField from 'app/views/settings/components/forms/rangeField';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import TextBlock from 'app/views/settings/components/text/textBlock';
+import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
+import {t, tct} from 'sentry/locale';
+import {Organization} from 'sentry/types';
+import Field from 'sentry/views/settings/components/forms/field';
+import Form from 'sentry/views/settings/components/forms/form';
+import RangeField from 'sentry/views/settings/components/forms/rangeField';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 type Props = RouteComponentProps<{}, {}> & {
   organization: Organization;

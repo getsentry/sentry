@@ -1,11 +1,15 @@
 import {Fragment} from 'react';
 import map from 'lodash/map';
 
-import DateTime from 'app/components/dateTime';
-import {Row, SpanDetails, Tags} from 'app/components/events/interfaces/spans/spanDetail';
-import {rawSpanKeys, SpanType} from 'app/components/events/interfaces/spans/types';
-import {t} from 'app/locale';
-import getDynamicText from 'app/utils/getDynamicText';
+import DateTime from 'sentry/components/dateTime';
+import {
+  Row,
+  SpanDetails,
+  Tags,
+} from 'sentry/components/events/interfaces/spans/spanDetail';
+import {rawSpanKeys, SpanType} from 'sentry/components/events/interfaces/spans/types';
+import {t} from 'sentry/locale';
+import getDynamicText from 'sentry/utils/getDynamicText';
 
 type Props = {
   span: Readonly<SpanType>;

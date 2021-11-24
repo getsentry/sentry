@@ -1,13 +1,13 @@
 import round from 'lodash/round';
 
-import {Client} from 'app/api';
-import {t} from 'app/locale';
-import {SessionField} from 'app/types';
-import {IssueAlertRule} from 'app/types/alerts';
-import {defined} from 'app/utils';
-import {getUtcDateString} from 'app/utils/dates';
-import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
-import {PRESET_AGGREGATES} from 'app/views/alerts/incidentRules/presets';
+import {Client} from 'sentry/api';
+import {t} from 'sentry/locale';
+import {SessionField} from 'sentry/types';
+import {IssueAlertRule} from 'sentry/types/alerts';
+import {defined} from 'sentry/utils';
+import {getUtcDateString} from 'sentry/utils/dates';
+import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
+import {PRESET_AGGREGATES} from 'sentry/views/alerts/incidentRules/presets';
 import {
   Dataset,
   Datasource,
@@ -15,7 +15,7 @@ import {
   IncidentRule,
   SavedIncidentRule,
   SessionsAggregate,
-} from 'app/views/alerts/incidentRules/types';
+} from 'sentry/views/alerts/incidentRules/types';
 
 import {Incident, IncidentStats, IncidentStatus} from '../types';
 

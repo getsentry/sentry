@@ -1,11 +1,11 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Feature from 'app/components/acl/feature';
-import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
-import Tooltip from 'app/components/tooltip';
-import {t} from 'app/locale';
-import {getSortLabel, IssueSortOptions, Query} from 'app/views/issueList/utils';
+import Feature from 'sentry/components/acl/feature';
+import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
+import Tooltip from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
+import {getSortLabel, IssueSortOptions, Query} from 'sentry/views/issueList/utils';
 
 type Props = {
   sort: string;
