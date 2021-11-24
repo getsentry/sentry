@@ -61,8 +61,6 @@ const getPillStyle = ({type, theme}: {type?: PillType; theme: Theme}) => {
   switch (type) {
     case 'error':
       return `
-        color: ${theme.black};
-        background: ${theme.red100};
         background: ${theme.red100};
         border: 1px solid ${theme.red300};
       `;
@@ -77,7 +75,6 @@ const getPillValueStyle = ({type, theme}: {type?: PillType; theme: Theme}) => {
   switch (type) {
     case 'positive':
       return `
-        color: ${theme.black};
         background: ${theme.green100};
         border: 1px solid ${theme.green300};
         border-left-color: ${theme.green300};
@@ -86,7 +83,6 @@ const getPillValueStyle = ({type, theme}: {type?: PillType; theme: Theme}) => {
       `;
     case 'error':
       return `
-        color: ${theme.black};
         border-left-color: ${theme.red300};
         background: ${theme.red100};
         border: 1px solid ${theme.red300};
@@ -94,7 +90,6 @@ const getPillValueStyle = ({type, theme}: {type?: PillType; theme: Theme}) => {
       `;
     case 'negative':
       return `
-        color: ${theme.black};
         border-left-color: ${theme.red300};
         background: ${theme.red100};
         border: 1px solid ${theme.red300};
