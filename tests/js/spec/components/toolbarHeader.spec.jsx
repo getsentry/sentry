@@ -1,6 +1,6 @@
 import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
-import ToolbarHeader from 'app/components/toolbarHeader';
+import ToolbarHeader from 'sentry/components/toolbarHeader';
 
 describe('ToolbarHeader', function () {
   beforeEach(function () {});

@@ -3,7 +3,7 @@ import moment from 'moment';
 import {
   getDateFromMoment,
   getXAxisDates,
-} from 'app/views/organizationStats/usageChart/utils';
+} from 'sentry/views/organizationStats/usageChart/utils';
 
 const TS_START = 1531094400000; // 2018 July 9, 12am UTC
 const TS_END = 1531180800000; // 2018 July 10, 12am UTC

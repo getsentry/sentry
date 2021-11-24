@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {Client} from 'app/api';
-import IntegrationDetailedView from 'app/views/organizationIntegrations/integrationDetailedView';
+import {Client} from 'sentry/api';
+import IntegrationDetailedView from 'sentry/views/organizationIntegrations/integrationDetailedView';
 
 const mockResponse = mocks => {
   mocks.forEach(([url, body]) =>

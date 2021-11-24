@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import HelpSearch from 'app/components/helpSearch';
+import HelpSearch from 'sentry/components/helpSearch';
 
 const mockResults = [
   {

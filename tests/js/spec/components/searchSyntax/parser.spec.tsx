@@ -5,8 +5,8 @@ import {
   parseSearch,
   Token,
   TokenResult,
-} from 'app/components/searchSyntax/parser';
-import {treeTransformer} from 'app/components/searchSyntax/utils';
+} from 'sentry/components/searchSyntax/parser';
+import {treeTransformer} from 'sentry/components/searchSyntax/utils';
 
 type TestCase = {
   /**
