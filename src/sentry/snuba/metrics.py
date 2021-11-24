@@ -844,7 +844,9 @@ class MetaFromSnuba:
         groupby: List[Column],
         referrer: str,
     ) -> Mapping[str, Any]:
-        now = datetime.now()
+        # Round timestamp to minute to get cache efficiency:
+        now = datetime.now().replace(second=0, microsecond=0)
+
         query = Query(
             dataset=Dataset.Metrics.value,
             match=Entity(entity_key.value),
@@ -859,7 +861,7 @@ class MetaFromSnuba:
             + where,
             granularity=Granularity(self._granularity),
         )
-        result = raw_snql_query(query, referrer)
+        result = raw_snql_query(query, referrer, use_cache=True)
         return result["data"]
 
     def _get_metrics_for_entity(self, entity_key: EntityKey) -> Mapping[str, Any]:
