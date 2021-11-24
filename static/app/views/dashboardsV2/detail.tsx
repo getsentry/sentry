@@ -27,8 +27,9 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
+import GridLayoutDashboard from './gridLayout/dashboard';
 import Controls from './controls';
-import Dashboard from './dashboard';
+import DnDKitDashboard from './dashboard';
 import {DEFAULT_STATS_PERIOD, EMPTY_DASHBOARD} from './data';
 import DashboardTitle from './title';
 import {DashboardDetails, DashboardListItem, DashboardState, Widget} from './types';
@@ -460,6 +461,10 @@ class DashboardDetail extends Component<Props, State> {
     const {modifiedDashboard, dashboardState} = this.state;
     const {dashboardId} = params;
 
+    const Dashboard = organization.features.includes('dashboard-grid-layout')
+      ? GridLayoutDashboard
+      : DnDKitDashboard;
+
     return (
       <GlobalSelectionHeader
         skipLoadLastUsed={organization.features.includes('global-views')}
@@ -514,6 +519,10 @@ class DashboardDetail extends Component<Props, State> {
       this.props;
     const {modifiedDashboard, dashboardState} = this.state;
     const {dashboardId} = params;
+
+    const Dashboard = organization.features.includes('dashboard-grid-layout')
+      ? GridLayoutDashboard
+      : DnDKitDashboard;
 
     return (
       <GlobalSelectionHeader

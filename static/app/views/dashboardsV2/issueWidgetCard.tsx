@@ -27,6 +27,7 @@ import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 
+import {DRAG_HANDLE_CLASS} from './gridLayout/dashboard';
 import IssueWidgetQueries from './issueWidgetQueries';
 import {Widget} from './types';
 import WidgetQueries from './widgetQueries';
@@ -132,6 +133,7 @@ class IssueWidgetCard extends React.Component<Props> {
           <IconClick>
             <StyledIconGrabbable
               color="textColor"
+              className={DRAG_HANDLE_CLASS}
               {...draggableProps?.listeners}
               {...draggableProps?.attributes}
             />
