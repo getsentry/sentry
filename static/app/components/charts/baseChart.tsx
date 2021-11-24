@@ -486,14 +486,21 @@ function BaseChartUnwrapped({
 // elements directly
 const ChartContainer = styled('div')`
   /* Tooltip styling */
+  .tooltip-container {
+    box-shadow: ${p => p.theme.dropShadowHeavy};
+  }
   .tooltip-series,
   .tooltip-date {
-    color: ${p => p.theme.gray300};
+    color: ${p => p.theme.subText};
     font-family: ${p => p.theme.text.family};
     font-variant-numeric: tabular-nums;
-    background: ${p => p.theme.gray500};
+    background: ${p => p.theme.backgroundElevated};
     padding: ${space(1)} ${space(2)};
+    border: solid 1px ${p => p.theme.border};
     border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
+  }
+  .tooltip-series {
+    border-bottom: none;
   }
   .tooltip-series-solo {
     border-radius: ${p => p.theme.borderRadius};
@@ -503,7 +510,7 @@ const ChartContainer = styled('div')`
   }
   .tooltip-label strong {
     font-weight: normal;
-    color: ${p => p.theme.white};
+    color: ${p => p.theme.textColor};
   }
   .tooltip-label-indent {
     margin-left: ${space(3)};
@@ -514,24 +521,32 @@ const ChartContainer = styled('div')`
     align-items: baseline;
   }
   .tooltip-date {
-    border-top: 1px solid ${p => p.theme.gray400};
+    border-top: solid 1px ${p => p.theme.innerBorder};
     text-align: center;
     position: relative;
     width: auto;
     border-radius: ${p => p.theme.borderRadiusBottom};
   }
   .tooltip-arrow {
-    top: 100%;
+    top: calc(100% - 1px);
     left: 50%;
-    border: 0px solid transparent;
-    content: ' ';
-    height: 0;
-    width: 0;
     position: absolute;
     pointer-events: none;
-    border-top-color: ${p => p.theme.gray500};
-    border-width: 8px;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 8px solid ${p => p.theme.backgroundElevated};
     margin-left: -8px;
+    &:before {
+      border-left: 9px solid transparent;
+      border-right: 9px solid transparent;
+      border-top: 9px solid ${p => p.theme.border};
+      content: '';
+      display: block;
+      position: absolute;
+      top: -8px;
+      left: -9px;
+      z-index: -1;
+    }
   }
 
   .echarts-for-react div:first-of-type {
