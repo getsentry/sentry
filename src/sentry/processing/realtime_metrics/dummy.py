@@ -33,10 +33,10 @@ class DummyRealtimeMetricsStore(base.RealtimeMetricsStore):
         return []
 
     def is_lpq_project(self, project_id: int) -> bool:
-        pass
+        return False
 
     def add_project_to_lpq(self, project_id: int) -> bool:
-        pass
+        return False
 
     def remove_projects_from_lpq(self, project_ids: Set[int]) -> int:
         return 0
