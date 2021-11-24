@@ -5,7 +5,7 @@ import {EChartOption} from 'echarts';
  * service.
  *
  * When adding or removing from this list, please also update the
- * sentry/charts/ratelimit.py file
+ * sentry/charts/types.py file
  */
 export enum ChartType {
   SLACK_DISCOVER_TOTAL_PERIOD = 'slack:discover.totalPeriod',
