@@ -315,7 +315,8 @@ export function VitalWidget(props: Props) {
                         showBar
                         showDurationDetail={false}
                         showDetail={false}
-                        barHeight={24}
+                        showTooltip
+                        barHeight={20}
                       />
                     </VitalBarCell>
                     <ListClose
