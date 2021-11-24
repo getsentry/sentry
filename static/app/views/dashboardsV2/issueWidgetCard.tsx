@@ -29,6 +29,7 @@ import withOrganization from 'app/utils/withOrganization';
 
 import IssueWidgetQueries from './issueWidgetQueries';
 import {Widget} from './types';
+import {DRAG_HANDLE_CLASS} from './widgetCard';
 import WidgetQueries from './widgetQueries';
 
 const ISSUE_TABLE_FIELDS_META: Record<string, ColumnType> = {
@@ -132,6 +133,7 @@ class IssueWidgetCard extends React.Component<Props> {
           <IconClick>
             <StyledIconGrabbable
               color="textColor"
+              className={DRAG_HANDLE_CLASS}
               {...draggableProps?.listeners}
               {...draggableProps?.attributes}
             />
