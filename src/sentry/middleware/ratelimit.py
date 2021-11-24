@@ -5,8 +5,6 @@
 
 from __future__ import annotations
 
-from enum import Enum
-
 from django.conf import settings
 from django.utils.deprecation import MiddlewareMixin
 from rest_framework.request import Request
@@ -14,13 +12,7 @@ from rest_framework.request import Request
 from sentry.api.base import Endpoint
 from sentry.api.helpers.group_index.index import EndpointFunction
 from sentry.app import ratelimiter
-
-
-# Fixed set of rate limit categories
-class RateLimitCategory(str, Enum):
-    IP = "ip"
-    USER = "user"
-    ORGANIZATION = "org"
+from sentry.types.ratelimit import RateLimit
 
 
 def get_rate_limit_key(view_func: EndpointFunction, request: Request) -> str | None:
@@ -59,9 +51,7 @@ def get_rate_limit_key(view_func: EndpointFunction, request: Request) -> str | N
     return f"{category}:{view}:{http_method}:{id}"
 
 
-def get_rate_limit_value(
-    http_method: str, endpoint: Endpoint, category: str
-) -> tuple[int | None, int | None]:
+def get_rate_limit_value(http_method: str, endpoint: Endpoint, category: str) -> RateLimit | None:
     """
     Read the rate limit from the view function to be used for the rate limit check
     """
@@ -70,19 +60,21 @@ def get_rate_limit_value(
     # if the endpoint doesn't have a rate limit property, then it isn't a subclass to our Endpoint
     # it should not be rate limited
     if rate_limit_lookup_dict is None:
-        return None, None
+        return None
     rate_limits = rate_limit_lookup_dict.get(http_method, settings.SENTRY_RATELIMITER_DEFAULTS)
     return rate_limits.get(category, settings.SENTRY_RATELIMITER_DEFAULTS[category])
 
 
-def above_rate_limit_check(key, limit, window):
+def above_rate_limit_check(key: str, rate_limit: RateLimit):
 
-    is_limited, current = ratelimiter.is_limited_with_value(key, limit=limit, window=window)
+    is_limited, current = ratelimiter.is_limited_with_value(
+        key, limit=rate_limit.limit, window=rate_limit.window
+    )
     return {
         "is_limited": is_limited,
         "current": current,
-        "limit": limit,
-        "window": window,
+        "limit": rate_limit.limit,
+        "window": rate_limit.window,
     }
 
 
@@ -101,10 +93,10 @@ class RatelimitMiddleware(MiddlewareMixin):
         key = get_rate_limit_key(view_func, request)
         if key is not None:
             category = key.split(":", 1)[0]
-            limit, window = get_rate_limit_value(request.method, view_func.view_class, category)
+            rate_limit = get_rate_limit_value(request.method, view_func.view_class, category)
             request.will_be_rate_limited = (
-                above_rate_limit_check(key, limit, window)["is_limited"]
-                if window is not None
+                above_rate_limit_check(key, rate_limit)["is_limited"]
+                if rate_limit is not None
                 else False
             )
         return

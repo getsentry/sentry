@@ -4,68 +4,72 @@ from django.conf import settings
 from django.test import RequestFactory
 from exam import fixture
 from freezegun import freeze_time
+from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
+from sentry.api.endpoints.organization_group_index import OrganizationGroupIndexEndpoint
 from sentry.auth.access import from_request
 from sentry.middleware.ratelimit import (
-    RateLimitCategory,
     RatelimitMiddleware,
     above_rate_limit_check,
     get_rate_limit_key,
     get_rate_limit_value,
 )
 from sentry.testutils import TestCase
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 class RatelimitMiddlewareTest(TestCase):
     middleware = fixture(RatelimitMiddleware)
     factory = fixture(RequestFactory)
-    view = lambda x: None
+
+    class TestEndpoint(Endpoint):
+        def get(self):
+            return Response({"ok": True})
+
+    _test_endpoint = TestEndpoint.as_view()
 
     @patch("sentry.middleware.ratelimit.get_rate_limit_value")
     def test_positive_rate_limit_check(self, default_rate_limit_mock):
         request = self.factory.get("/")
         with freeze_time("2000-01-01"):
-            default_rate_limit_mock.return_value = (0, 100)
-            self.middleware.process_view(request, self.view, [], {})
+            default_rate_limit_mock.return_value = RateLimit(0, 100)
+            self.middleware.process_view(request, self._test_endpoint, [], {})
             assert request.will_be_rate_limited
 
         with freeze_time("2000-01-02"):
             # 10th request in a 10 request window should get rate limited
-            default_rate_limit_mock.return_value = (10, 100)
+            default_rate_limit_mock.return_value = RateLimit(10, 100)
             for _ in range(10):
-                self.middleware.process_view(request, self.view, [], {})
+                self.middleware.process_view(request, self._test_endpoint, [], {})
                 assert not request.will_be_rate_limited
 
-            self.middleware.process_view(request, self.view, [], {})
+            self.middleware.process_view(request, self._test_endpoint, [], {})
             assert request.will_be_rate_limited
 
     @patch("sentry.middleware.ratelimit.get_rate_limit_value")
     def test_negative_rate_limit_check(self, default_rate_limit_mock):
         request = self.factory.get("/")
-        default_rate_limit_mock.return_value = (10, 100)
-        self.middleware.process_view(request, self.view, [], {})
+        default_rate_limit_mock.return_value = RateLimit(10, 100)
+        self.middleware.process_view(request, self._test_endpoint, [], {})
         assert not request.will_be_rate_limited
 
         # Requests outside the current window should not be rate limited
-        default_rate_limit_mock.return_value = (1, 1)
+        default_rate_limit_mock.return_value = RateLimit(1, 1)
         with freeze_time("2000-01-01") as frozen_time:
-            self.middleware.process_view(request, self.view, [], {})
+            self.middleware.process_view(request, self._test_endpoint, [], {})
             assert not request.will_be_rate_limited
             frozen_time.tick(1)
-            self.middleware.process_view(request, self.view, [], {})
+            self.middleware.process_view(request, self._test_endpoint, [], {})
             assert not request.will_be_rate_limited
 
-    @patch("sentry.middleware.ratelimit.get_rate_limit_value")
-    def test_above_rate_limit_check(self, default_rate_limit_mock):
-        default_rate_limit_mock.return_value = (10, 100)
+    def test_above_rate_limit_check(self):
 
-        return_val = above_rate_limit_check("foo")
+        return_val = above_rate_limit_check("foo", RateLimit(10, 100))
         assert return_val == dict(is_limited=False, current=1, limit=10, window=100)
 
     def test_get_rate_limit_key(self):
         # Import an endpoint
-        from sentry.api.endpoints.organization_group_index import OrganizationGroupIndexEndpoint
 
         view = OrganizationGroupIndexEndpoint
 
@@ -127,11 +131,11 @@ class TestGetRateLimitValue(TestCase):
 
         class TestEndpoint(Endpoint):
             rate_limits = {
-                "GET": {RateLimitCategory.IP: (100, 5)},
-                "POST": {RateLimitCategory.USER: (20, 4)},
+                "GET": {RateLimitCategory.IP: RateLimit(100, 5)},
+                "POST": {RateLimitCategory.USER: RateLimit(20, 4)},
             }
 
-        assert get_rate_limit_value("GET", TestEndpoint, "ip") == (100, 5)
+        assert get_rate_limit_value("GET", TestEndpoint, "ip") == RateLimit(100, 5)
         assert (
             get_rate_limit_value("GET", TestEndpoint, "user")
             == settings.SENTRY_RATELIMITER_DEFAULTS["user"]
@@ -140,7 +144,7 @@ class TestGetRateLimitValue(TestCase):
             get_rate_limit_value("POST", TestEndpoint, "ip")
             == settings.SENTRY_RATELIMITER_DEFAULTS["ip"]
         )
-        assert get_rate_limit_value("POST", TestEndpoint, "user") == (20, 4)
+        assert get_rate_limit_value("POST", TestEndpoint, "user") == RateLimit(20, 4)
 
     def test_non_endpoint(self):
         """views that don't inherit Endpoint shouldn not return a value"""
@@ -148,4 +152,4 @@ class TestGetRateLimitValue(TestCase):
         class TestEndpoint:
             pass
 
-        assert get_rate_limit_value("GET", TestEndpoint, "ip") == (None, None)
+        assert get_rate_limit_value("GET", TestEndpoint, "ip") is None
