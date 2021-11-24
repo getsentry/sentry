@@ -30,7 +30,7 @@ import {GlobalSelection, Organization, SavedQuery} from 'app/types';
 import {defined, generateQueryWithTag} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
-import {generateAggregateFields} from 'app/utils/discover/fields';
+import {formatTagKey, generateAggregateFields} from 'app/utils/discover/fields';
 import {
   DisplayModes,
   MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES,
@@ -422,7 +422,7 @@ class Results extends React.Component<Props, State> {
 
     const url = eventView.getResultsViewUrlTarget(organization.slug);
     url.query = generateQueryWithTag(url.query, {
-      key,
+      key: formatTagKey(key),
       value,
     });
     return url;
