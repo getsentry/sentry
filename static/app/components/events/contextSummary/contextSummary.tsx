@@ -1,10 +1,10 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Event} from 'app/types/event';
-import {objectIsEmpty} from 'app/utils';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Event} from 'sentry/types/event';
+import {objectIsEmpty} from 'sentry/utils';
 
 import ContextSummaryDevice from './contextSummaryDevice';
 import ContextSummaryGeneric from './contextSummaryGeneric';

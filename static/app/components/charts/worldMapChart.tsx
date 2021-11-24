@@ -3,8 +3,8 @@ import {withTheme} from '@emotion/react';
 import echarts, {EChartOption} from 'echarts';
 import max from 'lodash/max';
 
-import {Series, SeriesDataUnit} from 'app/types/echarts';
-import {Theme} from 'app/utils/theme';
+import {Series, SeriesDataUnit} from 'sentry/types/echarts';
+import {Theme} from 'sentry/utils/theme';
 
 import VisualMap from './components/visualMap';
 import MapSeries from './series/mapSeries';

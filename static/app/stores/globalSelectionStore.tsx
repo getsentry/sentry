@@ -1,13 +1,13 @@
 import isEqual from 'lodash/isEqual';
 import Reflux from 'reflux';
 
-import GlobalSelectionActions from 'app/actions/globalSelectionActions';
-import {getDefaultSelection} from 'app/components/organizations/globalSelectionHeader/utils';
-import {LOCAL_STORAGE_KEY} from 'app/constants/globalSelectionHeader';
-import OrganizationsStore from 'app/stores/organizationsStore';
-import {GlobalSelection, Organization} from 'app/types';
-import {isEqualWithDates} from 'app/utils/isEqualWithDates';
-import localStorage from 'app/utils/localStorage';
+import GlobalSelectionActions from 'sentry/actions/globalSelectionActions';
+import {getDefaultSelection} from 'sentry/components/organizations/globalSelectionHeader/utils';
+import {LOCAL_STORAGE_KEY} from 'sentry/constants/globalSelectionHeader';
+import OrganizationsStore from 'sentry/stores/organizationsStore';
+import {GlobalSelection, Organization} from 'sentry/types';
+import {isEqualWithDates} from 'sentry/utils/isEqualWithDates';
+import localStorage from 'sentry/utils/localStorage';
 
 import {CommonStoreInterface} from './types';
 

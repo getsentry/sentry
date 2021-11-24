@@ -6,24 +6,28 @@ import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
-} from 'app/actionCreators/indicator';
-import {navigateTo} from 'app/actionCreators/navigation';
-import Access from 'app/components/acl/access';
-import Alert from 'app/components/alert';
-import GuideAnchor from 'app/components/assistant/guideAnchor';
-import Button from 'app/components/button';
-import Link from 'app/components/links/link';
-import {IconClose, IconInfo, IconSiren} from 'app/icons';
-import {t, tct} from 'app/locale';
-import {Organization, Project} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
-import {Aggregation, AGGREGATIONS, explodeFieldString} from 'app/utils/discover/fields';
-import useApi from 'app/utils/useApi';
+} from 'sentry/actionCreators/indicator';
+import {navigateTo} from 'sentry/actionCreators/navigation';
+import Access from 'sentry/components/acl/access';
+import Alert from 'sentry/components/alert';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import Button from 'sentry/components/button';
+import Link from 'sentry/components/links/link';
+import {IconClose, IconInfo, IconSiren} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import {Organization, Project} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
+import {
+  Aggregation,
+  AGGREGATIONS,
+  explodeFieldString,
+} from 'sentry/utils/discover/fields';
+import useApi from 'sentry/utils/useApi';
 import {
   errorFieldConfig,
   transactionFieldConfig,
-} from 'app/views/alerts/incidentRules/constants';
-import {getQueryDatasource} from 'app/views/alerts/utils';
+} from 'sentry/views/alerts/incidentRules/constants';
+import {getQueryDatasource} from 'sentry/views/alerts/utils';
 
 /**
  * Discover query supports more features than alert rules

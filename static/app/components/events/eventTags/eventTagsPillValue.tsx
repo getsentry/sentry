@@ -1,10 +1,10 @@
-import DeviceName from 'app/components/deviceName';
-import AnnotatedText from 'app/components/events/meta/annotatedText';
-import Link from 'app/components/links/link';
-import Version from 'app/components/version';
-import {Meta} from 'app/types';
-import {EventTag} from 'app/types/event';
-import {defined} from 'app/utils';
+import DeviceName from 'sentry/components/deviceName';
+import AnnotatedText from 'sentry/components/events/meta/annotatedText';
+import Link from 'sentry/components/links/link';
+import Version from 'sentry/components/version';
+import {Meta} from 'sentry/types';
+import {EventTag} from 'sentry/types/event';
+import {defined} from 'sentry/utils';
 
 type Props = {
   isRelease: boolean;

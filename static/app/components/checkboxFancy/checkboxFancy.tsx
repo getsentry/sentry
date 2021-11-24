@@ -2,7 +2,7 @@ import * as React from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Theme} from 'app/utils/theme';
+import {Theme} from 'sentry/utils/theme';
 
 import CheckboxFancyContent from './checkboxFancyContent';
 
