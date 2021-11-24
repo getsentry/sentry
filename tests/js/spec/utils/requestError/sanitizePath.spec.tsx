@@ -1,4 +1,4 @@
-import {sanitizePath} from 'sentry//utils/requestError/sanitizePath';
+import {sanitizePath} from 'sentry/utils/requestError/sanitizePath';
 
 describe('sanitizePath', function () {
   test.each([
