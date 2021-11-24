@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import DropdownMenu from 'app/components/dropdownMenu';
+import DropdownMenu from 'sentry/components/dropdownMenu';
 
 jest.useFakeTimers();
 

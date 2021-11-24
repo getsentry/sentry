@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {BooleanField, Form} from 'app/components/forms';
+import {BooleanField, Form} from 'sentry/components/forms';
 
 describe('BooleanField', function () {
   describe('render()', function () {

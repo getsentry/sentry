@@ -4,7 +4,7 @@ import {
   getSessionTermDescription,
   mobileTermsDescription,
   SessionTerm,
-} from 'app/views/releases/utils/sessionTerm';
+} from 'sentry/views/releases/utils/sessionTerm';
 
 describe('Release Health Session Term', function () {
   it('dotnet terms', function () {

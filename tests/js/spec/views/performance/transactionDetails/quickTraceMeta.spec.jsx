@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {OrganizationContext} from 'app/views/organizationContext';
-import QuickTraceMeta from 'app/views/performance/transactionDetails/quickTraceMeta';
+import {OrganizationContext} from 'sentry/views/organizationContext';
+import QuickTraceMeta from 'sentry/views/performance/transactionDetails/quickTraceMeta';
 
 const WrappedQuickTraceMeta = ({organization, ...rest}) => {
   return (

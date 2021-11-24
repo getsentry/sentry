@@ -1,8 +1,8 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {setLastRoute} from 'app/actionCreators/navigation';
-import {setActiveProject} from 'app/actionCreators/projects';
-import {OrganizationRoot} from 'app/views/organizationRoot';
+import {setLastRoute} from 'sentry/actionCreators/navigation';
+import {setActiveProject} from 'sentry/actionCreators/projects';
+import {OrganizationRoot} from 'sentry/views/organizationRoot';
 
 jest.mock('app/actionCreators/projects', () => ({
   setActiveProject: jest.fn(),

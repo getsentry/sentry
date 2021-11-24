@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import GroupTagDistributionMeter from 'app/components/group/tagDistributionMeter';
+import GroupTagDistributionMeter from 'sentry/components/group/tagDistributionMeter';
 
 describe('TagDistributionMeter', function () {
   let element;

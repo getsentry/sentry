@@ -2,7 +2,7 @@ import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {ProjectInstallPlatform} from 'app/views/projectInstall/platform';
+import {ProjectInstallPlatform} from 'sentry/views/projectInstall/platform';
 
 describe('ProjectInstallPlatform', function () {
   describe('render()', function () {

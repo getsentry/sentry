@@ -1,12 +1,12 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import {NotificationSettingsObject} from 'app/views/settings/account/notifications/constants';
-import NotificationSettingsByType from 'app/views/settings/account/notifications/notificationSettingsByType';
+import {NotificationSettingsObject} from 'sentry/views/settings/account/notifications/constants';
+import NotificationSettingsByType from 'sentry/views/settings/account/notifications/notificationSettingsByType';
 import {
   Identity,
   OrganizationIntegration,
-} from 'app/views/settings/account/notifications/types';
+} from 'sentry/views/settings/account/notifications/types';
 
 const addMockResponses = (
   notificationSettings: NotificationSettingsObject,

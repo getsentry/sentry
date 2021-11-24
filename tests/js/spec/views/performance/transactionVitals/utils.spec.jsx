@@ -2,7 +2,7 @@ import {
   findNearestBucketIndex,
   getRefRect,
   mapPoint,
-} from 'app/views/performance/transactionSummary/transactionVitals/utils';
+} from 'sentry/views/performance/transactionSummary/transactionVitals/utils';
 
 describe('Utils', function () {
   describe('findNearestBucketIndex()', function () {

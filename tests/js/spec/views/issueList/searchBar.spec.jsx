@@ -1,8 +1,8 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import TagStore from 'app/stores/tagStore';
-import IssueListSearchBar from 'app/views/issueList/searchBar';
+import TagStore from 'sentry/stores/tagStore';
+import IssueListSearchBar from 'sentry/views/issueList/searchBar';
 
 describe('IssueListSearchBar', function () {
   let tagValuePromise;

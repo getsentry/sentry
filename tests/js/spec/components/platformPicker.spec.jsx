@@ -1,7 +1,7 @@
 import {mountWithTheme, shallow} from 'sentry-test/enzyme';
 
-import {Client} from 'app/api';
-import PlatformPicker from 'app/components/platformPicker';
+import {Client} from 'sentry/api';
+import PlatformPicker from 'sentry/components/platformPicker';
 
 describe('PlatformPicker', function () {
   beforeEach(function () {

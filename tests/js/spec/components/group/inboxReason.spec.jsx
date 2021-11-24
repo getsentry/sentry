@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import InboxReason from 'app/components/group/inboxBadges/inboxReason';
+import InboxReason from 'sentry/components/group/inboxBadges/inboxReason';
 
 describe('InboxReason', () => {
   let inbox;

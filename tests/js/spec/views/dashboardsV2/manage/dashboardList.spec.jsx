@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 
-import DashboardList from 'app/views/dashboardsV2/manage/dashboardList';
+import DashboardList from 'sentry/views/dashboardsV2/manage/dashboardList';
 
 function openContextMenu(card) {
   card.find('DropdownMenu MoreOptions svg').simulate('click');

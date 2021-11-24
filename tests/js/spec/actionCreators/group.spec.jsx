@@ -1,6 +1,6 @@
-import {bulkUpdate, mergeGroups, paramsToQueryArgs} from 'app/actionCreators/group';
-import GroupActions from 'app/actions/groupActions';
-import {Client} from 'app/api';
+import {bulkUpdate, mergeGroups, paramsToQueryArgs} from 'sentry/actionCreators/group';
+import GroupActions from 'sentry/actions/groupActions';
+import {Client} from 'sentry/api';
 
 describe('group', () => {
   let api;

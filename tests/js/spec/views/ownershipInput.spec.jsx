@@ -1,8 +1,8 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {selectByValueAsync} from 'sentry-test/select-new';
 
-import MemberListStore from 'app/stores/memberListStore';
-import OwnerInput from 'app/views/settings/project/projectOwnership/ownerInput';
+import MemberListStore from 'sentry/stores/memberListStore';
+import OwnerInput from 'sentry/views/settings/project/projectOwnership/ownerInput';
 
 describe('Project Ownership Input', function () {
   let org;

@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
-import ReturnButton from 'app/views/settings/components/forms/returnButton';
+import ReturnButton from 'sentry/views/settings/components/forms/returnButton';
 
 describe('returnButton', function () {
   it('renders', function () {

@@ -1,6 +1,6 @@
 import Reflux from 'reflux';
 
-import StreamManager from 'app/utils/streamManager';
+import StreamManager from 'sentry/utils/streamManager';
 
 describe('StreamManager', function () {
   let store;

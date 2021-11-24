@@ -1,6 +1,6 @@
 import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
-import MutedBox from 'app/components/mutedBox';
+import MutedBox from 'sentry/components/mutedBox';
 
 describe('MutedBox', function () {
   describe('render()', function () {

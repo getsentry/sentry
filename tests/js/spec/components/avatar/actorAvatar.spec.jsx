@@ -1,10 +1,10 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {act} from 'sentry-test/reactTestingLibrary';
 
-import ActorAvatar from 'app/components/avatar/actorAvatar';
-import MemberListStore from 'app/stores/memberListStore';
-import OrganizationStore from 'app/stores/organizationStore';
-import TeamStore from 'app/stores/teamStore';
+import ActorAvatar from 'sentry/components/avatar/actorAvatar';
+import MemberListStore from 'sentry/stores/memberListStore';
+import OrganizationStore from 'sentry/stores/organizationStore';
+import TeamStore from 'sentry/stores/teamStore';
 
 describe('ActorAvatar', function () {
   const USER = {

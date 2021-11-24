@@ -1,6 +1,6 @@
-import {getProjectRelease, getReleaseDeploys} from 'app/actionCreators/release';
-import ReleaseActions from 'app/actions/releaseActions';
-import ReleaseStore, {getReleaseStoreKey} from 'app/stores/releaseStore';
+import {getProjectRelease, getReleaseDeploys} from 'sentry/actionCreators/release';
+import ReleaseActions from 'sentry/actions/releaseActions';
+import ReleaseStore, {getReleaseStoreKey} from 'sentry/stores/releaseStore';
 
 describe('ReleaseActionCreator', function () {
   const orgSlug = 'myOrg';

@@ -1,6 +1,6 @@
 import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
-import TeamIssuesReviewed from 'app/views/organizationStats/teamInsights/teamIssuesReviewed';
+import TeamIssuesReviewed from 'sentry/views/organizationStats/teamInsights/teamIssuesReviewed';
 
 describe('TeamIssuesReviewed', () => {
   it('should render graph with table of issues reviewed', async () => {

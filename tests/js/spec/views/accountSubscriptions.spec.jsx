@@ -2,8 +2,8 @@ import PropTypes from 'prop-types';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {Client} from 'app/api';
-import AccountSubscriptions from 'app/views/settings/account/accountSubscriptions';
+import {Client} from 'sentry/api';
+import AccountSubscriptions from 'sentry/views/settings/account/accountSubscriptions';
 
 const ENDPOINT = '/users/me/subscriptions/';
 

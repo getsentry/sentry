@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
-import SetupAlertIntegrationButton from 'app/views/alerts/issueRuleEditor/setupAlertIntegrationButton';
+import SetupAlertIntegrationButton from 'sentry/views/alerts/issueRuleEditor/setupAlertIntegrationButton';
 
 describe('SetupAlertIntegrationButton', function () {
   const organization = TestStubs.Organization();

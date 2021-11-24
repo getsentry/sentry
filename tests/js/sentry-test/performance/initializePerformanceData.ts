@@ -1,7 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import {Project} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
+import {Project} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
 
 export function initializeData(settings?: {
   query?: {};

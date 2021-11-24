@@ -2,11 +2,11 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {act} from 'sentry-test/reactTestingLibrary';
 
-import TeamStore from 'app/stores/teamStore';
-import EventView from 'app/utils/discover/eventView';
-import {OrganizationContext} from 'app/views/organizationContext';
-import {PerformanceLanding} from 'app/views/performance/landing';
-import {LandingDisplayField} from 'app/views/performance/landing/utils';
+import TeamStore from 'sentry/stores/teamStore';
+import EventView from 'sentry/utils/discover/eventView';
+import {OrganizationContext} from 'sentry/views/organizationContext';
+import {PerformanceLanding} from 'sentry/views/performance/landing';
+import {LandingDisplayField} from 'sentry/views/performance/landing/utils';
 
 const WrappedComponent = ({data}) => {
   const eventView = EventView.fromLocation(data.router.location);

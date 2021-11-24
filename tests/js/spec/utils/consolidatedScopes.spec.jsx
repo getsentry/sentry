@@ -1,4 +1,4 @@
-import {toPermissions, toResourcePermissions} from 'app/utils/consolidatedScopes';
+import {toPermissions, toResourcePermissions} from 'sentry/utils/consolidatedScopes';
 
 describe('ConsolidatedScopes', () => {
   let scopes;

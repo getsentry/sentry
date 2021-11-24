@@ -1,7 +1,7 @@
 import {mountGlobalModal} from 'sentry-test/modal';
 
-import {openReprocessEventModal} from 'app/actionCreators/modal';
-import ModalActions from 'app/actions/modalActions';
+import {openReprocessEventModal} from 'sentry/actionCreators/modal';
+import ModalActions from 'sentry/actions/modalActions';
 
 const group = TestStubs.Group({
   id: '1337',

@@ -4,12 +4,12 @@ import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'app/stores/projectsStore';
-import TransactionVitals from 'app/views/performance/transactionSummary/transactionVitals';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import TransactionVitals from 'sentry/views/performance/transactionSummary/transactionVitals';
 import {
   VITAL_GROUPS,
   ZOOM_KEYS,
-} from 'app/views/performance/transactionSummary/transactionVitals/constants';
+} from 'sentry/views/performance/transactionSummary/transactionVitals/constants';
 
 function initialize({project, features, transaction, query} = {}) {
   features = features || ['performance-view'];

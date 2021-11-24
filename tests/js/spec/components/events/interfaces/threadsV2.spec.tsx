@@ -1,9 +1,9 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import ThreadsV2 from 'app/components/events/interfaces/threadsV2';
-import {EventOrGroupType} from 'app/types';
-import {EntryType, Event} from 'app/types/event';
+import ThreadsV2 from 'sentry/components/events/interfaces/threadsV2';
+import {EventOrGroupType} from 'sentry/types';
+import {EntryType, Event} from 'sentry/types/event';
 
 describe('ThreadsV2', function () {
   const {project, organization} = initializeOrg();

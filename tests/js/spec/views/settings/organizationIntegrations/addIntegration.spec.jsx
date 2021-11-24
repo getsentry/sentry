@@ -1,7 +1,7 @@
 /* global global */
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import AddIntegration from 'app/views/organizationIntegrations/addIntegration';
+import AddIntegration from 'sentry/views/organizationIntegrations/addIntegration';
 
 describe('AddIntegration', function () {
   const provider = TestStubs.GitHubIntegrationProvider();

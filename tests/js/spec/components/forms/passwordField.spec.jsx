@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {Form, PasswordField} from 'app/components/forms';
+import {Form, PasswordField} from 'sentry/components/forms';
 
 describe('PasswordField', function () {
   describe('render()', function () {

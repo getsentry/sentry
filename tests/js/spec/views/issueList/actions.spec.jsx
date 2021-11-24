@@ -3,9 +3,9 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
 import {selectByLabel} from 'sentry-test/select-new';
 
-import GroupStore from 'app/stores/groupStore';
-import SelectedGroupStore from 'app/stores/selectedGroupStore';
-import {IssueListActions} from 'app/views/issueList/actions';
+import GroupStore from 'sentry/stores/groupStore';
+import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
+import {IssueListActions} from 'sentry/views/issueList/actions';
 
 describe('IssueListActions', function () {
   let actions;

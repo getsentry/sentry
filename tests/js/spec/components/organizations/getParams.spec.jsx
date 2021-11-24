@@ -1,7 +1,7 @@
 import {
   getParams,
   parseStatsPeriod,
-} from 'app/components/organizations/globalSelectionHeader/getParams';
+} from 'sentry/components/organizations/globalSelectionHeader/getParams';
 
 describe('getParams', function () {
   it('should return default statsPeriod if it is not provided or is invalid', function () {

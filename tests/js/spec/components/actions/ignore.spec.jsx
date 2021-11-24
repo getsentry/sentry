@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 
-import IgnoreActions from 'app/components/actions/ignore';
+import IgnoreActions from 'sentry/components/actions/ignore';
 
 describe('IgnoreActions', function () {
   const routerContext = TestStubs.routerContext();

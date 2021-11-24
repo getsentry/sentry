@@ -2,8 +2,8 @@ import moment from 'moment';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import ConfigureDistributedTracing from 'app/views/organizationGroupDetails/quickTrace/configureDistributedTracing';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import ConfigureDistributedTracing from 'sentry/views/organizationGroupDetails/quickTrace/configureDistributedTracing';
 
 jest.mock('app/utils/analytics');
 

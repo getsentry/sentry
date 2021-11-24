@@ -1,6 +1,6 @@
 import {shallow} from 'sentry-test/enzyme';
 
-import {HighlightComponent} from 'app/components/highlight';
+import {HighlightComponent} from 'sentry/components/highlight';
 
 describe('Highlight', function () {
   it('highlights text', function () {

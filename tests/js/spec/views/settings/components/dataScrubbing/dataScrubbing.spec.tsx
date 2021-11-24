@@ -1,9 +1,9 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {addSuccessMessage} from 'app/actionCreators/indicator';
-import {openModal} from 'app/actionCreators/modal';
-import DataScrubbing from 'app/views/settings/components/dataScrubbing';
-import {ProjectId} from 'app/views/settings/components/dataScrubbing/types';
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {openModal} from 'sentry/actionCreators/modal';
+import DataScrubbing from 'sentry/views/settings/components/dataScrubbing';
+import {ProjectId} from 'sentry/views/settings/components/dataScrubbing/types';
 
 jest.mock('app/actionCreators/modal');
 

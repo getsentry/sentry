@@ -1,6 +1,6 @@
 import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import RadioGroupPanel from 'app/views/alerts/wizard/radioPanelGroup';
+import RadioGroupPanel from 'sentry/views/alerts/wizard/radioPanelGroup';
 
 describe('RadioGroupPanel', function () {
   it('calls onChange when clicked', function () {

@@ -1,7 +1,7 @@
 import {
   decideDefault,
   getUserDefaultValues,
-} from 'app/views/settings/account/notifications/utils';
+} from 'sentry/views/settings/account/notifications/utils';
 
 describe('Notification Settings Utils', () => {
   describe('getUserDefaultValues', () => {

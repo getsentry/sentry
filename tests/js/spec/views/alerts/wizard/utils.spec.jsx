@@ -1,5 +1,5 @@
-import {Dataset, SessionsAggregate} from 'app/views/alerts/incidentRules/types';
-import {getAlertTypeFromAggregateDataset} from 'app/views/alerts/wizard/utils';
+import {Dataset, SessionsAggregate} from 'sentry/views/alerts/incidentRules/types';
+import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
 describe('Wizard utils', function () {
   it('extracts lcp alert', function () {

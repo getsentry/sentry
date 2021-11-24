@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import ProjectFilters from 'app/views/settings/project/projectFilters';
+import ProjectFilters from 'sentry/views/settings/project/projectFilters';
 
 describe('ProjectFilters', function () {
   const org = TestStubs.Organization();

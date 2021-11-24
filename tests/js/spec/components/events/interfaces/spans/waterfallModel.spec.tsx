@@ -1,8 +1,8 @@
-import {ActiveFilter, noFilter} from 'app/components/events/interfaces/spans/filter';
-import {EnhancedProcessedSpanType} from 'app/components/events/interfaces/spans/types';
-import WaterfallModel from 'app/components/events/interfaces/spans/waterfallModel';
-import {EntryType, EventTransaction} from 'app/types/event';
-import {assert} from 'app/types/utils';
+import {ActiveFilter, noFilter} from 'sentry/components/events/interfaces/spans/filter';
+import {EnhancedProcessedSpanType} from 'sentry/components/events/interfaces/spans/types';
+import WaterfallModel from 'sentry/components/events/interfaces/spans/waterfallModel';
+import {EntryType, EventTransaction} from 'sentry/types/event';
+import {assert} from 'sentry/types/utils';
 
 describe('WaterfallModel', () => {
   const event = {

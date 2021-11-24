@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import ProjectFilters from 'app/views/projectDetail/projectFilters';
+import ProjectFilters from 'sentry/views/projectDetail/projectFilters';
 
 describe('ProjectDetail > ProjectFilters', () => {
   const onSearch = jest.fn();

@@ -1,7 +1,7 @@
 import {act, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
-import TagStore from 'app/stores/tagStore';
-import withTags from 'app/utils/withTags';
+import TagStore from 'sentry/stores/tagStore';
+import withTags from 'sentry/utils/withTags';
 
 describe('withTags HoC', function () {
   beforeEach(() => {

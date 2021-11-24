@@ -1,10 +1,10 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {selectByValue} from 'sentry-test/select-new';
 
-import {Client} from 'app/api';
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import PermissionsObserver from 'app/views/settings/organizationDeveloperSettings/permissionsObserver';
-import SentryApplicationDetails from 'app/views/settings/organizationDeveloperSettings/sentryApplicationDetails';
+import {Client} from 'sentry/api';
+import JsonForm from 'sentry/views/settings/components/forms/jsonForm';
+import PermissionsObserver from 'sentry/views/settings/organizationDeveloperSettings/permissionsObserver';
+import SentryApplicationDetails from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails';
 
 describe('Sentry Application Details', function () {
   let org;

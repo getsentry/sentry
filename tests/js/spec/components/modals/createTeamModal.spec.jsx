@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {createTeam} from 'app/actionCreators/teams';
-import CreateTeamModal from 'app/components/modals/createTeamModal';
+import {createTeam} from 'sentry/actionCreators/teams';
+import CreateTeamModal from 'sentry/components/modals/createTeamModal';
 
 jest.mock('app/actionCreators/teams', () => ({
   createTeam: jest.fn((...args) => new Promise(resolve => resolve(...args))),

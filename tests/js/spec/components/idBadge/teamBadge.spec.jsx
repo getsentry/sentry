@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import TeamBadge from 'app/components/idBadge/teamBadge';
-import TeamStore from 'app/stores/teamStore';
+import TeamBadge from 'sentry/components/idBadge/teamBadge';
+import TeamStore from 'sentry/stores/teamStore';
 
 describe('TeamBadge', function () {
   beforeEach(() => {

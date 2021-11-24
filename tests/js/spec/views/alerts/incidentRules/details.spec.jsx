@@ -8,9 +8,9 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import GlobalModal from 'app/components/globalModal';
-import {metric} from 'app/utils/analytics';
-import IncidentRulesDetails from 'app/views/alerts/incidentRules/details';
+import GlobalModal from 'sentry/components/globalModal';
+import {metric} from 'sentry/utils/analytics';
+import IncidentRulesDetails from 'sentry/views/alerts/incidentRules/details';
 
 jest.mock('app/utils/analytics', () => ({
   metric: {

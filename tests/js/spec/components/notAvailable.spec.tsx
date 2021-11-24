@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import NotAvailable from 'app/components/notAvailable';
+import NotAvailable from 'sentry/components/notAvailable';
 
 describe('NotAvailable', function () {
   it('renders', function () {

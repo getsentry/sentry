@@ -7,7 +7,7 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
-import TeamMisery from 'app/views/organizationStats/teamInsights/teamMisery';
+import TeamMisery from 'sentry/views/organizationStats/teamInsights/teamMisery';
 
 describe('TeamMisery', () => {
   it('should render misery from projects and expand hidden items', async () => {

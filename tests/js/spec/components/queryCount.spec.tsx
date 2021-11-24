@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
-import QueryCount from 'app/components/queryCount';
+import QueryCount from 'sentry/components/queryCount';
 
 describe('QueryCount', function () {
   it('displays count when no max', function () {

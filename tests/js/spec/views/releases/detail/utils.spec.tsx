@@ -1,10 +1,10 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import {lightTheme} from 'app/utils/theme';
+import {lightTheme} from 'sentry/utils/theme';
 import {
   generateReleaseMarkLines,
   releaseMarkLinesLabels,
-} from 'app/views/releases/detail/utils';
+} from 'sentry/views/releases/detail/utils';
 
 describe('releases/detail/utils', () => {
   describe('generateReleaseMarkLines', () => {

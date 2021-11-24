@@ -3,9 +3,9 @@ import {browserHistory} from 'react-router';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import ProjectsStore from 'app/stores/projectsStore';
-import EventView from 'app/utils/discover/eventView';
-import Table from 'app/views/performance/table';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import EventView from 'sentry/utils/discover/eventView';
+import Table from 'sentry/views/performance/table';
 
 const FEATURES = ['performance-view'];
 

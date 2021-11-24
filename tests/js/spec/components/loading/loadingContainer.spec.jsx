@@ -1,6 +1,6 @@
 import {cleanup, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
-import LoadingContainer from 'app/components/loading/loadingContainer';
+import LoadingContainer from 'sentry/components/loading/loadingContainer';
 
 function renderComponent(props) {
   return mountWithTheme(

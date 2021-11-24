@@ -1,6 +1,6 @@
 import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
-import ContextData from 'app/components/contextData';
+import ContextData from 'sentry/components/contextData';
 
 describe('ContextData', function () {
   describe('render()', function () {

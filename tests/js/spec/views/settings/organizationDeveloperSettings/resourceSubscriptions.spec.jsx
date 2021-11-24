@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import Form from 'app/views/settings/components/forms/form';
-import Subscriptions from 'app/views/settings/organizationDeveloperSettings/resourceSubscriptions';
+import Form from 'sentry/views/settings/components/forms/form';
+import Subscriptions from 'sentry/views/settings/organizationDeveloperSettings/resourceSubscriptions';
 
 describe('Resource Subscriptions', () => {
   let wrapper;

@@ -6,7 +6,7 @@ import {
   MetricsSwitch,
   MetricsSwitchContextContainer,
   useMetricsSwitch,
-} from 'app/views/performance/metricsSwitch';
+} from 'sentry/views/performance/metricsSwitch';
 
 function TestComponent() {
   const {isMetricsData} = useMetricsSwitch();

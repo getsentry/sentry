@@ -3,8 +3,8 @@ import {Fragment} from 'react';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import GlobalModal from 'app/components/globalModal';
-import FiltersAndSampling from 'app/views/settings/project/filtersAndSampling';
+import GlobalModal from 'sentry/components/globalModal';
+import FiltersAndSampling from 'sentry/views/settings/project/filtersAndSampling';
 
 export const commonConditionCategories = [
   'Release',

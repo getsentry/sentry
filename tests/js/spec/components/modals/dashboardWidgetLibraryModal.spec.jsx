@@ -1,7 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import DashboardWidgetLibraryModal from 'app/components/modals/dashboardWidgetLibraryModal';
+import DashboardWidgetLibraryModal from 'sentry/components/modals/dashboardWidgetLibraryModal';
 
 const stubEl = props => <div>{props.children}</div>;
 const alertText =

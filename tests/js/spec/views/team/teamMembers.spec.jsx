@@ -3,9 +3,9 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {
   openInviteMembersModal,
   openTeamAccessRequestModal,
-} from 'app/actionCreators/modal';
-import {Client} from 'app/api';
-import TeamMembers from 'app/views/settings/organizationTeams/teamMembers';
+} from 'sentry/actionCreators/modal';
+import {Client} from 'sentry/api';
+import TeamMembers from 'sentry/views/settings/organizationTeams/teamMembers';
 
 jest.mock('app/actionCreators/modal', () => ({
   openInviteMembersModal: jest.fn(),

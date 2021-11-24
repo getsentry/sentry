@@ -1,7 +1,7 @@
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {getByTextContent} from 'sentry-test/utils';
 
-import {DYNAMIC_SAMPLING_DOC_LINK} from 'app/views/settings/project/filtersAndSampling/utils';
+import {DYNAMIC_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/filtersAndSampling/utils';
 
 import {renderComponent} from './utils';
 

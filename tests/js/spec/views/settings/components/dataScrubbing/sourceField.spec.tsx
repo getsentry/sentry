@@ -1,11 +1,11 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import SourceField from 'app/views/settings/components/dataScrubbing/modals/form/sourceField';
+import SourceField from 'sentry/views/settings/components/dataScrubbing/modals/form/sourceField';
 import {
   binarySuggestions,
   unarySuggestions,
   valueSuggestions,
-} from 'app/views/settings/components/dataScrubbing/utils';
+} from 'sentry/views/settings/components/dataScrubbing/utils';
 
 function renderComponent({
   value = '$string',

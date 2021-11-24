@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
-import TeamAlertsTriggered from 'app/views/organizationStats/teamInsights/teamAlertsTriggered';
+import TeamAlertsTriggered from 'sentry/views/organizationStats/teamInsights/teamAlertsTriggered';
 
 describe('TeamAlertsTriggered', () => {
   it('should render graph of alerts triggered', async () => {

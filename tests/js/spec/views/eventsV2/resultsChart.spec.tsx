@@ -1,10 +1,10 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import {t} from 'app/locale';
-import EventView from 'app/utils/discover/eventView';
-import {DisplayModes} from 'app/utils/discover/types';
-import ResultsChart from 'app/views/eventsV2/resultsChart';
+import {t} from 'sentry/locale';
+import EventView from 'sentry/utils/discover/eventView';
+import {DisplayModes} from 'sentry/utils/discover/types';
+import ResultsChart from 'sentry/views/eventsV2/resultsChart';
 
 describe('EventsV2 > ResultsChart', function () {
   const features = ['discover-basic', 'connect-discover-and-dashboards'];

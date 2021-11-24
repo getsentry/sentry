@@ -1,9 +1,9 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import QuickTrace from 'app/components/quickTrace';
-import {Event} from 'app/types/event';
-import {QuickTraceEvent} from 'app/utils/performance/quickTrace/types';
+import QuickTrace from 'sentry/components/quickTrace';
+import {Event} from 'sentry/types/event';
+import {QuickTraceEvent} from 'sentry/utils/performance/quickTrace/types';
 
 describe('Quick Trace', function () {
   let location;

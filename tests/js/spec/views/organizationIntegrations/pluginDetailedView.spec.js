@@ -1,8 +1,8 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import * as modal from 'app/actionCreators/modal';
-import {Client} from 'app/api';
-import PluginDetailedView from 'app/views/organizationIntegrations/pluginDetailedView';
+import * as modal from 'sentry/actionCreators/modal';
+import {Client} from 'sentry/api';
+import PluginDetailedView from 'sentry/views/organizationIntegrations/pluginDetailedView';
 
 const mockResponse = mocks => {
   mocks.forEach(([url, body]) =>

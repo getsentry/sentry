@@ -3,13 +3,13 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mockRouterPush} from 'sentry-test/mockRouterPush';
 import {act} from 'sentry-test/reactTestingLibrary';
 
-import * as globalActions from 'app/actionCreators/globalSelection';
-import OrganizationActions from 'app/actions/organizationActions';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import ConfigStore from 'app/stores/configStore';
-import GlobalSelectionStore from 'app/stores/globalSelectionStore';
-import ProjectsStore from 'app/stores/projectsStore';
-import {getItem} from 'app/utils/localStorage';
+import * as globalActions from 'sentry/actionCreators/globalSelection';
+import OrganizationActions from 'sentry/actions/organizationActions';
+import GlobalSelectionHeader from 'sentry/components/organizations/globalSelectionHeader';
+import ConfigStore from 'sentry/stores/configStore';
+import GlobalSelectionStore from 'sentry/stores/globalSelectionStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import {getItem} from 'sentry/utils/localStorage';
 
 const changeQuery = (routerContext, query) => ({
   ...routerContext,

@@ -1,8 +1,8 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {openModal} from 'app/actionCreators/modal';
-import {Client} from 'app/api';
-import ProjectOwnership from 'app/views/settings/project/projectOwnership';
+import {openModal} from 'sentry/actionCreators/modal';
+import {Client} from 'sentry/api';
+import ProjectOwnership from 'sentry/views/settings/project/projectOwnership';
 
 jest.mock('app/actionCreators/modal');
 

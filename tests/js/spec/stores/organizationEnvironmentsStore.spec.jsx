@@ -1,4 +1,4 @@
-import OrganizationEnvironmentsStore from 'app/stores/organizationEnvironmentsStore';
+import OrganizationEnvironmentsStore from 'sentry/stores/organizationEnvironmentsStore';
 
 describe('OrganizationEnvironmentsStore', function () {
   afterEach(function () {

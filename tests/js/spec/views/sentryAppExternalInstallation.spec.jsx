@@ -3,7 +3,7 @@ import pick from 'lodash/pick';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {selectByValue} from 'sentry-test/select-new';
 
-import SentryAppExternalInstallation from 'app/views/sentryAppExternalInstallation';
+import SentryAppExternalInstallation from 'sentry/views/sentryAppExternalInstallation';
 
 describe('SentryAppExternalInstallation', () => {
   let sentryApp,

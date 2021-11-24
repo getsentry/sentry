@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import Version from 'app/components/version';
+import Version from 'sentry/components/version';
 
 const VERSION = 'foo.bar.Baz@1.0.0+20200101';
 

@@ -2,8 +2,8 @@ import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'app/stores/projectsStore';
-import UserFeedback from 'app/views/userFeedback';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import UserFeedback from 'sentry/views/userFeedback';
 
 describe('UserFeedback', function () {
   enforceActOnUseLegacyStoreHook();

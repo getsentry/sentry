@@ -1,11 +1,11 @@
-import EventView from 'app/utils/discover/eventView';
-import {ALL_VIEWS} from 'app/views/eventsV2/data';
+import EventView from 'sentry/utils/discover/eventView';
+import {ALL_VIEWS} from 'sentry/views/eventsV2/data';
 import {
   handleCreateQuery,
   handleDeleteQuery,
   handleUpdateQuery,
   handleUpdateQueryName,
-} from 'app/views/eventsV2/savedQuery/utils';
+} from 'sentry/views/eventsV2/savedQuery/utils';
 
 describe('SavedQueries API helpers', () => {
   const api = new MockApiClient();

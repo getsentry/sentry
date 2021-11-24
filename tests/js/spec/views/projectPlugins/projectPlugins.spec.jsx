@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import ProjectPlugins from 'app/views/settings/projectPlugins/projectPlugins';
+import ProjectPlugins from 'sentry/views/settings/projectPlugins/projectPlugins';
 
 describe('ProjectPlugins', function () {
   let wrapper;

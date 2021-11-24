@@ -1,6 +1,6 @@
 import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import SentryAppRuleModal from 'app/views/alerts/issueRuleEditor/sentryAppRuleModal';
+import SentryAppRuleModal from 'sentry/views/alerts/issueRuleEditor/sentryAppRuleModal';
 
 describe('SentryAppRuleModal', function () {
   const modalElements = {

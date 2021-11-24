@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {Client} from 'app/api';
-import QuickTraceQuery from 'app/utils/performance/quickTrace/quickTraceQuery';
+import {Client} from 'sentry/api';
+import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
 
 const traceId = 'abcdef1234567890';
 const eventId = '0987654321fedcba';

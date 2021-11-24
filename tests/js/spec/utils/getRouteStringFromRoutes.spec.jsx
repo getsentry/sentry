@@ -1,4 +1,4 @@
-import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
+import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 
 describe('getRouteStringFromRoutes', function () {
   const routes = [

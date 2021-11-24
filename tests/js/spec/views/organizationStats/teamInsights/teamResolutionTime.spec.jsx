@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
-import TeamResolutionTime from 'app/views/organizationStats/teamInsights/teamResolutionTime';
+import TeamResolutionTime from 'sentry/views/organizationStats/teamInsights/teamResolutionTime';
 
 describe('TeamResolutionTime', () => {
   it('should render graph of issue time to resolution', async () => {

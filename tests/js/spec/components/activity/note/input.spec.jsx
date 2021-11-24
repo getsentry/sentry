@@ -1,7 +1,7 @@
 import changeReactMentionsInput from 'sentry-test/changeReactMentionsInput';
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import NoteInput from 'app/components/activity/note/input';
+import NoteInput from 'sentry/components/activity/note/input';
 
 describe('NoteInput', function () {
   const routerContext = TestStubs.routerContext();

@@ -3,8 +3,8 @@ import {act} from 'react-dom/test-utils';
 
 import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
-import EventsGeoRequest from 'app/components/charts/eventsGeoRequest';
-import * as genericDiscoverQuery from 'app/utils/discover/genericDiscoverQuery';
+import EventsGeoRequest from 'sentry/components/charts/eventsGeoRequest';
+import * as genericDiscoverQuery from 'sentry/utils/discover/genericDiscoverQuery';
 
 describe('EventsRequest', function () {
   const project = TestStubs.Project();

@@ -3,8 +3,8 @@ import {browserHistory} from 'react-router';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import IncidentDetails from 'app/views/alerts/details';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import IncidentDetails from 'sentry/views/alerts/details';
 
 jest.mock('app/utils/analytics');
 

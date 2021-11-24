@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
-import SimilarSpectrum from 'app/components/similarSpectrum';
+import SimilarSpectrum from 'sentry/components/similarSpectrum';
 
 describe('SimilarSpectrum', function () {
   beforeEach(function () {});

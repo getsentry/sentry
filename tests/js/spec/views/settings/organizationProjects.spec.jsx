@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {Client} from 'app/api';
-import OrganizationProjectsContainer from 'app/views/settings/organizationProjects';
+import {Client} from 'sentry/api';
+import OrganizationProjectsContainer from 'sentry/views/settings/organizationProjects';
 
 describe('OrganizationProjects', function () {
   let org;

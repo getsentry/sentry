@@ -1,4 +1,4 @@
-import {sanitizeQuerySelector} from 'app/utils/sanitizeQuerySelector';
+import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 
 describe('sanitizeQuerySelector', function () {
   it('replaces all spaces with a hyphen', function () {

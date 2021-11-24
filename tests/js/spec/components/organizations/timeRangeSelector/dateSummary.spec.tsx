@@ -1,6 +1,6 @@
 import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
-import DateSummary from 'app/components/organizations/timeRangeSelector/dateSummary';
+import DateSummary from 'sentry/components/organizations/timeRangeSelector/dateSummary';
 
 const start = new Date('2017-10-14T02:38:00.000Z');
 const end = new Date('2017-10-17T02:38:00.000Z'); // National Pasta Day

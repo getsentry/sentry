@@ -1,8 +1,8 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {act} from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'app/stores/projectsStore';
-import withProjects from 'app/utils/withProjects';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import withProjects from 'sentry/utils/withProjects';
 
 describe('withProjects HoC', function () {
   beforeEach(() => {

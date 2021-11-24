@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {Client} from 'app/api';
-import TraceMetaQuery from 'app/utils/performance/quickTrace/traceMetaQuery';
+import {Client} from 'sentry/api';
+import TraceMetaQuery from 'sentry/utils/performance/quickTrace/traceMetaQuery';
 
 const traceId = 'abcdef1234567890';
 

@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import SuggestProjectModal from 'app/components/modals/suggestProjectModal';
+import SuggestProjectModal from 'sentry/components/modals/suggestProjectModal';
 
 describe('SuggestProjectModal', function () {
   it('renders', function () {

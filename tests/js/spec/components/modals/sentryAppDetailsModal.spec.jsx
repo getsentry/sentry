@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import SentryAppDetailsModal from 'app/components/modals/sentryAppDetailsModal';
+import SentryAppDetailsModal from 'sentry/components/modals/sentryAppDetailsModal';
 
 describe('SentryAppDetailsModal', function () {
   let wrapper;

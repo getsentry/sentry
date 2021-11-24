@@ -6,9 +6,9 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {getByTextContent} from 'sentry-test/utils';
 
-import GlobalSelectionStore from 'app/stores/globalSelectionStore';
-import ProjectsStore from 'app/stores/projectsStore';
-import ProjectDetails from 'app/views/projectDetail/projectDetail';
+import GlobalSelectionStore from 'sentry/stores/globalSelectionStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import ProjectDetails from 'sentry/views/projectDetail/projectDetail';
 
 describe('ProjectDetail', function () {
   const {routerContext, organization, project, router} = initializeOrg();

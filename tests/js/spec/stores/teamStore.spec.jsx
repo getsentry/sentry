@@ -1,5 +1,5 @@
-import TeamActions from 'app/actions/teamActions';
-import TeamStore from 'app/stores/teamStore';
+import TeamActions from 'sentry/actions/teamActions';
+import TeamStore from 'sentry/stores/teamStore';
 
 describe('TeamStore', function () {
   const teamFoo = TestStubs.Team({

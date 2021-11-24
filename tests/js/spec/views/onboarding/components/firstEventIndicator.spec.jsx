@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {Indicator} from 'app/views/onboarding/components/firstEventIndicator';
+import {Indicator} from 'sentry/views/onboarding/components/firstEventIndicator';
 
 describe('FirstEventIndicator', function () {
   it('renders waiting status', async function () {

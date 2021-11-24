@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {selectByQuery, selectByValue} from 'sentry-test/select-new';
 
-import {Form, SelectAsyncField} from 'app/components/forms';
+import {Form, SelectAsyncField} from 'sentry/components/forms';
 
 describe('SelectAsyncField', function () {
   let api;

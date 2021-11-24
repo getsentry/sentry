@@ -10,13 +10,13 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import * as memberActionCreators from 'app/actionCreators/members';
-import ProjectsStore from 'app/stores/projectsStore';
-import TeamStore from 'app/stores/teamStore';
-import {metric, trackAnalyticsEvent} from 'app/utils/analytics';
-import AlertsContainer from 'app/views/alerts';
-import AlertBuilderProjectProvider from 'app/views/alerts/builder/projectProvider';
-import ProjectAlertsCreate from 'app/views/alerts/create';
+import * as memberActionCreators from 'sentry/actionCreators/members';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import TeamStore from 'sentry/stores/teamStore';
+import {metric, trackAnalyticsEvent} from 'sentry/utils/analytics';
+import AlertsContainer from 'sentry/views/alerts';
+import AlertBuilderProjectProvider from 'sentry/views/alerts/builder/projectProvider';
+import ProjectAlertsCreate from 'sentry/views/alerts/create';
 
 jest.unmock('app/utils/recreateRoute');
 jest.mock('react-router');

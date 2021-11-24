@@ -1,10 +1,10 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import {Client} from 'app/api';
-import TransactionsList from 'app/components/discover/transactionsList';
-import {t} from 'app/locale';
-import EventView from 'app/utils/discover/eventView';
+import {Client} from 'sentry/api';
+import TransactionsList from 'sentry/components/discover/transactionsList';
+import {t} from 'sentry/locale';
+import EventView from 'sentry/utils/discover/eventView';
 
 describe('TransactionsList', function () {
   let wrapper;

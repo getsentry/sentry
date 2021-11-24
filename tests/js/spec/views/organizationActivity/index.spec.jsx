@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import OrganizationActivity from 'app/views/organizationActivity';
+import OrganizationActivity from 'sentry/views/organizationActivity';
 
 describe('OrganizationActivity', function () {
   const {router, organization, routerContext} = initializeOrg();

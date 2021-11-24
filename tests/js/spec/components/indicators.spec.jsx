@@ -12,9 +12,9 @@ import {
   addMessage,
   addSuccessMessage,
   clearIndicators,
-} from 'app/actionCreators/indicator';
-import Indicators from 'app/components/indicators';
-import IndicatorStore from 'app/stores/indicatorStore';
+} from 'sentry/actionCreators/indicator';
+import Indicators from 'sentry/components/indicators';
+import IndicatorStore from 'sentry/stores/indicatorStore';
 
 // Make sure we use `duration: null` to test add/remove
 jest.useFakeTimers();

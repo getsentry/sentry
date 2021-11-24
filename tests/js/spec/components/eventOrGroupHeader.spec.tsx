@@ -2,8 +2,8 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 import {getByTextContent} from 'sentry-test/utils';
 
-import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
-import {EventOrGroupType} from 'app/types';
+import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
+import {EventOrGroupType} from 'sentry/types';
 
 const group = TestStubs.Group({
   level: 'error',

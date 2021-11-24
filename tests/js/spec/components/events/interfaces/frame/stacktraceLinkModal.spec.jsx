@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import StacktraceLinkModal from 'app/components/events/interfaces/frame/stacktraceLinkModal';
+import StacktraceLinkModal from 'sentry/components/events/interfaces/frame/stacktraceLinkModal';
 
 describe('StacktraceLinkModal', function () {
   const org = TestStubs.Organization();

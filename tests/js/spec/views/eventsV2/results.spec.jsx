@@ -4,8 +4,8 @@ import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'app/stores/projectsStore';
-import Results from 'app/views/eventsV2/results';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import Results from 'sentry/views/eventsV2/results';
 
 const FIELDS = [
   {

@@ -3,7 +3,7 @@ import pick from 'lodash/pick';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {selectByValue} from 'sentry-test/select-new';
 
-import IntegrationOrganizationLink from 'app/views/integrationOrganizationLink';
+import IntegrationOrganizationLink from 'sentry/views/integrationOrganizationLink';
 
 describe('IntegrationOrganizationLink', () => {
   let wrapper,

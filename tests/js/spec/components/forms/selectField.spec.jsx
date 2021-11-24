@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {selectByValue} from 'sentry-test/select-new';
 
-import {Form, SelectField} from 'app/components/forms';
+import {Form, SelectField} from 'sentry/components/forms';
 
 describe('SelectField', function () {
   it('renders without form context', function () {

@@ -1,4 +1,4 @@
-import recreateRoute from 'app/utils/recreateRoute';
+import recreateRoute from 'sentry/utils/recreateRoute';
 
 jest.unmock('app/utils/recreateRoute');
 

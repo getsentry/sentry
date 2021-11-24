@@ -5,11 +5,11 @@ import {mountGlobalModal} from 'sentry-test/modal';
 import {act} from 'sentry-test/reactTestingLibrary';
 import {selectByValue} from 'sentry-test/select-new';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {removeGlobalSelectionStorage} from 'app/components/organizations/globalSelectionHeader/utils';
-import ProjectsStore from 'app/stores/projectsStore';
-import ProjectContext from 'app/views/projects/projectContext';
-import ProjectGeneralSettings from 'app/views/settings/projectGeneralSettings';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {removeGlobalSelectionStorage} from 'sentry/components/organizations/globalSelectionHeader/utils';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import ProjectContext from 'sentry/views/projects/projectContext';
+import ProjectGeneralSettings from 'sentry/views/settings/projectGeneralSettings';
 
 jest.mock('app/actionCreators/indicator');
 jest.mock('app/components/organizations/globalSelectionHeader/utils');

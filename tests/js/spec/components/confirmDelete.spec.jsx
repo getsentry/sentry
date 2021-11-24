@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 
-import ConfirmDelete from 'app/components/confirmDelete';
+import ConfirmDelete from 'sentry/components/confirmDelete';
 
 describe('ConfirmDelete', function () {
   it('renders', async function () {

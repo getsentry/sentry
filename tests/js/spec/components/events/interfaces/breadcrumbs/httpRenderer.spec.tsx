@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import HttpRenderer from 'app/components/events/interfaces/breadcrumbs/breadcrumb/data/http';
-import {BreadcrumbLevelType, BreadcrumbType} from 'app/types/breadcrumbs';
+import HttpRenderer from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/data/http';
+import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 
 describe('HttpRenderer', () => {
   describe('render', () => {

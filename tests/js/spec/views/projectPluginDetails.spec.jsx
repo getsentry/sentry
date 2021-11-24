@@ -2,7 +2,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ProjectPluginDetailsContainer, {
   ProjectPluginDetails,
-} from 'app/views/settings/projectPlugins/details';
+} from 'sentry/views/settings/projectPlugins/details';
 
 describe('ProjectPluginDetails', function () {
   let component;
