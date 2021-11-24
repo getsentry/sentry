@@ -33,32 +33,6 @@ export enum VitalState {
   GOOD = 'Good',
 }
 
-// For mapping field equations for the vitals widget
-export function fieldToVital(field: string) {
-  const FIELD_TO_VITAL_MAP: Record<string, VitalState> = {
-    'count_if(measurements.lcp,greaterOrEquals,0) - count_if(measurements.lcp,greaterOrEquals,2500)':
-      VitalState.GOOD,
-    'count_if(measurements.lcp,greaterOrEquals,2500) - count_if(measurements.lcp,greaterOrEquals,4000)':
-      VitalState.MEH,
-    'count_if(measurements.lcp,greaterOrEquals,4000)': VitalState.POOR,
-  };
-
-  return FIELD_TO_VITAL_MAP[field];
-}
-
-// For mapping field equations for the vitals widget
-export function vitalToField(vital: VitalState) {
-  const VITAL_MAP: Record<VitalState, string> = {
-    [VitalState.GOOD]:
-      'count_if(measurements.lcp,greaterOrEquals,0) - count_if(measurements.lcp,greaterOrEquals,2500)',
-    [VitalState.MEH]:
-      'count_if(measurements.lcp,greaterOrEquals,2500) - count_if(measurements.lcp,greaterOrEquals,4000)',
-    [VitalState.POOR]: 'count_if(measurements.lcp,greaterOrEquals,4000)',
-  };
-
-  return VITAL_MAP[vital];
-}
-
 export const vitalStateColors: Record<VitalState, Color> = {
   [VitalState.POOR]: 'red300',
   [VitalState.MEH]: 'yellow300',

@@ -12,10 +12,11 @@ import {Chart as HistogramChart} from 'app/views/performance/landing/chart/histo
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import {transformHistogramQuery} from '../transforms/transformHistogramQuery';
 import {WidgetDataResult} from '../types';
-import {PerformanceWidgetSetting} from '../widgetDefinitions';
+import {ChartDefinition, PerformanceWidgetSetting} from '../widgetDefinitions';
 
 type Props = {
   chartSetting: PerformanceWidgetSetting;
+  chartDefinition: ChartDefinition;
   title: string;
   titleTooltip: string;
   fields: string[];
@@ -43,7 +44,7 @@ export function HistogramWidget(props: Props) {
         component: provided => (
           <HistogramQuery
             {...provided}
-            eventView={props.eventView}
+            eventView={provided.eventView}
             location={props.location}
             numBuckets={20}
             dataFilter="exclude_outliers"
@@ -52,7 +53,7 @@ export function HistogramWidget(props: Props) {
         transform: transformHistogramQuery,
       },
     };
-  }, [props.eventView, props.fields[0], props.organization.slug]);
+  }, [props.chartSetting]);
 
   const onFilterChange = () => {};
 
@@ -60,7 +61,11 @@ export function HistogramWidget(props: Props) {
     <GenericPerformanceWidget<AreaDataType>
       {...props}
       Subtitle={() => (
-        <Subtitle>{t('Compared to last %s ', globalSelection.datetime.period)}</Subtitle>
+        <Subtitle>
+          {globalSelection.datetime.period
+            ? t('In the last %s ', globalSelection.datetime.period)
+            : t('In the last period')}
+        </Subtitle>
       )}
       HeaderActions={provided => (
         <Fragment>

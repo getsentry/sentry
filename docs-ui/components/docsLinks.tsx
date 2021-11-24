@@ -2,9 +2,9 @@ import styled from '@emotion/styled';
 /* eslint-disable-next-line import/default */
 import LinkTo from '@storybook/addon-links/react';
 
-import {IconArrow} from 'app/icons';
-import space from 'app/styles/space';
-import {Theme} from 'app/utils/theme';
+import {IconArrow} from 'sentry/icons';
+import space from 'sentry/styles/space';
+import {Theme} from 'sentry/utils/theme';
 
 type Link = {
   img?: {

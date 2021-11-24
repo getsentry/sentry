@@ -474,6 +474,74 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             assert len(response.data["data"]) == 1
             assert response.data["data"][0]["user"] == "ip:{}".format(data["user"]["ip_address"])
 
+    def test_comparison_operators_on_numeric_field(self):
+        project = self.create_project()
+        event = self.store_event(
+            {"timestamp": iso_format(before_now(minutes=1))}, project_id=project.id
+        )
+
+        query = {"field": ["issue"], "query": f"issue.id:>{event.group.id - 1}"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["issue"] == event.group.qualified_short_id
+
+        query = {"field": ["issue"], "query": f"issue.id:>{event.group.id}"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 0
+
+    def test_negation_on_numeric_field_excludes_issue(self):
+        project = self.create_project()
+        event = self.store_event(
+            {"timestamp": iso_format(before_now(minutes=1))}, project_id=project.id
+        )
+
+        query = {"field": ["issue"], "query": f"issue.id:{event.group.id}"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["issue"] == event.group.qualified_short_id
+
+        query = {"field": ["issue"], "query": f"!issue.id:{event.group.id}"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 0
+
+    def test_negation_on_numeric_in_filter_excludes_issue(self):
+        project = self.create_project()
+        event = self.store_event(
+            {"timestamp": iso_format(before_now(minutes=1))}, project_id=project.id
+        )
+
+        query = {"field": ["issue"], "query": f"issue.id:[{event.group.id}]"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["issue"] == event.group.qualified_short_id
+
+        query = {"field": ["issue"], "query": f"!issue.id:[{event.group.id}]"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 0
+
+    def test_negation_on_duration_filter_excludes_transaction(self):
+        project = self.create_project()
+        data = load_data("transaction", timestamp=before_now(minutes=1))
+        event = self.store_event(data, project_id=project.id)
+        duration = int(event.data.get("timestamp") - event.data.get("start_timestamp")) * 1000
+
+        query = {"field": ["transaction"], "query": f"transaction.duration:{duration}"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["id"] == event.event_id
+
+        query = {"field": ["transaction"], "query": f"!transaction.duration:{duration}"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 0
+
     def test_has_issue(self):
         project = self.create_project()
         event = self.store_event(
@@ -2171,6 +2239,20 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
         assert response.data["meta"]["message"] == "string"
+
+    def test_release_wildcard_condition(self):
+        release = self.create_release(version="test@1.2.3+123")
+
+        self.store_event(
+            data={"release": release.version, "timestamp": self.min_ago},
+            project_id=self.project.id,
+        )
+
+        query = {"field": ["stack.filename", "release"], "query": "release:test*"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["release"] == release.version
 
     def test_transaction_event_type(self):
         project = self.create_project()
@@ -4590,3 +4672,34 @@ class OrganizationEventsV2EndpointTestWithSnql(OrganizationEventsV2EndpointTest)
     def setUp(self):
         super().setUp()
         self.features["organizations:discover-use-snql"] = True
+
+    def test_timestamp_different_from_params(self):
+        project = self.create_project()
+        fifteen_days_ago = iso_format(before_now(days=15))
+        fifteen_days_later = iso_format(before_now(days=-15))
+
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": iso_format(before_now(minutes=5)),
+                "fingerprint": ["1123581321"],
+                "user": {"email": "foo@example.com"},
+                "tags": {"language": "C++"},
+            },
+            project_id=project.id,
+        )
+
+        for query_text in [
+            f"timestamp:<{fifteen_days_ago}",
+            f"timestamp:<={fifteen_days_ago}",
+            f"timestamp:>{fifteen_days_later}",
+            f"timestamp:>={fifteen_days_later}",
+        ]:
+            query = {
+                "field": ["count()"],
+                "query": query_text,
+                "statsPeriod": "14d",
+            }
+            response = self.do_request(query)
+
+            assert response.status_code == 400, query_text

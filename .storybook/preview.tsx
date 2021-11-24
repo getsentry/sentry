@@ -134,7 +134,7 @@ addParameters({
         'Getting Started',
         'Changelog',
         'Core',
-        ['Overview'],
+        ['Overview', 'Colors', 'Typography'],
         'Assets',
         ['Logo', 'Icons', 'Platforms'],
         'Components',
@@ -159,6 +159,7 @@ addParameters({
         [
           'Layout - Narrow',
           'Layout - Thirds',
+          'Sidebar Section',
           'Modals',
           'Activity',
           'Empty States',

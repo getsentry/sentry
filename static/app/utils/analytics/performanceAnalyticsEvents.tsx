@@ -18,6 +18,19 @@ export type PerformanceEventParameters = {
     field?: string;
     direction?: string;
   };
+  'performance_views.landingv3.widget.interaction': {
+    widget_type?: string;
+  };
+  'performance_views.landingv3.widget.switch': {
+    from_widget?: string;
+    to_widget?: string;
+    from_default?: boolean;
+  };
+  'performance_views.landingv3.batch_queries': {
+    num_collected: number;
+    num_sent: number;
+    num_saved: number;
+  };
   'performance_views.overview.navigate.summary': {};
   'performance_views.overview.cellaction': {action?: string};
 };
@@ -34,4 +47,10 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
   'performance_views.overview.navigate.summary':
     'Performance Views: Overview view summary',
   'performance_views.overview.cellaction': 'Performance Views: Cell Action Clicked',
+  'performance_views.landingv3.widget.interaction':
+    'Performance Views: Landing Widget Interaction',
+  'performance_views.landingv3.widget.switch':
+    'Performance Views: Landing Widget Switched',
+  'performance_views.landingv3.batch_queries':
+    'Performance Views: Landing Query Batching',
 };

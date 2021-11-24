@@ -1,3 +1,5 @@
+import isEqual from 'lodash/isEqual';
+
 import * as ApiNamespace from 'app/api';
 
 const RealApi: typeof ApiNamespace = jest.requireActual('app/api');
@@ -19,28 +21,39 @@ const respond = (isAsync: boolean, fn?: Function, ...args: any[]): void => {
   fn(...args);
 };
 
-const DEFAULT_MOCK_RESPONSE_OPTIONS = {
-  predicate: () => true,
-};
-
 type FunctionCallback<Args extends any[] = any[]> = (...args: Args) => void;
+
+/**
+ * Callables for matching requests based on arbitrary conditions.
+ */
+interface MatchCallable {
+  (url: string, options: ApiNamespace.RequestOptions): boolean;
+}
 
 type ResponseType = ApiNamespace.ResponseMeta & {
   url: string;
   statusCode: number;
   method: string;
   callCount: 0;
+  match: MatchCallable[];
   body: any;
-  headers: {[key: string]: string};
+  headers: Record<string, string>;
 };
 
-type MockPredicate = (url: string, opts: ApiNamespace.RequestOptions) => boolean;
+type MockResponse = [resp: ResponseType, mock: jest.Mock];
 
-type MockResponseOptions = {
-  predicate: MockPredicate;
-};
-
-type MockResponse = [resp: ResponseType, mock: jest.Mock, predicate: MockPredicate];
+/**
+ * Compare two records. `want` is all the entries we want to have the same value in `check`
+ */
+function compareRecord(want: Record<string, any>, check: Record<string, any>): boolean {
+  for (const entry of Object.entries(want)) {
+    const [key, value] = entry;
+    if (!isEqual(check[key], value)) {
+      return false;
+    }
+  }
+  return true;
+}
 
 class Client implements ApiNamespace.Client {
   static mockResponses: MockResponse[] = [];
@@ -51,11 +64,34 @@ class Client implements ApiNamespace.Client {
     Client.mockResponses = [];
   }
 
+  /**
+   * Create a query string match callable.
+   *
+   * Only keys/values defined in `query` are checked.
+   */
+  static matchQuery(query: Record<string, any>): MatchCallable {
+    const queryMatcher: MatchCallable = (_url, options) => {
+      return compareRecord(query, options.query ?? {});
+    };
+
+    return queryMatcher;
+  }
+
+  /**
+   * Create a data match callable.
+   *
+   * Only keys/values defined in `data` are checked.
+   */
+  static matchData(data: Record<string, any>): MatchCallable {
+    const dataMatcher: MatchCallable = (_url, options) => {
+      return compareRecord(data, options.data ?? {});
+    };
+
+    return dataMatcher;
+  }
+
   // Returns a jest mock that represents Client.request calls
-  static addMockResponse(
-    response: Partial<ResponseType>,
-    options: MockResponseOptions = DEFAULT_MOCK_RESPONSE_OPTIONS
-  ) {
+  static addMockResponse(response: Partial<ResponseType>) {
     const mock = jest.fn();
 
     Client.mockResponses.unshift([
@@ -69,24 +105,26 @@ class Client implements ApiNamespace.Client {
         body: '',
         method: 'GET',
         callCount: 0,
+        match: [],
         ...response,
         headers: response.headers ?? {},
         getResponseHeader: (key: string) => response.headers?.[key] ?? null,
       },
       mock,
-      options.predicate,
     ]);
 
     return mock;
   }
 
   static findMockResponse(url: string, options: Readonly<ApiNamespace.RequestOptions>) {
-    return Client.mockResponses.find(([response, _mock, predicate]) => {
-      const matchesURL = url === response.url;
-      const matchesMethod = (options.method || 'GET') === response.method;
-      const matchesPredicate = predicate(url, options);
-
-      return matchesURL && matchesMethod && matchesPredicate;
+    return Client.mockResponses.find(([response]) => {
+      if (url !== response.url) {
+        return false;
+      }
+      if ((options.method || 'GET') !== response.method) {
+        return false;
+      }
+      return response.match.every(matcher => matcher(url, options));
     });
   }
 
@@ -173,7 +211,7 @@ class Client implements ApiNamespace.Client {
       const body =
         typeof response.body === 'function' ? response.body(url, options) : response.body;
 
-      if (response.statusCode !== 200) {
+      if (![200, 202].includes(response.statusCode)) {
         response.callCount++;
 
         const errorResponse = Object.assign(
@@ -210,6 +248,8 @@ class Client implements ApiNamespace.Client {
           {},
           {
             getResponseHeader: (key: string) => response.headers[key],
+            statusCode: response.statusCode,
+            status: response.statusCode,
           }
         );
       }

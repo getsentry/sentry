@@ -1,19 +1,15 @@
 import {Fragment, FunctionComponent, useMemo, useState} from 'react';
 import {withRouter} from 'react-router';
-import styled from '@emotion/styled';
 import {Location} from 'history';
 import pick from 'lodash/pick';
 
 import _EventsRequest from 'app/components/charts/eventsRequest';
 import {getInterval} from 'app/components/charts/utils';
 import Count from 'app/components/count';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Link from 'app/components/links/link';
 import Tooltip from 'app/components/tooltip';
 import Truncate from 'app/components/truncate';
-import {IconClose} from 'app/icons';
 import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
@@ -26,12 +22,18 @@ import {getPerformanceDuration} from 'app/views/performance/utils';
 
 import {excludeTransaction} from '../../utils';
 import {GenericPerformanceWidget} from '../components/performanceWidget';
-import SelectableList, {RightAlignedCell} from '../components/selectableList';
+import SelectableList, {
+  GrowLink,
+  ListClose,
+  RightAlignedCell,
+  Subtitle,
+  WidgetEmptyStateWarning,
+} from '../components/selectableList';
 import {transformDiscoverToList} from '../transforms/transformDiscoverToList';
 import {transformEventsRequestToArea} from '../transforms/transformEventsToArea';
 import {QueryDefinition, WidgetDataResult} from '../types';
 import {eventsRequestQueryProps} from '../utils';
-import {PerformanceWidgetSetting} from '../widgetDefinitions';
+import {ChartDefinition, PerformanceWidgetSetting} from '../widgetDefinitions';
 
 type Props = {
   title: string;
@@ -43,6 +45,7 @@ type Props = {
   location: Location;
   organization: Organization;
   chartSetting: PerformanceWidgetSetting;
+  chartDefinition: ChartDefinition;
 
   ContainerActions: FunctionComponent<{isLoading: boolean}>;
 };
@@ -78,7 +81,7 @@ export function LineChartListWidget(props: Props) {
     () => ({
       fields: field,
       component: provided => {
-        const eventView = props.eventView.clone();
+        const eventView = provided.eventView.clone();
         eventView.sorts = [{kind: 'desc', field}];
         if (props.chartSetting === PerformanceWidgetSetting.MOST_RELATED_ISSUES) {
           eventView.fields = [
@@ -115,12 +118,14 @@ export function LineChartListWidget(props: Props) {
             eventView={eventView}
             location={props.location}
             limit={3}
+            cursor="0:0:1"
+            noPagination
           />
         );
       },
       transform: transformDiscoverToList,
     }),
-    [props.eventView, field, props.organization.slug]
+    [props.chartSetting]
   );
 
   const chartQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(() => {
@@ -182,7 +187,7 @@ export function LineChartListWidget(props: Props) {
       },
       transform: transformEventsRequestToArea,
     };
-  }, [props.eventView, field, props.organization.slug, selectedListIndex]);
+  }, [props.chartSetting, selectedListIndex]);
 
   const Queries = {
     list: listQuery,
@@ -196,9 +201,7 @@ export function LineChartListWidget(props: Props) {
       HeaderActions={provided => (
         <ContainerActions isLoading={provided.widgetData.list?.isLoading} />
       )}
-      EmptyComponent={() => (
-        <StyledEmptyStateWarning small>{t('No results')}</StyledEmptyStateWarning>
-      )}
+      EmptyComponent={WidgetEmptyStateWarning}
       Queries={Queries}
       Visualizations={[
         {
@@ -276,13 +279,10 @@ export function LineChartListWidget(props: Props) {
                             </Link>
                           </Tooltip>
                         </RightAlignedCell>
-                        <CloseContainer>
-                          <StyledIconClose
-                            onClick={() =>
-                              excludeTransaction(listItem.transaction, props)
-                            }
-                          />
-                        </CloseContainer>
+                        <ListClose
+                          setSelectListIndex={setSelectListIndex}
+                          onClick={() => excludeTransaction(listItem.transaction, props)}
+                        />
                       </Fragment>
                     );
                   case PerformanceWidgetSetting.MOST_RELATED_ERRORS:
@@ -296,13 +296,10 @@ export function LineChartListWidget(props: Props) {
                             count: <Count value={rightValue} />,
                           })}
                         </RightAlignedCell>
-                        <CloseContainer>
-                          <StyledIconClose
-                            onClick={() =>
-                              excludeTransaction(listItem.transaction, props)
-                            }
-                          />
-                        </CloseContainer>
+                        <ListClose
+                          setSelectListIndex={setSelectListIndex}
+                          onClick={() => excludeTransaction(listItem.transaction, props)}
+                        />
                       </Fragment>
                     );
                   default:
@@ -312,13 +309,10 @@ export function LineChartListWidget(props: Props) {
                           <Truncate value={transaction} maxLength={40} />
                         </GrowLink>
                         <RightAlignedCell>{rightValue}</RightAlignedCell>
-                        <CloseContainer>
-                          <StyledIconClose
-                            onClick={() =>
-                              excludeTransaction(listItem.transaction, props)
-                            }
-                          />
-                        </CloseContainer>
+                        <ListClose
+                          setSelectListIndex={setSelectListIndex}
+                          onClick={() => excludeTransaction(listItem.transaction, props)}
+                        />
                       </Fragment>
                     );
                 }
@@ -335,30 +329,3 @@ export function LineChartListWidget(props: Props) {
 
 const EventsRequest = withApi(_EventsRequest);
 const DurationChart = withRouter(_DurationChart);
-const Subtitle = styled('span')`
-  color: ${p => p.theme.gray300};
-  font-size: ${p => p.theme.fontSizeMedium};
-`;
-const CloseContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding-left: ${space(1)};
-`;
-const GrowLink = styled(Link)`
-  flex-grow: 1;
-`;
-
-const StyledIconClose = styled(IconClose)`
-  cursor: pointer;
-  color: ${p => p.theme.gray200};
-
-  &:hover {
-    color: ${p => p.theme.gray300};
-  }
-`;
-
-const StyledEmptyStateWarning = styled(EmptyStateWarning)`
-  min-height: 300px;
-  justify-content: center;
-`;

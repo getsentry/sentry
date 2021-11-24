@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import Tooltip from 'app/components/tooltip';
+import Tooltip from 'sentry/components/tooltip';
 
 describe('Tooltip', function () {
   it('renders', function () {

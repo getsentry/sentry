@@ -1,8 +1,8 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme, screen, within} from 'sentry-test/reactTestingLibrary';
 
-import EventTagsAndScreenshot from 'app/components/events/eventTagsAndScreenshot';
-import {EventAttachment} from 'app/types';
+import EventTagsAndScreenshot from 'sentry/components/events/eventTagsAndScreenshot';
+import {EventAttachment} from 'sentry/types';
 
 describe('EventTagsAndScreenshot ', function () {
   const contexts = {
@@ -104,7 +104,6 @@ describe('EventTagsAndScreenshot ', function () {
     },
   ];
 
-  // @ts-expect-error
   const event = TestStubs.Event({user});
 
   const {organization, project, router} = initializeOrg({

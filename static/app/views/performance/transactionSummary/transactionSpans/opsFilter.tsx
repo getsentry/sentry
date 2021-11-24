@@ -10,7 +10,7 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import {pickBarColor} from 'app/components/performance/waterfall/utils';
 import Radio from 'app/components/radio';
 import {IconFilter, IconWarning} from 'app/icons';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
@@ -55,7 +55,9 @@ export default function OpsFilter(props: Props) {
         >
           <Fragment>
             <IconFilter size="xs" />
-            <FilterLabel>{t('Filter')}</FilterLabel>
+            <FilterLabel>
+              {defined(currentOp) ? tct('Filter - [op]', {op: currentOp}) : t('Filter')}
+            </FilterLabel>
           </Fragment>
         </DropdownButton>
       )}
@@ -122,6 +124,7 @@ export default function OpsFilter(props: Props) {
 
 const FilterLabel = styled('span')`
   margin-left: ${space(1)};
+  white-space: nowrap;
 `;
 
 const List = styled('ul')`

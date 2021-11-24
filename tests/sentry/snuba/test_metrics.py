@@ -4,7 +4,19 @@ from unittest import mock
 
 import pytz
 from django.utils.datastructures import MultiValueDict
-from snuba_sdk import Column, Condition, Entity, Granularity, Limit, Offset, Op, Query
+from snuba_sdk import (
+    Column,
+    Condition,
+    Direction,
+    Entity,
+    Function,
+    Granularity,
+    Limit,
+    Offset,
+    Op,
+    OrderBy,
+    Query,
+)
 
 from sentry.sentry_metrics.indexer.mock import MockIndexer
 from sentry.snuba.metrics import (
@@ -46,17 +58,18 @@ def test_build_snuba_query(mock_now, mock_now2, mock_indexer):
         }
     )
     query_definition = QueryDefinition(query_params)
-    snuba_queries = SnubaQueryBuilder(PseudoProject(1, 1), query_definition).get_snuba_queries()
+    snuba_queries = SnubaQueryBuilder([PseudoProject(1, 1)], query_definition).get_snuba_queries()
 
     def expected_query(match, select, extra_groupby):
+        function, column, alias = select
         return Query(
             dataset="metrics",
             match=Entity(match),
-            select=[Column(select)],
+            select=[Function(function, [Column(column)], alias)],
             groupby=[Column("metric_id"), Column("tags[8]"), Column("tags[2]")] + extra_groupby,
             where=[
                 Condition(Column("org_id"), Op.EQ, 1),
-                Condition(Column("project_id"), Op.EQ, 1),
+                Condition(Column("project_id"), Op.IN, [1]),
                 Condition(Column("metric_id"), Op.IN, [9, 11, 7]),
                 Condition(Column("timestamp"), Op.GTE, datetime(2021, 5, 28, 0, tzinfo=pytz.utc)),
                 Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
@@ -68,25 +81,82 @@ def test_build_snuba_query(mock_now, mock_now2, mock_indexer):
         )
 
     assert snuba_queries["metrics_counters"]["totals"] == expected_query(
-        "metrics_counters", "value", []
+        "metrics_counters", ("sum", "value", "value"), []
     )
 
+    expected_percentile_select = ("quantiles(0.5,0.75,0.9,0.95,0.99)", "value", "percentiles")
     assert snuba_queries == {
         "metrics_counters": {
-            "totals": expected_query("metrics_counters", "value", []),
-            "series": expected_query("metrics_counters", "value", [Column("bucketed_time")]),
+            "totals": expected_query("metrics_counters", ("sum", "value", "value"), []),
+            "series": expected_query(
+                "metrics_counters", ("sum", "value", "value"), [Column("bucketed_time")]
+            ),
         },
         "metrics_sets": {
-            "totals": expected_query("metrics_sets", "value", []),
-            "series": expected_query("metrics_sets", "value", [Column("bucketed_time")]),
+            "totals": expected_query("metrics_sets", ("uniq", "value", "value"), []),
+            "series": expected_query(
+                "metrics_sets", ("uniq", "value", "value"), [Column("bucketed_time")]
+            ),
         },
         "metrics_distributions": {
-            "totals": expected_query("metrics_distributions", "percentiles", []),
+            "totals": expected_query("metrics_distributions", expected_percentile_select, []),
             "series": expected_query(
-                "metrics_distributions", "percentiles", [Column("bucketed_time")]
+                "metrics_distributions",
+                expected_percentile_select,
+                [Column("bucketed_time")],
             ),
         },
     }
+
+
+@mock.patch("sentry.snuba.metrics.indexer")
+@mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
+@mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
+def test_build_snuba_query_orderby(mock_now, mock_now2, mock_indexer):
+
+    mock_indexer.resolve = MockIndexer().resolve
+    query_params = MultiValueDict(
+        {
+            "query": [
+                "release:staging"
+            ],  # weird release but we need a string exising in mock indexer
+            "groupBy": ["session.status", "environment"],
+            "field": [
+                "sum(session)",
+            ],
+            "orderBy": ["-sum(session)"],
+            "limit": [3],
+        }
+    )
+    query_definition = QueryDefinition(query_params)
+    snuba_queries = SnubaQueryBuilder([PseudoProject(1, 1)], query_definition).get_snuba_queries()
+
+    counter_queries = snuba_queries.pop("metrics_counters")
+    assert not snuba_queries
+    assert counter_queries["series"] is None  # No series because of orderBy
+
+    assert counter_queries["totals"] == Query(
+        dataset="metrics",
+        match=Entity("metrics_counters"),
+        select=[Function("sum", [Column("value")], "value")],
+        groupby=[
+            Column("metric_id"),
+            Column("tags[8]"),
+            Column("tags[2]"),
+        ],
+        where=[
+            Condition(Column("org_id"), Op.EQ, 1),
+            Condition(Column("project_id"), Op.IN, [1]),
+            Condition(Column("metric_id"), Op.IN, [9]),
+            Condition(Column("timestamp"), Op.GTE, datetime(2021, 5, 28, 0, tzinfo=pytz.utc)),
+            Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
+            Condition(Column("tags[6]", entity=None), Op.EQ, 10),
+        ],
+        orderby=[OrderBy(Column("value"), Direction.DESC)],
+        limit=Limit(3),
+        offset=Offset(0),
+        granularity=Granularity(query_definition.rollup),
+    )
 
 
 @mock.patch("sentry.snuba.metrics.indexer")
@@ -132,25 +202,25 @@ def test_translate_results(_1, _2, mock_indexer):
                     {
                         "metric_id": 9,  # session
                         "tags[8]": 4,
-                        "bucketed_time": datetime(2021, 8, 24, tzinfo=pytz.utc),
+                        "bucketed_time": "2021-08-24T00:00Z",
                         "value": 100,
                     },
                     {
                         "metric_id": 9,  # session
                         "tags[8]": 0,
-                        "bucketed_time": datetime(2021, 8, 24, tzinfo=pytz.utc),
+                        "bucketed_time": "2021-08-24T00:00Z",
                         "value": 110,
                     },
                     {
                         "metric_id": 9,  # session
                         "tags[8]": 4,
-                        "bucketed_time": datetime(2021, 8, 25, tzinfo=pytz.utc),
+                        "bucketed_time": "2021-08-25T00:00Z",
                         "value": 200,
                     },
                     {
                         "metric_id": 9,  # session
                         "tags[8]": 0,
-                        "bucketed_time": datetime(2021, 8, 25, tzinfo=pytz.utc),
+                        "bucketed_time": "2021-08-25T00:00Z",
                         "value": 220,
                     },
                 ],
@@ -178,28 +248,28 @@ def test_translate_results(_1, _2, mock_indexer):
                     {
                         "metric_id": 7,  # session.duration
                         "tags[8]": 4,
-                        "bucketed_time": datetime(2021, 8, 24, tzinfo=pytz.utc),
+                        "bucketed_time": "2021-08-24T00:00Z",
                         "max": 10.1,
                         "percentiles": [1.1, 2.1, 3.1, 4.1, 5.1],
                     },
                     {
                         "metric_id": 7,  # session.duration
                         "tags[8]": 0,
-                        "bucketed_time": datetime(2021, 8, 24, tzinfo=pytz.utc),
+                        "bucketed_time": "2021-08-24T00:00Z",
                         "max": 20.2,
                         "percentiles": [1.2, 2.2, 3.2, 4.2, 5.2],
                     },
                     {
                         "metric_id": 7,  # session.duration
                         "tags[8]": 4,
-                        "bucketed_time": datetime(2021, 8, 25, tzinfo=pytz.utc),
+                        "bucketed_time": "2021-08-25T00:00Z",
                         "max": 30.3,
                         "percentiles": [1.3, 2.3, 3.3, 4.3, 5.3],
                     },
                     {
                         "metric_id": 7,  # session.duration
                         "tags[8]": 0,
-                        "bucketed_time": datetime(2021, 8, 25, tzinfo=pytz.utc),
+                        "bucketed_time": "2021-08-25T00:00Z",
                         "max": 40.4,
                         "percentiles": [1.4, 2.4, 3.4, 4.4, 5.4],
                     },
@@ -272,13 +342,13 @@ def test_translate_results_missing_slots(_1, _2, mock_indexer):
                 "data": [
                     {
                         "metric_id": 9,  # session
-                        "bucketed_time": datetime(2021, 8, 23, tzinfo=pytz.utc),
+                        "bucketed_time": "2021-08-23T00:00Z",
                         "value": 100,
                     },
                     # no data for 2021-08-24
                     {
                         "metric_id": 9,  # session
-                        "bucketed_time": datetime(2021, 8, 25, tzinfo=pytz.utc),
+                        "bucketed_time": "2021-08-25T00:00Z",
                         "value": 300,
                     },
                 ],

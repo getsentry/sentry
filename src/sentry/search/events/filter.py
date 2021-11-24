@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import datetime
 from functools import reduce
 from typing import Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union
@@ -44,6 +46,7 @@ from sentry.search.events.constants import (
     SEMVER_PACKAGE_ALIAS,
     SEMVER_WILDCARDS,
     TEAM_KEY_TRANSACTION_ALIAS,
+    TIMESTAMP_FIELDS,
     TRANSACTION_STATUS_ALIAS,
     USER_DISPLAY_ALIAS,
 )
@@ -67,7 +70,7 @@ def is_condition(term):
     return isinstance(term, (tuple, list)) and len(term) == 3 and term[1] in OPERATOR_TO_FUNCTION
 
 
-def translate_transaction_status(val):
+def translate_transaction_status(val: str) -> str:
     if val not in SPAN_STATUS_NAME_TO_CODE:
         raise InvalidSearchQuery(
             f"Invalid value {val} for transaction.status condition. Accepted "
@@ -503,7 +506,7 @@ def _semver_build_filter_converter(
     return ["release", "IN", versions]
 
 
-def handle_operator_negation(operator):
+def handle_operator_negation(operator: str) -> Tuple[str, bool]:
     negated = False
     if operator == "!=":
         negated = True
@@ -978,7 +981,12 @@ def format_search_filter(term, params):
                 conditions.append(converted_filter)
     elif name == ISSUE_ID_ALIAS and value != "":
         # A blank term value means that this is a has filter
-        group_ids = to_list(value)
+        if term.operator in EQUALITY_OPERATORS:
+            group_ids = to_list(value)
+        else:
+            converted_filter = convert_search_filter_to_snuba_query(term, params=params)
+            if converted_filter:
+                conditions.append(converted_filter)
     elif name == ISSUE_ALIAS:
         operator = term.operator
         value = to_list(value)
@@ -1104,6 +1112,7 @@ class QueryFilter(QueryFields):
     ) -> Tuple[List[WhereType], List[WhereType]]:
         parsed_terms = self.parse_query(query)
 
+        self.has_or_condition = any(SearchBoolean.is_or_operator(term) for term in parsed_terms)
         if any(
             isinstance(term, ParenExpression) or SearchBoolean.is_operator(term)
             for term in parsed_terms
@@ -1178,7 +1187,9 @@ class QueryFilter(QueryFields):
 
         return where, having
 
-    def _combine_conditions(self, lhs, rhs, operator):
+    def _combine_conditions(
+        self, lhs: List[WhereType], rhs: List[WhereType], operator: And | Or
+    ) -> List[WhereType]:
         combined_conditions = [
             conditions[0] if len(conditions) == 1 else And(conditions=conditions)
             for conditions in [lhs, rhs]
@@ -1306,9 +1317,6 @@ class QueryFilter(QueryFields):
         name = aggregate_filter.key.name
         value = aggregate_filter.value.value
 
-        if name in self.params.get("aliases", {}):
-            raise NotImplementedError("Aggregate aliases not implemented in snql field parsing yet")
-
         value = (
             int(to_timestamp(value))
             if isinstance(value, datetime) and name != "timestamp"
@@ -1338,6 +1346,7 @@ class QueryFilter(QueryFields):
 
     def _default_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         name = search_filter.key.name
+        operator = search_filter.operator
         value = search_filter.value.value
 
         lhs = self.resolve_column(name)
@@ -1349,7 +1358,7 @@ class QueryFilter(QueryFields):
                 # be replaced with '\%%'.
                 return Condition(
                     lhs,
-                    Op.LIKE if search_filter.operator == "=" else Op.NOT_LIKE,
+                    Op.LIKE if operator == "=" else Op.NOT_LIKE,
                     # Slashes have to be double escaped so they are
                     # interpreted as a string literal.
                     search_filter.value.raw_value.replace("\\", "\\\\")
@@ -1360,23 +1369,19 @@ class QueryFilter(QueryFields):
             elif name in ARRAY_FIELDS and search_filter.is_in_filter:
                 return Condition(
                     Function("hasAny", [self.column(name), value]),
-                    Op.EQ if search_filter.operator == "IN" else Op.NEQ,
+                    Op.EQ if operator == "IN" else Op.NEQ,
                     1,
                 )
             elif name in ARRAY_FIELDS and search_filter.value.raw_value == "":
                 return Condition(
                     Function("notEmpty", [self.column(name)]),
-                    Op.EQ if search_filter.operator == "!=" else Op.NEQ,
+                    Op.EQ if operator == "!=" else Op.NEQ,
                     1,
                 )
 
         # timestamp{,.to_{hour,day}} need a datetime string
         # last_seen needs an integer
-        if isinstance(value, datetime) and name not in {
-            "timestamp",
-            "timestamp.to_hour",
-            "timestamp.to_day",
-        }:
+        if isinstance(value, datetime) and name not in TIMESTAMP_FIELDS:
             value = int(to_timestamp(value)) * 1000
 
         if name in {"trace.span", "trace.parent_span"}:
@@ -1392,6 +1397,17 @@ class QueryFilter(QueryFields):
             elif not search_filter.value.is_event_id():
                 label = "Filter ID" if name == "id" else "Filter Trace ID"
                 raise InvalidSearchQuery(INVALID_ID_DETAILS.format(label))
+
+        if name in TIMESTAMP_FIELDS:
+            if (
+                operator in ["<", "<="]
+                and value < self.params["start"]
+                or operator in [">", ">="]
+                and value > self.params["end"]
+            ):
+                raise InvalidSearchQuery(
+                    "Filter on timestamp is outside of the selected date range."
+                )
 
         # Tags are never null, but promoted tags are columns and so can be null.
         # To handle both cases, use `ifNull` to convert to an empty string and
@@ -1441,9 +1457,9 @@ class QueryFilter(QueryFields):
         # conditions added to env_conditions can be OR'ed
         env_conditions = []
         value = search_filter.value.value
-        values = set(value if isinstance(value, (list, tuple)) else [value])
+        values_set = set(value if isinstance(value, (list, tuple)) else [value])
         # sorted for consistency
-        values = sorted(f"{value}" for value in values)
+        values = sorted(f"{value}" for value in values_set)
         environment = self.column("environment")
         # the "no environment" environment is null in snuba
         if "" in values:
@@ -1564,12 +1580,11 @@ class QueryFilter(QueryFields):
                 self.resolve_field(search_filter.key.name),
                 Op.IS_NULL if search_filter.operator == "=" else Op.IS_NOT_NULL,
             )
-        if search_filter.is_in_filter:
-            internal_value = [
-                translate_transaction_status(val) for val in search_filter.value.raw_value
-            ]
-        else:
-            internal_value = translate_transaction_status(search_filter.value.raw_value)
+        internal_value = (
+            [translate_transaction_status(val) for val in search_filter.value.raw_value]
+            if search_filter.is_in_filter
+            else translate_transaction_status(search_filter.value.raw_value)
+        )
         return Condition(
             self.resolve_field(search_filter.key.name),
             Op(search_filter.operator),
@@ -1661,8 +1676,8 @@ class QueryFilter(QueryFields):
             raise ValueError("organization_id is a required param")
 
         organization_id: int = self.params["organization_id"]
-        project_ids: Optional[list[int]] = self.params.get("project_id")
-        environments: Optional[list[Environment]] = self.params.get("environment_objects", [])
+        project_ids: Optional[List[int]] = self.params.get("project_id")
+        environments: Optional[List[Environment]] = self.params.get("environment_objects", [])
         qs = (
             Release.objects.filter_by_stage(
                 organization_id,
@@ -1684,30 +1699,30 @@ class QueryFilter(QueryFields):
 
     def _release_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         """Parse releases for potential aliases like `latest`"""
-        values = reduce(
-            lambda x, y: x + y,
-            [
-                parse_release(
-                    v,
-                    self.params["project_id"],
-                    self.params.get("environment_objects"),
-                    self.params.get("organization_id"),
+
+        if search_filter.value.is_wildcard():
+            operator = search_filter.operator
+            value = search_filter.value
+        else:
+            operator_conversions = {"=": "IN", "!=": "NOT IN"}
+            operator = operator_conversions.get(search_filter.operator, search_filter.operator)
+            value = SearchValue(
+                reduce(
+                    lambda x, y: x + y,
+                    [
+                        parse_release(
+                            v,
+                            self.params["project_id"],
+                            self.params.get("environment_objects"),
+                            self.params.get("organization_id"),
+                        )
+                        for v in to_list(search_filter.value.value)
+                    ],
+                    [],
                 )
-                for v in to_list(search_filter.value.value)
-            ],
-            [],
-        )
-
-        operator_conversions = {"=": "IN", "!=": "NOT IN"}
-        operator = operator_conversions.get(search_filter.operator, search_filter.operator)
-
-        return self._default_filter_converter(
-            SearchFilter(
-                search_filter.key,
-                operator,
-                SearchValue(values),
             )
-        )
+
+        return self._default_filter_converter(SearchFilter(search_filter.key, operator, value))
 
     def _semver_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         """
@@ -1729,7 +1744,7 @@ class QueryFilter(QueryFields):
             raise ValueError("organization_id is a required param")
 
         organization_id: int = self.params["organization_id"]
-        project_ids: Optional[list[int]] = self.params.get("project_id")
+        project_ids: Optional[List[int]] = self.params.get("project_id")
         # We explicitly use `raw_value` here to avoid converting wildcards to shell values
         version: str = search_filter.value.raw_value
         operator: str = search_filter.operator
@@ -1787,7 +1802,7 @@ class QueryFilter(QueryFields):
             raise ValueError("organization_id is a required param")
 
         organization_id: int = self.params["organization_id"]
-        project_ids: Optional[list[int]] = self.params.get("project_id")
+        project_ids: Optional[List[int]] = self.params.get("project_id")
         package: str = search_filter.value.raw_value
 
         versions = list(
@@ -1813,7 +1828,7 @@ class QueryFilter(QueryFields):
             raise ValueError("organization_id is a required param")
 
         organization_id: int = self.params["organization_id"]
-        project_ids: Optional[list[int]] = self.params.get("project_id")
+        project_ids: Optional[List[int]] = self.params.get("project_id")
         build: str = search_filter.value.raw_value
 
         operator, negated = handle_operator_negation(search_filter.operator)

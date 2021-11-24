@@ -1,12 +1,12 @@
 import {browserHistory} from 'react-router';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'app/stores/projectsStore';
-import TeamStore from 'app/stores/teamStore';
-import TransactionSummary from 'app/views/performance/transactionSummary/transactionOverview';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import TeamStore from 'sentry/stores/teamStore';
+import TransactionSummary from 'sentry/views/performance/transactionSummary/transactionOverview';
 
 const teams = [
   TestStubs.Team({id: '1', slug: 'team1', name: 'Team 1'}),
@@ -41,6 +41,8 @@ function initializeData({features: additionalFeatures = [], query = {}} = {}) {
 }
 
 describe('Performance > TransactionSummary', function () {
+  enforceActOnUseLegacyStoreHook();
+
   beforeEach(function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -88,116 +90,113 @@ describe('Performance > TransactionSummary', function () {
       url: '/prompts-activity/',
       body: {},
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-facets-performance/',
+      body: {},
+    });
 
     // Mock totals for the sidebar and other summary data
-    MockApiClient.addMockResponse(
-      {
-        url: '/organizations/org-slug/eventsv2/',
-        body: {
-          meta: {
-            count: 'number',
-            apdex: 'number',
-            count_miserable_user: 'number',
-            user_misery: 'number',
-            count_unique_user: 'number',
-            p95: 'number',
-            failure_rate: 'number',
-            tpm: 'number',
-            project_threshold_config: 'string',
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/eventsv2/',
+      body: {
+        meta: {
+          count: 'number',
+          apdex: 'number',
+          count_miserable_user: 'number',
+          user_misery: 'number',
+          count_unique_user: 'number',
+          p95: 'number',
+          failure_rate: 'number',
+          tpm: 'number',
+          project_threshold_config: 'string',
+        },
+        data: [
+          {
+            count: 2,
+            apdex: 0.6,
+            count_miserable_user: 122,
+            user_misery: 0.114,
+            count_unique_user: 1,
+            p95: 750.123,
+            failure_rate: 1,
+            tpm: 1,
+            project_threshold_config: ['duration', 300],
           },
-          data: [
-            {
-              count: 2,
-              apdex: 0.6,
-              count_miserable_user: 122,
-              user_misery: 0.114,
-              count_unique_user: 1,
-              p95: 750.123,
-              failure_rate: 1,
-              tpm: 1,
-              project_threshold_config: ['duration', 300],
-            },
-          ],
-        },
+        ],
       },
-      {
-        predicate: (url, options) => {
-          return url.includes('eventsv2') && options.query?.field.includes('p95()');
+      match: [
+        (_url, options) => {
+          return options.query?.field?.includes('p95()');
         },
-      }
-    );
+      ],
+    });
     // Transaction list response
-    MockApiClient.addMockResponse(
-      {
-        url: '/organizations/org-slug/eventsv2/',
-        headers: {
-          Link:
-            '<http://localhost/api/0/organizations/org-slug/eventsv2/?cursor=2:0:0>; rel="next"; results="true"; cursor="2:0:0",' +
-            '<http://localhost/api/0/organizations/org-slug/eventsv2/?cursor=1:0:0>; rel="previous"; results="false"; cursor="1:0:0"',
-        },
-        body: {
-          meta: {
-            id: 'string',
-            'user.display': 'string',
-            'transaction.duration': 'duration',
-            'project.id': 'integer',
-            timestamp: 'date',
-          },
-          data: [
-            {
-              id: 'deadbeef',
-              'user.display': 'uhoh@example.com',
-              'transaction.duration': 400,
-              'project.id': 2,
-              timestamp: '2020-05-21T15:31:18+00:00',
-            },
-          ],
-        },
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/eventsv2/',
+      headers: {
+        Link:
+          '<http://localhost/api/0/organizations/org-slug/eventsv2/?cursor=2:0:0>; rel="next"; results="true"; cursor="2:0:0",' +
+          '<http://localhost/api/0/organizations/org-slug/eventsv2/?cursor=1:0:0>; rel="previous"; results="false"; cursor="1:0:0"',
       },
-      {
-        predicate: (url, options) => {
-          return (
-            url.includes('eventsv2') && options.query?.field.includes('user.display')
-          );
+      body: {
+        meta: {
+          id: 'string',
+          'user.display': 'string',
+          'transaction.duration': 'duration',
+          'project.id': 'integer',
+          timestamp: 'date',
         },
-      }
-    );
+        data: [
+          {
+            id: 'deadbeef',
+            'user.display': 'uhoh@example.com',
+            'transaction.duration': 400,
+            'project.id': 2,
+            timestamp: '2020-05-21T15:31:18+00:00',
+          },
+        ],
+      },
+      match: [
+        (_url, options) => {
+          return options.query?.field?.includes('user.display');
+        },
+      ],
+    });
     // Mock totals for status breakdown
-    MockApiClient.addMockResponse(
-      {
-        url: '/organizations/org-slug/eventsv2/',
-        body: {
-          meta: {
-            'transaction.status': 'string',
-            count: 'number',
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/eventsv2/',
+      body: {
+        meta: {
+          'transaction.status': 'string',
+          count: 'number',
+        },
+        data: [
+          {
+            count: 2,
+            'transaction.status': 'ok',
           },
-          data: [
-            {
-              count: 2,
-              'transaction.status': 'ok',
-            },
-          ],
-        },
+        ],
       },
-      {
-        predicate: (url, options) => {
-          return (
-            url.includes('eventsv2') &&
-            options.query?.field.includes('transaction.status')
-          );
+      match: [
+        (_url, options) => {
+          return options.query?.field?.includes('transaction.status');
         },
-      }
-    );
+      ],
+    });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-facets/',
       body: [
         {
           key: 'release',
-          topValues: [{count: 2, value: 'abcd123', name: 'abcd123'}],
+          topValues: [{count: 3, value: 'abcd123', name: 'abcd123'}],
         },
         {
           key: 'environment',
-          topValues: [{count: 2, value: 'abcd123', name: 'abcd123'}],
+          topValues: [{count: 2, value: 'dev', name: 'dev'}],
+        },
+        {
+          key: 'foo',
+          topValues: [{count: 1, value: 'bar', name: 'bar'}],
         },
       ],
     });
@@ -496,7 +495,7 @@ describe('Performance > TransactionSummary', function () {
     wrapper.update();
 
     const pagination = wrapper.find('Pagination');
-    expect(pagination).toHaveLength(1);
+    expect(pagination).toHaveLength(2);
 
     // Click the 'next' button'
     pagination.find('button[aria-label="Next"]').simulate('click');
@@ -533,18 +532,16 @@ describe('Performance > TransactionSummary', function () {
   });
 
   it('does not forward event type to related issues', async function () {
-    const issueGet = MockApiClient.addMockResponse(
-      {
-        url: '/organizations/org-slug/issues/?limit=5&project=2&query=tag%3Avalue%20is%3Aunresolved%20transaction%3A%2Fperformance&sort=new&statsPeriod=14d',
-        body: [],
-      },
-      {
-        predicate: (url, options) =>
-          url.startsWith(`/organizations/org-slug/issues/`) &&
+    const issueGet = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/?limit=5&project=2&query=tag%3Avalue%20is%3Aunresolved%20transaction%3A%2Fperformance&sort=new&statsPeriod=14d',
+      body: [],
+      match: [
+        (_, options) => {
           // event.type must NOT be in the query params
-          !options.query?.query?.includes('event.type'),
-      }
-    );
+          return !options.query?.query?.includes('event.type');
+        },
+      ],
+    });
 
     const initialData = initializeData({
       query: {query: 'tag:value event.type:transaction'},
@@ -586,5 +583,29 @@ describe('Performance > TransactionSummary', function () {
         }),
       })
     );
+  });
+
+  it('appends tag value to existing query when clicked', async function () {
+    const initialData = initializeData();
+    const wrapper = mountWithTheme(
+      <TransactionSummary
+        organization={initialData.organization}
+        location={initialData.router.location}
+      />,
+      initialData.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    // since environment collides with the environment field, it is wrapped with `tags[...]`
+    const envSegment = wrapper.find(
+      '[data-test-id="tag-environment-segment-dev"] Segment'
+    );
+    const envTarget = envSegment.props().to;
+    expect(envTarget.query.query).toEqual('tags[environment]:dev');
+
+    const fooSegment = wrapper.find('[data-test-id="tag-foo-segment-bar"] Segment');
+    const fooTarget = fooSegment.props().to;
+    expect(fooTarget.query.query).toEqual('foo:bar');
   });
 });

@@ -47,6 +47,7 @@ type State = {
   eventView: EventView;
   error: string | undefined;
 };
+
 class PerformanceContent extends Component<Props, State> {
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
     return {

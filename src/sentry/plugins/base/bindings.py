@@ -1,4 +1,4 @@
-from sentry.plugins import providers
+from sentry.plugins.providers import IntegrationRepositoryProvider, RepositoryProvider
 
 
 class ProviderManager:
@@ -24,11 +24,11 @@ class ProviderManager:
 
 
 class RepositoryProviderManager(ProviderManager):
-    type = providers.RepositoryProvider
+    type = RepositoryProvider
 
 
 class IntegrationRepositoryProviderManager(ProviderManager):
-    type = providers.IntegrationRepositoryProvider
+    type = IntegrationRepositoryProvider
 
 
 class BindingManager:

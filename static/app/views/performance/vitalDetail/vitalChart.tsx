@@ -29,9 +29,9 @@ import useApi from 'app/utils/useApi';
 import {replaceSeriesName, transformEventStatsSmoothed} from '../trends/utils';
 
 import {
-  fieldToVital,
   getMaxOfSeries,
   vitalNameFromLocation,
+  VitalState,
   vitalStateColors,
   webVitalMeh,
   webVitalPoor,
@@ -286,12 +286,44 @@ export type _VitalChartProps = Props & {
   reloading: boolean;
   field: string;
   height?: number;
+  utc?: boolean;
   grid: LineChart['props']['grid'];
+  vitalFields?: {
+    poorCountField: string;
+    mehCountField: string;
+    goodCountField: string;
+  };
 };
 
+function fieldToVitalType(
+  seriesName: string,
+  vitalFields: _VitalChartProps['vitalFields']
+): VitalState | undefined {
+  if (seriesName === vitalFields?.poorCountField.replace('equation|', '')) {
+    return VitalState.POOR;
+  }
+  if (seriesName === vitalFields?.mehCountField.replace('equation|', '')) {
+    return VitalState.MEH;
+  }
+  if (seriesName === vitalFields?.goodCountField.replace('equation|', '')) {
+    return VitalState.GOOD;
+  }
+
+  return undefined;
+}
+
 function __VitalChart(props: _VitalChartProps) {
-  const {field: yAxis, data: _results, loading, reloading, height, grid} = props;
-  if (!_results) {
+  const {
+    field: yAxis,
+    data: _results,
+    loading,
+    reloading,
+    height,
+    grid,
+    utc,
+    vitalFields,
+  } = props;
+  if (!_results || !vitalFields) {
     return null;
   }
   const theme = useTheme();
@@ -303,7 +335,12 @@ function __VitalChart(props: _VitalChartProps) {
     },
     tooltip: {
       trigger: 'axis' as const,
-      valueFormatter: tooltipFormatter,
+      valueFormatter: (value: number, seriesName?: string) => {
+        return tooltipFormatter(
+          value,
+          vitalFields[0] === WebVital.CLS ? seriesName : yAxis
+        );
+      },
     },
     xAxis: {
       axisLine: {
@@ -323,16 +360,20 @@ function __VitalChart(props: _VitalChartProps) {
         formatter: (value: number) => axisLabelFormatter(value, yAxis),
       },
     },
+    utc,
+    isGroupedByDate: true,
+    showTimeInTooltip: true,
   };
 
-  const results = _results.filter(r => !!fieldToVital(r.seriesName));
+  const results = _results.filter(s => !!fieldToVitalType(s.seriesName, vitalFields));
 
   const smoothedSeries = results?.length
     ? results.map(({seriesName, ...rest}) => {
+        const adjustedSeries = fieldToVitalType(seriesName, vitalFields) || 'count';
         return {
-          seriesName: fieldToVital(seriesName) || 'count',
+          seriesName: adjustedSeries,
           ...rest,
-          color: theme[vitalStateColors[fieldToVital(seriesName)]],
+          color: theme[vitalStateColors[adjustedSeries]],
           lineStyle: {
             opacity: 1,
             width: 2,
@@ -352,6 +393,7 @@ function __VitalChart(props: _VitalChartProps) {
               {...chartOptions}
               onLegendSelectChanged={() => {}}
               series={[...smoothedSeries]}
+              isGroupedByDate
             />
           ),
           fixed: 'Web Vitals Chart',

@@ -2,14 +2,14 @@ import * as React from 'react';
 
 import ModalActions from 'app/actions/modalActions';
 import type {ModalTypes} from 'app/components/globalModal';
+import type {DashboardIssueWidgetModalOptions} from 'app/components/modals/addDashboardIssueWidgetModal';
 import type {DashboardWidgetModalOptions} from 'app/components/modals/addDashboardWidgetModal';
 import {DashboardWidgetLibraryModalOptions} from 'app/components/modals/dashboardWidgetLibraryModal';
 import type {DashboardWidgetQuerySelectorModalOptions} from 'app/components/modals/dashboardWidgetQuerySelectorModal';
 import {InviteRow} from 'app/components/modals/inviteMembersModal/types';
 import type {ReprocessEventModalOptions} from 'app/components/modals/reprocessEventModal';
-import {AppStoreConnectContextProps} from 'app/components/projects/appStoreConnectContext';
 import {Group, IssueOwnership, Organization, Project, SentryApp, Team} from 'app/types';
-import {CustomRepoType} from 'app/types/debugFiles';
+import {AppStoreConnectStatusData, CustomRepoType} from 'app/types/debugFiles';
 import {Event} from 'app/types/event';
 
 export type ModalOptions = ModalTypes['options'];
@@ -197,7 +197,7 @@ export type SentryAppDetailsModalOptions = {
 type DebugFileSourceModalOptions = {
   sourceType: CustomRepoType;
   onSave: (data: Record<string, any>) => Promise<void>;
-  appStoreConnectContext?: AppStoreConnectContextProps;
+  appStoreConnectStatusData?: AppStoreConnectStatusData;
   onClose?: () => void;
   sourceConfig?: Record<string, any>;
 };
@@ -230,6 +230,15 @@ export async function openInviteMembersModal({
 export async function openAddDashboardWidgetModal(options: DashboardWidgetModalOptions) {
   const mod = await import('app/components/modals/addDashboardWidgetModal');
   const {default: Modal, modalCss} = mod;
+
+  openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});
+}
+
+export async function openAddDashboardIssueWidgetModal(
+  options: DashboardIssueWidgetModalOptions
+) {
+  const issuesModal = await import('app/components/modals/addDashboardIssueWidgetModal');
+  const {default: Modal, modalCss} = issuesModal;
 
   openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});
 }

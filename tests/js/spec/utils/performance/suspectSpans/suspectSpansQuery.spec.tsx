@@ -1,11 +1,11 @@
 import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
-import EventView from 'app/utils/discover/eventView';
-import SuspectSpansQuery from 'app/utils/performance/suspectSpans/suspectSpansQuery';
+import EventView from 'sentry/utils/discover/eventView';
+import SuspectSpansQuery from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
 import {
   SpanSortOthers,
   SpanSortPercentiles,
-} from 'app/views/performance/transactionSummary/transactionSpans/types';
+} from 'sentry/views/performance/transactionSummary/transactionSpans/types';
 
 describe('SuspectSpansQuery', function () {
   let eventView, location;
@@ -25,7 +25,6 @@ describe('SuspectSpansQuery', function () {
   });
 
   it('fetches data on mount', async function () {
-    // @ts-expect-error
     const getMock = MockApiClient.addMockResponse({
       url: '/organizations/test-org/events-spans-performance/',
       // just asserting that the data is being fetched, no need for actual data here
@@ -47,20 +46,12 @@ describe('SuspectSpansQuery', function () {
   });
 
   it('fetches data with the right ops filter', async function () {
-    // @ts-expect-error
-    const getMock = MockApiClient.addMockResponse(
-      {
-        url: '/organizations/test-org/events-spans-performance/',
-        // just asserting that the data is being fetched, no need for actual data here
-        body: [],
-      },
-      {
-        predicate: (_url, options) => {
-          const spanOp = options.query.spanOp;
-          return spanOp.length && spanOp[0] === 'op1';
-        },
-      }
-    );
+    const getMock = MockApiClient.addMockResponse({
+      url: '/organizations/test-org/events-spans-performance/',
+      // just asserting that the data is being fetched, no need for actual data here
+      body: [],
+      match: [MockApiClient.matchQuery({spanOp: ['op1']})],
+    });
 
     mountWithTheme(
       <SuspectSpansQuery

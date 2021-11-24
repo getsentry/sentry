@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import functools
 import logging
 import time
 from datetime import datetime, timedelta
+from typing import Mapping
 
 import sentry_sdk
 from django.conf import settings
@@ -17,6 +20,7 @@ from rest_framework.views import APIView
 from sentry import analytics, tsdb
 from sentry.auth import access
 from sentry.models import Environment
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import json
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.cursors import Cursor
@@ -95,6 +99,10 @@ class Endpoint(APIView):
 
     cursor_name = "cursor"
 
+    # Default Rate Limit Values, override in subclass
+    # Should be of format: { <http function>: { <category>: RateLimit(limit, window) } }
+    rate_limits: Mapping[str, Mapping[RateLimitCategory | str, RateLimit]] = {}
+
     def build_cursor_link(self, request, name, cursor):
         querystring = None
         if request.GET.get("cursor") is None:
@@ -161,14 +169,14 @@ class Endpoint(APIView):
         except json.JSONDecodeError:
             return
 
-    def _create_api_access_log(self):
+    def _create_api_access_log(self, request_start_time: float):
         """
         Create a log entry to be used for api metrics gathering
         """
         try:
 
             token_class = getattr(self.request.auth, "__class__", None)
-            token_name = token_class.__name__
+            token_name = token_class.__name__ if token_class else None
 
             view_obj = self.request.parser_context["view"]
 
@@ -195,6 +203,7 @@ class Endpoint(APIView):
                 caller_ip=str(self.request.META.get("REMOTE_ADDR")),
                 user_agent=str(self.request.META.get("HTTP_USER_AGENT")),
                 rate_limited=str(getattr(self.request, "will_be_rate_limited", False)),
+                request_duration_seconds=time.time() - request_start_time,
             )
             api_access_logger.info("api.access", extra=log_metrics)
         except Exception:
@@ -237,8 +246,7 @@ class Endpoint(APIView):
         # the request (happens via middleware/stats.py).
         request._metric_tags = {}
 
-        if settings.SENTRY_API_RESPONSE_DELAY:
-            start_time = time.time()
+        start_time = time.time()
 
         origin = request.META.get("HTTP_ORIGIN", "null")
         # A "null" value should be treated as no Origin for us.
@@ -299,7 +307,7 @@ class Endpoint(APIView):
                     span.set_data("SENTRY_API_RESPONSE_DELAY", settings.SENTRY_API_RESPONSE_DELAY)
                     time.sleep(settings.SENTRY_API_RESPONSE_DELAY / 1000.0 - duration)
 
-        self._create_api_access_log()
+        self._create_api_access_log(start_time)
 
         return self.response
 

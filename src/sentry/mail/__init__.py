@@ -2,6 +2,7 @@ from django.conf import settings
 
 from sentry.utils.imports import import_string
 
+from .analytics import *  # NOQA Importing this in __init__ so that analytics.register runs.
 from .notifications import *  # NOQA Importing this in __init__ so that @register runs.
 
 

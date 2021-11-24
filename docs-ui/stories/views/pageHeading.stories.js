@@ -1,4 +1,4 @@
-import PageHeading from 'app/components/pageHeading';
+import PageHeading from 'sentry/components/pageHeading';
 
 export default {
   title: 'Views/Page Heading',

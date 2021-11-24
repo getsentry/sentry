@@ -1,13 +1,13 @@
-import {fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import Banner from 'app/components/banner';
+import Banner from 'sentry/components/banner';
 
 describe('Banner', function () {
   it('can be dismissed', function () {
     mountWithTheme(<Banner dismissKey="test" title="test" />);
     expect(screen.getByText('test')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByLabelText('Close'));
+    userEvent.click(screen.getByLabelText('Close'));
 
     expect(screen.queryByText('test')).not.toBeInTheDocument();
     expect(localStorage.getItem('test-banner-dismissed')).toBe('true');

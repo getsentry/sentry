@@ -1,12 +1,9 @@
 import {Fragment, FunctionComponent, useMemo, useState} from 'react';
 import {withRouter} from 'react-router';
-import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import EmptyStateWarning from 'app/components/emptyStateWarning';
-import Link from 'app/components/links/link';
+import Button from 'app/components/button';
 import Truncate from 'app/components/truncate';
-import {IconClose} from 'app/icons';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
@@ -14,16 +11,22 @@ import TrendsDiscoverQuery from 'app/utils/performance/trends/trendsDiscoverQuer
 import {MutableSearch} from 'app/utils/tokenizeSearch';
 import withProjects from 'app/utils/withProjects';
 import {CompareDurations} from 'app/views/performance/trends/changedTransactions';
-import {trendsTargetRoute} from 'app/views/performance/utils';
+import {handleTrendsClick, trendsTargetRoute} from 'app/views/performance/utils';
 
 import {Chart} from '../../../trends/chart';
 import {TrendChangeType, TrendFunctionField} from '../../../trends/types';
 import {excludeTransaction} from '../../utils';
 import {GenericPerformanceWidget} from '../components/performanceWidget';
-import SelectableList, {RightAlignedCell} from '../components/selectableList';
+import SelectableList, {
+  GrowLink,
+  ListClose,
+  RightAlignedCell,
+  Subtitle,
+  WidgetEmptyStateWarning,
+} from '../components/selectableList';
 import {transformTrendsDiscover} from '../transforms/transformTrendsDiscover';
 import {QueryDefinition, WidgetDataResult} from '../types';
-import {PerformanceWidgetSetting} from '../widgetDefinitions';
+import {ChartDefinition, PerformanceWidgetSetting} from '../widgetDefinitions';
 
 type Props = {
   title: string;
@@ -35,6 +38,7 @@ type Props = {
   location: Location;
   organization: Organization;
   chartSetting: PerformanceWidgetSetting;
+  chartDefinition: ChartDefinition;
 
   ContainerActions: FunctionComponent<{isLoading: boolean}>;
 };
@@ -46,7 +50,7 @@ type DataType = {
 const fields = [{field: 'transaction'}, {field: 'project'}];
 
 export function TrendsWidget(props: Props) {
-  const {eventView: _eventView, ContainerActions} = props;
+  const {eventView: _eventView, ContainerActions, location, organization} = props;
   const trendChangeType =
     props.chartSetting === PerformanceWidgetSetting.MOST_IMPROVED
       ? TrendChangeType.IMPROVED
@@ -75,16 +79,18 @@ export function TrendsWidget(props: Props) {
       component: provided => (
         <TrendsDiscoverQuery
           {...provided}
-          eventView={eventView}
+          eventView={provided.eventView}
           location={props.location}
           trendChangeType={trendChangeType}
           trendFunctionField={trendFunctionField}
           limit={3}
+          cursor="0:0:1"
+          noPagination
         />
       ),
       transform: transformTrendsDiscover,
     }),
-    [eventView, trendChangeType]
+    [props.chartSetting, trendChangeType]
   );
 
   const Queries = {
@@ -95,7 +101,23 @@ export function TrendsWidget(props: Props) {
     <GenericPerformanceWidget<DataType>
       {...rest}
       Subtitle={() => <Subtitle>{t('Trending Transactions')}</Subtitle>}
-      HeaderActions={provided => <ContainerActions {...provided.widgetData.chart} />}
+      HeaderActions={provided => {
+        return (
+          <Fragment>
+            <div>
+              <Button
+                onClick={() => handleTrendsClick({location, organization})}
+                size="small"
+                data-test-id="view-all-button"
+              >
+                {t('View All')}
+              </Button>
+            </div>
+            <ContainerActions {...provided.widgetData.chart} />
+          </Fragment>
+        );
+      }}
+      EmptyComponent={WidgetEmptyStateWarning}
       Queries={Queries}
       Visualizations={[
         {
@@ -146,14 +168,10 @@ export function TrendsWidget(props: Props) {
                     <RightAlignedCell>
                       <CompareDurations transaction={listItem} />
                     </RightAlignedCell>
-                    <CloseContainer>
-                      <StyledIconClose
-                        onClick={() => {
-                          excludeTransaction(listItem.transaction, props);
-                          setSelectListIndex(0);
-                        }}
-                      />
-                    </CloseContainer>
+                    <ListClose
+                      setSelectListIndex={setSelectListIndex}
+                      onClick={() => excludeTransaction(listItem.transaction, props)}
+                    />
                   </Fragment>
                 );
               })}
@@ -163,37 +181,8 @@ export function TrendsWidget(props: Props) {
           noPadding: true,
         },
       ]}
-      EmptyComponent={() => (
-        <StyledEmptyStateWarning small>{t('No results')}</StyledEmptyStateWarning>
-      )}
     />
   );
 }
 
 const TrendsChart = withRouter(withProjects(Chart));
-const Subtitle = styled('span')`
-  color: ${p => p.theme.gray300};
-  font-size: ${p => p.theme.fontSizeMedium};
-`;
-const CloseContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-const GrowLink = styled(Link)`
-  flex-grow: 1;
-`;
-
-const StyledIconClose = styled(IconClose)`
-  cursor: pointer;
-  color: ${p => p.theme.gray200};
-
-  &:hover {
-    color: ${p => p.theme.gray300};
-  }
-`;
-
-const StyledEmptyStateWarning = styled(EmptyStateWarning)`
-  min-height: 300px;
-  justify-content: center;
-`;

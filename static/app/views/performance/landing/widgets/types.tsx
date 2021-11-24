@@ -8,7 +8,7 @@ import {DateString, Organization, OrganizationSummary} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 
 import {PerformanceWidgetContainerTypes} from './components/performanceWidgetContainer';
-import {PerformanceWidgetSetting} from './widgetDefinitions';
+import {ChartDefinition, PerformanceWidgetSetting} from './widgetDefinitions';
 
 export enum VisualizationDataState {
   ERROR = 'error',
@@ -49,6 +49,7 @@ export type QueryFC<T extends WidgetDataConstraint> = FunctionComponent<
     team?: Readonly<string | string[]>;
     query?: string;
     orgSlug: string;
+    eventView: EventView;
     organization: OrganizationSummary;
     widgetData: T;
   }
@@ -99,6 +100,7 @@ type Subtitle<T> = FunctionComponent<{
 
 export type GenericPerformanceWidgetProps<T extends WidgetDataConstraint> = {
   chartSetting: PerformanceWidgetSetting;
+  chartDefinition: ChartDefinition;
 
   // Header;
   title: string;
@@ -141,6 +143,7 @@ export type QueryHandlerProps<T extends WidgetDataConstraint> = {
   api: Client;
   queries: QueryDefinitionWithKey<T>[];
   children?: ReactNode;
+  eventView: EventView;
   queryProps: WidgetPropUnion<T>;
 } & WidgetDataProps<T>;
 

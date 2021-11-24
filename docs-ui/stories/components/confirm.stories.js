@@ -1,5 +1,5 @@
-import Button from 'app/components/button';
-import Confirm from 'app/components/confirm';
+import Button from 'sentry/components/button';
+import Confirm from 'sentry/components/confirm';
 
 // TODO(scttcper): modal not working
 export default {

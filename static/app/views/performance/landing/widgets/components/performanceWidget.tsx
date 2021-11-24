@@ -6,6 +6,8 @@ import ErrorPanel from 'app/components/charts/errorPanel';
 import Placeholder from 'app/components/placeholder';
 import {IconWarning} from 'app/icons/iconWarning';
 import space from 'app/styles/space';
+import {Organization} from 'app/types';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import useApi from 'app/utils/useApi';
 import getPerformanceWidgetContainer from 'app/views/performance/landing/widgets/components/performanceWidgetContainer';
 
@@ -16,6 +18,7 @@ import {
   WidgetDataResult,
   WidgetPropUnion,
 } from '../types';
+import {PerformanceWidgetSetting} from '../widgetDefinitions';
 
 import {DataStateSwitch} from './dataStateSwitch';
 import {QueryHandler} from './queryHandler';
@@ -63,6 +66,7 @@ export function GenericPerformanceWidget<T extends WidgetDataConstraint>(
   return (
     <Fragment>
       <QueryHandler
+        eventView={props.eventView}
         widgetData={widgetData}
         setWidgetDataForKey={setWidgetDataForKey}
         removeWidgetDataForKey={removeWidgetDataForKey}
@@ -73,6 +77,16 @@ export function GenericPerformanceWidget<T extends WidgetDataConstraint>(
       <_DataDisplay<T> {...props} {...widgetProps} totalHeight={totalHeight} />
     </Fragment>
   );
+}
+
+function trackDataComponentClicks(
+  chartSetting: PerformanceWidgetSetting,
+  organization: Organization
+) {
+  trackAdvancedAnalyticsEvent('performance_views.landingv3.widget.interaction', {
+    organization,
+    widget_type: chartSetting,
+  });
 }
 
 function _DataDisplay<T extends WidgetDataConstraint>(
@@ -109,6 +123,10 @@ function _DataDisplay<T extends WidgetDataConstraint>(
             key={index}
             noPadding={Visualization.noPadding}
             bottomPadding={Visualization.bottomPadding}
+            data-test-id="widget-state-has-data"
+            onClick={() =>
+              trackDataComponentClicks(props.chartSetting, props.organization)
+            }
           >
             <Visualization.component
               grid={defaultGrid}
@@ -135,7 +153,7 @@ export const DataDisplay = withRouter(_DataDisplay);
 
 const DefaultErrorComponent = (props: {height: number}) => {
   return (
-    <ErrorPanel height={`${props.height}px`}>
+    <ErrorPanel data-test-id="widget-state-is-errored" height={`${props.height}px`}>
       <IconWarning color="gray300" size="lg" />
     </ErrorPanel>
   );
