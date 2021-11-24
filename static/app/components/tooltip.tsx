@@ -122,7 +122,7 @@ class Tooltip extends React.Component<Props, State> {
 
   async componentDidMount() {
     if (IS_ACCEPTANCE_TEST) {
-      const TooltipStore = (await import('app/stores/tooltipStore')).default;
+      const TooltipStore = (await import('sentry/stores/tooltipStore')).default;
       TooltipStore.addTooltip(this);
     }
   }
@@ -131,7 +131,7 @@ class Tooltip extends React.Component<Props, State> {
     const {usesGlobalPortal} = this.state;
 
     if (IS_ACCEPTANCE_TEST) {
-      const TooltipStore = (await import('app/stores/tooltipStore')).default;
+      const TooltipStore = (await import('sentry/stores/tooltipStore')).default;
       TooltipStore.removeTooltip(this);
     }
     if (!usesGlobalPortal) {
