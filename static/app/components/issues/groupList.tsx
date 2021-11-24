@@ -139,7 +139,8 @@ class GroupList extends React.Component<Props, State> {
         })
       : false;
 
-    // Check if the alert rule query
+    // Check if the alert rule query has AND or OR
+    // logic queries haven't been implemented for issue search yet
     if (hasLogicBoolean) {
       this.setState({
         error: true,
