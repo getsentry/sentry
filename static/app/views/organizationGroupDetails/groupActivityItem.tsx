@@ -89,7 +89,7 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
       });
     }
 
-    if (activity.user && activity.assignee === activity.user.id) {
+    if (activity.user && data.assignee === activity.user.id) {
       return tct('[author] assigned this issue to themselves', {author});
     }
 

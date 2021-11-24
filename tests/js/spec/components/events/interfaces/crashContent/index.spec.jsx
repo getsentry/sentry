@@ -1,8 +1,8 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import CrashContent from 'app/components/events/interfaces/crashContent';
-import {withMeta} from 'app/components/events/meta/metaProxy';
-import {OrganizationContext} from 'app/views/organizationContext';
+import CrashContent from 'sentry/components/events/interfaces/crashContent';
+import {withMeta} from 'sentry/components/events/meta/metaProxy';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 describe('CrashContent', function () {
   const exc = TestStubs.ExceptionWithMeta({platform: 'cocoa'});

@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 
 import {mountWithTheme, shallow} from 'sentry-test/enzyme';
 
-import {GroupEvents} from 'app/views/organizationGroupDetails/groupEvents';
+import {GroupEvents} from 'sentry/views/organizationGroupDetails/groupEvents';
 
 const OrganizationGroupEvents = GroupEvents;
 

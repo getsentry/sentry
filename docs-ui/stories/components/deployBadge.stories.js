@@ -1,4 +1,4 @@
-import DeployBadge from 'app/components/deployBadge';
+import DeployBadge from 'sentry/components/deployBadge';
 
 export default {
   title: 'Components/Badges/Deploy Badge',

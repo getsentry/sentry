@@ -4,11 +4,11 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {getOptionByLabel, openMenu, selectByLabel} from 'sentry-test/select-new';
 
-import {openDashboardWidgetLibraryModal} from 'app/actionCreators/modal';
-import AddDashboardWidgetModal from 'app/components/modals/addDashboardWidgetModal';
-import {t} from 'app/locale';
-import TagStore from 'app/stores/tagStore';
-import * as types from 'app/views/dashboardsV2/types';
+import {openDashboardWidgetLibraryModal} from 'sentry/actionCreators/modal';
+import AddDashboardWidgetModal from 'sentry/components/modals/addDashboardWidgetModal';
+import {t} from 'sentry/locale';
+import TagStore from 'sentry/stores/tagStore';
+import * as types from 'sentry/views/dashboardsV2/types';
 
 jest.mock('app/actionCreators/modal', () => ({
   openDashboardWidgetLibraryModal: jest.fn(),
@@ -22,8 +22,7 @@ function mountModal({
   onUpdateWidget,
   widget,
   dashboard,
-  fromDiscover,
-  fromLibrary,
+  source,
   defaultWidgetQuery,
   displayType,
   defaultTableColumns,
@@ -41,8 +40,7 @@ function mountModal({
       widget={widget}
       dashboard={dashboard}
       closeModal={() => void 0}
-      fromDiscover={fromDiscover}
-      fromLibrary={fromLibrary}
+      source={source || types.DashboardWidgetSource.DASHBOARDS}
       defaultWidgetQuery={defaultWidgetQuery}
       displayType={displayType}
       defaultTableColumns={defaultTableColumns}
@@ -137,7 +135,10 @@ describe('Modals -> AddDashboardWidgetModal', function () {
   });
 
   it('redirects correctly when creating a new dashboard', async function () {
-    const wrapper = mountModal({initialData, fromDiscover: true});
+    const wrapper = mountModal({
+      initialData,
+      source: types.DashboardWidgetSource.DISCOVERV2,
+    });
     await tick();
     await wrapper.update();
     selectDashboard(wrapper, {label: t('+ Create New Dashboard'), value: 'new'});
@@ -151,7 +152,10 @@ describe('Modals -> AddDashboardWidgetModal', function () {
   });
 
   it('redirects correctly when choosing an existing dashboard', async function () {
-    const wrapper = mountModal({initialData, fromDiscover: true});
+    const wrapper = mountModal({
+      initialData,
+      source: types.DashboardWidgetSource.DISCOVERV2,
+    });
     await tick();
     await wrapper.update();
     selectDashboard(wrapper, {label: t('Test Dashboard'), value: '1'});
@@ -166,7 +170,10 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
   it('disables dashboards with max widgets', async function () {
     types.MAX_WIDGETS = 1;
-    const wrapper = mountModal({initialData, fromDiscover: true});
+    const wrapper = mountModal({
+      initialData,
+      source: types.DashboardWidgetSource.DISCOVERV2,
+    });
     await tick();
     await wrapper.update();
     openMenu(wrapper, {name: 'dashboard', control: true});
@@ -931,7 +938,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       onAddWidget: () => undefined,
       onUpdateWidget: () => undefined,
       widget: undefined,
-      fromDiscover: true,
+      source: types.DashboardWidgetSource.DISCOVERV2,
       defaultWidgetQuery: {
         name: '',
         fields: ['count()', 'failure_count()', 'count_unique(user)'],
@@ -954,7 +961,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       initialData,
       onAddWidget: () => undefined,
       onUpdateWidget: () => undefined,
-      fromDiscover: true,
+      source: types.DashboardWidgetSource.DISCOVERV2,
       displayType: types.DisplayType.BAR,
     });
 
@@ -967,7 +974,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       initialData,
       onAddWidget: () => undefined,
       onUpdateWidget: () => undefined,
-      fromDiscover: true,
+      source: types.DashboardWidgetSource.DISCOVERV2,
       displayType: types.DisplayType.TOP_N,
       defaultWidgetQuery: {fields: ['count_unique(user)'], orderby: '-count_unique_user'},
       defaultTableColumns: ['title', 'count()'],
@@ -991,7 +998,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       initialData,
       dashboard,
       onAddLibraryWidget: onAddLibraryWidgetMock,
-      fromLibrary: true,
+      source: types.DashboardWidgetSource.LIBRARY,
     });
 
     const input = wrapper.find('Input[name="title"] input');
@@ -1008,12 +1015,25 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       initialData,
       dashboard,
       onAddLibraryWidget: onAddLibraryWidgetMock,
-      fromLibrary: true,
+      source: types.DashboardWidgetSource.LIBRARY,
     });
 
     expect(wrapper.find('Button[data-test-id="back-to-library"]')).toHaveLength(1);
     wrapper.find('Button[data-test-id="back-to-library"] button').simulate('click');
     expect(openDashboardWidgetLibraryModal).toHaveBeenCalledTimes(1);
+    wrapper.unmount();
+  });
+
+  it('sets widgetType to dashboard', async function () {
+    const onAdd = jest.fn();
+    const wrapper = mountModal({
+      initialData,
+      onAddWidget: onAdd,
+      onUpdateWidget: () => undefined,
+    });
+    await clickSubmit(wrapper);
+
+    expect(onAdd).toHaveBeenCalledWith(expect.objectContaining({widgetType: 'discover'}));
     wrapper.unmount();
   });
 });

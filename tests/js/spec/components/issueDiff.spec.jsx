@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {IssueDiff} from 'app/components/issueDiff';
+import {IssueDiff} from 'sentry/components/issueDiff';
 
 jest.mock('app/api');
 

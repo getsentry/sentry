@@ -15,6 +15,7 @@ from urllib.parse import urlparse
 from django.conf.global_settings import *  # NOQA
 
 import sentry
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import type_from_value
 
@@ -906,11 +907,11 @@ SENTRY_FEATURES = {
     # Enable the linked event feature in the issue details breadcrumb.
     "organizations:breadcrumb-linked-event": False,
     # Enable change alerts for an org
-    "organizations:change-alerts": False,
+    "organizations:change-alerts": True,
     # Enable unfurling charts using the Chartcuterie service
     "organizations:chart-unfurls": False,
     # Enable alerting based on crash free sessions/users
-    "organizations:crash-rate-alerts": False,
+    "organizations:crash-rate-alerts": True,
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
     # is not enabled).
     "organizations:create": True,
@@ -996,12 +997,14 @@ SENTRY_FEATURES = {
     "organizations:integrations-stacktrace-link": False,
     # Allow orgs to install a custom source code management integration
     "organizations:integrations-custom-scm": False,
+    # Limit project events endpoint to only query back a certain number of days
+    "organizations:project-event-date-limit": False,
     # Allow orgs to debug internal/unpublished sentry apps with logging
     "organizations:sentry-app-debugging": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
-    # Enable widget resizing in dashboards
-    "organizations:dashboard-widget-resizing": False,
+    # Enable react-grid-layout dashboards
+    "organizations:dashboard-grid-layout": False,
     # Enable readonly dashboards
     "organizations:dashboards-basic": True,
     # Enable custom editable dashboards
@@ -1054,6 +1057,8 @@ SENTRY_FEATURES = {
     "organizations:notification-all-recipients": False,
     # Enable the new native stack trace design
     "organizations:native-stack-trace-v2": False,
+    # Enable the sentryapp logo upload feature
+    "organizations:sentry-app-logo-upload": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
     # Enable sorting+filtering by semantic version of a release
@@ -1096,7 +1101,7 @@ SENTRY_FEATURES = {
     # send organization request notifications through Slack
     "organizations:slack-requests": False,
     # Enable team insights page
-    "organizations:team-insights": False,
+    "organizations:team-insights": True,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -1332,6 +1337,15 @@ SENTRY_RELAY_PROJECTCONFIG_DEBOUNCE_CACHE_OPTIONS = {}
 # Rate limiting backend
 SENTRY_RATELIMITER = "sentry.ratelimits.base.RateLimiter"
 SENTRY_RATELIMITER_OPTIONS = {}
+# These values were determined from analysis on one week of api access logs
+SENTRY_RATELIMITER_DEFAULT_IP = 1000
+SENTRY_RATELIMITER_DEFAULT_USER = 3230
+SENTRY_RATELIMITER_DEFAULT_ORG = 620
+SENTRY_RATELIMITER_DEFAULTS = {
+    RateLimitCategory.IP: RateLimit(SENTRY_RATELIMITER_DEFAULT_IP, 1),
+    RateLimitCategory.USER: RateLimit(SENTRY_RATELIMITER_DEFAULT_USER, 1),
+    RateLimitCategory.ORGANIZATION: RateLimit(SENTRY_RATELIMITER_DEFAULT_ORG, 1),
+}
 
 # The default value for project-level quotas
 SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE = "90%"

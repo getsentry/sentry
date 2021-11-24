@@ -6,8 +6,8 @@ import {Location} from 'history';
 import MockDate from 'mockdate';
 import PropTypes from 'prop-types';
 
-import type {Client} from 'app/__mocks__/api';
-import ConfigStore from 'app/stores/configStore';
+import type {Client} from 'sentry/__mocks__/api';
+import ConfigStore from 'sentry/stores/configStore';
 
 import TestStubFixtures from '../fixtures/js-stubs/types';
 

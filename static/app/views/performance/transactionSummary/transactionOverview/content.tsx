@@ -17,6 +17,7 @@ import {generateQueryWithTag} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
 import {
+  formatTagKey,
   getAggregateAlias,
   isRelativeSpanOperationBreakdownField,
   SPAN_OP_BREAKDOWN_FIELDS,
@@ -87,7 +88,7 @@ class SummaryContent extends React.Component<Props> {
 
   generateTagUrl = (key: string, value: string) => {
     const {location} = this.props;
-    const query = generateQueryWithTag(location.query, {key, value});
+    const query = generateQueryWithTag(location.query, {key: formatTagKey(key), value});
 
     return {
       ...location,

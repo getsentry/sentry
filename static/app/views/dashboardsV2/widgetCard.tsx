@@ -10,7 +10,6 @@ import {openDashboardWidgetQuerySelectorModal} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import {HeaderTitle} from 'app/components/charts/styles';
 import ErrorBoundary from 'app/components/errorBoundary';
-import FeatureBadge from 'app/components/featureBadge';
 import MenuItem from 'app/components/menuItem';
 import {isSelectionEqual} from 'app/components/organizations/globalSelectionHeader/utils';
 import {Panel} from 'app/components/panels';
@@ -161,12 +160,7 @@ class WidgetCard extends React.Component<Props> {
                 });
               }}
             >
-              <StyledMenuItem key="open-discover">
-                {t('Open in Discover')}
-                {widget.displayType !== DisplayType.TABLE && (
-                  <FeatureBadge type="new" noTooltip />
-                )}
-              </StyledMenuItem>
+              <StyledMenuItem key="open-discover">{t('Open in Discover')}</StyledMenuItem>
             </Link>
           );
         } else {
@@ -288,7 +282,7 @@ const ToolbarPanel = styled('div')`
   position: absolute;
   top: 0;
   left: 0;
-  z-index: 1;
+  z-index: auto;
 
   width: 100%;
   height: 100%;
