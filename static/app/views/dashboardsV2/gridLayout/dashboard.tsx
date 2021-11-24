@@ -27,9 +27,9 @@ import {
   WidgetType,
 } from 'app/views/dashboardsV2/types';
 import {DataSet} from 'app/views/dashboardsV2/widget/utils';
+import {DRAG_HANDLE_CLASS} from 'app/views/dashboardsV2/widgetCard';
 
 import SortableWidget from './sortableWidget';
-import {DRAG_HANDLE_CLASS} from './widgetCard';
 
 const NUM_COLS = 6;
 const ROW_HEIGHT = 120;

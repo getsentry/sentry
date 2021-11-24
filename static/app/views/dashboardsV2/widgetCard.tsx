@@ -33,6 +33,8 @@ import {Widget} from './types';
 import WidgetCardChart from './widgetCardChart';
 import WidgetQueries from './widgetQueries';
 
+export const DRAG_HANDLE_CLASS = 'widget-drag';
+
 type DraggableProps = Pick<ReturnType<typeof useSortable>, 'attributes' | 'listeners'>;
 
 type Props = WithRouterProps & {
@@ -85,6 +87,7 @@ class WidgetCard extends React.Component<Props> {
           <IconClick>
             <StyledIconGrabbable
               color="textColor"
+              className={DRAG_HANDLE_CLASS}
               {...draggableProps?.listeners}
               {...draggableProps?.attributes}
             />

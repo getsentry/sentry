@@ -3,8 +3,7 @@ import styled from '@emotion/styled';
 
 import IssueWidgetCard from 'app/views/dashboardsV2/issueWidgetCard';
 import {Widget, WidgetType} from 'app/views/dashboardsV2/types';
-
-import WidgetCard from './widgetCard';
+import WidgetCard from 'app/views/dashboardsV2/widgetCard';
 
 type Props = {
   widget: Widget;
