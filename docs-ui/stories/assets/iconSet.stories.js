@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import * as newIconset from 'app/icons';
+import * as newIconset from 'sentry/icons';
 
 export default {
   title: 'Assets/Icons/Icon Set',

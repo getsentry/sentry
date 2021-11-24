@@ -34,7 +34,7 @@ import SortableWidget from './sortableWidget';
 export const DRAG_HANDLE_CLASS = 'widget-drag';
 const NUM_COLS = 6;
 const ROW_HEIGHT = 120;
-const WIDGET_MARGINS = [16, 16];
+const WIDGET_MARGINS: [number, number] = [16, 16];
 const ADD_BUTTON_POSITION = {
   x: 0,
   y: Number.MAX_VALUE,

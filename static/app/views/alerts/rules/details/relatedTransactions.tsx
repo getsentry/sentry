@@ -9,12 +9,10 @@ import {NewQuery, Organization, Project} from 'app/types';
 import DiscoverQuery, {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
 import EventView, {EventData} from 'app/utils/discover/eventView';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
-import {fieldAlignment} from 'app/utils/discover/fields';
+import {fieldAlignment, getAggregateAlias} from 'app/utils/discover/fields';
 import {IncidentRule} from 'app/views/alerts/incidentRules/types';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
-
-const COLUMN_TITLES = ['slowest transactions', 'project', 'p95', 'users', 'user misery'];
 
 function getProjectID(eventData: EventData, projects: Project[]): string | undefined {
   const projectSlug = (eventData?.project as string) || undefined;
@@ -100,9 +98,11 @@ class Table extends React.Component<TableProps, TableState> {
     return <HeaderCell align={align}>{title || field.field}</HeaderCell>;
   }
 
-  renderHeadCellWithMeta = (tableMeta: TableData['meta']) => {
+  renderHeadCellWithMeta = (tableMeta: TableData['meta'], columnName: string) => {
+    const columnTitles = ['transactions', 'project', columnName, 'users', 'user misery'];
+
     return (column: TableColumn<keyof TableDataRow>, index: number): React.ReactNode =>
-      this.renderHeadCell(tableMeta, column, COLUMN_TITLES[index]);
+      this.renderHeadCell(tableMeta, column, columnTitles[index]);
   };
 
   handleResizeColumn = (columnIndex: number, nextColumn: GridColumn) => {
@@ -149,7 +149,10 @@ class Table extends React.Component<TableProps, TableState> {
               columnSortBy={columnSortBy}
               grid={{
                 onResizeColumn: this.handleResizeColumn,
-                renderHeadCell: this.renderHeadCellWithMeta(tableData?.meta) as any,
+                renderHeadCell: this.renderHeadCellWithMeta(
+                  tableData?.meta,
+                  columnOrder[2].name as string
+                ) as any,
                 renderBodyCell: this.renderBodyCellWithData(tableData) as any,
               }}
               location={location}
@@ -174,18 +177,19 @@ type Props = {
 class RelatedTransactions extends React.Component<Props> {
   render() {
     const {rule, projects, filter, location, organization, start, end} = this.props;
+    const aggregateAlias = getAggregateAlias(rule.aggregate);
 
     const eventQuery: NewQuery = {
       id: undefined,
-      name: 'Slowest Transactions',
+      name: 'Transactions',
       fields: [
         'transaction',
         'project',
-        'p95()',
+        `${rule.aggregate}`,
         'count_unique(user)',
         `user_misery(${organization.apdexThreshold})`,
       ],
-      orderby: `user_misery(${organization.apdexThreshold})`,
+      orderby: `-${aggregateAlias}`,
 
       query: `${rule.query}`,
       version: 2,

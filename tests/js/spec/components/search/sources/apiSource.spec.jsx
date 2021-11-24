@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {ApiSource} from 'app/components/search/sources/apiSource';
+import {ApiSource} from 'sentry/components/search/sources/apiSource';
 
 describe('ApiSource', function () {
   let wrapper;

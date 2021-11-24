@@ -1,4 +1,4 @@
-import utils from 'app/utils/queryString';
+import utils from 'sentry/utils/queryString';
 
 describe('addQueryParamsToExistingUrl', function () {
   it('adds new query params to existing query params', function () {

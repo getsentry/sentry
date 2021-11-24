@@ -1,6 +1,6 @@
 import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import NarrowLayout from 'app/components/narrowLayout';
+import NarrowLayout from 'sentry/components/narrowLayout';
 
 describe('NarrowLayout', function () {
   beforeAll(function () {

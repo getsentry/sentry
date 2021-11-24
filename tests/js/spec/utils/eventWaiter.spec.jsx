@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import EventWaiter from 'app/utils/eventWaiter';
+import EventWaiter from 'sentry/utils/eventWaiter';
 
 jest.useFakeTimers();
 

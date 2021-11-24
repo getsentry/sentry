@@ -12,9 +12,9 @@ import Prism from 'prismjs';
  */
 import 'prismjs/components/prism-jsx.min';
 
-import {IconCode} from 'app/icons';
-import space from 'app/styles/space';
-import {Theme} from 'app/utils/theme';
+import {IconCode} from 'sentry/icons';
+import space from 'sentry/styles/space';
+import {Theme} from 'sentry/utils/theme';
 
 type Props = {
   theme: Theme;

@@ -3,8 +3,8 @@ import {browserHistory} from 'react-router';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {act} from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'app/stores/projectsStore';
-import ManageDashboards from 'app/views/dashboardsV2/manage';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import ManageDashboards from 'sentry/views/dashboardsV2/manage';
 
 const FEATURES = [
   'global-views',

@@ -1,9 +1,9 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'app/api';
-import IssueWidgetCard from 'app/views/dashboardsV2/issueWidgetCard';
-import {DisplayType, Widget, WidgetType} from 'app/views/dashboardsV2/types';
+import {Client} from 'sentry/api';
+import IssueWidgetCard from 'sentry/views/dashboardsV2/issueWidgetCard';
+import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
 
 describe('Dashboards > IssueWidgetCard', function () {
   const initialData = initializeOrg({

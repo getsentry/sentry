@@ -4,9 +4,9 @@ import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'app/stores/projectsStore';
-import TeamStore from 'app/stores/teamStore';
-import TransactionSummary from 'app/views/performance/transactionSummary/transactionOverview';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import TeamStore from 'sentry/stores/teamStore';
+import TransactionSummary from 'sentry/views/performance/transactionSummary/transactionOverview';
 
 const teams = [
   TestStubs.Team({id: '1', slug: 'team1', name: 'Team 1'}),
@@ -88,6 +88,10 @@ describe('Performance > TransactionSummary', function () {
     });
     MockApiClient.addMockResponse({
       url: '/prompts-activity/',
+      body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-facets-performance/',
       body: {},
     });
 
@@ -491,7 +495,7 @@ describe('Performance > TransactionSummary', function () {
     wrapper.update();
 
     const pagination = wrapper.find('Pagination');
-    expect(pagination).toHaveLength(1);
+    expect(pagination).toHaveLength(2);
 
     // Click the 'next' button'
     pagination.find('button[aria-label="Next"]').simulate('click');

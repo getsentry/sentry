@@ -64,16 +64,8 @@ const Wrapper = styled(DropdownControl)`
   button {
     width: 100%;
   }
-  grid-column: 1/-1;
-  grid-row: 2/3;
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    grid-column: 1/2;
-    grid-row: 2/2;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    grid-column: auto;
-    grid-row: auto;
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    grid-column: 1/-1;
   }
 `;

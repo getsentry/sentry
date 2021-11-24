@@ -2,7 +2,7 @@ import {Component} from 'react';
 import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 
-import ProgressRing from 'app/components/progressRing';
+import ProgressRing from 'sentry/components/progressRing';
 
 class Ticker extends Component {
   state = {

@@ -1,12 +1,12 @@
 import styled from '@emotion/styled';
 
-import {KeyValueTable, KeyValueTableRow} from 'app/components/keyValueTable';
-import QuestionTooltip from 'app/components/questionTooltip';
-import SidebarSection from 'app/components/sidebarSection';
-import Tag from 'app/components/tag';
-import TextOverflow from 'app/components/textOverflow';
-import Tooltip from 'app/components/tooltip';
-import space from 'app/styles/space';
+import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import SidebarSection from 'sentry/components/sidebarSection';
+import Tag from 'sentry/components/tag';
+import TextOverflow from 'sentry/components/textOverflow';
+import Tooltip from 'sentry/components/tooltip';
+import space from 'sentry/styles/space';
 
 export default {
   title: 'Views/Sidebar Section',

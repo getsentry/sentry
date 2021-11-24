@@ -6,9 +6,9 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import ProjectActions from 'app/actions/projectActions';
-import ProjectsStore from 'app/stores/projectsStore';
-import Projects from 'app/utils/projects';
+import ProjectActions from 'sentry/actions/projectActions';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import Projects from 'sentry/utils/projects';
 
 describe('utils.projects', function () {
   const renderer = jest.fn(() => null);
