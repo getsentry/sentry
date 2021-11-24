@@ -28,12 +28,11 @@ import withOrganization from 'app/utils/withOrganization';
 import {eventViewFromWidget} from 'app/views/dashboardsV2/utils';
 import {DisplayType} from 'app/views/dashboardsV2/widget/utils';
 
+import {DRAG_HANDLE_CLASS} from './gridLayout/dashboard';
 import ContextMenu from './contextMenu';
 import {Widget} from './types';
 import WidgetCardChart from './widgetCardChart';
 import WidgetQueries from './widgetQueries';
-
-export const DRAG_HANDLE_CLASS = 'widget-drag';
 
 type DraggableProps = Pick<ReturnType<typeof useSortable>, 'attributes' | 'listeners'>;
 

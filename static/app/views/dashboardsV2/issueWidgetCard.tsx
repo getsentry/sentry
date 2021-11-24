@@ -27,9 +27,9 @@ import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 
+import {DRAG_HANDLE_CLASS} from './gridLayout/dashboard';
 import IssueWidgetQueries from './issueWidgetQueries';
 import {Widget} from './types';
-import {DRAG_HANDLE_CLASS} from './widgetCard';
 import WidgetQueries from './widgetQueries';
 
 const ISSUE_TABLE_FIELDS_META: Record<string, ColumnType> = {
