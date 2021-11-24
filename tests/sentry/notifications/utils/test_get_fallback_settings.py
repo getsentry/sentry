@@ -32,7 +32,6 @@ class GetFallbackSettingsTest(TestCase):
             {},
             {},
             self.user,
-            should_use_slack_automatic=True,
         )
         assert data == {
             "deploy": {
