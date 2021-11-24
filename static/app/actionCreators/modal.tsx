@@ -206,9 +206,7 @@ export async function openDebugFileSourceModal({
   onClose,
   ...restOptions
 }: DebugFileSourceModalOptions) {
-  const mod = await import(
-    /* webpackChunkName: "DebugFileCustomRepository" */ 'app/components/modals/debugFileCustomRepository'
-  );
+  const mod = await import('sentry/components/modals/debugFileCustomRepository');
 
   const {default: Modal, modalCss} = mod;
   openModal(deps => <Modal {...deps} {...restOptions} />, {
