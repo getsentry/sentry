@@ -3,12 +3,12 @@ import {Fragment} from 'react';
 import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
-import {GenericQueryBatcher} from 'app/utils/performance/contexts/genericQueryBatcher';
-import {PerformanceDisplayProvider} from 'app/utils/performance/contexts/performanceDisplayContext';
-import {OrganizationContext} from 'app/views/organizationContext';
-import WidgetContainer from 'app/views/performance/landing/widgets/components/widgetContainer';
-import {PerformanceWidgetSetting} from 'app/views/performance/landing/widgets/widgetDefinitions';
-import {PROJECT_PERFORMANCE_TYPE} from 'app/views/performance/utils';
+import {GenericQueryBatcher} from 'sentry/utils/performance/contexts/genericQueryBatcher';
+import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
+import {OrganizationContext} from 'sentry/views/organizationContext';
+import WidgetContainer from 'sentry/views/performance/landing/widgets/components/widgetContainer';
+import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
+import {PROJECT_PERFORMANCE_TYPE} from 'sentry/views/performance/utils';
 
 const initializeData = () => {
   const data = _initializeData({
