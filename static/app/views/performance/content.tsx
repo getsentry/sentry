@@ -54,22 +54,16 @@ class PerformanceContent extends Component<Props, State> {
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
     return {
       ...prevState,
-      eventView: generatePerformanceEventView(
-        nextProps.location,
-        nextProps.projects,
-        false,
-        nextProps.isMetricsData
-      ),
+      eventView: generatePerformanceEventView(nextProps.location, nextProps.projects, {
+        isMetricsData: nextProps.isMetricsData,
+      }),
     };
   }
 
   state: State = {
-    eventView: generatePerformanceEventView(
-      this.props.location,
-      this.props.projects,
-      false,
-      this.props.isMetricsData
-    ),
+    eventView: generatePerformanceEventView(this.props.location, this.props.projects, {
+      isMetricsData: this.props.isMetricsData,
+    }),
     error: undefined,
   };
 

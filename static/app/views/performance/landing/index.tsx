@@ -134,7 +134,7 @@ export function PerformanceLanding(props: Props) {
               />
               {isMetricsData ? (
                 <MetricsSearchBar
-                  searchSource="performance_landing"
+                  searchSource="performance_landing_metrics"
                   orgSlug={organization.slug}
                   query={filterString}
                   onSearch={handleSearch}
