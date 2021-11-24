@@ -1,8 +1,8 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import {Client} from 'app/api';
-import IntegrationListDirectory from 'app/views/organizationIntegrations/integrationListDirectory';
+import {Client} from 'sentry/api';
+import IntegrationListDirectory from 'sentry/views/organizationIntegrations/integrationListDirectory';
 
 const mockResponse = mocks => {
   mocks.forEach(([url, body]) =>

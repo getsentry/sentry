@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import KeyValueList from 'app/components/events/interfaces/keyValueList';
+import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 
 describe('KeyValueList', function () {
   describe('render', function () {

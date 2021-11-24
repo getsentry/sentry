@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {selectByValue} from 'sentry-test/select-new';
 
-import AwsLambdaProjectSelect from 'app/views/integrationPipeline/awsLambdaProjectSelect';
+import AwsLambdaProjectSelect from 'sentry/views/integrationPipeline/awsLambdaProjectSelect';
 
 describe('AwsLambdaProjectSelect', () => {
   let projects;

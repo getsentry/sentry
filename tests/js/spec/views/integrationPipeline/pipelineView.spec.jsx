@@ -1,6 +1,6 @@
 import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
-import PipelineView from 'app/views/integrationPipeline/pipelineView';
+import PipelineView from 'sentry/views/integrationPipeline/pipelineView';
 
 function MockAwsLambdaProjectSelect() {
   return <div>mock_AwsLambdaProjectSelect</div>;

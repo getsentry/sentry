@@ -2,10 +2,10 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'app/stores/configStore';
-import ProjectsStore from 'app/stores/projectsStore';
-import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
-import {SPAN_OP_RELATIVE_BREAKDOWN_FIELD} from 'app/utils/discover/fields';
+import ConfigStore from 'sentry/stores/configStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {SPAN_OP_RELATIVE_BREAKDOWN_FIELD} from 'sentry/utils/discover/fields';
 
 describe('getFieldRenderer', function () {
   let location, context, project, organization, data, user;
