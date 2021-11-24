@@ -224,8 +224,13 @@ export class IntegrationListDirectory extends AsyncComponent<
     return integrations?.find(i => i.provider.key === integration.key) ? 2 : 0;
   }
 
-  getPopularityWeight = (integration: AppOrProviderOrPlugin) =>
-    POPULARITY_WEIGHT[integration.slug] ?? 1;
+  getPopularityWeight = (integration: AppOrProviderOrPlugin) => {
+    return (
+      this.state.publishedApps?.find(i => i === integration)?.popularity ??
+      POPULARITY_WEIGHT[integration.slug] ??
+      1
+    );
+  };
 
   sortByName = (a: AppOrProviderOrPlugin, b: AppOrProviderOrPlugin) =>
     a.slug.localeCompare(b.slug);
