@@ -130,9 +130,10 @@ class SlackEventEndpoint(SlackDMEndpoint):
             if link_type is None or args is None:
                 continue
 
-            organization = slack_request.integration.organizations.all()[0]
+            organization = slack_request.integration.organizations.first()
             if (
-                link_type == LinkType.DISCOVER
+                organization
+                and link_type == LinkType.DISCOVER
                 and not slack_request.has_identity
                 and features.has("organizations:chart-unfurls", organization, actor=request.user)
             ):
