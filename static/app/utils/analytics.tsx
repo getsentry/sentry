@@ -1,8 +1,8 @@
 import * as Sentry from '@sentry/react';
 import {Transaction} from '@sentry/types';
 
-import HookStore from 'app/stores/hookStore';
-import {Hooks} from 'app/types/hooks';
+import HookStore from 'sentry/stores/hookStore';
+import {Hooks} from 'sentry/types/hooks';
 
 /**
  * Analytics and metric tracking functionality.

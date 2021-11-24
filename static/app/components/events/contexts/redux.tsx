@@ -1,11 +1,11 @@
 import * as React from 'react';
 
-import ClippedBox from 'app/components/clippedBox';
-import ContextBlock from 'app/components/events/contexts/contextBlock';
+import ClippedBox from 'sentry/components/clippedBox';
+import ContextBlock from 'sentry/components/events/contexts/contextBlock';
 
 type KeyValueListData = React.ComponentProps<typeof ContextBlock>['data'];
 
-import {t} from 'app/locale';
+import {t} from 'sentry/locale';
 
 type Props = {
   alias: string;

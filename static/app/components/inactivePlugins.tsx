@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
 
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import TextOverflow from 'app/components/textOverflow';
-import {t} from 'app/locale';
-import PluginIcon from 'app/plugins/components/pluginIcon';
-import space from 'app/styles/space';
-import {Plugin} from 'app/types';
+import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import TextOverflow from 'sentry/components/textOverflow';
+import {t} from 'sentry/locale';
+import PluginIcon from 'sentry/plugins/components/pluginIcon';
+import space from 'sentry/styles/space';
+import {Plugin} from 'sentry/types';
 
 type Props = {
   plugins: Plugin[];

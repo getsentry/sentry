@@ -1,7 +1,7 @@
 import {EChartOption} from 'echarts';
 import merge from 'lodash/merge';
 
-import {Theme} from 'app/utils/theme';
+import {Theme} from 'sentry/utils/theme';
 
 type Props = EChartOption.YAxis & {theme: Theme};
 

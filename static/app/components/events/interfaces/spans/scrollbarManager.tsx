@@ -4,9 +4,9 @@ import {
   clamp,
   rectOfContent,
   toPercent,
-} from 'app/components/performance/waterfall/utils';
-import getDisplayName from 'app/utils/getDisplayName';
-import {setBodyUserSelect, UserSelectValues} from 'app/utils/userselect';
+} from 'sentry/components/performance/waterfall/utils';
+import getDisplayName from 'sentry/utils/getDisplayName';
+import {setBodyUserSelect, UserSelectValues} from 'sentry/utils/userselect';
 
 import {DragManagerChildrenProps} from './dragManager';
 

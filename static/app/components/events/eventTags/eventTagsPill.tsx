@@ -2,16 +2,16 @@ import {css} from '@emotion/react';
 import {Query} from 'history';
 import * as queryString from 'query-string';
 
-import AnnotatedText from 'app/components/events/meta/annotatedText';
-import {getMeta} from 'app/components/events/meta/metaProxy';
-import ExternalLink from 'app/components/links/externalLink';
-import Link from 'app/components/links/link';
-import Pill from 'app/components/pill';
-import VersionHoverCard from 'app/components/versionHoverCard';
-import {IconInfo, IconOpen} from 'app/icons';
-import {Organization} from 'app/types';
-import {EventTag} from 'app/types/event';
-import {isUrl} from 'app/utils';
+import AnnotatedText from 'sentry/components/events/meta/annotatedText';
+import {getMeta} from 'sentry/components/events/meta/metaProxy';
+import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
+import Pill from 'sentry/components/pill';
+import VersionHoverCard from 'sentry/components/versionHoverCard';
+import {IconInfo, IconOpen} from 'sentry/icons';
+import {Organization} from 'sentry/types';
+import {EventTag} from 'sentry/types/event';
+import {isUrl} from 'sentry/utils';
 
 import EventTagsPillValue from './eventTagsPillValue';
 

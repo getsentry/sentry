@@ -2,18 +2,18 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
-import {openInviteMembersModal} from 'app/actionCreators/modal';
-import Alert from 'app/components/alert';
-import ActorAvatar from 'app/components/avatar/actorAvatar';
-import Button from 'app/components/button';
-import Hovercard from 'app/components/hovercard';
-import Link from 'app/components/links/link';
-import {IconCommit, IconWarning} from 'app/icons';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {Actor, Commit} from 'app/types';
-import {defined} from 'app/utils';
-import theme from 'app/utils/theme';
+import {openInviteMembersModal} from 'sentry/actionCreators/modal';
+import Alert from 'sentry/components/alert';
+import ActorAvatar from 'sentry/components/avatar/actorAvatar';
+import Button from 'sentry/components/button';
+import Hovercard from 'sentry/components/hovercard';
+import Link from 'sentry/components/links/link';
+import {IconCommit, IconWarning} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Actor, Commit} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import theme from 'sentry/utils/theme';
 
 type Props = {
   /**

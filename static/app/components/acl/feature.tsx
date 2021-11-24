@@ -1,12 +1,12 @@
 import * as React from 'react';
 
-import HookStore from 'app/stores/hookStore';
-import {Config, Organization, Project} from 'app/types';
-import {FeatureDisabledHooks} from 'app/types/hooks';
-import {isRenderFunc} from 'app/utils/isRenderFunc';
-import withConfig from 'app/utils/withConfig';
-import withOrganization from 'app/utils/withOrganization';
-import withProject from 'app/utils/withProject';
+import HookStore from 'sentry/stores/hookStore';
+import {Config, Organization, Project} from 'sentry/types';
+import {FeatureDisabledHooks} from 'sentry/types/hooks';
+import {isRenderFunc} from 'sentry/utils/isRenderFunc';
+import withConfig from 'sentry/utils/withConfig';
+import withOrganization from 'sentry/utils/withOrganization';
+import withProject from 'sentry/utils/withProject';
 
 import ComingSoon from './comingSoon';
 

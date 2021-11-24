@@ -1,11 +1,14 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import DropdownBubble from 'app/components/dropdownBubble';
-import DropdownButton from 'app/components/dropdownButton';
-import DropdownMenu, {GetActorPropsFn, GetMenuPropsFn} from 'app/components/dropdownMenu';
-import MenuItem from 'app/components/menuItem';
-import Tooltip from 'app/components/tooltip';
+import DropdownBubble from 'sentry/components/dropdownBubble';
+import DropdownButton from 'sentry/components/dropdownButton';
+import DropdownMenu, {
+  GetActorPropsFn,
+  GetMenuPropsFn,
+} from 'sentry/components/dropdownMenu';
+import MenuItem from 'sentry/components/menuItem';
+import Tooltip from 'sentry/components/tooltip';
 
 type ButtonPriority = React.ComponentProps<typeof DropdownButton>['priority'];
 

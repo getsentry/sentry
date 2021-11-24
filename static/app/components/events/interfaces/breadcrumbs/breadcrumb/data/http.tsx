@@ -1,12 +1,12 @@
 import omit from 'lodash/omit';
 
-import AnnotatedText from 'app/components/events/meta/annotatedText';
-import {getMeta} from 'app/components/events/meta/metaProxy';
-import Highlight from 'app/components/highlight';
-import ExternalLink from 'app/components/links/externalLink';
-import {t} from 'app/locale';
-import {BreadcrumbTypeHTTP} from 'app/types/breadcrumbs';
-import {defined} from 'app/utils';
+import AnnotatedText from 'sentry/components/events/meta/annotatedText';
+import {getMeta} from 'sentry/components/events/meta/metaProxy';
+import Highlight from 'sentry/components/highlight';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {t} from 'sentry/locale';
+import {BreadcrumbTypeHTTP} from 'sentry/types/breadcrumbs';
+import {defined} from 'sentry/utils';
 
 import Summary from './summary';
 

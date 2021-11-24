@@ -1,4 +1,4 @@
-import {IS_ACCEPTANCE_TEST} from 'app/constants';
+import {IS_ACCEPTANCE_TEST} from 'sentry/constants';
 
 /**
  * Return a specified "fixed" string when we are in a testing environment

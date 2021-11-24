@@ -1,9 +1,9 @@
 import * as React from 'react';
 
-import GlobalSelectionStore from 'app/stores/globalSelectionStore';
-import {useLegacyStore} from 'app/stores/useLegacyStore';
-import {GlobalSelection} from 'app/types';
-import getDisplayName from 'app/utils/getDisplayName';
+import GlobalSelectionStore from 'sentry/stores/globalSelectionStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import {GlobalSelection} from 'sentry/types';
+import getDisplayName from 'sentry/utils/getDisplayName';
 
 type InjectedGlobalSelectionProps = {
   selection?: GlobalSelection;

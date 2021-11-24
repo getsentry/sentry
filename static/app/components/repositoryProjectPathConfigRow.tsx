@@ -1,15 +1,15 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Access from 'app/components/acl/access';
-import Button from 'app/components/button';
-import Confirm from 'app/components/confirm';
-import IdBadge from 'app/components/idBadge';
-import Tooltip from 'app/components/tooltip';
-import {IconDelete, IconEdit} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Project, RepositoryProjectPathConfig} from 'app/types';
+import Access from 'sentry/components/acl/access';
+import Button from 'sentry/components/button';
+import Confirm from 'sentry/components/confirm';
+import IdBadge from 'sentry/components/idBadge';
+import Tooltip from 'sentry/components/tooltip';
+import {IconDelete, IconEdit} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Project, RepositoryProjectPathConfig} from 'sentry/types';
 
 type Props = {
   pathConfig: RepositoryProjectPathConfig;

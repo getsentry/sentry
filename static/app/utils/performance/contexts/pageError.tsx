@@ -1,7 +1,7 @@
 import {createContext, useContext, useState} from 'react';
 
-import Alert from 'app/components/alert';
-import {IconFlag} from 'app/icons';
+import Alert from 'sentry/components/alert';
+import {IconFlag} from 'sentry/icons';
 
 const pageErrorContext = createContext<{
   pageError?: string;

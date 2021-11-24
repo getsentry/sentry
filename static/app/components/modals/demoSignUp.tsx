@@ -1,14 +1,14 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps} from 'app/actionCreators/modal';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import HighlightModalContainer from 'app/components/highlightModalContainer';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
-import {extraQueryParameterWithEmail, urlAttachQueryParams} from 'app/utils/demoMode';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import HighlightModalContainer from 'sentry/components/highlightModalContainer';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {extraQueryParameterWithEmail, urlAttachQueryParams} from 'sentry/utils/demoMode';
 
 type Props = ModalRenderProps;
 

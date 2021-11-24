@@ -1,7 +1,7 @@
 import * as React from 'react';
 import {useTheme} from '@emotion/react';
 
-import {Aliases, Color, IconSize} from 'app/utils/theme';
+import {Aliases, Color, IconSize} from 'sentry/utils/theme';
 
 type Props = React.SVGAttributes<SVGSVGElement> & {
   color?: Color | keyof Aliases;

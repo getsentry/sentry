@@ -1,12 +1,12 @@
 import * as React from 'react';
 
-import GroupActions from 'app/actions/groupActions';
-import PluginComponentBase from 'app/components/bases/pluginComponentBase';
-import {Form, FormState} from 'app/components/forms';
-import LoadingError from 'app/components/loadingError';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {t} from 'app/locale';
-import {Group, Organization, Plugin, Project} from 'app/types';
+import GroupActions from 'sentry/actions/groupActions';
+import PluginComponentBase from 'sentry/components/bases/pluginComponentBase';
+import {Form, FormState} from 'sentry/components/forms';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {t} from 'sentry/locale';
+import {Group, Organization, Plugin, Project} from 'sentry/types';
 
 type Field = {
   has_autocomplete?: boolean;

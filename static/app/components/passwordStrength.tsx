@@ -5,9 +5,9 @@ import styled from '@emotion/styled';
 import throttle from 'lodash/throttle';
 import zxcvbn from 'zxcvbn';
 
-import {tct} from 'app/locale';
-import space from 'app/styles/space';
-import theme from 'app/utils/theme';
+import {tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import theme from 'sentry/utils/theme';
 
 /**
  * NOTE: Do not import this component synchronously. The zxcvbn library is

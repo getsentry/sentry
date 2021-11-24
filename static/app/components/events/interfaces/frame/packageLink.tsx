@@ -1,12 +1,12 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import {trimPackage} from 'app/components/events/interfaces/frame/utils';
-import {STACKTRACE_PREVIEW_TOOLTIP_DELAY} from 'app/components/stacktracePreview';
-import Tooltip from 'app/components/tooltip';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {defined} from 'app/utils';
+import {trimPackage} from 'sentry/components/events/interfaces/frame/utils';
+import {STACKTRACE_PREVIEW_TOOLTIP_DELAY} from 'sentry/components/stacktracePreview';
+import Tooltip from 'sentry/components/tooltip';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 
 type Props = {
   onClick: (event: React.MouseEvent<HTMLAnchorElement>) => void;

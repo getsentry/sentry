@@ -1,9 +1,9 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import ActorAvatar from 'app/components/avatar/actorAvatar';
-import BaseAvatar from 'app/components/avatar/baseAvatar';
-import {Actor} from 'app/types';
+import ActorAvatar from 'sentry/components/avatar/actorAvatar';
+import BaseAvatar from 'sentry/components/avatar/baseAvatar';
+import {Actor} from 'sentry/types';
 
 type Props = {
   owners: Actor[];

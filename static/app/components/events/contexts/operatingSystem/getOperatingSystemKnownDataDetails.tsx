@@ -1,5 +1,5 @@
-import {t} from 'app/locale';
-import {defined} from 'app/utils';
+import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils';
 
 import {OperatingSystemKnownData, OperatingSystemKnownDataType} from './types';
 

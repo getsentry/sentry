@@ -1,13 +1,13 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {GlobalSelection, Organization, TagCollection} from 'app/types';
-import withIssueTags from 'app/utils/withIssueTags';
-import {WidgetQuery} from 'app/views/dashboardsV2/types';
-import IssueListSearchBar from 'app/views/issueList/searchBar';
-import Field from 'app/views/settings/components/forms/field';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {GlobalSelection, Organization, TagCollection} from 'sentry/types';
+import withIssueTags from 'sentry/utils/withIssueTags';
+import {WidgetQuery} from 'sentry/views/dashboardsV2/types';
+import IssueListSearchBar from 'sentry/views/issueList/searchBar';
+import Field from 'sentry/views/settings/components/forms/field';
 
 type Props = {
   organization: Organization;

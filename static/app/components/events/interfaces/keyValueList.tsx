@@ -2,11 +2,11 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
-import ContextData from 'app/components/contextData';
-import AnnotatedText from 'app/components/events/meta/annotatedText';
-import {KeyValueListData} from 'app/types';
-import {defined} from 'app/utils';
-import theme from 'app/utils/theme';
+import ContextData from 'sentry/components/contextData';
+import AnnotatedText from 'sentry/components/events/meta/annotatedText';
+import {KeyValueListData} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import theme from 'sentry/utils/theme';
 
 type Props = {
   data?: KeyValueListData;

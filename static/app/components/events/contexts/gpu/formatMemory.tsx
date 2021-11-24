@@ -1,4 +1,4 @@
-import {formatBytesBase2} from 'app/utils';
+import {formatBytesBase2} from 'sentry/utils';
 
 const MEGABYTE_IN_BYTES = 1048576;
 

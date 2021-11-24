@@ -2,8 +2,8 @@ import * as React from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {growIn} from 'app/styles/animations';
-import {Theme} from 'app/utils/theme';
+import {growIn} from 'sentry/styles/animations';
+import {Theme} from 'sentry/utils/theme';
 
 type Props = {radioSize?: 'small'};
 

@@ -1,9 +1,9 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import {IconSearch} from 'app/icons';
-import space from 'app/styles/space';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import {IconSearch} from 'sentry/icons';
+import space from 'sentry/styles/space';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 type Props = {
   small?: boolean;

@@ -1,6 +1,6 @@
 import {createContext, useContext, useState} from 'react';
 
-import {SpanOperationBreakdownFilter} from 'app/views/performance/transactionSummary/filter';
+import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 
 const OpBreakdownFilterContext = createContext<{
   opBreakdownFilter: SpanOperationBreakdownFilter;

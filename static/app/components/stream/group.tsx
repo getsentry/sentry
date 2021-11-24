@@ -3,27 +3,27 @@ import {css, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import AssigneeSelector from 'app/components/assigneeSelector';
-import GuideAnchor from 'app/components/assistant/guideAnchor';
-import Count from 'app/components/count';
-import DropdownMenu from 'app/components/dropdownMenu';
-import EventOrGroupExtraDetails from 'app/components/eventOrGroupExtraDetails';
-import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
-import Link from 'app/components/links/link';
-import MenuItem from 'app/components/menuItem';
-import {getRelativeSummary} from 'app/components/organizations/timeRangeSelector/utils';
-import {PanelItem} from 'app/components/panels';
-import Placeholder from 'app/components/placeholder';
-import ProgressBar from 'app/components/progressBar';
-import GroupChart from 'app/components/stream/groupChart';
-import GroupCheckBox from 'app/components/stream/groupCheckBox';
-import TimeSince from 'app/components/timeSince';
-import {DEFAULT_STATS_PERIOD} from 'app/constants';
-import {t} from 'app/locale';
-import GroupStore from 'app/stores/groupStore';
-import SelectedGroupStore from 'app/stores/selectedGroupStore';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
+import AssigneeSelector from 'sentry/components/assigneeSelector';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import Count from 'sentry/components/count';
+import DropdownMenu from 'sentry/components/dropdownMenu';
+import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
+import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
+import Link from 'sentry/components/links/link';
+import MenuItem from 'sentry/components/menuItem';
+import {getRelativeSummary} from 'sentry/components/organizations/timeRangeSelector/utils';
+import {PanelItem} from 'sentry/components/panels';
+import Placeholder from 'sentry/components/placeholder';
+import ProgressBar from 'sentry/components/progressBar';
+import GroupChart from 'sentry/components/stream/groupChart';
+import GroupCheckBox from 'sentry/components/stream/groupCheckBox';
+import TimeSince from 'sentry/components/timeSince';
+import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
+import {t} from 'sentry/locale';
+import GroupStore from 'sentry/stores/groupStore';
+import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
 import {
   GlobalSelection,
   Group,
@@ -32,22 +32,22 @@ import {
   NewQuery,
   Organization,
   User,
-} from 'app/types';
-import {defined, percent, valueIsEqual} from 'app/utils';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {callIfFunction} from 'app/utils/callIfFunction';
-import EventView from 'app/utils/discover/eventView';
-import {formatPercentage} from 'app/utils/formatters';
-import {queryToObj} from 'app/utils/stream';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import withOrganization from 'app/utils/withOrganization';
-import {TimePeriodType} from 'app/views/alerts/rules/details/constants';
+} from 'sentry/types';
+import {defined, percent, valueIsEqual} from 'sentry/utils';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {callIfFunction} from 'sentry/utils/callIfFunction';
+import EventView from 'sentry/utils/discover/eventView';
+import {formatPercentage} from 'sentry/utils/formatters';
+import {queryToObj} from 'sentry/utils/stream';
+import withGlobalSelection from 'sentry/utils/withGlobalSelection';
+import withOrganization from 'sentry/utils/withOrganization';
+import {TimePeriodType} from 'sentry/views/alerts/rules/details/constants';
 import {
   getTabs,
   isForReviewQuery,
   IssueDisplayOptions,
   Query,
-} from 'app/views/issueList/utils';
+} from 'sentry/views/issueList/utils';
 
 const DiscoveryExclusionFields: string[] = [
   'query',

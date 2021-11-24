@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import AutoComplete from 'app/components/autoComplete';
-import space from 'app/styles/space';
+import AutoComplete from 'sentry/components/autoComplete';
+import space from 'sentry/styles/space';
 
 import {Item} from './types';
 

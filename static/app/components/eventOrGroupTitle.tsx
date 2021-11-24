@@ -1,13 +1,13 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import GuideAnchor from 'app/components/assistant/guideAnchor';
-import ProjectsStore from 'app/stores/projectsStore';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import {BaseGroup, GroupTombstone, Organization} from 'app/types';
-import {Event} from 'app/types/event';
-import {getTitle} from 'app/utils/events';
-import withOrganization from 'app/utils/withOrganization';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import {BaseGroup, GroupTombstone, Organization} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import {getTitle} from 'sentry/utils/events';
+import withOrganization from 'sentry/utils/withOrganization';
 
 import EventTitleTreeLabel from './eventTitleTreeLabel';
 import StacktracePreview from './stacktracePreview';

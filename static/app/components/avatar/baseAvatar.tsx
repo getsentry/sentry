@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 import * as qs from 'query-string';
 
-import BackgroundAvatar from 'app/components/avatar/backgroundAvatar';
-import LetterAvatar from 'app/components/letterAvatar';
-import Tooltip from 'app/components/tooltip';
-import {Avatar} from 'app/types';
+import BackgroundAvatar from 'sentry/components/avatar/backgroundAvatar';
+import LetterAvatar from 'sentry/components/letterAvatar';
+import Tooltip from 'sentry/components/tooltip';
+import {Avatar} from 'sentry/types';
 
 import Gravatar from './gravatar';
 import {imageStyle, ImageStyleProps} from './styles';

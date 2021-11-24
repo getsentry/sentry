@@ -8,9 +8,9 @@ import {
   IconGitlab,
   IconJira,
   IconVsts,
-} from 'app/icons';
-import {t} from 'app/locale';
-import HookStore from 'app/stores/hookStore';
+} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import HookStore from 'sentry/stores/hookStore';
 import {
   AppOrProviderOrPlugin,
   DocumentIntegration,
@@ -22,13 +22,13 @@ import {
   PluginWithProjectList,
   SentryApp,
   SentryAppInstallation,
-} from 'app/types';
-import {Hooks} from 'app/types/hooks';
+} from 'sentry/types';
+import {Hooks} from 'sentry/types/hooks';
 import {
   integrationEventMap,
   IntegrationEventParameters,
-} from 'app/utils/analytics/integrationAnalyticsEvents';
-import makeAnalyticsFunction from 'app/utils/analytics/makeAnalyticsFunction';
+} from 'sentry/utils/analytics/integrationAnalyticsEvents';
+import makeAnalyticsFunction from 'sentry/utils/analytics/makeAnalyticsFunction';
 
 const mapIntegrationParams = analyticsParams => {
   // Reload expects integration_status even though it's not relevant for non-sentry apps

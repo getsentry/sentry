@@ -1,8 +1,8 @@
 import * as React from 'react';
 
-import TagStore from 'app/stores/tagStore';
-import {TagCollection} from 'app/types';
-import getDisplayName from 'app/utils/getDisplayName';
+import TagStore from 'sentry/stores/tagStore';
+import {TagCollection} from 'sentry/types';
+import getDisplayName from 'sentry/utils/getDisplayName';
 
 type InjectedTagsProps = {
   tags: TagCollection;

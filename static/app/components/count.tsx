@@ -1,4 +1,4 @@
-import {formatAbbreviatedNumber} from 'app/utils/formatters';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 
 type Props = {
   value: string | number;

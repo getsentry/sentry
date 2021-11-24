@@ -1,10 +1,10 @@
 import * as React from 'react';
 
-import {MetaType} from 'app/utils/discover/eventView';
+import {MetaType} from 'sentry/utils/discover/eventView';
 import GenericDiscoverQuery, {
   DiscoverQueryProps,
-} from 'app/utils/discover/genericDiscoverQuery';
-import withApi from 'app/utils/withApi';
+} from 'sentry/utils/discover/genericDiscoverQuery';
+import withApi from 'sentry/utils/withApi';
 
 export type TableDataRow = {
   id: string;

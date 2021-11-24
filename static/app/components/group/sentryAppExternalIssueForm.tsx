@@ -1,15 +1,15 @@
 import {Component} from 'react';
 
-import {t} from 'app/locale';
-import ExternalIssueStore from 'app/stores/externalIssueStore';
-import {Group, PlatformExternalIssue, SentryAppInstallation} from 'app/types';
-import {Event} from 'app/types/event';
-import getStacktraceBody from 'app/utils/getStacktraceBody';
-import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
+import {t} from 'sentry/locale';
+import ExternalIssueStore from 'sentry/stores/externalIssueStore';
+import {Group, PlatformExternalIssue, SentryAppInstallation} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import getStacktraceBody from 'sentry/utils/getStacktraceBody';
+import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 import SentryAppExternalForm, {
   FieldFromSchema,
   SchemaFormConfig,
-} from 'app/views/organizationIntegrations/sentryAppExternalForm';
+} from 'sentry/views/organizationIntegrations/sentryAppExternalForm';
 
 type Props = {
   group: Group;

@@ -1,6 +1,6 @@
-import BasePlugin from 'app/plugins/basePlugin';
-import DefaultIssuePlugin from 'app/plugins/defaultIssuePlugin';
-import Registry from 'app/plugins/registry';
+import BasePlugin from 'sentry/plugins/basePlugin';
+import DefaultIssuePlugin from 'sentry/plugins/defaultIssuePlugin';
+import Registry from 'sentry/plugins/registry';
 
 import SessionStackContextType from './sessionstack/contexts/sessionstack';
 import Jira from './jira';

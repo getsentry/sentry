@@ -3,10 +3,10 @@ import {
   addLoadingMessage,
   addSuccessMessage,
   clearIndicators,
-} from 'app/actionCreators/indicator';
-import {Client} from 'app/api';
-import {t, tct} from 'app/locale';
-import {Integration, Repository} from 'app/types';
+} from 'sentry/actionCreators/indicator';
+import {Client} from 'sentry/api';
+import {t, tct} from 'sentry/locale';
+import {Integration, Repository} from 'sentry/types';
 
 const api = new Client();
 

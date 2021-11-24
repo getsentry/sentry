@@ -1,12 +1,12 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Tag from 'app/components/tag';
+import Tag from 'sentry/components/tag';
 import {
   CandidateDownload,
   CandidateDownloadStatus,
   ImageFeature,
-} from 'app/types/debugImage';
+} from 'sentry/types/debugImage';
 
 import {getImageFeatureDescription} from '../utils';
 

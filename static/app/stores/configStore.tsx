@@ -1,7 +1,7 @@
 import moment from 'moment-timezone';
 import Reflux from 'reflux';
 
-import {Config} from 'app/types';
+import {Config} from 'sentry/types';
 
 import {CommonStoreInterface} from './types';
 

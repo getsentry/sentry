@@ -1,7 +1,7 @@
 import moment from 'moment';
 
-import {DEFAULT_STATS_PERIOD} from 'app/constants';
-import {getUtcDateString} from 'app/utils/dates';
+import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
+import {getUtcDateString} from 'sentry/utils/dates';
 
 type DateObject = {
   /**

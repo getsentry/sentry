@@ -2,7 +2,7 @@ import {forwardRef, useImperativeHandle, useRef} from 'react';
 import * as React from 'react';
 import classNames from 'classnames';
 
-import {selectText} from 'app/utils/selectText';
+import {selectText} from 'sentry/utils/selectText';
 
 type Props = React.PropsWithChildren<{
   className?: string;

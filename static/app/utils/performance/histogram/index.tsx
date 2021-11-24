@@ -2,8 +2,8 @@ import * as React from 'react';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
 
-import {SelectValue} from 'app/types';
-import {decodeScalar} from 'app/utils/queryString';
+import {SelectValue} from 'sentry/types';
+import {decodeScalar} from 'sentry/utils/queryString';
 
 import {FILTER_OPTIONS} from './constants';
 import {DataFilter} from './types';

@@ -1,5 +1,5 @@
-import {t} from 'app/locale';
-import {SelectValue} from 'app/types';
+import {t} from 'sentry/locale';
+import {SelectValue} from 'sentry/types';
 
 export const TOP_N = 5;
 

@@ -1,8 +1,8 @@
 import {Location} from 'history';
 import findLastIndex from 'lodash/findLastIndex';
 
-import replaceRouterParams from 'app/utils/replaceRouterParams';
-import {RouteWithName} from 'app/views/settings/components/settingsBreadcrumb/types';
+import replaceRouterParams from 'sentry/utils/replaceRouterParams';
+import {RouteWithName} from 'sentry/views/settings/components/settingsBreadcrumb/types';
 
 type Options = {
   routes: RouteWithName[];

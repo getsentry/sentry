@@ -7,20 +7,20 @@ import cloneDeep from 'lodash/cloneDeep';
 import pick from 'lodash/pick';
 import set from 'lodash/set';
 
-import {validateWidget} from 'app/actionCreators/dashboards';
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {validateWidget} from 'sentry/actionCreators/dashboards';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {
   ModalRenderProps,
   openDashboardWidgetLibraryModal,
-} from 'app/actionCreators/modal';
-import {Client} from 'app/api';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import WidgetQueriesForm from 'app/components/dashboards/widgetQueriesForm';
-import SelectControl from 'app/components/forms/selectControl';
-import {PanelAlert} from 'app/components/panels';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
+} from 'sentry/actionCreators/modal';
+import {Client} from 'sentry/api';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import WidgetQueriesForm from 'sentry/components/dashboards/widgetQueriesForm';
+import SelectControl from 'sentry/components/forms/selectControl';
+import {PanelAlert} from 'sentry/components/panels';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {
   DateString,
   GlobalSelection,
@@ -28,13 +28,13 @@ import {
   RelativePeriod,
   SelectValue,
   TagCollection,
-} from 'app/types';
-import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
-import Measurements from 'app/utils/measurements/measurements';
-import withApi from 'app/utils/withApi';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import withTags from 'app/utils/withTags';
-import {DISPLAY_TYPE_CHOICES} from 'app/views/dashboardsV2/data';
+} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import Measurements from 'sentry/utils/measurements/measurements';
+import withApi from 'sentry/utils/withApi';
+import withGlobalSelection from 'sentry/utils/withGlobalSelection';
+import withTags from 'sentry/utils/withTags';
+import {DISPLAY_TYPE_CHOICES} from 'sentry/views/dashboardsV2/data';
 import {
   DashboardDetails,
   DashboardListItem,
@@ -44,16 +44,16 @@ import {
   Widget,
   WidgetQuery,
   WidgetType,
-} from 'app/views/dashboardsV2/types';
+} from 'sentry/views/dashboardsV2/types';
 import {
   mapErrors,
   normalizeQueries,
-} from 'app/views/dashboardsV2/widget/eventWidget/utils';
-import WidgetCard from 'app/views/dashboardsV2/widgetCard';
-import {WidgetTemplate} from 'app/views/dashboardsV2/widgetLibrary/data';
-import {generateFieldOptions} from 'app/views/eventsV2/utils';
-import Input from 'app/views/settings/components/forms/controls/input';
-import Field from 'app/views/settings/components/forms/field';
+} from 'sentry/views/dashboardsV2/widget/eventWidget/utils';
+import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
+import {WidgetTemplate} from 'sentry/views/dashboardsV2/widgetLibrary/data';
+import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
+import Input from 'sentry/views/settings/components/forms/controls/input';
+import Field from 'sentry/views/settings/components/forms/field';
 
 import Tooltip from '../tooltip';
 

@@ -2,10 +2,10 @@ import * as React from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
-import EmptyStateWarning from 'app/components/emptyStateWarning';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 
 import Panel from './panel';
 

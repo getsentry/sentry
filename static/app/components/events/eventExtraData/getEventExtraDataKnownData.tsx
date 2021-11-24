@@ -1,5 +1,5 @@
-import {getMeta} from 'app/components/events/meta/metaProxy';
-import {KeyValueListData} from 'app/types';
+import {getMeta} from 'sentry/components/events/meta/metaProxy';
+import {KeyValueListData} from 'sentry/types';
 
 import getEventExtraDataKnownDataDetails from './getEventExtraDataKnownDataDetails';
 import {EventExtraData, EventExtraDataType} from './types';

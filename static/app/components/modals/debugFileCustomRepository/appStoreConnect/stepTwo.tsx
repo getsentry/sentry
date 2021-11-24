@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
-import SelectField from 'app/views/settings/components/forms/selectField';
+import {t} from 'sentry/locale';
+import SelectField from 'sentry/views/settings/components/forms/selectField';
 
 import {AppStoreApp, StepTwoData} from './types';
 

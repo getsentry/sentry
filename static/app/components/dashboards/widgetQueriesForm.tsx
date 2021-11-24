@@ -2,23 +2,23 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
-import Button from 'app/components/button';
-import SearchBar from 'app/components/events/searchBar';
-import SelectControl from 'app/components/forms/selectControl';
-import {MAX_QUERY_LENGTH} from 'app/constants';
-import {IconAdd, IconDelete} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {GlobalSelection, Organization, SelectValue} from 'app/types';
+import Button from 'sentry/components/button';
+import SearchBar from 'sentry/components/events/searchBar';
+import SelectControl from 'sentry/components/forms/selectControl';
+import {MAX_QUERY_LENGTH} from 'sentry/constants';
+import {IconAdd, IconDelete} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {GlobalSelection, Organization, SelectValue} from 'sentry/types';
 import {
   explodeField,
   generateFieldAsString,
   getAggregateAlias,
-} from 'app/utils/discover/fields';
-import {Widget, WidgetQuery} from 'app/views/dashboardsV2/types';
-import {generateFieldOptions} from 'app/views/eventsV2/utils';
-import Input from 'app/views/settings/components/forms/controls/input';
-import Field from 'app/views/settings/components/forms/field';
+} from 'sentry/utils/discover/fields';
+import {Widget, WidgetQuery} from 'sentry/views/dashboardsV2/types';
+import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
+import Input from 'sentry/views/settings/components/forms/controls/input';
+import Field from 'sentry/views/settings/components/forms/field';
 
 import WidgetQueryFields from './widgetQueryFields';
 

@@ -1,7 +1,7 @@
 import * as React from 'react';
 
-import {t} from 'app/locale';
-import {Meta} from 'app/types';
+import {t} from 'sentry/locale';
+import {Meta} from 'sentry/types';
 
 import Redaction from './redaction';
 

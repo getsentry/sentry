@@ -1,9 +1,9 @@
 import {LocationDescriptor} from 'history';
 
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import {IconNext, IconPrevious} from 'app/icons';
-import {t} from 'app/locale';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import {IconNext, IconPrevious} from 'sentry/icons';
+import {t} from 'sentry/locale';
 
 type Props = {
   /**

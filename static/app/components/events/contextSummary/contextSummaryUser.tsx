@@ -1,14 +1,14 @@
 import styled from '@emotion/styled';
 
-import UserAvatar from 'app/components/avatar/userAvatar';
-import {removeFilterMaskedEntries} from 'app/components/events/interfaces/utils';
-import AnnotatedText from 'app/components/events/meta/annotatedText';
-import {getMeta} from 'app/components/events/meta/metaProxy';
-import TextOverflow from 'app/components/textOverflow';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {AvatarUser, Meta} from 'app/types';
-import {EventUser} from 'app/types/event';
+import UserAvatar from 'sentry/components/avatar/userAvatar';
+import {removeFilterMaskedEntries} from 'sentry/components/events/interfaces/utils';
+import AnnotatedText from 'sentry/components/events/meta/annotatedText';
+import {getMeta} from 'sentry/components/events/meta/metaProxy';
+import TextOverflow from 'sentry/components/textOverflow';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {AvatarUser, Meta} from 'sentry/types';
+import {EventUser} from 'sentry/types/event';
 
 import ContextSummaryNoSummary from './contextSummaryNoSummary';
 import Item from './item';

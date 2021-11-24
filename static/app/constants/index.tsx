@@ -3,8 +3,8 @@
  * Common constants here
  */
 
-import {t} from 'app/locale';
-import {Scope} from 'app/types';
+import {t} from 'sentry/locale';
+import {Scope} from 'sentry/types';
 
 // This is the element id where we render our React application to
 export const ROOT_ELEMENT = 'blk_router';

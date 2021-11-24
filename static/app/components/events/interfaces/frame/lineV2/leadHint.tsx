@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import {Frame} from 'app/types';
+import {t} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import {Frame} from 'sentry/types';
 
 type Props = {
   leadsToApp: boolean;

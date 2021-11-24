@@ -1,16 +1,16 @@
 import * as React from 'react';
 
-import {assignToActor, assignToUser} from 'app/actionCreators/group';
-import {promptsCheck, promptsUpdate} from 'app/actionCreators/prompts';
-import {Client} from 'app/api';
-import AsyncComponent from 'app/components/asyncComponent';
-import {Actor, CodeOwner, Committer, Group, Organization, Project} from 'app/types';
-import {Event} from 'app/types/event';
-import {trackIntegrationAnalytics} from 'app/utils/integrationUtil';
-import {promptIsDismissed} from 'app/utils/promptIsDismissed';
-import withApi from 'app/utils/withApi';
-import withCommitters from 'app/utils/withCommitters';
-import withOrganization from 'app/utils/withOrganization';
+import {assignToActor, assignToUser} from 'sentry/actionCreators/group';
+import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
+import {Client} from 'sentry/api';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import {Actor, CodeOwner, Committer, Group, Organization, Project} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
+import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
+import withApi from 'sentry/utils/withApi';
+import withCommitters from 'sentry/utils/withCommitters';
+import withOrganization from 'sentry/utils/withOrganization';
 
 import {findMatchedRules, Rules} from './findMatchedRules';
 import {OwnershipRules} from './ownershipRules';

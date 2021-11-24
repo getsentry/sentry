@@ -1,7 +1,7 @@
 import Reflux from 'reflux';
 
-import SentryAppComponentsActions from 'app/actions/sentryAppComponentActions';
-import {SentryAppComponent} from 'app/types';
+import SentryAppComponentsActions from 'sentry/actions/sentryAppComponentActions';
+import {SentryAppComponent} from 'sentry/types';
 
 type SentryAppComponentsStoreInterface = {
   onLoadComponents: (items: SentryAppComponent[]) => void;

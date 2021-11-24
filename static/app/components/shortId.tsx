@@ -1,8 +1,8 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import AutoSelectText from 'app/components/autoSelectText';
-import Link from 'app/components/links/link';
+import AutoSelectText from 'sentry/components/autoSelectText';
+import Link from 'sentry/components/links/link';
 
 type Props = {
   shortId: string;

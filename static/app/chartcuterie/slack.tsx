@@ -1,8 +1,8 @@
-import Grid from 'app/components/charts/components/grid';
-import Legend from 'app/components/charts/components/legend';
-import XAxis from 'app/components/charts/components/xAxis';
-import YAxis from 'app/components/charts/components/yAxis';
-import {lightTheme as theme} from 'app/utils/theme';
+import Grid from 'sentry/components/charts/components/grid';
+import Legend from 'sentry/components/charts/components/legend';
+import XAxis from 'sentry/components/charts/components/xAxis';
+import YAxis from 'sentry/components/charts/components/yAxis';
+import {lightTheme as theme} from 'sentry/utils/theme';
 
 /**
  * Size configuration for SLACK_* type charts

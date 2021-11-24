@@ -9,24 +9,24 @@ import {
 } from 'react-router';
 import memoize from 'lodash/memoize';
 
-import LazyLoad from 'app/components/lazyLoad';
-import {EXPERIMENTAL_SPA} from 'app/constants';
-import {t} from 'app/locale';
-import HookStore from 'app/stores/hookStore';
-import {HookName} from 'app/types/hooks';
-import errorHandler from 'app/utils/errorHandler';
-import App from 'app/views/app';
-import AuthLayout from 'app/views/auth/layout';
-import IssueListContainer from 'app/views/issueList/container';
-import IssueListOverview from 'app/views/issueList/overview';
-import OrganizationContextContainer from 'app/views/organizationContext';
-import OrganizationDetails from 'app/views/organizationDetails';
-import {Tab} from 'app/views/organizationGroupDetails/types';
-import OrganizationRoot from 'app/views/organizationRoot';
-import ProjectEventRedirect from 'app/views/projectEventRedirect';
-import redirectDeprecatedProjectRoute from 'app/views/projects/redirectDeprecatedProjectRoute';
-import RouteNotFound from 'app/views/routeNotFound';
-import SettingsWrapper from 'app/views/settings/components/settingsWrapper';
+import LazyLoad from 'sentry/components/lazyLoad';
+import {EXPERIMENTAL_SPA} from 'sentry/constants';
+import {t} from 'sentry/locale';
+import HookStore from 'sentry/stores/hookStore';
+import {HookName} from 'sentry/types/hooks';
+import errorHandler from 'sentry/utils/errorHandler';
+import App from 'sentry/views/app';
+import AuthLayout from 'sentry/views/auth/layout';
+import IssueListContainer from 'sentry/views/issueList/container';
+import IssueListOverview from 'sentry/views/issueList/overview';
+import OrganizationContextContainer from 'sentry/views/organizationContext';
+import OrganizationDetails from 'sentry/views/organizationDetails';
+import {Tab} from 'sentry/views/organizationGroupDetails/types';
+import OrganizationRoot from 'sentry/views/organizationRoot';
+import ProjectEventRedirect from 'sentry/views/projectEventRedirect';
+import redirectDeprecatedProjectRoute from 'sentry/views/projects/redirectDeprecatedProjectRoute';
+import RouteNotFound from 'sentry/views/routeNotFound';
+import SettingsWrapper from 'sentry/views/settings/components/settingsWrapper';
 
 type CustomProps = {
   name?: string;

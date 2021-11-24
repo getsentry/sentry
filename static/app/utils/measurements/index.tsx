@@ -1,5 +1,5 @@
-import {getDuration} from 'app/utils/formatters';
-import {Vital} from 'app/utils/performance/vitals/types';
+import {getDuration} from 'sentry/utils/formatters';
+import {Vital} from 'sentry/utils/performance/vitals/types';
 
 export function formattedValue(record: Vital | undefined, value: number): string {
   if (record && record.type === 'duration') {

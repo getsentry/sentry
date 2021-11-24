@@ -1,4 +1,4 @@
-import {URL_PARAM} from 'app/constants/globalSelectionHeader';
+import {URL_PARAM} from 'sentry/constants/globalSelectionHeader';
 
 export const MAX_TEAM_KEY_TRANSACTIONS = 100;
 

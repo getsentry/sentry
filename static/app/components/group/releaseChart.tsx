@@ -1,11 +1,11 @@
 import * as React from 'react';
 
-import MiniBarChart from 'app/components/charts/miniBarChart';
-import {t} from 'app/locale';
-import {Group, Release, TimeseriesValue} from 'app/types';
-import {Series} from 'app/types/echarts';
-import {formatVersion} from 'app/utils/formatters';
-import theme from 'app/utils/theme';
+import MiniBarChart from 'sentry/components/charts/miniBarChart';
+import {t} from 'sentry/locale';
+import {Group, Release, TimeseriesValue} from 'sentry/types';
+import {Series} from 'sentry/types/echarts';
+import {formatVersion} from 'sentry/utils/formatters';
+import theme from 'sentry/utils/theme';
 
 import SidebarSection from './sidebarSection';
 

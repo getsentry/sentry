@@ -1,10 +1,10 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Avatar from 'app/components/avatar';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {AvatarProject, Organization, Team} from 'app/types';
+import Avatar from 'sentry/components/avatar';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {AvatarProject, Organization, Team} from 'sentry/types';
 
 type Props = {
   displayName: React.ReactNode;

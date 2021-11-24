@@ -2,12 +2,12 @@ import {Fragment} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import {css} from '@emotion/react';
 
-import {ModalRenderProps} from 'app/actionCreators/modal';
-import {getDebugSourceName} from 'app/data/debugFileSources';
-import {tct} from 'app/locale';
-import {AppStoreConnectStatusData, CustomRepoType} from 'app/types/debugFiles';
-import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
-import Form from 'app/views/settings/components/forms/form';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {getDebugSourceName} from 'sentry/data/debugFileSources';
+import {tct} from 'sentry/locale';
+import {AppStoreConnectStatusData, CustomRepoType} from 'sentry/types/debugFiles';
+import FieldFromConfig from 'sentry/views/settings/components/forms/fieldFromConfig';
+import Form from 'sentry/views/settings/components/forms/form';
 
 import AppStoreConnect from './appStoreConnect';
 import Http from './http';

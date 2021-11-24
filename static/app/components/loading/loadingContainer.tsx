@@ -1,8 +1,8 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import LoadingIndicator from 'app/components/loadingIndicator';
-import theme from 'app/utils/theme';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import theme from 'sentry/utils/theme';
 
 const defaultProps = {
   isLoading: false,

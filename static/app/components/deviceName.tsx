@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import {IOSDeviceList} from 'app/types/iOSDeviceList';
+import {IOSDeviceList} from 'sentry/types/iOSDeviceList';
 
 export function deviceNameMapper(model: string, iOSDeviceList): string {
   const modelIdentifier = model.split(' ')[0];

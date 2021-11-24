@@ -2,15 +2,15 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import {Client} from 'app/api';
-import SelectControl from 'app/components/forms/selectControl';
-import IdBadge from 'app/components/idBadge';
-import Tooltip from 'app/components/tooltip';
-import {t} from 'app/locale';
-import MemberListStore from 'app/stores/memberListStore';
-import {Member, Organization, Project, User} from 'app/types';
-import {callIfFunction} from 'app/utils/callIfFunction';
-import withApi from 'app/utils/withApi';
+import {Client} from 'sentry/api';
+import SelectControl from 'sentry/components/forms/selectControl';
+import IdBadge from 'sentry/components/idBadge';
+import Tooltip from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
+import MemberListStore from 'sentry/stores/memberListStore';
+import {Member, Organization, Project, User} from 'sentry/types';
+import {callIfFunction} from 'sentry/utils/callIfFunction';
+import withApi from 'sentry/utils/withApi';
 
 const getSearchKeyForUser = (user: User) =>
   `${user.email && user.email.toLowerCase()} ${user.name && user.name.toLowerCase()}`;

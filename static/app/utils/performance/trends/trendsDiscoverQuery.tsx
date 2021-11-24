@@ -3,8 +3,8 @@ import * as React from 'react';
 import GenericDiscoverQuery, {
   DiscoverQueryProps,
   GenericChildrenProps,
-} from 'app/utils/discover/genericDiscoverQuery';
-import withApi from 'app/utils/withApi';
+} from 'sentry/utils/discover/genericDiscoverQuery';
+import withApi from 'sentry/utils/withApi';
 import {
   TrendChangeType,
   TrendFunctionField,
@@ -12,12 +12,12 @@ import {
   TrendsDataEvents,
   TrendsQuery,
   TrendView,
-} from 'app/views/performance/trends/types';
+} from 'sentry/views/performance/trends/types';
 import {
   generateTrendFunctionAsString,
   getCurrentTrendFunction,
   getCurrentTrendParameter,
-} from 'app/views/performance/trends/utils';
+} from 'sentry/views/performance/trends/utils';
 
 export type TrendsRequest = {
   trendChangeType?: TrendChangeType;

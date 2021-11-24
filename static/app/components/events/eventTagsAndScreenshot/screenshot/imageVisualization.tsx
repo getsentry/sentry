@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import ImageViewer from 'app/components/events/attachmentViewers/imageViewer';
+import ImageViewer from 'sentry/components/events/attachmentViewers/imageViewer';
 
 const ImageVisualization = styled(ImageViewer)`
   padding: 0;

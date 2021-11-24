@@ -1,13 +1,13 @@
 import * as React from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 
-import {ModalRenderProps} from 'app/actionCreators/modal';
-import {Client} from 'app/api';
-import Link from 'app/components/links/link';
-import {t, tct} from 'app/locale';
-import withApi from 'app/utils/withApi';
-import {EmailAddresses} from 'app/views/settings/account/accountEmails';
-import TextBlock from 'app/views/settings/components/text/textBlock';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {Client} from 'sentry/api';
+import Link from 'sentry/components/links/link';
+import {t, tct} from 'sentry/locale';
+import withApi from 'sentry/utils/withApi';
+import {EmailAddresses} from 'sentry/views/settings/account/accountEmails';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 type Props = WithRouterProps &
   Pick<ModalRenderProps, 'Body' | 'Header'> & {

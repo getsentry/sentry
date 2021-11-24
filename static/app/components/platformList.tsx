@@ -2,11 +2,11 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import Tooltip from 'app/components/tooltip';
-import {PlatformKey} from 'app/data/platformCategories';
-import {tn} from 'app/locale';
-import getPlatformName from 'app/utils/getPlatformName';
-import {Theme} from 'app/utils/theme';
+import Tooltip from 'sentry/components/tooltip';
+import {PlatformKey} from 'sentry/data/platformCategories';
+import {tn} from 'sentry/locale';
+import getPlatformName from 'sentry/utils/getPlatformName';
+import {Theme} from 'sentry/utils/theme';
 
 type Props = {
   platforms?: PlatformKey[];

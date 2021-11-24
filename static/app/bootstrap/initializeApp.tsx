@@ -1,9 +1,9 @@
 import './legacyTwitterBootstrap';
 import './exportGlobals';
 
-import routes from 'app/routes';
-import {Config} from 'app/types';
-import {metric} from 'app/utils/analytics';
+import routes from 'sentry/routes';
+import {Config} from 'sentry/types';
+import {metric} from 'sentry/utils/analytics';
 
 import {commonInitialization} from './commonInitialization';
 import {initializeSdk} from './initializeSdk';

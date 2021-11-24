@@ -1,6 +1,6 @@
 import Reflux from 'reflux';
 
-import {User} from 'app/types';
+import {User} from 'sentry/types';
 
 type MemberListStoreInterface = {
   state: User[];

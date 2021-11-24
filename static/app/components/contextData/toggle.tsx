@@ -1,7 +1,7 @@
 import {Children, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {IconAdd, IconSubtract} from 'app/icons';
+import {IconAdd, IconSubtract} from 'sentry/icons';
 
 type Props = {
   highUp: boolean;

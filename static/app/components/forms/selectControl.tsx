@@ -12,11 +12,11 @@ import AsyncCreatable from 'react-select/async-creatable';
 import Creatable from 'react-select/creatable';
 import {useTheme} from '@emotion/react';
 
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {IconChevron, IconClose} from 'app/icons';
-import space from 'app/styles/space';
-import {Choices, SelectValue} from 'app/types';
-import convertFromSelect2Choices from 'app/utils/convertFromSelect2Choices';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {IconChevron, IconClose} from 'sentry/icons';
+import space from 'sentry/styles/space';
+import {Choices, SelectValue} from 'sentry/types';
+import convertFromSelect2Choices from 'sentry/utils/convertFromSelect2Choices';
 
 function isGroupedOptions<OptionType>(
   maybe:

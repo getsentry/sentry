@@ -1,5 +1,5 @@
-import {DebugImage} from 'app/components/events/interfaces/debugMeta/types';
-import {TraceContextType} from 'app/components/events/interfaces/spans/types';
+import {DebugImage} from 'sentry/components/events/interfaces/debugMeta/types';
+import {TraceContextType} from 'sentry/components/events/interfaces/spans/types';
 
 import {RawCrumb} from './breadcrumbs';
 import {Thread} from './events';

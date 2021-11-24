@@ -1,7 +1,7 @@
-import AlertActions from 'app/actions/alertActions';
-import ExternalLink from 'app/components/links/externalLink';
-import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA} from 'app/constants';
-import {t, tct} from 'app/locale';
+import AlertActions from 'sentry/actions/alertActions';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA} from 'sentry/constants';
+import {t, tct} from 'sentry/locale';
 
 export function displayDeployPreviewAlert() {
   if (!DEPLOY_PREVIEW_CONFIG) {

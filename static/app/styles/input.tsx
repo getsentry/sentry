@@ -1,6 +1,6 @@
 import {css} from '@emotion/react';
 
-import {Theme} from 'app/utils/theme';
+import {Theme} from 'sentry/utils/theme';
 
 export const INPUT_PADDING = 10;
 

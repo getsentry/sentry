@@ -3,24 +3,28 @@ import 'intersection-observer'; // this is a polyfill
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Count from 'app/components/count';
-import FeatureBadge from 'app/components/featureBadge';
-import {ROW_HEIGHT} from 'app/components/performance/waterfall/constants';
-import {MessageRow} from 'app/components/performance/waterfall/messageRow';
-import {Row, RowCell, RowCellContainer} from 'app/components/performance/waterfall/row';
-import {DurationPill, RowRectangle} from 'app/components/performance/waterfall/rowBar';
+import Count from 'sentry/components/count';
+import FeatureBadge from 'sentry/components/featureBadge';
+import {ROW_HEIGHT} from 'sentry/components/performance/waterfall/constants';
+import {MessageRow} from 'sentry/components/performance/waterfall/messageRow';
+import {
+  Row,
+  RowCell,
+  RowCellContainer,
+} from 'sentry/components/performance/waterfall/row';
+import {DurationPill, RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {
   DividerContainer,
   DividerLine,
   DividerLineGhostContainer,
   EmbeddedTransactionBadge,
   ErrorBadge,
-} from 'app/components/performance/waterfall/rowDivider';
+} from 'sentry/components/performance/waterfall/rowDivider';
 import {
   RowTitle,
   RowTitleContainer,
   RowTitleContent,
-} from 'app/components/performance/waterfall/rowTitle';
+} from 'sentry/components/performance/waterfall/rowTitle';
 import {
   ConnectorBar,
   TOGGLE_BORDER_BOX,
@@ -28,25 +32,25 @@ import {
   TreeToggle,
   TreeToggleContainer,
   TreeToggleIcon,
-} from 'app/components/performance/waterfall/treeConnector';
+} from 'sentry/components/performance/waterfall/treeConnector';
 import {
   getDurationDisplay,
   getHumanDuration,
   toPercent,
-} from 'app/components/performance/waterfall/utils';
-import Tooltip from 'app/components/tooltip';
-import {IconWarning} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import {EventTransaction} from 'app/types/event';
-import {defined} from 'app/utils';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {generateEventSlug} from 'app/utils/discover/urls';
-import * as QuickTraceContext from 'app/utils/performance/quickTrace/quickTraceContext';
-import {QuickTraceContextChildrenProps} from 'app/utils/performance/quickTrace/quickTraceContext';
-import {QuickTraceEvent, TraceError} from 'app/utils/performance/quickTrace/types';
-import {isTraceFull} from 'app/utils/performance/quickTrace/utils';
+} from 'sentry/components/performance/waterfall/utils';
+import Tooltip from 'sentry/components/tooltip';
+import {IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {EventTransaction} from 'sentry/types/event';
+import {defined} from 'sentry/utils';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {generateEventSlug} from 'sentry/utils/discover/urls';
+import * as QuickTraceContext from 'sentry/utils/performance/quickTrace/quickTraceContext';
+import {QuickTraceContextChildrenProps} from 'sentry/utils/performance/quickTrace/quickTraceContext';
+import {QuickTraceEvent, TraceError} from 'sentry/utils/performance/quickTrace/types';
+import {isTraceFull} from 'sentry/utils/performance/quickTrace/utils';
 
 import * as AnchorLinkManager from './anchorLinkManager';
 import {

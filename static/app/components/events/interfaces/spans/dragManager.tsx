@@ -1,7 +1,7 @@
 import * as React from 'react';
 
-import {clamp, rectOfContent} from 'app/components/performance/waterfall/utils';
-import {setBodyUserSelect, UserSelectValues} from 'app/utils/userselect';
+import {clamp, rectOfContent} from 'sentry/components/performance/waterfall/utils';
+import {setBodyUserSelect, UserSelectValues} from 'sentry/utils/userselect';
 
 // we establish the minimum window size so that the window size of 0% is not possible
 const MINIMUM_WINDOW_SIZE = 0.5 / 100; // 0.5% window size

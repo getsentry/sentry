@@ -1,7 +1,7 @@
 import * as React from 'react';
 
-import Button from 'app/components/button';
-import DiscoverFeature from 'app/components/discover/discoverFeature';
+import Button from 'sentry/components/button';
+import DiscoverFeature from 'sentry/components/discover/discoverFeature';
 
 type Props = React.PropsWithChildren<{
   className?: string;

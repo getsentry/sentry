@@ -4,14 +4,14 @@ import styled from '@emotion/styled';
 /* TODO: replace with I/O when finished */
 import img from 'sentry-images/spot/hair-on-fire.svg';
 
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import PageHeading from 'app/components/pageHeading';
-import {t} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import withProjects from 'app/utils/withProjects';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import PageHeading from 'sentry/components/pageHeading';
+import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import withProjects from 'sentry/utils/withProjects';
 
 type Props = React.PropsWithChildren<{
   organization: Organization;

@@ -2,12 +2,12 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import DateTime from 'app/components/dateTime';
-import TimeSince from 'app/components/timeSince';
-import space from 'app/styles/space';
-import textStyles from 'app/styles/text';
-import {AvatarUser} from 'app/types';
-import {isRenderFunc} from 'app/utils/isRenderFunc';
+import DateTime from 'sentry/components/dateTime';
+import TimeSince from 'sentry/components/timeSince';
+import space from 'sentry/styles/space';
+import textStyles from 'sentry/styles/text';
+import {AvatarUser} from 'sentry/types';
+import {isRenderFunc} from 'sentry/utils/isRenderFunc';
 
 import ActivityAvatar from './avatar';
 import ActivityBubble from './bubble';

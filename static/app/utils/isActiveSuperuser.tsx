@@ -1,6 +1,6 @@
 import Cookies from 'js-cookie';
 
-import ConfigStore from 'app/stores/configStore';
+import ConfigStore from 'sentry/stores/configStore';
 
 const SUPERUSER_COOKIE_NAME = 'su';
 

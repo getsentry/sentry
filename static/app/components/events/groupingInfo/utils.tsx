@@ -1,6 +1,6 @@
 import isObject from 'lodash/isObject';
 
-import {EventGroupComponent} from 'app/types';
+import {EventGroupComponent} from 'sentry/types';
 
 export function hasNonContributingComponent(component: EventGroupComponent | undefined) {
   if (!component?.contributes) {

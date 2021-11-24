@@ -2,21 +2,21 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import {Client} from 'app/api';
-import ImageViewer from 'app/components/events/attachmentViewers/imageViewer';
-import JsonViewer from 'app/components/events/attachmentViewers/jsonViewer';
-import LogFileViewer from 'app/components/events/attachmentViewers/logFileViewer';
-import RRWebJsonViewer from 'app/components/events/attachmentViewers/rrwebJsonViewer';
-import EventAttachmentActions from 'app/components/events/eventAttachmentActions';
-import EventDataSection from 'app/components/events/eventDataSection';
-import FileSize from 'app/components/fileSize';
-import {PanelTable} from 'app/components/panels';
-import {t} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import {IssueAttachment} from 'app/types';
-import {Event} from 'app/types/event';
-import AttachmentUrl from 'app/utils/attachmentUrl';
-import withApi from 'app/utils/withApi';
+import {Client} from 'sentry/api';
+import ImageViewer from 'sentry/components/events/attachmentViewers/imageViewer';
+import JsonViewer from 'sentry/components/events/attachmentViewers/jsonViewer';
+import LogFileViewer from 'sentry/components/events/attachmentViewers/logFileViewer';
+import RRWebJsonViewer from 'sentry/components/events/attachmentViewers/rrwebJsonViewer';
+import EventAttachmentActions from 'sentry/components/events/eventAttachmentActions';
+import EventDataSection from 'sentry/components/events/eventDataSection';
+import FileSize from 'sentry/components/fileSize';
+import {PanelTable} from 'sentry/components/panels';
+import {t} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import {IssueAttachment} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import AttachmentUrl from 'sentry/utils/attachmentUrl';
+import withApi from 'sentry/utils/withApi';
 
 import EventAttachmentsCrashReportsNotice from './eventAttachmentsCrashReportsNotice';
 

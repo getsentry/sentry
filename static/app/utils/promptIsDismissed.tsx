@@ -1,4 +1,4 @@
-import {PromptData} from 'app/actionCreators/prompts';
+import {PromptData} from 'sentry/actionCreators/prompts';
 
 import {snoozedDays} from './promptsActivity';
 

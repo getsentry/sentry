@@ -1,4 +1,4 @@
-import {t} from 'app/locale';
+import {t} from 'sentry/locale';
 
 import formatMemory from './formatMemory';
 import {GPUData, GPUKnownDataType} from './types';

@@ -2,8 +2,8 @@ import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {LocationDescriptor, LocationDescriptorObject} from 'history';
 
-import {openModal} from 'app/actionCreators/modal';
-import ContextPickerModal from 'app/components/contextPickerModal';
+import {openModal} from 'sentry/actionCreators/modal';
+import ContextPickerModal from 'sentry/components/contextPickerModal';
 
 type Project = {
   id: string;

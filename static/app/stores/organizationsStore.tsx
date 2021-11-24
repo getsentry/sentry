@@ -1,7 +1,7 @@
 import Reflux from 'reflux';
 
-import OrganizationsActions from 'app/actions/organizationsActions';
-import {Organization} from 'app/types';
+import OrganizationsActions from 'sentry/actions/organizationsActions';
+import {Organization} from 'sentry/types';
 
 type OrganizationsStoreInterface = {
   state: Organization[];

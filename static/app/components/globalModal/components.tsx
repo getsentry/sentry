@@ -1,10 +1,10 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import {IconClose} from 'app/icons/iconClose';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
+import Button from 'sentry/components/button';
+import {IconClose} from 'sentry/icons/iconClose';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 
 const ModalHeader = styled('header')`
   position: relative;

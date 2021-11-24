@@ -4,16 +4,16 @@ import {Manager, Popper, Reference} from 'react-popper';
 import styled from '@emotion/styled';
 import * as PopperJS from 'popper.js';
 
-import MenuHeader from 'app/components/actions/menuHeader';
-import CheckboxFancy from 'app/components/checkboxFancy/checkboxFancy';
-import {GetActorPropsFn} from 'app/components/dropdownMenu';
-import MenuItem from 'app/components/menuItem';
-import {TeamSelection} from 'app/components/performance/teamKeyTransactionsManager';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Project, Team} from 'app/types';
-import {defined} from 'app/utils';
-import {MAX_TEAM_KEY_TRANSACTIONS} from 'app/utils/performance/constants';
+import MenuHeader from 'sentry/components/actions/menuHeader';
+import CheckboxFancy from 'sentry/components/checkboxFancy/checkboxFancy';
+import {GetActorPropsFn} from 'sentry/components/dropdownMenu';
+import MenuItem from 'sentry/components/menuItem';
+import {TeamSelection} from 'sentry/components/performance/teamKeyTransactionsManager';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Project, Team} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import {MAX_TEAM_KEY_TRANSACTIONS} from 'sentry/utils/performance/constants';
 
 export type TitleProps = Partial<ReturnType<GetActorPropsFn>> & {
   isOpen: boolean;

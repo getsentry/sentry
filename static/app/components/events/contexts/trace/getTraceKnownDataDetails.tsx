@@ -1,13 +1,13 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import {generateTraceTarget} from 'app/components/quickTrace/utils';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import {Event} from 'app/types/event';
-import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
+import Button from 'sentry/components/button';
+import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 import {TraceKnownData, TraceKnownDataType} from './types';
 

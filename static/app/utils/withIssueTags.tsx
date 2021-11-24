@@ -1,11 +1,11 @@
 import * as React from 'react';
 import assign from 'lodash/assign';
 
-import MemberListStore from 'app/stores/memberListStore';
-import TagStore from 'app/stores/tagStore';
-import TeamStore from 'app/stores/teamStore';
-import {TagCollection, Team, User} from 'app/types';
-import getDisplayName from 'app/utils/getDisplayName';
+import MemberListStore from 'sentry/stores/memberListStore';
+import TagStore from 'sentry/stores/tagStore';
+import TeamStore from 'sentry/stores/teamStore';
+import {TagCollection, Team, User} from 'sentry/types';
+import getDisplayName from 'sentry/utils/getDisplayName';
 
 type InjectedTagsProps = {
   tags: TagCollection;

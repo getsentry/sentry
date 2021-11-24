@@ -2,28 +2,32 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptor, Query} from 'history';
 
-import GuideAnchor from 'app/components/assistant/guideAnchor';
-import SortLink from 'app/components/gridEditable/sortLink';
-import Link from 'app/components/links/link';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import PanelTable from 'app/components/panels/panelTable';
-import QuestionTooltip from 'app/components/questionTooltip';
-import {t} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
-import EventView, {MetaType} from 'app/utils/discover/eventView';
-import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
-import {Alignments, fieldAlignment, getAggregateAlias} from 'app/utils/discover/fields';
-import {generateEventSlug} from 'app/utils/discover/urls';
-import {getDuration} from 'app/utils/formatters';
-import {BaselineQueryResults} from 'app/utils/performance/baseline/baselineQuery';
-import CellAction, {Actions} from 'app/views/eventsV2/table/cellAction';
-import {TableColumn} from 'app/views/eventsV2/table/types';
-import {GridCell, GridCellNumber} from 'app/views/performance/styles';
-import {TrendsDataEvents} from 'app/views/performance/trends/types';
-import {getTransactionComparisonUrl} from 'app/views/performance/utils';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import SortLink from 'sentry/components/gridEditable/sortLink';
+import Link from 'sentry/components/links/link';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import PanelTable from 'sentry/components/panels/panelTable';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import {t} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import EventView, {MetaType} from 'sentry/utils/discover/eventView';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {
+  Alignments,
+  fieldAlignment,
+  getAggregateAlias,
+} from 'sentry/utils/discover/fields';
+import {generateEventSlug} from 'sentry/utils/discover/urls';
+import {getDuration} from 'sentry/utils/formatters';
+import {BaselineQueryResults} from 'sentry/utils/performance/baseline/baselineQuery';
+import CellAction, {Actions} from 'sentry/views/eventsV2/table/cellAction';
+import {TableColumn} from 'sentry/views/eventsV2/table/types';
+import {GridCell, GridCellNumber} from 'sentry/views/performance/styles';
+import {TrendsDataEvents} from 'sentry/views/performance/trends/types';
+import {getTransactionComparisonUrl} from 'sentry/views/performance/utils';
 
 type Props = {
   eventView: EventView;

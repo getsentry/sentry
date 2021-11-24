@@ -1,12 +1,12 @@
 import * as React from 'react';
 
-import {Organization} from 'app/types';
-import {MobileVital, WebVital} from 'app/utils/discover/fields';
+import {Organization} from 'sentry/types';
+import {MobileVital, WebVital} from 'sentry/utils/discover/fields';
 import {
   MOBILE_VITAL_DETAILS,
   WEB_VITAL_DETAILS,
-} from 'app/utils/performance/vitals/constants';
-import {Vital} from 'app/utils/performance/vitals/types';
+} from 'sentry/utils/performance/vitals/constants';
+import {Vital} from 'sentry/utils/performance/vitals/types';
 
 type Measurement = {
   name: string;

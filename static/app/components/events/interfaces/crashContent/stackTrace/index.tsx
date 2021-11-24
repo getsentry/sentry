@@ -1,7 +1,7 @@
-import ErrorBoundary from 'app/components/errorBoundary';
-import {PlatformType} from 'app/types';
-import {Event} from 'app/types/event';
-import {STACK_VIEW, StacktraceType} from 'app/types/stacktrace';
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import {PlatformType} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import {STACK_VIEW, StacktraceType} from 'sentry/types/stacktrace';
 
 import Content from './content';
 import ContentV2 from './contentV2';

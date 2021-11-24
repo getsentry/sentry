@@ -10,14 +10,14 @@ import {
   recordFinish,
   registerAnchor,
   unregisterAnchor,
-} from 'app/actionCreators/guides';
-import {Guide} from 'app/components/assistant/types';
-import Button from 'app/components/button';
-import Hovercard, {Body as HovercardBody} from 'app/components/hovercard';
-import {t, tct} from 'app/locale';
-import GuideStore, {GuideStoreState} from 'app/stores/guideStore';
-import space from 'app/styles/space';
-import theme from 'app/utils/theme';
+} from 'sentry/actionCreators/guides';
+import {Guide} from 'sentry/components/assistant/types';
+import Button from 'sentry/components/button';
+import Hovercard, {Body as HovercardBody} from 'sentry/components/hovercard';
+import {t, tct} from 'sentry/locale';
+import GuideStore, {GuideStoreState} from 'sentry/stores/guideStore';
+import space from 'sentry/styles/space';
+import theme from 'sentry/utils/theme';
 
 type Props = {
   target?: string; // Shouldn't target be mandatory?

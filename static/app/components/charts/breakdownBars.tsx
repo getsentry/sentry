@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
-import {formatPercentage} from 'app/utils/formatters';
+import space from 'sentry/styles/space';
+import {formatPercentage} from 'sentry/utils/formatters';
 
 type Point = {
   label: string;

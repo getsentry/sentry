@@ -1,12 +1,12 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import {STACKTRACE_PREVIEW_TOOLTIP_DELAY} from 'app/components/stacktracePreview';
-import Tooltip from 'app/components/tooltip';
-import {IconFilter} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Theme} from 'app/utils/theme';
+import {STACKTRACE_PREVIEW_TOOLTIP_DELAY} from 'sentry/components/stacktracePreview';
+import Tooltip from 'sentry/components/tooltip';
+import {IconFilter} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Theme} from 'sentry/utils/theme';
 
 import {formatAddress, parseAddress} from '../utils';
 

@@ -4,11 +4,11 @@ import isArray from 'lodash/isArray';
 import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';
 
-import AnnotatedText from 'app/components/events/meta/annotatedText';
-import ExternalLink from 'app/components/links/externalLink';
-import {IconOpen} from 'app/icons';
-import {Meta} from 'app/types';
-import {isUrl} from 'app/utils';
+import AnnotatedText from 'sentry/components/events/meta/annotatedText';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {IconOpen} from 'sentry/icons';
+import {Meta} from 'sentry/types';
+import {isUrl} from 'sentry/utils';
 
 import Toggle from './toggle';
 import {analyzeStringForRepr, naturalCaseInsensitiveSort} from './utils';

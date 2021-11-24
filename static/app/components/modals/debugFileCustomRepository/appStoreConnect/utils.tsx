@@ -1,10 +1,10 @@
 import * as Sentry from '@sentry/react';
 
-import {t} from 'app/locale';
+import {t} from 'sentry/locale';
 import {
   getAppStoreValidationErrorMessage,
   unexpectedErrorMessage,
-} from 'app/utils/appStoreValidationErrorMessage';
+} from 'sentry/utils/appStoreValidationErrorMessage';
 
 import {StepOneData} from './types';
 

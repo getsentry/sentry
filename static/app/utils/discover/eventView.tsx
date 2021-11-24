@@ -7,13 +7,13 @@ import pick from 'lodash/pick';
 import uniqBy from 'lodash/uniqBy';
 import moment from 'moment';
 
-import {EventQuery} from 'app/actionCreators/events';
-import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {DEFAULT_PER_PAGE} from 'app/constants';
-import {URL_PARAM} from 'app/constants/globalSelectionHeader';
-import {t} from 'app/locale';
-import {GlobalSelection, NewQuery, SavedQuery, SelectValue, User} from 'app/types';
+import {EventQuery} from 'sentry/actionCreators/events';
+import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {DEFAULT_PER_PAGE} from 'sentry/constants';
+import {URL_PARAM} from 'sentry/constants/globalSelectionHeader';
+import {t} from 'sentry/locale';
+import {GlobalSelection, NewQuery, SavedQuery, SelectValue, User} from 'sentry/types';
 import {
   aggregateOutputType,
   Column,
@@ -28,23 +28,23 @@ import {
   isLegalYAxisType,
   Sort,
   WebVital,
-} from 'app/utils/discover/fields';
+} from 'sentry/utils/discover/fields';
 import {
   CHART_AXIS_OPTIONS,
   DISPLAY_MODE_FALLBACK_OPTIONS,
   DISPLAY_MODE_OPTIONS,
   DisplayModes,
   TOP_N,
-} from 'app/utils/discover/types';
-import {decodeList, decodeScalar} from 'app/utils/queryString';
+} from 'sentry/utils/discover/types';
+import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {
   FieldValueKind,
   TableColumn,
   TableColumnSort,
-} from 'app/views/eventsV2/table/types';
-import {decodeColumnOrder} from 'app/views/eventsV2/utils';
-import {SpanOperationBreakdownFilter} from 'app/views/performance/transactionSummary/filter';
-import {EventsDisplayFilterName} from 'app/views/performance/transactionSummary/transactionEvents/utils';
+} from 'sentry/views/eventsV2/table/types';
+import {decodeColumnOrder} from 'sentry/views/eventsV2/utils';
+import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
+import {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 
 import {statsPeriodToDays} from '../dates';
 import {MutableSearch} from '../tokenizeSearch';

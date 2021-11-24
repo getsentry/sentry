@@ -6,12 +6,12 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {fetchRecentSearches, saveRecentSearch} from 'app/actionCreators/savedSearches';
-import {Client} from 'app/api';
-import ButtonBar from 'app/components/buttonBar';
-import DropdownLink from 'app/components/dropdownLink';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {fetchRecentSearches, saveRecentSearch} from 'sentry/actionCreators/savedSearches';
+import {Client} from 'sentry/api';
+import ButtonBar from 'sentry/components/buttonBar';
+import DropdownLink from 'sentry/components/dropdownLink';
+import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
 import {
   FilterType,
   ParseResult,
@@ -19,28 +19,28 @@ import {
   TermOperator,
   Token,
   TokenResult,
-} from 'app/components/searchSyntax/parser';
-import HighlightQuery from 'app/components/searchSyntax/renderer';
+} from 'sentry/components/searchSyntax/parser';
+import HighlightQuery from 'sentry/components/searchSyntax/renderer';
 import {
   getKeyName,
   isWithinToken,
   treeResultLocator,
-} from 'app/components/searchSyntax/utils';
+} from 'sentry/components/searchSyntax/utils';
 import {
   DEFAULT_DEBOUNCE_DURATION,
   MAX_AUTOCOMPLETE_RELEASES,
   NEGATION_OPERATOR,
-} from 'app/constants';
-import {IconClose, IconEllipsis, IconSearch} from 'app/icons';
-import {t} from 'app/locale';
-import MemberListStore from 'app/stores/memberListStore';
-import space from 'app/styles/space';
-import {Organization, SavedSearchType, Tag, User} from 'app/types';
-import {defined} from 'app/utils';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {callIfFunction} from 'app/utils/callIfFunction';
-import withApi from 'app/utils/withApi';
-import withOrganization from 'app/utils/withOrganization';
+} from 'sentry/constants';
+import {IconClose, IconEllipsis, IconSearch} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import MemberListStore from 'sentry/stores/memberListStore';
+import space from 'sentry/styles/space';
+import {Organization, SavedSearchType, Tag, User} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {callIfFunction} from 'sentry/utils/callIfFunction';
+import withApi from 'sentry/utils/withApi';
+import withOrganization from 'sentry/utils/withOrganization';
 
 import {ActionButton} from './actions';
 import SearchDropdown from './searchDropdown';

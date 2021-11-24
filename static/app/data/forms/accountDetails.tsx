@@ -1,4 +1,4 @@
-import {JsonFormObject} from 'app/views/settings/components/forms/type';
+import {JsonFormObject} from 'sentry/views/settings/components/forms/type';
 
 export const route = '/settings/account/details/';
 

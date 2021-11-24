@@ -1,15 +1,15 @@
 import * as React from 'react';
 
-import {Event} from 'app/types/event';
-import {DiscoverQueryProps} from 'app/utils/discover/genericDiscoverQuery';
-import {TraceFullQuery} from 'app/utils/performance/quickTrace/traceFullQuery';
-import TraceLiteQuery from 'app/utils/performance/quickTrace/traceLiteQuery';
-import {QuickTraceQueryChildrenProps} from 'app/utils/performance/quickTrace/types';
+import {Event} from 'sentry/types/event';
+import {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
+import {TraceFullQuery} from 'sentry/utils/performance/quickTrace/traceFullQuery';
+import TraceLiteQuery from 'sentry/utils/performance/quickTrace/traceLiteQuery';
+import {QuickTraceQueryChildrenProps} from 'sentry/utils/performance/quickTrace/types';
 import {
   flattenRelevantPaths,
   getTraceTimeRangeFromEvent,
   isCurrentEvent,
-} from 'app/utils/performance/quickTrace/utils';
+} from 'sentry/utils/performance/quickTrace/utils';
 
 type QueryProps = Omit<DiscoverQueryProps, 'api' | 'eventView'> & {
   event: Event;

@@ -1,6 +1,6 @@
-import {convertMultilineFieldValue, extractMultilineFields} from 'app/utils';
-import getDynamicText from 'app/utils/getDynamicText';
-import {JsonFormObject} from 'app/views/settings/components/forms/type';
+import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';
+import getDynamicText from 'sentry/utils/getDynamicText';
+import {JsonFormObject} from 'sentry/views/settings/components/forms/type';
 
 const forms: JsonFormObject[] = [
   {

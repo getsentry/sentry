@@ -1,4 +1,4 @@
-import getCookie from 'app/utils/getCookie';
+import getCookie from 'sentry/utils/getCookie';
 
 export function extraQueryParameter(): URLSearchParams {
   // cookies that have = sign are quotes so extra quotes need to be removed

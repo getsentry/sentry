@@ -3,9 +3,9 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import Text from 'app/components/text';
-import space from 'app/styles/space';
-import testableTransition from 'app/utils/testableTransition';
+import Text from 'sentry/components/text';
+import space from 'sentry/styles/space';
+import testableTransition from 'sentry/utils/testableTransition';
 
 /**
  * The default wrapper for the detail text.

@@ -1,12 +1,12 @@
 import * as React from 'react';
 import uniqBy from 'lodash/uniqBy';
 
-import MemberListStore from 'app/stores/memberListStore';
-import {Organization, Project, User} from 'app/types';
-import {callIfFunction} from 'app/utils/callIfFunction';
-import {isRenderFunc} from 'app/utils/isRenderFunc';
-import Projects from 'app/utils/projects';
-import withOrganization from 'app/utils/withOrganization';
+import MemberListStore from 'sentry/stores/memberListStore';
+import {Organization, Project, User} from 'sentry/types';
+import {callIfFunction} from 'sentry/utils/callIfFunction';
+import {isRenderFunc} from 'sentry/utils/isRenderFunc';
+import Projects from 'sentry/utils/projects';
+import withOrganization from 'sentry/utils/withOrganization';
 
 import {Mentionable} from './types';
 

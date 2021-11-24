@@ -1,4 +1,4 @@
-import {escapeDoubleQuotes} from 'app/utils';
+import {escapeDoubleQuotes} from 'sentry/utils';
 
 export enum TokenType {
   OPERATOR,

@@ -1,20 +1,20 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import UserAvatar from 'app/components/avatar/userAvatar';
-import CommitLink from 'app/components/commitLink';
-import {BannerContainer, BannerSummary} from 'app/components/events/styles';
-import TimeSince from 'app/components/timeSince';
-import Version from 'app/components/version';
-import {IconCheckmark} from 'app/icons';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
+import UserAvatar from 'sentry/components/avatar/userAvatar';
+import CommitLink from 'sentry/components/commitLink';
+import {BannerContainer, BannerSummary} from 'sentry/components/events/styles';
+import TimeSince from 'sentry/components/timeSince';
+import Version from 'sentry/components/version';
+import {IconCheckmark} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {
   GroupActivity,
   GroupActivitySetByResolvedInRelease,
   GroupActivityType,
   ResolutionStatusDetails,
-} from 'app/types';
+} from 'sentry/types';
 
 type Props = {
   statusDetails: ResolutionStatusDetails;

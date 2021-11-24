@@ -2,11 +2,11 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import UserAvatar from 'app/components/avatar/userAvatar';
-import Link from 'app/components/links/link';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {AvatarUser, Member} from 'app/types';
+import UserAvatar from 'sentry/components/avatar/userAvatar';
+import Link from 'sentry/components/links/link';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {AvatarUser, Member} from 'sentry/types';
 
 type Props = {
   member: Member;

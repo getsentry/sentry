@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
-import {ExceptionType, Group, PlatformType, Project} from 'app/types';
-import {Event} from 'app/types/event';
-import {STACK_TYPE, STACK_VIEW} from 'app/types/stacktrace';
+import {t} from 'sentry/locale';
+import {ExceptionType, Group, PlatformType, Project} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import {STACK_TYPE, STACK_VIEW} from 'sentry/types/stacktrace';
 
 import TraceEventDataSection from '../traceEventDataSection';
 import {DisplayOption} from '../traceEventDataSection/displayOptions';

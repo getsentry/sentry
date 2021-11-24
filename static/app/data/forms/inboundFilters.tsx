@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 
-import ExternalLink from 'app/components/links/externalLink';
-import {t, tct} from 'app/locale';
-import {Field, JsonFormObject} from 'app/views/settings/components/forms/type';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {t, tct} from 'sentry/locale';
+import {Field, JsonFormObject} from 'sentry/views/settings/components/forms/type';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/:orgId/projects/:projectId/filters/';

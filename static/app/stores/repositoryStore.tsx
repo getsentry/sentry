@@ -1,7 +1,7 @@
 import Reflux from 'reflux';
 
-import RepoActions from 'app/actions/repositoryActions';
-import {Repository} from 'app/types';
+import RepoActions from 'sentry/actions/repositoryActions';
+import {Repository} from 'sentry/types';
 
 type RepositoryStoreInterface = {
   get(): {

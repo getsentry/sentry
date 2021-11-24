@@ -1,4 +1,4 @@
-import {mobile} from 'app/data/platformCategories';
+import {mobile} from 'sentry/data/platformCategories';
 
 export function isNativePlatform(platform: string | undefined) {
   switch (platform) {

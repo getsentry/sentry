@@ -1,11 +1,11 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import TimeSince from 'app/components/timeSince';
-import {IconClock} from 'app/icons';
-import {t} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
+import TimeSince from 'sentry/components/timeSince';
+import {IconClock} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
 
 /**
  * Renders the first & last seen times for a group or event with

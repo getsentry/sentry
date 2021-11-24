@@ -1,17 +1,17 @@
 import {createContext, Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import {IconAnchor} from 'app/icons/iconAnchor';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {PlatformType, Project} from 'app/types';
-import {Event} from 'app/types/event';
-import {STACK_TYPE} from 'app/types/stacktrace';
-import {isNativePlatform} from 'app/utils/platform';
-import useApi from 'app/utils/useApi';
-import useOrganization from 'app/utils/useOrganization';
-import BooleanField from 'app/views/settings/components/forms/booleanField';
+import Button from 'sentry/components/button';
+import {IconAnchor} from 'sentry/icons/iconAnchor';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {PlatformType, Project} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import {STACK_TYPE} from 'sentry/types/stacktrace';
+import {isNativePlatform} from 'sentry/utils/platform';
+import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
+import BooleanField from 'sentry/views/settings/components/forms/booleanField';
 
 import EventDataSection from '../eventDataSection';
 

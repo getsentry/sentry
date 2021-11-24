@@ -1,9 +1,9 @@
-import DateTime from 'app/components/dateTime';
-import Duration from 'app/components/duration';
-import {BannerContainer, BannerSummary} from 'app/components/events/styles';
-import {IconMute} from 'app/icons';
-import {t} from 'app/locale';
-import {ResolutionStatusDetails} from 'app/types';
+import DateTime from 'sentry/components/dateTime';
+import Duration from 'sentry/components/duration';
+import {BannerContainer, BannerSummary} from 'sentry/components/events/styles';
+import {IconMute} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {ResolutionStatusDetails} from 'sentry/types';
 
 type Props = {
   statusDetails: ResolutionStatusDetails;

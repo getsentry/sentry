@@ -1,9 +1,9 @@
-import Alert from 'app/components/alert';
-import EventDataSection from 'app/components/events/eventDataSection';
-import {IconUpgrade} from 'app/icons';
-import {t, tct} from 'app/locale';
-import {Event} from 'app/types/event';
-import getSdkUpdateSuggestion from 'app/utils/getSdkUpdateSuggestion';
+import Alert from 'sentry/components/alert';
+import EventDataSection from 'sentry/components/events/eventDataSection';
+import {IconUpgrade} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import {Event} from 'sentry/types/event';
+import getSdkUpdateSuggestion from 'sentry/utils/getSdkUpdateSuggestion';
 
 type Props = {
   event: Omit<Event, 'sdkUpdates'> & {

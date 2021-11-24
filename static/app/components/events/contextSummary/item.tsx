@@ -2,7 +2,7 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import space from 'app/styles/space';
+import space from 'sentry/styles/space';
 
 type Props = {
   icon: React.ReactElement;

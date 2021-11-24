@@ -1,7 +1,7 @@
-import {IconQuestion, IconWarning} from 'app/icons';
-import {t} from 'app/locale';
-import {Frame, PlatformType} from 'app/types';
-import {defined, objectIsEmpty} from 'app/utils';
+import {IconQuestion, IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {Frame, PlatformType} from 'sentry/types';
+import {defined, objectIsEmpty} from 'sentry/utils';
 
 import {SymbolicatorStatus} from '../types';
 

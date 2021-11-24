@@ -1,23 +1,23 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Access from 'app/components/acl/access';
-import AsyncComponent from 'app/components/asyncComponent';
-import Button from 'app/components/button';
-import CircleIndicator from 'app/components/circleIndicator';
-import Tag from 'app/components/tag';
-import {IconFlag} from 'app/icons';
-import {t, tct} from 'app/locale';
-import PluginIcon from 'app/plugins/components/pluginIcon';
-import space from 'app/styles/space';
-import {IntegrationFeature, Organization, SentryApp} from 'app/types';
-import {toPermissions} from 'app/utils/consolidatedScopes';
+import Access from 'sentry/components/acl/access';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import Button from 'sentry/components/button';
+import CircleIndicator from 'sentry/components/circleIndicator';
+import Tag from 'sentry/components/tag';
+import {IconFlag} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import PluginIcon from 'sentry/plugins/components/pluginIcon';
+import space from 'sentry/styles/space';
+import {IntegrationFeature, Organization, SentryApp} from 'sentry/types';
+import {toPermissions} from 'sentry/utils/consolidatedScopes';
 import {
   getIntegrationFeatureGate,
   trackIntegrationAnalytics,
-} from 'app/utils/integrationUtil';
-import marked, {singleLineRenderer} from 'app/utils/marked';
-import {recordInteraction} from 'app/utils/recordSentryAppInteraction';
+} from 'sentry/utils/integrationUtil';
+import marked, {singleLineRenderer} from 'sentry/utils/marked';
+import {recordInteraction} from 'sentry/utils/recordSentryAppInteraction';
 
 type Props = {
   closeModal: () => void;

@@ -1,4 +1,4 @@
-import {defined} from 'app/utils';
+import {defined} from 'sentry/utils';
 
 function generateClassname(name?: string, version?: string): string {
   if (!defined(name)) {

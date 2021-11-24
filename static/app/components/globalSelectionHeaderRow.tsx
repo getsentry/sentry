@@ -1,8 +1,8 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import CheckboxFancy from 'app/components/checkboxFancy/checkboxFancy';
-import space from 'app/styles/space';
+import CheckboxFancy from 'sentry/components/checkboxFancy/checkboxFancy';
+import space from 'sentry/styles/space';
 
 const defaultRenderCheckbox = ({checkbox}) => checkbox;
 

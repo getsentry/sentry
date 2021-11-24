@@ -1,9 +1,9 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Alert from 'app/components/alert';
-import {IconCheckmark, IconClose, IconFlag, IconInfo} from 'app/icons';
-import space from 'app/styles/space';
+import Alert from 'sentry/components/alert';
+import {IconCheckmark, IconClose, IconFlag, IconInfo} from 'sentry/icons';
+import space from 'sentry/styles/space';
 
 type Props = React.ComponentProps<typeof Alert>;
 

@@ -1,8 +1,8 @@
 import * as React from 'react';
 import {EChartOption} from 'echarts';
 
-import {ReactEchartsRef, Series} from 'app/types/echarts';
-import theme from 'app/utils/theme';
+import {ReactEchartsRef, Series} from 'sentry/types/echarts';
+import theme from 'sentry/utils/theme';
 
 import PieSeries from './series/pieSeries';
 import BaseChart from './baseChart';

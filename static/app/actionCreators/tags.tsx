@@ -1,12 +1,12 @@
 import {Query} from 'history';
 
-import AlertActions from 'app/actions/alertActions';
-import TagActions from 'app/actions/tagActions';
-import {Client} from 'app/api';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {t} from 'app/locale';
-import TagStore from 'app/stores/tagStore';
-import {GlobalSelection, Tag} from 'app/types';
+import AlertActions from 'sentry/actions/alertActions';
+import TagActions from 'sentry/actions/tagActions';
+import {Client} from 'sentry/api';
+import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {t} from 'sentry/locale';
+import TagStore from 'sentry/stores/tagStore';
+import {GlobalSelection, Tag} from 'sentry/types';
 
 const MAX_TAGS = 1000;
 

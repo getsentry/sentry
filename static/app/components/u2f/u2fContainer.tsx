@@ -1,8 +1,8 @@
 import {Component} from 'react';
 
-import {Client} from 'app/api';
-import {Authenticator} from 'app/types';
-import withApi from 'app/utils/withApi';
+import {Client} from 'sentry/api';
+import {Authenticator} from 'sentry/types';
+import withApi from 'sentry/utils/withApi';
 
 import U2fSign from './u2fsign';
 

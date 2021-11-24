@@ -2,12 +2,12 @@ import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Query} from 'history';
 
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import {IconChevron} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import parseLinkHeader from 'app/utils/parseLinkHeader';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import {IconChevron} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 
 /**
  * @param cursor The string cursor value

@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-import Tooltip from 'app/components/tooltip';
-import {IconFire} from 'app/icons';
-import {t} from 'app/locale';
+import Tooltip from 'sentry/components/tooltip';
+import {IconFire} from 'sentry/icons';
+import {t} from 'sentry/locale';
 
 const UnhandledTag = () => (
   <Tooltip title={t('An unhandled error was detected in this Issue.')}>

@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 
-import OrganizationAvatar from 'app/components/avatar/organizationAvatar';
-import {tn} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {OrganizationSummary} from 'app/types';
+import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
+import {tn} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {OrganizationSummary} from 'sentry/types';
 
 type Props = {
   organization: OrganizationSummary;

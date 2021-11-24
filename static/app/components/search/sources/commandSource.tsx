@@ -1,11 +1,11 @@
 import * as React from 'react';
 import {PlainRoute} from 'react-router';
 
-import {openHelpSearchModal, openSudo} from 'app/actionCreators/modal';
-import Access from 'app/components/acl/access';
-import {toggleLocaleDebug} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
-import {createFuzzySearch} from 'app/utils/createFuzzySearch';
+import {openHelpSearchModal, openSudo} from 'sentry/actionCreators/modal';
+import Access from 'sentry/components/acl/access';
+import {toggleLocaleDebug} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import {createFuzzySearch} from 'sentry/utils/createFuzzySearch';
 
 import {ChildProps, Result} from './types';
 

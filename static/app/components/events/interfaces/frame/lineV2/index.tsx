@@ -2,11 +2,11 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import ListItem from 'app/components/list/listItem';
-import StrictClick from 'app/components/strictClick';
-import {PlatformType, SentryAppComponent} from 'app/types';
-import {Event} from 'app/types/event';
-import withSentryAppComponents from 'app/utils/withSentryAppComponents';
+import ListItem from 'sentry/components/list/listItem';
+import StrictClick from 'sentry/components/strictClick';
+import {PlatformType, SentryAppComponent} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
 
 import Context from '../context';
 import {PackageStatusIcon} from '../packageStatus';

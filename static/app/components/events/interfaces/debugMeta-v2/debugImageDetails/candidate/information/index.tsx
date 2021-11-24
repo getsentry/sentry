@@ -3,13 +3,13 @@ import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 import moment from 'moment-timezone';
 
-import DateTime from 'app/components/dateTime';
-import FileSize from 'app/components/fileSize';
-import TimeSince from 'app/components/timeSince';
-import Tooltip from 'app/components/tooltip';
-import {IconWarning} from 'app/icons';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
+import DateTime from 'sentry/components/dateTime';
+import FileSize from 'sentry/components/fileSize';
+import TimeSince from 'sentry/components/timeSince';
+import Tooltip from 'sentry/components/tooltip';
+import {IconWarning} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {
   CandidateDownloadStatus,
   ImageCandidate,
@@ -17,7 +17,7 @@ import {
   ImageCandidateOk,
   ImageCandidateUnApplied,
   SymbolType,
-} from 'app/types/debugImage';
+} from 'sentry/types/debugImage';
 
 import ProcessingItem from '../../../processing/item';
 import ProcessingList from '../../../processing/list';

@@ -2,8 +2,8 @@ import {cloneElement, Component, isValidElement} from 'react';
 import ReactDOM from 'react-dom';
 import copy from 'copy-text-to-clipboard';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {t} from 'app/locale';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {t} from 'sentry/locale';
 
 type DefaultProps = {
   successMessage: string;

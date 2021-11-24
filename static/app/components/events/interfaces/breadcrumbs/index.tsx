@@ -3,21 +3,21 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 
-import GuideAnchor from 'app/components/assistant/guideAnchor';
-import Button from 'app/components/button';
-import ErrorBoundary from 'app/components/errorBoundary';
-import EventDataSection from 'app/components/events/eventDataSection';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import Button from 'sentry/components/button';
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import EventDataSection from 'sentry/components/events/eventDataSection';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
 import {
   BreadcrumbLevelType,
   BreadcrumbType,
   Crumb,
   RawCrumb,
-} from 'app/types/breadcrumbs';
-import {EntryType, Event} from 'app/types/event';
-import {defined} from 'app/utils';
+} from 'sentry/types/breadcrumbs';
+import {EntryType, Event} from 'sentry/types/event';
+import {defined} from 'sentry/utils';
 
 import SearchBarAction from '../searchBarAction';
 import SearchBarActionFilter from '../searchBarAction/searchBarActionFilter';

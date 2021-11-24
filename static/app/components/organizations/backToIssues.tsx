@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import Link from 'app/components/links/link';
-import space from 'app/styles/space';
+import Link from 'sentry/components/links/link';
+import space from 'sentry/styles/space';
 
 const BackToIssues = styled(Link)`
   display: flex;

@@ -2,8 +2,8 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
-import ConfigStore from 'app/stores/configStore';
-import {callIfFunction} from 'app/utils/callIfFunction';
+import ConfigStore from 'sentry/stores/configStore';
+import {callIfFunction} from 'sentry/utils/callIfFunction';
 
 import {imageStyle, ImageStyleProps} from './styles';
 

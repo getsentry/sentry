@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 import pick from 'lodash/pick';
 
-import {t, tct} from 'app/locale';
-import {ExternalActorMapping, Integration, Organization} from 'app/types';
-import {FieldFromConfig} from 'app/views/settings/components/forms';
-import Form from 'app/views/settings/components/forms/form';
-import {Field} from 'app/views/settings/components/forms/type';
+import {t, tct} from 'sentry/locale';
+import {ExternalActorMapping, Integration, Organization} from 'sentry/types';
+import {FieldFromConfig} from 'sentry/views/settings/components/forms';
+import Form from 'sentry/views/settings/components/forms/form';
+import {Field} from 'sentry/views/settings/components/forms/type';
 
 type Props = Pick<Form['props'], 'onSubmitSuccess' | 'onCancel'> &
   Partial<Pick<Form['props'], 'onSubmit'>> & {

@@ -2,7 +2,7 @@ import * as React from 'react';
 import {keyframes, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {uniqueId} from 'app/utils/guid';
+import {uniqueId} from 'sentry/utils/guid';
 
 import SvgIcon from './svgIcon';
 

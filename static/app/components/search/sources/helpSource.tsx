@@ -8,9 +8,9 @@ import {
 import dompurify from 'dompurify';
 import debounce from 'lodash/debounce';
 
-import {Organization, Project} from 'app/types';
-import parseHtmlMarks from 'app/utils/parseHtmlMarks';
-import withLatestContext from 'app/utils/withLatestContext';
+import {Organization, Project} from 'sentry/types';
+import parseHtmlMarks from 'sentry/utils/parseHtmlMarks';
+import withLatestContext from 'sentry/utils/withLatestContext';
 
 import {ChildProps, Result, ResultItem} from './types';
 

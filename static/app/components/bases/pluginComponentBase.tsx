@@ -6,10 +6,10 @@ import {
   addLoadingMessage,
   addSuccessMessage,
   clearIndicators,
-} from 'app/actionCreators/indicator';
-import {Client} from 'app/api';
-import {FormState, GenericField} from 'app/components/forms';
-import {t} from 'app/locale';
+} from 'sentry/actionCreators/indicator';
+import {Client} from 'sentry/api';
+import {FormState, GenericField} from 'sentry/components/forms';
+import {t} from 'sentry/locale';
 
 const callbackWithArgs = function (context: any, callback: any, ...args: any) {
   return isFunction(callback) ? callback.bind(context, ...args) : undefined;

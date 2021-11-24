@@ -1,4 +1,4 @@
-import space from 'app/styles/space';
+import space from 'sentry/styles/space';
 
 /**
  * Note this is an object for `react-mentions` component and

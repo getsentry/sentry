@@ -1,8 +1,8 @@
 import * as React from 'react';
 import {Location, LocationDescriptor} from 'history';
 
-import DropdownLink from 'app/components/dropdownLink';
-import ProjectBadge from 'app/components/idBadge/projectBadge';
+import DropdownLink from 'sentry/components/dropdownLink';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {
   ErrorDestination,
   generateSingleErrorTarget,
@@ -10,25 +10,25 @@ import {
   generateTraceTarget,
   isQuickTraceEvent,
   TransactionDestination,
-} from 'app/components/quickTrace/utils';
-import Tooltip from 'app/components/tooltip';
-import {backend, frontend, mobile, serverless} from 'app/data/platformCategories';
-import {IconFire} from 'app/icons';
-import {t, tct, tn} from 'app/locale';
-import {OrganizationSummary} from 'app/types';
-import {Event} from 'app/types/event';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {getDocsPlatform} from 'app/utils/docs';
-import {getDuration} from 'app/utils/formatters';
-import localStorage from 'app/utils/localStorage';
+} from 'sentry/components/quickTrace/utils';
+import Tooltip from 'sentry/components/tooltip';
+import {backend, frontend, mobile, serverless} from 'sentry/data/platformCategories';
+import {IconFire} from 'sentry/icons';
+import {t, tct, tn} from 'sentry/locale';
+import {OrganizationSummary} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {getDocsPlatform} from 'sentry/utils/docs';
+import {getDuration} from 'sentry/utils/formatters';
+import localStorage from 'sentry/utils/localStorage';
 import {
   QuickTrace as QuickTraceType,
   QuickTraceEvent,
   TraceError,
-} from 'app/utils/performance/quickTrace/types';
-import {parseQuickTrace} from 'app/utils/performance/quickTrace/utils';
-import Projects from 'app/utils/projects';
-import {Theme} from 'app/utils/theme';
+} from 'sentry/utils/performance/quickTrace/types';
+import {parseQuickTrace} from 'sentry/utils/performance/quickTrace/utils';
+import Projects from 'sentry/utils/projects';
+import {Theme} from 'sentry/utils/theme';
 
 const FRONTEND_PLATFORMS: string[] = [...frontend, ...mobile];
 const BACKEND_PLATFORMS: string[] = [...backend, ...serverless];

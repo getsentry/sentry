@@ -1,8 +1,8 @@
 import {memo, ReactNode} from 'react';
 
-import Role from 'app/components/acl/role';
-import {IssueAttachment, Organization} from 'app/types';
-import withOrganization from 'app/utils/withOrganization';
+import Role from 'sentry/components/acl/role';
+import {IssueAttachment, Organization} from 'sentry/types';
+import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {
   organization: Organization;
