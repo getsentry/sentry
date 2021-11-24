@@ -10,11 +10,7 @@ from sentry.utils.samples import load_data
 
 from .page_objects.transaction_summary import TransactionSummaryPage
 
-FEATURES = {
-    "organizations:performance-view": True,
-    "organizations:performance-tag-explorer": False,
-    "organizations:performance-tag-page": False,
-}
+FEATURES = {"organizations:performance-view": True}
 
 
 def make_event(event_data):
@@ -65,11 +61,6 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
         with self.feature(FEATURES):
             self.browser.get(self.path)
             self.page.wait_until_loaded()
-            # This test is flakey in that we sometimes load this page before the event is processed
-            # depend on pytest-retry to reload the page
-            self.browser.wait_until_not(
-                '[data-test-id="grid-editable"] [data-test-id="empty-state"]', timeout=2
-            )
             # We have to wait for this again because there are loaders inside of the table
             self.page.wait_until_loaded()
             self.browser.snapshot("performance summary - with data")
@@ -109,9 +100,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
         event = make_event(event_data)
         self.store_event(data=event, project_id=self.project.id)
 
-        features = dict(FEATURES)
-        features["organizations:performance-tag-page"] = True
-        with self.feature(features):
+        with self.feature(FEATURES):
             self.browser.get(tags_path)
             self.page.wait_until_loaded()
             self.browser.snapshot("transaction summary tags page")
@@ -223,13 +212,6 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
 
         with self.feature(FEATURES):
             self.browser.get(self.path)
-            self.page.wait_until_loaded()
-            # This test is flakey in that we sometimes load this page before the event is processed
-            # depend on pytest-retry to reload the page
-            self.browser.wait_until_not(
-                '[data-test-id="grid-editable"] [data-test-id="empty-state"]', timeout=2
-            )
-            # We have to wait for this again because there are loaders inside of the table
             self.page.wait_until_loaded()
             self.browser.click('[data-test-id="set-transaction-threshold"]')
             self.browser.snapshot("transaction threshold modal")
