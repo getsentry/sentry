@@ -2,6 +2,7 @@ import functools
 import logging
 import time
 from datetime import datetime, timedelta
+from typing import Mapping
 
 import sentry_sdk
 from django.conf import settings
@@ -17,6 +18,7 @@ from rest_framework.views import APIView
 from sentry import analytics, tsdb
 from sentry.auth import access
 from sentry.models import Environment
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import json
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.cursors import Cursor
@@ -96,8 +98,8 @@ class Endpoint(APIView):
     cursor_name = "cursor"
 
     # Default Rate Limit Values, override in subclass
-    # Should be of format: { <http function>: { <category>: (limit, window) } }
-    rate_limits = {}
+    # Should be of format: { <http function>: { <category>: RateLimit(limit, window) } }
+    rate_limits: Mapping[str, Mapping[RateLimitCategory | str, RateLimit]] = {}
 
     def build_cursor_link(self, request, name, cursor):
         querystring = None
