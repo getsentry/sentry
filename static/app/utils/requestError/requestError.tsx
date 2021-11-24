@@ -1,5 +1,7 @@
 import {ResponseMeta} from 'app/api';
 
+import {sanitizePath} from './sanitizePath';
+
 export default class RequestError extends Error {
   responseText?: string;
   responseJSON?: any;
@@ -7,7 +9,7 @@ export default class RequestError extends Error {
   statusText?: string;
 
   constructor(method: string | undefined, path: string) {
-    super(`${method || 'GET'} ${path}`);
+    super(`${method || 'GET'} ${sanitizePath(path)}`);
     this.name = 'RequestError';
     Object.setPrototypeOf(this, new.target.prototype);
   }
