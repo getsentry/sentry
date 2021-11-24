@@ -3,8 +3,8 @@ import {browserHistory} from 'react-router';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import EventView from 'app/utils/discover/eventView';
-import TableView from 'app/views/eventsV2/table/tableView';
+import EventView from 'sentry/utils/discover/eventView';
+import TableView from 'sentry/views/eventsV2/table/tableView';
 
 describe('TableView > CellActions', function () {
   let initialData, rows, onChangeShowTags;

@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
-import SimilarScoreCard from 'app/components/similarScoreCard';
+import SimilarScoreCard from 'sentry/components/similarScoreCard';
 
 describe('SimilarScoreCard', function () {
   beforeEach(function () {});

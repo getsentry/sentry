@@ -8,9 +8,9 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
-import * as incidentActions from 'app/actionCreators/serviceIncidents';
-import SidebarContainer from 'app/components/sidebar';
-import ConfigStore from 'app/stores/configStore';
+import * as incidentActions from 'sentry/actionCreators/serviceIncidents';
+import SidebarContainer from 'sentry/components/sidebar';
+import ConfigStore from 'sentry/stores/configStore';
 
 jest.mock('app/actionCreators/serviceIncidents');
 

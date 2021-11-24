@@ -1,4 +1,4 @@
-import {MutableSearch, TokenType} from 'app/utils/tokenizeSearch';
+import {MutableSearch, TokenType} from 'sentry/utils/tokenizeSearch';
 
 describe('utils/tokenizeSearch', function () {
   describe('new MutableSearch()', function () {

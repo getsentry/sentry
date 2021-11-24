@@ -1,8 +1,8 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import Dashboard from 'app/views/dashboardsV2/dashboard';
-import {DisplayType, WidgetType} from 'app/views/dashboardsV2/types';
+import Dashboard from 'sentry/views/dashboardsV2/dashboard';
+import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
 
 describe('Dashboards > Dashboard', () => {
   const organization = TestStubs.Organization({

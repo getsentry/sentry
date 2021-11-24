@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {ProjectContext} from 'app/views/projects/projectContext';
+import {ProjectContext} from 'sentry/views/projects/projectContext';
 
 jest.unmock('app/utils/recreateRoute');
 jest.mock('app/actionCreators/modal', () => ({

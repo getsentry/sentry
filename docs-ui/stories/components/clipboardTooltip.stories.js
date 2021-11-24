@@ -1,4 +1,4 @@
-import ClipboardTooltip from 'app/components/clipboardTooltip';
+import ClipboardTooltip from 'sentry/components/clipboardTooltip';
 
 export default {
   title: 'Components/Tooltips/Clipboard Tooltip',

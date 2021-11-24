@@ -1,5 +1,5 @@
-import MutedBox from 'app/components/mutedBox';
-import ResolutionBox from 'app/components/resolutionBox';
+import MutedBox from 'sentry/components/mutedBox';
+import ResolutionBox from 'sentry/components/resolutionBox';
 
 const actor = {
   email: 'uhoh@example.com',

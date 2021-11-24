@@ -1,8 +1,8 @@
 import {act, renderHook} from '@testing-library/react-hooks';
 
-import OrganizationStore from 'app/stores/organizationStore';
-import TeamStore from 'app/stores/teamStore';
-import useTeams from 'app/utils/useTeams';
+import OrganizationStore from 'sentry/stores/organizationStore';
+import TeamStore from 'sentry/stores/teamStore';
+import useTeams from 'sentry/utils/useTeams';
 
 describe('useTeams', function () {
   const org = TestStubs.Organization();

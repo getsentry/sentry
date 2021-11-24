@@ -2,10 +2,10 @@ import {
   addErrorMessage,
   addMessage,
   addSuccessMessage,
-} from 'app/actionCreators/indicator';
-import Button from 'app/components/button';
-import IndicatorContainer, {Indicators} from 'app/components/indicators';
-import IndicatorStore from 'app/stores/indicatorStore';
+} from 'sentry/actionCreators/indicator';
+import Button from 'sentry/components/button';
+import IndicatorContainer, {Indicators} from 'sentry/components/indicators';
+import IndicatorStore from 'sentry/stores/indicatorStore';
 
 export default {
   title: 'Components/Toast Indicators',
