@@ -7,9 +7,9 @@ import {
   // waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'app/stores/projectsStore';
-import EventView from 'app/utils/discover/eventView';
-import SuspectSpans from 'app/views/performance/transactionSummary/transactionOverview/suspectSpans';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import EventView from 'sentry/utils/discover/eventView';
+import SuspectSpans from 'sentry/views/performance/transactionSummary/transactionOverview/suspectSpans';
 
 function initializeData({query} = {query: {}}) {
   const features = ['performance-view', 'performance-suspect-spans-view'];

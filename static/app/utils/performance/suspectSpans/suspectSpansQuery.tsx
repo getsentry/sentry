@@ -1,7 +1,7 @@
 import {ReactNode} from 'react';
 import omit from 'lodash/omit';
 
-import {defined} from 'app/utils';
+import {defined} from 'sentry/utils';
 import GenericDiscoverQuery, {
   DiscoverQueryProps,
   GenericChildrenProps,

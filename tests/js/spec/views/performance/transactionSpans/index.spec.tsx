@@ -5,9 +5,9 @@ import {
 } from 'sentry-test/performance/initializePerformanceData';
 import {act, mountWithTheme, screen, within} from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'app/stores/projectsStore';
-import {getShortEventId} from 'app/utils/events';
-import TransactionSpans from 'app/views/performance/transactionSummary/transactionSpans';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import {getShortEventId} from 'sentry/utils/events';
+import TransactionSpans from 'sentry/views/performance/transactionSummary/transactionSpans';
 import {
   SpanSortOthers,
   SpanSortPercentiles,

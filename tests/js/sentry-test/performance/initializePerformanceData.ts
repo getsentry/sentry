@@ -1,13 +1,13 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import {Project} from 'app/types';
-import {defined} from 'app/utils';
-import EventView from 'app/utils/discover/eventView';
+import {Project} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import EventView from 'sentry/utils/discover/eventView';
 import {
   ExampleSpan,
   ExampleTransaction,
   SuspectSpan,
-} from 'app/utils/performance/suspectSpans/types';
+} from 'sentry/utils/performance/suspectSpans/types';
 
 export function initializeData(settings?: {
   query?: {};

@@ -3,26 +3,26 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import Button from 'app/components/button';
-import {SectionHeading} from 'app/components/charts/styles';
-import FeatureBadge from 'app/components/featureBadge';
+import Button from 'sentry/components/button';
+import {SectionHeading} from 'sentry/components/charts/styles';
+import FeatureBadge from 'sentry/components/featureBadge';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnOrder,
   GridColumnSortBy,
-} from 'app/components/gridEditable';
-import SortLink from 'app/components/gridEditable/sortLink';
-import Link from 'app/components/links/link';
-import Pagination, {CursorHandler} from 'app/components/pagination';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import {defined} from 'app/utils';
-import EventView from 'app/utils/discover/eventView';
-import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
-import {ColumnType, fieldAlignment} from 'app/utils/discover/fields';
-import SuspectSpansQuery from 'app/utils/performance/suspectSpans/suspectSpansQuery';
-import {decodeScalar} from 'app/utils/queryString';
+} from 'sentry/components/gridEditable';
+import SortLink from 'sentry/components/gridEditable/sortLink';
+import Link from 'sentry/components/links/link';
+import Pagination, {CursorHandler} from 'sentry/components/pagination';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import EventView from 'sentry/utils/discover/eventView';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {ColumnType, fieldAlignment} from 'sentry/utils/discover/fields';
+import SuspectSpansQuery from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
+import {decodeScalar} from 'sentry/utils/queryString';
 
 import {SpanSortOthers, SpanSortPercentiles} from '../transactionSpans/types';
 import {
