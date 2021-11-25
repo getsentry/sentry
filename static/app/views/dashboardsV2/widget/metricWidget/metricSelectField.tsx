@@ -5,9 +5,8 @@ import SelectControl from 'sentry/components/forms/selectControl';
 import Highlight from 'sentry/components/highlight';
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
+import {MetricMeta} from 'sentry/types/metrics';
 import SelectField from 'sentry/views/settings/components/forms/selectField';
-
-import {MetricMeta} from './types';
 
 type Props = {
   metricMetas: MetricMeta[];

@@ -10,11 +10,11 @@ import {URL_PARAM} from 'sentry/constants/globalSelectionHeader';
 import {t} from 'sentry/locale';
 import {GlobalSelection, Organization, Project, SessionApiResponse} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
+import {MetricQuery} from 'sentry/types/metrics';
 import {getSessionsInterval} from 'sentry/utils/sessions';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {roundDuration} from 'sentry/views/releases/utils';
 
-import {MetricQuery} from './types';
 import {fillChartDataFromMetricsResponse, getBreakdownChartData} from './utils';
 
 type FilteredGrouping = Required<Pick<MetricQuery, 'metricMeta' | 'aggregation'>> &

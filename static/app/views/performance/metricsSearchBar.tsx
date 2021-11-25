@@ -8,7 +8,7 @@ import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'app/constants';
 import {t} from 'app/locale';
 import {Organization, Tag} from 'app/types';
 import useApi from 'app/utils/useApi';
-import {MetricTagValue} from 'sentry/types/metrics';
+import {MetricTag, MetricTagValue} from 'sentry/types/metrics';
 
 const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   `^${NEGATION_OPERATOR}|\\${SEARCH_WILDCARD}`,
@@ -32,7 +32,7 @@ function MetricsSearchBar({
   projectIds,
 }: Props) {
   const api = useApi();
-  const [tags, setTags] = useState<{key: string}[]>([]);
+  const [tags, setTags] = useState<MetricTag[]>([]);
 
   useEffect(() => {
     fetchTags();
