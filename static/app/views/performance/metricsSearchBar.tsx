@@ -43,11 +43,12 @@ function MetricsSearchBar({
       const response = await api.requestPromise(
         `/organizations/${orgSlug}/metrics/tags/`,
         {
-          query: {project: !projectIds.length ? undefined : projectIds},
+          query: {
+            project: !projectIds.length ? undefined : projectIds,
+          },
         }
       );
 
-      console.log('response', response);
       setTags(response);
     } catch {
       addErrorMessage(t('Unable to fetch search bar tags'));
