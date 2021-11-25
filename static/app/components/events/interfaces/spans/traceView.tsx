@@ -1,9 +1,9 @@
 import {createRef, PureComponent} from 'react';
 import {Observer} from 'mobx-react';
 
-import EmptyStateWarning from 'app/components/emptyStateWarning';
-import {t} from 'app/locale';
-import {Organization} from 'app/types';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {t} from 'sentry/locale';
+import {Organization} from 'sentry/types';
 
 import * as CursorGuideHandler from './cursorGuideHandler';
 import * as DividerHandlerManager from './dividerHandlerManager';

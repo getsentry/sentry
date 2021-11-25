@@ -1,8 +1,8 @@
 import * as React from 'react';
 import classNames from 'classnames';
 
-import Button from 'app/components/button';
-import Confirm from 'app/components/confirm';
+import Button from 'sentry/components/button';
+import Confirm from 'sentry/components/confirm';
 
 type Props = {
   message: React.ReactNode;

@@ -1,7 +1,7 @@
 import {Location} from 'history';
 
-import {WebVital} from 'app/utils/discover/fields';
-import VitalsCardDiscoverQuery from 'app/utils/performance/vitals/vitalsCardsDiscoverQuery';
+import {WebVital} from 'sentry/utils/discover/fields';
+import VitalsCardDiscoverQuery from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
 
 import {VitalBar} from '../landing/vitalsCards';
 

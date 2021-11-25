@@ -1,8 +1,8 @@
 import * as React from 'react';
 
-import Button from 'app/components/button';
-import {IconBell} from 'app/icons';
-import {t} from 'app/locale';
+import Button from 'sentry/components/button';
+import {IconBell} from 'sentry/icons';
+import {t} from 'sentry/locale';
 
 type Props = {
   onClick: (e: React.MouseEvent) => void;

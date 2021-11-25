@@ -6,10 +6,10 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
 import {act} from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'app/stores/projectsStore';
-import {DashboardState} from 'app/views/dashboardsV2/types';
-import * as types from 'app/views/dashboardsV2/types';
-import ViewEditDashboard from 'app/views/dashboardsV2/view';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import {DashboardState} from 'sentry/views/dashboardsV2/types';
+import * as types from 'sentry/views/dashboardsV2/types';
+import ViewEditDashboard from 'sentry/views/dashboardsV2/view';
 
 describe('Dashboards > Detail', function () {
   enforceActOnUseLegacyStoreHook();

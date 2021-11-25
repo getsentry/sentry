@@ -2,15 +2,15 @@ import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import intersection from 'lodash/intersection';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {ModalRenderProps} from 'app/actionCreators/modal';
-import {PermissionChoice, SENTRY_APP_PERMISSIONS} from 'app/constants';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {Scope, SentryApp} from 'app/types';
-import Form from 'app/views/settings/components/forms/form';
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import FormModel from 'app/views/settings/components/forms/model';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {PermissionChoice, SENTRY_APP_PERMISSIONS} from 'sentry/constants';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Scope, SentryApp} from 'sentry/types';
+import Form from 'sentry/views/settings/components/forms/form';
+import JsonForm from 'sentry/views/settings/components/forms/jsonForm';
+import FormModel from 'sentry/views/settings/components/forms/model';
 
 /**
  * Given an array of scopes, return the choices the user has picked for each option

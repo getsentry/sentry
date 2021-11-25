@@ -1,9 +1,9 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import ModalActions from 'app/actions/modalActions';
-import ConfigStore from 'app/stores/configStore';
-import {Event} from 'app/types/event';
-import GroupActions from 'app/views/organizationGroupDetails/actions';
+import ModalActions from 'sentry/actions/modalActions';
+import ConfigStore from 'sentry/stores/configStore';
+import {Event} from 'sentry/types/event';
+import GroupActions from 'sentry/views/organizationGroupDetails/actions';
 
 const group = TestStubs.Group({
   id: '1337',

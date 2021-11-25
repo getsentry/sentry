@@ -1,4 +1,4 @@
-import {t} from 'app/locale';
+import {t} from 'sentry/locale';
 
 import {Grid, GridCell} from './styles';
 

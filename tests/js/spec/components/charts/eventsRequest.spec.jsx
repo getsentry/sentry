@@ -1,13 +1,13 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {doEventsRequest} from 'app/actionCreators/events';
-import EventsRequest from 'app/components/charts/eventsRequest';
+import {doEventsRequest} from 'sentry/actionCreators/events';
+import EventsRequest from 'sentry/components/charts/eventsRequest';
 
 const COUNT_OBJ = {
   count: 123,
 };
 
-jest.mock('app/actionCreators/events', () => ({
+jest.mock('sentry/actionCreators/events', () => ({
   doEventsRequest: jest.fn(),
 }));
 

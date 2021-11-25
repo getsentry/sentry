@@ -1,10 +1,10 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import Alert from 'app/components/alert';
-import {IconWarning} from 'app/icons';
-import {t} from 'app/locale';
-import {OrganizationSummary} from 'app/types';
+import Alert from 'sentry/components/alert';
+import {IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {OrganizationSummary} from 'sentry/types';
 
 type Props = {
   organizations: OrganizationSummary[];

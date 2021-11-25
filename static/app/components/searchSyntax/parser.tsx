@@ -1,12 +1,12 @@
 import moment from 'moment';
 import {LocationRange} from 'pegjs';
 
-import {t} from 'app/locale';
+import {t} from 'sentry/locale';
 import {
   isMeasurement,
   isSpanOperationBreakdownField,
   measurementType,
-} from 'app/utils/discover/fields';
+} from 'sentry/utils/discover/fields';
 
 import grammar from './grammar.pegjs';
 import {getKeyName} from './utils';

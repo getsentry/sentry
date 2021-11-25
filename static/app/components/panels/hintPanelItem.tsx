@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
+import space from 'sentry/styles/space';
 
 const HintPanelItem = styled('div')`
   display: flex;

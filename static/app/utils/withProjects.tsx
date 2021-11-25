@@ -1,8 +1,8 @@
 import * as React from 'react';
 
-import {Project} from 'app/types';
-import getDisplayName from 'app/utils/getDisplayName';
-import useProjects from 'app/utils/useProjects';
+import {Project} from 'sentry/types';
+import getDisplayName from 'sentry/utils/getDisplayName';
+import useProjects from 'sentry/utils/useProjects';
 
 type InjectedProjectsProps = {
   projects: Project[];

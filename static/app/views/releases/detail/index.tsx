@@ -5,18 +5,18 @@ import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
-import Alert from 'app/components/alert';
-import AsyncComponent from 'app/components/asyncComponent';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import NoProjectMessage from 'app/components/noProjectMessage';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import PickProjectToContinue from 'app/components/pickProjectToContinue';
-import {PAGE_URL_PARAM, URL_PARAM} from 'app/constants/globalSelectionHeader';
-import {IconInfo, IconWarning} from 'app/icons';
-import {t} from 'app/locale';
-import {PageContent} from 'app/styles/organization';
-import space from 'app/styles/space';
+import Alert from 'sentry/components/alert';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import NoProjectMessage from 'sentry/components/noProjectMessage';
+import GlobalSelectionHeader from 'sentry/components/organizations/globalSelectionHeader';
+import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import PickProjectToContinue from 'sentry/components/pickProjectToContinue';
+import {PAGE_URL_PARAM, URL_PARAM} from 'sentry/constants/globalSelectionHeader';
+import {IconInfo, IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {PageContent} from 'sentry/styles/organization';
+import space from 'sentry/styles/space';
 import {
   Deploy,
   GlobalSelection,
@@ -26,13 +26,13 @@ import {
   ReleaseWithHealth,
   SessionApiResponse,
   SessionField,
-} from 'app/types';
-import {formatVersion} from 'app/utils/formatters';
-import routeTitleGen from 'app/utils/routeTitle';
-import {getCount} from 'app/utils/sessions';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import withOrganization from 'app/utils/withOrganization';
-import AsyncView from 'app/views/asyncView';
+} from 'sentry/types';
+import {formatVersion} from 'sentry/utils/formatters';
+import routeTitleGen from 'sentry/utils/routeTitle';
+import {getCount} from 'sentry/utils/sessions';
+import withGlobalSelection from 'sentry/utils/withGlobalSelection';
+import withOrganization from 'sentry/utils/withOrganization';
+import AsyncView from 'sentry/views/asyncView';
 
 import {getReleaseBounds, ReleaseBounds} from '../utils';
 

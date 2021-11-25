@@ -4,14 +4,14 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import pick from 'lodash/pick';
 
-import _EventsRequest from 'app/components/charts/eventsRequest';
-import {getInterval} from 'app/components/charts/utils';
-import {t} from 'app/locale';
-import {Organization} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
-import {QueryBatchNode} from 'app/utils/performance/contexts/genericQueryBatcher';
-import withApi from 'app/utils/withApi';
-import _DurationChart from 'app/views/performance/charts/chart';
+import _EventsRequest from 'sentry/components/charts/eventsRequest';
+import {getInterval} from 'sentry/components/charts/utils';
+import {t} from 'sentry/locale';
+import {Organization} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
+import {QueryBatchNode} from 'sentry/utils/performance/contexts/genericQueryBatcher';
+import withApi from 'sentry/utils/withApi';
+import _DurationChart from 'sentry/views/performance/charts/chart';
 
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import {transformEventsRequestToArea} from '../transforms/transformEventsToArea';
@@ -89,7 +89,11 @@ export function SingleFieldAreaWidget(props: Props) {
     <GenericPerformanceWidget<DataType>
       {...props}
       Subtitle={() => (
-        <Subtitle>{t('Compared to last %s ', globalSelection.datetime.period)}</Subtitle>
+        <Subtitle>
+          {globalSelection.datetime.period
+            ? t('Compared to last %s ', globalSelection.datetime.period)
+            : t('Compared to the last period')}
+        </Subtitle>
       )}
       HeaderActions={provided => (
         <Fragment>

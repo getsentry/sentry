@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {Client} from 'app/api';
-import OrganizationRateLimits from 'app/views/settings/organizationRateLimits/organizationRateLimits';
+import {Client} from 'sentry/api';
+import OrganizationRateLimits from 'sentry/views/settings/organizationRateLimits/organizationRateLimits';
 
 const ENDPOINT = '/organizations/org-slug/';
 

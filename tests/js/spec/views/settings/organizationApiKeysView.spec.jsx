@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 
-import OrganizationApiKeys from 'app/views/settings/organizationApiKeys';
+import OrganizationApiKeys from 'sentry/views/settings/organizationApiKeys';
 
 const routes = [
   {path: '/'},

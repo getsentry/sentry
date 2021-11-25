@@ -1,4 +1,4 @@
-import {generatePerformanceEventView} from 'app/views/performance/data';
+import {generatePerformanceEventView} from 'sentry/views/performance/data';
 
 describe('generatePerformanceEventView()', function () {
   const organization = TestStubs.Organization({apdexThreshold: 400});

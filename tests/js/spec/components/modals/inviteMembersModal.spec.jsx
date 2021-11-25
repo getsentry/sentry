@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import InviteMembersModal from 'app/components/modals/inviteMembersModal';
-import TeamStore from 'app/stores/teamStore';
+import InviteMembersModal from 'sentry/components/modals/inviteMembersModal';
+import TeamStore from 'sentry/stores/teamStore';
 
 describe('InviteMembersModal', function () {
   const team = TestStubs.Team();

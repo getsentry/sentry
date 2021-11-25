@@ -1,4 +1,4 @@
-import SplitDiff from 'app/components/splitDiff';
+import SplitDiff from 'sentry/components/splitDiff';
 
 const base = `RangeError: Invalid array length
   at Constructor.render(./app/components/scoreBar.jsx:73:0)

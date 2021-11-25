@@ -1,5 +1,5 @@
-import {t} from 'app/locale';
-import {EventGroupComponent, EventGroupInfo, EventGroupVariant} from 'app/types';
+import {t} from 'sentry/locale';
+import {EventGroupComponent, EventGroupInfo, EventGroupVariant} from 'sentry/types';
 
 function renderGroupingInfo(groupingInfo: EventGroupInfo): string[] {
   return Object.values(groupingInfo).map(renderGroupVariant).flat();

@@ -2,25 +2,25 @@ import {Component, Fragment} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import * as Layout from 'app/components/layouts/thirds';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import EventView from 'app/utils/discover/eventView';
-import {uniqueId} from 'app/utils/guid';
-import Teams from 'app/utils/teams';
-import BuilderBreadCrumbs from 'app/views/alerts/builder/builderBreadCrumbs';
-import IncidentRulesCreate from 'app/views/alerts/incidentRules/create';
-import IssueRuleEditor from 'app/views/alerts/issueRuleEditor';
+import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import EventView from 'sentry/utils/discover/eventView';
+import {uniqueId} from 'sentry/utils/guid';
+import Teams from 'sentry/utils/teams';
+import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
+import IncidentRulesCreate from 'sentry/views/alerts/incidentRules/create';
+import IssueRuleEditor from 'sentry/views/alerts/issueRuleEditor';
 import {
   AlertType as WizardAlertType,
   AlertWizardAlertNames,
   WizardRuleTemplate,
-} from 'app/views/alerts/wizard/options';
-import {getAlertTypeFromAggregateDataset} from 'app/views/alerts/wizard/utils';
+} from 'sentry/views/alerts/wizard/options';
+import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
 type RouteParams = {
   orgId: string;

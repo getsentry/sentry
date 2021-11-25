@@ -5,11 +5,11 @@ import {
   fetchTeamKeyTransactions,
   TeamKeyTransactions,
   toggleKeyTransaction,
-} from 'app/actionCreators/performance';
-import {Client} from 'app/api';
-import {t} from 'app/locale';
-import {Organization, Project, Team} from 'app/types';
-import withApi from 'app/utils/withApi';
+} from 'sentry/actionCreators/performance';
+import {Client} from 'sentry/api';
+import {t} from 'sentry/locale';
+import {Organization, Project, Team} from 'sentry/types';
+import withApi from 'sentry/utils/withApi';
 
 export type TeamSelection = {
   action: 'key' | 'unkey';

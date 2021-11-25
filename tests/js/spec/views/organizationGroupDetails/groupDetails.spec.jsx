@@ -3,12 +3,12 @@ import {browserHistory} from 'react-router';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, mountWithTheme, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import GlobalSelectionStore from 'app/stores/globalSelectionStore';
-import GroupStore from 'app/stores/groupStore';
-import ProjectsStore from 'app/stores/projectsStore';
-import GroupDetails from 'app/views/organizationGroupDetails';
+import GlobalSelectionStore from 'sentry/stores/globalSelectionStore';
+import GroupStore from 'sentry/stores/groupStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import GroupDetails from 'sentry/views/organizationGroupDetails';
 
-jest.unmock('app/utils/recreateRoute');
+jest.unmock('sentry/utils/recreateRoute');
 
 const SAMPLE_EVENT_ALERT_TEXT =
   'You are viewing a sample error. Configure Sentry to start viewing real errors.';

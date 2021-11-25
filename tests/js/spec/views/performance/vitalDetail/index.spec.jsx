@@ -4,10 +4,10 @@ import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'app/stores/projectsStore';
-import TeamStore from 'app/stores/teamStore';
-import {OrganizationContext} from 'app/views/organizationContext';
-import VitalDetail from 'app/views/performance/vitalDetail/';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import TeamStore from 'sentry/stores/teamStore';
+import {OrganizationContext} from 'sentry/views/organizationContext';
+import VitalDetail from 'sentry/views/performance/vitalDetail/';
 
 function initializeData({query} = {query: {}}) {
   const features = ['discover-basic', 'performance-view'];

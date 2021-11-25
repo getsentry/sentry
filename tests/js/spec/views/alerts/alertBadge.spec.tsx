@@ -1,7 +1,7 @@
 import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
-import AlertBadge from 'app/views/alerts/alertBadge';
-import {IncidentStatus} from 'app/views/alerts/types';
+import AlertBadge from 'sentry/views/alerts/alertBadge';
+import {IncidentStatus} from 'sentry/views/alerts/types';
 
 describe('AlertBadge', () => {
   it('displays status', () => {

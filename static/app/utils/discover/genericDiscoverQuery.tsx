@@ -1,16 +1,16 @@
 import * as React from 'react';
 import {Location} from 'history';
 
-import {EventQuery} from 'app/actionCreators/events';
-import {Client, ResponseMeta} from 'app/api';
-import {t} from 'app/locale';
+import {EventQuery} from 'sentry/actionCreators/events';
+import {Client, ResponseMeta} from 'sentry/api';
+import {t} from 'sentry/locale';
 import EventView, {
   ImmutableEventView,
   isAPIPayloadSimilar,
   LocationQuery,
-} from 'app/utils/discover/eventView';
-import {usePerformanceEventView} from 'app/utils/performance/contexts/performanceEventViewContext';
-import useOrganization from 'app/utils/useOrganization';
+} from 'sentry/utils/discover/eventView';
+import {usePerformanceEventView} from 'sentry/utils/performance/contexts/performanceEventViewContext';
+import useOrganization from 'sentry/utils/useOrganization';
 
 export type GenericChildrenProps<T> = {
   isLoading: boolean;

@@ -2,14 +2,14 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import ansicolor from 'ansicolor';
 
-import AsyncComponent from 'app/components/asyncComponent';
-import PreviewPanelItem from 'app/components/events/attachmentViewers/previewPanelItem';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import PreviewPanelItem from 'sentry/components/events/attachmentViewers/previewPanelItem';
 import {
   getAttachmentUrl,
   ViewerProps,
-} from 'app/components/events/attachmentViewers/utils';
-import space from 'app/styles/space';
-import theme from 'app/utils/theme';
+} from 'sentry/components/events/attachmentViewers/utils';
+import space from 'sentry/styles/space';
+import theme from 'sentry/utils/theme';
 
 type Props = ViewerProps & AsyncComponent['props'];
 

@@ -2,10 +2,10 @@ import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
-import {t} from 'app/locale';
-import ProjectsStore from 'app/stores/projectsStore';
-import {WebVital} from 'app/utils/discover/fields';
-import TransactionEvents from 'app/views/performance/transactionSummary/transactionEvents';
+import {t} from 'sentry/locale';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import {WebVital} from 'sentry/utils/discover/fields';
+import TransactionEvents from 'sentry/views/performance/transactionSummary/transactionEvents';
 
 type Data = {
   features?: string[];

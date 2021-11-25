@@ -1,4 +1,4 @@
-import {backfillMissingProvidersWithFallback} from 'app/views/settings/account/notifications/utils';
+import {backfillMissingProvidersWithFallback} from 'sentry/views/settings/account/notifications/utils';
 
 describe('backfillMissingProvidersWithFallback', () => {
   describe('when scopeType is user', () => {
