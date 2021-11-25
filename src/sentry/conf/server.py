@@ -789,9 +789,9 @@ CELERYBEAT_SCHEDULE = {
     },
     "check-symbolicator-lpq-project-eligibility": {
         "task": "sentry.tasks.low_priority_symbolication.scan_for_suspect_projects",
-        # Set to Feb 32 so it never runs. Here's to hoping February doesn't somehow get
-        # 32 days in the foreseeable future.
-        "schedule": crontab(day_of_month=32, month_of_year=2),
+        # Set to Feb 31 so it never runs. Here's to hoping February doesn't somehow get
+        # 31 days in the foreseeable future.
+        "schedule": crontab(day_of_month=31, month_of_year=2),
         "options": {"expires": 10},
     },
 }
