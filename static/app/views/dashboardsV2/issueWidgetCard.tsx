@@ -5,6 +5,7 @@ import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
+import * as qs from 'query-string';
 
 import {Client} from 'app/api';
 import ErrorPanel from 'app/components/charts/errorPanel';
@@ -12,7 +13,9 @@ import SimpleTableChart from 'app/components/charts/simpleTableChart';
 import {HeaderTitle} from 'app/components/charts/styles';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import ErrorBoundary from 'app/components/errorBoundary';
+import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import MenuItem from 'app/components/menuItem';
 import {isSelectionEqual} from 'app/components/organizations/globalSelectionHeader/utils';
 import {Panel} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
@@ -21,6 +24,7 @@ import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {GlobalSelection, Group, Organization} from 'app/types';
+import {getUtcDateString} from 'app/utils/dates';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import {ColumnType} from 'app/utils/discover/fields';
 import withApi from 'app/utils/withApi';
@@ -28,6 +32,7 @@ import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 
 import {DRAG_HANDLE_CLASS} from './gridLayout/dashboard';
+import ContextMenu from './contextMenu';
 import IssueWidgetQueries from './issueWidgetQueries';
 import {Widget} from './types';
 import WidgetQueries from './widgetQueries';
@@ -149,6 +154,34 @@ class IssueWidgetCard extends React.Component<Props> {
     );
   }
 
+  renderContextMenu() {
+    const {widget, selection, organization, showContextMenu} = this.props;
+
+    if (!showContextMenu) {
+      return null;
+    }
+
+    const {start, end, utc, period} = selection.datetime;
+    const datetime =
+      start && end
+        ? {start: getUtcDateString(start), end: getUtcDateString(end), utc}
+        : {statsPeriod: period};
+    const issuesLocation = `/organizations/${organization.slug}/issues/?${qs.stringify({
+      query: widget.queries?.[0]?.conditions,
+      ...datetime,
+    })}`;
+
+    return (
+      <ContextWrapper>
+        <ContextMenu>
+          <Link to={issuesLocation}>
+            <StyledMenuItem>{t('Open in Issues')}</StyledMenuItem>
+          </Link>
+        </ContextMenu>
+      </ContextWrapper>
+    );
+  }
+
   render() {
     const {widget, api, organization, selection, renderErrorMessage} = this.props;
     return (
@@ -158,6 +191,7 @@ class IssueWidgetCard extends React.Component<Props> {
         <StyledPanel isDragging={false}>
           <WidgetHeader>
             <WidgetTitle>{widget.title}</WidgetTitle>
+            {this.renderContextMenu()}
           </WidgetHeader>
           <LazyLoad once height={200}>
             <IssueWidgetQueries
@@ -278,6 +312,18 @@ const IconClick = styled('div')`
 
   &:hover {
     cursor: pointer;
+  }
+`;
+
+const ContextWrapper = styled('div')`
+  margin-left: ${space(1)};
+`;
+
+const StyledMenuItem = styled(MenuItem)`
+  white-space: nowrap;
+  color: ${p => p.theme.textColor};
+  :hover {
+    color: ${p => p.theme.textColor};
   }
 `;
 
