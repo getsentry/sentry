@@ -3,6 +3,7 @@ import type {Layout as RGLLayout} from 'react-grid-layout';
 import {browserHistory, PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
+import partial from 'lodash/partial';
 
 import {
   createDashboard,
@@ -29,7 +30,11 @@ import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import GridLayoutDashboard from './gridLayout/dashboard';
-import {getDashboardLayout, saveDashboardLayout} from './gridLayout/utils';
+import {
+  getDashboardLayout,
+  reassignLayoutIds,
+  saveDashboardLayout,
+} from './gridLayout/utils';
 import Controls from './controls';
 import DnDKitDashboard from './dashboard';
 import {DEFAULT_STATS_PERIOD, EMPTY_DASHBOARD} from './data';
@@ -298,6 +303,12 @@ class DashboardDetail extends Component<Props, State> {
     });
   };
 
+  saveLayoutWithNewWidgets = (organizationId, dashboardId, newWidgets) => {
+    const {layout} = this.state;
+    const getLayoutWithNewIds = partial(reassignLayoutIds, newWidgets);
+    saveDashboardLayout(organizationId, dashboardId, layout.map(getLayoutWithNewIds));
+  };
+
   onCommit = () => {
     const {api, organization, location, dashboard, reloadData} = this.props;
     const {layout, modifiedDashboard, dashboardState} = this.state;
@@ -308,15 +319,10 @@ class DashboardDetail extends Component<Props, State> {
           createDashboard(api, organization.slug, modifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
               if (organization.features.includes('dashboard-grid-layout')) {
-                // Widgets get assigned IDs after creation, so we need to update the layout
-                const reassignLayoutId = (newLayout: RGLLayout, i: number) => ({
-                  ...newLayout,
-                  i: `${newDashboard.widgets[i].id}-${newLayout.i}`,
-                });
-                saveDashboardLayout(
+                this.saveLayoutWithNewWidgets(
                   organization.id,
                   newDashboard.id,
-                  layout.map(reassignLayoutId)
+                  newDashboard.widgets
                 );
               }
               addSuccessMessage(t('Dashboard created'));
@@ -361,6 +367,13 @@ class DashboardDetail extends Component<Props, State> {
           }
           updateDashboard(api, organization.slug, modifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
+              if (organization.features.includes('dashboard-grid-layout')) {
+                this.saveLayoutWithNewWidgets(
+                  organization.id,
+                  newDashboard.id,
+                  newDashboard.widgets
+                );
+              }
               addSuccessMessage(t('Dashboard updated'));
               trackAnalyticsEvent({
                 eventKey: 'dashboards2.edit.complete',
