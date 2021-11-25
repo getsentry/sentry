@@ -5,7 +5,7 @@ import {useEffect, useRef} from 'react';
  * It’s possible that in the future React will provide a usePrevious Hook out of the box since it’s a relatively common use case.
  * @see {@link https://reactjs.org/docs/hooks-faq.html#how-to-get-the-previous-props-or-state}
  *
- * @returns Returns 'ref.current' and therefore should not be used as a dependency of useEffect.
+ * @returns 'ref.current' and therefore should not be used as a dependency of useEffect.
  * Mutable values like 'ref.current' are not valid dependencies of useEffect because changing them does not re-render the component.
  */
 function usePrevious<T>(value: T) {
