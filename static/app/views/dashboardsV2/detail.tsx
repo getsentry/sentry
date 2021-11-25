@@ -300,13 +300,25 @@ class DashboardDetail extends Component<Props, State> {
 
   onCommit = () => {
     const {api, organization, location, dashboard, reloadData} = this.props;
-    const {modifiedDashboard, dashboardState} = this.state;
+    const {layout, modifiedDashboard, dashboardState} = this.state;
 
     switch (dashboardState) {
       case DashboardState.CREATE: {
         if (modifiedDashboard) {
           createDashboard(api, organization.slug, modifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
+              if (organization.features.includes('dashboard-grid-layout')) {
+                // Widgets get assigned IDs after creation, so we need to update the layout
+                const reassignLayoutId = (newLayout: RGLLayout, i: number) => ({
+                  ...newLayout,
+                  i: `${newDashboard.widgets[i].id}-${newLayout.i}`,
+                });
+                saveDashboardLayout(
+                  organization.id,
+                  newDashboard.id,
+                  layout.map(reassignLayoutId)
+                );
+              }
               addSuccessMessage(t('Dashboard created'));
               trackAnalyticsEvent({
                 eventKey: 'dashboards2.create.complete',
@@ -335,7 +347,7 @@ class DashboardDetail extends Component<Props, State> {
         // TODO(nar): This should only fire when there are changes to the layout
         // and the dashboard can be successfully saved
         if (organization.features.includes('dashboard-grid-layout')) {
-          saveDashboardLayout(organization.id, dashboard.id, this.state.layout);
+          saveDashboardLayout(organization.id, dashboard.id, layout);
         }
 
         // only update the dashboard if there are changes

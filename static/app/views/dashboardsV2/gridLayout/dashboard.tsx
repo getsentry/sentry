@@ -250,7 +250,9 @@ class Dashboard extends Component<Props> {
         margin={WIDGET_MARGINS}
         draggableHandle={`.${DRAG_HANDLE_CLASS}`}
         layout={layout}
-        onLayoutChange={onLayoutChange}
+        onLayoutChange={newLayout =>
+          onLayoutChange!(newLayout.filter(({i}) => i !== ADD_WIDGET_BUTTON_DRAG_ID))
+        }
         isDraggable={isEditing}
         isResizable={isEditing}
         isBounded
