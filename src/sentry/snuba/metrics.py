@@ -78,7 +78,6 @@ TS_COL_GROUP = "bucketed_time"
 
 def reverse_resolve(index: int) -> str:
     resolved = indexer.reverse_resolve(index)
-
     # If we cannot find a string for an integer index, that's a bug:
     assert resolved is not None, index
 
@@ -757,12 +756,12 @@ class SnubaResultConverter:
 
     def _parse_tag(self, tag_string: str) -> str:
         tag_key = int(tag_string.replace("tags[", "").replace("]", ""))
-        return indexer.reverse_resolve(tag_key)
+        return reverse_resolve(tag_key)
 
     def _extract_data(self, entity, data, groups):
         tags = tuple((key, data[key]) for key in sorted(data.keys()) if key.startswith("tags["))
 
-        metric_name = indexer.reverse_resolve(data["metric_id"])
+        metric_name = reverse_resolve(data["metric_id"])
         ops = self._ops_by_metric[metric_name]
 
         tag_data = groups.setdefault(
@@ -810,7 +809,7 @@ class SnubaResultConverter:
 
         groups = [
             dict(
-                by={self._parse_tag(key): indexer.reverse_resolve(value) for key, value in tags},
+                by={self._parse_tag(key): reverse_resolve(value) for key, value in tags},
                 **data,
             )
             for tags, data in groups.items()
@@ -892,7 +891,6 @@ class MetaFromSnuba:
 
     def get_single_metric(self, metric_name: str) -> MetricMetaWithTagKeys:
         """Get metadata for a single metric, without tag values"""
-
         metric_id = indexer.resolve(metric_name)
         if metric_id is None:
             raise InvalidParams
@@ -907,7 +905,6 @@ class MetaFromSnuba:
                 groupby=[Column("metric_id"), Column("tags.key")],
                 referrer="snuba.metrics.meta.get_single_metric",
             )
-            # TODO: does this work when metric has no tags?
             if data:
                 tag_ids = {tag_id for row in data for tag_id in row["tags.key"]}
                 return MetricMetaWithTagKeys(
@@ -915,11 +912,7 @@ class MetaFromSnuba:
                     type=metric_type,
                     operations=_AVAILABLE_OPERATIONS[entity_key.value],
                     tags=sorted(
-                        (
-                            # If an index cannot be resolved, consider it a bug
-                            Tag(key=indexer.reverse_resolve(tag_id))
-                            for tag_id in tag_ids
-                        ),
+                        (Tag(key=reverse_resolve(tag_id)) for tag_id in tag_ids),
                         key=itemgetter("key"),
                     ),
                     unit=None,
@@ -927,12 +920,10 @@ class MetaFromSnuba:
 
         raise InvalidParams
 
-    def get_tags(self, metric_names: Optional[Sequence[str]]) -> Sequence[Tag]:
-        """Get all available tag names for these projects.
-
-        If ``metric_names`` is provided, the list of available tag names will
-        only contain tags that appear in *all* these metrics.
-        """
+    def _get_metrics_filter(
+        self, metric_names: Optional[Sequence[str]]
+    ) -> Optional[List[Condition]]:
+        """Add a condition to filter by metrics. Return None if a name cannot be resolved."""
         where = []
         if metric_names is not None:
             metric_ids = []
@@ -941,9 +932,16 @@ class MetaFromSnuba:
                 if resolved is None:
                     # We are looking for tags that appear in all given metrics.
                     # A tag cannot appear in a metric if the metric is not even indexed.
-                    return []
+                    return None
                 metric_ids.append(resolved)
             where.append(Condition(Column("metric_id"), Op.IN, metric_ids))
+
+        return where
+
+    def get_tags(self, metric_names: Optional[Sequence[str]]) -> Sequence[Tag]:
+        where = self._get_metrics_filter(metric_names)
+        if where is None:
+            return []
 
         tag_ids_per_metric_id = defaultdict(list)
 
@@ -966,7 +964,7 @@ class MetaFromSnuba:
         else:
             tag_ids = {tag_id for ids in tag_id_lists for tag_id in ids}
 
-        tags = [{"key": indexer.reverse_resolve(tag_id)} for tag_id in tag_ids]
+        tags = [{"key": reverse_resolve(tag_id)} for tag_id in tag_ids]
         tags.sort(key=itemgetter("key"))
 
         return tags
@@ -979,17 +977,9 @@ class MetaFromSnuba:
         if tag_id is None:
             raise InvalidParams
 
-        where = []
-        if metric_names is not None:
-            metric_ids = []
-            for name in metric_names:
-                resolved = indexer.resolve(name)
-                if resolved is None:
-                    # We are looking for tags that appear in all given metrics.
-                    # A tag cannot appear in a metric if the metric is not even indexed.
-                    return []
-                metric_ids.append(resolved)
-            where.append(Condition(Column("metric_id"), Op.IN, metric_ids))
+        where = self._get_metrics_filter(metric_names)
+        if where is None:
+            return []
 
         tags = defaultdict(list)
 
@@ -1054,7 +1044,6 @@ class SnubaDataSource(DataSource):
 
     def get_series(self, projects: Sequence[Project], query: QueryDefinition) -> dict:
         """Get time series for the given query"""
-
         intervals = list(get_intervals(query))
 
         snuba_queries = SnubaQueryBuilder(projects, query).get_snuba_queries()

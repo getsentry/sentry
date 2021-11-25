@@ -14,10 +14,6 @@ from sentry.testutils.helpers import with_feature
 
 FEATURE_FLAG = "organizations:metrics"
 
-import sentry_sdk
-
-sentry_sdk.init()
-
 
 class OrganizationMetricsPermissionTest(APITestCase):
 
@@ -526,7 +522,17 @@ class OrganizationMetricMetaIntegrationTest(SessionMetricsTestCase, APITestCase)
                     "type": "s",
                     "value": [123],
                     "retention_days": 90,
-                }
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": indexer.record("metric3"),
+                    "timestamp": now,
+                    "tags": {},
+                    "type": "s",
+                    "value": [123],
+                    "retention_days": 90,
+                },
             ],
             entity="metrics_sets",
         )
@@ -549,10 +555,10 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
             datasource="snuba",  # TODO: remove datasource arg
         )
 
-        # 1) Test metrics list
         assert response.data == [
             {"name": "metric1", "type": "counter", "operations": ["sum"], "unit": None},
             {"name": "metric2", "type": "set", "operations": ["count_unique"], "unit": None},
+            {"name": "metric3", "type": "set", "operations": ["count_unique"], "unit": None},
         ]
 
 
@@ -598,6 +604,20 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
             ],
         }
 
+        # metric3:
+        response = self.get_success_response(
+            self.organization.slug,
+            "metric3",
+            datasource="snuba",  # TODO: remove datasource arg
+        )
+        assert response.data == {
+            "name": "metric3",
+            "type": "set",
+            "operations": ["count_unique"],
+            "unit": None,
+            "tags": [],
+        }
+
 
 class OrganizationMetricsTagsIntegrationTest(OrganizationMetricMetaIntegrationTest):
 
@@ -626,6 +646,13 @@ class OrganizationMetricsTagsIntegrationTest(OrganizationMetricMetaIntegrationTe
             {"key": "tag1"},
             {"key": "tag2"},
         ]
+
+        response = self.get_success_response(
+            self.organization.slug,
+            datasource="snuba",  # TODO: remove datasource arg
+            metric=["metric1", "metric2", "metric3"],
+        )
+        assert response.data == []
 
 
 class OrganizationMetricsTagDetailsIntegrationTest(OrganizationMetricMetaIntegrationTest):
