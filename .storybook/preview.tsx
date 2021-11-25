@@ -12,8 +12,8 @@ import Sample from 'docs-ui/components/sample';
 import TableOfContents from 'docs-ui/components/tableOfContents';
 import {ThemeProvider} from 'emotion-theming';
 
-import GlobalStyles from 'app/styles/global';
-import {darkTheme, lightTheme} from 'app/utils/theme';
+import GlobalStyles from 'sentry/styles/global';
+import {darkTheme, lightTheme} from 'sentry/utils/theme';
 
 import PreviewGlobalStyles from './previewGlobalStyles';
 

@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 
-import Tooltip from 'app/components/tooltip';
 import Card from 'sentry/components/card';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import {HeaderTitle} from 'sentry/components/charts/styles';
@@ -14,6 +13,7 @@ import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import Sparklines from 'sentry/components/sparklines';
 import SparklinesLine from 'sentry/components/sparklines/line';
+import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';

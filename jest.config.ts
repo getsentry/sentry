@@ -58,7 +58,6 @@ const config: Config.InitialOptions = {
     'integration-docs-platforms':
       '<rootDir>/tests/fixtures/integration-docs/_platforms.json',
   },
-  modulePaths: ['<rootDir>/static'],
   setupFiles: [
     '<rootDir>/static/app/utils/silence-react-unsafe-warnings.ts',
     '<rootDir>/tests/js/throw-on-react-error.js',
