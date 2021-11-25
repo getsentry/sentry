@@ -304,7 +304,6 @@ class DashboardDetail extends Component<Props, State> {
 
     switch (dashboardState) {
       case DashboardState.CREATE: {
-        // TODO(nar): How to save dashboard layouts on create because the widget ids get modified after
         if (modifiedDashboard) {
           createDashboard(api, organization.slug, modifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
