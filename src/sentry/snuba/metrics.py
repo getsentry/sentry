@@ -939,6 +939,7 @@ class MetaFromSnuba:
         return where
 
     def get_tags(self, metric_names: Optional[Sequence[str]]) -> Sequence[Tag]:
+        """Get all metric tags for the given projects and metric_names"""
         where = self._get_metrics_filter(metric_names)
         if where is None:
             return []
@@ -960,6 +961,7 @@ class MetaFromSnuba:
 
         tag_id_lists = tag_ids_per_metric_id.values()
         if metric_names is not None:
+            # Only return tags that occur in all metrics
             tag_ids = set.intersection(*map(set, tag_id_lists))
         else:
             tag_ids = {tag_id for ids in tag_id_lists for tag_id in ids}
@@ -1002,6 +1004,7 @@ class MetaFromSnuba:
 
         value_id_lists = tags.values()
         if metric_names is not None:
+            # Only return tags that occur in all metrics
             value_ids = set.intersection(*[set(ids) for ids in value_id_lists])
         else:
             value_ids = {value_id for ids in value_id_lists for value_id in ids}
@@ -1013,7 +1016,7 @@ class MetaFromSnuba:
 
 
 class SnubaDataSource(DataSource):
-    """Mocks metrics metadata and string indexing, but fetches real time series"""
+    """Get both metadata and time series from Snuba"""
 
     def get_metrics(self, projects: Sequence[Project]) -> Sequence[MetricMeta]:
         meta = MetaFromSnuba(projects)
