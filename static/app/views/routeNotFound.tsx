@@ -3,10 +3,10 @@ import DocumentTitle from 'react-document-title';
 import {RouteComponentProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 
-import NotFound from 'app/components/errors/notFound';
-import Footer from 'app/components/footer';
-import Sidebar from 'app/components/sidebar';
-import {t} from 'app/locale';
+import NotFound from 'sentry/components/errors/notFound';
+import Footer from 'sentry/components/footer';
+import Sidebar from 'sentry/components/sidebar';
+import {t} from 'sentry/locale';
 
 type Props = RouteComponentProps<{}, {}>;
 

@@ -1,19 +1,19 @@
 import {ReactNode} from 'react';
 import {Location, LocationDescriptor, Query} from 'history';
 
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
-import SortLink from 'app/components/gridEditable/sortLink';
-import Link from 'app/components/links/link';
-import Tooltip from 'app/components/tooltip';
-import {t, tct} from 'app/locale';
-import {Organization} from 'app/types';
-import {defined} from 'app/utils';
-import {TableDataRow} from 'app/utils/discover/discoverQuery';
-import EventView from 'app/utils/discover/eventView';
-import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
-import {ColumnType, fieldAlignment} from 'app/utils/discover/fields';
-import {formatPercentage} from 'app/utils/formatters';
-import {SuspectSpan} from 'app/utils/performance/suspectSpans/types';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import SortLink from 'sentry/components/gridEditable/sortLink';
+import Link from 'sentry/components/links/link';
+import Tooltip from 'sentry/components/tooltip';
+import {t, tct} from 'sentry/locale';
+import {Organization} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import EventView from 'sentry/utils/discover/eventView';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {ColumnType, fieldAlignment} from 'sentry/utils/discover/fields';
+import {formatPercentage} from 'sentry/utils/formatters';
+import {SuspectSpan} from 'sentry/utils/performance/suspectSpans/types';
 
 import {PerformanceDuration} from '../../utils';
 

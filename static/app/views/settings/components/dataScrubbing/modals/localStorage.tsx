@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/react';
 
-import localStorage from 'app/utils/localStorage';
+import localStorage from 'sentry/utils/localStorage';
 
 import {SourceSuggestion} from '../types';
 

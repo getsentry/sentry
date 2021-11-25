@@ -1,7 +1,7 @@
 import {Location} from 'history';
 
-import {canIncludePreviousPeriod} from 'app/components/charts/utils';
-import {GlobalSelection} from 'app/types';
+import {canIncludePreviousPeriod} from 'sentry/components/charts/utils';
+import {GlobalSelection} from 'sentry/types';
 
 export function shouldFetchPreviousPeriod(
   datetime: Partial<GlobalSelection['datetime']>

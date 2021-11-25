@@ -3,10 +3,23 @@ import itertools
 import random
 import re
 from abc import ABC, abstractmethod
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import List, Literal, Optional, Protocol, Sequence, Tuple, TypedDict, Union
+from operator import itemgetter
+from typing import (
+    Any,
+    Collection,
+    List,
+    Literal,
+    Mapping,
+    Optional,
+    Protocol,
+    Sequence,
+    Tuple,
+    TypedDict,
+    Union,
+)
 
 from snuba_sdk import (
     And,
@@ -26,7 +39,7 @@ from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry.models import Project
 from sentry.sentry_metrics import indexer
-from sentry.snuba.dataset import Dataset
+from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.sessions_v2 import (  # TODO: unite metrics and sessions_v2
     AllowedResolution,
     InvalidField,
@@ -61,6 +74,14 @@ MAX_POINTS = 10000
 
 TS_COL_QUERY = "timestamp"
 TS_COL_GROUP = "bucketed_time"
+
+
+def reverse_resolve(index: int) -> str:
+    resolved = indexer.reverse_resolve(index)
+    # If we cannot find a string for an integer index, that's a bug:
+    assert resolved is not None, index
+
+    return resolved
 
 
 def parse_field(field: str) -> Tuple[str, str]:
@@ -231,8 +252,31 @@ def get_intervals(query: TimeRange):
         start += delta
 
 
+#: The type of metric, which determines the snuba entity to query
+MetricType = Literal["counter", "set", "distribution"]
+
+#: A function that can be applied to a metric
+MetricOperation = Literal["avg", "count", "max", "min", "p50", "p75", "p90", "p95", "p99"]
+
+MetricUnit = Literal["seconds"]
+
+
+METRIC_TYPE_TO_ENTITY: Mapping[MetricType, EntityKey] = {
+    "counter": EntityKey.MetricsCounters,
+    "set": EntityKey.MetricsSets,
+    "distribution": EntityKey.MetricsDistributions,
+}
+
+
+class MetricMeta(TypedDict):
+    name: str
+    type: MetricType
+    operations: Collection[MetricOperation]
+    unit: Optional[MetricUnit]
+
+
 class Tag(TypedDict):
-    key: str
+    key: str  # Called key here to be consistent with JS type
 
 
 class TagValue(TypedDict):
@@ -240,15 +284,21 @@ class TagValue(TypedDict):
     value: str
 
 
+class MetricMetaWithTagKeys(MetricMeta):
+    tags: Sequence[Tag]
+
+
 class DataSource(ABC):
     """Base class for metrics data sources"""
 
     @abstractmethod
-    def get_metrics(self, projects: Sequence[Project]) -> List[dict]:
+    def get_metrics(self, projects: Sequence[Project]) -> Sequence[MetricMeta]:
         """Get metrics metadata, without tags"""
 
     @abstractmethod
-    def get_single_metric(self, projects: Sequence[Project], metric_name: str) -> dict:
+    def get_single_metric(
+        self, projects: Sequence[Project], metric_name: str
+    ) -> MetricMetaWithTagKeys:
         """Get metadata for a single metric, without tag values"""
 
     @abstractmethod
@@ -303,42 +353,62 @@ _BASE_TAGS = {
         "staging",
     ],
     "release": [],
-    "session.status": [
-        "abnormal",
-        "crashed",
-        "errored",
-        "healthy",
-    ],
 }
+
+_SESSION_TAGS = dict(
+    _BASE_TAGS,
+    **{
+        "session.status": [
+            "abnormal",
+            "crashed",
+            "errored",
+            "healthy",
+        ],
+    },
+)
+
+_MEASUREMENT_TAGS = dict(
+    _BASE_TAGS,
+    **{
+        "measurement_rating": ["good", "meh", "poor"],
+        "transaction": ["/foo/:ordId/", "/bar/:ordId/"],
+    },
+)
 
 _METRICS = {
     "session": {
         "type": "counter",
         "operations": _AVAILABLE_OPERATIONS["metrics_counters"],
-        "tags": _BASE_TAGS,
+        "tags": _SESSION_TAGS,
     },
     "user": {
         "type": "set",
         "operations": _AVAILABLE_OPERATIONS["metrics_sets"],
-        "tags": _BASE_TAGS,
+        "tags": _SESSION_TAGS,
     },
     "session.duration": {
         "type": "distribution",
         "operations": _AVAILABLE_OPERATIONS["metrics_distributions"],
-        "tags": _BASE_TAGS,
+        "tags": _SESSION_TAGS,
         "unit": "seconds",
     },
     "session.error": {
         "type": "set",
         "operations": _AVAILABLE_OPERATIONS["metrics_sets"],
-        "tags": _BASE_TAGS,
-    },
-    "measurements.lcp": {
-        "type": "distribution",
-        "operations": _AVAILABLE_OPERATIONS["metrics_distributions"],
-        "tags": _BASE_TAGS,
+        "tags": _SESSION_TAGS,
     },
 }
+
+_METRICS.update(
+    {
+        f"measurement.{web_vital}": {
+            "type": "distribution",
+            "operations": _AVAILABLE_OPERATIONS["metrics_distributions"],
+            "tags": _MEASUREMENT_TAGS,
+        }
+        for web_vital in ("lcp", "fcp", "fid", "cls")
+    }
+)
 
 
 def _get_metric(metric_name: str) -> dict:
@@ -351,17 +421,19 @@ def _get_metric(metric_name: str) -> dict:
 
 
 class IndexMockingDataSource(DataSource):
-    def get_metrics(self, projects: Sequence[Project]) -> List[dict]:
+    def get_metrics(self, projects: Sequence[Project]) -> Sequence[MetricMeta]:
         """Get metrics metadata, without tags"""
         return [
-            dict(
+            MetricMeta(
                 name=name,
                 **{key: value for key, value in metric.items() if key != "tags"},
             )
             for name, metric in _METRICS.items()
         ]
 
-    def get_single_metric(self, projects: Sequence[Project], metric_name: str) -> dict:
+    def get_single_metric(
+        self, projects: Sequence[Project], metric_name: str
+    ) -> MetricMetaWithTagKeys:
         """Get metadata for a single metric, without tag values"""
         try:
             metric = _METRICS[metric_name]
@@ -371,7 +443,7 @@ class IndexMockingDataSource(DataSource):
         return dict(
             name=metric_name,
             **{
-                # Only return metric names
+                # Only return tag names
                 key: (sorted(value.keys()) if key == "tags" else value)
                 for key, value in metric.items()
             },
@@ -454,7 +526,6 @@ class MockDataSource(IndexMockingDataSource):
     }
 
     def _generate_series(self, fields: dict, intervals: List[datetime]) -> dict:
-
         series = {}
         totals = {}
         for field, (operation, metric_name) in fields.items():
@@ -520,13 +591,6 @@ class Percentile(enum.Enum):
 
 
 class SnubaQueryBuilder:
-
-    _entity_map = {
-        "counter": "metrics_counters",
-        "distribution": "metrics_distributions",
-        "gauge": "metrics_gauges",
-        "set": "metrics_sets",
-    }
 
     #: Datasets actually implemented in snuba:
     _implemented_datasets = {
@@ -664,9 +728,9 @@ class SnubaQueryBuilder:
     def get_snuba_queries(self):
         return self._queries
 
-    def _get_entity(self, metric_type: str) -> str:
+    def _get_entity(self, metric_type: MetricType) -> str:
 
-        entity = self._entity_map[metric_type]
+        entity = METRIC_TYPE_TO_ENTITY[metric_type].value
 
         if entity not in self._implemented_datasets:
             raise NotImplementedError(f"Dataset not yet implemented: {entity}")
@@ -711,12 +775,12 @@ class SnubaResultConverter:
 
     def _parse_tag(self, tag_string: str) -> str:
         tag_key = int(tag_string.replace("tags[", "").replace("]", ""))
-        return indexer.reverse_resolve(tag_key)
+        return reverse_resolve(tag_key)
 
     def _extract_data(self, entity, data, groups):
         tags = tuple((key, data[key]) for key in sorted(data.keys()) if key.startswith("tags["))
 
-        metric_name = indexer.reverse_resolve(data["metric_id"])
+        metric_name = reverse_resolve(data["metric_id"])
         ops = self._ops_by_metric[metric_name]
 
         tag_data = groups.setdefault(
@@ -764,7 +828,7 @@ class SnubaResultConverter:
 
         groups = [
             dict(
-                by={self._parse_tag(key): indexer.reverse_resolve(value) for key, value in tags},
+                by={self._parse_tag(key): reverse_resolve(value) for key, value in tags},
                 **data,
             )
             for tags, data in groups.items()
@@ -773,12 +837,235 @@ class SnubaResultConverter:
         return groups
 
 
-class SnubaDataSource(IndexMockingDataSource):
-    """Mocks metrics metadata and string indexing, but fetches real time series"""
+class MetaFromSnuba:
+    """Fetch metrics metadata (metric names, tag names, tag values, ...) from snuba.
+    This is not intended for production use, but rather as an intermediate solution
+    until we have a proper metadata store set up.
+
+    To keep things simple, and hopefully reasonably efficient, we only look at
+    the past 24 hours.
+    """
+
+    _granularity = 24 * 60 * 60  # coarsest granularity
+
+    def __init__(self, projects: Sequence[Project]):
+        assert projects
+        self._org_id = projects[0].organization_id
+        self._projects = projects
+
+    def _get_data(
+        self,
+        *,
+        entity_key: EntityKey,
+        select: List[Column],
+        where: List[Condition],
+        groupby: List[Column],
+        referrer: str,
+    ) -> Mapping[str, Any]:
+        # Round timestamp to minute to get cache efficiency:
+        now = datetime.now().replace(second=0, microsecond=0)
+
+        query = Query(
+            dataset=Dataset.Metrics.value,
+            match=Entity(entity_key.value),
+            select=select,
+            groupby=groupby,
+            where=[
+                Condition(Column("org_id"), Op.EQ, self._org_id),
+                Condition(Column("project_id"), Op.IN, [p.id for p in self._projects]),
+                Condition(Column(TS_COL_QUERY), Op.GTE, now - timedelta(hours=24)),
+                Condition(Column(TS_COL_QUERY), Op.LT, now),
+            ]
+            + where,
+            granularity=Granularity(self._granularity),
+        )
+        result = raw_snql_query(query, referrer, use_cache=True)
+        return result["data"]
+
+    def _get_metrics_for_entity(self, entity_key: EntityKey) -> Mapping[str, Any]:
+        return self._get_data(
+            entity_key=entity_key,
+            select=[Column("metric_id")],
+            groupby=[Column("metric_id")],
+            where=[],
+            referrer="snuba.metrics.get_metrics_names_for_entity",
+        )
+
+    def get_metrics(self) -> Sequence[MetricMeta]:
+        metric_names = (
+            (metric_type, row)
+            for metric_type in ("counter", "set", "distribution")
+            for row in self._get_metrics_for_entity(METRIC_TYPE_TO_ENTITY[metric_type])
+        )
+
+        return [
+            MetricMeta(
+                name=reverse_resolve(row["metric_id"]),
+                type=metric_type,
+                operations=_AVAILABLE_OPERATIONS[METRIC_TYPE_TO_ENTITY[metric_type].value],
+                unit=None,  # snuba does not know the unit
+            )
+            for metric_type, row in metric_names
+        ]
+
+    def get_single_metric(self, metric_name: str) -> MetricMetaWithTagKeys:
+        """Get metadata for a single metric, without tag values"""
+        metric_id = indexer.resolve(metric_name)
+        if metric_id is None:
+            raise InvalidParams
+
+        for metric_type in ("counter", "set", "distribution"):
+            # TODO: What if metric_id exists for multiple types / units?
+            entity_key = METRIC_TYPE_TO_ENTITY[metric_type]
+            data = self._get_data(
+                entity_key=entity_key,
+                select=[Column("metric_id"), Column("tags.key")],
+                where=[Condition(Column("metric_id"), Op.EQ, metric_id)],
+                groupby=[Column("metric_id"), Column("tags.key")],
+                referrer="snuba.metrics.meta.get_single_metric",
+            )
+            if data:
+                tag_ids = {tag_id for row in data for tag_id in row["tags.key"]}
+                return {
+                    "name": metric_name,
+                    "type": metric_type,
+                    "operations": _AVAILABLE_OPERATIONS[entity_key.value],
+                    "tags": sorted(
+                        ({"key": reverse_resolve(tag_id)} for tag_id in tag_ids),
+                        key=itemgetter("key"),
+                    ),
+                    "unit": None,
+                }
+
+        raise InvalidParams
+
+    def _get_metrics_filter(
+        self, metric_names: Optional[Sequence[str]]
+    ) -> Optional[List[Condition]]:
+        """Add a condition to filter by metrics. Return None if a name cannot be resolved."""
+        where = []
+        if metric_names is not None:
+            metric_ids = []
+            for name in metric_names:
+                resolved = indexer.resolve(name)
+                if resolved is None:
+                    # We are looking for tags that appear in all given metrics.
+                    # A tag cannot appear in a metric if the metric is not even indexed.
+                    return None
+                metric_ids.append(resolved)
+            where.append(Condition(Column("metric_id"), Op.IN, metric_ids))
+
+        return where
+
+    def get_tags(self, metric_names: Optional[Sequence[str]]) -> Sequence[Tag]:
+        """Get all metric tags for the given projects and metric_names"""
+        where = self._get_metrics_filter(metric_names)
+        if where is None:
+            return []
+
+        tag_ids_per_metric_id = defaultdict(list)
+
+        for metric_type in ("counter", "set", "distribution"):
+            # TODO: What if metric_id exists for multiple types / units?
+            entity_key = METRIC_TYPE_TO_ENTITY[metric_type]
+            rows = self._get_data(
+                entity_key=entity_key,
+                select=[Column("metric_id"), Column("tags.key")],
+                where=where,
+                groupby=[Column("metric_id"), Column("tags.key")],
+                referrer="snuba.metrics.meta.get_tags",
+            )
+            for row in rows:
+                tag_ids_per_metric_id[row["metric_id"]].extend(row["tags.key"])
+
+        tag_id_lists = tag_ids_per_metric_id.values()
+        if metric_names is not None:
+            # Only return tags that occur in all metrics
+            tag_ids = set.intersection(*map(set, tag_id_lists))
+        else:
+            tag_ids = {tag_id for ids in tag_id_lists for tag_id in ids}
+
+        tags = [{"key": reverse_resolve(tag_id)} for tag_id in tag_ids]
+        tags.sort(key=itemgetter("key"))
+
+        return tags
+
+    def get_tag_values(
+        self, tag_name: str, metric_names: Optional[Sequence[str]]
+    ) -> Sequence[TagValue]:
+        """Get all known values for a specific tag"""
+        tag_id = indexer.resolve(tag_name)
+        if tag_id is None:
+            raise InvalidParams
+
+        where = self._get_metrics_filter(metric_names)
+        if where is None:
+            return []
+
+        tags = defaultdict(list)
+
+        column_name = f"tags[{tag_id}]"
+        for metric_type in ("counter", "set", "distribution"):
+            # TODO: What if metric_id exists for multiple types / units?
+            entity_key = METRIC_TYPE_TO_ENTITY[metric_type]
+            rows = self._get_data(
+                entity_key=entity_key,
+                select=[Column("metric_id"), Column(column_name)],
+                where=where,
+                groupby=[Column("metric_id"), Column(column_name)],
+                referrer="snuba.metrics.meta.get_tag_values",
+            )
+            for row in rows:
+                value_id = row[column_name]
+                if value_id > 0:
+                    metric_id = row["metric_id"]
+                    tags[metric_id].append(value_id)
+
+        value_id_lists = tags.values()
+        if metric_names is not None:
+            # Only return tags that occur in all metrics
+            value_ids = set.intersection(*[set(ids) for ids in value_id_lists])
+        else:
+            value_ids = {value_id for ids in value_id_lists for value_id in ids}
+
+        tags = [{"key": tag_name, "value": reverse_resolve(value_id)} for value_id in value_ids]
+        tags.sort(key=itemgetter("key"))
+
+        return tags
+
+
+class SnubaDataSource(DataSource):
+    """Get both metadata and time series from Snuba"""
+
+    def get_metrics(self, projects: Sequence[Project]) -> Sequence[MetricMeta]:
+        meta = MetaFromSnuba(projects)
+        return meta.get_metrics()
+
+    def get_single_metric(
+        self, projects: Sequence[Project], metric_name: str
+    ) -> MetricMetaWithTagKeys:
+        """Get metadata for a single metric, without tag values"""
+        meta = MetaFromSnuba(projects)
+        return meta.get_single_metric(metric_name)
+
+    def get_tags(self, projects: Sequence[Project], metric_names=None) -> Sequence[Tag]:
+        """Get all available tag names for this project
+
+        If ``metric_names`` is provided, the list of available tag names will
+        only contain tags that appear in *all* these metrics.
+        """
+        meta = MetaFromSnuba(projects)
+        return meta.get_tags(metric_names)
+
+    def get_tag_values(
+        self, projects: Sequence[Project], tag_name: str, metric_names=None
+    ) -> Sequence[TagValue]:
+        """Get all known values for a specific tag"""
+        meta = MetaFromSnuba(projects)
+        return meta.get_tag_values(tag_name, metric_names)
 
     def get_series(self, projects: Sequence[Project], query: QueryDefinition) -> dict:
         """Get time series for the given query"""
-
         intervals = list(get_intervals(query))
 
         snuba_queries = SnubaQueryBuilder(projects, query).get_snuba_queries()

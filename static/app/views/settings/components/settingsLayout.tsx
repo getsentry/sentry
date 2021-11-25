@@ -2,11 +2,11 @@ import * as React from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import {IconClose, IconMenu} from 'app/icons';
-import {t} from 'app/locale';
-import {fadeIn, slideInLeft} from 'app/styles/animations';
-import space from 'app/styles/space';
+import Button from 'sentry/components/button';
+import {IconClose, IconMenu} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {fadeIn, slideInLeft} from 'sentry/styles/animations';
+import space from 'sentry/styles/space';
 
 import SettingsBreadcrumb from './settingsBreadcrumb';
 import SettingsHeader from './settingsHeader';

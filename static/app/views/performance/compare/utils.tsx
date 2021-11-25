@@ -1,13 +1,13 @@
 import jaro from 'wink-jaro-distance';
 
-import {RawSpanType, SpanType} from 'app/components/events/interfaces/spans/types';
+import {RawSpanType, SpanType} from 'sentry/components/events/interfaces/spans/types';
 import {
   generateRootSpan,
   isOrphanSpan,
   parseTrace,
-} from 'app/components/events/interfaces/spans/utils';
-import {toPercent} from 'app/components/performance/waterfall/utils';
-import {EventTransaction} from 'app/types/event';
+} from 'sentry/components/events/interfaces/spans/utils';
+import {toPercent} from 'sentry/components/performance/waterfall/utils';
+import {EventTransaction} from 'sentry/types/event';
 
 // Minimum threshold score for descriptions that are similar.
 const COMMON_SIMILARITY_DESCRIPTION_THRESHOLD = 0.8;

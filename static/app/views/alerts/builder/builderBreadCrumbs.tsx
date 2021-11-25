@@ -2,16 +2,16 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import Breadcrumbs, {Crumb, CrumbDropdown} from 'app/components/breadcrumbs';
-import IdBadge from 'app/components/idBadge';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Project} from 'app/types';
-import {isActiveSuperuser} from 'app/utils/isActiveSuperuser';
-import recreateRoute from 'app/utils/recreateRoute';
-import withProjects from 'app/utils/withProjects';
-import MenuItem from 'app/views/settings/components/settingsBreadcrumb/menuItem';
-import {RouteWithName} from 'app/views/settings/components/settingsBreadcrumb/types';
+import Breadcrumbs, {Crumb, CrumbDropdown} from 'sentry/components/breadcrumbs';
+import IdBadge from 'sentry/components/idBadge';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Project} from 'sentry/types';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import recreateRoute from 'sentry/utils/recreateRoute';
+import withProjects from 'sentry/utils/withProjects';
+import MenuItem from 'sentry/views/settings/components/settingsBreadcrumb/menuItem';
+import {RouteWithName} from 'sentry/views/settings/components/settingsBreadcrumb/types';
 
 type Props = {
   orgSlug: string;

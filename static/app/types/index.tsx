@@ -5,19 +5,19 @@
 import {FocusTrap} from 'focus-trap';
 import u2f from 'u2f-api';
 
-import exportGlobals from 'app/bootstrap/exportGlobals';
-import Alert from 'app/components/alert';
-import {getInterval} from 'app/components/charts/utils';
-import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
-import {API_ACCESS_SCOPES, DEFAULT_RELATIVE_PERIODS} from 'app/constants';
-import {PlatformKey} from 'app/data/platformCategories';
-import {OrgExperiments, UserExperiments} from 'app/types/experiments';
+import exportGlobals from 'sentry/bootstrap/exportGlobals';
+import Alert from 'sentry/components/alert';
+import {getInterval} from 'sentry/components/charts/utils';
+import {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
+import {API_ACCESS_SCOPES, DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
+import {PlatformKey} from 'sentry/data/platformCategories';
+import {OrgExperiments, UserExperiments} from 'sentry/types/experiments';
 import {
   INSTALLED,
   NOT_INSTALLED,
   PENDING,
-} from 'app/views/organizationIntegrations/constants';
-import {Field} from 'app/views/settings/components/forms/type';
+} from 'sentry/views/organizationIntegrations/constants';
+import {Field} from 'sentry/views/settings/components/forms/type';
 
 import {DynamicSamplingRules} from './dynamicSampling';
 import {Event} from './event';
@@ -1343,6 +1343,7 @@ export type SentryApp = {
     elements?: SentryAppSchemaElement[];
   };
   // possible null params
+  popularity: number | null;
   webhookUrl: string | null;
   redirectUrl: string | null;
   overview: string | null;

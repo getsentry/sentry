@@ -7,25 +7,25 @@ import {
   createDashboard,
   deleteDashboard,
   updateDashboard,
-} from 'app/actionCreators/dashboards';
-import {addSuccessMessage} from 'app/actionCreators/indicator';
+} from 'sentry/actionCreators/dashboards';
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {
   openAddDashboardIssueWidgetModal,
   openDashboardWidgetLibraryModal,
-} from 'app/actionCreators/modal';
-import {Client} from 'app/api';
-import Breadcrumbs from 'app/components/breadcrumbs';
-import HookOrDefault from 'app/components/hookOrDefault';
-import * as Layout from 'app/components/layouts/thirds';
-import NoProjectMessage from 'app/components/noProjectMessage';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import {t} from 'app/locale';
-import {PageContent} from 'app/styles/organization';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import withApi from 'app/utils/withApi';
-import withOrganization from 'app/utils/withOrganization';
+} from 'sentry/actionCreators/modal';
+import {Client} from 'sentry/api';
+import Breadcrumbs from 'sentry/components/breadcrumbs';
+import HookOrDefault from 'sentry/components/hookOrDefault';
+import * as Layout from 'sentry/components/layouts/thirds';
+import NoProjectMessage from 'sentry/components/noProjectMessage';
+import GlobalSelectionHeader from 'sentry/components/organizations/globalSelectionHeader';
+import {t} from 'sentry/locale';
+import {PageContent} from 'sentry/styles/organization';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import withApi from 'sentry/utils/withApi';
+import withOrganization from 'sentry/utils/withOrganization';
 
 import GridLayoutDashboard from './gridLayout/dashboard';
 import Controls from './controls';

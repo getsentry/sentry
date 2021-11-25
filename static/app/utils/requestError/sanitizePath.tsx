@@ -4,21 +4,25 @@
 
 const SHORTENED_TYPE = {
   organizations: 'org',
+  customers: 'customer',
   projects: 'project',
   teams: 'team',
 };
 
 export function sanitizePath(path: string) {
   return path.replace(
-    /(?<start>.*?)\/(?<type>organizations|projects|teams)\/(?<primarySlug>[^/]+)\/(?<contentType>[^/]+\/)?(?<tertiarySlug>[^/]+\/)?(?<end>.*)/,
+    /(?<start>.*?)\/(?<type>organizations|customers|projects|teams)\/(?<primarySlug>[^/]+)\/(?<contentType>[^/]+\/)?(?<tertiarySlug>[^/]+\/)?(?<end>.*)/,
     function (...args) {
       const matches = args[args.length - 1];
       const {start, type, contentType, tertiarySlug, end} = matches;
-      const isOrg = type === 'organizations';
+      // `customers` is org-like
+      const isOrg = ['organizations', 'customers'].includes(type);
       const isProject = type === 'projects';
       const isRuleConditions = isProject && contentType === 'rule-conditions/';
 
-      let suffix = `${tertiarySlug}${end}`;
+      // `end` should always match and at least return empty string,
+      // `tertiarySlug` can be undefined
+      let suffix = `${tertiarySlug ?? ''}${end}`;
 
       if (isOrg && contentType === 'events/') {
         // https://github.com/getsentry/sentry/blob/8d4482f01aa2122c6f6670ab84f9263e6f021467/src/sentry/api/urls.py#L1004
@@ -42,7 +46,7 @@ export function sanitizePath(path: string) {
       }
 
       const contentTypeOrSecondarySlug = isOrg
-        ? contentType
+        ? contentType ?? ''
         : isRuleConditions
         ? 'rule-conditions/'
         : `{${SHORTENED_TYPE[type]}Slug}/`;

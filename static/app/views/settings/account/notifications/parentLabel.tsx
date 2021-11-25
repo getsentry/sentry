@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
-import Avatar from 'app/components/avatar';
-import space from 'app/styles/space';
-import {OrganizationSummary, Project} from 'app/types';
-import {getParentKey} from 'app/views/settings/account/notifications/utils';
+import Avatar from 'sentry/components/avatar';
+import space from 'sentry/styles/space';
+import {OrganizationSummary, Project} from 'sentry/types';
+import {getParentKey} from 'sentry/views/settings/account/notifications/utils';
 
 type Props = {
   notificationType: string;

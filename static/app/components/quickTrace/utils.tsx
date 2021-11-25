@@ -1,21 +1,24 @@
 import {Location, LocationDescriptor} from 'history';
 
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
-import {OrganizationSummary} from 'app/types';
-import {Event} from 'app/types/event';
-import {defined} from 'app/utils';
-import EventView from 'app/utils/discover/eventView';
-import {eventDetailsRouteWithEventView, generateEventSlug} from 'app/utils/discover/urls';
+import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/globalSelectionHeader';
+import {OrganizationSummary} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import {defined} from 'sentry/utils';
+import EventView from 'sentry/utils/discover/eventView';
+import {
+  eventDetailsRouteWithEventView,
+  generateEventSlug,
+} from 'sentry/utils/discover/urls';
 import {
   EventLite,
   QuickTraceEvent,
   TraceError,
-} from 'app/utils/performance/quickTrace/types';
-import {getTraceTimeRangeFromEvent} from 'app/utils/performance/quickTrace/utils';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
-import {getTraceDetailsUrl} from 'app/views/performance/traceDetails/utils';
-import {getTransactionDetailsUrl} from 'app/views/performance/utils';
+} from 'sentry/utils/performance/quickTrace/types';
+import {getTraceTimeRangeFromEvent} from 'sentry/utils/performance/quickTrace/utils';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+import {getTransactionDetailsUrl} from 'sentry/views/performance/utils';
 
 export function isQuickTraceEvent(
   event: QuickTraceEvent | TraceError

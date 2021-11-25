@@ -2,21 +2,21 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import Feature from 'app/components/acl/feature';
-import {GuideAnchor} from 'app/components/assistant/guideAnchor';
-import ButtonBar from 'app/components/buttonBar';
-import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
-import FeatureBadge from 'app/components/featureBadge';
-import * as Layout from 'app/components/layouts/thirds';
-import ListLink from 'app/components/links/listLink';
-import NavTabs from 'app/components/navTabs';
-import {t} from 'app/locale';
-import {Organization, Project} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import EventView from 'app/utils/discover/eventView';
-import HasMeasurementsQuery from 'app/utils/performance/vitals/hasMeasurementsQuery';
-import {decodeScalar} from 'app/utils/queryString';
-import Breadcrumb from 'app/views/performance/breadcrumb';
+import Feature from 'sentry/components/acl/feature';
+import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
+import ButtonBar from 'sentry/components/buttonBar';
+import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
+import FeatureBadge from 'sentry/components/featureBadge';
+import * as Layout from 'sentry/components/layouts/thirds';
+import ListLink from 'sentry/components/links/listLink';
+import NavTabs from 'sentry/components/navTabs';
+import {t} from 'sentry/locale';
+import {Organization, Project} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import EventView from 'sentry/utils/discover/eventView';
+import HasMeasurementsQuery from 'sentry/utils/performance/vitals/hasMeasurementsQuery';
+import {decodeScalar} from 'sentry/utils/queryString';
+import Breadcrumb from 'sentry/views/performance/breadcrumb';
 
 import {getCurrentLandingDisplay, LandingDisplayField} from '../landing/utils';
 

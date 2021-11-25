@@ -3,11 +3,11 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import {PerformanceLayoutBodyRow} from 'app/components/performance/layouts';
-import space from 'app/styles/space';
-import EventView from 'app/utils/discover/eventView';
-import {usePerformanceDisplayType} from 'app/utils/performance/contexts/performanceDisplayContext';
-import {PROJECT_PERFORMANCE_TYPE} from 'app/views/performance/utils';
+import {PerformanceLayoutBodyRow} from 'sentry/components/performance/layouts';
+import space from 'sentry/styles/space';
+import EventView from 'sentry/utils/discover/eventView';
+import {usePerformanceDisplayType} from 'sentry/utils/performance/contexts/performanceDisplayContext';
+import {PROJECT_PERFORMANCE_TYPE} from 'sentry/views/performance/utils';
 
 import {getChartSetting} from '../utils';
 import {PerformanceWidgetSetting} from '../widgetDefinitions';

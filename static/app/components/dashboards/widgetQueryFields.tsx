@@ -1,22 +1,22 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import {IconAdd, IconDelete} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
+import Button from 'sentry/components/button';
+import {IconAdd, IconDelete} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
 import {
   aggregateFunctionOutputType,
   isLegalYAxisType,
   QueryFieldValue,
-} from 'app/utils/discover/fields';
-import {Widget} from 'app/views/dashboardsV2/types';
-import ColumnEditCollection from 'app/views/eventsV2/table/columnEditCollection';
-import {QueryField} from 'app/views/eventsV2/table/queryField';
-import {FieldValueKind} from 'app/views/eventsV2/table/types';
-import {generateFieldOptions} from 'app/views/eventsV2/utils';
-import Field from 'app/views/settings/components/forms/field';
+} from 'sentry/utils/discover/fields';
+import {Widget} from 'sentry/views/dashboardsV2/types';
+import ColumnEditCollection from 'sentry/views/eventsV2/table/columnEditCollection';
+import {QueryField} from 'sentry/views/eventsV2/table/queryField';
+import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
+import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
+import Field from 'sentry/views/settings/components/forms/field';
 
 type Props = {
   /**

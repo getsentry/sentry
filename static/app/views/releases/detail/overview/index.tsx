@@ -4,46 +4,48 @@ import styled from '@emotion/styled';
 import {Location, LocationDescriptor, Query} from 'history';
 import moment from 'moment';
 
-import {restoreRelease} from 'app/actionCreators/release';
-import {Client} from 'app/api';
-import Feature from 'app/components/acl/feature';
-import SessionsRequest from 'app/components/charts/sessionsRequest';
-import {DateTimeObject} from 'app/components/charts/utils';
-import DateTime from 'app/components/dateTime';
-import PerformanceCardTable from 'app/components/discover/performanceCardTable';
-import TransactionsList, {DropdownOption} from 'app/components/discover/transactionsList';
-import {Body, Main, Side} from 'app/components/layouts/thirds';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {ChangeData} from 'app/components/organizations/timeRangeSelector';
-import PageTimeRangeSelector from 'app/components/pageTimeRangeSelector';
-import {DEFAULT_RELATIVE_PERIODS} from 'app/constants';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
+import {restoreRelease} from 'sentry/actionCreators/release';
+import {Client} from 'sentry/api';
+import Feature from 'sentry/components/acl/feature';
+import SessionsRequest from 'sentry/components/charts/sessionsRequest';
+import {DateTimeObject} from 'sentry/components/charts/utils';
+import DateTime from 'sentry/components/dateTime';
+import PerformanceCardTable from 'sentry/components/discover/performanceCardTable';
+import TransactionsList, {
+  DropdownOption,
+} from 'sentry/components/discover/transactionsList';
+import {Body, Main, Side} from 'sentry/components/layouts/thirds';
+import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
+import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
+import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {
   GlobalSelection,
   NewQuery,
   Organization,
   ReleaseProject,
   SessionField,
-} from 'app/types';
-import {getUtcDateString} from 'app/utils/dates';
-import {TableDataRow} from 'app/utils/discover/discoverQuery';
-import EventView from 'app/utils/discover/eventView';
-import {MobileVital, WebVital} from 'app/utils/discover/fields';
-import {formatVersion} from 'app/utils/formatters';
-import {decodeScalar} from 'app/utils/queryString';
-import routeTitleGen from 'app/utils/routeTitle';
-import withApi from 'app/utils/withApi';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import withOrganization from 'app/utils/withOrganization';
-import AsyncView from 'app/views/asyncView';
-import {DisplayModes} from 'app/views/performance/transactionSummary/transactionOverview/charts';
-import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
-import {TrendChangeType, TrendView} from 'app/views/performance/trends/types';
+} from 'sentry/types';
+import {getUtcDateString} from 'sentry/utils/dates';
+import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import EventView from 'sentry/utils/discover/eventView';
+import {MobileVital, WebVital} from 'sentry/utils/discover/fields';
+import {formatVersion} from 'sentry/utils/formatters';
+import {decodeScalar} from 'sentry/utils/queryString';
+import routeTitleGen from 'sentry/utils/routeTitle';
+import withApi from 'sentry/utils/withApi';
+import withGlobalSelection from 'sentry/utils/withGlobalSelection';
+import withOrganization from 'sentry/utils/withOrganization';
+import AsyncView from 'sentry/views/asyncView';
+import {DisplayModes} from 'sentry/views/performance/transactionSummary/transactionOverview/charts';
+import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
+import {TrendChangeType, TrendView} from 'sentry/views/performance/trends/types';
 import {
   platformToPerformanceType,
   PROJECT_PERFORMANCE_TYPE,
-} from 'app/views/performance/utils';
+} from 'sentry/views/performance/utils';
 
 import {getReleaseParams, isReleaseArchived, ReleaseBounds} from '../../utils';
 import {ReleaseContext} from '..';

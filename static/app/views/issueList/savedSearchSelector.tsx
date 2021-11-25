@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 
-import DropdownButton from 'app/components/dropdownButton';
-import DropdownControl from 'app/components/dropdownControl';
-import {t} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import {Organization, SavedSearch} from 'app/types';
+import DropdownButton from 'sentry/components/dropdownButton';
+import DropdownControl from 'sentry/components/dropdownControl';
+import {t} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import {Organization, SavedSearch} from 'sentry/types';
 
 import SavedSearchMenu from './savedSearchMenu';
 

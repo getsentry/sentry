@@ -1,18 +1,18 @@
 import {Component, Fragment} from 'react';
 
-import {ModalRenderProps} from 'app/actionCreators/modal';
-import {Client} from 'app/api';
-import SentryAppExternalIssueForm from 'app/components/group/sentryAppExternalIssueForm';
-import NavTabs from 'app/components/navTabs';
-import {t, tct} from 'app/locale';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {Client} from 'sentry/api';
+import SentryAppExternalIssueForm from 'sentry/components/group/sentryAppExternalIssueForm';
+import NavTabs from 'sentry/components/navTabs';
+import {t, tct} from 'sentry/locale';
 import {
   Group,
   PlatformExternalIssue,
   SentryAppComponent,
   SentryAppInstallation,
-} from 'app/types';
-import {Event} from 'app/types/event';
-import withApi from 'app/utils/withApi';
+} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import withApi from 'sentry/utils/withApi';
 
 type Props = ModalRenderProps & {
   api: Client;

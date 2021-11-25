@@ -2,8 +2,8 @@ import '@emotion/react';
 
 import color from 'color';
 
-import CHART_PALETTE from 'app/constants/chartPalette';
-import {DataCategory} from 'app/types';
+import CHART_PALETTE from 'sentry/constants/chartPalette';
+import {DataCategory} from 'sentry/types';
 
 const lightColors = {
   black: '#1D1127',
@@ -677,12 +677,17 @@ const commonTheme = {
 };
 
 const lightAliases = generateAliases(lightColors);
+const darkAliases = generateAliases(darkColors);
 
 export const lightTheme = {
   ...commonTheme,
   ...lightColors,
   ...lightAliases,
   ...lightShadows,
+  inverted: {
+    ...darkColors,
+    ...darkAliases,
+  },
   alert: generateAlertTheme(lightColors, lightAliases),
   badge: generateBadgeTheme(lightColors),
   button: generateButtonTheme(lightColors, lightAliases),
@@ -693,13 +698,15 @@ export const lightTheme = {
   sidebarBorder: 'transparent',
 };
 
-const darkAliases = generateAliases(darkColors);
-
 export const darkTheme: Theme = {
   ...commonTheme,
   ...darkColors,
   ...darkAliases,
   ...darkShadows,
+  inverted: {
+    ...lightColors,
+    ...lightAliases,
+  },
   alert: generateAlertTheme(darkColors, darkAliases),
   badge: generateBadgeTheme(darkColors),
   button: generateButtonTheme(darkColors, darkAliases),

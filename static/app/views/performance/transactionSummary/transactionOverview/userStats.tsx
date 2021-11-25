@@ -2,20 +2,20 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import {SectionHeading} from 'app/components/charts/styles';
-import Link from 'app/components/links/link';
-import Placeholder from 'app/components/placeholder';
-import QuestionTooltip from 'app/components/questionTooltip';
-import UserMisery from 'app/components/userMisery';
-import {IconOpen} from 'app/icons';
-import {t} from 'app/locale';
-import {Organization} from 'app/types';
-import {WebVital} from 'app/utils/discover/fields';
-import {decodeScalar} from 'app/utils/queryString';
-import {getTermHelp, PERFORMANCE_TERM} from 'app/views/performance/data';
-import {vitalsRouteWithQuery} from 'app/views/performance/transactionSummary/transactionVitals/utils';
-import {SidebarSpacer} from 'app/views/performance/transactionSummary/utils';
-import VitalInfo from 'app/views/performance/vitalDetail/vitalInfo';
+import {SectionHeading} from 'sentry/components/charts/styles';
+import Link from 'sentry/components/links/link';
+import Placeholder from 'sentry/components/placeholder';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import UserMisery from 'sentry/components/userMisery';
+import {IconOpen} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {Organization} from 'sentry/types';
+import {WebVital} from 'sentry/utils/discover/fields';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
+import {vitalsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionVitals/utils';
+import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
+import VitalInfo from 'sentry/views/performance/vitalDetail/vitalInfo';
 
 type Props = {
   isLoading: boolean;

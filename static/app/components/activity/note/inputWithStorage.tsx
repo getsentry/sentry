@@ -2,10 +2,10 @@ import * as React from 'react';
 import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
 
-import NoteInput from 'app/components/activity/note/input';
-import {MentionChangeEvent} from 'app/components/activity/note/types';
-import {NoteType} from 'app/types/alerts';
-import localStorage from 'app/utils/localStorage';
+import NoteInput from 'sentry/components/activity/note/input';
+import {MentionChangeEvent} from 'sentry/components/activity/note/types';
+import {NoteType} from 'sentry/types/alerts';
+import localStorage from 'sentry/utils/localStorage';
 
 const defaultProps = {
   /**

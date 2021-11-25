@@ -2,13 +2,13 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import isNil from 'lodash/isNil';
 
-import Pill from 'app/components/pill';
-import Pills from 'app/components/pills';
-import {t} from 'app/locale';
-import {Frame, PlatformType, Project} from 'app/types';
-import {Event} from 'app/types/event';
-import {Thread} from 'app/types/events';
-import {STACK_TYPE, STACK_VIEW} from 'app/types/stacktrace';
+import Pill from 'sentry/components/pill';
+import Pills from 'sentry/components/pills';
+import {t} from 'sentry/locale';
+import {Frame, PlatformType, Project} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import {Thread} from 'sentry/types/events';
+import {STACK_TYPE, STACK_VIEW} from 'sentry/types/stacktrace';
 
 import TraceEventDataSection from '../traceEventDataSection';
 import {DisplayOption} from '../traceEventDataSection/displayOptions';

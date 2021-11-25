@@ -1,13 +1,13 @@
 import {Fragment} from 'react';
 
-import EmptyStateWarning from 'app/components/emptyStateWarning';
-import Pagination from 'app/components/pagination';
-import {Panel, PanelBody} from 'app/components/panels';
-import QueryCount from 'app/components/queryCount';
-import {t} from 'app/locale';
-import {Fingerprint} from 'app/stores/groupingStore';
-import {Group, Organization, Project} from 'app/types';
-import withOrganization from 'app/utils/withOrganization';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import Pagination from 'sentry/components/pagination';
+import {Panel, PanelBody} from 'sentry/components/panels';
+import QueryCount from 'sentry/components/queryCount';
+import {t} from 'sentry/locale';
+import {Fingerprint} from 'sentry/stores/groupingStore';
+import {Group, Organization, Project} from 'sentry/types';
+import withOrganization from 'sentry/utils/withOrganization';
 
 import MergedItem from './mergedItem';
 import MergedToolbar from './mergedToolbar';
