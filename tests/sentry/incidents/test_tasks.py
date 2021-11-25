@@ -1,4 +1,4 @@
-from unittest.mock import Mock, mock, patch
+from unittest.mock import Mock, call, patch
 
 import pytz
 from django.urls import reverse
@@ -215,10 +215,10 @@ class TestHandleSubscriptionMetricsLogger(TestCase):
         }
 
     def test(self):
-        with mock.patch("sentry.incidents.tasks.metrics") as metrics:
+        with patch("sentry.incidents.tasks.metrics") as metrics:
             handle_subscription_metrics_logger(self.build_subscription_update(), self.subscription)
             assert metrics.incr.call_args_list == [
-                mock.call(
+                call(
                     "subscriptions.result.value",
                     100,
                     tags={"project_id": self.project.id, "subscription_id": self.subscription.id},
