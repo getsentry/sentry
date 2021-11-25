@@ -6,19 +6,19 @@ import RGL, {WidthProvider} from 'react-grid-layout';
 import {InjectedRouter} from 'react-router';
 import {Location} from 'history';
 
-import {validateWidget} from 'app/actionCreators/dashboards';
-import {addErrorMessage} from 'app/actionCreators/indicator';
+import {validateWidget} from 'sentry/actionCreators/dashboards';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {
   openAddDashboardIssueWidgetModal,
   openAddDashboardWidgetModal,
-} from 'app/actionCreators/modal';
-import {loadOrganizationTags} from 'app/actionCreators/tags';
-import {Client} from 'app/api';
-import {GlobalSelection, Organization} from 'app/types';
-import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
-import withApi from 'app/utils/withApi';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from 'app/views/dashboardsV2/addWidget';
+} from 'sentry/actionCreators/modal';
+import {loadOrganizationTags} from 'sentry/actionCreators/tags';
+import {Client} from 'sentry/api';
+import {GlobalSelection, Organization} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import withApi from 'sentry/utils/withApi';
+import withGlobalSelection from 'sentry/utils/withGlobalSelection';
+import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from 'sentry/views/dashboardsV2/addWidget';
 import {
   DashboardDetails,
   DashboardWidgetSource,
@@ -26,8 +26,8 @@ import {
   MAX_WIDGETS,
   Widget,
   WidgetType,
-} from 'app/views/dashboardsV2/types';
-import {DataSet} from 'app/views/dashboardsV2/widget/utils';
+} from 'sentry/views/dashboardsV2/types';
+import {DataSet} from 'sentry/views/dashboardsV2/widget/utils';
 
 import SortableWidget from './sortableWidget';
 
