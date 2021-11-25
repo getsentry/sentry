@@ -31,7 +31,10 @@ logger = logging.getLogger(__name__)
 
 
 class DigestNotification(ProjectNotification):
+    category = "digest_email"
+    filename = "digests/body"
     message_builder = "DigestNotificationMessageBuilder"
+    type = "notify.digest"
 
     def __init__(
         self,
@@ -44,15 +47,6 @@ class DigestNotification(ProjectNotification):
         self.digest = digest
         self.target_type = target_type
         self.target_identifier = target_identifier
-
-    def get_filename(self) -> str:
-        return "digests/body"
-
-    def get_category(self) -> str:
-        return "digest_email"
-
-    def get_type(self) -> str:
-        return "notify.digest"
 
     def get_unsubscribe_key(self) -> tuple[str, int, str | None] | None:
         return "project", self.project.id, "alert_digest"

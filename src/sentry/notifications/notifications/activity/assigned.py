@@ -8,8 +8,8 @@ from .base import GroupActivityNotification
 
 
 class AssignedActivityNotification(GroupActivityNotification):
-    def get_activity_name(self) -> str:
-        return "Assigned"
+    activity_name = "Assigned"
+    category = "assigned_activity_email"
 
     def get_description(self) -> tuple[str, Mapping[str, Any], Mapping[str, Any]]:
         activity = self.activity
@@ -56,9 +56,6 @@ class AssignedActivityNotification(GroupActivityNotification):
 
         raise NotImplementedError("Unknown Assignee Type ")
 
-    def get_category(self) -> str:
-        return "assigned_activity_email"
-
     def build_notification_title(self) -> tuple[str, str]:
         activity = self.activity
         data = activity.data
@@ -67,6 +64,7 @@ class AssignedActivityNotification(GroupActivityNotification):
             author = user.name or user.email
         else:
             author = "Sentry"
+        assignee = "an unknown assignee"
 
         # legacy Activity objects from before assignable teams
         if "assigneeType" not in data or data["assigneeType"] == "user":

@@ -33,6 +33,10 @@ def get_url(organization: Organization, provider_type: str, provider_slug: str) 
 
 
 class IntegrationRequestNotification(OrganizationRequestNotification):
+    category = "integration_request"
+    filename = "requests/organization-integration"
+    type = "organization.integration.request"
+
     def __init__(
         self,
         organization: Organization,
@@ -61,20 +65,11 @@ class IntegrationRequestNotification(OrganizationRequestNotification):
             "message": self.message,
         }
 
-    def get_filename(self) -> str:
-        return "requests/organization-integration"
-
-    def get_category(self) -> str:
-        return "integration_request"
-
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
         return f"Your team member requested the {self.provider_name} integration on Sentry"
 
     def get_notification_title(self) -> str:
         return self.get_subject()
-
-    def get_type(self) -> str:
-        return "organization.integration.request"
 
     def build_attachment_title(self) -> str:
         return "Request to Install"

@@ -3,10 +3,8 @@ from .abstract_invite_request import AbstractInviteRequestNotification
 
 class JoinRequestNotification(AbstractInviteRequestNotification):
     analytics_event = "join_request.sent"
+    filename = "organization-join-request"
     referrer_base = "join_request"
-
-    def get_filename(self) -> str:
-        return "organization-join-request"
 
     def build_attachment_title(self) -> str:
         return "Request to Join"

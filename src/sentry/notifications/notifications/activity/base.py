@@ -20,6 +20,7 @@ if TYPE_CHECKING:
 
 
 class ActivityNotification(ProjectNotification, ABC):
+    filename = "activity/generic"
     fine_tuning_key = "workflow"
     metrics_key = "activity"
 
@@ -27,11 +28,12 @@ class ActivityNotification(ProjectNotification, ABC):
         super().__init__(activity.project)
         self.activity = activity
 
+    @property
+    def type(self) -> str:
+        return f"notify.activity.{self.activity.get_type_display()}"
+
     def get_title(self) -> str:
         raise NotImplementedError
-
-    def get_filename(self) -> str:
-        return "activity/generic"
 
     def get_base_context(self) -> MutableMapping[str, Any]:
         """The most basic context shared by every notification type."""
@@ -52,9 +54,6 @@ class ActivityNotification(ProjectNotification, ABC):
 
     def get_reference(self) -> Any:
         return self.activity
-
-    def get_type(self) -> str:
-        return f"notify.activity.{self.activity.get_type_display()}"
 
     def get_context(self) -> MutableMapping[str, Any]:
         raise NotImplementedError
@@ -78,14 +77,15 @@ class GroupActivityNotification(ActivityNotification, ABC):
         super().__init__(activity)
         self.group = activity.group
 
-    def get_activity_name(self) -> str:
+    @property
+    def activity_name(self) -> str:
         raise NotImplementedError
 
     def get_description(self) -> tuple[str, Mapping[str, Any], Mapping[str, Any]]:
         raise NotImplementedError
 
     def get_title(self) -> str:
-        return self.get_activity_name()
+        return self.activity_name
 
     def get_group_link(self) -> str:
         referrer = re.sub("Notification$", "Email", self.__class__.__name__)
@@ -118,7 +118,7 @@ class GroupActivityNotification(ActivityNotification, ABC):
         description, params, html_params = self.get_description()
         return {
             **self.get_base_context(),
-            "activity_name": self.get_activity_name(),
+            "activity_name": self.activity_name,
             "text_description": self.description_as_text(description, params),
             "html_description": self.description_as_html(description, html_params or params),
         }

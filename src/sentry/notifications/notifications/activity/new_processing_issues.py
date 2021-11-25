@@ -12,6 +12,9 @@ from .base import ActivityNotification
 
 
 class NewProcessingIssuesActivityNotification(ActivityNotification):
+    category = "new_processing_issues_activity_email"
+    filename = "activity/new_processing_issues"
+
     def __init__(self, activity: Activity) -> None:
         super().__init__(activity)
         self.issues = summarize_issues(self.activity.data["issues"])
@@ -49,12 +52,6 @@ class NewProcessingIssuesActivityNotification(ActivityNotification):
 
     def get_title(self) -> str:
         return self.get_subject()
-
-    def get_filename(self) -> str:
-        return "activity/new_processing_issues"
-
-    def get_category(self) -> str:
-        return "new_processing_issues_activity_email"
 
     def get_notification_title(self) -> str:
         project_url = absolute_uri(

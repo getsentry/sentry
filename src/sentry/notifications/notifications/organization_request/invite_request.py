@@ -3,10 +3,8 @@ from .abstract_invite_request import AbstractInviteRequestNotification
 
 class InviteRequestNotification(AbstractInviteRequestNotification):
     analytics_event = "invite_request.sent"
+    filename = "organization-invite-request"
     referrer_base = "invite_request"
-
-    def get_filename(self) -> str:
-        return "organization-invite-request"
 
     def build_attachment_title(self) -> str:
         return "Request to Invite"

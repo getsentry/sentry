@@ -13,6 +13,18 @@ if TYPE_CHECKING:
 
 
 class BaseNotification(abc.ABC):
+    @property
+    def category(self) -> str:
+        raise NotImplementedError
+
+    @property
+    def filename(self) -> str:
+        raise NotImplementedError
+
+    @property
+    def type(self) -> str:
+        raise NotImplementedError
+
     message_builder = "SlackNotificationsMessageBuilder"
     fine_tuning_key: str | None = None
     metrics_key: str = ""

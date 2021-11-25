@@ -26,6 +26,8 @@ from .base import ActivityNotification
 
 
 class ReleaseActivityNotification(ActivityNotification):
+    category = "release_activity_email"
+    filename = "activity/release"
     fine_tuning_key = "deploy"
 
     def __init__(self, activity: Activity) -> None:
@@ -124,12 +126,6 @@ class ReleaseActivityNotification(ActivityNotification):
         elif len(self.projects) > 1:
             projects_text = " for these projects"
         return f"Release {self.version_parsed} was deployed to {self.environment}{projects_text}"
-
-    def get_filename(self) -> str:
-        return "activity/release"
-
-    def get_category(self) -> str:
-        return "release_activity_email"
 
     def get_message_actions(self) -> Sequence[MessageAction]:
         if self.release:

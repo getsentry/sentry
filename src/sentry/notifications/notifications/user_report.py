@@ -19,6 +19,10 @@ logger = logging.getLogger(__name__)
 
 
 class UserReportNotification(ProjectNotification):
+    category = "user_report_email"
+    filename = "activity/new-user-feedback"
+    type = "notify.user-report"
+
     def __init__(self, project: Project, report: Mapping[str, Any]) -> None:
         super().__init__(project)
         self.group = Group.objects.get(id=report["issue"]["id"])
@@ -33,15 +37,6 @@ class UserReportNotification(ProjectNotification):
             for provider, data in data_by_provider.items()
             if provider in [ExternalProviders.EMAIL]
         }
-
-    def get_filename(self) -> str:
-        return "activity/new-user-feedback"
-
-    def get_category(self) -> str:
-        return "user_report_email"
-
-    def get_type(self) -> str:
-        return "notify.user-report"
 
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
         # Explicitly typing to satisfy mypy.

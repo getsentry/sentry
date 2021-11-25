@@ -9,8 +9,8 @@ from .base import GroupActivityNotification
 
 
 class RegressionActivityNotification(GroupActivityNotification):
-    def get_activity_name(self) -> str:
-        return "Regression"
+    activity_name = "Regression"
+    category = "regression_activity_email"
 
     def get_description(self) -> tuple[str, Mapping[str, Any], Mapping[str, Any]]:
         data = self.activity.data
@@ -31,9 +31,6 @@ class RegressionActivityNotification(GroupActivityNotification):
             )
 
         return "{author} marked {an issue} as a regression", {}, {}
-
-    def get_category(self) -> str:
-        return "regression_activity_email"
 
     def get_notification_title(self) -> str:
         data = self.activity.data
