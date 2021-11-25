@@ -8,6 +8,7 @@ from urllib.parse import urlparse, urlunparse
 from django.utils.html import escape
 from django.utils.safestring import SafeString, mark_safe
 
+from sentry.db.models import Model
 from sentry.notifications.helpers import get_reason_context
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.utils import send_activity_notification
@@ -52,7 +53,7 @@ class ActivityNotification(ProjectNotification, ABC):
         context = super().get_recipient_context(recipient, extra_context)
         return {**context, **get_reason_context(context)}
 
-    def get_reference(self) -> Any:
+    def get_reference(self) -> Model | None:
         return self.activity
 
     def get_context(self) -> MutableMapping[str, Any]:

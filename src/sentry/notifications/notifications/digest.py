@@ -67,9 +67,6 @@ class DigestNotification(ProjectNotification):
     def build_attachment_title(self) -> str:
         return ""
 
-    def get_reference(self) -> Any:
-        return self.project
-
     def get_context(self) -> MutableMapping[str, Any]:
         return {
             **get_digest_as_context(self.digest),

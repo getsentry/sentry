@@ -4,6 +4,7 @@ import abc
 from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Sequence
 
 from sentry import analytics
+from sentry.db.models import Model
 from sentry.notifications.utils.actions import MessageAction
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
@@ -24,6 +25,12 @@ class BaseNotification(abc.ABC):
     @property
     def type(self) -> str:
         raise NotImplementedError
+
+    def get_reference(self) -> Model | None:
+        raise NotImplementedError
+
+    def get_reply_reference(self) -> Any | None:
+        return None
 
     def get_email_template_filenames(self) -> tuple[str, str]:
         """
@@ -68,12 +75,6 @@ class BaseNotification(abc.ABC):
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
         """The subject line when sending this notifications as an email."""
         raise NotImplementedError
-
-    def get_reference(self) -> Any:
-        raise NotImplementedError
-
-    def get_reply_reference(self) -> Any | None:
-        return None
 
     def should_email(self) -> bool:
         return True
@@ -131,3 +132,6 @@ class ProjectNotification(BaseNotification, abc.ABC):
 
     def get_log_params(self, recipient: Team | User) -> Mapping[str, Any]:
         return {"project_id": self.project.id, **super().get_log_params(recipient)}
+
+    def get_reference(self) -> Model | None:
+        return self.project

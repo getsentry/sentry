@@ -48,9 +48,6 @@ class UserReportNotification(ProjectNotification):
         # This shouldn't be possible but adding a message just in case.
         return self.get_subject()
 
-    def get_reference(self) -> Any:
-        return self.project
-
     def get_context(self) -> MutableMapping[str, Any]:
         return {
             "enhanced_privacy": self.organization.flags.enhanced_privacy,

@@ -28,9 +28,6 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
         super().__init__(organization)
         self.requester = requester
 
-    def get_reference(self) -> Any:
-        return self.organization
-
     def get_context(self) -> MutableMapping[str, Any]:
         return {}
 
