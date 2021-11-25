@@ -2,7 +2,6 @@ import sys
 
 from click import echo
 from django.core.management.base import BaseCommand
-from django.utils import timezone
 
 from sentry.models import LostPasswordHash
 from sentry.utils.auth import find_users
@@ -27,9 +26,5 @@ class Command(BaseCommand):
             return
 
         for user in users:
-            password_hash, created = LostPasswordHash.objects.get_or_create(user=user)
-            if not password_hash.is_valid():
-                password_hash.date_added = timezone.now()
-                password_hash.set_hash()
-                password_hash.save()
+            password_hash = LostPasswordHash.objects.for_user(user)
             echo(f"{user.username} ({user.email}) - {password_hash.get_absolute_url()}")

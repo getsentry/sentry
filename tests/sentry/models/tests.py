@@ -1,16 +1,12 @@
 from datetime import timedelta
 
 import pytest
-from django.core import mail
-from django.http import HttpRequest
-from django.urls import reverse
 from django.utils import timezone
-from exam import fixture
 
 from sentry import eventstore, nodestore
 from sentry.db.models.fields.node import NodeIntegrityFailure
 from sentry.eventstore.models import Event
-from sentry.models import LostPasswordHash, ProjectKey
+from sentry.models import ProjectKey
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
@@ -46,30 +42,6 @@ class ProjectKeyTest(TestCase):
         team = self.create_team(name="Test")
         project = self.create_project(name="Test", teams=[team])
         assert project.key_set.exists() is True
-
-
-class LostPasswordTest(TestCase):
-    @fixture
-    def password_hash(self):
-        return LostPasswordHash.objects.create(user=self.user)
-
-    def test_send_recover_mail(self):
-        request = HttpRequest()
-        request.method = "GET"
-        request.META["REMOTE_ADDR"] = "1.1.1.1"
-
-        with self.options({"system.url-prefix": "http://testserver"}), self.tasks():
-            self.password_hash.send_email(request)
-
-        assert len(mail.outbox) == 1
-        msg = mail.outbox[0]
-        assert msg.to == [self.user.email]
-        assert msg.subject == "[Sentry] Password Recovery"
-        url = "http://testserver" + reverse(
-            "sentry-account-recover-confirm",
-            args=[self.password_hash.user_id, self.password_hash.hash],
-        )
-        assert url in msg.body
 
 
 class GroupIsOverResolveAgeTest(TestCase):
