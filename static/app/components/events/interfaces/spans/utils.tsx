@@ -615,7 +615,7 @@ export function scrollToSpan(
     // because it will be hidden behind the minimap
     e.preventDefault();
 
-    const hash = `#span-${spanId}`;
+    const hash = spanTargetHash(spanId);
 
     scrollToHash(hash);
 
@@ -628,4 +628,8 @@ export function scrollToSpan(
       hash,
     });
   };
+}
+
+export function spanTargetHash(spanId: string): string {
+  return `#span-${spanId}`;
 }

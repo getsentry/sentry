@@ -30,6 +30,7 @@ export type ChildProps = {
   organization: Organization;
   projects: Project[];
   eventView: EventView;
+  projectId: string;
   transactionName: string;
   setError: Dispatch<SetStateAction<string | undefined>>;
   // These are used to trigger a reload when the threshold/metric changes.
@@ -149,6 +150,7 @@ function PageLayout(props: Props) {
                     organization={organization}
                     projects={projects}
                     eventView={eventView}
+                    projectId={projectId}
                     transactionName={transactionName}
                     setError={setError}
                     transactionThreshold={transactionThreshold}

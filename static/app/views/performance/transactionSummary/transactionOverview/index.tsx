@@ -77,6 +77,7 @@ function OverviewContentWrapper(props: ChildProps) {
     location,
     organization,
     eventView,
+    projectId,
     transactionName,
     transactionThreshold,
     transactionThresholdMetric,
@@ -124,6 +125,7 @@ function OverviewContentWrapper(props: ChildProps) {
             location={location}
             organization={organization}
             eventView={eventView}
+            projectId={projectId}
             transactionName={transactionName}
             isLoading={isLoading}
             error={error}
