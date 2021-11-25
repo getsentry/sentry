@@ -1,4 +1,5 @@
 import {cloneElement, Component, isValidElement} from 'react';
+import type {Layout as RGLLayout} from 'react-grid-layout';
 import {browserHistory, PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
@@ -28,6 +29,7 @@ import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import GridLayoutDashboard from './gridLayout/dashboard';
+import {getDashboardLayout, saveDashboardLayout} from './gridLayout/utils';
 import Controls from './controls';
 import DnDKitDashboard from './dashboard';
 import {DEFAULT_STATS_PERIOD, EMPTY_DASHBOARD} from './data';
@@ -60,12 +62,14 @@ type State = {
   dashboardState: DashboardState;
   modifiedDashboard: DashboardDetails | null;
   widgetToBeUpdated?: Widget;
+  layout: RGLLayout[];
 };
 
 class DashboardDetail extends Component<Props, State> {
   state: State = {
     dashboardState: this.props.initialState,
     modifiedDashboard: this.updateModifiedDashboard(this.props.initialState),
+    layout: getDashboardLayout(this.props.organization.id, this.props.dashboard.id),
   };
 
   componentDidMount() {
@@ -233,7 +237,7 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   onCancel = () => {
-    const {organization, location, params} = this.props;
+    const {organization, dashboard, location, params} = this.props;
     if (params.dashboardId) {
       trackAnalyticsEvent({
         eventKey: 'dashboards2.edit.cancel',
@@ -243,6 +247,7 @@ class DashboardDetail extends Component<Props, State> {
       this.setState({
         dashboardState: DashboardState.VIEW,
         modifiedDashboard: null,
+        layout: getDashboardLayout(organization.id, dashboard.id),
       });
       return;
     }
@@ -327,6 +332,12 @@ class DashboardDetail extends Component<Props, State> {
         break;
       }
       case DashboardState.EDIT: {
+        // TODO(nar): This should only fire when there are changes to the layout
+        // and the dashboard can be successfully saved
+        if (organization.features.includes('dashboard-grid-layout')) {
+          saveDashboardLayout(organization.id, dashboard.id, this.state.layout);
+        }
+
         // only update the dashboard if there are changes
         if (modifiedDashboard) {
           if (isEqual(dashboard, modifiedDashboard)) {
@@ -392,6 +403,10 @@ class DashboardDetail extends Component<Props, State> {
 
   onSetWidgetToBeUpdated = (widget?: Widget) => {
     this.setState({widgetToBeUpdated: widget});
+  };
+
+  onLayoutChange = (layout: RGLLayout[]) => {
+    this.setState({layout});
   };
 
   onUpdateWidget = (widgets: Widget[]) => {
@@ -591,6 +606,8 @@ class DashboardDetail extends Component<Props, State> {
                   router={router}
                   location={location}
                   newWidget={newWidget}
+                  layout={this.state.layout}
+                  onLayoutChange={this.onLayoutChange}
                 />
               </Layout.Main>
             </Layout.Body>
