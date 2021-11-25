@@ -118,6 +118,7 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
                     "array_join_spans_group": "ab" * 8,
                     "count_unique_id": 1,
                     "count": 1,
+                    "equation[0]": 1,
                     "sumArray_spans_exclusive_time": 4.0,
                     "percentileArray_spans_exclusive_time_0_50": 4.0,
                     "percentileArray_spans_exclusive_time_0_75": 4.0,
@@ -131,6 +132,7 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
                     "array_join_spans_group": "cd" * 8,
                     "count_unique_id": 1,
                     "count": 2,
+                    "equation[0]": 2,
                     "sumArray_spans_exclusive_time": 6.0,
                     "percentileArray_spans_exclusive_time_0_50": 3.0,
                     "percentileArray_spans_exclusive_time_0_75": 3.0,
@@ -144,6 +146,7 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
                     "array_join_spans_group": "ef" * 8,
                     "count_unique_id": 1,
                     "count": 3,
+                    "equation[0]": 3,
                     "sumArray_spans_exclusive_time": 3.0,
                     "percentileArray_spans_exclusive_time_0_50": 1.0,
                     "percentileArray_spans_exclusive_time_0_75": 1.0,
@@ -495,7 +498,7 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
             )
         assert response.status_code == 400, response.content
         assert response.data == {
-            "detail": "Can only order by one of count, sumExclusiveTime, p50ExclusiveTime, p75ExclusiveTime, p95ExclusiveTime, p99ExclusiveTime"
+            "detail": "Can only order by one of count, avgOccurrence, sumExclusiveTime, p50ExclusiveTime, p75ExclusiveTime, p95ExclusiveTime, p99ExclusiveTime"
         }
 
     def test_sort_default(self):
@@ -643,6 +646,93 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
         # the first call is the get the suspects, and should be using the specified sort
         assert mock_raw_snql_query.call_args_list[0][0][0].orderby == [
             OrderBy(exp=Function("count", [], "count"), direction=Direction.DESC),
+            OrderBy(
+                exp=Function(
+                    "sum",
+                    [Function("arrayJoin", [Column("spans.exclusive_time")])],
+                    "sumArray_spans_exclusive_time",
+                ),
+                direction=Direction.DESC,
+            ),
+        ]
+        assert (
+            mock_raw_snql_query.call_args_list[0][0][1]
+            == "api.organization-events-spans-performance-suspects"
+        )
+
+        # the second call is the get the examples, and should also be using the specified sort
+        assert mock_raw_snql_query.call_args_list[1][0][0].orderby == [
+            OrderBy(exp=Function("count", [], "count"), direction=Direction.DESC),
+            OrderBy(
+                exp=Function(
+                    "sum",
+                    [Function("arrayJoin", [Column("spans.exclusive_time")])],
+                    "sumArray_spans_exclusive_time",
+                ),
+                direction=Direction.DESC,
+            ),
+        ]
+        assert (
+            mock_raw_snql_query.call_args_list[1][0][1]
+            == "api.organization-events-spans-performance-examples"
+        )
+
+    @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
+    def test_sort_avg_occurrence(self, mock_raw_snql_query):
+        event = self.create_event()
+
+        mock_raw_snql_query.side_effect = [
+            {
+                "data": [
+                    self.suspect_span_group_snuba_results("django.view", event),
+                    self.suspect_span_group_snuba_results("django.middleware", event),
+                    self.suspect_span_group_snuba_results("http.server", event),
+                ],
+            },
+            {
+                "data": [
+                    self.suspect_span_examples_snuba_results("django.view", event),
+                    self.suspect_span_examples_snuba_results("django.middleware", event),
+                    self.suspect_span_examples_snuba_results("http.server", event),
+                ],
+            },
+        ]
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={
+                    "project": self.project.id,
+                    "sort": "-avgOccurrence",
+                },
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+        self.assert_suspect_span(
+            response.data,
+            [
+                self.suspect_span_results("django.view", event),
+                self.suspect_span_results("django.middleware", event),
+                self.suspect_span_results("http.server", event),
+            ],
+        )
+
+        assert mock_raw_snql_query.call_count == 2
+
+        # the first call is the get the suspects, and should be using the specified sort
+        assert mock_raw_snql_query.call_args_list[0][0][0].orderby == [
+            OrderBy(
+                exp=Function(
+                    "divide",
+                    [
+                        Function("count", [], "count"),
+                        Function("uniq", [Column("event_id")], "count_unique_id"),
+                    ],
+                    "equation[0]",
+                ),
+                direction=Direction.DESC,
+            ),
             OrderBy(
                 exp=Function(
                     "sum",
