@@ -62,10 +62,8 @@ type Props = {
   onSetWidgetToBeUpdated: (widget: Widget) => void;
   paramDashboardId?: string;
   newWidget?: Widget;
-
-  // TODO(nar): optional to maintain compatiblity with old dashboard types
-  layout?: Layout[];
-  onLayoutChange?: (layout: Layout[]) => void;
+  layout: Layout[];
+  onLayoutChange: (layout: Layout[]) => void;
 };
 
 class Dashboard extends Component<Props> {
@@ -251,7 +249,8 @@ class Dashboard extends Component<Props> {
         draggableHandle={`.${DRAG_HANDLE_CLASS}`}
         layout={layout}
         onLayoutChange={newLayout =>
-          onLayoutChange!(newLayout.filter(({i}) => i !== ADD_WIDGET_BUTTON_DRAG_ID))
+          // Don't store the add button in layouts
+          onLayoutChange(newLayout.filter(({i}) => i !== ADD_WIDGET_BUTTON_DRAG_ID))
         }
         isDraggable={isEditing}
         isResizable={isEditing}

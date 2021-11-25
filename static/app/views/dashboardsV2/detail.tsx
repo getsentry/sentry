@@ -485,12 +485,19 @@ class DashboardDetail extends Component<Props, State> {
 
   renderDefaultDashboardDetail() {
     const {organization, dashboard, dashboards, params, router, location} = this.props;
-    const {modifiedDashboard, dashboardState} = this.state;
+    const {layout, modifiedDashboard, dashboardState} = this.state;
     const {dashboardId} = params;
 
-    const Dashboard = organization.features.includes('dashboard-grid-layout')
-      ? GridLayoutDashboard
-      : DnDKitDashboard;
+    const dashboardProps = {
+      paramDashboardId: dashboardId,
+      dashboard: modifiedDashboard ?? dashboard,
+      organization,
+      isEditing: this.isEditing,
+      onUpdate: this.onUpdateWidget,
+      onSetWidgetToBeUpdated: this.onSetWidgetToBeUpdated,
+      router,
+      location,
+    };
 
     return (
       <GlobalSelectionHeader
@@ -525,16 +532,15 @@ class DashboardDetail extends Component<Props, State> {
               />
             </StyledPageHeader>
             <HookHeader organization={organization} />
-            <Dashboard
-              paramDashboardId={dashboardId}
-              dashboard={modifiedDashboard ?? dashboard}
-              organization={organization}
-              isEditing={this.isEditing}
-              onUpdate={this.onUpdateWidget}
-              onSetWidgetToBeUpdated={this.onSetWidgetToBeUpdated}
-              router={router}
-              location={location}
-            />
+            {organization.features.includes('dashboard-grid-layout') ? (
+              <GridLayoutDashboard
+                {...dashboardProps}
+                layout={layout}
+                onLayoutChange={this.onLayoutChange}
+              />
+            ) : (
+              <DnDKitDashboard {...dashboardProps} />
+            )}
           </NoProjectMessage>
         </PageContent>
       </GlobalSelectionHeader>
@@ -544,12 +550,20 @@ class DashboardDetail extends Component<Props, State> {
   renderDashboardDetail() {
     const {organization, dashboard, dashboards, params, router, location, newWidget} =
       this.props;
-    const {modifiedDashboard, dashboardState} = this.state;
+    const {layout, modifiedDashboard, dashboardState} = this.state;
     const {dashboardId} = params;
 
-    const Dashboard = organization.features.includes('dashboard-grid-layout')
-      ? GridLayoutDashboard
-      : DnDKitDashboard;
+    const dashboardProps = {
+      paramDashboardId: dashboardId,
+      dashboard: modifiedDashboard ?? dashboard,
+      organization,
+      isEditing: this.isEditing,
+      onUpdate: this.onUpdateWidget,
+      onSetWidgetToBeUpdated: this.onSetWidgetToBeUpdated,
+      router,
+      location,
+      newWidget,
+    };
 
     return (
       <GlobalSelectionHeader
@@ -608,19 +622,15 @@ class DashboardDetail extends Component<Props, State> {
             </Layout.Header>
             <Layout.Body>
               <Layout.Main fullWidth>
-                <Dashboard
-                  paramDashboardId={dashboardId}
-                  dashboard={modifiedDashboard ?? dashboard}
-                  organization={organization}
-                  isEditing={this.isEditing}
-                  onUpdate={this.onUpdateWidget}
-                  onSetWidgetToBeUpdated={this.onSetWidgetToBeUpdated}
-                  router={router}
-                  location={location}
-                  newWidget={newWidget}
-                  layout={this.state.layout}
-                  onLayoutChange={this.onLayoutChange}
-                />
+                {organization.features.includes('dashboard-grid-layout') ? (
+                  <GridLayoutDashboard
+                    {...dashboardProps}
+                    layout={layout}
+                    onLayoutChange={this.onLayoutChange}
+                  />
+                ) : (
+                  <DnDKitDashboard {...dashboardProps} />
+                )}
               </Layout.Main>
             </Layout.Body>
           </NoProjectMessage>
