@@ -9,8 +9,9 @@ import {IconChevron, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {inputStyles} from 'sentry/styles/input';
 import space from 'sentry/styles/space';
+import {MetricTag} from 'sentry/types/metrics';
 
-import {MetricQuery, MetricTag} from './types';
+import {MetricQuery} from './types';
 
 type Props = {
   onChange: (groupBy: MetricQuery['groupBy']) => void;
