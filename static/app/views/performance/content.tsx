@@ -83,7 +83,7 @@ function PerformanceContent({selection, location, demoMode}: Props) {
       loadOrganizationTags(api, organization.slug, selection);
       addRoutePerformanceContext(selection);
     }
-  }, [previousDateTime, selection.datetime]);
+  }, [selection.datetime]);
 
   const {eventView, error} = state;
 
