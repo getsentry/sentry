@@ -333,6 +333,7 @@ class DashboardDetail extends Component<Props, State> {
       }
       case DashboardState.EDIT: {
         // TODO(nar): This should only fire when there are changes to the layout
+        // and the dashboard can be successfully saved
         if (organization.features.includes('dashboard-grid-layout')) {
           saveDashboardLayout(organization.id, dashboard.id, this.state.layout);
         }
