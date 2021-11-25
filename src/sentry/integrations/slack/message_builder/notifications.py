@@ -8,7 +8,7 @@ from sentry.integrations.slack.message_builder import SlackBody
 from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
 from sentry.models import Team, User
-from sentry.notifications.notifications.base import BaseNotification, ProjectNotification
+from sentry.notifications.notifications.base import OrganizationNotification, ProjectNotification
 from sentry.notifications.notifications.digest import DigestNotification
 from sentry.utils import json
 
@@ -25,7 +25,7 @@ def get_message_builder(klass: str) -> type[SlackNotificationsMessageBuilder]:
 class SlackNotificationsMessageBuilder(SlackMessageBuilder):
     def __init__(
         self,
-        notification: BaseNotification,
+        notification: OrganizationNotification,
         context: Mapping[str, Any],
         recipient: Team | User,
     ) -> None:

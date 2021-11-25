@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequen
 
 from sentry import analytics, features, roles
 from sentry.models import NotificationSetting, OrganizationMember, Team
-from sentry.notifications.notifications.base import BaseNotification
+from sentry.notifications.notifications.base import OrganizationNotification
 from sentry.notifications.notify import notification_providers
 from sentry.notifications.types import NotificationSettingTypes
 from sentry.notifications.utils.actions import MessageAction
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class OrganizationRequestNotification(BaseNotification, abc.ABC):
+class OrganizationRequestNotification(OrganizationNotification, abc.ABC):
     analytics_event: str = ""
     referrer_base: str = ""
     member_by_user_id: MutableMapping[int, OrganizationMember] = {}

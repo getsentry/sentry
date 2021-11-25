@@ -56,9 +56,6 @@ class ActivityNotification(ProjectNotification, ABC):
     def get_reference(self) -> Model | None:
         return self.activity
 
-    def get_context(self) -> MutableMapping[str, Any]:
-        raise NotImplementedError
-
     def get_participants_with_group_subscription_reason(
         self,
     ) -> Mapping[ExternalProviders, Mapping[Team | User, int]]:

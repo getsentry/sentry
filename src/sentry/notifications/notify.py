@@ -43,7 +43,7 @@ def register_notification_provider(
 
 def notify(
     provider: ExternalProviders,
-    notification: Any,
+    notification: BaseNotification,
     recipients: Iterable[Team | User],
     shared_context: Mapping[str, Any],
     extra_context_by_actor_id: Mapping[int, Mapping[str, Any]] | None = None,

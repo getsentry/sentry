@@ -20,7 +20,7 @@ from sentry.models import (
     Team,
     User,
 )
-from sentry.notifications.notifications.base import BaseNotification, ProjectNotification
+from sentry.notifications.notifications.base import OrganizationNotification, ProjectNotification
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.utils.actions import MessageAction
 from sentry.utils import json
@@ -271,7 +271,7 @@ def get_title_link(
     event: Event | None,
     link_to_event: bool,
     issue_details: bool,
-    notification: BaseNotification | None,
+    notification: OrganizationNotification | None,
 ) -> str:
     if event and link_to_event:
         url = group.get_absolute_url(params={"referrer": "slack"}, event_id=event.event_id)
@@ -293,7 +293,7 @@ def get_timestamp(group: Group, event: Event | None) -> float:
     return to_timestamp(max(ts, event.datetime) if event else ts)
 
 
-def get_color(event_for_tags: Event | None, notification: BaseNotification | None) -> str:
+def get_color(event_for_tags: Event | None, notification: OrganizationNotification | None) -> str:
     if notification:
         if not isinstance(notification, AlertRuleNotification):
             return "info"

@@ -26,10 +26,29 @@ class BaseNotification(abc.ABC):
     def type(self) -> str:
         raise NotImplementedError
 
+    def get_context(self) -> MutableMapping[str, Any]:
+        raise NotImplementedError
+
+    def get_log_params(self, recipient: Team | User) -> Mapping[str, Any]:
+        return {"actor_id": recipient.actor_id}
+
+    def get_recipient_context(
+        self, recipient: Team | User, extra_context: Mapping[str, Any]
+    ) -> MutableMapping[str, Any]:
+        # Basically a noop.
+        return {**extra_context}
+
     def get_reference(self) -> Model | None:
         raise NotImplementedError
 
     def get_reply_reference(self) -> Any | None:
+        return None
+
+    def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
+        """The subject line when sending this notifications as an email."""
+        raise NotImplementedError
+
+    def get_unsubscribe_key(self) -> tuple[str, int, str | None] | None:
         return None
 
     def get_email_template_filenames(self) -> tuple[str, str]:
@@ -46,6 +65,8 @@ class BaseNotification(abc.ABC):
             **self.get_log_params(recipient),
         )
 
+
+class OrganizationNotification(BaseNotification):
     message_builder = "SlackNotificationsMessageBuilder"
     fine_tuning_key: str | None = None
     metrics_key: str = ""
@@ -63,27 +84,11 @@ class BaseNotification(abc.ABC):
         name: str = self.organization.name
         return name
 
-    def get_filename(self) -> str:
-        raise NotImplementedError
-
-    def get_category(self) -> str:
-        raise NotImplementedError
-
     def get_base_context(self) -> MutableMapping[str, Any]:
         return {}
 
-    def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
-        """The subject line when sending this notifications as an email."""
-        raise NotImplementedError
-
     def should_email(self) -> bool:
         return True
-
-    def get_recipient_context(
-        self, recipient: Team | User, extra_context: Mapping[str, Any]
-    ) -> MutableMapping[str, Any]:
-        # Basically a noop.
-        return {**extra_context}
 
     def get_notification_title(self) -> str:
         raise NotImplementedError
@@ -103,12 +108,8 @@ class BaseNotification(abc.ABC):
         context = getattr(self, "context", None)
         return context["text_description"] if context else None
 
-    def get_type(self) -> str:
-        raise NotImplementedError
-
-    def get_unsubscribe_key(self) -> tuple[str, int, str | None] | None:
-        return None
-
+    def get_reference(self) -> Model | None:
+        return self.organization
 
     def get_log_params(self, recipient: Team | User) -> Mapping[str, Any]:
         return {"organization_id": self.organization.id, **super().get_log_params(recipient)}
@@ -120,7 +121,7 @@ class BaseNotification(abc.ABC):
         return None
 
 
-class ProjectNotification(BaseNotification, abc.ABC):
+class ProjectNotification(OrganizationNotification, abc.ABC):
     def __init__(self, project: Project) -> None:
         self.project = project
         super().__init__(project.organization)

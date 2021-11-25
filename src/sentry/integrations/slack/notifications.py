@@ -10,7 +10,7 @@ from sentry.integrations.slack.message_builder import SlackBody
 from sentry.integrations.slack.message_builder.notifications import get_message_builder
 from sentry.integrations.slack.tasks import post_message
 from sentry.models import ExternalActor, Identity, Integration, Organization, Team, User
-from sentry.notifications.notifications.base import BaseNotification
+from sentry.notifications.notifications.base import BaseNotification, OrganizationNotification
 from sentry.notifications.notify import register_notification_provider
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
@@ -40,7 +40,7 @@ class SlackNotifyBasicMixin(NotifyBasicMixin):  # type: ignore
 
 
 def get_attachments(
-    notification: BaseNotification,
+    notification: OrganizationNotification,
     recipient: Team | User,
     context: Mapping[str, Any],
 ) -> SlackBody:
@@ -52,7 +52,7 @@ def get_attachments(
 
 
 def get_context(
-    notification: BaseNotification,
+    notification: OrganizationNotification,
     recipient: Team | User,
     shared_context: Mapping[str, Any],
     extra_context: Mapping[str, Any],
@@ -150,6 +150,10 @@ def send_notification_as_slack(
     extra_context_by_actor_id: Mapping[int, Mapping[str, Any]] | None,
 ) -> None:
     """Send an "activity" or "alert rule" notification to a Slack user or team."""
+    if not isinstance(notification, OrganizationNotification):
+        # TODO(mgaeta): We cannot determine the Slack workspace without an organization.
+        return
+
     data = get_channel_and_token_by_recipient(notification.organization, recipients)
 
     for recipient, tokens_by_channel in data.items():
