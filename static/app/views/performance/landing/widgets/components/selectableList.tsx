@@ -55,6 +55,9 @@ function SelectableItem({
 
 export const RightAlignedCell = styled('div')`
   text-align: right;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 `;
 
 export const Subtitle = styled('span')`
@@ -75,17 +78,23 @@ export function ListClose(props: {
 }) {
   return (
     <CloseContainer>
-      <Tooltip title={t('Exclude this transaction from the search filter.')}>
+      <StyledTooltip title={t('Exclude this transaction from the search filter.')}>
         <StyledIconClose
           onClick={() => {
             props.onClick();
             props.setSelectListIndex(0);
           }}
         />
-      </Tooltip>
+      </StyledTooltip>
     </CloseContainer>
   );
 }
+
+const StyledTooltip = styled(Tooltip)`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
 
 const CloseContainer = styled('div')`
   display: flex;

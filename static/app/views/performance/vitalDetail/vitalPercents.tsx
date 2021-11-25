@@ -17,6 +17,7 @@ type Props = {
   vital: WebVital | WebVital[];
   percents: Percent[];
   showVitalPercentNames?: boolean;
+  hideTooltips?: boolean;
 };
 
 function getVitalStateText(vital: WebVital | WebVital[], vitalState) {
@@ -47,6 +48,7 @@ export default function VitalPercents(props: Props) {
           <Tooltip
             key={pct.vitalState}
             title={getVitalStateText(props.vital, pct.vitalState)}
+            disabled={props.hideTooltips}
           >
             <VitalStatus>
               {vitalStateIcons[pct.vitalState]}
