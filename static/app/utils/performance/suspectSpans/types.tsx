@@ -22,6 +22,7 @@ export type SuspectSpan = {
   group: string;
   frequency: number;
   count: number;
+  avgOccurrences: number;
   sumExclusiveTime: number;
   p50ExclusiveTime: number;
   p75ExclusiveTime: number;
