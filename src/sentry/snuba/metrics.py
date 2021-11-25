@@ -420,7 +420,7 @@ class IndexMockingDataSource(DataSource):
         except KeyError:
             raise InvalidParams()
 
-        return MetricMetaWithTagKeys(
+        return dict(
             name=metric_name,
             **{
                 # Only return tag names
@@ -907,16 +907,16 @@ class MetaFromSnuba:
             )
             if data:
                 tag_ids = {tag_id for row in data for tag_id in row["tags.key"]}
-                return MetricMetaWithTagKeys(
-                    name=metric_name,
-                    type=metric_type,
-                    operations=_AVAILABLE_OPERATIONS[entity_key.value],
-                    tags=sorted(
-                        (Tag(key=reverse_resolve(tag_id)) for tag_id in tag_ids),
+                return {
+                    "name": metric_name,
+                    "type": metric_type,
+                    "operations": _AVAILABLE_OPERATIONS[entity_key.value],
+                    "tags": sorted(
+                        ({"key": reverse_resolve(tag_id)} for tag_id in tag_ids),
                         key=itemgetter("key"),
                     ),
-                    unit=None,
-                )
+                    "unit": None,
+                }
 
         raise InvalidParams
 
