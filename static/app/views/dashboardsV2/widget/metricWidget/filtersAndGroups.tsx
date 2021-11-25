@@ -2,8 +2,7 @@ import styled from '@emotion/styled';
 
 import {Client} from 'sentry/api';
 import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
-import {MetricTag} from 'sentry/types/metrics';
+import {MetricTag, Organization, Project} from 'sentry/types';
 
 import GroupByField from './groupByField';
 import SearchQueryField from './searchQueryField';

@@ -6,9 +6,8 @@ import {addErrorMessage} from 'app/actionCreators/indicator';
 import SmartSearchBar from 'app/components/smartSearchBar';
 import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'app/constants';
 import {t} from 'app/locale';
-import {Organization, Tag} from 'app/types';
+import {MetricTag, MetricTagValue, Organization, Tag} from 'app/types';
 import useApi from 'app/utils/useApi';
-import {MetricTag, MetricTagValue} from 'sentry/types/metrics';
 
 const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   `^${NEGATION_OPERATOR}|\\${SEARCH_WILDCARD}`,

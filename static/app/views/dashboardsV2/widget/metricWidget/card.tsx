@@ -10,8 +10,7 @@ import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
-import {GlobalSelection, Organization, Project} from 'sentry/types';
-import {MetricQuery} from 'sentry/types/metrics';
+import {GlobalSelection, MetricQuery, Organization, Project} from 'sentry/types';
 
 import {DisplayType} from '../utils';
 
