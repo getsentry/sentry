@@ -1,14 +1,14 @@
 import * as Sentry from '@sentry/react';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {setActiveOrganization} from 'app/actionCreators/organizations';
-import GlobalSelectionActions from 'app/actions/globalSelectionActions';
-import OrganizationActions from 'app/actions/organizationActions';
-import ProjectActions from 'app/actions/projectActions';
-import TeamActions from 'app/actions/teamActions';
-import {Client} from 'app/api';
-import {Organization, Project, Team} from 'app/types';
-import {getPreloadedDataPromise} from 'app/utils/getPreloadedData';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {setActiveOrganization} from 'sentry/actionCreators/organizations';
+import GlobalSelectionActions from 'sentry/actions/globalSelectionActions';
+import OrganizationActions from 'sentry/actions/organizationActions';
+import ProjectActions from 'sentry/actions/projectActions';
+import TeamActions from 'sentry/actions/teamActions';
+import {Client} from 'sentry/api';
+import {Organization, Project, Team} from 'sentry/types';
+import {getPreloadedDataPromise} from 'sentry/utils/getPreloadedData';
 
 async function fetchOrg(
   api: Client,

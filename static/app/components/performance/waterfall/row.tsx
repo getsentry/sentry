@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-import {ROW_HEIGHT} from 'app/components/performance/waterfall/constants';
-import {getBackgroundColor} from 'app/components/performance/waterfall/utils';
-import {OmitHtmlDivProps} from 'app/utils';
+import {ROW_HEIGHT} from 'sentry/components/performance/waterfall/constants';
+import {getBackgroundColor} from 'sentry/components/performance/waterfall/utils';
+import {OmitHtmlDivProps} from 'sentry/utils';
 
 type RowProps = {
   cursor?: 'pointer' | 'default';

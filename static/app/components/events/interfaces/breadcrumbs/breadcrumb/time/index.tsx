@@ -1,10 +1,10 @@
 import {memo} from 'react';
 import styled from '@emotion/styled';
 
-import Highlight from 'app/components/highlight';
-import Tooltip from 'app/components/tooltip';
-import {defined} from 'app/utils';
-import getDynamicText from 'app/utils/getDynamicText';
+import Highlight from 'sentry/components/highlight';
+import Tooltip from 'sentry/components/tooltip';
+import {defined} from 'sentry/utils';
+import getDynamicText from 'sentry/utils/getDynamicText';
 
 import {getFormattedTimestamp} from './utils';
 

@@ -5,26 +5,26 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import Alert from 'app/components/alert';
-import AsyncComponent from 'app/components/asyncComponent';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import NotAvailable from 'app/components/notAvailable';
-import {PanelItem} from 'app/components/panels';
-import PanelTable from 'app/components/panels/panelTable';
-import {IconArrow, IconWarning} from 'app/icons';
-import {t, tct} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {Organization, ReleaseProject} from 'app/types';
-import DiscoverQuery, {TableData} from 'app/utils/discover/discoverQuery';
-import EventView from 'app/utils/discover/eventView';
-import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
-import {MobileVital, WebVital} from 'app/utils/discover/fields';
+import Alert from 'sentry/components/alert';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import NotAvailable from 'sentry/components/notAvailable';
+import {PanelItem} from 'sentry/components/panels';
+import PanelTable from 'sentry/components/panels/panelTable';
+import {IconArrow, IconWarning} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {Organization, ReleaseProject} from 'sentry/types';
+import DiscoverQuery, {TableData} from 'sentry/utils/discover/discoverQuery';
+import EventView from 'sentry/utils/discover/eventView';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {MobileVital, WebVital} from 'sentry/utils/discover/fields';
 import {
   MOBILE_VITAL_DETAILS,
   WEB_VITAL_DETAILS,
-} from 'app/utils/performance/vitals/constants';
-import {PROJECT_PERFORMANCE_TYPE} from 'app/views/performance/utils';
+} from 'sentry/utils/performance/vitals/constants';
+import {PROJECT_PERFORMANCE_TYPE} from 'sentry/views/performance/utils';
 
 type PerformanceCardTableProps = {
   organization: Organization;

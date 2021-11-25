@@ -1,5 +1,5 @@
-import {Client, Request} from 'app/api';
-import parseLinkHeader from 'app/utils/parseLinkHeader';
+import {Client, Request} from 'sentry/api';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 
 type Options = {
   endpoint: string;

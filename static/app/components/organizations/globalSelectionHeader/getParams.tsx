@@ -1,8 +1,8 @@
 import moment from 'moment';
 
-import {DEFAULT_STATS_PERIOD} from 'app/constants';
-import {IntervalPeriod} from 'app/types';
-import {defined} from 'app/utils';
+import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
+import {IntervalPeriod} from 'sentry/types';
+import {defined} from 'sentry/utils';
 
 export type StatsPeriodType = 'h' | 'd' | 's' | 'm' | 'w';
 

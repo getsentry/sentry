@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
-import NotAvailable from 'app/components/notAvailable';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Image} from 'app/types/debugImage';
+import NotAvailable from 'sentry/components/notAvailable';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Image} from 'sentry/types/debugImage';
 
 import Processings from '../debugImage/processings';
 import {getImageAddress} from '../utils';

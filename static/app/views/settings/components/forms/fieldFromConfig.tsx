@@ -1,6 +1,6 @@
 import {Component} from 'react';
 
-import {Scope} from 'app/types';
+import {Scope} from 'sentry/types';
 
 import BlankField from './blankField';
 import BooleanField from './booleanField';

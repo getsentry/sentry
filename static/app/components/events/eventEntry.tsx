@@ -1,22 +1,22 @@
 import * as React from 'react';
 
-import Breadcrumbs from 'app/components/events/interfaces/breadcrumbs';
-import Csp from 'app/components/events/interfaces/csp';
-import DebugMeta from 'app/components/events/interfaces/debugMeta';
-import DebugMetaV2 from 'app/components/events/interfaces/debugMeta-v2';
-import Exception from 'app/components/events/interfaces/exception';
-import ExceptionV2 from 'app/components/events/interfaces/exceptionV2';
-import Generic from 'app/components/events/interfaces/generic';
-import Message from 'app/components/events/interfaces/message';
-import Request from 'app/components/events/interfaces/request';
-import Spans from 'app/components/events/interfaces/spans';
-import StackTrace from 'app/components/events/interfaces/stackTrace';
-import StackTraceV2 from 'app/components/events/interfaces/stackTraceV2';
-import Template from 'app/components/events/interfaces/template';
-import Threads from 'app/components/events/interfaces/threads';
-import ThreadsV2 from 'app/components/events/interfaces/threadsV2';
-import {Group, Organization, Project, SharedViewOrganization} from 'app/types';
-import {Entry, EntryType, Event, EventTransaction} from 'app/types/event';
+import Breadcrumbs from 'sentry/components/events/interfaces/breadcrumbs';
+import Csp from 'sentry/components/events/interfaces/csp';
+import DebugMeta from 'sentry/components/events/interfaces/debugMeta';
+import DebugMetaV2 from 'sentry/components/events/interfaces/debugMeta-v2';
+import Exception from 'sentry/components/events/interfaces/exception';
+import ExceptionV2 from 'sentry/components/events/interfaces/exceptionV2';
+import Generic from 'sentry/components/events/interfaces/generic';
+import Message from 'sentry/components/events/interfaces/message';
+import Request from 'sentry/components/events/interfaces/request';
+import Spans from 'sentry/components/events/interfaces/spans';
+import StackTrace from 'sentry/components/events/interfaces/stackTrace';
+import StackTraceV2 from 'sentry/components/events/interfaces/stackTraceV2';
+import Template from 'sentry/components/events/interfaces/template';
+import Threads from 'sentry/components/events/interfaces/threads';
+import ThreadsV2 from 'sentry/components/events/interfaces/threadsV2';
+import {Group, Organization, Project, SharedViewOrganization} from 'sentry/types';
+import {Entry, EntryType, Event, EventTransaction} from 'sentry/types/event';
 
 type Props = Pick<React.ComponentProps<typeof Breadcrumbs>, 'route' | 'router'> & {
   entry: Entry;

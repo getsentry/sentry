@@ -1,25 +1,25 @@
 import {browserHistory} from 'react-router';
 import {Location, LocationDescriptor, Query} from 'history';
 
-import Duration from 'app/components/duration';
-import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
-import {backend, frontend, mobile} from 'app/data/platformCategories';
+import Duration from 'sentry/components/duration';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/globalSelectionHeader';
+import {backend, frontend, mobile} from 'sentry/data/platformCategories';
 import {
   GlobalSelection,
   Organization,
   OrganizationSummary,
   Project,
   ReleaseProject,
-} from 'app/types';
-import {defined} from 'app/utils';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {statsPeriodToDays} from 'app/utils/dates';
-import EventView from 'app/utils/discover/eventView';
-import {TRACING_FIELDS} from 'app/utils/discover/fields';
-import {getDuration} from 'app/utils/formatters';
-import getCurrentSentryReactTransaction from 'app/utils/getCurrentSentryReactTransaction';
-import {decodeScalar} from 'app/utils/queryString';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
+} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {statsPeriodToDays} from 'sentry/utils/dates';
+import EventView from 'sentry/utils/discover/eventView';
+import {TRACING_FIELDS} from 'sentry/utils/discover/fields';
+import {getDuration} from 'sentry/utils/formatters';
+import getCurrentSentryReactTransaction from 'sentry/utils/getCurrentSentryReactTransaction';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 import {DEFAULT_MAX_DURATION} from './trends/utils';
 

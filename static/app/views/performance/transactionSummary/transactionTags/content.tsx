@@ -3,22 +3,22 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import {SectionHeading} from 'app/components/charts/styles';
-import SearchBar from 'app/components/events/searchBar';
-import * as Layout from 'app/components/layouts/thirds';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import QuestionTooltip from 'app/components/questionTooltip';
-import Radio from 'app/components/radio';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
+import {SectionHeading} from 'sentry/components/charts/styles';
+import SearchBar from 'sentry/components/events/searchBar';
+import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import Radio from 'sentry/components/radio';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
 import SegmentExplorerQuery, {
   TableData,
-} from 'app/utils/performance/segmentExplorer/segmentExplorerQuery';
-import {decodeScalar} from 'app/utils/queryString';
-import {SidebarSpacer} from 'app/views/performance/transactionSummary/utils';
+} from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 
 import {SpanOperationBreakdownFilter} from '../filter';
 import {getTransactionField} from '../transactionOverview/tagExplorer';

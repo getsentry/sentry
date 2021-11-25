@@ -1,5 +1,5 @@
-import {t} from 'app/locale';
-import {ChunkType} from 'app/types';
+import {t} from 'sentry/locale';
+import {ChunkType} from 'sentry/types';
 
 const REMARKS = {
   a: 'Annotated',

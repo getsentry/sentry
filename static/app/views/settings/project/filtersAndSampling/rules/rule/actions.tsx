@@ -1,14 +1,14 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import MenuItemActionLink from 'app/components/actions/menuItemActionLink';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import Confirm from 'app/components/confirm';
-import DropdownLink from 'app/components/dropdownLink';
-import Tooltip from 'app/components/tooltip';
-import {IconDelete, IconDownload, IconEdit, IconEllipsis} from 'app/icons';
-import {t} from 'app/locale';
+import MenuItemActionLink from 'sentry/components/actions/menuItemActionLink';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import Confirm from 'sentry/components/confirm';
+import DropdownLink from 'sentry/components/dropdownLink';
+import Tooltip from 'sentry/components/tooltip';
+import {IconDelete, IconDownload, IconEdit, IconEllipsis} from 'sentry/icons';
+import {t} from 'sentry/locale';
 
 const deleteRuleConfirmMessage = t(
   'Are you sure you wish to delete this dynamic sampling rule?'

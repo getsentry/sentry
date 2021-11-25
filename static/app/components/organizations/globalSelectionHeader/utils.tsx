@@ -8,11 +8,11 @@ import {
   DATE_TIME_KEYS,
   LOCAL_STORAGE_KEY,
   URL_PARAM,
-} from 'app/constants/globalSelectionHeader';
-import {GlobalSelection} from 'app/types';
-import {defined} from 'app/utils';
-import {getUtcToLocalDateObject} from 'app/utils/dates';
-import localStorage from 'app/utils/localStorage';
+} from 'sentry/constants/globalSelectionHeader';
+import {GlobalSelection} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import {getUtcToLocalDateObject} from 'sentry/utils/dates';
+import localStorage from 'sentry/utils/localStorage';
 
 import {getParams} from './getParams';
 
