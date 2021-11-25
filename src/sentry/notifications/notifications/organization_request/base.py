@@ -9,6 +9,7 @@ from sentry.models import NotificationSetting, OrganizationMember, Team
 from sentry.notifications.notifications.base import OrganizationNotification
 from sentry.notifications.notify import notification_providers
 from sentry.notifications.types import NotificationSettingTypes
+from sentry.notifications.utils import send_base_notification
 from sentry.notifications.utils.actions import MessageAction
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 
@@ -70,16 +71,9 @@ class OrganizationRequestNotification(OrganizationNotification, abc.ABC):
         }
 
     def send(self) -> None:
-        from sentry.notifications.notify import notify
-
-        participants_by_provider = self.get_participants()
-        if not participants_by_provider:
-            return
-
-        context = self.get_context()
-        for provider, recipients in participants_by_provider.items():
-            # TODO: use safe_execute
-            notify(provider, self, recipients, context)
+        return send_base_notification(
+            notification=self, participants_by_provider=self.get_participants()
+        )
 
     def get_member(self, user: User) -> OrganizationMember:
         # cache the result

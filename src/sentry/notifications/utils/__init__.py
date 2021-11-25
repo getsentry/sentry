@@ -26,11 +26,14 @@ from sentry.models import (
     ReleaseCommit,
     Repository,
     Rule,
+    Team,
     User,
     UserEmail,
 )
+from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notify import notify
 from sentry.notifications.utils.participants import split_participants_and_context
+from sentry.types.integrations import ExternalProviders
 from sentry.utils.committers import get_serialized_event_file_committers
 from sentry.utils.http import absolute_uri
 
@@ -246,6 +249,20 @@ def get_interface_list(event: Event) -> Sequence[tuple[str, str, str]]:
         text_body = interface.to_string(event)
         interface_list.append((interface.get_title(), mark_safe(body), text_body))
     return interface_list
+
+
+def send_base_notification(
+    notification: BaseNotification,
+    participants_by_provider: Mapping[ExternalProviders, Iterable[Team | User]],
+) -> None:
+    from sentry.notifications.notify import notify
+
+    if not participants_by_provider:
+        return
+
+    context = notification.get_context()
+    for provider, recipients in participants_by_provider.items():
+        notify(provider, notification, recipients, context)
 
 
 def send_activity_notification(notification: ActivityNotification | UserReportNotification) -> None:
