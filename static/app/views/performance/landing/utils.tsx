@@ -3,18 +3,18 @@ import {browserHistory} from 'react-router';
 import {Location} from 'history';
 import omit from 'lodash/omit';
 
-import {t} from 'app/locale';
-import {Organization, Project} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
+import {t} from 'sentry/locale';
+import {Organization, Project} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
 import {
   formatAbbreviatedNumber,
   formatFloat,
   formatPercentage,
   getDuration,
-} from 'app/utils/formatters';
-import {HistogramData} from 'app/utils/performance/histogram/types';
-import {decodeScalar} from 'app/utils/queryString';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
+} from 'sentry/utils/formatters';
+import {HistogramData} from 'sentry/utils/performance/histogram/types';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 import {AxisOption, getTermHelp, PERFORMANCE_TERM} from '../data';
 import {Rectangle} from '../transactionSummary/transactionVitals/types';

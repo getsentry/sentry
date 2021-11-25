@@ -1,4 +1,4 @@
-import parseHtmlMarks from 'app/utils/parseHtmlMarks';
+import parseHtmlMarks from 'sentry/utils/parseHtmlMarks';
 
 type MarkedText = ReturnType<typeof parseHtmlMarks>;
 

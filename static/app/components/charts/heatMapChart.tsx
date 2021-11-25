@@ -3,7 +3,7 @@ import './components/visualMap';
 import * as React from 'react';
 import {EChartOption} from 'echarts';
 
-import {ReactEchartsRef, Series} from 'app/types/echarts';
+import {ReactEchartsRef, Series} from 'sentry/types/echarts';
 
 import HeatMapSeries from './series/heatMapSeries';
 import BaseChart from './baseChart';

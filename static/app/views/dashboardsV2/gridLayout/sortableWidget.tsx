@@ -1,9 +1,9 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import IssueWidgetCard from 'app/views/dashboardsV2/issueWidgetCard';
-import {Widget, WidgetType} from 'app/views/dashboardsV2/types';
-import WidgetCard from 'app/views/dashboardsV2/widgetCard';
+import IssueWidgetCard from 'sentry/views/dashboardsV2/issueWidgetCard';
+import {Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
+import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
 
 type Props = {
   widget: Widget;

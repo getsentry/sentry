@@ -2,17 +2,17 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
-import {APIRequestMethod} from 'app/api';
-import Button from 'app/components/button';
-import Panel from 'app/components/panels/panel';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {isRenderFunc} from 'app/utils/isRenderFunc';
+import {APIRequestMethod} from 'sentry/api';
+import Button from 'sentry/components/button';
+import Panel from 'sentry/components/panels/panel';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {isRenderFunc} from 'sentry/utils/isRenderFunc';
 import FormContext, {
   FormContextData,
-} from 'app/views/settings/components/forms/formContext';
-import FormModel, {FormOptions} from 'app/views/settings/components/forms/model';
-import {Data, OnSubmitCallback} from 'app/views/settings/components/forms/type';
+} from 'sentry/views/settings/components/forms/formContext';
+import FormModel, {FormOptions} from 'sentry/views/settings/components/forms/model';
+import {Data, OnSubmitCallback} from 'sentry/views/settings/components/forms/type';
 
 type RenderProps = {
   model: FormModel;

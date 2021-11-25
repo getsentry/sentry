@@ -1,14 +1,14 @@
 import React, {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import EmptyStateWarning from 'app/components/emptyStateWarning';
-import Link from 'app/components/links/link';
-import Radio from 'app/components/radio';
-import Tooltip from 'app/components/tooltip';
-import {IconClose} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {RadioLineItem} from 'app/views/settings/components/forms/controls/radioGroup';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import Link from 'sentry/components/links/link';
+import Radio from 'sentry/components/radio';
+import Tooltip from 'sentry/components/tooltip';
+import {IconClose} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {RadioLineItem} from 'sentry/views/settings/components/forms/controls/radioGroup';
 
 type Props = {
   selectedIndex: number;
@@ -55,6 +55,9 @@ function SelectableItem({
 
 export const RightAlignedCell = styled('div')`
   text-align: right;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 `;
 
 export const Subtitle = styled('span')`
@@ -75,17 +78,23 @@ export function ListClose(props: {
 }) {
   return (
     <CloseContainer>
-      <Tooltip title={t('Exclude this transaction from the search filter.')}>
+      <StyledTooltip title={t('Exclude this transaction from the search filter.')}>
         <StyledIconClose
           onClick={() => {
             props.onClick();
             props.setSelectListIndex(0);
           }}
         />
-      </Tooltip>
+      </StyledTooltip>
     </CloseContainer>
   );
 }
+
+const StyledTooltip = styled(Tooltip)`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
 
 const CloseContainer = styled('div')`
   display: flex;

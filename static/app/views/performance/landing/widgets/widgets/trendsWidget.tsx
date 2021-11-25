@@ -2,16 +2,16 @@ import {Fragment, FunctionComponent, useMemo, useState} from 'react';
 import {withRouter} from 'react-router';
 import {Location} from 'history';
 
-import Button from 'app/components/button';
-import Truncate from 'app/components/truncate';
-import {t} from 'app/locale';
-import {Organization} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
-import TrendsDiscoverQuery from 'app/utils/performance/trends/trendsDiscoverQuery';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
-import withProjects from 'app/utils/withProjects';
-import {CompareDurations} from 'app/views/performance/trends/changedTransactions';
-import {handleTrendsClick, trendsTargetRoute} from 'app/views/performance/utils';
+import Button from 'sentry/components/button';
+import Truncate from 'sentry/components/truncate';
+import {t} from 'sentry/locale';
+import {Organization} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
+import TrendsDiscoverQuery from 'sentry/utils/performance/trends/trendsDiscoverQuery';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import withProjects from 'sentry/utils/withProjects';
+import {CompareDurations} from 'sentry/views/performance/trends/changedTransactions';
+import {handleTrendsClick, trendsTargetRoute} from 'sentry/views/performance/utils';
 
 import {Chart} from '../../../trends/chart';
 import {TrendChangeType, TrendFunctionField} from '../../../trends/types';

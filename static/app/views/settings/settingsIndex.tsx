@@ -5,21 +5,21 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import {fetchOrganizationDetails} from 'app/actionCreators/organizations';
-import DemoModeGate from 'app/components/acl/demoModeGate';
-import OrganizationAvatar from 'app/components/avatar/organizationAvatar';
-import UserAvatar from 'app/components/avatar/userAvatar';
-import ExternalLink from 'app/components/links/externalLink';
-import Link from 'app/components/links/link';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import {IconDocs, IconLock, IconStack, IconSupport} from 'app/icons';
-import {t} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import {Organization} from 'app/types';
-import withLatestContext from 'app/utils/withLatestContext';
-import SettingsLayout from 'app/views/settings/components/settingsLayout';
+import {fetchOrganizationDetails} from 'sentry/actionCreators/organizations';
+import DemoModeGate from 'sentry/components/acl/demoModeGate';
+import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
+import UserAvatar from 'sentry/components/avatar/userAvatar';
+import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import {IconDocs, IconLock, IconStack, IconSupport} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import {Organization} from 'sentry/types';
+import withLatestContext from 'sentry/utils/withLatestContext';
+import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
 
 const LINKS = {
   DOCUMENTATION: 'https://docs.sentry.io/',

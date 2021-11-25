@@ -2,16 +2,16 @@ import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
-import MenuItem from 'app/components/menuItem';
-import {t} from 'app/locale';
-import {Organization} from 'app/types';
-import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
-import EventView from 'app/utils/discover/eventView';
-import {usePerformanceDisplayType} from 'app/utils/performance/contexts/performanceDisplayContext';
-import useOrganization from 'app/utils/useOrganization';
-import withOrganization from 'app/utils/withOrganization';
-import ContextMenu from 'app/views/dashboardsV2/contextMenu';
-import {useMetricsSwitch} from 'app/views/performance/metricsSwitch';
+import MenuItem from 'sentry/components/menuItem';
+import {t} from 'sentry/locale';
+import {Organization} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import EventView from 'sentry/utils/discover/eventView';
+import {usePerformanceDisplayType} from 'sentry/utils/performance/contexts/performanceDisplayContext';
+import useOrganization from 'sentry/utils/useOrganization';
+import withOrganization from 'sentry/utils/withOrganization';
+import ContextMenu from 'sentry/views/dashboardsV2/contextMenu';
+import {useMetricsSwitch} from 'sentry/views/performance/metricsSwitch';
 
 import {GenericPerformanceWidgetDataType} from '../types';
 import {_setChartSetting, getChartSetting} from '../utils';

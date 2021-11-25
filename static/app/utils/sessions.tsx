@@ -8,14 +8,14 @@ import {
   SIX_HOURS,
   SIXTY_DAYS,
   THIRTY_DAYS,
-} from 'app/components/charts/utils';
-import {IconCheckmark, IconFire, IconWarning} from 'app/icons';
-import {SessionApiResponse, SessionField, SessionStatus} from 'app/types';
-import {SeriesDataUnit} from 'app/types/echarts';
-import {defined, percent} from 'app/utils';
-import {IconSize, Theme} from 'app/utils/theme';
-import {getCrashFreePercent, getSessionStatusPercent} from 'app/views/releases/utils';
-import {sessionTerm} from 'app/views/releases/utils/sessionTerm';
+} from 'sentry/components/charts/utils';
+import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
+import {SessionApiResponse, SessionField, SessionStatus} from 'sentry/types';
+import {SeriesDataUnit} from 'sentry/types/echarts';
+import {defined, percent} from 'sentry/utils';
+import {IconSize, Theme} from 'sentry/utils/theme';
+import {getCrashFreePercent, getSessionStatusPercent} from 'sentry/views/releases/utils';
+import {sessionTerm} from 'sentry/views/releases/utils/sessionTerm';
 
 /**
  * If the time window is less than or equal 10, seconds will be displayed on the graphs

@@ -1,17 +1,17 @@
 import {useEffect, useRef, useState} from 'react';
 import uniqBy from 'lodash/uniqBy';
 
-import {fetchUserTeams} from 'app/actionCreators/teams';
-import TeamActions from 'app/actions/teamActions';
-import {Client} from 'app/api';
-import OrganizationStore from 'app/stores/organizationStore';
-import TeamStore from 'app/stores/teamStore';
-import {useLegacyStore} from 'app/stores/useLegacyStore';
-import {Team} from 'app/types';
-import {isActiveSuperuser} from 'app/utils/isActiveSuperuser';
-import parseLinkHeader from 'app/utils/parseLinkHeader';
-import RequestError from 'app/utils/requestError/requestError';
-import useApi from 'app/utils/useApi';
+import {fetchUserTeams} from 'sentry/actionCreators/teams';
+import TeamActions from 'sentry/actions/teamActions';
+import {Client} from 'sentry/api';
+import OrganizationStore from 'sentry/stores/organizationStore';
+import TeamStore from 'sentry/stores/teamStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import {Team} from 'sentry/types';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import RequestError from 'sentry/utils/requestError/requestError';
+import useApi from 'sentry/utils/useApi';
 
 type State = {
   /**

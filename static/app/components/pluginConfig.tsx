@@ -6,17 +6,17 @@ import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
-} from 'app/actionCreators/indicator';
-import {Client} from 'app/api';
-import Button from 'app/components/button';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
-import {t} from 'app/locale';
-import plugins from 'app/plugins';
-import PluginIcon from 'app/plugins/components/pluginIcon';
-import space from 'app/styles/space';
-import {Organization, Plugin, Project} from 'app/types';
-import withApi from 'app/utils/withApi';
+} from 'sentry/actionCreators/indicator';
+import {Client} from 'sentry/api';
+import Button from 'sentry/components/button';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
+import {t} from 'sentry/locale';
+import plugins from 'sentry/plugins';
+import PluginIcon from 'sentry/plugins/components/pluginIcon';
+import space from 'sentry/styles/space';
+import {Organization, Plugin, Project} from 'sentry/types';
+import withApi from 'sentry/utils/withApi';
 
 type Props = {
   organization: Organization;

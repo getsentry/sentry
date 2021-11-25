@@ -1,7 +1,7 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import ErrorBoundary from 'app/components/errorBoundary';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 
 import getBadge from './getBadge';
 

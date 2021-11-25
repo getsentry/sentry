@@ -1,5 +1,5 @@
-import Feature from 'app/components/acl/feature';
-import useOrganization from 'app/utils/useOrganization';
+import Feature from 'sentry/components/acl/feature';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import RelayWrapper from './relayWrapper';
 

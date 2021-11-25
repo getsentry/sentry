@@ -1,16 +1,16 @@
 import styled from '@emotion/styled';
 
-import AsyncComponent from 'app/components/asyncComponent';
-import UserAvatar from 'app/components/avatar/userAvatar';
-import Button from 'app/components/button';
-import Collapsible from 'app/components/collapsible';
-import SidebarSection from 'app/components/sidebarSection';
-import {t, tn} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {Commit, User} from 'app/types';
-import {percent} from 'app/utils';
-import {userDisplayName} from 'app/utils/formatters';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import UserAvatar from 'sentry/components/avatar/userAvatar';
+import Button from 'sentry/components/button';
+import Collapsible from 'sentry/components/collapsible';
+import SidebarSection from 'sentry/components/sidebarSection';
+import {t, tn} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {Commit, User} from 'sentry/types';
+import {percent} from 'sentry/utils';
+import {userDisplayName} from 'sentry/utils/formatters';
 
 type GroupedAuthorCommits = {
   [key: string]: {author: User | undefined; commitCount: number};

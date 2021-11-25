@@ -1,9 +1,9 @@
 import * as React from 'react';
 
-import {loadSdkUpdates} from 'app/actionCreators/sdkUpdates';
-import {Client} from 'app/api';
-import SdkUpdatesStore from 'app/stores/sdkUpdatesStore';
-import {Organization, ProjectSdkUpdates} from 'app/types';
+import {loadSdkUpdates} from 'sentry/actionCreators/sdkUpdates';
+import {Client} from 'sentry/api';
+import SdkUpdatesStore from 'sentry/stores/sdkUpdatesStore';
+import {Organization, ProjectSdkUpdates} from 'sentry/types';
 
 import withApi from './withApi';
 import withOrganization from './withOrganization';

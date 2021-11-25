@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
-import ProgressBar from 'app/components/progressBar';
-import {t, tct, tn} from 'app/locale';
-import space from 'app/styles/space';
-import {percent} from 'app/utils';
+import ProgressBar from 'sentry/components/progressBar';
+import {t, tct, tn} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {percent} from 'sentry/utils';
 
 type Props = {
   totalEvents: number;

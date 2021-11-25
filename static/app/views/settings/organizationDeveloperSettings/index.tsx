@@ -1,19 +1,19 @@
 import {RouteComponentProps} from 'react-router';
 
-import {removeSentryApp} from 'app/actionCreators/sentryApps';
-import Access from 'app/components/acl/access';
-import AlertLink from 'app/components/alertLink';
-import Button from 'app/components/button';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import {IconAdd} from 'app/icons';
-import {t} from 'app/locale';
-import {Organization, SentryApp} from 'app/types';
-import routeTitleGen from 'app/utils/routeTitle';
-import withOrganization from 'app/utils/withOrganization';
-import AsyncView from 'app/views/asyncView';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import SentryApplicationRow from 'app/views/settings/organizationDeveloperSettings/sentryApplicationRow';
+import {removeSentryApp} from 'sentry/actionCreators/sentryApps';
+import Access from 'sentry/components/acl/access';
+import AlertLink from 'sentry/components/alertLink';
+import Button from 'sentry/components/button';
+import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import {IconAdd} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {Organization, SentryApp} from 'sentry/types';
+import routeTitleGen from 'sentry/utils/routeTitle';
+import withOrganization from 'sentry/utils/withOrganization';
+import AsyncView from 'sentry/views/asyncView';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import SentryApplicationRow from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationRow';
 
 type Props = Omit<AsyncView['props'], 'params'> & {
   organization: Organization;
