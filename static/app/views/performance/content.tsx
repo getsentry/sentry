@@ -1,6 +1,7 @@
 import {useEffect, useState} from 'react';
 import {browserHistory, InjectedRouter} from 'react-router';
 import {Location} from 'history';
+import isEqual from 'lodash/isEqual';
 
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import Feature from 'sentry/components/acl/feature';
@@ -21,6 +22,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePrevious from 'sentry/utils/usePrevious';
 import useProjects from 'sentry/utils/useProjects';
 import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 
@@ -46,6 +48,7 @@ function PerformanceContent({selection, location, demoMode}: Props) {
   const api = useApi();
   const organization = useOrganization();
   const {projects} = useProjects();
+  const previousDateTime = usePrevious(selection.datetime);
 
   const [state, setState] = useState<State>({
     eventView: generatePerformanceEventView(organization, location, projects),
@@ -73,7 +76,14 @@ function PerformanceContent({selection, location, demoMode}: Props) {
   useEffect(() => {
     loadOrganizationTags(api, organization.slug, selection);
     addRoutePerformanceContext(selection);
-  }, [selection.projects, selection.datetime]);
+  }, [selection.projects]);
+
+  useEffect(() => {
+    if (!isEqual(previousDateTime, selection.datetime)) {
+      loadOrganizationTags(api, organization.slug, selection);
+      addRoutePerformanceContext(selection);
+    }
+  }, [previousDateTime, selection.datetime]);
 
   const {eventView, error} = state;
 
