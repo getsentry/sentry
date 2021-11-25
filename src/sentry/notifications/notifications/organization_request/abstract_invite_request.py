@@ -82,6 +82,7 @@ class AbstractInviteRequestNotification(OrganizationRequestNotification):
         return {"member_id": self.pending_member.id, "member_email": self.pending_member.email}
 
     def record_notification_sent(self, recipient: Team | User, provider: ExternalProviders) -> None:
+        super(OrganizationRequestNotification, self).record_notification_sent(recipient, provider)
         analytics.record(
             self.analytics_event,
             organization_id=self.organization.id,

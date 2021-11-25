@@ -25,6 +25,13 @@ class BaseNotification(abc.ABC):
     def type(self) -> str:
         raise NotImplementedError
 
+    def record_notification_sent(self, recipient: Team | User, provider: ExternalProviders) -> None:
+        analytics.record(
+            f"integrations.{provider.name}.notification_sent",
+            category=self.category,
+            **self.get_log_params(recipient),
+        )
+
     message_builder = "SlackNotificationsMessageBuilder"
     fine_tuning_key: str | None = None
     metrics_key: str = ""
@@ -100,14 +107,9 @@ class BaseNotification(abc.ABC):
     def get_unsubscribe_key(self) -> tuple[str, int, str | None] | None:
         return None
 
-    def record_notification_sent(self, recipient: Team | User, provider: ExternalProviders) -> None:
-        raise NotImplementedError
 
     def get_log_params(self, recipient: Team | User) -> Mapping[str, Any]:
-        return {
-            "organization_id": self.organization.id,
-            "actor_id": recipient.actor_id,
-        }
+        return {"organization_id": self.organization.id, **super().get_log_params(recipient)}
 
     def get_message_actions(self) -> Sequence[MessageAction]:
         return []
@@ -125,15 +127,6 @@ class ProjectNotification(BaseNotification, abc.ABC):
         # Explicitly typing to satisfy mypy.
         project_link: str = absolute_uri(f"/{self.organization.slug}/{self.project.slug}/")
         return project_link
-
-    def record_notification_sent(self, recipient: Team | User, provider: ExternalProviders) -> None:
-        analytics.record(
-            f"integrations.{provider.name.lower()}.notification_sent",
-            actor_id=recipient.id,
-            category=self.get_category(),
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-        )
 
     def get_log_params(self, recipient: Team | User) -> Mapping[str, Any]:
         return {"project_id": self.project.id, **super().get_log_params(recipient)}

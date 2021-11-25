@@ -132,6 +132,8 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
         return None
 
     def record_notification_sent(self, recipient: Team | User, provider: ExternalProviders) -> None:
+        super().record_notification_sent(recipient, provider)
+
         # this event is meant to work for multiple providers but architecture
         # limitations mean we will fire individual for each provider
         analytics.record(

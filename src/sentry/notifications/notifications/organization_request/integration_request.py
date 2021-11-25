@@ -2,10 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequence
 
-from sentry import analytics
 from sentry.notifications.notifications.organization_request import OrganizationRequestNotification
 from sentry.notifications.utils.actions import MessageAction
-from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
@@ -88,14 +86,3 @@ class IntegrationRequestNotification(OrganizationRequestNotification):
         # Explicitly typing to satisfy mypy.
         recipients: Iterable[Team | User] = self.organization.get_owners()
         return recipients
-
-    def record_notification_sent(
-        self, recipient: Team | User, provider: ExternalProviders, **kwargs: Any
-    ) -> None:
-        # TODO: refactor since this is identical to ProjectNotification.record_notification_sent
-        analytics.record(
-            f"integrations.{provider.name}.notification_sent",
-            category=self.get_category(),
-            **self.get_log_params(recipient),
-            **kwargs,
-        )
