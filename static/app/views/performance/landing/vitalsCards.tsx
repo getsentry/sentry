@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 
+import Tooltip from 'app/components/tooltip';
 import Card from 'sentry/components/card';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import {HeaderTitle} from 'sentry/components/charts/styles';
@@ -353,6 +354,7 @@ type VitalBarProps = {
   showDurationDetail?: boolean;
   showVitalPercentNames?: boolean;
   showDetail?: boolean;
+  showTooltip?: boolean;
   barHeight?: number;
 };
 
@@ -367,6 +369,7 @@ export function VitalBar(props: VitalBarProps) {
     showDurationDetail = false,
     showVitalPercentNames = false,
     showDetail = true,
+    showTooltip = false,
     barHeight,
   } = props;
 
@@ -406,7 +409,22 @@ export function VitalBar(props: VitalBarProps) {
 
   return (
     <React.Fragment>
-      {showBar && <ColorBar barHeight={barHeight} colorStops={colorStops} />}
+      {showBar && (
+        <StyledTooltip
+          title={
+            <VitalPercents
+              vital={vital}
+              percents={percents}
+              showVitalPercentNames
+              hideTooltips={showTooltip}
+            />
+          }
+          disabled={!showTooltip}
+          position="bottom"
+        >
+          <ColorBar barHeight={barHeight} colorStops={colorStops} />
+        </StyledTooltip>
+      )}
       {showDetail && (
         <BarDetail>
           {showDurationDetail && p75 && (
@@ -471,6 +489,10 @@ const StyledCard = styled(Card)<{minHeight?: number}>`
   align-items: flex-start;
   margin-bottom: ${space(2)};
   ${p => p.minHeight && `min-height: ${p.minHeight}px`};
+`;
+
+const StyledTooltip = styled(Tooltip)`
+  width: 100%;
 `;
 
 function getP75(data: VitalData | null, vitalName: WebVital): string {
