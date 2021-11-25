@@ -57,11 +57,14 @@ type Props = {
   /**
    * Fired when widgets are added/removed/sorted.
    */
-  onUpdate: (widgets: Widget[], layout?: Layout[]) => void;
+  onUpdate: (widgets: Widget[]) => void;
   onSetWidgetToBeUpdated: (widget: Widget) => void;
   paramDashboardId?: string;
   newWidget?: Widget;
+
+  // TODO(nar): optional to maintain compatiblity with old dashboard
   layout?: Layout[];
+  onLayoutChange?: (layout: Layout[]) => void;
 };
 
 class Dashboard extends Component<Props> {
@@ -234,9 +237,9 @@ class Dashboard extends Component<Props> {
     const {
       isEditing,
       dashboard: {widgets},
-      onUpdate,
       organization,
       layout,
+      onLayoutChange,
     } = this.props;
 
     return (
@@ -246,7 +249,7 @@ class Dashboard extends Component<Props> {
         margin={WIDGET_MARGINS}
         draggableHandle={`.${DRAG_HANDLE_CLASS}`}
         layout={layout}
-        onLayoutChange={newLayout => onUpdate(widgets, newLayout)}
+        onLayoutChange={onLayoutChange}
         isDraggable={isEditing}
         isResizable={isEditing}
         isBounded
