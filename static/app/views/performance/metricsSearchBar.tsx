@@ -8,6 +8,7 @@ import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'app/constants';
 import {t} from 'app/locale';
 import {Organization, Tag} from 'app/types';
 import useApi from 'app/utils/useApi';
+import {MetricTagValue} from 'sentry/types/metrics';
 
 const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   `^${NEGATION_OPERATOR}|\\${SEARCH_WILDCARD}`,
@@ -31,7 +32,7 @@ function MetricsSearchBar({
   projectIds,
 }: Props) {
   const api = useApi();
-  const [tags, setTags] = useState<string[]>([]);
+  const [tags, setTags] = useState<{key: string}[]>([]);
 
   useEffect(() => {
     fetchTags();
@@ -45,6 +46,8 @@ function MetricsSearchBar({
           query: {project: !projectIds.length ? undefined : projectIds},
         }
       );
+
+      console.log('response', response);
       setTags(response);
     } catch {
       addErrorMessage(t('Unable to fetch search bar tags'));
@@ -66,15 +69,15 @@ function MetricsSearchBar({
 
   function getTagValues(tag: Tag, _query: string): Promise<string[]> {
     return fetchTagValues(tag.key).then(
-      tagValues => tagValues,
+      tagValues => (tagValues as MetricTagValue[]).map(({value}) => value),
       () => {
         throw new Error('Unable to fetch tag values');
       }
     );
   }
 
-  const supportedTags = tags.reduce((acc, tag) => {
-    acc[tag] = {key: tag, name: tag};
+  const supportedTags = tags.reduce((acc, {key}) => {
+    acc[key] = {key, name: key};
     return acc;
   }, {});
 

@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 import {Client} from 'sentry/api';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
+import {MetricTag} from 'sentry/types/metrics';
 
 import GroupByField from './groupByField';
 import SearchQueryField from './searchQueryField';
-import {MetricTag} from './types';
 
 type Props = {
   api: Client;
