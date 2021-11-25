@@ -1,30 +1,28 @@
 import {useEffect, useState} from 'react';
 import {browserHistory, InjectedRouter} from 'react-router';
 import {Location} from 'history';
-import isEqual from 'lodash/isEqual';
 
-import {loadOrganizationTags} from 'app/actionCreators/tags';
-import Feature from 'app/components/acl/feature';
-import Alert from 'app/components/alert';
-import Button from 'app/components/button';
-import GlobalSdkUpdateAlert from 'app/components/globalSdkUpdateAlert';
-import NoProjectMessage from 'app/components/noProjectMessage';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import PageHeading from 'app/components/pageHeading';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
-import {IconFlag} from 'app/icons';
-import {t} from 'app/locale';
-import {PageContent, PageHeader} from 'app/styles/organization';
-import {GlobalSelection} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import EventView from 'app/utils/discover/eventView';
-import {PerformanceEventViewProvider} from 'app/utils/performance/contexts/performanceEventViewContext';
-import useApi from 'app/utils/useApi';
-import useOrganization from 'app/utils/useOrganization';
-import usePrevious from 'app/utils/usePrevious';
-import useProjects from 'app/utils/useProjects';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
+import {loadOrganizationTags} from 'sentry/actionCreators/tags';
+import Feature from 'sentry/components/acl/feature';
+import Alert from 'sentry/components/alert';
+import Button from 'sentry/components/button';
+import GlobalSdkUpdateAlert from 'sentry/components/globalSdkUpdateAlert';
+import NoProjectMessage from 'sentry/components/noProjectMessage';
+import GlobalSelectionHeader from 'sentry/components/organizations/globalSelectionHeader';
+import PageHeading from 'sentry/components/pageHeading';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/globalSelectionHeader';
+import {IconFlag} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {PageContent, PageHeader} from 'sentry/styles/organization';
+import {GlobalSelection} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import EventView from 'sentry/utils/discover/eventView';
+import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/performanceEventViewContext';
+import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
+import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 
 import LandingContent from './landing/content';
 import {DEFAULT_STATS_PERIOD, generatePerformanceEventView} from './data';
@@ -48,9 +46,6 @@ function PerformanceContent({selection, location, demoMode}: Props) {
   const api = useApi();
   const organization = useOrganization();
   const {projects} = useProjects();
-
-  const prevDeeplyNestedSelectProjects = usePrevious(selection.projects);
-  const prevDeeplyNestedSelectDateTime = usePrevious(selection.datetime);
 
   const [state, setState] = useState<State>({
     eventView: generatePerformanceEventView(organization, location, projects),
@@ -76,19 +71,9 @@ function PerformanceContent({selection, location, demoMode}: Props) {
   }, [organization, location, projects]);
 
   useEffect(() => {
-    if (
-      !isEqual(prevDeeplyNestedSelectProjects, selection.projects) ||
-      !isEqual(prevDeeplyNestedSelectDateTime, selection.datetime)
-    ) {
-      loadOrganizationTags(api, organization.slug, selection);
-      addRoutePerformanceContext(selection);
-    }
-  }, [
-    prevDeeplyNestedSelectProjects,
-    selection.projects,
-    prevDeeplyNestedSelectDateTime,
-    selection.datetime,
-  ]);
+    loadOrganizationTags(api, organization.slug, selection);
+    addRoutePerformanceContext(selection);
+  }, [selection.projects, selection.datetime]);
 
   const {eventView, error} = state;
 

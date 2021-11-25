@@ -1,18 +1,18 @@
 import {Component, Fragment} from 'react';
 import {Location} from 'history';
 
-import {Panel} from 'app/components/panels';
-import {Organization} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
-import {WebVital} from 'app/utils/discover/fields';
-import HistogramQuery from 'app/utils/performance/histogram/histogramQuery';
-import {DataFilter, HistogramData} from 'app/utils/performance/histogram/types';
-import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
-import {VitalGroup} from 'app/utils/performance/vitals/types';
+import {Panel} from 'sentry/components/panels';
+import {Organization} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
+import {WebVital} from 'sentry/utils/discover/fields';
+import HistogramQuery from 'sentry/utils/performance/histogram/histogramQuery';
+import {DataFilter, HistogramData} from 'sentry/utils/performance/histogram/types';
+import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
+import {VitalGroup} from 'sentry/utils/performance/vitals/types';
 import VitalsCardDiscoverQuery, {
   VitalData,
-} from 'app/utils/performance/vitals/vitalsCardsDiscoverQuery';
-import {decodeScalar} from 'app/utils/queryString';
+} from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
+import {decodeScalar} from 'sentry/utils/queryString';
 
 import {NUM_BUCKETS, VITAL_GROUPS} from './constants';
 import VitalCard from './vitalCard';

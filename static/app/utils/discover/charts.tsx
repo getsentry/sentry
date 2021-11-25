@@ -1,5 +1,5 @@
-import {t} from 'app/locale';
-import {aggregateOutputType} from 'app/utils/discover/fields';
+import {t} from 'sentry/locale';
+import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {
   DAY,
   formatAbbreviatedNumber,
@@ -9,7 +9,7 @@ import {
   MINUTE,
   SECOND,
   WEEK,
-} from 'app/utils/formatters';
+} from 'sentry/utils/formatters';
 
 /**
  * Formatter for chart tooltips that handle a variety of discover result values

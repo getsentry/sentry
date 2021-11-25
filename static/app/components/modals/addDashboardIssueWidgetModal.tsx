@@ -4,25 +4,30 @@ import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 import set from 'lodash/set';
 
-import {validateWidget} from 'app/actionCreators/dashboards';
-import {addSuccessMessage} from 'app/actionCreators/indicator';
-import {ModalRenderProps} from 'app/actionCreators/modal';
-import {Client} from 'app/api';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import IssueWidgetQueriesForm from 'app/components/dashboards/issueWidgetQueriesForm';
-import {PanelAlert} from 'app/components/panels';
-import {t} from 'app/locale';
-import {DateString, GlobalSelection, Organization, RelativePeriod} from 'app/types';
-import {defined} from 'app/utils';
-import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
-import withApi from 'app/utils/withApi';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import IssueWidgetCard from 'app/views/dashboardsV2/issueWidgetCard';
-import {DisplayType, Widget, WidgetQuery, WidgetType} from 'app/views/dashboardsV2/types';
-import {mapErrors} from 'app/views/dashboardsV2/widget/eventWidget/utils';
-import Input from 'app/views/settings/components/forms/controls/input';
-import Field from 'app/views/settings/components/forms/field';
+import {validateWidget} from 'sentry/actionCreators/dashboards';
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {Client} from 'sentry/api';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import IssueWidgetQueriesForm from 'sentry/components/dashboards/issueWidgetQueriesForm';
+import {PanelAlert} from 'sentry/components/panels';
+import {t} from 'sentry/locale';
+import {DateString, GlobalSelection, Organization, RelativePeriod} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import withApi from 'sentry/utils/withApi';
+import withGlobalSelection from 'sentry/utils/withGlobalSelection';
+import IssueWidgetCard from 'sentry/views/dashboardsV2/issueWidgetCard';
+import {
+  DisplayType,
+  Widget,
+  WidgetQuery,
+  WidgetType,
+} from 'sentry/views/dashboardsV2/types';
+import {mapErrors} from 'sentry/views/dashboardsV2/widget/eventWidget/utils';
+import Input from 'sentry/views/settings/components/forms/controls/input';
+import Field from 'sentry/views/settings/components/forms/field';
 
 export type DashboardIssueWidgetModalOptions = {
   organization: Organization;

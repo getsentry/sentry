@@ -1,18 +1,18 @@
-import exportGlobals from 'app/bootstrap/exportGlobals';
-import {OnSentryInitConfiguration, SentryInitRenderReactComponent} from 'app/types';
+import exportGlobals from 'sentry/bootstrap/exportGlobals';
+import {OnSentryInitConfiguration, SentryInitRenderReactComponent} from 'sentry/types';
 
 import {renderDom} from './renderDom';
 import {renderOnDomReady} from './renderOnDomReady';
 
 const COMPONENT_MAP = {
   [SentryInitRenderReactComponent.INDICATORS]: () =>
-    import(/* webpackChunkName: "Indicators" */ 'app/components/indicators'),
+    import(/* webpackChunkName: "Indicators" */ 'sentry/components/indicators'),
   [SentryInitRenderReactComponent.SYSTEM_ALERTS]: () =>
-    import(/* webpackChunkName: "SystemAlerts" */ 'app/views/app/systemAlerts'),
+    import(/* webpackChunkName: "SystemAlerts" */ 'sentry/views/app/systemAlerts'),
   [SentryInitRenderReactComponent.SETUP_WIZARD]: () =>
-    import(/* webpackChunkName: "SetupWizard" */ 'app/views/setupWizard'),
+    import(/* webpackChunkName: "SetupWizard" */ 'sentry/views/setupWizard'),
   [SentryInitRenderReactComponent.U2F_SIGN]: () =>
-    import(/* webpackChunkName: "U2fSign" */ 'app/components/u2f/u2fsign'),
+    import(/* webpackChunkName: "U2fSign" */ 'sentry/components/u2f/u2fsign'),
 };
 
 async function processItem(initConfig: OnSentryInitConfiguration) {
@@ -29,7 +29,7 @@ async function processItem(initConfig: OnSentryInitConfiguration) {
     }
 
     const passwordStrength = await import(
-      /* webpackChunkName: "PasswordStrength" */ 'app/components/passwordStrength'
+      /* webpackChunkName: "PasswordStrength" */ 'sentry/components/passwordStrength'
     );
 
     passwordStrength.attachTo({

@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Level} from 'app/types';
+import {Level} from 'sentry/types';
 
 const DEFAULT_SIZE = '13px';
 

@@ -303,42 +303,62 @@ _BASE_TAGS = {
         "staging",
     ],
     "release": [],
-    "session.status": [
-        "abnormal",
-        "crashed",
-        "errored",
-        "healthy",
-    ],
 }
+
+_SESSION_TAGS = dict(
+    _BASE_TAGS,
+    **{
+        "session.status": [
+            "abnormal",
+            "crashed",
+            "errored",
+            "healthy",
+        ],
+    },
+)
+
+_MEASUREMENT_TAGS = dict(
+    _BASE_TAGS,
+    **{
+        "measurement_rating": ["good", "meh", "poor"],
+        "transaction": ["/foo/:ordId/", "/bar/:ordId/"],
+    },
+)
 
 _METRICS = {
     "session": {
         "type": "counter",
         "operations": _AVAILABLE_OPERATIONS["metrics_counters"],
-        "tags": _BASE_TAGS,
+        "tags": _SESSION_TAGS,
     },
     "user": {
         "type": "set",
         "operations": _AVAILABLE_OPERATIONS["metrics_sets"],
-        "tags": _BASE_TAGS,
+        "tags": _SESSION_TAGS,
     },
     "session.duration": {
         "type": "distribution",
         "operations": _AVAILABLE_OPERATIONS["metrics_distributions"],
-        "tags": _BASE_TAGS,
+        "tags": _SESSION_TAGS,
         "unit": "seconds",
     },
     "session.error": {
         "type": "set",
         "operations": _AVAILABLE_OPERATIONS["metrics_sets"],
-        "tags": _BASE_TAGS,
-    },
-    "measurements.lcp": {
-        "type": "distribution",
-        "operations": _AVAILABLE_OPERATIONS["metrics_distributions"],
-        "tags": _BASE_TAGS,
+        "tags": _SESSION_TAGS,
     },
 }
+
+_METRICS.update(
+    {
+        f"measurement.{web_vital}": {
+            "type": "distribution",
+            "operations": _AVAILABLE_OPERATIONS["metrics_distributions"],
+            "tags": _MEASUREMENT_TAGS,
+        }
+        for web_vital in ("lcp", "fcp", "fid", "cls")
+    }
+)
 
 
 def _get_metric(metric_name: str) -> dict:
@@ -454,7 +474,6 @@ class MockDataSource(IndexMockingDataSource):
     }
 
     def _generate_series(self, fields: dict, intervals: List[datetime]) -> dict:
-
         series = {}
         totals = {}
         for field, (operation, metric_name) in fields.items():

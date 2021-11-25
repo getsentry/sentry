@@ -3,8 +3,8 @@ import {Location} from 'history';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import EventView from 'app/utils/discover/eventView';
-import OpsFilter from 'app/views/performance/transactionSummary/transactionSpans/opsFilter';
+import EventView from 'sentry/utils/discover/eventView';
+import OpsFilter from 'sentry/views/performance/transactionSummary/transactionSpans/opsFilter';
 
 function initializeData({query} = {query: {}}) {
   const features = ['performance-view', 'performance-suspect-spans-view'];

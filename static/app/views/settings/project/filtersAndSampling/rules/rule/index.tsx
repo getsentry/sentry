@@ -2,11 +2,11 @@ import {Component} from 'react';
 import {DraggableSyntheticListeners, UseDraggableArguments} from '@dnd-kit/core';
 import styled from '@emotion/styled';
 
-import Tooltip from 'app/components/tooltip';
-import {IconGrabbable} from 'app/icons/iconGrabbable';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {DynamicSamplingRule} from 'app/types/dynamicSampling';
+import Tooltip from 'sentry/components/tooltip';
+import {IconGrabbable} from 'sentry/icons/iconGrabbable';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {DynamicSamplingRule} from 'sentry/types/dynamicSampling';
 
 import {layout} from '../utils';
 

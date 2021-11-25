@@ -3,11 +3,11 @@ import ReactDOM from 'react-dom';
 import {cache} from '@emotion/css'; // eslint-disable-line emotion/no-vanilla
 import {CacheProvider, ThemeProvider} from '@emotion/react'; // This is needed to set "speedy" = false (for percy)
 
-import {loadPreferencesState} from 'app/actionCreators/preferences';
-import ConfigStore from 'app/stores/configStore';
-import {useLegacyStore} from 'app/stores/useLegacyStore';
-import GlobalStyles from 'app/styles/global';
-import {darkTheme, lightTheme} from 'app/utils/theme';
+import {loadPreferencesState} from 'sentry/actionCreators/preferences';
+import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import GlobalStyles from 'sentry/styles/global';
+import {darkTheme, lightTheme} from 'sentry/utils/theme';
 
 type Props = {
   children: React.ReactNode;

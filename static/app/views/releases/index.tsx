@@ -1,7 +1,7 @@
 import * as React from 'react';
 import {RouteComponentProps} from 'react-router';
 
-import {Organization} from 'app/types';
+import {Organization} from 'sentry/types';
 
 type RouteParams = {
   orgId: string;

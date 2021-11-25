@@ -1,18 +1,18 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, mountWithTheme, screen, within} from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'app/stores/projectsStore';
-import {getShortEventId} from 'app/utils/events';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import {getShortEventId} from 'sentry/utils/events';
 import {
   ExampleSpan,
   ExampleTransaction,
   SuspectSpan,
-} from 'app/utils/performance/suspectSpans/types';
-import TransactionSpans from 'app/views/performance/transactionSummary/transactionSpans';
+} from 'sentry/utils/performance/suspectSpans/types';
+import TransactionSpans from 'sentry/views/performance/transactionSummary/transactionSpans';
 import {
   SpanSortOthers,
   SpanSortPercentiles,
-} from 'app/views/performance/transactionSummary/transactionSpans/types';
+} from 'sentry/views/performance/transactionSummary/transactionSpans/types';
 
 function initializeData({query} = {query: {}}) {
   const features = ['performance-view', 'performance-suspect-spans-view'];

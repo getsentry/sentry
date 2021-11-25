@@ -1,11 +1,11 @@
 import {Component, Fragment} from 'react';
 
-import {t} from 'app/locale';
-import {Organization} from 'app/types';
-import {callIfFunction} from 'app/utils/callIfFunction';
-import slugify from 'app/utils/slugify';
-import Form from 'app/views/settings/components/forms/form';
-import TextField from 'app/views/settings/components/forms/textField';
+import {t} from 'sentry/locale';
+import {Organization} from 'sentry/types';
+import {callIfFunction} from 'sentry/utils/callIfFunction';
+import slugify from 'sentry/utils/slugify';
+import Form from 'sentry/views/settings/components/forms/form';
+import TextField from 'sentry/views/settings/components/forms/textField';
 
 type Payload = {
   slug: string;

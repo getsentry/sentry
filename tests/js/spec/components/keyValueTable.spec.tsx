@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {KeyValueTable, KeyValueTableRow} from 'app/components/keyValueTable';
+import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 
 describe('KeyValueTable', function () {
   it('basic', function () {

@@ -8,8 +8,8 @@ import {
   updateDateTime,
   updateEnvironments,
   updateProjects,
-} from 'app/actionCreators/globalSelection';
-import {DATE_TIME_KEYS} from 'app/constants/globalSelectionHeader';
+} from 'sentry/actionCreators/globalSelection';
+import {DATE_TIME_KEYS} from 'sentry/constants/globalSelectionHeader';
 
 import GlobalSelectionHeader from './globalSelectionHeader';
 import {getStateFromQuery} from './utils';

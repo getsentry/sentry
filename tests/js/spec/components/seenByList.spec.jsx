@@ -1,7 +1,7 @@
 import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
-import SeenByList from 'app/components/seenByList';
-import ConfigStore from 'app/stores/configStore';
+import SeenByList from 'sentry/components/seenByList';
+import ConfigStore from 'sentry/stores/configStore';
 
 describe('SeenByList', function () {
   beforeEach(function () {

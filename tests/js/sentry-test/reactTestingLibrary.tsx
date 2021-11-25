@@ -8,10 +8,10 @@ import {
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import GlobalModal from 'app/components/globalModal';
-import {Organization} from 'app/types';
-import {lightTheme} from 'app/utils/theme';
-import {OrganizationContext} from 'app/views/organizationContext';
+import GlobalModal from 'sentry/components/globalModal';
+import {Organization} from 'sentry/types';
+import {lightTheme} from 'sentry/utils/theme';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 type ProviderOptions = {
   context?: Record<string, any>;

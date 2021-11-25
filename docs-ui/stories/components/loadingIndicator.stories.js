@@ -1,4 +1,4 @@
-import LoadingIndicator from 'app/components/loadingIndicator';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 
 export default {
   title: 'Components/Loading Indicators',

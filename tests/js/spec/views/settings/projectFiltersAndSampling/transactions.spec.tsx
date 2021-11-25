@@ -8,7 +8,7 @@ import {getByTextContent} from 'sentry-test/utils';
 import {
   DYNAMIC_SAMPLING_DOC_LINK,
   LEGACY_BROWSER_LIST,
-} from 'app/views/settings/project/filtersAndSampling/utils';
+} from 'sentry/views/settings/project/filtersAndSampling/utils';
 
 import {commonConditionCategories, renderComponent, renderModal} from './utils';
 

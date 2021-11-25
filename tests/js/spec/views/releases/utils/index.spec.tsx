@@ -1,6 +1,6 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import {getReleaseBounds, getReleaseParams} from 'app/views/releases/utils';
+import {getReleaseBounds, getReleaseParams} from 'sentry/views/releases/utils';
 
 describe('releases/utils', () => {
   describe('getReleaseBounds', () => {

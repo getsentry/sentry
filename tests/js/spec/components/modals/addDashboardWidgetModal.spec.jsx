@@ -4,13 +4,13 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {getOptionByLabel, openMenu, selectByLabel} from 'sentry-test/select-new';
 
-import {openDashboardWidgetLibraryModal} from 'app/actionCreators/modal';
-import AddDashboardWidgetModal from 'app/components/modals/addDashboardWidgetModal';
-import {t} from 'app/locale';
-import TagStore from 'app/stores/tagStore';
-import * as types from 'app/views/dashboardsV2/types';
+import {openDashboardWidgetLibraryModal} from 'sentry/actionCreators/modal';
+import AddDashboardWidgetModal from 'sentry/components/modals/addDashboardWidgetModal';
+import {t} from 'sentry/locale';
+import TagStore from 'sentry/stores/tagStore';
+import * as types from 'sentry/views/dashboardsV2/types';
 
-jest.mock('app/actionCreators/modal', () => ({
+jest.mock('sentry/actionCreators/modal', () => ({
   openDashboardWidgetLibraryModal: jest.fn(),
 }));
 

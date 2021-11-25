@@ -1,5 +1,5 @@
-import {SessionApiResponse} from 'app/types';
-import {Series} from 'app/types/echarts';
+import {SessionApiResponse} from 'sentry/types';
+import {Series} from 'sentry/types/echarts';
 
 type ChartData = Record<string, Series>;
 

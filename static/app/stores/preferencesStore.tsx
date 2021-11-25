@@ -1,6 +1,6 @@
 import Reflux from 'reflux';
 
-import PreferencesActions from 'app/actions/preferencesActions';
+import PreferencesActions from 'sentry/actions/preferencesActions';
 
 import {CommonStoreInterface} from './types';
 

@@ -3211,6 +3211,28 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[0]["spans.total.time"] == span_ops["total.time"]["value"]
         assert data[0]["spans.does_not_exist"] is None
 
+    def test_project_in_condition_with_or(self):
+        project2 = self.create_project(organization=self.organization)
+        event_data = load_data("transaction", timestamp=before_now(seconds=3))
+        self.store_event(data=event_data, project_id=project2.id)
+        expected = [self.project.slug, project2.slug]
+
+        result = discover.query(
+            selected_columns=["project"],
+            query=f"project:{self.project.slug} or event.type:transaction",
+            params={
+                "organization_id": self.organization.id,
+                "project_id": [self.project.id, project2.id],
+                "start": self.two_min_ago,
+                "end": self.now,
+            },
+            orderby="project",
+            use_snql=True,
+        )
+        data = result["data"]
+        assert len(data) == len(expected)
+        assert [item["project"] for item in data] == expected
+
 
 class QueryTransformTest(TestCase):
     """

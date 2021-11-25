@@ -1,4 +1,4 @@
-import InputField from 'app/components/forms/inputField';
+import InputField from 'sentry/components/forms/inputField';
 
 export default class EmailField extends InputField {
   getType() {

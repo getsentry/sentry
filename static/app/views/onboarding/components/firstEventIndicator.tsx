@@ -2,15 +2,15 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, Variants} from 'framer-motion';
 
-import Button from 'app/components/button';
-import {IconCheckmark} from 'app/icons';
-import {t} from 'app/locale';
-import pulsingIndicatorStyles from 'app/styles/pulsingIndicator';
-import space from 'app/styles/space';
-import {Group} from 'app/types';
-import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
-import EventWaiter from 'app/utils/eventWaiter';
-import testableTransition from 'app/utils/testableTransition';
+import Button from 'sentry/components/button';
+import {IconCheckmark} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
+import space from 'sentry/styles/space';
+import {Group} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import EventWaiter from 'sentry/utils/eventWaiter';
+import testableTransition from 'sentry/utils/testableTransition';
 
 type EventWaiterProps = Omit<React.ComponentProps<typeof EventWaiter>, 'children'>;
 type FirstIssue = null | true | Group;

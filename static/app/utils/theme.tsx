@@ -2,8 +2,8 @@ import '@emotion/react';
 
 import color from 'color';
 
-import CHART_PALETTE from 'app/constants/chartPalette';
-import {DataCategory} from 'app/types';
+import CHART_PALETTE from 'sentry/constants/chartPalette';
+import {DataCategory} from 'sentry/types';
 
 const lightColors = {
   black: '#1D1127',
@@ -677,12 +677,17 @@ const commonTheme = {
 };
 
 const lightAliases = generateAliases(lightColors);
+const darkAliases = generateAliases(darkColors);
 
 export const lightTheme = {
   ...commonTheme,
   ...lightColors,
   ...lightAliases,
   ...lightShadows,
+  inverted: {
+    ...darkColors,
+    ...darkAliases,
+  },
   alert: generateAlertTheme(lightColors, lightAliases),
   badge: generateBadgeTheme(lightColors),
   button: generateButtonTheme(lightColors, lightAliases),
@@ -690,21 +695,25 @@ export const lightTheme = {
   level: generateLevelTheme(lightColors),
   sidebarGradient:
     'linear-gradient(294.17deg,#2f1937 35.57%,#452650 92.42%,#452650 92.42%)',
+  sidebarBorder: 'transparent',
 };
-
-const darkAliases = generateAliases(darkColors);
 
 export const darkTheme: Theme = {
   ...commonTheme,
   ...darkColors,
   ...darkAliases,
   ...darkShadows,
+  inverted: {
+    ...lightColors,
+    ...lightAliases,
+  },
   alert: generateAlertTheme(darkColors, darkAliases),
   badge: generateBadgeTheme(darkColors),
   button: generateButtonTheme(darkColors, darkAliases),
   tag: generateTagTheme(darkColors),
   level: generateLevelTheme(darkColors),
   sidebarGradient: 'linear-gradient(180deg, #181622 0%, #1B1825 100%)',
+  sidebarBorder: darkAliases.border,
 };
 
 export type Theme = typeof lightTheme;

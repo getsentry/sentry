@@ -2,14 +2,14 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
-import {openCreateTeamModal} from 'app/actionCreators/modal';
-import TeamStore from 'app/stores/teamStore';
-import recreateRoute from 'app/utils/recreateRoute';
-import OrganizationTeams from 'app/views/settings/organizationTeams/organizationTeams';
+import {openCreateTeamModal} from 'sentry/actionCreators/modal';
+import TeamStore from 'sentry/stores/teamStore';
+import recreateRoute from 'sentry/utils/recreateRoute';
+import OrganizationTeams from 'sentry/views/settings/organizationTeams/organizationTeams';
 
 recreateRoute.mockReturnValue('');
 
-jest.mock('app/actionCreators/modal', () => ({
+jest.mock('sentry/actionCreators/modal', () => ({
   openCreateTeamModal: jest.fn(),
 }));
 
