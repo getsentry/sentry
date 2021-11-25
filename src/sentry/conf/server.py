@@ -789,7 +789,9 @@ CELERYBEAT_SCHEDULE = {
     },
     "check-symbolicator-lpq-project-eligibility": {
         "task": "sentry.tasks.low_priority_symbolication.scan_for_suspect_projects",
-        "schedule": timedelta(seconds=10),
+        # Set to Feb 31 so it never runs. Here's to hoping February doesn't somehow get
+        # 31 days in the foreseeable future.
+        "schedule": crontab(day_of_month=31, month_of_year=2),
         "options": {"expires": 10},
     },
 }
@@ -2396,7 +2398,7 @@ SENTRY_REPROCESSING_REMAINING_EVENTS_BUF_SIZE = 500
 #
 # Currently, only redis is supported.
 SENTRY_REALTIME_METRICS_BACKEND = (
-    "sentry.processing.realtime_metrics.redis.RedisRealtimeMetricsStore"
+    "sentry.processing.realtime_metrics.dummy.DummyRealtimeMetricsStore"
 )
 SENTRY_REALTIME_METRICS_OPTIONS = {
     # The redis cluster used for the realtime store redis backend.
