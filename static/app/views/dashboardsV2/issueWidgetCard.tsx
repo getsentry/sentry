@@ -229,6 +229,8 @@ const StyledPanel = styled(Panel, {
   /* If a panel overflows due to a long title stretch its grid sibling */
   height: 100%;
   min-height: 96px;
+  display: flex;
+  flex-direction: column;
 `;
 
 const WidgetTitle = styled(HeaderTitle)`

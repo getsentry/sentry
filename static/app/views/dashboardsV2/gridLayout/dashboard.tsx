@@ -4,6 +4,7 @@ import 'react-resizable/css/styles.css';
 import {Component} from 'react';
 import RGL, {WidthProvider} from 'react-grid-layout';
 import {InjectedRouter} from 'react-router';
+import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
@@ -217,7 +218,7 @@ class Dashboard extends Component<Props> {
     const dragId = key;
 
     return (
-      <div key={key} data-grid={getDefaultPosition(index, widget.displayType)}>
+      <GridItem key={key} data-grid={getDefaultPosition(index, widget.displayType)}>
         <SortableWidget
           widget={widget}
           dragId={dragId}
@@ -225,7 +226,7 @@ class Dashboard extends Component<Props> {
           onDelete={this.handleDeleteWidget(index)}
           onEdit={this.handleEditWidget(widget, index)}
         />
-      </div>
+      </GridItem>
     );
   }
 
@@ -262,6 +263,12 @@ class Dashboard extends Component<Props> {
 }
 
 export default withApi(withGlobalSelection(Dashboard));
+
+const GridItem = styled('div')`
+  .react-resizable-handle {
+    z-index: 1;
+  }
+`;
 
 function generateWidgetId(widget: Widget, index: number) {
   return widget.id ? `${widget.id}-index-${index}` : `index-${index}`;
