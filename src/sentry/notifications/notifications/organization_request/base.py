@@ -20,7 +20,6 @@ logger = logging.getLogger(__name__)
 
 
 class OrganizationRequestNotification(OrganizationNotification, abc.ABC):
-    analytics_event: str = ""
     referrer_base: str = ""
     member_by_user_id: MutableMapping[int, OrganizationMember] = {}
     fine_tuning_key = "approval"
@@ -28,6 +27,10 @@ class OrganizationRequestNotification(OrganizationNotification, abc.ABC):
     def __init__(self, organization: Organization, requester: User) -> None:
         super().__init__(organization)
         self.requester = requester
+
+    @property
+    def analytics_event(self) -> str | None:
+        return None
 
     def get_context(self) -> MutableMapping[str, Any]:
         return {}
@@ -125,12 +128,11 @@ class OrganizationRequestNotification(OrganizationNotification, abc.ABC):
     def record_notification_sent(self, recipient: Team | User, provider: ExternalProviders) -> None:
         super().record_notification_sent(recipient, provider)
 
-        # this event is meant to work for multiple providers but architecture
-        # limitations mean we will fire individual for each provider
-        analytics.record(
-            self.analytics_event,
-            organization_id=self.organization.id,
-            user_id=self.requester.id,
-            target_user_id=recipient.id,
-            providers=provider.name.lower(),
-        )
+        if self.analytics_event:
+            analytics.record(
+                self.analytics_event,
+                organization_id=self.organization.id,
+                user_id=self.requester.id,
+                target_user_id=recipient.id,
+                providers=provider.name.lower(),
+            )

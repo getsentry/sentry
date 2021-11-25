@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import enum
 from datetime import timedelta
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from django.conf import settings
 from django.db import models
@@ -10,13 +10,15 @@ from django.urls import reverse
 from django.utils import timezone
 
 from sentry.db.models import BaseManager, FlexibleForeignKey, Model, sane_repr
-from sentry.models import User
 from sentry.utils.http import absolute_uri
 from sentry.utils.security import get_secure_token
 
+if TYPE_CHECKING:
+    from sentry.models import User
+
 
 class LostPasswordHashType(enum.Enum):
-    RECOVER = "recover"
+    RECOVER = "recover_account"
     SET_PASSWORD = "set_password"
 
 

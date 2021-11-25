@@ -7,11 +7,7 @@ from django.utils.encoding import force_text
 
 from sentry import options
 from sentry.models import Project, ProjectOption, Team, User
-from sentry.notifications.notifications.base import (
-    BaseNotification,
-    OrganizationNotification,
-    ProjectNotification,
-)
+from sentry.notifications.notifications.base import BaseNotification, ProjectNotification
 from sentry.notifications.notify import register_notification_provider
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json

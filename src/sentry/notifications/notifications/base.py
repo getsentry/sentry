@@ -66,7 +66,7 @@ class BaseNotification(abc.ABC):
         )
 
 
-class OrganizationNotification(BaseNotification):
+class OrganizationNotification(BaseNotification, abc.ABC):
     message_builder = "SlackNotificationsMessageBuilder"
     fine_tuning_key: str | None = None
     metrics_key: str = ""

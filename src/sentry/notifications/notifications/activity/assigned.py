@@ -71,11 +71,11 @@ class AssignedActivityNotification(GroupActivityNotification):
             author = "themselves"
 
             try:
-                assignee = User.objects.get_from_cache(id=data["assignee"])
+                assignee_user = User.objects.get_from_cache(id=data["assignee"])
             except User.DoesNotExist:
                 assignee = data.get("assigneeEmail", "an unknown user")
             else:
-                assignee = assignee.get_display_name()
+                assignee = assignee_user.get_display_name()
             return author, assignee
 
         if data.get("assigneeType") == "team":

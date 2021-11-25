@@ -20,6 +20,7 @@ from sentry.constants import ALERTS_MEMBER_WRITE_DEFAULT, EVENTS_MEMBER_ADMIN_DE
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
 from sentry.db.models.manager import BaseManager
 from sentry.exceptions import UnableToAcceptMemberInvitationException
+from sentry.models.lostpasswordhash import LostPasswordHashType
 from sentry.models.team import TeamStatus
 from sentry.signals import member_invited
 from sentry.utils.http import absolute_uri
@@ -296,8 +297,10 @@ class OrganizationMember(Model):
         }
 
         if not self.user.password:
-            password_hash = LostPasswordHash.for_user(self.user)
-            context["set_password_url"] = password_hash.get_absolute_url(mode="set_password")
+            password_hash = LostPasswordHash.objects.for_user(self.user)
+            context["set_password_url"] = password_hash.get_absolute_url(
+                mode=LostPasswordHashType.SET_PASSWORD
+            )
 
         msg = MessageBuilder(
             subject=f"Action Required for {self.organization.name}",

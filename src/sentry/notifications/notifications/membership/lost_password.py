@@ -7,16 +7,17 @@ from django.utils import timezone
 from sentry import options
 from sentry.db.models import Model
 from sentry.http import get_server_hostname
+from sentry.models import LostPasswordHashType
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.utils import send_base_notification
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
-    from sentry.models import LostPasswordHash, LostPasswordHashType, Team, User
+    from sentry.models import LostPasswordHash, Team, User
 
 
 class LostPasswordNotification(BaseNotification):
-    category = "integration_request"
+    category = "lost_password"
     type = "user.password_recovery"
 
     def __init__(
@@ -37,7 +38,6 @@ class LostPasswordNotification(BaseNotification):
 
     def get_context(self) -> MutableMapping[str, Any]:
         return {
-            **super().get_context(),
             "datetime": timezone.now(),
             "domain": get_server_hostname(),
             "ip_address": self.ip,
@@ -54,15 +54,6 @@ class LostPasswordNotification(BaseNotification):
 
     def get_reference(self) -> Model | None:
         return None
-
-    def get_notification_title(self) -> str:
-        return ""
-
-    def get_title_link(self) -> str | None:
-        return None
-
-    def build_attachment_title(self) -> str:
-        return ""
 
     def send(self) -> None:
         return send_base_notification(

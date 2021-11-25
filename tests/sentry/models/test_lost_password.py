@@ -11,7 +11,7 @@ class LostPasswordTest(TestCase):
         password_hash = LostPasswordHash.objects.create(user=self.user)
 
         with self.options({"system.url-prefix": "http://testserver"}), self.tasks():
-            LostPasswordNotification(password_hash, "1.1.1.1")
+            LostPasswordNotification(password_hash, "1.1.1.1").send()
 
         assert len(mail.outbox) == 1
         msg = mail.outbox[0]
@@ -19,6 +19,6 @@ class LostPasswordTest(TestCase):
         assert msg.subject == "[Sentry] Password Recovery"
         url = "http://testserver" + reverse(
             "sentry-account-recover-confirm",
-            args=[self.password_hash.user_id, self.password_hash.hash],
+            args=[password_hash.user_id, password_hash.hash],
         )
         assert url in msg.body
