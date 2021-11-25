@@ -83,21 +83,11 @@ class MetricWidget extends AsyncView<Props, State> {
     }
 
     const orgSlug = organization.slug;
-<<<<<<< HEAD
-=======
     const projectId = this.project.id;
->>>>>>> master
 
     return [
       [
         'metricMetas',
-<<<<<<< HEAD
-        `/organizations/${orgSlug}/metrics/meta/?project=${this.project.id}`,
-      ],
-      [
-        'metricTags',
-        `/organizations/${orgSlug}/metrics/tags/?project=${this.project.id}`,
-=======
         `/organizations/${orgSlug}/metrics/meta/`,
         {query: {project: projectId}},
       ],
@@ -105,7 +95,6 @@ class MetricWidget extends AsyncView<Props, State> {
         'metricTags',
         `/organizations/${orgSlug}/metrics/tags/`,
         {query: {project: projectId}},
->>>>>>> master
       ],
     ];
   }
