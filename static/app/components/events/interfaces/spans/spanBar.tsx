@@ -81,6 +81,7 @@ import {
   isOrphanTreeDepth,
   SpanBoundsType,
   SpanGeneratedBoundsType,
+  spanTargetHash,
   SpanViewBoundsType,
   unwrapTreeDepth,
 } from './utils';
@@ -183,7 +184,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
       <AnchorLinkManager.Consumer>
         {({registerScrollFn, scrollToHash}) => {
           if (!isGapSpan(span)) {
-            registerScrollFn(`#span-${span.span_id}`, this.scrollIntoView);
+            registerScrollFn(spanTargetHash(span.span_id), this.scrollIntoView);
           }
 
           if (!this.state.showDetail || !isVisible) {

@@ -189,6 +189,7 @@ function renderHeadCellWithMeta(
         query: {
           ...location.query,
           spanSort: column.key,
+          [SPANS_CURSOR_NAME]: undefined,
         },
       };
     }
@@ -229,12 +230,11 @@ function renderBodyCellWithMeta({
             )
           : null;
 
-        const hash = worstSpan ? `#span-${worstSpan.id}` : undefined;
         const target = generateTransactionLink(transactionName)(
           organization,
           dataRow,
           location.query,
-          hash
+          worstSpan.id
         );
 
         return <Link to={target}>{rendered}</Link>;

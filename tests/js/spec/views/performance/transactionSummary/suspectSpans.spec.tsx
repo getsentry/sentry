@@ -1,6 +1,11 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {generateSuspectSpansResponse} from 'sentry-test/performance/initializePerformanceData';
-import {act, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  mountWithTheme,
+  screen,
+  // waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'app/stores/projectsStore';
 import EventView from 'app/utils/discover/eventView';
@@ -64,5 +69,30 @@ describe('SuspectSpans', function () {
       expect(await screen.findByText('Total Exclusive Time')).toBeInTheDocument();
       expect(await screen.findByText('Example Transaction')).toBeInTheDocument();
     });
+
+    // Due to the createHref being stubbed out (see link below),
+    // the anchors all have an empty href so we can't actually
+    // test this.
+    //
+    // https://github.com/getsentry/sentry/blob/28a2337ae902785d4d3e914c0ba484fa883cc17a/tests/js/setup.ts#L162
+    //
+    // it('allows sorting by some columns', async function () {
+    //   const initialData = initializeData();
+    //   mountWithTheme(
+    //     <SuspectSpans
+    //       organization={initialData.organization}
+    //       location={initialData.router.location}
+    //       eventView={initialData.eventView}
+    //       projectId="1"
+    //       transactionName="Test Transaction"
+    //     />,
+    //     {context: initialData.routerContext}
+    //   );
+
+    //   await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+    //   expect(screen.getByText('P75 Exclusive Time')).toHaveAttribute('href', null);
+    //   expect(screen.getByText('Total Occurrences')).toHaveAttribute('href', null);
+    //   expect(screen.getByText('Total Exclusive Time')).toHaveAttribute('href', null);
+    // });
   });
 });

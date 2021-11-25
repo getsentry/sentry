@@ -299,8 +299,12 @@ function renderBodyCellWithMeta(
             worst.exclusiveTime >= span.exclusiveTime ? worst : span
           )
         : null;
-      const hash = worstSpan ? `#span-${worstSpan.id}` : undefined;
-      const target = generateTransactionLink(organization, dataRow, location.query, hash);
+      const target = generateTransactionLink(
+        organization,
+        dataRow,
+        location.query,
+        worstSpan.id
+      );
 
       rendered = <Link to={target}>{rendered}</Link>;
     }
