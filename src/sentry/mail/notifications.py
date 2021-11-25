@@ -137,11 +137,13 @@ def get_builder_args(
     # TODO: move context logic to single notification class method
     extra_context = (extra_context_by_actor_id or {}).get(recipient.actor_id, {})
     context = get_context(notification, recipient, shared_context or {}, extra_context)
+
+    html_template, txt_template = notification.get_email_template_filenames()
     return {
         "subject": get_subject_with_prefix(notification, context),
         "context": context,
-        "template": notification.get_template(),
-        "html_template": notification.get_html_template(),
+        "template": txt_template,
+        "html_template": html_template,
         "headers": get_headers(notification),
         "reference": notification.get_reference(),
         "reply_reference": notification.get_reply_reference(),

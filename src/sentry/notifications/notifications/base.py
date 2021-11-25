@@ -25,6 +25,13 @@ class BaseNotification(abc.ABC):
     def type(self) -> str:
         raise NotImplementedError
 
+    def get_email_template_filenames(self) -> tuple[str, str]:
+        """
+        Override this method if the templates are in an exotic location.
+        Otherwise just set `filename` as a class variable.
+        """
+        return f"sentry/emails/{self.filename}.html", f"sentry/emails/{self.filename}.txt"
+
     def record_notification_sent(self, recipient: Team | User, provider: ExternalProviders) -> None:
         analytics.record(
             f"integrations.{provider.name}.notification_sent",
@@ -70,12 +77,6 @@ class BaseNotification(abc.ABC):
 
     def should_email(self) -> bool:
         return True
-
-    def get_template(self) -> str:
-        return f"sentry/emails/{self.get_filename()}.txt"
-
-    def get_html_template(self) -> str:
-        return f"sentry/emails/{self.get_filename()}.html"
 
     def get_recipient_context(
         self, recipient: Team | User, extra_context: Mapping[str, Any]
