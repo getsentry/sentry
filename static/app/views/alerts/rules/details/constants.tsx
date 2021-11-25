@@ -1,8 +1,8 @@
 import * as React from 'react';
 
-import {t} from 'app/locale';
-import {SelectValue} from 'app/types';
-import {TimePeriod, TimeWindow} from 'app/views/alerts/incidentRules/types';
+import {t} from 'sentry/locale';
+import {SelectValue} from 'sentry/types';
+import {TimePeriod, TimeWindow} from 'sentry/views/alerts/incidentRules/types';
 
 export const TIME_OPTIONS: SelectValue<string>[] = [
   {label: t('Last 6 hours'), value: TimePeriod.SIX_HOURS},

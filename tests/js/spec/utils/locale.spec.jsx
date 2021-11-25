@@ -1,6 +1,6 @@
 import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
-import {tct} from 'app/locale';
+import {tct} from 'sentry/locale';
 
 describe('locale.gettextComponentTemplate', () => {
   it('should render two component templates inside the same parent', async () => {

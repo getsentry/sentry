@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
 
-import {closeModal, ModalRenderProps} from 'app/actionCreators/modal';
-import {tct} from 'app/locale';
+import {closeModal, ModalRenderProps} from 'sentry/actionCreators/modal';
+import {tct} from 'sentry/locale';
 import SentryAppExternalForm, {
   SchemaFormConfig,
-} from 'app/views/organizationIntegrations/sentryAppExternalForm';
+} from 'sentry/views/organizationIntegrations/sentryAppExternalForm';
 
 type Props = ModalRenderProps & {
   sentryAppInstallationUuid: string;

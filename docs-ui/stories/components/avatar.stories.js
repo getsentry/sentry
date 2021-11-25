@@ -1,4 +1,4 @@
-import Avatar from 'app/components/avatar';
+import Avatar from 'sentry/components/avatar';
 
 const USER = {
   id: 1,

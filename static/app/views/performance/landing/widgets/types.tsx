@@ -1,11 +1,11 @@
 import {FunctionComponent, ReactNode} from 'react';
 import {Location} from 'history';
 
-import {Client} from 'app/api';
-import BaseChart from 'app/components/charts/baseChart';
-import {RenderProps} from 'app/components/charts/eventsRequest';
-import {DateString, Organization, OrganizationSummary} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
+import {Client} from 'sentry/api';
+import BaseChart from 'sentry/components/charts/baseChart';
+import {RenderProps} from 'sentry/components/charts/eventsRequest';
+import {DateString, Organization, OrganizationSummary} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
 
 import {PerformanceWidgetContainerTypes} from './components/performanceWidgetContainer';
 import {ChartDefinition, PerformanceWidgetSetting} from './widgetDefinitions';
@@ -49,6 +49,7 @@ export type QueryFC<T extends WidgetDataConstraint> = FunctionComponent<
     team?: Readonly<string | string[]>;
     query?: string;
     orgSlug: string;
+    eventView: EventView;
     organization: OrganizationSummary;
     widgetData: T;
   }
@@ -142,6 +143,7 @@ export type QueryHandlerProps<T extends WidgetDataConstraint> = {
   api: Client;
   queries: QueryDefinitionWithKey<T>[];
   children?: ReactNode;
+  eventView: EventView;
   queryProps: WidgetPropUnion<T>;
 } & WidgetDataProps<T>;
 

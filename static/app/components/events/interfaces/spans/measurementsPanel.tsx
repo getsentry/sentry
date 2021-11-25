@@ -1,11 +1,11 @@
 import {Component, createRef, PureComponent} from 'react';
 import styled from '@emotion/styled';
 
-import {toPercent} from 'app/components/performance/waterfall/utils';
-import Tooltip from 'app/components/tooltip';
-import {EventTransaction} from 'app/types/event';
-import {defined} from 'app/utils';
-import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
+import {toPercent} from 'sentry/components/performance/waterfall/utils';
+import Tooltip from 'sentry/components/tooltip';
+import {EventTransaction} from 'sentry/types/event';
+import {defined} from 'sentry/utils';
+import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 
 import {
   getMeasurementBounds,

@@ -1,10 +1,10 @@
 import {RouteComponentProps} from 'react-router';
 import moment from 'moment';
 
-import ResultGrid from 'app/components/resultGrid';
-import {t} from 'app/locale';
-import {Organization} from 'app/types';
-import AsyncView from 'app/views/asyncView';
+import ResultGrid from 'sentry/components/resultGrid';
+import {t} from 'sentry/locale';
+import {Organization} from 'sentry/types';
+import AsyncView from 'sentry/views/asyncView';
 
 type Row = {
   dateCreated: string;

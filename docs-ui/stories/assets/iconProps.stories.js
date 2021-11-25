@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {IconAdd, IconArrow, IconBookmark, IconGroup, IconPin} from 'app/icons';
+import {IconAdd, IconArrow, IconBookmark, IconGroup, IconPin} from 'sentry/icons';
 
 export default {
   title: 'Assets/Icons',

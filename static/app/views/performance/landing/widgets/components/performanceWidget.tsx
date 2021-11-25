@@ -2,14 +2,14 @@ import {Fragment, useCallback, useRef, useState} from 'react';
 import {withRouter} from 'react-router';
 import styled from '@emotion/styled';
 
-import ErrorPanel from 'app/components/charts/errorPanel';
-import Placeholder from 'app/components/placeholder';
-import {IconWarning} from 'app/icons/iconWarning';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
-import useApi from 'app/utils/useApi';
-import getPerformanceWidgetContainer from 'app/views/performance/landing/widgets/components/performanceWidgetContainer';
+import ErrorPanel from 'sentry/components/charts/errorPanel';
+import Placeholder from 'sentry/components/placeholder';
+import {IconWarning} from 'sentry/icons/iconWarning';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import useApi from 'sentry/utils/useApi';
+import getPerformanceWidgetContainer from 'sentry/views/performance/landing/widgets/components/performanceWidgetContainer';
 
 import {
   GenericPerformanceWidgetProps,
@@ -66,6 +66,7 @@ export function GenericPerformanceWidget<T extends WidgetDataConstraint>(
   return (
     <Fragment>
       <QueryHandler
+        eventView={props.eventView}
         widgetData={widgetData}
         setWidgetDataForKey={setWidgetDataForKey}
         removeWidgetDataForKey={removeWidgetDataForKey}
@@ -122,6 +123,7 @@ function _DataDisplay<T extends WidgetDataConstraint>(
             key={index}
             noPadding={Visualization.noPadding}
             bottomPadding={Visualization.bottomPadding}
+            data-test-id="widget-state-has-data"
             onClick={() =>
               trackDataComponentClicks(props.chartSetting, props.organization)
             }
@@ -151,7 +153,7 @@ export const DataDisplay = withRouter(_DataDisplay);
 
 const DefaultErrorComponent = (props: {height: number}) => {
   return (
-    <ErrorPanel height={`${props.height}px`}>
+    <ErrorPanel data-test-id="widget-state-is-errored" height={`${props.height}px`}>
       <IconWarning color="gray300" size="lg" />
     </ErrorPanel>
   );

@@ -1,11 +1,11 @@
 import {act, mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {addTeamToProject} from 'app/actionCreators/projects';
-import {TeamSelector} from 'app/components/forms/teamSelector';
-import OrganizationStore from 'app/stores/organizationStore';
-import TeamStore from 'app/stores/teamStore';
+import {addTeamToProject} from 'sentry/actionCreators/projects';
+import {TeamSelector} from 'sentry/components/forms/teamSelector';
+import OrganizationStore from 'sentry/stores/organizationStore';
+import TeamStore from 'sentry/stores/teamStore';
 
-jest.mock('app/actionCreators/projects', () => ({
+jest.mock('sentry/actionCreators/projects', () => ({
   addTeamToProject: jest.fn(),
 }));
 

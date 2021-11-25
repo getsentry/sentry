@@ -3,16 +3,16 @@ import * as React from 'react';
 import {Location} from 'history';
 import pick from 'lodash/pick';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {Client} from 'app/api';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {URL_PARAM} from 'app/constants/globalSelectionHeader';
-import {t} from 'app/locale';
-import {GlobalSelection, Organization, Project, SessionApiResponse} from 'app/types';
-import {Series} from 'app/types/echarts';
-import {getSessionsInterval} from 'app/utils/sessions';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
-import {roundDuration} from 'app/views/releases/utils';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {Client} from 'sentry/api';
+import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {URL_PARAM} from 'sentry/constants/globalSelectionHeader';
+import {t} from 'sentry/locale';
+import {GlobalSelection, Organization, Project, SessionApiResponse} from 'sentry/types';
+import {Series} from 'sentry/types/echarts';
+import {getSessionsInterval} from 'sentry/utils/sessions';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {roundDuration} from 'sentry/views/releases/utils';
 
 import {MetricQuery} from './types';
 import {fillChartDataFromMetricsResponse, getBreakdownChartData} from './utils';
@@ -117,7 +117,7 @@ function StatsRequest({
 
       if (!!groupBy?.length) {
         const groupByParameter = [...groupBy].join('&groupBy=');
-        return api.requestPromise(`${metricDataEndpoint}?groupBy=${groupByParameter}`, {
+        return api.requestPromise(`${metricDataEndpoint}&groupBy=${groupByParameter}`, {
           query,
         });
       }

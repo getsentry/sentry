@@ -1,9 +1,9 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import EventView from 'app/utils/discover/eventView';
-import TransactionHeader from 'app/views/performance/transactionSummary/header';
-import Tab from 'app/views/performance/transactionSummary/tabs';
+import EventView from 'sentry/utils/discover/eventView';
+import TransactionHeader from 'sentry/views/performance/transactionSummary/header';
+import Tab from 'sentry/views/performance/transactionSummary/tabs';
 
 type InitialOpts = {
   features?: string[];

@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import ProjectExpectCtReports from 'app/views/settings/projectSecurityHeaders/expectCt';
+import ProjectExpectCtReports from 'sentry/views/settings/projectSecurityHeaders/expectCt';
 
 describe('ProjectExpectCtReports', function () {
   const org = TestStubs.Organization();

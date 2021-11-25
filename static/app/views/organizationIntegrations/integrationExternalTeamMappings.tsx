@@ -1,15 +1,15 @@
 import {Fragment} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {openModal} from 'app/actionCreators/modal';
-import AsyncComponent from 'app/components/asyncComponent';
-import IntegrationExternalMappingForm from 'app/components/integrationExternalMappingForm';
-import IntegrationExternalMappings from 'app/components/integrationExternalMappings';
-import {t} from 'app/locale';
-import {ExternalActorMapping, Integration, Organization, Team} from 'app/types';
-import withOrganization from 'app/utils/withOrganization';
-import FormModel from 'app/views/settings/components/forms/model';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {openModal} from 'sentry/actionCreators/modal';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import IntegrationExternalMappingForm from 'sentry/components/integrationExternalMappingForm';
+import IntegrationExternalMappings from 'sentry/components/integrationExternalMappings';
+import {t} from 'sentry/locale';
+import {ExternalActorMapping, Integration, Organization, Team} from 'sentry/types';
+import withOrganization from 'sentry/utils/withOrganization';
+import FormModel from 'sentry/views/settings/components/forms/model';
 
 type Props = AsyncComponent['props'] &
   WithRouterProps & {

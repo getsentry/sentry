@@ -1,29 +1,29 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import AsyncComponent from 'app/components/asyncComponent';
-import Pagination from 'app/components/pagination';
-import {t} from 'app/locale';
-import {Project} from 'app/types';
-import {sortProjects} from 'app/utils';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import Pagination from 'sentry/components/pagination';
+import {t} from 'sentry/locale';
+import {Project} from 'sentry/types';
+import {sortProjects} from 'sentry/utils';
 import {
   MIN_PROJECTS_FOR_PAGINATION,
   MIN_PROJECTS_FOR_SEARCH,
   NotificationSettingsByProviderObject,
   NotificationSettingsObject,
-} from 'app/views/settings/account/notifications/constants';
+} from 'sentry/views/settings/account/notifications/constants';
 import {
   getParentData,
   getParentField,
   groupByOrganization,
-} from 'app/views/settings/account/notifications/utils';
+} from 'sentry/views/settings/account/notifications/utils';
 import {
   RenderSearch,
   SearchWrapper,
-} from 'app/views/settings/components/defaultSearchBar';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import Form from 'app/views/settings/components/forms/form';
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
+} from 'sentry/views/settings/components/defaultSearchBar';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
+import Form from 'sentry/views/settings/components/forms/form';
+import JsonForm from 'sentry/views/settings/components/forms/jsonForm';
 
 type Props = {
   notificationType: string;

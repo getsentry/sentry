@@ -1,14 +1,14 @@
 import * as React from 'react';
 import {components as selectComponents} from 'react-select';
 
-import {ModalRenderProps} from 'app/actionCreators/modal';
-import Button from 'app/components/button';
-import {SelectAsyncField} from 'app/components/forms';
-import TimeSince from 'app/components/timeSince';
-import Version from 'app/components/version';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Release} from 'app/types';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import Button from 'sentry/components/button';
+import {SelectAsyncField} from 'sentry/components/forms';
+import TimeSince from 'sentry/components/timeSince';
+import Version from 'sentry/components/version';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Release} from 'sentry/types';
 
 type Props = ModalRenderProps & {
   onSelected: ({inRelease: string}) => void;

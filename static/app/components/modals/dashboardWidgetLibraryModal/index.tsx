@@ -3,13 +3,17 @@ import {useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps, openAddDashboardWidgetModal} from 'app/actionCreators/modal';
-import Tag from 'app/components/tagDeprecated';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import {DashboardDetails, Widget} from 'app/views/dashboardsV2/types';
-import {WidgetTemplate} from 'app/views/dashboardsV2/widgetLibrary/data';
+import {ModalRenderProps, openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
+import Tag from 'sentry/components/tagDeprecated';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {
+  DashboardDetails,
+  DashboardWidgetSource,
+  Widget,
+} from 'sentry/views/dashboardsV2/types';
+import {WidgetTemplate} from 'sentry/views/dashboardsV2/widgetLibrary/data';
 
 import Button from '../../button';
 import ButtonBar from '../../buttonBar';
@@ -67,7 +71,7 @@ function DashboardWidgetLibraryModal({
                 dashboard,
                 selectedWidgets,
                 widget: customWidget,
-                fromLibrary: true,
+                source: DashboardWidgetSource.LIBRARY,
                 onAddLibraryWidget: onAddWidget,
               });
             }}

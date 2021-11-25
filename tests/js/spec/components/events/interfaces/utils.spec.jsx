@@ -3,9 +3,9 @@ import {
   objectToSortedTupleArray,
   removeFilterMaskedEntries,
   stringifyQueryList,
-} from 'app/components/events/interfaces/utils';
-import {MetaProxy, withMeta} from 'app/components/events/meta/metaProxy';
-import {FILTER_MASK} from 'app/constants';
+} from 'sentry/components/events/interfaces/utils';
+import {MetaProxy, withMeta} from 'sentry/components/events/meta/metaProxy';
+import {FILTER_MASK} from 'sentry/constants';
 
 describe('components/interfaces/utils', function () {
   describe('getCurlCommand()', function () {

@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 
-import Tooltip from 'app/components/tooltip';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import theme from 'app/utils/theme';
-import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
+import Tooltip from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import theme from 'sentry/utils/theme';
+import TextCopyInput from 'sentry/views/settings/components/forms/textCopyInput';
 
 interface Props {
   name?: string;

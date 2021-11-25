@@ -1,9 +1,9 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {act} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'app/api';
-import ConfigStore from 'app/stores/configStore';
-import App from 'app/views/app';
+import {Client} from 'sentry/api';
+import ConfigStore from 'sentry/stores/configStore';
+import App from 'sentry/views/app';
 
 describe('Sudo Modal', function () {
   const setHasPasswordAuth = hasPasswordAuth =>

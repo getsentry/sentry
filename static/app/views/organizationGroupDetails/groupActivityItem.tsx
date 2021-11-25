@@ -1,14 +1,14 @@
 import * as React from 'react';
 
-import CommitLink from 'app/components/commitLink';
-import Duration from 'app/components/duration';
-import ExternalLink from 'app/components/links/externalLink';
-import Link from 'app/components/links/link';
-import PullRequestLink from 'app/components/pullRequestLink';
-import Version from 'app/components/version';
-import {t, tct, tn} from 'app/locale';
-import MemberListStore from 'app/stores/memberListStore';
-import TeamStore from 'app/stores/teamStore';
+import CommitLink from 'sentry/components/commitLink';
+import Duration from 'sentry/components/duration';
+import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
+import PullRequestLink from 'sentry/components/pullRequestLink';
+import Version from 'sentry/components/version';
+import {t, tct, tn} from 'sentry/locale';
+import MemberListStore from 'sentry/stores/memberListStore';
+import TeamStore from 'sentry/stores/teamStore';
 import {
   GroupActivity,
   GroupActivityAssigned,
@@ -17,7 +17,7 @@ import {
   Organization,
   Project,
   User,
-} from 'app/types';
+} from 'sentry/types';
 
 type Props = {
   author: React.ReactNode;
@@ -89,7 +89,7 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
       });
     }
 
-    if (activity.user && activity.assignee === activity.user.id) {
+    if (activity.user && data.assignee === activity.user.id) {
       return tct('[author] assigned this issue to themselves', {author});
     }
 

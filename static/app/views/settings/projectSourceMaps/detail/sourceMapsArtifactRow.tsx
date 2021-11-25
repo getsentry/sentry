@@ -1,19 +1,19 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Access from 'app/components/acl/access';
-import Role from 'app/components/acl/role';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import Confirm from 'app/components/confirm';
-import FileSize from 'app/components/fileSize';
-import Tag from 'app/components/tag';
-import TimeSince from 'app/components/timeSince';
-import Tooltip from 'app/components/tooltip';
-import {IconClock, IconDelete, IconDownload} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Artifact} from 'app/types';
+import Access from 'sentry/components/acl/access';
+import Role from 'sentry/components/acl/role';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import Confirm from 'sentry/components/confirm';
+import FileSize from 'sentry/components/fileSize';
+import Tag from 'sentry/components/tag';
+import TimeSince from 'sentry/components/timeSince';
+import Tooltip from 'sentry/components/tooltip';
+import {IconClock, IconDelete, IconDownload} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Artifact} from 'sentry/types';
 
 type Props = {
   artifact: Artifact;

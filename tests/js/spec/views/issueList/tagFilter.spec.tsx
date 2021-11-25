@@ -5,7 +5,7 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
-import IssueListTagFilter from 'app/views/issueList/tagFilter';
+import IssueListTagFilter from 'sentry/views/issueList/tagFilter';
 
 describe('IssueListTagFilter', function () {
   MockApiClient.clearMockResponses();

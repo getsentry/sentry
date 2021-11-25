@@ -1,6 +1,6 @@
-import CHART_PALETTE from 'app/constants/chartPalette';
-import {t} from 'app/locale';
-import {Organization} from 'app/types';
+import CHART_PALETTE from 'sentry/constants/chartPalette';
+import {t} from 'sentry/locale';
+import {Organization} from 'sentry/types';
 
 import {getTermHelp, PERFORMANCE_TERM} from '../../data';
 
@@ -141,35 +141,35 @@ export const WIDGET_DEFINITIONS: ({
   [PerformanceWidgetSetting.APDEX_AREA]: {
     title: t('Apdex'),
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX_NEW),
-    fields: ['apdex()'], // TODO(k-fish): Check apdex threshold against current landing
+    fields: ['apdex()'],
     dataType: GenericPerformanceWidgetDataType.area,
     chartColor: WIDGET_PALETTE[4],
   },
   [PerformanceWidgetSetting.P50_DURATION_AREA]: {
     title: t('p50 Duration'),
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.P50),
-    fields: ['p50(transaction.duration)'], // TODO(k-fish): Check
+    fields: ['p50(transaction.duration)'],
     dataType: GenericPerformanceWidgetDataType.area,
     chartColor: WIDGET_PALETTE[3],
   },
   [PerformanceWidgetSetting.P75_DURATION_AREA]: {
     title: t('p75 Duration'),
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.P75),
-    fields: ['p75(transaction.duration)'], // TODO(k-fish): Check
+    fields: ['p75(transaction.duration)'],
     dataType: GenericPerformanceWidgetDataType.area,
     chartColor: WIDGET_PALETTE[3],
   },
   [PerformanceWidgetSetting.P95_DURATION_AREA]: {
     title: t('p95 Duration'),
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.P95),
-    fields: ['p95(transaction.duration)'], // TODO(k-fish): Check
+    fields: ['p95(transaction.duration)'],
     dataType: GenericPerformanceWidgetDataType.area,
     chartColor: WIDGET_PALETTE[3],
   },
   [PerformanceWidgetSetting.P99_DURATION_AREA]: {
     title: t('p99 Duration'),
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.P99),
-    fields: ['p99(transaction.duration)'], // TODO(k-fish): Check
+    fields: ['p99(transaction.duration)'],
     dataType: GenericPerformanceWidgetDataType.area,
     chartColor: WIDGET_PALETTE[3],
   },
@@ -190,7 +190,7 @@ export const WIDGET_DEFINITIONS: ({
   [PerformanceWidgetSetting.USER_MISERY_AREA]: {
     title: t('User Misery'),
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.USER_MISERY),
-    fields: [`user_misery(${organization.apdexThreshold ?? ''})`], // TODO(k-fish): Check threshold is correct vs existing landing
+    fields: [`user_misery()`],
     dataType: GenericPerformanceWidgetDataType.area,
     chartColor: WIDGET_PALETTE[0],
   },

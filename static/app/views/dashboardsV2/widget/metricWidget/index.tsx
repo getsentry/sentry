@@ -6,18 +6,18 @@ import {Location, LocationDescriptor} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import set from 'lodash/set';
 
-import ProjectBadge from 'app/components/idBadge/projectBadge';
-import * as Layout from 'app/components/layouts/thirds';
-import PickProjectToContinue from 'app/components/pickProjectToContinue';
-import {t} from 'app/locale';
-import {PageContent} from 'app/styles/organization';
-import space from 'app/styles/space';
-import {GlobalSelection, Organization, Project} from 'app/types';
-import {Theme} from 'app/utils/theme';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import withProjects from 'app/utils/withProjects';
-import AsyncView from 'app/views/asyncView';
-import SelectField from 'app/views/settings/components/forms/selectField';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import * as Layout from 'sentry/components/layouts/thirds';
+import PickProjectToContinue from 'sentry/components/pickProjectToContinue';
+import {t} from 'sentry/locale';
+import {PageContent} from 'sentry/styles/organization';
+import space from 'sentry/styles/space';
+import {GlobalSelection, Organization, Project} from 'sentry/types';
+import {Theme} from 'sentry/utils/theme';
+import withGlobalSelection from 'sentry/utils/withGlobalSelection';
+import withProjects from 'sentry/utils/withProjects';
+import AsyncView from 'sentry/views/asyncView';
+import SelectField from 'sentry/views/settings/components/forms/selectField';
 
 import {DashboardDetails} from '../../types';
 import BuildStep from '../buildStep';
@@ -83,15 +83,29 @@ class MetricWidget extends AsyncView<Props, State> {
     }
 
     const orgSlug = organization.slug;
+<<<<<<< HEAD
+=======
+    const projectId = this.project.id;
+>>>>>>> master
 
     return [
       [
         'metricMetas',
+<<<<<<< HEAD
         `/organizations/${orgSlug}/metrics/meta/?project=${this.project.id}`,
       ],
       [
         'metricTags',
         `/organizations/${orgSlug}/metrics/tags/?project=${this.project.id}`,
+=======
+        `/organizations/${orgSlug}/metrics/meta/`,
+        {query: {project: projectId}},
+      ],
+      [
+        'metricTags',
+        `/organizations/${orgSlug}/metrics/tags/`,
+        {query: {project: projectId}},
+>>>>>>> master
       ],
     ];
   }

@@ -1,12 +1,12 @@
-import {Panel} from 'app/components/panels';
-import {IconWarning} from 'app/icons';
-import {t} from 'app/locale';
-import {ExceptionValue, Group, Organization, PlatformType} from 'app/types';
-import {Event} from 'app/types/event';
-import {STACK_VIEW} from 'app/types/stacktrace';
-import {defined} from 'app/utils';
-import useOrganization from 'app/utils/useOrganization';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import {Panel} from 'sentry/components/panels';
+import {IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {ExceptionValue, Group, Organization, PlatformType} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import {STACK_VIEW} from 'sentry/types/stacktrace';
+import {defined} from 'sentry/utils';
+import useOrganization from 'sentry/utils/useOrganization';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 import StackTraceContent from '../stackTrace/content';
 import StacktraceContentV2 from '../stackTrace/contentV2';

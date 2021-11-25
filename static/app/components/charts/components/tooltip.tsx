@@ -3,8 +3,8 @@ import 'echarts/lib/component/tooltip';
 import {EChartOption} from 'echarts';
 import moment from 'moment';
 
-import BaseChart from 'app/components/charts/baseChart';
-import {getFormattedDate, getTimeFormat} from 'app/utils/dates';
+import BaseChart from 'sentry/components/charts/baseChart';
+import {getFormattedDate, getTimeFormat} from 'sentry/utils/dates';
 
 import {truncationFormatter} from '../utils';
 
@@ -201,7 +201,7 @@ function getFormatter({
         seriesParamsOrParam
       );
 
-    return [
+    const tooltipContent = [
       '<div class="tooltip-series">',
       seriesParams
         .filter(getFilter)
@@ -224,6 +224,8 @@ function getFormatter({
       `<div class="tooltip-date">${date}</div>`,
       `<div class="tooltip-arrow"></div>`,
     ].join('');
+
+    return `<div class="tooltip-container">${tooltipContent}</div>`;
   };
 
   return formatter;

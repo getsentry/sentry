@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
-import CircleIndicator from 'app/components/circleIndicator';
+import CircleIndicator from 'sentry/components/circleIndicator';
 
 describe('CircleIndicator', function () {
   it('renders', function () {

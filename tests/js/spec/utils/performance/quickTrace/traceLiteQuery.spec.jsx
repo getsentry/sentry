@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {Client} from 'app/api';
-import TraceLiteQuery from 'app/utils/performance/quickTrace/traceLiteQuery';
+import {Client} from 'sentry/api';
+import TraceLiteQuery from 'sentry/utils/performance/quickTrace/traceLiteQuery';
 
 const traceId = 'abcdef1234567890';
 const eventId = '0987654321fedcba';

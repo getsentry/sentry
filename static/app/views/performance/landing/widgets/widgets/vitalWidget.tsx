@@ -3,23 +3,23 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import pick from 'lodash/pick';
 
-import Button from 'app/components/button';
-import _EventsRequest from 'app/components/charts/eventsRequest';
-import {getInterval} from 'app/components/charts/utils';
-import Truncate from 'app/components/truncate';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import {defined} from 'app/utils';
-import DiscoverQuery, {TableDataRow} from 'app/utils/discover/discoverQuery';
-import EventView from 'app/utils/discover/eventView';
-import {WebVital} from 'app/utils/discover/fields';
-import {VitalData} from 'app/utils/performance/vitals/vitalsCardsDiscoverQuery';
-import {decodeList} from 'app/utils/queryString';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
-import withApi from 'app/utils/withApi';
-import {vitalDetailRouteWithQuery} from 'app/views/performance/vitalDetail/utils';
-import {_VitalChart} from 'app/views/performance/vitalDetail/vitalChart';
+import Button from 'sentry/components/button';
+import _EventsRequest from 'sentry/components/charts/eventsRequest';
+import {getInterval} from 'sentry/components/charts/utils';
+import Truncate from 'sentry/components/truncate';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import DiscoverQuery, {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import EventView from 'sentry/utils/discover/eventView';
+import {WebVital} from 'sentry/utils/discover/fields';
+import {VitalData} from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
+import {decodeList} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import withApi from 'sentry/utils/withApi';
+import {vitalDetailRouteWithQuery} from 'sentry/views/performance/vitalDetail/utils';
+import {_VitalChart} from 'sentry/views/performance/vitalDetail/vitalChart';
 
 import {excludeTransaction} from '../../utils';
 import {VitalBar} from '../../vitalsCards';
@@ -29,6 +29,7 @@ import SelectableList, {
   ListClose,
   RightAlignedCell,
   Subtitle,
+  WidgetEmptyStateWarning,
 } from '../components/selectableList';
 import {transformDiscoverToList} from '../transforms/transformDiscoverToList';
 import {transformEventsRequestToVitals} from '../transforms/transformEventsToVitals';
@@ -117,7 +118,7 @@ export function VitalWidget(props: Props) {
       () => ({
         fields: sortField,
         component: provided => {
-          const _eventView = props.eventView.clone();
+          const _eventView = provided.eventView.clone();
 
           const fieldFromProps = fieldsList.map(propField => ({
             field: propField,
@@ -139,6 +140,8 @@ export function VitalWidget(props: Props) {
               eventView={_eventView}
               location={props.location}
               limit={3}
+              cursor="0:0:1"
+              noPagination
             />
           );
         },
@@ -153,7 +156,7 @@ export function VitalWidget(props: Props) {
         },
         fields: fieldsList,
         component: provided => {
-          const _eventView = props.eventView.clone();
+          const _eventView = provided.eventView.clone();
 
           _eventView.additionalConditions.setFilterValues('transaction', [
             provided.widgetData.list.data[selectedListIndex].transaction as string,
@@ -181,7 +184,7 @@ export function VitalWidget(props: Props) {
         },
         transform: transformEventsRequestToVitals,
       }),
-      [props.eventView, selectedListIndex, props.chartSetting, props.organization.slug]
+      [props.chartSetting, selectedListIndex]
     ),
   };
 
@@ -223,6 +226,7 @@ export function VitalWidget(props: Props) {
           </Subtitle>
         );
       }}
+      EmptyComponent={WidgetEmptyStateWarning}
       HeaderActions={provided => {
         const vital = settingToVital[props.chartSetting];
         const target = vitalDetailRouteWithQuery({

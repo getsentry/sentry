@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {Theme} from 'app/utils/theme';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {Theme} from 'sentry/utils/theme';
 
 export const ErrorMessageTitle = styled('div')`
   display: flex;

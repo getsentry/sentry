@@ -2,9 +2,9 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {getAllByTextContent} from 'sentry-test/utils';
 
-import Breadcrumbs from 'app/components/events/interfaces/breadcrumbs';
-import {BreadcrumbLevelType, BreadcrumbType} from 'app/types/breadcrumbs';
-import {EntryType} from 'app/types/event';
+import Breadcrumbs from 'sentry/components/events/interfaces/breadcrumbs';
+import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
+import {EntryType} from 'sentry/types/event';
 
 describe('Breadcrumbs', () => {
   let props: React.ComponentProps<typeof Breadcrumbs>;

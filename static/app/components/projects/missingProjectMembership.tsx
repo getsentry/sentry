@@ -1,19 +1,19 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {joinTeam} from 'app/actionCreators/teams';
-import {Client} from 'app/api';
-import Button from 'app/components/button';
-import SelectControl from 'app/components/forms/selectControl';
-import {Panel} from 'app/components/panels';
-import {IconFlag} from 'app/icons';
-import {t} from 'app/locale';
-import TeamStore from 'app/stores/teamStore';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import withApi from 'app/utils/withApi';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {joinTeam} from 'sentry/actionCreators/teams';
+import {Client} from 'sentry/api';
+import Button from 'sentry/components/button';
+import SelectControl from 'sentry/components/forms/selectControl';
+import {Panel} from 'sentry/components/panels';
+import {IconFlag} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import TeamStore from 'sentry/stores/teamStore';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import withApi from 'sentry/utils/withApi';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 type Props = {
   api: Client;

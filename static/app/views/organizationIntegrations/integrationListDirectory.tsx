@@ -8,14 +8,14 @@ import startCase from 'lodash/startCase';
 import uniq from 'lodash/uniq';
 import * as queryString from 'query-string';
 
-import AsyncComponent from 'app/components/asyncComponent';
-import SelectControl from 'app/components/forms/selectControl';
-import ExternalLink from 'app/components/links/externalLink';
-import {Panel, PanelBody} from 'app/components/panels';
-import SearchBar from 'app/components/searchBar';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import SelectControl from 'sentry/components/forms/selectControl';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {Panel, PanelBody} from 'sentry/components/panels';
+import SearchBar from 'sentry/components/searchBar';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {
   AppOrProviderOrPlugin,
   DocumentIntegration,
@@ -25,8 +25,8 @@ import {
   PluginWithProjectList,
   SentryApp,
   SentryAppInstallation,
-} from 'app/types';
-import {createFuzzySearch} from 'app/utils/createFuzzySearch';
+} from 'sentry/types';
+import {createFuzzySearch} from 'sentry/utils/createFuzzySearch';
 import {
   getAlertText,
   getCategoriesForIntegration,
@@ -35,10 +35,10 @@ import {
   isPlugin,
   isSentryApp,
   trackIntegrationAnalytics,
-} from 'app/utils/integrationUtil';
-import withOrganization from 'app/utils/withOrganization';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import PermissionAlert from 'app/views/settings/organization/permissionAlert';
+} from 'sentry/utils/integrationUtil';
+import withOrganization from 'sentry/utils/withOrganization';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
 
 import {documentIntegrations, POPULARITY_WEIGHT} from './constants';
 import IntegrationRow from './integrationRow';
@@ -224,8 +224,13 @@ export class IntegrationListDirectory extends AsyncComponent<
     return integrations?.find(i => i.provider.key === integration.key) ? 2 : 0;
   }
 
-  getPopularityWeight = (integration: AppOrProviderOrPlugin) =>
-    POPULARITY_WEIGHT[integration.slug] ?? 1;
+  getPopularityWeight = (integration: AppOrProviderOrPlugin) => {
+    return (
+      this.state.publishedApps?.find(i => i === integration)?.popularity ??
+      POPULARITY_WEIGHT[integration.slug] ??
+      1
+    );
+  };
 
   sortByName = (a: AppOrProviderOrPlugin, b: AppOrProviderOrPlugin) =>
     a.slug.localeCompare(b.slug);

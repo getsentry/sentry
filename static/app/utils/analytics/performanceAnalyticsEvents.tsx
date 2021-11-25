@@ -1,4 +1,4 @@
-import {PlatformKey} from 'app/data/platformCategories';
+import {PlatformKey} from 'sentry/data/platformCategories';
 
 type SampleTransactionParam = {
   platform?: PlatformKey;
@@ -26,6 +26,11 @@ export type PerformanceEventParameters = {
     to_widget?: string;
     from_default?: boolean;
   };
+  'performance_views.landingv3.batch_queries': {
+    num_collected: number;
+    num_sent: number;
+    num_saved: number;
+  };
   'performance_views.overview.navigate.summary': {};
   'performance_views.overview.cellaction': {action?: string};
 };
@@ -46,4 +51,6 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
     'Performance Views: Landing Widget Interaction',
   'performance_views.landingv3.widget.switch':
     'Performance Views: Landing Widget Switched',
+  'performance_views.landingv3.batch_queries':
+    'Performance Views: Landing Query Batching',
 };
