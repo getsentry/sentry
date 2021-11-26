@@ -6,6 +6,7 @@ import RGL, {Layout, WidthProvider} from 'react-grid-layout';
 import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
+import shortid from 'shortid';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -144,7 +145,10 @@ class Dashboard extends Component<Props> {
   };
 
   handleAddComplete = (widget: Widget) => {
-    this.props.onUpdate([...this.props.dashboard.widgets, widget]);
+    this.props.onUpdate([
+      ...this.props.dashboard.widgets,
+      {...widget, tempId: generateWidgetId(widget)},
+    ]);
   };
 
   handleUpdateComplete = (index: number) => (nextWidget: Widget) => {
@@ -216,7 +220,7 @@ class Dashboard extends Component<Props> {
   renderWidget(widget: Widget, index: number) {
     const {isEditing} = this.props;
 
-    const key = generateWidgetId(widget, index);
+    const key = generateWidgetId(widget);
     const dragId = key;
 
     return (
@@ -279,8 +283,17 @@ const GridItem = styled('div')`
   }
 `;
 
-function generateWidgetId(widget: Widget, index: number) {
-  return widget.id ? widget.id : `index-${index}`;
+function generateWidgetId(widget: Widget) {
+  if (widget.id) {
+    return widget.id;
+  }
+  if (widget.tempId) {
+    return widget.tempId;
+  }
+
+  // TODO(nar): Shouldn't be prefixed with index, but using it because of
+  // saving to local storage util
+  return `index-${shortid.generate()}`;
 }
 
 /**

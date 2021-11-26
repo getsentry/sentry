@@ -33,7 +33,7 @@ export const reassignLayoutId = (savedWidgets: Widget[], layout: Layout, i: numb
   if (layout.i.startsWith('index')) {
     return {
       ...layout,
-      i: `${savedWidgets[i].id}-${layout.i}`,
+      i: savedWidgets[i].id,
     };
   }
   return layout;
