@@ -1,7 +1,12 @@
-import {ExceptionValue, PlatformType} from 'sentry/types';
-import {EntryException, EntryType, Event} from 'sentry/types/event';
-import {Thread} from 'sentry/types/events';
-import {StacktraceType} from 'sentry/types/stacktrace';
+import {
+  EntryException,
+  EntryType,
+  Event,
+  ExceptionValue,
+  PlatformType,
+  StacktraceType,
+  Thread,
+} from 'sentry/types';
 
 const NATIVE_PLATFORMS = ['cocoa', 'native'] as Array<PlatformType>;
 

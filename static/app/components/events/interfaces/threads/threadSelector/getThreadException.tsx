@@ -1,6 +1,4 @@
-import {ExceptionType, ExceptionValue} from 'sentry/types';
-import {Event} from 'sentry/types/event';
-import {Thread} from 'sentry/types/events';
+import {Event, ExceptionType, ExceptionValue, Thread} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
 function getException(
