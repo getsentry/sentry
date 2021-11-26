@@ -41,6 +41,21 @@ export function spansRouteWithQuery({
 
 export const SPAN_SORT_OPTIONS: SpanSortOption[] = [
   {
+    prefix: t('Total'),
+    label: t('Cumulative Duration'),
+    field: SpanSortOthers.SUM_EXCLUSIVE_TIME,
+  },
+  {
+    prefix: t('Average'),
+    label: t('Avg Occurrences'),
+    field: SpanSortOthers.AVG_OCCURRENCE,
+  },
+  {
+    prefix: t('Total'),
+    label: t('Occurrences'),
+    field: SpanSortOthers.COUNT,
+  },
+  {
     prefix: t('Percentile'),
     label: t('p50 Duration'),
     field: SpanSortPercentiles.P50_EXCLUSIVE_TIME,
@@ -59,16 +74,6 @@ export const SPAN_SORT_OPTIONS: SpanSortOption[] = [
     prefix: t('Percentile'),
     label: t('p99 Duration'),
     field: SpanSortPercentiles.P99_EXCLUSIVE_TIME,
-  },
-  {
-    prefix: t('Total'),
-    label: t('Cumulative Duration'),
-    field: SpanSortOthers.SUM_EXCLUSIVE_TIME,
-  },
-  {
-    prefix: t('Total'),
-    label: t('Occurrences'),
-    field: SpanSortOthers.COUNT,
   },
 ];
 

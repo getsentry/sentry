@@ -211,6 +211,37 @@ describe('Performance > Transaction Spans', function () {
       }
     });
 
+    it('renders the right avg occurrence header', async function () {
+      const initialData = initializeData({query: {sort: SpanSortOthers.AVG_OCCURRENCE}});
+      mountWithTheme(
+        <TransactionSpans
+          organization={initialData.organization}
+          location={initialData.router.location}
+        />,
+        {context: initialData.routerContext}
+      );
+
+      const cards = await screen.findAllByTestId('suspect-card');
+      expect(cards).toHaveLength(2);
+      for (let i = 0; i < cards.length; i++) {
+        const card = cards[i];
+
+        // these headers should be present by default
+        expect(await within(card).findByText('Span Operation')).toBeInTheDocument();
+        expect(await within(card).findByText('p75 Duration')).toBeInTheDocument();
+        expect(await within(card).findByText('Avg Occurrences')).toBeInTheDocument();
+        expect(
+          await within(card).findByText('Total Cumulative Duration')
+        ).toBeInTheDocument();
+
+        const arrow = await within(card).findByTestId('span-sort-arrow');
+        expect(arrow).toBeInTheDocument();
+        expect(
+          await within(arrow.closest('div')!).findByText('Avg Occurrences')
+        ).toBeInTheDocument();
+      }
+    });
+
     it('renders the right table headers', async function () {
       const initialData = initializeData();
       mountWithTheme(
