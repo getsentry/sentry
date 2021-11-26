@@ -1,8 +1,7 @@
 import {Layout} from 'react-grid-layout';
 
 import localStorage from 'sentry/utils/localStorage';
-
-import {Widget} from '../types';
+import {Widget} from 'sentry/views/dashboardsV2/types';
 
 const getLocalStorageKey = (organizationId: string, dashboardId: string) =>
   `grid-layout-${organizationId}-${dashboardId}`;
