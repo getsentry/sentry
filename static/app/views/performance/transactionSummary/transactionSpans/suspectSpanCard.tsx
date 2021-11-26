@@ -12,7 +12,7 @@ import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {ColumnType, fieldAlignment} from 'sentry/utils/discover/fields';
-import {formatPercentage} from 'sentry/utils/formatters';
+import {formatFloat, formatPercentage} from 'sentry/utils/formatters';
 import {SuspectSpan} from 'sentry/utils/performance/suspectSpans/types';
 
 import {PerformanceDuration} from '../../utils';
@@ -187,6 +187,17 @@ function SpanCount(props: HeaderItemProps) {
       <HeaderItem
         label={t('Occurrences')}
         value={String(suspectSpan.count)}
+        align="right"
+        isSortKey
+      />
+    );
+  }
+
+  if (sort.field === SpanSortOthers.AVG_OCCURRENCE) {
+    return (
+      <HeaderItem
+        label={t('Avg Occurrences')}
+        value={formatFloat(suspectSpan.avgOccurrences, 2)}
         align="right"
         isSortKey
       />
