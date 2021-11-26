@@ -28,17 +28,19 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
+  Entry,
+  EntryType,
+  Event,
   ExceptionValue,
   Group,
   IssueAttachment,
   Organization,
   Project,
   SharedViewOrganization,
+  Thread,
 } from 'sentry/types';
 import {DebugFile} from 'sentry/types/debugFiles';
 import {Image} from 'sentry/types/debugImage';
-import {Entry, EntryType, Event} from 'sentry/types/event';
-import {Thread} from 'sentry/types/events';
 import {isNotSharedOrganization} from 'sentry/types/utils';
 import {defined, objectIsEmpty} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';

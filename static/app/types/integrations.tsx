@@ -8,6 +8,8 @@ import {
 import {Field} from 'sentry/views/settings/components/forms/type';
 
 import {Choices, ObjectStatus, Scope} from './core';
+import {BaseRelease} from './release';
+import {User} from './user';
 
 export type PermissionValue = 'no-access' | 'read' | 'write' | 'admin';
 
@@ -64,6 +66,20 @@ export type Repository = {
   provider: {id: string; name: string};
   status: RepositoryStatus;
   url: string;
+};
+
+export type Commit = {
+  id: string;
+  message: string | null;
+  dateCreated: string;
+  releases: BaseRelease[];
+  repository?: Repository;
+  author?: User;
+};
+
+export type Committer = {
+  author: User;
+  commits: Commit[];
 };
 
 export type CommitAuthor = {
