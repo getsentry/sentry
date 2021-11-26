@@ -25,6 +25,23 @@ export enum GenericPerformanceWidgetDataType {
   trends = 'trends',
 }
 
+export type PerformanceWidgetProps = {
+  chartSetting: PerformanceWidgetSetting;
+  chartDefinition: ChartDefinition;
+  chartHeight: number;
+
+  title: string;
+  titleTooltip: string;
+  fields: string[];
+  chartColor?: string;
+
+  eventView: EventView;
+  location: Location;
+  organization: Organization;
+
+  ContainerActions: FunctionComponent<{isLoading: boolean}>;
+};
+
 export interface WidgetDataResult {
   isLoading: boolean;
   isErrored: boolean;

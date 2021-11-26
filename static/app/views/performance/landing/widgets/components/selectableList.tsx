@@ -63,6 +63,8 @@ export const RightAlignedCell = styled('div')`
 export const Subtitle = styled('span')`
   color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeMedium};
+  min-height: 24px;
+  display: inline-block;
 `;
 export const GrowLink = styled(Link)`
   flex-grow: 1;

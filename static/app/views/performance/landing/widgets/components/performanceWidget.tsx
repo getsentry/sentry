@@ -106,8 +106,6 @@ function _DataDisplay<T extends WidgetDataConstraint>(
   const isErrored =
     !missingDataKeys && Object.values(props.widgetData).some(d => d && d.isErrored);
 
-  const paddingOffset = 32; // space(2) * 2;
-
   return (
     <Container data-test-id="performance-widget-container">
       <ContentContainer>
@@ -117,7 +115,7 @@ function _DataDisplay<T extends WidgetDataConstraint>(
         isLoading={isLoading}
         isErrored={isErrored}
         hasData={hasData}
-        errorComponent={<DefaultErrorComponent height={totalHeight - paddingOffset} />}
+        errorComponent={<DefaultErrorComponent height={totalHeight} />}
         dataComponents={Visualizations.map((Visualization, index) => (
           <ContentContainer
             key={index}
@@ -136,12 +134,12 @@ function _DataDisplay<T extends WidgetDataConstraint>(
             />
           </ContentContainer>
         ))}
-        loadingComponent={<Placeholder height={`${totalHeight - paddingOffset}px`} />}
+        loadingComponent={<Placeholder height={`${totalHeight}px`} />}
         emptyComponent={
           EmptyComponent ? (
             <EmptyComponent />
           ) : (
-            <Placeholder height={`${totalHeight - paddingOffset}px`} />
+            <Placeholder height={`${totalHeight}px`} />
           )
         }
       />

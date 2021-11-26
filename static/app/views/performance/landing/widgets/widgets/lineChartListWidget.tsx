@@ -1,6 +1,5 @@
-import {Fragment, FunctionComponent, useMemo, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import {withRouter} from 'react-router';
-import {Location} from 'history';
 import pick from 'lodash/pick';
 
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
@@ -10,9 +9,7 @@ import Link from 'sentry/components/links/link';
 import Tooltip from 'sentry/components/tooltip';
 import Truncate from 'sentry/components/truncate';
 import {t, tct} from 'sentry/locale';
-import {Organization} from 'sentry/types';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
@@ -31,24 +28,9 @@ import SelectableList, {
 } from '../components/selectableList';
 import {transformDiscoverToList} from '../transforms/transformDiscoverToList';
 import {transformEventsRequestToArea} from '../transforms/transformEventsToArea';
-import {QueryDefinition, WidgetDataResult} from '../types';
+import {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
 import {eventsRequestQueryProps} from '../utils';
-import {ChartDefinition, PerformanceWidgetSetting} from '../widgetDefinitions';
-
-type Props = {
-  title: string;
-  titleTooltip: string;
-  fields: string[];
-  chartColor?: string;
-
-  eventView: EventView;
-  location: Location;
-  organization: Organization;
-  chartSetting: PerformanceWidgetSetting;
-  chartDefinition: ChartDefinition;
-
-  ContainerActions: FunctionComponent<{isLoading: boolean}>;
-};
+import {PerformanceWidgetSetting} from '../widgetDefinitions';
 
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToArea>;
@@ -64,7 +46,7 @@ const slowList = [
   PerformanceWidgetSetting.MOST_FROZEN_FRAMES,
 ];
 
-export function LineChartListWidget(props: Props) {
+export function LineChartListWidget(props: PerformanceWidgetProps) {
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const {ContainerActions} = props;
 
@@ -215,7 +197,7 @@ export function LineChartListWidget(props: Props) {
               isLineChart
             />
           ),
-          height: 160,
+          height: props.chartHeight,
         },
         {
           component: provided => (
@@ -319,7 +301,7 @@ export function LineChartListWidget(props: Props) {
               })}
             />
           ),
-          height: 200,
+          height: 124,
           noPadding: true,
         },
       ]}

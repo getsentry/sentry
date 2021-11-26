@@ -343,16 +343,9 @@ function __VitalChart(props: _VitalChartProps) {
       },
     },
     xAxis: {
-      axisLine: {
-        show: false,
-      },
-      axisTick: {
-        show: false,
-      },
-      splitLine: {
-        show: false,
-      },
+      show: false,
     },
+    xAxes: undefined,
     yAxis: {
       axisLabel: {
         color: theme.chartLabel,

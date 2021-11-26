@@ -1,45 +1,25 @@
-import {Fragment, FunctionComponent, useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import {withRouter} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 import pick from 'lodash/pick';
 
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
-import EventView from 'sentry/utils/discover/eventView';
 import {QueryBatchNode} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import withApi from 'sentry/utils/withApi';
 import _DurationChart from 'sentry/views/performance/charts/chart';
 
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import {transformEventsRequestToArea} from '../transforms/transformEventsToArea';
-import {QueryDefinition, WidgetDataResult} from '../types';
+import {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
 import {eventsRequestQueryProps} from '../utils';
-import {ChartDefinition, PerformanceWidgetSetting} from '../widgetDefinitions';
-
-type Props = {
-  chartSetting: PerformanceWidgetSetting;
-  chartDefinition: ChartDefinition;
-
-  title: string;
-  titleTooltip: string;
-  fields: string[];
-  chartColor?: string;
-
-  eventView: EventView;
-  location: Location;
-  organization: Organization;
-
-  ContainerActions: FunctionComponent<{isLoading: boolean}>;
-};
 
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToArea>;
 };
 
-export function SingleFieldAreaWidget(props: Props) {
+export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
   const {ContainerActions} = props;
   const globalSelection = props.eventView.getGlobalSelection();
 
@@ -117,7 +97,7 @@ export function SingleFieldAreaWidget(props: Props) {
               chartColors={props.chartColor ? [props.chartColor] : undefined}
             />
           ),
-          height: 160,
+          height: props.chartHeight,
         },
       ]}
     />
