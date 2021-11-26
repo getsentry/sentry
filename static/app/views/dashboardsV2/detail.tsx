@@ -32,7 +32,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import GridLayoutDashboard from './gridLayout/dashboard';
 import {
   getDashboardLayout,
-  reassignLayoutIds,
+  reassignLayoutId,
   saveDashboardLayout,
 } from './gridLayout/utils';
 import Controls from './controls';
@@ -305,8 +305,8 @@ class DashboardDetail extends Component<Props, State> {
 
   saveLayoutWithNewWidgets = (organizationId, dashboardId, newWidgets) => {
     const {layout} = this.state;
-    const getLayoutWithNewIds = partial(reassignLayoutIds, newWidgets);
-    saveDashboardLayout(organizationId, dashboardId, layout.map(getLayoutWithNewIds));
+    const getLayoutWithNewId = partial(reassignLayoutId, newWidgets);
+    saveDashboardLayout(organizationId, dashboardId, layout.map(getLayoutWithNewId));
   };
 
   onCommit = () => {

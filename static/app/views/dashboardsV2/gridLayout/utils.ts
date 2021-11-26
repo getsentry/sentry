@@ -30,7 +30,7 @@ export const saveDashboardLayout = (
   );
 };
 
-export const reassignLayoutIds = (savedWidgets: Widget[], layout: Layout, i: number) => {
+export const reassignLayoutId = (savedWidgets: Widget[], layout: Layout, i: number) => {
   if (layout.i.startsWith('index')) {
     return {
       ...layout,
