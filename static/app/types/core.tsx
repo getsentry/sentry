@@ -56,3 +56,21 @@ export type Choices = [
   value: string | number,
   label: string | number | React.ReactElement
 ][];
+
+// https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
+// Note: the value of the enum on the frontend is plural,
+// but the value of the enum on the backend is singular
+export enum DataCategory {
+  DEFAULT = 'default',
+  ERRORS = 'errors',
+  TRANSACTIONS = 'transactions',
+  ATTACHMENTS = 'attachments',
+}
+
+export type EventType = 'error' | 'transaction' | 'attachment';
+
+export const DataCategoryName = {
+  [DataCategory.ERRORS]: 'Errors',
+  [DataCategory.TRANSACTIONS]: 'Transactions',
+  [DataCategory.ATTACHMENTS]: 'Attachments',
+};
