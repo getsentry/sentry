@@ -145,6 +145,9 @@ jobs:
         if: github.ref == 'refs/heads/master' || steps.changes.outputs.frontend == 'true'
         run: yarn install --frozen-lockfile
 
+      - name: Install size-limit
+        run: yarn add size-limit@^7.0.3 @size-limit/preset-small-lib@^7.0.3
+
       - uses: getsentry/size-limit-action@v3
         if: github.ref == 'refs/heads/master' || steps.changes.outputs.frontend == 'true'
         env:
