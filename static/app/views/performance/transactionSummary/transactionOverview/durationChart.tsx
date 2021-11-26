@@ -50,7 +50,8 @@ type Props = WithRouterProps &
   };
 
 function generateYAxisValues(currentFilter: SpanOperationBreakdownFilter) {
-  const field = SPAN_OPERATION_BREAKDOWN_FILTER_TO_FIELD[currentFilter];
+  const field =
+    SPAN_OPERATION_BREAKDOWN_FILTER_TO_FIELD[currentFilter] ?? 'transaction.duration';
   return [
     `p50(${field})`,
     `p75(${field})`,
