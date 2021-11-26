@@ -24,7 +24,10 @@ import EventView from 'sentry/utils/discover/eventView';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import useApi from 'sentry/utils/useApi';
 
-import {SpanOperationBreakdownFilter} from '../filter';
+import {
+  SPAN_OPERATION_BREAKDOWN_FILTER_TO_FIELD,
+  SpanOperationBreakdownFilter,
+} from '../filter';
 
 const QUERY_KEYS = [
   'environment',
@@ -46,8 +49,15 @@ type Props = WithRouterProps &
     withoutZerofill: boolean;
   };
 
-function generateYAxisValues() {
-  return ['p50()', 'p75()', 'p95()', 'p99()', 'p100()'];
+function generateYAxisValues(currentFilter: SpanOperationBreakdownFilter) {
+  const field = SPAN_OPERATION_BREAKDOWN_FILTER_TO_FIELD[currentFilter];
+  return [
+    `p50(${field})`,
+    `p75(${field})`,
+    `p95(${field})`,
+    `p99(${field})`,
+    `p100(${field})`,
+  ];
 }
 
 /**
@@ -140,7 +150,7 @@ function DurationChart({
             showLoading={false}
             query={query}
             includePrevious={false}
-            yAxis={generateYAxisValues()}
+            yAxis={generateYAxisValues(currentFilter)}
             partial
             withoutZerofill={withoutZerofill}
             referrer="api.performance.transaction-summary.duration-chart"
