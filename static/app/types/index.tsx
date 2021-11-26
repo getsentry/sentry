@@ -5,31 +5,24 @@
 import {FocusTrap} from 'focus-trap';
 
 import exportGlobals from 'sentry/bootstrap/exportGlobals';
-import Alert from 'sentry/components/alert';
 import {getInterval} from 'sentry/components/charts/utils';
 import {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {PlatformKey} from 'sentry/data/platformCategories';
-import {OrgExperiments, UserExperiments} from 'sentry/types/experiments';
-import {
-  INSTALLED,
-  NOT_INSTALLED,
-  PENDING,
-} from 'sentry/views/organizationIntegrations/constants';
-import {Field} from 'sentry/views/settings/components/forms/type';
 
-import {Authenticator, EnrolledAuthenticator} from './auth';
-import {Actor, Avatar, ObjectStatus, Scope, TimeseriesValue} from './core';
+import {Actor, DateString, Scope, TimeseriesValue} from './core';
 import {DynamicSamplingRules} from './dynamicSampling';
 import {Event} from './event';
-import {OnboardingTaskStatus} from './onboarding';
-import {Relay} from './relay';
+import {Plugin, PullRequest, Repository} from './integrations';
+import {Member, Organization, Team} from './organization';
 import {RawStacktrace, StackTraceMechanism, StacktraceType} from './stacktrace';
-import {AvatarUser} from './user';
+import {AvatarUser, User} from './user';
 
 export * from './auth';
 export * from './core';
+export * from './integrations';
 export * from './onboarding';
+export * from './organization';
 export * from './relay';
 export * from './user';
 
@@ -141,80 +134,6 @@ export type PipelineInitialData = {
   props: Record<string, any>;
 };
 
-export type IntegrationInstallationStatus =
-  | typeof INSTALLED
-  | typeof NOT_INSTALLED
-  | typeof PENDING;
-
-export type SentryAppStatus = 'unpublished' | 'published' | 'internal';
-
-/**
- * Organization summaries are sent when you request a
- * list of all organizations
- */
-export type OrganizationSummary = {
-  status: {
-    // TODO(ts): Are these fields == `ObjectStatus`?
-    id: string;
-    name: string;
-  };
-  require2FA: boolean;
-  avatar: Avatar;
-  features: string[];
-  name: string;
-  dateCreated: string;
-  id: string;
-  isEarlyAdopter: boolean;
-  slug: string;
-};
-
-/**
- * Detailed organization (e.g. when requesting details for a single org)
- */
-export type Organization = OrganizationSummary & {
-  relayPiiConfig: string;
-  scrubIPAddresses: boolean;
-  attachmentsRole: string;
-  debugFilesRole: string;
-  eventsMemberAdmin: boolean;
-  alertsMemberWrite: boolean;
-  sensitiveFields: string[];
-  openMembership: boolean;
-  quota: {
-    maxRateInterval: number | null;
-    projectLimit: number | null;
-    accountLimit: number | null;
-    maxRate: number | null;
-  };
-  defaultRole: string;
-  experiments: Partial<OrgExperiments>;
-  allowJoinRequests: boolean;
-  scrapeJavaScript: boolean;
-  isDefault: boolean;
-  pendingAccessRequests: number;
-  availableRoles: {id: string; name: string}[];
-  enhancedPrivacy: boolean;
-  safeFields: string[];
-  storeCrashReports: number;
-  access: Scope[];
-  allowSharedIssues: boolean;
-  dataScrubberDefaults: boolean;
-  dataScrubber: boolean;
-  apdexThreshold: number;
-  onboardingTasks: OnboardingTaskStatus[];
-  trustedRelays: Relay[];
-  role?: string;
-};
-
-/**
- * Minimal organization shape used on shared issue views.
- */
-export type SharedViewOrganization = {
-  slug: string;
-  id?: string;
-  features?: Array<string>;
-};
-
 // Minimal project representation for use with avatars.
 export type AvatarProject = {
   slug: string;
@@ -320,18 +239,6 @@ export type Health = {
 
 export type HealthGraphData = Record<string, TimeseriesValue[]>;
 
-export type Team = {
-  id: string;
-  name: string;
-  slug: string;
-  isMember: boolean;
-  hasAccess: boolean;
-  isPending: boolean;
-  memberCount: number;
-  avatar: Avatar;
-  externalTeams: ExternalTeam[];
-};
-
 export type TeamWithProjects = Team & {projects: Project[]};
 
 export type TreeLabelPart =
@@ -436,62 +343,6 @@ export type MultiSeriesEventsStats = {
   [seriesName: string]: EventsStats;
 };
 
-/**
- * This is an authenticator that a user is enrolled in
- */
-type UserEnrolledAuthenticator = {
-  dateUsed: EnrolledAuthenticator['lastUsedAt'];
-  dateCreated: EnrolledAuthenticator['createdAt'];
-  type: Authenticator['id'];
-  id: EnrolledAuthenticator['authId'];
-  name: EnrolledAuthenticator['name'];
-};
-
-export type User = Omit<AvatarUser, 'options'> & {
-  lastLogin: string;
-  isSuperuser: boolean;
-  isAuthenticated: boolean;
-  emails: {
-    is_verified: boolean;
-    id: string;
-    email: string;
-  }[];
-  isManaged: boolean;
-  lastActive: string;
-  isStaff: boolean;
-  identities: any[];
-  isActive: boolean;
-  has2fa: boolean;
-  canReset2fa: boolean;
-  authenticators: UserEnrolledAuthenticator[];
-  dateJoined: string;
-  options: {
-    theme: 'system' | 'light' | 'dark';
-    timezone: string;
-    stacktraceOrder: number;
-    language: string;
-    clock24Hours: boolean;
-    avatarType: Avatar['avatarType'];
-  };
-  flags: {newsletter_consent_prompt: boolean};
-  hasPasswordAuth: boolean;
-  permissions: Set<string>;
-  experiments: Partial<UserExperiments>;
-};
-
-// XXX(epurkhiser): we should understand how this is diff from User['emails]
-// above
-export type UserEmail = {
-  email: string;
-  isPrimary: boolean;
-  isVerified: boolean;
-};
-
-export type CommitAuthor = {
-  email?: string;
-  name?: string;
-};
-
 export type Environment = {
   id: string;
   displayName: string;
@@ -528,68 +379,6 @@ export enum SavedSearchType {
   EVENT = 1,
 }
 
-export type PluginNoProject = {
-  id: string;
-  name: string;
-  slug: string;
-  shortName: string;
-  type: string;
-  canDisable: boolean;
-  isTestable: boolean;
-  hasConfiguration: boolean;
-  metadata: any; // TODO(ts)
-  contexts: any[]; // TODO(ts)
-  status: string;
-  assets: Array<{url: string}>;
-  doc: string;
-  features: string[];
-  featureDescriptions: IntegrationFeature[];
-  isHidden: boolean;
-  version?: string;
-  author?: {name: string; url: string};
-  description?: string;
-  resourceLinks?: Array<{title: string; url: string}>;
-  altIsSentryApp?: boolean;
-  deprecationDate?: string;
-  firstPartyAlternative?: string;
-};
-
-export type Plugin = PluginNoProject & {
-  enabled: boolean;
-};
-
-export type PluginProjectItem = {
-  projectId: string;
-  projectSlug: string;
-  projectName: string;
-  projectPlatform: PlatformKey;
-  enabled: boolean;
-  configured: boolean;
-};
-
-export type PluginWithProjectList = PluginNoProject & {
-  projectList: PluginProjectItem[];
-};
-
-export type AppOrProviderOrPlugin =
-  | SentryApp
-  | IntegrationProvider
-  | PluginWithProjectList
-  | DocumentIntegration;
-
-export type IntegrationType = 'document' | 'plugin' | 'first_party' | 'sentry_app';
-
-export type DocumentIntegration = {
-  slug: string;
-  name: string;
-  author: string;
-  docUrl: string;
-  description: string;
-  features: IntegrationFeature[];
-  resourceLinks: Array<{title: string; url: string}>;
-};
-
-export type DateString = Date | string | null;
 export type RelativePeriod = keyof typeof DEFAULT_RELATIVE_PERIODS;
 export type IntervalPeriod = ReturnType<typeof getInterval>;
 
@@ -1025,33 +814,6 @@ export type ProcessingIssue = {
   issues?: ProcessingIssueItem[];
 };
 
-/**
- * Returned from /organizations/org/users/
- */
-export type Member = {
-  dateCreated: string;
-  email: string;
-  expired: boolean;
-  flags: {
-    'sso:linked': boolean;
-    'sso:invalid': boolean;
-    'member-limit:restricted': boolean;
-  };
-  id: string;
-  inviteStatus: 'approved' | 'requested_to_be_invited' | 'requested_to_join';
-  invite_link: string | null;
-  inviterName: string | null;
-  isOnlyOwner: boolean;
-  name: string;
-  pending: boolean | undefined;
-  projects: string[];
-  role: string;
-  roleName: string;
-  roles: MemberRole[]; // TODO(ts): This is not present from API call
-  teams: string[];
-  user: User;
-};
-
 export type AccessRequest = {
   id: string;
   team: Team;
@@ -1061,248 +823,6 @@ export type AccessRequest = {
     username: string;
     email: string;
   }>;
-};
-
-export type Repository = {
-  dateCreated: string;
-  externalSlug: string;
-  id: string;
-  integrationId: string;
-  name: string;
-  provider: {id: string; name: string};
-  status: RepositoryStatus;
-  url: string;
-};
-
-export enum RepositoryStatus {
-  ACTIVE = 'active',
-  DISABLED = 'disabled',
-  HIDDEN = 'hidden',
-  PENDING_DELETION = 'pending_deletion',
-  DELETION_IN_PROGRESS = 'deletion_in_progress',
-}
-
-type BaseRepositoryProjectPathConfig = {
-  id: string;
-  projectId: string;
-  projectSlug: string;
-  repoId: string;
-  repoName: string;
-  stackRoot: string;
-  sourceRoot: string;
-  defaultBranch?: string;
-};
-
-export type RepositoryProjectPathConfig = BaseRepositoryProjectPathConfig & {
-  integrationId: string | null;
-  provider: BaseIntegrationProvider | null;
-};
-
-export type RepositoryProjectPathConfigWithIntegration =
-  BaseRepositoryProjectPathConfig & {
-    integrationId: string;
-    provider: BaseIntegrationProvider;
-  };
-
-export type PullRequest = {
-  id: string;
-  title: string;
-  externalUrl: string;
-  repository: Repository;
-};
-
-type IntegrationDialog = {
-  actionText: string;
-  body: string;
-};
-
-type IntegrationAspects = {
-  alerts?: Array<React.ComponentProps<typeof Alert> & {text: string}>;
-  disable_dialog?: IntegrationDialog;
-  removal_dialog?: IntegrationDialog;
-  externalInstall?: {
-    url: string;
-    buttonText: string;
-    noticeText: string;
-  };
-  configure_integration?: {
-    title: string;
-  };
-};
-
-type BaseIntegrationProvider = {
-  key: string;
-  slug: string;
-  name: string;
-  canAdd: boolean;
-  canDisable: boolean;
-  features: string[];
-};
-
-export type IntegrationProvider = BaseIntegrationProvider & {
-  setupDialog: {url: string; width: number; height: number};
-  metadata: {
-    description: string;
-    features: IntegrationFeature[];
-    author: string;
-    noun: string;
-    issue_url: string;
-    source_url: string;
-    aspects: IntegrationAspects;
-  };
-};
-
-export type IntegrationFeature = {
-  description: string;
-  featureGate: string;
-};
-
-export type WebhookEvent = 'issue' | 'error';
-
-export type SentryAppSchemaIssueLink = {
-  type: 'issue-link';
-  create: {
-    uri: string;
-    required_fields: any[];
-    optional_fields?: any[];
-  };
-  link: {
-    uri: string;
-    required_fields: any[];
-    optional_fields?: any[];
-  };
-};
-
-export type SentryAppSchemaStacktraceLink = {
-  type: 'stacktrace-link';
-  uri: string;
-  url: string;
-  params?: Array<string>;
-};
-
-export type SentryAppSchemaElement =
-  | SentryAppSchemaIssueLink
-  | SentryAppSchemaStacktraceLink;
-
-export type SentryApp = {
-  status: SentryAppStatus;
-  scopes: Scope[];
-  isAlertable: boolean;
-  verifyInstall: boolean;
-  slug: string;
-  name: string;
-  uuid: string;
-  author: string;
-  events: WebhookEvent[];
-  schema: {
-    elements?: SentryAppSchemaElement[];
-  };
-  // possible null params
-  popularity: number | null;
-  webhookUrl: string | null;
-  redirectUrl: string | null;
-  overview: string | null;
-  // optional params below
-  datePublished?: string;
-  clientId?: string;
-  clientSecret?: string;
-  owner?: {
-    id: number;
-    slug: string;
-  };
-  featureData: IntegrationFeature[];
-};
-
-export type Integration = {
-  id: string;
-  name: string;
-  icon: string;
-  domainName: string;
-  accountType: string;
-  scopes?: string[];
-  status: ObjectStatus;
-  provider: BaseIntegrationProvider & {aspects: IntegrationAspects};
-  dynamicDisplayInformation?: {
-    configure_integration?: {
-      instructions: string[];
-    };
-    integration_detail?: {
-      uninstallationUrl?: string;
-    };
-  };
-};
-
-// we include the configOrganization when we need it
-export type IntegrationWithConfig = Integration & {
-  configOrganization: Field[];
-  configData: object | null;
-};
-
-export type IntegrationExternalIssue = {
-  id: string;
-  key: string;
-  url: string;
-  title: string;
-  description: string;
-  displayName: string;
-};
-
-export type GroupIntegration = Integration & {
-  externalIssues: IntegrationExternalIssue[];
-};
-
-export type PlatformExternalIssue = {
-  id: string;
-  issueId: string;
-  serviceType: string;
-  displayName: string;
-  webUrl: string;
-};
-
-export type SentryAppInstallation = {
-  app: {
-    uuid: string;
-    slug: string;
-  };
-  organization: {
-    slug: string;
-  };
-  uuid: string;
-  status: 'installed' | 'pending';
-  code?: string;
-};
-
-export type SentryAppWebhookRequest = {
-  webhookUrl: string;
-  sentryAppSlug: string;
-  eventType: string;
-  date: string;
-  organization?: {
-    slug: string;
-    name: string;
-  };
-  responseCode: number;
-  errorUrl?: string;
-};
-
-export type ServiceHook = {
-  id: string;
-  events: string[];
-  dateCreated: string;
-  secret: string;
-  status: string;
-  url: string;
-};
-
-export type PermissionValue = 'no-access' | 'read' | 'write' | 'admin';
-
-export type Permissions = {
-  Event: PermissionValue;
-  Member: PermissionValue;
-  Organization: PermissionValue;
-  Project: PermissionValue;
-  Release: PermissionValue;
-  Team: PermissionValue;
 };
 
 // See src/sentry/api/serializers/models/apitoken.py for the differences based on application
@@ -1412,6 +932,22 @@ export enum ReleaseStatus {
   Archived = 'archived',
 }
 
+// XXX This should go to types/integrations but release needs to move first.
+export type Commit = {
+  id: string;
+  message: string | null;
+  dateCreated: string;
+  releases: BaseRelease[];
+  repository?: Repository;
+  author?: User;
+};
+
+// XXX This should go to types/integrations but Commit needs to move first.
+export type Committer = {
+  author: User;
+  commits: Commit[];
+};
+
 export type ReleaseProject = {
   slug: string;
   name: string;
@@ -1449,57 +985,6 @@ export type Deploy = {
   dateStarted: string;
   dateFinished: string;
   version: string;
-};
-
-export type Commit = {
-  id: string;
-  message: string | null;
-  dateCreated: string;
-  releases: BaseRelease[];
-  repository?: Repository;
-  author?: User;
-};
-
-export type Committer = {
-  author: User;
-  commits: Commit[];
-};
-
-export type CommitFile = {
-  id: string;
-  author: CommitAuthor;
-  commitMessage: string;
-  filename: string;
-  orgId: number;
-  repoName: string;
-  type: string;
-};
-
-export type MemberRole = {
-  id: string;
-  name: string;
-  desc: string;
-  allowed?: boolean;
-};
-
-export type SentryAppComponent = {
-  uuid: string;
-  type: 'issue-link' | 'alert-rule-action' | 'issue-media' | 'stacktrace-link';
-  schema: SentryAppSchemaStacktraceLink;
-  sentryApp: {
-    uuid: string;
-    slug:
-      | 'calixa'
-      | 'clickup'
-      | 'komodor'
-      | 'linear'
-      | 'rookout'
-      | 'shortcut'
-      | 'spikesh'
-      | 'taskcall'
-      | 'teamwork';
-    name: string;
-  };
 };
 
 export type SavedQueryVersions = 1 | 2;
@@ -1542,47 +1027,6 @@ export type SavedQueryState = {
   savedQueries: SavedQuery[];
   hasError: boolean;
   isLoading: boolean;
-};
-
-/**
- * The option format used by react-select based components
- */
-export type SelectValue<T> = {
-  label: string | number | React.ReactElement;
-  value: T;
-  disabled?: boolean;
-  tooltip?: string;
-};
-
-/**
- * The 'other' option format used by checkboxes, radios and more.
- */
-export type Choices = [
-  value: string | number,
-  label: string | number | React.ReactElement
-][];
-
-/**
- * The issue config form fields we get are basically the form fields we use in
- * the UI but with some extra information. Some fields marked optional in the
- * form field are guaranteed to exist so we can mark them as required here
- */
-export type IssueConfigField = Field & {
-  name: string;
-  default?: string | number;
-  choices?: Choices;
-  url?: string;
-  multiple?: boolean;
-};
-
-export type IntegrationIssueConfig = {
-  status: ObjectStatus;
-  name: string;
-  domainName: string;
-  linkIssueConfig?: IssueConfigField[];
-  createIssueConfig?: IssueConfigField[];
-  provider: IntegrationProvider;
-  icon: string[];
 };
 
 export type Tag = {
@@ -1834,13 +1278,6 @@ export type Note = {
   mentions: [string, string][];
 };
 
-export type FilesByRepository = {
-  [repoName: string]: {
-    authors?: {[email: string]: CommitAuthor};
-    types?: Set<string>;
-  };
-};
-
 export type ExceptionValue = {
   type: string;
   value: string;
@@ -1895,26 +1332,6 @@ export type InternetProtocol = {
   firstSeen: string;
   countryCode: string | null;
   regionCode: string | null;
-};
-
-/**
- * XXX(ts): This actually all comes from getsentry. We should definitely
- * refactor this into a more proper 'hook' mechanism in the future
- */
-export type AuthConfig = {
-  canRegister: boolean;
-  serverHostname: string;
-  hasNewsletter: boolean;
-  githubLoginLink: string;
-  vstsLoginLink: string;
-  googleLoginLink: string;
-};
-
-export type AuthProvider = {
-  key: string;
-  name: string;
-  requiredFeature: string;
-  disables2FA: boolean;
 };
 
 export type PromptActivity = {
@@ -1994,24 +1411,6 @@ export type IssueOwnership = {
   autoAssignment: boolean;
 };
 
-export type CodeOwner = {
-  id: string;
-  raw: string;
-  dateCreated: string;
-  dateUpdated: string;
-  provider: 'github' | 'gitlab';
-  codeMapping?: RepositoryProjectPathConfig;
-  codeMappingId: string;
-  ownershipSyntax?: string;
-  errors: {
-    missing_external_teams: string[];
-    missing_external_users: string[];
-    missing_user_emails: string[];
-    teams_without_access: string[];
-    users_without_access: string[];
-  };
-};
-
 export type KeyValueListData = {
   key: string;
   subject: string;
@@ -2020,36 +1419,6 @@ export type KeyValueListData = {
   subjectDataTestId?: string;
   subjectIcon?: React.ReactNode;
 }[];
-
-export type ExternalActorMapping = {
-  id: string;
-  externalName: string;
-  userId?: string;
-  teamId?: string;
-  sentryName: string;
-};
-
-export type ExternalUser = {
-  id: string;
-  memberId: string;
-  externalName: string;
-  provider: string;
-  integrationId: string;
-};
-
-export type ExternalTeam = {
-  id: string;
-  teamId: string;
-  externalName: string;
-  provider: string;
-  integrationId: string;
-};
-
-export type CodeownersFile = {
-  raw: string;
-  filepath: string;
-  html_url: string;
-};
 
 // Response from ShortIdLookupEndpoint
 // /organizations/${orgId}/shortids/${query}/
@@ -2069,16 +1438,4 @@ export type EventIdResponse = {
   groupId: string;
   eventId: string;
   event: Event;
-};
-
-export type AuditLog = {
-  id: string;
-  actor: User;
-  event: string;
-  ipAddress: string;
-  note: string;
-  targetObject: number;
-  targetUser: Actor | null;
-  data: any;
-  dateCreated: string;
 };

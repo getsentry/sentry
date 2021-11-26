@@ -29,6 +29,8 @@ export type Actor = {
 
 export type Scope = typeof API_ACCESS_SCOPES[number];
 
+export type DateString = Date | string | null;
+
 /**
  * Simple timeseries data used in groups, projects and release health.
  */
@@ -36,3 +38,21 @@ export type TimeseriesValue = [timestamp: number, value: number];
 
 // taken from https://stackoverflow.com/questions/46634876/how-can-i-change-a-readonly-property-in-typescript
 export type Writable<T> = {-readonly [K in keyof T]: T[K]};
+
+/**
+ * The option format used by react-select based components
+ */
+export type SelectValue<T> = {
+  label: string | number | React.ReactElement;
+  value: T;
+  disabled?: boolean;
+  tooltip?: string;
+};
+
+/**
+ * The 'other' option format used by checkboxes, radios and more.
+ */
+export type Choices = [
+  value: string | number,
+  label: string | number | React.ReactElement
+][];
