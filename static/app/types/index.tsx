@@ -3,13 +3,12 @@
 /// <reference types="@emotion/react/types/css-prop" />
 
 import {FocusTrap} from 'focus-trap';
-import u2f from 'u2f-api';
 
 import exportGlobals from 'sentry/bootstrap/exportGlobals';
 import Alert from 'sentry/components/alert';
 import {getInterval} from 'sentry/components/charts/utils';
 import {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
-import {API_ACCESS_SCOPES, DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
+import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import {OrgExperiments, UserExperiments} from 'sentry/types/experiments';
 import {
@@ -19,9 +18,20 @@ import {
 } from 'sentry/views/organizationIntegrations/constants';
 import {Field} from 'sentry/views/settings/components/forms/type';
 
+import {Authenticator, EnrolledAuthenticator} from './auth';
+import {Actor, Avatar, ObjectStatus, Scope, TimeseriesValue} from './core';
 import {DynamicSamplingRules} from './dynamicSampling';
 import {Event} from './event';
+import {OnboardingTaskStatus} from './onboarding';
+import {Relay} from './relay';
 import {RawStacktrace, StackTraceMechanism, StacktraceType} from './stacktrace';
+import {AvatarUser} from './user';
+
+export * from './auth';
+export * from './core';
+export * from './onboarding';
+export * from './relay';
+export * from './user';
 
 export enum SentryInitRenderReactComponent {
   INDICATORS = 'Indicators',
@@ -138,24 +148,6 @@ export type IntegrationInstallationStatus =
 
 export type SentryAppStatus = 'unpublished' | 'published' | 'internal';
 
-export type ObjectStatus =
-  | 'active'
-  | 'disabled'
-  | 'pending_deletion'
-  | 'deletion_in_progress';
-
-export type Avatar = {
-  avatarUuid: string | null;
-  avatarType: 'letter_avatar' | 'upload' | 'gravatar' | 'background';
-};
-
-export type Actor = {
-  type: 'user' | 'team';
-  id: string;
-  name: string;
-  email?: string;
-};
-
 /**
  * Organization summaries are sent when you request a
  * list of all organizations
@@ -174,31 +166,6 @@ export type OrganizationSummary = {
   id: string;
   isEarlyAdopter: boolean;
   slug: string;
-};
-
-export type Relay = {
-  publicKey: string;
-  name: string;
-  created?: string;
-  lastModified?: string;
-  description?: string;
-};
-
-export type RelayActivity = {
-  publicKey: string;
-  relayId: string;
-  version: string;
-  firstSeen: string;
-  lastSeen: string;
-};
-
-export type RelaysByPublickey = {
-  [publicKey: string]: {
-    name: string;
-    activities: Array<RelayActivity>;
-    description?: string;
-    created?: string;
-  };
 };
 
 /**
@@ -254,11 +221,6 @@ export type AvatarProject = {
   platform?: PlatformKey;
   id?: string | number;
 };
-
-/**
- * Simple timeseries data used in groups, projects and release health.
- */
-export type TimeseriesValue = [timestamp: number, value: number];
 
 export type Project = {
   id: string;
@@ -475,25 +437,6 @@ export type MultiSeriesEventsStats = {
 };
 
 /**
- * Avatars are a more primitive version of User.
- */
-export type AvatarUser = {
-  id: string;
-  name: string;
-  username: string;
-  email: string;
-  ip_address: string;
-  avatarUrl?: string;
-  avatar?: Avatar;
-  // Compatibility shim with EventUser serializer
-  ipAddress?: string;
-  options?: {
-    avatarType: Avatar['avatarType'];
-  };
-  lastSeen?: string;
-};
-
-/**
  * This is an authenticator that a user is enrolled in
  */
 type UserEnrolledAuthenticator = {
@@ -660,92 +603,6 @@ export type GlobalSelection = {
     period: RelativePeriod | string;
     utc: boolean | null;
   };
-};
-
-export type AuthenticatorDevice = {
-  key_handle: string;
-  authId: string;
-  name: string;
-  timestamp?: string;
-};
-
-export type Authenticator = {
-  /**
-   * String used to display on button for user as CTA to enroll
-   */
-  enrollButton: string;
-  /**
-   * Display name for the authenticator
-   */
-  name: string;
-  /**
-   * Allows multiple enrollments to authenticator
-   */
-  allowMultiEnrollment: boolean;
-  /**
-   * Allows authenticator's secret to be rotated without disabling
-   */
-  allowRotationInPlace: boolean;
-  /**
-   * String to display on button for user to remove authenticator
-   */
-  removeButton: string | null;
-  canValidateOtp: boolean;
-  /**
-   * Is user enrolled to this authenticator
-   */
-  isEnrolled: boolean;
-  /**
-   * String to display on button for additional information about authenticator
-   */
-  configureButton: string;
-  /**
-   * Is this used as a backup interface?
-   */
-  isBackupInterface: boolean;
-  /**
-   * Description of the authenticator
-   */
-  description: string;
-  rotationWarning: string | null;
-  status: string;
-  createdAt: string | null;
-  lastUsedAt: string | null;
-  codes: string[];
-  devices: AuthenticatorDevice[];
-  phone?: string;
-  secret?: string;
-  /**
-   * The form configuration for the authenticator is present during enrollment
-   */
-  form?: Field[];
-} & Partial<EnrolledAuthenticator> &
-  (
-    | {
-        id: 'sms';
-      }
-    | {
-        id: 'totp';
-        qrcode: string;
-      }
-    | {
-        id: 'u2f';
-        challenge: ChallengeData;
-      }
-  );
-
-export type ChallengeData = {
-  // will have only authenticateRequest or registerRequest
-  authenticateRequests: u2f.SignRequest;
-  registerRequests: u2f.RegisterRequest;
-  registeredKeys: u2f.RegisteredKey[];
-};
-
-export type EnrolledAuthenticator = {
-  lastUsedAt: string | null;
-  createdAt: string;
-  authId: string;
-  name: string;
 };
 
 export interface Config {
@@ -1302,8 +1159,6 @@ export type IntegrationFeature = {
 
 export type WebhookEvent = 'issue' | 'error';
 
-export type Scope = typeof API_ACCESS_SCOPES[number];
-
 export type SentryAppSchemaIssueLink = {
   type: 'issue-link';
   create: {
@@ -1730,75 +1585,6 @@ export type IntegrationIssueConfig = {
   icon: string[];
 };
 
-export enum OnboardingTaskKey {
-  FIRST_PROJECT = 'create_project',
-  FIRST_EVENT = 'send_first_event',
-  INVITE_MEMBER = 'invite_member',
-  SECOND_PLATFORM = 'setup_second_platform',
-  USER_CONTEXT = 'setup_user_context',
-  RELEASE_TRACKING = 'setup_release_tracking',
-  SOURCEMAPS = 'setup_sourcemaps',
-  USER_REPORTS = 'setup_user_reports',
-  ISSUE_TRACKER = 'setup_issue_tracker',
-  ALERT_RULE = 'setup_alert_rules',
-  FIRST_TRANSACTION = 'setup_transactions',
-}
-
-export type OnboardingSupplementComponentProps = {
-  task: OnboardingTask;
-  onCompleteTask: () => void;
-};
-
-export type OnboardingTaskDescriptor = {
-  task: OnboardingTaskKey;
-  title: string;
-  description: string;
-  /**
-   * Can this task be skipped?
-   */
-  skippable: boolean;
-  /**
-   * A list of require task keys that must have been completed before these
-   * tasks may be completed.
-   */
-  requisites: OnboardingTaskKey[];
-  /**
-   * Should the onboarding task currently be displayed
-   */
-  display: boolean;
-  /**
-   * An extra component that may be rendered within the onboarding task item.
-   */
-  SupplementComponent?: React.ComponentType<OnboardingSupplementComponentProps>;
-} & (
-  | {
-      actionType: 'app' | 'external';
-      location: string;
-    }
-  | {
-      actionType: 'action';
-      action: () => void;
-    }
-);
-
-export type OnboardingTaskStatus = {
-  task: OnboardingTaskKey;
-  status: 'skipped' | 'pending' | 'complete';
-  user?: AvatarUser | null;
-  dateCompleted?: string;
-  completionSeen?: string;
-  data?: object;
-};
-
-export type OnboardingTask = OnboardingTaskStatus &
-  OnboardingTaskDescriptor & {
-    /**
-     * Onboarding tasks that are currently incomplete and must be completed
-     * before this task should be completed.
-     */
-    requisiteTasks: OnboardingTask[];
-  };
-
 export type Tag = {
   name: string;
   key: string;
@@ -2101,9 +1887,6 @@ export type UserIdentityConfig = {
   organization: Organization | null;
   dateAdded: DateString;
 };
-
-// taken from https://stackoverflow.com/questions/46634876/how-can-i-change-a-readonly-property-in-typescript
-export type Writable<T> = {-readonly [K in keyof T]: T[K]};
 
 export type InternetProtocol = {
   id: string;
