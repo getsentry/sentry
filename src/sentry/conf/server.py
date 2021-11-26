@@ -787,11 +787,6 @@ CELERYBEAT_SCHEDULE = {
         "schedule": timedelta(minutes=20),
         "options": {"expires": 20 * 60},
     },
-    "check-symbolicator-lpq-project-eligibility": {
-        "task": "sentry.tasks.low_priority_symbolication.scan_for_suspect_projects",
-        "schedule": timedelta(seconds=10),
-        "options": {"expires": 10},
-    },
 }
 
 BGTASKS = {
@@ -2396,7 +2391,7 @@ SENTRY_REPROCESSING_REMAINING_EVENTS_BUF_SIZE = 500
 #
 # Currently, only redis is supported.
 SENTRY_REALTIME_METRICS_BACKEND = (
-    "sentry.processing.realtime_metrics.redis.RedisRealtimeMetricsStore"
+    "sentry.processing.realtime_metrics.dummy.DummyRealtimeMetricsStore"
 )
 SENTRY_REALTIME_METRICS_OPTIONS = {
     # The redis cluster used for the realtime store redis backend.
