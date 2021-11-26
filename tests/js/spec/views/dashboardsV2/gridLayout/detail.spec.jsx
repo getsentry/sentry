@@ -154,7 +154,12 @@ describe('Dashboards > Detail', function () {
     it('disables buttons based on features', async function () {
       initialData = initializeOrg({
         organization: TestStubs.Organization({
-          features: ['global-views', 'dashboards-basic', 'discover-query'],
+          features: [
+            'global-views',
+            'dashboards-basic',
+            'discover-query',
+            'dashboard-grid-layout',
+          ],
           projects: [TestStubs.Project()],
         }),
       });
@@ -412,7 +417,12 @@ describe('Dashboards > Detail', function () {
     it('hides and shows breadcrumbs based on feature', async function () {
       const newOrg = initializeOrg({
         organization: TestStubs.Organization({
-          features: ['global-views', 'dashboards-basic', 'discover-query'],
+          features: [
+            'global-views',
+            'dashboards-basic',
+            'discover-query',
+            'dashboard-grid-layout',
+          ],
           projects: [TestStubs.Project()],
         }),
       });
@@ -504,6 +514,7 @@ describe('Dashboards > Detail', function () {
             'dashboards-edit',
             'discover-query',
             'widget-library',
+            'dashboard-grid-layout',
           ],
           projects: [TestStubs.Project()],
         }),
@@ -610,6 +621,7 @@ describe('Dashboards > Detail', function () {
             'dashboards-edit',
             'discover-query',
             'issues-in-dashboards',
+            'dashboard-grid-layout',
           ],
           projects: [TestStubs.Project()],
         }),
