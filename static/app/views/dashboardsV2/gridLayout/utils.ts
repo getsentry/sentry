@@ -29,11 +29,16 @@ export const saveDashboardLayout = (
   );
 };
 
-export const reassignLayoutId = (savedWidgets: Widget[], layout: Layout, i: number) => {
+export const reassignLayoutId = (
+  savedWidgets: Widget[],
+  layout: Layout,
+  i: number
+): Layout => {
   if (layout.i.startsWith('index')) {
     return {
       ...layout,
-      i: savedWidgets[i].id,
+      // ID should always be present when calling this after saving dashboard
+      i: savedWidgets[i].id!,
     };
   }
   return layout;
