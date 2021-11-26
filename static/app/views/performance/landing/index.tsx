@@ -108,7 +108,13 @@ export function PerformanceLanding(props: Props) {
               <a
                 href="#"
                 onClick={() =>
-                  handleLandingDisplayChange(field, location, projects, eventView)
+                  handleLandingDisplayChange(
+                    field,
+                    location,
+                    projects,
+                    organization,
+                    eventView
+                  )
                 }
               >
                 {t(label)}

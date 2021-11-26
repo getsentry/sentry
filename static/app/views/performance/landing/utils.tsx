@@ -5,6 +5,7 @@ import omit from 'lodash/omit';
 
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import {
   formatAbbreviatedNumber,
@@ -102,6 +103,7 @@ export function handleLandingDisplayChange(
   field: string,
   location: Location,
   projects: Project[],
+  organization: Organization,
   eventView?: EventView
 ) {
   // Transaction op can affect the display and show no results if it is explicitly set.
@@ -118,11 +120,20 @@ export function handleLandingDisplayChange(
   delete queryWithConditions[RIGHT_AXIS_QUERY_KEY];
 
   const defaultDisplay = getDefaultDisplayFieldForPlatform(projects, eventView);
+  const currentDisplay = getCurrentLandingDisplay(location, projects, eventView).field;
 
   const newQuery =
     defaultDisplay === field
       ? {...queryWithConditions}
       : {...queryWithConditions, landingDisplay: field};
+
+  trackAdvancedAnalyticsEvent('performance_views.landingv3.display_change', {
+    organization,
+    change_to_display: field,
+    default_display: defaultDisplay,
+    current_display: currentDisplay,
+    is_default: defaultDisplay === currentDisplay,
+  });
 
   browserHistory.push({
     pathname: location.pathname,
