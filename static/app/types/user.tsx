@@ -1,5 +1,5 @@
 import {Authenticator, EnrolledAuthenticator} from './auth';
-import {Avatar} from './core';
+import {Avatar, Scope} from './core';
 import {UserExperiments} from './experiments';
 
 /**
@@ -71,3 +71,46 @@ export type UserEmail = {
   isPrimary: boolean;
   isVerified: boolean;
 };
+
+/**
+ * API tokens and Api Applications.
+ */
+// See src/sentry/api/serializers/models/apitoken.py for the differences based on application
+type BaseApiToken = {
+  id: string;
+  scopes: Scope[];
+  expiresAt: string;
+  dateCreated: string;
+  state: string;
+};
+
+// We include the token for API tokens used for internal apps
+export type InternalAppApiToken = BaseApiToken & {
+  application: null;
+  token: string;
+  refreshToken: string;
+};
+
+export type ApiApplication = {
+  allowedOrigins: string[];
+  clientID: string;
+  clientSecret: string | null;
+  homepageUrl: string | null;
+  id: string;
+  name: string;
+  privacyUrl: string | null;
+  redirectUris: string[];
+  termsUrl: string | null;
+};
+
+// Used in user session history.
+export type InternetProtocol = {
+  id: string;
+  ipAddress: string;
+  lastSeen: string;
+  firstSeen: string;
+  countryCode: string | null;
+  regionCode: string | null;
+};
+
+export type SubscriptionDetails = {disabled?: boolean; reason?: string};

@@ -108,3 +108,11 @@ export type Environment = {
 };
 
 export type TeamWithProjects = Team & {projects: Project[]};
+
+export type PlatformIntegration = {
+  id: string;
+  type: string;
+  language: string;
+  link: string | null;
+  name: string;
+};
