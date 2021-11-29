@@ -24,9 +24,9 @@ import {Organization} from 'sentry/types';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
+import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
-import {getTransactionDetailsUrl} from 'sentry/views/performance/utils';
 
 import {Row, Tags, TransactionDetails, TransactionDetailsContainer} from './styles';
 
@@ -83,7 +83,7 @@ class TransactionDetail extends Component<Props> {
     });
 
     const target = getTransactionDetailsUrl(
-      organization,
+      organization.slug,
       eventSlug,
       transaction.transaction,
       omit(location.query, Object.values(PAGE_URL_PARAM))
