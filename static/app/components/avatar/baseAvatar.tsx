@@ -25,8 +25,6 @@ const StyledBaseAvatar = styled('span')<{
   flex-shrink: 0;
   border-radius: ${p => (p.round ? '50%' : '3px')};
   border: ${p => (p.suggested ? `1px dashed ${p.theme.gray400}` : 'none')};
-  background-color: ${p =>
-    p.loaded ? p.theme.background : 'background-color: rgba(200, 200, 200, 0.1);'};
 `;
 
 const defaultProps: DefaultProps = {
