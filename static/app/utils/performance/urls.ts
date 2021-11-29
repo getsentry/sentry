@@ -15,7 +15,7 @@ export function getTransactionDetailsUrl(
     ...(query || {}),
     transaction,
   };
-  if (defined(locationQuery.transaction)) {
+  if (!defined(locationQuery.transaction)) {
     delete locationQuery.transaction;
   }
 
