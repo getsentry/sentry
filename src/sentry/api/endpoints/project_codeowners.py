@@ -68,7 +68,7 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):  # type: ignore
         # that are several megabytes large. To not break this functionality for existing customers
         # we temporarily allow rows that already exceed this limit to still be updated.
         # We do something similar with ProjectOwnership at the API level.
-        existing_raw = self.instance.raw or ""
+        existing_raw = self.instance.raw if self.instance else ""
         if len(attrs["raw"]) > MAX_RAW_LENGTH and len(existing_raw) <= MAX_RAW_LENGTH:
             raise serializers.ValidationError(
                 {"raw": f"Raw needs to be <= {MAX_RAW_LENGTH} characters in length"}
