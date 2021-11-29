@@ -91,7 +91,7 @@ const TableOfContents = ({hidden}: Props) => {
          */
         onClick: () => false,
       });
-  });
+  }, [hidden]);
 
   return (
     <Container>
