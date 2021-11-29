@@ -123,6 +123,7 @@ type ChartProps = {
   grid?: BarChart['props']['grid'];
   disableXAxis?: boolean;
   disableZoom?: boolean;
+  disableChartPadding?: boolean;
   colors?: string[];
 };
 
@@ -138,6 +139,7 @@ export function Chart(props: ChartProps) {
     grid,
     disableXAxis,
     disableZoom,
+    disableChartPadding,
     colors,
   } = props;
   if (!chartData) {
@@ -186,7 +188,7 @@ export function Chart(props: ChartProps) {
       >
         {zoomRenderProps => {
           return (
-            <BarChartContainer>
+            <BarChartContainer hasPadding={!disableChartPadding}>
               <MaskContainer>
                 <TransparentLoadingMask visible={isLoading} />
                 {getDynamicText({
@@ -220,8 +222,8 @@ export function Chart(props: ChartProps) {
   );
 }
 
-const BarChartContainer = styled('div')`
-  padding-top: ${space(1)};
+const BarChartContainer = styled('div')<{hasPadding?: boolean}>`
+  padding-top: ${p => (p.hasPadding ? space(1) : 0)};
   position: relative;
 `;
 

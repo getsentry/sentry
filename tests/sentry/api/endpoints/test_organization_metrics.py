@@ -411,7 +411,7 @@ class OrganizationMetricIntegrationTest(SessionMetricsTestCase, APITestCase):
     @with_feature(FEATURE_FLAG)
     def test_orderby(self):
         # Record some strings
-        metric_id = indexer.record("measurement.lcp")
+        metric_id = indexer.record("measurements.lcp")
         k_transaction = indexer.record("transaction")
         v_foo = indexer.record("/foo")
         v_bar = indexer.record("/bar")
@@ -445,13 +445,13 @@ class OrganizationMetricIntegrationTest(SessionMetricsTestCase, APITestCase):
 
         response = self.get_success_response(
             self.organization.slug,
-            field="count(measurement.lcp)",
+            field="count(measurements.lcp)",
             query="measurement_rating:poor",
             statsPeriod="1h",
             interval="1h",
             datasource="snuba",
             groupBy="transaction",
-            orderBy="-count(measurement.lcp)",
+            orderBy="-count(measurements.lcp)",
             limit=2,
         )
         groups = response.data["groups"]
@@ -466,7 +466,7 @@ class OrganizationMetricIntegrationTest(SessionMetricsTestCase, APITestCase):
             assert "series" not in group
             assert group["by"] == {"transaction": expected_transaction}
             totals = group["totals"]
-            assert totals == {"count(measurement.lcp)": expected_count}
+            assert totals == {"count(measurements.lcp)": expected_count}
 
 
 class OrganizationMetricMetaIntegrationTest(SessionMetricsTestCase, APITestCase):

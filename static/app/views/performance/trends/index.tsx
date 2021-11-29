@@ -34,22 +34,16 @@ class TrendsSummary extends React.Component<Props, State> {
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
     return {
       ...prevState,
-      eventView: generatePerformanceEventView(
-        nextProps.organization,
-        nextProps.location,
-        nextProps.projects,
-        true
-      ),
+      eventView: generatePerformanceEventView(nextProps.location, nextProps.projects, {
+        isTrends: true,
+      }),
     };
   }
 
   state: State = {
-    eventView: generatePerformanceEventView(
-      this.props.organization,
-      this.props.location,
-      this.props.projects,
-      true
-    ),
+    eventView: generatePerformanceEventView(this.props.location, this.props.projects, {
+      isTrends: true,
+    }),
     error: undefined,
   };
 
