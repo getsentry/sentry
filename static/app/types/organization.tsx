@@ -1,4 +1,4 @@
-import {Actor, Avatar, Scope} from './core';
+import {Actor, Avatar, DateString, Scope} from './core';
 import {OrgExperiments} from './experiments';
 import {ExternalTeam} from './integrations';
 import {OnboardingTaskStatus} from './onboarding';
@@ -129,3 +129,108 @@ export type AuditLog = {
   data: any;
   dateCreated: string;
 };
+
+export type AccessRequest = {
+  id: string;
+  team: Team;
+  member: Member;
+  requester?: Partial<{
+    name: string;
+    username: string;
+    email: string;
+  }>;
+};
+
+/**
+ * Discover queries and result sets.
+ */
+export type SavedQueryVersions = 1 | 2;
+
+export type NewQuery = {
+  id: string | undefined;
+  version: SavedQueryVersions;
+  name: string;
+  createdBy?: User;
+
+  // Query and Table
+  query?: string;
+  fields: Readonly<string[]>;
+  widths?: Readonly<string[]>;
+  orderby?: string;
+  expired?: boolean;
+
+  // GlobalSelectionHeader
+  projects: Readonly<number[]>;
+  environment?: Readonly<string[]>;
+  range?: string;
+  start?: string;
+  end?: string;
+
+  // Graph
+  yAxis?: string[];
+  display?: string;
+  topEvents?: string;
+
+  teams?: Readonly<('myteams' | number)[]>;
+};
+
+export type SavedQuery = NewQuery & {
+  id: string;
+  dateCreated: string;
+  dateUpdated: string;
+};
+
+export type SavedQueryState = {
+  savedQueries: SavedQuery[];
+  hasError: boolean;
+  isLoading: boolean;
+};
+
+export type EventsStatsData = [number, {count: number; comparisonCount?: number}[]][];
+export type EventsGeoData = {'geo.country_code': string; count: number}[];
+
+// API response format for a single series
+export type EventsStats = {
+  data: EventsStatsData;
+  totals?: {count: number};
+  order?: number;
+  start?: number;
+  end?: number;
+};
+
+// API response format for multiple series
+export type MultiSeriesEventsStats = {
+  [seriesName: string]: EventsStats;
+};
+
+/**
+ * Session API types.
+ */
+// Base type for series style API response
+export type SeriesApi = {
+  intervals: string[];
+  groups: {
+    by: Record<string, string | number>;
+    totals: Record<string, number>;
+    series: Record<string, number[]>;
+  }[];
+};
+
+export type SessionApiResponse = SeriesApi & {
+  start: DateString;
+  end: DateString;
+  query: string;
+};
+
+export enum SessionField {
+  SESSIONS = 'sum(session)',
+  USERS = 'count_unique(user)',
+  DURATION = 'p50(session.duration)',
+}
+
+export enum SessionStatus {
+  HEALTHY = 'healthy',
+  ABNORMAL = 'abnormal',
+  ERRORED = 'errored',
+  CRASHED = 'crashed',
+}

@@ -176,3 +176,11 @@ export enum HealthStatsPeriodOption {
   AUTO = 'auto',
   TWENTY_FOUR_HOURS = '24h',
 }
+
+export type CrashFreeTimeBreakdown = {
+  date: string;
+  totalSessions: number;
+  crashFreeSessions: number | null;
+  crashFreeUsers: number | null;
+  totalUsers: number;
+}[];

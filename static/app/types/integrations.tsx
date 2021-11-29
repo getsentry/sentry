@@ -468,3 +468,11 @@ export type RepositoryProjectPathConfigWithIntegration =
     integrationId: string;
     provider: BaseIntegrationProvider;
   };
+
+export type ServerlessFunction = {
+  name: string;
+  runtime: string;
+  version: number;
+  outOfDate: boolean;
+  enabled: boolean;
+};
