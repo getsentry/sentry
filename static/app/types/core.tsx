@@ -4,7 +4,8 @@
  * Before a type is put here it should be required in multiple other types.
  * or used in multiple views.
  */
-import {API_ACCESS_SCOPES} from 'sentry/constants';
+import {getInterval} from 'sentry/components/charts/utils';
+import {API_ACCESS_SCOPES, DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 
 /**
  * Visual representation of a project/team/organization/user
@@ -73,4 +74,19 @@ export const DataCategoryName = {
   [DataCategory.ERRORS]: 'Errors',
   [DataCategory.TRANSACTIONS]: 'Transactions',
   [DataCategory.ATTACHMENTS]: 'Attachments',
+};
+
+export type RelativePeriod = keyof typeof DEFAULT_RELATIVE_PERIODS;
+export type IntervalPeriod = ReturnType<typeof getInterval>;
+
+export type GlobalSelection = {
+  // Project Ids currently selected
+  projects: number[];
+  environments: string[];
+  datetime: {
+    start: DateString;
+    end: DateString;
+    period: RelativePeriod | string;
+    utc: boolean | null;
+  };
 };

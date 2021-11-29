@@ -2,6 +2,9 @@ import u2f from 'u2f-api';
 
 import {Field} from 'sentry/views/settings/components/forms/type';
 
+import {DateString} from './core';
+import {Organization} from './organization';
+
 export type AuthenticatorDevice = {
   key_handle: string;
   authId: string;
@@ -117,4 +120,34 @@ export type AuthProvider = {
   name: string;
   requiredFeature: string;
   disables2FA: boolean;
+};
+
+export enum UserIdentityCategory {
+  SOCIAL_IDENTITY = 'social-identity',
+  GLOBAL_IDENTITY = 'global-identity',
+  ORG_IDENTITY = 'org-identity',
+}
+
+export enum UserIdentityStatus {
+  CAN_DISCONNECT = 'can_disconnect',
+  NEEDED_FOR_GLOBAL_AUTH = 'needed_for_global_auth',
+  NEEDED_FOR_ORG_AUTH = 'needed_for_org_auth',
+}
+
+export type UserIdentityProvider = {
+  key: string;
+  name: string;
+};
+
+/**
+ * UserIdentityConfig is used in Account Identities
+ */
+export type UserIdentityConfig = {
+  category: UserIdentityCategory;
+  id: string;
+  provider: UserIdentityProvider;
+  status: UserIdentityStatus;
+  isLogin: boolean;
+  organization: Organization | null;
+  dateAdded: DateString;
 };
