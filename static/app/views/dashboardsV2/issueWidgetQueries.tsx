@@ -108,10 +108,10 @@ class WidgetQueries extends React.Component<Props, State> {
       params.statsPeriod = selection.datetime.period;
     }
     if (selection.datetime.end) {
-      params.end = getUtcDateString(params.end);
+      params.end = getUtcDateString(selection.datetime.end);
     }
     if (selection.datetime.start) {
-      params.start = getUtcDateString(params.start);
+      params.start = getUtcDateString(selection.datetime.start);
     }
     if (selection.datetime.utc) {
       params.utc = selection.datetime.utc;
