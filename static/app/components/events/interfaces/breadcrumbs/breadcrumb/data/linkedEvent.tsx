@@ -3,15 +3,15 @@ import {InjectedRouter, PlainRoute} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import ProjectBadge from 'app/components/idBadge/projectBadge';
-import Placeholder from 'app/components/placeholder';
-import ShortId from 'app/components/shortId';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {EventIdResponse, Group, Organization, Project} from 'app/types';
-import useApi from 'app/utils/useApi';
-import useSessionStorage from 'app/utils/useSessionStorage';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import Placeholder from 'sentry/components/placeholder';
+import ShortId from 'sentry/components/shortId';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {EventIdResponse, Group, Organization, Project} from 'sentry/types';
+import useApi from 'sentry/utils/useApi';
+import useSessionStorage from 'sentry/utils/useSessionStorage';
 
 type StoredLinkedEvent = {
   shortId: string;

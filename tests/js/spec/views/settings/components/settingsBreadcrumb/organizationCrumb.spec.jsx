@@ -5,7 +5,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import OrganizationCrumb from 'sentry/views/settings/components/settingsBreadcrumb/organizationCrumb';
 
-jest.unmock('app/utils/recreateRoute');
+jest.unmock('sentry/utils/recreateRoute');
 
 describe('OrganizationCrumb', function () {
   const {organization, project, routerContext} = initializeOrg();

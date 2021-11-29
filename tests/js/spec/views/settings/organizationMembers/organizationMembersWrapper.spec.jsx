@@ -5,8 +5,8 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import OrganizationMembersList from 'sentry/views/settings/organizationMembers/organizationMembersList';
 import OrganizationMembersWrapper from 'sentry/views/settings/organizationMembers/organizationMembersWrapper';
 
-jest.mock('app/utils/analytics/trackAdvancedAnalyticsEvent', () => jest.fn());
-jest.mock('app/actionCreators/modal', () => ({
+jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent', () => jest.fn());
+jest.mock('sentry/actionCreators/modal', () => ({
   openInviteMembersModal: jest.fn(),
 }));
 

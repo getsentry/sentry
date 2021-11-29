@@ -12,8 +12,8 @@ import localStorage from 'sentry/utils/localStorage';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import TeamInsightsOverview from 'sentry/views/organizationStats/teamInsights/overview';
 
-jest.mock('app/utils/localStorage');
-jest.mock('app/utils/isActiveSuperuser', () => ({
+jest.mock('sentry/utils/localStorage');
+jest.mock('sentry/utils/isActiveSuperuser', () => ({
   isActiveSuperuser: jest.fn(),
 }));
 

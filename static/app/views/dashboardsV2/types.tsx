@@ -1,4 +1,4 @@
-import {User} from 'app/types';
+import {User} from 'sentry/types';
 
 // Max widgets per dashboard we are currently willing
 // to allow to limit the load on snuba from the

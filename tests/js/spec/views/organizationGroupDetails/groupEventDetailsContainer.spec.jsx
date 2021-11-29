@@ -4,7 +4,7 @@ import OrganizationEnvironmentsStore from 'sentry/stores/organizationEnvironment
 import GroupEventDetailsContainer from 'sentry/views/organizationGroupDetails/groupEventDetails';
 
 jest.mock(
-  'app/views/organizationGroupDetails/groupEventDetails/groupEventDetails',
+  'sentry/views/organizationGroupDetails/groupEventDetails/groupEventDetails',
   () => () => <div>GroupEventDetails</div>
 );
 

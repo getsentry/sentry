@@ -1,20 +1,20 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {Client} from 'app/api';
-import Avatar from 'app/components/avatar';
-import AvatarCropper from 'app/components/avatarCropper';
-import Button from 'app/components/button';
-import ExternalLink from 'app/components/links/externalLink';
-import LoadingError from 'app/components/loadingError';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import Well from 'app/components/well';
-import {t} from 'app/locale';
-import {AvatarUser, Organization, SentryApp, Team} from 'app/types';
-import withApi from 'app/utils/withApi';
-import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {Client} from 'sentry/api';
+import Avatar from 'sentry/components/avatar';
+import AvatarCropper from 'sentry/components/avatarCropper';
+import Button from 'sentry/components/button';
+import ExternalLink from 'sentry/components/links/externalLink';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Well from 'sentry/components/well';
+import {t} from 'sentry/locale';
+import {AvatarUser, Organization, SentryApp, Team} from 'sentry/types';
+import withApi from 'sentry/utils/withApi';
+import RadioGroup from 'sentry/views/settings/components/forms/controls/radioGroup';
 
 export type Model = Pick<AvatarUser, 'avatar'>;
 type AvatarType = Required<Model>['avatar']['avatarType'];

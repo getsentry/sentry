@@ -5,7 +5,7 @@ import {createProject} from 'sentry/actionCreators/projects';
 import TeamStore from 'sentry/stores/teamStore';
 import OnboardingPlatform from 'sentry/views/onboarding/platform';
 
-jest.mock('app/actionCreators/projects');
+jest.mock('sentry/actionCreators/projects');
 
 describe('OnboardingWelcome', function () {
   it('calls onUpdate when setting the platform', function () {

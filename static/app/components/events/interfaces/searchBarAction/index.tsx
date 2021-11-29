@@ -1,8 +1,8 @@
 import {Children} from 'react';
 import styled from '@emotion/styled';
 
-import SearchBar from 'app/components/searchBar';
-import space from 'app/styles/space';
+import SearchBar from 'sentry/components/searchBar';
+import space from 'sentry/styles/space';
 
 type Props = {
   onChange: (value: string) => void;

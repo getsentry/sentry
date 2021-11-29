@@ -1,8 +1,9 @@
-import {sanitizePath} from 'app/utils/requestError/sanitizePath';
+import {sanitizePath} from 'sentry/utils/requestError/sanitizePath';
 
 describe('sanitizePath', function () {
   test.each([
     // /organizations/ endpoints
+    ['/organizations/sentry-test/issues/', '/organizations/{orgSlug}/issues/'],
 
     ['/organizations/sentry-test/issues/123/', '/organizations/{orgSlug}/issues/123/'],
 
@@ -57,6 +58,11 @@ describe('sanitizePath', function () {
       'https://sentry.io/api/0/teams/sentry-test/team-test/release-count/',
       'https://sentry.io/api/0/teams/{orgSlug}/{teamSlug}/release-count/',
     ],
+
+    // customers is org-like
+    ['/customers/sentry-test/', '/customers/{orgSlug}/'],
+    ['/customers/sentry-test/issues/', '/customers/{orgSlug}/issues/'],
+    ['/customers/sentry-test/issues/123/', '/customers/{orgSlug}/issues/123/'],
   ])('sanitizes %s', (path, expected) => {
     expect(sanitizePath(path)).toBe(expected);
   });

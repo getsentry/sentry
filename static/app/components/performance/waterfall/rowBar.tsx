@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
 
-import {ROW_HEIGHT, ROW_PADDING} from 'app/components/performance/waterfall/constants';
-import {DurationDisplay} from 'app/components/performance/waterfall/types';
+import {ROW_HEIGHT, ROW_PADDING} from 'sentry/components/performance/waterfall/constants';
+import {DurationDisplay} from 'sentry/components/performance/waterfall/types';
 import {
   getDurationPillAlignment,
   getHatchPattern,
-} from 'app/components/performance/waterfall/utils';
+} from 'sentry/components/performance/waterfall/utils';
 
 export const RowRectangle = styled('div')<{spanBarHatch: boolean}>`
   position: absolute;

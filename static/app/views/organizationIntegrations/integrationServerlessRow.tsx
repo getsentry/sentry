@@ -5,15 +5,15 @@ import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
-} from 'app/actionCreators/indicator';
-import {Client} from 'app/api';
-import Button from 'app/components/button';
-import Switch from 'app/components/switchButton';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {IntegrationWithConfig, Organization, ServerlessFunction} from 'app/types';
-import {trackIntegrationAnalytics} from 'app/utils/integrationUtil';
-import withApi from 'app/utils/withApi';
+} from 'sentry/actionCreators/indicator';
+import {Client} from 'sentry/api';
+import Button from 'sentry/components/button';
+import Switch from 'sentry/components/switchButton';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {IntegrationWithConfig, Organization, ServerlessFunction} from 'sentry/types';
+import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
+import withApi from 'sentry/utils/withApi';
 
 type Props = {
   serverlessFunction: ServerlessFunction;

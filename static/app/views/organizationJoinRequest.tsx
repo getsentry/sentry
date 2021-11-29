@@ -2,14 +2,14 @@ import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import NarrowLayout from 'app/components/narrowLayout';
-import {IconMegaphone} from 'app/icons';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {trackAdhocEvent} from 'app/utils/analytics';
-import EmailField from 'app/views/settings/components/forms/emailField';
-import Form from 'app/views/settings/components/forms/form';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import NarrowLayout from 'sentry/components/narrowLayout';
+import {IconMegaphone} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {trackAdhocEvent} from 'sentry/utils/analytics';
+import EmailField from 'sentry/views/settings/components/forms/emailField';
+import Form from 'sentry/views/settings/components/forms/form';
 
 type Props = RouteComponentProps<{orgId: string}, {}>;
 

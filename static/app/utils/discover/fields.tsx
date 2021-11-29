@@ -1,8 +1,8 @@
 import isEqual from 'lodash/isEqual';
 
-import {RELEASE_ADOPTION_STAGES} from 'app/constants';
-import {Organization, SelectValue} from 'app/types';
-import {assert} from 'app/types/utils';
+import {RELEASE_ADOPTION_STAGES} from 'sentry/constants';
+import {Organization, SelectValue} from 'sentry/types';
+import {assert} from 'sentry/types/utils';
 
 export type Sort = {
   kind: 'asc' | 'desc';

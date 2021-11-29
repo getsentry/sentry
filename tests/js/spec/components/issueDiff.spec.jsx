@@ -2,7 +2,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {IssueDiff} from 'sentry/components/issueDiff';
 
-jest.mock('app/api');
+jest.mock('sentry/api');
 
 describe('IssueDiff', function () {
   const entries = TestStubs.Entries();

@@ -1,7 +1,7 @@
-import {getMeta} from 'app/components/events/meta/metaProxy';
-import {KeyValueListData, Organization} from 'app/types';
-import {Event} from 'app/types/event';
-import {defined} from 'app/utils';
+import {getMeta} from 'sentry/components/events/meta/metaProxy';
+import {KeyValueListData, Organization} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import {defined} from 'sentry/utils';
 
 import getTraceKnownDataDetails from './getTraceKnownDataDetails';
 import {TraceKnownData, TraceKnownDataType} from './types';

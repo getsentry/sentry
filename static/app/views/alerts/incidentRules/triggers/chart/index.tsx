@@ -5,35 +5,35 @@ import chunk from 'lodash/chunk';
 import maxBy from 'lodash/maxBy';
 import minBy from 'lodash/minBy';
 
-import {fetchTotalCount} from 'app/actionCreators/events';
-import {Client} from 'app/api';
-import Feature from 'app/components/acl/feature';
-import EventsRequest from 'app/components/charts/eventsRequest';
-import {LineChartSeries} from 'app/components/charts/lineChart';
-import OptionSelector from 'app/components/charts/optionSelector';
-import SessionsRequest from 'app/components/charts/sessionsRequest';
+import {fetchTotalCount} from 'sentry/actionCreators/events';
+import {Client} from 'sentry/api';
+import Feature from 'sentry/components/acl/feature';
+import EventsRequest from 'sentry/components/charts/eventsRequest';
+import {LineChartSeries} from 'sentry/components/charts/lineChart';
+import OptionSelector from 'sentry/components/charts/optionSelector';
+import SessionsRequest from 'sentry/components/charts/sessionsRequest';
 import {
   ChartControls,
   InlineContainer,
   SectionHeading,
   SectionValue,
-} from 'app/components/charts/styles';
-import LoadingMask from 'app/components/loadingMask';
-import Placeholder from 'app/components/placeholder';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import {Series, SeriesDataUnit} from 'app/types/echarts';
+} from 'sentry/components/charts/styles';
+import LoadingMask from 'sentry/components/loadingMask';
+import Placeholder from 'sentry/components/placeholder';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import {
   getCrashFreeRateSeries,
   MINUTES_THRESHOLD_TO_DISPLAY_SECONDS,
-} from 'app/utils/sessions';
-import withApi from 'app/utils/withApi';
-import {getComparisonMarkLines} from 'app/views/alerts/changeAlerts/comparisonMarklines';
-import {COMPARISON_DELTA_OPTIONS} from 'app/views/alerts/incidentRules/constants';
-import {isSessionAggregate, SESSION_AGGREGATE_TO_FIELD} from 'app/views/alerts/utils';
-import {AlertWizardAlertNames} from 'app/views/alerts/wizard/options';
-import {getAlertTypeFromAggregateDataset} from 'app/views/alerts/wizard/utils';
+} from 'sentry/utils/sessions';
+import withApi from 'sentry/utils/withApi';
+import {getComparisonMarkLines} from 'sentry/views/alerts/changeAlerts/comparisonMarklines';
+import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/incidentRules/constants';
+import {isSessionAggregate, SESSION_AGGREGATE_TO_FIELD} from 'sentry/views/alerts/utils';
+import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
+import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
 import {
   AlertRuleComparisonType,

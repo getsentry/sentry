@@ -1,19 +1,19 @@
 import {ReactNode} from 'react';
 import {Location, LocationDescriptor, Query} from 'history';
 
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
-import SortLink from 'app/components/gridEditable/sortLink';
-import Link from 'app/components/links/link';
-import Tooltip from 'app/components/tooltip';
-import {t, tct} from 'app/locale';
-import {Organization} from 'app/types';
-import {defined} from 'app/utils';
-import {TableDataRow} from 'app/utils/discover/discoverQuery';
-import EventView from 'app/utils/discover/eventView';
-import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
-import {ColumnType, fieldAlignment} from 'app/utils/discover/fields';
-import {formatPercentage} from 'app/utils/formatters';
-import {SuspectSpan} from 'app/utils/performance/suspectSpans/types';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import SortLink from 'sentry/components/gridEditable/sortLink';
+import Link from 'sentry/components/links/link';
+import Tooltip from 'sentry/components/tooltip';
+import {t, tct} from 'sentry/locale';
+import {Organization} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import EventView from 'sentry/utils/discover/eventView';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {ColumnType, fieldAlignment} from 'sentry/utils/discover/fields';
+import {formatFloat, formatPercentage} from 'sentry/utils/formatters';
+import {SuspectSpan} from 'sentry/utils/performance/suspectSpans/types';
 
 import {PerformanceDuration} from '../../utils';
 
@@ -39,32 +39,35 @@ import {getSuspectSpanSortFromEventView} from './utils';
 const SPANS_TABLE_COLUMN_ORDER: SuspectSpanTableColumn[] = [
   {
     key: 'id',
-    name: 'Example Transaction',
+    name: t('Example Transaction'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
     key: 'timestamp',
-    name: 'Timestamp',
+    name: t('Timestamp'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
     key: 'spanDuration',
-    name: 'Span Duration',
+    name: t('Span Duration'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
     key: 'occurrences',
-    name: 'Occurrences',
+    name: t('Occurrences'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
     key: 'cumulativeDuration',
-    name: 'Cumulative Duration',
+    name: t('Cumulative Duration'),
     width: COL_WIDTH_UNDEFINED,
   },
 ];
 
-const SPANS_TABLE_COLUMN_TYPE: Partial<Record<SuspectSpanTableColumnKeys, ColumnType>> = {
+const SPANS_TABLE_COLUMN_TYPE: Omit<
+  Record<SuspectSpanTableColumnKeys, ColumnType>,
+  'spans' | 'transactionDuration'
+> = {
   id: 'string',
   timestamp: 'date',
   spanDuration: 'duration',
@@ -190,6 +193,17 @@ function SpanCount(props: HeaderItemProps) {
     );
   }
 
+  if (sort.field === SpanSortOthers.AVG_OCCURRENCE) {
+    return (
+      <HeaderItem
+        label={t('Avg Occurrences')}
+        value={formatFloat(suspectSpan.avgOccurrences, 2)}
+        align="right"
+        isSortKey
+      />
+    );
+  }
+
   // Because the frequency is computed using `count_unique(id)` internally,
   // it is an approximate value. This means that it has the potential to be
   // greater than `totals.count` when it shouldn't. So let's clip the
@@ -296,8 +310,12 @@ function renderBodyCellWithMeta(
             worst.exclusiveTime >= span.exclusiveTime ? worst : span
           )
         : null;
-      const hash = worstSpan ? `#span-${worstSpan.id}` : undefined;
-      const target = generateTransactionLink(organization, dataRow, location.query, hash);
+      const target = generateTransactionLink(
+        organization,
+        dataRow,
+        location.query,
+        worstSpan.id
+      );
 
       rendered = <Link to={target}>{rendered}</Link>;
     }

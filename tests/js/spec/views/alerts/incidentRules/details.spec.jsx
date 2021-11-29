@@ -12,7 +12,7 @@ import GlobalModal from 'sentry/components/globalModal';
 import {metric} from 'sentry/utils/analytics';
 import IncidentRulesDetails from 'sentry/views/alerts/incidentRules/details';
 
-jest.mock('app/utils/analytics', () => ({
+jest.mock('sentry/utils/analytics', () => ({
   metric: {
     startTransaction: jest.fn(() => ({
       setTag: jest.fn(),

@@ -1,16 +1,16 @@
 import {RouteComponentProps} from 'react-router';
 
-import ExternalLink from 'app/components/links/externalLink';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import PreviewFeature from 'app/components/previewFeature';
-import {t, tct} from 'app/locale';
-import {ProjectKey} from 'app/types';
-import routeTitleGen from 'app/utils/routeTitle';
-import AsyncView from 'app/views/asyncView';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import PreviewFeature from 'sentry/components/previewFeature';
+import {t, tct} from 'sentry/locale';
+import {ProjectKey} from 'sentry/types';
+import routeTitleGen from 'sentry/utils/routeTitle';
+import AsyncView from 'sentry/views/asyncView';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import ReportUri, {
   getSecurityDsn,
-} from 'app/views/settings/projectSecurityHeaders/reportUri';
+} from 'sentry/views/settings/projectSecurityHeaders/reportUri';
 
 type Props = RouteComponentProps<{orgId: string; projectId: string}, {}>;
 

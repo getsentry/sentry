@@ -1,4 +1,4 @@
-import {GridColumnOrder} from 'app/components/gridEditable';
+import {GridColumnOrder} from 'sentry/components/gridEditable';
 
 export enum SpanSortPercentiles {
   P50_EXCLUSIVE_TIME = 'p50ExclusiveTime',
@@ -9,6 +9,7 @@ export enum SpanSortPercentiles {
 
 export enum SpanSortOthers {
   COUNT = 'count',
+  AVG_OCCURRENCE = 'avgOccurrence',
   SUM_EXCLUSIVE_TIME = 'sumExclusiveTime',
 }
 

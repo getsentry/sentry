@@ -5,8 +5,8 @@ import {navigateTo} from 'sentry/actionCreators/navigation';
 import FormSearchStore from 'sentry/stores/formSearchStore';
 import App from 'sentry/views/app';
 
-jest.mock('app/actionCreators/formSearch');
-jest.mock('app/actionCreators/navigation');
+jest.mock('sentry/actionCreators/formSearch');
+jest.mock('sentry/actionCreators/navigation');
 
 describe('Command Palette Modal', function () {
   let orgsMock;

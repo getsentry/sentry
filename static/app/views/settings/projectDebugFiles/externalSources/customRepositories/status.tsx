@@ -1,15 +1,15 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Placeholder from 'app/components/placeholder';
-import TimeSince from 'app/components/timeSince';
-import Tooltip from 'app/components/tooltip';
-import {IconDownload} from 'app/icons/iconDownload';
-import {IconRefresh} from 'app/icons/iconRefresh';
-import {IconWarning} from 'app/icons/iconWarning';
-import {t, tn} from 'app/locale';
-import space from 'app/styles/space';
-import {AppStoreConnectStatusData} from 'app/types/debugFiles';
+import Placeholder from 'sentry/components/placeholder';
+import TimeSince from 'sentry/components/timeSince';
+import Tooltip from 'sentry/components/tooltip';
+import {IconDownload} from 'sentry/icons/iconDownload';
+import {IconRefresh} from 'sentry/icons/iconRefresh';
+import {IconWarning} from 'sentry/icons/iconWarning';
+import {t, tn} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {AppStoreConnectStatusData} from 'sentry/types/debugFiles';
 
 type Props = {
   onEditRepository: () => void;

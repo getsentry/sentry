@@ -1,7 +1,7 @@
-import {t} from 'app/locale';
-import HookStore from 'app/stores/hookStore';
-import {Organization} from 'app/types';
-import {NavigationSection} from 'app/views/settings/types';
+import {t} from 'sentry/locale';
+import HookStore from 'sentry/stores/hookStore';
+import {Organization} from 'sentry/types';
+import {NavigationSection} from 'sentry/views/settings/types';
 
 const pathPrefix = '/settings/account';
 

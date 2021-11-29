@@ -2,17 +2,17 @@ import {Component, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import * as Layout from 'app/components/layouts/thirds';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import Teams from 'app/utils/teams';
-import BuilderBreadCrumbs from 'app/views/alerts/builder/builderBreadCrumbs';
-import IncidentRulesDetails from 'app/views/alerts/incidentRules/details';
-import IssueEditor from 'app/views/alerts/issueRuleEditor';
+import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import Teams from 'sentry/utils/teams';
+import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
+import IncidentRulesDetails from 'sentry/views/alerts/incidentRules/details';
+import IssueEditor from 'sentry/views/alerts/issueRuleEditor';
 
 type RouteParams = {
   orgId: string;

@@ -6,26 +6,26 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
-import {Client} from 'app/api';
-import ErrorPanel from 'app/components/charts/errorPanel';
-import SimpleTableChart from 'app/components/charts/simpleTableChart';
-import {HeaderTitle} from 'app/components/charts/styles';
-import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
-import ErrorBoundary from 'app/components/errorBoundary';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {isSelectionEqual} from 'app/components/organizations/globalSelectionHeader/utils';
-import {Panel} from 'app/components/panels';
-import Placeholder from 'app/components/placeholder';
-import {IconDelete, IconEdit, IconGrabbable, IconWarning} from 'app/icons';
-import {t} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {GlobalSelection, Group, Organization} from 'app/types';
-import {TableDataRow} from 'app/utils/discover/discoverQuery';
-import {ColumnType} from 'app/utils/discover/fields';
-import withApi from 'app/utils/withApi';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import withOrganization from 'app/utils/withOrganization';
+import {Client} from 'sentry/api';
+import ErrorPanel from 'sentry/components/charts/errorPanel';
+import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
+import {HeaderTitle} from 'sentry/components/charts/styles';
+import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {isSelectionEqual} from 'sentry/components/organizations/globalSelectionHeader/utils';
+import {Panel} from 'sentry/components/panels';
+import Placeholder from 'sentry/components/placeholder';
+import {IconDelete, IconEdit, IconGrabbable, IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {GlobalSelection, Group, Organization} from 'sentry/types';
+import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import {ColumnType} from 'sentry/utils/discover/fields';
+import withApi from 'sentry/utils/withApi';
+import withGlobalSelection from 'sentry/utils/withGlobalSelection';
+import withOrganization from 'sentry/utils/withOrganization';
 
 import {DRAG_HANDLE_CLASS} from './gridLayout/dashboard';
 import IssueWidgetQueries from './issueWidgetQueries';
@@ -229,6 +229,8 @@ const StyledPanel = styled(Panel, {
   /* If a panel overflows due to a long title stretch its grid sibling */
   height: 100%;
   min-height: 96px;
+  display: flex;
+  flex-direction: column;
 `;
 
 const WidgetTitle = styled(HeaderTitle)`

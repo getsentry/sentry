@@ -1,10 +1,10 @@
 import Reflux from 'reflux';
 
-import NavigationActions from 'app/actions/navigationActions';
-import OrganizationActions from 'app/actions/organizationActions';
-import OrganizationsActions from 'app/actions/organizationsActions';
-import ProjectActions from 'app/actions/projectActions';
-import {Organization, Project} from 'app/types';
+import NavigationActions from 'sentry/actions/navigationActions';
+import OrganizationActions from 'sentry/actions/organizationActions';
+import OrganizationsActions from 'sentry/actions/organizationsActions';
+import ProjectActions from 'sentry/actions/projectActions';
+import {Organization, Project} from 'sentry/types';
 
 type OrgTypes = Organization | null;
 

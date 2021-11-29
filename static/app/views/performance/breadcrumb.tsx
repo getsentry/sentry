@@ -1,10 +1,10 @@
 import {Component} from 'react';
 import {Location, LocationDescriptor} from 'history';
 
-import Breadcrumbs, {Crumb} from 'app/components/breadcrumbs';
-import {t} from 'app/locale';
-import {Organization} from 'app/types';
-import {decodeScalar} from 'app/utils/queryString';
+import Breadcrumbs, {Crumb} from 'sentry/components/breadcrumbs';
+import {t} from 'sentry/locale';
+import {Organization} from 'sentry/types';
+import {decodeScalar} from 'sentry/utils/queryString';
 
 import Tab from './transactionSummary/tabs';
 import {eventsRouteWithQuery} from './transactionSummary/transactionEvents/utils';

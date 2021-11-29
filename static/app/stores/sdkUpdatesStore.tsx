@@ -1,7 +1,7 @@
 import Reflux from 'reflux';
 
-import SdkUpdatesActions from 'app/actions/sdkUpdatesActions';
-import {ProjectSdkUpdates} from 'app/types';
+import SdkUpdatesActions from 'sentry/actions/sdkUpdatesActions';
+import {ProjectSdkUpdates} from 'sentry/types';
 
 type SdkUpdatesStoreInterface = {
   onLoadSuccess(orgSlug: string, data: ProjectSdkUpdates[]): void;

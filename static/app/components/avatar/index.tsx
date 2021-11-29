@@ -1,11 +1,11 @@
 import * as React from 'react';
 
-import OrganizationAvatar from 'app/components/avatar/organizationAvatar';
-import ProjectAvatar from 'app/components/avatar/projectAvatar';
-import SentryAppAvatar from 'app/components/avatar/sentryAppAvatar';
-import TeamAvatar from 'app/components/avatar/teamAvatar';
-import UserAvatar from 'app/components/avatar/userAvatar';
-import {AvatarProject, OrganizationSummary, SentryApp, Team} from 'app/types';
+import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
+import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
+import SentryAppAvatar from 'sentry/components/avatar/sentryAppAvatar';
+import TeamAvatar from 'sentry/components/avatar/teamAvatar';
+import UserAvatar from 'sentry/components/avatar/userAvatar';
+import {AvatarProject, OrganizationSummary, SentryApp, Team} from 'sentry/types';
 
 type Props = {
   team?: Team;
