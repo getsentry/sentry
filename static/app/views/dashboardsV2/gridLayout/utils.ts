@@ -30,6 +30,7 @@ export const saveDashboardLayout = (
 };
 
 export const reassignLayoutId = (savedWidgets: Widget[], layout: Layout, i: number) => {
+  // TODO(nar): Replace 'index' with a different constant that describes this widget layout as new
   if (layout.i.startsWith('index')) {
     return {
       ...layout,
