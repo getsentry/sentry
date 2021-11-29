@@ -13,6 +13,7 @@ class SentryAppComponentSerializer(Serializer):
                 "uuid": obj.sentry_app.uuid,
                 "slug": obj.sentry_app.slug,
                 "name": obj.sentry_app.name,
+                "avatars": obj.sentry_app.avatars,
             },
         }
 
