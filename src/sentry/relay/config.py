@@ -351,8 +351,6 @@ def _filter_option_to_config_setting(flt, setting):
     return ret_val
 
 
-# Note: names for extracted metrics start with `measurements.`, while the
-# in-event keys start with `measurements.`
 ALL_MEASUREMENT_METRICS = frozenset(
     [
         "measurements.fp",
