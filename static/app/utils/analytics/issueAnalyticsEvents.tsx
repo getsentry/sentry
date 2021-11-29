@@ -32,7 +32,7 @@ export type IssueEventParameters = {
   };
   'issue.search_sidebar_clicked': {};
   'issue.create_dashboard_widget_from_histogram': {
-    duration: string;
+    stats_period: string;
   };
 };
 
