@@ -1,18 +1,9 @@
-import moment from 'moment';
-
 import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
 import {defined} from 'sentry/utils';
 import {MetricsRequestRenderProps} from 'sentry/utils/metrics/metricsRequest';
 import {DEFAULT_STATS_PERIOD} from 'sentry/views/performance/data';
 
 import {QueryDefinitionWithKey, WidgetDataConstraint, WidgetPropUnion} from '../types';
-
-// TODO: [x] Prevent refetches
-// TODO: [x] clean up
-// TODO: [x] send more data in listitem
-// TODO: [x] Make the chart work
-// TODO: [] MetricsRequest dynamic
-// TODO: []? rename to transformMetricsToVitals?
 
 export type VitalsMetricsItem = {
   transaction: string;
@@ -23,7 +14,7 @@ export type VitalsMetricsItem = {
   };
 };
 
-export function transformMetricsToSeries<T extends WidgetDataConstraint>(
+export function transformMetricsToVitalList<T extends WidgetDataConstraint>(
   widgetProps: WidgetPropUnion<T>,
   results: MetricsRequestRenderProps,
   _: QueryDefinitionWithKey<T>
@@ -32,24 +23,35 @@ export function transformMetricsToSeries<T extends WidgetDataConstraint>(
     defaultStatsPeriod: DEFAULT_STATS_PERIOD,
   });
 
-  const metricsField = `avg(${widgetProps.fields[0]})`;
+  const metricsField = widgetProps.Queries.list.fields[0];
 
   const {errored, loading, reloading, response} = results;
 
-  // getCountSeries TODO:
-  const data = response?.groups.map(group => {
-    return {
-      seriesName: group.by.measurement_rating,
-      data: response.intervals.map((intervalValue, intervalIndex) => {
-        return {
-          name: moment(intervalValue).valueOf(),
-          value: group.series[metricsField][intervalIndex],
+  const data =
+    results.response?.groups.reduce((acc, group) => {
+      const foundTransaction = acc.find(
+        item => item.transaction === group.by.transaction
+      );
+      if (foundTransaction) {
+        foundTransaction.measurement_rating = {
+          ...foundTransaction.measurement_rating,
+          [group.by.measurement_rating]: group.totals[metricsField],
         };
-      }),
-    };
-  });
+        return acc;
+      }
+
+      acc.push({
+        transaction: String(group.by.transaction),
+        measurement_rating: {
+          [group.by.measurement_rating]: group.totals[metricsField],
+        } as VitalsMetricsItem['measurement_rating'],
+      });
+      return acc;
+    }, [] as VitalsMetricsItem[]) ?? [];
 
   const childData = {
+    loading,
+    reloading,
     isLoading: loading || reloading,
     isErrored: errored,
     hasData: defined(response) && !!response.groups.length,

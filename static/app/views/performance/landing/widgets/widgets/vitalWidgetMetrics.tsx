@@ -1,24 +1,16 @@
-import {Fragment, FunctionComponent, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
-import {Location} from 'history';
+import {Fragment, useMemo, useState} from 'react';
 
 import Button from 'sentry/components/button';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
-// import {getInterval} from 'sentry/components/charts/utils';
 import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-// import {defined} from 'sentry/utils';
-import EventView from 'sentry/utils/discover/eventView';
 import {WebVital} from 'sentry/utils/discover/fields';
-// import pick from 'lodash/pick';
 import MetricsRequest from 'sentry/utils/metrics/metricsRequest';
 import {VitalData} from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
 import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
-// import withApi from 'sentry/utils/withApi';
 import {vitalDetailRouteWithQuery} from 'sentry/views/performance/vitalDetail/utils';
 import {_VitalChart} from 'sentry/views/performance/vitalDetail/vitalChart';
 
@@ -28,19 +20,18 @@ import {GenericPerformanceWidget} from '../components/performanceWidget';
 import SelectableList, {
   GrowLink,
   ListClose,
-  RightAlignedCell,
   Subtitle,
   WidgetEmptyStateWarning,
 } from '../components/selectableList';
-import {transformEventsRequestToVitals} from '../transforms/transformEventsToVitals';
 import {
-  transformMetricsToList,
+  transformMetricsToVitalList,
   VitalsMetricsItem,
-} from '../transforms/transformMetricsToList';
-import {transformMetricsToSeries} from '../transforms/transformMetricsToSeries';
-import {QueryDefinition, WidgetDataResult} from '../types';
-// import {eventsRequestQueryProps} from '../utils';
-import {ChartDefinition, PerformanceWidgetSetting} from '../widgetDefinitions';
+} from '../transforms/transformMetricsToVitalList';
+import {transformMetricsToVitalSeries} from '../transforms/transformMetricsToVitalSeries';
+import {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
+import {PerformanceWidgetSetting} from '../widgetDefinitions';
+
+import {VitalBarCell} from './vitalWidget';
 
 const settingToVital: {[x: string]: WebVital} = {
   [PerformanceWidgetSetting.WORST_LCP_VITALS]: WebVital.LCP,
@@ -49,197 +40,72 @@ const settingToVital: {[x: string]: WebVital} = {
   [PerformanceWidgetSetting.WORST_CLS_VITALS]: WebVital.CLS,
 };
 
-type Props = {
-  title: string;
-  titleTooltip: string;
-  fields: string[];
-  chartColor?: string;
-
-  eventView: EventView;
-  location: Location;
-  organization: Organization;
-  chartSetting: PerformanceWidgetSetting;
-  chartDefinition: ChartDefinition;
-
-  ContainerActions: FunctionComponent<{isLoading: boolean}>;
-};
-
 type DataType = {
-  list: WidgetDataResult & ReturnType<typeof transformMetricsToList>;
-  chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToVitals>;
+  list: WidgetDataResult & ReturnType<typeof transformMetricsToVitalList>;
+  chart: WidgetDataResult & ReturnType<typeof transformMetricsToVitalSeries>;
 };
 
-// function transformFieldsWithStops(props: {
-//   field: string;
-//   fields: string[];
-//   vitalStops: ChartDefinition['vitalStops'];
-// }) {
-//   const {field, fields, vitalStops} = props;
-//   const poorStop = vitalStops?.poor;
-//   const mehStop = vitalStops?.meh;
-
-//   if (!defined(poorStop) || !defined(mehStop)) {
-//     return {
-//       sortField: fields[0],
-//       fieldsList: fields,
-//     };
-//   }
-
-//   const poorCountField = `count_if(${field},greaterOrEquals,${poorStop})`;
-//   const mehCountField = `equation|count_if(${field},greaterOrEquals,${mehStop}) - count_if(${field},greaterOrEquals,${poorStop})`;
-//   const goodCountField = `equation|count_if(${field},greaterOrEquals,0) - count_if(${field},greaterOrEquals,${mehStop})`;
-
-//   const otherRequiredFieldsForQuery = [
-//     `count_if(${field},greaterOrEquals,${mehStop})`,
-//     `count_if(${field},greaterOrEquals,0)`,
-//   ];
-
-//   const vitalFields = {
-//     poorCountField,
-//     mehCountField,
-//     goodCountField,
-//   };
-
-//   const fieldsList = [
-//     poorCountField,
-//     ...otherRequiredFieldsForQuery,
-//     mehCountField,
-//     goodCountField,
-//   ];
-
-//   return {
-//     sortField: poorCountField,
-//     vitalFields,
-//     fieldsList,
-//   };
-// }
-
-export function VitalWidgetMetrics(props: Props) {
+export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
   const api = useApi();
-  const {ContainerActions, eventView, organization, location} = props;
+  const {ContainerActions, eventView, organization, location, chartSetting} = props;
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const field = props.fields[0];
   const metricsField = `avg(${field})`;
-  const vital = settingToVital[props.chartSetting];
-
-  // const {fieldsList, vitalFields, sortField} = transformFieldsWithStops({
-  //   field,
-  //   fields: props.fields,
-  //   vitalStops: props.chartDefinition.vitalStops,
-  // });
-  // console.log({
-  //   field,
-  //   fields: props.fields,
-  //   vitalStops: props.chartDefinition.vitalStops,
-  // });
-  // console.log('===== converted vvv');
-  // console.log({fieldsList, vitalFields, sortField});
+  const vital = settingToVital[chartSetting];
 
   const Queries = {
     list: useMemo<QueryDefinition<DataType, WidgetDataResult>>(
       () => ({
-        fields: metricsField,
-        component: provided => {
-          // const _eventView = provided.eventView.clone();
-
-          // const fieldFromProps = fieldsList.map(propField => ({
-          //   field: propField,
-          // }));
-
-          // _eventView.sorts = [{kind: 'desc', field: sortField}];
-
-          // _eventView.fields = [
-          //   {field: 'transaction'},
-          //   {field: 'title'},
-          //   {field: 'project.id'},
-          //   ...fieldFromProps,
-          // ];
-          // const mutableSearch = new MutableSearch(_eventView.query);
-          // _eventView.query = mutableSearch.formatString();
-          // return (
-          //   <DiscoverQuery
-          //     {...provided}
-          //     eventView={_eventView}
-          //     location={props.location}
-          //     limit={3}
-          //     cursor="0:0:1"
-          //     noPagination
-          //   />
-          // );
-          return (
-            <MetricsRequest
-              api={api}
-              organization={organization}
-              // project={projects.map(({id}) => Number(id))}
-              // environment={environment ? [environment] : undefined}
-              statsPeriod="14d"
-              // query={query} // TODO: query?
-              // interval={TIME_WINDOW_TO_SESSION_INTERVAL[timeWindow]}
-              field={[metricsField]} // TODO: project field?
-              groupBy={['transaction', 'measurement_rating']}
-              orderBy={metricsField}
-              limit={3}
-            >
-              {provided.children}
-            </MetricsRequest>
-          );
-        },
-        transform: transformMetricsToList,
+        fields: [metricsField],
+        component: ({start, end, period, project, environment, children, fields}) => (
+          <MetricsRequest
+            api={api}
+            organization={organization}
+            start={start}
+            end={end}
+            statsPeriod={period}
+            project={project}
+            environment={environment}
+            query="" // TODO(metrics): make this dynamic once api is ready
+            interval="1h" // TODO(metrics): make this dynamic once api is ready
+            field={decodeList(fields)}
+            groupBy={['transaction', 'measurement_rating']}
+            orderBy={decodeList(fields)[0]}
+            limit={3}
+          >
+            {children}
+          </MetricsRequest>
+        ),
+        transform: transformMetricsToVitalList,
       }),
-      [props.eventView, metricsField, props.organization.slug]
+      [eventView, metricsField, organization.slug]
     ),
     chart: useMemo<QueryDefinition<DataType, WidgetDataResult>>(
       () => ({
         enabled: widgetData => {
           return !!widgetData?.list?.data?.length;
         },
-        fields: metricsField,
-        component: provided => {
-          // const _eventView = provided.eventView.clone();
-
-          // _eventView.additionalConditions.setFilterValues('transaction', [
-          //   provided.widgetData.list.data[selectedListIndex].transaction as string,
-          // ]);
-
-          // return (
-          //   <EventsRequest
-          //     {...pick(provided, eventsRequestQueryProps)}
-          //     limit={1}
-          //     currentSeriesNames={[sortField]}
-          //     includePrevious={false}
-          //     partial={false}
-          //     includeTransformedData
-          //     query={_eventView.getQueryWithAdditionalConditions()}
-          //     interval={getInterval(
-          //       {
-          //         start: provided.start,
-          //         end: provided.end,
-          //         period: provided.period,
-          //       },
-          //       'medium'
-          //     )}
-          //   />
-          // );
-          return (
-            <MetricsRequest
-              api={api}
-              organization={organization}
-              // project={projects.map(({id}) => Number(id))}
-              // environment={environment ? [environment] : undefined}
-              statsPeriod="14d"
-              // query={query}
-              // interval={TIME_WINDOW_TO_SESSION_INTERVAL[timeWindow]}
-              field={[metricsField]}
-              groupBy={['measurement_rating']}
-              query={`transaction:'/orgId/issues'`}
-            >
-              {provided.children}
-            </MetricsRequest>
-          );
-        },
-        transform: transformMetricsToSeries,
+        fields: [metricsField],
+        component: ({start, end, period, project, environment, children, fields}) => (
+          <MetricsRequest
+            api={api}
+            organization={organization}
+            start={start}
+            end={end}
+            statsPeriod={period}
+            project={project}
+            environment={environment}
+            query="transaction:foo" // TODO(metrics): make this dynamic once api is ready (widgetData.list.data[selectedListIndex].transaction)
+            interval="1h" // TODO(metrics): make this dynamic once api is ready
+            field={decodeList(fields)}
+            groupBy={['measurement_rating']}
+          >
+            {children}
+          </MetricsRequest>
+        ),
+        transform: transformMetricsToVitalSeries,
       }),
-      [props.chartSetting, selectedListIndex]
+      [chartSetting, selectedListIndex]
     ),
   };
 
@@ -251,7 +117,8 @@ export function VitalWidgetMetrics(props: Props) {
     <GenericPerformanceWidget<DataType>
       {...props}
       Subtitle={provided => {
-        const listItem = provided.widgetData.list?.data[selectedListIndex];
+        const {widgetData} = provided;
+        const listItem = widgetData.list?.data[selectedListIndex];
 
         if (!listItem) {
           return <Subtitle> </Subtitle>;
@@ -264,7 +131,7 @@ export function VitalWidgetMetrics(props: Props) {
         return (
           <Subtitle>
             <VitalBar
-              isLoading={provided.widgetData.list?.isLoading}
+              isLoading={widgetData.list?.isLoading}
               vital={vital}
               data={data}
               showBar={false}
@@ -328,11 +195,12 @@ export function VitalWidgetMetrics(props: Props) {
         },
         {
           component: provided => {
+            const {widgetData} = provided;
             return (
               <SelectableList
                 selectedIndex={selectedListIndex}
                 setSelectedIndex={setSelectListIndex}
-                items={provided.widgetData.list.data.map(listItem => () => {
+                items={widgetData.list.data.map(listItem => () => {
                   const transaction = listItem.transaction as string;
                   const _eventView = eventView.clone();
 
@@ -358,14 +226,14 @@ export function VitalWidgetMetrics(props: Props) {
                       </GrowLink>
                       <VitalBarCell>
                         <VitalBar
-                          isLoading={provided.widgetData.list?.isLoading}
+                          isLoading={widgetData.list?.isLoading}
                           vital={vital}
                           data={data}
                           showBar
                           showDurationDetail={false}
                           showDetail={false}
-                          barHeight={20}
                           showTooltip
+                          barHeight={20}
                         />
                       </VitalBarCell>
                       <ListClose
@@ -378,7 +246,7 @@ export function VitalWidgetMetrics(props: Props) {
               />
             );
           },
-          height: 200,
+          height: 124,
           noPadding: true,
         },
       ]}
@@ -387,7 +255,6 @@ export function VitalWidgetMetrics(props: Props) {
 }
 
 function getVitalDataForListItem(listItem: VitalsMetricsItem) {
-  // TODO: move reduce logic from transformMetricsToList here
   const vitalData: VitalData = {
     ...listItem.measurement_rating,
     p75: 0,
@@ -399,13 +266,3 @@ function getVitalDataForListItem(listItem: VitalsMetricsItem) {
 
   return vitalData;
 }
-
-const VitalBarCell = styled(RightAlignedCell)`
-  width: 120px;
-  margin-left: ${space(1)};
-  margin-right: ${space(1)};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-// const EventsRequest = withApi(_EventsRequest);
