@@ -63,6 +63,7 @@ function SpansContent(props: Props) {
   }
 
   const spanOp = decodeScalar(location.query.spanOp);
+  const spanGroup = decodeScalar(location.query.spanGroup);
   const sort = getSuspectSpanSortFromEventView(eventView);
   const totalsView = getTotalsView(eventView);
 
@@ -113,6 +114,7 @@ function SpansContent(props: Props) {
               orgSlug={organization.slug}
               eventView={eventView}
               spanOps={defined(spanOp) ? [spanOp] : []}
+              spanGroups={defined(spanGroup) ? [spanGroup] : []}
             >
               {({suspectSpans, isLoading, error, pageLinks}) => {
                 if (error) {
