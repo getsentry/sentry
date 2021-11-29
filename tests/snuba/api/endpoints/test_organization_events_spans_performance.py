@@ -887,6 +887,22 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
             in mock_raw_snql_query.call_args_list[0][0][0].where
         )
 
+    def test_bad_group_filter(self):
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={
+                    "project": self.project.id,
+                    "spanGroup": "cd",
+                },
+                format="json",
+            )
+
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "detail": "span.group must be a valid 16 character hex (containing only digits, or a-f characters)"
+        }
+
     @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
     def test_group_filter(self, mock_raw_snql_query):
         event = self.create_event()
