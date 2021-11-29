@@ -4,10 +4,7 @@ import EventDataSection from 'sentry/components/events/eventDataSection';
 import CrashActions from 'sentry/components/events/interfaces/crashHeader/crashActions';
 import CrashTitle from 'sentry/components/events/interfaces/crashHeader/crashTitle';
 import {t} from 'sentry/locale';
-import {Project} from 'sentry/types';
-import {Event} from 'sentry/types/event';
-import {Thread} from 'sentry/types/events';
-import {STACK_TYPE, STACK_VIEW} from 'sentry/types/stacktrace';
+import {Event, Project, STACK_TYPE, STACK_VIEW, Thread} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
 import {isStacktraceNewestFirst} from '../utils';

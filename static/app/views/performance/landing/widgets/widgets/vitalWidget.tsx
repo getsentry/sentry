@@ -1,6 +1,5 @@
-import {Fragment, FunctionComponent, useMemo, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 import pick from 'lodash/pick';
 
 import Button from 'sentry/components/button';
@@ -9,10 +8,8 @@ import {getInterval} from 'sentry/components/charts/utils';
 import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import DiscoverQuery, {TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
 import {WebVital} from 'sentry/utils/discover/fields';
 import {VitalData} from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
 import {decodeList} from 'sentry/utils/queryString';
@@ -33,24 +30,9 @@ import SelectableList, {
 } from '../components/selectableList';
 import {transformDiscoverToList} from '../transforms/transformDiscoverToList';
 import {transformEventsRequestToVitals} from '../transforms/transformEventsToVitals';
-import {QueryDefinition, WidgetDataResult} from '../types';
+import {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
 import {eventsRequestQueryProps} from '../utils';
 import {ChartDefinition, PerformanceWidgetSetting} from '../widgetDefinitions';
-
-type Props = {
-  title: string;
-  titleTooltip: string;
-  fields: string[];
-  chartColor?: string;
-
-  eventView: EventView;
-  location: Location;
-  organization: Organization;
-  chartSetting: PerformanceWidgetSetting;
-  chartDefinition: ChartDefinition;
-
-  ContainerActions: FunctionComponent<{isLoading: boolean}>;
-};
 
 type DataType = {
   list: WidgetDataResult & ReturnType<typeof transformDiscoverToList>;
@@ -102,7 +84,7 @@ export function transformFieldsWithStops(props: {
   };
 }
 
-export function VitalWidget(props: Props) {
+export function VitalWidget(props: PerformanceWidgetProps) {
   const {ContainerActions, eventView, organization, location} = props;
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const field = props.fields[0];
@@ -206,7 +188,7 @@ export function VitalWidget(props: Props) {
         const listItem = provided.widgetData.list?.data[selectedListIndex];
 
         if (!listItem) {
-          return <Subtitle> </Subtitle>;
+          return <Subtitle />;
         }
 
         const data = {
@@ -265,15 +247,10 @@ export function VitalWidget(props: Props) {
               query={eventView.query}
               project={eventView.project}
               environment={eventView.environment}
-              grid={{
-                left: space(0),
-                right: space(0),
-                top: space(2),
-                bottom: space(2),
-              }}
+              grid={provided.grid}
             />
           ),
-          height: 160,
+          height: props.chartHeight,
         },
         {
           component: provided => (
@@ -315,7 +292,8 @@ export function VitalWidget(props: Props) {
                         showBar
                         showDurationDetail={false}
                         showDetail={false}
-                        barHeight={24}
+                        showTooltip
+                        barHeight={20}
                       />
                     </VitalBarCell>
                     <ListClose
@@ -327,7 +305,7 @@ export function VitalWidget(props: Props) {
               })}
             />
           ),
-          height: 200,
+          height: 124,
           noPadding: true,
         },
       ]}

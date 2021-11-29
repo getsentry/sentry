@@ -28,17 +28,19 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
+  Entry,
+  EntryType,
+  Event,
   ExceptionValue,
   Group,
   IssueAttachment,
   Organization,
   Project,
   SharedViewOrganization,
+  Thread,
 } from 'sentry/types';
 import {DebugFile} from 'sentry/types/debugFiles';
 import {Image} from 'sentry/types/debugImage';
-import {Entry, EntryType, Event} from 'sentry/types/event';
-import {Thread} from 'sentry/types/events';
 import {isNotSharedOrganization} from 'sentry/types/utils';
 import {defined, objectIsEmpty} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -230,6 +232,7 @@ const EventEntries = memo(
         setIsLoading(false);
         return;
       }
+
       if (proGuardImage) {
         Sentry.withScope(function (s) {
           s.setLevel(Sentry.Severity.Warning);
@@ -263,20 +266,6 @@ const EventEntries = memo(
               ),
             }
           ),
-        });
-
-        // This capture will be removed once we're confident with the level of effectiveness
-        Sentry.withScope(function (s) {
-          s.setLevel(Sentry.Severity.Warning);
-          if (event.sdk) {
-            s.setTag('offending.event.sdk.name', event.sdk.name);
-            s.setTag('offending.event.sdk.version', event.sdk.version);
-          }
-          Sentry.captureMessage(
-            !proGuardImage
-              ? 'No Proguard is used at all, but a frame did match the regex'
-              : "Displaying ProGuard warning 'proguard_potentially_misconfigured_plugin' for suspected event"
-          );
         });
       }
 

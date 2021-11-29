@@ -41,6 +41,21 @@ export function spansRouteWithQuery({
 
 export const SPAN_SORT_OPTIONS: SpanSortOption[] = [
   {
+    prefix: t('Total'),
+    label: t('Cumulative Duration'),
+    field: SpanSortOthers.SUM_EXCLUSIVE_TIME,
+  },
+  {
+    prefix: t('Average'),
+    label: t('Avg Occurrences'),
+    field: SpanSortOthers.AVG_OCCURRENCE,
+  },
+  {
+    prefix: t('Total'),
+    label: t('Occurrences'),
+    field: SpanSortOthers.COUNT,
+  },
+  {
     prefix: t('Percentile'),
     label: t('p50 Duration'),
     field: SpanSortPercentiles.P50_EXCLUSIVE_TIME,
@@ -60,16 +75,6 @@ export const SPAN_SORT_OPTIONS: SpanSortOption[] = [
     label: t('p99 Duration'),
     field: SpanSortPercentiles.P99_EXCLUSIVE_TIME,
   },
-  {
-    prefix: t('Total'),
-    label: t('Cumulative Duration'),
-    field: SpanSortOthers.SUM_EXCLUSIVE_TIME,
-  },
-  {
-    prefix: t('Total'),
-    label: t('Occurrences'),
-    field: SpanSortOthers.COUNT,
-  },
 ];
 
 const DEFAULT_SORT = SpanSortOthers.SUM_EXCLUSIVE_TIME;
@@ -82,8 +87,11 @@ function getSuspectSpanSort(sort: string): SpanSortOption {
   return SPAN_SORT_OPTIONS.find(option => option.field === DEFAULT_SORT)!;
 }
 
-export function getSuspectSpanSortFromLocation(location: Location): SpanSortOption {
-  const sort = decodeScalar(location?.query?.sort) ?? DEFAULT_SORT;
+export function getSuspectSpanSortFromLocation(
+  location: Location,
+  sortKey: string = 'sort'
+): SpanSortOption {
+  const sort = decodeScalar(location?.query?.[sortKey]) ?? DEFAULT_SORT;
   return getSuspectSpanSort(sort);
 }
 
