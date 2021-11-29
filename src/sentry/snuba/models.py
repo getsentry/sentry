@@ -21,9 +21,12 @@ query_aggregation_to_snuba = {
 
 
 class QueryDatasets(Enum):
+    # This maps to what an `Entity` is on snuba. Following that logic, the relationship between
+    # `Dataset` and `QueryDatasets` is a one-to-many relationship
     EVENTS = "events"
     TRANSACTIONS = "transactions"
     SESSIONS = "sessions"
+    METRICS_COUNTERS = "metrics_counters"
 
 
 class SnubaQuery(Model):
