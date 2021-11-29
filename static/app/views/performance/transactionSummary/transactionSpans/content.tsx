@@ -13,7 +13,7 @@ import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {isAggregateField} from 'sentry/utils/discover/fields';
@@ -31,19 +31,15 @@ import {SpansTotalValues} from './types';
 import {getSuspectSpanSortFromEventView, SPAN_SORT_OPTIONS} from './utils';
 
 const ANALYTICS_VALUES = {
-  spanOp: (organization: Organization, op: string | null) =>
-    trackAnalyticsEvent({
-      eventKey: 'performance_views.spans.change_op',
-      eventName: 'Performance Views: Change span op',
-      organization_id: organization.id,
-      op,
+  spanOp: (organization: Organization, value: string | undefined) =>
+    trackAdvancedAnalyticsEvent('performance_views.spans.change_op', {
+      organization,
+      operation_name: value,
     }),
-  sort: (organization: Organization, sort: string | null) =>
-    trackAnalyticsEvent({
-      eventKey: 'performance_views.spans.change_sort',
-      eventName: 'Performance Views: Change span sort',
-      organization_id: organization.id,
-      sort,
+  sort: (organization: Organization, value: string | undefined) =>
+    trackAdvancedAnalyticsEvent('performance_views.spans.change_sort', {
+      organization,
+      sort_column: value,
     }),
 };
 
@@ -61,7 +57,7 @@ function SpansContent(props: Props) {
 
   function handleChange(key: string) {
     return function (value: string | undefined) {
-      ANALYTICS_VALUES[key]?.(organization, value ?? null);
+      ANALYTICS_VALUES[key]?.(organization, value);
 
       const queryParams = getParams({
         ...(location.query || {}),
