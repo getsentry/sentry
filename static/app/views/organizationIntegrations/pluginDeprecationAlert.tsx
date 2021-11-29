@@ -1,12 +1,12 @@
 import React, {Component} from 'react';
 import styled from '@emotion/styled';
 
-import Alert from 'app/components/alert';
-import Button from 'app/components/button';
-import {IconWarning} from 'app/icons';
-import {t} from 'app/locale';
-import {Organization, PluginWithProjectList} from 'app/types';
-import {trackIntegrationAnalytics} from 'app/utils/integrationUtil';
+import Alert from 'sentry/components/alert';
+import Button from 'sentry/components/button';
+import {IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {Organization, PluginWithProjectList} from 'sentry/types';
+import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 
 type Props = {
   organization: Organization;

@@ -1,14 +1,14 @@
 import * as React from 'react';
 import {RouteComponentProps} from 'react-router';
 
-import {fetchOrgMembers} from 'app/actionCreators/members';
-import Alert from 'app/components/alert';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {t} from 'app/locale';
-import {Organization, Project} from 'app/types';
-import Projects from 'app/utils/projects';
-import useApi from 'app/utils/useApi';
-import ScrollToTop from 'app/views/settings/components/scrollToTop';
+import {fetchOrgMembers} from 'sentry/actionCreators/members';
+import Alert from 'sentry/components/alert';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {t} from 'sentry/locale';
+import {Organization, Project} from 'sentry/types';
+import Projects from 'sentry/utils/projects';
+import useApi from 'sentry/utils/useApi';
+import ScrollToTop from 'sentry/views/settings/components/scrollToTop';
 
 type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;

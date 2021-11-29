@@ -2,20 +2,20 @@ import * as React from 'react';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Client} from 'app/api';
-import StackTraceContent from 'app/components/events/interfaces/crashContent/stackTrace/content';
-import StackTraceContentV2 from 'app/components/events/interfaces/crashContent/stackTrace/contentV2';
-import {isStacktraceNewestFirst} from 'app/components/events/interfaces/utils';
-import Hovercard, {Body} from 'app/components/hovercard';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, PlatformType} from 'app/types';
-import {EntryType, Event} from 'app/types/event';
-import {StacktraceType} from 'app/types/stacktrace';
-import {defined} from 'app/utils';
-import {Theme} from 'app/utils/theme';
-import withApi from 'app/utils/withApi';
+import {Client} from 'sentry/api';
+import StackTraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
+import StackTraceContentV2 from 'sentry/components/events/interfaces/crashContent/stackTrace/contentV2';
+import {isStacktraceNewestFirst} from 'sentry/components/events/interfaces/utils';
+import Hovercard, {Body} from 'sentry/components/hovercard';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, PlatformType} from 'sentry/types';
+import {EntryType, Event} from 'sentry/types/event';
+import {StacktraceType} from 'sentry/types/stacktrace';
+import {defined} from 'sentry/utils';
+import {Theme} from 'sentry/utils/theme';
+import withApi from 'sentry/utils/withApi';
 
 import findBestThread from './events/interfaces/threads/threadSelector/findBestThread';
 import getThreadStacktrace from './events/interfaces/threads/threadSelector/getThreadStacktrace';
@@ -47,6 +47,15 @@ class StacktracePreview extends React.Component<Props, State> {
     loading: true,
     loadingVisible: false,
   };
+
+  componentWillUnmount() {
+    if (this.delayTimeout) {
+      window.clearTimeout(this.delayTimeout);
+    }
+    if (this.loaderTimeout) {
+      window.clearTimeout(this.loaderTimeout);
+    }
+  }
 
   loaderTimeout: number | null = null;
   delayTimeout: number | null = null;

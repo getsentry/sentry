@@ -4,22 +4,22 @@ import styled from '@emotion/styled';
 import Color from 'color';
 import type {SeriesOption, TooltipComponentOption} from 'echarts';
 
-import BaseChart from 'app/components/charts/baseChart';
-import Legend from 'app/components/charts/components/legend';
-import Tooltip from 'app/components/charts/components/tooltip';
-import xAxis from 'app/components/charts/components/xAxis';
-import barSeries from 'app/components/charts/series/barSeries';
-import {ChartContainer, HeaderTitleLegend} from 'app/components/charts/styles';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import Panel from 'app/components/panels/panel';
-import Placeholder from 'app/components/placeholder';
-import {IconWarning} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {DataCategory, DataCategoryName, IntervalPeriod, SelectValue} from 'app/types';
-import {parsePeriodToHours, statsPeriodToDays} from 'app/utils/dates';
-import {formatAbbreviatedNumber} from 'app/utils/formatters';
-import commonTheme, {Theme} from 'app/utils/theme';
+import BaseChart from 'sentry/components/charts/baseChart';
+import Legend from 'sentry/components/charts/components/legend';
+import Tooltip from 'sentry/components/charts/components/tooltip';
+import xAxis from 'sentry/components/charts/components/xAxis';
+import barSeries from 'sentry/components/charts/series/barSeries';
+import {ChartContainer, HeaderTitleLegend} from 'sentry/components/charts/styles';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Panel from 'sentry/components/panels/panel';
+import Placeholder from 'sentry/components/placeholder';
+import {IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {DataCategory, DataCategoryName, IntervalPeriod, SelectValue} from 'sentry/types';
+import {parsePeriodToHours, statsPeriodToDays} from 'sentry/utils/dates';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import commonTheme, {Theme} from 'sentry/utils/theme';
 
 import {formatUsageWithUnits, GIGABYTE} from '../utils';
 

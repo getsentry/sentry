@@ -1,7 +1,7 @@
 import * as React from 'react';
 import type {LineSeriesOption} from 'echarts';
 
-import {Series} from 'app/types/echarts';
+import {Series} from 'sentry/types/echarts';
 
 import LineSeries from './series/lineSeries';
 import BaseChart from './baseChart';

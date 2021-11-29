@@ -2,10 +2,10 @@ import * as React from 'react';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
 
-import DataZoomInside from 'app/components/charts/components/dataZoomInside';
-import ToolBox from 'app/components/charts/components/toolBox';
-import {EChartChartReadyHandler, EChartDataZoomHandler} from 'app/types/echarts';
-import {callIfFunction} from 'app/utils/callIfFunction';
+import DataZoomInside from 'sentry/components/charts/components/dataZoomInside';
+import ToolBox from 'sentry/components/charts/components/toolBox';
+import {EChartChartReadyHandler, EChartDataZoomHandler} from 'sentry/types/echarts';
+import {callIfFunction} from 'sentry/utils/callIfFunction';
 
 export type RenderProps = {
   dataZoom: ReturnType<typeof DataZoomInside>;

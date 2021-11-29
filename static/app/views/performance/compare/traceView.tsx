@@ -1,8 +1,8 @@
-import {getTraceContext} from 'app/components/events/interfaces/spans/utils';
-import {IconWarning} from 'app/icons';
-import {t} from 'app/locale';
-import {Event} from 'app/types/event';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import {getTraceContext} from 'sentry/components/events/interfaces/spans/utils';
+import {IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {Event} from 'sentry/types/event';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 import SpanTree from './spanTree';
 import {isTransactionEvent} from './utils';

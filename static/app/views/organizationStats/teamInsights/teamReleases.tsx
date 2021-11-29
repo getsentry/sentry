@@ -5,20 +5,20 @@ import isEqual from 'lodash/isEqual';
 import round from 'lodash/round';
 import moment from 'moment';
 
-import AsyncComponent from 'app/components/asyncComponent';
-import BarChart from 'app/components/charts/barChart';
-import MarkLine from 'app/components/charts/components/markLine';
-import {DateTimeObject, getTooltipArrow} from 'app/components/charts/utils';
-import IdBadge from 'app/components/idBadge';
-import Link from 'app/components/links/link';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import PanelTable from 'app/components/panels/panelTable';
-import Placeholder from 'app/components/placeholder';
-import {IconArrow} from 'app/icons';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import {Color, Theme} from 'app/utils/theme';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import BarChart from 'sentry/components/charts/barChart';
+import MarkLine from 'sentry/components/charts/components/markLine';
+import {DateTimeObject, getTooltipArrow} from 'sentry/components/charts/utils';
+import IdBadge from 'sentry/components/idBadge';
+import Link from 'sentry/components/links/link';
+import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import PanelTable from 'sentry/components/panels/panelTable';
+import Placeholder from 'sentry/components/placeholder';
+import {IconArrow} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import {Color, Theme} from 'sentry/utils/theme';
 
 import {barAxisLabel, convertDaySeriesToWeeks, groupByTrend} from './utils';
 

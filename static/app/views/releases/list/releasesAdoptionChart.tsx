@@ -6,41 +6,41 @@ import compact from 'lodash/compact';
 import pick from 'lodash/pick';
 import moment from 'moment';
 
-import {Client} from 'app/api';
-import ChartZoom from 'app/components/charts/chartZoom';
-import LineChart from 'app/components/charts/lineChart';
-import SessionsRequest from 'app/components/charts/sessionsRequest';
+import {Client} from 'sentry/api';
+import ChartZoom from 'sentry/components/charts/chartZoom';
+import LineChart from 'sentry/components/charts/lineChart';
+import SessionsRequest from 'sentry/components/charts/sessionsRequest';
 import {
   HeaderTitleLegend,
   InlineContainer,
   SectionHeading,
   SectionValue,
-} from 'app/components/charts/styles';
-import TransitionChart from 'app/components/charts/transitionChart';
-import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
+} from 'sentry/components/charts/styles';
+import TransitionChart from 'sentry/components/charts/transitionChart';
+import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {
   getDiffInMinutes,
   getTooltipArrow,
   ONE_WEEK,
   truncationFormatter,
-} from 'app/components/charts/utils';
-import Count from 'app/components/count';
+} from 'sentry/components/charts/utils';
+import Count from 'sentry/components/count';
 import {
   getParams,
   parseStatsPeriod,
   StatsPeriodType,
-} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {Panel, PanelBody, PanelFooter} from 'app/components/panels';
-import Placeholder from 'app/components/placeholder';
-import {URL_PARAM} from 'app/constants/globalSelectionHeader';
-import {t, tct, tn} from 'app/locale';
-import space from 'app/styles/space';
-import {GlobalSelection, Organization, SessionApiResponse} from 'app/types';
-import {formatVersion} from 'app/utils/formatters';
-import {decodeScalar} from 'app/utils/queryString';
-import {getAdoptionSeries, getCount} from 'app/utils/sessions';
-import withApi from 'app/utils/withApi';
-import {sessionDisplayToField} from 'app/views/releases/list/releasesRequest';
+} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {Panel, PanelBody, PanelFooter} from 'sentry/components/panels';
+import Placeholder from 'sentry/components/placeholder';
+import {URL_PARAM} from 'sentry/constants/globalSelectionHeader';
+import {t, tct, tn} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {GlobalSelection, Organization, SessionApiResponse} from 'sentry/types';
+import {formatVersion} from 'sentry/utils/formatters';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {getAdoptionSeries, getCount} from 'sentry/utils/sessions';
+import withApi from 'sentry/utils/withApi';
+import {sessionDisplayToField} from 'sentry/views/releases/list/releasesRequest';
 
 import {ReleasesDisplayOption} from './releasesDisplayOptions';
 

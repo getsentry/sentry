@@ -2,17 +2,23 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import GridEditable, {COL_WIDTH_UNDEFINED, GridColumn} from 'app/components/gridEditable';
-import {Alignments} from 'app/components/gridEditable/sortLink';
-import Link from 'app/components/links/link';
-import {NewQuery, Organization, Project} from 'app/types';
-import DiscoverQuery, {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
-import EventView, {EventData} from 'app/utils/discover/eventView';
-import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
-import {fieldAlignment, getAggregateAlias} from 'app/utils/discover/fields';
-import {IncidentRule} from 'app/views/alerts/incidentRules/types';
-import {TableColumn} from 'app/views/eventsV2/table/types';
-import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
+import GridEditable, {
+  COL_WIDTH_UNDEFINED,
+  GridColumn,
+} from 'sentry/components/gridEditable';
+import {Alignments} from 'sentry/components/gridEditable/sortLink';
+import Link from 'sentry/components/links/link';
+import {NewQuery, Organization, Project} from 'sentry/types';
+import DiscoverQuery, {
+  TableData,
+  TableDataRow,
+} from 'sentry/utils/discover/discoverQuery';
+import EventView, {EventData} from 'sentry/utils/discover/eventView';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
+import {IncidentRule} from 'sentry/views/alerts/incidentRules/types';
+import {TableColumn} from 'sentry/views/eventsV2/table/types';
+import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 function getProjectID(eventData: EventData, projects: Project[]): string | undefined {
   const projectSlug = (eventData?.project as string) || undefined;

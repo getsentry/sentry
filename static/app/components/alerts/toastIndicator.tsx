@@ -3,12 +3,12 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 import {motion} from 'framer-motion';
 
-import {Indicator} from 'app/actionCreators/indicator';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {IconCheckmark, IconClose} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import testableTransition from 'app/utils/testableTransition';
+import {Indicator} from 'sentry/actionCreators/indicator';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {IconCheckmark, IconClose} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import testableTransition from 'sentry/utils/testableTransition';
 
 type Props = {
   indicator: Indicator;
@@ -62,10 +62,10 @@ const Toast = styled(motion.div)`
   height: 40px;
   padding: 0 15px 0 10px;
   margin-top: 15px;
-  background: ${p => p.theme.gray500};
-  color: #fff;
+  background: ${p => p.theme.inverted.background};
+  color: ${p => p.theme.inverted.textColor};
   border-radius: 44px 7px 7px 44px;
-  box-shadow: 0 4px 12px 0 rgba(47, 40, 55, 0.16);
+  box-shadow: ${p => p.theme.dropShadowHeavy};
   position: relative;
 `;
 
@@ -104,21 +104,21 @@ const Message = styled('div')`
 
 const Undo = styled('div')`
   display: inline-block;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.inverted.subText};
   padding-left: ${space(2)};
   margin-left: ${space(2)};
-  border-left: 1px solid ${p => p.theme.gray200};
+  border-left: 1px solid ${p => p.theme.inverted.innerBorder};
   cursor: pointer;
 
   &:hover {
-    color: ${p => p.theme.gray200};
+    color: ${p => p.theme.inverted.textColor};
   }
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   .loading-indicator {
-    border-color: ${p => p.theme.gray500};
-    border-left-color: ${p => p.theme.purple300};
+    border-color: ${p => p.theme.inverted.border};
+    border-left-color: ${p => p.theme.inverted.purple300};
   }
 `;
 

@@ -36,7 +36,6 @@ class OrganizationMetricDetailsEndpoint(OrganizationEndpoint):
     """Get metric name, available operations, metric unit and available tags"""
 
     def get(self, request, organization, metric_name):
-
         if not features.has("organizations:metrics", organization, actor=request.user):
             return Response(status=404)
 

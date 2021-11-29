@@ -1,7 +1,7 @@
-import CommitterActions from 'app/actions/committerActions';
-import {Client} from 'app/api';
-import CommitterStore, {getCommitterStoreKey} from 'app/stores/committerStore';
-import {Committer} from 'app/types';
+import CommitterActions from 'sentry/actions/committerActions';
+import {Client} from 'sentry/api';
+import CommitterStore, {getCommitterStoreKey} from 'sentry/stores/committerStore';
+import {Committer} from 'sentry/types';
 
 type ParamsGet = {
   orgSlug: string;

@@ -1,6 +1,6 @@
-import {Panel} from 'app/components/panels';
-import {t} from 'app/locale';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import {Panel} from 'sentry/components/panels';
+import {t} from 'sentry/locale';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 const EmptyState = () => (
   <Panel>

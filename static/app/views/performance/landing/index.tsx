@@ -2,24 +2,25 @@ import {FC} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import SearchBar from 'app/components/events/searchBar';
-import GlobalSdkUpdateAlert from 'app/components/globalSdkUpdateAlert';
-import * as Layout from 'app/components/layouts/thirds';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import NavTabs from 'app/components/navTabs';
-import PageHeading from 'app/components/pageHeading';
-import * as TeamKeyTransactionManager from 'app/components/performance/teamKeyTransactionsManager';
-import {MAX_QUERY_LENGTH} from 'app/constants';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
-import {generateAggregateFields} from 'app/utils/discover/fields';
-import {GenericQueryBatcher} from 'app/utils/performance/contexts/genericQueryBatcher';
-import useTeams from 'app/utils/useTeams';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import SearchBar from 'sentry/components/events/searchBar';
+import GlobalSdkUpdateAlert from 'sentry/components/globalSdkUpdateAlert';
+import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import NavTabs from 'sentry/components/navTabs';
+import PageHeading from 'sentry/components/pageHeading';
+import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
+import {MAX_QUERY_LENGTH} from 'sentry/constants';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
+import {generateAggregateFields} from 'sentry/utils/discover/fields';
+import {GenericQueryBatcher} from 'sentry/utils/performance/contexts/genericQueryBatcher';
+import useTeams from 'sentry/utils/useTeams';
 
+import MetricsSearchBar from '../metricsSearchBar';
 import {MetricsSwitch} from '../metricsSwitch';
 import {getTransactionSearchQuery} from '../utils';
 
@@ -44,6 +45,7 @@ type Props = {
   setError: (msg: string | undefined) => void;
   handleSearch: (searchQuery: string) => void;
   handleTrendsClick: () => void;
+  isMetricsData?: boolean;
 };
 
 const fieldToViewMap: Record<LandingDisplayField, FC<Props>> = {
@@ -63,6 +65,7 @@ export function PerformanceLanding(props: Props) {
     handleSearch,
     handleTrendsClick,
     shouldShowOnboarding,
+    isMetricsData,
   } = props;
 
   const {teams, initiallyLoaded} = useTeams({provideUserTeams: true});
@@ -121,19 +124,30 @@ export function PerformanceLanding(props: Props) {
         <Layout.Main fullWidth>
           <GlobalSdkUpdateAlert />
           <SearchContainerWithFilter>
-            <SearchBar
-              searchSource="performance_landing"
-              organization={organization}
-              projectIds={eventView.project}
-              query={filterString}
-              fields={generateAggregateFields(
-                organization,
-                [...eventView.fields, {field: 'tps()'}],
-                ['epm()', 'eps()']
-              )}
-              onSearch={handleSearch}
-              maxQueryLength={MAX_QUERY_LENGTH}
-            />
+            {isMetricsData ? (
+              <MetricsSearchBar
+                searchSource="performance_landing_metrics"
+                orgSlug={organization.slug}
+                query={filterString}
+                onSearch={handleSearch}
+                maxQueryLength={MAX_QUERY_LENGTH}
+                projectIds={eventView.project}
+              />
+            ) : (
+              <SearchBar
+                searchSource="performance_landing"
+                organization={organization}
+                projectIds={eventView.project}
+                query={filterString}
+                fields={generateAggregateFields(
+                  organization,
+                  [...eventView.fields, {field: 'tps()'}],
+                  ['epm()', 'eps()']
+                )}
+                onSearch={handleSearch}
+                maxQueryLength={MAX_QUERY_LENGTH}
+              />
+            )}
           </SearchContainerWithFilter>
           {initiallyLoaded ? (
             <TeamKeyTransactionManager.Provider

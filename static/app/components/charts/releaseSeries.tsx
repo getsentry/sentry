@@ -7,19 +7,19 @@ import isEqual from 'lodash/isEqual';
 import memoize from 'lodash/memoize';
 import partition from 'lodash/partition';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {Client, ResponseMeta} from 'app/api';
-import MarkLine from 'app/components/charts/components/markLine';
-import {t} from 'app/locale';
-import {DateString, Organization} from 'app/types';
-import {Series} from 'app/types/echarts';
-import {escape} from 'app/utils';
-import {getFormattedDate, getUtcDateString} from 'app/utils/dates';
-import {formatVersion} from 'app/utils/formatters';
-import parseLinkHeader from 'app/utils/parseLinkHeader';
-import {Theme} from 'app/utils/theme';
-import withApi from 'app/utils/withApi';
-import withOrganization from 'app/utils/withOrganization';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {Client, ResponseMeta} from 'sentry/api';
+import MarkLine from 'sentry/components/charts/components/markLine';
+import {t} from 'sentry/locale';
+import {DateString, Organization} from 'sentry/types';
+import {Series} from 'sentry/types/echarts';
+import {escape} from 'sentry/utils';
+import {getFormattedDate, getUtcDateString} from 'sentry/utils/dates';
+import {formatVersion} from 'sentry/utils/formatters';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {Theme} from 'sentry/utils/theme';
+import withApi from 'sentry/utils/withApi';
+import withOrganization from 'sentry/utils/withOrganization';
 
 import {getTooltipArrow} from './utils';
 

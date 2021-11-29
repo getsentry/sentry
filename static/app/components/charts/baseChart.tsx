@@ -23,8 +23,8 @@ import type {
 import * as echarts from 'echarts/core';
 import ReactEchartsCore from 'echarts-for-react/lib/core';
 
-import {IS_ACCEPTANCE_TEST} from 'app/constants';
-import space from 'app/styles/space';
+import {IS_ACCEPTANCE_TEST} from 'sentry/constants';
+import space from 'sentry/styles/space';
 import {
   EChartChartReadyHandler,
   EChartClickHandler,
@@ -37,9 +37,9 @@ import {
   EChartRestoreHandler,
   ReactEchartsRef,
   Series,
-} from 'app/types/echarts';
-import {defined} from 'app/utils';
-import type {Theme} from 'app/utils/theme';
+} from 'sentry/types/echarts';
+import {defined} from 'sentry/utils';
+import type {Theme} from 'sentry/utils/theme';
 
 import Grid from './components/grid';
 import Legend from './components/legend';

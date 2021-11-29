@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
-import Button from 'app/components/actions/button';
-import LogoSentry from 'app/components/logoSentry';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
+import Button from 'sentry/components/actions/button';
+import LogoSentry from 'sentry/components/logoSentry';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 
 export default function HeaderWithHelp({docsUrl}: {docsUrl: string}) {
   return (

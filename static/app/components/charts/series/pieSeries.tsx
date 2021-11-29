@@ -2,7 +2,7 @@ import 'echarts/lib/chart/pie';
 
 import type {PieSeriesOption} from 'echarts';
 
-import type {SeriesDataUnit} from 'app/types/echarts';
+import type {SeriesDataUnit} from 'sentry/types/echarts';
 
 export default function PieSeries(
   props: Omit<PieSeriesOption, 'data'> & {

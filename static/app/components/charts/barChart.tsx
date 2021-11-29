@@ -1,7 +1,7 @@
 import * as React from 'react';
 import type {BarSeriesOption} from 'echarts';
 
-import {Series} from 'app/types/echarts';
+import {Series} from 'sentry/types/echarts';
 
 import BarSeries from './series/barSeries';
 import BaseChart from './baseChart';

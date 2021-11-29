@@ -1,8 +1,8 @@
 import * as React from 'react';
 
-import {Context} from 'app/components/forms/form';
-import InputField from 'app/components/forms/inputField';
-import FormState from 'app/components/forms/state';
+import {Context} from 'sentry/components/forms/form';
+import InputField from 'sentry/components/forms/inputField';
+import FormState from 'sentry/components/forms/state';
 
 type Props = InputField['props'] & {
   hasSavedValue?: boolean;

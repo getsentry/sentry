@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-import ExternalLink from 'app/components/links/externalLink';
-import {IconOpen} from 'app/icons';
-import space from 'app/styles/space';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {IconOpen} from 'sentry/icons';
+import space from 'sentry/styles/space';
 
 import effectiveDirectives from './effectiveDirectives';
 

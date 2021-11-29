@@ -1,16 +1,16 @@
 import {Component} from 'react';
 
-import {Client} from 'app/api';
-import MiniBarChart from 'app/components/charts/miniBarChart';
-import LoadingError from 'app/components/loadingError';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import Placeholder from 'app/components/placeholder';
-import {t} from 'app/locale';
-import {Project} from 'app/types';
-import {Series} from 'app/types/echarts';
-import theme from 'app/utils/theme';
-import withApi from 'app/utils/withApi';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import {Client} from 'sentry/api';
+import MiniBarChart from 'sentry/components/charts/miniBarChart';
+import LoadingError from 'sentry/components/loadingError';
+import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Placeholder from 'sentry/components/placeholder';
+import {t} from 'sentry/locale';
+import {Project} from 'sentry/types';
+import {Series} from 'sentry/types/echarts';
+import theme from 'sentry/utils/theme';
+import withApi from 'sentry/utils/withApi';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 type Props = {
   api: Client;

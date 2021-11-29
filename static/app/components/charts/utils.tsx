@@ -2,12 +2,12 @@ import type {LegendComponentOption} from 'echarts';
 import {Location} from 'history';
 import moment from 'moment';
 
-import {DEFAULT_STATS_PERIOD} from 'app/constants';
-import {EventsStats, GlobalSelection, MultiSeriesEventsStats} from 'app/types';
-import {defined, escape} from 'app/utils';
-import {parsePeriodToHours} from 'app/utils/dates';
-import {TableDataWithTitle} from 'app/utils/discover/discoverQuery';
-import {decodeList} from 'app/utils/queryString';
+import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
+import {EventsStats, GlobalSelection, MultiSeriesEventsStats} from 'sentry/types';
+import {defined, escape} from 'sentry/utils';
+import {parsePeriodToHours} from 'sentry/utils/dates';
+import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {decodeList} from 'sentry/utils/queryString';
 
 const DEFAULT_TRUNCATE_LENGTH = 80;
 

@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
-import {t} from 'app/locale';
-import {SelectValue} from 'app/types';
+import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
+import {t} from 'sentry/locale';
+import {SelectValue} from 'sentry/types';
 
 export enum SortOption {
   RECENT_FIRST = 'recent-first',

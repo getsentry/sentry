@@ -1,9 +1,9 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import {IconArrow} from 'app/icons';
-import space from 'app/styles/space';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {IconArrow} from 'sentry/icons';
+import space from 'sentry/styles/space';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 
 type NumberDragControlProps = {
   onChange: (delta: number, event: React.MouseEvent<HTMLDivElement>) => void;

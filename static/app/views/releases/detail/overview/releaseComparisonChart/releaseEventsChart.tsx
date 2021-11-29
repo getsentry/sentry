@@ -3,25 +3,25 @@ import {withRouter, WithRouterProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 import type {ToolboxComponentOption} from 'echarts';
 
-import {Client} from 'app/api';
-import EventsChart from 'app/components/charts/eventsChart';
-import EventsRequest from 'app/components/charts/eventsRequest';
-import {HeaderTitleLegend, HeaderValue} from 'app/components/charts/styles';
-import {getInterval} from 'app/components/charts/utils';
-import QuestionTooltip from 'app/components/questionTooltip';
-import {t} from 'app/locale';
+import {Client} from 'sentry/api';
+import EventsChart from 'sentry/components/charts/eventsChart';
+import EventsRequest from 'sentry/components/charts/eventsRequest';
+import {HeaderTitleLegend, HeaderValue} from 'sentry/components/charts/styles';
+import {getInterval} from 'sentry/components/charts/utils';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import {t} from 'sentry/locale';
 import {
   DateString,
   Organization,
   ReleaseComparisonChartType,
   ReleaseProject,
   ReleaseWithHealth,
-} from 'app/types';
-import {tooltipFormatter} from 'app/utils/discover/charts';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
-import useApi from 'app/utils/useApi';
-import withOrganization from 'app/utils/withOrganization';
-import {getTermHelp, PERFORMANCE_TERM} from 'app/views/performance/data';
+} from 'sentry/types';
+import {tooltipFormatter} from 'sentry/utils/discover/charts';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useApi from 'sentry/utils/useApi';
+import withOrganization from 'sentry/utils/withOrganization';
+import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
 
 import {
   generateReleaseMarkLines,

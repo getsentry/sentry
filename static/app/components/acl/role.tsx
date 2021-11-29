@@ -1,10 +1,10 @@
 import * as React from 'react';
 
-import ConfigStore from 'app/stores/configStore';
-import {Organization} from 'app/types';
-import {isActiveSuperuser} from 'app/utils/isActiveSuperuser';
-import {isRenderFunc} from 'app/utils/isRenderFunc';
-import withOrganization from 'app/utils/withOrganization';
+import ConfigStore from 'sentry/stores/configStore';
+import {Organization} from 'sentry/types';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import {isRenderFunc} from 'sentry/utils/isRenderFunc';
+import withOrganization from 'sentry/utils/withOrganization';
 
 type RoleRenderProps = {
   hasRole: boolean;

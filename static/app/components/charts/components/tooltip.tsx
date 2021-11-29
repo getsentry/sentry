@@ -3,8 +3,8 @@ import 'echarts/lib/component/tooltip';
 import type {TooltipComponentFormatterCallback, TooltipComponentOption} from 'echarts';
 import moment from 'moment';
 
-import BaseChart from 'app/components/charts/baseChart';
-import {getFormattedDate, getTimeFormat} from 'app/utils/dates';
+import BaseChart from 'sentry/components/charts/baseChart';
+import {getFormattedDate, getTimeFormat} from 'sentry/utils/dates';
 
 import {getTooltipArrow, setTooltipPosition, truncationFormatter} from '../utils';
 
