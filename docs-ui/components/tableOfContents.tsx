@@ -96,7 +96,7 @@ const TableOfContents = ({hidden}: Props) => {
   return (
     <Container>
       {!hidden && (
-        <Content hidden={hidden}>
+        <Content>
           <Heading>Contents</Heading>
           <div className="toc-wrapper" />
         </Content>
