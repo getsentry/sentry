@@ -1053,8 +1053,6 @@ SENTRY_FEATURES = {
     "organizations:weekly-report-debugging": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": True,
-    # Automatically opt IN users to receiving Slack notifications.
-    "organizations:notification-slack-automatic": False,
     # Notify all project members when fallthrough is disabled, instead of just the auto-assignee
     "organizations:notification-all-recipients": False,
     # Enable the new native stack trace design

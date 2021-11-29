@@ -16,9 +16,9 @@ import {
   TraceError,
 } from 'sentry/utils/performance/quickTrace/types';
 import {getTraceTimeRangeFromEvent} from 'sentry/utils/performance/quickTrace/utils';
+import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
-import {getTransactionDetailsUrl} from 'sentry/views/performance/utils';
 
 export function isQuickTraceEvent(
   event: QuickTraceEvent | TraceError
@@ -50,7 +50,7 @@ function generatePerformanceEventTarget(
     ...location.query,
     project: String(event.project_id),
   };
-  return getTransactionDetailsUrl(organization, eventSlug, event.transaction, query);
+  return getTransactionDetailsUrl(organization.slug, eventSlug, event.transaction, query);
 }
 
 function generateDiscoverEventTarget(
