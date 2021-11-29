@@ -5,7 +5,8 @@ import Link from 'sentry/components/links/link';
 import {Organization, Project} from 'sentry/types';
 import {BreadcrumbTypeDefault, BreadcrumbTypeNavigation} from 'sentry/types/breadcrumbs';
 import {Event} from 'sentry/types/event';
-import {eventDetailsRoute, generateEventSlug} from 'sentry/utils/discover/urls';
+import {generateEventSlug} from 'sentry/utils/discover/urls';
+import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import withProjects from 'sentry/utils/withProjects';
 
 import Summary from './summary';
@@ -82,7 +83,7 @@ const FormatMessage = withProjects(function FormatMessageInner({
     const projectSlug = maybeProject.slug;
     const eventSlug = generateEventSlug({project: projectSlug, id: message});
 
-    return <Link to={eventDetailsRoute({orgSlug, eventSlug})}>{content}</Link>;
+    return <Link to={getTransactionDetailsUrl(orgSlug, eventSlug)}>{content}</Link>;
   }
 
   return content;

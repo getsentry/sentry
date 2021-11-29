@@ -5,10 +5,9 @@ import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
+import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
-
-import {getTransactionDetailsUrl} from '../utils';
 
 import {DisplayModes} from './transactionOverview/charts';
 
@@ -107,7 +106,7 @@ export function generateTransactionLink(transactionName: string) {
   ): LocationDescriptor => {
     const eventSlug = generateEventSlug(tableRow);
     return getTransactionDetailsUrl(
-      organization,
+      organization.slug,
       eventSlug,
       transactionName,
       query,

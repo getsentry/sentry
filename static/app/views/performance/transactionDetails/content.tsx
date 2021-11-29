@@ -25,12 +25,12 @@ import * as QuickTraceContext from 'sentry/utils/performance/quickTrace/quickTra
 import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
 import TraceMetaQuery from 'sentry/utils/performance/quickTrace/traceMetaQuery';
 import {getTraceTimeRangeFromEvent} from 'sentry/utils/performance/quickTrace/utils';
+import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import Projects from 'sentry/utils/projects';
 import {appendTagCondition, decodeScalar} from 'sentry/utils/queryString';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
-import {getTransactionDetailsUrl} from '../utils';
 
 import EventMetas from './eventMetas';
 
@@ -185,7 +185,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                           value={{
                             getViewChildTransactionTarget: childTransactionProps => {
                               return getTransactionDetailsUrl(
-                                organization,
+                                organization.slug,
                                 childTransactionProps.eventSlug,
                                 childTransactionProps.transaction,
                                 location.query
