@@ -1,24 +1,24 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import OpsBreakdown from 'app/components/events/opsBreakdown';
+import OpsBreakdown from 'sentry/components/events/opsBreakdown';
 import {
   DividerSpacer,
   ScrollbarContainer,
   VirtualScrollbar,
   VirtualScrollbarGrip,
-} from 'app/components/performance/waterfall/miniHeader';
+} from 'sentry/components/performance/waterfall/miniHeader';
 import {
   getHumanDuration,
   pickBarColor,
   rectOfContent,
   toPercent,
-} from 'app/components/performance/waterfall/utils';
-import ConfigStore from 'app/stores/configStore';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import {EventTransaction} from 'app/types/event';
-import theme from 'app/utils/theme';
+} from 'sentry/components/performance/waterfall/utils';
+import ConfigStore from 'sentry/stores/configStore';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {EventTransaction} from 'sentry/types/event';
+import theme from 'sentry/utils/theme';
 
 import {
   MINIMAP_CONTAINER_HEIGHT,

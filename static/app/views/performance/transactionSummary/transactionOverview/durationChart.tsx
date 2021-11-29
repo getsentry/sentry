@@ -3,28 +3,31 @@ import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 import {Location, Query} from 'history';
 
-import AreaChart from 'app/components/charts/areaChart';
-import ChartZoom from 'app/components/charts/chartZoom';
-import ErrorPanel from 'app/components/charts/errorPanel';
-import EventsRequest from 'app/components/charts/eventsRequest';
-import ReleaseSeries from 'app/components/charts/releaseSeries';
-import {HeaderTitleLegend} from 'app/components/charts/styles';
-import TransitionChart from 'app/components/charts/transitionChart';
-import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
-import {getInterval, getSeriesSelection} from 'app/components/charts/utils';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import Placeholder from 'app/components/placeholder';
-import QuestionTooltip from 'app/components/questionTooltip';
-import {IconWarning} from 'app/icons';
-import {t, tct} from 'app/locale';
-import {OrganizationSummary} from 'app/types';
-import {getUtcToLocalDateObject} from 'app/utils/dates';
-import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
-import EventView from 'app/utils/discover/eventView';
-import getDynamicText from 'app/utils/getDynamicText';
-import useApi from 'app/utils/useApi';
+import AreaChart from 'sentry/components/charts/areaChart';
+import ChartZoom from 'sentry/components/charts/chartZoom';
+import ErrorPanel from 'sentry/components/charts/errorPanel';
+import EventsRequest from 'sentry/components/charts/eventsRequest';
+import ReleaseSeries from 'sentry/components/charts/releaseSeries';
+import {HeaderTitleLegend} from 'sentry/components/charts/styles';
+import TransitionChart from 'sentry/components/charts/transitionChart';
+import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import {getInterval, getSeriesSelection} from 'sentry/components/charts/utils';
+import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import Placeholder from 'sentry/components/placeholder';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import {IconWarning} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import {OrganizationSummary} from 'sentry/types';
+import {getUtcToLocalDateObject} from 'sentry/utils/dates';
+import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
+import EventView from 'sentry/utils/discover/eventView';
+import getDynamicText from 'sentry/utils/getDynamicText';
+import useApi from 'sentry/utils/useApi';
 
-import {SpanOperationBreakdownFilter} from '../filter';
+import {
+  SPAN_OPERATION_BREAKDOWN_FILTER_TO_FIELD,
+  SpanOperationBreakdownFilter,
+} from '../filter';
 
 const QUERY_KEYS = [
   'environment',
@@ -46,8 +49,16 @@ type Props = WithRouterProps &
     withoutZerofill: boolean;
   };
 
-function generateYAxisValues() {
-  return ['p50()', 'p75()', 'p95()', 'p99()', 'p100()'];
+function generateYAxisValues(currentFilter: SpanOperationBreakdownFilter) {
+  const field =
+    SPAN_OPERATION_BREAKDOWN_FILTER_TO_FIELD[currentFilter] ?? 'transaction.duration';
+  return [
+    `p50(${field})`,
+    `p75(${field})`,
+    `p95(${field})`,
+    `p99(${field})`,
+    `p100(${field})`,
+  ];
 }
 
 /**
@@ -140,7 +151,7 @@ function DurationChart({
             showLoading={false}
             query={query}
             includePrevious={false}
-            yAxis={generateYAxisValues()}
+            yAxis={generateYAxisValues(currentFilter)}
             partial
             withoutZerofill={withoutZerofill}
             referrer="api.performance.transaction-summary.duration-chart"

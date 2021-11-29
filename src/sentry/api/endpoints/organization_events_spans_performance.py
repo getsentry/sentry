@@ -31,6 +31,10 @@ SPAN_PERFORMANCE_COLUMNS: Dict[str, SpanPerformanceColumn] = {
     "count": SpanPerformanceColumn(
         ["count()", "sumArray(spans_exclusive_time)"], ["count()", "sumArray(spans_exclusive_time)"]
     ),
+    "avgOccurrence": SpanPerformanceColumn(
+        ["equation[0]", "sumArray(spans_exclusive_time)"],
+        ["count()", "sumArray(spans_exclusive_time)"],
+    ),
     "sumExclusiveTime": SpanPerformanceColumn(
         ["sumArray(spans_exclusive_time)"], ["sumArray(spans_exclusive_time)"]
     ),
@@ -195,6 +199,7 @@ class SuspectSpan:
     group: str
     frequency: int
     count: int
+    avg_occurrences: float
     sum_exclusive_time: float
     p50_exclusive_time: float
     p75_exclusive_time: float
@@ -210,6 +215,7 @@ class SuspectSpan:
             "group": self.group.rjust(16, "0"),
             "frequency": self.frequency,
             "count": self.count,
+            "avgOccurrences": self.avg_occurrences,
             "sumExclusiveTime": self.sum_exclusive_time,
             "p50ExclusiveTime": self.p50_exclusive_time,
             "p75ExclusiveTime": self.p75_exclusive_time,
@@ -245,17 +251,22 @@ def query_suspect_span_groups(
         "transaction",
         "array_join(spans_op)",
         "array_join(spans_group)",
+        "count()",
         "count_unique(id)",
     ]
 
+    equations: List[str] = ["count() / count_unique(id)"]
+
     for column in SPAN_PERFORMANCE_COLUMNS.values():
         for col in column.suspect_op_group_columns:
-            selected_columns.append(col)
+            if not col.startswith("equation["):
+                selected_columns.append(col)
 
     builder = QueryBuilder(
         dataset=Dataset.Discover,
         params=params,
         selected_columns=selected_columns,
+        equations=equations,
         query=query,
         orderby=order_columns,
         auto_aggregations=True,
@@ -300,6 +311,7 @@ def query_suspect_span_groups(
             group=suspect["array_join_spans_group"],
             frequency=suspect["count_unique_id"],
             count=suspect["count"],
+            avg_occurrences=suspect["equation[0]"],
             sum_exclusive_time=suspect["sumArray_spans_exclusive_time"],
             p50_exclusive_time=suspect.get("percentileArray_spans_exclusive_time_0_50"),
             p75_exclusive_time=suspect.get("percentileArray_spans_exclusive_time_0_75"),

@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-import {PanelHeader} from 'app/components/panels';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
+import {PanelHeader} from 'sentry/components/panels';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 
 type Props = {
   withChart: boolean;

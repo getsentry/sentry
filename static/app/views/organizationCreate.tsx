@@ -1,8 +1,8 @@
-import NarrowLayout from 'app/components/narrowLayout';
-import {t, tct} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
-import AsyncView from 'app/views/asyncView';
-import {ApiForm, CheckboxField, TextField} from 'app/views/settings/components/forms';
+import NarrowLayout from 'sentry/components/narrowLayout';
+import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import AsyncView from 'sentry/views/asyncView';
+import {ApiForm, CheckboxField, TextField} from 'sentry/views/settings/components/forms';
 
 export default class OrganizationCreate extends AsyncView {
   onSubmitSuccess = data => {

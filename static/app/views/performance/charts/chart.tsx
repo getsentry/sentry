@@ -3,13 +3,13 @@ import {useTheme} from '@emotion/react';
 import max from 'lodash/max';
 import min from 'lodash/min';
 
-import AreaChart from 'app/components/charts/areaChart';
-import ChartZoom from 'app/components/charts/chartZoom';
-import LineChart from 'app/components/charts/lineChart';
-import {DateString} from 'app/types';
-import {Series} from 'app/types/echarts';
-import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
-import {aggregateOutputType} from 'app/utils/discover/fields';
+import AreaChart from 'sentry/components/charts/areaChart';
+import ChartZoom from 'sentry/components/charts/chartZoom';
+import LineChart from 'sentry/components/charts/lineChart';
+import {DateString} from 'sentry/types';
+import {Series} from 'sentry/types/echarts';
+import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
+import {aggregateOutputType} from 'sentry/utils/discover/fields';
 
 type Props = {
   data: Series[];
@@ -193,6 +193,14 @@ function Chart({
     xAxisIndex: i,
   }));
 
+  const xAxis = disableXAxis
+    ? {
+        show: false,
+        axisLabel: {show: true, margin: 0},
+        axisLine: {show: false},
+      }
+    : undefined;
+
   return (
     <ChartZoom
       router={router}
@@ -210,8 +218,7 @@ function Chart({
               {...zoomRenderProps}
               series={series}
               previousPeriod={previousData}
-              xAxis={disableXAxis ? {show: false} : undefined}
-              {...areaChartProps}
+              xAxis={xAxis}
             />
           );
         }
@@ -222,7 +229,7 @@ function Chart({
             {...zoomRenderProps}
             series={series}
             previousPeriod={previousData}
-            xAxis={disableXAxis ? {show: false} : undefined}
+            xAxis={xAxis}
             {...areaChartProps}
           />
         );

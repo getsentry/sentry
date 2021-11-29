@@ -1,15 +1,15 @@
 import * as React from 'react';
 
-import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
-import {ModalRenderProps} from 'app/actionCreators/modal';
-import {createSavedSearch} from 'app/actionCreators/savedSearches';
-import {Client} from 'app/api';
-import Alert from 'app/components/alert';
-import {t} from 'app/locale';
-import {Organization} from 'app/types';
-import withApi from 'app/utils/withApi';
-import {Form, SelectField, TextField} from 'app/views/settings/components/forms';
-import {OnSubmitCallback} from 'app/views/settings/components/forms/type';
+import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {createSavedSearch} from 'sentry/actionCreators/savedSearches';
+import {Client} from 'sentry/api';
+import Alert from 'sentry/components/alert';
+import {t} from 'sentry/locale';
+import {Organization} from 'sentry/types';
+import withApi from 'sentry/utils/withApi';
+import {Form, SelectField, TextField} from 'sentry/views/settings/components/forms';
+import {OnSubmitCallback} from 'sentry/views/settings/components/forms/type';
 
 import {getSortLabel, IssueSortOptions} from './utils';
 

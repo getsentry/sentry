@@ -1,8 +1,8 @@
 import {Component} from 'react';
 
-import BaseAvatar from 'app/components/avatar/baseAvatar';
-import {Team} from 'app/types';
-import {explodeSlug} from 'app/utils';
+import BaseAvatar from 'sentry/components/avatar/baseAvatar';
+import {Team} from 'sentry/types';
+import {explodeSlug} from 'sentry/utils';
 
 type Props = {
   team: Team | null;

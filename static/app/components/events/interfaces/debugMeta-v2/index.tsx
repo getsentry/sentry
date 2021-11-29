@@ -9,21 +9,21 @@ import {
 } from 'react-virtualized';
 import styled from '@emotion/styled';
 
-import {openModal, openReprocessEventModal} from 'app/actionCreators/modal';
-import GuideAnchor from 'app/components/assistant/guideAnchor';
-import Button from 'app/components/button';
-import EventDataSection from 'app/components/events/eventDataSection';
-import {getImageRange, parseAddress} from 'app/components/events/interfaces/utils';
-import {PanelTable} from 'app/components/panels';
-import QuestionTooltip from 'app/components/questionTooltip';
-import {t} from 'app/locale';
-import DebugMetaStore, {DebugMetaActions} from 'app/stores/debugMetaStore';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {Group, Organization, Project} from 'app/types';
-import {Image, ImageStatus} from 'app/types/debugImage';
-import {Event} from 'app/types/event';
-import {defined} from 'app/utils';
+import {openModal, openReprocessEventModal} from 'sentry/actionCreators/modal';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import Button from 'sentry/components/button';
+import EventDataSection from 'sentry/components/events/eventDataSection';
+import {getImageRange, parseAddress} from 'sentry/components/events/interfaces/utils';
+import {PanelTable} from 'sentry/components/panels';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import {t} from 'sentry/locale';
+import DebugMetaStore, {DebugMetaActions} from 'sentry/stores/debugMetaStore';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {Group, Organization, Project} from 'sentry/types';
+import {Image, ImageStatus} from 'sentry/types/debugImage';
+import {Event} from 'sentry/types/event';
+import {defined} from 'sentry/utils';
 
 import SearchBarAction from '../searchBarAction';
 import SearchBarActionFilter from '../searchBarAction/searchBarActionFilter';
@@ -232,7 +232,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
         : undefined;
 
     const mod = await import(
-      'app/components/events/interfaces/debugMeta-v2/debugImageDetails'
+      'sentry/components/events/interfaces/debugMeta-v2/debugImageDetails'
     );
 
     const {default: Modal, modalCss} = mod;

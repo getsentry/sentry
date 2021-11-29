@@ -1,8 +1,8 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import {imageStyle} from 'app/components/avatar/styles';
-import theme from 'app/utils/theme';
+import {imageStyle} from 'sentry/components/avatar/styles';
+import theme from 'sentry/utils/theme';
 
 type Props = {
   round?: boolean;

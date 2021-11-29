@@ -1,15 +1,15 @@
 import styled from '@emotion/styled';
 
-import {ButtonLabel} from 'app/components/button';
-import CheckboxFancy from 'app/components/checkboxFancy/checkboxFancy';
-import DropdownButton from 'app/components/dropdownButton';
-import DropdownControl, {Content} from 'app/components/dropdownControl';
-import List from 'app/components/list';
-import ListItem from 'app/components/list/listItem';
-import Tooltip from 'app/components/tooltip';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {PlatformType, SelectValue} from 'app/types';
+import {ButtonLabel} from 'sentry/components/button';
+import CheckboxFancy from 'sentry/components/checkboxFancy/checkboxFancy';
+import DropdownButton from 'sentry/components/dropdownButton';
+import DropdownControl, {Content} from 'sentry/components/dropdownControl';
+import List from 'sentry/components/list';
+import ListItem from 'sentry/components/list/listItem';
+import Tooltip from 'sentry/components/tooltip';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {PlatformType, SelectValue} from 'sentry/types';
 
 export enum DisplayOption {
   ABSOLUTE_ADDRESSES = 'absolute-addresses',

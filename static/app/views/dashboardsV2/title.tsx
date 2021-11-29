@@ -1,7 +1,7 @@
-import EditableText from 'app/components/editableText';
-import {t} from 'app/locale';
-import {Organization} from 'app/types';
-import withOrganization from 'app/utils/withOrganization';
+import EditableText from 'sentry/components/editableText';
+import {t} from 'sentry/locale';
+import {Organization} from 'sentry/types';
+import withOrganization from 'sentry/utils/withOrganization';
 
 import {DashboardDetails} from './types';
 

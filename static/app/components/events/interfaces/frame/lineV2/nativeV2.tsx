@@ -2,12 +2,12 @@ import {MouseEvent, MouseEventHandler, useContext} from 'react';
 import styled from '@emotion/styled';
 import scrollToElement from 'scroll-to-element';
 
-import {TraceEventDataSectionContext} from 'app/components/events/traceEventDataSection';
-import {DisplayOption} from 'app/components/events/traceEventDataSection/displayOptions';
-import {t} from 'app/locale';
-import {DebugMetaActions} from 'app/stores/debugMetaStore';
-import space from 'app/styles/space';
-import {Frame} from 'app/types';
+import {TraceEventDataSectionContext} from 'sentry/components/events/traceEventDataSection';
+import {DisplayOption} from 'sentry/components/events/traceEventDataSection/displayOptions';
+import {t} from 'sentry/locale';
+import {DebugMetaActions} from 'sentry/stores/debugMetaStore';
+import space from 'sentry/styles/space';
+import {Frame} from 'sentry/types';
 
 import DebugImage from '../../debugMeta/debugImage';
 import {combineStatus} from '../../debugMeta/utils';

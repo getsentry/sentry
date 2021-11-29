@@ -3,9 +3,9 @@ import ReactDOM from 'react-dom';
 import styled from '@emotion/styled';
 import color from 'color';
 
-import Button from 'app/components/button';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
+import Button from 'sentry/components/button';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 
 type DefaultProps = {
   clipHeight?: number;

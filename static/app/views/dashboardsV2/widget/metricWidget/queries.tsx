@@ -1,14 +1,14 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import {IconAdd, IconDelete} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import Input from 'app/views/settings/components/forms/controls/input';
+import Button from 'sentry/components/button';
+import {IconAdd, IconDelete} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {MetricMeta, MetricQuery} from 'sentry/types';
+import Input from 'sentry/views/settings/components/forms/controls/input';
 
 import MetricSelectField from './metricSelectField';
-import {MetricMeta, MetricQuery} from './types';
 
 type Props = {
   metricMetas: MetricMeta[];

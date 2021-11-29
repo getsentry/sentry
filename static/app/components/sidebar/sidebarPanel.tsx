@@ -3,9 +3,9 @@ import ReactDOM from 'react-dom';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {IconClose} from 'app/icons';
-import {slideInLeft} from 'app/styles/animations';
-import space from 'app/styles/space';
+import {IconClose} from 'sentry/icons';
+import {slideInLeft} from 'sentry/styles/animations';
+import space from 'sentry/styles/space';
 
 import {CommonSidebarProps} from './types';
 

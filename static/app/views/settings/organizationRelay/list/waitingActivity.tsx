@@ -1,9 +1,9 @@
-import Button from 'app/components/button';
-import CommandLine from 'app/components/commandLine';
-import {Panel} from 'app/components/panels';
-import {IconRefresh} from 'app/icons';
-import {t, tct} from 'app/locale';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import Button from 'sentry/components/button';
+import CommandLine from 'sentry/components/commandLine';
+import {Panel} from 'sentry/components/panels';
+import {IconRefresh} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 type Props = {
   onRefresh: () => void;

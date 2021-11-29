@@ -4,15 +4,15 @@ import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 import PropTypes from 'prop-types';
 
-import {Client, ResponseMeta} from 'app/api';
-import AsyncComponentSearchInput from 'app/components/asyncComponentSearchInput';
-import LoadingError from 'app/components/loadingError';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {t} from 'app/locale';
-import {metric} from 'app/utils/analytics';
-import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
-import PermissionDenied from 'app/views/permissionDenied';
-import RouteError from 'app/views/routeError';
+import {Client, ResponseMeta} from 'sentry/api';
+import AsyncComponentSearchInput from 'sentry/components/asyncComponentSearchInput';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {t} from 'sentry/locale';
+import {metric} from 'sentry/utils/analytics';
+import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import PermissionDenied from 'sentry/views/permissionDenied';
+import RouteError from 'sentry/views/routeError';
 
 type AsyncComponentProps = Partial<RouteComponentProps<{}, {}>>;
 

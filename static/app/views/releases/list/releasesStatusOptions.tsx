@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
+import {t} from 'sentry/locale';
 
 import ReleasesDropdown from './releasesDropdown';
 

@@ -2,23 +2,24 @@ import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 
 import {Component} from 'react';
-import RGL, {WidthProvider} from 'react-grid-layout';
+import RGL, {Layout, WidthProvider} from 'react-grid-layout';
 import {InjectedRouter} from 'react-router';
+import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import {validateWidget} from 'app/actionCreators/dashboards';
-import {addErrorMessage} from 'app/actionCreators/indicator';
+import {validateWidget} from 'sentry/actionCreators/dashboards';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {
   openAddDashboardIssueWidgetModal,
   openAddDashboardWidgetModal,
-} from 'app/actionCreators/modal';
-import {loadOrganizationTags} from 'app/actionCreators/tags';
-import {Client} from 'app/api';
-import {GlobalSelection, Organization} from 'app/types';
-import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
-import withApi from 'app/utils/withApi';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from 'app/views/dashboardsV2/addWidget';
+} from 'sentry/actionCreators/modal';
+import {loadOrganizationTags} from 'sentry/actionCreators/tags';
+import {Client} from 'sentry/api';
+import {GlobalSelection, Organization} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import withApi from 'sentry/utils/withApi';
+import withGlobalSelection from 'sentry/utils/withGlobalSelection';
+import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from 'sentry/views/dashboardsV2/addWidget';
 import {
   DashboardDetails,
   DashboardWidgetSource,
@@ -26,8 +27,8 @@ import {
   MAX_WIDGETS,
   Widget,
   WidgetType,
-} from 'app/views/dashboardsV2/types';
-import {DataSet} from 'app/views/dashboardsV2/widget/utils';
+} from 'sentry/views/dashboardsV2/types';
+import {DataSet} from 'sentry/views/dashboardsV2/widget/utils';
 
 import SortableWidget from './sortableWidget';
 
@@ -61,6 +62,8 @@ type Props = {
   onSetWidgetToBeUpdated: (widget: Widget) => void;
   paramDashboardId?: string;
   newWidget?: Widget;
+  layout: Layout[];
+  onLayoutChange: (layout: Layout[]) => void;
 };
 
 class Dashboard extends Component<Props> {
@@ -217,7 +220,7 @@ class Dashboard extends Component<Props> {
     const dragId = key;
 
     return (
-      <div key={key} data-grid={getDefaultPosition(index, widget.displayType)}>
+      <GridItem key={key} data-grid={getDefaultPosition(index, widget.displayType)}>
         <SortableWidget
           widget={widget}
           dragId={dragId}
@@ -225,7 +228,7 @@ class Dashboard extends Component<Props> {
           onDelete={this.handleDeleteWidget(index)}
           onEdit={this.handleEditWidget(widget, index)}
         />
-      </div>
+      </GridItem>
     );
   }
 
@@ -234,6 +237,8 @@ class Dashboard extends Component<Props> {
       isEditing,
       dashboard: {widgets},
       organization,
+      layout,
+      onLayoutChange,
     } = this.props;
 
     return (
@@ -242,6 +247,8 @@ class Dashboard extends Component<Props> {
         rowHeight={ROW_HEIGHT}
         margin={WIDGET_MARGINS}
         draggableHandle={`.${DRAG_HANDLE_CLASS}`}
+        layout={layout}
+        onLayoutChange={onLayoutChange}
         isDraggable={isEditing}
         isResizable={isEditing}
         isBounded
@@ -262,6 +269,12 @@ class Dashboard extends Component<Props> {
 }
 
 export default withApi(withGlobalSelection(Dashboard));
+
+const GridItem = styled('div')`
+  .react-resizable-handle {
+    z-index: 1;
+  }
+`;
 
 function generateWidgetId(widget: Widget, index: number) {
   return widget.id ? `${widget.id}-index-${index}` : `index-${index}`;

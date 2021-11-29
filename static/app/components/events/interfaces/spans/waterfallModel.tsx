@@ -2,9 +2,9 @@ import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 import {action, computed, makeObservable, observable} from 'mobx';
 
-import {Client} from 'app/api';
-import {EventTransaction} from 'app/types/event';
-import {createFuzzySearch} from 'app/utils/createFuzzySearch';
+import {Client} from 'sentry/api';
+import {EventTransaction} from 'sentry/types/event';
+import {createFuzzySearch} from 'sentry/utils/createFuzzySearch';
 
 import {ActiveOperationFilter, noFilter, toggleAllFilters, toggleFilter} from './filter';
 import SpanTreeModel from './spanTreeModel';

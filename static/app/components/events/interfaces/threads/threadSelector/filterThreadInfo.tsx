@@ -1,8 +1,12 @@
-import {trimPackage} from 'app/components/events/interfaces/frame/utils';
-import {EntryData, ExceptionType, Frame} from 'app/types';
-import {Event} from 'app/types/event';
-import {Thread} from 'app/types/events';
-import {StacktraceType} from 'app/types/stacktrace';
+import {trimPackage} from 'sentry/components/events/interfaces/frame/utils';
+import {
+  EntryData,
+  Event,
+  ExceptionType,
+  Frame,
+  StacktraceType,
+  Thread,
+} from 'sentry/types';
 
 import getRelevantFrame from './getRelevantFrame';
 import getThreadException from './getThreadException';
