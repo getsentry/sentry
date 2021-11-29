@@ -741,9 +741,9 @@ function generateFrontendOtherPerformanceEventView(
 }
 
 export function generatePerformanceEventView(
-  organization,
-  location,
-  projects,
+  organization: Organization,
+  location: Location,
+  projects: Project[],
   isTrends = false
 ) {
   const eventView = generateGenericPerformanceEventView(organization, location);
