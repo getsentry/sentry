@@ -47,6 +47,8 @@ const withThemeDocs: DecoratorFn = ({children, context}) => {
     context.globals.backgrounds = {value: currentTheme.bodyBackground};
   }
 
+  const {hideToc} = context.parameters;
+
   return (
     <Fragment>
       <DocsContainer context={context}>
@@ -55,7 +57,7 @@ const withThemeDocs: DecoratorFn = ({children, context}) => {
         <ThemeProvider theme={currentTheme}>{children}</ThemeProvider>
       </DocsContainer>
       <ThemeProvider theme={currentTheme}>
-        <TableOfContents />
+        <TableOfContents hidden={!!hideToc} />
       </ThemeProvider>
     </Fragment>
   );
