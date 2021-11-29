@@ -57,6 +57,6 @@ export const ActorContainer = styled('div')`
   display: flex;
   justify-content: center;
   :hover {
-    cursor: pointer;
+    cursor: default;
   }
 `;
