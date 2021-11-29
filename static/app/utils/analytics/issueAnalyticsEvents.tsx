@@ -31,6 +31,9 @@ export type IssueEventParameters = {
     id: number;
   };
   'issue.search_sidebar_clicked': {};
+  'issue.create_dashboard_widget_from_histogram': {
+    duration: string;
+  };
 };
 
 export type IssueEventKey = keyof IssueEventParameters;
@@ -47,4 +50,6 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'organization_saved_search.selected':
     'Organization Saved Search: Selected saved search',
   'issue.search_sidebar_clicked': 'Issue Search Sidebar Clicked',
+  'issue.create_dashboard_widget_from_histogram':
+    'Issue Create Dashboard Widget from Histogram',
 };

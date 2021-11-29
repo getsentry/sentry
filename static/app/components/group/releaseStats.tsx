@@ -12,6 +12,7 @@ import {IconAdd, IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {CurrentRelease, Environment, Group, Organization, Project} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {DashboardWidgetSource, DisplayType} from 'sentry/views/dashboardsV2/types';
 
@@ -51,18 +52,23 @@ const GroupReleaseStats = ({
   const hasRelease = new Set(project.features).has('releases');
   const releaseTrackingUrl = `/settings/${organization.slug}/projects/${project.slug}/release-tracking/`;
 
-  const time30dAgo = moment().subtract(30, 'days');
-  const time24hrsAgo = moment().subtract(24, 'hours');
-
-  const generateGroupReleaseChartTitle = (title: string, startTime: moment.Moment) => {
+  const generateGroupReleaseChartTitle = (duration: '24h' | '30d') => {
+    const timeAgo =
+      duration === '24h' ? moment().subtract(24, 'hours') : moment().subtract(30, 'days');
+    const title = duration === '24h' ? t('Last 24 Hours') : t('Last 30 Days');
+    const interval = duration === '24h' ? '1h' : '1d';
     const handleAddToDashboard = () => {
+      trackAdvancedAnalyticsEvent('issue.create_dashboard_widget_from_histogram', {
+        organization,
+        duration,
+      });
       group &&
         openAddDashboardWidgetModal({
           organization,
           widget: {
             title: group.title,
             displayType: DisplayType.AREA,
-            interval: '1h',
+            interval,
             queries: [
               {
                 name: '',
@@ -72,7 +78,7 @@ const GroupReleaseStats = ({
               },
             ],
           },
-          start: startTime.toDate().toString(),
+          start: timeAgo.toDate().toString(),
           end: moment().toDate().toString(),
           source: DashboardWidgetSource.ISSUE_DETAILS,
         });
@@ -89,10 +95,16 @@ const GroupReleaseStats = ({
       >
         <GroupReleaseChartWrapper>
           <span>{title}</span>
-          <AddToDashboard onClick={handleAddToDashboard}>
-            <IconAdd size="9px" />
-            {t('Add to Dashboard')}
-          </AddToDashboard>
+          <DashboardWidgetTooltip
+            title={t('Save this chart to your dashboard to keep tabs on this issue')}
+          >
+            <AddToDashboard onClick={handleAddToDashboard}>
+              <IconWrapper>
+                <IconAdd size="9px" />
+              </IconWrapper>
+              {t('Add to Dashboard')}
+            </AddToDashboard>
+          </DashboardWidgetTooltip>
         </GroupReleaseChartWrapper>
       </Feature>
     );
@@ -111,7 +123,7 @@ const GroupReleaseStats = ({
             release={currentRelease?.release}
             releaseStats={currentRelease?.stats}
             statsPeriod="24h"
-            title={generateGroupReleaseChartTitle(t('Last 24 Hours'), time24hrsAgo)}
+            title={generateGroupReleaseChartTitle('24h')}
             firstSeen={group.firstSeen}
             lastSeen={group.lastSeen}
           />
@@ -122,7 +134,7 @@ const GroupReleaseStats = ({
             release={currentRelease?.release}
             releaseStats={currentRelease?.stats}
             statsPeriod="30d"
-            title={generateGroupReleaseChartTitle(t('Last 30 Days'), time30dAgo)}
+            title={generateGroupReleaseChartTitle('30d')}
             className="bar-chart-small"
             firstSeen={group.firstSeen}
             lastSeen={group.lastSeen}
@@ -220,6 +232,10 @@ const GroupReleaseChartWrapper = styled('div')`
   width: 100%;
 `;
 
+const DashboardWidgetTooltip = styled(Tooltip)`
+  cursor: pointer;
+`;
+
 const AddToDashboard = styled('span')`
   color: ${p => p.theme.blue300};
   display: grid;
@@ -228,6 +244,7 @@ const AddToDashboard = styled('span')`
   align-items: center;
 `;
 
-const InnerTitleWrapper = styled('span')`
-  margin: auto;
+const IconWrapper = styled('span')`
+  height: 100%;
+  margin-right: ${space(0.25)};
 `;
