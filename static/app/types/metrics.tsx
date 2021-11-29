@@ -1,3 +1,12 @@
+import {DateString} from './core';
+import {SeriesApi} from '.';
+
+export type MetricsApiResponse = SeriesApi & {
+  start: DateString;
+  end: DateString;
+  query: string;
+};
+
 export type MetricTag = {
   key: string;
 };
