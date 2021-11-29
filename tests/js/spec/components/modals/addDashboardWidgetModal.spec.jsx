@@ -929,6 +929,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       1
     );
 
+    await tick();
     wrapper.unmount();
   });
 
@@ -953,6 +954,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(queryFields.at(0).props().fieldValue.function[0]).toEqual('count');
     expect(queryFields.at(1).props().fieldValue.function[0]).toEqual('failure_count');
     expect(queryFields.at(2).props().fieldValue.function[0]).toEqual('count_unique');
+    await tick();
     wrapper.unmount();
   });
 

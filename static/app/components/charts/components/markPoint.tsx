@@ -1,6 +1,6 @@
 import 'echarts/lib/component/markPoint';
 
-import {EChartOption} from 'echarts';
+import type {MarkPointComponentOption} from 'echarts';
 
 /**
  * eCharts markPoint
@@ -8,8 +8,8 @@ import {EChartOption} from 'echarts';
  * See https://ecomfe.github.io/echarts-doc/public/en/option.html#series-line.markPoint
  */
 export default function MarkPoint(
-  props: EChartOption.SeriesLine['markPoint']
-): EChartOption.SeriesLine['markPoint'] {
+  props: MarkPointComponentOption
+): MarkPointComponentOption {
   return {
     ...props,
   };

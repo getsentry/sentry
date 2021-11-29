@@ -1,7 +1,7 @@
+import {ComponentProps} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {EChartOption} from 'echarts/lib/echarts';
 
 import Feature from 'sentry/components/acl/feature';
 import ChartZoom from 'sentry/components/charts/chartZoom';
@@ -144,7 +144,7 @@ function ReleaseAdoption({
     },
   };
 
-  const chartOptions = {
+  const chartOptions: Omit<ComponentProps<typeof LineChart>, 'series' | 'ref'> = {
     height: hasUsers ? 280 : 140,
     grid: [
       {
@@ -186,13 +186,8 @@ function ReleaseAdoption({
     tooltip: {
       trigger: 'axis' as const,
       truncate: 80,
-      valueFormatter: (
-        value: number,
-        label?: string,
-        seriesParams?: EChartOption.Tooltip.Format
-      ) => {
-        const {axisIndex, dataIndex} =
-          (seriesParams as EChartOption.Tooltip.Format & {axisIndex: number}) || {};
+      valueFormatter: (value, label, seriesParams: any) => {
+        const {axisIndex, dataIndex} = seriesParams || {};
         const absoluteCount = getCountAtIndex(
           releaseSessions?.groups,
           axisIndexToSessionsField[axisIndex ?? 0],
@@ -205,7 +200,7 @@ function ReleaseAdoption({
               theme.white
             };margin-left: ${space(0.5)}">${value}%</span></span>`;
       },
-      filter: (_, seriesParam) => {
+      filter: (_, seriesParam: any) => {
         const {seriesName, axisIndex} = seriesParam;
         // do not display tooltips for "Users Adopted" marklines
         if (

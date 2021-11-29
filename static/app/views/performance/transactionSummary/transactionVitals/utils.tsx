@@ -1,4 +1,4 @@
-import {ECharts} from 'echarts';
+import type {ECharts} from 'echarts';
 import {Query} from 'history';
 
 import {HistogramData} from 'sentry/utils/performance/histogram/types';

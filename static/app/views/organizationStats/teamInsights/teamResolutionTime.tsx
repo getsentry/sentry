@@ -95,7 +95,6 @@ class TeamResolutionTime extends AsyncComponent<Props, State> {
             {
               seriesName: t('Time to Resolution'),
               data: seriesData,
-              // @ts-expect-error silent not included in bar series
               silent: true,
             },
           ]}

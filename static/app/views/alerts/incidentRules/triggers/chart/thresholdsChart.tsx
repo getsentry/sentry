@@ -1,6 +1,6 @@
 import {PureComponent} from 'react';
 import color from 'color';
-import {EChartOption} from 'echarts';
+import type {TooltipComponentFormatterCallbackParams} from 'echarts';
 import debounce from 'lodash/debounce';
 import flatten from 'lodash/flatten';
 
@@ -146,7 +146,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
    */
   updateDimensions = () => {
     const chartRef = this.ref?.getEchartsInstance?.();
-    if (!chartRef) {
+    if (!chartRef || !chartRef.getWidth?.()) {
       return;
     }
 
@@ -239,6 +239,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
         position: [yAxisSize, position],
         shape: {y1: 1, y2: 1, x1: graphAreaMargin, x2: graphAreaWidth},
         style: LINE_STYLE,
+        silent: true,
         z: 100,
       },
 
@@ -251,6 +252,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
             {
               type: 'rect',
               draggable: false,
+              silent: true,
 
               position:
                 isResolution !== isInverted
@@ -355,7 +357,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
           showTimeInTooltip: boolean,
           addSecondsToTimeFormat: boolean,
           bucketSize: number | undefined,
-          seriesParamsOrParam: EChartOption.Tooltip.Format | EChartOption.Tooltip.Format[]
+          seriesParamsOrParam: TooltipComponentFormatterCallbackParams
         ) => {
           const date = defaultFormatAxisLabel(
             value,
@@ -439,8 +441,8 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
           ),
         })}
         series={[...dataWithoutRecentBucket, ...comparisonMarkLines]}
-        additionalSeries={[
-          ...comparisonDataWithoutRecentBucket.map(({data: _data, ...otherSeriesProps}) =>
+        additionalSeries={comparisonDataWithoutRecentBucket.map(
+          ({data: _data, ...otherSeriesProps}) =>
             LineSeries({
               name: comparisonSeriesName,
               data: _data.map(({name, value}) => [name, value]),
@@ -451,8 +453,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
               animationDuration: 0,
               ...otherSeriesProps,
             })
-          ),
-        ]}
+        )}
         onFinished={() => {
           // We want to do this whenever the chart finishes re-rendering so that we can update the dimensions of
           // any graphics related to the triggers (e.g. the threshold areas + boundaries)

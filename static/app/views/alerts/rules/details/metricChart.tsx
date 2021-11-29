@@ -17,6 +17,7 @@ import LineChart, {LineChartSeries} from 'sentry/components/charts/lineChart';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 import SessionsRequest from 'sentry/components/charts/sessionsRequest';
 import {SectionHeading} from 'sentry/components/charts/styles';
+import {getTooltipArrow} from 'sentry/components/charts/utils';
 import {
   parseStatsPeriod,
   StatsPeriodType,
@@ -90,7 +91,7 @@ function createThresholdSeries(lineColor: string, threshold: number): LineChartS
     markLine: MarkLine({
       silent: true,
       lineStyle: {color: lineColor, type: 'dashed', width: 1},
-      data: [{yAxis: threshold} as any],
+      data: [{yAxis: threshold}],
       label: {
         show: false,
       },
@@ -111,7 +112,7 @@ function createStatusAreaSeries(
     markLine: MarkLine({
       silent: true,
       lineStyle: {color: lineColor, type: 'solid', width: 4},
-      data: [[{coord: [startTime, yPosition]}, {coord: [endTime, yPosition]}] as any],
+      data: [[{coord: [startTime, yPosition]}, {coord: [endTime, yPosition]}]],
     }),
     data: [],
   };
@@ -126,16 +127,38 @@ function createIncidentSeries(
   dataPoint?: LineChartSeries['data'][0],
   seriesName?: string,
   aggregate?: string
-) {
+): LineChartSeries {
+  const formatter = ({value, marker}: any) => {
+    const time = formatTooltipDate(moment(value), 'MMM D, YYYY LT');
+    return [
+      `<div class="tooltip-series"><div>`,
+      `<span class="tooltip-label">${marker} <strong>${t('Alert')} #${
+        incident.identifier
+      }</strong></span>${
+        dataPoint?.value
+          ? `${seriesName} ${alertTooltipValueFormatter(
+              dataPoint.value,
+              seriesName ?? '',
+              aggregate ?? ''
+            )}`
+          : ''
+      }`,
+      `</div></div>`,
+      `<div class="tooltip-date">${time}</div>`,
+      getTooltipArrow(),
+    ].join('');
+  };
+
   const series = {
     seriesName: 'Incident Line',
-    type: 'line',
+    type: 'line' as const,
     markLine: MarkLine({
       silent: false,
       lineStyle: {color: lineColor, type: 'solid'},
       data: [
         {
           xAxis: incidentTimestamp,
+          // @ts-expect-error onClick not in echart types
           onClick: () => {
             router.push({
               pathname: alertDetailsLink(organization, incident),
@@ -143,41 +166,25 @@ function createIncidentSeries(
             });
           },
         },
-      ] as any,
+      ],
       label: {
-        show: incident.identifier,
+        silent: true,
+        show: !!incident.identifier,
         position: 'insideEndBottom',
         formatter: incident.identifier,
         color: lineColor,
         fontSize: 10,
         fontFamily: 'Rubik',
-      } as any,
+      },
+      tooltip: {
+        formatter,
+      },
     }),
     data: [],
-  };
-  // tooltip conflicts with MarkLine types
-  (series.markLine as any).tooltip = {
-    trigger: 'item',
-    alwaysShowContent: true,
-    formatter: ({value, marker}) => {
-      const time = formatTooltipDate(moment(value), 'MMM D, YYYY LT');
-      return [
-        `<div class="tooltip-series"><div>`,
-        `<span class="tooltip-label">${marker} <strong>${t('Alert')} #${
-          incident.identifier
-        }</strong></span>${
-          dataPoint?.value
-            ? `${seriesName} ${alertTooltipValueFormatter(
-                dataPoint.value,
-                seriesName ?? '',
-                aggregate ?? ''
-              )}`
-            : ''
-        }`,
-        `</div></div>`,
-        `<div class="tooltip-date">${time}</div>`,
-        `<div class="tooltip-arrow"></div>`,
-      ].join('');
+    tooltip: {
+      trigger: 'item' as const,
+      alwaysShowContent: true,
+      formatter,
     },
   };
 
@@ -489,7 +496,7 @@ class MetricChart extends React.PureComponent<Props, State> {
                 itemStyle: {
                   color: color(selectedIncidentColor).alpha(0.42).rgb().string(),
                 },
-                data: [[{xAxis: incidentStartDate}, {xAxis: incidentCloseDate}]] as any,
+                data: [[{xAxis: incidentStartDate}, {xAxis: incidentCloseDate}]],
               }),
               data: [],
             });
@@ -665,7 +672,7 @@ class MetricChart extends React.PureComponent<Props, State> {
                               Math.sign(changePercentage) === 1 ? '+' : '-'
                             }${Math.abs(changePercentage).toFixed(2)}%</span>`,
                           `</div>`,
-                          `<div class="tooltip-arrow"></div>`,
+                          getTooltipArrow(),
                         ]
                           .filter(e => e)
                           .join('');

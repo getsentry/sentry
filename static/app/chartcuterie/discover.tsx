@@ -1,4 +1,4 @@
-import {EChartOption} from 'echarts';
+import type {SeriesOption} from 'echarts';
 import isArray from 'lodash/isArray';
 import max from 'lodash/max';
 
@@ -18,6 +18,7 @@ import {ChartType, RenderDescriptor} from './types';
 
 const discoverxAxis = XAxis({
   theme,
+  // @ts-expect-error Not sure whats wrong with boundryGap type
   boundaryGap: true,
   splitNumber: 3,
   isGroupedByDate: true,
@@ -361,8 +362,8 @@ discoverCharts.push({
     const color = theme.charts.getColorPalette(stats.length - 2);
     const previousPeriodColor = lightenHexToRgb(color);
 
-    const areaSeries: EChartOption.SeriesLine[] = [];
-    const lineSeries: EChartOption.SeriesLine[] = [];
+    const areaSeries: SeriesOption[] = [];
+    const lineSeries: SeriesOption[] = [];
 
     stats
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))

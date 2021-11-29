@@ -1,4 +1,4 @@
-import {EChartOption} from 'echarts';
+import type {LegendComponentOption} from 'echarts';
 import {Location} from 'history';
 import moment from 'moment';
 
@@ -176,7 +176,7 @@ export function canIncludePreviousPeriod(
 export function getSeriesSelection(
   location: Location,
   parameter = 'unselectedSeries'
-): EChartOption.Legend['selected'] {
+): LegendComponentOption['selected'] {
   const unselectedSeries = decodeList(location?.query[parameter]);
   return unselectedSeries.reduce((selection, series) => {
     selection[series] = false;
@@ -250,3 +250,16 @@ export const processTableResults = (tableResults?: TableDataWithTitle[]) => {
     }),
   };
 };
+
+// This is not in a react store/context because the tooltips are rendered as plain html
+let tooltipArrowLeft = '50%';
+export function setTooltipPosition(arrowLeft: string) {
+  tooltipArrowLeft = arrowLeft;
+  return tooltipArrowLeft;
+}
+
+export function getTooltipArrow(): string {
+  return `<div class="tooltip-arrow" ${
+    tooltipArrowLeft ? `style="left: ${tooltipArrowLeft}"` : ''
+  }"></div>`;
+}

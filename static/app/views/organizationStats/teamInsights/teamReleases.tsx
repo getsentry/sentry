@@ -8,7 +8,7 @@ import moment from 'moment';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import BarChart from 'sentry/components/charts/barChart';
 import MarkLine from 'sentry/components/charts/components/markLine';
-import {DateTimeObject} from 'sentry/components/charts/utils';
+import {DateTimeObject, getTooltipArrow} from 'sentry/components/charts/utils';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
 import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
@@ -208,13 +208,11 @@ class TeamReleases extends AsyncComponent<Props, State> {
             series={[
               {
                 seriesName: t('This Period'),
-                // @ts-expect-error silent missing from type
                 silent: true,
                 data: seriesData,
                 markLine: MarkLine({
                   silent: true,
                   lineStyle: {color: theme.gray200, type: 'dashed', width: 1},
-                  // @ts-expect-error yAxis type not correct
                   data: [{yAxis: totalPeriodAverage}],
                   label: {
                     show: false,
@@ -240,7 +238,7 @@ class TeamReleases extends AsyncComponent<Props, State> {
                   `<div><span class="tooltip-label"><strong>Last ${period} Average</strong></span> ${totalPeriodAverage}</div>`,
                   '</div>',
                   `<div class="tooltip-date">${startDate} - ${endDate}</div>`,
-                  '<div class="tooltip-arrow"></div>',
+                  getTooltipArrow(),
                 ].join('');
               },
             }}

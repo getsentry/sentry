@@ -134,7 +134,7 @@ describe('EventsChart', function () {
 
     // Restore history
     chartZoomInstance.handleZoomRestore();
-    chartZoomInstance.handleChartFinished();
+    chartZoomInstance.handleChartFinished({}, chart);
     expect(chartZoomInstance.currentPeriod).toEqual({
       period: '14d',
       start: null,

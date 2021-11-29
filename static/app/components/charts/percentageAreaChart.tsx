@@ -1,17 +1,18 @@
 import * as React from 'react';
-import {EChartOption} from 'echarts';
+import type {LineSeriesOption} from 'echarts';
 import moment from 'moment';
 
 import {Series, SeriesDataUnit} from 'sentry/types/echarts';
 
 import AreaSeries from './series/areaSeries';
 import BaseChart from './baseChart';
+import {getTooltipArrow} from './utils';
 
 const FILLER_NAME = '__filler';
 
-type ChartProps = React.ComponentProps<typeof BaseChart>;
+type ChartProps = Omit<React.ComponentProps<typeof BaseChart>, 'css'>;
 
-export type AreaChartSeries = Series & Omit<EChartOption.SeriesLine, 'data' | 'name'>;
+export type AreaChartSeries = Series & Omit<LineSeriesOption, 'data' | 'name'>;
 
 type DefaultProps = {
   getDataItemName: ({name}: SeriesDataUnit) => SeriesDataUnit['name'];
@@ -91,7 +92,7 @@ export default class PercentageAreaChart extends React.Component<Props> {
                 .join(''),
               '</div>',
               `<div class="tooltip-date">${date}</div>`,
-              '<div class="tooltip-arrow"></div>',
+              getTooltipArrow(),
             ].join('');
           },
         }}
