@@ -26,25 +26,6 @@ class GetFallbackSettingsTest(TestCase):
             }
         }
 
-    def test_get_fallback_settings_feature_flag(self):
-        data = get_fallback_settings(
-            {NotificationSettingTypes.DEPLOY},
-            {},
-            {},
-            self.user,
-            should_use_slack_automatic=True,
-        )
-        assert data == {
-            "deploy": {
-                "user": {
-                    self.user.id: {
-                        "email": "committed_only",
-                        "slack": "committed_only",
-                    }
-                }
-            }
-        }
-
     def test_get_fallback_settings_projects(self):
         data = get_fallback_settings({NotificationSettingTypes.ISSUE_ALERTS}, {self.project.id}, {})
         assert data == {

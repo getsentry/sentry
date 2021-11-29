@@ -155,6 +155,7 @@ function EditableText({
         <Label
           onClick={isDisabled ? undefined : handleEditClick}
           ref={labelRef}
+          isDisabled={isDisabled}
           data-test-id="editable-text-label"
         >
           <InnerLabel>{inputValue}</InnerLabel>
@@ -167,12 +168,12 @@ function EditableText({
 
 export default EditableText;
 
-const Label = styled('div')`
+const Label = styled('div')<{isDisabled: boolean}>`
   display: grid;
   grid-auto-flow: column;
   align-items: center;
   gap: ${space(1)};
-  cursor: pointer;
+  cursor: ${p => (p.isDisabled ? 'default' : 'pointer')};
 `;
 
 const InnerLabel = styled(TextOverflow)`
