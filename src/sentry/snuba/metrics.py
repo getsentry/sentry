@@ -401,7 +401,7 @@ _METRICS = {
 
 _METRICS.update(
     {
-        f"measurement.{web_vital}": {
+        f"measurements.{web_vital}": {
             "type": "distribution",
             "operations": _AVAILABLE_OPERATIONS["metrics_distributions"],
             "tags": _MEASUREMENT_TAGS,
