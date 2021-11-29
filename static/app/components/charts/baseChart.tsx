@@ -363,6 +363,7 @@ function BaseChartUnwrapped({
           color: previousPeriodColors ? previousPeriodColors[seriesIndex] : theme.gray200,
         },
         stack: 'previous',
+        animation: false,
       })
     ) ?? [];
 
