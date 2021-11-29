@@ -112,7 +112,9 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
         assert response.data["raw"] == "# cool stuff comment\n*.js admin@sentry.io\n# good comment"
 
     def test_codeowners_max_raw_length(self):
-        with mock.patch("sentry.api.endpoints.project_codeowners.MAX_RAW_LENGTH", 56):
+        with mock.patch(
+            "sentry.api.endpoints.project_codeowners.MAX_RAW_LENGTH", len(self.data["raw"]) + 1
+        ):
             data = {
                 "raw": f"#                cool stuff     comment\n*.js {self.user.email}\n# good comment"
             }
@@ -122,26 +124,29 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
             assert response.status_code == 400
             assert response.data == {
                 "raw": [
-                    ErrorDetail(string="Raw needs to be <= 56 characters in length", code="invalid")
+                    ErrorDetail(
+                        string=f"Raw needs to be <= {len(self.data['raw']) + 1} characters in length",
+                        code="invalid",
+                    )
                 ]
             }
 
             # Test that we allow this to be modified for existing large rows
-            code_mapping_2 = self.create_code_mapping(project=self.project, stack_root="/")
-            codeowners_2 = self.create_codeowners(
+            code_mapping = self.create_code_mapping(project=self.project, stack_root="/")
+            codeowners = self.create_codeowners(
                 project=self.project,
-                code_mapping=code_mapping_2,
+                code_mapping=code_mapping,
                 raw=f"*.py            test@localhost                         #{self.team.slug}",
             )
-            url_2 = reverse(
+            url = reverse(
                 "sentry-api-0-project-codeowners-details",
                 kwargs={
                     "organization_slug": self.organization.slug,
                     "project_slug": self.project.slug,
-                    "codeowners_id": codeowners_2.id,
+                    "codeowners_id": codeowners.id,
                 },
             )
             with self.feature({"organizations:integrations-codeowners": True}):
-                response = self.client.put(url_2, data)
+                response = self.client.put(url, data)
 
-            assert ProjectCodeOwners.objects.get(id=codeowners_2.id).raw == data.get("raw")
+            assert ProjectCodeOwners.objects.get(id=codeowners.id).raw == data.get("raw")
