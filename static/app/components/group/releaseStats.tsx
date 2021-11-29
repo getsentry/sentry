@@ -79,7 +79,6 @@ const GroupReleaseStats = ({
             ],
           },
           start: timeAgo.toDate().toString(),
-          end: moment().toDate().toString(),
           source: DashboardWidgetSource.ISSUE_DETAILS,
         });
     };
