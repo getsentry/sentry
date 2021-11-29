@@ -229,14 +229,6 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
 
         organization = self.context["project"].organization
         request = self.context["request"]
-        has_sources = features.has(
-            "organizations:custom-symbol-sources", organization, actor=request.user
-        )
-
-        if not has_sources:
-            raise serializers.ValidationError(
-                "Organization is not allowed to set custom symbol sources"
-            )
 
         try:
             # We should really only grab and parse if there are sources in sources_json whose
@@ -249,6 +241,22 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             raise serializers.ValidationError(str(e))
 
         sources_json = json.dumps(sources) if sources else ""
+
+        # If no sources are added or modified, we're either only deleting sources or doing nothing.
+        # This is always allowed.
+        added_or_modified_sources = [s for s in sources if s not in orig_sources]
+        if not added_or_modified_sources:
+            return sources_json
+
+        # Adding sources is only allowed if custom symbol sources are enabled.
+        has_sources = features.has(
+            "organizations:custom-symbol-sources", organization, actor=request.user
+        )
+
+        if not has_sources:
+            raise serializers.ValidationError(
+                "Organization is not allowed to set custom symbol sources"
+            )
 
         has_multiple_appconnect = features.has(
             "organizations:app-store-connect-multiple", organization, actor=request.user
@@ -732,7 +740,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         Schedules a project for deletion.
 
-        Deletion happens asynchronously and therefor is not immediate.
+        Deletion happens asynchronously and therefore is not immediate.
         However once deletion has begun the state of a project changes and
         will be hidden from most public views.
 

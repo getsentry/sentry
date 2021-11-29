@@ -1,7 +1,7 @@
 import * as React from 'react';
 import {EChartOption} from 'echarts';
 
-import {Series} from 'app/types/echarts';
+import {Series} from 'sentry/types/echarts';
 
 import AreaSeries from './series/areaSeries';
 import BaseChart from './baseChart';
@@ -11,8 +11,8 @@ type ChartProps = React.ComponentProps<typeof BaseChart>;
 export type AreaChartSeries = Series & Omit<EChartOption.SeriesLine, 'data' | 'name'>;
 
 type Props = Omit<ChartProps, 'series'> & {
-  stacked?: boolean;
   series: AreaChartSeries[];
+  stacked?: boolean;
 };
 
 class AreaChart extends React.Component<Props> {

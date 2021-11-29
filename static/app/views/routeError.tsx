@@ -3,17 +3,17 @@ import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import Alert from 'app/components/alert';
-import {IconWarning} from 'app/icons';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {LightWeightOrganization, Project} from 'app/types';
-import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
-import withOrganization from 'app/utils/withOrganization';
-import withProject from 'app/utils/withProject';
+import Alert from 'sentry/components/alert';
+import {IconWarning} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import withOrganization from 'sentry/utils/withOrganization';
+import withProject from 'sentry/utils/withProject';
 
 type Props = WithRouterProps & {
-  organization: LightWeightOrganization;
+  organization: Organization;
   error: Error | undefined;
   /**
    * Disable logging to Sentry

@@ -1,14 +1,14 @@
 import {browserHistory} from 'react-router';
 
-import {resetGlobalSelection} from 'app/actionCreators/globalSelection';
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import OrganizationActions from 'app/actions/organizationActions';
-import OrganizationsActions from 'app/actions/organizationsActions';
-import {Client} from 'app/api';
-import OrganizationsStore from 'app/stores/organizationsStore';
-import ProjectsStore from 'app/stores/projectsStore';
-import TeamStore from 'app/stores/teamStore';
-import {LightWeightOrganization, Organization} from 'app/types';
+import {resetGlobalSelection} from 'sentry/actionCreators/globalSelection';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import OrganizationActions from 'sentry/actions/organizationActions';
+import OrganizationsActions from 'sentry/actions/organizationsActions';
+import {Client} from 'sentry/api';
+import OrganizationsStore from 'sentry/stores/organizationsStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import TeamStore from 'sentry/stores/teamStore';
+import {Organization} from 'sentry/types';
 
 type RedirectRemainingOrganizationParams = {
   /**
@@ -104,7 +104,7 @@ export function removeAndRedirectToRemainingOrganization(
 /**
  * Set active organization
  */
-export function setActiveOrganization(org: LightWeightOrganization) {
+export function setActiveOrganization(org: Organization) {
   OrganizationsActions.setActive(org);
 }
 
@@ -120,7 +120,7 @@ export function changeOrganizationSlug(
  *
  * Accepts a partial organization as it will merge will existing organization
  */
-export function updateOrganization(org: Partial<LightWeightOrganization>) {
+export function updateOrganization(org: Partial<Organization>) {
   OrganizationsActions.update(org);
   OrganizationActions.update(org);
 }

@@ -4,18 +4,18 @@ import {EChartOption} from 'echarts/lib/echarts';
 import moment from 'moment';
 import * as qs from 'query-string';
 
-import {updateDateTime} from 'app/actionCreators/globalSelection';
-import DataZoomInside from 'app/components/charts/components/dataZoomInside';
-import ToolBox from 'app/components/charts/components/toolBox';
-import {DateString} from 'app/types';
+import {updateDateTime} from 'sentry/actionCreators/globalSelection';
+import DataZoomInside from 'sentry/components/charts/components/dataZoomInside';
+import ToolBox from 'sentry/components/charts/components/toolBox';
+import {DateString} from 'sentry/types';
 import {
   EChartChartReadyHandler,
   EChartDataZoomHandler,
   EChartFinishedHandler,
   EChartRestoreHandler,
-} from 'app/types/echarts';
-import {callIfFunction} from 'app/utils/callIfFunction';
-import {getUtcDateString, getUtcToLocalDateObject} from 'app/utils/dates';
+} from 'sentry/types/echarts';
+import {callIfFunction} from 'sentry/utils/callIfFunction';
+import {getUtcDateString, getUtcToLocalDateObject} from 'sentry/utils/dates';
 
 const getDate = date =>
   date ? moment.utc(date).format(moment.HTML5_FMT.DATETIME_LOCAL_SECONDS) : null;
@@ -46,8 +46,8 @@ export type ZoomRenderProps = Pick<Props, typeof ZoomPropKeys[number]> & {
 };
 
 type Props = {
-  router?: InjectedRouter;
   children: (props: ZoomRenderProps) => React.ReactNode;
+  router?: InjectedRouter;
   disabled?: boolean;
   xAxis?: EChartOption.XAxis;
   xAxisIndex?: number | number[];
@@ -72,7 +72,7 @@ type Props = {
  * generic if need be in the future.
  */
 class ChartZoom extends React.Component<Props> {
-  constructor(props) {
+  constructor(props: Props) {
     super(props);
 
     // Zoom history

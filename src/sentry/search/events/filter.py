@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 from datetime import datetime
-from typing import Callable, List, Mapping, Optional, Sequence, Tuple, Union
+from functools import reduce
+from typing import Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
 from parsimonious.exceptions import ParseError
 from sentry_relay import parse_release as parse_release_relay
@@ -29,7 +32,6 @@ from sentry.search.events.constants import (
     ERROR_UNHANDLED_ALIAS,
     ISSUE_ALIAS,
     ISSUE_ID_ALIAS,
-    KEY_TRANSACTION_ALIAS,
     MAX_SEARCH_RELEASES,
     NO_CONVERSION_FIELDS,
     OPERATOR_NEGATION_MAP,
@@ -44,6 +46,7 @@ from sentry.search.events.constants import (
     SEMVER_PACKAGE_ALIAS,
     SEMVER_WILDCARDS,
     TEAM_KEY_TRANSACTION_ALIAS,
+    TIMESTAMP_FIELDS,
     TRANSACTION_STATUS_ALIAS,
     USER_DISPLAY_ALIAS,
 )
@@ -60,14 +63,14 @@ from sentry.utils.snuba import (
     Dataset,
     QueryOutsideRetentionError,
 )
-from sentry.utils.validators import INVALID_ID_DETAILS
+from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCARD_NOT_ALLOWED
 
 
 def is_condition(term):
     return isinstance(term, (tuple, list)) and len(term) == 3 and term[1] in OPERATOR_TO_FUNCTION
 
 
-def translate_transaction_status(val):
+def translate_transaction_status(val: str) -> str:
     if val not in SPAN_STATUS_NAME_TO_CODE:
         raise InvalidSearchQuery(
             f"Invalid value {val} for transaction.status condition. Accepted "
@@ -301,26 +304,6 @@ def _error_handled_filter_converter(
     raise InvalidSearchQuery("Invalid value for error.handled condition. Accepted values are 1, 0")
 
 
-def _key_transaction_filter_converter(
-    search_filter: SearchFilter,
-    name: str,
-    params: Optional[Mapping[str, Union[int, str, datetime]]],
-):
-    value = search_filter.value.value
-    key_transaction_expr = FIELD_ALIASES[KEY_TRANSACTION_ALIAS].get_expression(params)
-
-    if search_filter.value.raw_value == "":
-        operator = "!=" if search_filter.operator == "!=" else "="
-        return [key_transaction_expr, operator, 0]
-    if value in ("1", 1):
-        return [key_transaction_expr, "=", 1]
-    if value in ("0", 0):
-        return [key_transaction_expr, "=", 0]
-    raise InvalidSearchQuery(
-        "Invalid value for key_transaction condition. Accepted values are 1, 0"
-    )
-
-
 def _team_key_transaction_filter_converter(
     search_filter: SearchFilter,
     name: str,
@@ -337,7 +320,7 @@ def _team_key_transaction_filter_converter(
     if value in ("0", 0):
         return [key_transaction_expr, "=", 0]
     raise InvalidSearchQuery(
-        "Invalid value for key_transaction condition. Accepted values are 1, 0"
+        "Invalid value for team_key_transaction condition. Accepted values are 1, 0"
     )
 
 
@@ -505,12 +488,14 @@ def _semver_build_filter_converter(
     project_ids: Optional[list[int]] = params.get("project_id")
     build: str = search_filter.value.raw_value
 
+    operator, negated = handle_operator_negation(search_filter.operator)
     versions = list(
         Release.objects.filter_by_semver_build(
             organization_id,
-            OPERATOR_TO_DJANGO[search_filter.operator],
+            OPERATOR_TO_DJANGO[operator],
             build,
             project_ids=project_ids,
+            negated=negated,
         ).values_list("version", flat=True)[:MAX_SEARCH_RELEASES]
     )
 
@@ -519,6 +504,14 @@ def _semver_build_filter_converter(
         versions = [SEMVER_EMPTY_RELEASE]
 
     return ["release", "IN", versions]
+
+
+def handle_operator_negation(operator: str) -> Tuple[str, bool]:
+    negated = False
+    if operator == "!=":
+        negated = True
+        operator = "="
+    return operator, negated
 
 
 def parse_semver(version, operator) -> Optional[SemverFilter]:
@@ -533,6 +526,7 @@ def parse_semver(version, operator) -> Optional[SemverFilter]:
      - 1.2.3.4-alpha
      - 1.*
     """
+    (operator, negated) = handle_operator_negation(operator)
     operator = OPERATOR_TO_DJANGO[operator]
     version = version if "@" in version else f"{SEMVER_FAKE_PACKAGE}@{version}"
     parsed = parse_release_relay(version)
@@ -550,6 +544,7 @@ def parse_semver(version, operator) -> Optional[SemverFilter]:
                 0 if prerelease else 1,
                 prerelease,
             ],
+            negated=negated,
         )
         if parsed["package"] and parsed["package"] != SEMVER_FAKE_PACKAGE:
             semver_filter.package = parsed["package"]
@@ -570,7 +565,7 @@ def parse_semver(version, operator) -> Optional[SemverFilter]:
                     raise InvalidSearchQuery(INVALID_SEMVER_MESSAGE)
 
         package = package if package and package != SEMVER_FAKE_PACKAGE else None
-        return SemverFilter("exact", version_parts, package)
+        return SemverFilter("exact", version_parts, package, negated)
 
 
 key_conversion_map: Mapping[
@@ -584,7 +579,6 @@ key_conversion_map: Mapping[
     USER_DISPLAY_ALIAS: _user_display_filter_converter,
     ERROR_UNHANDLED_ALIAS: _error_unhandled_filter_converter,
     "error.handled": _error_handled_filter_converter,
-    KEY_TRANSACTION_ALIAS: _key_transaction_filter_converter,
     TEAM_KEY_TRANSACTION_ALIAS: _team_key_transaction_filter_converter,
     RELEASE_STAGE_ALIAS: _release_stage_filter_converter,
     SEMVER_ALIAS: _semver_filter_converter,
@@ -613,7 +607,17 @@ def convert_search_filter_to_snuba_query(
     elif name in ARRAY_FIELDS and search_filter.value.is_wildcard():
         # Escape and convert meta characters for LIKE expressions.
         raw_value = search_filter.value.raw_value
-        like_value = raw_value.replace("%", "\\%").replace("_", "\\_").replace("*", "%")
+        # TODO: There are rare cases where this chaining don't
+        # work. For example, a wildcard like '\**' will incorrectly
+        # be replaced with '\%%'.
+        like_value = (
+            # Slashes have to be double escaped so they are
+            # interpreted as a string literal.
+            raw_value.replace("\\", "\\\\")
+            .replace("%", "\\%")
+            .replace("_", "\\_")
+            .replace("*", "%")
+        )
         operator = "LIKE" if search_filter.operator == "=" else "NOT LIKE"
         return [name, operator, like_value]
     elif name in ARRAY_FIELDS and search_filter.is_in_filter:
@@ -638,12 +642,16 @@ def convert_search_filter_to_snuba_query(
         }:
             value = int(to_timestamp(value)) * 1000
 
+        if name in {"trace.span", "trace.parent_span"}:
+            if search_filter.value.is_wildcard():
+                raise InvalidSearchQuery(WILDCARD_NOT_ALLOWED.format(name))
+            if not search_filter.value.is_span_id():
+                raise InvalidSearchQuery(INVALID_SPAN_ID.format(name))
+
         # Validate event ids and trace ids are uuids
         if name in {"id", "trace"}:
             if search_filter.value.is_wildcard():
-                raise InvalidSearchQuery(
-                    f"Wildcard conditions are not permitted on `{name}` field."
-                )
+                raise InvalidSearchQuery(WILDCARD_NOT_ALLOWED.format(name))
             elif not search_filter.value.is_event_id():
                 label = "Filter ID" if name == "id" else "Filter Trace ID"
                 raise InvalidSearchQuery(INVALID_ID_DETAILS.format(label))
@@ -757,6 +765,8 @@ def convert_search_boolean_to_snuba_query(terms, params=None):
     # start or end a query with an operator.
     prev = None
     new_terms = []
+    term = None
+
     for term in terms:
         if prev:
             if SearchBoolean.is_operator(prev) and SearchBoolean.is_operator(term):
@@ -772,7 +782,7 @@ def convert_search_boolean_to_snuba_query(terms, params=None):
         if term != SearchBoolean.BOOLEAN_AND:
             new_terms.append(term)
         prev = term
-    if SearchBoolean.is_operator(term):
+    if term is not None and SearchBoolean.is_operator(term):
         raise InvalidSearchQuery(f"Condition is missing on the right side of '{term}' operator")
     terms = new_terms
 
@@ -971,7 +981,12 @@ def format_search_filter(term, params):
                 conditions.append(converted_filter)
     elif name == ISSUE_ID_ALIAS and value != "":
         # A blank term value means that this is a has filter
-        group_ids = to_list(value)
+        if term.operator in EQUALITY_OPERATORS:
+            group_ids = to_list(value)
+        else:
+            converted_filter = convert_search_filter_to_snuba_query(term, params=params)
+            if converted_filter:
+                conditions.append(converted_filter)
     elif name == ISSUE_ALIAS:
         operator = term.operator
         value = to_list(value)
@@ -1002,21 +1017,28 @@ def format_search_filter(term, params):
         and params
         and (value == "latest" or term.is_in_filter and any(v == "latest" for v in value))
     ):
-        value = [
-            parse_release(
-                v,
-                params["project_id"],
-                params.get("environment_objects"),
-                params.get("organization_id"),
-            )
-            for v in to_list(value)
-        ]
+        value = reduce(
+            lambda x, y: x + y,
+            [
+                parse_release(
+                    v,
+                    params["project_id"],
+                    params.get("environment_objects"),
+                    params.get("organization_id"),
+                )
+                for v in to_list(value)
+            ],
+            [],
+        )
+
+        operator_conversions = {"=": "IN", "!=": "NOT IN"}
+        operator = operator_conversions.get(term.operator, term.operator)
 
         converted_filter = convert_search_filter_to_snuba_query(
             SearchFilter(
                 term.key,
-                term.operator,
-                SearchValue(value if term.is_in_filter else value[0]),
+                operator,
+                SearchValue(value),
             )
         )
         if converted_filter:
@@ -1037,8 +1059,15 @@ ParsedTerms = Sequence[ParsedTerm]
 class QueryFilter(QueryFields):
     """Filter logic for a snql query"""
 
-    def __init__(self, dataset: Dataset, params: ParamsType):
-        super().__init__(dataset, params)
+    def __init__(
+        self,
+        dataset: Dataset,
+        params: ParamsType,
+        auto_fields: bool = False,
+        functions_acl: Optional[List[str]] = None,
+        equation_config: Optional[Dict[str, bool]] = None,
+    ):
+        super().__init__(dataset, params, auto_fields, functions_acl, equation_config)
 
         self.search_filter_converter: Mapping[
             str, Callable[[SearchFilter], Optional[WhereType]]
@@ -1054,6 +1083,7 @@ class QueryFilter(QueryFields):
             ERROR_UNHANDLED_ALIAS: self._error_unhandled_filter_converter,
             TEAM_KEY_TRANSACTION_ALIAS: self._key_transaction_filter_converter,
             RELEASE_STAGE_ALIAS: self._release_stage_filter_converter,
+            RELEASE_ALIAS: self._release_filter_converter,
             SEMVER_ALIAS: self._semver_filter_converter,
             SEMVER_PACKAGE_ALIAS: self._semver_package_filter_converter,
             SEMVER_BUILD_ALIAS: self._semver_build_filter_converter,
@@ -1082,6 +1112,7 @@ class QueryFilter(QueryFields):
     ) -> Tuple[List[WhereType], List[WhereType]]:
         parsed_terms = self.parse_query(query)
 
+        self.has_or_condition = any(SearchBoolean.is_or_operator(term) for term in parsed_terms)
         if any(
             isinstance(term, ParenExpression) or SearchBoolean.is_operator(term)
             for term in parsed_terms
@@ -1105,6 +1136,7 @@ class QueryFilter(QueryFields):
         # start or end a query with an operator.
         prev = None
         new_terms = []
+        term = None
         for term in terms:
             if prev:
                 if SearchBoolean.is_operator(prev) and SearchBoolean.is_operator(term):
@@ -1122,7 +1154,7 @@ class QueryFilter(QueryFields):
 
             prev = term
 
-        if SearchBoolean.is_operator(term):
+        if term is not None and SearchBoolean.is_operator(term):
             raise InvalidSearchQuery(f"Condition is missing on the right side of '{term}' operator")
         terms = new_terms
 
@@ -1155,7 +1187,9 @@ class QueryFilter(QueryFields):
 
         return where, having
 
-    def _combine_conditions(self, lhs, rhs, operator):
+    def _combine_conditions(
+        self, lhs: List[WhereType], rhs: List[WhereType], operator: And | Or
+    ) -> List[WhereType]:
         combined_conditions = [
             conditions[0] if len(conditions) == 1 else And(conditions=conditions)
             for conditions in [lhs, rhs]
@@ -1283,9 +1317,6 @@ class QueryFilter(QueryFields):
         name = aggregate_filter.key.name
         value = aggregate_filter.value.value
 
-        if name in self.params.get("aliases", {}):
-            raise NotImplementedError("Aggregate aliases not implemented in snql field parsing yet")
-
         value = (
             int(to_timestamp(value))
             if isinstance(value, datetime) and name != "timestamp"
@@ -1296,7 +1327,8 @@ class QueryFilter(QueryFields):
             operator = Op.IS_NULL if aggregate_filter.operator == "=" else Op.IS_NOT_NULL
             return Condition(name, operator)
 
-        function = self.resolve_function(name)
+        # When resolving functions in conditions we don't want to add them to the list of aggregates
+        function = self.resolve_function(name, resolve_only=True)
 
         return Condition(function, Op(aggregate_filter.operator), value)
 
@@ -1314,50 +1346,68 @@ class QueryFilter(QueryFields):
 
     def _default_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         name = search_filter.key.name
+        operator = search_filter.operator
         value = search_filter.value.value
 
         lhs = self.resolve_column(name)
 
         if name in ARRAY_FIELDS:
             if search_filter.value.is_wildcard():
+                # TODO: There are rare cases where this chaining don't
+                # work. For example, a wildcard like '\**' will incorrectly
+                # be replaced with '\%%'.
                 return Condition(
                     lhs,
-                    Op.LIKE if search_filter.operator == "=" else Op.NOT_LIKE,
-                    search_filter.value.raw_value.replace("%", "\\%")
+                    Op.LIKE if operator == "=" else Op.NOT_LIKE,
+                    # Slashes have to be double escaped so they are
+                    # interpreted as a string literal.
+                    search_filter.value.raw_value.replace("\\", "\\\\")
+                    .replace("%", "\\%")
                     .replace("_", "\\_")
                     .replace("*", "%"),
                 )
             elif name in ARRAY_FIELDS and search_filter.is_in_filter:
                 return Condition(
                     Function("hasAny", [self.column(name), value]),
-                    Op.EQ if search_filter.operator == "IN" else Op.NEQ,
+                    Op.EQ if operator == "IN" else Op.NEQ,
                     1,
                 )
             elif name in ARRAY_FIELDS and search_filter.value.raw_value == "":
                 return Condition(
-                    Function("hasAny", [self.column(name), []]),
-                    Op.EQ if search_filter.operator == "=" else Op.NEQ,
+                    Function("notEmpty", [self.column(name)]),
+                    Op.EQ if operator == "!=" else Op.NEQ,
                     1,
                 )
 
         # timestamp{,.to_{hour,day}} need a datetime string
         # last_seen needs an integer
-        if isinstance(value, datetime) and name not in {
-            "timestamp",
-            "timestamp.to_hour",
-            "timestamp.to_day",
-        }:
+        if isinstance(value, datetime) and name not in TIMESTAMP_FIELDS:
             value = int(to_timestamp(value)) * 1000
+
+        if name in {"trace.span", "trace.parent_span"}:
+            if search_filter.value.is_wildcard():
+                raise InvalidSearchQuery(WILDCARD_NOT_ALLOWED.format(name))
+            if not search_filter.value.is_span_id():
+                raise InvalidSearchQuery(INVALID_SPAN_ID.format(name))
 
         # Validate event ids and trace ids are uuids
         if name in {"id", "trace"}:
             if search_filter.value.is_wildcard():
-                raise InvalidSearchQuery(
-                    f"Wildcard conditions are not permitted on `{name}` field."
-                )
+                raise InvalidSearchQuery(WILDCARD_NOT_ALLOWED.format(name))
             elif not search_filter.value.is_event_id():
                 label = "Filter ID" if name == "id" else "Filter Trace ID"
                 raise InvalidSearchQuery(INVALID_ID_DETAILS.format(label))
+
+        if name in TIMESTAMP_FIELDS:
+            if (
+                operator in ["<", "<="]
+                and value < self.params["start"]
+                or operator in [">", ">="]
+                and value > self.params["end"]
+            ):
+                raise InvalidSearchQuery(
+                    "Filter on timestamp is outside of the selected date range."
+                )
 
         # Tags are never null, but promoted tags are columns and so can be null.
         # To handle both cases, use `ifNull` to convert to an empty string and
@@ -1407,9 +1457,9 @@ class QueryFilter(QueryFields):
         # conditions added to env_conditions can be OR'ed
         env_conditions = []
         value = search_filter.value.value
-        values = set(value if isinstance(value, (list, tuple)) else [value])
+        values_set = set(value if isinstance(value, (list, tuple)) else [value])
         # sorted for consistency
-        values = sorted(f"{value}" for value in values)
+        values = sorted(f"{value}" for value in values_set)
         environment = self.column("environment")
         # the "no environment" environment is null in snuba
         if "" in values:
@@ -1443,24 +1493,17 @@ class QueryFilter(QueryFields):
             operator = Op.EQ if search_filter.operator == "=" else Op.NEQ
             return Condition(Function("equals", [self.column("message"), value]), operator, 1)
         else:
-            # https://clickhouse.yandex/docs/en/query_language/functions/string_search_functions/#position-haystack-needle
-            # positionCaseInsensitive returns 0 if not found and an index of 1 or more if found
-            # so we should flip the operator here
-            operator = Op.NEQ if search_filter.operator in EQUALITY_OPERATORS else Op.EQ
             if search_filter.is_in_filter:
                 return Condition(
-                    Function(
-                        "multiSearchFirstPositionCaseInsensitive",
-                        [self.column("message"), value],
-                    ),
-                    operator,
-                    0,
+                    self.column("message"),
+                    Op(search_filter.operator),
+                    value,
                 )
 
             # make message search case insensitive
             return Condition(
                 Function("positionCaseInsensitive", [self.column("message"), value]),
-                operator,
+                Op.NEQ if search_filter.operator in EQUALITY_OPERATORS else Op.EQ,
                 0,
             )
 
@@ -1534,17 +1577,16 @@ class QueryFilter(QueryFields):
         # Handle "has" queries
         if search_filter.value.raw_value == "":
             return Condition(
-                self.resolve_field_alias(search_filter.key.name),
+                self.resolve_field(search_filter.key.name),
                 Op.IS_NULL if search_filter.operator == "=" else Op.IS_NOT_NULL,
             )
-        if search_filter.is_in_filter:
-            internal_value = [
-                translate_transaction_status(val) for val in search_filter.value.raw_value
-            ]
-        else:
-            internal_value = translate_transaction_status(search_filter.value.raw_value)
+        internal_value = (
+            [translate_transaction_status(val) for val in search_filter.value.raw_value]
+            if search_filter.is_in_filter
+            else translate_transaction_status(search_filter.value.raw_value)
+        )
         return Condition(
-            self.resolve_field_alias(search_filter.key.name),
+            self.resolve_field(search_filter.key.name),
             Op(search_filter.operator),
             internal_value,
         )
@@ -1634,13 +1676,8 @@ class QueryFilter(QueryFields):
             raise ValueError("organization_id is a required param")
 
         organization_id: int = self.params["organization_id"]
-        project_ids: Optional[list[int]] = self.params.get("project_id")
-        environment_ids: Optional[list[int]] = self.params.get("environment_id", [])
-        environments = list(
-            Environment.objects.filter(
-                organization_id=organization_id, id__in=environment_ids
-            ).values_list("name", flat=True)
-        )
+        project_ids: Optional[List[int]] = self.params.get("project_id")
+        environments: Optional[List[Environment]] = self.params.get("environment_objects", [])
         qs = (
             Release.objects.filter_by_stage(
                 organization_id,
@@ -1659,6 +1696,33 @@ class QueryFilter(QueryFields):
             versions = [SEMVER_EMPTY_RELEASE]
 
         return Condition(self.column("release"), Op.IN, versions)
+
+    def _release_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        """Parse releases for potential aliases like `latest`"""
+
+        if search_filter.value.is_wildcard():
+            operator = search_filter.operator
+            value = search_filter.value
+        else:
+            operator_conversions = {"=": "IN", "!=": "NOT IN"}
+            operator = operator_conversions.get(search_filter.operator, search_filter.operator)
+            value = SearchValue(
+                reduce(
+                    lambda x, y: x + y,
+                    [
+                        parse_release(
+                            v,
+                            self.params["project_id"],
+                            self.params.get("environment_objects"),
+                            self.params.get("organization_id"),
+                        )
+                        for v in to_list(search_filter.value.value)
+                    ],
+                    [],
+                )
+            )
+
+        return self._default_filter_converter(SearchFilter(search_filter.key, operator, value))
 
     def _semver_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         """
@@ -1680,7 +1744,7 @@ class QueryFilter(QueryFields):
             raise ValueError("organization_id is a required param")
 
         organization_id: int = self.params["organization_id"]
-        project_ids: Optional[list[int]] = self.params.get("project_id")
+        project_ids: Optional[List[int]] = self.params.get("project_id")
         # We explicitly use `raw_value` here to avoid converting wildcards to shell values
         version: str = search_filter.value.raw_value
         operator: str = search_filter.operator
@@ -1738,7 +1802,7 @@ class QueryFilter(QueryFields):
             raise ValueError("organization_id is a required param")
 
         organization_id: int = self.params["organization_id"]
-        project_ids: Optional[list[int]] = self.params.get("project_id")
+        project_ids: Optional[List[int]] = self.params.get("project_id")
         package: str = search_filter.value.raw_value
 
         versions = list(
@@ -1764,15 +1828,17 @@ class QueryFilter(QueryFields):
             raise ValueError("organization_id is a required param")
 
         organization_id: int = self.params["organization_id"]
-        project_ids: Optional[list[int]] = self.params.get("project_id")
+        project_ids: Optional[List[int]] = self.params.get("project_id")
         build: str = search_filter.value.raw_value
 
+        operator, negated = handle_operator_negation(search_filter.operator)
         versions = list(
             Release.objects.filter_by_semver_build(
                 organization_id,
-                OPERATOR_TO_DJANGO[search_filter.operator],
+                OPERATOR_TO_DJANGO[operator],
                 build,
                 project_ids=project_ids,
+                negated=negated,
             ).values_list("version", flat=True)[:MAX_SEARCH_RELEASES]
         )
 

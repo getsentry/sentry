@@ -1,18 +1,20 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import ActionButton from 'app/components/actions/button';
-import MenuItemActionLink from 'app/components/actions/menuItemActionLink';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import ConfirmDelete from 'app/components/confirmDelete';
-import DropdownButton from 'app/components/dropdownButton';
-import DropdownLink from 'app/components/dropdownLink';
-import {IconEllipsis} from 'app/icons/iconEllipsis';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {CustomRepoType} from 'app/types/debugFiles';
-import TextBlock from 'app/views/settings/components/text/textBlock';
+import Access from 'sentry/components/acl/access';
+import ActionButton from 'sentry/components/actions/button';
+import MenuItemActionLink from 'sentry/components/actions/menuItemActionLink';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import ConfirmDelete from 'sentry/components/confirmDelete';
+import DropdownButton from 'sentry/components/dropdownButton';
+import DropdownLink from 'sentry/components/dropdownLink';
+import Tooltip from 'sentry/components/tooltip';
+import {IconEllipsis} from 'sentry/icons/iconEllipsis';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {CustomRepoType} from 'sentry/types/debugFiles';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 type Props = {
   repositoryName: string;
@@ -91,26 +93,70 @@ function Actions({
           {t('Details')}
         </StyledDropdownButton>
       )}
-      <StyledButton onClick={onEdit} size="small">
-        {t('Configure')}
-      </StyledButton>
-      {renderConfirmDelete(<StyledButton size="small">{t('Delete')}</StyledButton>)}
-      <DropDownWrapper>
-        <DropdownLink
-          caret={false}
-          customTitle={
-            <StyledActionButton label={t('Actions')} icon={<IconEllipsis />} />
-          }
-          anchorRight
-        >
-          <MenuItemActionLink title={t('Configure')} onClick={onEdit}>
-            {t('Configure')}
-          </MenuItemActionLink>
-          {renderConfirmDelete(
-            <MenuItemActionLink title={t('Delete')}>{t('Delete')}</MenuItemActionLink>
-          )}
-        </DropdownLink>
-      </DropDownWrapper>
+      <Access access={['project:write']}>
+        {({hasAccess}) => (
+          <Fragment>
+            <ButtonTooltip
+              title={t(
+                'You do not have permission to edit custom repository configurations.'
+              )}
+              disabled={hasAccess}
+            >
+              <ActionBtn
+                disabled={!hasAccess || isDetailsDisabled}
+                onClick={onEdit}
+                size="small"
+              >
+                {t('Configure')}
+              </ActionBtn>
+            </ButtonTooltip>
+
+            {!hasAccess || isDetailsDisabled ? (
+              <ButtonTooltip
+                title={t(
+                  'You do not have permission to delete custom repository configurations.'
+                )}
+                disabled={hasAccess}
+              >
+                <ActionBtn size="small" disabled>
+                  {t('Delete')}
+                </ActionBtn>
+              </ButtonTooltip>
+            ) : (
+              renderConfirmDelete(<ActionBtn size="small">{t('Delete')}</ActionBtn>)
+            )}
+            <DropDownWrapper>
+              <DropdownLink
+                caret={false}
+                customTitle={
+                  <StyledActionButton
+                    label={t('Actions')}
+                    disabled={!hasAccess || isDetailsDisabled}
+                    title={
+                      !hasAccess
+                        ? t(
+                            'You do not have permission to edit and delete custom repository configurations.'
+                          )
+                        : undefined
+                    }
+                    icon={<IconEllipsis />}
+                  />
+                }
+                anchorRight
+              >
+                <MenuItemActionLink title={t('Configure')} onClick={onEdit}>
+                  {t('Configure')}
+                </MenuItemActionLink>
+                {renderConfirmDelete(
+                  <MenuItemActionLink title={t('Delete')}>
+                    {t('Delete')}
+                  </MenuItemActionLink>
+                )}
+              </DropdownLink>
+            </DropDownWrapper>
+          </Fragment>
+        )}
+      </Access>
     </StyledButtonBar>
   );
 }
@@ -138,7 +184,14 @@ const StyledButtonBar = styled(ButtonBar)`
   }
 `;
 
-const StyledButton = styled(Button)`
+const ButtonTooltip = styled(Tooltip)`
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    display: none;
+  }
+`;
+
+const ActionBtn = styled(Button)`
+  width: 100%;
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     display: none;
   }

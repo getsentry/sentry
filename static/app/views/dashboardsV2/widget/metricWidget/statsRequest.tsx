@@ -3,16 +3,16 @@ import * as React from 'react';
 import {Location} from 'history';
 import pick from 'lodash/pick';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {Client} from 'app/api';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {URL_PARAM} from 'app/constants/globalSelectionHeader';
-import {t} from 'app/locale';
-import {GlobalSelection, Organization, Project, SessionApiResponse} from 'app/types';
-import {Series} from 'app/types/echarts';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
-import {getInterval} from 'app/views/releases/detail/overview/chart/utils';
-import {roundDuration} from 'app/views/releases/utils';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {Client} from 'sentry/api';
+import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {URL_PARAM} from 'sentry/constants/globalSelectionHeader';
+import {t} from 'sentry/locale';
+import {GlobalSelection, Organization, Project, SessionApiResponse} from 'sentry/types';
+import {Series} from 'sentry/types/echarts';
+import {getSessionsInterval} from 'sentry/utils/sessions';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {roundDuration} from 'sentry/views/releases/utils';
 
 import {MetricQuery} from './types';
 import {fillChartDataFromMetricsResponse, getBreakdownChartData} from './utils';
@@ -39,7 +39,7 @@ type ChildrenArgs = {
 type Props = {
   api: Client;
   organization: Organization;
-  projectSlug: Project['slug'];
+  projectId: Project['id'];
   environments: GlobalSelection['environments'];
   datetime: GlobalSelection['datetime'];
   location: Location;
@@ -51,7 +51,7 @@ type Props = {
 function StatsRequest({
   api,
   organization,
-  projectSlug,
+  projectId,
   groupings,
   environments,
   datetime,
@@ -69,7 +69,7 @@ function StatsRequest({
 
   useEffect(() => {
     fetchData();
-  }, [projectSlug, environments, datetime, groupings, searchQuery]);
+  }, [projectId, environments, datetime, groupings, searchQuery]);
 
   function fetchData() {
     if (!filteredGroupings.length) {
@@ -89,7 +89,7 @@ function StatsRequest({
     const promises = filteredGroupings.map(({metricMeta, aggregation, groupBy}) => {
       const query: RequestQuery = {
         field: `${aggregation}(${metricMeta.name})`,
-        interval: getInterval(datetime),
+        interval: getSessionsInterval(datetime),
         ...requestExtraParams,
       };
 
@@ -113,11 +113,11 @@ function StatsRequest({
         }
       }
 
-      const metricDataEndpoint = `/projects/${organization.slug}/${projectSlug}/metrics/data/`;
+      const metricDataEndpoint = `/organizations/${organization.slug}/metrics/data/?project=${projectId}`;
 
       if (!!groupBy?.length) {
         const groupByParameter = [...groupBy].join('&groupBy=');
-        return api.requestPromise(`${metricDataEndpoint}?groupBy=${groupByParameter}`, {
+        return api.requestPromise(`${metricDataEndpoint}&groupBy=${groupByParameter}`, {
           query,
         });
       }

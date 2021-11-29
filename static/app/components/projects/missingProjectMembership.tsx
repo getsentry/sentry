@@ -1,47 +1,40 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {joinTeam} from 'app/actionCreators/teams';
-import {Client} from 'app/api';
-import Button from 'app/components/button';
-import SelectControl from 'app/components/forms/selectControl';
-import {Panel} from 'app/components/panels';
-import {IconFlag} from 'app/icons';
-import {t} from 'app/locale';
-import TeamStore from 'app/stores/teamStore';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import withApi from 'app/utils/withApi';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {joinTeam} from 'sentry/actionCreators/teams';
+import {Client} from 'sentry/api';
+import Button from 'sentry/components/button';
+import SelectControl from 'sentry/components/forms/selectControl';
+import {Panel} from 'sentry/components/panels';
+import {IconFlag} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import TeamStore from 'sentry/stores/teamStore';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import withApi from 'sentry/utils/withApi';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 type Props = {
   api: Client;
   organization: Organization;
-  projectSlug?: string;
+  project?: Project | null;
 };
 
 type State = {
   loading: boolean;
   error: boolean;
   team: string | null;
-  project?: Project;
+  project?: Project | null;
 };
 
 class MissingProjectMembership extends Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
-
-    const {organization, projectSlug} = this.props;
-    const project = organization.projects?.find(p => p.slug === projectSlug);
-
-    this.state = {
-      loading: false,
-      error: false,
-      project,
-      team: '',
-    };
-  }
+  state: State = {
+    loading: false,
+    error: false,
+    project: this.props.project,
+    team: '',
+  };
 
   joinTeam(teamSlug: string) {
     this.setState({
@@ -84,9 +77,11 @@ class MissingProjectMembership extends Component<Props, State> {
         return <Button busy>{t('Join Team')}</Button>;
       }
       return <Button busy>{t('Request Access')}</Button>;
-    } else if (team?.isPending) {
+    }
+    if (team?.isPending) {
       return <Button disabled>{t('Request Pending')}</Button>;
-    } else if (features.has('open-membership')) {
+    }
+    if (features.has('open-membership')) {
       return (
         <Button
           priority="primary"
@@ -212,7 +207,5 @@ const DisabledLabel = styled('div')`
   opacity: 0.5;
   overflow: hidden;
 `;
-
-export {MissingProjectMembership};
 
 export default withApi(MissingProjectMembership);

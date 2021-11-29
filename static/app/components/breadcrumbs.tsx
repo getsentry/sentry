@@ -2,13 +2,13 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import {LocationDescriptor} from 'history';
 
-import GlobalSelectionLink from 'app/components/globalSelectionLink';
-import Link from 'app/components/links/link';
-import {IconChevron} from 'app/icons';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {Theme} from 'app/utils/theme';
-import BreadcrumbDropdown from 'app/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
+import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
+import Link from 'sentry/components/links/link';
+import {IconChevron} from 'sentry/icons';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {Theme} from 'sentry/utils/theme';
+import BreadcrumbDropdown from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
 
 const BreadcrumbList = styled('div')`
   display: flex;
@@ -105,28 +105,27 @@ const Breadcrumbs = ({crumbs, linkLastItem = false, ...props}: Props) => {
               {...crumbProps}
             />
           );
-        } else {
-          const {label, to, preserveGlobalSelection, key} = crumb;
-          const labelKey = typeof label === 'string' ? label : '';
-          const mapKey =
-            key ?? typeof to === 'string' ? `${labelKey}${to}` : `${labelKey}${index}`;
-
-          return (
-            <React.Fragment key={mapKey}>
-              {to ? (
-                <BreadcrumbLink to={to} preserveGlobalSelection={preserveGlobalSelection}>
-                  {label}
-                </BreadcrumbLink>
-              ) : (
-                <BreadcrumbItem>{label}</BreadcrumbItem>
-              )}
-
-              {index < crumbs.length - 1 && (
-                <BreadcrumbDividerIcon size="xs" direction="right" />
-              )}
-            </React.Fragment>
-          );
         }
+        const {label, to, preserveGlobalSelection, key} = crumb;
+        const labelKey = typeof label === 'string' ? label : '';
+        const mapKey =
+          key ?? typeof to === 'string' ? `${labelKey}${to}` : `${labelKey}${index}`;
+
+        return (
+          <React.Fragment key={mapKey}>
+            {to ? (
+              <BreadcrumbLink to={to} preserveGlobalSelection={preserveGlobalSelection}>
+                {label}
+              </BreadcrumbLink>
+            ) : (
+              <BreadcrumbItem>{label}</BreadcrumbItem>
+            )}
+
+            {index < crumbs.length - 1 && (
+              <BreadcrumbDividerIcon size="xs" direction="right" />
+            )}
+          </React.Fragment>
+        );
       })}
     </BreadcrumbList>
   );

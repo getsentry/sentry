@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {Client} from 'app/api';
-import TraceLiteQuery from 'app/utils/performance/quickTrace/traceLiteQuery';
+import {Client} from 'sentry/api';
+import TraceLiteQuery from 'sentry/utils/performance/quickTrace/traceLiteQuery';
 
 const traceId = 'abcdef1234567890';
 const eventId = '0987654321fedcba';
@@ -11,20 +11,20 @@ const eventId = '0987654321fedcba';
 function renderTraceLite({isLoading, error, trace, type}) {
   if (isLoading) {
     return 'loading';
-  } else if (error !== null) {
-    return error;
-  } else {
-    return (
-      <Fragment>
-        <div key="type" data-test-id="type">
-          {type}
-        </div>
-        <div key="trace" data-test-id="trace">
-          {trace.length}
-        </div>
-      </Fragment>
-    );
   }
+  if (error !== null) {
+    return error;
+  }
+  return (
+    <Fragment>
+      <div key="type" data-test-id="type">
+        {type}
+      </div>
+      <div key="trace" data-test-id="trace">
+        {trace.length}
+      </div>
+    </Fragment>
+  );
 }
 
 describe('TraceLiteQuery', function () {
@@ -38,15 +38,11 @@ describe('TraceLiteQuery', function () {
   });
 
   it('fetches data on mount and passes the event id', async function () {
-    const getMock = MockApiClient.addMockResponse(
-      {
-        url: `/organizations/test-org/events-trace-light/${traceId}/`,
-        body: [],
-      },
-      {
-        predicate: (_, {query}) => query.event_id === eventId,
-      }
-    );
+    const getMock = MockApiClient.addMockResponse({
+      url: `/organizations/test-org/events-trace-light/${traceId}/`,
+      body: [],
+      match: [MockApiClient.matchQuery({event_id: eventId})],
+    });
     const wrapper = mountWithTheme(
       <TraceLiteQuery
         api={api}

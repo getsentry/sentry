@@ -1,9 +1,9 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import ActionLink from 'app/components/actions/actionLink';
-import MenuItem from 'app/components/menuItem';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
+import ActionLink from 'sentry/components/actions/actionLink';
+import MenuItem from 'sentry/components/menuItem';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 
 function MenuItemActionLink({
   className,
@@ -25,8 +25,7 @@ const InnerActionLink = styled(ActionLink)`
   .dropdown-menu > li > &,
   .dropdown-menu > span > li > & {
     &.disabled:hover {
-      background: ${p => p.theme.white};
-      color: #7a8188;
+      background: ${p => p.theme.background};
     }
   }
 `;

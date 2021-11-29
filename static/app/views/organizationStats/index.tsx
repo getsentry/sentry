@@ -6,18 +6,20 @@ import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import moment from 'moment';
 
-import {DateTimeObject} from 'app/components/charts/utils';
-import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
-import ErrorBoundary from 'app/components/errorBoundary';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {ChangeData} from 'app/components/organizations/timeRangeSelector';
-import PageHeading from 'app/components/pageHeading';
-import PageTimeRangeSelector from 'app/components/pageTimeRangeSelector';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'app/constants';
-import {t} from 'app/locale';
-import {PageContent, PageHeader} from 'app/styles/organization';
-import space from 'app/styles/space';
+import {DateTimeObject} from 'sentry/components/charts/utils';
+import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import HookOrDefault from 'sentry/components/hookOrDefault';
+import * as Layout from 'sentry/components/layouts/thirds';
+import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
+import PageHeading from 'sentry/components/pageHeading';
+import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'sentry/constants';
+import {t} from 'sentry/locale';
+import {PageHeader} from 'sentry/styles/organization';
+import space from 'sentry/styles/space';
 import {
   DataCategory,
   DataCategoryName,
@@ -25,12 +27,15 @@ import {
   Organization,
   Project,
   RelativePeriod,
-} from 'app/types';
-import withOrganization from 'app/utils/withOrganization';
+} from 'sentry/types';
+import withOrganization from 'sentry/utils/withOrganization';
+import HeaderTabs from 'sentry/views/organizationStats/header';
 
 import {CHART_OPTIONS_DATACATEGORY, ChartDataTransform} from './usageChart';
 import UsageStatsOrg from './usageStatsOrg';
 import UsageStatsProjects from './usageStatsProjects';
+
+const HookHeader = HookOrDefault({hookName: 'component:org-stats-banner'});
 
 const PAGE_QUERY_PARAMS = [
   'pageStatsPeriod',
@@ -228,16 +233,6 @@ export class OrganizationStats extends Component<Props> {
 
     return (
       <Fragment>
-        <StyledPageTimeRangeSelector
-          organization={organization}
-          relative={period ?? ''}
-          start={start ?? null}
-          end={end ?? null}
-          utc={utc ?? null}
-          onUpdate={this.handleUpdateDatetime}
-          relativeOptions={omit(DEFAULT_RELATIVE_PERIODS, ['1h'])}
-        />
-
         <DropdownDataCategory
           label={
             <DropdownLabel>
@@ -249,6 +244,7 @@ export class OrganizationStats extends Component<Props> {
           {CHART_OPTIONS_DATACATEGORY.map(option => (
             <DropdownItem
               key={option.value}
+              isActive={option.value === this.dataCategory}
               eventKey={option.value}
               onSelect={(val: string) =>
                 this.setStateOnUrl({dataCategory: val as DataCategory})
@@ -258,54 +254,76 @@ export class OrganizationStats extends Component<Props> {
             </DropdownItem>
           ))}
         </DropdownDataCategory>
+
+        <StyledPageTimeRangeSelector
+          organization={organization}
+          relative={period ?? ''}
+          start={start ?? null}
+          end={end ?? null}
+          utc={utc ?? null}
+          onUpdate={this.handleUpdateDatetime}
+          relativeOptions={omit(DEFAULT_RELATIVE_PERIODS, ['1h'])}
+        />
       </Fragment>
     );
   };
 
   render() {
     const {organization} = this.props;
+    const hasTeamInsights = organization.features.includes('team-insights');
 
     return (
       <SentryDocumentTitle title="Usage Stats">
-        <PageContent>
-          <PageHeader>
-            <PageHeading>{t('Organization Usage Stats')}</PageHeading>
-          </PageHeader>
+        <Fragment>
+          {hasTeamInsights && (
+            <HeaderTabs organization={organization} activeTab="stats" />
+          )}
+          <Body>
+            <Layout.Main fullWidth>
+              {!hasTeamInsights && (
+                <Fragment>
+                  <PageHeader>
+                    <PageHeading>{t('Organization Usage Stats')}</PageHeading>
+                  </PageHeader>
+                  <p>
+                    {t(
+                      'We collect usage metrics on three types of events: errors, transactions, and attachments. The charts below reflect events that Sentry has received across your entire organization. You can also find them broken down by project in the table.'
+                    )}
+                  </p>
+                </Fragment>
+              )}
+              <HookHeader organization={organization} />
 
-          <p>
-            {t(
-              'We collect usage metrics on three types of events: errors, transactions, and attachments. The charts below reflect events that Sentry has received across your entire organization. You can also find them broken down by project in the table.'
-            )}
-          </p>
+              <PageGrid>
+                {this.renderPageControl()}
 
-          <PageGrid>
-            {this.renderPageControl()}
-
-            <ErrorBoundary mini>
-              <UsageStatsOrg
-                organization={organization}
-                dataCategory={this.dataCategory}
-                dataCategoryName={this.dataCategoryName}
-                dataDatetime={this.dataDatetime}
-                chartTransform={this.chartTransform}
-                handleChangeState={this.setStateOnUrl}
-              />
-            </ErrorBoundary>
-            <ErrorBoundary mini>
-              <UsageStatsProjects
-                organization={organization}
-                dataCategory={this.dataCategory}
-                dataCategoryName={this.dataCategoryName}
-                dataDatetime={this.dataDatetime}
-                tableSort={this.tableSort}
-                tableQuery={this.tableQuery}
-                tableCursor={this.tableCursor}
-                handleChangeState={this.setStateOnUrl}
-                getNextLocations={this.getNextLocations}
-              />
-            </ErrorBoundary>
-          </PageGrid>
-        </PageContent>
+                <ErrorBoundary mini>
+                  <UsageStatsOrg
+                    organization={organization}
+                    dataCategory={this.dataCategory}
+                    dataCategoryName={this.dataCategoryName}
+                    dataDatetime={this.dataDatetime}
+                    chartTransform={this.chartTransform}
+                    handleChangeState={this.setStateOnUrl}
+                  />
+                </ErrorBoundary>
+              </PageGrid>
+              <ErrorBoundary mini>
+                <UsageStatsProjects
+                  organization={organization}
+                  dataCategory={this.dataCategory}
+                  dataCategoryName={this.dataCategoryName}
+                  dataDatetime={this.dataDatetime}
+                  tableSort={this.tableSort}
+                  tableQuery={this.tableQuery}
+                  tableCursor={this.tableCursor}
+                  handleChangeState={this.setStateOnUrl}
+                  getNextLocations={this.getNextLocations}
+                />
+              </ErrorBoundary>
+            </Layout.Main>
+          </Body>
+        </Fragment>
       </SentryDocumentTitle>
     );
   }
@@ -370,5 +388,13 @@ const DropdownLabel = styled('span')`
 
   > span:last-child {
     font-weight: 400;
+  }
+`;
+
+const Body = styled(Layout.Body)`
+  margin-bottom: -20px;
+
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    display: block;
   }
 `;

@@ -1,12 +1,16 @@
 import {browserHistory} from 'react-router';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
+import {act} from 'sentry-test/reactTestingLibrary';
 
-import OrganizationGeneralSettings from 'app/views/settings/organizationGeneralSettings';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import OrganizationGeneralSettings from 'sentry/views/settings/organizationGeneralSettings';
 
 describe('OrganizationGeneralSettings', function () {
+  enforceActOnUseLegacyStoreHook();
+
   let organization;
   let routerContext;
   const ENDPOINT = '/organizations/org-slug/';
@@ -58,13 +62,22 @@ describe('OrganizationGeneralSettings', function () {
 
     await tick();
     wrapper.update();
-    // Change slug
-    wrapper
-      .find('input[id="slug"]')
-      .simulate('change', {target: {value: 'new-slug'}})
-      .simulate('blur');
 
-    wrapper.find('button[aria-label="Save"]').simulate('click');
+    // Change slug
+    act(() => {
+      wrapper
+        .find('input[id="slug"]')
+        .simulate('change', {target: {value: 'new-slug'}})
+        .simulate('blur');
+    });
+
+    await tick();
+    wrapper.update();
+
+    act(() => {
+      wrapper.find('button[aria-label="Save"]').simulate('click');
+    });
+
     expect(mock).toHaveBeenCalledWith(
       ENDPOINT,
       expect.objectContaining({
@@ -104,7 +117,6 @@ describe('OrganizationGeneralSettings', function () {
       <OrganizationGeneralSettings
         params={{orgId: organization.slug}}
         organization={TestStubs.Organization({
-          projects: [{slug: 'project'}],
           access: ['org:write'],
         })}
       />,
@@ -117,13 +129,12 @@ describe('OrganizationGeneralSettings', function () {
   });
 
   it('can remove organization when org admin', async function () {
+    act(() => ProjectsStore.loadInitialData([TestStubs.Project({slug: 'project'})]));
+
     const wrapper = mountWithTheme(
       <OrganizationGeneralSettings
         params={{orgId: organization.slug}}
-        organization={TestStubs.Organization({
-          projects: [{slug: 'project'}],
-          access: ['org:admin'],
-        })}
+        organization={TestStubs.Organization({access: ['org:admin']})}
       />,
       routerContext
     );
@@ -139,8 +150,9 @@ describe('OrganizationGeneralSettings', function () {
     const modal = await mountGlobalModal();
 
     // Lists projects in modal
-    expect(modal.find('.ref-projects')).toHaveLength(1);
-    expect(modal.find('.ref-projects li').text()).toBe('project');
+    const projectList = modal.find('List[data-test-id="removed-projects-list"]');
+    expect(projectList).toHaveLength(1);
+    expect(projectList.text()).toBe('project');
 
     // Confirm delete
     modal.find('Button[priority="danger"]').simulate('click');

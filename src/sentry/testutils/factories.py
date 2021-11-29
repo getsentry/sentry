@@ -44,6 +44,7 @@ from sentry.mediators import (
 )
 from sentry.models import (
     Activity,
+    Actor,
     Commit,
     CommitAuthor,
     CommitFileChange,
@@ -53,6 +54,7 @@ from sentry.models import (
     ExternalIssue,
     File,
     Group,
+    GroupHistory,
     GroupLink,
     Identity,
     IdentityProvider,
@@ -70,6 +72,7 @@ from sentry.models import (
     ReleaseCommit,
     ReleaseEnvironment,
     ReleaseFile,
+    ReleaseProjectEnvironment,
     Repository,
     RepositoryProjectPathConfig,
     Rule,
@@ -232,7 +235,7 @@ def _patch_artifact_manifest(path, org, release, project=None, extra_files=None)
     return json.dumps(manifest)
 
 
-# TODO(dcramer): consider moving to something more scaleable like factoryboy
+# TODO(dcramer): consider moving to something more scalable like factoryboy
 class Factories:
     @staticmethod
     def create_organization(name=None, owner=None, **kwargs):
@@ -369,6 +372,9 @@ class Factories:
         date_added: Optional[datetime] = None,
         additional_projects: Optional[Sequence[Project]] = None,
         environments: Optional[Sequence[Environment]] = None,
+        date_released: Optional[datetime] = None,
+        adopted: Optional[datetime] = None,
+        unadopted: Optional[datetime] = None,
     ):
         if version is None:
             version = force_text(hexlify(os.urandom(20)))
@@ -380,7 +386,10 @@ class Factories:
             additional_projects = []
 
         release = Release.objects.create(
-            version=version, organization_id=project.organization_id, date_added=date_added
+            version=version,
+            organization_id=project.organization_id,
+            date_added=date_added,
+            date_released=date_released,
         )
 
         release.add_project(project)
@@ -391,6 +400,14 @@ class Factories:
             ReleaseEnvironment.objects.create(
                 organization=project.organization, release=release, environment=environment
             )
+            for project in [project] + additional_projects:
+                ReleaseProjectEnvironment.objects.create(
+                    project=project,
+                    release=release,
+                    environment=environment,
+                    adopted=adopted,
+                    unadopted=unadopted,
+                )
 
         Activity.objects.create(
             type=Activity.RELEASE,
@@ -472,16 +489,18 @@ class Factories:
         return update_artifact_index(release, dist, file_)
 
     @staticmethod
-    def create_code_mapping(project, repo=None, **kwargs):
+    def create_code_mapping(project, repo=None, organization_integration=None, **kwargs):
         kwargs.setdefault("stack_root", "")
         kwargs.setdefault("source_root", "")
         kwargs.setdefault("default_branch", "master")
 
         if not repo:
             repo = Factories.create_repo(project=project)
-
         return RepositoryProjectPathConfig.objects.create(
-            project=project, repository=repo, **kwargs
+            project=project,
+            repository=repo,
+            organization_integration_id=organization_integration.id,
+            **kwargs,
         )
 
     @staticmethod
@@ -553,7 +572,7 @@ class Factories:
         kwargs.setdefault("is_superuser", False)
 
         user = User(email=email, **kwargs)
-        if not kwargs.get("password"):
+        if kwargs.get("password") is None:
             user.set_password("admin")
         user.save()
 
@@ -787,7 +806,24 @@ class Factories:
             "settings": {
                 "type": "alert-rule-settings",
                 "uri": "/sentry/alert-rule",
-                "required_fields": [{"type": "text", "name": "channel", "label": "Channel"}],
+                "required_fields": [
+                    {"type": "text", "name": "title", "label": "Title"},
+                    {"type": "text", "name": "summary", "label": "Summary"},
+                ],
+                "optional_fields": [
+                    {
+                        "type": "select",
+                        "name": "points",
+                        "label": "Points",
+                        "options": [["1", "1"], ["2", "2"], ["3", "3"], ["5", "5"], ["8", "8"]],
+                    },
+                    {
+                        "type": "select",
+                        "name": "assignee",
+                        "label": "Assignee",
+                        "uri": "/sentry/members",
+                    },
+                ],
             },
         }
 
@@ -942,6 +978,7 @@ class Factories:
         resolve_threshold=None,
         user=None,
         event_types=None,
+        comparison_delta=None,
     ):
         if not name:
             name = petname.Generate(2, " ", letters=10).title()
@@ -963,6 +1000,7 @@ class Factories:
             excluded_projects=excluded_projects,
             user=user,
             event_types=event_types,
+            comparison_delta=comparison_delta,
         )
 
         if date_added is not None:
@@ -994,9 +1032,16 @@ class Factories:
         target_identifier=None,
         integration=None,
         sentry_app=None,
+        sentry_app_config=None,
     ):
         return create_alert_rule_trigger_action(
-            trigger, type, target_type, target_identifier, integration, sentry_app
+            trigger,
+            type,
+            target_type,
+            target_identifier,
+            integration,
+            sentry_app,
+            sentry_app_config=sentry_app_config,
         )
 
     @staticmethod
@@ -1055,4 +1100,32 @@ class Factories:
             user=user,
             status=IdentityStatus.VALID,
             scopes=[],
+        )
+
+    @staticmethod
+    def create_group_history(
+        group: Group,
+        status: int,
+        release: Optional[Release] = None,
+        actor: Actor = None,
+        prev_history: GroupHistory = None,
+        date_added: datetime = None,
+    ) -> GroupHistory:
+        prev_history_date = None
+        if prev_history:
+            prev_history_date = prev_history.date_added
+
+        kwargs = {}
+        if date_added:
+            kwargs["date_added"] = date_added
+        return GroupHistory.objects.create(
+            organization=group.organization,
+            group=group,
+            project=group.project,
+            release=release,
+            actor=actor,
+            status=status,
+            prev_history=prev_history,
+            prev_history_date=prev_history_date,
+            **kwargs,
         )

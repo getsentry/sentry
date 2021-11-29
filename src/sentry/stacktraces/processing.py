@@ -165,7 +165,7 @@ class StacktraceProcessor:
 
 
 def find_stacktraces_in_data(data, include_raw=False, with_exceptions=False):
-    """Finds all stracktraces in a given data blob and returns it
+    """Finds all stacktraces in a given data blob and returns it
     together with some meta information.
 
     If `include_raw` is True, then also raw stacktraces are included.  If

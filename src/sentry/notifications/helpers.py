@@ -1,17 +1,7 @@
+from __future__ import annotations
+
 from collections import defaultdict
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Dict,
-    Iterable,
-    List,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Set,
-    Tuple,
-    Union,
-)
+from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping
 
 from sentry import features
 from sentry.notifications.defaults import (
@@ -51,58 +41,60 @@ def _get_notification_setting_default(
     """
     In order to increase engagement, we automatically opt users into receiving
     Slack notifications if they install Slack and link their identity.
+    Approval notifications always default to Slack being on.
     """
-    if should_use_slack_automatic:
+    if should_use_slack_automatic or type == NotificationSettingTypes.APPROVAL:
         return NOTIFICATION_SETTINGS_ALL_SOMETIMES[type]
     return NOTIFICATION_SETTING_DEFAULTS[provider][type]
 
 
 def _get_setting_mapping_from_mapping(
-    notification_settings_by_user: Mapping[
-        "User",
+    notification_settings_by_recipient: Mapping[
+        Team | User,
         Mapping[NotificationScopeType, Mapping[ExternalProviders, NotificationSettingOptionValues]],
     ],
-    user: "User",
+    recipient: Team | User,
     type: NotificationSettingTypes,
     should_use_slack_automatic: bool = False,
 ) -> Mapping[ExternalProviders, NotificationSettingOptionValues]:
-    # XXX(CEO): may not respect granularity of a setting for Slack a setting for email
-    # but we'll worry about that later since we don't have a FE for it yet
+    """
+    XXX(CEO): may not respect granularity of a setting for Slack a setting for
+     email but we'll worry about that later since we don't have a FE for it yet.
+    """
     from sentry.notifications.notify import notification_providers
 
-    specific_scope = get_scope_type(type)
-    notification_settings_mapping = notification_settings_by_user.get(user)
-    if notification_settings_mapping:
-        notification_setting_option = notification_settings_mapping.get(
-            specific_scope
-        ) or notification_settings_mapping.get(NotificationScopeType.USER)
-        if notification_setting_option:
-            return notification_setting_option
-
-    return {
+    # Fill in with the fallback values.
+    notification_setting_option = {
         provider: _get_notification_setting_default(
             provider, type, should_use_slack_automatic=should_use_slack_automatic
         )
         for provider in notification_providers()
     }
 
+    notification_settings_mapping = notification_settings_by_recipient.get(recipient, {})
+    for scope in [NotificationScopeType.USER, NotificationScopeType.TEAM, get_scope_type(type)]:
+        notification_setting_option.update(notification_settings_mapping.get(scope, {}))
 
-def where_should_user_be_notified(
-    notification_settings_by_user: Mapping[
-        "User",
+    return notification_setting_option
+
+
+def where_should_recipient_be_notified(
+    notification_settings_by_recipient: Mapping[
+        Team | User,
         Mapping[NotificationScopeType, Mapping[ExternalProviders, NotificationSettingOptionValues]],
     ],
-    user: "User",
+    recipient: Team | User,
     should_use_slack_automatic: bool = False,
-) -> List[ExternalProviders]:
+    type: NotificationSettingTypes = NotificationSettingTypes.ISSUE_ALERTS,
+) -> list[ExternalProviders]:
     """
     Given a mapping of default and specific notification settings by user,
     return the list of providers after verifying the user has opted into this notification.
     """
     mapping = _get_setting_mapping_from_mapping(
-        notification_settings_by_user,
-        user,
-        NotificationSettingTypes.ISSUE_ALERTS,
+        notification_settings_by_recipient,
+        recipient,
+        type,
         should_use_slack_automatic=should_use_slack_automatic,
     )
     return [
@@ -113,13 +105,13 @@ def where_should_user_be_notified(
 
 
 def should_be_participating(
-    subscription: Optional[Any],
+    subscription: Any | None,
     value: NotificationSettingOptionValues,
 ) -> bool:
     """
-    Give a user's subscription (on, off, or null) to a group and their
+    Give an Actor's subscription (on, off, or null) to a group and their
     notification setting value(on, off, or sometimes), decide whether or not to
-    send the user a notification.
+    send the Actor a notification.
     """
     return (
         subscription and subscription.is_active and value != NotificationSettingOptionValues.NEVER
@@ -127,14 +119,14 @@ def should_be_participating(
 
 
 def where_should_be_participating(
-    user: "User",
-    subscription: Optional["GroupSubscription"],
-    notification_settings_by_user: Mapping[
-        "User",
+    recipient: Team | User,
+    subscription: GroupSubscription | None,
+    notification_settings_by_recipient: Mapping[
+        Team | User,
         Mapping[NotificationScopeType, Mapping[ExternalProviders, NotificationSettingOptionValues]],
     ],
     should_use_slack_automatic: bool = False,
-) -> List[ExternalProviders]:
+) -> list[ExternalProviders]:
     """
     Given a mapping of users to subscriptions and a mapping of default and
     specific notification settings by user, determine where a user should receive
@@ -143,8 +135,8 @@ def where_should_be_participating(
     the group, that overrides their notification preferences.
     """
     mapping = _get_setting_mapping_from_mapping(
-        notification_settings_by_user,
-        user,
+        notification_settings_by_recipient,
+        recipient,
         NotificationSettingTypes.WORKFLOW,
         should_use_slack_automatic=should_use_slack_automatic,
     )
@@ -172,8 +164,10 @@ def get_values_by_provider_by_type(
     parent_scope = get_scope_type(type)
 
     parent_specific_mapping = notification_settings_by_scope.get(parent_scope, {})
-    organization_independent_mapping = notification_settings_by_scope.get(
-        NotificationScopeType.USER, {}
+    organization_independent_mapping = (
+        notification_settings_by_scope.get(NotificationScopeType.USER)
+        or notification_settings_by_scope.get(NotificationScopeType.TEAM)
+        or {}
     )
 
     return {
@@ -186,33 +180,36 @@ def get_values_by_provider_by_type(
     }
 
 
-def transform_to_notification_settings_by_user(
-    notification_settings: Iterable["NotificationSetting"],
-    users: Iterable["User"],
+def transform_to_notification_settings_by_recipient(
+    notification_settings: Iterable[NotificationSetting],
+    recipients: Iterable[Team | User],
 ) -> Mapping[
-    "User",
+    Team | User,
     Mapping[NotificationScopeType, Mapping[ExternalProviders, NotificationSettingOptionValues]],
 ]:
     """
     Given an unsorted list of notification settings, create a mapping of users
     to a map of notification scopes to setting values.
     """
-    actor_mapping = {user.actor_id: user for user in users}
-    notification_settings_by_user: Dict[
-        "User",
-        Dict[NotificationScopeType, Dict[ExternalProviders, NotificationSettingOptionValues]],
+    actor_mapping = {recipient.actor_id: recipient for recipient in recipients}
+    notification_settings_by_recipient: MutableMapping[
+        Team | User,
+        MutableMapping[
+            NotificationScopeType,
+            MutableMapping[ExternalProviders, NotificationSettingOptionValues],
+        ],
     ] = defaultdict(lambda: defaultdict(dict))
     for notification_setting in notification_settings:
-        user = actor_mapping.get(notification_setting.target_id)
+        recipient = actor_mapping.get(notification_setting.target_id)
         scope_type = NotificationScopeType(notification_setting.scope_type)
         value = NotificationSettingOptionValues(notification_setting.value)
         provider = ExternalProviders(notification_setting.provider)
-        notification_settings_by_user[user][scope_type][provider] = value
-    return notification_settings_by_user
+        notification_settings_by_recipient[recipient][scope_type][provider] = value
+    return notification_settings_by_recipient
 
 
 def transform_to_notification_settings_by_scope(
-    notification_settings: Iterable["NotificationSetting"],
+    notification_settings: Iterable[NotificationSetting],
 ) -> Mapping[
     NotificationScopeType,
     Mapping[int, Mapping[ExternalProviders, NotificationSettingOptionValues]],
@@ -221,8 +218,9 @@ def transform_to_notification_settings_by_scope(
     Given an unsorted list of notification settings, create a mapping of scopes
     (user or parent) and their IDs to a map of provider to notifications setting values.
     """
-    notification_settings_by_scopes: Dict[
-        NotificationScopeType, Dict[int, Dict[ExternalProviders, NotificationSettingOptionValues]]
+    notification_settings_by_scopes: MutableMapping[
+        NotificationScopeType,
+        MutableMapping[int, MutableMapping[ExternalProviders, NotificationSettingOptionValues]],
     ] = defaultdict(lambda: defaultdict(lambda: dict()))
 
     for notification_setting in notification_settings:
@@ -243,21 +241,21 @@ def validate(type: NotificationSettingTypes, value: NotificationSettingOptionVal
 
 def get_scope_type(type: NotificationSettingTypes) -> NotificationScopeType:
     """In which scope (proj or org) can a user set more specific settings?"""
-    if type in [NotificationSettingTypes.DEPLOY]:
+    if type in [NotificationSettingTypes.DEPLOY, NotificationSettingTypes.APPROVAL]:
         return NotificationScopeType.ORGANIZATION
 
     if type in [NotificationSettingTypes.WORKFLOW, NotificationSettingTypes.ISSUE_ALERTS]:
         return NotificationScopeType.PROJECT
 
-    raise Exception(f"type {type}, must be alerts, deploy, or workflow")
+    raise Exception(f"type {type}, must be alerts, deploy, workflow, or approval")
 
 
 def get_scope(
-    user: Optional["User"] = None,
-    team: Optional["Team"] = None,
-    project: Optional["Project"] = None,
-    organization: Optional["Organization"] = None,
-) -> Tuple[NotificationScopeType, int]:
+    user: User | None = None,
+    team: Team | None = None,
+    project: Project | None = None,
+    organization: Organization | None = None,
+) -> tuple[NotificationScopeType, int]:
     """
     Figure out the scope from parameters and return it as a tuple.
     TODO(mgaeta): Make sure the user/team is in the project/organization.
@@ -278,7 +276,7 @@ def get_scope(
     raise Exception("scope must be either user, team, organization, or project")
 
 
-def get_target_id(user: Optional["User"] = None, team: Optional["Team"] = None) -> int:
+def get_target_id(user: User | None = None, team: Team | None = None) -> int:
     """:returns the actor ID from a User or Team."""
     if user:
         return int(user.actor_id)
@@ -290,8 +288,8 @@ def get_target_id(user: Optional["User"] = None, team: Optional["Team"] = None) 
 
 def get_subscription_from_attributes(
     attrs: Mapping[str, Any]
-) -> Tuple[bool, Optional[Mapping[str, Union[str, bool]]]]:
-    subscription_details: Optional[Mapping[str, Union[str, bool]]] = None
+) -> tuple[bool, Mapping[str, str | bool] | None]:
+    subscription_details: Mapping[str, str | bool] | None = None
     is_disabled, is_subscribed, subscription = attrs["subscription"]
     if is_disabled:
         subscription_details = {"disabled": True}
@@ -304,13 +302,13 @@ def get_subscription_from_attributes(
 
 
 def get_groups_for_query(
-    groups_by_project: Mapping["Project", Set["Group"]],
+    groups_by_project: Mapping[Project, set[Group]],
     notification_settings_by_scope: Mapping[
         NotificationScopeType,
         Mapping[int, Mapping[ExternalProviders, NotificationSettingOptionValues]],
     ],
-    user: "User",
-) -> Set["Group"]:
+    user: User,
+) -> set[Group]:
     """
     If there is a subscription record associated with the group, we can just use
     that to know if a user is subscribed or not, as long as notifications aren't
@@ -327,7 +325,7 @@ def get_groups_for_query(
     for project, groups in groups_by_project.items():
         value = get_most_specific_notification_setting_value(
             notification_settings_by_scope,
-            user=user,
+            recipient=user,
             parent_id=project.id,
             type=NotificationSettingTypes.WORKFLOW,
             should_use_slack_automatic=should_use_slack_automatic_by_organization_id[
@@ -339,7 +337,7 @@ def get_groups_for_query(
     return output
 
 
-def collect_groups_by_project(groups: Iterable["Group"]) -> Mapping["Project", Set["Group"]]:
+def collect_groups_by_project(groups: Iterable[Group]) -> Mapping[Project, set[Group]]:
     """
     Collect all of the projects to look up, and keep a set of groups that are
     part of that project. (Note that the common -- but not only -- case here is
@@ -352,14 +350,14 @@ def collect_groups_by_project(groups: Iterable["Group"]) -> Mapping["Project", S
 
 
 def get_user_subscriptions_for_groups(
-    groups_by_project: Mapping["Project", Set["Group"]],
+    groups_by_project: Mapping[Project, set[Group]],
     notification_settings_by_scope: Mapping[
         NotificationScopeType,
         Mapping[int, Mapping[ExternalProviders, NotificationSettingOptionValues]],
     ],
-    subscriptions_by_group_id: Mapping[int, "GroupSubscription"],
-    user: "User",
-) -> Mapping[int, Tuple[bool, bool, Optional["GroupSubscription"]]]:
+    subscriptions_by_group_id: Mapping[int, GroupSubscription],
+    user: User,
+) -> Mapping[int, tuple[bool, bool, GroupSubscription | None]]:
     """Takes collected data and returns a mapping of group IDs to a three-tuple of values."""
     # TODO(mgaeta): Remove `should_use_slack_automatic` parameter.
     should_use_slack_automatic_by_organization_id = {
@@ -371,7 +369,7 @@ def get_user_subscriptions_for_groups(
     for project, groups in groups_by_project.items():
         value = get_most_specific_notification_setting_value(
             notification_settings_by_scope,
-            user=user,
+            recipient=user,
             parent_id=project.id,
             type=NotificationSettingTypes.WORKFLOW,
             should_use_slack_automatic=should_use_slack_automatic_by_organization_id[
@@ -417,7 +415,7 @@ def get_fallback_settings(
     types_to_serialize: Iterable[NotificationSettingTypes],
     project_ids: Iterable[int],
     organization_ids: Iterable[int],
-    user: Optional["User"] = None,
+    recipient: Team | User | None = None,
     should_use_slack_automatic: bool = False,
 ) -> MutableMapping[str, MutableMapping[str, MutableMapping[int, MutableMapping[str, str]]]]:
     """
@@ -449,8 +447,7 @@ def get_fallback_settings(
             for parent_id in parent_ids:
                 data[type_str][scope_str][parent_id][provider_str] = parent_independent_value_str
 
-            # Only users (i.e. not teams) have parent-independent notification settings.
-            if user:
+            if recipient:
                 # Each provider has it's own defaults by type.
                 value = _get_notification_setting_default(
                     provider, type_enum, should_use_slack_automatic
@@ -458,7 +455,7 @@ def get_fallback_settings(
                 value_str = NOTIFICATION_SETTING_OPTION_VALUES[value]
                 user_scope_str = NOTIFICATION_SCOPE_TYPE[NotificationScopeType.USER]
 
-                data[type_str][user_scope_str][user.id][provider_str] = value_str
+                data[type_str][user_scope_str][recipient.id][provider_str] = value_str
     return data
 
 
@@ -472,7 +469,7 @@ def get_reason_context(extra_context: Mapping[str, Any]) -> MutableMapping[str, 
 
 def get_highest_notification_setting_value(
     notification_settings_by_provider: Mapping[ExternalProviders, NotificationSettingOptionValues],
-) -> Optional[NotificationSettingOptionValues]:
+) -> NotificationSettingOptionValues | None:
     """
     Find the "most specific" notification setting value. Currently non-NEVER
     values are locked together (for example, you cannot have
@@ -491,7 +488,7 @@ def get_most_specific_notification_setting_value(
         NotificationScopeType,
         Mapping[int, Mapping[ExternalProviders, NotificationSettingOptionValues]],
     ],
-    user: "User",
+    recipient: Team | User,
     parent_id: int,
     type: NotificationSettingTypes,
     should_use_slack_automatic: bool = False,
@@ -505,7 +502,11 @@ def get_most_specific_notification_setting_value(
             notification_settings_by_scope.get(get_scope_type(type), {}).get(parent_id, {})
         )
         or get_highest_notification_setting_value(
-            notification_settings_by_scope.get(NotificationScopeType.USER, {}).get(user.id, {})
+            (
+                notification_settings_by_scope.get(NotificationScopeType.USER)
+                or notification_settings_by_scope.get(NotificationScopeType.TEAM)
+                or {}
+            ).get(recipient.id, {})
         )
         or _get_notification_setting_default(
             ExternalProviders.EMAIL, type, should_use_slack_automatic

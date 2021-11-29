@@ -2,24 +2,24 @@ import {Component, Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps} from 'app/actionCreators/modal';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import ExternalLink from 'app/components/links/externalLink';
-import {DISCOVER2_DOCS_URL} from 'app/constants';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {LightWeightOrganization} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {Column} from 'app/utils/discover/fields';
-import theme from 'app/utils/theme';
-import {generateFieldOptions} from 'app/views/eventsV2/utils';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {DISCOVER2_DOCS_URL} from 'sentry/constants';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {Column} from 'sentry/utils/discover/fields';
+import theme from 'sentry/utils/theme';
+import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 
 import ColumnEditCollection from './columnEditCollection';
 
 type Props = {
   columns: Column[];
-  organization: LightWeightOrganization;
+  organization: Organization;
   tagKeys: null | string[];
   measurementKeys: null | string[];
   spanOperationBreakdownKeys?: string[];

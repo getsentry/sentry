@@ -3,10 +3,10 @@ import {browserHistory} from 'react-router';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import * as modal from 'app/actionCreators/modal';
-import {Client} from 'app/api';
-import {t} from 'app/locale';
-import WidgetCard from 'app/views/dashboardsV2/widgetCard';
+import * as modal from 'sentry/actionCreators/modal';
+import {Client} from 'sentry/api';
+import {t} from 'sentry/locale';
+import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
 
 describe('Dashboards > WidgetCard', function () {
   const initialData = initializeOrg({
@@ -21,8 +21,16 @@ describe('Dashboards > WidgetCard', function () {
     interval: '5m',
     displayType: 'line',
     queries: [
-      {conditions: 'event.type:error', fields: ['count()'], name: 'errors'},
-      {conditions: 'event.type:default', fields: ['count()'], name: 'default'},
+      {
+        conditions: 'event.type:error',
+        fields: ['count()', 'failure_count()'],
+        name: 'errors',
+      },
+      {
+        conditions: 'event.type:default',
+        fields: ['count()', 'failure_count()'],
+        name: 'default',
+      },
     ],
   };
   const selection = {
@@ -86,5 +94,86 @@ describe('Dashboards > WidgetCard', function () {
       organization: initialData.organization,
       widget: multipleQueryWidget,
     });
+  });
+
+  it('renders with Open in Discover button and opens in Discover when clicked', async function () {
+    const wrapper = mountWithTheme(
+      <WidgetCard
+        api={api}
+        organization={initialData.organization}
+        widget={{...multipleQueryWidget, queries: [multipleQueryWidget.queries[0]]}}
+        selection={selection}
+        isEditing={false}
+        onDelete={() => undefined}
+        onEdit={() => undefined}
+        renderErrorMessage={() => undefined}
+        isSorting={false}
+        currentWidgetDragging={false}
+        showContextMenu
+      >
+        {() => <div data-test-id="child" />}
+      </WidgetCard>,
+      initialData.routerContext
+    );
+
+    await tick();
+
+    const menuOptions = wrapper.find('ContextMenu').props().children;
+    expect(menuOptions.length > 0).toBe(true);
+    expect(menuOptions[0].props.children.props.children).toContain(t('Open in Discover'));
+    expect(menuOptions[0].props.to).toEqual(
+      expect.objectContaining({
+        pathname: '/organizations/org-slug/discover/results/',
+        query: expect.objectContaining({
+          field: ['count()', 'failure_count()'],
+          name: 'Errors',
+          query: 'event.type:error',
+          yAxis: ['count()', 'failure_count()'],
+        }),
+      })
+    );
+  });
+
+  it('Opens in Discover with World Map', async function () {
+    const wrapper = mountWithTheme(
+      <WidgetCard
+        api={api}
+        organization={initialData.organization}
+        widget={{
+          ...multipleQueryWidget,
+          displayType: 'world_map',
+          queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
+        }}
+        selection={selection}
+        isEditing={false}
+        onDelete={() => undefined}
+        onEdit={() => undefined}
+        renderErrorMessage={() => undefined}
+        isSorting={false}
+        currentWidgetDragging={false}
+        showContextMenu
+      >
+        {() => <div data-test-id="child" />}
+      </WidgetCard>,
+      initialData.routerContext
+    );
+
+    await tick();
+
+    const menuOptions = wrapper.find('ContextMenu').props().children;
+    expect(menuOptions.length > 0).toBe(true);
+    expect(menuOptions[0].props.children.props.children).toContain(t('Open in Discover'));
+    expect(menuOptions[0].props.to).toEqual(
+      expect.objectContaining({
+        pathname: '/organizations/org-slug/discover/results/',
+        query: expect.objectContaining({
+          display: 'worldmap',
+          field: ['geo.country_code', 'count()'],
+          name: 'Errors',
+          query: 'event.type:error has:geo.country_code',
+          yAxis: ['count()'],
+        }),
+      })
+    );
   });
 });

@@ -1,22 +1,11 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import ConfigStore from 'app/stores/configStore';
-import InstallWizard from 'app/views/admin/installWizard';
-
-jest.mock('app/stores/configStore', () => ({
-  get: jest.fn(),
-}));
+import ConfigStore from 'sentry/stores/configStore';
+import InstallWizard from 'sentry/views/admin/installWizard';
 
 describe('InstallWizard', function () {
   beforeAll(function () {
-    ConfigStore.get.mockImplementation(key => {
-      if (key === 'version') {
-        return {
-          current: '1.33.7',
-        };
-      }
-      return {};
-    });
+    ConfigStore.set('version', '1.33.7');
     MockApiClient.addMockResponse({
       url: '/internal/options/?query=is:required',
       body: TestStubs.InstallWizard(),

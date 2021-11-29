@@ -1,10 +1,10 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import UserAvatar from 'app/components/avatar/userAvatar';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {AvatarUser} from 'app/types';
+import UserAvatar from 'sentry/components/avatar/userAvatar';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {AvatarUser} from 'sentry/types';
 
 type Props = {
   avatarSize?: UserAvatar['props']['size'];

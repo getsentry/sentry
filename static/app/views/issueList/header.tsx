@@ -2,19 +2,21 @@ import * as React from 'react';
 import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 
-import GuideAnchor from 'app/components/assistant/guideAnchor';
-import Badge from 'app/components/badge';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import * as Layout from 'app/components/layouts/thirds';
-import Link from 'app/components/links/link';
-import QueryCount from 'app/components/queryCount';
-import Tooltip from 'app/components/tooltip';
-import {IconPause, IconPlay} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import Badge from 'sentry/components/badge';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingAlert';
+import * as Layout from 'sentry/components/layouts/thirds';
+import Link from 'sentry/components/links/link';
+import QueryCount from 'sentry/components/queryCount';
+import Tooltip from 'sentry/components/tooltip';
+import {IconPause, IconPlay} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import withProjects from 'sentry/utils/withProjects';
 
 import SavedSearchTab from './savedSearchTab';
 import {getTabs, IssueSortOptions, Query, QueryCounts, TAB_MAX_COUNT} from './utils';
@@ -47,6 +49,8 @@ type Props = {
   router: InjectedRouter;
   onRealtimeChange: (realtime: boolean) => void;
   displayReprocessingTab: boolean;
+  selectedProjectIds: number[];
+  projects: Project[];
   queryCount?: number;
 } & React.ComponentProps<typeof SavedSearchTab>;
 
@@ -63,6 +67,8 @@ function IssueListHeader({
   savedSearchList,
   router,
   displayReprocessingTab,
+  selectedProjectIds,
+  projects,
 }: Props) {
   const tabs = getTabs(organization);
   const visibleTabs = displayReprocessingTab
@@ -85,6 +91,10 @@ function IssueListHeader({
     }
   }
 
+  const selectedProjects = projects.filter(({id}) =>
+    selectedProjectIds.includes(Number(id))
+  );
+
   return (
     <React.Fragment>
       <BorderlessHeader>
@@ -103,6 +113,7 @@ function IssueListHeader({
             </Button>
           </ButtonBar>
         </Layout.HeaderActions>
+        <StyledGlobalEventProcessingAlert projects={selectedProjects} />
       </BorderlessHeader>
       <TabLayoutHeader>
         <Layout.HeaderNavTabs underlined>
@@ -168,7 +179,7 @@ function IssueListHeader({
   );
 }
 
-export default IssueListHeader;
+export default withProjects(IssueListHeader);
 
 const StyledLayoutTitle = styled(Layout.Title)`
   margin-top: ${space(0.5)};
@@ -191,4 +202,15 @@ const TabLayoutHeader = styled(Layout.Header)`
 const StyledHeaderContent = styled(Layout.HeaderContent)`
   margin-bottom: 0;
   margin-right: ${space(2)};
+`;
+
+const StyledGlobalEventProcessingAlert = styled(GlobalEventProcessingAlert)`
+  grid-column: 1/-1;
+  margin-top: ${space(1)};
+  margin-bottom: ${space(1)};
+
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    margin-top: ${space(2)};
+    margin-bottom: 0;
+  }
 `;

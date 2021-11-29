@@ -1,11 +1,11 @@
 """
-Used for notifying a *specific* plugin
+Used for notifying a *specific* plugin/sentry app with a generic webhook payload
 """
-
 import logging
 
 from django import forms
 
+from sentry import analytics
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.app_platform_event import AppPlatformEvent
 from sentry.api.serializers.models.incident import IncidentSerializer
@@ -71,17 +71,53 @@ def send_incident_alert_notification(action, incident, metric_value=None, method
         )
         return
 
+    app_platform_event = AppPlatformEvent(
+        resource="metric_alert",
+        action=INCIDENT_STATUS[
+            incident_status_info(incident, metric_value, action, method)
+        ].lower(),
+        install=install,
+        data=build_incident_attachment(action, incident, metric_value, method),
+    )
+
+    # Can raise errors if client returns >= 400
     send_and_save_webhook_request(
         sentry_app,
-        AppPlatformEvent(
-            resource="metric_alert",
-            action=INCIDENT_STATUS[
-                incident_status_info(incident, metric_value, action, method)
-            ].lower(),
-            install=install,
-            data=build_incident_attachment(action, incident, metric_value, method),
-        ),
+        app_platform_event,
     )
+
+    # On success, record analytic event for Metric Alert Rule UI Component
+    alert_rule_action_ui_component = find_alert_rule_action_ui_component(app_platform_event)
+
+    if alert_rule_action_ui_component:
+        analytics.record(
+            "alert_rule_ui_component_webhook.sent",
+            organization_id=organization.id,
+            sentry_app_id=sentry_app.id,
+            event=f"{app_platform_event.resource}.{app_platform_event.action}",
+        )
+
+
+def find_alert_rule_action_ui_component(app_platform_event: AppPlatformEvent) -> bool:
+    """
+    Loop through the triggers for the alert rule event. For each trigger, check
+    if an action is an alert rule UI Component
+    """
+    triggers = (
+        getattr(app_platform_event, "data", {})
+        .get("metric_alert", {})
+        .get("alert_rule", {})
+        .get("triggers", [])
+    )
+
+    actions = [
+        action
+        for trigger in triggers
+        for action in trigger.get("actions", {})
+        if (action.get("type") == "sentry_app" and action.get("settings") is not None)
+    ]
+
+    return bool(len(actions))
 
 
 class NotifyEventServiceForm(forms.Form):

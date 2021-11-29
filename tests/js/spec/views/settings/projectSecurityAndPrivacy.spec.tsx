@@ -1,29 +1,14 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import ProjectSecurityAndPrivacy, {
-  ProjectSecurityAndPrivacyProps,
-} from 'app/views/settings/projectSecurityAndPrivacy';
+import {Organization} from 'sentry/types';
+import ProjectSecurityAndPrivacy from 'sentry/views/settings/projectSecurityAndPrivacy';
 
-// @ts-expect-error
 const org = TestStubs.Organization();
-// @ts-expect-error
 const project = TestStubs.ProjectDetails();
-// @ts-expect-error
-const routerContext = TestStubs.routerContext([
-  {
-    // @ts-expect-error
-    router: TestStubs.router({
-      params: {
-        projectId: project.slug,
-        orgId: org.slug,
-      },
-    }),
-  },
-]);
 
-function renderComponent(props: Partial<ProjectSecurityAndPrivacyProps>) {
-  const organization = props?.organization ?? org;
-  // @ts-expect-error
+function renderComponent(providedOrg?: Organization) {
+  const organization = providedOrg ?? org;
+
   MockApiClient.addMockResponse({
     url: `/projects/${organization.slug}/${project.slug}/`,
     method: 'GET',
@@ -32,17 +17,17 @@ function renderComponent(props: Partial<ProjectSecurityAndPrivacyProps>) {
 
   return mountWithTheme(
     <ProjectSecurityAndPrivacy
+      {...TestStubs.routerContext().context}
       project={project}
-      {...routerContext}
-      {...props}
       organization={organization}
+      params={{orgId: organization.slug, projectId: project.slug}}
     />
   );
 }
 
 describe('projectSecurityAndPrivacy', function () {
   it('renders form fields', function () {
-    const wrapper = renderComponent({});
+    const wrapper = renderComponent();
 
     expect(wrapper.find('Switch[name="dataScrubber"]').prop('isActive')).toBeFalsy();
     expect(
@@ -62,7 +47,7 @@ describe('projectSecurityAndPrivacy', function () {
     newOrganization.dataScrubber = true;
     newOrganization.scrubIPAddresses = false;
 
-    const wrapper = renderComponent({organization: newOrganization});
+    const wrapper = renderComponent(newOrganization);
 
     expect(wrapper.find('Switch[name="scrubIPAddresses"]').prop('isDisabled')).toBe(
       false

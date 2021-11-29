@@ -2,25 +2,26 @@ import * as React from 'react';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Client} from 'app/api';
-import {isStacktraceNewestFirst} from 'app/components/events/interfaces/stacktrace';
-import StacktraceContent from 'app/components/events/interfaces/stacktraceContent';
-import StacktraceContentV2 from 'app/components/events/interfaces/stacktraceContentV2';
-import Hovercard, {Body} from 'app/components/hovercard';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, PlatformType} from 'app/types';
-import {EntryType, Event} from 'app/types/event';
-import {StacktraceType} from 'app/types/stacktrace';
-import {defined} from 'app/utils';
-import {Theme} from 'app/utils/theme';
-import withApi from 'app/utils/withApi';
+import {Client} from 'sentry/api';
+import StackTraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
+import StackTraceContentV2 from 'sentry/components/events/interfaces/crashContent/stackTrace/contentV2';
+import {isStacktraceNewestFirst} from 'sentry/components/events/interfaces/utils';
+import Hovercard, {Body} from 'sentry/components/hovercard';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, PlatformType} from 'sentry/types';
+import {EntryType, Event} from 'sentry/types/event';
+import {StacktraceType} from 'sentry/types/stacktrace';
+import {defined} from 'sentry/utils';
+import {Theme} from 'sentry/utils/theme';
+import withApi from 'sentry/utils/withApi';
 
 import findBestThread from './events/interfaces/threads/threadSelector/findBestThread';
 import getThreadStacktrace from './events/interfaces/threads/threadSelector/getThreadStacktrace';
 
-const HOVERCARD_DELAY = 500;
+const REQUEST_DELAY = 100;
+const HOVERCARD_DELAY = 400;
 export const STACKTRACE_PREVIEW_TOOLTIP_DELAY = 1000;
 
 type Props = {
@@ -47,7 +48,28 @@ class StacktracePreview extends React.Component<Props, State> {
     loadingVisible: false,
   };
 
+  componentWillUnmount() {
+    if (this.delayTimeout) {
+      window.clearTimeout(this.delayTimeout);
+    }
+    if (this.loaderTimeout) {
+      window.clearTimeout(this.loaderTimeout);
+    }
+  }
+
   loaderTimeout: number | null = null;
+  delayTimeout: number | null = null;
+
+  handleMouseEnter = () => {
+    this.delayTimeout = window.setTimeout(this.fetchData, REQUEST_DELAY);
+  };
+
+  handleMouseLeave = () => {
+    if (this.delayTimeout) {
+      window.clearTimeout(this.delayTimeout);
+      this.delayTimeout = null;
+    }
+  };
 
   fetchData = async () => {
     const {organization, api, issueId, eventId, projectSlug} = this.props;
@@ -146,7 +168,7 @@ class StacktracePreview extends React.Component<Props, State> {
       return (
         <div onClick={this.handleStacktracePreviewClick}>
           {!!organization.features?.includes('grouping-stacktrace-ui') ? (
-            <StacktraceContentV2
+            <StackTraceContentV2
               data={stacktrace}
               expandFirstFrame={false}
               includeSystemFrames={(stacktrace.frames ?? []).every(frame => !frame.inApp)}
@@ -157,7 +179,7 @@ class StacktracePreview extends React.Component<Props, State> {
               isHoverPreviewed
             />
           ) : (
-            <StacktraceContent
+            <StackTraceContent
               data={stacktrace}
               expandFirstFrame={false}
               includeSystemFrames={(stacktrace.frames ?? []).every(frame => !frame.inApp)}
@@ -185,7 +207,11 @@ class StacktracePreview extends React.Component<Props, State> {
     }
 
     return (
-      <span className={className} onMouseEnter={this.fetchData}>
+      <span
+        className={className}
+        onMouseEnter={this.handleMouseEnter}
+        onMouseLeave={this.handleMouseLeave}
+      >
         <StyledHovercard
           body={this.renderHovercardBody(stacktrace)}
           position="right"

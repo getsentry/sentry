@@ -1,30 +1,33 @@
 import * as React from 'react';
+import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 
-import {doEventsRequest} from 'app/actionCreators/events';
-import {Client} from 'app/api';
+import {doEventsRequest} from 'sentry/actionCreators/events';
+import {Client} from 'sentry/api';
 import {
   getDiffInMinutes,
   getInterval,
   isMultiSeriesStats,
-} from 'app/components/charts/utils';
-import {isSelectionEqual} from 'app/components/organizations/globalSelectionHeader/utils';
-import {t} from 'app/locale';
+} from 'sentry/components/charts/utils';
+import {isSelectionEqual} from 'sentry/components/organizations/globalSelectionHeader/utils';
+import {t} from 'sentry/locale';
 import {
   EventsStats,
   GlobalSelection,
   MultiSeriesEventsStats,
-  Organization,
-} from 'app/types';
-import {Series} from 'app/types/echarts';
-import {parsePeriodToHours} from 'app/utils/dates';
-import {TableData} from 'app/utils/discover/discoverQuery';
+  OrganizationSummary,
+} from 'sentry/types';
+import {Series} from 'sentry/types/echarts';
+import {parsePeriodToHours} from 'sentry/utils/dates';
+import {TableData, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {getAggregateFields} from 'sentry/utils/discover/fields';
 import {
   DiscoverQueryRequestParams,
   doDiscoverQuery,
-} from 'app/utils/discover/genericDiscoverQuery';
+} from 'sentry/utils/discover/genericDiscoverQuery';
+import {TOP_N} from 'sentry/utils/discover/types';
 
-import {Widget, WidgetQuery} from './types';
+import {DisplayType, Widget, WidgetQuery} from './types';
 import {eventViewFromWidget} from './utils';
 
 // Don't fetch more than 4000 bins as we're plotting on a small area.
@@ -96,15 +99,13 @@ function transformResult(query: WidgetQuery, result: RawResult): Series[] {
 
 type Props = {
   api: Client;
-  organization: Organization;
+  organization: OrganizationSummary;
   widget: Widget;
   selection: GlobalSelection;
   children: (
     props: Pick<State, 'loading' | 'timeseriesResults' | 'tableResults' | 'errorMessage'>
   ) => React.ReactNode;
 };
-
-type TableDataWithTitle = TableData & {title: string};
 
 type State = {
   errorMessage: undefined | string;
@@ -126,6 +127,7 @@ class WidgetQueries extends React.Component<Props, State> {
   };
 
   componentDidMount() {
+    this._isMounted = true;
     this.fetchData();
   }
 
@@ -150,7 +152,7 @@ class WidgetQueries extends React.Component<Props, State> {
 
     const [widgetQueryNames, widgetQueries] = widget.queries
       .map((query: WidgetQuery) => {
-        query.fields = query.fields.filter(field => !!field);
+        query.fields = query.fields.filter(field => !!field && field !== 'equation|');
         return query;
       })
       .reduce(
@@ -190,6 +192,12 @@ class WidgetQueries extends React.Component<Props, State> {
       });
     }
   }
+
+  componentWillUnmount() {
+    this._isMounted = false;
+  }
+
+  private _isMounted: boolean = false;
 
   fetchEventData(queryFetchID: symbol) {
     const {selection, api, organization, widget} = this.props;
@@ -241,6 +249,10 @@ class WidgetQueries extends React.Component<Props, State> {
         // Overwrite the local var to work around state being stale in tests.
         tableResults = [...tableResults, tableData];
 
+        if (!this._isMounted) {
+          return;
+        }
+
         this.setState(prevState => {
           if (prevState.queryFetchID !== queryFetchID) {
             // invariant: a different request was initiated after this request
@@ -257,6 +269,9 @@ class WidgetQueries extends React.Component<Props, State> {
         this.setState({errorMessage});
       } finally {
         completed++;
+        if (!this._isMounted) {
+          return;
+        }
         this.setState(prevState => {
           if (prevState.queryFetchID !== queryFetchID) {
             // invariant: a different request was initiated after this request
@@ -272,7 +287,7 @@ class WidgetQueries extends React.Component<Props, State> {
     });
   }
 
-  fetchTimeseriesData(queryFetchID: symbol) {
+  fetchTimeseriesData(queryFetchID: symbol, displayType: DisplayType) {
     const {selection, api, organization, widget} = this.props;
     this.setState({timeseriesResults: [], rawResults: []});
 
@@ -284,42 +299,82 @@ class WidgetQueries extends React.Component<Props, State> {
       period: statsPeriod,
     });
     const promises = widget.queries.map(query => {
-      const requestData = {
-        organization,
-        interval,
-        start,
-        end,
-        project: projects,
-        environment: environments,
-        period: statsPeriod,
-        query: query.conditions,
-        yAxis: query.fields,
-        orderby: query.orderby,
-        includePrevious: false,
-        referrer: 'api.dashboards.timeserieswidget',
-        partial: true,
-      };
+      let requestData;
+      if (widget.displayType === 'top_n') {
+        requestData = {
+          organization,
+          interval,
+          start,
+          end,
+          project: projects,
+          environment: environments,
+          period: statsPeriod,
+          query: query.conditions,
+          yAxis: getAggregateFields(query.fields)[0],
+          includePrevious: false,
+          referrer: `api.dashboards.widget.${displayType}-chart`,
+          partial: true,
+          topEvents: TOP_N,
+          field: query.fields,
+        };
+        if (query.orderby) {
+          requestData.orderby = query.orderby;
+        }
+      } else {
+        requestData = {
+          organization,
+          interval,
+          start,
+          end,
+          project: projects,
+          environment: environments,
+          period: statsPeriod,
+          query: query.conditions,
+          yAxis: query.fields,
+          orderby: query.orderby,
+          includePrevious: false,
+          referrer: `api.dashboards.widget.${displayType}-chart`,
+          partial: true,
+        };
+      }
       return doEventsRequest(api, requestData);
     });
 
     let completed = 0;
-    promises.forEach(async (promise, i) => {
+    promises.forEach(async (promise, requestIndex) => {
       try {
         const rawResults = await promise;
+        if (!this._isMounted) {
+          return;
+        }
         this.setState(prevState => {
           if (prevState.queryFetchID !== queryFetchID) {
             // invariant: a different request was initiated after this request
             return prevState;
           }
 
-          const timeseriesResults = (prevState.timeseriesResults ?? []).concat(
-            transformResult(widget.queries[i], rawResults)
+          const timeseriesResults = [...(prevState.timeseriesResults ?? [])];
+          const transformedResult = transformResult(
+            widget.queries[requestIndex],
+            rawResults
           );
+          // When charting timeseriesData on echarts, color association to a timeseries result
+          // is order sensitive, ie series at index i on the timeseries array will use color at
+          // index i on the color array. This means that on multi series results, we need to make
+          // sure that the order of series in our results do not change between fetches to avoid
+          // coloring inconsistencies between renders.
+          transformedResult.forEach((result, resultIndex) => {
+            timeseriesResults[requestIndex * transformedResult.length + resultIndex] =
+              result;
+          });
+
+          const rawResultsClone = cloneDeep(prevState.rawResults ?? []);
+          rawResultsClone[requestIndex] = rawResults;
 
           return {
             ...prevState,
             timeseriesResults,
-            rawResults: (prevState.rawResults ?? []).concat(rawResults),
+            rawResults: rawResultsClone,
           };
         });
       } catch (err) {
@@ -327,6 +382,9 @@ class WidgetQueries extends React.Component<Props, State> {
         this.setState({errorMessage});
       } finally {
         completed++;
+        if (!this._isMounted) {
+          return;
+        }
         this.setState(prevState => {
           if (prevState.queryFetchID !== queryFetchID) {
             // invariant: a different request was initiated after this request
@@ -351,7 +409,7 @@ class WidgetQueries extends React.Component<Props, State> {
     if (['table', 'world_map', 'big_number'].includes(widget.displayType)) {
       this.fetchEventData(queryFetchID);
     } else {
-      this.fetchTimeseriesData(queryFetchID);
+      this.fetchTimeseriesData(queryFetchID, widget.displayType);
     }
   }
 
@@ -359,7 +417,13 @@ class WidgetQueries extends React.Component<Props, State> {
     const {children} = this.props;
     const {loading, timeseriesResults, tableResults, errorMessage} = this.state;
 
-    return children({loading, timeseriesResults, tableResults, errorMessage});
+    const filteredTimeseriesResults = timeseriesResults?.filter(result => !!result);
+    return children({
+      loading,
+      timeseriesResults: filteredTimeseriesResults,
+      tableResults,
+      errorMessage,
+    });
   }
 }
 

@@ -13,8 +13,10 @@ _DEFAULT_DAEMONS = {
         "sentry",
         "run",
         "post-process-forwarder",
+        "--entity=all",
         "--loglevel=debug",
-        "--commit-batch-size=1",
+        "--commit-batch-size=100",
+        "--commit-batch-timeout-ms=1000",
     ],
     "ingest": ["sentry", "run", "ingest-consumer", "--all-consumer-types"],
     "server": ["sentry", "run", "web"],
@@ -28,6 +30,7 @@ _DEFAULT_DAEMONS = {
         "--force-offset-reset",
         "latest",
     ],
+    "metrics": ["sentry", "run", "ingest-metrics-consumer"],
 }
 
 
@@ -58,7 +61,7 @@ def _get_daemon(name, *args, **kwargs):
     "--prefix/--no-prefix", default=True, help="Show the service name prefix and timestamp"
 )
 @click.option(
-    "--pretty/--no-pretty", default=False, help="Styleize various outputs from the devserver"
+    "--pretty/--no-pretty", default=False, help="Stylize various outputs from the devserver"
 )
 @click.option(
     "--styleguide/--no-styleguide",
@@ -229,6 +232,9 @@ def devserver(
                 )
             for name, topic in settings.KAFKA_SUBSCRIPTION_RESULT_TOPICS.items():
                 daemons += [_get_daemon("subscription-consumer", "--topic", topic, suffix=name)]
+
+        if settings.SENTRY_USE_METRICS_DEV and settings.SENTRY_USE_RELAY:
+            daemons += [_get_daemon("metrics")]
 
     if settings.SENTRY_USE_RELAY:
         daemons += [_get_daemon("ingest")]

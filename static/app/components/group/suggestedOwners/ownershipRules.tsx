@@ -2,19 +2,19 @@ import {Fragment} from 'react';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {openCreateOwnershipRule} from 'app/actionCreators/modal';
-import Access from 'app/components/acl/access';
-import GuideAnchor from 'app/components/assistant/guideAnchor';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import FeatureBadge from 'app/components/featureBadge';
-import Hovercard from 'app/components/hovercard';
-import {Panel} from 'app/components/panels';
-import {IconClose, IconQuestion} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {CodeOwner, Organization, Project} from 'app/types';
-import {trackIntegrationAnalytics} from 'app/utils/integrationUtil';
+import {openCreateOwnershipRule} from 'sentry/actionCreators/modal';
+import Access from 'sentry/components/acl/access';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import FeatureBadge from 'sentry/components/featureBadge';
+import Hovercard from 'sentry/components/hovercard';
+import {Panel} from 'sentry/components/panels';
+import {IconClose, IconQuestion} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {CodeOwner, Organization, Project} from 'sentry/types';
+import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 
 import SidebarSection from '../sidebarSection';
 
@@ -175,7 +175,7 @@ const Header = styled('h6')`
 `;
 
 const Content = styled('span')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
   margin-bottom: ${space(2)};
 `;
 

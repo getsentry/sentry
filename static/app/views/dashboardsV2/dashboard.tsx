@@ -5,20 +5,30 @@ import {arrayMove, rectSortingStrategy, SortableContext} from '@dnd-kit/sortable
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import {validateWidget} from 'app/actionCreators/dashboards';
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {openAddDashboardWidgetModal} from 'app/actionCreators/modal';
-import {loadOrganizationTags} from 'app/actionCreators/tags';
-import {Client} from 'app/api';
-import space from 'app/styles/space';
-import {GlobalSelection, Organization} from 'app/types';
-import withApi from 'app/utils/withApi';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
+import {validateWidget} from 'sentry/actionCreators/dashboards';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {
+  openAddDashboardIssueWidgetModal,
+  openAddDashboardWidgetModal,
+} from 'sentry/actionCreators/modal';
+import {loadOrganizationTags} from 'sentry/actionCreators/tags';
+import {Client} from 'sentry/api';
+import space from 'sentry/styles/space';
+import {GlobalSelection, Organization} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import withApi from 'sentry/utils/withApi';
+import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 
 import {DataSet} from './widget/utils';
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
 import SortableWidget from './sortableWidget';
-import {DashboardDetails, Widget} from './types';
+import {
+  DashboardDetails,
+  DashboardWidgetSource,
+  MAX_WIDGETS,
+  Widget,
+  WidgetType,
+} from './types';
 
 type Props = {
   api: Client;
@@ -39,11 +49,29 @@ type Props = {
 
 class Dashboard extends Component<Props> {
   async componentDidMount() {
-    const {api, organization, isEditing, newWidget} = this.props;
+    const {isEditing} = this.props;
     // Load organization tags when in edit mode.
     if (isEditing) {
       this.fetchTags();
     }
+    this.addNewWidget();
+  }
+
+  async componentDidUpdate(prevProps: Props) {
+    const {isEditing, newWidget} = this.props;
+
+    // Load organization tags when going into edit mode.
+    // We use tags on the add widget modal.
+    if (prevProps.isEditing !== isEditing && isEditing) {
+      this.fetchTags();
+    }
+    if (newWidget !== prevProps.newWidget) {
+      this.addNewWidget();
+    }
+  }
+
+  async addNewWidget() {
+    const {api, organization, newWidget} = this.props;
     if (newWidget) {
       try {
         await validateWidget(api, organization.slug, newWidget);
@@ -55,16 +83,6 @@ class Dashboard extends Component<Props> {
     }
   }
 
-  componentDidUpdate(prevProps: Props) {
-    const {isEditing} = this.props;
-
-    // Load organization tags when going into edit mode.
-    // We use tags on the add widget modal.
-    if (prevProps.isEditing !== isEditing && isEditing) {
-      this.fetchTags();
-    }
-  }
-
   fetchTags() {
     const {api, organization, selection} = this.props;
     loadOrganizationTags(api, organization.slug, selection);
@@ -72,11 +90,16 @@ class Dashboard extends Component<Props> {
 
   handleStartAdd = () => {
     const {organization, dashboard, selection} = this.props;
+
+    trackAdvancedAnalyticsEvent('dashboards_views.add_widget_modal.opened', {
+      organization,
+    });
     openAddDashboardWidgetModal({
       organization,
       dashboard,
       selection,
       onAddWidget: this.handleAddComplete,
+      source: DashboardWidgetSource.DASHBOARDS,
     });
   };
 
@@ -150,14 +173,25 @@ class Dashboard extends Component<Props> {
       });
     }
 
-    openAddDashboardWidgetModal({
+    trackAdvancedAnalyticsEvent('dashboards_views.edit_widget_modal.opened', {
       organization,
-      dashboard,
+    });
+    const modalProps = {
+      organization,
       widget,
       selection,
       onAddWidget: this.handleAddComplete,
       onUpdateWidget: this.handleUpdateComplete(index),
-    });
+    };
+    if (widget.widgetType === WidgetType.ISSUE) {
+      openAddDashboardIssueWidgetModal(modalProps);
+    } else {
+      openAddDashboardWidgetModal({
+        ...modalProps,
+        dashboard,
+        source: DashboardWidgetSource.DASHBOARDS,
+      });
+    }
   };
 
   getWidgetIds() {
@@ -217,7 +251,7 @@ class Dashboard extends Component<Props> {
         <WidgetContainer>
           <SortableContext items={items} strategy={rectSortingStrategy}>
             {widgets.map((widget, index) => this.renderWidget(widget, index))}
-            {isEditing && (
+            {isEditing && widgets.length < MAX_WIDGETS && (
               <AddWidget
                 orgFeatures={organization.features}
                 onAddWidget={this.handleStartAdd}

@@ -1,31 +1,25 @@
-import {fetchOrganizationDetails} from 'app/actionCreators/organization';
-import * as OrganizationsActionCreator from 'app/actionCreators/organizations';
-import OrganizationActions from 'app/actions/organizationActions';
-import ProjectActions from 'app/actions/projectActions';
-import TeamActions from 'app/actions/teamActions';
-import OrganizationStore from 'app/stores/organizationStore';
-import ProjectsStore from 'app/stores/projectsStore';
-import TeamStore from 'app/stores/teamStore';
+import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
+import * as OrganizationsActionCreator from 'sentry/actionCreators/organizations';
+import OrganizationActions from 'sentry/actions/organizationActions';
+import ProjectActions from 'sentry/actions/projectActions';
+import TeamActions from 'sentry/actions/teamActions';
+import OrganizationStore from 'sentry/stores/organizationStore';
 
 describe('OrganizationActionCreator', function () {
-  const detailedOrg = TestStubs.Organization({
-    teams: [TestStubs.Team()],
-    projects: [TestStubs.Project()],
-  });
+  const org = TestStubs.Organization();
+  delete org.teams;
+  delete org.projects;
 
-  const lightOrg = TestStubs.Organization();
-  delete lightOrg.teams;
-  delete lightOrg.projects;
+  const teams = [TestStubs.Team()];
+  const projects = [TestStubs.Project()];
 
   const api = new MockApiClient();
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
-    jest.spyOn(TeamStore, 'loadInitialData');
     jest.spyOn(TeamActions, 'loadTeams');
-    jest.spyOn(ProjectsStore, 'loadInitialData');
     jest.spyOn(ProjectActions, 'loadProjects');
-    jest.spyOn(OrganizationActions, 'fetchOrg');
+    jest.spyOn(OrganizationActions, 'reset');
     jest.spyOn(OrganizationActions, 'update');
     jest.spyOn(OrganizationActions, 'fetchOrgError');
     jest.spyOn(OrganizationsActionCreator, 'setActiveOrganization');
@@ -36,106 +30,95 @@ describe('OrganizationActionCreator', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('fetches heavyweight organization details', async function () {
+  it('fetches organization details', async function () {
     const getOrgMock = MockApiClient.addMockResponse({
-      url: `/organizations/${detailedOrg.slug}/`,
-      body: detailedOrg,
-    });
-
-    fetchOrganizationDetails(api, detailedOrg.slug, true);
-    await tick();
-    expect(OrganizationActions.fetchOrg).toHaveBeenCalled();
-
-    expect(getOrgMock).toHaveBeenCalledWith(
-      `/organizations/${detailedOrg.slug}/`,
-      expect.anything()
-    );
-    expect(OrganizationActions.update).toHaveBeenCalledWith(detailedOrg, {replace: true});
-    expect(OrganizationsActionCreator.setActiveOrganization).toHaveBeenCalled();
-
-    expect(TeamStore.loadInitialData).toHaveBeenCalledWith(detailedOrg.teams);
-    expect(ProjectsStore.loadInitialData).toHaveBeenCalledWith(detailedOrg.projects);
-  });
-
-  it('fetches lightweight organization details', async function () {
-    const getOrgMock = MockApiClient.addMockResponse({
-      url: `/organizations/${lightOrg.slug}/`,
-      body: lightOrg,
+      url: `/organizations/${org.slug}/`,
+      body: org,
     });
     const getProjectsMock = MockApiClient.addMockResponse({
-      url: `/organizations/${lightOrg.slug}/projects/`,
-      body: detailedOrg.projects,
+      url: `/organizations/${org.slug}/projects/`,
+      body: projects,
     });
     const getTeamsMock = MockApiClient.addMockResponse({
-      url: `/organizations/${lightOrg.slug}/teams/`,
-      body: detailedOrg.teams,
+      url: `/organizations/${org.slug}/teams/`,
+      body: teams,
     });
 
-    fetchOrganizationDetails(api, lightOrg.slug, false);
+    fetchOrganizationDetails(api, org.slug, false);
     await tick();
     await tick();
-    expect(OrganizationActions.fetchOrg).toHaveBeenCalled();
+    expect(OrganizationActions.reset).toHaveBeenCalled();
 
     expect(getOrgMock).toHaveBeenCalledWith(
-      `/organizations/${lightOrg.slug}/`,
+      `/organizations/${org.slug}/`,
       expect.anything()
     );
     expect(getProjectsMock).toHaveBeenCalledWith(
-      `/organizations/${lightOrg.slug}/projects/`,
+      `/organizations/${org.slug}/projects/`,
       expect.anything()
     );
     expect(getTeamsMock).toHaveBeenCalledWith(
-      `/organizations/${lightOrg.slug}/teams/`,
+      `/organizations/${org.slug}/teams/`,
       expect.anything()
     );
-    expect(OrganizationActions.update).toHaveBeenCalledWith(lightOrg, {replace: true});
+    expect(OrganizationActions.update).toHaveBeenCalledWith(org, {replace: true});
     expect(OrganizationsActionCreator.setActiveOrganization).toHaveBeenCalled();
 
-    expect(TeamStore.loadInitialData).not.toHaveBeenCalled();
-    expect(ProjectsStore.loadInitialData).not.toHaveBeenCalled();
+    expect(TeamActions.loadTeams).toHaveBeenCalledWith(teams);
+    expect(ProjectActions.loadProjects).toHaveBeenCalledWith(projects);
 
-    expect(TeamActions.loadTeams).toHaveBeenCalledWith(detailedOrg.teams);
-    expect(ProjectActions.loadProjects).toHaveBeenCalledWith(detailedOrg.projects);
-
-    expect(OrganizationStore.organization).toEqual({
-      ...lightOrg,
-      teams: detailedOrg.teams,
-      projects: detailedOrg.projects,
-    });
+    expect(OrganizationStore.organization).toEqual(org);
   });
 
   it('silently fetches organization details', async function () {
     const getOrgMock = MockApiClient.addMockResponse({
-      url: `/organizations/${detailedOrg.slug}/`,
-      body: detailedOrg,
+      url: `/organizations/${org.slug}/`,
+      body: org,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/projects/`,
+      body: projects,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/teams/`,
+      body: teams,
     });
 
-    fetchOrganizationDetails(api, detailedOrg.slug, true, true);
+    fetchOrganizationDetails(api, org.slug, true, true);
     await tick();
-    expect(OrganizationActions.fetchOrg).not.toHaveBeenCalled();
+    expect(OrganizationActions.reset).not.toHaveBeenCalled();
 
     expect(getOrgMock).toHaveBeenCalledWith(
-      `/organizations/${detailedOrg.slug}/`,
+      `/organizations/${org.slug}/`,
       expect.anything()
     );
-    expect(OrganizationActions.update).toHaveBeenCalledWith(detailedOrg, {replace: true});
+
+    expect(OrganizationActions.update).toHaveBeenCalledWith(org, {replace: true});
     expect(OrganizationsActionCreator.setActiveOrganization).toHaveBeenCalled();
 
-    expect(TeamStore.loadInitialData).toHaveBeenCalledWith(detailedOrg.teams);
-    expect(ProjectsStore.loadInitialData).toHaveBeenCalledWith(detailedOrg.projects);
+    expect(TeamActions.loadTeams).toHaveBeenCalledWith(teams);
+    expect(ProjectActions.loadProjects).toHaveBeenCalledWith(projects);
   });
 
   it('errors out correctly', async function () {
     const getOrgMock = MockApiClient.addMockResponse({
-      url: `/organizations/${detailedOrg.slug}/`,
+      url: `/organizations/${org.slug}/`,
       statusCode: 400,
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/projects/`,
+      body: projects,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/teams/`,
+      body: teams,
+    });
 
-    fetchOrganizationDetails(api, detailedOrg.slug, true);
+    fetchOrganizationDetails(api, org.slug, false);
     await tick();
-    expect(OrganizationActions.fetchOrg).toHaveBeenCalled();
+    expect(OrganizationActions.reset).toHaveBeenCalled();
     expect(getOrgMock).toHaveBeenCalledWith(
-      `/organizations/${detailedOrg.slug}/`,
+      `/organizations/${org.slug}/`,
       expect.anything()
     );
     expect(OrganizationActions.fetchOrgError).toHaveBeenCalled();

@@ -13,6 +13,8 @@ if [ -z "${CI+x}" ]; then
     reset="$(tput sgr0)"
 fi
 
+venv_name=".venv"
+
 # NOTE: This file is sourced in CI across different repos (e.g. snuba),
 # so renaming this file or any functions can break CI!
 
@@ -22,6 +24,10 @@ require() {
 }
 
 configure-sentry-cli() {
+    # XXX: For version 1.70.1 there's a bug hitting SENTRY_CLI_NO_EXIT_TRAP: unbound variable
+    # We can remove this after it's fixed
+    # https://github.com/getsentry/sentry-cli/pull/1059
+    export SENTRY_CLI_NO_EXIT_TRAP=${SENTRY_CLI_NO_EXIT_TRAP-0}
     if [ -n "${SENTRY_DSN+x}" ] && [ -z "${SENTRY_DEVENV_NO_REPORT+x}" ]; then
         if ! require sentry-cli; then
             curl -sL https://sentry.io/get-cli/ | bash
@@ -45,30 +51,42 @@ query-apple-m1() {
     query-mac && [[ $(uname -m) = 'arm64' ]]
 }
 
-get-pyenv-version() {
-    local PYENV_VERSION
-    PYENV_VERSION=3.6.13
-    if query-apple-m1; then
-        PYENV_VERSION=3.8.11
-    fi
-    echo "${PYENV_VERSION}"
-}
-
 query-valid-python-version() {
+    if [[ -n "${SENTRY_PYTHON_VERSION:-}" ]]; then
+        python_version=$(python3 -V 2>&1 | awk '{print $2}')
+        if [ "$python_version" != "$SENTRY_PYTHON_VERSION" ]; then
+            cat <<EOF
+${red}${bold}
+ERROR: You have explicitly set a non-recommended Python version (${SENTRY_PYTHON_VERSION}),
+but it doesn't match the value of python's version: ${python_version}
+You should create a new ${SENTRY_PYTHON_VERSION} virtualenv by running  "rm -rf ${venv_name} && direnv allow".
+${reset}
+EOF
+            return 1
+        fi
+
+        cat <<EOF
+${yellow}${bold}
+You have explicitly set a non-recommended Python version (${SENTRY_PYTHON_VERSION}). You're on your own.
+${reset}
+EOF
+        return 0
+    fi
+
     python_version=$(python3 -V 2>&1 | awk '{print $2}')
     minor=$(echo "${python_version}" | sed 's/[0-9]*\.\([0-9]*\)\.\([0-9]*\)/\1/')
     patch=$(echo "${python_version}" | sed 's/[0-9]*\.\([0-9]*\)\.\([0-9]*\)/\2/')
 
-    # For Apple M1, we only allow 3.8 and at least patch version 10
-    if query-apple-m1; then
-        if [ "$minor" -ne 8 ] || [ "$patch" -lt 10 ]; then
-            return 1
-        fi
-    # For everything else, we only allow 3.6
-    elif [ "$minor" -ne 6 ]; then
+    if [ "$minor" -ne 8 ] || [ "$patch" -lt 10 ]; then
+        cat <<EOF
+${red}${bold}
+ERROR: You're running a virtualenv with Python ${python_version}.
+We only support >= 3.8.10, < 3.9.
+Either run "rm -rf ${venv_name} && direnv allow" to
+OR set SENTRY_PYTHON_VERSION=${python_version} to an .env file to bypass this check."
+EOF
         return 1
     fi
-    return 0
 }
 
 sudo-askpass() {
@@ -88,11 +106,51 @@ install-py-dev() {
     # It places us within top src dir to be at the same path as setup.py
     # This helps when getsentry calls into this script
     cd "${HERE}/.." || exit
+
     echo "--> Installing Sentry (for development)"
+    if query-apple-m1; then
+        # This installs pyscopg-binary2 since there's no arm64 wheel
+        # This saves having to install postgresql on the Developer's machine + using flags
+        # https://github.com/psycopg/psycopg2/issues/1286
+        pip install https://storage.googleapis.com/python-arm64-wheels/psycopg2_binary-2.8.6-cp38-cp38-macosx_11_0_arm64.whl
+    fi
+
     # SENTRY_LIGHT_BUILD=1 disables webpacking during setup.py.
     # Webpacked assets are only necessary for devserver (which does it lazily anyways)
     # and acceptance tests, which webpack automatically if run.
     SENTRY_LIGHT_BUILD=1 pip install -e '.[dev]'
+
+    # This hack is until we can upgrade to a newer version of Selenium
+    fx_profile=.venv/lib/python3.8/site-packages/selenium/webdriver/firefox/firefox_profile.py
+    # Remove this block when upgrading the selenium package
+    if grep -q "or setting is" "${fx_profile}"; then
+        echo "We are patching ${fx_profile}. You will see this message only once."
+        patch -p0 <scripts/patches/firefox_profile.diff
+    fi
+}
+
+setup-apple-m1() {
+    ! query-apple-m1 && return
+
+    zshrc_path="${HOME}/.zshrc"
+    header="# Apple M1 environment variables"
+    # The CPATH is needed for confluent-kakfa --> https://github.com/confluentinc/confluent-kafka-python/issues/1190
+    # The LDFLAGS is needed for uWSGI --> https://github.com/unbit/uwsgi/issues/2361
+    body="
+$header
+export CPATH=/opt/homebrew/Cellar/librdkafka/1.8.2/include
+export LDFLAGS=-L/opt/homebrew/Cellar/gettext/0.21/lib"
+    if [ "$SHELL" == "/bin/zsh" ]; then
+        if ! grep -qF "${header}" "${zshrc_path}"; then
+            echo "Added the following to ${zshrc_path}"
+            cp "${zshrc_path}" "${zshrc_path}.bak"
+            echo -e "$body" >> "${zshrc_path}"
+            echo -e "$body"
+        fi
+    else
+        echo "You are not using a supported shell. Please add these variables where appropiate."
+        echo -e "$body"
+    fi
 }
 
 setup-git-config() {
@@ -151,13 +209,8 @@ run-dependent-services() {
 }
 
 create-db() {
-    # shellcheck disable=SC2155
-    local CREATEDB=$(command -v createdb 2>/dev/null)
-    if [[ -z "$CREATEDB" ]]; then
-        CREATEDB="docker exec sentry_postgres createdb"
-    fi
     echo "--> Creating 'sentry' database"
-    ${CREATEDB} -h 127.0.0.1 -U postgres -E utf-8 sentry || true
+    docker exec sentry_postgres createdb -h 127.0.0.1 -U postgres -E utf-8 sentry || true
 }
 
 apply-migrations() {
@@ -179,6 +232,7 @@ build-platform-assets() {
 }
 
 bootstrap() {
+    setup-apple-m1
     develop
     init-config
     run-dependent-services
@@ -201,19 +255,22 @@ clean() {
 }
 
 drop-db() {
-    # shellcheck disable=SC2155
-    local DROPDB=$(command -v dropdb 2>/dev/null)
-    if [[ -z "$DROPDB" ]]; then
-        DROPDB="docker exec sentry_postgres dropdb"
-    fi
     echo "--> Dropping existing 'sentry' database"
-    ${DROPDB} -h 127.0.0.1 -U postgres sentry || true
+    docker exec sentry_postgres dropdb -h 127.0.0.1 -U postgres sentry || true
 }
 
 reset-db() {
     drop-db
     create-db
     apply-migrations
+}
+
+prerequisites() {
+    if [ -z "${CI+x}" ]; then
+        brew update -q && brew bundle -q
+    else
+        HOMEBREW_NO_AUTO_UPDATE=on brew install libxmlsec1 pyenv
+    fi
 }
 
 direnv-help() {

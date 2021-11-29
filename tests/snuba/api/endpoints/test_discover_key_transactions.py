@@ -37,7 +37,7 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
                 },
                 format="json",
             )
-        assert response.status_code == 404, response.content
+            assert response.status_code == 404, response.content
 
     def test_get_key_transaction_multiple_projects(self):
         project = self.create_project(name="qux", organization=self.org)

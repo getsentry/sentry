@@ -3,10 +3,10 @@ import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';
 import moment from 'moment-timezone';
 
-import {t} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
-import {getDuration} from 'app/utils/formatters';
-import getDynamicText from 'app/utils/getDynamicText';
+import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import {getDuration} from 'sentry/utils/formatters';
+import getDynamicText from 'sentry/utils/getDynamicText';
 
 import Tooltip from './tooltip';
 
@@ -165,15 +165,18 @@ export function getRelativeDate(
       time: getDuration(moment().diff(moment(date), 'seconds'), 0, shorten, extraShort),
       suffix,
     });
-  } else if ((shorten || extraShort) && !suffix) {
-    return getDuration(moment().diff(moment(date), 'seconds'), 0, shorten, extraShort);
-  } else if (!suffix) {
-    return moment(date).fromNow(true);
-  } else if (suffix === 'ago') {
-    return moment(date).fromNow();
-  } else if (suffix === 'old') {
-    return t('%(time)s old', {time: moment(date).fromNow(true)});
-  } else {
-    throw new Error('Unsupported time format suffix');
   }
+  if ((shorten || extraShort) && !suffix) {
+    return getDuration(moment().diff(moment(date), 'seconds'), 0, shorten, extraShort);
+  }
+  if (!suffix) {
+    return moment(date).fromNow(true);
+  }
+  if (suffix === 'ago') {
+    return moment(date).fromNow();
+  }
+  if (suffix === 'old') {
+    return t('%(time)s old', {time: moment(date).fromNow(true)});
+  }
+  throw new Error('Unsupported time format suffix');
 }

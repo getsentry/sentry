@@ -4,28 +4,28 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import omit from 'lodash/omit';
 
-import Feature from 'app/components/acl/feature';
-import Alert from 'app/components/alert';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
-import SearchBar from 'app/components/events/searchBar';
-import * as Layout from 'app/components/layouts/thirds';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import * as TeamKeyTransactionManager from 'app/components/performance/teamKeyTransactionsManager';
-import {IconChevron} from 'app/icons';
-import {IconFlag} from 'app/icons/iconFlag';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project, Team} from 'app/types';
-import {generateQueryWithTag} from 'app/utils';
-import EventView from 'app/utils/discover/eventView';
-import {WebVital} from 'app/utils/discover/fields';
-import {isActiveSuperuser} from 'app/utils/isActiveSuperuser';
-import {decodeScalar} from 'app/utils/queryString';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
-import withProjects from 'app/utils/withProjects';
-import withTeams from 'app/utils/withTeams';
+import Feature from 'sentry/components/acl/feature';
+import Alert from 'sentry/components/alert';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
+import SearchBar from 'sentry/components/events/searchBar';
+import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
+import {IconChevron} from 'sentry/icons';
+import {IconFlag} from 'sentry/icons/iconFlag';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import {generateQueryWithTag} from 'sentry/utils';
+import EventView from 'sentry/utils/discover/eventView';
+import {WebVital} from 'sentry/utils/discover/fields';
+import {decodeScalar} from 'sentry/utils/queryString';
+import Teams from 'sentry/utils/teams';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import withProjects from 'sentry/utils/withProjects';
 
 import Breadcrumb from '../breadcrumb';
 import {getTransactionSearchQuery} from '../utils';
@@ -42,7 +42,6 @@ type Props = {
   eventView: EventView;
   organization: Organization;
   projects: Project[];
-  teams: Team[];
   router: InjectedRouter;
 
   vitalName: WebVital;
@@ -178,7 +177,7 @@ class VitalDetailContent extends React.Component<Props, State> {
   }
 
   render() {
-    const {location, eventView, organization, vitalName, projects, teams} = this.props;
+    const {location, eventView, organization, vitalName, projects} = this.props;
     const {incompatibleAlertNotice} = this.state;
     const query = decodeScalar(location.query.query, '');
 
@@ -187,9 +186,6 @@ class VitalDetailContent extends React.Component<Props, State> {
     const filterString = getTransactionSearchQuery(location);
     const summaryConditions = getSummaryConditions(filterString);
     const description = vitalDescription[vitalName];
-
-    const isSuperuser = isActiveSuperuser();
-    const userTeams = teams.filter(({isMember}) => isMember || isSuperuser);
 
     return (
       <React.Fragment>
@@ -238,21 +234,30 @@ class VitalDetailContent extends React.Component<Props, State> {
             <StyledVitalInfo>
               <VitalInfo location={location} vital={vital} />
             </StyledVitalInfo>
-            <TeamKeyTransactionManager.Provider
-              organization={organization}
-              teams={userTeams}
-              selectedTeams={['myteams']}
-              selectedProjects={eventView.project.map(String)}
-            >
-              <Table
-                eventView={eventView}
-                projects={projects}
-                organization={organization}
-                location={location}
-                setError={this.setError}
-                summaryConditions={summaryConditions}
-              />
-            </TeamKeyTransactionManager.Provider>
+
+            <Teams provideUserTeams>
+              {({teams, initiallyLoaded}) =>
+                initiallyLoaded ? (
+                  <TeamKeyTransactionManager.Provider
+                    organization={organization}
+                    teams={teams}
+                    selectedTeams={['myteams']}
+                    selectedProjects={eventView.project.map(String)}
+                  >
+                    <Table
+                      eventView={eventView}
+                      projects={projects}
+                      organization={organization}
+                      location={location}
+                      setError={this.setError}
+                      summaryConditions={summaryConditions}
+                    />
+                  </TeamKeyTransactionManager.Provider>
+                ) : (
+                  <LoadingIndicator />
+                )
+              }
+            </Teams>
           </Layout.Main>
         </Layout.Body>
       </React.Fragment>
@@ -273,4 +278,4 @@ const StyledVitalInfo = styled('div')`
   margin-bottom: ${space(3)};
 `;
 
-export default withTeams(withProjects(VitalDetailContent));
+export default withProjects(VitalDetailContent);

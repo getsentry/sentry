@@ -1,6 +1,6 @@
 import {LocationRange} from 'pegjs';
 
-import {t} from 'app/locale';
+import {t} from 'sentry/locale';
 
 import grammar from './grammar.pegjs';
 
@@ -56,9 +56,8 @@ export class TokenConverter {
     if (remainingAdds.length > 0) {
       remainingAdds[0].lhs = maybeFactor;
       return flatten(remainingAdds);
-    } else {
-      return maybeFactor;
     }
+    return maybeFactor;
   };
 
   tokenOperation = (operator: Operator, rhs: Expression): Operation => {

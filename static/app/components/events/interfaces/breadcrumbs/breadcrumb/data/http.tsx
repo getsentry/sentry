@@ -1,21 +1,22 @@
 import omit from 'lodash/omit';
 
-import AnnotatedText from 'app/components/events/meta/annotatedText';
-import {getMeta} from 'app/components/events/meta/metaProxy';
-import Highlight from 'app/components/highlight';
-import ExternalLink from 'app/components/links/externalLink';
-import {t} from 'app/locale';
-import {BreadcrumbTypeHTTP} from 'app/types/breadcrumbs';
-import {defined} from 'app/utils';
+import AnnotatedText from 'sentry/components/events/meta/annotatedText';
+import {getMeta} from 'sentry/components/events/meta/metaProxy';
+import Highlight from 'sentry/components/highlight';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {t} from 'sentry/locale';
+import {BreadcrumbTypeHTTP} from 'sentry/types/breadcrumbs';
+import {defined} from 'sentry/utils';
 
 import Summary from './summary';
 
 type Props = {
   searchTerm: string;
   breadcrumb: BreadcrumbTypeHTTP;
+  linkedEvent?: React.ReactElement;
 };
 
-const Http = ({breadcrumb, searchTerm}: Props) => {
+function Http({breadcrumb, searchTerm, linkedEvent}: Props) {
   const {data} = breadcrumb;
 
   const renderUrl = (url: any) => {
@@ -41,6 +42,7 @@ const Http = ({breadcrumb, searchTerm}: Props) => {
 
   return (
     <Summary kvData={omit(data, ['method', 'url', 'status_code'])}>
+      {linkedEvent}
       {data?.method && (
         <AnnotatedText
           value={
@@ -67,6 +69,6 @@ const Http = ({breadcrumb, searchTerm}: Props) => {
       )}
     </Summary>
   );
-};
+}
 
 export default Http;

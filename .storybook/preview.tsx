@@ -1,15 +1,19 @@
 import 'focus-visible';
-import '../docs-ui/index.js';
+import 'docs-ui/index.js';
 
+import {Fragment} from 'react';
 import {DocsContainer, Meta} from '@storybook/addon-docs';
 import {addDecorator, addParameters, DecoratorFn, Parameters} from '@storybook/react';
+import Code from 'docs-ui/components/code';
+import ColorChip from 'docs-ui/components/colorChip';
+import DocsLinks from 'docs-ui/components/docsLinks';
+import DoDont from 'docs-ui/components/doDont';
+import Sample from 'docs-ui/components/sample';
+import TableOfContents from 'docs-ui/components/tableOfContents';
 import {ThemeProvider} from 'emotion-theming';
 
-import ColorChip from '../docs-ui/components/colorChip';
-import DocsLinks from '../docs-ui/components/docsLinks';
-import DoDont from '../docs-ui/components/doDont';
-import GlobalStyles from '../static/app/styles/global';
-import {darkTheme, lightTheme} from '../static/app/utils/theme';
+import GlobalStyles from 'sentry/styles/global';
+import {darkTheme, lightTheme} from 'sentry/utils/theme';
 
 import PreviewGlobalStyles from './previewGlobalStyles';
 
@@ -44,11 +48,16 @@ const withThemeDocs: DecoratorFn = ({children, context}) => {
   }
 
   return (
-    <ThemeProvider theme={currentTheme}>
-      <GlobalStyles isDark={isDark} theme={currentTheme} />
-      <PreviewGlobalStyles theme={currentTheme} />
-      <DocsContainer context={context}>{children}</DocsContainer>
-    </ThemeProvider>
+    <Fragment>
+      <DocsContainer context={context}>
+        <GlobalStyles isDark={isDark} theme={currentTheme} />
+        <PreviewGlobalStyles theme={currentTheme} />
+        <ThemeProvider theme={currentTheme}>{children}</ThemeProvider>
+      </DocsContainer>
+      <ThemeProvider theme={currentTheme}>
+        <TableOfContents />
+      </ThemeProvider>
+    </Fragment>
   );
 };
 
@@ -56,7 +65,7 @@ const withThemeDocs: DecoratorFn = ({children, context}) => {
 addParameters({
   docs: {
     container: withThemeDocs,
-    components: {Meta, ColorChip, DocsLinks, DoDont},
+    components: {Meta, code: Code, ColorChip, DocsLinks, DoDont, Sample},
   },
   options: {
     /**
@@ -122,8 +131,10 @@ addParameters({
      */
     storySort: {
       order: [
+        'Getting Started',
+        'Changelog',
         'Core',
-        ['Overview'],
+        ['Overview', 'Colors', 'Typography'],
         'Assets',
         ['Logo', 'Icons', 'Platforms'],
         'Components',
@@ -148,6 +159,7 @@ addParameters({
         [
           'Layout - Narrow',
           'Layout - Thirds',
+          'Sidebar Section',
           'Modals',
           'Activity',
           'Empty States',

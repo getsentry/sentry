@@ -4,39 +4,43 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {Location, LocationDescriptorObject} from 'history';
 
-import {openModal} from 'app/actionCreators/modal';
+import {openModal} from 'sentry/actionCreators/modal';
 import GridEditable, {
   COL_WIDTH_MINIMUM,
   COL_WIDTH_UNDEFINED,
-} from 'app/components/gridEditable';
-import SortLink from 'app/components/gridEditable/sortLink';
-import Link from 'app/components/links/link';
-import Tooltip from 'app/components/tooltip';
-import Truncate from 'app/components/truncate';
-import {IconStack} from 'app/icons';
-import {t} from 'app/locale';
-import {Organization, Project} from 'app/types';
-import {defined} from 'app/utils';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
+} from 'sentry/components/gridEditable';
+import SortLink from 'sentry/components/gridEditable/sortLink';
+import Link from 'sentry/components/links/link';
+import Tooltip from 'sentry/components/tooltip';
+import Truncate from 'sentry/components/truncate';
+import {IconStack} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {Organization, Project} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView, {
   isFieldSortable,
   pickRelevantLocationQueryStrings,
-} from 'app/utils/discover/eventView';
-import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
+} from 'sentry/utils/discover/eventView';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {
   Column,
   fieldAlignment,
   getAggregateAlias,
   getEquationAliasIndex,
   isEquationAlias,
-} from 'app/utils/discover/fields';
-import {DisplayModes, TOP_N} from 'app/utils/discover/types';
-import {eventDetailsRouteWithEventView, generateEventSlug} from 'app/utils/discover/urls';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
-import withProjects from 'app/utils/withProjects';
-import {getTraceDetailsUrl} from 'app/views/performance/traceDetails/utils';
-import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
+} from 'sentry/utils/discover/fields';
+import {DisplayModes, TOP_N} from 'sentry/utils/discover/types';
+import {
+  eventDetailsRouteWithEventView,
+  generateEventSlug,
+} from 'sentry/utils/discover/urls';
+import {decodeList} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import withProjects from 'sentry/utils/withProjects';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 import {getExpandedResults, pushEventViewToLocation} from '../utils';
 
@@ -112,7 +116,8 @@ class TableView extends React.Component<TableViewProps> {
             <IconStack size="sm" />
           </PrependHeader>,
         ];
-      } else if (!hasIdField) {
+      }
+      if (!hasIdField) {
         return [
           <PrependHeader key="header-event-id">
             <SortLink
@@ -124,9 +129,8 @@ class TableView extends React.Component<TableViewProps> {
             />
           </PrependHeader>,
         ];
-      } else {
-        return [];
       }
+      return [];
     }
 
     if (hasAggregates) {
@@ -152,7 +156,8 @@ class TableView extends React.Component<TableViewProps> {
           </Link>
         </Tooltip>,
       ];
-    } else if (!hasIdField) {
+    }
+    if (!hasIdField) {
       let value = dataRow.id;
 
       if (tableData && tableData.meta) {
@@ -175,9 +180,8 @@ class TableView extends React.Component<TableViewProps> {
           </StyledLink>
         </Tooltip>,
       ];
-    } else {
-      return [];
     }
+    return [];
   };
 
   _renderGridHeaderCell = (column: TableColumn<keyof TableDataRow>): React.ReactNode => {
@@ -193,6 +197,8 @@ class TableView extends React.Component<TableViewProps> {
 
       const nextEventView = eventView.sortOnField(field, tableMeta);
       const queryStringObject = nextEventView.generateQueryStringObject();
+      // Need to pull yAxis from location since eventView only stores 1 yAxis field at time
+      queryStringObject.yAxis = decodeList(location.query.yAxis);
 
       return {
         ...location,
@@ -241,7 +247,8 @@ class TableView extends React.Component<TableViewProps> {
     const isTopEvents =
       display === DisplayModes.TOP5 || display === DisplayModes.DAILYTOP5;
 
-    const count = Math.min(tableData?.data?.length ?? TOP_N, TOP_N);
+    const topEvents = eventView.topEvents ? parseInt(eventView.topEvents, 10) : TOP_N;
+    const count = Math.min(tableData?.data?.length ?? topEvents, topEvents);
 
     let cell = fieldRenderer(dataRow, {organization, location});
 
@@ -303,7 +310,8 @@ class TableView extends React.Component<TableViewProps> {
 
     return (
       <React.Fragment>
-        {isFirstPage && isTopEvents && rowIndex < TOP_N && columnIndex === 0 ? (
+        {isFirstPage && isTopEvents && rowIndex < topEvents && columnIndex === 0 ? (
+          // Add one if we need to include Other in the series
           <TopResultsIndicator count={count} index={rowIndex} />
         ) : null}
         <CellAction
@@ -350,7 +358,7 @@ class TableView extends React.Component<TableViewProps> {
 
   handleCellAction = (dataRow: TableDataRow, column: TableColumn<keyof TableDataRow>) => {
     return (action: Actions, value: React.ReactText) => {
-      const {eventView, organization, projects} = this.props;
+      const {eventView, organization, projects, location} = this.props;
 
       const query = new MutableSearch(eventView.query);
 
@@ -422,12 +430,15 @@ class TableView extends React.Component<TableViewProps> {
       }
       nextView.query = query.formatString();
 
-      browserHistory.push(nextView.getResultsViewUrlTarget(organization.slug));
+      const target = nextView.getResultsViewUrlTarget(organization.slug);
+      // Get yAxis from location
+      target.query.yAxis = decodeList(location.query.yAxis);
+      browserHistory.push(target);
     };
   };
 
   handleUpdateColumns = (columns: Column[]): void => {
-    const {organization, eventView} = this.props;
+    const {organization, eventView, location} = this.props;
 
     // metrics
     trackAnalyticsEvent({
@@ -437,7 +448,13 @@ class TableView extends React.Component<TableViewProps> {
     });
 
     const nextView = eventView.withColumns(columns);
-    browserHistory.push(nextView.getResultsViewUrlTarget(organization.slug));
+    const resultsViewUrlTarget = nextView.getResultsViewUrlTarget(organization.slug);
+    // Need to pull yAxis from location since eventView only stores 1 yAxis field at time
+    const previousYAxis = decodeList(location.query.yAxis);
+    resultsViewUrlTarget.query.yAxis = previousYAxis.filter(yAxis =>
+      nextView.getYAxisOptions().find(({value}) => value === yAxis)
+    );
+    browserHistory.push(resultsViewUrlTarget);
   };
 
   renderHeaderButtons = () => {

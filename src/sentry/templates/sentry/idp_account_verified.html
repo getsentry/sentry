@@ -1,0 +1,15 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load i18n %}
+
+{% block main %}
+    <h3>Thank you!</h3>
+    <p>
+        Your email has been confirmed. Click the button below to log in to your Sentry account.
+    </p>
+
+    <form class="form-stacked" action="/auth/login/{{org}}/" method="post">
+        {% csrf_token %}
+        <button class="btn btn-primary" type="submit">{% trans "Continue" %}</button>
+    </form>
+{% endblock %}

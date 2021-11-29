@@ -4,18 +4,18 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
-import {fetchSentryAppComponents} from 'app/actionCreators/sentryAppComponents';
-import {Client} from 'app/api';
-import ErrorBoundary from 'app/components/errorBoundary';
-import GroupEventDetailsLoadingError from 'app/components/errors/groupEventDetailsLoadingError';
-import EventEntries from 'app/components/events/eventEntries';
-import {withMeta} from 'app/components/events/meta/metaProxy';
-import GroupSidebar from 'app/components/group/sidebar';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import MutedBox from 'app/components/mutedBox';
-import ReprocessedBox from 'app/components/reprocessedBox';
-import ResolutionBox from 'app/components/resolutionBox';
-import SuggestProjectCTA from 'app/components/suggestProjectCTA';
+import {fetchSentryAppComponents} from 'sentry/actionCreators/sentryAppComponents';
+import {Client} from 'sentry/api';
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import GroupEventDetailsLoadingError from 'sentry/components/errors/groupEventDetailsLoadingError';
+import EventEntries from 'sentry/components/events/eventEntries';
+import {withMeta} from 'sentry/components/events/meta/metaProxy';
+import GroupSidebar from 'sentry/components/group/sidebar';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import MutedBox from 'sentry/components/mutedBox';
+import ReprocessedBox from 'sentry/components/reprocessedBox';
+import ResolutionBox from 'sentry/components/resolutionBox';
+import SuggestProjectCTA from 'sentry/components/suggestProjectCTA';
 import {
   BaseGroupStatusReprocessing,
   Environment,
@@ -23,10 +23,9 @@ import {
   GroupActivityReprocess,
   Organization,
   Project,
-} from 'app/types';
-import {Event} from 'app/types/event';
-import {metric} from 'app/utils/analytics';
-import fetchSentryAppInstallations from 'app/utils/fetchSentryAppInstallations';
+} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import fetchSentryAppInstallations from 'sentry/utils/fetchSentryAppInstallations';
 
 import GroupEventToolbar from '../eventToolbar';
 import ReprocessingProgress from '../reprocessingProgress';
@@ -66,26 +65,6 @@ class GroupEventDetails extends Component<Props, State> {
 
   componentDidMount() {
     this.fetchData();
-
-    // First Meaningful Paint for /organizations/:orgId/issues/:groupId/
-    metric.measure({
-      name: 'app.page.perf.issue-details',
-      start: 'page-issue-details-start',
-      data: {
-        // start_type is set on 'page-issue-details-start'
-        org_id: parseInt(this.props.organization.id, 10),
-        group: this.props.organization.features.includes('enterprise-perf')
-          ? 'enterprise-perf'
-          : 'control',
-        milestone: 'first-meaningful-paint',
-        is_enterprise: this.props.organization.features
-          .includes('enterprise-orgs')
-          .toString(),
-        is_outlier: this.props.organization.features
-          .includes('enterprise-orgs-outliers')
-          .toString(),
-      },
-    });
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -178,6 +157,8 @@ class GroupEventDetails extends Component<Props, State> {
       loadingEvent,
       onRetry,
       eventError,
+      router,
+      route,
     } = this.props;
 
     if (loadingEvent) {
@@ -198,6 +179,8 @@ class GroupEventDetails extends Component<Props, State> {
         project={project}
         location={location}
         showExampleCommit={this.showExampleCommit}
+        router={router}
+        route={route}
       />
     );
   }

@@ -1,8 +1,8 @@
 import Reflux from 'reflux';
 
-import OrganizationActions from 'app/actions/organizationActions';
-import ReleaseActions from 'app/actions/releaseActions';
-import {Deploy, Organization, Release} from 'app/types';
+import OrganizationActions from 'sentry/actions/organizationActions';
+import ReleaseActions from 'sentry/actions/releaseActions';
+import {Deploy, Organization, Release} from 'sentry/types';
 
 type StoreRelease = Map<string, Release>;
 type StoreDeploys = Map<string, Array<Deploy>>;
@@ -44,7 +44,7 @@ type ReleaseStoreInterface = {
 export const getReleaseStoreKey = (projectSlug: string, releaseVersion: string) =>
   `${projectSlug}${releaseVersion}`;
 
-const ReleaseStoreConfig: Reflux.StoreDefinition & ReleaseStoreInterface = {
+const storeConfig: Reflux.StoreDefinition & ReleaseStoreInterface = {
   state: {
     orgSlug: undefined,
     release: new Map() as StoreRelease,
@@ -222,7 +222,7 @@ const ReleaseStoreConfig: Reflux.StoreDefinition & ReleaseStoreInterface = {
   },
 };
 
-const ReleaseStore = Reflux.createStore(ReleaseStoreConfig) as Reflux.Store &
+const ReleaseStore = Reflux.createStore(storeConfig) as Reflux.Store &
   ReleaseStoreInterface;
 
 export default ReleaseStore;

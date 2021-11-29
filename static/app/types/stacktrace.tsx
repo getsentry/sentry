@@ -1,4 +1,4 @@
-import {Frame} from 'app/types';
+import {Frame} from 'sentry/types';
 
 export enum STACK_VIEW {
   RAW = 'raw',
@@ -39,7 +39,7 @@ type MechanismMeta = {
   };
 };
 
-export type Mechanism = {
+export type StackTraceMechanism = {
   handled: boolean;
   synthetic: boolean;
   type: string;

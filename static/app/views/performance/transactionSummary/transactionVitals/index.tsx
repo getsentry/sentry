@@ -1,14 +1,14 @@
 import {Location} from 'history';
 
-import {t} from 'app/locale';
-import {Organization, Project} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
-import {isAggregateField, WebVital} from 'app/utils/discover/fields';
-import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
-import {decodeScalar} from 'app/utils/queryString';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
-import withOrganization from 'app/utils/withOrganization';
-import withProjects from 'app/utils/withProjects';
+import {t} from 'sentry/locale';
+import {Organization, Project} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
+import {isAggregateField, WebVital} from 'sentry/utils/discover/fields';
+import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import withOrganization from 'sentry/utils/withOrganization';
+import withProjects from 'sentry/utils/withProjects';
 
 import PageLayout from '../pageLayout';
 import Tab from '../tabs';
@@ -38,7 +38,7 @@ function TransactionVitals(props: Props) {
   );
 }
 
-function getDocumentTitle(transactionName): string {
+function getDocumentTitle(transactionName: string): string {
   const hasTransactionName =
     typeof transactionName === 'string' && String(transactionName).trim().length > 0;
 
@@ -58,7 +58,9 @@ function generateEventView(location: Location, transactionName: string): EventVi
     .setFilterValues('transaction', [transactionName]);
 
   Object.keys(conditions.filters).forEach(field => {
-    if (isAggregateField(field)) conditions.removeFilter(field);
+    if (isAggregateField(field)) {
+      conditions.removeFilter(field);
+    }
   });
 
   const vitals = VITAL_GROUPS.reduce((allVitals: WebVital[], group) => {

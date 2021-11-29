@@ -2,14 +2,14 @@ import {browserHistory} from 'react-router';
 import {Location, Query} from 'history';
 import Papa from 'papaparse';
 
-import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
-import {URL_PARAM} from 'app/constants/globalSelectionHeader';
-import {t} from 'app/locale';
-import {LightWeightOrganization, Organization, SelectValue} from 'app/types';
-import {Event} from 'app/types/event';
-import {getUtcDateString} from 'app/utils/dates';
-import {TableDataRow} from 'app/utils/discover/discoverQuery';
-import EventView from 'app/utils/discover/eventView';
+import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import {URL_PARAM} from 'sentry/constants/globalSelectionHeader';
+import {t} from 'sentry/locale';
+import {Organization, SelectValue} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import {getUtcDateString} from 'sentry/utils/dates';
+import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import EventView from 'sentry/utils/discover/eventView';
 import {
   aggregateFunctionOutputType,
   Aggregation,
@@ -26,10 +26,10 @@ import {
   isSpanOperationBreakdownField,
   measurementType,
   TRACING_FIELDS,
-} from 'app/utils/discover/fields';
-import {getTitle} from 'app/utils/events';
-import localStorage from 'app/utils/localStorage';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
+} from 'sentry/utils/discover/fields';
+import {getTitle} from 'sentry/utils/events';
+import localStorage from 'sentry/utils/localStorage';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 import {FieldValue, FieldValueKind, TableColumn} from './table/types';
 import {ALL_VIEWS, TRANSACTION_VIEWS, WEB_VITALS_VIEWS} from './data';
@@ -140,7 +140,7 @@ export function generateTitle({
   return titles.join(' - ');
 }
 
-export function getPrebuiltQueries(organization: LightWeightOrganization) {
+export function getPrebuiltQueries(organization: Organization) {
   const views = [...ALL_VIEWS];
   if (organization.features.includes('performance-view')) {
     // insert transactions queries at index 2
@@ -318,10 +318,9 @@ function generateAdditionalConditions(
         if (value.length > 1) {
           conditions[column.field] = value;
           return;
-        } else {
-          // An array with only one value is equivalent to the value itself.
-          value = value[0];
         }
+        // An array with only one value is equivalent to the value itself.
+        value = value[0];
       }
 
       // if the value will be quoted, then do not trim it as the whitespaces
@@ -423,7 +422,7 @@ function generateExpandedConditions(
 }
 
 type FieldGeneratorOpts = {
-  organization: LightWeightOrganization;
+  organization: Organization;
   tagKeys?: string[] | null;
   measurementKeys?: string[] | null;
   spanOperationBreakdownKeys?: string[];
@@ -439,7 +438,7 @@ export function generateFieldOptions({
   aggregations = AGGREGATIONS,
   fields = FIELDS,
 }: FieldGeneratorOpts) {
-  let fieldKeys = Object.keys(fields);
+  let fieldKeys = Object.keys(fields).sort();
   let functions = Object.keys(aggregations);
 
   // Strip tracing features if the org doesn't have access.
@@ -491,6 +490,7 @@ export function generateFieldOptions({
   });
 
   if (tagKeys !== undefined && tagKeys !== null) {
+    tagKeys.sort();
     tagKeys.forEach(tag => {
       const tagValue =
         fields.hasOwnProperty(tag) || AGGREGATIONS.hasOwnProperty(tag)
@@ -507,6 +507,7 @@ export function generateFieldOptions({
   }
 
   if (measurementKeys !== undefined && measurementKeys !== null) {
+    measurementKeys.sort();
     measurementKeys.forEach(measurement => {
       fieldOptions[`measurement:${measurement}`] = {
         label: measurement,
@@ -519,6 +520,7 @@ export function generateFieldOptions({
   }
 
   if (Array.isArray(spanOperationBreakdownKeys)) {
+    spanOperationBreakdownKeys.sort();
     spanOperationBreakdownKeys.forEach(breakdownField => {
       fieldOptions[`span_op_breakdown:${breakdownField}`] = {
         label: breakdownField,

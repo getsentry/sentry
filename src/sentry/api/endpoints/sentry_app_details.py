@@ -35,11 +35,24 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
         # isInternal is not field of our model but it is a field of the serializer
         data = request.data.copy()
         data["isInternal"] = sentry_app.status == SentryAppStatus.INTERNAL
-        serializer = SentryAppSerializer(sentry_app, data=data, partial=True, access=request.access)
+        serializer = SentryAppSerializer(
+            sentry_app,
+            data=data,
+            partial=True,
+            access=request.access,
+            context={
+                "features": {
+                    "organizations:alert-rule-ui-component": features.has(
+                        "organizations:alert-rule-ui-component",
+                        sentry_app.owner,
+                        actor=request.user,
+                    )
+                }
+            },
+        )
 
         if serializer.is_valid():
             result = serializer.validated_data
-
             updated_app = Updater.run(
                 user=request.user,
                 sentry_app=sentry_app,
@@ -55,6 +68,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
                 schema=result.get("schema"),
                 overview=result.get("overview"),
                 allowed_origins=result.get("allowedOrigins"),
+                popularity=result.get("popularity"),
             )
 
             return Response(serialize(updated_app, request.user, access=request.access))

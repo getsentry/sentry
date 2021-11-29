@@ -1,11 +1,12 @@
 import * as React from 'react';
 import {createFilter} from 'react-select';
 
-import Alert from 'app/components/alert';
-import {AvatarProject, Project} from 'app/types';
-import {ChoiceMapperProps} from 'app/views/settings/components/forms/choiceMapperField';
-import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
-import {SelectAsyncFieldProps} from 'app/views/settings/components/forms/selectAsyncField';
+import Alert from 'sentry/components/alert';
+import {AvatarProject, Project} from 'sentry/types';
+import {ChoiceMapperProps} from 'sentry/views/settings/components/forms/choiceMapperField';
+import RangeSlider from 'sentry/views/settings/components/forms/controls/rangeSlider';
+import FormModel from 'sentry/views/settings/components/forms/model';
+import {SelectAsyncFieldProps} from 'sentry/views/settings/components/forms/selectAsyncField';
 
 export const FieldType = [
   'array',
@@ -198,3 +199,13 @@ export type JsonFormObject = {
   title?: React.ReactNode;
   fields: FieldObject[];
 };
+
+export type Data = Record<string, any>;
+
+export type OnSubmitCallback = (
+  data: Data,
+  onSubmitSuccess: (data: Data) => void,
+  onSubmitError: (error: any) => void,
+  event: React.FormEvent,
+  model: FormModel
+) => void;

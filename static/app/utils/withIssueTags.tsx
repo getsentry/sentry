@@ -1,11 +1,11 @@
 import * as React from 'react';
 import assign from 'lodash/assign';
 
-import MemberListStore from 'app/stores/memberListStore';
-import TagStore from 'app/stores/tagStore';
-import TeamStore from 'app/stores/teamStore';
-import {TagCollection, Team, User} from 'app/types';
-import getDisplayName from 'app/utils/getDisplayName';
+import MemberListStore from 'sentry/stores/memberListStore';
+import TagStore from 'sentry/stores/tagStore';
+import TeamStore from 'sentry/stores/teamStore';
+import {TagCollection, Team, User} from 'sentry/types';
+import getDisplayName from 'sentry/utils/getDisplayName';
 
 type InjectedTagsProps = {
   tags: TagCollection;
@@ -23,9 +23,8 @@ const getUsername = ({isManaged, username, email}: User) => {
   // their email in these cases, instead.
   if (username && uuidPattern.test(username)) {
     return email;
-  } else {
-    return !isManaged && username ? username : email;
   }
+  return !isManaged && username ? username : email;
 };
 
 /**
@@ -35,7 +34,10 @@ const getUsername = ({isManaged, username, email}: User) => {
 function withIssueTags<P extends InjectedTagsProps>(
   WrappedComponent: React.ComponentType<P>
 ) {
-  class WithIssueTags extends React.Component<P, State> {
+  class WithIssueTags extends React.Component<
+    Omit<P, keyof InjectedTagsProps> & Partial<InjectedTagsProps>,
+    State
+  > {
     static displayName = `withIssueTags(${getDisplayName(WrappedComponent)})`;
 
     constructor(props, context) {

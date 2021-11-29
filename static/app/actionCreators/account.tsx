@@ -1,19 +1,28 @@
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {Client} from 'app/api';
-import ConfigStore from 'app/stores/configStore';
-import {Identity, User} from 'app/types';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {Client} from 'sentry/api';
+import ConfigStore from 'sentry/stores/configStore';
+import {User, UserIdentityConfig} from 'sentry/types';
 
-export async function disconnectIdentity(identity: Identity) {
+export async function disconnectIdentity(
+  identity: UserIdentityConfig,
+  onSuccess: {(): void}
+) {
   const api = new Client();
 
   try {
-    await api.requestPromise(`/users/me/social-identities/${identity.id}/`, {
-      method: 'DELETE',
-    });
-    addSuccessMessage(`Disconnected ${identity.providerLabel}`);
+    await api.requestPromise(
+      `/users/me/user-identities/${identity.category}/${identity.id}/`,
+      {
+        method: 'DELETE',
+      }
+    );
   } catch {
     addErrorMessage('Error disconnecting identity');
+    return;
   }
+
+  addSuccessMessage(`Disconnected ${identity.provider.name}`);
+  onSuccess();
 }
 
 export function updateUser(user: User) {

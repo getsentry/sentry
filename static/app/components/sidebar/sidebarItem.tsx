@@ -3,13 +3,13 @@ import {withRouter, WithRouterProps} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import FeatureBadge from 'app/components/featureBadge';
-import HookOrDefault from 'app/components/hookOrDefault';
-import Link from 'app/components/links/link';
-import TextOverflow from 'app/components/textOverflow';
-import Tooltip from 'app/components/tooltip';
-import localStorage from 'app/utils/localStorage';
-import {Theme} from 'app/utils/theme';
+import FeatureBadge from 'sentry/components/featureBadge';
+import HookOrDefault from 'sentry/components/hookOrDefault';
+import Link from 'sentry/components/links/link';
+import TextOverflow from 'sentry/components/textOverflow';
+import Tooltip from 'sentry/components/tooltip';
+import localStorage from 'sentry/utils/localStorage';
+import {Theme} from 'sentry/utils/theme';
 
 import {SidebarOrientation} from './types';
 
@@ -120,12 +120,13 @@ const SidebarItem = ({
     <Tooltip disabled={!collapsed} title={label} position={placement}>
       <StyledSidebarItem
         data-test-id={props['data-test-id']}
+        id={`sidebar-item-${id}`}
         active={isActive ? 'true' : undefined}
         to={(to ? to : href) || '#'}
         className={className}
         onClick={(event: React.MouseEvent<HTMLAnchorElement>) => {
           !(to || href) && event.preventDefault();
-          typeof onClick === 'function' && onClick(id, event);
+          onClick?.(id, event);
           showIsNew && localStorage.setItem(isNewSeenKey, 'true');
         }}
       >
@@ -213,7 +214,7 @@ const StyledSidebarItem = styled(Link)`
 
   &:hover,
   &:focus {
-    color: ${p => p.theme.gray200};
+    color: ${p => p.theme.white};
   }
 
   &.focus-visible {

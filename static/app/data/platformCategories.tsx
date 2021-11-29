@@ -1,4 +1,4 @@
-import {t} from 'app/locale';
+import {t} from 'sentry/locale';
 
 const popular = [
   'javascript',
@@ -53,6 +53,10 @@ export const mobile = [
   'dart-flutter',
   'unity',
   'dotnet-xamarin',
+  // Old platforms
+  'java-android',
+  'cocoa-objc',
+  'cocoa-swift',
 ] as const;
 
 export const backend = [
@@ -105,6 +109,7 @@ export const serverless = [
   'node-azurefunctions',
   'node-gcpfunctions',
   'dotnet-awslambda',
+  'dotnet-gcpfunctions',
 ] as const;
 
 export const desktop = [

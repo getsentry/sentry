@@ -1,4 +1,5 @@
 from time import time
+from unittest import mock
 
 import responses
 
@@ -7,7 +8,6 @@ from sentry.identity.oauth2 import OAuth2Provider
 from sentry.integrations.client import ApiClient, OAuth2RefreshMixin
 from sentry.models import Identity, IdentityProvider
 from sentry.testutils import TestCase
-from sentry.utils.compat import mock
 
 
 class ApiClientTest(TestCase):

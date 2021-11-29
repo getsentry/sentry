@@ -3,22 +3,22 @@ import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
 import omit from 'lodash/omit';
 
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import EventUserFeedback from 'app/components/events/userFeedback';
-import CompactIssue from 'app/components/issues/compactIssue';
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import PageHeading from 'app/components/pageHeading';
-import Pagination from 'app/components/pagination';
-import {Panel} from 'app/components/panels';
-import {t} from 'app/locale';
-import {PageContent} from 'app/styles/organization';
-import space from 'app/styles/space';
-import {Organization, UserReport} from 'app/types';
-import withOrganization from 'app/utils/withOrganization';
-import AsyncView from 'app/views/asyncView';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import EventUserFeedback from 'sentry/components/events/userFeedback';
+import CompactIssue from 'sentry/components/issues/compactIssue';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import NoProjectMessage from 'sentry/components/noProjectMessage';
+import GlobalSelectionHeader from 'sentry/components/organizations/globalSelectionHeader';
+import PageHeading from 'sentry/components/pageHeading';
+import Pagination from 'sentry/components/pagination';
+import {Panel} from 'sentry/components/panels';
+import {t} from 'sentry/locale';
+import {PageContent} from 'sentry/styles/organization';
+import space from 'sentry/styles/space';
+import {Organization, UserReport} from 'sentry/types';
+import withOrganization from 'sentry/utils/withOrganization';
+import AsyncView from 'sentry/views/asyncView';
 
 import UserFeedbackEmpty from './userFeedbackEmpty';
 import {getQuery} from './utils';
@@ -119,7 +119,7 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
     return (
       <GlobalSelectionHeader>
         <PageContent>
-          <LightWeightNoProjectMessage organization={organization}>
+          <NoProjectMessage organization={organization}>
             <div data-test-id="user-feedback">
               <Header>
                 <PageHeading>{t('User Feedback')}</PageHeading>
@@ -139,7 +139,7 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
               {this.renderStreamBody()}
               <Pagination pageLinks={reportListPageLinks} />
             </div>
-          </LightWeightNoProjectMessage>
+          </NoProjectMessage>
         </PageContent>
       </GlobalSelectionHeader>
     );

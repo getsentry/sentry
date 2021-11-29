@@ -7,35 +7,36 @@ import {
   addSuccessMessage,
   clearIndicators,
   Indicator,
-} from 'app/actionCreators/indicator';
-import {fetchOrganizationTags} from 'app/actionCreators/tags';
-import Access from 'app/components/acl/access';
-import AsyncComponent from 'app/components/asyncComponent';
-import Button from 'app/components/button';
-import Confirm from 'app/components/confirm';
-import List from 'app/components/list';
-import ListItem from 'app/components/list/listItem';
-import {t} from 'app/locale';
-import IndicatorStore from 'app/stores/indicatorStore';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import {defined} from 'app/utils';
-import {metric, trackAnalyticsEvent} from 'app/utils/analytics';
-import {isActiveSuperuser} from 'app/utils/isActiveSuperuser';
-import RuleNameOwnerForm from 'app/views/alerts/incidentRules/ruleNameOwnerForm';
-import Triggers from 'app/views/alerts/incidentRules/triggers';
-import TriggersChart from 'app/views/alerts/incidentRules/triggers/chart';
-import {getEventTypeFilter} from 'app/views/alerts/incidentRules/utils/getEventTypeFilter';
-import hasThresholdValue from 'app/views/alerts/incidentRules/utils/hasThresholdValue';
-import {AlertWizardAlertNames} from 'app/views/alerts/wizard/options';
-import {getAlertTypeFromAggregateDataset} from 'app/views/alerts/wizard/utils';
-import Form from 'app/views/settings/components/forms/form';
-import FormModel from 'app/views/settings/components/forms/model';
+} from 'sentry/actionCreators/indicator';
+import {fetchOrganizationTags} from 'sentry/actionCreators/tags';
+import Access from 'sentry/components/acl/access';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import Button from 'sentry/components/button';
+import Confirm from 'sentry/components/confirm';
+import List from 'sentry/components/list';
+import ListItem from 'sentry/components/list/listItem';
+import {t} from 'sentry/locale';
+import IndicatorStore from 'sentry/stores/indicatorStore';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import {metric, trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import RuleNameOwnerForm from 'sentry/views/alerts/incidentRules/ruleNameOwnerForm';
+import Triggers from 'sentry/views/alerts/incidentRules/triggers';
+import TriggersChart from 'sentry/views/alerts/incidentRules/triggers/chart';
+import {getEventTypeFilter} from 'sentry/views/alerts/incidentRules/utils/getEventTypeFilter';
+import hasThresholdValue from 'sentry/views/alerts/incidentRules/utils/hasThresholdValue';
+import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
+import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
+import Form from 'sentry/views/settings/components/forms/form';
+import FormModel from 'sentry/views/settings/components/forms/model';
 
 import {addOrUpdateRule} from '../actions';
 import {createDefaultTrigger} from '../constants';
-import RuleConditionsFormForWizard from '../ruleConditionsFormForWizard';
+import RuleConditionsForm from '../ruleConditionsForm';
 import {
+  AlertRuleComparisonType,
   AlertRuleThresholdType,
   Dataset,
   EventTypes,
@@ -70,6 +71,8 @@ type State = {
   triggers: Trigger[];
   resolveThreshold: UnsavedIncidentRule['resolveThreshold'];
   thresholdType: UnsavedIncidentRule['thresholdType'];
+  comparisonType: AlertRuleComparisonType;
+  comparisonDelta?: number;
   projects: Project[];
   triggerErrors: Map<number, {[fieldName: string]: string}>;
 
@@ -119,6 +122,10 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       triggers: triggersClone,
       resolveThreshold: rule.resolveThreshold,
       thresholdType: rule.thresholdType,
+      comparisonDelta: rule.comparisonDelta ?? undefined,
+      comparisonType: !rule.comparisonDelta
+        ? AlertRuleComparisonType.COUNT
+        : AlertRuleComparisonType.CHANGE,
       projects: [this.props.project],
       owner: rule.owner,
     };
@@ -244,8 +251,8 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     // without modifying the values, this boundary case will fail.
     const isValid =
       thresholdType === AlertRuleThresholdType.BELOW
-        ? alertThreshold - 1 <= resolveThreshold + 1
-        : alertThreshold + 1 >= resolveThreshold - 1;
+        ? alertThreshold - 1 < resolveThreshold + 1
+        : alertThreshold + 1 > resolveThreshold - 1;
 
     const otherErrors = errors.get(triggerIndex) || {};
 
@@ -378,7 +385,14 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
   handleFieldChange = (name: string, value: unknown) => {
     if (
-      ['dataset', 'eventTypes', 'timeWindow', 'environment', 'aggregate'].includes(name)
+      [
+        'dataset',
+        'eventTypes',
+        'timeWindow',
+        'environment',
+        'aggregate',
+        'comparisonDelta',
+      ].includes(name)
     ) {
       this.setState({[name]: value});
     }
@@ -428,7 +442,8 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
     const {organization, params, rule, onSubmitSuccess, location, sessionId} = this.props;
     const {ruleId} = this.props.params;
-    const {resolveThreshold, triggers, thresholdType, uuid} = this.state;
+    const {resolveThreshold, triggers, thresholdType, comparisonDelta, uuid, timeWindow} =
+      this.state;
 
     // Remove empty warning trigger
     const sanitizedTriggers = triggers.filter(
@@ -465,6 +480,8 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
           triggers: sanitizedTriggers,
           resolveThreshold: isEmpty(resolveThreshold) ? null : resolveThreshold,
           thresholdType,
+          comparisonDelta,
+          timeWindow,
         },
         {
           referrer: location?.query?.referrer,
@@ -538,13 +555,27 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
   handleResolveThresholdChange = (
     resolveThreshold: UnsavedIncidentRule['resolveThreshold']
   ) => {
-    const {triggers} = this.state;
+    this.setState(state => {
+      const triggerErrors = this.validateTriggers(
+        state.triggers,
+        state.thresholdType,
+        resolveThreshold
+      );
+      if (Array.from(triggerErrors).length === 0) {
+        clearIndicators();
+      }
 
-    const triggerErrors = this.validateTriggers(triggers, undefined, resolveThreshold);
-    this.setState(state => ({
-      resolveThreshold,
-      triggerErrors: new Map([...triggerErrors, ...state.triggerErrors]),
-    }));
+      return {resolveThreshold, triggerErrors};
+    });
+  };
+
+  handleComparisonTypeChange = (value: AlertRuleComparisonType) => {
+    const comparisonDelta =
+      value === AlertRuleComparisonType.COUNT
+        ? undefined
+        : this.state.comparisonDelta ?? 10080;
+    const timeWindow = this.state.comparisonDelta ? this.state.timeWindow : 60;
+    this.setState({comparisonType: value, comparisonDelta, timeWindow});
   };
 
   handleDeleteRule = async () => {
@@ -595,6 +626,8 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       aggregate,
       environment,
       thresholdType,
+      comparisonDelta,
+      comparisonType,
       resolveThreshold,
       loading,
       eventTypes,
@@ -608,23 +641,28 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       organization,
       projects: this.state.projects,
       triggers,
-      query: queryWithTypeFilter,
+      query: dataset === Dataset.SESSIONS ? query : queryWithTypeFilter,
       aggregate,
       timeWindow,
       environment,
       resolveThreshold,
       thresholdType,
+      comparisonDelta,
+      comparisonType,
     };
     const alertType = getAlertTypeFromAggregateDataset({aggregate, dataset});
+
     const wizardBuilderChart = (
       <TriggersChart
         {...chartProps}
         header={
           <ChartHeader>
             <AlertName>{AlertWizardAlertNames[alertType]}</AlertName>
-            <AlertInfo>
-              {aggregate} | event.type:{eventTypes?.join(',')}
-            </AlertInfo>
+            {dataset !== Dataset.SESSIONS && (
+              <AlertInfo>
+                {aggregate} | event.type:{eventTypes?.join(',')}
+              </AlertInfo>
+            )}
           </ChartHeader>
         }
       />
@@ -643,6 +681,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         aggregate={aggregate}
         resolveThreshold={resolveThreshold}
         thresholdType={thresholdType}
+        comparisonType={comparisonType}
         currentProject={params.projectId}
         organization={organization}
         ruleId={ruleId}
@@ -700,7 +739,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
             submitLabel={t('Save Rule')}
           >
             <List symbol="colored-numeric">
-              <RuleConditionsFormForWizard
+              <RuleConditionsForm
                 api={this.api}
                 projectSlug={params.projectId}
                 organization={organization}
@@ -709,6 +748,15 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                 onFilterSearch={this.handleFilterUpdate}
                 allowChangeEventTypes={isCustomMetric || dataset === Dataset.ERRORS}
                 alertType={isCustomMetric ? 'custom' : alertType}
+                dataset={dataset}
+                timeWindow={timeWindow}
+                comparisonType={comparisonType}
+                comparisonDelta={comparisonDelta}
+                onComparisonTypeChange={this.handleComparisonTypeChange}
+                onComparisonDeltaChange={value =>
+                  this.handleFieldChange('comparisonDelta', value)
+                }
+                onTimeWindowChange={value => this.handleFieldChange('timeWindow', value)}
               />
               <AlertListItem>{t('Set thresholds to trigger alert')}</AlertListItem>
               {triggerForm(hasAccess)}

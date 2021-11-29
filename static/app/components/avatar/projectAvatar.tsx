@@ -1,9 +1,9 @@
 import {Component} from 'react';
 
-import BaseAvatar from 'app/components/avatar/baseAvatar';
-import PlatformList from 'app/components/platformList';
-import Tooltip from 'app/components/tooltip';
-import {AvatarProject} from 'app/types';
+import BaseAvatar from 'sentry/components/avatar/baseAvatar';
+import PlatformList from 'sentry/components/platformList';
+import Tooltip from 'sentry/components/tooltip';
+import {AvatarProject} from 'sentry/types';
 
 type Props = {
   project: AvatarProject;

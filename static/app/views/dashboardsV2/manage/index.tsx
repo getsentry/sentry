@@ -2,24 +2,25 @@ import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
-import {Client} from 'app/api';
-import Feature from 'app/components/acl/feature';
-import Alert from 'app/components/alert';
-import Button from 'app/components/button';
-import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
-import SearchBar from 'app/components/searchBar';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import {IconAdd} from 'app/icons';
-import {t} from 'app/locale';
-import {PageContent} from 'app/styles/organization';
-import space from 'app/styles/space';
-import {Organization, SelectValue} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {decodeScalar} from 'app/utils/queryString';
-import withApi from 'app/utils/withApi';
-import withOrganization from 'app/utils/withOrganization';
-import AsyncView from 'app/views/asyncView';
+import {Client} from 'sentry/api';
+import Feature from 'sentry/components/acl/feature';
+import Alert from 'sentry/components/alert';
+import Button from 'sentry/components/button';
+import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import NoProjectMessage from 'sentry/components/noProjectMessage';
+import SearchBar from 'sentry/components/searchBar';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {IconAdd} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {PageContent} from 'sentry/styles/organization';
+import space from 'sentry/styles/space';
+import {Organization, SelectValue} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {decodeScalar} from 'sentry/utils/queryString';
+import withApi from 'sentry/utils/withApi';
+import withOrganization from 'sentry/utils/withOrganization';
+import AsyncView from 'sentry/views/asyncView';
 
 import {DashboardListItem} from '../types';
 
@@ -180,6 +181,14 @@ class ManageDashboards extends AsyncView<Props, State> {
     });
   }
 
+  renderLoading() {
+    return (
+      <PageContent>
+        <LoadingIndicator />
+      </PageContent>
+    );
+  }
+
   renderBody() {
     const {organization} = this.props;
 
@@ -191,7 +200,7 @@ class ManageDashboards extends AsyncView<Props, State> {
       >
         <SentryDocumentTitle title={t('Dashboards')} orgSlug={organization.slug}>
           <StyledPageContent>
-            <LightWeightNoProjectMessage organization={organization}>
+            <NoProjectMessage organization={organization}>
               <PageContent>
                 <StyledPageHeader>
                   {t('Dashboards')}
@@ -210,7 +219,7 @@ class ManageDashboards extends AsyncView<Props, State> {
                 {this.renderActions()}
                 {this.renderDashboards()}
               </PageContent>
-            </LightWeightNoProjectMessage>
+            </NoProjectMessage>
           </StyledPageContent>
         </SentryDocumentTitle>
       </Feature>

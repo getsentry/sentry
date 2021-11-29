@@ -3,8 +3,8 @@ import {browserHistory} from 'react-router';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import EventView from 'app/utils/discover/eventView';
-import TableView from 'app/views/eventsV2/table/tableView';
+import EventView from 'sentry/utils/discover/eventView';
+import TableView from 'sentry/views/eventsV2/table/tableView';
 
 describe('TableView > CellActions', function () {
   let initialData, rows, onChangeShowTags;
@@ -134,6 +134,21 @@ describe('TableView > CellActions', function () {
       pathname: location.pathname,
       query: expect.objectContaining({
         query: 'tag:value title:"some title"',
+      }),
+    });
+  });
+
+  it('handles add cell action with multiple y axis', function () {
+    location.query.yAxis = ['count()', 'failure_count()'];
+    const wrapper = makeWrapper(initialData, rows, eventView);
+    const menu = openContextMenu(wrapper, 0);
+    menu.find('button[data-test-id="add-to-filter"]').simulate('click');
+
+    expect(browserHistory.push).toHaveBeenCalledWith({
+      pathname: location.pathname,
+      query: expect.objectContaining({
+        query: 'title:"some title"',
+        yAxis: ['count()', 'failure_count()'],
       }),
     });
   });

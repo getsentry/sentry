@@ -1,4 +1,5 @@
 from time import time
+from unittest.mock import Mock, patch
 from urllib.parse import parse_qs
 
 import responses
@@ -8,7 +9,6 @@ from sentry.identity.vsts.provider import VSTSIdentityProvider, VSTSOAuth2Callba
 from sentry.integrations.vsts.integration import AccountConfigView, AccountForm
 from sentry.models import Identity, IdentityProvider
 from sentry.testutils import TestCase
-from sentry.utils.compat.mock import Mock, patch
 from sentry.utils.http import absolute_uri
 
 

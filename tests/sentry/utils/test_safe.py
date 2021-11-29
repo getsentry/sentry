@@ -1,13 +1,21 @@
 import unittest
 from collections import OrderedDict
 from functools import partial
+from unittest.mock import Mock, patch
 
 import pytest
 
 from sentry.testutils import TestCase
 from sentry.utils.canonical import CanonicalKeyDict
-from sentry.utils.compat.mock import Mock, patch
-from sentry.utils.safe import get_path, safe_execute, set_path, setdefault_path, trim, trim_dict
+from sentry.utils.safe import (
+    get_path,
+    safe_execute,
+    safe_urlencode,
+    set_path,
+    setdefault_path,
+    trim,
+    trim_dict,
+)
 
 a_very_long_string = "a" * 1024
 
@@ -150,6 +158,10 @@ class GetPathTest(unittest.TestCase):
         assert get_path({"a": {"b": 42}}, "a", filter=True) == {"b": 42}
         assert get_path({"a": 42}, "b", filter=True) is None
 
+        # We use get_path to process Event's Http's query_strings to remove Nones
+        # (which can occur as a result of normalization and datascrubbing).
+        assert get_path([["foo", "bar"], None], filter=True) == [["foo", "bar"]]
+
     def test_kwargs(self):
         with pytest.raises(TypeError):
             get_path({}, "foo", unknown=True)
@@ -195,3 +207,19 @@ class SetPathTest(unittest.TestCase):
 
         with pytest.raises(TypeError):
             set_path({}, "foo", value=1, unknown=True)
+
+
+class SafeUrlencodeTest(unittest.TestCase):
+    def test_dict(self):
+        d = {"1": None, "3": "4"}
+        assert safe_urlencode(d) == "1=&3=4"
+        assert d == {"1": None, "3": "4"}
+        d = {"1": "2", "3": "4"}
+        assert safe_urlencode(d) == "1=2&3=4"
+
+    def test_pair_sequence(self):
+        d = [["1", None], ["3", "4"]]
+        assert safe_urlencode(d) == "1=&3=4"
+        assert d == [["1", None], ["3", "4"]]
+        d = [["1", "2"], ["3", "4"]]
+        assert safe_urlencode(d) == "1=2&3=4"

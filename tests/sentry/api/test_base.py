@@ -41,8 +41,7 @@ class EndpointTest(APITestCase):
         org = self.create_organization()
         apikey = ApiKey.objects.create(organization=org, allowed_origins="*")
 
-        request = HttpRequest()
-        request.method = "GET"
+        request = self.make_request(method="GET")
         request.META["HTTP_ORIGIN"] = "http://example.com"
         request.META["HTTP_AUTHORIZATION"] = b"Basic " + base64.b64encode(
             apikey.key.encode("utf-8")
@@ -56,8 +55,7 @@ class EndpointTest(APITestCase):
         assert response["Access-Control-Allow-Origin"] == "http://example.com"
 
     def test_invalid_cors_without_auth(self):
-        request = HttpRequest()
-        request.method = "GET"
+        request = self.make_request(method="GET")
         request.META["HTTP_ORIGIN"] = "http://example.com"
 
         with self.settings(SENTRY_ALLOW_ORIGIN="https://sentry.io"):
@@ -67,8 +65,7 @@ class EndpointTest(APITestCase):
         assert response.status_code == 400, response.content
 
     def test_valid_cors_without_auth(self):
-        request = HttpRequest()
-        request.method = "GET"
+        request = self.make_request(method="GET")
         request.META["HTTP_ORIGIN"] = "http://example.com"
 
         with self.settings(SENTRY_ALLOW_ORIGIN="*"):
@@ -80,8 +77,7 @@ class EndpointTest(APITestCase):
 
     # XXX(dcramer): The default setting needs to allow requests to work or it will be a regression
     def test_cors_not_configured_is_valid(self):
-        request = HttpRequest()
-        request.method = "GET"
+        request = self.make_request(method="GET")
         request.META["HTTP_ORIGIN"] = "http://example.com"
 
         with self.settings(SENTRY_ALLOW_ORIGIN=None):
@@ -95,8 +91,7 @@ class EndpointTest(APITestCase):
 class PaginateTest(APITestCase):
     def setUp(self):
         super().setUp()
-        self.request = HttpRequest()
-        self.request.method = "GET"
+        self.request = self.make_request(method="GET")
         self.view = DummyPaginationEndpoint().as_view()
 
     def test_success(self):

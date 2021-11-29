@@ -31,6 +31,17 @@ discover_total_period = {
     },
 }
 
+discover_geo = {
+    "seriesName": "Discover total period",
+    "stats": {
+        "data": [
+            {"geo.country_code": "US", "count": 1},
+            {"geo.country_code": "GB", "count": 30},
+            {"geo.country_code": "AU", "count": 20},
+        ],
+    },
+}
+
 discover_total_daily = {
     "seriesName": "Discover total daily",
     "stats": {
@@ -222,6 +233,40 @@ discover_top5 = {
             ],
             "order": 1,
         },
+        "Other": {
+            "data": [
+                [1615877940, [{"count": 2}]],
+                [1615878000, [{"count": 2}]],
+                [1615878060, [{"count": 2}]],
+                [1615878120, [{"count": 2}]],
+                [1615878180, [{"count": 0}]],
+                [1615878240, [{"count": 0}]],
+                [1615878300, [{"count": 0}]],
+                [1615878360, [{"count": 0}]],
+                [1615878420, [{"count": 0}]],
+                [1615878480, [{"count": 1}]],
+                [1615878540, [{"count": 2}]],
+                [1615878600, [{"count": 5}]],
+                [1615878660, [{"count": 3}]],
+                [1615878720, [{"count": 2}]],
+                [1615878780, [{"count": 1}]],
+                [1615878840, [{"count": 0}]],
+                [1615878900, [{"count": 0}]],
+                [1615878960, [{"count": 0}]],
+                [1615879020, [{"count": 0}]],
+                [1615879080, [{"count": 0}]],
+                [1615879140, [{"count": 0}]],
+                [1615879200, [{"count": 0}]],
+                [1615879260, [{"count": 0}]],
+                [1615879320, [{"count": 0}]],
+                [1615879380, [{"count": 2}]],
+                [1615879440, [{"count": 2}]],
+                [1615879500, [{"count": 2}]],
+                [1615879560, [{"count": 2}]],
+                [1615879620, [{"count": 2}]],
+            ],
+            "order": 2,
+        },
     }
 }
 
@@ -247,7 +292,17 @@ class DebugChartRendererView(View):
         charts.append(generate_chart(ChartType.SLACK_DISCOVER_TOTAL_DAILY, discover_empty))
         charts.append(generate_chart(ChartType.SLACK_DISCOVER_TOP5_PERIOD, discover_top5))
         charts.append(generate_chart(ChartType.SLACK_DISCOVER_TOP5_PERIOD, discover_empty))
+        charts.append(generate_chart(ChartType.SLACK_DISCOVER_TOP5_PERIOD_LINE, discover_top5))
+        charts.append(generate_chart(ChartType.SLACK_DISCOVER_TOP5_PERIOD_LINE, discover_empty))
         charts.append(generate_chart(ChartType.SLACK_DISCOVER_TOP5_DAILY, discover_top5))
         charts.append(generate_chart(ChartType.SLACK_DISCOVER_TOP5_DAILY, discover_empty))
+        charts.append(generate_chart(ChartType.SLACK_DISCOVER_WORLDMAP, discover_geo))
+        charts.append(generate_chart(ChartType.SLACK_DISCOVER_WORLDMAP, discover_empty))
+        charts.append(
+            generate_chart(ChartType.SLACK_DISCOVER_PREVIOUS_PERIOD, discover_total_period)
+        )
+        charts.append(
+            generate_chart(ChartType.SLACK_DISCOVER_PREVIOUS_PERIOD, discover_multi_y_axis)
+        )
 
         return render_to_response("sentry/debug/chart-renderer.html", context={"charts": charts})

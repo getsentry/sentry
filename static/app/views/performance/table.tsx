@@ -2,26 +2,32 @@ import * as React from 'react';
 import {browserHistory} from 'react-router';
 import {Location, LocationDescriptorObject} from 'history';
 
-import {addSuccessMessage} from 'app/actionCreators/indicator';
-import {openModal} from 'app/actionCreators/modal';
-import GuideAnchor from 'app/components/assistant/guideAnchor';
-import GridEditable, {COL_WIDTH_UNDEFINED, GridColumn} from 'app/components/gridEditable';
-import SortLink from 'app/components/gridEditable/sortLink';
-import Link from 'app/components/links/link';
-import Pagination from 'app/components/pagination';
-import Tooltip from 'app/components/tooltip';
-import {IconStar} from 'app/icons';
-import {tct} from 'app/locale';
-import {Organization, Project} from 'app/types';
-import {defined} from 'app/utils';
-import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
-import DiscoverQuery, {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
-import EventView, {EventData, isFieldSortable} from 'app/utils/discover/eventView';
-import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
-import {fieldAlignment, getAggregateAlias} from 'app/utils/discover/fields';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
-import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
-import {TableColumn} from 'app/views/eventsV2/table/types';
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {openModal} from 'sentry/actionCreators/modal';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import GridEditable, {
+  COL_WIDTH_UNDEFINED,
+  GridColumn,
+} from 'sentry/components/gridEditable';
+import SortLink from 'sentry/components/gridEditable/sortLink';
+import Link from 'sentry/components/links/link';
+import Pagination from 'sentry/components/pagination';
+import Tooltip from 'sentry/components/tooltip';
+import {IconStar} from 'sentry/icons';
+import {tct} from 'sentry/locale';
+import {Organization, Project} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import DiscoverQuery, {
+  TableData,
+  TableDataRow,
+} from 'sentry/utils/discover/discoverQuery';
+import EventView, {EventData, isFieldSortable} from 'sentry/utils/discover/eventView';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import CellAction, {Actions, updateQuery} from 'sentry/views/eventsV2/table/cellAction';
+import {TableColumn} from 'sentry/views/eventsV2/table/types';
 
 import TransactionThresholdModal, {
   modalCss,
@@ -54,7 +60,7 @@ type Props = {
   organization: Organization;
   location: Location;
   setError: (msg: string | undefined) => void;
-  summaryConditions: string;
+  summaryConditions?: string;
 
   projects: Project[];
   columnTitles?: string[];
@@ -66,7 +72,7 @@ type State = {
   transactionThreshold: number | undefined;
   transactionThresholdMetric: TransactionThresholdMetric | undefined;
 };
-class Table extends React.Component<Props, State> {
+class _Table extends React.Component<Props, State> {
   state: State = {
     widths: [],
     transaction: undefined,
@@ -194,11 +200,6 @@ class Table extends React.Component<Props, State> {
       );
     }
 
-    if (field.startsWith('key_transaction')) {
-      // don't display per cell actions for key_transaction
-      return rendered;
-    }
-
     if (field.startsWith('team_key_transaction')) {
       // don't display per cell actions for team_key_transaction
       return rendered;
@@ -311,28 +312,11 @@ class Table extends React.Component<Props, State> {
   renderPrependCellWithData = (tableData: TableData | null) => {
     const {eventView} = this.props;
 
-    const keyTransactionColumn = eventView
-      .getColumns()
-      .find((col: TableColumn<React.ReactText>) => col.name === 'key_transaction');
     const teamKeyTransactionColumn = eventView
       .getColumns()
       .find((col: TableColumn<React.ReactText>) => col.name === 'team_key_transaction');
     return (isHeader: boolean, dataRow?: any) => {
-      if (keyTransactionColumn) {
-        if (isHeader) {
-          const star = (
-            <IconStar
-              key="keyTransaction"
-              color="yellow300"
-              isSolid
-              data-test-id="key-transaction-header"
-            />
-          );
-          return [this.renderHeadCell(tableData?.meta, keyTransactionColumn, star)];
-        } else {
-          return [this.renderBodyCell(tableData, keyTransactionColumn, dataRow)];
-        }
-      } else if (teamKeyTransactionColumn) {
+      if (teamKeyTransactionColumn) {
         if (isHeader) {
           const star = (
             <GuideAnchor target="team_key_transaction_header" position="top">
@@ -345,9 +329,8 @@ class Table extends React.Component<Props, State> {
             </GuideAnchor>
           );
           return [this.renderHeadCell(tableData?.meta, teamKeyTransactionColumn, star)];
-        } else {
-          return [this.renderBodyCell(tableData, teamKeyTransactionColumn, dataRow)];
         }
+        return [this.renderBodyCell(tableData, teamKeyTransactionColumn, dataRow)];
       }
       return [];
     };
@@ -387,11 +370,10 @@ class Table extends React.Component<Props, State> {
       this.state;
     const columnOrder = eventView
       .getColumns()
-      // remove key_transactions from the column order as we'll be rendering it
+      // remove team_key_transactions from the column order as we'll be rendering it
       // via a prepended column
       .filter(
         (col: TableColumn<React.ReactText>) =>
-          col.name !== 'key_transaction' &&
           col.name !== 'team_key_transaction' &&
           !col.name.startsWith('count_miserable') &&
           col.name !== 'project_threshold_config'
@@ -443,6 +425,13 @@ class Table extends React.Component<Props, State> {
       </div>
     );
   }
+}
+
+function Table(props: Omit<Props, 'summaryConditions'> & {summaryConditions?: string}) {
+  const summaryConditions =
+    props.summaryConditions ?? props.eventView.getQueryWithAdditionalConditions();
+
+  return <_Table {...props} summaryConditions={summaryConditions} />;
 }
 
 export default Table;

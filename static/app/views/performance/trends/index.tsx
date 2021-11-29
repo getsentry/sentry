@@ -2,17 +2,17 @@ import React from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {Client} from 'app/api';
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import {t} from 'app/locale';
-import {PageContent} from 'app/styles/organization';
-import {GlobalSelection, Organization, Project} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
-import withApi from 'app/utils/withApi';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import withOrganization from 'app/utils/withOrganization';
-import withProjects from 'app/utils/withProjects';
+import {Client} from 'sentry/api';
+import NoProjectMessage from 'sentry/components/noProjectMessage';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {t} from 'sentry/locale';
+import {PageContent} from 'sentry/styles/organization';
+import {GlobalSelection, Organization, Project} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
+import withApi from 'sentry/utils/withApi';
+import withGlobalSelection from 'sentry/utils/withGlobalSelection';
+import withOrganization from 'sentry/utils/withOrganization';
+import withProjects from 'sentry/utils/withProjects';
 
 import {generatePerformanceEventView} from '../data';
 
@@ -79,9 +79,9 @@ class TrendsSummary extends React.Component<Props, State> {
     return (
       <SentryDocumentTitle title={this.getDocumentTitle()} orgSlug={organization.slug}>
         <StyledPageContent>
-          <LightWeightNoProjectMessage organization={organization}>
+          <NoProjectMessage organization={organization}>
             {this.renderContent()}
-          </LightWeightNoProjectMessage>
+          </NoProjectMessage>
         </StyledPageContent>
       </SentryDocumentTitle>
     );

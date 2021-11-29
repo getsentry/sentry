@@ -2,11 +2,23 @@ import {Query} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import pick from 'lodash/pick';
 
-import {GlobalSelection} from 'app/types';
-import {getUtcDateString} from 'app/utils/dates';
-import EventView from 'app/utils/discover/eventView';
+import WidgetArea from 'sentry-images/dashboard/widget-area.svg';
+import WidgetBar from 'sentry-images/dashboard/widget-bar.svg';
+import WidgetBigNumber from 'sentry-images/dashboard/widget-big-number.svg';
+import WidgetLine from 'sentry-images/dashboard/widget-line-1.svg';
+import WidgetTable from 'sentry-images/dashboard/widget-table.svg';
+import WidgetWorldMap from 'sentry-images/dashboard/widget-world-map.svg';
 
-import {DashboardDetails, DisplayType, Widget, WidgetQuery} from './types';
+import {GlobalSelection} from 'sentry/types';
+import {getUtcDateString} from 'sentry/utils/dates';
+import EventView from 'sentry/utils/discover/eventView';
+import {
+  DashboardDetails,
+  DisplayType,
+  Widget,
+  WidgetQuery,
+  WidgetType,
+} from 'sentry/views/dashboardsV2/types';
 
 export function cloneDashboard(dashboard: DashboardDetails): DashboardDetails {
   return cloneDeep(dashboard);
@@ -16,18 +28,18 @@ export function eventViewFromWidget(
   title: string,
   query: WidgetQuery,
   selection: GlobalSelection,
-  widgetType?: DisplayType
+  widgetDisplayType?: DisplayType
 ): EventView {
   const {start, end, period: statsPeriod} = selection.datetime;
   const {projects, environments} = selection;
 
   // World Map requires an additional column (geo.country_code) to display in discover when navigating from the widget
   const fields =
-    widgetType === DisplayType.WORLD_MAP
+    widgetDisplayType === DisplayType.WORLD_MAP
       ? ['geo.country_code', ...query.fields]
       : query.fields;
   const conditions =
-    widgetType === DisplayType.WORLD_MAP
+    widgetDisplayType === DisplayType.WORLD_MAP
       ? `${query.conditions} has:geo.country_code`
       : query.conditions;
 
@@ -61,7 +73,7 @@ export function constructWidgetFromQuery(query?: Query): Widget | undefined {
       queryNames &&
       queryFields &&
       typeof query.queryOrderby === 'string'
-    )
+    ) {
       queryConditions.forEach((condition, index) => {
         queries.push({
           name: queryNames[index],
@@ -70,6 +82,7 @@ export function constructWidgetFromQuery(query?: Query): Widget | undefined {
           orderby: query.queryOrderby as string,
         });
       });
+    }
     if (query.title && query.displayType && query.interval && queries.length > 0) {
       const newWidget: Widget = {
         ...(pick(query, ['title', 'displayType', 'interval']) as {
@@ -77,10 +90,30 @@ export function constructWidgetFromQuery(query?: Query): Widget | undefined {
           displayType: DisplayType;
           interval: string;
         }),
+        widgetType: WidgetType.DISCOVER,
         queries,
       };
       return newWidget;
     }
   }
   return undefined;
+}
+
+export function miniWidget(displayType: DisplayType): string {
+  switch (displayType) {
+    case DisplayType.BAR:
+      return WidgetBar;
+    case DisplayType.AREA:
+    case DisplayType.TOP_N:
+      return WidgetArea;
+    case DisplayType.BIG_NUMBER:
+      return WidgetBigNumber;
+    case DisplayType.TABLE:
+      return WidgetTable;
+    case DisplayType.WORLD_MAP:
+      return WidgetWorldMap;
+    case DisplayType.LINE:
+    default:
+      return WidgetLine;
+  }
 }

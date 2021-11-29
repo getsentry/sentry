@@ -14,19 +14,20 @@ import {
   createDashboard,
   deleteDashboard,
   fetchDashboard,
-} from 'app/actionCreators/dashboards';
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {Client} from 'app/api';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
-import MenuItem from 'app/components/menuItem';
-import Pagination from 'app/components/pagination';
-import TimeSince from 'app/components/timeSince';
-import {t, tn} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import withApi from 'app/utils/withApi';
-import {DashboardListItem, DisplayType} from 'app/views/dashboardsV2/types';
+} from 'sentry/actionCreators/dashboards';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {Client} from 'sentry/api';
+import {openConfirmModal} from 'sentry/components/confirm';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import MenuItem from 'sentry/components/menuItem';
+import Pagination from 'sentry/components/pagination';
+import TimeSince from 'sentry/components/timeSince';
+import {t, tn} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import withApi from 'sentry/utils/withApi';
+import {DashboardListItem, DisplayType} from 'sentry/views/dashboardsV2/types';
 
 import ContextMenu from '../contextMenu';
 import {cloneDashboard} from '../utils';
@@ -55,6 +56,7 @@ function DashboardList({
       case DisplayType.BAR:
         return WidgetBar;
       case DisplayType.AREA:
+      case DisplayType.TOP_N:
         return WidgetArea;
       case DisplayType.BIG_NUMBER:
         return WidgetBigNumber;
@@ -140,11 +142,15 @@ function DashboardList({
             <ContextMenu>
               <MenuItem
                 data-test-id="dashboard-delete"
+                disabled={dashboards.length <= 1}
                 onClick={event => {
                   event.preventDefault();
-                  handleDelete(dashboard);
+                  openConfirmModal({
+                    message: t('Are you sure you want to delete this dashboard?'),
+                    priority: 'danger',
+                    onConfirm: () => handleDelete(dashboard),
+                  });
                 }}
-                disabled={dashboards.length <= 1}
               >
                 {t('Delete')}
               </MenuItem>

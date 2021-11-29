@@ -6,9 +6,9 @@ import isString from 'lodash/isString';
 import set from 'lodash/set';
 import moment from 'moment';
 
-import {EntryType, EventTransaction} from 'app/types/event';
-import {assert} from 'app/types/utils';
-import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
+import {EntryType, EventTransaction} from 'sentry/types/event';
+import {assert} from 'sentry/types/utils';
+import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 
 import {
   GapSpanType,
@@ -191,6 +191,8 @@ export function generateRootSpan(trace: ParsedTraceType): RawSpanType {
     description: trace.description,
     data: {},
     status: trace.rootSpanStatus,
+    hash: trace.hash,
+    exclusive_time: trace.exclusiveTime,
   };
 
   return rootSpan;
@@ -293,6 +295,8 @@ export function parseTrace(event: Readonly<EventTransaction>): ParsedTraceType {
   const description = traceContext && traceContext.description;
   const parentSpanID = traceContext && traceContext.parent_span_id;
   const rootSpanStatus = traceContext && traceContext.status;
+  const hash = traceContext && traceContext.hash;
+  const exclusiveTime = traceContext && traceContext.exclusive_time;
 
   if (!spanEntry || spans.length <= 0) {
     return {
@@ -306,6 +310,8 @@ export function parseTrace(event: Readonly<EventTransaction>): ParsedTraceType {
       parentSpanID,
       spans: [],
       description,
+      hash,
+      exclusiveTime,
     };
   }
 
@@ -332,6 +338,8 @@ export function parseTrace(event: Readonly<EventTransaction>): ParsedTraceType {
     parentSpanID,
     spans,
     description,
+    hash,
+    exclusiveTime,
   };
 
   const reduced: ParsedTraceType = spans.reduce((acc, inputSpan) => {
@@ -607,7 +615,7 @@ export function scrollToSpan(
     // because it will be hidden behind the minimap
     e.preventDefault();
 
-    const hash = `#span-${spanId}`;
+    const hash = spanTargetHash(spanId);
 
     scrollToHash(hash);
 
@@ -620,4 +628,8 @@ export function scrollToSpan(
       hash,
     });
   };
+}
+
+export function spanTargetHash(spanId: string): string {
+  return `#span-${spanId}`;
 }

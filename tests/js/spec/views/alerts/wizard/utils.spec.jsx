@@ -1,5 +1,5 @@
-import {Dataset} from 'app/views/alerts/incidentRules/types';
-import {getAlertTypeFromAggregateDataset} from 'app/views/alerts/wizard/utils';
+import {Dataset, SessionsAggregate} from 'sentry/views/alerts/incidentRules/types';
+import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
 describe('Wizard utils', function () {
   it('extracts lcp alert', function () {
@@ -69,6 +69,24 @@ describe('Wizard utils', function () {
         dataset: Dataset.ERRORS,
       })
     ).toEqual('num_errors');
+  });
+
+  it('extracts crash free sessions alert', function () {
+    expect(
+      getAlertTypeFromAggregateDataset({
+        aggregate: SessionsAggregate.CRASH_FREE_SESSIONS,
+        dataset: Dataset.SESSIONS,
+      })
+    ).toEqual('crash_free_sessions');
+  });
+
+  it('extracts crash free users alert', function () {
+    expect(
+      getAlertTypeFromAggregateDataset({
+        aggregate: SessionsAggregate.CRASH_FREE_USERS,
+        dataset: Dataset.SESSIONS,
+      })
+    ).toEqual('crash_free_users');
   });
 
   it('defaults to custom', function () {

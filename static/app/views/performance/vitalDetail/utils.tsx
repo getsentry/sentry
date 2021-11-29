@@ -1,11 +1,11 @@
 import * as React from 'react';
 import {Location, Query} from 'history';
 
-import {IconCheckmark, IconFire, IconWarning} from 'app/icons';
-import {Series} from 'app/types/echarts';
-import {getAggregateAlias, WebVital} from 'app/utils/discover/fields';
-import {decodeScalar} from 'app/utils/queryString';
-import {Color} from 'app/utils/theme';
+import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
+import {Series} from 'sentry/types/echarts';
+import {getAggregateAlias, WebVital} from 'sentry/utils/discover/fields';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {Color} from 'sentry/utils/theme';
 
 export function generateVitalDetailRoute({orgSlug}: {orgSlug: string}): string {
   return `/organizations/${orgSlug}/performance/vitaldetail/`;
@@ -83,9 +83,8 @@ export function vitalNameFromLocation(location: Location): WebVital {
 
   if (vitalName) {
     return vitalName;
-  } else {
-    return WebVital.LCP;
   }
+  return WebVital.LCP;
 }
 
 export function getVitalDetailTablePoorStatusFunction(vitalName: WebVital): string {

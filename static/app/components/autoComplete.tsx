@@ -10,7 +10,7 @@
  */
 import * as React from 'react';
 
-import DropdownMenu, {GetActorArgs, GetMenuArgs} from 'app/components/dropdownMenu';
+import DropdownMenu, {GetActorArgs, GetMenuArgs} from 'sentry/components/dropdownMenu';
 
 const defaultProps = {
   itemToString: () => '',
@@ -33,6 +33,7 @@ const defaultProps = {
 
 type Item = {
   disabled?: boolean;
+  'data-test-id'?: string;
 };
 
 type GetInputArgs<E extends HTMLInputElement> = {
@@ -374,6 +375,7 @@ class AutoComplete<T extends Item> extends React.Component<Props<T>, State<T>> {
 
     return {
       ...props,
+      'data-test-id': item['data-test-id'],
       onClick: this.handleItemClick({item, index: newIndex, ...props}),
     };
   };

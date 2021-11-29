@@ -1,20 +1,13 @@
 import React from 'react';
 import {Route, RouteComponentProps} from 'react-router';
 
-import {ChildrenRenderFn} from 'app/components/acl/feature';
-import DateRange from 'app/components/organizations/timeRangeSelector/dateRange';
-import SelectorItems from 'app/components/organizations/timeRangeSelector/dateRange/selectorItems';
-import SidebarItem from 'app/components/sidebar/sidebarItem';
-import {
-  IntegrationProvider,
-  LightWeightOrganization,
-  Member,
-  Organization,
-  Project,
-  User,
-} from 'app/types';
-import {ExperimentKey} from 'app/types/experiments';
-import {NavigationItem, NavigationSection} from 'app/views/settings/types';
+import {ChildrenRenderFn} from 'sentry/components/acl/feature';
+import DateRange from 'sentry/components/organizations/timeRangeSelector/dateRange';
+import SelectorItems from 'sentry/components/organizations/timeRangeSelector/dateRange/selectorItems';
+import SidebarItem from 'sentry/components/sidebar/sidebarItem';
+import {IntegrationProvider, Member, Organization, Project, User} from 'sentry/types';
+import {ExperimentKey} from 'sentry/types/experiments';
+import {NavigationItem, NavigationSection} from 'sentry/views/settings/types';
 
 // XXX(epurkhiser): A Note about `_`.
 //
@@ -48,7 +41,6 @@ export type RouteHooks = {
   'routes:admin': RoutesHook;
   'routes:api': RoutesHook;
   'routes:organization': RoutesHook;
-  'routes:organization-root': RoutesHook;
 };
 
 /**
@@ -70,7 +62,10 @@ type DisabledAppStoreConnectItem = {
 };
 type DisabledMemberTooltipProps = {children: React.ReactNode};
 type DashboardHeadersProps = {organization: Organization};
-
+type CodeOwnersHeaderProps = {
+  addCodeOwner: () => void;
+  handleRequest: () => void;
+};
 /**
  * Component wrapping hooks
  */
@@ -80,9 +75,11 @@ export type ComponentHooks = {
   'component:global-notifications': () => React.ComponentType<GlobalNotificationProps>;
   'component:disabled-member': () => React.ComponentType<DisabledMemberViewProps>;
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
+  'component:codeowners-header': () => React.ComponentType<CodeOwnersHeaderProps>;
   'component:disabled-member-tooltip': () => React.ComponentType<DisabledMemberTooltipProps>;
   'component:disabled-app-store-connect-item': () => React.ComponentType<DisabledAppStoreConnectItem>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
+  'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
 };
 
 /**
@@ -101,14 +98,14 @@ export type CustomizationHooks = {
  */
 export type AnalyticsHooks = {
   'analytics:init-user': AnalyticsInitUser;
-  'analytics:track-event': AnalyticsTrackEvent;
   'analytics:track-event-v2': AnalyticsTrackEventV2;
-  'analytics:track-adhoc-event': AnalyticsTrackAdhocEvent;
   'analytics:log-experiment': AnalyticsLogExperiment;
   'metrics:event': MetricsEvent;
 
-  // TODO(epurkhiser): This is deprecated and should be replaced
+  // TODO(scefali): Below are deprecated and should be replaced
   'analytics:event': LegacyAnalyticsEvent;
+  'analytics:track-event': AnalyticsTrackEvent;
+  'analytics:track-adhoc-event': AnalyticsTrackAdhocEvent;
 };
 
 /**
@@ -149,6 +146,7 @@ export type FeatureDisabledHooks = {
   'feature-disabled:sso-saml2': FeatureDisabledHook;
   'feature-disabled:trace-view-link': FeatureDisabledHook;
   'feature-disabled:alert-wizard-performance': FeatureDisabledHook;
+  'feature-disabled:project-selector-all-projects': FeatureDisabledHook;
 };
 
 /**
@@ -272,7 +270,7 @@ type AnalyticsTrackEventV2 = (
      */
     eventName: string | null;
 
-    organization: LightWeightOrganization | null;
+    organization: Organization | null;
     /**
      * Arbitrary data to track
      */

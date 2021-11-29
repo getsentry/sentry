@@ -211,7 +211,7 @@ class UserEmailsEndpoint(UserEndpoint):
             return self.respond(validator.errors, status=400)
 
         email = validator.validated_data["email"]
-        primary_email = UserEmail.get_primary_email(user)
+        primary_email = UserEmail.objects.get_primary_email(user)
         del_email = UserEmail.objects.filter(user=user, email__iexact=email).first()
         del_useroption_email_list = UserOption.objects.filter(
             user=user, key="mail:email", value=email

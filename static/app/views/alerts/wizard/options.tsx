@@ -1,3 +1,5 @@
+import {ComponentProps} from 'react';
+
 import diagramApdex from 'sentry-images/spot/alerts-wizard-apdex.svg';
 import diagramCLS from 'sentry-images/spot/alerts-wizard-cls.svg';
 import diagramCrashFreeSessions from 'sentry-images/spot/alerts-wizard-crash-free-sessions.svg';
@@ -12,9 +14,14 @@ import diagramThroughput from 'sentry-images/spot/alerts-wizard-throughput.svg';
 import diagramTransactionDuration from 'sentry-images/spot/alerts-wizard-transaction-duration.svg';
 import diagramUsers from 'sentry-images/spot/alerts-wizard-users-experiencing-errors.svg';
 
-import {t} from 'app/locale';
-import {Organization} from 'app/types';
-import {Dataset, EventTypes} from 'app/views/alerts/incidentRules/types';
+import FeatureBadge from 'sentry/components/featureBadge';
+import {t} from 'sentry/locale';
+import {Organization} from 'sentry/types';
+import {
+  Dataset,
+  EventTypes,
+  SessionsAggregate,
+} from 'sentry/views/alerts/incidentRules/types';
 
 export type AlertType =
   | 'issues'
@@ -49,7 +56,11 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
   crash_free_users: t('Crash Free User Rate'),
 };
 
-type AlertWizardCategory = {categoryHeading: string; options: AlertType[]};
+type AlertWizardCategory = {
+  categoryHeading: string;
+  options: AlertType[];
+  featureBadgeType?: ComponentProps<typeof FeatureBadge>['type'];
+};
 export const getAlertWizardCategories = (org: Organization): AlertWizardCategory[] => [
   {
     categoryHeading: t('Errors'),
@@ -60,6 +71,7 @@ export const getAlertWizardCategories = (org: Organization): AlertWizardCategory
         {
           categoryHeading: t('Sessions'),
           options: ['crash_free_sessions', 'crash_free_users'] as AlertType[],
+          featureBadgeType: 'new' as const,
         },
       ]
     : []),
@@ -221,7 +233,7 @@ export type WizardRuleTemplate = {
 };
 
 export const AlertWizardRuleTemplates: Record<
-  Exclude<AlertType, 'issues' | 'crash_free_sessions' | 'crash_free_users'>,
+  Exclude<AlertType, 'issues'>,
   WizardRuleTemplate
 > = {
   num_errors: {
@@ -274,6 +286,16 @@ export const AlertWizardRuleTemplates: Record<
     dataset: Dataset.TRANSACTIONS,
     eventTypes: EventTypes.TRANSACTION,
   },
+  crash_free_sessions: {
+    aggregate: SessionsAggregate.CRASH_FREE_SESSIONS,
+    dataset: Dataset.SESSIONS,
+    eventTypes: EventTypes.SESSION,
+  },
+  crash_free_users: {
+    aggregate: SessionsAggregate.CRASH_FREE_USERS,
+    dataset: Dataset.SESSIONS,
+    eventTypes: EventTypes.USER,
+  },
 };
 
 export const hidePrimarySelectorSet = new Set<AlertType>([
@@ -282,6 +304,8 @@ export const hidePrimarySelectorSet = new Set<AlertType>([
   'throughput',
   'apdex',
   'failure_rate',
+  'crash_free_sessions',
+  'crash_free_users',
 ]);
 
 export const hideParameterSelectorSet = new Set<AlertType>([
@@ -301,14 +325,14 @@ export function getFunctionHelpText(alertType: AlertType): {
       labelText: t('Select apdex value and time interval'),
       timeWindowText,
     };
-  } else if (hidePrimarySelectorSet.has(alertType)) {
+  }
+  if (hidePrimarySelectorSet.has(alertType)) {
     return {
       labelText: t('Select time interval'),
     };
-  } else {
-    return {
-      labelText: t('Select function and time interval'),
-      timeWindowText,
-    };
   }
+  return {
+    labelText: t('Select function and time interval'),
+    timeWindowText,
+  };
 }

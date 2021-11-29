@@ -1,4 +1,4 @@
-from sentry import features, http, options
+from sentry import http, options
 from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2LoginView, OAuth2Provider
 from sentry.utils.http import absolute_uri
 
@@ -40,18 +40,10 @@ class VSTSIdentityProvider(OAuth2Provider):
     oauth_access_token_url = "https://app.vssps.visualstudio.com/oauth2/token"
     oauth_authorize_url = "https://app.vssps.visualstudio.com/oauth2/authorize"
 
-    @property
-    def use_limited_scopes(self):
-        return use_limited_scopes(self.pipeline)
-
     def get_oauth_client_id(self):
-        if self.use_limited_scopes:
-            return options.get("vsts-limited.client-id")
         return options.get("vsts.client-id")
 
     def get_oauth_client_secret(self):
-        if self.use_limited_scopes:
-            return options.get("vsts-limited.client-secret")
         return options.get("vsts.client-secret")
 
     def get_refresh_token_url(self):
@@ -137,11 +129,3 @@ class VSTSOAuth2CallbackView(OAuth2CallbackView):
         if req.headers["Content-Type"].startswith("application/x-www-form-urlencoded"):
             return dict(parse_qsl(body))
         return json.loads(body)
-
-
-def use_limited_scopes(pipeline):
-    return features.has(
-        "organizations:integrations-vsts-limited-scopes",
-        pipeline.organization,
-        actor=pipeline.request.user,
-    )

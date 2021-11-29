@@ -1,18 +1,19 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {act} from 'sentry-test/reactTestingLibrary';
 import {selectByValue} from 'sentry-test/select-new';
 
-import ContextPickerModal from 'app/components/contextPickerModal';
-import ConfigStore from 'app/stores/configStore';
-import OrganizationsStore from 'app/stores/organizationsStore';
-import OrganizationStore from 'app/stores/organizationStore';
-import ProjectsStore from 'app/stores/projectsStore';
+import ContextPickerModal from 'sentry/components/contextPickerModal';
+import ConfigStore from 'sentry/stores/configStore';
+import OrganizationsStore from 'sentry/stores/organizationsStore';
+import OrganizationStore from 'sentry/stores/organizationStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
 
 describe('ContextPickerModal', function () {
   let project, project2, project4, org, org2;
   const onFinish = jest.fn();
 
   beforeEach(function () {
-    ProjectsStore.reset();
+    act(() => ProjectsStore.reset());
     MockApiClient.clearMockResponses();
     onFinish.mockReset();
 
@@ -27,9 +28,9 @@ describe('ContextPickerModal', function () {
   });
 
   afterEach(async function () {
-    OrganizationsStore.load([]);
-    OrganizationStore.reset();
-    await tick();
+    act(() => OrganizationsStore.load([]));
+    act(() => OrganizationStore.reset());
+    await act(tick);
   });
 
   const getComponent = props => (
@@ -90,7 +91,7 @@ describe('ContextPickerModal', function () {
     expect(fetchProjectsForOrg).toHaveBeenCalled();
     expect(onFinish).not.toHaveBeenCalled();
 
-    await tick();
+    await act(tick);
     wrapper.update();
 
     expect(onFinish).toHaveBeenLastCalledWith('/test/org2/path/project2/');
@@ -170,7 +171,7 @@ describe('ContextPickerModal', function () {
       },
     ]);
 
-    await tick();
+    await act(tick);
     wrapper.unmount();
   });
 
@@ -246,7 +247,7 @@ describe('ContextPickerModal', function () {
 
     expect(onFinish).toHaveBeenCalledWith('/test/org2/path/project3/');
 
-    await tick();
+    await act(tick);
     wrapper.unmount();
   });
 

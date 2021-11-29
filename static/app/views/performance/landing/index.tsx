@@ -1,26 +1,26 @@
-import {FC, useState} from 'react';
+import {FC} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import Button from 'app/components/button';
-import SearchBar from 'app/components/events/searchBar';
-import FeatureBadge from 'app/components/featureBadge';
-import GlobalSdkUpdateAlert from 'app/components/globalSdkUpdateAlert';
-import * as Layout from 'app/components/layouts/thirds';
-import NavTabs from 'app/components/navTabs';
-import PageHeading from 'app/components/pageHeading';
-import * as TeamKeyTransactionManager from 'app/components/performance/teamKeyTransactionsManager';
-import {MAX_QUERY_LENGTH} from 'app/constants';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project, Team} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
-import {generateAggregateFields} from 'app/utils/discover/fields';
-import {isActiveSuperuser} from 'app/utils/isActiveSuperuser';
-import {OpBreakdownFilterProvider} from 'app/utils/performance/contexts/operationBreakdownFilter';
-import withTeams from 'app/utils/withTeams';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import SearchBar from 'sentry/components/events/searchBar';
+import GlobalSdkUpdateAlert from 'sentry/components/globalSdkUpdateAlert';
+import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import NavTabs from 'sentry/components/navTabs';
+import PageHeading from 'sentry/components/pageHeading';
+import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
+import {MAX_QUERY_LENGTH} from 'sentry/constants';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
+import {generateAggregateFields} from 'sentry/utils/discover/fields';
+import {GenericQueryBatcher} from 'sentry/utils/performance/contexts/genericQueryBatcher';
+import useTeams from 'sentry/utils/useTeams';
 
-import Filter, {SpanOperationBreakdownFilter} from '../transactionSummary/filter';
+import {MetricsSwitch} from '../metricsSwitch';
 import {getTransactionSearchQuery} from '../utils';
 
 import {AllTransactionsView} from './views/allTransactionsView';
@@ -40,7 +40,6 @@ type Props = {
   eventView: EventView;
   location: Location;
   projects: Project[];
-  teams: Team[];
   shouldShowOnboarding: boolean;
   setError: (msg: string | undefined) => void;
   handleSearch: (searchQuery: string) => void;
@@ -55,25 +54,22 @@ const fieldToViewMap: Record<LandingDisplayField, FC<Props>> = {
   [LandingDisplayField.MOBILE]: MobileView,
 };
 
-function _PerformanceLanding(props: Props) {
+export function PerformanceLanding(props: Props) {
   const {
     organization,
     location,
     eventView,
     projects,
-    teams,
     handleSearch,
     handleTrendsClick,
     shouldShowOnboarding,
   } = props;
 
+  const {teams, initiallyLoaded} = useTeams({provideUserTeams: true});
+
   const currentLandingDisplay = getCurrentLandingDisplay(location, projects, eventView);
   const filterString = getTransactionSearchQuery(location, eventView.query);
 
-  const isSuperuser = isActiveSuperuser();
-  const userTeams = teams.filter(({isMember}) => isMember || isSuperuser);
-
-  const [spanFilter, setSpanFilter] = useState(SpanOperationBreakdownFilter.None);
   const showOnboarding = shouldShowOnboarding;
 
   const shownLandingDisplays = LANDING_DISPLAYS.filter(
@@ -90,25 +86,32 @@ function _PerformanceLanding(props: Props) {
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           {!showOnboarding && (
-            <Button
-              priority="primary"
-              data-test-id="landing-header-trends"
-              onClick={() => handleTrendsClick()}
-            >
-              {t('View Trends')}
-            </Button>
+            <ButtonBar gap={3}>
+              <MetricsSwitch />
+              <Button
+                priority="primary"
+                data-test-id="landing-header-trends"
+                onClick={() => handleTrendsClick()}
+              >
+                {t('View Trends')}
+              </Button>
+            </ButtonBar>
           )}
         </Layout.HeaderActions>
 
         <StyledNavTabs>
-          {shownLandingDisplays.map(({badge, label, field}) => (
+          {shownLandingDisplays.map(({label, field}) => (
             <li
               key={label}
               className={currentLandingDisplay.field === field ? 'active' : ''}
             >
-              <a href="#" onClick={() => handleLandingDisplayChange(field, location)}>
+              <a
+                href="#"
+                onClick={() =>
+                  handleLandingDisplayChange(field, location, projects, eventView)
+                }
+              >
                 {t(label)}
-                {badge && <FeatureBadge type={badge} />}
               </a>
             </li>
           ))}
@@ -117,43 +120,40 @@ function _PerformanceLanding(props: Props) {
       <Layout.Body>
         <Layout.Main fullWidth>
           <GlobalSdkUpdateAlert />
-          <OpBreakdownFilterProvider>
-            <SearchContainerWithFilter>
-              <Filter
-                organization={organization}
-                currentFilter={spanFilter}
-                onChangeFilter={setSpanFilter}
-              />
-              <SearchBar
-                searchSource="performance_landing"
-                organization={organization}
-                projectIds={eventView.project}
-                query={filterString}
-                fields={generateAggregateFields(
-                  organization,
-                  [...eventView.fields, {field: 'tps()'}],
-                  ['epm()', 'eps()']
-                )}
-                onSearch={handleSearch}
-                maxQueryLength={MAX_QUERY_LENGTH}
-              />
-            </SearchContainerWithFilter>
+          <SearchContainerWithFilter>
+            <SearchBar
+              searchSource="performance_landing"
+              organization={organization}
+              projectIds={eventView.project}
+              query={filterString}
+              fields={generateAggregateFields(
+                organization,
+                [...eventView.fields, {field: 'tps()'}],
+                ['epm()', 'eps()']
+              )}
+              onSearch={handleSearch}
+              maxQueryLength={MAX_QUERY_LENGTH}
+            />
+          </SearchContainerWithFilter>
+          {initiallyLoaded ? (
             <TeamKeyTransactionManager.Provider
               organization={organization}
-              teams={userTeams}
+              teams={teams}
               selectedTeams={['myteams']}
               selectedProjects={eventView.project.map(String)}
             >
-              <ViewComponent {...props} />
+              <GenericQueryBatcher>
+                <ViewComponent {...props} />
+              </GenericQueryBatcher>
             </TeamKeyTransactionManager.Provider>
-          </OpBreakdownFilterProvider>
+          ) : (
+            <LoadingIndicator />
+          )}
         </Layout.Main>
       </Layout.Body>
     </div>
   );
 }
-
-export const PerformanceLanding = withTeams(_PerformanceLanding);
 
 const StyledHeading = styled(PageHeading)`
   line-height: 40px;
@@ -171,6 +171,6 @@ const SearchContainerWithFilter = styled('div')`
   margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: min-content 1fr;
+    grid-template-columns: 1fr;
   }
 `;

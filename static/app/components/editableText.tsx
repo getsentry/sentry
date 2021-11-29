@@ -2,14 +2,14 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import TextOverflow from 'app/components/textOverflow';
-import {IconEdit} from 'app/icons/iconEdit';
-import space from 'app/styles/space';
-import {defined} from 'app/utils';
-import useKeypress from 'app/utils/useKeyPress';
-import useOnClickOutside from 'app/utils/useOnClickOutside';
-import Input from 'app/views/settings/components/forms/controls/input';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import TextOverflow from 'sentry/components/textOverflow';
+import {IconEdit} from 'sentry/icons/iconEdit';
+import space from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
+import useKeypress from 'sentry/utils/useKeyPress';
+import useOnClickOutside from 'sentry/utils/useOnClickOutside';
+import Input from 'sentry/views/settings/components/forms/controls/input';
 
 type Props = {
   value: string;
@@ -52,17 +52,21 @@ function EditableText({
 
   // check to see if the user clicked outside of this component
   useOnClickOutside(innerWrapperRef, () => {
-    if (isEditing) {
-      if (isEmpty) {
-        displayStatusMessage('error');
-        return;
-      }
-      if (inputValue !== value) {
-        onChange(inputValue);
-        displayStatusMessage('success');
-      }
-      setIsEditing(false);
+    if (!isEditing) {
+      return;
     }
+
+    if (isEmpty) {
+      displayStatusMessage('error');
+      return;
+    }
+
+    if (inputValue !== value) {
+      onChange(inputValue);
+      displayStatusMessage('success');
+    }
+
+    setIsEditing(false);
   });
 
   const onEnter = useCallback(() => {
@@ -151,6 +155,7 @@ function EditableText({
         <Label
           onClick={isDisabled ? undefined : handleEditClick}
           ref={labelRef}
+          isDisabled={isDisabled}
           data-test-id="editable-text-label"
         >
           <InnerLabel>{inputValue}</InnerLabel>
@@ -163,12 +168,12 @@ function EditableText({
 
 export default EditableText;
 
-const Label = styled('div')`
+const Label = styled('div')<{isDisabled: boolean}>`
   display: grid;
   grid-auto-flow: column;
   align-items: center;
   gap: ${space(1)};
-  cursor: pointer;
+  cursor: ${p => (p.isDisabled ? 'default' : 'pointer')};
 `;
 
 const InnerLabel = styled(TextOverflow)`

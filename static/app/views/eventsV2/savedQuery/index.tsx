@@ -2,32 +2,39 @@ import * as React from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
+import isEqual from 'lodash/isEqual';
 
-import {openAddDashboardWidgetModal} from 'app/actionCreators/modal';
-import {Client} from 'app/api';
-import Feature from 'app/components/acl/feature';
-import FeatureDisabled from 'app/components/acl/featureDisabled';
-import GuideAnchor from 'app/components/assistant/guideAnchor';
-import Banner from 'app/components/banner';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
-import DropdownControl from 'app/components/dropdownControl';
-import Hovercard from 'app/components/hovercard';
-import MenuItem from 'app/components/menuItem';
-import {IconDelete, IconStar} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project, SavedQuery} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import EventView from 'app/utils/discover/eventView';
-import {getDiscoverLandingUrl} from 'app/utils/discover/urls';
-import withApi from 'app/utils/withApi';
-import withProjects from 'app/utils/withProjects';
-import InputControl from 'app/views/settings/components/forms/controls/input';
+import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
+import {Client} from 'sentry/api';
+import Feature from 'sentry/components/acl/feature';
+import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import Banner from 'sentry/components/banner';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
+import DropdownControl from 'sentry/components/dropdownControl';
+import Hovercard from 'sentry/components/hovercard';
+import {IconDelete, IconStar} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project, SavedQuery} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import EventView from 'sentry/utils/discover/eventView';
+import {DisplayModes} from 'sentry/utils/discover/types';
+import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
+import withApi from 'sentry/utils/withApi';
+import withProjects from 'sentry/utils/withProjects';
+import {DashboardWidgetSource, WidgetQuery} from 'sentry/views/dashboardsV2/types';
+import InputControl from 'sentry/views/settings/components/forms/controls/input';
 
-import DiscoverQueryMenu from './discoverQueryMenu';
-import {handleCreateQuery, handleDeleteQuery, handleUpdateQuery} from './utils';
+import {
+  displayModeToDisplayType,
+  handleCreateQuery,
+  handleDeleteQuery,
+  handleUpdateQuery,
+} from './utils';
 
 type DefaultProps = {
   disabled: boolean;
@@ -53,6 +60,7 @@ type Props = DefaultProps & {
   onIncompatibleAlertQuery: React.ComponentProps<
     typeof CreateAlertFromViewButton
   >['onIncompatibleQuery'];
+  yAxis: string[];
 };
 
 type State = {
@@ -64,7 +72,7 @@ type State = {
 
 class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
-    const {eventView: nextEventView, savedQuery, savedQueryLoading} = nextProps;
+    const {eventView: nextEventView, savedQuery, savedQueryLoading, yAxis} = nextProps;
 
     // For a new unsaved query
     if (!savedQuery) {
@@ -92,9 +100,18 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
 
     // For modifying a SavedQuery
     const isEqualQuery = nextEventView.isEqualTo(savedEventView);
+    // undefined saved yAxis defaults to count() and string values are converted to array
+    const isEqualYAxis = isEqual(
+      yAxis,
+      !savedQuery.yAxis
+        ? ['count()']
+        : typeof savedQuery.yAxis === 'string'
+        ? [savedQuery.yAxis]
+        : savedQuery.yAxis
+    );
     return {
       isNewQuery: false,
-      isEditingQuery: !isEqualQuery,
+      isEditingQuery: !isEqualQuery || !isEqualYAxis,
 
       // HACK(leedongwei): See comment at SavedQueryButtonGroup.onFocusInput
       queryName: prevState.queryName || '',
@@ -147,7 +164,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     event.preventDefault();
     event.stopPropagation();
 
-    const {api, organization, eventView} = this.props;
+    const {api, organization, eventView, yAxis} = this.props;
 
     if (!this.state.queryName) {
       return;
@@ -160,7 +177,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     // clicked while modifying an existing query
     const isNewQuery = !eventView.id;
 
-    handleCreateQuery(api, organization, nextEventView, isNewQuery).then(
+    handleCreateQuery(api, organization, nextEventView, yAxis, isNewQuery).then(
       (savedQuery: SavedQuery) => {
         const view = EventView.fromSavedQuery(savedQuery);
 
@@ -175,14 +192,16 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     event.preventDefault();
     event.stopPropagation();
 
-    const {api, organization, eventView, updateCallback} = this.props;
+    const {api, organization, eventView, updateCallback, yAxis} = this.props;
 
-    handleUpdateQuery(api, organization, eventView).then((savedQuery: SavedQuery) => {
-      const view = EventView.fromSavedQuery(savedQuery);
-      this.setState({queryName: ''});
-      browserHistory.push(view.getResultsViewShortUrlTarget(organization.slug));
-      updateCallback();
-    });
+    handleUpdateQuery(api, organization, eventView, yAxis).then(
+      (savedQuery: SavedQuery) => {
+        const view = EventView.fromSavedQuery(savedQuery);
+        this.setState({queryName: ''});
+        browserHistory.push(view.getResultsViewShortUrlTarget(organization.slug));
+        updateCallback();
+      }
+    );
   };
 
   handleDeleteQuery = (event: React.MouseEvent<Element>) => {
@@ -211,13 +230,29 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
   };
 
   handleAddDashboardWidget = () => {
-    const {organization, eventView, savedQuery} = this.props;
+    const {organization, eventView, savedQuery, yAxis} = this.props;
+    const sort = eventView.sorts[0];
+    const defaultWidgetQuery: WidgetQuery = {
+      name: '',
+      fields: yAxis && yAxis.length > 0 ? yAxis : ['count()'],
+      conditions: eventView.query,
+      orderby: sort ? `${sort.kind === 'desc' ? '-' : ''}${sort.field}` : '',
+    };
+
+    trackAdvancedAnalyticsEvent('discover_views.add_to_dashboard.modal_open', {
+      organization,
+      saved_query: !!savedQuery,
+    });
+
     openAddDashboardWidgetModal({
       organization,
-      defaultQuery: eventView.query,
+      source: DashboardWidgetSource.DISCOVERV2,
+      defaultWidgetQuery,
+      defaultTableColumns: eventView.fields.map(({field}) => field),
       defaultTitle:
-        savedQuery?.name ?? eventView.name !== 'All Events' ? eventView.name : undefined,
-      fromDiscover: true,
+        savedQuery?.name ??
+        (eventView.name !== 'All Events' ? eventView.name : undefined),
+      displayType: displayModeToDisplayType(eventView.display as DisplayModes),
     });
   };
 
@@ -335,17 +370,15 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     );
   }
 
-  renderDiscoverQueryMenu() {
-    const menuOptions: React.ReactNode[] = [];
-    menuOptions.push(
-      <MenuItem
+  renderButtonAddToDashboard() {
+    return (
+      <AddToDashboardButton
         key="add-dashboard-widget-from-discover"
         onClick={this.handleAddDashboardWidget}
       >
         {t('Add to Dashboard')}
-      </MenuItem>
+      </AddToDashboardButton>
     );
-    return <DiscoverQueryMenu>{menuOptions}</DiscoverQueryMenu>;
   }
 
   render() {
@@ -385,13 +418,13 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
         <Feature organization={organization} features={['incidents']}>
           {({hasFeature}) => hasFeature && this.renderButtonCreateAlert()}
         </Feature>
-        {renderQueryButton(disabled => this.renderButtonDelete(disabled))}
         <Feature
           organization={organization}
           features={['connect-discover-and-dashboards', 'dashboards-edit']}
         >
-          {({hasFeature}) => hasFeature && this.renderDiscoverQueryMenu()}
+          {({hasFeature}) => hasFeature && this.renderButtonAddToDashboard()}
         </Feature>
+        {renderQueryButton(disabled => this.renderButtonDelete(disabled))}
       </ResponsiveButtonBar>
     );
   }
@@ -422,6 +455,12 @@ const IconUpdate = styled('div')`
   margin-right: ${space(0.75)};
   border-radius: 5px;
   background-color: ${p => p.theme.yellow300};
+`;
+
+const AddToDashboardButton = styled(Button)`
+  span {
+    height: 38px;
+  }
 `;
 
 export default withProjects(withApi(SavedQueryButtonGroup));

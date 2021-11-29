@@ -1,9 +1,9 @@
-import {shallow} from 'sentry-test/enzyme';
+import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
 import {
   formatStoreCrashReports,
   getStoreCrashReportsValues,
-} from 'app/utils/crashReports';
+} from 'sentry/utils/crashReports';
 
 describe('crashReportsUtils', () => {
   it('returns correct values for organization scope', () => {
@@ -12,14 +12,23 @@ describe('crashReportsUtils', () => {
   it('returns correct values for project scope', () => {
     expect(getStoreCrashReportsValues(1)).toEqual([null, 0, 1, 5, 10, 20, -1]);
   });
-  it('formats the value', () => {
+  it('formats basic values', () => {
     expect(formatStoreCrashReports(-1)).toBe('Unlimited');
     expect(formatStoreCrashReports(0)).toBe('Disabled');
-    expect(shallow(<div>{formatStoreCrashReports(10)}</div>).text()).toBe('10 per issue');
-    expect(shallow(<div>{formatStoreCrashReports(null, 5)}</div>).text()).toBe(
+  });
+  it('formats per issue values', () => {
+    mountWithTheme(<div data-test-id="subject">{formatStoreCrashReports(10)}</div>);
+    expect(screen.getByTestId('subject')).toHaveTextContent('10 per issue');
+  });
+  it('formats with org inheritance', () => {
+    mountWithTheme(<div data-test-id="subject">{formatStoreCrashReports(null, 5)}</div>);
+    expect(screen.getByTestId('subject')).toHaveTextContent(
       'Inherit organization settings (5 per issue)'
     );
-    expect(shallow(<div>{formatStoreCrashReports(null, 0)}</div>).text()).toBe(
+  });
+  it('formats with org inheritance disabled', () => {
+    mountWithTheme(<div data-test-id="subject">{formatStoreCrashReports(null, 0)}</div>);
+    expect(screen.getByTestId('subject')).toHaveTextContent(
       'Inherit organization settings (Disabled)'
     );
   });

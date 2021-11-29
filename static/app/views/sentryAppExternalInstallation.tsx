@@ -1,32 +1,27 @@
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {installSentryApp} from 'app/actionCreators/sentryAppInstallations';
-import Alert from 'app/components/alert';
-import OrganizationAvatar from 'app/components/avatar/organizationAvatar';
-import SelectControl from 'app/components/forms/selectControl';
-import SentryAppDetailsModal from 'app/components/modals/sentryAppDetailsModal';
-import NarrowLayout from 'app/components/narrowLayout';
-import {IconFlag} from 'app/icons';
-import {t, tct} from 'app/locale';
-import {
-  LightWeightOrganization,
-  Organization,
-  SentryApp,
-  SentryAppInstallation,
-} from 'app/types';
-import {trackIntegrationAnalytics} from 'app/utils/integrationUtil';
-import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
-import AsyncView from 'app/views/asyncView';
-import Field from 'app/views/settings/components/forms/field';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {installSentryApp} from 'sentry/actionCreators/sentryAppInstallations';
+import Alert from 'sentry/components/alert';
+import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
+import SelectControl from 'sentry/components/forms/selectControl';
+import SentryAppDetailsModal from 'sentry/components/modals/sentryAppDetailsModal';
+import NarrowLayout from 'sentry/components/narrowLayout';
+import {IconFlag} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import {Organization, SentryApp, SentryAppInstallation} from 'sentry/types';
+import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
+import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
+import AsyncView from 'sentry/views/asyncView';
+import Field from 'sentry/views/settings/components/forms/field';
 
 type Props = RouteComponentProps<{sentryAppSlug: string}, {}>;
 
 type State = AsyncView['state'] & {
   selectedOrgSlug: string | null;
   organization: Organization | null;
-  organizations: LightWeightOrganization[];
+  organizations: Organization[];
   reloading: boolean;
   sentryApp: SentryApp;
 };
@@ -82,7 +77,7 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
     return isInstalled || reloading || this.isSentryAppUnavailableForOrg;
   }
 
-  hasAccess = (org: LightWeightOrganization) => org.access.includes('org:integrations');
+  hasAccess = (org: Organization) => org.access.includes('org:integrations');
 
   onClose = () => {
     // if we came from somewhere, go back there. Otherwise, back to the integrations page
@@ -156,13 +151,15 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
   };
 
   getOptions() {
-    return this.state.organizations.map(org => [
-      org.slug,
-      <div key={org.slug}>
-        <OrganizationAvatar organization={org} />
-        <OrgNameHolder>{org.slug}</OrgNameHolder>
-      </div>,
-    ]);
+    return this.state.organizations.map(org => ({
+      value: org.slug,
+      label: (
+        <div key={org.slug}>
+          <OrganizationAvatar organization={org} />
+          <OrgNameHolder>{org.slug}</OrgNameHolder>
+        </div>
+      ),
+    }));
   }
 
   renderInternalAppError() {
@@ -245,7 +242,7 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
               onChange={({value}) => this.onSelectOrg(value)}
               value={selectedOrgSlug}
               placeholder={t('Select an organization')}
-              choices={this.getOptions()}
+              options={this.getOptions()}
             />
           )}
         </Field>

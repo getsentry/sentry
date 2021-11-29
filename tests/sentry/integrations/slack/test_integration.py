@@ -3,7 +3,7 @@ from urllib.parse import parse_qs, urlencode, urlparse
 import responses
 
 from sentry.integrations.slack import SlackIntegration, SlackIntegrationProvider
-from sentry.integrations.slack.utils import SLACK_GET_USERS_PAGE_SIZE
+from sentry.integrations.slack.utils.users import SLACK_GET_USERS_PAGE_SIZE
 from sentry.models import (
     AuditLogEntry,
     AuditLogEntryEvent,

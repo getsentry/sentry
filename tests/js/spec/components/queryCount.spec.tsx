@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
-import QueryCount from 'app/components/queryCount';
+import QueryCount from 'sentry/components/queryCount';
 
 describe('QueryCount', function () {
   it('displays count when no max', function () {
@@ -14,7 +14,7 @@ describe('QueryCount', function () {
 
   it('does not render if count is 0', function () {
     const {container} = mountWithTheme(<QueryCount count={0} />);
-    expect(container.firstChild).toBeNull();
+    expect(container).toBeEmptyDOMElement();
   });
 
   it('can render when count is 0 when `hideIfEmpty` is false', function () {

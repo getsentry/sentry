@@ -1,7 +1,7 @@
-import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 
 describe('ButtonBar', function () {
   const createWrapper = () =>
@@ -15,8 +15,8 @@ describe('ButtonBar', function () {
     );
 
   it('has "Second Button" as the active button in the bar', function () {
-    const {getByLabelText} = createWrapper();
-    expect(getByLabelText('First Button')).not.toHaveClass('active');
-    expect(getByLabelText('Second Button')).toHaveClass('active');
+    createWrapper();
+    expect(screen.getByLabelText('First Button')).not.toHaveClass('active');
+    expect(screen.getByLabelText('Second Button')).toHaveClass('active');
   });
 });

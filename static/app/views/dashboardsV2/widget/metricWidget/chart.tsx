@@ -1,26 +1,25 @@
 import * as React from 'react';
 import {InjectedRouter} from 'react-router';
-import {withTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import AreaChart from 'app/components/charts/areaChart';
-import BarChart from 'app/components/charts/barChart';
-import ChartZoom, {ZoomRenderProps} from 'app/components/charts/chartZoom';
-import ErrorPanel from 'app/components/charts/errorPanel';
-import LineChart from 'app/components/charts/lineChart';
-import TransitionChart from 'app/components/charts/transitionChart';
-import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
-import {getSeriesSelection} from 'app/components/charts/utils';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import Placeholder from 'app/components/placeholder';
-import {PlatformKey} from 'app/data/platformCategories';
-import {IconWarning} from 'app/icons';
-import {GlobalSelection} from 'app/types';
-import {Series} from 'app/types/echarts';
-import getDynamicText from 'app/utils/getDynamicText';
-import {Theme} from 'app/utils/theme';
-import {sessionTerm} from 'app/views/releases/utils/sessionTerm';
+import AreaChart from 'sentry/components/charts/areaChart';
+import BarChart from 'sentry/components/charts/barChart';
+import ChartZoom, {ZoomRenderProps} from 'sentry/components/charts/chartZoom';
+import ErrorPanel from 'sentry/components/charts/errorPanel';
+import LineChart from 'sentry/components/charts/lineChart';
+import TransitionChart from 'sentry/components/charts/transitionChart';
+import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import {getSeriesSelection} from 'sentry/components/charts/utils';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Placeholder from 'sentry/components/placeholder';
+import {PlatformKey} from 'sentry/data/platformCategories';
+import {IconWarning} from 'sentry/icons';
+import {GlobalSelection} from 'sentry/types';
+import {Series} from 'sentry/types/echarts';
+import getDynamicText from 'sentry/utils/getDynamicText';
+import {sessionTerm} from 'sentry/views/releases/utils/sessionTerm';
 
 import {DisplayType} from '../utils';
 
@@ -32,7 +31,6 @@ type Props = {
   errored: boolean;
   selection: GlobalSelection;
   router: InjectedRouter;
-  theme: Theme;
   platform?: PlatformKey;
 };
 
@@ -44,11 +42,12 @@ function Chart({
   isLoading,
   selection,
   router,
-  theme,
   platform,
 }: Props) {
   const {datetime} = selection;
   const {utc, period, start, end} = datetime;
+
+  const theme = useTheme();
 
   const filteredTimeseriesResults = timeseriesResults.filter(({seriesName}) => {
     // There is no concept of Abnormal sessions in javascript
@@ -127,7 +126,7 @@ function Chart({
   );
 }
 
-export default withTheme(Chart);
+export default Chart;
 
 const LoadingScreen = ({loading}: {loading: boolean}) => {
   if (!loading) {

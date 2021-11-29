@@ -84,6 +84,65 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         assert response.status_code == 400, response.data
         assert "displayType" in response.data, response.data
 
+    def test_invalid_equation(self):
+        data = {
+            "title": "Invalid query",
+            "displayType": "line",
+            "queries": [
+                {
+                    "name": "errors",
+                    "conditions": "event.type:error",
+                    "fields": ["equation|count()"],
+                }
+            ],
+        }
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 400, response.data
+        assert "queries" in response.data, response.data
+
+    def test_valid_equation_line_widget(self):
+        data = {
+            "title": "Invalid query",
+            "displayType": "line",
+            "queries": [
+                {
+                    "name": "errors",
+                    "conditions": "event.type:error",
+                    "fields": ["equation|count() * 2"],
+                }
+            ],
+        }
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 200, response.data
+
+    def test_invalid_equation_table_widget(self):
+        data = {
+            "title": "Invalid query",
+            "displayType": "table",
+            "queries": [
+                {
+                    "name": "errors",
+                    "conditions": "event.type:error",
+                    "fields": ["equation|count() * 2"],
+                }
+            ],
+        }
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 400, response.data
+        assert "queries" in response.data, response.data
+
     def test_valid_epm_widget(self):
         data = {
             "title": "EPM Big Number",
@@ -161,3 +220,49 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             data=data,
         )
         assert response.status_code == 200, response.data
+
+    def test_valid_issue_query_conditions(self):
+        data = {
+            "title": "Unresolved Issues",
+            "displayType": "table",
+            "widgetType": "issue",
+            "queries": [{"name": "unresolved", "conditions": "is:unresolved", "fields": []}],
+        }
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 200, response.data
+
+    def test_invalid_issue_query_conditions(self):
+        data = {
+            "title": "Unresolved Issues",
+            "displayType": "table",
+            "widgetType": "issue",
+            "queries": [{"name": "unresolved", "conditions": "is:())", "fields": []}],
+        }
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 400, response.data
+        assert "queries" in response.data, response.data
+        assert response.data["queries"][0]["conditions"], response.data
+
+    def test_invalid_issue_query_conditions_in_discover_widget(self):
+        data = {
+            "title": "Unresolved Issues",
+            "displayType": "table",
+            "widgetType": "discover",
+            "queries": [{"name": "unresolved", "conditions": "is:unresolved", "fields": []}],
+        }
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 400, response.data
+        assert "queries" in response.data, response.data
+        assert response.data["queries"][0]["conditions"], response.data

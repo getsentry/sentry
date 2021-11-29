@@ -1,35 +1,10 @@
-import {GuideAnchor} from 'app/components/assistant/guideAnchor';
-import SmartSearchBar from 'app/components/smartSearchBar';
-import {RELEASE_ADOPTION_STAGES} from 'app/constants';
-import {t} from 'app/locale';
-import {Tag} from 'app/types';
+import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
+import SmartSearchBar from 'sentry/components/smartSearchBar';
+import {t} from 'sentry/locale';
+import {Tag} from 'sentry/types';
+import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 
 import {TagValueLoader} from '../issueList/types';
-
-const supportedTags = {
-  'release.version': {
-    key: 'release.version',
-    name: 'release.version',
-  },
-  'release.build': {
-    key: 'release.build',
-    name: 'release.build',
-  },
-  'release.package': {
-    key: 'release.package',
-    name: 'release.package',
-  },
-  'release.stage': {
-    key: 'release.stage',
-    name: 'release.stage',
-    predefined: true,
-    values: RELEASE_ADOPTION_STAGES,
-  },
-  release: {
-    key: 'release',
-    name: 'release',
-  },
-};
 
 type Props = {
   query: string;
@@ -48,10 +23,16 @@ function ProjectFilters({query, tagValueLoader, onSearch}: Props) {
       <SmartSearchBar
         searchSource="project_filters"
         query={query}
-        placeholder={t('Search by release version')}
+        placeholder={t('Search by release version, build, package, or stage')}
         maxSearchItems={5}
         hasRecentSearches={false}
-        supportedTags={supportedTags}
+        supportedTags={{
+          ...SEMVER_TAGS,
+          release: {
+            key: 'release',
+            name: 'release',
+          },
+        }}
         onSearch={onSearch}
         onGetTagValues={getTagValues}
       />

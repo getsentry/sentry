@@ -1,8 +1,9 @@
+from unittest.mock import MagicMock, patch
+
 from sentry.integrations.aws_lambda.integration import AwsLambdaIntegration
 from sentry.models import Integration, ProjectKey
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.faux import Mock
-from sentry.utils.compat.mock import MagicMock, patch
 
 cloudformation_arn = (
     "arn:aws:cloudformation:us-east-2:599817902985:stack/"

@@ -3,17 +3,23 @@ import {browserHistory, RouteComponentProps} from 'react-router';
 import {Location} from 'history';
 import moment from 'moment';
 
-import {fetchOrgMembers} from 'app/actionCreators/members';
-import {Client} from 'app/api';
-import Feature from 'app/components/acl/feature';
-import DateTime from 'app/components/dateTime';
-import {t} from 'app/locale';
-import {DateString, Organization} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {getUtcDateString} from 'app/utils/dates';
-import withApi from 'app/utils/withApi';
-import {IncidentRule, TimePeriod, TimeWindow} from 'app/views/alerts/incidentRules/types';
-import {makeRuleDetailsQuery} from 'app/views/alerts/list/row';
+import {fetchOrgMembers} from 'sentry/actionCreators/members';
+import {Client, ResponseMeta} from 'sentry/api';
+import Alert from 'sentry/components/alert';
+import DateTime from 'sentry/components/dateTime';
+import {IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {PageContent} from 'sentry/styles/organization';
+import {DateString, Organization} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {getUtcDateString} from 'sentry/utils/dates';
+import withApi from 'sentry/utils/withApi';
+import {
+  IncidentRule,
+  TimePeriod,
+  TimeWindow,
+} from 'sentry/views/alerts/incidentRules/types';
+import {makeRuleDetailsQuery} from 'sentry/views/alerts/list/row';
 
 import {Incident} from '../../types';
 import {fetchAlertRule, fetchIncident, fetchIncidentsForRule} from '../../utils';
@@ -31,13 +37,14 @@ type Props = {
 type State = {
   isLoading: boolean;
   hasError: boolean;
+  error: ResponseMeta | null;
   rule?: IncidentRule;
   incidents?: Incident[];
   selectedIncident?: Incident | null;
 };
 
 class AlertRuleDetails extends Component<Props, State> {
-  state: State = {isLoading: false, hasError: false};
+  state: State = {isLoading: false, hasError: false, error: null};
 
   componentDidMount() {
     const {api, params} = this.props;
@@ -159,8 +166,8 @@ class AlertRuleDetails extends Component<Props, State> {
       this.setState({incidents});
 
       this.setState({isLoading: false, hasError: false});
-    } catch (_err) {
-      this.setState({isLoading: false, hasError: true});
+    } catch (error) {
+      this.setState({isLoading: false, hasError: true, error});
     }
   };
 
@@ -184,29 +191,45 @@ class AlertRuleDetails extends Component<Props, State> {
     });
   };
 
+  renderError() {
+    const {error} = this.state;
+
+    return (
+      <PageContent>
+        <Alert type="error" icon={<IconWarning />}>
+          {error?.status === 404
+            ? t('This alert rule could not be found.')
+            : t('An error occurred while fetching the alert rule.')}
+        </Alert>
+      </PageContent>
+    );
+  }
+
   render() {
     const {rule, incidents, hasError, selectedIncident} = this.state;
-    const {params, organization} = this.props;
+    const {params} = this.props;
     const timePeriod = this.getTimePeriod();
+
+    if (hasError) {
+      return this.renderError();
+    }
 
     return (
       <Fragment>
-        <Feature organization={organization} features={['alert-details-redesign']}>
-          <DetailsHeader
-            hasIncidentRuleDetailsError={hasError}
-            params={params}
-            rule={rule}
-          />
-          <DetailsBody
-            {...this.props}
-            rule={rule}
-            incidents={incidents}
-            timePeriod={timePeriod}
-            selectedIncident={selectedIncident}
-            handleTimePeriodChange={this.handleTimePeriodChange}
-            handleZoom={this.handleZoom}
-          />
-        </Feature>
+        <DetailsHeader
+          hasIncidentRuleDetailsError={hasError}
+          params={params}
+          rule={rule}
+        />
+        <DetailsBody
+          {...this.props}
+          rule={rule}
+          incidents={incidents}
+          timePeriod={timePeriod}
+          selectedIncident={selectedIncident}
+          handleTimePeriodChange={this.handleTimePeriodChange}
+          handleZoom={this.handleZoom}
+        />
       </Fragment>
     );
   }

@@ -1,4 +1,4 @@
-import {t} from 'app/locale';
+import {t} from 'sentry/locale';
 
 import {DashboardDetails} from './types';
 
@@ -17,6 +17,7 @@ export const DISPLAY_TYPE_CHOICES = [
   {label: t('Table'), value: 'table'},
   {label: t('World Map'), value: 'world_map'},
   {label: t('Big Number'), value: 'big_number'},
+  {label: t('Top 5 Events'), value: 'top_n'},
 ];
 
 export const INTERVAL_CHOICES = [

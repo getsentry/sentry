@@ -10,6 +10,7 @@ drop-db \
 create-db \
 apply-migrations \
 reset-db \
+setup-apple-m1 \
 setup-git \
 node-version-check \
 install-js-dev \
@@ -19,6 +20,7 @@ install-py-dev :
 build-platform-assets \
 direnv-help \
 upgrade-pip \
+prerequisites \
 setup-git-config :
 	@SENTRY_NO_VENV_CHECK=1 ./scripts/do.sh $@
 

@@ -18,8 +18,8 @@ from sentry.auth.system import get_system_token
 from sentry.cache import default_cache
 from sentry.models import Organization
 from sentry.net.http import Session
-from sentry.tasks.store import RetrySymbolication
-from sentry.utils import json, metrics
+from sentry.tasks.symbolication import RetrySymbolication
+from sentry.utils import json, metrics, safe
 
 MAX_ATTEMPTS = 3
 REQUEST_CACHE_TIMEOUT = 3600
@@ -59,15 +59,9 @@ APP_STORE_CONNECT_SCHEMA = {
         "appconnectIssuer": {"type": "string", "minLength": 36, "maxLength": 36},
         "appconnectKey": {"type": "string", "minLength": 2, "maxLength": 20},
         "appconnectPrivateKey": {"type": "string"},
-        "itunesUser": {"type": "string", "minLength": 1, "maxLength": 100},
-        "itunesCreated": {"type": "string", "format": "date-time"},
-        "itunesPassword": {"type": "string"},
-        "itunesSession": {"type": "string"},
         "appName": {"type": "string", "minLength": 1, "maxLength": 512},
         "appId": {"type": "string", "minLength": 1},
         "bundleId": {"type": "string", "minLength": 1},
-        "orgPublicId": {"type": "string", "minLength": 36, "maxLength": 36},
-        "orgName": {"type": "string", "minLength": 1, "maxLength": 512},
     },
     "required": [
         "type",
@@ -76,15 +70,9 @@ APP_STORE_CONNECT_SCHEMA = {
         "appconnectIssuer",
         "appconnectKey",
         "appconnectPrivateKey",
-        "itunesUser",
-        "itunesCreated",
-        "itunesPassword",
-        "itunesSession",
         "appName",
         "appId",
         "bundleId",
-        "orgPublicId",
-        "orgName",
     ],
     "additionalProperties": False,
 }
@@ -307,7 +295,7 @@ def secret_fields(source_type):
     Returns a string list of all of the fields that contain a secret in a given source.
     """
     if source_type == "appStoreConnect":
-        yield from ["appconnectPrivateKey", "itunesPassword", "itunesSession"]
+        yield from ["appconnectPrivateKey"]
     elif source_type == "http":
         yield "password"
     elif source_type == "s3":
@@ -362,7 +350,7 @@ def parse_backfill_sources(sources_json, original_sources):
     try:
         sources = json.loads(sources_json)
     except Exception as e:
-        raise InvalidSourcesError(f"{e}")
+        raise InvalidSourcesError("Sources are not valid serialised JSON") from e
 
     orig_by_id = {src["id"]: src for src in original_sources}
 
@@ -377,15 +365,17 @@ def parse_backfill_sources(sources_json, original_sources):
 
         for secret in secret_fields(source["type"]):
             if secret in source and source[secret] == {"hidden-secret": True}:
-                orig_source = orig_by_id.get(source["id"])
-                # Should just omit the source entirely if it's referencing a previously stored
-                # secret that we can't find
-                source[secret] = orig_source.get(secret, "")
+                secret_value = safe.get_path(orig_by_id, source["id"], secret)
+                if secret_value is None:
+                    sentry_sdk.capture_message("Hidden secret not present in project options")
+                    raise InvalidSourcesError("Sources contain unknown hidden secret")
+                else:
+                    source[secret] = secret_value
 
     try:
         jsonschema.validate(sources, SOURCES_SCHEMA)
     except jsonschema.ValidationError as e:
-        raise InvalidSourcesError(f"{e}")
+        raise InvalidSourcesError("Sources did not validate JSON-schema") from e
 
     return sources
 

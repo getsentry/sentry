@@ -6,25 +6,33 @@ import classNames from 'classnames';
 import {Location, Query} from 'history';
 import moment from 'moment';
 
-import {resetGlobalSelection} from 'app/actionCreators/globalSelection';
-import {openAddDashboardWidgetModal} from 'app/actionCreators/modal';
-import {Client} from 'app/api';
-import Feature from 'app/components/acl/feature';
-import DropdownMenu from 'app/components/dropdownMenu';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
-import MenuItem from 'app/components/menuItem';
-import Pagination from 'app/components/pagination';
-import TimeSince from 'app/components/timeSince';
-import {IconEllipsis} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, SavedQuery} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import EventView from 'app/utils/discover/eventView';
-import parseLinkHeader from 'app/utils/parseLinkHeader';
-import withApi from 'app/utils/withApi';
+import {resetGlobalSelection} from 'sentry/actionCreators/globalSelection';
+import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
+import {Client} from 'sentry/api';
+import Feature from 'sentry/components/acl/feature';
+import DropdownMenu from 'sentry/components/dropdownMenu';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import MenuItem from 'sentry/components/menuItem';
+import Pagination from 'sentry/components/pagination';
+import TimeSince from 'sentry/components/timeSince';
+import {IconEllipsis} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, SavedQuery} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import EventView from 'sentry/utils/discover/eventView';
+import {DisplayModes} from 'sentry/utils/discover/types';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {decodeList} from 'sentry/utils/queryString';
+import withApi from 'sentry/utils/withApi';
+import {DashboardWidgetSource, WidgetQuery} from 'sentry/views/dashboardsV2/types';
 
-import {handleCreateQuery, handleDeleteQuery} from './savedQuery/utils';
+import {
+  displayModeToDisplayType,
+  handleCreateQuery,
+  handleDeleteQuery,
+} from './savedQuery/utils';
 import MiniGraph from './miniGraph';
 import QueryCard from './querycard';
 import {getPrebuiltQueries} from './utils';
@@ -67,23 +75,24 @@ class QueryList extends React.Component<Props> {
     });
   };
 
-  handleDuplicateQuery = (eventView: EventView) => (event: React.MouseEvent<Element>) => {
-    event.preventDefault();
-    event.stopPropagation();
+  handleDuplicateQuery =
+    (eventView: EventView, yAxis: string[]) => (event: React.MouseEvent<Element>) => {
+      event.preventDefault();
+      event.stopPropagation();
 
-    const {api, location, organization, onQueryChange} = this.props;
+      const {api, location, organization, onQueryChange} = this.props;
 
-    eventView = eventView.clone();
-    eventView.name = `${eventView.name} copy`;
+      eventView = eventView.clone();
+      eventView.name = `${eventView.name} copy`;
 
-    handleCreateQuery(api, organization, eventView).then(() => {
-      onQueryChange();
-      browserHistory.push({
-        pathname: location.pathname,
-        query: {},
+      handleCreateQuery(api, organization, eventView, yAxis).then(() => {
+        onQueryChange();
+        browserHistory.push({
+          pathname: location.pathname,
+          query: {},
+        });
       });
-    });
-  };
+    };
 
   handleAddQueryToDashboard =
     (eventView: EventView, savedQuery?: SavedQuery) =>
@@ -91,14 +100,35 @@ class QueryList extends React.Component<Props> {
       const {organization} = this.props;
       event.preventDefault();
       event.stopPropagation();
+
+      const sort = eventView.sorts[0];
+      const defaultWidgetQuery: WidgetQuery = {
+        name: '',
+        fields:
+          typeof savedQuery?.yAxis === 'string'
+            ? [savedQuery?.yAxis]
+            : savedQuery?.yAxis ?? ['count()'],
+        conditions: eventView.query,
+        orderby: sort ? `${sort.kind === 'desc' ? '-' : ''}${sort.field}` : '',
+      };
+
+      trackAdvancedAnalyticsEvent('discover_views.add_to_dashboard.modal_open', {
+        organization,
+        saved_query: !!savedQuery,
+      });
+
       openAddDashboardWidgetModal({
         organization,
-        defaultQuery: eventView.query,
         start: eventView.start,
         end: eventView.end,
         statsPeriod: eventView.statsPeriod,
-        fromDiscover: true,
-        defaultTitle: savedQuery?.name ?? eventView.name,
+        source: DashboardWidgetSource.DISCOVERV2,
+        defaultWidgetQuery,
+        defaultTableColumns: eventView.fields.map(({field}) => field),
+        defaultTitle:
+          savedQuery?.name ??
+          (eventView.name !== 'All Events' ? eventView.name : undefined),
+        displayType: displayModeToDisplayType(eventView.display as DisplayModes),
       });
     };
 
@@ -167,6 +197,7 @@ class QueryList extends React.Component<Props> {
               location={location}
               eventView={eventView}
               organization={organization}
+              referrer="api.discover.homepage.prebuilt"
             />
           )}
           onEventClick={() => {
@@ -186,12 +217,12 @@ class QueryList extends React.Component<Props> {
                 return (
                   hasFeature && (
                     <ContextMenu>
-                      <MenuItem
+                      <StyledMenuItem
                         data-test-id="add-query-to-dashboard"
                         onClick={this.handleAddQueryToDashboard(eventView)}
                       >
                         {t('Add to Dashboard')}
-                      </MenuItem>
+                      </StyledMenuItem>
                     </ContextMenu>
                   )
                 );
@@ -222,6 +253,7 @@ class QueryList extends React.Component<Props> {
 
       const to = eventView.getResultsViewShortUrlTarget(organization.slug);
       const dateStatus = <TimeSince date={savedQuery.dateUpdated} />;
+      const referrer = `api.discover.${eventView.getDisplayMode()}-chart`;
 
       return (
         <QueryCard
@@ -240,11 +272,24 @@ class QueryList extends React.Component<Props> {
             });
           }}
           renderGraph={() => (
-            <MiniGraph
-              location={location}
-              eventView={eventView}
+            <Feature
               organization={organization}
-            />
+              features={['connect-discover-and-dashboards']}
+            >
+              {({hasFeature}) => (
+                <MiniGraph
+                  location={location}
+                  eventView={eventView}
+                  organization={organization}
+                  referrer={referrer}
+                  yAxis={
+                    hasFeature && savedQuery.yAxis && savedQuery.yAxis.length
+                      ? savedQuery.yAxis
+                      : ['count()']
+                  }
+                />
+              )}
+            </Feature>
           )}
           renderContextMenu={() => (
             <ContextMenu>
@@ -254,12 +299,12 @@ class QueryList extends React.Component<Props> {
               >
                 {({hasFeature}) =>
                   hasFeature && (
-                    <MenuItem
+                    <StyledMenuItem
                       data-test-id="add-query-to-dashboard"
                       onClick={this.handleAddQueryToDashboard(eventView, savedQuery)}
                     >
                       {t('Add to Dashboard')}
-                    </MenuItem>
+                    </StyledMenuItem>
                   )
                 }
               </Feature>
@@ -271,7 +316,10 @@ class QueryList extends React.Component<Props> {
               </MenuItem>
               <MenuItem
                 data-test-id="duplicate-query"
-                onClick={this.handleDuplicateQuery(eventView)}
+                onClick={this.handleDuplicateQuery(
+                  eventView,
+                  decodeList(savedQuery.yAxis)
+                )}
               >
                 {t('Duplicate Query')}
               </MenuItem>
@@ -373,6 +421,13 @@ const DropdownTarget = styled('div')`
 `;
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`
   grid-column: 1 / 4;
+`;
+
+const StyledMenuItem = styled(MenuItem)`
+  white-space: nowrap;
+  span {
+    align-items: baseline;
+  }
 `;
 
 export default withApi(QueryList);

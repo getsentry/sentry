@@ -1,6 +1,6 @@
-import {fireEvent, mountWithTheme, waitFor} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import Breadcrumbs from 'app/components/breadcrumbs';
+import Breadcrumbs from 'sentry/components/breadcrumbs';
 
 describe('Breadcrumbs', () => {
   const routerContext = TestStubs.routerContext();
@@ -33,7 +33,7 @@ describe('Breadcrumbs', () => {
   it('returns null when 0 crumbs', () => {
     const empty = mountWithTheme(<Breadcrumbs crumbs={[]} />);
 
-    expect(empty.container.firstChild).toBeNull();
+    expect(empty.container).toBeEmptyDOMElement();
   });
 
   it('renders crumbs with icon', () => {
@@ -42,22 +42,22 @@ describe('Breadcrumbs', () => {
   });
 
   it('generates correct links', () => {
-    const wrapper = createWrapper();
-    fireEvent.click(wrapper.getByText('Test 1'));
+    createWrapper();
+    userEvent.click(screen.getByText('Test 1'));
     expect(routerContext.context.router.push).toHaveBeenCalledWith('/test1');
-    fireEvent.click(wrapper.getByText('Test 2'));
+    userEvent.click(screen.getByText('Test 2'));
     expect(routerContext.context.router.push).toHaveBeenCalledWith('/test2');
   });
 
   it('does not make links where no `to` is provided', () => {
-    const wrapper = createWrapper();
-    fireEvent.click(wrapper.getByText('Test 3'));
+    createWrapper();
+    userEvent.click(screen.getByText('Test 3'));
     expect(routerContext.context.router.push).not.toHaveBeenCalled();
   });
 
   it('renders a crumb dropdown', async () => {
     const onSelect = jest.fn();
-    const wrapper = mountWithTheme(
+    mountWithTheme(
       <Breadcrumbs
         crumbs={[
           {
@@ -77,13 +77,12 @@ describe('Breadcrumbs', () => {
       />,
       {context: routerContext}
     );
-    fireEvent.mouseOver(wrapper.getByText('dropdown crumb'));
+    userEvent.hover(screen.getByText('dropdown crumb'));
 
-    await waitFor(() => {
-      expect(wrapper.getByText('item3')).toBeInTheDocument();
-    });
+    const item3 = await screen.findByText('item3');
+    expect(item3).toBeInTheDocument();
 
-    fireEvent.click(wrapper.getByText('item3'));
+    userEvent.click(item3);
     expect(onSelect).toHaveBeenCalledWith(
       expect.objectContaining({label: 'item3'}),
       expect.anything(),

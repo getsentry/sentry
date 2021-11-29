@@ -2,20 +2,20 @@ import * as React from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps} from 'app/actionCreators/modal';
-import AsyncComponent from 'app/components/asyncComponent';
-import Button from 'app/components/button';
-import HookOrDefault from 'app/components/hookOrDefault';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import QuestionTooltip from 'app/components/questionTooltip';
-import {MEMBER_ROLES} from 'app/constants';
-import {IconAdd, IconCheckmark, IconWarning} from 'app/icons';
-import {t, tct, tn} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {uniqueId} from 'app/utils/guid';
-import withLatestContext from 'app/utils/withLatestContext';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import Button from 'sentry/components/button';
+import HookOrDefault from 'sentry/components/hookOrDefault';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import {MEMBER_ROLES} from 'sentry/constants';
+import {IconAdd, IconCheckmark, IconWarning} from 'sentry/icons';
+import {t, tct, tn} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {uniqueId} from 'sentry/utils/guid';
+import withLatestContext from 'sentry/utils/withLatestContext';
 
 import InviteRowControl from './inviteRowControl';
 import {InviteRow, InviteStatus, NormalizedInvite} from './types';
@@ -62,11 +62,8 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
     this.sessionId = uniqueId();
 
     const {organization, source} = this.props;
-
-    trackAnalyticsEvent({
-      eventKey: 'invite_modal.opened',
-      eventName: 'Invite Modal: Opened',
-      organization_id: organization.id,
+    trackAdvancedAnalyticsEvent('invite_modal.opened', {
+      organization,
       modal_session: this.sessionId,
       can_invite: this.willInvite,
       source,
@@ -106,11 +103,8 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
       complete: false,
       sendingInvites: false,
     });
-
-    trackAnalyticsEvent({
-      eventKey: 'invite_modal.add_more',
-      eventName: 'Invite Modal: Add More',
-      organization_id: this.props.organization.id,
+    trackAdvancedAnalyticsEvent('invite_modal.add_more', {
+      organization: this.props.organization,
       modal_session: this.sessionId,
     });
   };
@@ -163,16 +157,13 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
     await Promise.all(this.invites.map(this.sendInvite));
     this.setState({sendingInvites: false, complete: true});
 
-    trackAnalyticsEvent({
-      eventKey: this.willInvite
-        ? 'invite_modal.invites_sent'
-        : 'invite_modal.requests_sent',
-      eventName: this.willInvite
-        ? 'Invite Modal: Invites Sent'
-        : 'Invite Modal: Requests Sent',
-      organization_id: this.props.organization.id,
-      modal_session: this.sessionId,
-    });
+    trackAdvancedAnalyticsEvent(
+      this.willInvite ? 'invite_modal.invites_sent' : 'invite_modal.requests_sent',
+      {
+        organization: this.props.organization,
+        modal_session: this.sessionId,
+      }
+    );
   };
 
   addInviteRow = () =>
@@ -268,26 +259,25 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
               : tct('Sent [invites]', tctComponents)}
           </StatusMessage>
         );
-      } else {
-        const inviteRequests = (
-          <strong>{tn('%s invite request', '%s invite requests', sentCount)}</strong>
-        );
-        const tctComponents = {
-          inviteRequests,
-          failed: errorCount,
-        };
-        return (
-          <StatusMessage status="success">
-            <IconCheckmark size="sm" />
-            {errorCount > 0
-              ? tct(
-                  '[inviteRequests] pending approval, [failed] failed to send.',
-                  tctComponents
-                )
-              : tct('[inviteRequests] pending approval', tctComponents)}
-          </StatusMessage>
-        );
       }
+      const inviteRequests = (
+        <strong>{tn('%s invite request', '%s invite requests', sentCount)}</strong>
+      );
+      const tctComponents = {
+        inviteRequests,
+        failed: errorCount,
+      };
+      return (
+        <StatusMessage status="success">
+          <IconCheckmark size="sm" />
+          {errorCount > 0
+            ? tct(
+                '[inviteRequests] pending approval, [failed] failed to send.',
+                tctComponents
+              )
+            : tct('[inviteRequests] pending approval', tctComponents)}
+        </StatusMessage>
+      );
     }
 
     if (this.hasDuplicateEmails) {
@@ -405,10 +395,8 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
                   priority="primary"
                   size="small"
                   onClick={() => {
-                    trackAnalyticsEvent({
-                      eventKey: 'invite_modal.closed',
-                      eventName: 'Invite Modal: Closed',
-                      organization_id: this.props.organization.id,
+                    trackAdvancedAnalyticsEvent('invite_modal.closed', {
+                      organization: this.props.organization,
                       modal_session: this.sessionId,
                     });
                     closeModal();

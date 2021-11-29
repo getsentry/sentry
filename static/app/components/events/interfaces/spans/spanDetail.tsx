@@ -3,40 +3,42 @@ import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import map from 'lodash/map';
 
-import {Client} from 'app/api';
-import Alert from 'app/components/alert';
-import Button from 'app/components/button';
-import DateTime from 'app/components/dateTime';
-import DiscoverButton from 'app/components/discoverButton';
-import FileSize from 'app/components/fileSize';
-import ExternalLink from 'app/components/links/externalLink';
-import Link from 'app/components/links/link';
-import LoadingIndicator from 'app/components/loadingIndicator';
+import {Client} from 'sentry/api';
+import Feature from 'sentry/components/acl/feature';
+import Alert from 'sentry/components/alert';
+import Button from 'sentry/components/button';
+import DateTime from 'sentry/components/dateTime';
+import DiscoverButton from 'sentry/components/discoverButton';
+import FileSize from 'sentry/components/fileSize';
+import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {
   ErrorDot,
   ErrorLevel,
   ErrorMessageContent,
   ErrorMessageTitle,
   ErrorTitle,
-} from 'app/components/performance/waterfall/rowDetails';
-import Pill from 'app/components/pill';
-import Pills from 'app/components/pills';
+} from 'sentry/components/performance/waterfall/rowDetails';
+import Pill from 'sentry/components/pill';
+import Pills from 'sentry/components/pills';
 import {
   generateIssueEventTarget,
   generateTraceTarget,
-} from 'app/components/quickTrace/utils';
-import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
-import {IconAnchor, IconWarning} from 'app/icons';
-import {t, tn} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import {EventTransaction} from 'app/types/event';
-import {assert} from 'app/types/utils';
-import EventView from 'app/utils/discover/eventView';
-import {generateEventSlug} from 'app/utils/discover/urls';
-import getDynamicText from 'app/utils/getDynamicText';
-import {QuickTraceEvent, TraceError} from 'app/utils/performance/quickTrace/types';
-import withApi from 'app/utils/withApi';
+} from 'sentry/components/quickTrace/utils';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/globalSelectionHeader';
+import {IconAnchor, IconWarning} from 'sentry/icons';
+import {t, tn} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {EventTransaction} from 'sentry/types/event';
+import {assert} from 'sentry/types/utils';
+import {defined} from 'sentry/utils';
+import EventView from 'sentry/utils/discover/eventView';
+import {generateEventSlug} from 'sentry/utils/discover/urls';
+import getDynamicText from 'sentry/utils/getDynamicText';
+import {QuickTraceEvent, TraceError} from 'sentry/utils/performance/quickTrace/types';
+import withApi from 'sentry/utils/withApi';
 
 import * as SpanEntryContext from './context';
 import InlineDocs from './inlineDocs';
@@ -290,7 +292,7 @@ class SpanDetail extends React.Component<Props, State> {
           <InlineDocs
             platform={event.sdk?.name || ''}
             orgSlug={organization.slug}
-            projectSlug={event.projectSlug}
+            projectSlug={event?.projectSlug ?? ''}
           />
         </SpanDetails>
       );
@@ -372,6 +374,19 @@ class SpanDetail extends React.Component<Props, State> {
                   ? String(span.same_process_as_parent)
                   : null}
               </Row>
+              <Feature
+                organization={organization}
+                features={['organizations:performance-suspect-spans-view']}
+              >
+                <Row title="Span Group">
+                  {defined(span.hash) ? String(span.hash) : null}
+                </Row>
+                <Row title="Span Exclusive Time">
+                  {defined(span.exclusive_time)
+                    ? `${Number(span.exclusive_time.toFixed(3)).toLocaleString()}ms`
+                    : null}
+                </Row>
+              </Feature>
               <Tags span={span} />
               {allZeroSizes && (
                 <TextTr>

@@ -2,21 +2,21 @@ import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import ProjectActions from 'app/actions/projectActions';
-import Checkbox from 'app/components/checkbox';
-import Pagination from 'app/components/pagination';
-import {PanelTable} from 'app/components/panels';
-import SearchBar from 'app/components/searchBar';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import {BuiltinSymbolSource, CustomRepo, DebugFile} from 'app/types/debugFiles';
-import routeTitleGen from 'app/utils/routeTitle';
-import AsyncView from 'app/views/asyncView';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import TextBlock from 'app/views/settings/components/text/textBlock';
-import PermissionAlert from 'app/views/settings/project/permissionAlert';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import ProjectActions from 'sentry/actions/projectActions';
+import Checkbox from 'sentry/components/checkbox';
+import Pagination from 'sentry/components/pagination';
+import {PanelTable} from 'sentry/components/panels';
+import SearchBar from 'sentry/components/searchBar';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import {BuiltinSymbolSource, CustomRepo, DebugFile} from 'sentry/types/debugFiles';
+import routeTitleGen from 'sentry/utils/routeTitle';
+import AsyncView from 'sentry/views/asyncView';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
 import DebugFileRow from './debugFileRow';
 import ExternalSources from './externalSources';
@@ -115,7 +115,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
       );
       ProjectActions.updateSuccess(updatedProject);
     } catch {
-      addErrorMessage(t('An error occured while fetching project data'));
+      addErrorMessage(t('An error occurred while fetching project data'));
     }
   }
 

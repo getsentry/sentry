@@ -7,9 +7,9 @@ import {AnimatePresence, motion, MotionStyle} from 'framer-motion';
 import memoize from 'lodash/memoize';
 import * as PopperJS from 'popper.js';
 
-import {IS_ACCEPTANCE_TEST} from 'app/constants';
-import {domId} from 'app/utils/domId';
-import testableTransition from 'app/utils/testableTransition';
+import {IS_ACCEPTANCE_TEST} from 'sentry/constants';
+import {domId} from 'sentry/utils/domId';
+import testableTransition from 'sentry/utils/testableTransition';
 
 export const OPEN_DELAY = 50;
 
@@ -122,7 +122,7 @@ class Tooltip extends React.Component<Props, State> {
 
   async componentDidMount() {
     if (IS_ACCEPTANCE_TEST) {
-      const TooltipStore = (await import('app/stores/tooltipStore')).default;
+      const TooltipStore = (await import('sentry/stores/tooltipStore')).default;
       TooltipStore.addTooltip(this);
     }
   }
@@ -131,7 +131,7 @@ class Tooltip extends React.Component<Props, State> {
     const {usesGlobalPortal} = this.state;
 
     if (IS_ACCEPTANCE_TEST) {
-      const TooltipStore = (await import('app/stores/tooltipStore')).default;
+      const TooltipStore = (await import('sentry/stores/tooltipStore')).default;
       TooltipStore.removeTooltip(this);
     }
     if (!usesGlobalPortal) {
@@ -235,7 +235,7 @@ class Tooltip extends React.Component<Props, State> {
       this.props;
     const {isOpen, usesGlobalPortal} = this.state;
 
-    if (disabled) {
+    if (disabled || !title) {
       return children;
     }
 
@@ -279,7 +279,6 @@ class Tooltip extends React.Component<Props, State> {
               className="tooltip-content"
               aria-hidden={!visible}
               ref={ref}
-              hide={!title}
               data-placement={placement}
               popperStyle={popperStyle}
               onMouseEnter={() => isHoverable && this.handleOpen()}
@@ -323,7 +322,7 @@ const PositionWrapper = styled('div')`
   z-index: ${p => p.theme.zIndex.tooltip};
 `;
 
-const TooltipContent = styled(motion.div)<{hide: boolean} & Pick<Props, 'popperStyle'>>`
+const TooltipContent = styled(motion.div)<Pick<Props, 'popperStyle'>>`
   will-change: transform, opacity;
   position: relative;
   color: ${p => p.theme.white};
@@ -341,7 +340,6 @@ const TooltipContent = styled(motion.div)<{hide: boolean} & Pick<Props, 'popperS
   margin: 6px;
   text-align: center;
   ${p => p.popperStyle as any};
-  ${p => p.hide && `display: none`};
 `;
 
 const TooltipArrow = styled('span')<{background: string | number}>`

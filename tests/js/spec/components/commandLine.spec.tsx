@@ -1,11 +1,11 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
-import CommandLine from 'app/components/commandLine';
+import CommandLine from 'sentry/components/commandLine';
 
 describe('CommandLine', () => {
   it('renders', () => {
     const children = 'sentry devserver --workers';
-    const wrapper = mountWithTheme(<CommandLine>{children}</CommandLine>);
-    expect(wrapper.find('CommandLine').text()).toBe(children);
+    mountWithTheme(<CommandLine>{children}</CommandLine>);
+    expect(screen.getByText(children)).toBeInTheDocument();
   });
 });

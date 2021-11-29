@@ -3,9 +3,9 @@ import ReactDOM from 'react-dom';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {IconClose} from 'app/icons';
-import {slideInLeft} from 'app/styles/animations';
-import space from 'app/styles/space';
+import {IconClose} from 'sentry/icons';
+import {slideInLeft} from 'sentry/styles/animations';
+import space from 'sentry/styles/space';
 
 import {CommonSidebarProps} from './types';
 
@@ -16,13 +16,13 @@ const PanelContainer = styled('div')<PositionProps>`
   bottom: 0;
   display: flex;
   flex-direction: column;
-  z-index: ${p => p.theme.zIndex.sidebarPanel};
   background: ${p => p.theme.background};
   color: ${p => p.theme.textColor};
   border-right: 1px solid ${p => p.theme.border};
   box-shadow: 1px 0 2px rgba(0, 0, 0, 0.06);
   text-align: left;
   animation: 200ms ${slideInLeft};
+  z-index: ${p => p.theme.zIndex.sidebar - 1};
 
   ${p =>
     p.orientation === 'top'
@@ -91,7 +91,12 @@ function SidebarPanel({
   }
 
   const sidebar = (
-    <PanelContainer collapsed={collapsed} orientation={orientation} {...props}>
+    <PanelContainer
+      role="dialog"
+      collapsed={collapsed}
+      orientation={orientation}
+      {...props}
+    >
       {title && (
         <SidebarPanelHeader>
           <Title>{title}</Title>

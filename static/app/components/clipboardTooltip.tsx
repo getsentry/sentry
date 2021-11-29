@@ -1,11 +1,12 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Clipboard from 'app/components/clipboard';
-import TextOverflow from 'app/components/textOverflow';
-import Tooltip from 'app/components/tooltip';
-import {IconCopy} from 'app/icons';
-import space from 'app/styles/space';
+import Clipboard from 'sentry/components/clipboard';
+import TextOverflow from 'sentry/components/textOverflow';
+import Tooltip from 'sentry/components/tooltip';
+import {IconCopy} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 
 type Props = Omit<React.ComponentProps<typeof Tooltip>, 'isHoverable' | 'title'> & {
   title: string;
@@ -25,7 +26,7 @@ function ClipboardTooltip({title, onSuccess, ...props}: Props) {
           <TextOverflow>{title}</TextOverflow>
           <Clipboard value={title} onSuccess={onSuccess}>
             <TooltipClipboardIconWrapper>
-              <IconCopy size="xs" color="white" />
+              <IconCopy size="xs" color="white" aria-label={t('Copy to clipboard')} />
             </TooltipClipboardIconWrapper>
           </Clipboard>
         </TooltipClipboardWrapper>
@@ -45,6 +46,7 @@ const TooltipClipboardWrapper = styled('div')`
 `;
 
 const TooltipClipboardIconWrapper = styled('div')`
+  pointer-events: auto;
   position: relative;
   bottom: -${space(0.25)};
   :hover {

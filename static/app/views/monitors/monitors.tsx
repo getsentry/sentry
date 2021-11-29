@@ -3,22 +3,22 @@ import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
-import Button from 'app/components/button';
-import FeatureBadge from 'app/components/featureBadge';
-import Link from 'app/components/links/link';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import PageHeading from 'app/components/pageHeading';
-import Pagination from 'app/components/pagination';
-import {Panel, PanelBody, PanelItem} from 'app/components/panels';
-import SearchBar from 'app/components/searchBar';
-import TimeSince from 'app/components/timeSince';
-import {t} from 'app/locale';
-import {PageHeader} from 'app/styles/organization';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import {decodeScalar} from 'app/utils/queryString';
-import withOrganization from 'app/utils/withOrganization';
-import AsyncView from 'app/views/asyncView';
+import Button from 'sentry/components/button';
+import FeatureBadge from 'sentry/components/featureBadge';
+import Link from 'sentry/components/links/link';
+import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import PageHeading from 'sentry/components/pageHeading';
+import Pagination from 'sentry/components/pagination';
+import {Panel, PanelBody, PanelItem} from 'sentry/components/panels';
+import SearchBar from 'sentry/components/searchBar';
+import TimeSince from 'sentry/components/timeSince';
+import {t} from 'sentry/locale';
+import {PageHeader} from 'sentry/styles/organization';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {decodeScalar} from 'sentry/utils/queryString';
+import withOrganization from 'sentry/utils/withOrganization';
+import AsyncView from 'sentry/views/asyncView';
 
 import MonitorIcon from './monitorIcon';
 import {Monitor} from './types';
@@ -51,8 +51,7 @@ class Monitors extends AsyncView<Props, State> {
   }
 
   handleSearch = (query: string) => {
-    const {location} = this.props;
-    const {router} = this.context;
+    const {location, router} = this.props;
     router.push({
       pathname: location.pathname,
       query: getParams({
@@ -97,7 +96,7 @@ class Monitors extends AsyncView<Props, State> {
                   {monitor.name}
                 </StyledLink>
                 {monitor.nextCheckIn ? (
-                  <TimeSince date={monitor.lastCheckIn} />
+                  <StyledTimeSince date={monitor.lastCheckIn} />
                 ) : (
                   t('n/a')
                 )}
@@ -138,6 +137,10 @@ const PanelItemCentered = styled(PanelItem)`
 const StyledLink = styled(Link)`
   flex: 1;
   padding: ${space(2)};
+`;
+
+const StyledTimeSince = styled(TimeSince)`
+  font-variant-numeric: tabular-nums;
 `;
 
 export default withRouter(withOrganization(Monitors));

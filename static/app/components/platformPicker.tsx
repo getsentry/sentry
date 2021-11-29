@@ -1,23 +1,22 @@
 import * as React from 'react';
-import keydown from 'react-keydown';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import {PlatformIcon} from 'platformicons';
 
-import Button from 'app/components/button';
-import ExternalLink from 'app/components/links/externalLink';
-import ListLink from 'app/components/links/listLink';
-import NavTabs from 'app/components/navTabs';
-import {DEFAULT_DEBOUNCE_DURATION} from 'app/constants';
-import categoryList, {filterAliases, PlatformKey} from 'app/data/platformCategories';
-import platforms from 'app/data/platforms';
-import {IconClose, IconProject, IconSearch} from 'app/icons';
-import {t, tct} from 'app/locale';
-import {inputStyles} from 'app/styles/input';
-import space from 'app/styles/space';
-import {Organization, PlatformIntegration} from 'app/types';
-import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import Button from 'sentry/components/button';
+import ExternalLink from 'sentry/components/links/externalLink';
+import ListLink from 'sentry/components/links/listLink';
+import NavTabs from 'sentry/components/navTabs';
+import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
+import categoryList, {filterAliases, PlatformKey} from 'sentry/data/platformCategories';
+import platforms from 'sentry/data/platforms';
+import {IconClose, IconProject, IconSearch} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import {inputStyles} from 'sentry/styles/input';
+import space from 'sentry/styles/space';
+import {Organization, PlatformIntegration} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 const PLATFORM_CATEGORIES = [...categoryList, {id: 'all', name: t('All')}] as const;
 
@@ -90,16 +89,6 @@ class PlatformPicker extends React.Component<Props, State> {
     }
   }, DEFAULT_DEBOUNCE_DURATION);
 
-  @keydown('/')
-  focusSearch(e: KeyboardEvent) {
-    if (e.target !== this.searchInput.current) {
-      this.searchInput?.current?.focus();
-      e.preventDefault();
-    }
-  }
-
-  searchInput = React.createRef<HTMLInputElement>();
-
   render() {
     const platformList = this.platformList;
     const {setPlatform, listProps, listClassName} = this.props;
@@ -132,7 +121,6 @@ class PlatformPicker extends React.Component<Props, State> {
             <IconSearch size="xs" />
             <input
               type="text"
-              ref={this.searchInput}
               value={filter}
               placeholder={t('Filter Platforms')}
               onChange={e => this.setState({filter: e.target.value}, this.logSearch)}

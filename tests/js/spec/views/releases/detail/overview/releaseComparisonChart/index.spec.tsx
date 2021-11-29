@@ -1,19 +1,15 @@
 import {browserHistory} from 'react-router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import ReleaseComparisonChart from 'app/views/releases/detail/overview/releaseComparisonChart';
+import ReleaseComparisonChart from 'sentry/views/releases/detail/overview/releaseComparisonChart';
 
 describe('Releases > Detail > Overview > ReleaseComparison', () => {
   const {routerContext, organization, project} = initializeOrg();
-  // @ts-expect-error
   const api = new MockApiClient();
-  // @ts-expect-error
   const release = TestStubs.Release();
-  // @ts-expect-error
   const releaseSessions = TestStubs.SessionUserCountByStatus();
-  // @ts-expect-error
   const allSessions = TestStubs.SessionUserCountByStatus2();
 
   it('displays correct all/release/change data', () => {
@@ -35,10 +31,10 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
       {context: routerContext}
     );
 
-    expect(screen.getByLabelText('Chart Title').textContent).toBe(
+    expect(screen.getByLabelText('Chart Title')).toHaveTextContent(
       'Crash Free Session Rate'
     );
-    expect(screen.getByLabelText('Chart Value').textContent).toContain('95.006% 4.51%');
+    expect(screen.getByLabelText('Chart Value')).toHaveTextContent(/95\.006% 4\.51%/);
 
     expect(screen.getAllByRole('radio').length).toBe(3);
 
@@ -70,7 +66,7 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
       {context: routerContext}
     );
 
-    fireEvent.click(screen.getByLabelText(/crash free user rate/i));
+    userEvent.click(screen.getByLabelText(/crash free user rate/i));
 
     expect(browserHistory.push).toHaveBeenCalledWith({query: {chart: 'crashFreeUsers'}});
 
@@ -91,8 +87,10 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
       />
     );
 
-    expect(screen.getByLabelText('Chart Title').textContent).toBe('Crash Free User Rate');
-    expect(screen.getByLabelText('Chart Value').textContent).toContain('75% 24.908%');
+    expect(screen.getByLabelText('Chart Title')).toHaveTextContent(
+      'Crash Free User Rate'
+    );
+    expect(screen.getByLabelText('Chart Value')).toHaveTextContent(/75% 24\.908%/);
   });
 
   it('can expand row to show more charts', () => {
@@ -115,9 +113,9 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
     );
 
     screen.getAllByLabelText(/toggle chart/i).forEach(toggle => {
-      fireEvent.click(toggle);
+      userEvent.click(toggle);
     });
-    fireEvent.click(screen.getByLabelText(/toggle additional/i));
+    userEvent.click(screen.getByLabelText(/toggle additional/i));
 
     expect(screen.getAllByRole('radio').length).toBe(13);
     // lazy way to make sure that all percentages are calculated correctly
@@ -130,9 +128,9 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
 
     // toggle back
     screen.getAllByLabelText(/toggle chart/i).forEach(toggle => {
-      fireEvent.click(toggle);
+      userEvent.click(toggle);
     });
-    fireEvent.click(screen.getByLabelText(/toggle additional/i));
+    userEvent.click(screen.getByLabelText(/toggle additional/i));
 
     expect(screen.getAllByRole('radio').length).toBe(3);
   });

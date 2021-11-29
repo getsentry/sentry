@@ -1,21 +1,20 @@
 import omit from 'lodash/omit';
 import moment from 'moment-timezone';
 
-import {Client} from 'app/api';
-import {getTraceDateTimeRange} from 'app/components/events/interfaces/spans/utils';
-import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
-import {OrganizationSummary} from 'app/types';
-import {Event, EventTransaction} from 'app/types/event';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import EventView from 'app/utils/discover/eventView';
-import {DiscoverQueryProps} from 'app/utils/discover/genericDiscoverQuery';
+import {getTraceDateTimeRange} from 'sentry/components/events/interfaces/spans/utils';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/globalSelectionHeader';
+import {OrganizationSummary} from 'sentry/types';
+import {Event, EventTransaction} from 'sentry/types/event';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import EventView from 'sentry/utils/discover/eventView';
+import {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
 import {
   QuickTrace,
   QuickTraceEvent,
   TraceFull,
   TraceFullDetailed,
   TraceLite,
-} from 'app/utils/performance/quickTrace/types';
+} from 'sentry/utils/performance/quickTrace/types';
 
 export function isTransaction(event: Event): event is EventTransaction {
   return event.type === 'transaction';
@@ -31,11 +30,10 @@ export function isCurrentEvent(
 ): boolean {
   if (isTransaction(currentEvent)) {
     return event.event_id === currentEvent.id;
-  } else {
-    return (
-      event.errors !== undefined && event.errors.some(e => e.event_id === currentEvent.id)
-    );
   }
+  return (
+    event.errors !== undefined && event.errors.some(e => e.event_id === currentEvent.id)
+  );
 }
 
 type PathNode = {
@@ -229,10 +227,6 @@ export function parseQuickTrace(
 
 function sortTraceLite(trace: TraceLite): TraceLite {
   return trace.sort((a, b) => b['transaction.duration'] - a['transaction.duration']);
-}
-
-export function beforeFetch(api: Client) {
-  api.clear();
 }
 
 export function getTraceRequestPayload({eventView, location}: DiscoverQueryProps) {

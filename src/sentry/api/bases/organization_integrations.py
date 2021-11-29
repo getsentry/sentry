@@ -33,7 +33,7 @@ class OrganizationIntegrationBaseEndpoint(IntegrationEndpoint):
     def get_organization_integration(organization, integration_id):
         """
         Get just the cross table entry.
-        Note: This will still return migrations that are pending deletion.
+        Note: This will still return organization integrations that are pending deletion.
 
         :param organization:
         :param integration_id:
@@ -58,7 +58,6 @@ class OrganizationIntegrationBaseEndpoint(IntegrationEndpoint):
         :return:
         """
         try:
-
             return Integration.objects.get(id=integration_id, organizations=organization)
         except Integration.DoesNotExist:
             raise Http404

@@ -6,37 +6,40 @@ import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
-import {updateSavedQueryVisit} from 'app/actionCreators/discoverSavedQueries';
-import {fetchTotalCount} from 'app/actionCreators/events';
-import {fetchProjectsCount} from 'app/actionCreators/projects';
-import {loadOrganizationTags} from 'app/actionCreators/tags';
-import {Client} from 'app/api';
-import Alert from 'app/components/alert';
-import AsyncComponent from 'app/components/asyncComponent';
-import Confirm from 'app/components/confirm';
-import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
-import SearchBar from 'app/components/events/searchBar';
-import * as Layout from 'app/components/layouts/thirds';
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import {MAX_QUERY_LENGTH} from 'app/constants';
-import {IconFlag} from 'app/icons';
-import {t, tct} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
-import {PageContent} from 'app/styles/organization';
-import space from 'app/styles/space';
-import {GlobalSelection, Organization, SavedQuery} from 'app/types';
-import {defined, generateQueryWithTag} from 'app/utils';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
-import {generateAggregateFields} from 'app/utils/discover/fields';
-import localStorage from 'app/utils/localStorage';
-import {decodeScalar} from 'app/utils/queryString';
-import withApi from 'app/utils/withApi';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import withOrganization from 'app/utils/withOrganization';
+import {updateSavedQueryVisit} from 'sentry/actionCreators/discoverSavedQueries';
+import {fetchTotalCount} from 'sentry/actionCreators/events';
+import {fetchProjectsCount} from 'sentry/actionCreators/projects';
+import {loadOrganizationTags} from 'sentry/actionCreators/tags';
+import {Client} from 'sentry/api';
+import Alert from 'sentry/components/alert';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import Confirm from 'sentry/components/confirm';
+import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
+import SearchBar from 'sentry/components/events/searchBar';
+import * as Layout from 'sentry/components/layouts/thirds';
+import NoProjectMessage from 'sentry/components/noProjectMessage';
+import GlobalSelectionHeader from 'sentry/components/organizations/globalSelectionHeader';
+import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {MAX_QUERY_LENGTH} from 'sentry/constants';
+import {IconFlag} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import {PageContent} from 'sentry/styles/organization';
+import space from 'sentry/styles/space';
+import {GlobalSelection, Organization, SavedQuery} from 'sentry/types';
+import {defined, generateQueryWithTag} from 'sentry/utils';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import EventView, {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
+import {formatTagKey, generateAggregateFields} from 'sentry/utils/discover/fields';
+import {
+  DisplayModes,
+  MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES,
+} from 'sentry/utils/discover/types';
+import localStorage from 'sentry/utils/localStorage';
+import {decodeList, decodeScalar} from 'sentry/utils/queryString';
+import withApi from 'sentry/utils/withApi';
+import withGlobalSelection from 'sentry/utils/withGlobalSelection';
+import withOrganization from 'sentry/utils/withOrganization';
 
 import {addRoutePerformanceContext} from '../performance/utils';
 
@@ -66,12 +69,21 @@ type State = {
   needConfirmation: boolean;
   confirmedQuery: boolean;
   incompatibleAlertNotice: React.ReactNode;
+  savedQuery?: SavedQuery;
 };
 const SHOW_TAGS_STORAGE_KEY = 'discover2:show-tags';
 
 function readShowTagsState() {
   const value = localStorage.getItem(SHOW_TAGS_STORAGE_KEY);
   return value === '1';
+}
+
+function getYAxis(location: Location, eventView: EventView, savedQuery?: SavedQuery) {
+  return location.query.yAxis
+    ? decodeList(location.query.yAxis)
+    : savedQuery?.yAxis && savedQuery.yAxis.length > 0
+    ? decodeList(savedQuery?.yAxis)
+    : [eventView.getYAxis()];
 }
 
 class Results extends React.Component<Props, State> {
@@ -81,7 +93,7 @@ class Results extends React.Component<Props, State> {
         nextProps.savedQuery,
         nextProps.location
       );
-      return {...prevState, eventView};
+      return {...prevState, eventView, savedQuery: nextProps.savedQuery};
     }
     return prevState;
   }
@@ -113,14 +125,26 @@ class Results extends React.Component<Props, State> {
 
   componentDidUpdate(prevProps: Props, prevState: State) {
     const {api, location, organization, selection} = this.props;
-    const {eventView, confirmedQuery} = this.state;
+    const {eventView, confirmedQuery, savedQuery} = this.state;
 
     this.checkEventView();
     const currentQuery = eventView.getEventsAPIPayload(location);
     const prevQuery = prevState.eventView.getEventsAPIPayload(prevProps.location);
+    const yAxisArray = getYAxis(location, eventView, savedQuery);
+    const prevYAxisArray = getYAxis(
+      prevProps.location,
+      prevState.eventView,
+      prevState.savedQuery
+    );
+
     if (
       !isAPIPayloadSimilar(currentQuery, prevQuery) ||
-      this.hasChartParametersChanged(prevState.eventView, eventView)
+      this.hasChartParametersChanged(
+        prevState.eventView,
+        eventView,
+        prevYAxisArray,
+        yAxisArray
+      )
     ) {
       api.clear();
       this.canLoadEvents();
@@ -133,16 +157,20 @@ class Results extends React.Component<Props, State> {
       addRoutePerformanceContext(selection);
     }
 
-    if (prevState.confirmedQuery !== confirmedQuery) this.fetchTotalCount();
+    if (prevState.confirmedQuery !== confirmedQuery) {
+      this.fetchTotalCount();
+    }
   }
 
   tagsApi: Client = new Client();
 
-  hasChartParametersChanged(prevEventView: EventView, eventView: EventView) {
-    const prevYAxisValue = prevEventView.getYAxis();
-    const yAxisValue = eventView.getYAxis();
-
-    if (prevYAxisValue !== yAxisValue) {
+  hasChartParametersChanged(
+    prevEventView: EventView,
+    eventView: EventView,
+    prevYAxisArray: string[],
+    yAxisArray: string[]
+  ) {
+    if (!isEqual(prevYAxisArray, yAxisArray)) {
       return true;
     }
 
@@ -170,8 +198,11 @@ class Results extends React.Component<Props, State> {
         try {
           const results = await fetchProjectsCount(api, organization.slug);
 
-          if (projectLength === 0) projectLength = results.myProjects;
-          else projectLength = results.allProjects;
+          if (projectLength === 0) {
+            projectLength = results.myProjects;
+          } else {
+            projectLength = results.allProjects;
+          }
         } catch (err) {
           // do nothing, so the length is 0 or 1 and the query is assumed safe
         }
@@ -284,12 +315,22 @@ class Results extends React.Component<Props, State> {
     });
   };
 
-  handleYAxisChange = (value: string) => {
+  handleYAxisChange = (value: string[]) => {
     const {router, location} = this.props;
+    const isDisplayMultiYAxisSupported = MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES.includes(
+      location.query.display as DisplayModes
+    );
 
     const newQuery = {
       ...location.query,
       yAxis: value,
+      // If using Multi Y-axis and not in a supported display, change to the default display mode
+      display:
+        value.length > 1 && !isDisplayMultiYAxisSupported
+          ? location.query.display === DisplayModes.DAILYTOP5
+            ? DisplayModes.DAILY
+            : DisplayModes.DEFAULT
+          : location.query.display,
     };
 
     router.push({
@@ -316,6 +357,25 @@ class Results extends React.Component<Props, State> {
     const newQuery = {
       ...location.query,
       display: value,
+    };
+
+    router.push({
+      pathname: location.pathname,
+      query: newQuery,
+    });
+
+    // Treat display changing like the user already confirmed the query
+    if (!this.state.needConfirmation) {
+      this.handleConfirmed();
+    }
+  };
+
+  handleTopEventsChange = (value: string) => {
+    const {router, location} = this.props;
+
+    const newQuery = {
+      ...location.query,
+      topEvents: value,
     };
 
     router.push({
@@ -362,7 +422,7 @@ class Results extends React.Component<Props, State> {
 
     const url = eventView.getResultsViewUrlTarget(organization.slug);
     url.query = generateQueryWithTag(url.query, {
-      key,
+      key: formatTagKey(key),
       value,
     });
     return url;
@@ -415,23 +475,26 @@ class Results extends React.Component<Props, State> {
       showTags,
       incompatibleAlertNotice,
       confirmedQuery,
+      savedQuery,
     } = this.state;
     const fields = eventView.hasAggregateField()
       ? generateAggregateFields(organization, eventView.fields)
       : eventView.fields;
     const query = eventView.query;
     const title = this.getDocumentTitle();
+    const yAxisArray = getYAxis(location, eventView, savedQuery);
 
     return (
       <SentryDocumentTitle title={title} orgSlug={organization.slug}>
         <StyledPageContent>
-          <LightWeightNoProjectMessage organization={organization}>
+          <NoProjectMessage organization={organization}>
             <ResultsHeader
               errorCode={errorCode}
               organization={organization}
               location={location}
               eventView={eventView}
               onIncompatibleAlertQuery={this.handleIncompatibleQuery}
+              yAxis={yAxisArray}
             />
             <Layout.Body>
               {incompatibleAlertNotice && <Top fullWidth>{incompatibleAlertNotice}</Top>}
@@ -453,8 +516,10 @@ class Results extends React.Component<Props, State> {
                   location={location}
                   onAxisChange={this.handleYAxisChange}
                   onDisplayChange={this.handleDisplayChange}
+                  onTopEventsChange={this.handleTopEventsChange}
                   total={totalValues}
                   confirmedQuery={confirmedQuery}
+                  yAxis={yAxisArray}
                 />
               </Top>
               <Layout.Main fullWidth={!showTags}>
@@ -495,7 +560,7 @@ class Results extends React.Component<Props, State> {
                 {this.setOpenFunction}
               </Confirm>
             </Layout.Body>
-          </LightWeightNoProjectMessage>
+          </NoProjectMessage>
         </StyledPageContent>
       </SentryDocumentTitle>
     );
@@ -553,16 +618,6 @@ function ResultsContainer(props: Props) {
    * you no longer need to enforce a project if it is empty. We assume an empty project is
    * the desired behavior because saved queries can contain a project filter.
    */
-
-  const {location, router} = props;
-  const user = ConfigStore.get('user');
-
-  if (user.id !== location.query.user) {
-    router.push({
-      pathname: location.pathname,
-      query: {...location.query, user: user.id},
-    });
-  }
 
   return (
     <GlobalSelectionHeader

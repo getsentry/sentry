@@ -4,22 +4,22 @@ import {browserHistory, RouteComponentProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 import PropTypes from 'prop-types';
 
-import {Client} from 'app/api';
-import LoadingError from 'app/components/loadingError';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import MissingProjectMembership from 'app/components/projects/missingProjectMembership';
-import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
-import GroupStore from 'app/stores/groupStore';
-import {PageContent} from 'app/styles/organization';
-import {AvatarProject, Group, Organization, Project} from 'app/types';
-import {Event} from 'app/types/event';
-import {callIfFunction} from 'app/utils/callIfFunction';
-import {getMessage, getTitle} from 'app/utils/events';
-import Projects from 'app/utils/projects';
-import recreateRoute from 'app/utils/recreateRoute';
-import withApi from 'app/utils/withApi';
+import {Client} from 'sentry/api';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import GlobalSelectionHeader from 'sentry/components/organizations/globalSelectionHeader';
+import MissingProjectMembership from 'sentry/components/projects/missingProjectMembership';
+import {t} from 'sentry/locale';
+import SentryTypes from 'sentry/sentryTypes';
+import GroupStore from 'sentry/stores/groupStore';
+import {PageContent} from 'sentry/styles/organization';
+import {AvatarProject, Group, Organization, Project} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import {callIfFunction} from 'sentry/utils/callIfFunction';
+import {getMessage, getTitle} from 'sentry/utils/events';
+import Projects from 'sentry/utils/projects';
+import recreateRoute from 'sentry/utils/recreateRoute';
+import withApi from 'sentry/utils/withApi';
 
 import {ERROR_TYPES} from './constants';
 import GroupHeader from './header';
@@ -36,6 +36,7 @@ type Error = typeof ERROR_TYPES[keyof typeof ERROR_TYPES] | null;
 type Props = {
   api: Client;
   organization: Organization;
+  projects: Project[];
   environments: string[];
   children: React.ReactNode;
   isGlobalSelectionReady: boolean;
@@ -438,11 +439,10 @@ class GroupDetails extends React.Component<Props, State> {
   }
 
   renderError() {
-    const {organization, location} = this.props;
-    const projects = organization.projects ?? [];
+    const {projects, location} = this.props;
     const projectId = location.query.project;
 
-    const projectSlug = projects.find(proj => proj.id === projectId)?.slug;
+    const project = projects.find(proj => proj.id === projectId);
 
     switch (this.state.errorType) {
       case ERROR_TYPES.GROUP_NOT_FOUND:
@@ -454,7 +454,7 @@ class GroupDetails extends React.Component<Props, State> {
         return (
           <MissingProjectMembership
             organization={this.props.organization}
-            projectSlug={projectSlug}
+            project={project}
           />
         );
       default:

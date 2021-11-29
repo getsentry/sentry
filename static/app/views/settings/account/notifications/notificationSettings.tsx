@@ -1,32 +1,36 @@
 import React from 'react';
 
-import AlertLink from 'app/components/alertLink';
-import AsyncComponent from 'app/components/asyncComponent';
-import Link from 'app/components/links/link';
-import {IconMail} from 'app/icons';
-import {t} from 'app/locale';
+import AlertLink from 'sentry/components/alertLink';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import Link from 'sentry/components/links/link';
+import {IconMail} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {Organization} from 'sentry/types';
+import withOrganizations from 'sentry/utils/withOrganizations';
 import {
   CONFIRMATION_MESSAGE,
   NOTIFICATION_SETTINGS_TYPES,
   NotificationSettingsObject,
   SELF_NOTIFICATION_SETTINGS_TYPES,
-} from 'app/views/settings/account/notifications/constants';
-import FeedbackAlert from 'app/views/settings/account/notifications/feedbackAlert';
-import {NOTIFICATION_SETTING_FIELDS} from 'app/views/settings/account/notifications/fields2';
+} from 'sentry/views/settings/account/notifications/constants';
+import FeedbackAlert from 'sentry/views/settings/account/notifications/feedbackAlert';
+import {NOTIFICATION_SETTING_FIELDS} from 'sentry/views/settings/account/notifications/fields2';
 import {
   decideDefault,
   getParentIds,
   getStateToPutForDefault,
   isSufficientlyComplex,
   mergeNotificationSettings,
-} from 'app/views/settings/account/notifications/utils';
-import Form from 'app/views/settings/components/forms/form';
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import {FieldObject} from 'app/views/settings/components/forms/type';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import TextBlock from 'app/views/settings/components/text/textBlock';
+} from 'sentry/views/settings/account/notifications/utils';
+import Form from 'sentry/views/settings/components/forms/form';
+import JsonForm from 'sentry/views/settings/components/forms/jsonForm';
+import {FieldObject} from 'sentry/views/settings/components/forms/type';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-type Props = AsyncComponent['props'];
+type Props = AsyncComponent['props'] & {
+  organizations: Organization[];
+};
 
 type State = {
   notificationSettings: NotificationSettingsObject;
@@ -79,11 +83,21 @@ class NotificationSettings extends AsyncComponent<Props, State> {
     return updatedNotificationSettings;
   };
 
+  get notificationSettingsType() {
+    const hasApprovalFeatureFlag =
+      this.props.organizations.filter(org => org.features?.includes('slack-requests'))
+        .length > 0;
+    // filter out approvals if the feature flag isn't set
+    return NOTIFICATION_SETTINGS_TYPES.filter(
+      type => type !== 'approval' || hasApprovalFeatureFlag
+    );
+  }
+
   getInitialData(): {[key: string]: string} {
     const {notificationSettings} = this.state;
 
     return Object.fromEntries(
-      NOTIFICATION_SETTINGS_TYPES.map(notificationType => [
+      this.notificationSettingsType.map(notificationType => [
         notificationType,
         decideDefault(notificationType, notificationSettings),
       ])
@@ -94,7 +108,7 @@ class NotificationSettings extends AsyncComponent<Props, State> {
     const {notificationSettings} = this.state;
 
     const fields: FieldObject[] = [];
-    for (const notificationType of NOTIFICATION_SETTINGS_TYPES) {
+    for (const notificationType of this.notificationSettingsType) {
       const field = Object.assign({}, NOTIFICATION_SETTING_FIELDS[notificationType], {
         getData: data => this.getStateToPutForDefault(data, notificationType),
         help: (
@@ -162,4 +176,4 @@ class NotificationSettings extends AsyncComponent<Props, State> {
   }
 }
 
-export default NotificationSettings;
+export default withOrganizations(NotificationSettings);

@@ -3,22 +3,22 @@ import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
-import {loadOrganizationTags} from 'app/actionCreators/tags';
-import {Client} from 'app/api';
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import {t} from 'app/locale';
-import {PageContent} from 'app/styles/organization';
-import {GlobalSelection, Organization, Project} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
-import {WebVital} from 'app/utils/discover/fields';
-import {PerformanceEventViewProvider} from 'app/utils/performance/contexts/performanceEventViewContext';
-import {decodeScalar} from 'app/utils/queryString';
-import withApi from 'app/utils/withApi';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import withOrganization from 'app/utils/withOrganization';
-import withProjects from 'app/utils/withProjects';
+import {loadOrganizationTags} from 'sentry/actionCreators/tags';
+import {Client} from 'sentry/api';
+import NoProjectMessage from 'sentry/components/noProjectMessage';
+import GlobalSelectionHeader from 'sentry/components/organizations/globalSelectionHeader';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {t} from 'sentry/locale';
+import {PageContent} from 'sentry/styles/organization';
+import {GlobalSelection, Organization, Project} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
+import {WebVital} from 'sentry/utils/discover/fields';
+import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/performanceEventViewContext';
+import {decodeScalar} from 'sentry/utils/queryString';
+import withApi from 'sentry/utils/withApi';
+import withGlobalSelection from 'sentry/utils/withGlobalSelection';
+import withOrganization from 'sentry/utils/withOrganization';
+import withProjects from 'sentry/utils/withProjects';
 
 import {generatePerformanceVitalDetailView} from '../data';
 import {addRoutePerformanceContext, getTransactionName} from '../utils';
@@ -109,7 +109,7 @@ class VitalDetail extends Component<Props, State> {
         <PerformanceEventViewProvider value={{eventView: this.state.eventView}}>
           <GlobalSelectionHeader>
             <StyledPageContent>
-              <LightWeightNoProjectMessage organization={organization}>
+              <NoProjectMessage organization={organization}>
                 <VitalDetailContent
                   location={location}
                   organization={organization}
@@ -117,7 +117,7 @@ class VitalDetail extends Component<Props, State> {
                   router={router}
                   vitalName={vitalName || WebVital.LCP}
                 />
-              </LightWeightNoProjectMessage>
+              </NoProjectMessage>
             </StyledPageContent>
           </GlobalSelectionHeader>
         </PerformanceEventViewProvider>

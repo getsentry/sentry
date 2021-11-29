@@ -1,28 +1,28 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {ModalRenderProps} from 'app/actionCreators/modal';
-import {Client} from 'app/api';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
-import DropdownButton from 'app/components/dropdownButton';
-import MenuItem from 'app/components/menuItem';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import Tooltip from 'app/components/tooltip';
-import {IconCheckmark} from 'app/icons/iconCheckmark';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {Client} from 'sentry/api';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
+import DropdownButton from 'sentry/components/dropdownButton';
+import MenuItem from 'sentry/components/menuItem';
+import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Tooltip from 'sentry/components/tooltip';
+import {IconCheckmark} from 'sentry/icons/iconCheckmark';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
 import {
   DynamicSamplingInnerName,
   DynamicSamplingRule,
   DynamicSamplingRules,
-} from 'app/types/dynamicSampling';
-import {defined} from 'app/utils';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import NumberField from 'app/views/settings/components/forms/numberField';
+} from 'sentry/types/dynamicSampling';
+import {defined} from 'sentry/utils';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
+import NumberField from 'sentry/views/settings/components/forms/numberField';
 
 import Conditions from './conditions';
 import handleXhrErrorResponse from './handleXhrErrorResponse';
@@ -221,6 +221,7 @@ function RuleModal({
                   );
                   return {
                     value: conditionCategory[0],
+                    'data-test-id': 'condition',
                     disabled,
                     label: (
                       <Tooltip
@@ -252,6 +253,8 @@ function RuleModal({
                   conditions={conditions}
                   onDelete={handleDeleteCondition}
                   onChange={handleChangeCondition}
+                  orgSlug={organization.slug}
+                  projectId={project.id}
                 />
               )}
             </PanelBody>
@@ -279,6 +282,7 @@ function RuleModal({
           <Button
             priority="primary"
             onClick={() => onSubmit({conditions, sampleRate, submitRules})}
+            title={submitDisabled ? t('Required fields must be filled out') : undefined}
             disabled={submitDisabled}
           >
             {t('Save Rule')}

@@ -1,20 +1,23 @@
 import * as React from 'react';
-import {browserHistory} from 'react-router';
+import {Link} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps} from 'app/actionCreators/modal';
-import {Client} from 'app/api';
-import Button from 'app/components/button';
-import {IconChevron, IconSearch} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {GlobalSelection, Organization} from 'app/types';
-import withApi from 'app/utils/withApi';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import {Widget} from 'app/views/dashboardsV2/types';
-import {eventViewFromWidget} from 'app/views/dashboardsV2/utils';
-import Input from 'app/views/settings/components/forms/controls/input';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {Client} from 'sentry/api';
+import Button from 'sentry/components/button';
+import {IconChevron, IconSearch} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {GlobalSelection, Organization} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {DisplayModes} from 'sentry/utils/discover/types';
+import withApi from 'sentry/utils/withApi';
+import withGlobalSelection from 'sentry/utils/withGlobalSelection';
+import {Widget} from 'sentry/views/dashboardsV2/types';
+import {eventViewFromWidget} from 'sentry/views/dashboardsV2/utils';
+import {DisplayType} from 'sentry/views/dashboardsV2/widget/utils';
+import Input from 'sentry/views/settings/components/forms/controls/input';
 
 export type DashboardWidgetQuerySelectorModalOptions = {
   organization: Organization;
@@ -38,6 +41,19 @@ class DashboardWidgetQuerySelectorModal extends React.Component<Props> {
         selection,
         widget.displayType
       );
+      const discoverLocation = eventView.getResultsViewUrlTarget(organization.slug);
+      // Pull a max of 3 valid Y-Axis from the widget
+      const yAxisOptions = eventView.getYAxisOptions().map(({value}) => value);
+      discoverLocation.query.yAxis = query.fields
+        .filter(field => yAxisOptions.includes(field))
+        .slice(0, 3);
+      switch (widget.displayType) {
+        case DisplayType.BAR:
+          discoverLocation.query.display = DisplayModes.BAR;
+          break;
+        default:
+          break;
+      }
       return (
         <React.Fragment key={index}>
           <QueryContainer>
@@ -47,13 +63,21 @@ class DashboardWidgetQuerySelectorModal extends React.Component<Props> {
               </SearchLabel>
               <StyledInput value={query.conditions} disabled />
             </Container>
-            <OpenInDiscoverButton
-              priority="primary"
-              icon={<IconChevron size="xs" direction="right" />}
-              onClick={() => {
-                browserHistory.push(eventView.getResultsViewUrlTarget(organization.slug));
-              }}
-            />
+            <Link to={discoverLocation}>
+              <OpenInDiscoverButton
+                priority="primary"
+                icon={<IconChevron size="xs" direction="right" />}
+                onClick={() => {
+                  trackAdvancedAnalyticsEvent(
+                    'dashboards_views.query_selector.selected',
+                    {
+                      organization,
+                      widget_type: widget.displayType,
+                    }
+                  );
+                }}
+              />
+            </Link>
           </QueryContainer>
         </React.Fragment>
       );

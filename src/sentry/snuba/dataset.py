@@ -10,3 +10,10 @@ class Dataset(Enum):
     OutcomesRaw = "outcomes_raw"
     Sessions = "sessions"
     Metrics = "metrics"
+
+
+@unique
+class EntityKey(Enum):
+    MetricsSets = "metrics_sets"
+    MetricsCounters = "metrics_counters"
+    MetricsDistributions = "metrics_distributions"

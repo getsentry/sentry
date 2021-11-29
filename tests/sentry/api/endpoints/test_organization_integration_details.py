@@ -4,6 +4,7 @@ from sentry.models import (
     Integration,
     OrganizationIntegration,
     Repository,
+    ScheduledDeletion,
 )
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import with_feature
@@ -61,30 +62,15 @@ class OrganizationIntegrationDetailsDeleteTest(OrganizationIntegrationDetailsTes
     method = "delete"
 
     def test_removal(self):
-        with self.tasks():
-            self.get_success_response(self.organization.slug, self.integration.id)
-            assert Integration.objects.filter(id=self.integration.id).exists()
+        self.get_success_response(self.organization.slug, self.integration.id)
+        assert Integration.objects.filter(id=self.integration.id).exists()
 
-            # Ensure Organization integrations are removed
-            assert not OrganizationIntegration.objects.filter(
-                integration=self.integration, organization=self.organization
-            ).exists()
-            assert not Identity.objects.filter(user=self.user).exists()
-
-            # make sure repo is dissociated from integration
-            assert Repository.objects.get(id=self.repo.id).integration_id is None
-
-    def test_removal_default_identity_already_removed(self):
-        with self.tasks():
-            self.identity.delete()
-            self.get_success_response(self.organization.slug, self.integration.id)
-
-            assert Integration.objects.filter(id=self.integration.id).exists()
-
-            # Ensure Organization integrations are removed
-            assert not OrganizationIntegration.objects.filter(
-                integration=self.integration, organization=self.organization
-            ).exists()
+        org_integration = OrganizationIntegration.objects.get(
+            integration=self.integration, organization=self.organization
+        )
+        assert ScheduledDeletion.objects.filter(
+            model_name="OrganizationIntegration", object_id=org_integration.id
+        )
 
 
 class OrganizationIntegrationDetailsPutTest(OrganizationIntegrationDetailsTest):

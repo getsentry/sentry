@@ -1,23 +1,23 @@
 import * as React from 'react';
-import {withTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
-import AsyncComponent from 'app/components/asyncComponent';
-import AreaChart from 'app/components/charts/areaChart';
-import ErrorPanel from 'app/components/charts/errorPanel';
-import LoadingPanel from 'app/components/charts/loadingPanel';
-import {HeaderTitleLegend} from 'app/components/charts/styles';
-import QuestionTooltip from 'app/components/questionTooltip';
-import {IconWarning} from 'app/icons';
-import {t, tct} from 'app/locale';
-import {OrganizationSummary} from 'app/types';
-import {defined} from 'app/utils';
-import {axisLabelFormatter} from 'app/utils/discover/charts';
-import EventView from 'app/utils/discover/eventView';
-import {getDuration} from 'app/utils/formatters';
-import {Theme} from 'app/utils/theme';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import AreaChart from 'sentry/components/charts/areaChart';
+import ErrorPanel from 'sentry/components/charts/errorPanel';
+import LoadingPanel from 'sentry/components/charts/loadingPanel';
+import {HeaderTitleLegend} from 'sentry/components/charts/styles';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import {IconWarning} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import {OrganizationSummary} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import {axisLabelFormatter} from 'sentry/utils/discover/charts';
+import EventView from 'sentry/utils/discover/eventView';
+import {getDuration} from 'sentry/utils/formatters';
+import {Theme} from 'sentry/utils/theme';
 
 import {filterToColor, filterToField, SpanOperationBreakdownFilter} from '../filter';
 
@@ -183,35 +183,39 @@ class DurationPercentileChart extends AsyncComponent<Props, State> {
   }
 }
 
-type ChartProps = React.ComponentPropsWithoutRef<typeof AreaChart> & {theme: Theme};
+type ChartProps = React.ComponentPropsWithoutRef<typeof AreaChart>;
 
-const StyledAreaChart = withTheme(({theme, ...props}: ChartProps) => (
-  <AreaChart
-    grid={{left: '10px', right: '10px', top: '40px', bottom: '0px'}}
-    xAxis={{
-      type: 'category' as const,
-      truncate: true,
-      axisLabel: {
-        showMinLabel: true,
-        showMaxLabel: true,
-      },
-      axisTick: {
-        interval: 0,
-        alignWithLabel: true,
-      },
-    }}
-    yAxis={{
-      type: 'value' as const,
-      axisLabel: {
-        color: theme.chartLabel,
-        // Use p50() to force time formatting.
-        formatter: (value: number) => axisLabelFormatter(value, 'p50()'),
-      },
-    }}
-    tooltip={{valueFormatter: value => getDuration(value / 1000, 2)}}
-    {...props}
-  />
-));
+function StyledAreaChart(props: ChartProps) {
+  const theme = useTheme();
+
+  return (
+    <AreaChart
+      grid={{left: '10px', right: '10px', top: '40px', bottom: '0px'}}
+      xAxis={{
+        type: 'category' as const,
+        truncate: true,
+        axisLabel: {
+          showMinLabel: true,
+          showMaxLabel: true,
+        },
+        axisTick: {
+          interval: 0,
+          alignWithLabel: true,
+        },
+      }}
+      yAxis={{
+        type: 'value' as const,
+        axisLabel: {
+          color: theme.chartLabel,
+          // Use p50() to force time formatting.
+          formatter: (value: number) => axisLabelFormatter(value, 'p50()'),
+        },
+      }}
+      tooltip={{valueFormatter: value => getDuration(value / 1000, 2)}}
+      {...props}
+    />
+  );
+}
 
 const VALUE_EXTRACT_PATTERN = /(\d+)$/;
 /**

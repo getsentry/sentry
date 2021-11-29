@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
-import {IconCheckmark, IconFire, IconIssues, IconWarning} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Color} from 'app/utils/theme';
+import {IconCheckmark, IconFire, IconIssues, IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Color} from 'sentry/utils/theme';
 
 import {IncidentStatus} from './types';
 
@@ -32,7 +32,7 @@ function AlertBadge({status, hideText = false, isIssue}: Props) {
   }
 
   return (
-    <Wrapper displayFlex={!hideText}>
+    <Wrapper data-test-id="alert-badge" displayFlex={!hideText}>
       <AlertIconWrapper color={color} icon={Icon}>
         <Icon color="white" />
       </AlertIconWrapper>

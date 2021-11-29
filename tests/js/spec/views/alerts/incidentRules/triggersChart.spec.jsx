@@ -1,11 +1,11 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'app/api';
-import LineChart from 'app/components/charts/lineChart';
-import TriggersChart from 'app/views/alerts/incidentRules/triggers/chart';
+import {Client} from 'sentry/api';
+import AreaChart from 'sentry/components/charts/areaChart';
+import TriggersChart from 'sentry/views/alerts/incidentRules/triggers/chart';
 
-jest.mock('app/components/charts/lineChart');
+jest.mock('sentry/components/charts/areaChart');
 
 describe('Incident Rules Create', () => {
   let eventStatsMock;
@@ -14,7 +14,7 @@ describe('Incident Rules Create', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    LineChart.default = jest.fn(() => null);
+    AreaChart.default = jest.fn(() => null);
     api = new Client();
     eventStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
@@ -42,7 +42,7 @@ describe('Incident Rules Create', () => {
         aggregate="count()"
         triggers={[]}
       />,
-      routerContext
+      {context: routerContext}
     );
 
     await tick();
@@ -56,6 +56,7 @@ describe('Incident Rules Create', () => {
           query: 'event.type:error',
           statsPeriod: '1d',
           yAxis: 'count()',
+          referrer: 'api.organization-event-stats',
         },
       })
     );
@@ -72,7 +73,7 @@ describe('Incident Rules Create', () => {
       })
     );
 
-    expect(LineChart).toHaveBeenCalledWith(
+    expect(AreaChart).toHaveBeenCalledWith(
       expect.objectContaining({
         series: [{data: expect.objectContaining({length: 1}), seriesName: 'count()'}],
       }),
@@ -92,7 +93,7 @@ describe('Incident Rules Create', () => {
       .map(() => [new Date(), [{count: 10}]]);
     eventStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
-      body: TestStubs.EventsStats(undefined, {data}),
+      body: TestStubs.EventsStats({data}),
     });
     mountWithTheme(
       <TriggersChart
@@ -104,7 +105,7 @@ describe('Incident Rules Create', () => {
         aggregate="count()"
         triggers={[]}
       />,
-      routerContext
+      {context: routerContext}
     );
 
     await tick();
@@ -118,6 +119,7 @@ describe('Incident Rules Create', () => {
           query: 'event.type:error',
           statsPeriod: '1d',
           yAxis: 'count()',
+          referrer: 'api.organization-event-stats',
         },
       })
     );
@@ -135,15 +137,15 @@ describe('Incident Rules Create', () => {
     );
 
     // "series" accessed directly to assist with jest diff
-    expect(LineChart.mock.calls[0][0].series).toEqual([
+    expect(AreaChart.mock.calls[0][0].series).toEqual([
       {data: expect.anything(), seriesName: 'count()'},
       {data: expect.anything(), seriesName: 'Minimum'},
       {data: expect.anything(), seriesName: 'Average'},
       {data: expect.anything(), seriesName: 'Maximum'},
     ]);
-    expect(LineChart.mock.calls[0][0].series[0].data).toHaveLength(1199);
-    expect(LineChart.mock.calls[0][0].series[1].data).toHaveLength(239);
-    expect(LineChart.mock.calls[0][0].series[2].data).toHaveLength(239);
-    expect(LineChart.mock.calls[0][0].series[3].data).toHaveLength(239);
+    expect(AreaChart.mock.calls[0][0].series[0].data).toHaveLength(1199);
+    expect(AreaChart.mock.calls[0][0].series[1].data).toHaveLength(239);
+    expect(AreaChart.mock.calls[0][0].series[2].data).toHaveLength(239);
+    expect(AreaChart.mock.calls[0][0].series[3].data).toHaveLength(239);
   });
 });

@@ -1,4 +1,4 @@
-import {DocumentIntegration} from 'app/types';
+import {DocumentIntegration} from 'sentry/types';
 
 export const INSTALLED = 'Installed' as const;
 export const NOT_INSTALLED = 'Not Installed' as const;
@@ -8,12 +8,14 @@ export const LEARN_MORE = 'Learn More' as const;
 export const COLORS = {
   [INSTALLED]: 'success',
   [NOT_INSTALLED]: 'gray300',
-  [PENDING]: 'orange300',
+  [PENDING]: 'pink300',
   [LEARN_MORE]: 'gray300',
 } as const;
 
 /**
- * Integrations in the integration directory should be sorted by their popularity (weight). The weights should reflect the relative popularity of each integration are hardcoded.
+ * Integrations in the integration directory should be sorted by their popularity (weight).
+ * The weights should reflect the relative popularity of each integration are hardcoded, except for
+ * Sentry-apps which read popularity from the db.
  */
 
 export const POPULARITY_WEIGHT: {
@@ -33,20 +35,6 @@ export const POPULARITY_WEIGHT: {
   vercel: 10,
   msteams: 10,
   aws_lambda: 10,
-
-  // Sentry-apps
-  amixr: 9,
-  calixa: 9,
-  clickup: 9,
-  clubhouse: 9,
-  komodor: 9,
-  linear: 9,
-  quill: 9,
-  rookout: 9,
-  spikesh: 9,
-  split: 9,
-  teamwork: 9,
-  zepel: 9,
 
   // Plugins
   webhooks: 10,

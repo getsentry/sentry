@@ -12,7 +12,7 @@ from snuba_sdk.function import Function
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.api.release_search import INVALID_SEMVER_MESSAGE
-from sentry.models import ReleaseProjectEnvironment, ReleaseStages
+from sentry.models import ReleaseStages
 from sentry.models.release import SemverFilter
 from sentry.search.events.constants import (
     RELEASE_STAGE_ALIAS,
@@ -558,7 +558,7 @@ class ParseBooleanSearchQueryTest(TestCase):
         project1 = self.create_project()
         project2 = self.create_project()
         project3 = self.create_project()
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             InvalidSearchQuery,
             re.escape(
                 f"Invalid query. Project(s) {str(project3.slug)} do not exist or are not actively selected."
@@ -615,22 +615,22 @@ class ParseBooleanSearchQueryTest(TestCase):
             assert test[2] == result.group_ids, test[0]
 
     def test_invalid_conditional_filters(self):
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             InvalidSearchQuery, "Condition is missing on the left side of 'OR' operator"
         ):
             get_filter("OR a:b")
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             InvalidSearchQuery, "Missing condition in between two condition operators: 'OR AND'"
         ):
             get_filter("a:b Or And c:d")
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             InvalidSearchQuery, "Condition is missing on the right side of 'AND' operator"
         ):
             get_filter("a:b AND c:d AND")
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             InvalidSearchQuery, "Condition is missing on the left side of 'OR' operator"
         ):
             get_filter("(OR a:b) AND c:d")
@@ -900,6 +900,25 @@ class GetSnubaQueryArgsTest(TestCase):
             ["stack.abs_path", "LIKE", "\\%APP\\_DIR\\%/th\\_ing%"],
         ]
         assert _filter.filter_keys == {}
+
+    def test_wildcard_array_field_with_backslash(self):
+        test_cases = [
+            (r"stack.filename:\k*", ["stack.filename", "LIKE", "\\\\k%"]),  # prefixed by \k
+            (r"stack.filename:\\*", ["stack.filename", "LIKE", "\\\\\\\\%"]),  # prefixed by \\
+            (
+                r"stack.filename:\**",
+                ["stack.filename", "LIKE", "\\\\%%"],
+            ),  # prefixed by \% since the search filter replaces both * with %
+            (r"stack.filename:\"k*", ["stack.filename", "LIKE", '"k%']),  # prefixed by "k
+            (r'stack.filename:\\"k*', ["stack.filename", "LIKE", '\\\\"k%']),  # prefixed by \"k
+        ]
+
+        for filter, conditions in test_cases:
+            _filter = get_filter(filter)
+            assert _filter.conditions == [
+                conditions,
+            ]
+            assert _filter.filter_keys == {}
 
     def test_existence_array_field(self):
         _filter = get_filter('has:stack.filename !has:stack.lineno error.value:""')
@@ -1293,11 +1312,11 @@ class GetSnubaQueryArgsTest(TestCase):
             "release:latest",
             params={"organization_id": self.organization.id, "project_id": [self.project.id]},
         )
-        assert result.conditions == [[["isNull", ["release"]], "=", 1]]
+        assert result.conditions == [["release", "IN", [""]]]
 
         # When organization id isn't included, project_id should unfortunately be an object
         result = get_filter("release:latest", params={"project_id": [self.project]})
-        assert result.conditions == [[["isNull", ["release"]], "=", 1]]
+        assert result.conditions == [["release", "IN", [""]]]
 
         release_2 = self.create_release(self.project)
 
@@ -1348,31 +1367,18 @@ class GetSnubaQueryArgsTest(TestCase):
 
     def test_release_stage(self):
         replaced_release = self.create_release(
-            version="replaced_release", environments=[self.environment]
-        )
-        adopted_release = self.create_release(
-            version="adopted_release", environments=[self.environment]
-        )
-        not_adopted_release = self.create_release(
-            version="not_adopted_release", environments=[self.environment]
-        )
-        ReleaseProjectEnvironment.objects.create(
-            project_id=self.project.id,
-            release_id=adopted_release.id,
-            environment_id=self.environment.id,
-            adopted=timezone.now(),
-        )
-        ReleaseProjectEnvironment.objects.create(
-            project_id=self.project.id,
-            release_id=replaced_release.id,
-            environment_id=self.environment.id,
+            version="replaced_release",
+            environments=[self.environment],
             adopted=timezone.now(),
             unadopted=timezone.now(),
         )
-        ReleaseProjectEnvironment.objects.create(
-            project_id=self.project.id,
-            release_id=not_adopted_release.id,
-            environment_id=self.environment.id,
+        self.create_release(
+            version="adopted_release",
+            environments=[self.environment],
+            adopted=timezone.now(),
+        )
+        not_adopted_release = self.create_release(
+            version="not_adopted_release", environments=[self.environment]
         )
         _filter = get_filter(
             f"{RELEASE_STAGE_ALIAS}:adopted",
@@ -1440,13 +1446,13 @@ class DiscoverFunctionTest(unittest.TestCase):
         self.fn_wo_optionals.validate_argument_count("fn_wo_optionals()", ["arg1", "arg2"])
 
     def test_no_optional_not_enough_arguments(self):
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             InvalidSearchQuery, r"fn_wo_optionals\(\): expected 2 argument\(s\)"
         ):
             self.fn_wo_optionals.validate_argument_count("fn_wo_optionals()", ["arg1"])
 
     def test_no_optional_too_may_arguments(self):
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             InvalidSearchQuery, r"fn_wo_optionals\(\): expected 2 argument\(s\)"
         ):
             self.fn_wo_optionals.validate_argument_count(
@@ -1459,13 +1465,13 @@ class DiscoverFunctionTest(unittest.TestCase):
         self.fn_w_optionals.validate_argument_count("fn_w_optionals()", ["arg1"])
 
     def test_optional_not_enough_arguments(self):
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             InvalidSearchQuery, r"fn_w_optionals\(\): expected at least 1 argument\(s\)"
         ):
             self.fn_w_optionals.validate_argument_count("fn_w_optionals()", [])
 
     def test_optional_too_many_arguments(self):
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             InvalidSearchQuery, r"fn_w_optionals\(\): expected at most 2 argument\(s\)"
         ):
             self.fn_w_optionals.validate_argument_count(
@@ -1473,15 +1479,13 @@ class DiscoverFunctionTest(unittest.TestCase):
             )
 
     def test_optional_args_have_default(self):
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             AssertionError, "test: optional argument at index 0 does not have default"
         ):
             DiscoverFunction("test", optional_args=[FunctionArg("arg1")])
 
     def test_defining_duplicate_args(self):
-        with self.assertRaisesRegexp(
-            AssertionError, "test: argument arg1 specified more than once"
-        ):
+        with self.assertRaisesRegex(AssertionError, "test: argument arg1 specified more than once"):
             DiscoverFunction(
                 "test",
                 required_args=[FunctionArg("arg1")],
@@ -1489,9 +1493,7 @@ class DiscoverFunctionTest(unittest.TestCase):
                 transform="",
             )
 
-        with self.assertRaisesRegexp(
-            AssertionError, "test: argument arg1 specified more than once"
-        ):
+        with self.assertRaisesRegex(AssertionError, "test: argument arg1 specified more than once"):
             DiscoverFunction(
                 "test",
                 required_args=[FunctionArg("arg1")],
@@ -1499,9 +1501,7 @@ class DiscoverFunctionTest(unittest.TestCase):
                 transform="",
             )
 
-        with self.assertRaisesRegexp(
-            AssertionError, "test: argument arg1 specified more than once"
-        ):
+        with self.assertRaisesRegex(AssertionError, "test: argument arg1 specified more than once"):
             DiscoverFunction(
                 "test",
                 optional_args=[with_default("default", FunctionArg("arg1"))],
@@ -1615,6 +1615,7 @@ class SemverFilterConverterTest(BaseSemverConverterTest, TestCase):
             self.run_test(">=", "1.2.4", "NOT IN", [release.version])
             self.run_test("<", "1.2.5", "NOT IN", [release_2.version])
             self.run_test("<=", "1.2.4", "NOT IN", [release_2.version])
+            self.run_test("!=", "1.2.3", "NOT IN", [release.version])
 
     def test_invert_fails(self):
         # Tests that when we invert and still receive too many records that we return
@@ -2447,13 +2448,13 @@ def _project(x):
         (
             "in_search_then_AND",
             'url:["a", "b"] AND release:test',
-            [And(conditions=[_tag("url", ["a", "b"]), _cond("release", Op.EQ, "test")])],
+            [And(conditions=[_tag("url", ["a", "b"]), _cond("release", Op.IN, ["test"])])],
             [],
         ),
         (
             "in_search_then_OR",
             'url:["a", "b"] OR release:test',
-            [Or(conditions=[_tag("url", ["a", "b"]), _cond("release", Op.EQ, "test")])],
+            [Or(conditions=[_tag("url", ["a", "b"]), _cond("release", Op.IN, ["test"])])],
             [],
         ),
         (
@@ -2473,7 +2474,7 @@ def _project(x):
 )
 def test_snql_boolean_search(description, query, expected_where, expected_having):
     dataset = Dataset.Discover
-    params: ParamsType = {}
+    params: ParamsType = {"project_id": 1}
     query_filter = QueryFilter(dataset, params)
     where, having = query_filter.resolve_conditions(query, use_aggregate_conditions=True)
     assert where == expected_where, description
@@ -2604,7 +2605,7 @@ class SnQLBooleanSearchQueryTest(TestCase):
         assert having == []
 
     def test_project_not_selected(self):
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             InvalidSearchQuery,
             re.escape(
                 f"Invalid query. Project(s) {str(self.project3.slug)} do not exist or are not actively selected."

@@ -1,13 +1,13 @@
 import styled from '@emotion/styled';
 
-import DateTime from 'app/components/dateTime';
-import NotAvailable from 'app/components/notAvailable';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {AppStoreConnectValidationData} from 'app/types/debugFiles';
+import DateTime from 'sentry/components/dateTime';
+import NotAvailable from 'sentry/components/notAvailable';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {AppStoreConnectStatusData} from 'sentry/types/debugFiles';
 
 type Props = {
-  details?: AppStoreConnectValidationData;
+  details?: AppStoreConnectStatusData;
 };
 
 function Details({details}: Props) {

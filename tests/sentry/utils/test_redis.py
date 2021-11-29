@@ -1,12 +1,11 @@
 import functools
 import logging
-from unittest import TestCase
+from unittest import TestCase, mock
 
 import pytest
 from django.utils.functional import SimpleLazyObject
 
 from sentry.exceptions import InvalidConfiguration
-from sentry.utils.compat import mock
 from sentry.utils.redis import (
     ClusterManager,
     _RedisCluster,

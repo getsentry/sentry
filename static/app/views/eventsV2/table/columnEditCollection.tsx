@@ -2,24 +2,24 @@ import * as React from 'react';
 import ReactDOM from 'react-dom';
 import styled from '@emotion/styled';
 
-import {parseArithmetic} from 'app/components/arithmeticInput/parser';
-import Button from 'app/components/button';
-import {SectionHeading} from 'app/components/charts/styles';
-import {IconAdd, IconDelete, IconGrabbable} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {LightWeightOrganization} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
+import Button from 'sentry/components/button';
+import {SectionHeading} from 'sentry/components/charts/styles';
+import {IconAdd, IconDelete, IconGrabbable} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {
   AGGREGATIONS,
   Column,
   generateFieldAsString,
   hasDuplicate,
   isLegalEquationColumn,
-} from 'app/utils/discover/fields';
-import theme from 'app/utils/theme';
-import {getPointerPosition} from 'app/utils/touch';
-import {setBodyUserSelect, UserSelectValues} from 'app/utils/userselect';
+} from 'sentry/utils/discover/fields';
+import theme from 'sentry/utils/theme';
+import {getPointerPosition} from 'sentry/utils/touch';
+import {setBodyUserSelect, UserSelectValues} from 'sentry/utils/userselect';
 
 import {generateFieldOptions} from '../utils';
 
@@ -32,7 +32,7 @@ type Props = {
   fieldOptions: ReturnType<typeof generateFieldOptions>;
   // Fired when columns are added/removed/modified
   onChange: (columns: Column[]) => void;
-  organization: LightWeightOrganization;
+  organization: Organization;
   className?: string;
 };
 

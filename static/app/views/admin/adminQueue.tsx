@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import {SelectField} from 'app/components/forms';
-import InternalStatChart from 'app/components/internalStatChart';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import AsyncView from 'app/views/asyncView';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import {SelectField} from 'sentry/components/forms';
+import InternalStatChart from 'sentry/components/internalStatChart';
+import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import AsyncView from 'sentry/views/asyncView';
 
 const TIME_WINDOWS = ['1h', '1d', '1w'] as const;
 
@@ -95,7 +95,10 @@ export default class AdminQueue extends AsyncView<{}, State> {
               onChange={value => this.changeTask(value as string)}
               value={activeTask}
               clearable
-              choices={taskList.map(t => [t, t])}
+              options={taskList.map(t => ({
+                value: t,
+                label: t,
+              }))}
             />
           </div>
           {activeTask ? (

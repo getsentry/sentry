@@ -4,18 +4,28 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
-import {Client} from 'app/api';
-import EventsChart from 'app/components/charts/eventsChart';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {Panel} from 'app/components/panels';
-import Placeholder from 'app/components/placeholder';
-import {Organization} from 'app/types';
-import {getUtcToLocalDateObject} from 'app/utils/dates';
-import EventView from 'app/utils/discover/eventView';
-import {DisplayModes, TOP_N} from 'app/utils/discover/types';
-import getDynamicText from 'app/utils/getDynamicText';
-import {decodeScalar} from 'app/utils/queryString';
-import withApi from 'app/utils/withApi';
+import {Client} from 'sentry/api';
+import AreaChart from 'sentry/components/charts/areaChart';
+import BarChart from 'sentry/components/charts/barChart';
+import EventsChart from 'sentry/components/charts/eventsChart';
+import {getInterval} from 'sentry/components/charts/utils';
+import WorldMapChart from 'sentry/components/charts/worldMapChart';
+import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {Panel} from 'sentry/components/panels';
+import Placeholder from 'sentry/components/placeholder';
+import {t} from 'sentry/locale';
+import {Organization} from 'sentry/types';
+import {getUtcToLocalDateObject} from 'sentry/utils/dates';
+import EventView from 'sentry/utils/discover/eventView';
+import {isEquation} from 'sentry/utils/discover/fields';
+import {
+  DisplayModes,
+  MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES,
+  TOP_N,
+} from 'sentry/utils/discover/types';
+import getDynamicText from 'sentry/utils/getDynamicText';
+import {decodeScalar} from 'sentry/utils/queryString';
+import withApi from 'sentry/utils/withApi';
 
 import ChartFooter from './chartFooter';
 
@@ -26,6 +36,7 @@ type ResultsChartProps = {
   eventView: EventView;
   location: Location;
   confirmedQuery: boolean;
+  yAxisValue: string[];
 };
 
 class ResultsChart extends Component<ResultsChartProps> {
@@ -41,13 +52,16 @@ class ResultsChart extends Component<ResultsChartProps> {
   }
 
   render() {
-    const {api, eventView, location, organization, router, confirmedQuery} = this.props;
+    const {api, eventView, location, organization, router, confirmedQuery, yAxisValue} =
+      this.props;
 
     const hasPerformanceChartInterpolation = organization.features.includes(
       'performance-chart-interpolation'
     );
-
-    const yAxisValue = eventView.getYAxis();
+    const hasConnectDiscoverAndDashboards = organization.features.includes(
+      'connect-discover-and-dashboards'
+    );
+    const hasTopEvents = organization.features.includes('discover-top-events');
 
     const globalSelection = eventView.getGlobalSelection();
     const start = globalSelection.datetime.start
@@ -66,6 +80,29 @@ class ResultsChart extends Component<ResultsChartProps> {
     const isPeriod = display === DisplayModes.DEFAULT || display === DisplayModes.TOP5;
     const isDaily = display === DisplayModes.DAILYTOP5 || display === DisplayModes.DAILY;
     const isPrevious = display === DisplayModes.PREVIOUS;
+    const referrer = `api.discover.${display}-chart`;
+    const topEvents =
+      hasTopEvents && eventView.topEvents ? parseInt(eventView.topEvents, 10) : TOP_N;
+    const chartComponent =
+      display === DisplayModes.WORLDMAP
+        ? WorldMapChart
+        : display === DisplayModes.BAR
+        ? BarChart
+        : hasConnectDiscoverAndDashboards && yAxisValue.length > 1 && !isDaily
+        ? AreaChart
+        : undefined;
+    const interval =
+      display === DisplayModes.BAR
+        ? getInterval(
+            {
+              start,
+              end,
+              period: globalSelection.datetime.period,
+              utc: utc === 'true',
+            },
+            'low'
+          )
+        : eventView.interval;
 
     return (
       <Fragment>
@@ -86,13 +123,16 @@ class ResultsChart extends Component<ResultsChartProps> {
               disablePrevious={!isPrevious}
               disableReleases={!isPeriod}
               field={isTopEvents ? apiPayload.field : undefined}
-              interval={eventView.interval}
+              interval={interval}
               showDaily={isDaily}
-              topEvents={isTopEvents ? TOP_N : undefined}
+              topEvents={isTopEvents ? topEvents : undefined}
               orderby={isTopEvents ? decodeScalar(apiPayload.sort) : undefined}
               utc={utc === 'true'}
               confirmedQuery={confirmedQuery}
               withoutZerofill={hasPerformanceChartInterpolation}
+              chartComponent={chartComponent}
+              referrer={referrer}
+              fromDiscover
             />
           ),
           fixed: <Placeholder height="200px" testId="skeleton-ui" />,
@@ -109,11 +149,13 @@ type ContainerProps = {
   location: Location;
   organization: Organization;
   confirmedQuery: boolean;
+  yAxis: string[];
 
   // chart footer props
   total: number | null;
-  onAxisChange: (value: string) => void;
+  onAxisChange: (value: string[]) => void;
   onDisplayChange: (value: string) => void;
+  onTopEventsChange: (value: string) => void;
 };
 
 class ResultsChartContainer extends Component<ContainerProps> {
@@ -140,43 +182,106 @@ class ResultsChartContainer extends Component<ContainerProps> {
       total,
       onAxisChange,
       onDisplayChange,
+      onTopEventsChange,
       organization,
       confirmedQuery,
+      yAxis,
     } = this.props;
 
-    const yAxisValue = eventView.getYAxis();
     const hasQueryFeature = organization.features.includes('discover-query');
-    const displayOptions = eventView.getDisplayOptions().filter(opt => {
-      // top5 modes are only available with larger packages in saas.
-      // We remove instead of disable here as showing tooltips in dropdown
-      // menus is clunky.
-      if (
-        [DisplayModes.TOP5, DisplayModes.DAILYTOP5].includes(opt.value as DisplayModes) &&
-        !hasQueryFeature
-      ) {
-        return false;
-      }
-      return true;
-    });
+    const hasConnectDiscoverAndDashboards = organization.features.includes(
+      'connect-discover-and-dashboards'
+    );
+    const hasTopEvents = organization.features.includes('discover-top-events');
+    const displayOptions = eventView
+      .getDisplayOptions()
+      .filter(opt => {
+        // top5 modes are only available with larger packages in saas.
+        // We remove instead of disable here as showing tooltips in dropdown
+        // menus is clunky.
+        if (
+          [DisplayModes.TOP5, DisplayModes.DAILYTOP5].includes(
+            opt.value as DisplayModes
+          ) &&
+          !hasQueryFeature
+        ) {
+          return false;
+        }
+        if (!hasConnectDiscoverAndDashboards && opt.value === DisplayModes.WORLDMAP) {
+          return false;
+        }
+        return true;
+      })
+      .map(opt => {
+        // Can only use default display or total daily with multi y axis
+        if (
+          hasTopEvents &&
+          [DisplayModes.TOP5, DisplayModes.DAILYTOP5].includes(opt.value as DisplayModes)
+        ) {
+          opt.label = DisplayModes.TOP5 === opt.value ? 'Top Period' : 'Top Daily';
+        }
+        if (
+          yAxis.length > 1 &&
+          !MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES.includes(opt.value as DisplayModes)
+        ) {
+          return {
+            ...opt,
+            disabled: true,
+            tooltip: t(
+              'Change the Y-Axis dropdown to display only 1 function to use this view.'
+            ),
+          };
+        }
+        return opt;
+      });
+
+    const yAxisValue = hasConnectDiscoverAndDashboards ? yAxis : [eventView.getYAxis()];
+    let yAxisOptions = eventView.getYAxisOptions();
+    // Hide multi y axis checkbox when in an unsupported Display Mode
+    if (
+      !MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES.includes(
+        eventView.getDisplayMode() as DisplayModes
+      )
+    ) {
+      yAxisOptions = yAxisOptions.map(option => {
+        return {
+          ...option,
+          disabled: true,
+          tooltip: t('Multiple Y-Axis cannot be plotted on this Display mode.'),
+          checkboxHidden: true,
+        };
+      });
+    }
+    // Equations on World Map isn't supported on the events-geo endpoint
+    // Disabling equations as an option to prevent erroring out
+    if (eventView.getDisplayMode() === DisplayModes.WORLDMAP) {
+      yAxisOptions = yAxisOptions.filter(({value}) => !isEquation(value));
+    }
 
     return (
       <StyledPanel>
-        <ResultsChart
-          api={api}
-          eventView={eventView}
-          location={location}
-          organization={organization}
-          router={router}
-          confirmedQuery={confirmedQuery}
-        />
+        {(yAxisValue.length > 0 && (
+          <ResultsChart
+            api={api}
+            eventView={eventView}
+            location={location}
+            organization={organization}
+            router={router}
+            confirmedQuery={confirmedQuery}
+            yAxisValue={yAxisValue}
+          />
+        )) || <NoChartContainer>{t('No Y-Axis selected.')}</NoChartContainer>}
         <ChartFooter
+          organization={organization}
           total={total}
           yAxisValue={yAxisValue}
-          yAxisOptions={eventView.getYAxisOptions()}
+          yAxisOptions={yAxisOptions}
           onAxisChange={onAxisChange}
           displayOptions={displayOptions}
           displayMode={eventView.getDisplayMode()}
           onDisplayChange={onDisplayChange}
+          onTopEventsChange={onTopEventsChange}
+          topEvents={eventView.topEvents ?? TOP_N.toString()}
         />
       </StyledPanel>
     );
@@ -189,4 +294,21 @@ const StyledPanel = styled(Panel)`
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     margin: 0;
   }
+`;
+
+const NoChartContainer = styled('div')<{height?: string}>`
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+
+  flex: 1;
+  flex-shrink: 0;
+  overflow: hidden;
+  height: ${p => p.height || '200px'};
+  position: relative;
+  border-color: transparent;
+  margin-bottom: 0;
+  color: ${p => p.theme.gray300};
+  font-size: ${p => p.theme.fontSizeExtraLarge};
 `;

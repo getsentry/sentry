@@ -13,11 +13,12 @@ def collect_project_platforms(**kwargs):
     now = timezone.now()
 
     min_project_id = 0
-    max_project_id = Project.objects.aggregate(x=Max("id"))["x"] or 0
+    max_project_id = Project.objects.using_replica().aggregate(x=Max("id"))["x"] or 0
     step = 1000
     while min_project_id <= max_project_id:
         queryset = (
-            Group.objects.filter(
+            Group.objects.using_replica()
+            .filter(
                 last_seen__gte=now - timedelta(days=1),
                 project__gte=min_project_id,
                 project__lt=min_project_id + step,

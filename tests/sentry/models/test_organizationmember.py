@@ -1,12 +1,16 @@
 from datetime import timedelta
+from unittest.mock import patch
 
+import pytest
 from django.core import mail
 from django.utils import timezone
 
+from sentry import roles
 from sentry.auth import manager
-from sentry.models import INVITE_DAYS_VALID, InviteStatus, OrganizationMember
+from sentry.exceptions import UnableToAcceptMemberInvitationException
+from sentry.models import INVITE_DAYS_VALID, InviteStatus, OrganizationMember, OrganizationOption
 from sentry.testutils import TestCase
-from sentry.utils.compat.mock import patch
+from sentry.testutils.helpers import with_feature
 
 
 class OrganizationMemberTest(TestCase):
@@ -128,7 +132,7 @@ class OrganizationMemberTest(TestCase):
             token="abc-def",
             token_expires_at=ninety_one_days,
         )
-        OrganizationMember.delete_expired(timezone.now())
+        OrganizationMember.objects.delete_expired(timezone.now())
         assert OrganizationMember.objects.filter(id=member.id).first() is None
 
     def test_delete_expired_miss(self):
@@ -141,7 +145,7 @@ class OrganizationMemberTest(TestCase):
             token="abc-def",
             token_expires_at=tomorrow,
         )
-        OrganizationMember.delete_expired(timezone.now())
+        OrganizationMember.objects.delete_expired(timezone.now())
         assert OrganizationMember.objects.get(id=member.id)
 
     def test_delete_expired_leave_claimed(self):
@@ -155,7 +159,7 @@ class OrganizationMemberTest(TestCase):
             token="abc-def",
             token_expires_at="2018-01-01 10:00:00",
         )
-        OrganizationMember.delete_expired(timezone.now())
+        OrganizationMember.objects.delete_expired(timezone.now())
         assert OrganizationMember.objects.get(id=member.id)
 
     def test_delete_expired_leave_null_expires(self):
@@ -167,7 +171,7 @@ class OrganizationMemberTest(TestCase):
             token="abc-def",
             token_expires_at=None,
         )
-        OrganizationMember.delete_expired(timezone.now())
+        OrganizationMember.objects.delete_expired(timezone.now())
         assert OrganizationMember.objects.get(id=member.id)
 
     def test_approve_invite(self):
@@ -245,3 +249,91 @@ class OrganizationMemberTest(TestCase):
         results = OrganizationMember.objects.get_contactable_members_for_org(organization.id)
         assert results.count() == 1
         assert results[0].user_id == member.user_id
+
+    def test_validate_invitation_success(self):
+        member = self.create_member(
+            organization=self.organization,
+            invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
+            email="hello@sentry.io",
+            role="member",
+        )
+        user = self.create_user()
+        assert member.validate_invitation(user, [roles.get("member")])
+
+    @with_feature({"organizations:invite-members": False})
+    def test_validate_invitation_lack_feature(self):
+        member = self.create_member(
+            organization=self.organization,
+            invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
+            email="hello@sentry.io",
+            role="member",
+        )
+        user = self.create_user()
+        with pytest.raises(
+            UnableToAcceptMemberInvitationException,
+            match="Your organization is not allowed to invite members.",
+        ):
+            member.validate_invitation(user, [roles.get("member")])
+
+    def test_validate_invitation_no_join_requests(self):
+        OrganizationOption.objects.create(
+            organization_id=self.organization.id, key="sentry:join_requests", value=False
+        )
+
+        member = self.create_member(
+            organization=self.organization,
+            invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
+            email="hello@sentry.io",
+            role="member",
+        )
+        user = self.create_user()
+        with pytest.raises(
+            UnableToAcceptMemberInvitationException,
+            match="Your organization does not allow requests to join.",
+        ):
+            member.validate_invitation(user, [roles.get("member")])
+
+    def test_validate_invitation_outside_allowed_role(self):
+        member = self.create_member(
+            organization=self.organization,
+            invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
+            email="hello@sentry.io",
+            role="admin",
+        )
+        user = self.create_user()
+        with pytest.raises(
+            UnableToAcceptMemberInvitationException,
+            match="You do not have permission approve a member invitation with the role admin.",
+        ):
+            member.validate_invitation(user, [roles.get("member")])
+
+    def test_approve_member_invitation(self):
+        member = self.create_member(
+            organization=self.organization,
+            invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
+            email="hello@sentry.io",
+            role="member",
+        )
+        user = self.create_user()
+        member.approve_member_invitation(user)
+        assert member.invite_status == InviteStatus.APPROVED.value
+
+    def test_reject_member_invitation(self):
+        member = self.create_member(
+            organization=self.organization,
+            invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
+            email="hello@sentry.io",
+            role="member",
+        )
+        user = self.create_user()
+        member.reject_member_invitation(user)
+        assert not OrganizationMember.objects.filter(id=member.id).exists()
+
+    def test_get_allowed_roles_to_invite(self):
+        member = OrganizationMember.objects.get(user=self.user, organization=self.organization)
+        member.update(role="manager")
+        assert member.get_allowed_roles_to_invite() == [
+            roles.get("member"),
+            roles.get("admin"),
+            roles.get("manager"),
+        ]

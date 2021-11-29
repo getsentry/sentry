@@ -1,13 +1,18 @@
 import {Fragment} from 'react';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {
+  mountWithTheme,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
-import GlobalModal from 'app/components/globalModal';
-import {metric} from 'app/utils/analytics';
-import IncidentRulesDetails from 'app/views/alerts/incidentRules/details';
+import GlobalModal from 'sentry/components/globalModal';
+import {metric} from 'sentry/utils/analytics';
+import IncidentRulesDetails from 'sentry/views/alerts/incidentRules/details';
 
-jest.mock('app/utils/analytics', () => ({
+jest.mock('sentry/utils/analytics', () => ({
   metric: {
     startTransaction: jest.fn(() => ({
       setTag: jest.fn(),
@@ -72,7 +77,7 @@ describe('Incident Rules Details', function () {
       body: rule,
     });
 
-    const wrapper = mountWithTheme(
+    mountWithTheme(
       <Fragment>
         <GlobalModal />
         <IncidentRulesDetails
@@ -86,39 +91,29 @@ describe('Incident Rules Details', function () {
           project={project}
         />
       </Fragment>,
-      routerContext
+      {context: routerContext}
     );
-
-    await tick();
-    wrapper.update();
 
     // has existing trigger
-    expect(wrapper.find('input[name="criticalThreshold"]').first().prop('value')).toEqual(
-      70
-    );
-    expect(wrapper.find('input[name="resolveThreshold"]').first().prop('value')).toEqual(
-      36
-    );
+    expect(screen.getByTestId('critical-threshold')).toHaveValue('70');
+    expect(screen.getByTestId('resolve-threshold')).toHaveValue('36');
 
     expect(req).toHaveBeenCalled();
 
     // Check correct rule name is called
     expect(onChangeTitleMock).toHaveBeenCalledWith(rule.name);
 
-    wrapper
-      .find('input[name="warningThreshold"]')
-      .first(1)
-      .simulate('change', {target: {value: 13}});
-    wrapper
-      .find('input[name="resolveThreshold"]')
-      .first()
-      .simulate('change', {target: {value: 12}});
+    userEvent.clear(screen.getByTestId('warning-threshold'));
+    userEvent.type(screen.getByTestId('warning-threshold'), '13');
+
+    userEvent.clear(screen.getByTestId('resolve-threshold'));
+    userEvent.type(screen.getByTestId('resolve-threshold'), '12');
 
     // Create a new action
-    wrapper.find('button[aria-label="Add Action"]').simulate('click');
+    userEvent.click(screen.getByLabelText('Add Action'));
 
     // Save Trigger
-    wrapper.find('button[aria-label="Save Rule"]').simulate('submit');
+    userEvent.click(screen.getByLabelText('Save Rule'));
 
     expect(metric.startTransaction).toHaveBeenCalledWith({name: 'saveAlertRule'});
     expect(editRule).toHaveBeenCalledWith(
@@ -161,26 +156,20 @@ describe('Incident Rules Details', function () {
     );
 
     // New Trigger should be in list
-    await tick();
-    wrapper.update();
-
     // Has correct values
-    expect(wrapper.find('input[name="criticalThreshold"]').first().prop('value')).toBe(
-      70
-    );
-    expect(wrapper.find('input[name="warningThreshold"]').first().prop('value')).toBe(13);
-    expect(wrapper.find('input[name="resolveThreshold"]').first().prop('value')).toBe(12);
+    expect(screen.getByTestId('critical-threshold')).toHaveValue('70');
+    expect(screen.getByTestId('warning-threshold')).toHaveValue('13');
+    expect(screen.getByTestId('resolve-threshold')).toHaveValue('12');
 
     editRule.mockReset();
 
     // Clear warning Trigger
-    wrapper
-      .find('input[name="warningThreshold"]')
-      .first()
-      .simulate('change', {target: {value: ''}});
+    userEvent.clear(screen.getByTestId('warning-threshold'));
+
+    await waitFor(() => expect(screen.getByLabelText('Save Rule')).toBeEnabled());
 
     // Save Trigger
-    wrapper.find('button[aria-label="Save Rule"]').simulate('submit');
+    userEvent.click(screen.getByLabelText('Save Rule'));
 
     expect(editRule).toHaveBeenCalledWith(
       expect.anything(),

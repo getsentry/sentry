@@ -1,12 +1,12 @@
 import {Location} from 'history';
 
-import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
-import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
-import {t} from 'app/locale';
-import {LightWeightOrganization, NewQuery, Project, SelectValue} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
-import {decodeScalar} from 'app/utils/queryString';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
+import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/globalSelectionHeader';
+import {t} from 'sentry/locale';
+import {NewQuery, Organization, Project, SelectValue} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 import {getCurrentLandingDisplay, LandingDisplayField} from './landing/utils';
 import {
@@ -40,6 +40,8 @@ export enum PERFORMANCE_TERM {
   P99 = 'p99',
   LCP = 'lcp',
   FCP = 'fcp',
+  FID = 'fid',
+  CLS = 'cls',
   USER_MISERY = 'userMisery',
   STATUS_BREAKDOWN = 'statusBreakdown',
   DURATION_DISTRIBUTION = 'durationDistribution',
@@ -50,13 +52,16 @@ export enum PERFORMANCE_TERM {
   SLOW_FRAMES = 'slowFrames',
   FROZEN_FRAMES = 'frozenFrames',
   STALL_PERCENTAGE = 'stallPercentage',
+  MOST_ISSUES = 'mostIssues',
+  MOST_ERRORS = 'mostErrors',
+  SLOW_HTTP_SPANS = 'slowHTTPSpans',
 }
 
 export type TooltipOption = SelectValue<string> & {
   tooltip: string;
 };
 
-export function getAxisOptions(organization: LightWeightOrganization): TooltipOption[] {
+export function getAxisOptions(organization: Organization): TooltipOption[] {
   return [
     {
       tooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX_NEW),
@@ -100,9 +105,7 @@ export type AxisOption = TooltipOption & {
   isRightDefault?: boolean;
 };
 
-export function getFrontendAxisOptions(
-  organization: LightWeightOrganization
-): AxisOption[] {
+export function getFrontendAxisOptions(organization: Organization): AxisOption[] {
   return [
     {
       tooltip: getTermHelp(organization, PERFORMANCE_TERM.LCP),
@@ -141,9 +144,7 @@ export function getFrontendAxisOptions(
   ];
 }
 
-export function getFrontendOtherAxisOptions(
-  organization: LightWeightOrganization
-): AxisOption[] {
+export function getFrontendOtherAxisOptions(organization: Organization): AxisOption[] {
   return [
     {
       tooltip: getTermHelp(organization, PERFORMANCE_TERM.P50),
@@ -175,9 +176,7 @@ export function getFrontendOtherAxisOptions(
   ];
 }
 
-export function getBackendAxisOptions(
-  organization: LightWeightOrganization
-): AxisOption[] {
+export function getBackendAxisOptions(organization: Organization): AxisOption[] {
   return [
     {
       tooltip: getTermHelp(organization, PERFORMANCE_TERM.P50),
@@ -233,9 +232,7 @@ export function getBackendAxisOptions(
   ];
 }
 
-export function getMobileAxisOptions(
-  organization: LightWeightOrganization
-): AxisOption[] {
+export function getMobileAxisOptions(organization: Organization): AxisOption[] {
   return [
     {
       tooltip: getTermHelp(organization, PERFORMANCE_TERM.APP_START_COLD),
@@ -316,9 +313,9 @@ export function getMobileAxisOptions(
   ];
 }
 
-type TermFormatter = (organization: LightWeightOrganization) => string;
+type TermFormatter = (organization: Organization) => string;
 
-const PERFORMANCE_TERMS: Record<PERFORMANCE_TERM, TermFormatter> = {
+export const PERFORMANCE_TERMS: Record<PERFORMANCE_TERM, TermFormatter> = {
   apdex: () =>
     t(
       'Apdex is the ratio of both satisfactory and tolerable response times to all response times. To adjust the tolerable threshold, go to performance settings.'
@@ -338,6 +335,14 @@ const PERFORMANCE_TERMS: Record<PERFORMANCE_TERM, TermFormatter> = {
     t('Largest contentful paint (LCP) is a web vital meant to represent user load times'),
   fcp: () =>
     t('First contentful paint (FCP) is a web vital meant to represent user load times'),
+  fid: () =>
+    t(
+      'First input delay (FID) is a web vital representing load for the first user interaction on a page.'
+    ),
+  cls: () =>
+    t(
+      'Cumulative layout shift (CLS) is a web vital measuring unexpected visual shifting a user experiences.'
+    ),
   userMisery: organization =>
     t(
       "User Misery is a score that represents the number of unique users who have experienced load times 4x your organization's apdex threshold of %sms.",
@@ -365,6 +370,9 @@ const PERFORMANCE_TERMS: Record<PERFORMANCE_TERM, TermFormatter> = {
     t('Warm start is a measure of the application start up time while still in memory.'),
   slowFrames: () => t('The count of the number of slow frames in the transaction.'),
   frozenFrames: () => t('The count of the number of frozen frames in the transaction.'),
+  mostErrors: () => t('Transactions with the most associated errors.'),
+  mostIssues: () => t('The most instances of an issue for a related transaction.'),
+  slowHTTPSpans: () => t('The transactions with the slowest spans of a certain type.'),
   stallPercentage: () =>
     t(
       'The percentage of the transaction duration in which the application is in a stalled state.'
@@ -372,7 +380,7 @@ const PERFORMANCE_TERMS: Record<PERFORMANCE_TERM, TermFormatter> = {
 };
 
 export function getTermHelp(
-  organization: LightWeightOrganization,
+  organization: Organization,
   term: keyof typeof PERFORMANCE_TERMS
 ): string {
   if (!PERFORMANCE_TERMS.hasOwnProperty(term)) {
@@ -382,7 +390,7 @@ export function getTermHelp(
 }
 
 function generateGenericPerformanceEventView(
-  _organization: LightWeightOrganization,
+  _organization: Organization,
   location: Location
 ): EventView {
   const {query} = location;
@@ -447,7 +455,7 @@ function generateGenericPerformanceEventView(
 }
 
 function generateBackendPerformanceEventView(
-  _organization: LightWeightOrganization,
+  _organization: Organization,
   location: Location
 ): EventView {
   const {query} = location;
@@ -514,7 +522,7 @@ function generateBackendPerformanceEventView(
 }
 
 function generateMobilePerformanceEventView(
-  _organization: LightWeightOrganization,
+  _organization: Organization,
   location: Location,
   projects: Project[],
   genericEventView: EventView
@@ -599,7 +607,7 @@ function generateMobilePerformanceEventView(
 }
 
 function generateFrontendPageloadPerformanceEventView(
-  _organization: LightWeightOrganization,
+  _organization: Organization,
   location: Location
 ): EventView {
   const {query} = location;
@@ -666,7 +674,7 @@ function generateFrontendPageloadPerformanceEventView(
 }
 
 function generateFrontendOtherPerformanceEventView(
-  _organization: LightWeightOrganization,
+  _organization: Organization,
   location: Location
 ): EventView {
   const {query} = location;
@@ -733,9 +741,9 @@ function generateFrontendOtherPerformanceEventView(
 }
 
 export function generatePerformanceEventView(
-  organization,
-  location,
-  projects,
+  organization: Organization,
+  location: Location,
+  projects: Project[],
   isTrends = false
 ) {
   const eventView = generateGenericPerformanceEventView(organization, location);
@@ -764,7 +772,7 @@ export function generatePerformanceEventView(
 }
 
 export function generatePerformanceVitalDetailView(
-  _organization: LightWeightOrganization,
+  _organization: Organization,
   location: Location
 ): EventView {
   const {query} = location;

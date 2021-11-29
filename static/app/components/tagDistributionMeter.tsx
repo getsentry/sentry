@@ -3,14 +3,14 @@ import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import {LocationDescriptor} from 'history';
 
-import {TagSegment} from 'app/actionCreators/events';
-import Link from 'app/components/links/link';
-import Tooltip from 'app/components/tooltip';
-import Version from 'app/components/version';
-import {t} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {percent} from 'app/utils';
+import {TagSegment} from 'sentry/actionCreators/events';
+import Link from 'sentry/components/links/link';
+import Tooltip from 'sentry/components/tooltip';
+import Version from 'sentry/components/version';
+import {t} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {percent} from 'sentry/utils';
 
 type DefaultProps = {
   isLoading: boolean;
@@ -153,7 +153,11 @@ export default class TagDistributionMeter extends React.Component<Props> {
           };
 
           return (
-            <div key={value.value} style={{width: pct + '%'}}>
+            <div
+              data-test-id={`tag-${title}-segment-${value.value}`}
+              key={value.value}
+              style={{width: pct + '%'}}
+            >
               <Tooltip title={tooltipHtml} containerDisplayMode="block">
                 {value.isOther ? <OtherSegment /> : <Segment {...segmentProps} />}
               </Tooltip>
@@ -236,6 +240,7 @@ const Label = styled('div')`
 
 const Percent = styled('div')`
   font-weight: bold;
+  font-variant-numeric: tabular-nums;
   padding-left: ${space(0.5)};
   color: ${p => p.theme.textColor};
 `;

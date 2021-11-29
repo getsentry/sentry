@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
-import Tag from 'app/components/tag';
-import Tooltip from 'app/components/tooltip';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
+import Tag from 'sentry/components/tag';
+import Tooltip from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 
 function UnhandledTag() {
   return (

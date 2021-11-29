@@ -1,10 +1,86 @@
+// This is the entry point of Sentry's frontend application. Want to
+// understand how app boots? Read on!
+//
+// 1. Load the `bootstrap` and `initializeMain` functions
+//
+//   a. Execute and wait for `bootstrap` to complete.
+//
+//      Bootstrapping loads early-runtime configuration. See the
+//      client_config.py backend view for more details.
+//
+//      Bootstrapping will do different things depending on if the app is
+//      running in SPA mode vs being booted from the django rendered layout
+//      template.
+//
+//      - SPA mode loads client-config via a HTTP request.
+//      - Django rendered mode loads client-config from a window global.
+//
+// 2. Once the app has been bootstrapped with the client-config data we can
+//    initialize the app.
+//
+//   a. The locale module will be initialized using `initializeLocale`. See this
+//      function in app/bootstrap/initializeLocale to understand the priority
+//      for how it determines the locale
+//
+//      This also handles lazily loading non English locale files if needed.
+//      There is no English locale file as our locale strings are keyed using
+//      the English strings.
+//
+//   b. Call `initalizeApp`, which starts most everything else
+//
+// 3. App initialization does the following...
+//
+//   a. Initalize the ConfigStore with clinet-config data.
+//
+//   b. Setup the colorscheme event handlers, for matching the system
+//      colorscheme.
+//
+//   c. Initialize the Sentry SDK. This includes setting up integrations for
+//      routing and tracing.
+//
+//   d. The <Main /> component is rendered. See step 4 for more details.
+//
+//   e. Run global init-queue tasks. These are essentially functions registered
+//      in the `window.__onSentryInit` array from outside of the app. This is
+//      specifically for old-style pages rendered as django templates, but
+//      still need React frontend components.
+//
+//      This also includes exporting some globals into the window.
+//
+// 4. Once the app is fully initialized we begin rendering React components. To
+//    understand the rendering tree from this point forward it's best to follow
+//    the component tree from <Main />
+//
+//    For a quick overview, here's what most render trees will look like:
+//
+//    <ThemeAndStyleProvider>  <-- Provides emotions theme in context
+//    |
+//    <Router>                 <-- Matches URLs and renders nested views
+//    |
+//    <App>                    <-- The App view handles initializing basic
+//    |                            parts of the application (such as loading
+//    |                            your org list)
+//    |
+//    <OrganizationDetails>    <-- Most routes live within the
+//                                 OrganizationDetails, which handles loading
+//                                 details for the org, projects, and teams.
+//
+//
+// Did you read through this whole thing and don't even work here? [1]
+//
+// [1]: https://sentry.io/careers/
+
 async function app() {
-  const [{bootstrap}, {initializeMain}] = await Promise.all([
-    import('app/bootstrap'),
-    import('app/bootstrap/initializeMain'),
-  ]);
-  const data = await bootstrap();
-  initializeMain(data);
+  // We won't need initalizeMainImport until we complete bootstrapping.
+  // Initaite the fetch, just don't await it until we need it.
+  const initalizeMainImport = import('sentry/bootstrap/initializeMain');
+  const bootstrapImport = import('sentry/bootstrap');
+
+  const {bootstrap} = await bootstrapImport;
+  const config = await bootstrap();
+
+  const {initializeMain} = await initalizeMainImport;
+  initializeMain(config);
 }
 
 app();

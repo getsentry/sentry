@@ -57,7 +57,7 @@ class ArrayField(models.Field):
             try:
                 value = json.loads(value)
             except json.JSONDecodeError:
-                # This is to accomodate the erronous exports pre 21.4.0
+                # This is to accommodate the erroneous exports pre 21.4.0
                 # See getsentry/sentry#23843 for more details
                 value = ast.literal_eval(value)
         return map(self.of.to_python, value)

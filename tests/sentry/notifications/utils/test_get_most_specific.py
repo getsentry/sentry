@@ -19,7 +19,7 @@ class GetMostSpecificNotificationSettingValueTestCase(TestCase):
     def test_get_most_specific_notification_setting_value_empty_workflow(self):
         value = get_most_specific_notification_setting_value(
             notification_settings_by_scope={},
-            user=self.user,
+            recipient=self.user,
             parent_id=1,
             type=NotificationSettingTypes.WORKFLOW,
         )
@@ -28,7 +28,7 @@ class GetMostSpecificNotificationSettingValueTestCase(TestCase):
     def test_get_most_specific_notification_setting_value_empty_alerts(self):
         value = get_most_specific_notification_setting_value(
             notification_settings_by_scope={},
-            user=self.user,
+            recipient=self.user,
             parent_id=1,
             type=NotificationSettingTypes.ISSUE_ALERTS,
         )
@@ -45,7 +45,7 @@ class GetMostSpecificNotificationSettingValueTestCase(TestCase):
         }
         value = get_most_specific_notification_setting_value(
             notification_settings_by_scope,
-            user=self.user,
+            recipient=self.user,
             parent_id=1,
             type=NotificationSettingTypes.ISSUE_ALERTS,
         )
@@ -70,7 +70,7 @@ class GetMostSpecificNotificationSettingValueTestCase(TestCase):
         }
         value = get_most_specific_notification_setting_value(
             notification_settings_by_scope,
-            user=self.user,
+            recipient=self.user,
             parent_id=project_id,
             type=NotificationSettingTypes.ISSUE_ALERTS,
         )

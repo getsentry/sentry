@@ -1,7 +1,7 @@
 from base64 import b64encode
 from datetime import datetime, timedelta
 
-import dateutil
+from dateutil.parser import parse as parse_date
 from django.core import mail
 from django.utils import timezone
 from pytz import UTC
@@ -88,10 +88,13 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         )
 
         # TODO(dcramer): We need to pare this down. Lots of duplicate queries for membership data.
-        expected_queries = 36
+        expected_queries = 35
 
         # TODO(mgaeta): Extra query while we're "dual reading" from UserOptions and NotificationSettings.
         expected_queries += 1
+
+        # Symbolication Low Priority Queue stats reads two killswitches
+        expected_queries += 8
 
         with self.assertNumQueries(expected_queries, using="default"):
             response = self.get_success_response(self.organization.slug)
@@ -180,10 +183,10 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
             assert response_data[i]["name"] == trusted_relays[i]["name"]
             assert response_data[i]["description"] == trusted_relays[i]["description"]
             # check that last_modified is in the correct range
-            last_modified = dateutil.parser.parse(response_data[i]["lastModified"])
+            last_modified = parse_date(response_data[i]["lastModified"])
             assert start_time < last_modified < end_time
             # check that created is in the correct range
-            created = dateutil.parser.parse(response_data[i]["created"])
+            created = parse_date(response_data[i]["created"])
             assert start_time < created < end_time
 
 
@@ -380,11 +383,11 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             assert response_data[i]["name"] == trusted_relays[i]["name"]
             assert response_data[i]["description"] == trusted_relays[i]["description"]
             # check that last_modified is in the correct range
-            last_modified = dateutil.parser.parse(actual[i]["last_modified"])
+            last_modified = parse_date(actual[i]["last_modified"])
             assert start_time < last_modified < end_time
             assert response_data[i]["lastModified"] == actual[i]["last_modified"]
             # check that created is in the correct range
-            created = dateutil.parser.parse(actual[i]["created"])
+            created = parse_date(actual[i]["created"])
             assert start_time < created < end_time
             assert response_data[i]["created"] == actual[i]["created"]
 
@@ -459,8 +462,8 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             assert actual[i]["name"] == modified_trusted_relays[i]["name"]
             assert actual[i]["description"] == modified_trusted_relays[i]["description"]
 
-            last_modified = dateutil.parser.parse(actual[i]["last_modified"])
-            created = dateutil.parser.parse(actual[i]["created"])
+            last_modified = parse_date(actual[i]["last_modified"])
+            created = parse_date(actual[i]["created"])
             key = modified_trusted_relays[i]["publicKey"]
 
             if key == _VALID_RELAY_KEYS[1]:
@@ -599,11 +602,15 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
     def test_cancel_delete(self):
         org = self.create_organization(owner=self.user, status=OrganizationStatus.PENDING_DELETION)
+        ScheduledDeletion.schedule(org, days=1)
 
         self.get_success_response(org.slug, **{"cancelDeletion": True})
 
         org = Organization.objects.get(id=org.id)
         assert org.status == OrganizationStatus.VISIBLE
+        assert not ScheduledDeletion.objects.filter(
+            model_name="Organization", object_id=org.id
+        ).exists()
 
     def test_relay_pii_config(self):
         value = '{"applications": {"freeform": []}}'

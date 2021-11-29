@@ -50,6 +50,7 @@ const config: Config.InitialOptions = {
   coverageReporters: ['html', 'cobertura'],
   coverageDirectory: '.artifacts/coverage',
   moduleNameMapper: {
+    '^sentry/(.*)': '<rootDir>/static/app/$1',
     '^sentry-test/(.*)': '<rootDir>/tests/js/sentry-test/$1',
     '^sentry-locale/(.*)': '<rootDir>/src/sentry/locale/$1',
     '\\.(css|less|png|jpg|mp4)$': '<rootDir>/tests/js/sentry-test/importStyleMock.js',
@@ -57,14 +58,13 @@ const config: Config.InitialOptions = {
     'integration-docs-platforms':
       '<rootDir>/tests/fixtures/integration-docs/_platforms.json',
   },
-  modulePaths: ['<rootDir>/static'],
   setupFiles: [
     '<rootDir>/static/app/utils/silence-react-unsafe-warnings.ts',
     '<rootDir>/tests/js/throw-on-react-error.js',
     'jest-canvas-mock',
   ],
   setupFilesAfterEnv: [
-    '<rootDir>/tests/js/setup.js',
+    '<rootDir>/tests/js/setup.ts',
     '<rootDir>/tests/js/setupFramework.ts',
     '@testing-library/jest-dom/extend-expect',
   ],

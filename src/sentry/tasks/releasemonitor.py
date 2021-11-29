@@ -259,6 +259,7 @@ def adopt_releases(org_id, totals):
                                     adopted=timezone.now(),
                                 )
                             except (
+                                Project.DoesNotExist,
                                 Environment.DoesNotExist,
                                 Release.DoesNotExist,
                                 ReleaseEnvironment.DoesNotExist,

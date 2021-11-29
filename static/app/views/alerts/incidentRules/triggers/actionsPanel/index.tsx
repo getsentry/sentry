@@ -2,22 +2,24 @@ import {Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import Button from 'app/components/button';
-import SelectControl from 'app/components/forms/selectControl';
-import ListItem from 'app/components/list/listItem';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {PanelItem} from 'app/components/panels';
-import {IconAdd} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project, SelectValue} from 'app/types';
-import {uniqueId} from 'app/utils/guid';
-import {removeAtArrayIndex} from 'app/utils/removeAtArrayIndex';
-import {replaceAtArrayIndex} from 'app/utils/replaceAtArrayIndex';
-import withOrganization from 'app/utils/withOrganization';
-import ActionTargetSelector from 'app/views/alerts/incidentRules/triggers/actionsPanel/actionTargetSelector';
-import DeleteActionButton from 'app/views/alerts/incidentRules/triggers/actionsPanel/deleteActionButton';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {openModal} from 'sentry/actionCreators/modal';
+import Button from 'sentry/components/button';
+import SelectControl from 'sentry/components/forms/selectControl';
+import ListItem from 'sentry/components/list/listItem';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {PanelItem} from 'sentry/components/panels';
+import {IconAdd, IconSettings} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project, SelectValue} from 'sentry/types';
+import {uniqueId} from 'sentry/utils/guid';
+import {removeAtArrayIndex} from 'sentry/utils/removeAtArrayIndex';
+import {replaceAtArrayIndex} from 'sentry/utils/replaceAtArrayIndex';
+import withOrganization from 'sentry/utils/withOrganization';
+import ActionSpecificTargetSelector from 'sentry/views/alerts/incidentRules/triggers/actionsPanel/actionSpecificTargetSelector';
+import ActionTargetSelector from 'sentry/views/alerts/incidentRules/triggers/actionsPanel/actionTargetSelector';
+import DeleteActionButton from 'sentry/views/alerts/incidentRules/triggers/actionsPanel/deleteActionButton';
 import {
   Action,
   ActionLabel,
@@ -25,7 +27,8 @@ import {
   MetricActionTemplate,
   TargetLabel,
   Trigger,
-} from 'app/views/alerts/incidentRules/types';
+} from 'sentry/views/alerts/incidentRules/types';
+import SentryAppRuleModal from 'sentry/views/alerts/issueRuleEditor/sentryAppRuleModal';
 
 type Props = {
   availableActions: MetricActionTemplate[] | null;
@@ -59,6 +62,7 @@ const getCleanAction = (actionConfig, dateCreated?: string): Action => {
         ? actionConfig.allowedTargetTypes[0]
         : null,
     targetIdentifier: actionConfig.sentryAppId || '',
+    inputChannelId: null,
     integrationId: actionConfig.integrationId,
     sentryAppId: actionConfig.sentryAppId,
     options: actionConfig.options || null,
@@ -78,7 +82,8 @@ const getActionUniqueKey = ({
 }: Pick<Action, 'type' | 'integrationId' | 'sentryAppId'>) => {
   if (integrationId) {
     return `${type}-${integrationId}`;
-  } else if (sentryAppId) {
+  }
+  if (sentryAppId) {
     return `${type}-${sentryAppId}`;
   }
   return type;
@@ -117,12 +122,17 @@ const getFullActionTitle = ({
  * Lists saved actions as well as control to add a new action
  */
 class ActionsPanel extends PureComponent<Props> {
-  handleChangeTargetIdentifier(triggerIndex: number, index: number, value: string) {
+  handleChangeKey(
+    triggerIndex: number,
+    index: number,
+    key: 'targetIdentifier' | 'inputChannelId',
+    value: string
+  ) {
     const {triggers, onChange} = this.props;
     const {actions} = triggers[triggerIndex];
     const newAction = {
       ...actions[index],
-      targetIdentifier: value,
+      [key]: value,
     };
 
     onChange(triggerIndex, triggers, replaceAtArrayIndex(actions, index, newAction));
@@ -202,6 +212,30 @@ class ActionsPanel extends PureComponent<Props> {
     };
 
     onChange(triggerIndex, triggers, replaceAtArrayIndex(actions, index, newAction));
+  };
+
+  /**
+   * Update the Trigger's Action fields from the SentryAppRuleModal together
+   * only after the user clicks "Save Changes".
+   * @param formData Form data
+   */
+  updateParentFromSentryAppRule = (
+    triggerIndex: number,
+    actionIndex: number,
+    formData: {[key: string]: string}
+  ): void => {
+    const {triggers, onChange} = this.props;
+    const {actions} = triggers[triggerIndex];
+    const newAction = {
+      ...actions[actionIndex],
+      ...formData,
+    };
+
+    onChange(
+      triggerIndex,
+      triggers,
+      replaceAtArrayIndex(actions, actionIndex, newAction)
+    );
   };
 
   render() {
@@ -307,19 +341,63 @@ class ActionsPanel extends PureComponent<Props> {
                           actionIdx
                         )}
                       />
+                    ) : availableAction &&
+                      availableAction.type === 'sentry_app' &&
+                      availableAction.settings ? (
+                      <Button
+                        icon={<IconSettings />}
+                        type="button"
+                        onClick={() => {
+                          openModal(
+                            deps => (
+                              <SentryAppRuleModal
+                                {...deps}
+                                // Using ! for keys that will exist for sentryapps
+                                sentryAppInstallationUuid={
+                                  availableAction.sentryAppInstallationUuid!
+                                }
+                                config={availableAction.settings!}
+                                appName={availableAction.sentryAppName!}
+                                onSubmitSuccess={this.updateParentFromSentryAppRule.bind(
+                                  this,
+                                  triggerIndex,
+                                  actionIdx
+                                )}
+                                resetValues={
+                                  triggers[triggerIndex].actions[actionIdx] || {}
+                                }
+                              />
+                            ),
+                            {allowClickClose: false}
+                          );
+                        }}
+                      >
+                        {t('Settings')}
+                      </Button>
                     ) : null}
                     <ActionTargetSelector
                       action={action}
                       availableAction={availableAction}
                       disabled={disabled}
                       loading={loading}
-                      onChange={this.handleChangeTargetIdentifier.bind(
+                      onChange={this.handleChangeKey.bind(
                         this,
                         triggerIndex,
-                        actionIdx
+                        actionIdx,
+                        'targetIdentifier'
                       )}
                       organization={organization}
                       project={project}
+                    />
+                    <ActionSpecificTargetSelector
+                      action={action}
+                      disabled={disabled}
+                      onChange={this.handleChangeKey.bind(
+                        this,
+                        triggerIndex,
+                        actionIdx,
+                        'inputChannelId'
+                      )}
                     />
                   </PanelItemSelects>
                   <DeleteActionButton

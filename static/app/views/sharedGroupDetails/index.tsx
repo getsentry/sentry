@@ -3,18 +3,18 @@ import DocumentTitle from 'react-document-title';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {Client} from 'app/api';
-import NotFound from 'app/components/errors/notFound';
-import {BorderlessEventEntries} from 'app/components/events/eventEntries';
-import Footer from 'app/components/footer';
-import Link from 'app/components/links/link';
-import LoadingError from 'app/components/loadingError';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
-import space from 'app/styles/space';
-import {Group} from 'app/types';
-import withApi from 'app/utils/withApi';
+import {Client} from 'sentry/api';
+import NotFound from 'sentry/components/errors/notFound';
+import {BorderlessEventEntries} from 'sentry/components/events/eventEntries';
+import Footer from 'sentry/components/footer';
+import Link from 'sentry/components/links/link';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {t} from 'sentry/locale';
+import SentryTypes from 'sentry/sentryTypes';
+import space from 'sentry/styles/space';
+import {Group} from 'sentry/types';
+import withApi from 'sentry/utils/withApi';
 
 import SharedGroupHeader from './sharedGroupHeader';
 
@@ -102,7 +102,7 @@ class SharedGroupDetails extends Component<Props, State> {
       return <LoadingError onRetry={this.handleRetry} />;
     }
 
-    const {location, api} = this.props;
+    const {location, api, route, router} = this.props;
     const {permalink, latestEvent, project} = group;
     const title = this.getTitle();
 
@@ -132,6 +132,8 @@ class SharedGroupDetails extends Component<Props, State> {
                     event={latestEvent}
                     project={project}
                     api={api}
+                    route={route}
+                    router={router}
                     isBorderless
                     isShare
                   />

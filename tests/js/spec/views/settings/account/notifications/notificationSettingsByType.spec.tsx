@@ -1,33 +1,30 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import {NotificationSettingsObject} from 'app/views/settings/account/notifications/constants';
-import NotificationSettingsByType from 'app/views/settings/account/notifications/notificationSettingsByType';
+import {NotificationSettingsObject} from 'sentry/views/settings/account/notifications/constants';
+import NotificationSettingsByType from 'sentry/views/settings/account/notifications/notificationSettingsByType';
 import {
   Identity,
   OrganizationIntegration,
-} from 'app/views/settings/account/notifications/types';
+} from 'sentry/views/settings/account/notifications/types';
 
 const addMockResponses = (
   notificationSettings: NotificationSettingsObject,
   identities: Identity[] = [],
   organizationIntegrations: OrganizationIntegration[] = []
 ) => {
-  // @ts-expect-error
   MockApiClient.addMockResponse({
     url: '/users/me/notification-settings/',
     method: 'GET',
     body: notificationSettings,
   });
 
-  // @ts-expect-error
   MockApiClient.addMockResponse({
     url: '/users/me/identities/',
     method: 'GET',
     body: identities,
   });
 
-  // @ts-expect-error
   MockApiClient.addMockResponse({
     url: '/users/me/organization-integrations/',
     method: 'GET',
@@ -41,7 +38,6 @@ const createWrapper = (
   organizationIntegrations: OrganizationIntegration[] = []
 ) => {
   const {routerContext} = initializeOrg();
-  // @ts-expect-error
   const org = TestStubs.Organization();
   addMockResponses(notificationSettings, identities, organizationIntegrations);
   return mountWithTheme(
@@ -76,14 +72,12 @@ describe('NotificationSettingsByType', function () {
   });
 
   it('should render warning modal when identity not linked', function () {
-    // @ts-expect-error
     const org = TestStubs.Organization();
     const wrapper = createWrapper(
       {
         alerts: {user: {me: {email: 'always', slack: 'always'}}},
       },
       [],
-      // @ts-expect-error
       [TestStubs.OrganizationIntegrations()]
     );
     const alert = wrapper.find('StyledAlert');
@@ -94,16 +88,13 @@ describe('NotificationSettingsByType', function () {
   });
 
   it('should not render warning modal when identity is linked', function () {
-    // @ts-expect-error
     const org = TestStubs.Organization();
     const wrapper = createWrapper(
       {
         alerts: {user: {me: {email: 'always', slack: 'always'}}},
       },
-      // @ts-expect-error
       [TestStubs.UserIdentity()],
-      // @ts-expect-error
-      [TestStubs.OrganizationIntegrations(org.id)]
+      [TestStubs.OrganizationIntegrations({organizationId: org.id})]
     );
     const alert = wrapper.find('StyledAlert');
     expect(alert).toHaveLength(1);

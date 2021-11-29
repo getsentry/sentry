@@ -1,6 +1,7 @@
 import itertools
 import math
 from datetime import datetime, timedelta
+from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
 import pytz
@@ -216,6 +217,7 @@ GROUPBY_MAP = {
 }
 
 CONDITION_COLUMNS = ["project", "environment", "release"]
+FILTER_KEY_COLUMNS = ["project_id"]
 
 
 def resolve_column(col):
@@ -224,8 +226,20 @@ def resolve_column(col):
     raise InvalidField(f'Invalid query field: "{col}"')
 
 
+def resolve_filter_key(col):
+    if col in FILTER_KEY_COLUMNS:
+        return col
+    raise InvalidField(f'Invalid query field: "{col}"')
+
+
 class InvalidField(Exception):
     pass
+
+
+class AllowedResolution(Enum):
+    one_hour = (3600, "one hour")
+    one_minute = (60, "one minute")
+    ten_seconds = (10, "ten seconds")
 
 
 class QueryDefinition:
@@ -235,10 +249,10 @@ class QueryDefinition:
     `fields` and `groupby` definitions as [`ColumnDefinition`] objects.
     """
 
-    def __init__(self, query, params, allow_minute_resolution=False):
+    def __init__(self, query, params, allowed_resolution: AllowedResolution):
         self.query = query.get("query", "")
-        raw_fields = query.getlist("field", [])
-        raw_groupby = query.getlist("groupBy", [])
+        self.raw_fields = raw_fields = query.getlist("field", [])
+        self.raw_groupby = raw_groupby = query.getlist("groupBy", [])
 
         if len(raw_fields) == 0:
             raise InvalidField('Request is missing a "field"')
@@ -255,10 +269,12 @@ class QueryDefinition:
                 raise InvalidField(f'Invalid groupBy: "{key}"')
             self.groupby.append(GROUPBY_MAP[key])
 
-        start, end, rollup = get_constrained_date_range(query, allow_minute_resolution)
+        start, end, rollup = get_constrained_date_range(query, allowed_resolution)
         self.rollup = rollup
         self.start = start
         self.end = end
+
+        self.params = params
 
         query_columns = set()
         for field in self.fields.values():
@@ -280,10 +296,13 @@ class QueryDefinition:
         # this makes sure that literals in complex queries are properly quoted,
         # and unknown fields are raised as errors
         conditions = [resolve_condition(c, resolve_column) for c in snuba_filter.conditions]
+        filter_keys = {
+            resolve_filter_key(key): value for key, value in snuba_filter.filter_keys.items()
+        }
 
         self.aggregations = snuba_filter.aggregations
         self.conditions = conditions
-        self.filter_keys = snuba_filter.filter_keys
+        self.filter_keys = filter_keys
 
 
 MAX_POINTS = 1000
@@ -302,14 +321,15 @@ def get_now():
 
 
 def get_constrained_date_range(
-    params, allow_minute_resolution=False, max_points=MAX_POINTS
+    params,
+    allowed_resolution: AllowedResolution = AllowedResolution.one_hour,
+    max_points=MAX_POINTS,
 ) -> Tuple[datetime, datetime, int]:
     interval = parse_stats_period(params.get("interval", "1h"))
     interval = int(3600 if interval is None else interval.total_seconds())
 
-    smallest_interval = ONE_MINUTE if allow_minute_resolution else ONE_HOUR
+    smallest_interval, interval_str = allowed_resolution.value
     if interval % smallest_interval != 0 or interval < smallest_interval:
-        interval_str = "one minute" if allow_minute_resolution else "one hour"
         raise InvalidParams(
             f"The interval has to be a multiple of the minimum interval of {interval_str}."
         )
@@ -339,6 +359,10 @@ def get_constrained_date_range(
     # as the timeseries (using `WITH ROLLUP` in clickhouse)
 
     rounding_interval = int(math.ceil(interval / ONE_HOUR) * ONE_HOUR)
+
+    # Hack to disabled rounding interval for metrics-based queries:
+    if interval < ONE_MINUTE:
+        rounding_interval = interval
 
     date_range = timedelta(
         seconds=int(rounding_interval * math.ceil(date_range.total_seconds() / rounding_interval))
@@ -383,7 +407,7 @@ def get_constrained_date_range(
 TS_COL = "bucketed_started"
 
 
-def run_sessions_query(query):
+def _run_sessions_query(query):
     """
     Runs the `query` as defined by [`QueryDefinition`] two times, once for the
     `totals` and again for the actual time-series data grouped by the requested
@@ -451,7 +475,7 @@ def massage_sessions_result(
     }
     ```
     """
-    timestamps = _get_timestamps(query)
+    timestamps = get_timestamps(query)
 
     total_groups = _split_rows_groupby(result_totals, query.groupby)
     timeseries_groups = _split_rows_groupby(result_timeseries, query.groupby)
@@ -514,7 +538,7 @@ def _isoformat_z(date):
     return datetime.utcfromtimestamp(int(to_timestamp(date))).isoformat() + "Z"
 
 
-def _get_timestamps(query):
+def get_timestamps(query):
     """
     Generates a list of timestamps according to `query`.
     The timestamps are returned as ISO strings for now.

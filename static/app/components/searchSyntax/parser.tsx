@@ -1,12 +1,12 @@
 import moment from 'moment';
 import {LocationRange} from 'pegjs';
 
-import {t} from 'app/locale';
+import {t} from 'sentry/locale';
 import {
   isMeasurement,
   isSpanOperationBreakdownField,
   measurementType,
-} from 'app/utils/discover/fields';
+} from 'sentry/utils/discover/fields';
 
 import grammar from './grammar.pegjs';
 import {getKeyName} from './utils';
@@ -169,19 +169,19 @@ export const filterTypeConfig = {
     validKeys: [Token.KeySimple],
     validOps: allOperators,
     validValues: [Token.ValueDuration],
-    canNegate: false,
+    canNegate: true,
   },
   [FilterType.Numeric]: {
     validKeys: [Token.KeySimple],
     validOps: allOperators,
     validValues: [Token.ValueNumber],
-    canNegate: false,
+    canNegate: true,
   },
   [FilterType.NumericIn]: {
     validKeys: [Token.KeySimple],
     validOps: [],
     validValues: [Token.ValueNumberList],
-    canNegate: false,
+    canNegate: true,
   },
   [FilterType.Boolean]: {
     validKeys: [Token.KeySimple],
@@ -320,7 +320,10 @@ export class TokenConverter {
    * Validates various types of keys
    */
   keyValidation = {
-    isNumeric: (key: string) => this.config.numericKeys.has(key) || isMeasurement(key),
+    isNumeric: (key: string) =>
+      this.config.numericKeys.has(key) ||
+      isMeasurement(key) ||
+      isSpanOperationBreakdownField(key),
     isBoolean: (key: string) => this.config.booleanKeys.has(key),
     isPercentage: (key: string) => this.config.percentageKeys.has(key),
     isDate: (key: string) => this.config.dateKeys.has(key),
@@ -797,7 +800,6 @@ const defaultConfig: SearchConfig = {
     'error.handled',
     'error.unhandled',
     'stack.in_app',
-    'key_transaction',
     'team_key_transaction',
   ]),
   allowBoolean: true,

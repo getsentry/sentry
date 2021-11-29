@@ -1,4 +1,4 @@
-import {convertDatasetEventTypesToSource} from 'app/views/alerts/utils';
+import {convertDatasetEventTypesToSource} from 'sentry/views/alerts/utils';
 
 import {DATASET_EVENT_TYPE_FILTERS, DATASOURCE_EVENT_TYPE_FILTERS} from '../constants';
 import {Dataset, Datasource, EventTypes, IncidentRule} from '../types';
@@ -16,7 +16,6 @@ export function getEventTypeFilter(
     return DATASOURCE_EVENT_TYPE_FILTERS[
       convertDatasetEventTypesToSource(dataset, eventTypes) ?? Datasource.ERROR
     ];
-  } else {
-    return DATASET_EVENT_TYPE_FILTERS[dataset ?? Dataset.ERRORS];
   }
+  return DATASET_EVENT_TYPE_FILTERS[dataset ?? Dataset.ERRORS];
 }

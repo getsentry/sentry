@@ -1,9 +1,9 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {PanelItem} from 'app/components/panels';
-import space from 'app/styles/space';
-import {CustomRepo, CustomRepoType} from 'app/types/debugFiles';
+import {PanelItem} from 'sentry/components/panels';
+import space from 'sentry/styles/space';
+import {CustomRepo, CustomRepoType} from 'sentry/types/debugFiles';
 
 import CustomRepositoryActions from './actions';
 import Details from './details';
@@ -13,7 +13,7 @@ import {customRepoTypeLabel} from './utils';
 type Props = {
   repository: CustomRepo;
   onDelete: (repositoryId: string) => void;
-  onEdit: (repositoryId: string, revalidateItunesSession?: boolean) => void;
+  onEdit: (repositoryId: string) => void;
 };
 
 function Repository({repository, onDelete, onEdit}: Props) {
@@ -26,11 +26,7 @@ function Repository({repository, onDelete, onEdit}: Props) {
       <TypeAndStatus>
         {customRepoTypeLabel[type]}
         {repository.type === CustomRepoType.APP_STORE_CONNECT && (
-          <Status
-            details={repository.details}
-            onEditRepository={() => onEdit(id)}
-            onRevalidateItunesSession={() => onEdit(id, true)}
-          />
+          <Status details={repository.details} onEditRepository={() => onEdit(id)} />
         )}
       </TypeAndStatus>
       <CustomRepositoryActions

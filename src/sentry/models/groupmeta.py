@@ -8,7 +8,7 @@ from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 from sentry.db.models.manager import BaseManager
 from sentry.exceptions import CacheNotPopulated
 
-ERR_CACHE_MISISNG = "Cache not populated for instance id=%s"
+ERR_CACHE_MISSING = "Cache not populated for instance id=%s"
 
 
 class GroupMetaManager(BaseManager):
@@ -58,7 +58,7 @@ class GroupMetaManager(BaseManager):
             try:
                 inst_cache = self.__cache[instance.id]
             except KeyError:
-                raise self.model.CacheNotPopulated(ERR_CACHE_MISISNG % (instance.id,))
+                raise self.model.CacheNotPopulated(ERR_CACHE_MISSING % (instance.id,))
             results[instance] = inst_cache.get(key, default)
         return results
 
@@ -66,7 +66,7 @@ class GroupMetaManager(BaseManager):
         try:
             inst_cache = self.__cache[instance.id]
         except KeyError:
-            raise self.model.CacheNotPopulated(ERR_CACHE_MISISNG % (instance.id,))
+            raise self.model.CacheNotPopulated(ERR_CACHE_MISSING % (instance.id,))
         return inst_cache.get(key, default)
 
     def unset_value(self, instance, key):

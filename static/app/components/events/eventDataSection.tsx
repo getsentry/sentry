@@ -2,13 +2,13 @@ import * as React from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import {DataSection} from 'app/components/events/styles';
-import {IconAnchor} from 'app/icons/iconAnchor';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {callIfFunction} from 'app/utils/callIfFunction';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import {DataSection} from 'sentry/components/events/styles';
+import {IconAnchor} from 'sentry/icons/iconAnchor';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {callIfFunction} from 'sentry/utils/callIfFunction';
 
 const defaultProps = {
   wrapTitle: true,
@@ -81,7 +81,7 @@ class EventDataSection extends React.Component<Props> {
                   {titleNode}
                 </Permalink>
               ) : (
-                <div>{titleNode}</div>
+                titleNode
               )}
             </Title>
             {type === 'extra' && (
@@ -123,6 +123,7 @@ const StyledIconAnchor = styled(IconAnchor)`
 `;
 
 const Permalink = styled('a')`
+  width: 100%;
   :hover ${StyledIconAnchor} {
     display: block;
     color: ${p => p.theme.gray300};

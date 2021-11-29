@@ -1,23 +1,34 @@
-from typing import List, Mapping, Set
+from typing import Dict, List, Mapping, Optional, Set, cast
 
 from django.utils.functional import cached_property
+from snuba_sdk.aliased_expression import AliasedExpression
 from snuba_sdk.column import Column
-from snuba_sdk.function import CurriedFunction, Function
+from snuba_sdk.function import CurriedFunction
 from snuba_sdk.orderby import OrderBy
 
 from sentry.models import Project
-from sentry.search.events.constants import ARRAY_FIELDS, TAG_KEY_RE
 from sentry.search.events.types import ParamsType, SelectType, WhereType
 from sentry.utils.snuba import Dataset, resolve_column
 
 
 class QueryBase:
-    def __init__(self, dataset: Dataset, params: ParamsType):
-        self.params = params
+    def __init__(
+        self,
+        dataset: Dataset,
+        params: ParamsType,
+        auto_fields: bool = False,
+        functions_acl: Optional[List[str]] = None,
+        equation_config: Optional[Dict[str, bool]] = None,
+    ):
         self.dataset = dataset
+        self.params = params
+        self.auto_fields = auto_fields
+        self.functions_acl = set() if functions_acl is None else functions_acl
+        self.equation_config = equation_config if equation_config is not None else {}
 
         # Function is a subclass of CurriedFunction
         self.where: List[WhereType] = []
+        # The list of aggregates to be selected
         self.aggregates: List[CurriedFunction] = []
         self.columns: List[SelectType] = []
         self.orderby: List[OrderBy] = []
@@ -26,9 +37,9 @@ class QueryBase:
 
         self.resolve_column_name = resolve_column(self.dataset)
 
-    @cached_property
+    @cached_property  # type: ignore
     def project_slugs(self) -> Mapping[str, int]:
-        project_ids = self.params.get("project_id", [])
+        project_ids = cast(List[int], self.params.get("project_id", []))
 
         if len(project_ids) > 0:
             project_slugs = Project.objects.filter(id__in=project_ids)
@@ -37,7 +48,7 @@ class QueryBase:
 
         return {p.slug: p.id for p in project_slugs}
 
-    def aliased_column(self, name: str, alias: str) -> SelectType:
+    def aliased_column(self, name: str) -> SelectType:
         """Given an unresolved sentry name and an expected alias, return a snql
         column that will be aliased to the expected alias.
 
@@ -56,24 +67,13 @@ class QueryBase:
         #
         # Additionally, tags of the form `tags[...]` can't be aliased again
         # because it confuses the sdk.
-        if alias == resolved:
+        if name == resolved:
             return column
 
-        if alias in ARRAY_FIELDS:
-            # since the array fields are already flattened, we can use
-            # `arrayFlatten` to alias it
-            return Function("arrayFlatten", [column], alias)
-
-        if TAG_KEY_RE.search(resolved):
-            # since tags are strings, we can use `toString` to alias it
-            return Function("toString", [column], alias)
-
-        # string type arguments
-        if alias in {"user.email"}:
-            return Function("toString", [column], alias)
-
-        # columns that are resolved into a snuba name are not supported
-        raise NotImplementedError(f"{alias} not implemented in snql column resolution yet")
+        # If the expected aliases differs from the resolved snuba column,
+        # make sure to alias the expression appropriately so we get back
+        # the column with the correct names.
+        return AliasedExpression(column, name)
 
     def column(self, name: str) -> Column:
         """Given an unresolved sentry name and return a snql column.

@@ -3,17 +3,17 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import moment from 'moment';
 
-import AsyncComponent from 'app/components/asyncComponent';
-import OptionSelector from 'app/components/charts/optionSelector';
-import {InlineContainer, SectionHeading} from 'app/components/charts/styles';
-import {DateTimeObject, getSeriesApiInterval} from 'app/components/charts/utils';
-import NotAvailable from 'app/components/notAvailable';
-import ScoreCard from 'app/components/scoreCard';
-import {DEFAULT_STATS_PERIOD} from 'app/constants';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {DataCategory, IntervalPeriod, Organization, RelativePeriod} from 'app/types';
-import {parsePeriodToHours} from 'app/utils/dates';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import OptionSelector from 'sentry/components/charts/optionSelector';
+import {InlineContainer, SectionHeading} from 'sentry/components/charts/styles';
+import {DateTimeObject, getSeriesApiInterval} from 'sentry/components/charts/utils';
+import NotAvailable from 'sentry/components/notAvailable';
+import ScoreCard from 'sentry/components/scoreCard';
+import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {DataCategory, IntervalPeriod, Organization, RelativePeriod} from 'sentry/types';
+import {parsePeriodToHours} from 'sentry/utils/dates';
 
 import {
   FORMAT_DATETIME_DAILY,
@@ -255,17 +255,27 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
           return;
         }
 
-        count.total += group.totals['sum(quantity)'];
+        if (outcome !== Outcome.CLIENT_DISCARD) {
+          count.total += group.totals['sum(quantity)'];
+        }
+
         count[outcome] += group.totals['sum(quantity)'];
 
         group.series['sum(quantity)'].forEach((stat, i) => {
-          if (outcome === Outcome.ACCEPTED || outcome === Outcome.FILTERED) {
-            usageStats[i][outcome] += stat;
-            return;
+          switch (outcome) {
+            case Outcome.ACCEPTED:
+            case Outcome.FILTERED:
+              usageStats[i][outcome] += stat;
+              return;
+            case Outcome.DROPPED:
+            case Outcome.RATE_LIMITED:
+            case Outcome.INVALID:
+              usageStats[i].dropped.total += stat;
+              // TODO: add client discards to dropped?
+              return;
+            default:
+              return;
           }
-
-          // Breaking down into reasons for dropped is not needed
-          usageStats[i].dropped.total += stat;
         });
       });
 

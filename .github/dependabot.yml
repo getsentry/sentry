@@ -52,7 +52,6 @@ updates:
       # We ignore everything that hasn't yet been upgrade, this way we will
       # only get the _freshest_ of new packages to consider upgrading
       - dependency-name: "@sentry/release-parser"
-      - dependency-name: "@size-limit/preset-small-lib"
       - dependency-name: "@types/echarts"
       - dependency-name: "@types/marked"
       - dependency-name: "@types/react-router"
@@ -87,6 +86,5 @@ updates:
       - dependency-name: "reflux"
       - dependency-name: "rrweb"
       - dependency-name: "rrweb-player"
-      - dependency-name: "size-limit"
       - dependency-name: "sprintf-js"
       - dependency-name: "u2f-api"

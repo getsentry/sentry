@@ -14,7 +14,8 @@ class BaseRelation:
         self.params = params
 
     def __repr__(self):
-        return f"<{type(self)}: task={self.task} params={self.params}>"
+        class_type = type(self)
+        return f"<{class_type.__module__}.{class_type.__name__}: task={self.task} params={self.params}>"
 
 
 class ModelRelation(BaseRelation):
@@ -133,6 +134,7 @@ class BaseDeletionTask:
                 task=relation.task,
                 **relation.params,
             )
+
             # If we want smaller tasks then this also has to return when has_more is true.
             # This could significant increase the number of tasks we spawn. Get better estimates
             # by collecting metrics.

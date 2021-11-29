@@ -6,25 +6,28 @@ import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
-} from 'app/actionCreators/indicator';
-import {navigateTo} from 'app/actionCreators/navigation';
-import {Client} from 'app/api';
-import Access from 'app/components/acl/access';
-import Alert from 'app/components/alert';
-import GuideAnchor from 'app/components/assistant/guideAnchor';
-import Button from 'app/components/button';
-import Link from 'app/components/links/link';
-import {IconClose, IconInfo, IconSiren} from 'app/icons';
-import {t, tct} from 'app/locale';
-import {Organization, Project} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
-import {Aggregation, AGGREGATIONS, explodeFieldString} from 'app/utils/discover/fields';
-import withApi from 'app/utils/withApi';
+} from 'sentry/actionCreators/indicator';
+import {navigateTo} from 'sentry/actionCreators/navigation';
+import Access from 'sentry/components/acl/access';
+import Alert from 'sentry/components/alert';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import Button from 'sentry/components/button';
+import Link from 'sentry/components/links/link';
+import {IconClose, IconInfo, IconSiren} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import {Organization, Project} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
+import {
+  Aggregation,
+  AGGREGATIONS,
+  explodeFieldString,
+} from 'sentry/utils/discover/fields';
+import useApi from 'sentry/utils/useApi';
 import {
   errorFieldConfig,
   transactionFieldConfig,
-} from 'app/views/alerts/incidentRules/constants';
-import {getQueryDatasource} from 'app/views/alerts/utils';
+} from 'sentry/views/alerts/incidentRules/constants';
+import {getQueryDatasource} from 'sentry/views/alerts/utils';
 
 /**
  * Discover query supports more features than alert rules
@@ -315,100 +318,98 @@ type Props = {
   iconProps?: React.ComponentProps<typeof IconSiren>;
   referrer?: string;
   hideIcon?: boolean;
-  api: Client;
   showPermissionGuide?: boolean;
 } & WithRouterProps &
   React.ComponentProps<typeof Button>;
 
-const CreateAlertButton = withApi(
-  withRouter(
-    ({
-      organization,
-      projectSlug,
-      iconProps,
-      referrer,
-      router,
-      hideIcon,
-      api,
-      showPermissionGuide,
-      ...buttonProps
-    }: Props) => {
-      const createAlertUrl = (providedProj: string) => {
-        const alertsBaseUrl = `/organizations/${organization.slug}/alerts/${providedProj}`;
-        return `${alertsBaseUrl}/wizard/${referrer ? `?referrer=${referrer}` : ''}`;
-      };
+const CreateAlertButton = withRouter(
+  ({
+    organization,
+    projectSlug,
+    iconProps,
+    referrer,
+    router,
+    hideIcon,
+    showPermissionGuide,
+    ...buttonProps
+  }: Props) => {
+    const api = useApi();
 
-      function handleClickWithoutProject(event: React.MouseEvent) {
-        event.preventDefault();
+    const createAlertUrl = (providedProj: string) => {
+      const alertsBaseUrl = `/organizations/${organization.slug}/alerts/${providedProj}`;
+      return `${alertsBaseUrl}/wizard/${referrer ? `?referrer=${referrer}` : ''}`;
+    };
 
-        navigateTo(createAlertUrl(':projectId'), router);
-      }
+    function handleClickWithoutProject(event: React.MouseEvent) {
+      event.preventDefault();
 
-      async function enableAlertsMemberWrite() {
-        const settingsEndpoint = `/organizations/${organization.slug}/`;
-        addLoadingMessage();
-        try {
-          await api.requestPromise(settingsEndpoint, {
-            method: 'PUT',
-            data: {
-              alertsMemberWrite: true,
-            },
-          });
-          addSuccessMessage(t('Successfully updated organization settings'));
-        } catch (err) {
-          addErrorMessage(t('Unable to update organization settings'));
-        }
-      }
-
-      const permissionTooltipText = tct(
-        'Ask your organization owner or manager to [settingsLink:enable alerts access] for you.',
-        {settingsLink: <Link to={`/settings/${organization.slug}`} />}
-      );
-
-      const renderButton = (hasAccess: boolean) => (
-        <Button
-          disabled={!hasAccess}
-          title={!hasAccess ? permissionTooltipText : undefined}
-          icon={!hideIcon && <IconSiren {...iconProps} />}
-          to={projectSlug ? createAlertUrl(projectSlug) : undefined}
-          tooltipProps={{
-            isHoverable: true,
-            position: 'top',
-            popperStyle: {
-              maxWidth: '270px',
-            },
-          }}
-          onClick={projectSlug ? undefined : handleClickWithoutProject}
-          {...buttonProps}
-        >
-          {buttonProps.children ?? t('Create Alert')}
-        </Button>
-      );
-
-      const showGuide = !organization.alertsMemberWrite && !!showPermissionGuide;
-
-      return (
-        <Access organization={organization} access={['alerts:write']}>
-          {({hasAccess}) =>
-            showGuide ? (
-              <Access organization={organization} access={['org:write']}>
-                {({hasAccess: isOrgAdmin}) => (
-                  <GuideAnchor
-                    target={isOrgAdmin ? 'alerts_write_owner' : 'alerts_write_member'}
-                    onFinish={isOrgAdmin ? enableAlertsMemberWrite : undefined}
-                  >
-                    {renderButton(hasAccess)}
-                  </GuideAnchor>
-                )}
-              </Access>
-            ) : (
-              renderButton(hasAccess)
-            )
-          }
-        </Access>
-      );
+      navigateTo(createAlertUrl(':projectId'), router);
     }
-  )
+
+    async function enableAlertsMemberWrite() {
+      const settingsEndpoint = `/organizations/${organization.slug}/`;
+      addLoadingMessage();
+      try {
+        await api.requestPromise(settingsEndpoint, {
+          method: 'PUT',
+          data: {
+            alertsMemberWrite: true,
+          },
+        });
+        addSuccessMessage(t('Successfully updated organization settings'));
+      } catch (err) {
+        addErrorMessage(t('Unable to update organization settings'));
+      }
+    }
+
+    const permissionTooltipText = tct(
+      'Ask your organization owner or manager to [settingsLink:enable alerts access] for you.',
+      {settingsLink: <Link to={`/settings/${organization.slug}`} />}
+    );
+
+    const renderButton = (hasAccess: boolean) => (
+      <Button
+        disabled={!hasAccess}
+        title={!hasAccess ? permissionTooltipText : undefined}
+        icon={!hideIcon && <IconSiren {...iconProps} />}
+        to={projectSlug ? createAlertUrl(projectSlug) : undefined}
+        tooltipProps={{
+          isHoverable: true,
+          position: 'top',
+          popperStyle: {
+            maxWidth: '270px',
+          },
+        }}
+        onClick={projectSlug ? undefined : handleClickWithoutProject}
+        {...buttonProps}
+      >
+        {buttonProps.children ?? t('Create Alert')}
+      </Button>
+    );
+
+    const showGuide = !organization.alertsMemberWrite && !!showPermissionGuide;
+
+    return (
+      <Access organization={organization} access={['alerts:write']}>
+        {({hasAccess}) =>
+          showGuide ? (
+            <Access organization={organization} access={['org:write']}>
+              {({hasAccess: isOrgAdmin}) => (
+                <GuideAnchor
+                  target={isOrgAdmin ? 'alerts_write_owner' : 'alerts_write_member'}
+                  onFinish={isOrgAdmin ? enableAlertsMemberWrite : undefined}
+                >
+                  {renderButton(hasAccess)}
+                </GuideAnchor>
+              )}
+            </Access>
+          ) : (
+            renderButton(hasAccess)
+          )
+        }
+      </Access>
+    );
+  }
 );
 
 export {CreateAlertFromViewButton};

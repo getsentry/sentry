@@ -1,86 +1,73 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
-import {initializeOrg} from 'sentry-test/initializeOrg';
+import {initializeData} from 'sentry-test/performance/initializePerformanceData';
+import {act} from 'sentry-test/reactTestingLibrary';
 
-import {Project} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
-import {PerformanceLanding} from 'app/views/performance/landing';
-import {LandingDisplayField} from 'app/views/performance/landing/utils';
-
-function initializeData(settings?: {
-  query?: {};
-  features?: string[];
-  projects?: Project[];
-  project?: Project;
-}) {
-  // @ts-expect-error
-  const _defaultProject = TestStubs.Project();
-  const _settings = {
-    query: {},
-    features: [],
-    projects: [_defaultProject],
-    project: _defaultProject,
-    ...settings,
-  };
-  const {query, features} = _settings;
-
-  // @ts-expect-error
-  const projects = [TestStubs.Project()];
-  const [project] = projects;
-
-  // @ts-expect-error
-  const organization = TestStubs.Organization({
-    features,
-    projects,
-  });
-  const router = {
-    location: {
-      query: {
-        ...query,
-      },
-    },
-  };
-  const initialData = initializeOrg({organization, projects, project, router});
-  return initialData;
-}
+import TeamStore from 'sentry/stores/teamStore';
+import EventView from 'sentry/utils/discover/eventView';
+import {OrganizationContext} from 'sentry/views/organizationContext';
+import {PerformanceLanding} from 'sentry/views/performance/landing';
+import {LandingDisplayField} from 'sentry/views/performance/landing/utils';
 
 const WrappedComponent = ({data}) => {
   const eventView = EventView.fromLocation(data.router.location);
+
   return (
-    <PerformanceLanding
-      organization={data.organization}
-      location={data.router.location}
-      eventView={eventView}
-      projects={data.projects}
-      shouldShowOnboarding={false}
-      handleSearch={() => {}}
-      handleTrendsClick={() => {}}
-      setError={() => {}}
-    />
+    <OrganizationContext.Provider value={data.organization}>
+      <PerformanceLanding
+        organization={data.organization}
+        location={data.router.location}
+        eventView={eventView}
+        projects={data.projects}
+        shouldShowOnboarding={false}
+        handleSearch={() => {}}
+        handleTrendsClick={() => {}}
+        setError={() => {}}
+      />
+    </OrganizationContext.Provider>
   );
 };
 
 describe('Performance > Landing > Index', function () {
+  let eventStatsMock: any;
+  let eventsV2Mock: any;
+  act(() => void TeamStore.loadInitialData([]));
   beforeEach(function () {
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',
       body: [],
     });
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/prompts-activity/',
       body: {},
     });
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/key-transactions-list/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/legacy-key-transactions-count/`,
+      body: [],
+    });
+    eventStatsMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/events-stats/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/events-trends-stats/`,
+      body: [],
+    });
+    eventsV2Mock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/eventsv2/`,
+      body: [],
+    });
   });
 
   afterEach(function () {
-    // @ts-expect-error
     MockApiClient.clearMockResponses();
   });
 
@@ -88,7 +75,6 @@ describe('Performance > Landing > Index', function () {
     const data = initializeData();
 
     const wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
-    // @ts-expect-error
     await tick();
     wrapper.update();
 
@@ -103,12 +89,100 @@ describe('Performance > Landing > Index', function () {
     });
 
     const wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
-    // @ts-expect-error
     await tick();
     wrapper.update();
 
     expect(wrapper.find('div[data-test-id="frontend-pageload-view"]').exists()).toBe(
       true
     );
+
+    expect(wrapper.find('Table')).toHaveLength(1);
+
+    const titles = wrapper.find('div[data-test-id="performance-widget-title"]');
+    expect(titles).toHaveLength(5);
+
+    expect(titles.at(0).text()).toEqual('p75 LCP');
+    expect(titles.at(1).text()).toEqual('LCP Distribution');
+    expect(titles.at(2).text()).toEqual('FCP Distribution');
+    expect(titles.at(3).text()).toEqual('Worst LCP Web Vitals');
+    expect(titles.at(4).text()).toEqual('Worst FCP Web Vitals');
+  });
+
+  it('renders frontend other view', async function () {
+    const data = initializeData({
+      query: {landingDisplay: LandingDisplayField.FRONTEND_OTHER},
+    });
+
+    const wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('Table').exists()).toBe(true);
+  });
+
+  it('renders backend view', async function () {
+    const data = initializeData({
+      query: {landingDisplay: LandingDisplayField.BACKEND},
+    });
+
+    const wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('Table').exists()).toBe(true);
+  });
+
+  it('renders mobile view', async function () {
+    const data = initializeData({
+      query: {landingDisplay: LandingDisplayField.MOBILE},
+    });
+
+    const wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('Table').exists()).toBe(true);
+  });
+
+  it('renders all transactions view', async function () {
+    const data = initializeData({
+      query: {landingDisplay: LandingDisplayField.ALL},
+    });
+
+    const wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('Table').exists()).toBe(true);
+
+    expect(eventStatsMock).toHaveBeenCalledTimes(1); // Only one request is made since the query batcher is working.
+
+    expect(eventStatsMock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: [],
+          interval: '1h',
+          partial: '1',
+          project: [],
+          query: '',
+          referrer: 'api.organization-event-stats',
+          statsPeriod: '28d',
+          yAxis: ['user_misery()', 'tpm()', 'failure_rate()'],
+        }),
+      })
+    );
+
+    expect(eventsV2Mock).toHaveBeenCalledTimes(2);
+
+    const titles = wrapper.find('div[data-test-id="performance-widget-title"]');
+    expect(titles).toHaveLength(5);
+
+    expect(titles.at(0).text()).toEqual('User Misery');
+    expect(titles.at(1).text()).toEqual('Transactions Per Minute');
+    expect(titles.at(2).text()).toEqual('Failure Rate');
+    expect(titles.at(3).text()).toEqual('Most Related Errors');
+    expect(titles.at(4).text()).toEqual('Most Related Issues');
   });
 });

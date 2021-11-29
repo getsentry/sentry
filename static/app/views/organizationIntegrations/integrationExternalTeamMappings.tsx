@@ -1,19 +1,21 @@
-import * as React from 'react';
+import {Fragment} from 'react';
+import {withRouter, WithRouterProps} from 'react-router';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {openModal} from 'app/actionCreators/modal';
-import AsyncComponent from 'app/components/asyncComponent';
-import IntegrationExternalMappingForm from 'app/components/integrationExternalMappingForm';
-import IntegrationExternalMappings from 'app/components/integrationExternalMappings';
-import {t} from 'app/locale';
-import {ExternalActorMapping, Integration, Organization, Team} from 'app/types';
-import withOrganization from 'app/utils/withOrganization';
-import FormModel from 'app/views/settings/components/forms/model';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {openModal} from 'sentry/actionCreators/modal';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import IntegrationExternalMappingForm from 'sentry/components/integrationExternalMappingForm';
+import IntegrationExternalMappings from 'sentry/components/integrationExternalMappings';
+import {t} from 'sentry/locale';
+import {ExternalActorMapping, Integration, Organization, Team} from 'sentry/types';
+import withOrganization from 'sentry/utils/withOrganization';
+import FormModel from 'sentry/views/settings/components/forms/model';
 
-type Props = AsyncComponent['props'] & {
-  integration: Integration;
-  organization: Organization;
-};
+type Props = AsyncComponent['props'] &
+  WithRouterProps & {
+    integration: Integration;
+    organization: Organization;
+  };
 
 type State = AsyncComponent['state'] & {
   teams: Team[];
@@ -30,12 +32,12 @@ class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {organization} = this.props;
+    const {organization, location} = this.props;
     return [
       [
         'teams',
         `/organizations/${organization.slug}/teams/`,
-        {query: {query: 'hasExternalTeams:true'}},
+        {query: {...location?.query, query: 'hasExternalTeams:true'}},
       ],
     ];
   }
@@ -124,7 +126,7 @@ class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
   openModal = (mapping?: ExternalActorMapping) => {
     const {organization, integration} = this.props;
     openModal(({Body, Header, closeModal}) => (
-      <React.Fragment>
+      <Fragment>
         <Header closeButton>{t('Configure External Team Mapping')}</Header>
         <Body>
           <IntegrationExternalMappingForm
@@ -143,12 +145,13 @@ class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
             onResults={results => this.setState({queryResults: results})}
           />
         </Body>
-      </React.Fragment>
+      </Fragment>
     ));
   };
 
   renderBody() {
     const {integration} = this.props;
+    const {teamsPageLinks} = this.state;
     return (
       <IntegrationExternalMappings
         integration={integration}
@@ -156,9 +159,10 @@ class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
         mappings={this.mappings}
         onCreateOrEdit={this.openModal}
         onDelete={this.handleDelete}
+        pageLinks={teamsPageLinks}
       />
     );
   }
 }
 
-export default withOrganization(IntegrationExternalTeamMappings);
+export default withRouter(withOrganization(IntegrationExternalTeamMappings));

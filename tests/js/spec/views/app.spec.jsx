@@ -1,7 +1,7 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'app/stores/configStore';
-import App from 'app/views/app';
+import ConfigStore from 'sentry/stores/configStore';
+import App from 'sentry/views/app';
 
 describe('App', function () {
   beforeEach(function () {
@@ -21,31 +21,55 @@ describe('App', function () {
       url: '/assistant/?v2',
       body: [],
     });
+
+    MockApiClient.addMockResponse({
+      url: '/internal/options/?query=is:required',
+      body: TestStubs.InstallWizard(),
+    });
   });
 
-  it('renders newsletter consent with flag', async function () {
+  it('renders', async function () {
+    mountWithTheme(
+      <App params={{orgId: 'org-slug'}}>
+        <div>placeholder content</div>
+      </App>
+    );
+
+    expect(screen.getByText('placeholder content')).toBeInTheDocument();
+  });
+
+  it('renders NewsletterConsent', async function () {
     const user = ConfigStore.get('user');
     user.flags.newsletter_consent_prompt = true;
-    // XXX(dcramer): shouldn't need to re-set
-    ConfigStore.set('user', user);
 
-    const wrapper = mountWithTheme(
-      <App params={{orgId: 'org-slug'}}>{<div>placeholder content</div>}</App>
+    mountWithTheme(
+      <App params={{orgId: 'org-slug'}}>
+        <div>placeholder content</div>
+      </App>
     );
 
-    expect(wrapper.find('NewsletterConsent')).toHaveLength(1);
+    const updatesViaEmail = await screen.findByText(
+      'Yes, I would like to receive updates via email'
+    );
+    expect(updatesViaEmail).toBeInTheDocument();
+
+    user.flags.newsletter_consent_prompt = false;
   });
 
-  it('does not render newsletter consent without flag', async function () {
-    const user = ConfigStore.get('user');
-    user.flags.newsletter_consent_prompt = false;
-    // XXX(dcramer): shouldn't need to re-set
-    ConfigStore.set('user', user);
+  it('renders InstallWizard', async function () {
+    ConfigStore.get('user').isSuperuser = true;
+    ConfigStore.set('needsUpgrade', true);
+    ConfigStore.set('version', {current: '1.33.7'});
 
-    const wrapper = mountWithTheme(
-      <App params={{orgId: 'org-slug'}}>{<div>placeholder content</div>}</App>
+    mountWithTheme(
+      <App params={{orgId: 'org-slug'}}>
+        <div>placeholder content</div>
+      </App>
     );
 
-    expect(wrapper.find('NewsletterConsent')).toHaveLength(0);
+    const completeSetup = await screen.findByText(
+      'Complete setup by filling out the required configuration.'
+    );
+    expect(completeSetup).toBeInTheDocument();
   });
 });

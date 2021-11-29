@@ -1,7 +1,7 @@
 import {css, Global} from '@emotion/react';
 
-import {IS_ACCEPTANCE_TEST} from 'app/constants';
-import {Theme} from 'app/utils/theme';
+import {IS_ACCEPTANCE_TEST} from 'sentry/constants';
+import {Theme} from 'sentry/utils/theme';
 
 const styles = (theme: Theme, isDark: boolean) => css`
   body {
@@ -188,10 +188,18 @@ const styles = (theme: Theme, isDark: boolean) => css`
         .dropdown-menu {
           color: ${theme.textColor};
           background-color: ${theme.background} !important;
-          border: 1px solid ${theme.gray400};
-          &:after,
+          border: 1px solid ${theme.border};
           &:before {
-            border-top-color: ${theme.gray400} !important;
+            border-bottom-color: ${theme.border};
+          }
+          &:after {
+            border-bottom-color: ${theme.background};
+          }
+          &.inverted:before {
+            border-top-color: ${theme.border};
+          }
+          &.inverted:after {
+            border-top-color: ${theme.background};
           }
         }
         .context-summary .context-item.darwin .context-item-icon,

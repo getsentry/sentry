@@ -3,16 +3,16 @@ import {Mention, MentionsInput, MentionsInputProps} from 'react-mentions';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import NavTabs from 'app/components/navTabs';
-import {IconMarkdown} from 'app/icons';
-import {t} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
-import space from 'app/styles/space';
-import textStyles from 'app/styles/text';
-import {NoteType} from 'app/types/alerts';
-import marked from 'app/utils/marked';
-import {Theme} from 'app/utils/theme';
+import Button from 'sentry/components/button';
+import NavTabs from 'sentry/components/navTabs';
+import {IconMarkdown} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import space from 'sentry/styles/space';
+import textStyles from 'sentry/styles/text';
+import {NoteType} from 'sentry/types/alerts';
+import marked from 'sentry/utils/marked';
+import {Theme} from 'sentry/utils/theme';
 
 import Mentionables from './mentionables';
 import mentionStyle from './mentionStyle';
@@ -59,6 +59,10 @@ class NoteInputComponent extends React.Component<Props, State> {
     memberMentions: [],
     teamMentions: [],
   };
+
+  get canSubmit() {
+    return this.state.value.trim() !== '';
+  }
 
   cleanMarkdown(text: string) {
     return text
@@ -131,8 +135,8 @@ class NoteInputComponent extends React.Component<Props, State> {
   };
 
   handleKeyDown: MentionsInputProps['onKeyDown'] = e => {
-    // Auto submit the form on [meta] + Enter
-    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+    // Auto submit the form on [meta,ctrl] + Enter
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && this.canSubmit) {
       this.submitForm();
     }
   };
@@ -236,7 +240,11 @@ class NoteInputComponent extends React.Component<Props, State> {
                 {t('Cancel')}
               </FooterButton>
             )}
-            <FooterButton error={errorMessage} type="submit" disabled={busy}>
+            <FooterButton
+              error={errorMessage}
+              type="submit"
+              disabled={busy || !this.canSubmit}
+            >
               {btnText}
             </FooterButton>
           </div>

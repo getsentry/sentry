@@ -1,29 +1,18 @@
-import logging
 from datetime import datetime
 
 from django.core.cache import cache
 from django.urls import reverse
 from django.utils import timezone
 
-from sentry.models.integration import Integration
 from sentry.plugins.providers.integration_repository import IntegrationRepositoryProvider
-from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.hashlib import md5_text
 from sentry.utils.http import absolute_uri
 
 
 class BitbucketServerRepositoryProvider(IntegrationRepositoryProvider):
     name = "Bitbucket Server"
-    logger = logging.getLogger("sentry.integrations.bitbucket_server")
-
-    def get_installation(self, integration_id, organization_id):
-        if integration_id is None:
-            raise IntegrationError("Bitbucket Server requires an integration id.")
-        integration_model = Integration.objects.get(
-            id=integration_id, organizations=organization_id, provider="bitbucket_server"
-        )
-
-        return integration_model.get_installation(organization_id)
+    repo_provider = "bitbucket_server"
 
     def get_repository_data(self, organization, config):
         installation = self.get_installation(config.get("installation"), organization.id)

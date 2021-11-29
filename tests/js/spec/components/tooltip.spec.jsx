@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import Tooltip from 'app/components/tooltip';
+import Tooltip from 'sentry/components/tooltip';
 
 describe('Tooltip', function () {
   it('renders', function () {
@@ -62,8 +62,7 @@ describe('Tooltip', function () {
     const trigger = wrapper.find('span');
     trigger.simulate('mouseEnter');
 
-    const tooltipContent = wrapper.find('TooltipContent');
-    expect(tooltipContent.prop('hide')).toBe(true);
+    expect(wrapper.find('TooltipContent')).toHaveLength(0);
 
     trigger.simulate('mouseLeave');
   });

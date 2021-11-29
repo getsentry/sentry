@@ -1,15 +1,16 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
+import space from 'sentry/styles/space';
 
 import {getListSymbolStyle, listSymbol} from './utils';
 
 type Props = {
   children: React.ReactNode;
   symbol?: keyof typeof listSymbol | React.ReactElement;
-  className?: string;
   initialCounterValue?: number;
+  'data-test-id'?: string;
+  className?: string;
 };
 
 const List = styled(

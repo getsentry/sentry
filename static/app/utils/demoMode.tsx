@@ -1,24 +1,25 @@
-import getCookie from 'app/utils/getCookie';
+import getCookie from 'sentry/utils/getCookie';
 
-// return email query parameter
-export function emailQueryParameter(): string {
-  const email = localStorage.getItem('email');
-  const queryParameter = email ? `?email=${email}` : '';
-  return queryParameter;
+export function extraQueryParameter(): URLSearchParams {
+  // cookies that have = sign are quotes so extra quotes need to be removed
+  const extraQueryString = getCookie('extra_query_string')?.replaceAll('"', '') || '';
+  const extraQuery = new URLSearchParams(extraQueryString);
+  return extraQuery;
 }
 
-// return extra query depending, depending on if used in getStartedUrl
-export function extraQueryParameter(getStarted: boolean): string {
+export function extraQueryParameterWithEmail(): URLSearchParams {
+  const params = extraQueryParameter();
   const email = localStorage.getItem('email');
-  const extraQueryString = getCookie('extra_query_string');
-  // cookies that have = sign are quotes so extra quotes need to be removed
-  const extraQuery = extraQueryString ? extraQueryString.replaceAll('"', '') : '';
-
-  if (getStarted) {
-    const emailSeparator = email ? '&' : '?';
-    const getStartedSeparator = extraQueryString ? emailSeparator : '';
-    return getStartedSeparator + extraQuery;
+  if (email) {
+    params.append('email', email);
   }
-  const extraSeparator = extraQueryString ? `?` : '';
-  return extraSeparator + extraQuery;
+  return params;
+}
+
+export function urlAttachQueryParams(url: string, params: URLSearchParams): string {
+  const queryString = params.toString();
+  if (queryString) {
+    return url + '?' + queryString;
+  }
+  return url;
 }

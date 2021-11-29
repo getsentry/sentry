@@ -1,4 +1,5 @@
 import logging
+from typing import Any, Sequence
 
 from django.db import IntegrityError, models
 from django.db.models.signals import post_save
@@ -52,7 +53,9 @@ class RepositoryProjectPathConfig(DefaultFieldsModel):
 
     repository = FlexibleForeignKey("sentry.Repository")
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
-    organization_integration = FlexibleForeignKey("sentry.OrganizationIntegration", null=True)
+    organization_integration = FlexibleForeignKey(
+        "sentry.OrganizationIntegration", on_delete=models.CASCADE
+    )
     stack_root = models.TextField()
     source_root = models.TextField()
     default_branch = models.TextField(null=True)
@@ -126,8 +129,14 @@ class Integration(DefaultFieldsModel):
 
         return integrations.get(self.provider)
 
-    def get_installation(self, organization_id, **kwargs):
+    def get_installation(self, organization_id: int, **kwargs: Any) -> Any:
         return self.get_provider().get_installation(self, organization_id, **kwargs)
+
+    def get_installations(self, **kwargs: Any) -> Sequence[Any]:
+        return [
+            self.get_provider().get_installation(self, organization.id, **kwargs)
+            for organization in self.organizations.all()
+        ]
 
     def has_feature(self, feature):
         return feature in self.get_provider().features

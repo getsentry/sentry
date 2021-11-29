@@ -1,29 +1,33 @@
 import * as React from 'react';
-import {browserHistory, withRouter, WithRouterProps} from 'react-router';
+import LazyLoad from 'react-lazyload';
+import {Link, withRouter, WithRouterProps} from 'react-router';
 import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
-import {openDashboardWidgetQuerySelectorModal} from 'app/actionCreators/modal';
-import {Client} from 'app/api';
-import {HeaderTitle} from 'app/components/charts/styles';
-import ErrorBoundary from 'app/components/errorBoundary';
-import MenuItem from 'app/components/menuItem';
-import {isSelectionEqual} from 'app/components/organizations/globalSelectionHeader/utils';
-import {Panel} from 'app/components/panels';
-import Placeholder from 'app/components/placeholder';
-import {IconDelete, IconEdit, IconGrabbable} from 'app/icons';
-import {t} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {GlobalSelection, Organization} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import withApi from 'app/utils/withApi';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import withOrganization from 'app/utils/withOrganization';
-import {eventViewFromWidget} from 'app/views/dashboardsV2/utils';
+import {openDashboardWidgetQuerySelectorModal} from 'sentry/actionCreators/modal';
+import {Client} from 'sentry/api';
+import {HeaderTitle} from 'sentry/components/charts/styles';
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import MenuItem from 'sentry/components/menuItem';
+import {isSelectionEqual} from 'sentry/components/organizations/globalSelectionHeader/utils';
+import {Panel} from 'sentry/components/panels';
+import Placeholder from 'sentry/components/placeholder';
+import {IconDelete, IconEdit, IconGrabbable} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {GlobalSelection, Organization} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {DisplayModes} from 'sentry/utils/discover/types';
+import withApi from 'sentry/utils/withApi';
+import withGlobalSelection from 'sentry/utils/withGlobalSelection';
+import withOrganization from 'sentry/utils/withOrganization';
+import {eventViewFromWidget} from 'sentry/views/dashboardsV2/utils';
+import {DisplayType} from 'sentry/views/dashboardsV2/widget/utils';
 
+import {DRAG_HANDLE_CLASS} from './gridLayout/dashboard';
 import ContextMenu from './contextMenu';
 import {Widget} from './types';
 import WidgetCardChart from './widgetCardChart';
@@ -46,6 +50,7 @@ type Props = WithRouterProps & {
   hideToolbar?: boolean;
   draggableProps?: DraggableProps;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
+  noLazyLoad?: boolean;
 };
 
 class WidgetCard extends React.Component<Props> {
@@ -80,6 +85,7 @@ class WidgetCard extends React.Component<Props> {
           <IconClick>
             <StyledIconGrabbable
               color="textColor"
+              className={DRAG_HANDLE_CLASS}
               {...draggableProps?.listeners}
               {...draggableProps?.attributes}
             />
@@ -118,35 +124,64 @@ class WidgetCard extends React.Component<Props> {
       (widget.displayType === 'table' || this.isAllowWidgetsToDiscover()) &&
       organization.features.includes('discover-basic')
     ) {
-      // Open table widget in Discover
-
+      // Open Widget in Discover
       if (widget.queries.length) {
-        menuOptions.push(
-          <MenuItem
-            key="open-discover"
-            onClick={event => {
-              event.preventDefault();
-              trackAnalyticsEvent({
-                eventKey: 'dashboards2.tablewidget.open_in_discover',
-                eventName: 'Dashboards2: Table Widget - Open in Discover',
-                organization_id: parseInt(this.props.organization.id, 10),
-              });
-              if (widget.queries.length === 1) {
-                const eventView = eventViewFromWidget(
-                  widget.title,
-                  widget.queries[0],
-                  selection,
-                  widget.displayType
-                );
-                browserHistory.push(eventView.getResultsViewUrlTarget(organization.slug));
-              } else {
-                openDashboardWidgetQuerySelectorModal({organization, widget});
-              }
-            }}
-          >
-            {t('Open in Discover')}
-          </MenuItem>
+        const eventView = eventViewFromWidget(
+          widget.title,
+          widget.queries[0],
+          selection,
+          widget.displayType
         );
+        const discoverLocation = eventView.getResultsViewUrlTarget(organization.slug);
+        if (this.isAllowWidgetsToDiscover()) {
+          // Pull a max of 3 valid Y-Axis from the widget
+          const yAxisOptions = eventView.getYAxisOptions().map(({value}) => value);
+          discoverLocation.query.yAxis = widget.queries[0].fields
+            .filter(field => yAxisOptions.includes(field))
+            .slice(0, 3);
+          switch (widget.displayType) {
+            case DisplayType.WORLD_MAP:
+              discoverLocation.query.display = DisplayModes.WORLDMAP;
+              break;
+            case DisplayType.BAR:
+              discoverLocation.query.display = DisplayModes.BAR;
+              break;
+            default:
+              break;
+          }
+        }
+        if (widget.queries.length === 1) {
+          menuOptions.push(
+            <Link
+              key="open-discover-link"
+              to={discoverLocation}
+              onClick={() => {
+                trackAdvancedAnalyticsEvent('dashboards_views.open_in_discover.opened', {
+                  organization,
+                  widget_type: widget.displayType,
+                });
+              }}
+            >
+              <StyledMenuItem key="open-discover">{t('Open in Discover')}</StyledMenuItem>
+            </Link>
+          );
+        } else {
+          menuOptions.push(
+            <StyledMenuItem
+              key="open-discover"
+              onClick={event => {
+                event.preventDefault();
+                trackAdvancedAnalyticsEvent('dashboards_views.query_selector.opened', {
+                  organization,
+                  widget_type: widget.displayType,
+                });
+                openDashboardWidgetQuerySelectorModal({organization, widget});
+              }}
+            >
+              {t('Open in Discover')}
+            </StyledMenuItem>
+          );
+        }
       }
     }
 
@@ -161,9 +196,43 @@ class WidgetCard extends React.Component<Props> {
     );
   }
 
-  render() {
+  renderChart() {
     const {widget, api, organization, selection, renderErrorMessage, location, router} =
       this.props;
+    return (
+      <WidgetQueries
+        api={api}
+        organization={organization}
+        widget={widget}
+        selection={selection}
+      >
+        {({tableResults, timeseriesResults, errorMessage, loading}) => {
+          return (
+            <React.Fragment>
+              {typeof renderErrorMessage === 'function'
+                ? renderErrorMessage(errorMessage)
+                : null}
+              <WidgetCardChart
+                timeseriesResults={timeseriesResults}
+                tableResults={tableResults}
+                errorMessage={errorMessage}
+                loading={loading}
+                location={location}
+                widget={widget}
+                selection={selection}
+                router={router}
+                organization={organization}
+              />
+              {this.renderToolbar()}
+            </React.Fragment>
+          );
+        }}
+      </WidgetQueries>
+    );
+  }
+
+  render() {
+    const {widget, noLazyLoad} = this.props;
     return (
       <ErrorBoundary
         customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
@@ -173,34 +242,13 @@ class WidgetCard extends React.Component<Props> {
             <WidgetTitle>{widget.title}</WidgetTitle>
             {this.renderContextMenu()}
           </WidgetHeader>
-          <WidgetQueries
-            api={api}
-            organization={organization}
-            widget={widget}
-            selection={selection}
-          >
-            {({tableResults, timeseriesResults, errorMessage, loading}) => {
-              return (
-                <React.Fragment>
-                  {typeof renderErrorMessage === 'function'
-                    ? renderErrorMessage(errorMessage)
-                    : null}
-                  <WidgetCardChart
-                    timeseriesResults={timeseriesResults}
-                    tableResults={tableResults}
-                    errorMessage={errorMessage}
-                    loading={loading}
-                    location={location}
-                    widget={widget}
-                    selection={selection}
-                    router={router}
-                    organization={organization}
-                  />
-                  {this.renderToolbar()}
-                </React.Fragment>
-              );
-            }}
-          </WidgetQueries>
+          {noLazyLoad ? (
+            this.renderChart()
+          ) : (
+            <LazyLoad once resize height={200}>
+              {this.renderChart()}
+            </LazyLoad>
+          )}
         </StyledPanel>
       </ErrorBoundary>
     );
@@ -230,13 +278,15 @@ const StyledPanel = styled(Panel, {
   /* If a panel overflows due to a long title stretch its grid sibling */
   height: 100%;
   min-height: 96px;
+  display: flex;
+  flex-direction: column;
 `;
 
 const ToolbarPanel = styled('div')`
   position: absolute;
   top: 0;
   left: 0;
-  z-index: 1;
+  z-index: auto;
 
   width: 100%;
   height: 100%;
@@ -282,4 +332,12 @@ const WidgetHeader = styled('div')`
 
 const ContextWrapper = styled('div')`
   margin-left: ${space(1)};
+`;
+
+const StyledMenuItem = styled(MenuItem)`
+  white-space: nowrap;
+  color: ${p => p.theme.textColor};
+  :hover {
+    color: ${p => p.theme.textColor};
+  }
 `;

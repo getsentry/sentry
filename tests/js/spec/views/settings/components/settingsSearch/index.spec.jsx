@@ -1,13 +1,12 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {navigateTo} from 'app/actionCreators/navigation';
-import FormSearchStore from 'app/stores/formSearchStore';
-import SettingsSearch from 'app/views/settings/components/settingsSearch';
+import {navigateTo} from 'sentry/actionCreators/navigation';
+import FormSearchStore from 'sentry/stores/formSearchStore';
+import SettingsSearch from 'sentry/views/settings/components/settingsSearch';
 
-jest.mock('app/actionCreators/formSearch');
-jest.mock('app/actionCreators/navigation');
+jest.mock('sentry/actionCreators/formSearch');
+jest.mock('sentry/actionCreators/navigation');
 
-const SETTINGS_SEARCH_PLACEHOLDER = 'Search';
 describe('SettingsSearch', function () {
   let orgsMock;
   const routerContext = TestStubs.routerContext([
@@ -61,79 +60,56 @@ describe('SettingsSearch', function () {
   });
 
   it('renders', async function () {
-    const wrapper = mountWithTheme(
-      <SettingsSearch params={{orgId: 'org-slug'}} />,
-      routerContext
-    );
+    mountWithTheme(<SettingsSearch params={{orgId: 'org-slug'}} />);
 
     // renders input
-    expect(wrapper.find('SearchInput')).toHaveLength(1);
-    expect(wrapper.find('input').prop('placeholder')).toBe(SETTINGS_SEARCH_PLACEHOLDER);
+    expect(screen.getByPlaceholderText('Search')).toBeInTheDocument();
   });
 
-  it('can focus when `handleFocusSearch` is called and target is not search input', function () {
-    const wrapper = mountWithTheme(
-      <SettingsSearch params={{orgId: 'org-slug'}} />,
-      routerContext
-    );
-    const searchInput = wrapper.find('SearchInput input').instance();
-    const focusSpy = jest.spyOn(searchInput, 'focus');
-
-    wrapper.instance().handleFocusSearch({
-      preventDefault: () => {},
-      target: null,
-    });
-
-    expect(focusSpy).toHaveBeenCalled();
-  });
-
-  it('does not focus search input if it is current target and `handleFocusSearch` is called', function () {
-    const wrapper = mountWithTheme(
-      <SettingsSearch params={{orgId: 'org-slug'}} />,
-      routerContext
-    );
-    const searchInput = wrapper.find('SearchInput input').instance();
-    const focusSpy = jest.spyOn(searchInput, 'focus');
-
-    wrapper.instance().handleFocusSearch({
-      preventDefault: () => {},
-      target: searchInput,
-    });
-
-    expect(focusSpy).not.toHaveBeenCalled();
+  it('can focus when hotkey is pressed', function () {
+    mountWithTheme(<SettingsSearch />);
+    userEvent.keyboard('/', {keyboardMap: [{code: 'Slash', key: '/', keyCode: 191}]});
+    expect(screen.getByPlaceholderText('Search')).toHaveFocus();
   });
 
   it('can search', async function () {
-    const wrapper = mountWithTheme(
-      <SettingsSearch params={{orgId: 'org-slug'}} />,
-      routerContext
-    );
+    mountWithTheme(<SettingsSearch />, {
+      context: routerContext,
+    });
 
-    wrapper.find('input').simulate('change', {target: {value: 'bil'}});
+    const input = screen.getByPlaceholderText('Search');
+    userEvent.type(input, 'bil');
 
     await tick();
-    wrapper.update();
 
-    expect(orgsMock).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        // This nested 'query' is correct
-        query: {query: 'bil'},
-      })
-    );
+    expect(orgsMock.mock.calls).toEqual([
+      [
+        '/organizations/',
+        expect.objectContaining({
+          // This nested 'query' is correct
+          query: {query: 'b'},
+        }),
+      ],
+      [
+        '/organizations/',
+        expect.objectContaining({
+          // This nested 'query' is correct
+          query: {query: 'bi'},
+        }),
+      ],
+    ]);
 
-    expect(
-      wrapper.find('SearchResult [data-test-id="badge-display-name"]').first().text()
-    ).toBe('billy-org Dashboard');
+    const results = screen.getAllByTestId('badge-display-name');
 
-    expect(wrapper.find('SearchResultWrapper').first().prop('highlighted')).toBe(true);
+    const firstResult = results
+      .filter(e => e.textContent === 'billy-org Dashboard')
+      .pop();
 
-    expect(wrapper.find('SearchResultWrapper').at(1).prop('highlighted')).toBe(false);
+    expect(firstResult).toBeDefined();
 
-    wrapper
-      .find('SearchResult [data-test-id="badge-display-name"]')
-      .first()
-      .simulate('click');
+    if (firstResult) {
+      userEvent.click(firstResult);
+    }
 
     expect(navigateTo).toHaveBeenCalledWith('/billy-org/', expect.anything(), undefined);
   });

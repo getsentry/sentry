@@ -1,8 +1,8 @@
 import * as React from 'react';
 
-import {MetaType} from 'app/utils/discover/eventView';
-import withApi from 'app/utils/withApi';
-import {TransactionThresholdMetric} from 'app/views/performance/transactionSummary/transactionThresholdModal';
+import {MetaType} from 'sentry/utils/discover/eventView';
+import withApi from 'sentry/utils/withApi';
+import {TransactionThresholdMetric} from 'sentry/views/performance/transactionSummary/transactionThresholdModal';
 
 import GenericDiscoverQuery, {DiscoverQueryProps} from './genericDiscoverQuery';
 
@@ -21,6 +21,8 @@ export type TableData = {
   data: Array<TableDataRow>;
   meta?: MetaType;
 };
+
+export type TableDataWithTitle = TableData & {title: string};
 
 export type DiscoverQueryPropsWithThresholds = DiscoverQueryProps & {
   transactionName?: string;

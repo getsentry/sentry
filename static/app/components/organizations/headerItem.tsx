@@ -3,12 +3,12 @@ import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import Link from 'app/components/links/link';
-import Tooltip from 'app/components/tooltip';
-import {IconChevron, IconClose, IconInfo, IconLock, IconSettings} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Theme} from 'app/utils/theme';
+import Link from 'sentry/components/links/link';
+import Tooltip from 'sentry/components/tooltip';
+import {IconChevron, IconClose, IconInfo, IconLock, IconSettings} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Theme} from 'sentry/utils/theme';
 
 type DefaultProps = {
   allowClear: boolean;
@@ -29,85 +29,71 @@ type Props = {
 } & Partial<DefaultProps> &
   React.HTMLAttributes<HTMLDivElement>;
 
-class HeaderItem extends React.Component<Props> {
-  static defaultProps: DefaultProps = {
-    allowClear: true,
-  };
-
-  handleClear = (e: React.MouseEvent) => {
+function HeaderItem({
+  children,
+  isOpen,
+  hasSelected,
+  icon,
+  locked,
+  lockedMessage,
+  settingsLink,
+  hint,
+  loading,
+  forwardRef,
+  onClear,
+  allowClear = true,
+  ...props
+}: Props) {
+  const handleClear = (e: React.MouseEvent) => {
     e.stopPropagation();
-    this.props.onClear?.();
+    onClear?.();
   };
 
-  render() {
-    const {
-      children,
-      isOpen,
-      hasSelected,
-      allowClear,
-      icon,
-      locked,
-      lockedMessage,
-      settingsLink,
-      hint,
-      loading,
-      forwardRef,
-      ...props
-    } = this.props;
+  const textColorProps = {
+    locked,
+    isOpen,
+    hasSelected,
+  };
 
-    const textColorProps = {
-      locked,
-      isOpen,
-      hasSelected,
-    };
+  return (
+    <StyledHeaderItem
+      ref={forwardRef}
+      loading={!!loading}
+      {...omit(props, 'onClear')}
+      {...textColorProps}
+    >
+      <IconContainer {...textColorProps}>{icon}</IconContainer>
+      <Content>
+        <StyledContent>{children}</StyledContent>
 
-    return (
-      <StyledHeaderItem
-        ref={forwardRef}
-        loading={!!loading}
-        {...omit(props, 'onClear')}
-        {...textColorProps}
-      >
-        <IconContainer {...textColorProps}>{icon}</IconContainer>
-        <Content>
-          <StyledContent>{children}</StyledContent>
-
-          {settingsLink && (
-            <SettingsIconLink to={settingsLink}>
-              <IconSettings />
-            </SettingsIconLink>
-          )}
-        </Content>
-        {hint && (
-          <Hint>
-            <Tooltip title={hint} position="bottom">
-              <IconInfo size="sm" />
-            </Tooltip>
-          </Hint>
+        {settingsLink && (
+          <SettingsIconLink to={settingsLink}>
+            <IconSettings />
+          </SettingsIconLink>
         )}
-        {hasSelected && !locked && allowClear && (
-          <StyledClose {...textColorProps} onClick={this.handleClear} />
-        )}
-        {!locked && !loading && (
-          <ChevronWrapper>
-            <StyledChevron
-              isOpen={!!isOpen}
-              direction={isOpen ? 'up' : 'down'}
-              size="sm"
-            />
-          </ChevronWrapper>
-        )}
-        {locked && (
-          <Tooltip
-            title={lockedMessage || t('This selection is locked')}
-            position="bottom"
-          >
-            <StyledLock color="gray300" />
+      </Content>
+      {hint && (
+        <Hint>
+          <Tooltip title={hint} position="bottom">
+            <IconInfo size="sm" />
           </Tooltip>
-        )}
-      </StyledHeaderItem>
-    );
-  }
+        </Hint>
+      )}
+      {hasSelected && !locked && allowClear && (
+        <StyledClose {...textColorProps} onClick={handleClear} />
+      )}
+      {!locked && !loading && (
+        <ChevronWrapper>
+          <StyledChevron isOpen={!!isOpen} direction={isOpen ? 'up' : 'down'} size="sm" />
+        </ChevronWrapper>
+      )}
+      {locked && (
+        <Tooltip title={lockedMessage || t('This selection is locked')} position="bottom">
+          <StyledLock color="gray300" />
+        </Tooltip>
+      )}
+    </StyledHeaderItem>
+  );
 }
 
 // Infer props here because of styled/theme

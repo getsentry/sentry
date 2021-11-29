@@ -4,27 +4,27 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {PlatformIcon} from 'platformicons';
 
-import {openCreateTeamModal} from 'app/actionCreators/modal';
-import ProjectActions from 'app/actions/projectActions';
-import Alert from 'app/components/alert';
-import Button from 'app/components/button';
-import TeamSelector from 'app/components/forms/teamSelector';
-import PageHeading from 'app/components/pageHeading';
-import PlatformPicker from 'app/components/platformPicker';
-import Tooltip from 'app/components/tooltip';
-import categoryList from 'app/data/platformCategories';
-import {IconAdd} from 'app/icons';
-import {t} from 'app/locale';
-import {inputStyles} from 'app/styles/input';
-import space from 'app/styles/space';
-import {Organization, Project, Team} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import getPlatformName from 'app/utils/getPlatformName';
-import slugify from 'app/utils/slugify';
-import withApi from 'app/utils/withApi';
-import withOrganization from 'app/utils/withOrganization';
-import withTeams from 'app/utils/withTeams';
-import IssueAlertOptions from 'app/views/projectInstall/issueAlertOptions';
+import {openCreateTeamModal} from 'sentry/actionCreators/modal';
+import ProjectActions from 'sentry/actions/projectActions';
+import Alert from 'sentry/components/alert';
+import Button from 'sentry/components/button';
+import TeamSelector from 'sentry/components/forms/teamSelector';
+import PageHeading from 'sentry/components/pageHeading';
+import PlatformPicker from 'sentry/components/platformPicker';
+import Tooltip from 'sentry/components/tooltip';
+import categoryList from 'sentry/data/platformCategories';
+import {IconAdd} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {inputStyles} from 'sentry/styles/input';
+import space from 'sentry/styles/space';
+import {Organization, Project, Team} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import getPlatformName from 'sentry/utils/getPlatformName';
+import slugify from 'sentry/utils/slugify';
+import withApi from 'sentry/utils/withApi';
+import withOrganization from 'sentry/utils/withOrganization';
+import withTeams from 'sentry/utils/withTeams';
+import IssueAlertOptions from 'sentry/views/projectInstall/issueAlertOptions';
 
 const getCategoryName = (category?: string) =>
   categoryList.find(({id}) => id === category)?.id;
@@ -59,11 +59,11 @@ type State = {
 };
 
 class CreateProject extends React.Component<Props, State> {
-  constructor(props, context) {
+  constructor(props: Props, context) {
     super(props, context);
 
-    const {query} = props.location;
-    const {teams} = props.organization;
+    const {teams, location} = props;
+    const {query} = location;
     const accessTeams = teams.filter((team: Team) => team.hasAccess);
 
     const team = query.team || (accessTeams.length && accessTeams[0].slug);
@@ -318,6 +318,7 @@ class CreateProject extends React.Component<Props, State> {
   }
 }
 
+// TODO(davidenwang): change to functional component and replace withTeams with useTeams
 export default withApi(withRouter(withOrganization(withTeams(CreateProject))));
 export {CreateProject};
 

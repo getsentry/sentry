@@ -3,27 +3,28 @@ import {act} from 'react-dom/test-utils';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import {Error} from 'app/components/events/errors';
-import EventEntries from 'app/components/events/eventEntries';
-import {EntryType, Event} from 'app/types/event';
+import {Error} from 'sentry/components/events/errors';
+import EventEntries from 'sentry/components/events/eventEntries';
+import {EntryType, Event} from 'sentry/types/event';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 const {organization, project} = initializeOrg();
 
-// @ts-expect-error
 const api = new MockApiClient();
 
 async function renderComponent(event: Event, errors?: Array<Error>) {
   const wrapper = mountWithTheme(
-    <EventEntries
-      organization={organization}
-      event={{...event, errors: errors ?? event.errors}}
-      project={project}
-      location={location}
-      api={api}
-    />
+    <OrganizationContext.Provider value={organization}>
+      <EventEntries
+        organization={organization}
+        event={{...event, errors: errors ?? event.errors}}
+        project={project}
+        location={location}
+        api={api}
+      />
+    </OrganizationContext.Provider>
   );
 
-  // @ts-expect-error
   await tick();
   wrapper.update();
 
@@ -40,7 +41,6 @@ async function renderComponent(event: Event, errors?: Array<Error>) {
 
   toggleButton.simulate('click');
 
-  // @ts-expect-error
   await tick();
   wrapper.update();
 
@@ -50,16 +50,13 @@ async function renderComponent(event: Event, errors?: Array<Error>) {
 }
 
 describe('GroupEventEntries', function () {
-  // @ts-expect-error
   const event = TestStubs.Event();
 
   beforeEach(() => {
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/grouping-info/`,
       body: {},
     });
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/files/dsyms/`,
       body: [],

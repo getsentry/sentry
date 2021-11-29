@@ -2,7 +2,7 @@ import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import QueryList from 'app/views/eventsV2/queryList';
+import QueryList from 'sentry/views/eventsV2/queryList';
 
 function openContextMenu(card) {
   card.find('DropdownMenu MoreOptions svg').simulate('click');
@@ -159,7 +159,6 @@ describe('EventsV2 > QueryList', function () {
     expect(link.query).toEqual({
       id: '2',
       statsPeriod: '14d',
-      user: '1',
     });
   });
 
@@ -215,7 +214,9 @@ describe('EventsV2 > QueryList', function () {
 
     const menuItems = wrapper.find('MenuItem');
     expect(menuItems.length).toEqual(3);
-    expect(menuItems.at(0).find('span').children().html()).toEqual('Add to Dashboard');
+    expect(menuItems.at(0).find('span').children().first().html()).toEqual(
+      'Add to Dashboard'
+    );
     expect(menuItems.at(1).find('span').children().html()).toEqual('Delete Query');
     expect(menuItems.at(2).find('span').children().html()).toEqual('Duplicate Query');
   });
@@ -239,5 +240,29 @@ describe('EventsV2 > QueryList', function () {
     expect(menuItems.length).toEqual(2);
     expect(menuItems.at(0).find('span').children().html()).toEqual('Delete Query');
     expect(menuItems.at(1).find('span').children().html()).toEqual('Duplicate Query');
+  });
+
+  it('passes yAxis from the savedQuery to MiniGraph', function () {
+    const featuredOrganization = TestStubs.Organization({
+      features: ['connect-discover-and-dashboards', 'dashboards-edit'],
+    });
+    const yAxis = ['count()', 'failure_count()'];
+    const savedQueryWithMultiYAxis = {
+      ...savedQueries.slice(1)[0],
+      yAxis,
+    };
+    const wrapper = mountWithTheme(
+      <QueryList
+        organization={featuredOrganization}
+        savedQueries={[savedQueryWithMultiYAxis]}
+        pageLinks=""
+        onQueryChange={queryChangeMock}
+        location={location}
+      />,
+      TestStubs.routerContext()
+    );
+
+    const miniGraph = wrapper.find('MiniGraph');
+    expect(miniGraph.props().yAxis).toEqual(['count()', 'failure_count()']);
   });
 });

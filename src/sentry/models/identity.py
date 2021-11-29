@@ -1,4 +1,5 @@
 import logging
+from typing import TYPE_CHECKING, Any, Mapping
 
 from django.conf import settings
 from django.db import models
@@ -7,11 +8,15 @@ from django.utils import timezone
 
 from sentry.db.models import (
     ArrayField,
+    BaseManager,
     BoundedPositiveIntegerField,
     EncryptedJsonField,
     FlexibleForeignKey,
     Model,
 )
+
+if TYPE_CHECKING:
+    from sentry.models import User
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +58,63 @@ class IdentityProvider(Model):
         return get(self.type)
 
 
+class IdentityManager(BaseManager):
+    def reattach(
+        self,
+        idp: "IdentityProvider",
+        external_id: str,
+        user: "User",
+        defaults: Mapping[str, Any],
+    ) -> "Identity":
+        """
+        Removes identities under `idp` associated with either `external_id` or `user`
+        and creates a new identity linking them.
+        """
+        lookup = Q(external_id=external_id) | Q(user=user)
+        self.filter(lookup, idp=idp).delete()
+        logger.info(
+            "deleted-identity",
+            extra={"external_id": external_id, "idp_id": idp.id, "user_id": user.id},
+        )
+
+        identity_model = self.create(idp=idp, user=user, external_id=external_id, **defaults)
+        logger.info(
+            "created-identity",
+            extra={
+                "idp_id": idp.id,
+                "external_id": external_id,
+                "object_id": identity_model.id,
+                "user_id": user.id,
+            },
+        )
+        return identity_model
+
+    def update_external_id_and_defaults(
+        self,
+        idp: "IdentityProvider",
+        external_id: str,
+        user: "User",
+        defaults: Mapping[str, Any],
+    ) -> "Identity":
+        """
+        Updates the identity object for a given user and identity provider
+        with the new external id and other fields related to the identity status
+        """
+        query = self.filter(user=user, idp=idp)
+        query.update(external_id=external_id, **defaults)
+        identity_model = query.first()
+        logger.info(
+            "updated-identity",
+            extra={
+                "external_id": external_id,
+                "idp_id": idp.id,
+                "user_id": user.id,
+                "identity_id": identity_model.id,
+            },
+        )
+        return identity_model
+
+
 class Identity(Model):
     """
     A verified link between a user and a third party identity.
@@ -69,6 +131,8 @@ class Identity(Model):
     date_verified = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
 
+    objects = IdentityManager()
+
     class Meta:
         app_label = "sentry"
         db_table = "sentry_identity"
@@ -78,50 +142,3 @@ class Identity(Model):
         from sentry.identity import get
 
         return get(self.idp.type)
-
-    @classmethod
-    def reattach(cls, idp, external_id, user, defaults):
-        """
-        Removes identities under `idp` associated with either `external_id` or `user`
-        and creates a new identity linking them.
-        """
-        lookup = Q(external_id=external_id) | Q(user=user)
-        Identity.objects.filter(lookup, idp=idp).delete()
-        logger.info(
-            "deleted-identity",
-            extra={"external_id": external_id, "idp_id": idp.id, "user_id": user.id},
-        )
-
-        identity_model = Identity.objects.create(
-            idp=idp, user=user, external_id=external_id, **defaults
-        )
-        logger.info(
-            "created-identity",
-            extra={
-                "idp_id": idp.id,
-                "external_id": external_id,
-                "object_id": identity_model.id,
-                "user_id": user.id,
-            },
-        )
-        return identity_model
-
-    @classmethod
-    def update_external_id_and_defaults(cls, idp, external_id, user, defaults):
-        """
-        Updates the identity object for a given user and identity provider
-        with the new external id and other fields related to the identity status
-        """
-        query = Identity.objects.filter(user=user, idp=idp)
-        query.update(external_id=external_id, **defaults)
-        identity_model = query.first()
-        logger.info(
-            "updated-identity",
-            extra={
-                "external_id": external_id,
-                "idp_id": idp.id,
-                "user_id": user.id,
-                "identity_id": identity_model.id,
-            },
-        )
-        return identity_model

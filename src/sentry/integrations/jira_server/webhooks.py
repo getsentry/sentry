@@ -34,7 +34,7 @@ def get_integration_from_token(token):
     try:
         jwt.decode(token, integration.metadata["webhook_secret"])
     except Exception as err:
-        raise ValueError("Could not validate JWT. Got %s" % err)
+        raise ValueError(f"Could not validate JWT. Got {err}")
 
     return integration
 

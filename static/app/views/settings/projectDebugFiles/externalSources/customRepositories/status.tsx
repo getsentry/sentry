@@ -1,55 +1,35 @@
-import {withTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Placeholder from 'app/components/placeholder';
-import TimeSince from 'app/components/timeSince';
-import Tooltip from 'app/components/tooltip';
-import {IconDownload} from 'app/icons/iconDownload';
-import {IconRefresh} from 'app/icons/iconRefresh';
-import {IconWarning} from 'app/icons/iconWarning';
-import {t, tn} from 'app/locale';
-import space from 'app/styles/space';
-import {AppStoreConnectValidationData} from 'app/types/debugFiles';
-import {Theme} from 'app/utils/theme';
+import Placeholder from 'sentry/components/placeholder';
+import TimeSince from 'sentry/components/timeSince';
+import Tooltip from 'sentry/components/tooltip';
+import {IconDownload} from 'sentry/icons/iconDownload';
+import {IconRefresh} from 'sentry/icons/iconRefresh';
+import {IconWarning} from 'sentry/icons/iconWarning';
+import {t, tn} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {AppStoreConnectStatusData} from 'sentry/types/debugFiles';
 
 type Props = {
-  theme: Theme;
   onEditRepository: () => void;
-  onRevalidateItunesSession: () => void;
-  details?: AppStoreConnectValidationData;
+  details?: AppStoreConnectStatusData;
 };
 
-function Status({theme, details, onEditRepository, onRevalidateItunesSession}: Props) {
+function Status({details, onEditRepository}: Props) {
+  const theme = useTheme();
+
   if (!details) {
     return <Placeholder height="14px" />;
   }
 
-  const {
-    pendingDownloads,
-    promptItunesSession,
-    appstoreCredentialsValid,
-    lastCheckedBuilds,
-  } = details ?? {};
+  const {pendingDownloads, credentials, lastCheckedBuilds} = details;
 
-  if (promptItunesSession) {
-    return (
-      <Wrapper color={theme.red300} onClick={onRevalidateItunesSession}>
-        <StyledTooltip
-          title={t('Revalidate your iTunes session')}
-          containerDisplayMode="inline-flex"
-        >
-          <IconWarning size="sm" />
-        </StyledTooltip>
-        {t('iTunes Authentication required')}
-      </Wrapper>
-    );
-  }
-
-  if (appstoreCredentialsValid === false) {
+  if (credentials.status === 'invalid') {
     return (
       <Wrapper color={theme.red300} onClick={onEditRepository}>
         <StyledTooltip
-          title={t('Recheck your App Store Credentials')}
+          title={t('Re-check your App Store Credentials')}
           containerDisplayMode="inline-flex"
         >
           <IconWarning size="sm" />
@@ -84,7 +64,7 @@ function Status({theme, details, onEditRepository, onRevalidateItunesSession}: P
   return null;
 }
 
-export default withTheme(Status);
+export default Status;
 
 const Wrapper = styled('div')<{color: string}>`
   display: grid;

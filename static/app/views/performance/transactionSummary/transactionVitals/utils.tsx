@@ -1,8 +1,8 @@
 import {ECharts} from 'echarts';
 import {Query} from 'history';
 
-import {HistogramData} from 'app/utils/performance/histogram/types';
-import {getBucketWidth} from 'app/utils/performance/histogram/utils';
+import {HistogramData} from 'sentry/utils/performance/histogram/types';
+import {getBucketWidth} from 'sentry/utils/performance/histogram/utils';
 
 import {Point, Rectangle} from './types';
 
@@ -54,7 +54,8 @@ export function findNearestBucketIndex(
   // it's possible that the data is not available yet or the x axis is out of range
   if (!chartData.length || xAxis >= chartData[chartData.length - 1].bin + width) {
     return null;
-  } else if (xAxis < chartData[0].bin) {
+  }
+  if (xAxis < chartData[0].bin) {
     return -1;
   }
 

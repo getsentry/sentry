@@ -1,10 +1,11 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {act} from 'sentry-test/reactTestingLibrary';
 import {findOption, openMenu, selectByValueAsync} from 'sentry-test/select-new';
 
-import MemberListStore from 'app/stores/memberListStore';
-import ProjectsStore from 'app/stores/projectsStore';
-import TeamStore from 'app/stores/teamStore';
-import RuleBuilder from 'app/views/settings/project/projectOwnership/ruleBuilder';
+import MemberListStore from 'sentry/stores/memberListStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import TeamStore from 'sentry/stores/teamStore';
+import RuleBuilder from 'sentry/views/settings/project/projectOwnership/ruleBuilder';
 
 describe('RuleBuilder', function () {
   const organization = TestStubs.Organization();
@@ -56,7 +57,7 @@ describe('RuleBuilder', function () {
       // Teams in project
       teams: [TEAM_1],
     });
-    ProjectsStore.loadInitialData([project]);
+    act(() => ProjectsStore.loadInitialData([project]));
     jest.spyOn(ProjectsStore, 'getBySlug').mockImplementation(() => project);
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({

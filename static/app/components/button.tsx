@@ -3,11 +3,11 @@ import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import ExternalLink from 'app/components/links/externalLink';
-import Link from 'app/components/links/link';
-import Tooltip from 'app/components/tooltip';
-import mergeRefs from 'app/utils/mergeRefs';
-import {Theme} from 'app/utils/theme';
+import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
+import Tooltip from 'sentry/components/tooltip';
+import mergeRefs from 'sentry/utils/mergeRefs';
+import {Theme} from 'sentry/utils/theme';
 
 /**
  * The button can actually also be an anchor or React router Link (which seems
@@ -129,7 +129,7 @@ class BaseButton extends React.Component<ButtonProps, {}> {
     // Doing this instead of using `Tooltip`'s `disabled` prop so that we can minimize snapshot nesting
     if (title) {
       return (
-        <Tooltip skipWrapper {...tooltipProps} title={title}>
+        <Tooltip skipWrapper={!disabled} {...tooltipProps} title={title}>
           {button}
         </Tooltip>
       );

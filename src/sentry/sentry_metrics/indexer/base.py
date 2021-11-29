@@ -1,14 +1,6 @@
-from enum import Enum
-from typing import Optional
+from typing import Dict, List, Optional
 
-from sentry.models import Organization
 from sentry.utils.services import Service
-
-
-class UseCase(Enum):
-    METRIC = 0
-    TAG_KEY = 1
-    TAG_VALUE = 2
 
 
 class StringIndexer(Service):  # type: ignore
@@ -17,9 +9,12 @@ class StringIndexer(Service):  # type: ignore
     and the corresponding reverse lookup.
     """
 
-    __all__ = ("record", "resolve", "reverse_resolve")
+    __all__ = ("record", "resolve", "reverse_resolve", "bulk_record")
 
-    def record(self, organization: Organization, use_case: UseCase, string: str) -> int:
+    def bulk_record(self, strings: List[str]) -> Dict[str, int]:
+        raise NotImplementedError()
+
+    def record(self, string: str) -> int:
         """Store a string and return the integer ID generated for it
 
         With every call to this method, the lifetime of the entry will be
@@ -27,7 +22,7 @@ class StringIndexer(Service):  # type: ignore
         """
         raise NotImplementedError()
 
-    def resolve(self, organization: Organization, use_case: UseCase, string: str) -> Optional[int]:
+    def resolve(self, string: str) -> Optional[int]:
         """Lookup the integer ID for a string.
 
         Does not affect the lifetime of the entry.
@@ -36,9 +31,7 @@ class StringIndexer(Service):  # type: ignore
         """
         raise NotImplementedError()
 
-    def reverse_resolve(
-        self, organization: Organization, use_case: UseCase, id: int
-    ) -> Optional[str]:
+    def reverse_resolve(self, id: int) -> Optional[str]:
         """Lookup the stored string for a given integer ID.
 
         Returns None if the entry cannot be found.

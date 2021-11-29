@@ -1,13 +1,18 @@
 import * as React from 'react';
 
-import DropdownAutoCompleteMenu from 'app/components/dropdownAutoComplete/menu';
-import {Item} from 'app/components/dropdownAutoComplete/types';
-import Crumb from 'app/views/settings/components/settingsBreadcrumb/crumb';
-import Divider from 'app/views/settings/components/settingsBreadcrumb/divider';
+import DropdownAutoCompleteMenu from 'sentry/components/dropdownAutoComplete/menu';
+import {Item} from 'sentry/components/dropdownAutoComplete/types';
+import Crumb from 'sentry/views/settings/components/settingsBreadcrumb/crumb';
+import Divider from 'sentry/views/settings/components/settingsBreadcrumb/divider';
 
 import {RouteWithName} from './types';
 
 const EXIT_DELAY = 0;
+
+type AdditionalDropdownProps = Pick<
+  React.ComponentProps<typeof DropdownAutoCompleteMenu>,
+  'onChange' | 'busyItemsStillVisible'
+>;
 
 type Props = {
   route: RouteWithName;
@@ -17,7 +22,7 @@ type Props = {
   name: React.ReactNode;
   items: Item[];
   onSelect: (item: Item) => void;
-};
+} & AdditionalDropdownProps;
 
 type State = {
   isOpen: boolean;
@@ -80,7 +85,7 @@ class BreadcrumbDropdown extends React.Component<Props, State> {
   };
 
   render() {
-    const {hasMenu, route, isLast, name, items, onSelect} = this.props;
+    const {hasMenu, route, isLast, name, items, onSelect, ...dropdownProps} = this.props;
     return (
       <DropdownAutoCompleteMenu
         blendCorner={false}
@@ -94,6 +99,7 @@ class BreadcrumbDropdown extends React.Component<Props, State> {
         items={items}
         onSelect={onSelect}
         virtualizedHeight={41}
+        {...dropdownProps}
       >
         {({getActorProps, actions, isOpen}) => (
           <Crumb

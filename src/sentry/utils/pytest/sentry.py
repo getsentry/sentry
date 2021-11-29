@@ -1,10 +1,10 @@
 import os
 from hashlib import md5
+from unittest import mock
 
 from django.conf import settings
 from sentry_sdk import Hub
 
-from sentry.utils.compat import mock
 from sentry.utils.warnings import UnsupportedBackend
 
 TEST_ROOT = os.path.normpath(
@@ -63,8 +63,6 @@ def pytest_configure(config):
 
     # override a few things with our test specifics
     settings.INSTALLED_APPS = tuple(settings.INSTALLED_APPS) + ("tests",)
-    if "sentry" in settings.INSTALLED_APPS:
-        settings.INSTALLED_APPS = settings.INSTALLED_APPS + ("sentry.demo",)
     # Need a predictable key for tests that involve checking signatures
     settings.SENTRY_PUBLIC = False
 
@@ -180,7 +178,6 @@ def pytest_configure(config):
         # Migrations for the "sentry" app take a long time to run, which makes test startup time slow in dev.
         # This is a hack to force django to sync the database state from the models rather than use migrations.
         settings.MIGRATION_MODULES["sentry"] = None
-        settings.MIGRATION_MODULES["demo"] = None
 
     asset_version_patcher = mock.patch(
         "sentry.runner.initializer.get_asset_version", return_value="{version}"

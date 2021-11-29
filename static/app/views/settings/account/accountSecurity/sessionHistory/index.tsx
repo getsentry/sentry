@@ -2,14 +2,14 @@ import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import ListLink from 'app/components/links/listLink';
-import NavTabs from 'app/components/navTabs';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import {t} from 'app/locale';
-import {InternetProtocol} from 'app/types';
-import recreateRoute from 'app/utils/recreateRoute';
-import AsyncView from 'app/views/asyncView';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import ListLink from 'sentry/components/links/listLink';
+import NavTabs from 'sentry/components/navTabs';
+import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import {t} from 'sentry/locale';
+import {InternetProtocol} from 'sentry/types';
+import recreateRoute from 'sentry/utils/recreateRoute';
+import AsyncView from 'sentry/views/asyncView';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import SessionRow from './sessionRow';
 import {tableLayout} from './utils';

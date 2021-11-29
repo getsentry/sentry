@@ -2,14 +2,17 @@ import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
+import {act} from 'sentry-test/reactTestingLibrary';
 import {selectByValue} from 'sentry-test/select-new';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import ProjectsStore from 'app/stores/projectsStore';
-import ProjectContext from 'app/views/projects/projectContext';
-import ProjectGeneralSettings from 'app/views/settings/projectGeneralSettings';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {removeGlobalSelectionStorage} from 'sentry/components/organizations/globalSelectionHeader/utils';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import ProjectContext from 'sentry/views/projects/projectContext';
+import ProjectGeneralSettings from 'sentry/views/settings/projectGeneralSettings';
 
-jest.mock('app/actionCreators/indicator');
+jest.mock('sentry/actionCreators/indicator');
+jest.mock('sentry/components/organizations/globalSelectionHeader/utils');
 
 describe('projectGeneralSettings', function () {
   const org = TestStubs.Organization();
@@ -136,6 +139,8 @@ describe('projectGeneralSettings', function () {
     modal.find('Button[priority="danger"]').simulate('click');
 
     expect(deleteMock).toHaveBeenCalled();
+
+    expect(removeGlobalSelectionStorage).toHaveBeenCalledWith('org-slug');
   });
 
   it('project admins can transfer project', async function () {
@@ -246,7 +251,7 @@ describe('projectGeneralSettings', function () {
 
   it('changing project platform updates ProjectsStore', async function () {
     const params = {orgId: org.slug, projectId: project.slug};
-    ProjectsStore.loadInitialData([project]);
+    act(() => ProjectsStore.loadInitialData([project]));
     putMock = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,
       method: 'PUT',
@@ -255,6 +260,7 @@ describe('projectGeneralSettings', function () {
         platform: 'javascript',
       },
     });
+
     wrapper = mountWithTheme(
       <ProjectContext orgId={org.slug} projectId={project.slug}>
         <ProjectGeneralSettings
@@ -265,7 +271,8 @@ describe('projectGeneralSettings', function () {
       </ProjectContext>,
       routerContext
     );
-    await tick();
+
+    await act(tick);
     wrapper.update();
 
     // Change slug to new-slug
@@ -275,7 +282,7 @@ describe('projectGeneralSettings', function () {
     expect(putMock).toHaveBeenCalled();
 
     await tick();
-    await tick();
+    await act(tick);
     wrapper.update();
 
     // updates ProjectsStore
@@ -284,7 +291,8 @@ describe('projectGeneralSettings', function () {
 
   it('changing slug updates ProjectsStore', async function () {
     const params = {orgId: org.slug, projectId: project.slug};
-    ProjectsStore.loadInitialData([project]);
+    act(() => ProjectsStore.loadInitialData([project]));
+
     putMock = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,
       method: 'PUT',
@@ -293,6 +301,7 @@ describe('projectGeneralSettings', function () {
         slug: 'new-project',
       },
     });
+
     wrapper = mountWithTheme(
       <ProjectContext orgId={org.slug} projectId={project.slug}>
         <ProjectGeneralSettings
@@ -303,6 +312,7 @@ describe('projectGeneralSettings', function () {
       </ProjectContext>,
       routerContext
     );
+
     await tick();
     wrapper.update();
 
@@ -328,10 +338,9 @@ describe('projectGeneralSettings', function () {
       body: [],
     });
 
-    await tick();
-    // :(
-    await tick();
+    await act(tick);
     wrapper.update();
+
     // updates ProjectsStore
     expect(ProjectsStore.itemsById['2'].slug).toBe('new-project');
     expect(browserHistory.replace).toHaveBeenCalled();
@@ -349,7 +358,7 @@ describe('projectGeneralSettings', function () {
   describe('Non-"save on blur" Field', function () {
     beforeEach(function () {
       const params = {orgId: org.slug, projectId: project.slug};
-      ProjectsStore.loadInitialData([project]);
+      act(() => ProjectsStore.loadInitialData([project]));
       putMock = MockApiClient.addMockResponse({
         url: `/projects/${org.slug}/${project.slug}/`,
         method: 'PUT',
@@ -401,7 +410,7 @@ describe('projectGeneralSettings', function () {
 
       // Click cancel
       wrapper.find('MessageAndActions button[aria-label="Cancel"]').simulate('click');
-      await wrapper.update();
+      wrapper.update();
 
       // Cancel row should disappear
       expect(wrapper.find('MessageAndActions button[aria-label="Cancel"]')).toHaveLength(
@@ -416,7 +425,7 @@ describe('projectGeneralSettings', function () {
     it('saves when value is changed and "Save" clicked', async function () {
       // This test has been flaky and using act() isn't removing the flakyness.
       await tick();
-      await wrapper.update();
+      wrapper.update();
 
       // Initially does not have "Save" button
       expect(wrapper.find('MessageAndActions button[aria-label="Save"]')).toHaveLength(0);
@@ -427,7 +436,7 @@ describe('projectGeneralSettings', function () {
         .simulate('input', {target: {value: 12}})
         .simulate('mouseUp');
       await tick();
-      await wrapper.update();
+      wrapper.update();
 
       // Has "Save" button visible
       expect(wrapper.find('MessageAndActions button[aria-label="Save"]')).toHaveLength(1);
@@ -438,7 +447,7 @@ describe('projectGeneralSettings', function () {
       // Click "Save"
       wrapper.find('MessageAndActions button[aria-label="Save"]').simulate('click');
       await tick();
-      await wrapper.update();
+      wrapper.update();
 
       // API endpoint should have been called
       expect(putMock).toHaveBeenCalledWith(
@@ -451,8 +460,9 @@ describe('projectGeneralSettings', function () {
       );
 
       // Should hide "Save" button after saving
-      await tick();
-      await wrapper.update();
+      await act(tick);
+      wrapper.update();
+
       expect(wrapper.find('MessageAndActions button[aria-label="Save"]')).toHaveLength(0);
     });
   });

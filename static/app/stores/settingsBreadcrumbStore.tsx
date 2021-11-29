@@ -1,8 +1,8 @@
 import {PlainRoute} from 'react-router';
 import Reflux from 'reflux';
 
-import SettingsBreadcrumbActions from 'app/actions/settingsBreadcrumbActions';
-import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
+import SettingsBreadcrumbActions from 'sentry/actions/settingsBreadcrumbActions';
+import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 
 type UpdateData = {
   routes: PlainRoute<any>[];
@@ -10,18 +10,18 @@ type UpdateData = {
 };
 
 type SettingsBreadcrumbStoreInterface = {
-  init: () => void;
-  reset: () => void;
-  onUpdateRouteMap: (update: UpdateData) => void;
-  onTrimMappings: (routes: PlainRoute<any>[]) => void;
-  getPathMap: () => Internals['pathMap'];
+  init(): void;
+  reset(): void;
+  onUpdateRouteMap(update: UpdateData): void;
+  onTrimMappings(routes: PlainRoute<any>[]): void;
+  getPathMap(): Internals['pathMap'];
 };
 
 type Internals = {
   pathMap: Record<string, string>;
 };
 
-const storeConfig: Reflux.StoreDefinition & SettingsBreadcrumbStoreInterface & Internals =
+const storeConfig: Reflux.StoreDefinition & Internals & SettingsBreadcrumbStoreInterface =
   {
     pathMap: {},
     init() {

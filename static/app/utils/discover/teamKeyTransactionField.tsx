@@ -1,16 +1,15 @@
 import {Component} from 'react';
 
-import Button from 'app/components/button';
+import Button from 'sentry/components/button';
 import TeamKeyTransaction, {
   TitleProps,
-} from 'app/components/performance/teamKeyTransaction';
-import * as TeamKeyTransactionManager from 'app/components/performance/teamKeyTransactionsManager';
-import Tooltip from 'app/components/tooltip';
-import {IconStar} from 'app/icons';
-import {Organization, Project, Team} from 'app/types';
-import {defined} from 'app/utils';
-import withProjects from 'app/utils/withProjects';
-import withTeams from 'app/utils/withTeams';
+} from 'sentry/components/performance/teamKeyTransaction';
+import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
+import Tooltip from 'sentry/components/tooltip';
+import {IconStar} from 'sentry/icons';
+import {Organization, Project} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import withProjects from 'sentry/utils/withProjects';
 
 class TitleStar extends Component<TitleProps> {
   render() {
@@ -27,14 +26,12 @@ class TitleStar extends Component<TitleProps> {
     if (!isOpen && keyedTeams?.length) {
       const teamSlugs = keyedTeams.map(({slug}) => slug).join(', ');
       return <Tooltip title={teamSlugs}>{button}</Tooltip>;
-    } else {
-      return button;
     }
+    return button;
   }
 }
 
 type BaseProps = {
-  teams: Team[];
   organization: Organization;
   isKeyTransaction: boolean;
 };
@@ -112,4 +109,4 @@ function TeamKeyTransactionFieldWrapper({
   );
 }
 
-export default withTeams(withProjects(TeamKeyTransactionFieldWrapper));
+export default withProjects(TeamKeyTransactionFieldWrapper);

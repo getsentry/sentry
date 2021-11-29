@@ -294,7 +294,13 @@ class SnubaTSResultSerializer(BaseSnubaSerializer):
     """
 
     def serialize(
-        self, result, column="count", order=None, allow_partial_buckets=False, zerofill_results=True
+        self,
+        result,
+        column="count",
+        order=None,
+        allow_partial_buckets=False,
+        zerofill_results=True,
+        extra_columns=None,
     ):
         data = [
             (key, list(group))
@@ -309,6 +315,9 @@ class SnubaTSResultSerializer(BaseSnubaSerializer):
             row = []
             for r in v:
                 item = {"count": r.get(column, 0)}
+                if extra_columns is not None:
+                    for extra_column in extra_columns:
+                        item[extra_column] = r.get(extra_column, 0)
                 if self.lookup:
                     value = value_from_row(r, self.lookup.columns)
                     item[self.lookup.name] = (attrs.get(value),)

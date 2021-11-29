@@ -1,7 +1,9 @@
+from unittest import mock
+
 from sentry.models import Activity
 from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.testutils import PluginTestCase
-from sentry.utils.compat import mock
+from sentry.types.activity import ActivityType
 
 
 class BasicPreprocessorPlugin(NotificationPlugin):
@@ -18,14 +20,7 @@ class ActivityNotificationsTest(PluginTestCase):
     @mock.patch("sentry.tasks.activity.send_activity_notifications")
     def test_simple(self, mock_func):
         group = self.create_group()
-
-        activity = Activity.objects.create(
-            project=group.project,
-            group=group,
-            type=Activity.ASSIGNED,
-            user=self.user,
-            data={"assignee": None},
+        Activity.objects.create_group_activity(
+            group, ActivityType.ASSIGNED, user=self.user, data={"assignee": None}
         )
-        activity.send_notification()
-
         assert mock_func.delay.call_count == 1

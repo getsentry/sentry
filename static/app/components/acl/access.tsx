@@ -1,12 +1,12 @@
 import * as React from 'react';
 
-import Alert from 'app/components/alert';
-import {IconInfo} from 'app/icons';
-import {t} from 'app/locale';
-import {Config, Organization, Scope} from 'app/types';
-import {isRenderFunc} from 'app/utils/isRenderFunc';
-import withConfig from 'app/utils/withConfig';
-import withOrganization from 'app/utils/withOrganization';
+import Alert from 'sentry/components/alert';
+import {IconInfo} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {Config, Organization, Scope} from 'sentry/types';
+import {isRenderFunc} from 'sentry/utils/isRenderFunc';
+import withConfig from 'sentry/utils/withConfig';
+import withOrganization from 'sentry/utils/withOrganization';
 
 const DEFAULT_NO_ACCESS_MESSAGE = (
   <Alert type="error" icon={<IconInfo size="md" />}>
@@ -101,7 +101,8 @@ class Access extends React.Component<Props> {
 
     if (!render && typeof renderNoAccessMessage === 'function') {
       return renderNoAccessMessage(renderProps);
-    } else if (!render && renderNoAccessMessage) {
+    }
+    if (!render && renderNoAccessMessage) {
       return DEFAULT_NO_ACCESS_MESSAGE;
     }
 

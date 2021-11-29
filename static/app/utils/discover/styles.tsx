@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
 
-import DateTime from 'app/components/dateTime';
-import Link from 'app/components/links/link';
-import ShortId from 'app/components/shortId';
-import {IconUser} from 'app/icons/iconUser';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
+import DateTime from 'sentry/components/dateTime';
+import Link from 'sentry/components/links/link';
+import ShortId from 'sentry/components/shortId';
+import {IconUser} from 'sentry/icons/iconUser';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
 
 // Styled components used to render discover result sets.
 
@@ -19,11 +19,13 @@ export const VersionContainer = styled('div')`
 
 export const NumberContainer = styled('div')`
   text-align: right;
+  font-variant-numeric: tabular-nums;
   ${overflowEllipsis};
 `;
 
 export const FieldDateTime = styled(DateTime)`
   color: ${p => p.theme.gray300};
+  font-variant-numeric: tabular-nums;
   ${overflowEllipsis};
 `;
 

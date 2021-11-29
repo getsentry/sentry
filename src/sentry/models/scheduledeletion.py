@@ -31,7 +31,6 @@ class ScheduledDeletion(Model):
     actor_id = BoundedBigIntegerField(null=True)
     data = JSONField(default={})
     in_progress = models.BooleanField(default=False)
-    aborted = models.BooleanField(default=False)
 
     class Meta:
         unique_together = (("app_label", "model_name", "object_id"),)
@@ -67,6 +66,26 @@ class ScheduledDeletion(Model):
             },
         )
         return record
+
+    @classmethod
+    def cancel(cls, instance):
+        model_name = type(instance).__name__
+        try:
+            deletion = cls.objects.get(
+                model_name=model_name, object_id=instance.pk, in_progress=False
+            )
+        except cls.DoesNotExist:
+            delete_logger.info(
+                "object.delete.canceled.failed",
+                extra={"object_id": instance.pk, "model": model_name},
+            )
+            return
+
+        deletion.delete()
+        delete_logger.info(
+            "object.delete.canceled",
+            extra={"object_id": instance.pk, "model": model_name},
+        )
 
     def get_model(self):
         return apps.get_model(self.app_label, self.model_name)

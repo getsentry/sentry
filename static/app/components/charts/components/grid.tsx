@@ -11,7 +11,7 @@ export default function Grid(props: EChartOption.Grid = {}): EChartOption.Grid {
       top: 20,
       bottom: 20,
       // This should allow for sufficient space for Y-axis labels
-      left: '0%',
+      left: 4,
       right: '0%',
       containLabel: true,
     },

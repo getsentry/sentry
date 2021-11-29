@@ -2,19 +2,18 @@ import * as React from 'react';
 
 import GenericDiscoverQuery, {
   DiscoverQueryProps,
-} from 'app/utils/discover/genericDiscoverQuery';
+} from 'sentry/utils/discover/genericDiscoverQuery';
 import {
   BaseTraceChildrenProps,
   PartialQuickTrace,
   TraceLite,
   TraceRequestProps,
-} from 'app/utils/performance/quickTrace/types';
+} from 'sentry/utils/performance/quickTrace/types';
 import {
-  beforeFetch,
   getTraceRequestPayload,
   makeEventView,
-} from 'app/utils/performance/quickTrace/utils';
-import withApi from 'app/utils/withApi';
+} from 'sentry/utils/performance/quickTrace/utils';
+import withApi from 'sentry/utils/withApi';
 
 type AdditionalQueryProps = {
   eventId: string;
@@ -69,7 +68,6 @@ function TraceLiteQuery({
     <GenericDiscoverQuery<TraceLite, AdditionalQueryProps>
       route={`events-trace-light/${traceId}`}
       getRequestPayload={getTraceLiteRequestPayload}
-      beforeFetch={beforeFetch}
       eventView={eventView}
       {...props}
     >

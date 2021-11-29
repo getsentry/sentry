@@ -312,3 +312,30 @@ class SCIMTeamDetailsTests(SCIMTestCase):
         assert not OrganizationMemberTeam.objects.filter(
             team_id=self.team.id, organizationmember_id=member1.id
         ).exists()
+
+    def test_remove_member_not_on_team(self):
+        member1_no_team = self.create_member(
+            user=self.create_user(), organization=self.organization, teams=[]
+        )
+
+        url = reverse(
+            "sentry-api-0-organization-scim-team-details",
+            args=[self.organization.slug, self.team.id],
+        )
+        response = self.client.patch(
+            url,
+            {
+                "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+                "Operations": [
+                    {
+                        "op": "Remove",
+                        "path": "members",
+                        "value": [{"value": str(member1_no_team.id)}],
+                    }
+                ],
+            },
+        )
+        assert response.status_code == 204, response.content
+        assert not OrganizationMemberTeam.objects.filter(
+            team_id=self.team.id, organizationmember_id=member1_no_team.id
+        ).exists()

@@ -1,21 +1,21 @@
 import {Component} from 'react';
 
-import {t} from 'app/locale';
-import ExternalIssueStore from 'app/stores/externalIssueStore';
-import {Group, PlatformExternalIssue, SentryAppInstallation} from 'app/types';
-import {Event} from 'app/types/event';
-import getStacktraceBody from 'app/utils/getStacktraceBody';
-import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
+import {t} from 'sentry/locale';
+import ExternalIssueStore from 'sentry/stores/externalIssueStore';
+import {Group, PlatformExternalIssue, SentryAppInstallation} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import getStacktraceBody from 'sentry/utils/getStacktraceBody';
+import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 import SentryAppExternalForm, {
-  Config,
   FieldFromSchema,
-} from 'app/views/organizationIntegrations/sentryAppExternalForm';
+  SchemaFormConfig,
+} from 'sentry/views/organizationIntegrations/sentryAppExternalForm';
 
 type Props = {
   group: Group;
   sentryAppInstallation: SentryAppInstallation;
   appName: string;
-  config: Config;
+  config: SchemaFormConfig;
   action: 'create' | 'link';
   event: Event;
   onSubmitSuccess: (externalIssue: PlatformExternalIssue) => void;
@@ -33,9 +33,8 @@ export class SentryAppExternalIssueForm extends Component<Props> {
 
     if (contentArr && contentArr.length > 0) {
       return '\n\n```\n' + contentArr[0] + '\n```';
-    } else {
-      return '';
     }
+    return '';
   }
 
   getFieldDefault(field: FieldFromSchema) {
@@ -61,7 +60,7 @@ export class SentryAppExternalIssueForm extends Component<Props> {
   render() {
     return (
       <SentryAppExternalForm
-        sentryAppInstallation={this.props.sentryAppInstallation}
+        sentryAppInstallationUuid={this.props.sentryAppInstallation.uuid}
         appName={this.props.appName}
         config={this.props.config}
         action={this.props.action}

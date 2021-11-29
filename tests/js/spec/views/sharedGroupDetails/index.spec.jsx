@@ -1,15 +1,18 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
-import SharedGroupDetails from 'app/views/sharedGroupDetails';
+import SharedGroupDetails from 'sentry/views/sharedGroupDetails';
 
 describe('SharedGroupDetails', function () {
+  const eventEntry = TestStubs.EventEntry();
+  const exception = TestStubs.EventStacktraceException().entries[0];
+
   beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/shared/issues/a/',
       body: TestStubs.Group({
         title: 'ZeroDivisionError',
         latestEvent: TestStubs.Event({
-          entries: [TestStubs.EventEntry()],
+          entries: [eventEntry, exception],
         }),
         project: TestStubs.Project({organization: {slug: 'test-org'}}),
       }),
@@ -25,10 +28,7 @@ describe('SharedGroupDetails', function () {
       params: {shareId: 'a'},
     };
 
-    const wrapper = mountWithTheme(
-      <SharedGroupDetails {...props} />,
-      TestStubs.routerContext()
-    );
-    expect(wrapper).toSnapshot();
+    const {container} = mountWithTheme(<SharedGroupDetails {...props} />);
+    expect(container).toSnapshot();
   });
 });

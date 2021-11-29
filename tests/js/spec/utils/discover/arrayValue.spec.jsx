@@ -1,51 +1,46 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import ArrayValue from 'app/utils/discover/arrayValue';
+import ArrayValue from 'sentry/utils/discover/arrayValue';
 
 describe('Discover > ArrayValue', function () {
   it('renders an expand link', function () {
-    const wrapper = mountWithTheme(<ArrayValue value={['one', 'two', 'three']} />);
+    mountWithTheme(<ArrayValue value={['one', 'two', 'three']} />);
 
     // Should have a button
-    const button = wrapper.find('button');
-    expect(button).toHaveLength(1);
-    expect(button.text()).toEqual('[+2 more]');
+    const button = screen.getByRole('button');
+    expect(button).toHaveTextContent('[+2 more]');
 
     // Should show last value.
-    expect(wrapper.text()).toContain('three');
+    expect(screen.getByText('three')).toBeInTheDocument();
   });
 
   it('renders all elements when expanded', function () {
-    const wrapper = mountWithTheme(<ArrayValue value={['one', 'two', 'three']} />);
+    mountWithTheme(<ArrayValue value={['one', 'two', 'three']} />);
 
     // Should have a button
-    let button = wrapper.find('button');
-    button.simulate('click');
-
-    wrapper.update();
+    let button = screen.getByRole('button');
+    userEvent.click(button);
 
     // Button text should update.
-    button = wrapper.find('button');
-    expect(button.text()).toEqual('[collapse]');
+    button = screen.getByRole('button');
+    expect(button).toHaveTextContent('[collapse]');
 
     // Should show all values.
-    const text = wrapper.text();
-    expect(text).toContain('three');
-    expect(text).toContain('two');
-    expect(text).toContain('one');
+    expect(screen.getByText('one')).toBeInTheDocument();
+    expect(screen.getByText('two')).toBeInTheDocument();
+    expect(screen.getByText('three')).toBeInTheDocument();
   });
 
   it('hides toggle on 1 element', function () {
-    const wrapper = mountWithTheme(<ArrayValue value={['one']} />);
+    mountWithTheme(<ArrayValue value={['one']} />);
 
-    expect(wrapper.find('button')).toHaveLength(0);
-    const text = wrapper.text();
-    expect(text).toContain('one');
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    expect(screen.getByText('one')).toBeInTheDocument();
   });
 
   it('hides toggle on 0 elements', function () {
-    const wrapper = mountWithTheme(<ArrayValue value={[]} />);
+    mountWithTheme(<ArrayValue value={[]} />);
 
-    expect(wrapper.find('button')).toHaveLength(0);
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 });

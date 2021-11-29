@@ -1,18 +1,16 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {openModal} from 'app/actionCreators/modal';
-import SuggestProjectCTA from 'app/components/suggestProjectCTA';
-import ProjectsStore from 'app/stores/projectsStore';
+import {openModal} from 'sentry/actionCreators/modal';
+import SuggestProjectCTA from 'sentry/components/suggestProjectCTA';
+import ProjectsStore from 'sentry/stores/projectsStore';
 
-jest.mock('app/actionCreators/modal');
+jest.mock('sentry/actionCreators/modal');
 
 function generateWrapperAndSetMocks(inputProps, mobileEventResp, promptResp) {
   const projects = inputProps?.projects ?? [TestStubs.Project({platform: 'javascript'})];
 
-  jest.spyOn(ProjectsStore, 'getState').mockImplementation(() => ({
-    projects,
-    loading: false,
-  }));
+  jest.spyOn(ProjectsStore, 'getAll').mockImplementation(() => projects);
+  jest.spyOn(ProjectsStore, 'isLoading').mockImplementation(() => false);
 
   const organization = TestStubs.Organization();
 

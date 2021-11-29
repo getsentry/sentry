@@ -1,4 +1,5 @@
 from time import time
+from unittest.mock import patch
 
 import responses
 
@@ -14,7 +15,6 @@ from sentry.models import (
     Integration,
 )
 from sentry.testutils import APITestCase
-from sentry.utils.compat.mock import patch
 from sentry.utils.http import absolute_uri
 
 from .testutils import (
@@ -27,8 +27,6 @@ from .testutils import (
 
 class VstsWebhookWorkItemTest(APITestCase):
     def setUp(self):
-        self.organization = self.create_organization()
-        self.project = self.create_project(organization=self.organization)
         self.access_token = "1234567890"
         self.account_id = "80ded3e8-3cd3-43b1-9f96-52032624aa3a"
         self.instance = "https://instance.visualstudio.com/"
@@ -161,19 +159,18 @@ class VstsWebhookWorkItemTest(APITestCase):
         # Change so that state is changing from unresolved to resolved
         work_item = self.set_workitem_state("Active", "Resolved")
 
-        with self.feature("organizations:integrations-issue-sync"):
+        with self.feature("organizations:integrations-issue-sync"), self.tasks():
             resp = self.client.post(
                 absolute_uri("/extensions/vsts/issue-updated/"),
                 data=work_item,
                 HTTP_SHARED_SECRET=self.shared_secret,
             )
-            assert resp.status_code == 200
-            group_ids = [g.id for g in groups]
-            assert (
-                len(Group.objects.filter(id__in=group_ids, status=GroupStatus.RESOLVED))
-                == num_groups
-            )
-            assert len(Activity.objects.filter(group_id__in=group_ids)) == num_groups
+        assert resp.status_code == 200
+        group_ids = [g.id for g in groups]
+        assert (
+            len(Group.objects.filter(id__in=group_ids, status=GroupStatus.RESOLVED)) == num_groups
+        )
+        assert len(Activity.objects.filter(group_id__in=group_ids)) == num_groups
 
     @responses.activate
     def test_inbound_status_sync_unresolve(self):
@@ -195,19 +192,18 @@ class VstsWebhookWorkItemTest(APITestCase):
         # Change so that state is changing from resolved to unresolved
         work_item = self.set_workitem_state("Resolved", "Active")
 
-        with self.feature("organizations:integrations-issue-sync"):
+        with self.feature("organizations:integrations-issue-sync"), self.tasks():
             resp = self.client.post(
                 absolute_uri("/extensions/vsts/issue-updated/"),
                 data=work_item,
                 HTTP_SHARED_SECRET=self.shared_secret,
             )
-            assert resp.status_code == 200
-            group_ids = [g.id for g in groups]
-            assert (
-                len(Group.objects.filter(id__in=group_ids, status=GroupStatus.UNRESOLVED))
-                == num_groups
-            )
-            assert len(Activity.objects.filter(group_id__in=group_ids)) == num_groups
+        assert resp.status_code == 200
+        group_ids = [g.id for g in groups]
+        assert (
+            len(Group.objects.filter(id__in=group_ids, status=GroupStatus.UNRESOLVED)) == num_groups
+        )
+        assert len(Activity.objects.filter(group_id__in=group_ids)) == num_groups
 
     @responses.activate
     def test_inbound_status_sync_new_workitem(self):

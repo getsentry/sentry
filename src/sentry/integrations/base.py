@@ -19,10 +19,12 @@ from sentry.db.models.manager import M
 from sentry.exceptions import InvalidIdentity
 from sentry.models import (
     AuditLogEntryEvent,
+    ExternalActor,
     Identity,
     Integration,
     Organization,
     OrganizationIntegration,
+    Team,
 )
 from sentry.pipeline import PipelineProvider
 from sentry.shared_integrations.constants import (
@@ -383,7 +385,15 @@ class IntegrationInstallation:
     def uninstall(self) -> None:
         """
         For integrations that need additional steps for uninstalling
-        that are not covered in the `delete_organization_integration`
+        that are not covered by the deletion task for OrganizationIntegration
         task.
         """
+        pass
+
+    # NotifyBasicMixin noops
+
+    def notify_remove_external_team(self, external_team: ExternalActor, team: Team) -> None:
+        pass
+
+    def remove_notification_settings(self, actor_id: int, provider: str) -> None:
         pass

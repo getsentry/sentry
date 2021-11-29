@@ -3,35 +3,34 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 
-import Access from 'app/components/acl/access';
-import Alert from 'app/components/alert';
-import AsyncComponent from 'app/components/asyncComponent';
-import ExternalLink from 'app/components/links/externalLink';
-import {Panel} from 'app/components/panels';
-import Tag from 'app/components/tag';
-import Tooltip from 'app/components/tooltip';
-import {IconClose, IconDocs, IconGeneric, IconGithub, IconProject} from 'app/icons';
-import {t} from 'app/locale';
-import PluginIcon from 'app/plugins/components/pluginIcon';
-import space from 'app/styles/space';
+import Access from 'sentry/components/acl/access';
+import Alert from 'sentry/components/alert';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {Panel} from 'sentry/components/panels';
+import Tag from 'sentry/components/tag';
+import Tooltip from 'sentry/components/tooltip';
+import {IconClose, IconDocs, IconGeneric, IconGithub, IconProject} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import PluginIcon from 'sentry/plugins/components/pluginIcon';
+import space from 'sentry/styles/space';
 import {
   IntegrationFeature,
   IntegrationInstallationStatus,
   IntegrationType,
   Organization,
-} from 'app/types';
-import {defined} from 'app/utils';
+} from 'sentry/types';
 import {
   IntegrationAnalyticsKey,
   IntegrationEventParameters,
-} from 'app/utils/analytics/integrationAnalyticsEvents';
+} from 'sentry/utils/analytics/integrationAnalyticsEvents';
 import {
   getCategories,
   getIntegrationFeatureGate,
   trackIntegrationAnalytics,
-} from 'app/utils/integrationUtil';
-import marked, {singleLineRenderer} from 'app/utils/marked';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
+} from 'sentry/utils/integrationUtil';
+import marked, {singleLineRenderer} from 'sentry/utils/marked';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 import RequestIntegrationButton from './integrationRequest/RequestIntegrationButton';
 import IntegrationStatus from './integrationStatus';
@@ -40,7 +39,6 @@ type Tab = 'overview' | 'configurations';
 
 type AlertType = React.ComponentProps<typeof Alert> & {
   text: string;
-  feature?: string;
 };
 
 type State = {
@@ -331,19 +329,13 @@ class AbstractIntegrationDetailedView<
               provider={{key: this.props.params.integrationSlug}}
             />
             {this.renderPermissions()}
-            {this.alerts.map((alert, i) => {
-              return (
-                (defined(alert.feature)
-                  ? this.props.organization.features.includes(alert.feature)
-                  : true) && (
-                  <Alert key={i} type={alert.type} icon={alert.icon}>
-                    <span
-                      dangerouslySetInnerHTML={{__html: singleLineRenderer(alert.text)}}
-                    />
-                  </Alert>
-                )
-              );
-            })}
+            {this.alerts.map((alert, i) => (
+              <Alert key={i} type={alert.type} icon={alert.icon}>
+                <span
+                  dangerouslySetInnerHTML={{__html: singleLineRenderer(alert.text)}}
+                />
+              </Alert>
+            ))}
           </FlexContainer>
           <Metadata>
             {!!this.author && (

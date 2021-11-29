@@ -1,13 +1,13 @@
 import {browserHistory} from 'react-router';
 import Reflux from 'reflux';
 
-import GuideActions from 'app/actions/guideActions';
-import OrganizationsActions from 'app/actions/organizationsActions';
-import {Client} from 'app/api';
-import getGuidesContent from 'app/components/assistant/getGuidesContent';
-import {Guide, GuidesContent, GuidesServerData} from 'app/components/assistant/types';
-import ConfigStore from 'app/stores/configStore';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
+import GuideActions from 'sentry/actions/guideActions';
+import OrganizationsActions from 'sentry/actions/organizationsActions';
+import {Client} from 'sentry/api';
+import getGuidesContent from 'sentry/components/assistant/getGuidesContent';
+import {Guide, GuidesContent, GuidesServerData} from 'sentry/components/assistant/types';
+import ConfigStore from 'sentry/stores/configStore';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 
 function guidePrioritySort(a: Guide, b: Guide) {
   const a_priority = a.priority ?? Number.MAX_SAFE_INTEGER;
@@ -68,14 +68,14 @@ const defaultState: GuideStoreState = {
 type GuideStoreInterface = {
   state: GuideStoreState;
 
-  onFetchSucceeded: (data: GuidesServerData) => void;
-  onRegisterAnchor: (target: string) => void;
-  onUnregisterAnchor: (target: string) => void;
-  recordCue: (guide: string) => void;
-  updatePrevGuide: (nextGuide: Guide | null) => void;
+  onFetchSucceeded(data: GuidesServerData): void;
+  onRegisterAnchor(target: string): void;
+  onUnregisterAnchor(target: string): void;
+  recordCue(guide: string): void;
+  updatePrevGuide(nextGuide: Guide | null): void;
 };
 
-const guideStoreConfig: Reflux.StoreDefinition & GuideStoreInterface = {
+const storeConfig: Reflux.StoreDefinition & GuideStoreInterface = {
   state: defaultState,
 
   init() {
@@ -216,14 +216,15 @@ const guideStoreConfig: Reflux.StoreDefinition & GuideStoreInterface = {
       guideOptions = guideOptions.filter(({seen, dateThreshold}) => {
         if (seen) {
           return false;
-        } else if (user?.isSuperuser) {
+        }
+        if (user?.isSuperuser) {
           return true;
-        } else if (dateThreshold) {
+        }
+        if (dateThreshold) {
           // Show the guide to users who've joined before the date threshold
           return userDateJoined < dateThreshold;
-        } else {
-          return userDateJoined > assistantThreshold;
         }
+        return userDateJoined > assistantThreshold;
       });
     }
 
@@ -249,7 +250,6 @@ const guideStoreConfig: Reflux.StoreDefinition & GuideStoreInterface = {
   },
 };
 
-const GuideStore = Reflux.createStore(guideStoreConfig) as Reflux.Store &
-  GuideStoreInterface;
+const GuideStore = Reflux.createStore(storeConfig) as Reflux.Store & GuideStoreInterface;
 
 export default GuideStore;

@@ -2,21 +2,22 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import Button from 'app/components/button';
-import Confirm from 'app/components/confirm';
-import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
-import {Item} from 'app/components/dropdownAutoComplete/types';
-import DropdownButton from 'app/components/dropdownButton';
-import TeamBadge from 'app/components/idBadge/teamBadge';
-import Link from 'app/components/links/link';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
-import {DEFAULT_DEBOUNCE_DURATION} from 'app/constants';
-import {IconSubtract} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Team} from 'app/types';
-import useTeams from 'app/utils/useTeams';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import Button from 'sentry/components/button';
+import Confirm from 'sentry/components/confirm';
+import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
+import {Item} from 'sentry/components/dropdownAutoComplete/types';
+import DropdownButton from 'sentry/components/dropdownButton';
+import TeamBadge from 'sentry/components/idBadge/teamBadge';
+import Link from 'sentry/components/links/link';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
+import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
+import {IconSubtract} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Team} from 'sentry/types';
+import useTeams from 'sentry/utils/useTeams';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 type Props = {
   organization: Organization;
@@ -45,6 +46,10 @@ type Props = {
    * if empty no confirm will be displayed.
    */
   confirmLastTeamRemoveMessage?: string;
+  /**
+   * Used to determine whether we should show a loading state while waiting for teams
+   */
+  loadingTeams?: boolean;
 };
 
 function TeamSelect({
@@ -55,6 +60,7 @@ function TeamSelect({
   onAddTeam,
   onRemoveTeam,
   confirmLastTeamRemoveMessage,
+  loadingTeams,
 }: Props) {
   const {teams, onSearch, fetching} = useTeams();
 
@@ -126,7 +132,7 @@ function TeamSelect({
         </DropdownAutoComplete>
       </PanelHeader>
 
-      <PanelBody>{renderBody()}</PanelBody>
+      <PanelBody>{loadingTeams ? <LoadingIndicator /> : renderBody()}</PanelBody>
     </Panel>
   );
 }

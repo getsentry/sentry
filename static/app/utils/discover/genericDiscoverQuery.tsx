@@ -1,17 +1,16 @@
 import * as React from 'react';
 import {Location} from 'history';
 
-import {EventQuery} from 'app/actionCreators/events';
-import {Client, ResponseMeta} from 'app/api';
-import {t} from 'app/locale';
+import {EventQuery} from 'sentry/actionCreators/events';
+import {Client, ResponseMeta} from 'sentry/api';
+import {t} from 'sentry/locale';
 import EventView, {
   ImmutableEventView,
   isAPIPayloadSimilar,
   LocationQuery,
-} from 'app/utils/discover/eventView';
-import {usePerformanceEventView} from 'app/utils/performance/contexts/performanceEventViewContext';
-
-import {useOrgSlug} from '../useOrganization';
+} from 'sentry/utils/discover/eventView';
+import {usePerformanceEventView} from 'sentry/utils/performance/contexts/performanceEventViewContext';
+import useOrganization from 'sentry/utils/useOrganization';
 
 export type GenericChildrenProps<T> = {
   isLoading: boolean;
@@ -65,7 +64,7 @@ export type DiscoverQueryProps = BaseDiscoverQueryProps & {
 type InnerRequestProps<P> = DiscoverQueryProps & P;
 type OuterRequestProps<P> = DiscoverQueryPropsWithContext & P;
 
-type ReactProps<T> = {
+export type ReactProps<T> = {
   children?: (props: GenericChildrenProps<T>) => React.ReactNode;
 };
 
@@ -121,8 +120,8 @@ class _GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>>
   }
 
   componentDidUpdate(prevProps: Props<T, P>) {
-    // Reload data if we aren't already loading,
-    const refetchCondition = !this.state.isLoading && this._shouldRefetchData(prevProps);
+    // Reload data if the payload changes
+    const refetchCondition = this._shouldRefetchData(prevProps);
 
     // or if we've moved from an invalid view state to a valid one,
     const eventViewValidation =
@@ -138,10 +137,25 @@ class _GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>>
   }
 
   getPayload(props: Props<T, P>) {
-    if (this.props.getRequestPayload) {
-      return this.props.getRequestPayload(props);
+    const {cursor, limit, noPagination, referrer} = props;
+    const payload = this.props.getRequestPayload
+      ? this.props.getRequestPayload(props)
+      : props.eventView.getEventsAPIPayload(props.location);
+
+    if (cursor) {
+      payload.cursor = cursor;
     }
-    return props.eventView.getEventsAPIPayload(props.location);
+    if (limit) {
+      payload.per_page = limit;
+    }
+    if (noPagination) {
+      payload.noPagination = noPagination;
+    }
+    if (referrer) {
+      payload.referrer = referrer;
+    }
+
+    return payload;
   }
 
   _shouldRefetchData = (prevProps: Props<T, P>): boolean => {
@@ -157,20 +171,8 @@ class _GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>>
   };
 
   fetchData = async () => {
-    const {
-      api,
-      beforeFetch,
-      afterFetch,
-      didFetch,
-      eventView,
-      orgSlug,
-      route,
-      limit,
-      cursor,
-      setError,
-      noPagination,
-      referrer,
-    } = this.props;
+    const {api, beforeFetch, afterFetch, didFetch, eventView, orgSlug, route, setError} =
+      this.props;
 
     if (!eventView.isValid()) {
       return;
@@ -184,20 +186,10 @@ class _GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>>
 
     setError?.(undefined);
 
-    if (limit) {
-      apiPayload.per_page = limit;
-    }
-    if (noPagination) {
-      apiPayload.noPagination = noPagination;
-    }
-    if (cursor) {
-      apiPayload.cursor = cursor;
-    }
-    if (referrer) {
-      apiPayload.referrer = referrer;
-    }
-
     beforeFetch?.(api);
+
+    // clear any inflight requests since they are now stale
+    api.clear();
 
     try {
       const [data, , resp] = await doDiscoverQuery<T>(api, url, apiPayload);
@@ -247,7 +239,7 @@ class _GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>>
 // Shim to allow us to use generic discover query or any specialization with or without passing org slug or eventview, which are now contexts.
 // This will help keep tests working and we can remove extra uses of context-provided props and update tests as we go.
 export function GenericDiscoverQuery<T, P>(props: OuterProps<T, P>) {
-  const orgSlug = props.orgSlug ?? useOrgSlug();
+  const orgSlug = props.orgSlug ?? useOrganization().slug;
   const eventView = props.eventView ?? usePerformanceEventView();
   const _props: Props<T, P> = {
     ...props,

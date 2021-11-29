@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as qs from 'query-string';
 
-import {platformToIntegrationMap} from 'app/utils/integrationUtil';
+import {platformToIntegrationMap} from 'sentry/utils/integrationUtil';
 
 import DocumentationSetup from './documentationSetup';
 import IntegrationSetup from './integrationSetup';
@@ -18,7 +18,8 @@ const SdkConfiguration = (props: Props) => {
   // check for manual override query param
   if (integrationSlug && parsed.manual !== '1') {
     return <IntegrationSetup integrationSlug={integrationSlug} {...props} />;
-  } else if (platform === 'other') {
+  }
+  if (platform === 'other') {
     return <OtherSetup {...props} />;
   }
   return <DocumentationSetup {...props} />;

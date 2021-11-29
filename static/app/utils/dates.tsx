@@ -1,8 +1,8 @@
 import moment from 'moment';
 
-import {parseStatsPeriod} from 'app/components/organizations/globalSelectionHeader/getParams';
-import ConfigStore from 'app/stores/configStore';
-import {DateString} from 'app/types';
+import {parseStatsPeriod} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import ConfigStore from 'sentry/stores/configStore';
+import {DateString} from 'sentry/types';
 
 // TODO(billy): Move to TimeRangeSelector specific utils
 export const DEFAULT_DAY_START_TIME = '00:00:00';
@@ -215,9 +215,11 @@ export function statsPeriodToDays(
 ) {
   if (statsPeriod && statsPeriod.endsWith('d')) {
     return parseInt(statsPeriod.slice(0, -1), 10);
-  } else if (statsPeriod && statsPeriod.endsWith('h')) {
+  }
+  if (statsPeriod && statsPeriod.endsWith('h')) {
     return parseInt(statsPeriod.slice(0, -1), 10) / 24;
-  } else if (start && end) {
+  }
+  if (start && end) {
     return (new Date(end).getTime() - new Date(start).getTime()) / (24 * 60 * 60 * 1000);
   }
   return 0;
@@ -225,4 +227,10 @@ export function statsPeriodToDays(
 
 export const use24Hours = () => ConfigStore.get('user')?.options?.clock24Hours;
 
-export const getTimeFormat = () => (use24Hours() ? 'HH:mm' : 'LT');
+export function getTimeFormat({displaySeconds = false}: {displaySeconds?: boolean} = {}) {
+  if (use24Hours()) {
+    return displaySeconds ? 'HH:mm:ss' : 'HH:mm';
+  }
+
+  return displaySeconds ? 'LTS' : 'LT';
+}

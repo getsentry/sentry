@@ -1,24 +1,27 @@
 import {Component, Fragment} from 'react';
 import {Location} from 'history';
 
-import BarChart from 'app/components/charts/barChart';
-import BarChartZoom from 'app/components/charts/barChartZoom';
-import ErrorPanel from 'app/components/charts/errorPanel';
-import LoadingPanel from 'app/components/charts/loadingPanel';
-import OptionSelector from 'app/components/charts/optionSelector';
-import {HeaderTitleLegend} from 'app/components/charts/styles';
-import QuestionTooltip from 'app/components/questionTooltip';
-import {IconWarning} from 'app/icons';
-import {t, tct} from 'app/locale';
-import {OrganizationSummary} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import EventView from 'app/utils/discover/eventView';
-import Histogram from 'app/utils/performance/histogram';
-import HistogramQuery from 'app/utils/performance/histogram/histogramQuery';
-import {HistogramData} from 'app/utils/performance/histogram/types';
-import {computeBuckets, formatHistogramData} from 'app/utils/performance/histogram/utils';
-import {decodeInteger} from 'app/utils/queryString';
-import theme from 'app/utils/theme';
+import BarChart from 'sentry/components/charts/barChart';
+import BarChartZoom from 'sentry/components/charts/barChartZoom';
+import ErrorPanel from 'sentry/components/charts/errorPanel';
+import LoadingPanel from 'sentry/components/charts/loadingPanel';
+import OptionSelector from 'sentry/components/charts/optionSelector';
+import {HeaderTitleLegend} from 'sentry/components/charts/styles';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import {IconWarning} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import {OrganizationSummary} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import EventView from 'sentry/utils/discover/eventView';
+import Histogram from 'sentry/utils/performance/histogram';
+import HistogramQuery from 'sentry/utils/performance/histogram/histogramQuery';
+import {HistogramData} from 'sentry/utils/performance/histogram/types';
+import {
+  computeBuckets,
+  formatHistogramData,
+} from 'sentry/utils/performance/histogram/utils';
+import {decodeInteger} from 'sentry/utils/queryString';
+import theme from 'sentry/utils/theme';
 
 import {filterToColor, filterToField, SpanOperationBreakdownFilter} from '../filter';
 
@@ -247,7 +250,8 @@ class LatencyChart extends Component<Props, State> {
               {({histograms, isLoading, error}) => {
                 if (isLoading) {
                   return this.renderLoading();
-                } else if (error) {
+                }
+                if (error) {
                   return this.renderError();
                 }
 

@@ -1,7 +1,7 @@
 import Reflux from 'reflux';
 
-import TagActions from 'app/actions/tagActions';
-import {Tag, TagCollection} from 'app/types';
+import TagActions from 'sentry/actions/tagActions';
+import {Tag, TagCollection} from 'sentry/types';
 
 // This list is only used on issues. Events/discover
 // have their own field list that exists elsewhere.
@@ -51,14 +51,14 @@ const BUILTIN_TAGS = [
 
 type TagStoreInterface = {
   state: TagCollection;
-  getBuiltInTags: () => TagCollection;
-  getIssueAttributes: () => TagCollection;
-  getAllTags: () => TagCollection;
-  reset: () => void;
-  onLoadTagsSuccess: (data: Tag[]) => void;
+  getBuiltInTags(): TagCollection;
+  getIssueAttributes(): TagCollection;
+  getAllTags(): TagCollection;
+  reset(): void;
+  onLoadTagsSuccess(data: Tag[]): void;
 };
 
-const tagStoreConfig: Reflux.StoreDefinition & TagStoreInterface = {
+const storeConfig: Reflux.StoreDefinition & TagStoreInterface = {
   state: {},
 
   init() {
@@ -173,6 +173,6 @@ const tagStoreConfig: Reflux.StoreDefinition & TagStoreInterface = {
   },
 };
 
-const TagStore = Reflux.createStore(tagStoreConfig) as Reflux.Store & TagStoreInterface;
+const TagStore = Reflux.createStore(storeConfig) as Reflux.Store & TagStoreInterface;
 
 export default TagStore;

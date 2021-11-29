@@ -3,28 +3,28 @@ import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
 import moment from 'moment';
 
-import ActorAvatar from 'app/components/avatar/actorAvatar';
-import Duration from 'app/components/duration';
-import ErrorBoundary from 'app/components/errorBoundary';
-import IdBadge from 'app/components/idBadge';
-import Link from 'app/components/links/link';
-import Tag from 'app/components/tag';
-import TimeSince from 'app/components/timeSince';
-import {t} from 'app/locale';
-import TeamStore from 'app/stores/teamStore';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {Actor, Organization, Project} from 'app/types';
-import {getUtcDateString} from 'app/utils/dates';
-import getDynamicText from 'app/utils/getDynamicText';
-import {alertDetailsLink} from 'app/views/alerts/details';
+import ActorAvatar from 'sentry/components/avatar/actorAvatar';
+import Duration from 'sentry/components/duration';
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import IdBadge from 'sentry/components/idBadge';
+import Link from 'sentry/components/links/link';
+import Tag from 'sentry/components/tag';
+import TimeSince from 'sentry/components/timeSince';
+import {t} from 'sentry/locale';
+import TeamStore from 'sentry/stores/teamStore';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {Actor, Organization, Project} from 'sentry/types';
+import {getUtcDateString} from 'sentry/utils/dates';
+import getDynamicText from 'sentry/utils/getDynamicText';
+import {alertDetailsLink} from 'sentry/views/alerts/details';
 
 import {
   API_INTERVAL_POINTS_LIMIT,
   API_INTERVAL_POINTS_MIN,
 } from '../rules/details/constants';
 import {Incident, IncidentStatus} from '../types';
-import {getIncidentMetricPreset, isIssueAlert} from '../utils';
+import {getIncidentMetricPreset} from '../utils';
 
 /**
  * Retrieve the start/end for showing the graph of the metric
@@ -73,25 +73,17 @@ class AlertListRow extends Component<Props> {
   );
 
   render() {
-    const {incident, orgId, projectsLoaded, projects, organization} = this.props;
+    const {incident, projectsLoaded, projects, organization} = this.props;
     const slug = incident.projects[0];
     const started = moment(incident.dateStarted);
     const duration = moment
       .duration(moment(incident.dateClosed || new Date()).diff(started))
       .as('seconds');
 
-    const hasRedesign =
-      !isIssueAlert(incident.alertRule) &&
-      organization.features.includes('alert-details-redesign');
-
-    const alertLink = hasRedesign
-      ? {
-          pathname: alertDetailsLink(organization, incident),
-          query: {alert: incident.identifier},
-        }
-      : {
-          pathname: `/organizations/${orgId}/alerts/${incident.identifier}/`,
-        };
+    const alertLink = {
+      pathname: alertDetailsLink(organization, incident),
+      query: {alert: incident.identifier},
+    };
     const ownerId = incident.alertRule.owner?.split(':')[1];
     let teamName = '';
     if (ownerId) {
@@ -103,29 +95,29 @@ class AlertListRow extends Component<Props> {
 
     return (
       <ErrorBoundary>
-        <Title>
+        <Title data-test-id="alert-title">
           <Link to={alertLink}>{incident.title}</Link>
         </Title>
 
-        <NoWrap>
+        <NoWrapNumeric>
           {getDynamicText({
             value: <TimeSince date={incident.dateStarted} extraShort />,
             fixed: '1w ago',
           })}
-        </NoWrap>
-        <NoWrap>
+        </NoWrapNumeric>
+        <NoWrapNumeric>
           {incident.status === IncidentStatus.CLOSED ? (
             <Duration seconds={getDynamicText({value: duration, fixed: 1200})} />
           ) : (
             <Tag type="warning">{t('Still Active')}</Tag>
           )}
-        </NoWrap>
+        </NoWrapNumeric>
 
         <ProjectBadge
           avatarSize={18}
           project={!projectsLoaded ? {slug} : this.getProject(slug, projects)}
         />
-        <div>#{incident.id}</div>
+        <NoWrapNumeric>#{incident.id}</NoWrapNumeric>
 
         <FlexCenter>
           {teamActor ? (
@@ -147,8 +139,9 @@ const Title = styled('div')`
   min-width: 130px;
 `;
 
-const NoWrap = styled('div')`
+const NoWrapNumeric = styled('div')`
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 `;
 
 const ProjectBadge = styled(IdBadge)`

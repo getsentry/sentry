@@ -2,12 +2,12 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import Button from 'app/components/button';
-import {IconSearch} from 'app/icons';
-import {IconClose} from 'app/icons/iconClose';
-import {t} from 'app/locale';
-import {callIfFunction} from 'app/utils/callIfFunction';
-import Input from 'app/views/settings/components/forms/controls/input';
+import Button from 'sentry/components/button';
+import {IconSearch} from 'sentry/icons';
+import {IconClose} from 'sentry/icons/iconClose';
+import {t} from 'sentry/locale';
+import {callIfFunction} from 'sentry/utils/callIfFunction';
+import Input from 'sentry/views/settings/components/forms/controls/input';
 
 type DefaultProps = {
   query: string;
@@ -16,11 +16,9 @@ type DefaultProps = {
 };
 
 type Props = DefaultProps & {
-  placeholder?: string;
-  className?: string;
-  onChange?: (query: string) => void;
   width?: string;
-};
+  onChange?: (query: string) => void;
+} & Omit<React.ComponentProps<typeof Input>, 'onChange'>;
 
 type State = {
   query: string;
@@ -86,16 +84,25 @@ class SearchBar extends React.PureComponent<Props, State> {
   };
 
   render() {
-    const {className, width} = this.props;
+    // Remove keys that should not be passed into Input
+    const {
+      className,
+      width,
+      query: _q,
+      defaultQuery,
+      onChange: _oC,
+      onSearch: _oS,
+      ...inputProps
+    } = this.props;
 
     return (
       <div className={classNames('search', className)}>
         <form className="form-horizontal" onSubmit={this.onSubmit}>
           <div>
             <StyledInput
+              {...inputProps}
               type="text"
               className="search-input"
-              placeholder={this.props.placeholder}
               name="query"
               ref={this.searchInputRef}
               autoComplete="off"
@@ -105,7 +112,7 @@ class SearchBar extends React.PureComponent<Props, State> {
               width={width}
             />
             <StyledIconSearch className="search-input-icon" size="sm" color="gray300" />
-            {this.state.query !== this.props.defaultQuery && (
+            {this.state.query !== defaultQuery && (
               <SearchClearButton
                 type="button"
                 className="search-clear-form"

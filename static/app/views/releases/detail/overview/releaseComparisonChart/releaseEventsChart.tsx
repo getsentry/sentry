@@ -1,28 +1,27 @@
 import {Fragment} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
-import {withTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import {EChartOption} from 'echarts';
 
-import {Client} from 'app/api';
-import EventsChart from 'app/components/charts/eventsChart';
-import EventsRequest from 'app/components/charts/eventsRequest';
-import {HeaderTitleLegend, HeaderValue} from 'app/components/charts/styles';
-import {getInterval} from 'app/components/charts/utils';
-import QuestionTooltip from 'app/components/questionTooltip';
-import {t} from 'app/locale';
+import {Client} from 'sentry/api';
+import EventsChart from 'sentry/components/charts/eventsChart';
+import EventsRequest from 'sentry/components/charts/eventsRequest';
+import {HeaderTitleLegend, HeaderValue} from 'sentry/components/charts/styles';
+import {getInterval} from 'sentry/components/charts/utils';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import {t} from 'sentry/locale';
 import {
   DateString,
   Organization,
   ReleaseComparisonChartType,
   ReleaseProject,
   ReleaseWithHealth,
-} from 'app/types';
-import {tooltipFormatter} from 'app/utils/discover/charts';
-import {Theme} from 'app/utils/theme';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
-import withApi from 'app/utils/withApi';
-import withOrganization from 'app/utils/withOrganization';
-import {getTermHelp, PERFORMANCE_TERM} from 'app/views/performance/data';
+} from 'sentry/types';
+import {tooltipFormatter} from 'sentry/utils/discover/charts';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useApi from 'sentry/utils/useApi';
+import withOrganization from 'sentry/utils/withOrganization';
+import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
 
 import {
   generateReleaseMarkLines,
@@ -36,9 +35,7 @@ type Props = WithRouterProps & {
   chartType: ReleaseComparisonChartType;
   value: React.ReactNode;
   diff: React.ReactNode;
-  theme: Theme;
   organization: Organization;
-  api: Client;
   period?: string;
   start?: string;
   end?: string;
@@ -51,9 +48,7 @@ function ReleaseEventsChart({
   chartType,
   value,
   diff,
-  theme,
   organization,
-  api,
   router,
   period,
   start,
@@ -61,6 +56,9 @@ function ReleaseEventsChart({
   utc,
   location,
 }: Props) {
+  const api = useApi();
+  const theme = useTheme();
+
   function getColors() {
     const colors = theme.charts.getColorPalette(14);
     switch (chartType) {
@@ -156,11 +154,12 @@ function ReleaseEventsChart({
       interval={getInterval({start, end, period, utc}, 'high')}
       query="event.type:transaction"
       includePrevious={false}
-      currentSeriesName={t('All Releases')}
+      currentSeriesNames={[t('All Releases')]}
       yAxis={getYAxis()}
       field={getField()}
       confirmedQuery={chartType === ReleaseComparisonChartType.FAILURE_RATE}
       partial
+      referrer="api.releases.release-details-chart"
     >
       {({timeseriesData, loading, reloading}) => (
         <EventsChart
@@ -197,7 +196,13 @@ function ReleaseEventsChart({
               </HeaderValue>
             </Fragment>
           }
-          legendOptions={{right: 10, top: 0}}
+          legendOptions={{
+            right: 10,
+            top: 0,
+            textStyle: {
+              padding: [2, 0, 0, 0],
+            },
+          }}
           chartOptions={{
             grid: {left: '10px', right: '10px', top: '70px', bottom: '0px'},
             tooltip: {
@@ -221,10 +226,11 @@ function ReleaseEventsChart({
             }
             return series;
           }}
+          referrer="api.releases.release-details-chart"
         />
       )}
     </EventsRequest>
   );
 }
 
-export default withOrganization(withTheme(withRouter(withApi(ReleaseEventsChart))));
+export default withOrganization(withRouter(ReleaseEventsChart));

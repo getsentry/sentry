@@ -1,15 +1,15 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import ExternalLink from 'app/components/links/externalLink';
-import Link from 'app/components/links/link';
-import Tooltip from 'app/components/tooltip';
-import {IconClose, IconOpen} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {defined} from 'app/utils';
-import theme, {Color, Theme} from 'app/utils/theme';
+import Button from 'sentry/components/button';
+import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
+import Tooltip from 'sentry/components/tooltip';
+import {IconClose, IconOpen} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
+import theme, {Color, Theme} from 'sentry/utils/theme';
 
 const TAG_HEIGHT = '20px';
 
@@ -122,7 +122,8 @@ function Tag({
           {tag}
         </Link>
       );
-    } else if (defined(to)) {
+    }
+    if (defined(to)) {
       return <Link to={to}>{tag}</Link>;
     }
 

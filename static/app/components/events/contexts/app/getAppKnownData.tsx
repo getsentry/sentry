@@ -1,7 +1,7 @@
-import {getMeta} from 'app/components/events/meta/metaProxy';
-import {KeyValueListData} from 'app/types';
-import {Event} from 'app/types/event';
-import {defined} from 'app/utils';
+import {getMeta} from 'sentry/components/events/meta/metaProxy';
+import {KeyValueListData} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import {defined} from 'sentry/utils';
 
 import getAppKnownDataDetails from './getAppKnownDataDetails';
 import {AppData, AppKnownDataType} from './types';

@@ -22,13 +22,20 @@ def check_auth(**kwargs):
     # TODO(dcramer): we should remove identities if they've been inactivate
     # for a reasonable interval
     now = timezone.now()
+    chunk_size = 100
     cutoff = now - timedelta(seconds=AUTH_CHECK_INTERVAL)
-    identity_list = list(AuthIdentity.objects.filter(last_synced__lte=cutoff))
-    AuthIdentity.objects.filter(id__in=[i.id for i in identity_list]).update(last_synced=now)
-    for identity in identity_list:
-        check_auth_identity.apply_async(
-            kwargs={"auth_identity_id": identity.id}, expires=AUTH_CHECK_INTERVAL
-        )
+    identity_ids_list = list(
+        AuthIdentity.objects.using_replica()
+        .filter(last_synced__lte=cutoff)
+        .values_list("id", flat=True)
+    )
+    for n in range(0, len(identity_ids_list), chunk_size):
+        identity_ids_chunk = identity_ids_list[n : n + chunk_size]
+        AuthIdentity.objects.filter(id__in=identity_ids_chunk).update(last_synced=now)
+        for identity_id in identity_ids_chunk:
+            check_auth_identity.apply_async(
+                kwargs={"auth_identity_id": identity_id}, expires=AUTH_CHECK_INTERVAL
+            )
 
 
 @instrumented_task(name="sentry.tasks.check_auth_identity", queue="auth")

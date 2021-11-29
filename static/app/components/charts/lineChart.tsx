@@ -1,7 +1,7 @@
 import * as React from 'react';
 import {EChartOption} from 'echarts';
 
-import {Series} from 'app/types/echarts';
+import {Series} from 'sentry/types/echarts';
 
 import LineSeries from './series/lineSeries';
 import BaseChart from './baseChart';
@@ -30,7 +30,7 @@ export default class LineChart extends React.Component<Props> {
             ...seriesOptions,
             ...options,
             name: seriesName,
-            data: dataArray || data.map(({value, name}) => [name, value]),
+            data: dataArray || data?.map(({value, name}) => [name, value]),
             animation: false,
             animationThreshold: 1,
             animationDuration: 0,

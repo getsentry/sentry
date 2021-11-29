@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import responses
 from django.urls import reverse
 
@@ -409,6 +411,7 @@ class UpdateProjectRuleTest(APITestCase):
         )
 
         actions[0]["channel"] = "#new_channel_name"
+        actions[0]["channel_id"] = "new_channel_id"
 
         url = reverse(
             "sentry-api-0-project-rule-details",
@@ -433,6 +436,13 @@ class UpdateProjectRuleTest(APITestCase):
             status=200,
             content_type="application/json",
             body=json.dumps(channels),
+        )
+        responses.add(
+            method=responses.GET,
+            url="https://slack.com/api/conversations.info",
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"ok": channels["ok"], "channel": channels["channels"][1]}),
         )
 
         response = self.client.put(
@@ -500,13 +510,19 @@ class UpdateProjectRuleTest(APITestCase):
                 {"name": "new_channel_name", "id": "new_channel_id"},
             ],
         }
-
         responses.add(
             method=responses.GET,
-            url="https://slack.com/api/channels.list",
+            url="https://slack.com/api/conversations.list",
             status=200,
             content_type="application/json",
             body=json.dumps(channels),
+        )
+        responses.add(
+            method=responses.GET,
+            url="https://slack.com/api/conversations.info",
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"ok": channels["ok"], "channel": channels["channels"][0]}),
         )
 
         response = self.client.put(
@@ -572,7 +588,7 @@ class UpdateProjectRuleTest(APITestCase):
                         "name": "Send a notification to the funinthesun Slack workspace to #team-team-team and show tags [] in notification",
                         "workspace": integration.id,
                         "channel": "#team-team-team",
-                        "input_channel_id": "CSVK0921",
+                        "channel_id": "CSVK0921",
                     }
                 ],
                 "conditions": [
@@ -673,65 +689,66 @@ class UpdateProjectRuleTest(APITestCase):
 
         assert response.status_code == 400, response.content
 
-        def test_rule_form_missing_condition(self):
-            self.login_as(user=self.user)
+    def test_rule_form_owner_perms(self):
+        self.login_as(user=self.user)
 
-            project = self.create_project()
+        project = self.create_project()
 
-            rule = Rule.objects.create(project=project, label="foo")
+        rule = Rule.objects.create(project=project, label="foo")
 
-            url = reverse(
-                "sentry-api-0-project-rule-details",
-                kwargs={
-                    "organization_slug": project.organization.slug,
-                    "project_slug": project.slug,
-                    "rule_id": rule.id,
-                },
-            )
-            response = self.client.put(
-                url,
-                data={
-                    "name": "hello world",
-                    "actionMatch": "any",
-                    "filterMatch": "any",
-                    "conditions": [],
-                    "actions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
-                },
-                format="json",
-            )
+        url = reverse(
+            "sentry-api-0-project-rule-details",
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_slug": project.slug,
+                "rule_id": rule.id,
+            },
+        )
+        other_user = self.create_user()
+        response = self.client.put(
+            url,
+            data={
+                "name": "hello world",
+                "actionMatch": "any",
+                "filterMatch": "any",
+                "conditions": [{"id": "sentry.rules.conditions.tagged_event.TaggedEventCondition"}],
+                "actions": [],
+                "owner": other_user.actor.get_actor_identifier(),
+            },
+            format="json",
+        )
 
-            assert response.status_code == 400, response.content
+        assert response.status_code == 400, response.content
+        assert str(response.data["owner"][0]) == "User is not a member of this organization"
 
-        def test_rule_form_missing_action(self):
-            self.login_as(user=self.user)
+    def test_rule_form_missing_action(self):
+        self.login_as(user=self.user)
 
-            project = self.create_project()
+        project = self.create_project()
 
-            rule = Rule.objects.create(project=project, label="foo")
+        rule = Rule.objects.create(project=project, label="foo")
 
-            url = reverse(
-                "sentry-api-0-project-rule-details",
-                kwargs={
-                    "organization_slug": project.organization.slug,
-                    "project_slug": project.slug,
-                    "rule_id": rule.id,
-                },
-            )
-            response = self.client.put(
-                url,
-                data={
-                    "name": "hello world",
-                    "actionMatch": "any",
-                    "filterMatch": "any",
-                    "action": [],
-                    "conditions": [
-                        {"id": "sentry.rules.conditions.tagged_event.TaggedEventCondition"}
-                    ],
-                },
-                format="json",
-            )
+        url = reverse(
+            "sentry-api-0-project-rule-details",
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_slug": project.slug,
+                "rule_id": rule.id,
+            },
+        )
+        response = self.client.put(
+            url,
+            data={
+                "name": "hello world",
+                "actionMatch": "any",
+                "filterMatch": "any",
+                "action": [],
+                "conditions": [{"id": "sentry.rules.conditions.tagged_event.TaggedEventCondition"}],
+            },
+            format="json",
+        )
 
-            assert response.status_code == 400, response.content
+        assert response.status_code == 400, response.content
 
     def test_update_filters(self):
         self.login_as(user=self.user)
@@ -778,6 +795,76 @@ class UpdateProjectRuleTest(APITestCase):
             {"id": "sentry.rules.actions.notify_event.NotifyEventAction"}
         ]
         assert rule.data["conditions"] == conditions + filters
+
+        assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.UPDATED.value).exists()
+
+    @patch("sentry.mediators.alert_rule_actions.AlertRuleActionCreator.run")
+    def test_update_alert_rule_action(self, mock_alert_rule_action_creator):
+        """
+        Ensures that Sentry Apps with schema forms (UI components)
+        receive a payload when an alert rule is updated with them.
+        """
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+
+        rule = Rule.objects.create(project=project, label="my super cool rule")
+
+        self.create_sentry_app(
+            name="Pied Piper",
+            organization=project.organization,
+            schema={"elements": [self.create_alert_rule_action_schema()]},
+        )
+        install = self.create_sentry_app_installation(
+            slug="pied-piper", organization=project.organization
+        )
+
+        actions = [
+            {
+                "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+                "settings": {"title": "Team Rocket", "summary": "We're blasting off again."},
+                "sentryAppInstallationUuid": install.uuid,
+                "hasSchemaFormConfig": True,
+            },
+        ]
+
+        url = reverse(
+            "sentry-api-0-project-rule-details",
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_slug": project.slug,
+                "rule_id": rule.id,
+            },
+        )
+
+        response = self.client.put(
+            url,
+            data={
+                "name": "my super cool rule",
+                "actionMatch": "any",
+                "filterMatch": "any",
+                "actions": actions,
+                "conditions": [],
+                "filters": [],
+            },
+            format="json",
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == str(rule.id)
+
+        rule = Rule.objects.get(id=rule.id)
+        assert rule.data["actions"] == actions
+
+        kwargs = {
+            "install": install,
+            "fields": actions[0].get("settings"),
+        }
+
+        call_kwargs = mock_alert_rule_action_creator.call_args[1]
+
+        assert call_kwargs["install"].id == kwargs["install"].id
+        assert call_kwargs["fields"] == kwargs["fields"]
 
         assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.UPDATED.value).exists()
 

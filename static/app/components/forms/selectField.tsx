@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {defined} from 'app/utils';
+import {defined} from 'sentry/utils';
 
 import {StyledForm} from './form';
 import FormField from './formField';
@@ -72,7 +72,8 @@ export default class SelectField extends FormField<Props> {
 
     if (this.isMultiple()) {
       return value.map(v => v.value);
-    } else if (value.hasOwnProperty('value')) {
+    }
+    if (value.hasOwnProperty('value')) {
       return value.value;
     }
 

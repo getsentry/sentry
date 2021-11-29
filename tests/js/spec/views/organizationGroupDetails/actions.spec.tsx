@@ -1,25 +1,22 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import ModalActions from 'app/actions/modalActions';
-import ConfigStore from 'app/stores/configStore';
-import {Event} from 'app/types/event';
-import GroupActions from 'app/views/organizationGroupDetails/actions';
+import ModalActions from 'sentry/actions/modalActions';
+import ConfigStore from 'sentry/stores/configStore';
+import {Event} from 'sentry/types/event';
+import GroupActions from 'sentry/views/organizationGroupDetails/actions';
 
-// @ts-expect-error
 const group = TestStubs.Group({
   id: '1337',
   pluginActions: [],
   pluginIssues: [],
 });
 
-// @ts-expect-error
 const project = TestStubs.ProjectDetails({
   id: '2448',
   name: 'project name',
   slug: 'project',
 });
 
-// @ts-expect-error
 const organization = TestStubs.Organization({
   id: '4660',
   slug: 'org',
@@ -53,11 +50,9 @@ describe('GroupActions', function () {
   describe('subscribing', function () {
     let issuesApi: any;
     beforeEach(function () {
-      // @ts-expect-error
       issuesApi = MockApiClient.addMockResponse({
         url: '/projects/org/project/issues/',
         method: 'PUT',
-        // @ts-expect-error
         body: TestStubs.Group({isSubscribed: false}),
       });
     });
@@ -79,11 +74,9 @@ describe('GroupActions', function () {
   describe('bookmarking', function () {
     let issuesApi: any;
     beforeEach(function () {
-      // @ts-expect-error
       issuesApi = MockApiClient.addMockResponse({
         url: '/projects/org/project/issues/',
         method: 'PUT',
-        // @ts-expect-error
         body: TestStubs.Group({isBookmarked: false}),
       });
     });
@@ -111,7 +104,6 @@ describe('GroupActions', function () {
     });
 
     it('open dialog by clicking on the ReprocessAction component', async function () {
-      // @ts-expect-error
       const event = TestStubs.EventStacktraceException({
         platform: 'native',
       });
@@ -125,7 +117,6 @@ describe('GroupActions', function () {
 
       reprocessActionButton.simulate('click');
 
-      // @ts-expect-error
       await tick();
 
       expect(onReprocessEventFunc).toHaveBeenCalled();

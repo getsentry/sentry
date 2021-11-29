@@ -1,13 +1,14 @@
 import {browserHistory} from 'react-router';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {act} from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'app/stores/projectsStore';
-import TransactionTags from 'app/views/performance/transactionSummary/transactionTags';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import TransactionTags from 'sentry/views/performance/transactionSummary/transactionTags';
 
 function initializeData({query} = {query: {}}) {
-  const features = ['discover-basic', 'performance-view', 'performance-tag-page'];
+  const features = ['discover-basic', 'performance-view'];
   const organization = TestStubs.Organization({
     features,
     projects: [TestStubs.Project()],
@@ -24,11 +25,13 @@ function initializeData({query} = {query: {}}) {
       },
     },
   });
-  ProjectsStore.loadInitialData(initialData.organization.projects);
+  act(() => ProjectsStore.loadInitialData(initialData.organization.projects));
   return initialData;
 }
 
 describe('Performance > Transaction Tags', function () {
+  enforceActOnUseLegacyStoreHook();
+
   let histogramMock;
   let wrapper;
 
@@ -117,7 +120,7 @@ describe('Performance > Transaction Tags', function () {
     wrapper.unmount();
     histogramMock.mockReset();
     MockApiClient.clearMockResponses();
-    ProjectsStore.reset();
+    act(() => ProjectsStore.reset());
   });
 
   it('renders basic UI elements', async function () {

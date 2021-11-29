@@ -40,7 +40,6 @@ from sentry.incidents.endpoints.organization_incident_details import (
 )
 from sentry.incidents.endpoints.organization_incident_index import OrganizationIncidentIndexEndpoint
 from sentry.incidents.endpoints.organization_incident_seen import OrganizationIncidentSeenEndpoint
-from sentry.incidents.endpoints.organization_incident_stats import OrganizationIncidentStatsEndpoint
 from sentry.incidents.endpoints.organization_incident_subscription_index import (
     OrganizationIncidentSubscriptionIndexEndpoint,
 )
@@ -182,6 +181,10 @@ from .endpoints.organization_events_meta import (
     OrganizationEventsMetaEndpoint,
     OrganizationEventsRelatedIssuesEndpoint,
 )
+from .endpoints.organization_events_span_ops import OrganizationEventsSpanOpsEndpoint
+from .endpoints.organization_events_spans_performance import (
+    OrganizationEventsSpansPerformanceEndpoint,
+)
 from .endpoints.organization_events_stats import OrganizationEventsStatsEndpoint
 from .endpoints.organization_events_trace import (
     OrganizationEventsTraceEndpoint,
@@ -222,6 +225,13 @@ from .endpoints.organization_member_issues_viewed import OrganizationMemberIssue
 from .endpoints.organization_member_team_details import OrganizationMemberTeamDetailsEndpoint
 from .endpoints.organization_member_unreleased_commits import (
     OrganizationMemberUnreleasedCommitsEndpoint,
+)
+from .endpoints.organization_metrics import (
+    OrganizationMetricDetailsEndpoint,
+    OrganizationMetricsDataEndpoint,
+    OrganizationMetricsEndpoint,
+    OrganizationMetricsTagDetailsEndpoint,
+    OrganizationMetricsTagsEndpoint,
 )
 from .endpoints.organization_monitors import OrganizationMonitorsEndpoint
 from .endpoints.organization_onboarding_tasks import OrganizationOnboardingTaskEndpoint
@@ -275,17 +285,15 @@ from .endpoints.organization_user_teams import OrganizationUserTeamsEndpoint
 from .endpoints.organization_users import OrganizationUsersEndpoint
 from .endpoints.project_agnostic_rule_conditions import ProjectAgnosticRuleConditionsEndpoint
 from .endpoints.project_app_store_connect_credentials import (
-    AppStoreConnect2FactorAuthEndpoint,
     AppStoreConnectAppsEndpoint,
     AppStoreConnectCreateCredentialsEndpoint,
-    AppStoreConnectCredentialsValidateEndpoint,
-    AppStoreConnectRequestSmsEndpoint,
-    AppStoreConnectStartAuthEndpoint,
+    AppStoreConnectStatusEndpoint,
     AppStoreConnectUpdateCredentialsEndpoint,
 )
 from .endpoints.project_avatar import ProjectAvatarEndpoint
 from .endpoints.project_codeowners import ProjectCodeOwnersEndpoint
 from .endpoints.project_codeowners_details import ProjectCodeOwnersDetailsEndpoint
+from .endpoints.project_codeowners_request import ProjectCodeOwnersRequestEndpoint
 from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
 from .endpoints.project_create_sample_transaction import ProjectCreateSampleTransactionEndpoint
 from .endpoints.project_details import ProjectDetailsEndpoint
@@ -304,13 +312,6 @@ from .endpoints.project_key_details import ProjectKeyDetailsEndpoint
 from .endpoints.project_key_stats import ProjectKeyStatsEndpoint
 from .endpoints.project_keys import ProjectKeysEndpoint
 from .endpoints.project_member_index import ProjectMemberIndexEndpoint
-from .endpoints.project_metrics import (
-    ProjectMetricDetailsEndpoint,
-    ProjectMetricsDataEndpoint,
-    ProjectMetricsEndpoint,
-    ProjectMetricsTagDetailsEndpoint,
-    ProjectMetricsTagsEndpoint,
-)
 from .endpoints.project_ownership import ProjectOwnershipEndpoint
 from .endpoints.project_platforms import ProjectPlatformsEndpoint
 from .endpoints.project_plugin_details import ProjectPluginDetailsEndpoint
@@ -363,6 +364,7 @@ from .endpoints.relay_publickeys import RelayPublicKeysEndpoint
 from .endpoints.relay_register import RelayRegisterChallengeEndpoint, RelayRegisterResponseEndpoint
 from .endpoints.release_deploys import ReleaseDeploysEndpoint
 from .endpoints.sentry_app_authorizations import SentryAppAuthorizationsEndpoint
+from .endpoints.sentry_app_avatar import SentryAppAvatarEndpoint
 from .endpoints.sentry_app_components import (
     OrganizationSentryAppComponentsEndpoint,
     SentryAppComponentsEndpoint,
@@ -395,14 +397,18 @@ from .endpoints.setup_wizard import SetupWizard
 from .endpoints.shared_group_details import SharedGroupDetailsEndpoint
 from .endpoints.system_health import SystemHealthEndpoint
 from .endpoints.system_options import SystemOptionsEndpoint
+from .endpoints.team_alerts_triggered import TeamAlertsTriggeredEndpoint
 from .endpoints.team_avatar import TeamAvatarEndpoint
 from .endpoints.team_details import TeamDetailsEndpoint
 from .endpoints.team_groups_new import TeamGroupsNewEndpoint
 from .endpoints.team_groups_trending import TeamGroupsTrendingEndpoint
+from .endpoints.team_issue_breakdown import TeamIssueBreakdownEndpoint
 from .endpoints.team_members import TeamMembersEndpoint
 from .endpoints.team_notification_settings_details import TeamNotificationSettingsDetailsEndpoint
 from .endpoints.team_projects import TeamProjectsEndpoint
+from .endpoints.team_release_count import TeamReleaseCountEndpoint
 from .endpoints.team_stats import TeamStatsEndpoint
+from .endpoints.team_time_to_resolution import TeamTimeToResolutionEndpoint
 from .endpoints.user_authenticator_details import UserAuthenticatorDetailsEndpoint
 from .endpoints.user_authenticator_enroll import UserAuthenticatorEnrollEndpoint
 from .endpoints.user_authenticator_index import UserAuthenticatorIndexEndpoint
@@ -410,6 +416,10 @@ from .endpoints.user_details import UserDetailsEndpoint
 from .endpoints.user_emails import UserEmailsEndpoint
 from .endpoints.user_emails_confirm import UserEmailsConfirmEndpoint
 from .endpoints.user_identity import UserIdentityEndpoint
+from .endpoints.user_identity_config import (
+    UserIdentityConfigDetailsEndpoint,
+    UserIdentityConfigEndpoint,
+)
 from .endpoints.user_identity_details import UserIdentityDetailsEndpoint
 from .endpoints.user_index import UserIndexEndpoint
 from .endpoints.user_ips import UserIPsEndpoint
@@ -419,6 +429,9 @@ from .endpoints.user_notification_settings_details import UserNotificationSettin
 from .endpoints.user_organizationintegrations import UserOrganizationIntegrationsEndpoint
 from .endpoints.user_organizations import UserOrganizationsEndpoint
 from .endpoints.user_password import UserPasswordEndpoint
+from .endpoints.user_permission_details import UserPermissionDetailsEndpoint
+from .endpoints.user_permissions import UserPermissionsEndpoint
+from .endpoints.user_permissions_config import UserPermissionsConfigEndpoint
 from .endpoints.user_social_identities_index import UserSocialIdentitiesIndexEndpoint
 from .endpoints.user_social_identity_details import UserSocialIdentityDetailsEndpoint
 from .endpoints.user_subscriptions import UserSubscriptionsEndpoint
@@ -444,7 +457,11 @@ GROUP_URLS = [
         GroupingLevelNewIssuesEndpoint.as_view(),
     ),
     url(r"^(?P<issue_id>[^\/]+)/hashes/split/$", GroupHashesSplitEndpoint.as_view()),
-    url(r"^(?P<issue_id>[^\/]+)/reprocessing/$", GroupReprocessingEndpoint.as_view()),
+    url(
+        r"^(?P<issue_id>[^\/]+)/reprocessing/$",
+        GroupReprocessingEndpoint.as_view(),
+        name="sentry-api-0-issues-reprocessing",
+    ),
     url(r"^(?P<issue_id>[^\/]+)/stats/$", GroupStatsEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/tags/$", GroupTagsEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/tags/(?P<key>[^/]+)/$", GroupTagKeyDetailsEndpoint.as_view()),
@@ -678,6 +695,21 @@ urlpatterns = [
                     name="sentry-api-0-user-password",
                 ),
                 url(
+                    r"^(?P<user_id>[^\/]+)/permissions/$",
+                    UserPermissionsEndpoint.as_view(),
+                    name="sentry-api-0-user-permissions",
+                ),
+                url(
+                    r"^(?P<user_id>[^\/]+)/permissions/config/$",
+                    UserPermissionsConfigEndpoint.as_view(),
+                    name="sentry-api-0-user-permissions-config",
+                ),
+                url(
+                    r"^(?P<user_id>[^\/]+)/permissions/(?P<permission_name>[^\/]+)/$",
+                    UserPermissionDetailsEndpoint.as_view(),
+                    name="sentry-api-0-user-permission-details",
+                ),
+                url(
                     r"^(?P<user_id>[^\/]+)/social-identities/$",
                     UserSocialIdentitiesIndexEndpoint.as_view(),
                     name="sentry-api-0-user-social-identities-index",
@@ -696,6 +728,16 @@ urlpatterns = [
                     r"^(?P<user_id>[^\/]+)/organization-integrations/$",
                     UserOrganizationIntegrationsEndpoint.as_view(),
                     name="sentry-api-0-user-organization-integrations",
+                ),
+                url(
+                    r"^(?P<user_id>[^\/]+)/user-identities/$",
+                    UserIdentityConfigEndpoint.as_view(),
+                    name="sentry-api-0-user-identity-config",
+                ),
+                url(
+                    r"^(?P<user_id>[^\/]+)/user-identities/(?P<category>[\w-]+)/(?P<identity_id>[^\/]+)/$",
+                    UserIdentityConfigDetailsEndpoint.as_view(),
+                    name="sentry-api-0-user-identity-config-details",
                 ),
             ]
         ),
@@ -763,11 +805,6 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/$",
                     OrganizationIncidentDetailsEndpoint.as_view(),
                     name="sentry-api-0-organization-incident-details",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/stats/$",
-                    OrganizationIncidentStatsEndpoint.as_view(),
-                    name="sentry-api-0-organization-incident-stats",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/incidents/$",
@@ -992,6 +1029,16 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/events-facets-performance-histogram/$",
                     OrganizationEventsFacetsPerformanceHistogramEndpoint.as_view(),
                     name="sentry-api-0-organization-events-facets-performance-histogram",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/events-span-ops/$",
+                    OrganizationEventsSpanOpsEndpoint.as_view(),
+                    name="sentry-api-0-organization-events-span-ops",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/events-spans-performance/$",
+                    OrganizationEventsSpansPerformanceEndpoint.as_view(),
+                    name="sentry-api-0-organization-events-spans-performance",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/events-meta/$",
@@ -1407,6 +1454,31 @@ urlpatterns = [
                         ]
                     ),
                 ),
+                url(
+                    r"^(?P<organization_slug>[^/]+)/metrics/meta/$",
+                    OrganizationMetricsEndpoint.as_view(),
+                    name="sentry-api-0-organization-metrics-index",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^/]+)/metrics/meta/(?P<metric_name>[^/]+)/$",
+                    OrganizationMetricDetailsEndpoint.as_view(),
+                    name="sentry-api-0-organization-metric-details",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^/]+)/metrics/data/$",
+                    OrganizationMetricsDataEndpoint.as_view(),
+                    name="sentry-api-0-organization-metrics-data",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^/]+)/metrics/tags/$",
+                    OrganizationMetricsTagsEndpoint.as_view(),
+                    name="sentry-api-0-organization-metrics-tags",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^/]+)/metrics/tags/(?P<tag_name>[^/]+)/$",
+                    OrganizationMetricsTagDetailsEndpoint.as_view(),
+                    name="sentry-api-0-organization-metrics-tag-details",
+                ),
             ]
         ),
     ),
@@ -1452,9 +1524,29 @@ urlpatterns = [
                     name="sentry-api-0-team-groups-new",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/release-count/$",
+                    TeamReleaseCountEndpoint.as_view(),
+                    name="sentry-api-0-team-release-count",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/time-to-resolution/$",
+                    TeamTimeToResolutionEndpoint.as_view(),
+                    name="sentry-api-0-team-time-to-resolution",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/alerts-triggered/$",
+                    TeamAlertsTriggeredEndpoint.as_view(),
+                    name="sentry-api-0-team-alerts-triggered",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/(?:issues|groups)/trending/$",
                     TeamGroupsTrendingEndpoint.as_view(),
                     name="sentry-api-0-team-groups-trending",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/issue-breakdown/$",
+                    TeamIssueBreakdownEndpoint.as_view(),
+                    name="sentry-api-0-team-issue-breakdown",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/notification-settings/$",
@@ -1694,31 +1786,6 @@ urlpatterns = [
                     name="sentry-api-0-project-member-index",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^/]+)/metrics/meta/$",
-                    ProjectMetricsEndpoint.as_view(),
-                    name="sentry-api-0-project-metrics-index",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^/]+)/metrics/meta/(?P<metric_name>[^/]+)/$",
-                    ProjectMetricDetailsEndpoint.as_view(),
-                    name="sentry-api-0-project-metric-details",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^/]+)/metrics/data/$",
-                    ProjectMetricsDataEndpoint.as_view(),
-                    name="sentry-api-0-project-metrics-data",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^/]+)/metrics/tags/$",
-                    ProjectMetricsTagsEndpoint.as_view(),
-                    name="sentry-api-0-project-metrics-tags",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^/]+)/metrics/tags/(?P<tag_name>[^/]+)/$",
-                    ProjectMetricsTagDetailsEndpoint.as_view(),
-                    name="sentry-api-0-project-metrics-tag-details",
-                ),
-                url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/$",
                     ProjectReleasesEndpoint.as_view(),
                     name="sentry-api-0-project-releases",
@@ -1889,6 +1956,11 @@ urlpatterns = [
                     name="sentry-api-0-project-codeowners-details",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/codeowners-request/$",
+                    ProjectCodeOwnersRequestEndpoint.as_view(),
+                    name="getsentry-api-0-project-codeowners-request",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/transaction-threshold/configure/$",
                     ProjectTransactionThresholdEndpoint.as_view(),
                     name="sentry-api-0-project-transaction-threshold",
@@ -1946,24 +2018,9 @@ urlpatterns = [
                     name="sentry-api-0-project-appstoreconnect-apps",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/validate/(?P<credentials_id>[^\/]+)/$",
-                    AppStoreConnectCredentialsValidateEndpoint.as_view(),
-                    name="sentry-api-0-project-appstoreconnect-validate",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/start/$",
-                    AppStoreConnectStartAuthEndpoint.as_view(),
-                    name="sentry-api-0-project-appstoreconnect-start",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/requestSms/$",
-                    AppStoreConnectRequestSmsEndpoint.as_view(),
-                    name="sentry-api-0-project-appstoreconnect-requestSms",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/2fa/$",
-                    AppStoreConnect2FactorAuthEndpoint.as_view(),
-                    name="sentry-api-0-project-appstoreconnect-2fa",
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/status/$",
+                    AppStoreConnectStatusEndpoint.as_view(),
+                    name="sentry-api-0-project-appstoreconnect-status",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/(?P<credentials_id>[^\/]+)/$",
@@ -2006,6 +2063,11 @@ urlpatterns = [
         r"^sentry-apps/(?P<sentry_app_slug>[^\/]+)/components/$",
         SentryAppComponentsEndpoint.as_view(),
         name="sentry-api-0-sentry-app-components",
+    ),
+    url(
+        r"^sentry-apps/(?P<sentry_app_slug>[^\/]+)/avatar/$",
+        SentryAppAvatarEndpoint.as_view(),
+        name="sentry-api-0-sentry-app-avatar",
     ),
     url(
         r"^sentry-apps/(?P<sentry_app_slug>[^\/]+)/api-tokens/$",

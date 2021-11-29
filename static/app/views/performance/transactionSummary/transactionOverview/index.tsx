@@ -2,26 +2,25 @@ import {useEffect} from 'react';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
 
-import {loadOrganizationTags} from 'app/actionCreators/tags';
-import {Client} from 'app/api';
-import {t} from 'app/locale';
-import {GlobalSelection, Organization, Project} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import DiscoverQuery from 'app/utils/discover/discoverQuery';
-import EventView from 'app/utils/discover/eventView';
+import {loadOrganizationTags} from 'sentry/actionCreators/tags';
+import {t} from 'sentry/locale';
+import {GlobalSelection, Organization, Project} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
+import EventView from 'sentry/utils/discover/eventView';
 import {
   Column,
   isAggregateField,
   QueryFieldValue,
   WebVital,
-} from 'app/utils/discover/fields';
-import {removeHistogramQueryStrings} from 'app/utils/performance/histogram';
-import {decodeScalar} from 'app/utils/queryString';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
-import withApi from 'app/utils/withApi';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import withOrganization from 'app/utils/withOrganization';
-import withProjects from 'app/utils/withProjects';
+} from 'sentry/utils/discover/fields';
+import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useApi from 'sentry/utils/useApi';
+import withGlobalSelection from 'sentry/utils/withGlobalSelection';
+import withOrganization from 'sentry/utils/withOrganization';
+import withProjects from 'sentry/utils/withProjects';
 
 import {addRoutePerformanceContext} from '../../utils';
 import {
@@ -44,7 +43,6 @@ import {ZOOM_END, ZOOM_START} from './latencyChart';
 type TotalValues = Record<string, number>;
 
 type Props = {
-  api: Client;
   location: Location;
   selection: GlobalSelection;
   organization: Organization;
@@ -52,7 +50,9 @@ type Props = {
 };
 
 function TransactionOverview(props: Props) {
-  const {api, location, selection, organization, projects} = props;
+  const api = useApi();
+
+  const {location, selection, organization, projects} = props;
 
   useEffect(() => {
     loadOrganizationTags(api, organization.slug, selection);
@@ -77,6 +77,7 @@ function OverviewContentWrapper(props: ChildProps) {
     location,
     organization,
     eventView,
+    projectId,
     transactionName,
     transactionThreshold,
     transactionThresholdMetric,
@@ -124,6 +125,7 @@ function OverviewContentWrapper(props: ChildProps) {
             location={location}
             organization={organization}
             eventView={eventView}
+            projectId={projectId}
             transactionName={transactionName}
             isLoading={isLoading}
             error={error}
@@ -158,7 +160,9 @@ function generateEventView(location: Location, transactionName: string): EventVi
     .setFilterValues('transaction', [transactionName]);
 
   Object.keys(conditions.filters).forEach(field => {
-    if (isAggregateField(field)) conditions.removeFilter(field);
+    if (isAggregateField(field)) {
+      conditions.removeFilter(field);
+    }
   });
 
   const fields = ['id', 'user.display', 'transaction.duration', 'trace', 'timestamp'];
@@ -232,6 +236,4 @@ function getTotalsEventView(
   ]);
 }
 
-export default withApi(
-  withGlobalSelection(withProjects(withOrganization(TransactionOverview)))
-);
+export default withGlobalSelection(withProjects(withOrganization(TransactionOverview)));

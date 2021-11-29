@@ -51,6 +51,13 @@ register(
     flags=FLAG_PRIORITIZE_DISK,
 )
 register("releasefile.cache-limit", type=Int, default=10 * 1024 * 1024, flags=FLAG_PRIORITIZE_DISK)
+register(
+    "releasefile.cache-max-archive-size",
+    type=Int,
+    default=1024 * 1024 * 1024,
+    flags=FLAG_PRIORITIZE_DISK,
+)
+
 
 # Mail
 register("mail.backend", default="smtp", flags=FLAG_NOSTORE)
@@ -324,6 +331,7 @@ register("store.load-shed-process-event-projects", type=Any, default=[])
 register("store.load-shed-symbolicate-event-projects", type=Any, default=[])
 register("store.symbolicate-event-lpq-never", type=Sequence, default=[])
 register("store.symbolicate-event-lpq-always", type=Sequence, default=[])
+register("post_process.get-autoassign-owners", type=Sequence, default=[])
 
 # Switch for more performant project counter incr
 register("store.projectcounter-modern-upsert-sample-rate", default=0.0)
@@ -367,3 +375,12 @@ register("subscriptions-query.sample-rate", default=0.01)
 # This is to allow gradual rollout of metrics collection for symbolication requests and can be
 # removed once it is fully rolled out.
 register("symbolicate-event.low-priority.metrics.submission-rate", default=0.0)
+
+# This is to enable the ingestion of suspect spans by project ids.
+register("performance.suspect-spans-ingestion-projects", default={})
+# This is to enable the ingestion of suspect spans by project groups.
+register("performance.suspect-spans-ingestion.rollout-rate", default=0)
+
+# Sampling rate for controlled rollout of a change where ignest-consumer spawns
+# special save_event task for transactions avoiding the preprocess.
+register("store.save-transactions-ingest-consumer-rate", default=0.0)

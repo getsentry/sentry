@@ -12,20 +12,19 @@ import {
   addErrorMessage,
   addLoadingMessage,
   clearIndicators,
-} from 'app/actionCreators/indicator';
-import {Client} from 'app/api';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
+} from 'sentry/actionCreators/indicator';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import FeatureTourModal, {
   TourImage,
   TourStep,
   TourText,
-} from 'app/components/modals/featureTourModal';
-import OnboardingPanel from 'app/components/onboardingPanel';
-import {t} from 'app/locale';
-import {Organization, Project} from 'app/types';
-import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
-import withApi from 'app/utils/withApi';
+} from 'sentry/components/modals/featureTourModal';
+import OnboardingPanel from 'sentry/components/onboardingPanel';
+import {t} from 'sentry/locale';
+import {Organization, Project} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import useApi from 'sentry/utils/useApi';
 
 const performanceSetupUrl =
   'https://docs.sentry.io/performance-monitoring/getting-started/';
@@ -88,11 +87,12 @@ export const PERFORMANCE_TOUR_STEPS: TourStep[] = [
 
 type Props = {
   organization: Organization;
-  api: Client;
   project: Project;
 };
 
-function Onboarding({organization, project, api}: Props) {
+function Onboarding({organization, project}: Props) {
+  const api = useApi();
+
   function handleAdvance(step: number, duration: number) {
     trackAdvancedAnalyticsEvent('performance_views.tour.advance', {
       step,
@@ -108,6 +108,7 @@ function Onboarding({organization, project, api}: Props) {
       organization,
     });
   }
+
   return (
     <OnboardingPanel image={<PerfImage src={emptyStateImg} />}>
       <h3>{t('Pinpoint problems')}</h3>
@@ -152,7 +153,7 @@ function Onboarding({organization, project, api}: Props) {
             }
           }}
         >
-          {t('Create Sample Transaction')}
+          {t('View Sample Transaction')}
         </Button>
       </ButtonList>
       <FeatureTourModal
@@ -204,4 +205,4 @@ const ButtonList = styled(ButtonBar)`
   margin-bottom: 16px;
 `;
 
-export default withApi(Onboarding);
+export default Onboarding;

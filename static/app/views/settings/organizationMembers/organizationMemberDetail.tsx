@@ -3,34 +3,34 @@ import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {removeAuthenticator} from 'app/actionCreators/account';
+import {removeAuthenticator} from 'sentry/actionCreators/account';
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
-} from 'app/actionCreators/indicator';
-import {resendMemberInvite, updateMember} from 'app/actionCreators/members';
-import AutoSelectText from 'app/components/autoSelectText';
-import Button from 'app/components/button';
-import Confirm from 'app/components/confirm';
-import DateTime from 'app/components/dateTime';
-import NotFound from 'app/components/errors/notFound';
-import HookOrDefault from 'app/components/hookOrDefault';
-import ExternalLink from 'app/components/links/externalLink';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
-import Tooltip from 'app/components/tooltip';
-import {t, tct} from 'app/locale';
-import {inputStyles} from 'app/styles/input';
-import space from 'app/styles/space';
-import {Member, Organization, Team} from 'app/types';
-import isMemberDisabledFromLimit from 'app/utils/isMemberDisabledFromLimit';
-import recreateRoute from 'app/utils/recreateRoute';
-import withOrganization from 'app/utils/withOrganization';
-import withTeams from 'app/utils/withTeams';
-import AsyncView from 'app/views/asyncView';
-import Field from 'app/views/settings/components/forms/field';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import TeamSelect from 'app/views/settings/components/teamSelect';
+} from 'sentry/actionCreators/indicator';
+import {resendMemberInvite, updateMember} from 'sentry/actionCreators/members';
+import AutoSelectText from 'sentry/components/autoSelectText';
+import Button from 'sentry/components/button';
+import Confirm from 'sentry/components/confirm';
+import DateTime from 'sentry/components/dateTime';
+import NotFound from 'sentry/components/errors/notFound';
+import HookOrDefault from 'sentry/components/hookOrDefault';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
+import Tooltip from 'sentry/components/tooltip';
+import {t, tct} from 'sentry/locale';
+import {inputStyles} from 'sentry/styles/input';
+import space from 'sentry/styles/space';
+import {Member, Organization, Team} from 'sentry/types';
+import isMemberDisabledFromLimit from 'sentry/utils/isMemberDisabledFromLimit';
+import recreateRoute from 'sentry/utils/recreateRoute';
+import Teams from 'sentry/utils/teams';
+import withOrganization from 'sentry/utils/withOrganization';
+import AsyncView from 'sentry/views/asyncView';
+import Field from 'sentry/views/settings/components/forms/field';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import TeamSelect from 'sentry/views/settings/components/teamSelect';
 
 import RoleSelect from './inviteMember/roleSelect';
 
@@ -48,7 +48,6 @@ type RouteParams = {
 
 type Props = {
   organization: Organization;
-  teams: Team[];
 } & RouteComponentProps<RouteParams, {}>;
 
 type State = {
@@ -234,7 +233,7 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const {organization, teams} = this.props;
+    const {organization} = this.props;
     const {member} = this.state;
 
     if (!member) {
@@ -362,15 +361,18 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
           setRole={slug => this.setState({member: {...member, role: slug}})}
         />
 
-        <TeamSelect
-          organization={organization}
-          selectedTeams={member.teams
-            .map(teamSlug => teams.find(team => team.slug === teamSlug)!)
-            .filter(team => team !== undefined)}
-          disabled={!canEdit}
-          onAddTeam={this.handleAddTeam}
-          onRemoveTeam={this.handleRemoveTeam}
-        />
+        <Teams slugs={member.teams}>
+          {({teams, initiallyLoaded}) => (
+            <TeamSelect
+              organization={organization}
+              selectedTeams={teams}
+              disabled={!canEdit}
+              onAddTeam={this.handleAddTeam}
+              onRemoveTeam={this.handleRemoveTeam}
+              loadingTeams={!initiallyLoaded}
+            />
+          )}
+        </Teams>
 
         <Footer>
           <Button
@@ -387,7 +389,7 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
   }
 }
 
-export default withTeams(withOrganization(OrganizationMemberDetail));
+export default withOrganization(OrganizationMemberDetail);
 
 const ExtraHeaderText = styled('div')`
   color: ${p => p.theme.gray300};

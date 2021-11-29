@@ -1,11 +1,11 @@
 import {components, OptionProps} from 'react-select';
 import styled from '@emotion/styled';
 
-import SelectControl from 'app/components/forms/selectControl';
-import Highlight from 'app/components/highlight';
-import Tooltip from 'app/components/tooltip';
-import {t} from 'app/locale';
-import SelectField from 'app/views/settings/components/forms/selectField';
+import SelectControl from 'sentry/components/forms/selectControl';
+import Highlight from 'sentry/components/highlight';
+import Tooltip from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
+import SelectField from 'sentry/views/settings/components/forms/selectField';
 
 import {MetricMeta} from './types';
 
@@ -26,10 +26,10 @@ function MetricSelectField({metricMetas, metricMeta, aggregation, onChange}: Pro
     <Wrapper>
       <StyledSelectField
         name="metric"
-        choices={metricMetas.map(metricMetaChoice => [
-          metricMetaChoice.name,
-          metricMetaChoice.name,
-        ])}
+        options={metricMetas.map(metricMetaChoice => ({
+          value: metricMetaChoice.name,
+          label: metricMetaChoice.name,
+        }))}
         placeholder={t('Select metric')}
         onChange={value => {
           const newMetric = metricMetas.find(

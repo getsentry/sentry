@@ -1,4 +1,4 @@
-from collections import Hashable, MutableMapping
+from collections.abc import Hashable, MutableMapping
 
 __unset__ = object()
 

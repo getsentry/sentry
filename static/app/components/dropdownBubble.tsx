@@ -1,8 +1,8 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Theme} from 'app/utils/theme';
-import SettingsHeader from 'app/views/settings/components/settingsHeader';
+import {Theme} from 'sentry/utils/theme';
+import SettingsHeader from 'sentry/views/settings/components/settingsHeader';
 
 type Params = {
   /**

@@ -3,29 +3,29 @@ import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import DropdownMenu from 'app/components/dropdownMenu';
-import HookOrDefault from 'app/components/hookOrDefault';
-import HeaderItem from 'app/components/organizations/headerItem';
-import MultipleSelectorSubmitRow from 'app/components/organizations/multipleSelectorSubmitRow';
-import DateRange from 'app/components/organizations/timeRangeSelector/dateRange';
-import SelectorItems from 'app/components/organizations/timeRangeSelector/dateRange/selectorItems';
-import DateSummary from 'app/components/organizations/timeRangeSelector/dateSummary';
-import {getRelativeSummary} from 'app/components/organizations/timeRangeSelector/utils';
-import {DEFAULT_STATS_PERIOD} from 'app/constants';
-import {IconCalendar} from 'app/icons';
-import space from 'app/styles/space';
-import {DateString, LightWeightOrganization} from 'app/types';
-import {defined} from 'app/utils';
-import {analytics} from 'app/utils/analytics';
+import DropdownMenu from 'sentry/components/dropdownMenu';
+import HookOrDefault from 'sentry/components/hookOrDefault';
+import HeaderItem from 'sentry/components/organizations/headerItem';
+import MultipleSelectorSubmitRow from 'sentry/components/organizations/multipleSelectorSubmitRow';
+import DateRange from 'sentry/components/organizations/timeRangeSelector/dateRange';
+import SelectorItems from 'sentry/components/organizations/timeRangeSelector/dateRange/selectorItems';
+import DateSummary from 'sentry/components/organizations/timeRangeSelector/dateSummary';
+import {getRelativeSummary} from 'sentry/components/organizations/timeRangeSelector/utils';
+import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
+import {IconCalendar} from 'sentry/icons';
+import space from 'sentry/styles/space';
+import {DateString, Organization} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import {analytics} from 'sentry/utils/analytics';
 import {
   getLocalToSystem,
   getPeriodAgo,
   getUserTimezone,
   getUtcToSystem,
   parsePeriodToHours,
-} from 'app/utils/dates';
-import getDynamicText from 'app/utils/getDynamicText';
-import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
+} from 'sentry/utils/dates';
+import getDynamicText from 'sentry/utils/getDynamicText';
+import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 
 // Strips timezone from local date, creates a new moment date object with timezone
 // Then returns as a Date object
@@ -41,11 +41,10 @@ const getDateWithTimezoneInUtc = (date, utc) =>
 const getInternalDate = (date, utc) => {
   if (utc) {
     return getUtcToSystem(date);
-  } else {
-    return new Date(
-      moment.tz(moment.utc(date), getUserTimezone()).format('YYYY/MM/DD HH:mm:ss')
-    );
   }
+  return new Date(
+    moment.tz(moment.utc(date), getUserTimezone()).format('YYYY/MM/DD HH:mm:ss')
+  );
 };
 
 const DateRangeHook = HookOrDefault({
@@ -133,12 +132,22 @@ type Props = WithRouterProps & {
   /**
    * Just used for metrics
    */
-  organization: LightWeightOrganization;
+  organization: Organization;
 
   /**
    * Small info icon with tooltip hint text
    */
   hint?: string;
+
+  /**
+   * Set an optional default value to prefill absolute date with
+   */
+  defaultAbsolute?: {start?: Date; end?: Date};
+
+  /**
+   * The maximum number of days in the past you can pick
+   */
+  maxPickableDays?: number;
 } & Partial<typeof defaultProps>;
 
 type State = {
@@ -231,17 +240,19 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
   };
 
   handleAbsoluteClick = () => {
-    const {relative, onChange, defaultPeriod} = this.props;
+    const {relative, onChange, defaultPeriod, defaultAbsolute} = this.props;
 
     // Set default range to equivalent of last relative period,
     // or use default stats period
     const newDateTime: ChangeData = {
       relative: null,
-      start: getPeriodAgo(
-        'hours',
-        parsePeriodToHours(relative || defaultPeriod || DEFAULT_STATS_PERIOD)
-      ).toDate(),
-      end: new Date(),
+      start: defaultAbsolute?.start
+        ? defaultAbsolute.start
+        : getPeriodAgo(
+            'hours',
+            parsePeriodToHours(relative || defaultPeriod || DEFAULT_STATS_PERIOD)
+          ).toDate(),
+      end: defaultAbsolute?.end ? defaultAbsolute.end : new Date(),
     };
 
     if (defined(this.props.utc)) {
@@ -360,6 +371,7 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
       hint,
       label,
       relativeOptions,
+      maxPickableDays,
     } = this.props;
     const {start, end, relative} = this.state;
 
@@ -429,6 +441,7 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
                       utc={this.state.utc}
                       onChange={this.handleSelectDateRange}
                       onChangeUtc={this.handleUseUtc}
+                      maxPickableDays={maxPickableDays}
                     />
                     <SubmitRow>
                       <MultipleSelectorSubmitRow

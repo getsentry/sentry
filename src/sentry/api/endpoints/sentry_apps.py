@@ -62,6 +62,9 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
             "schema": request.json_body.get("schema", {}),
             "overview": request.json_body.get("overview"),
             "allowedOrigins": request.json_body.get("allowedOrigins", []),
+            "popularity": request.json_body.get("popularity")
+            if request.user.is_superuser
+            else None,
         }
 
         if self._has_hook_events(request) and not features.has(
@@ -77,7 +80,17 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
                 status=403,
             )
 
-        serializer = SentryAppSerializer(data=data, access=request.access)
+        serializer = SentryAppSerializer(
+            data=data,
+            access=request.access,
+            context={
+                "features": {
+                    "organizations:alert-rule-ui-component": features.has(
+                        "organizations:alert-rule-ui-component", organization, actor=request.user
+                    )
+                }
+            },
+        )
 
         if serializer.is_valid():
             data["redirect_url"] = data["redirectUrl"]

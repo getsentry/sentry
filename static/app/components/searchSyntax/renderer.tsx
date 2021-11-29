@@ -3,8 +3,8 @@ import {css, keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useReducedMotion} from 'framer-motion';
 
-import Tooltip from 'app/components/tooltip';
-import space from 'app/styles/space';
+import Tooltip from 'sentry/components/tooltip';
+import space from 'sentry/styles/space';
 
 import {ParseResult, Token, TokenResult} from './parser';
 import {isWithinToken} from './utils';
@@ -254,7 +254,7 @@ const Operator = styled('span')`
   border-left: none;
   border-right: none;
   margin: -1px 0;
-  color: ${p => p.theme.orange400};
+  color: ${p => p.theme.pink300};
 `;
 
 const Value = styled('span')`
@@ -320,7 +320,7 @@ const LogicGroup = styled(({children, ...props}) => (
     &:before {
       position: absolute;
       top: -5px;
-      color: ${p => p.theme.orange400};
+      color: ${p => p.theme.pink300};
       font-size: 16px;
       font-weight: bold;
     }

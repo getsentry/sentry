@@ -1,17 +1,15 @@
 import * as React from 'react';
-import {withTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import CircleIndicator from 'app/components/circleIndicator';
-import Tag from 'app/components/tagDeprecated';
-import Tooltip from 'app/components/tooltip';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Theme} from 'app/utils/theme';
+import CircleIndicator from 'sentry/components/circleIndicator';
+import Tag from 'sentry/components/tagDeprecated';
+import Tooltip from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 
 type BadgeProps = {
   type: 'alpha' | 'beta' | 'new';
-  theme: Theme;
   variant?: 'indicator' | 'badge';
   title?: string;
   noTooltip?: boolean;
@@ -31,31 +29,28 @@ const labels = {
   new: t('new'),
 };
 
-const BaseFeatureBadge = ({
-  type,
-  variant = 'badge',
-  title,
-  theme,
-  noTooltip,
-  ...p
-}: Props) => (
-  <div {...p}>
-    <Tooltip title={title ?? defaultTitles[type]} disabled={noTooltip} position="right">
-      <React.Fragment>
-        {variant === 'badge' && <StyledTag priority={type}>{labels[type]}</StyledTag>}
-        {variant === 'indicator' && (
-          <CircleIndicator color={theme.badge[type].indicatorColor} size={8} />
-        )}
-      </React.Fragment>
-    </Tooltip>
-  </div>
-);
+function BaseFeatureBadge({type, variant = 'badge', title, noTooltip, ...p}: Props) {
+  const theme = useTheme();
+
+  return (
+    <div {...p}>
+      <Tooltip title={title ?? defaultTitles[type]} disabled={noTooltip} position="right">
+        <React.Fragment>
+          {variant === 'badge' && <StyledTag priority={type}>{labels[type]}</StyledTag>}
+          {variant === 'indicator' && (
+            <CircleIndicator color={theme.badge[type].indicatorColor} size={8} />
+          )}
+        </React.Fragment>
+      </Tooltip>
+    </div>
+  );
+}
 
 const StyledTag = styled(Tag)`
   padding: 3px ${space(0.75)};
 `;
 
-const FeatureBadge = styled(withTheme(BaseFeatureBadge))`
+const FeatureBadge = styled(BaseFeatureBadge)`
   display: inline-flex;
   align-items: center;
   margin-left: ${space(0.75)};

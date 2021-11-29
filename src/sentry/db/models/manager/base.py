@@ -7,7 +7,7 @@ from typing import Any, Generator, Generic, Mapping, MutableMapping, Optional, S
 from django.conf import settings
 from django.db import router
 from django.db.models import Model
-from django.db.models.manager import Manager
+from django.db.models.manager import BaseManager as DjangoBaseManager
 from django.db.models.signals import class_prepared, post_delete, post_init, post_save
 
 from sentry.db.models.manager import M, make_key
@@ -24,7 +24,7 @@ _local_cache_generation = 0
 _local_cache_enabled = False
 
 
-class BaseManager(Manager, Generic[M]):  # type: ignore
+class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  # type: ignore
     lookup_handlers = {"iexact": lambda x: x.upper()}
     use_for_related_fields = True
 

@@ -1,11 +1,14 @@
 from uuid import uuid4
 
+from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryProject
+from sentry.incidents.models import AlertRule, AlertRuleStatus
 from sentry.models import (
     Commit,
     CommitAuthor,
     Dashboard,
     DashboardWidget,
     DashboardWidgetQuery,
+    DashboardWidgetTypes,
     Environment,
     ExternalIssue,
     Group,
@@ -18,6 +21,7 @@ from sentry.models import (
     Repository,
     ScheduledDeletion,
 )
+from sentry.snuba.models import SnubaQuery
 from sentry.tasks.deletion import run_deletion
 from sentry.testutils import TransactionTestCase
 
@@ -56,10 +60,18 @@ class DeleteOrganizationTest(TransactionTestCase):
             organization_id=org.id, title="The Dashboard", created_by=self.user
         )
         widget_1 = DashboardWidget.objects.create(
-            dashboard=dashboard, order=1, title="Widget 1", display_type=0
+            dashboard=dashboard,
+            order=1,
+            title="Widget 1",
+            display_type=0,
+            widget_type=DashboardWidgetTypes.DISCOVER,
         )
         widget_2 = DashboardWidget.objects.create(
-            dashboard=dashboard, order=2, title="Widget 2", display_type=5
+            dashboard=dashboard,
+            order=2,
+            title="Widget 2",
+            display_type=5,
+            widget_type=DashboardWidgetTypes.DISCOVER,
         )
         widget_1_data = DashboardWidgetQuery.objects.create(
             widget=widget_1, order=1, name="Incoming data"
@@ -184,3 +196,57 @@ class DeleteOrganizationTest(TransactionTestCase):
         assert not Organization.objects.filter(id=org.id).exists()
         assert not Commit.objects.filter(id=commit.id).exists()
         assert not CommitAuthor.objects.filter(id=author.id).exists()
+
+    def test_alert_rule(self):
+        org = self.create_organization(name="test", owner=self.user)
+        self.create_team(organization=org, name="test1")
+
+        env = Environment.objects.create(organization_id=org.id, name="foo")
+        snuba_query = SnubaQuery.objects.create(
+            dataset="events", aggregate="count()", time_window=60, resolution=60, environment=env
+        )
+        alert_rule = AlertRule.objects.create(
+            organization=org,
+            name="rule with environment",
+            threshold_period=1,
+            snuba_query=snuba_query,
+            # This status is hidden from the default finder.
+            status=AlertRuleStatus.SNAPSHOT.value,
+        )
+
+        org.update(status=OrganizationStatus.PENDING_DELETION)
+        deletion = ScheduledDeletion.schedule(org, days=0)
+        deletion.update(in_progress=True)
+
+        with self.tasks():
+            run_deletion(deletion.id)
+
+        assert not Organization.objects.filter(id=org.id).exists()
+        assert not Environment.objects.filter(id=env.id).exists()
+        assert not AlertRule.objects.filter(id=alert_rule.id).exists()
+        assert not SnubaQuery.objects.filter(id=snuba_query.id).exists()
+
+    def test_discover_query_cleanup(self):
+        org = self.create_organization(name="test", owner=self.user)
+        self.create_team(organization=org, name="test1")
+
+        other = self.create_organization(name="other", owner=self.user)
+        other_project = self.create_project(organization=other, name="other project")
+
+        query = DiscoverSavedQuery.objects.create(organization=org, name="test query", query="{}")
+        # Make a cross-org project reference. This can happen when an account was
+        # merged in the past and we didn't update the discover queries.
+        query_project = DiscoverSavedQueryProject.objects.create(
+            discover_saved_query=query, project=other_project
+        )
+
+        org.update(status=OrganizationStatus.PENDING_DELETION)
+        deletion = ScheduledDeletion.schedule(org, days=0)
+        deletion.update(in_progress=True)
+
+        with self.tasks():
+            run_deletion(deletion.id)
+
+        assert not Organization.objects.filter(id=org.id).exists()
+        assert not DiscoverSavedQuery.objects.filter(id=query.id).exists()
+        assert not DiscoverSavedQueryProject.objects.filter(id=query_project.id).exists()

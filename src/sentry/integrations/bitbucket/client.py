@@ -8,7 +8,7 @@ from sentry.integrations.client import ApiClient
 from sentry.utils import jwt
 from sentry.utils.http import absolute_uri
 
-BITBUCKET_KEY = "%s.bitbucket" % urlparse(absolute_uri()).hostname
+BITBUCKET_KEY = f"{urlparse(absolute_uri()).hostname}.bitbucket"
 
 
 class BitbucketAPIPath:

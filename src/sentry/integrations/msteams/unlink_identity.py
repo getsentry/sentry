@@ -1,3 +1,4 @@
+from django.core.signing import BadSignature, SignatureExpired
 from django.urls import reverse
 from django.views.decorators.cache import never_cache
 
@@ -30,11 +31,17 @@ class MsTeamsUnlinkIdentityView(BaseView):
     @transaction_start("MsTeamsUnlinkIdentityView")
     @never_cache
     def handle(self, request, signed_params):
-        params = unsign(signed_params)
+        try:
+            params = unsign(signed_params)
+        except (SignatureExpired, BadSignature):
+            return render_to_response(
+                "sentry/integrations/msteams/expired-link.html",
+                request=request,
+            )
 
         if request.method != "POST":
             return render_to_response(
-                "sentry/integrations/msteams-unlink-identity.html",
+                "sentry/integrations/msteams/unlink-identity.html",
                 request=request,
                 context={},
             )
@@ -46,7 +53,7 @@ class MsTeamsUnlinkIdentityView(BaseView):
         # if no identities, tell the user that
         if not identity_list:
             return render_to_response(
-                "sentry/integrations/msteams-no-identity.html",
+                "sentry/integrations/msteams/no-identity.html",
                 request=request,
                 context={},
             )
@@ -58,7 +65,7 @@ class MsTeamsUnlinkIdentityView(BaseView):
         client.send_card(params["conversation_id"], card)
 
         return render_to_response(
-            "sentry/integrations/msteams-unlinked.html",
+            "sentry/integrations/msteams/unlinked.html",
             request=request,
             context={},
         )

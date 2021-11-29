@@ -1,5 +1,6 @@
 import datetime
 from datetime import timedelta
+from unittest import mock
 
 from django.db.models import F
 from django.utils import timezone
@@ -24,7 +25,6 @@ from sentry.models import (
 )
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.utils.compat import mock
 from sentry.utils.samples import load_data
 
 
@@ -452,9 +452,9 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
         assert 24 == len(results[0]["transactionStats"])
         assert [1] == [v[1] for v in results[0]["transactionStats"] if v[1] > 0]
 
-    @mock.patch("sentry.api.serializers.models.project.check_has_health_data")
+    @mock.patch("sentry.api.serializers.models.project.release_health.check_has_health_data")
     @mock.patch(
-        "sentry.api.serializers.models.project.releasehealth.get_current_and_previous_crash_free_rates"
+        "sentry.api.serializers.models.project.release_health.get_current_and_previous_crash_free_rates"
     )
     def test_stats_with_sessions(
         self, get_current_and_previous_crash_free_rates, check_has_health_data
@@ -475,9 +475,9 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
 
         check_has_health_data.assert_not_called()  # NOQA
 
-    @mock.patch("sentry.api.serializers.models.project.check_has_health_data")
+    @mock.patch("sentry.api.serializers.models.project.release_health.check_has_health_data")
     @mock.patch(
-        "sentry.api.serializers.models.project.releasehealth.get_current_and_previous_crash_free_rates"
+        "sentry.api.serializers.models.project.release_health.get_current_and_previous_crash_free_rates"
     )
     def test_stats_with_sessions_and_none_crash_free_rates(
         self, get_current_and_previous_crash_free_rates, check_has_health_data

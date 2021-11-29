@@ -1,4 +1,6 @@
+import time
 from datetime import timedelta
+from unittest.mock import Mock, patch
 from urllib.parse import quote
 from uuid import uuid4
 
@@ -32,7 +34,6 @@ from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils import json
-from sentry.utils.compat.mock import Mock, patch
 
 
 class GroupListTest(APITestCase, SnubaTestCase):
@@ -123,6 +124,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.client.get(f"{self.path}?statsPeriod=", format="json")
         assert response.status_code == 200
 
+        time.sleep(1)
         response = self.client.get(f"{self.path}?statsPeriod=48h", format="json")
         assert response.status_code == 400
 
@@ -334,7 +336,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
     def test_token_auth(self):
         token = ApiToken.objects.create(user=self.user, scopes=256)
         response = self.client.get(
-            self.path, format="json", HTTP_AUTHORIZATION="Bearer %s" % token.token
+            self.path, format="json", HTTP_AUTHORIZATION=f"Bearer {token.token}"
         )
         assert response.status_code == 200, response.content
 
@@ -985,6 +987,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
 
     def test_snooze_user_count(self):
+        event = {}
         for i in range(10):
             event = self.store_event(
                 data={
@@ -1159,9 +1162,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert "inbox" in response.data
         assert response.data["inbox"] is None
 
-    @patch("sentry.api.helpers.group_index.uuid4")
-    @patch("sentry.api.helpers.group_index.merge_groups")
-    @patch("sentry.api.helpers.group_index.eventstream")
+    @patch("sentry.api.helpers.group_index.update.uuid4")
+    @patch("sentry.api.helpers.group_index.update.merge_groups")
+    @patch("sentry.api.helpers.group_index.update.eventstream")
     def test_merge(self, mock_eventstream, merge_groups, mock_uuid4):
         eventstream_state = object()
         mock_eventstream.start_merge = Mock(return_value=eventstream_state)
@@ -1307,7 +1310,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
     def path(self):
         return f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/issues/"
 
-    @patch("sentry.api.helpers.group_index.eventstream")
+    @patch("sentry.api.helpers.group_index.delete.eventstream")
     @patch("sentry.eventstream")
     def test_delete_by_id(self, mock_eventstream_task, mock_eventstream_api):
         eventstream_state = {"event_stream_state": uuid4()}

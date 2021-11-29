@@ -5,9 +5,9 @@ import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import {fadeIn} from 'app/styles/animations';
-import space from 'app/styles/space';
-import {domId} from 'app/utils/domId';
+import {fadeIn} from 'sentry/styles/animations';
+import space from 'sentry/styles/space';
+import {domId} from 'sentry/utils/domId';
 
 const VALID_DIRECTIONS = ['top', 'bottom', 'left', 'right'] as const;
 
@@ -325,8 +325,7 @@ const HovercardArrow = styled('span')<HovercardArrowProps>`
   }
   &::after {
     border: 10px solid transparent;
-    border-${getTipDirection}-color: ${p =>
-  p.tipColor || (p.placement === 'bottom' ? p.theme.backgroundSecondary : p.theme.white)};
+    border-${getTipDirection}-color: ${p => p.tipColor ?? p.theme.background};
   }
 `;
 

@@ -33,7 +33,7 @@ export type DebugFile = {
   data?: {type: DebugFileType; features: DebugFileFeature[]};
 };
 
-// Custom Repositories
+// Custom Repository
 export enum CustomRepoType {
   HTTP = 'http',
   S3 = 's3',
@@ -41,33 +41,41 @@ export enum CustomRepoType {
   APP_STORE_CONNECT = 'appStoreConnect',
 }
 
-export type AppStoreConnectValidationData = {
-  id: string;
-  appstoreCredentialsValid: boolean;
-  /** Indicates if the itunesSession is actually *needed* to complete any downloads that are pending. */
+export type AppStoreConnectValidationError = {
+  code:
+    | 'app-connect-authentication-error'
+    | 'app-connect-forbidden-error'
+    | 'app-connect-multiple-sources-error';
+};
+
+export type AppStoreConnectCredentialsStatus =
+  | {status: 'valid'}
+  | ({status: 'invalid'} & AppStoreConnectValidationError);
+
+export type AppStoreConnectStatusData = {
+  credentials: AppStoreConnectCredentialsStatus;
+  /**
+   * Indicates the number of downloads waiting to be processed and completed,
+   * or the number of downloads waiting for valid credentials to be completed if applicable.
+   */
   pendingDownloads: number;
   /**
-   * The build number of the latest build recognized by sentry. This does not imply the dSYMs for
-   * this build have been fetched. The contents of this string is just a number. This will be null
-   * if no builds can be found.
+   * The build number of the latest build recognized by sentry. This does not
+   * imply the dSYMs for this build have been fetched. The contents of this
+   * string is just a number. This will be null if no builds can be found.
    */
   latestBuildNumber: string | null;
   /**
-   * A human-readable string representing the latest build recognized by sentry. i.e. 3.4.0. This
-   * does not imply the dSYMs for this build have been fetched. This will be null if no builds can
-   * be found.
+   * A human-readable string representing the latest build recognized by
+   * sentry. i.e. 3.4.0. This does not imply the dSYMs for this build have been
+   * fetched. This will be null if no builds can be found.
    */
   latestBuildVersion: string | null;
-  /**
-   * Whether the UI should show an alert indicating we need the user to refresh their iTunes
-   * session.
-   */
-  promptItunesSession: boolean;
   lastCheckedBuilds: string | null;
   updateAlertMessage?: string;
 };
 
-type CustomRepoAppStoreConnect = {
+export type CustomRepoAppStoreConnect = {
   type: CustomRepoType.APP_STORE_CONNECT;
   appId: string;
   appName: string;
@@ -76,15 +84,8 @@ type CustomRepoAppStoreConnect = {
   appconnectPrivateKey: string;
   bundleId: string;
   id: string;
-  itunesCreated: string;
-  itunesPassword: string;
-  itunesPersonId: string;
-  itunesSession: string;
-  itunesUser: string;
   name: string;
-  orgPublicId: number;
-  orgName: string;
-  details?: AppStoreConnectValidationData;
+  details?: AppStoreConnectStatusData;
 };
 
 type CustomRepoHttp = {

@@ -2,9 +2,10 @@ import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {act} from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'app/stores/projectsStore';
-import Onboarding from 'app/views/onboarding/onboarding';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import Onboarding from 'sentry/views/onboarding/onboarding';
 
 const MockStep = ({name, data, active, project, onComplete, onUpadte}) => (
   <div>
@@ -131,7 +132,7 @@ describe('Onboarding', function () {
       ],
     });
 
-    ProjectsStore.loadInitialData(projects);
+    act(() => ProjectsStore.loadInitialData(projects));
 
     const params = {
       step: 'step1',

@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
+import space from 'sentry/styles/space';
 
 export const GridCell = styled('div')`
   font-size: 14px;
@@ -8,6 +8,7 @@ export const GridCell = styled('div')`
 
 export const GridCellNumber = styled(GridCell)`
   text-align: right;
+  font-variant-numeric: tabular-nums;
 `;
 
 export const DoubleHeaderContainer = styled('div')`

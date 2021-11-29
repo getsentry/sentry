@@ -1,24 +1,26 @@
 import {Fragment} from 'react';
+import {withRouter, WithRouterProps} from 'react-router';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {openModal} from 'app/actionCreators/modal';
-import AsyncComponent from 'app/components/asyncComponent';
-import IntegrationExternalMappingForm from 'app/components/integrationExternalMappingForm';
-import IntegrationExternalMappings from 'app/components/integrationExternalMappings';
-import {t} from 'app/locale';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {openModal} from 'sentry/actionCreators/modal';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import IntegrationExternalMappingForm from 'sentry/components/integrationExternalMappingForm';
+import IntegrationExternalMappings from 'sentry/components/integrationExternalMappings';
+import {t} from 'sentry/locale';
 import {
   ExternalActorMapping,
   ExternalUser,
   Integration,
   Member,
   Organization,
-} from 'app/types';
-import withOrganization from 'app/utils/withOrganization';
+} from 'sentry/types';
+import withOrganization from 'sentry/utils/withOrganization';
 
-type Props = AsyncComponent['props'] & {
-  integration: Integration;
-  organization: Organization;
-};
+type Props = AsyncComponent['props'] &
+  WithRouterProps & {
+    integration: Integration;
+    organization: Organization;
+  };
 
 type State = AsyncComponent['state'] & {
   members: (Member & {externalUsers: ExternalUser[]})[];
@@ -110,6 +112,7 @@ class IntegrationExternalUserMappings extends AsyncComponent<Props, State> {
 
   renderBody() {
     const {integration} = this.props;
+    const {membersPageLinks} = this.state;
     return (
       <Fragment>
         <IntegrationExternalMappings
@@ -118,10 +121,11 @@ class IntegrationExternalUserMappings extends AsyncComponent<Props, State> {
           mappings={this.mappings}
           onCreateOrEdit={this.openModal}
           onDelete={this.handleDelete}
+          pageLinks={membersPageLinks}
         />
       </Fragment>
     );
   }
 }
 
-export default withOrganization(IntegrationExternalUserMappings);
+export default withRouter(withOrganization(IntegrationExternalUserMappings));

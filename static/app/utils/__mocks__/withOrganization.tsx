@@ -1,6 +1,6 @@
 import {Component} from 'react';
 
-import SentryTypes from 'app/sentryTypes';
+import SentryTypes from 'sentry/sentryTypes';
 
 declare const TestStubs;
 
@@ -19,7 +19,4 @@ const withOrganizationMock = WrappedComponent =>
     }
   };
 
-const isLightweightOrganization = () => {};
-
 export default withOrganizationMock;
-export {isLightweightOrganization};

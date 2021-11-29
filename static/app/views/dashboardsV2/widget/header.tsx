@@ -1,13 +1,13 @@
 import * as React from 'react';
 
-import Breadcrumbs from 'app/components/breadcrumbs';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import Confirm from 'app/components/confirm';
-import EditableText from 'app/components/editableText';
-import * as Layout from 'app/components/layouts/thirds';
-import Link from 'app/components/links/link';
-import {t} from 'app/locale';
+import Breadcrumbs from 'sentry/components/breadcrumbs';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import Confirm from 'sentry/components/confirm';
+import EditableText from 'sentry/components/editableText';
+import * as Layout from 'sentry/components/layouts/thirds';
+import Link from 'sentry/components/links/link';
+import {t} from 'sentry/locale';
 
 import {DashboardDetails} from '../types';
 

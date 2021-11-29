@@ -1,7 +1,7 @@
 import Reflux from 'reflux';
 
-import {ModalOptions, ModalRenderProps} from 'app/actionCreators/modal';
-import ModalActions from 'app/actions/modalActions';
+import {ModalOptions, ModalRenderProps} from 'sentry/actionCreators/modal';
+import ModalActions from 'sentry/actions/modalActions';
 
 type Renderer = (renderProps: ModalRenderProps) => React.ReactNode;
 
@@ -11,11 +11,11 @@ type ModalStoreState = {
 };
 
 type ModalStoreInterface = {
-  init: () => void;
-  get: () => ModalStoreState;
-  reset: () => void;
-  onCloseModal: () => void;
-  onOpenModal: (renderer: Renderer, options: ModalOptions) => void;
+  init(): void;
+  get(): ModalStoreState;
+  reset(): void;
+  onCloseModal(): void;
+  onOpenModal(renderer: Renderer, options: ModalOptions): void;
 };
 
 const storeConfig: Reflux.StoreDefinition & ModalStoreInterface = {

@@ -4,6 +4,7 @@ from uuid import uuid4
 import pytest
 
 from sentry.models.eventattachment import EventAttachment
+from sentry.spans.grouping.utils import hash_values
 from sentry.testutils import RelayStoreHelper, TransactionTestCase
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import before_now, iso_format, timestamp_format
@@ -185,7 +186,7 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
         with Feature(
             {
                 "organizations:performance-ops-breakdown": True,
-                "organizations:performance-suspect-spans-ingestion": True,
+                "projects:performance-suspect-spans-ingestion": True,
             }
         ):
             event = self.post_and_retrieve_event(event_data)
@@ -199,7 +200,7 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
                 pytest.approx(200),
             ]
             assert raw_event["spans"] == [
-                dict(span, exclusive_time=exclusive_time)
+                dict(span, exclusive_time=exclusive_time, hash=hash_values([span["description"]]))
                 for span, exclusive_time in zip(event_data["spans"], exclusive_times)
             ]
             assert raw_event["breakdowns"] == {

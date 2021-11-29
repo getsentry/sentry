@@ -3,32 +3,29 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 import scrollToElement from 'scroll-to-element';
 
-import Button from 'app/components/button';
-import DebugImage from 'app/components/events/interfaces/debugMeta/debugImage';
-import {combineStatus} from 'app/components/events/interfaces/debugMeta/utils';
-import PackageLink from 'app/components/events/interfaces/packageLink';
-import PackageStatus, {
-  PackageStatusIcon,
-} from 'app/components/events/interfaces/packageStatus';
-import TogglableAddress, {
-  AddressToggleIcon,
-} from 'app/components/events/interfaces/togglableAddress';
-import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
-import {STACKTRACE_PREVIEW_TOOLTIP_DELAY} from 'app/components/stacktracePreview';
-import StrictClick from 'app/components/strictClick';
-import {IconChevron, IconRefresh} from 'app/icons';
-import {t} from 'app/locale';
-import {DebugMetaActions} from 'app/stores/debugMetaStore';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {Frame, Organization, PlatformType, SentryAppComponent} from 'app/types';
-import {Event} from 'app/types/event';
-import withOrganization from 'app/utils/withOrganization';
-import withSentryAppComponents from 'app/utils/withSentryAppComponents';
+import Button from 'sentry/components/button';
+import {STACKTRACE_PREVIEW_TOOLTIP_DELAY} from 'sentry/components/stacktracePreview';
+import StrictClick from 'sentry/components/strictClick';
+import {IconChevron, IconRefresh} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {DebugMetaActions} from 'sentry/stores/debugMetaStore';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {Frame, Organization, PlatformType, SentryAppComponent} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import withOrganization from 'sentry/utils/withOrganization';
+import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
+
+import DebugImage from '../debugMeta/debugImage';
+import {combineStatus} from '../debugMeta/utils';
+import {SymbolicatorStatus} from '../types';
 
 import Context from './context';
 import DefaultTitle from './defaultTitle';
+import PackageLink from './packageLink';
+import PackageStatus, {PackageStatusIcon} from './packageStatus';
 import Symbol, {FunctionNameToggleIcon} from './symbol';
+import TogglableAddress, {AddressToggleIcon} from './togglableAddress';
 import {
   getPlatform,
   hasAssembly,
@@ -415,8 +412,8 @@ const RepeatedFrames = styled('div')`
   margin-left: ${space(1)};
   border-width: thin;
   border-style: solid;
-  border-color: ${p => p.theme.orange500};
-  color: ${p => p.theme.orange500};
+  border-color: ${p => p.theme.pink200};
+  color: ${p => p.theme.pink300};
   background-color: ${p => p.theme.backgroundSecondary};
   white-space: nowrap;
 `;

@@ -1,4 +1,4 @@
-import {Config} from 'app/types';
+import {Config} from 'sentry/types';
 
 const BOOTSTRAP_URL = '/api/client-config/';
 
@@ -8,6 +8,10 @@ const bootApplication = (data: Config) => {
   return data;
 };
 
+/**
+ * Load the client configuration data using the BOOTSTRAP_URL. Used when
+ * running in standalone SPA mode.
+ */
 async function bootWithHydration() {
   const response = await fetch(BOOTSTRAP_URL);
   const data: Config = await response.json();
@@ -17,6 +21,11 @@ async function bootWithHydration() {
   return bootApplication(data);
 }
 
+/**
+ * Load client configuration bootstrap data. This will detect if the app is
+ * running in SPA mode or being booted from the django-rendered layout.html
+ * template.
+ */
 export async function bootstrap() {
   const bootstrapData = window.__initialData;
 

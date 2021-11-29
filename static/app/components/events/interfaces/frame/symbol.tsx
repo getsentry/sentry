@@ -1,13 +1,13 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import {STACKTRACE_PREVIEW_TOOLTIP_DELAY} from 'app/components/stacktracePreview';
-import Tooltip from 'app/components/tooltip';
-import {IconFilter} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Frame} from 'app/types';
-import {defined} from 'app/utils';
+import {STACKTRACE_PREVIEW_TOOLTIP_DELAY} from 'sentry/components/stacktracePreview';
+import Tooltip from 'sentry/components/tooltip';
+import {IconFilter} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Frame} from 'sentry/types';
+import {defined} from 'sentry/utils';
 
 import FunctionName from './functionName';
 import GroupingIndicator from './groupingIndicator';
@@ -15,7 +15,9 @@ import {getFrameHint} from './utils';
 
 type Props = {
   frame: Frame;
-  showCompleteFunctionName: boolean;
+  absoluteFilePaths?: boolean;
+  showCompleteFunctionName?: boolean;
+  nativeStackTraceV2?: boolean;
   isUsedForGrouping?: boolean;
   onFunctionNameToggle?: (event: React.MouseEvent<SVGElement>) => void;
   /**
@@ -27,8 +29,10 @@ type Props = {
 
 const Symbol = ({
   frame,
+  absoluteFilePaths,
   onFunctionNameToggle,
   showCompleteFunctionName,
+  nativeStackTraceV2,
   isHoverPreviewed,
   isUsedForGrouping,
   className,
@@ -57,18 +61,20 @@ const Symbol = ({
 
   return (
     <Wrapper className={className}>
-      <FunctionNameToggleTooltip
-        title={functionNameTooltipTitle}
-        containerDisplayMode="inline-flex"
-        delay={tooltipDelay}
-      >
-        <FunctionNameToggleIcon
-          hasFunctionNameHiddenDetails={hasFunctionNameHiddenDetails}
-          onClick={hasFunctionNameHiddenDetails ? onFunctionNameToggle : undefined}
-          size="xs"
-          color="purple300"
-        />
-      </FunctionNameToggleTooltip>
+      {onFunctionNameToggle && (
+        <FunctionNameToggleTooltip
+          title={functionNameTooltipTitle}
+          containerDisplayMode="inline-flex"
+          delay={tooltipDelay}
+        >
+          <FunctionNameToggleIcon
+            hasFunctionNameHiddenDetails={hasFunctionNameHiddenDetails}
+            onClick={hasFunctionNameHiddenDetails ? onFunctionNameToggle : undefined}
+            size="xs"
+            color="purple300"
+          />
+        </FunctionNameToggleTooltip>
+      )}
       <Data>
         <StyledFunctionName
           frame={frame}
@@ -82,20 +88,28 @@ const Symbol = ({
             </Tooltip>
           </HintStatus>
         )}
-        {frame.filename && (
-          <FileNameTooltip
-            title={frame.absPath}
-            disabled={!enablePathTooltip}
-            delay={tooltipDelay}
-          >
+        {frame.filename &&
+          (nativeStackTraceV2 ? (
             <Filename>
               {'('}
-              {frame.filename}
+              {absoluteFilePaths ? frame.absPath : frame.filename}
               {frame.lineNo && `:${frame.lineNo}`}
               {')'}
             </Filename>
-          </FileNameTooltip>
-        )}
+          ) : (
+            <FileNameTooltip
+              title={frame.absPath}
+              disabled={!enablePathTooltip}
+              delay={tooltipDelay}
+            >
+              <Filename>
+                {'('}
+                {frame.filename}
+                {frame.lineNo && `:${frame.lineNo}`}
+                {')'}
+              </Filename>
+            </FileNameTooltip>
+          ))}
         {isUsedForGrouping && <GroupingIndicator />}
       </Data>
     </Wrapper>

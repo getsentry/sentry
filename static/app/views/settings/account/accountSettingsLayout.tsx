@@ -1,11 +1,11 @@
 import * as React from 'react';
 
-import {fetchOrganizationDetails} from 'app/actionCreators/organizations';
-import SentryTypes from 'app/sentryTypes';
-import {Organization} from 'app/types';
-import withLatestContext from 'app/utils/withLatestContext';
-import AccountSettingsNavigation from 'app/views/settings/account/accountSettingsNavigation';
-import SettingsLayout from 'app/views/settings/components/settingsLayout';
+import {fetchOrganizationDetails} from 'sentry/actionCreators/organizations';
+import SentryTypes from 'sentry/sentryTypes';
+import {Organization} from 'sentry/types';
+import withLatestContext from 'sentry/utils/withLatestContext';
+import AccountSettingsNavigation from 'sentry/views/settings/account/accountSettingsNavigation';
+import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
 
 type Props = React.ComponentProps<typeof SettingsLayout> & {
   organization: Organization;

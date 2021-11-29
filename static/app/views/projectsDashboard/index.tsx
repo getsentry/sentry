@@ -6,26 +6,24 @@ import {withProfiler} from '@sentry/react';
 import flatten from 'lodash/flatten';
 import uniqBy from 'lodash/uniqBy';
 
-import {Client} from 'app/api';
-import Feature from 'app/components/acl/feature';
-import Button from 'app/components/button';
-import IdBadge from 'app/components/idBadge';
-import Link from 'app/components/links/link';
-import LoadingError from 'app/components/loadingError';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import NoProjectMessage from 'app/components/noProjectMessage';
-import PageHeading from 'app/components/pageHeading';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import {IconAdd} from 'app/icons';
-import {t} from 'app/locale';
-import ProjectsStatsStore from 'app/stores/projectsStatsStore';
-import space from 'app/styles/space';
-import {Organization, TeamWithProjects} from 'app/types';
-import {sortProjects} from 'app/utils';
-import withApi from 'app/utils/withApi';
-import withOrganization from 'app/utils/withOrganization';
-import withTeamsForUser from 'app/utils/withTeamsForUser';
-import TeamInsightsHeaderTabs from 'app/views/teamInsights/headerTabs';
+import {Client} from 'sentry/api';
+import Button from 'sentry/components/button';
+import IdBadge from 'sentry/components/idBadge';
+import Link from 'sentry/components/links/link';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import NoProjectMessage from 'sentry/components/noProjectMessage';
+import PageHeading from 'sentry/components/pageHeading';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {IconAdd} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
+import space from 'sentry/styles/space';
+import {Organization, TeamWithProjects} from 'sentry/types';
+import {sortProjects} from 'sentry/utils';
+import withApi from 'sentry/utils/withApi';
+import withOrganization from 'sentry/utils/withOrganization';
+import withTeamsForUser from 'sentry/utils/withTeamsForUser';
 
 import Resources from './resources';
 import TeamSection from './teamSection';
@@ -67,11 +65,7 @@ function Dashboard({teams, params, organization, loadingTeams, error}: Props) {
 
   if (showEmptyMessage) {
     return (
-      <NoProjectMessage
-        organization={organization}
-        projects={projects}
-        superuserNeedsToBeProjectMember
-      />
+      <NoProjectMessage organization={organization} superuserNeedsToBeProjectMember />
     );
   }
 
@@ -97,11 +91,6 @@ function Dashboard({teams, params, organization, loadingTeams, error}: Props) {
               {t('Create Project')}
             </Button>
           </ProjectsHeader>
-          <Feature organization={organization} features={['team-insights']}>
-            <TabsWrapper>
-              <TeamInsightsHeaderTabs organization={organization} activeTab="projects" />
-            </TabsWrapper>
-          </Feature>
         </Fragment>
       )}
 
@@ -146,10 +135,6 @@ const ProjectsHeader = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-`;
-
-const TabsWrapper = styled('div')`
-  padding: ${space(2)} ${space(4)} ${space(1)} ${space(4)};
 `;
 
 const OrganizationDashboardWrapper = styled('div')`

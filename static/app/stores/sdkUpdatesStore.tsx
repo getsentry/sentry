@@ -1,7 +1,7 @@
 import Reflux from 'reflux';
 
-import SdkUpdatesActions from 'app/actions/sdkUpdatesActions';
-import {ProjectSdkUpdates} from 'app/types';
+import SdkUpdatesActions from 'sentry/actions/sdkUpdatesActions';
+import {ProjectSdkUpdates} from 'sentry/types';
 
 type SdkUpdatesStoreInterface = {
   onLoadSuccess(orgSlug: string, data: ProjectSdkUpdates[]): void;
@@ -9,14 +9,14 @@ type SdkUpdatesStoreInterface = {
   isSdkUpdatesLoaded(orgSlug: string): boolean;
 };
 
-type Internal = {
+type Internals = {
   /**
    * Org slug mapping to SDK updates
    */
   orgSdkUpdates: Map<string, ProjectSdkUpdates[]>;
 };
 
-const storeConfig: Reflux.StoreDefinition & SdkUpdatesStoreInterface & Internal = {
+const storeConfig: Reflux.StoreDefinition & Internals & SdkUpdatesStoreInterface = {
   orgSdkUpdates: new Map(),
 
   init() {

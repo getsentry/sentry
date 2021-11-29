@@ -1,7 +1,7 @@
-import {NewQuery, Project} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
-import {getAggregateAlias} from 'app/utils/discover/fields';
-import {Dataset, IncidentRule} from 'app/views/alerts/incidentRules/types';
+import {NewQuery, Project} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
+import {getAggregateAlias} from 'sentry/utils/discover/fields';
+import {Dataset, IncidentRule} from 'sentry/views/alerts/incidentRules/types';
 /**
  * Gets the URL for a discover view of the rule with the following default
  * parameters:
@@ -35,7 +35,7 @@ export function getIncidentRuleDiscoverUrl(opts: {
     id: undefined,
     name: (rule && rule.name) || '',
     orderby: `-${getAggregateAlias(rule.aggregate)}`,
-    yAxis: rule.aggregate,
+    yAxis: rule.aggregate ? [rule.aggregate] : undefined,
     query: (eventTypeTagFilter || rule?.query || eventType) ?? '',
     projects: projects
       .filter(({slug}) => rule.projects.includes(slug))

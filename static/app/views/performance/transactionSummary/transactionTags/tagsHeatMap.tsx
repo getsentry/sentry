@@ -1,7 +1,6 @@
 import React, {useRef, useState} from 'react';
 import ReactDOM from 'react-dom';
 import {Popper} from 'react-popper';
-import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {truncate} from '@sentry/utils';
 import classNames from 'classnames';
@@ -9,34 +8,33 @@ import {EChartOption} from 'echarts';
 import {Location} from 'history';
 import memoize from 'lodash/memoize';
 
-import HeatMapChart from 'app/components/charts/heatMapChart';
-import {HeaderTitleLegend} from 'app/components/charts/styles';
-import TransitionChart from 'app/components/charts/transitionChart';
-import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
-import {Content} from 'app/components/dropdownControl';
-import DropdownMenu from 'app/components/dropdownMenu';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {Panel} from 'app/components/panels';
-import Placeholder from 'app/components/placeholder';
-import QuestionTooltip from 'app/components/questionTooltip';
+import HeatMapChart from 'sentry/components/charts/heatMapChart';
+import {HeaderTitleLegend} from 'sentry/components/charts/styles';
+import TransitionChart from 'sentry/components/charts/transitionChart';
+import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import {Content} from 'sentry/components/dropdownControl';
+import DropdownMenu from 'sentry/components/dropdownMenu';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels';
+import Placeholder from 'sentry/components/placeholder';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {
   DropdownContainer,
   DropdownItem,
   SectionSubtext,
-} from 'app/components/quickTrace/styles';
-import Truncate from 'app/components/truncate';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import {ReactEchartsRef, Series} from 'app/types/echarts';
-import {axisLabelFormatter} from 'app/utils/discover/charts';
-import EventView from 'app/utils/discover/eventView';
-import {formatAbbreviatedNumber} from 'app/utils/formatters';
-import getDynamicText from 'app/utils/getDynamicText';
-import {TableData as TagTableData} from 'app/utils/performance/segmentExplorer/tagKeyHistogramQuery';
-import TagTransactionsQuery from 'app/utils/performance/segmentExplorer/tagTransactionsQuery';
-import {decodeScalar} from 'app/utils/queryString';
-import {Theme} from 'app/utils/theme';
+} from 'sentry/components/quickTrace/styles';
+import Truncate from 'sentry/components/truncate';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import {ReactEchartsRef, Series} from 'sentry/types/echarts';
+import {axisLabelFormatter} from 'sentry/utils/discover/charts';
+import EventView from 'sentry/utils/discover/eventView';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import getDynamicText from 'sentry/utils/getDynamicText';
+import {TableData as TagTableData} from 'sentry/utils/performance/segmentExplorer/tagKeyHistogramQuery';
+import TagTransactionsQuery from 'sentry/utils/performance/segmentExplorer/tagTransactionsQuery';
+import {decodeScalar} from 'sentry/utils/queryString';
 
 import {getPerformanceDuration, PerformanceDuration} from '../../utils';
 import {eventsRouteWithQuery} from '../transactionEvents/utils';
@@ -88,7 +86,6 @@ const getPortal = memoize((): HTMLElement => {
 
 const TagsHeatMap = (
   props: Props & {
-    theme: Theme;
     tableData: TagTableData | null;
     isLoading: boolean;
   }
@@ -488,4 +485,4 @@ const StyledPanel = styled(Panel)`
 
 const StyledHeaderTitleLegend = styled(HeaderTitleLegend)``;
 
-export default withTheme(TagsHeatMap);
+export default TagsHeatMap;

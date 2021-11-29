@@ -1,20 +1,19 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import Confirm from 'app/components/confirm';
-import MultiSelectControl, {
-  MultiControlProps,
-} from 'app/components/forms/multiSelectControl';
-import HookOrDefault from 'app/components/hookOrDefault';
-import {PanelItem} from 'app/components/panels';
-import RoleSelectControl from 'app/components/roleSelectControl';
-import Tag from 'app/components/tag';
-import Tooltip from 'app/components/tooltip';
-import {IconCheckmark, IconClose} from 'app/icons';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {Member, MemberRole, Organization, Team} from 'app/types';
+import Button from 'sentry/components/button';
+import Confirm from 'sentry/components/confirm';
+import {MultiControlProps} from 'sentry/components/forms/multiSelectControl';
+import TeamSelector from 'sentry/components/forms/teamSelector';
+import HookOrDefault from 'sentry/components/hookOrDefault';
+import {PanelItem} from 'sentry/components/panels';
+import RoleSelectControl from 'sentry/components/roleSelectControl';
+import Tag from 'sentry/components/tag';
+import Tooltip from 'sentry/components/tooltip';
+import {IconCheckmark, IconClose} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Member, MemberRole, Organization} from 'sentry/types';
 
 type Props = {
   inviteRequest: Member;
@@ -23,7 +22,6 @@ type Props = {
   onApprove: (inviteRequest: Member) => void;
   onDeny: (inviteRequest: Member) => void;
   onUpdate: (data: Partial<Member>) => void;
-  allTeams: Team[];
   allRoles: MemberRole[];
 };
 
@@ -43,7 +41,6 @@ const InviteRequestRow = ({
   onApprove,
   onDeny,
   onUpdate,
-  allTeams,
   allRoles,
 }: Props) => {
   const role = allRoles.find(r => r.id === inviteRequest.role);
@@ -100,11 +97,8 @@ const InviteRequestRow = ({
             onUpdate({teams: (teams || []).map(team => team.value)})
           }
           value={inviteRequest.teams}
-          options={allTeams.map(({slug}) => ({
-            value: slug,
-            label: `#${slug}`,
-          }))}
           clearable
+          multiple
         />
       ) : (
         <div>{inviteRequest.teams.join(', ')}</div>
@@ -201,7 +195,7 @@ const StyledRoleSelectControl = styled(RoleSelectControl)`
   max-width: 140px;
 `;
 
-const TeamSelectControl = styled(MultiSelectControl)`
+const TeamSelectControl = styled(TeamSelector)`
   max-width: 220px;
   .Select-value-label {
     max-width: 150px;

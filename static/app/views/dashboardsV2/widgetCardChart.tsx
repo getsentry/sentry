@@ -5,26 +5,31 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
-import AreaChart from 'app/components/charts/areaChart';
-import BarChart from 'app/components/charts/barChart';
-import ChartZoom from 'app/components/charts/chartZoom';
-import ErrorPanel from 'app/components/charts/errorPanel';
-import LineChart from 'app/components/charts/lineChart';
-import SimpleTableChart from 'app/components/charts/simpleTableChart';
-import TransitionChart from 'app/components/charts/transitionChart';
-import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
-import {getSeriesSelection} from 'app/components/charts/utils';
-import WorldMapChart from 'app/components/charts/worldMapChart';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import Placeholder from 'app/components/placeholder';
-import {IconWarning} from 'app/icons';
-import space from 'app/styles/space';
-import {GlobalSelection, Organization} from 'app/types';
-import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
-import {getFieldFormatter} from 'app/utils/discover/fieldRenderers';
-import {getAggregateArg, getMeasurementSlug} from 'app/utils/discover/fields';
-import getDynamicText from 'app/utils/getDynamicText';
-import {Theme} from 'app/utils/theme';
+import AreaChart from 'sentry/components/charts/areaChart';
+import BarChart from 'sentry/components/charts/barChart';
+import ChartZoom from 'sentry/components/charts/chartZoom';
+import ErrorPanel from 'sentry/components/charts/errorPanel';
+import LineChart from 'sentry/components/charts/lineChart';
+import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
+import TransitionChart from 'sentry/components/charts/transitionChart';
+import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import {getSeriesSelection, processTableResults} from 'sentry/components/charts/utils';
+import WorldMapChart from 'sentry/components/charts/worldMapChart';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Placeholder from 'sentry/components/placeholder';
+import {IconWarning} from 'sentry/icons';
+import space from 'sentry/styles/space';
+import {GlobalSelection, Organization} from 'sentry/types';
+import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
+import {getFieldFormatter} from 'sentry/utils/discover/fieldRenderers';
+import {
+  getAggregateArg,
+  getMeasurementSlug,
+  maybeEquationAlias,
+  stripEquationPrefix,
+} from 'sentry/utils/discover/fields';
+import getDynamicText from 'sentry/utils/getDynamicText';
+import {Theme} from 'sentry/utils/theme';
 
 import {Widget} from './types';
 import WidgetQueries from './widgetQueries';
@@ -147,6 +152,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
       case 'bar':
         return <BarChart {...chartProps} />;
       case 'area':
+      case 'top_n':
         return <AreaChart stacked {...chartProps} />;
       case 'world_map':
         return <WorldMapChart {...chartProps} />;
@@ -190,44 +196,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
     const {start, end, period, utc} = selection.datetime;
 
     if (widget.displayType === 'world_map') {
-      const DEFAULT_GEO_DATA = {
-        title: '',
-        data: [],
-      };
-
-      const processTableResults = () => {
-        if (!tableResults || !tableResults.length) {
-          return DEFAULT_GEO_DATA;
-        }
-
-        const tableResult = tableResults[0];
-
-        const {data, meta} = tableResult;
-
-        if (!data || !data.length || !meta) {
-          return DEFAULT_GEO_DATA;
-        }
-
-        const preAggregate = Object.keys(meta).find(column => {
-          return column !== 'geo.country_code';
-        });
-
-        if (!preAggregate) {
-          return DEFAULT_GEO_DATA;
-        }
-
-        return {
-          title: tableResult.title ?? '',
-          data: data
-            .filter(row => row['geo.country_code'])
-            .map(row => {
-              return {name: row['geo.country_code'], value: row[preAggregate]};
-            }),
-        };
-      };
-
-      const {data, title} = processTableResults();
-
+      const {data, title} = processTableResults(tableResults);
       const series = [
         {
           seriesName: title,
@@ -262,6 +231,9 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
             seriesName = slug.toUpperCase();
           }
         }
+        if (maybeEquationAlias(seriesName)) {
+          seriesName = stripEquationPrefix(seriesName);
+        }
         return seriesName;
       },
     };
@@ -269,7 +241,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
     const axisField = widget.queries[0]?.fields?.[0] ?? 'count()';
     const chartOptions = {
       grid: {
-        left: 0,
+        left: 4,
         right: 0,
         top: '40px',
         bottom: 0,
@@ -303,6 +275,14 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
           const colors = timeseriesResults
             ? theme.charts.getColorPalette(timeseriesResults.length - 2)
             : [];
+          // TODO(wmak): Need to change this when updating dashboards to support variable topEvents
+          if (
+            widget.displayType === 'top_n' &&
+            timeseriesResults &&
+            timeseriesResults.length > 5
+          ) {
+            colors[colors.length - 1] = theme.chartOther;
+          }
 
           // Create a list of series based on the order of the fields,
           const series = timeseriesResults

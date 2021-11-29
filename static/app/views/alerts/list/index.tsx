@@ -3,27 +3,26 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import flatten from 'lodash/flatten';
 
-import {promptsCheck, promptsUpdate} from 'app/actionCreators/prompts';
-import Feature from 'app/components/acl/feature';
-import Alert from 'app/components/alert';
-import AsyncComponent from 'app/components/asyncComponent';
-import Button from 'app/components/button';
-import CreateAlertButton from 'app/components/createAlertButton';
-import * as Layout from 'app/components/layouts/thirds';
-import ExternalLink from 'app/components/links/externalLink';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import Pagination from 'app/components/pagination';
-import {PanelTable} from 'app/components/panels';
-import SearchBar from 'app/components/searchBar';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import {IconInfo} from 'app/icons';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project, Team} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import Projects from 'app/utils/projects';
-import withOrganization from 'app/utils/withOrganization';
-import withTeams from 'app/utils/withTeams';
+import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
+import Feature from 'sentry/components/acl/feature';
+import Alert from 'sentry/components/alert';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import Button from 'sentry/components/button';
+import CreateAlertButton from 'sentry/components/createAlertButton';
+import * as Layout from 'sentry/components/layouts/thirds';
+import ExternalLink from 'sentry/components/links/externalLink';
+import GlobalSelectionHeader from 'sentry/components/organizations/globalSelectionHeader';
+import Pagination from 'sentry/components/pagination';
+import {PanelTable} from 'sentry/components/panels';
+import SearchBar from 'sentry/components/searchBar';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {IconInfo} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import Projects from 'sentry/utils/projects';
+import withOrganization from 'sentry/utils/withOrganization';
 
 import TeamFilter, {getTeamParams} from '../rules/teamFilter';
 import {Incident} from '../types';
@@ -37,7 +36,6 @@ const DOCS_URL =
 
 type Props = RouteComponentProps<{orgId: string}, {}> & {
   organization: Organization;
-  teams: Team[];
 };
 
 type State = {
@@ -56,7 +54,7 @@ type State = {
 
 class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state']> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {params, location, organization} = this.props;
+    const {params, location} = this.props;
     const {query} = location;
 
     const status = this.getQueryStatus(query.status);
@@ -66,10 +64,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
     }
 
     query.team = getTeamParams(query.team);
-
-    if (organization.features.includes('alert-details-redesign')) {
-      query.expand = ['original_alert_rule'];
-    }
+    query.expand = ['original_alert_rule'];
 
     return [['incidentList', `/organizations/${params?.orgId}/incidents/`, {query}]];
   }
@@ -179,7 +174,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
   };
 
   renderFilterBar() {
-    const {teams, location} = this.props;
+    const {location} = this.props;
     const selectedTeams = new Set(getTeamParams(location.query.team));
     const selectedStatus = new Set(this.getQueryStatus(location.query.status));
 
@@ -187,7 +182,6 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
       <FilterWrapper>
         <TeamFilter
           showStatus
-          teams={teams}
           selectedStatus={selectedStatus}
           selectedTeams={selectedTeams}
           handleChangeFilter={this.handleChangeFilter}
@@ -305,14 +299,9 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
             <Layout.Main fullWidth>
               {!this.tryRenderOnboarding() && (
                 <Fragment>
-                  <Feature
-                    features={['alert-details-redesign']}
-                    organization={organization}
-                  >
-                    <StyledAlert icon={<IconInfo />}>
-                      {t('This page only shows metric alerts.')}
-                    </StyledAlert>
-                  </Feature>
+                  <StyledAlert icon={<IconInfo />}>
+                    {t('This page only shows metric alerts.')}
+                  </StyledAlert>
                   {this.renderFilterBar()}
                 </Fragment>
               )}
@@ -394,4 +383,4 @@ const EmptyStateAction = styled('p')`
   font-size: ${p => p.theme.fontSizeLarge};
 `;
 
-export default withOrganization(withTeams(IncidentsListContainer));
+export default withOrganization(IncidentsListContainer);

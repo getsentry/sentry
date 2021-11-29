@@ -1,11 +1,11 @@
 import * as React from 'react';
 import {OptionsType, ValueType} from 'react-select';
 
-import Confirm from 'app/components/confirm';
-import SelectControl, {ControlProps} from 'app/components/forms/selectControl';
-import {t} from 'app/locale';
-import {Choices, SelectValue} from 'app/types';
-import InputField from 'app/views/settings/components/forms/inputField';
+import {openConfirmModal} from 'sentry/components/confirm';
+import SelectControl, {ControlProps} from 'sentry/components/forms/selectControl';
+import {t} from 'sentry/locale';
+import {Choices, SelectValue} from 'sentry/types';
+import InputField from 'sentry/views/settings/components/forms/inputField';
 
 type InputFieldProps = React.ComponentProps<typeof InputField>;
 
@@ -24,6 +24,17 @@ type Props<OptionType> = InputFieldProps &
      * A label that is shown inside the select control.
      */
     inFieldLabel?: string;
+    /**
+     * Allow specific options to be 'confirmed' with a confirmation message.
+     *
+     * The key is the value that should be confirmed, the value is the message
+     * to display in the confirmation modal.
+     *
+     * XXX: This only works when using the new-style options format, and _only_
+     * if the value object has a `value` attribute in the option. The types do
+     * not correctly reflect this so be careful!
+     */
+    confirm?: Record<string, React.ReactNode>;
   };
 
 function getChoices<T>(props: Props<T>): Choices {
@@ -87,33 +98,34 @@ export default class SelectField<
         {...otherProps}
         alignRight={small}
         field={({onChange, onBlur, required: _required, ...props}) => (
-          <Confirm
-            renderMessage={({selectedValue}) =>
-              confirm && selectedValue
-                ? confirm[selectedValue.value]
-                : // Set a default confirm message
-                  t('Continue with these changes?')
-            }
-            onCancel={() => {}}
-            onConfirm={this.handleChange.bind(this, onBlur, onChange)}
-          >
-            {({open}) => (
-              <SelectControl
-                {...props}
-                clearable={allowClear}
-                multiple={multiple}
-                onChange={val => {
-                  const previousValue = props.value?.toString();
-                  const newValue = val.value?.toString();
-                  if (confirm && confirm[newValue] && previousValue !== newValue) {
-                    open(undefined, val);
-                    return;
-                  }
-                  this.handleChange.bind(this, onBlur, onChange)(val);
-                }}
-              />
-            )}
-          </Confirm>
+          <SelectControl
+            {...props}
+            clearable={allowClear}
+            multiple={multiple}
+            onChange={val => {
+              if (!confirm) {
+                this.handleChange(onBlur, onChange, val);
+                return;
+              }
+
+              // Support 'confirming' selections. This only works with
+              // `val` objects that use the new-style options format
+              const previousValue = props.value?.toString();
+              // `val` may be null if clearing the select for an optional field
+              const newValue = val?.value?.toString();
+
+              // Value not marked for confirmation, or hasn't changed
+              if (!confirm[newValue] || previousValue === newValue) {
+                this.handleChange(onBlur, onChange, val);
+                return;
+              }
+
+              openConfirmModal({
+                onConfirm: () => this.handleChange(onBlur, onChange, val),
+                message: confirm[val?.value] ?? t('Continue with these changes?'),
+              });
+            }}
+          />
         )}
       />
     );
