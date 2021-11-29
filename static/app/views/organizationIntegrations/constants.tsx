@@ -61,6 +61,8 @@ export const POPULARITY_WEIGHT: {
   rocketchat: 8,
   bitbucket_pipelines: 8,
   github_actions: 8,
+  grafana: 8,
+  insight_finder: 8,
   octohook: 8,
 } as const;
 
@@ -231,6 +233,46 @@ export const documentIntegrationList: DocumentIntegration[] = [
       {
         title: 'Report Issue',
         url: 'https://github.com/getsentry/action-release/issues',
+      },
+    ],
+  },
+  {
+    slug: 'grafana',
+    name: 'Grafana',
+    author: 'Grafana',
+    docUrl: 'https://grafana.com/grafana/plugins/grafana-sentry-datasource/',
+    description:
+      'The Sentry Grafana data source plugin allows you to query and visualize Sentry data within Grafana.',
+    features: [
+      {
+        featureGate: 'visualization',
+        description: 'Query and visualize Sentry data in Grafana',
+      },
+    ],
+    resourceLinks: [
+      {
+        title: 'Documentation',
+        url: 'https://grafana.com/grafana/plugins/grafana-sentry-datasource/',
+      },
+    ],
+  },
+  {
+    slug: 'insight_finder',
+    name: 'Insight Finder',
+    author: 'Insight Finder',
+    docUrl: 'https://insightfinder.com/insightfinder-sentry-integration/',
+    description:
+      'InsightFinder ingests the errors that Sentry detects through its standard APIs and analyze it using our patented, unsupervised, neural network algorithms. InsightFinder prioritizes those errors and provides context so anomalous events can be resolved before business is impacted.',
+    features: [
+      {
+        featureGate: 'webhook',
+        description: 'Forward Sentry events to Insight Finder.',
+      },
+    ],
+    resourceLinks: [
+      {
+        title: 'Documentation',
+        url: 'https://insightfinder.com/insightfinder-sentry-integration/',
       },
     ],
   },
