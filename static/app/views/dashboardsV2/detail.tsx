@@ -303,8 +303,15 @@ class DashboardDetail extends Component<Props, State> {
     });
   };
 
+  /**
+   * Saves a dashboard layout where the layout keys are replaced with the IDs of new widgets.
+   */
   saveLayoutWithNewWidgets = (organizationId, dashboardId, newWidgets) => {
     const {layout} = this.state;
+    if (layout.length !== newWidgets.length) {
+      throw new Error('Expected layouts and widgets to be the same length');
+    }
+
     const getLayoutWithNewId = partial(reassignLayoutId, newWidgets);
     saveDashboardLayout(organizationId, dashboardId, layout.map(getLayoutWithNewId));
   };
