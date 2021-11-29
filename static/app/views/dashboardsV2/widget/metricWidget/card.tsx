@@ -10,11 +10,19 @@ import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
-import {GlobalSelection, Organization, Project} from 'sentry/types';
+import {GlobalSelection, MetricQuery, Organization, Project} from 'sentry/types';
+
+import {DisplayType} from '../utils';
 
 import Chart from './chart';
 import StatsRequest from './statsRequest';
-import {MetricWidget} from './types';
+
+type MetricWidget = {
+  title: string;
+  displayType: DisplayType;
+  groupings: MetricQuery[];
+  searchQuery?: string;
+};
 
 type Props = {
   widget: MetricWidget;

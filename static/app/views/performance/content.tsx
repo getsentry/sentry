@@ -29,6 +29,7 @@ import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 import LandingContent from './landing/content';
 import {DEFAULT_STATS_PERIOD, generatePerformanceEventView} from './data';
 import {PerformanceLanding} from './landing';
+import {useMetricsSwitch} from './metricsSwitch';
 import Onboarding from './onboarding';
 import {addRoutePerformanceContext, handleTrendsClick} from './utils';
 
@@ -48,10 +49,13 @@ function PerformanceContent({selection, location, demoMode}: Props) {
   const api = useApi();
   const organization = useOrganization();
   const {projects} = useProjects();
+  const {isMetricsData} = useMetricsSwitch();
   const previousDateTime = usePrevious(selection.datetime);
 
   const [state, setState] = useState<State>({
-    eventView: generatePerformanceEventView(organization, location, projects),
+    eventView: generatePerformanceEventView(location, projects, {
+      isMetricsData,
+    }),
     error: undefined,
   });
 
@@ -69,7 +73,9 @@ function PerformanceContent({selection, location, demoMode}: Props) {
   useEffect(() => {
     setState({
       ...state,
-      eventView: generatePerformanceEventView(organization, location, projects),
+      eventView: generatePerformanceEventView(location, projects, {
+        isMetricsData,
+      }),
     });
   }, [organization, location, projects]);
 

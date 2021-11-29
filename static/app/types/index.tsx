@@ -24,6 +24,7 @@ export * from './relay';
 export * from './release';
 export * from './stacktrace';
 export * from './user';
+export * from './metrics';
 
 export enum SentryInitRenderReactComponent {
   INDICATORS = 'Indicators',

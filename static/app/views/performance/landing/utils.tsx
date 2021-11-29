@@ -86,12 +86,14 @@ export function getCurrentLandingDisplay(
   eventView?: EventView
 ): LandingDisplay {
   const landingField = decodeScalar(location?.query?.landingDisplay);
+
   const display = LANDING_DISPLAYS.find(({field}) => field === landingField);
   if (display) {
     return display;
   }
 
   const defaultDisplayField = getDefaultDisplayFieldForPlatform(projects, eventView);
+
   const defaultDisplay = LANDING_DISPLAYS.find(
     ({field}) => field === defaultDisplayField
   );
