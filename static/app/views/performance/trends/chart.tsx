@@ -1,8 +1,9 @@
 import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import {useTheme} from '@emotion/react';
+import type {LegendComponentOption} from 'echarts';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
-import LineChart from 'sentry/components/charts/lineChart';
+import LineChart, {LineChartSeries} from 'sentry/components/charts/lineChart';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {getTooltipArrow} from 'sentry/components/charts/utils';
@@ -71,12 +72,12 @@ function transformEventStats(data: EventsStatsData, seriesName?: string): Series
   ];
 }
 
-function getLegend(trendFunction: string) {
+function getLegend(trendFunction: string): LegendComponentOption {
   return {
     right: 10,
     top: 0,
     itemGap: 12,
-    align: 'left' as const,
+    align: 'left',
     data: [
       {
         name: 'Baseline',
@@ -84,11 +85,9 @@ function getLegend(trendFunction: string) {
       },
       {
         name: 'Releases',
-        icon: 'line',
       },
       {
         name: trendFunction,
-        icon: 'line',
       },
     ],
   };
@@ -99,7 +98,7 @@ function getIntervalLine(
   series: Series[],
   intervalRatio: number,
   transaction?: NormalizedTrendsTransaction
-) {
+): LineChartSeries[] {
   if (!transaction || !series.length || !series[0].data || !series[0].data.length) {
     return [];
   }
@@ -111,18 +110,16 @@ function getIntervalLine(
     return [];
   }
 
-  const periodLine = {
-    data: [] as any[],
+  const periodLine: LineChartSeries = {
+    data: [],
     color: theme.textColor,
     markLine: {
-      data: [] as any[],
-      label: {} as any,
+      data: [],
+      label: {},
       lineStyle: {
-        normal: {
-          color: theme.textColor,
-          type: 'dashed',
-          width: 1,
-        },
+        color: theme.textColor,
+        type: 'dashed',
+        width: 1,
       },
       symbol: ['none', 'none'],
       tooltip: {
@@ -135,6 +132,8 @@ function getIntervalLine(
   const periodLineLabel = {
     fontSize: 11,
     show: true,
+    color: theme.textColor,
+    silent: true,
   };
 
   const previousPeriod = {
@@ -175,7 +174,7 @@ function getIntervalLine(
         getTooltipArrow(),
       ].join('');
     },
-  } as any;
+  };
   currentPeriod.markLine.data = [
     [
       {value: 'Present', coord: [seriesLine, transaction.aggregate_range_2]},
@@ -195,26 +194,24 @@ function getIntervalLine(
         getTooltipArrow(),
       ].join('');
     },
-  } as any;
+  };
   periodDividingLine.markLine = {
     data: [
       {
-        value: 'Previous Period / This Period',
         xAxis: seriesLine,
       },
     ],
     label: {show: false},
     lineStyle: {
-      normal: {
-        color: theme.textColor,
-        type: 'solid',
-        width: 2,
-      },
+      color: theme.textColor,
+      type: 'solid',
+      width: 2,
     },
     symbol: ['none', 'none'],
     tooltip: {
       show: false,
     },
+    silent: true,
   };
 
   previousPeriod.markLine.label = {
@@ -298,7 +295,7 @@ export function Chart({
     selection[metric] = false;
     return selection;
   }, {});
-  const legend = disableLegend
+  const legend: LegendComponentOption = disableLegend
     ? {show: false}
     : {
         ...getLegend(chartLabel),
