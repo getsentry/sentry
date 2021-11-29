@@ -44,9 +44,10 @@ describe('Dashboards > IssueWidgetCard', function () {
           title: 'ChunkLoadError: Loading chunk app_bootstrap_index_tsx failed.',
           shortId: 'ISSUE',
           assignedTo: {
-            type: 'team',
+            type: 'user',
             id: '2222222',
-            name: 'discoveranddashboards',
+            name: 'dashboard user',
+            email: 'dashboarduser@sentry.io',
           },
         },
       ],
@@ -58,7 +59,7 @@ describe('Dashboards > IssueWidgetCard', function () {
   });
 
   it('renders with title and issues chart', async function () {
-    const wrapper = mountWithTheme(
+    mountWithTheme(
       <IssueWidgetCard
         api={api}
         organization={initialData.organization}
@@ -76,14 +77,18 @@ describe('Dashboards > IssueWidgetCard', function () {
 
     await tick();
 
-    expect(wrapper.getByText('Issues')).toBeInTheDocument();
-    expect(wrapper.getByText('assignee')).toBeInTheDocument();
-    expect(wrapper.getByText('title')).toBeInTheDocument();
-    expect(wrapper.getByText('issue #')).toBeInTheDocument();
-    expect(wrapper.getByText('discoveranddashboards')).toBeInTheDocument();
-    expect(wrapper.getByText('ISSUE')).toBeInTheDocument();
+    expect(screen.getByText('Issues')).toBeInTheDocument();
+    expect(screen.getByText('assignee')).toBeInTheDocument();
+    expect(screen.getByText('title')).toBeInTheDocument();
+    expect(screen.getByText('issue')).toBeInTheDocument();
+    expect(screen.getByText('DU')).toBeInTheDocument();
+    expect(screen.getByText('ISSUE')).toBeInTheDocument();
     expect(
-      wrapper.getByText('ChunkLoadError: Loading chunk app_bootstrap_index_tsx failed.')
+      screen.getByText('ChunkLoadError: Loading chunk app_bootstrap_index_tsx failed.')
+    ).toBeInTheDocument();
+    userEvent.hover(screen.getByTitle('dashboard user'));
+    expect(
+      await screen.findByText('dashboard user (dashboarduser@sentry.io)')
     ).toBeInTheDocument();
   });
 

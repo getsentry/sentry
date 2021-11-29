@@ -433,12 +433,12 @@ const SPECIAL_FIELDS: SpecialFields = {
   assignee: {
     sortField: 'assignee.name',
     renderFunc: data => {
-      const assignedTo = {
+      const assignedTo: Actor = {
         type: data['assignee.type'],
         id: data['assignee.id'],
         name: data['assignee.name'],
         email: data['assignee.email'],
-      } as Actor;
+      };
       return (
         <ActorContainer>
           <ActorAvatar actor={assignedTo} size={28} />
