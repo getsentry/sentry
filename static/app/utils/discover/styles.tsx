@@ -35,6 +35,7 @@ export const OverflowLink = styled(Link)`
 
 export const FieldShortId = styled(ShortId)`
   justify-content: flex-start;
+  display: block;
 `;
 
 export const BarContainer = styled('div')`
@@ -50,4 +51,12 @@ export const FlexContainer = styled('div')`
 export const UserIcon = styled(IconUser)`
   margin-left: ${space(1)};
   color: ${p => p.theme.gray400};
+`;
+
+export const ActorContainer = styled('div')`
+  display: flex;
+  justify-content: center;
+  :hover {
+    cursor: pointer;
+  }
 `;

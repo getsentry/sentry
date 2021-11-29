@@ -33,7 +33,7 @@ import {Widget} from './types';
 import WidgetQueries from './widgetQueries';
 
 const ISSUE_TABLE_FIELDS_META: Record<string, ColumnType> = {
-  'issue #': 'string',
+  issue: 'string',
   title: 'string',
   assignee: 'string',
 };
@@ -79,9 +79,13 @@ class IssueWidgetCard extends React.Component<Props> {
     return tableResults.map(({id, shortId, title, assignedTo}) => {
       const transformedTableResults = {
         id,
-        'issue #': shortId,
+        'issue.id': id,
+        issue: shortId,
         title,
-        assignee: assignedTo?.name ?? '',
+        'assignee.type': assignedTo?.type,
+        'assignee.name': assignedTo?.name ?? '',
+        'assignee.id': assignedTo?.id,
+        'assignee.email': assignedTo?.email ?? '',
       };
       return transformedTableResults;
     });
@@ -103,7 +107,7 @@ class IssueWidgetCard extends React.Component<Props> {
 
     if (loading) {
       // Align height to other charts.
-      return <Placeholder height="200px" />;
+      return <LoadingPlaceholder height="200px" />;
     }
     const transformedTableResults = this.transformTableResults(tableResults);
 
@@ -208,6 +212,10 @@ const LoadingScreen = ({loading}: {loading: boolean}) => {
     </StyledTransparentLoadingMask>
   );
 };
+const LoadingPlaceholder = styled(Placeholder)`
+  background-color: ${p => p.theme.surface200};
+`;
+
 const ErrorCard = styled(Placeholder)`
   display: flex;
   align-items: center;

@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import partial from 'lodash/partial';
 
+import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import Count from 'sentry/components/count';
 import Duration from 'sentry/components/duration';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -15,7 +16,7 @@ import Tooltip from 'sentry/components/tooltip';
 import UserMisery from 'sentry/components/userMisery';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import {Actor, Organization} from 'sentry/types';
 import {defined, isUrl} from 'sentry/utils';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import EventView, {EventData, MetaType} from 'sentry/utils/discover/eventView';
@@ -40,6 +41,7 @@ import {
 
 import ArrayValue from './arrayValue';
 import {
+  ActorContainer,
   BarContainer,
   Container,
   FieldDateTime,
@@ -210,6 +212,7 @@ type SpecialFields = {
   'trend_percentage()': SpecialField;
   'timestamp.to_hour': SpecialField;
   'timestamp.to_day': SpecialField;
+  assignee: SpecialField;
 };
 
 /**
@@ -426,6 +429,22 @@ const SPECIAL_FIELDS: SpecialFields = {
         })}
       </Container>
     ),
+  },
+  assignee: {
+    sortField: 'assignee.name',
+    renderFunc: data => {
+      const assignedTo = {
+        type: data['assignee.type'],
+        id: data['assignee.id'],
+        name: data['assignee.name'],
+        email: data['assignee.email'],
+      } as Actor;
+      return (
+        <ActorContainer>
+          <ActorAvatar actor={assignedTo} size={28} />
+        </ActorContainer>
+      );
+    },
   },
 };
 
