@@ -1,6 +1,6 @@
-import BaseAvatar from 'app/components/avatar/baseAvatar';
-import {IconGeneric} from 'app/icons';
-import {SentryApp} from 'app/types';
+import BaseAvatar from 'sentry/components/avatar/baseAvatar';
+import {IconGeneric} from 'sentry/icons';
+import {SentryApp} from 'sentry/types';
 
 type Props = {
   sentryApp?: SentryApp;
