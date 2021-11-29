@@ -3,16 +3,16 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import FileChange from 'app/components/fileChange';
-import {Body, Main} from 'app/components/layouts/thirds';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import Pagination from 'app/components/pagination';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import {t, tn} from 'app/locale';
-import {CommitFile, Organization, Project, Repository} from 'app/types';
-import {formatVersion} from 'app/utils/formatters';
-import routeTitleGen from 'app/utils/routeTitle';
-import AsyncView from 'app/views/asyncView';
+import FileChange from 'sentry/components/fileChange';
+import {Body, Main} from 'sentry/components/layouts/thirds';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Pagination from 'sentry/components/pagination';
+import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import {t, tn} from 'sentry/locale';
+import {CommitFile, Organization, Project, Repository} from 'sentry/types';
+import {formatVersion} from 'sentry/utils/formatters';
+import routeTitleGen from 'sentry/utils/routeTitle';
+import AsyncView from 'sentry/views/asyncView';
 
 import {getFilesByRepository, getQuery, getReposToRender} from '../utils';
 

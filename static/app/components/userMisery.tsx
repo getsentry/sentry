@@ -1,10 +1,10 @@
 import * as React from 'react';
 
-import ScoreBar from 'app/components/scoreBar';
-import Tooltip from 'app/components/tooltip';
-import CHART_PALETTE from 'app/constants/chartPalette';
-import {tct} from 'app/locale';
-import {defined} from 'app/utils';
+import ScoreBar from 'sentry/components/scoreBar';
+import Tooltip from 'sentry/components/tooltip';
+import CHART_PALETTE from 'sentry/constants/chartPalette';
+import {tct} from 'sentry/locale';
+import {defined} from 'sentry/utils';
 
 type Props = {
   bars: number;

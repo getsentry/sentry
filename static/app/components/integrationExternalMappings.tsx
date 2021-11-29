@@ -2,18 +2,18 @@ import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
-import Access from 'app/components/acl/access';
-import Button from 'app/components/button';
-import Confirm from 'app/components/confirm';
-import Pagination from 'app/components/pagination';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
-import Tooltip from 'app/components/tooltip';
-import {IconAdd, IconDelete, IconEdit} from 'app/icons';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {ExternalActorMapping, Integration} from 'app/types';
-import {getIntegrationIcon} from 'app/utils/integrationUtil';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import Access from 'sentry/components/acl/access';
+import Button from 'sentry/components/button';
+import Confirm from 'sentry/components/confirm';
+import Pagination from 'sentry/components/pagination';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
+import Tooltip from 'sentry/components/tooltip';
+import {IconAdd, IconDelete, IconEdit} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {ExternalActorMapping, Integration} from 'sentry/types';
+import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 type Props = {
   integration: Integration;

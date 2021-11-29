@@ -2,11 +2,11 @@ import {Component, Fragment} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import IdBadge from 'app/components/idBadge';
-import {IconInput, IconLink, IconSettings} from 'app/icons';
-import PluginIcon from 'app/plugins/components/pluginIcon';
-import space from 'app/styles/space';
-import highlightFuseMatches from 'app/utils/highlightFuseMatches';
+import IdBadge from 'sentry/components/idBadge';
+import {IconInput, IconLink, IconSettings} from 'sentry/icons';
+import PluginIcon from 'sentry/plugins/components/pluginIcon';
+import space from 'sentry/styles/space';
+import highlightFuseMatches from 'sentry/utils/highlightFuseMatches';
 
 import {Result} from './sources/types';
 

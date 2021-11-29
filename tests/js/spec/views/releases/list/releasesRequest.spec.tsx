@@ -1,9 +1,9 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import {HealthStatsPeriodOption} from 'app/types';
-import {ReleasesDisplayOption} from 'app/views/releases/list/releasesDisplayOptions';
-import ReleasesRequest from 'app/views/releases/list/releasesRequest';
+import {HealthStatsPeriodOption} from 'sentry/types';
+import {ReleasesDisplayOption} from 'sentry/views/releases/list/releasesDisplayOptions';
+import ReleasesRequest from 'sentry/views/releases/list/releasesRequest';
 
 describe('ReleasesRequest', function () {
   const {organization, routerContext, router} = initializeOrg();

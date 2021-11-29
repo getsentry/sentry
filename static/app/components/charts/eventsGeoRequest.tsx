@@ -1,11 +1,11 @@
 import {useEffect, useState} from 'react';
 
-import {Client} from 'app/api';
-import {DateString, OrganizationSummary} from 'app/types';
-import {getUtcDateString} from 'app/utils/dates';
-import {TableData, TableDataWithTitle} from 'app/utils/discover/discoverQuery';
-import EventView from 'app/utils/discover/eventView';
-import {doDiscoverQuery} from 'app/utils/discover/genericDiscoverQuery';
+import {Client} from 'sentry/api';
+import {DateString, OrganizationSummary} from 'sentry/types';
+import {getUtcDateString} from 'sentry/utils/dates';
+import {TableData, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import EventView from 'sentry/utils/discover/eventView';
+import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 
 type ChildrenArgs = {
   errored: boolean;

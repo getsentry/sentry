@@ -6,18 +6,18 @@ import {mountWithTheme, shallow} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
-import StreamGroup from 'app/components/stream/group';
-import GroupStore from 'app/stores/groupStore';
-import ProjectsStore from 'app/stores/projectsStore';
-import TagStore from 'app/stores/tagStore';
-import * as parseLinkHeader from 'app/utils/parseLinkHeader';
-import IssueListWithStores, {IssueListOverview} from 'app/views/issueList/overview';
+import StreamGroup from 'sentry/components/stream/group';
+import GroupStore from 'sentry/stores/groupStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import TagStore from 'sentry/stores/tagStore';
+import * as parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import IssueListWithStores, {IssueListOverview} from 'sentry/views/issueList/overview';
 
 // Mock <IssueListSidebar> and <IssueListActions>
-jest.mock('app/views/issueList/sidebar', () => jest.fn(() => null));
-jest.mock('app/views/issueList/actions', () => jest.fn(() => null));
-jest.mock('app/components/stream/group', () => jest.fn(() => null));
-jest.mock('app/views/issueList/noGroupsHandler/congratsRobots', () =>
+jest.mock('sentry/views/issueList/sidebar', () => jest.fn(() => null));
+jest.mock('sentry/views/issueList/actions', () => jest.fn(() => null));
+jest.mock('sentry/components/stream/group', () => jest.fn(() => null));
+jest.mock('sentry/views/issueList/noGroupsHandler/congratsRobots', () =>
   jest.fn(() => null)
 );
 

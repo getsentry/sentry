@@ -1,24 +1,12 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'app/api';
-import IssueWidgetCard from 'app/views/dashboardsV2/issueWidgetCard';
-import {DisplayType, Widget, WidgetType} from 'app/views/dashboardsV2/types';
+import {Client} from 'sentry/api';
+import IssueWidgetCard from 'sentry/views/dashboardsV2/issueWidgetCard';
+import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
 
 describe('Dashboards > IssueWidgetCard', function () {
-  const initialData = initializeOrg({
-    organization: TestStubs.Organization({
-      features: [
-        'connect-discover-and-dashboards',
-        'dashboards-edit',
-        'discover-basic',
-        'issues-in-dashboards',
-      ],
-    }),
-    projects: [TestStubs.Project()],
-    router: {},
-    project: 1,
-  });
+  const initialData = initializeOrg();
 
   const widget: Widget = {
     title: 'Issues',
@@ -83,14 +71,9 @@ describe('Dashboards > IssueWidgetCard', function () {
         isSorting={false}
         currentWidgetDragging={false}
         showContextMenu
-      >
-        {() => <div data-test-id="child" />}
-      </IssueWidgetCard>
+      />
     );
 
-    await tick();
-    await tick();
-    await tick();
     await tick();
 
     expect(wrapper.getByText('Issues')).toBeInTheDocument();
@@ -102,5 +85,30 @@ describe('Dashboards > IssueWidgetCard', function () {
     expect(
       wrapper.getByText('ChunkLoadError: Loading chunk app_bootstrap_index_tsx failed.')
     ).toBeInTheDocument();
+  });
+
+  it('opens in issues page', async function () {
+    mountWithTheme(
+      <IssueWidgetCard
+        api={api}
+        organization={initialData.organization}
+        widget={widget}
+        selection={selection}
+        isEditing={false}
+        onDelete={() => undefined}
+        onEdit={() => undefined}
+        renderErrorMessage={() => undefined}
+        isSorting={false}
+        currentWidgetDragging={false}
+        showContextMenu
+      />
+    );
+
+    await tick();
+
+    userEvent.click(screen.getByTestId('context-menu'));
+    expect(screen.getByText('Open in Issues').closest('a')?.href).toContain(
+      '/organizations/org-slug/issues/?query=event.type%3Adefault&statsPeriod=14d'
+    );
   });
 });

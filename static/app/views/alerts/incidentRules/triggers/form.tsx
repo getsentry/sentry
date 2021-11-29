@@ -1,16 +1,16 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import {fetchOrgMembers} from 'app/actionCreators/members';
-import {Client} from 'app/api';
-import CircleIndicator from 'app/components/circleIndicator';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {Config, Organization, Project} from 'app/types';
-import withApi from 'app/utils/withApi';
-import withConfig from 'app/utils/withConfig';
-import ThresholdControl from 'app/views/alerts/incidentRules/triggers/thresholdControl';
-import Field from 'app/views/settings/components/forms/field';
+import {fetchOrgMembers} from 'sentry/actionCreators/members';
+import {Client} from 'sentry/api';
+import CircleIndicator from 'sentry/components/circleIndicator';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Config, Organization, Project} from 'sentry/types';
+import withApi from 'sentry/utils/withApi';
+import withConfig from 'sentry/utils/withConfig';
+import ThresholdControl from 'sentry/views/alerts/incidentRules/triggers/thresholdControl';
+import Field from 'sentry/views/settings/components/forms/field';
 
 import {isSessionAggregate} from '../../utils';
 import {

@@ -1,5 +1,5 @@
-import {t} from 'app/locale';
-import {NavigationSection} from 'app/views/settings/types';
+import {t} from 'sentry/locale';
+import {NavigationSection} from 'sentry/views/settings/types';
 
 const pathPrefix = '/settings/:orgId';
 

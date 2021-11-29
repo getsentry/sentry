@@ -1,9 +1,9 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import PageHeading from 'app/components/pageHeading';
-import space from 'app/styles/space';
-import {Project, Scope, Team} from 'app/types';
+import PageHeading from 'sentry/components/pageHeading';
+import space from 'sentry/styles/space';
+import {Project, Scope, Team} from 'sentry/types';
 
 import ProjectCard from './projectCard';
 import TeamMembers from './teamMembers';

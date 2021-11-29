@@ -1,7 +1,7 @@
 import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'app/stores/projectsStore';
-import TeamInsightsContainer from 'app/views/organizationStats/teamInsights';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import TeamInsightsContainer from 'sentry/views/organizationStats/teamInsights';
 
 describe('TeamInsightsContainer', () => {
   afterEach(() => {

@@ -1,6 +1,6 @@
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import {t} from 'app/locale';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import {t} from 'sentry/locale';
 
 type Props = {
   gettingStartedLink: string;

@@ -1,13 +1,13 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Search from 'app/components/search';
-import SearchResult from 'app/components/search/searchResult';
-import SearchResultWrapper from 'app/components/search/searchResultWrapper';
-import HelpSource from 'app/components/search/sources/helpSource';
-import {IconWindow} from 'app/icons';
-import {t, tn} from 'app/locale';
-import space from 'app/styles/space';
+import Search from 'sentry/components/search';
+import SearchResult from 'sentry/components/search/searchResult';
+import SearchResultWrapper from 'sentry/components/search/searchResultWrapper';
+import HelpSource from 'sentry/components/search/sources/helpSource';
+import {IconWindow} from 'sentry/icons';
+import {t, tn} from 'sentry/locale';
+import space from 'sentry/styles/space';
 
 type HelpResult = Parameters<
   React.ComponentProps<typeof HelpSource>['children']

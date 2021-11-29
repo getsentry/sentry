@@ -1,8 +1,8 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import BaseChart from 'app/components/charts/baseChart';
-import theme from 'app/utils/theme';
+import BaseChart from 'sentry/components/charts/baseChart';
+import theme from 'sentry/utils/theme';
 
 describe('BaseChart', function () {
   const {routerContext} = initializeOrg();

@@ -1,7 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
-import IncidentRulesCreate from 'app/views/alerts/incidentRules/create';
+import IncidentRulesCreate from 'sentry/views/alerts/incidentRules/create';
 
 describe('Incident Rules Create', function () {
   let eventStatsMock;

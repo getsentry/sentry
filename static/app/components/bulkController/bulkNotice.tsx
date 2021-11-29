@@ -1,8 +1,8 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import {t, tct, tn} from 'app/locale';
-import {defined} from 'app/utils';
+import {t, tct, tn} from 'sentry/locale';
+import {defined} from 'sentry/utils';
 
 import Button from '../button';
 import {PanelAlert} from '../panels';

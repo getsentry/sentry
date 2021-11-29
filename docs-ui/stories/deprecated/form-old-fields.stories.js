@@ -1,4 +1,4 @@
-import {BooleanField, Form as LegacyForm, PasswordField} from 'app/components/forms';
+import {BooleanField, Form as LegacyForm, PasswordField} from 'sentry/components/forms';
 
 export default {
   title: 'Deprecated/Fields',

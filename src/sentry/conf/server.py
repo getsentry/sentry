@@ -15,6 +15,7 @@ from urllib.parse import urlparse
 from django.conf.global_settings import *  # NOQA
 
 import sentry
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import type_from_value
 
@@ -1050,8 +1051,6 @@ SENTRY_FEATURES = {
     "organizations:weekly-report-debugging": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": True,
-    # Automatically opt IN users to receiving Slack notifications.
-    "organizations:notification-slack-automatic": False,
     # Notify all project members when fallthrough is disabled, instead of just the auto-assignee
     "organizations:notification-all-recipients": False,
     # Enable the new native stack trace design
@@ -1336,6 +1335,15 @@ SENTRY_RELAY_PROJECTCONFIG_DEBOUNCE_CACHE_OPTIONS = {}
 # Rate limiting backend
 SENTRY_RATELIMITER = "sentry.ratelimits.base.RateLimiter"
 SENTRY_RATELIMITER_OPTIONS = {}
+# These values were determined from analysis on one week of api access logs
+SENTRY_RATELIMITER_DEFAULT_IP = 1000
+SENTRY_RATELIMITER_DEFAULT_USER = 3230
+SENTRY_RATELIMITER_DEFAULT_ORG = 620
+SENTRY_RATELIMITER_DEFAULTS = {
+    RateLimitCategory.IP: RateLimit(SENTRY_RATELIMITER_DEFAULT_IP, 1),
+    RateLimitCategory.USER: RateLimit(SENTRY_RATELIMITER_DEFAULT_USER, 1),
+    RateLimitCategory.ORGANIZATION: RateLimit(SENTRY_RATELIMITER_DEFAULT_ORG, 1),
+}
 
 # The default value for project-level quotas
 SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE = "90%"

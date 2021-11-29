@@ -1,10 +1,10 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {EditOwnershipRulesModalOptions} from 'app/actionCreators/modal';
-import {t} from 'app/locale';
-import TextBlock from 'app/views/settings/components/text/textBlock';
-import OwnerInput from 'app/views/settings/project/projectOwnership/ownerInput';
+import {EditOwnershipRulesModalOptions} from 'sentry/actionCreators/modal';
+import {t} from 'sentry/locale';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import OwnerInput from 'sentry/views/settings/project/projectOwnership/ownerInput';
 
 type Props = EditOwnershipRulesModalOptions;
 type State = {};

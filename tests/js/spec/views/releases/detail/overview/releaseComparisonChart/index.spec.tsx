@@ -3,7 +3,7 @@ import {browserHistory} from 'react-router';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import ReleaseComparisonChart from 'app/views/releases/detail/overview/releaseComparisonChart';
+import ReleaseComparisonChart from 'sentry/views/releases/detail/overview/releaseComparisonChart';
 
 describe('Releases > Detail > Overview > ReleaseComparison', () => {
   const {routerContext, organization, project} = initializeOrg();

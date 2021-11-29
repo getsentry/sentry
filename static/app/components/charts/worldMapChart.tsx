@@ -3,8 +3,8 @@ import {withTheme} from '@emotion/react';
 import echarts, {EChartOption} from 'echarts';
 import max from 'lodash/max';
 
-import {Series, SeriesDataUnit} from 'app/types/echarts';
-import {Theme} from 'app/utils/theme';
+import {Series, SeriesDataUnit} from 'sentry/types/echarts';
+import {Theme} from 'sentry/utils/theme';
 
 import VisualMap from './components/visualMap';
 import MapSeries from './series/mapSeries';
@@ -54,8 +54,8 @@ class WorldMapChart extends React.Component<Props, State> {
 
   async componentDidMount() {
     const [countryToCodeMap, worldMap] = await Promise.all([
-      import('app/data/countryCodesMap'),
-      import('app/data/world.json'),
+      import('sentry/data/countryCodesMap'),
+      import('sentry/data/world.json'),
     ]);
 
     echarts.registerMap('sentryWorld', worldMap.default);

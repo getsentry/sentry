@@ -221,12 +221,12 @@ let appConfig: Configuration = {
      *
      * The order here matters for `getsentry`
      */
-    app: ['app/utils/statics-setup', 'app'],
+    app: ['sentry/utils/statics-setup', 'sentry'],
 
     /**
      * Pipeline View for integrations
      */
-    pipeline: ['app/utils/statics-setup', 'app/views/integrationPipeline'],
+    pipeline: ['sentry/utils/statics-setup', 'sentry/views/integrationPipeline'],
 
     /**
      * Legacy CSS Webpack appConfig for Django-powered views.
@@ -378,7 +378,7 @@ let appConfig: Configuration = {
 
   resolve: {
     alias: {
-      app: path.join(staticPrefix, 'app'),
+      sentry: path.join(staticPrefix, 'app'),
       'sentry-images': path.join(staticPrefix, 'images'),
       'sentry-logos': path.join(sentryDjangoAppPath, 'images', 'logos'),
       'sentry-fonts': path.join(staticPrefix, 'fonts'),

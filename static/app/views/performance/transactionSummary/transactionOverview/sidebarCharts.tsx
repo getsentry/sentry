@@ -4,30 +4,30 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import ChartZoom from 'app/components/charts/chartZoom';
-import ErrorPanel from 'app/components/charts/errorPanel';
-import EventsRequest from 'app/components/charts/eventsRequest';
-import LineChart from 'app/components/charts/lineChart';
-import {SectionHeading} from 'app/components/charts/styles';
-import TransitionChart from 'app/components/charts/transitionChart';
-import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
-import {getInterval} from 'app/components/charts/utils';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import Placeholder from 'app/components/placeholder';
-import QuestionTooltip from 'app/components/questionTooltip';
-import {IconWarning} from 'app/icons';
-import {t, tct} from 'app/locale';
-import {Organization} from 'app/types';
-import {getUtcToLocalDateObject} from 'app/utils/dates';
-import {tooltipFormatter} from 'app/utils/discover/charts';
-import EventView from 'app/utils/discover/eventView';
+import ChartZoom from 'sentry/components/charts/chartZoom';
+import ErrorPanel from 'sentry/components/charts/errorPanel';
+import EventsRequest from 'sentry/components/charts/eventsRequest';
+import LineChart from 'sentry/components/charts/lineChart';
+import {SectionHeading} from 'sentry/components/charts/styles';
+import TransitionChart from 'sentry/components/charts/transitionChart';
+import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import {getInterval} from 'sentry/components/charts/utils';
+import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import Placeholder from 'sentry/components/placeholder';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import {IconWarning} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import {Organization} from 'sentry/types';
+import {getUtcToLocalDateObject} from 'sentry/utils/dates';
+import {tooltipFormatter} from 'sentry/utils/discover/charts';
+import EventView from 'sentry/utils/discover/eventView';
 import {
   formatAbbreviatedNumber,
   formatFloat,
   formatPercentage,
-} from 'app/utils/formatters';
-import useApi from 'app/utils/useApi';
-import {getTermHelp, PERFORMANCE_TERM} from 'app/views/performance/data';
+} from 'sentry/utils/formatters';
+import useApi from 'sentry/utils/useApi';
+import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
 
 type Props = WithRouterProps & {
   organization: Organization;

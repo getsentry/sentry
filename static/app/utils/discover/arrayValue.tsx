@@ -1,9 +1,9 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
+import {t} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
 
 type Props = {
   value: string[];

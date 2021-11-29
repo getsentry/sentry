@@ -1,11 +1,11 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
-import {openModal} from 'app/actionCreators/modal';
-import Button from 'app/components/button';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {IntegrationType, Organization} from 'app/types';
+import {openModal} from 'sentry/actionCreators/modal';
+import Button from 'sentry/components/button';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {IntegrationType, Organization} from 'sentry/types';
 
 import RequestIntegrationModal from './RequestIntegrationModal';
 

@@ -1,16 +1,16 @@
 import * as React from 'react';
 
-import GenericDiscoverQuery from 'app/utils/discover/genericDiscoverQuery';
+import GenericDiscoverQuery from 'sentry/utils/discover/genericDiscoverQuery';
 import {
   BaseTraceChildrenProps,
   TraceMeta,
   TraceRequestProps,
-} from 'app/utils/performance/quickTrace/types';
+} from 'sentry/utils/performance/quickTrace/types';
 import {
   getTraceRequestPayload,
   makeEventView,
-} from 'app/utils/performance/quickTrace/utils';
-import withApi from 'app/utils/withApi';
+} from 'sentry/utils/performance/quickTrace/utils';
+import withApi from 'sentry/utils/withApi';
 
 export type TraceMetaQueryChildrenProps = BaseTraceChildrenProps & {
   meta: TraceMeta | null;

@@ -2,13 +2,13 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
-import Button from 'app/components/button';
-import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
-import {IconAdd} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import theme from 'app/utils/theme';
+import Button from 'sentry/components/button';
+import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
+import {IconAdd} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import theme from 'sentry/utils/theme';
 
 import SelectorItem from './selectorItem';
 

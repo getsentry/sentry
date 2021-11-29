@@ -1112,6 +1112,7 @@ class QueryFilter(QueryFields):
     ) -> Tuple[List[WhereType], List[WhereType]]:
         parsed_terms = self.parse_query(query)
 
+        self.has_or_condition = any(SearchBoolean.is_or_operator(term) for term in parsed_terms)
         if any(
             isinstance(term, ParenExpression) or SearchBoolean.is_operator(term)
             for term in parsed_terms

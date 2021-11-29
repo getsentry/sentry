@@ -2,12 +2,12 @@ import * as React from 'react';
 import isEqual from 'lodash/isEqual';
 import * as qs from 'query-string';
 
-import {Client} from 'app/api';
-import {isSelectionEqual} from 'app/components/organizations/globalSelectionHeader/utils';
-import {t} from 'app/locale';
-import {GlobalSelection, Group, OrganizationSummary} from 'app/types';
-import {getUtcDateString} from 'app/utils/dates';
-import {IssueDisplayOptions, IssueSortOptions} from 'app/views/issueList/utils';
+import {Client} from 'sentry/api';
+import {isSelectionEqual} from 'sentry/components/organizations/globalSelectionHeader/utils';
+import {t} from 'sentry/locale';
+import {GlobalSelection, Group, OrganizationSummary} from 'sentry/types';
+import {getUtcDateString} from 'sentry/utils/dates';
+import {IssueDisplayOptions, IssueSortOptions} from 'sentry/views/issueList/utils';
 
 import {Widget, WidgetQuery} from './types';
 
@@ -108,10 +108,10 @@ class WidgetQueries extends React.Component<Props, State> {
       params.statsPeriod = selection.datetime.period;
     }
     if (selection.datetime.end) {
-      params.end = getUtcDateString(params.end);
+      params.end = getUtcDateString(selection.datetime.end);
     }
     if (selection.datetime.start) {
-      params.start = getUtcDateString(params.start);
+      params.start = getUtcDateString(selection.datetime.start);
     }
     if (selection.datetime.utc) {
       params.utc = selection.datetime.utc;

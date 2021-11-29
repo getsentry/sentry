@@ -4,11 +4,11 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
-import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'app/constants';
-import ProjectsStore from 'app/stores/projectsStore';
-import {DataCategory} from 'app/types';
-import {OrganizationStats} from 'app/views/organizationStats';
-import {CHART_OPTIONS_DATA_TRANSFORM} from 'app/views/organizationStats/usageChart';
+import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'sentry/constants';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import {DataCategory} from 'sentry/types';
+import {OrganizationStats} from 'sentry/views/organizationStats';
+import {CHART_OPTIONS_DATA_TRANSFORM} from 'sentry/views/organizationStats/usageChart';
 
 describe('OrganizationStats', function () {
   const router = TestStubs.router();

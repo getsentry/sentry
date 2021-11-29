@@ -1,12 +1,12 @@
 import {Component} from 'react';
 
-import ClippedBox from 'app/components/clippedBox';
-import ErrorBoundary from 'app/components/errorBoundary';
-import EventDataSection from 'app/components/events/eventDataSection';
-import KeyValueList from 'app/components/events/interfaces/keyValueList';
-import {getMeta} from 'app/components/events/meta/metaProxy';
-import {t} from 'app/locale';
-import {Event} from 'app/types/event';
+import ClippedBox from 'sentry/components/clippedBox';
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import EventDataSection from 'sentry/components/events/eventDataSection';
+import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
+import {getMeta} from 'sentry/components/events/meta/metaProxy';
+import {t} from 'sentry/locale';
+import {Event} from 'sentry/types/event';
 
 type Props = {
   event: Event;

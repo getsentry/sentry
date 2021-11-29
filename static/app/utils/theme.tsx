@@ -2,8 +2,8 @@ import '@emotion/react';
 
 import color from 'color';
 
-import CHART_PALETTE from 'app/constants/chartPalette';
-import {DataCategory} from 'app/types';
+import CHART_PALETTE from 'sentry/constants/chartPalette';
+import {DataCategory} from 'sentry/types';
 
 const lightColors = {
   black: '#1D1127',
@@ -56,7 +56,7 @@ const darkColors = {
 
   surface100: '#1A141F',
   surface200: '#241D2A',
-  surface300: '#2E2734',
+  surface300: '#2C2433',
 
   gray500: '#EBE6EF',
   gray400: '#D6D0DC',
@@ -95,6 +95,18 @@ const darkColors = {
   pink100: 'rgba(250, 51, 150, 0.13)',
 };
 
+const lightShadows = {
+  dropShadowLightest: '0 0 2px rgba(43, 34, 51, 0.04)',
+  dropShadowLight: '0 1px 4px rgba(43, 34, 51, 0.04)',
+  dropShadowHeavy: '0 4px 24px rgba(43, 34, 51, 0.12)',
+};
+
+const darkShadows = {
+  dropShadowLightest: '0 0 2px rgba(10, 8, 12, 0.2)',
+  dropShadowLight: '0 1px 4px rgba(10, 8, 12, 0.2)',
+  dropShadowHeavy: '0 4px 24px rgba(10, 8, 12, 0.36)',
+};
+
 type BaseColors = typeof lightColors;
 
 const generateAliases = (colors: BaseColors) => ({
@@ -117,6 +129,11 @@ const generateAliases = (colors: BaseColors) => ({
    * Primary background color
    */
   background: colors.surface200,
+
+  /**
+   * Elevated background color
+   */
+  backgroundElevated: colors.surface300,
 
   /**
    * Secondary background color used as a slight contrast against primary background
@@ -500,6 +517,8 @@ const commonTheme = {
 
   ...lightColors,
 
+  ...lightShadows,
+
   iconSizes,
 
   iconDirections: {
@@ -580,10 +599,6 @@ const commonTheme = {
   headerSelectorRowHeight: 44,
   headerSelectorLabelHeight: 28,
 
-  dropShadowLightest: '0 0 2px rgba(43, 34, 51, 0.04)',
-  dropShadowLight: '0 1px 4px rgba(43, 34, 51, 0.04)',
-  dropShadowHeavy: '0 4px 24px rgba(43, 34, 51, 0.08)',
-
   // Relative font sizes
   fontSizeRelativeSmall: '0.9em',
 
@@ -662,11 +677,17 @@ const commonTheme = {
 };
 
 const lightAliases = generateAliases(lightColors);
+const darkAliases = generateAliases(darkColors);
 
 export const lightTheme = {
   ...commonTheme,
   ...lightColors,
   ...lightAliases,
+  ...lightShadows,
+  inverted: {
+    ...darkColors,
+    ...darkAliases,
+  },
   alert: generateAlertTheme(lightColors, lightAliases),
   badge: generateBadgeTheme(lightColors),
   button: generateButtonTheme(lightColors, lightAliases),
@@ -674,20 +695,25 @@ export const lightTheme = {
   level: generateLevelTheme(lightColors),
   sidebarGradient:
     'linear-gradient(294.17deg,#2f1937 35.57%,#452650 92.42%,#452650 92.42%)',
+  sidebarBorder: 'transparent',
 };
-
-const darkAliases = generateAliases(darkColors);
 
 export const darkTheme: Theme = {
   ...commonTheme,
   ...darkColors,
   ...darkAliases,
+  ...darkShadows,
+  inverted: {
+    ...lightColors,
+    ...lightAliases,
+  },
   alert: generateAlertTheme(darkColors, darkAliases),
   badge: generateBadgeTheme(darkColors),
   button: generateButtonTheme(darkColors, darkAliases),
   tag: generateTagTheme(darkColors),
   level: generateLevelTheme(darkColors),
   sidebarGradient: 'linear-gradient(180deg, #181622 0%, #1B1825 100%)',
+  sidebarBorder: darkAliases.border,
 };
 
 export type Theme = typeof lightTheme;

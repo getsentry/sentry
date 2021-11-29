@@ -1,18 +1,18 @@
 import {LocationDescriptor} from 'history';
 import pick from 'lodash/pick';
 
-import {Client} from 'app/api';
-import {canIncludePreviousPeriod} from 'app/components/charts/utils';
+import {Client} from 'sentry/api';
+import {canIncludePreviousPeriod} from 'sentry/components/charts/utils';
 import {
   DateString,
   EventsStats,
   MultiSeriesEventsStats,
   OrganizationSummary,
-} from 'app/types';
-import {LocationQuery} from 'app/utils/discover/eventView';
-import {getPeriod} from 'app/utils/getPeriod';
-import {PERFORMANCE_URL_PARAM} from 'app/utils/performance/constants';
-import {QueryBatching} from 'app/utils/performance/contexts/genericQueryBatcher';
+} from 'sentry/types';
+import {LocationQuery} from 'sentry/utils/discover/eventView';
+import {getPeriod} from 'sentry/utils/getPeriod';
+import {PERFORMANCE_URL_PARAM} from 'sentry/utils/performance/constants';
+import {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 
 type Options = {
   organization: OrganizationSummary;
@@ -108,6 +108,7 @@ export const doEventsRequest = (
       ...periodObj,
     },
   };
+
   const pathname = `/organizations/${organization.slug}/events-stats/`;
 
   if (queryBatching?.batchRequest) {

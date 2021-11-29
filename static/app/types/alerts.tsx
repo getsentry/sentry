@@ -1,5 +1,5 @@
-import {IssueConfigField} from 'app/types/index';
-import {SchemaFormConfig} from 'app/views/organizationIntegrations/sentryAppExternalForm';
+import {IssueConfigField} from 'sentry/types/index';
+import {SchemaFormConfig} from 'sentry/views/organizationIntegrations/sentryAppExternalForm';
 
 type IssueAlertRuleFormField =
   | {

@@ -5,8 +5,8 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
 import {act} from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'app/stores/projectsStore';
-import OrganizationGeneralSettings from 'app/views/settings/organizationGeneralSettings';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import OrganizationGeneralSettings from 'sentry/views/settings/organizationGeneralSettings';
 
 describe('OrganizationGeneralSettings', function () {
   enforceActOnUseLegacyStoreHook();
