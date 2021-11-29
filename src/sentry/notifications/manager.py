@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Iterable, Mapping, MutableMapping, MutableSet,
 from django.db import transaction
 from django.db.models import Q, QuerySet
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.db.models.manager import BaseManager
 from sentry.notifications.helpers import (
     get_scope,
@@ -298,20 +298,14 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         are subscribed to alerts. We check both the project level settings and
         global default settings.
         """
-        from sentry.models import Organization
-
         notification_settings = self.get_for_recipient_by_parent(type, parent, recipients)
         notification_settings_by_recipient = transform_to_notification_settings_by_recipient(
             notification_settings, recipients
         )
         mapping = defaultdict(set)
-        organization = parent if isinstance(parent, Organization) else parent.organization
-        should_use_slack_automatic = features.has(
-            "organizations:notification-slack-automatic", organization
-        )
         for recipient in recipients:
             providers = where_should_recipient_be_notified(
-                notification_settings_by_recipient, recipient, should_use_slack_automatic, type
+                notification_settings_by_recipient, recipient, type
             )
             for provider in providers:
                 mapping[provider].add(recipient)
