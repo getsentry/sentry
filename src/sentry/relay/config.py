@@ -351,28 +351,28 @@ def _filter_option_to_config_setting(flt, setting):
     return ret_val
 
 
-# Note: names for extracted metrics start with `measurement.`, while the
+# Note: names for extracted metrics start with `measurements.`, while the
 # in-event keys start with `measurements.`
 ALL_MEASUREMENT_METRICS = frozenset(
     [
-        "measurement.fp",
-        "measurement.fcp",
-        "measurement.lcp",
-        "measurement.fid",
-        "measurement.cls",
-        "measurement.ttfb",
-        "measurement.ttfb.requesttime",
-        "measurement.app_start_cold",
-        "measurement.app_start_warm",
-        "measurement.frames_total",
-        "measurement.frames_slow",
-        "measurement.frames_frozen",
-        "measurement.frames_slow_rate",
-        "measurement.frames_frozen_rate",
-        "measurement.stall_count",
-        "measurement.stall_total_time",
-        "measurement.stall_longest_time",
-        "measurement.stall_percentage",
+        "measurements.fp",
+        "measurements.fcp",
+        "measurements.lcp",
+        "measurements.fid",
+        "measurements.cls",
+        "measurements.ttfb",
+        "measurements.ttfb.requesttime",
+        "measurements.app_start_cold",
+        "measurements.app_start_warm",
+        "measurements.frames_total",
+        "measurements.frames_slow",
+        "measurements.frames_frozen",
+        "measurements.frames_slow_rate",
+        "measurements.frames_frozen_rate",
+        "measurements.stall_count",
+        "measurements.stall_total_time",
+        "measurements.stall_longest_time",
+        "measurements.stall_percentage",
     ]
 )
 

@@ -14,24 +14,24 @@ breakdownsV2:
 transactionMetrics:
   extractCustomTags: []
   extractMetrics:
-  - measurement.stall_total_time
-  - measurement.lcp
-  - measurement.ttfb.requesttime
-  - measurement.frames_frozen_rate
-  - measurement.stall_count
-  - measurement.stall_longest_time
-  - measurement.frames_slow_rate
-  - measurement.fcp
-  - measurement.ttfb
-  - measurement.stall_percentage
-  - measurement.app_start_cold
-  - measurement.app_start_warm
-  - measurement.frames_slow
-  - measurement.cls
-  - measurement.fid
-  - measurement.fp
-  - measurement.frames_frozen
-  - measurement.frames_total
+  - measurements.stall_total_time
+  - measurements.lcp
+  - measurements.ttfb.requesttime
+  - measurements.frames_frozen_rate
+  - measurements.stall_count
+  - measurements.stall_longest_time
+  - measurements.frames_slow_rate
+  - measurements.fcp
+  - measurements.ttfb
+  - measurements.stall_percentage
+  - measurements.app_start_cold
+  - measurements.app_start_warm
+  - measurements.frames_slow
+  - measurements.cls
+  - measurements.fid
+  - measurements.fp
+  - measurements.frames_frozen
+  - measurements.frames_total
   - breakdown.span_ops.http
   - breakdown.span_ops.db
   - breakdown.span_ops.browser
