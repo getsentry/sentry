@@ -1,4 +1,7 @@
+from unittest import mock
+
 from django.urls import reverse
+from rest_framework.exceptions import ErrorDetail
 
 from sentry.models import ProjectCodeOwners
 from sentry.testutils import APITestCase
@@ -107,3 +110,38 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
             response = self.client.put(self.url, data)
         assert response.status_code == 200
         assert response.data["raw"] == "# cool stuff comment\n*.js admin@sentry.io\n# good comment"
+
+    def test_codeowners_max_raw_length(self):
+        with mock.patch("sentry.api.endpoints.project_codeowners.MAX_RAW_LENGTH", 56):
+            data = {
+                "raw": f"#                cool stuff     comment\n*.js {self.user.email}\n# good comment"
+            }
+
+            with self.feature({"organizations:integrations-codeowners": True}):
+                response = self.client.put(self.url, data)
+            assert response.status_code == 400
+            assert response.data == {
+                "raw": [
+                    ErrorDetail(string="Raw needs to be <= 56 characters in length", code="invalid")
+                ]
+            }
+
+            # Test that we allow this to be modified for existing large rows
+            code_mapping_2 = self.create_code_mapping(project=self.project, stack_root="/")
+            codeowners_2 = self.create_codeowners(
+                project=self.project,
+                code_mapping=code_mapping_2,
+                raw=f"*.py            test@localhost                         #{self.team.slug}",
+            )
+            url_2 = reverse(
+                "sentry-api-0-project-codeowners-details",
+                kwargs={
+                    "organization_slug": self.organization.slug,
+                    "project_slug": self.project.slug,
+                    "codeowners_id": codeowners_2.id,
+                },
+            )
+            with self.feature({"organizations:integrations-codeowners": True}):
+                response = self.client.put(url_2, data)
+
+            assert ProjectCodeOwners.objects.get(id=codeowners_2.id).raw == data.get("raw")
