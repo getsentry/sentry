@@ -1,7 +1,12 @@
 import {DateString} from './core';
-import {SeriesApi} from '.';
 
-export type MetricsApiResponse = SeriesApi & {
+export type MetricsApiResponse = {
+  intervals: string[];
+  groups: {
+    by: Record<string, string>;
+    totals: Record<string, number>;
+    series: Record<string, number[]>;
+  }[];
   start: DateString;
   end: DateString;
   query: string;
