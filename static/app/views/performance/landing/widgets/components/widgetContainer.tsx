@@ -21,6 +21,7 @@ import {LineChartListWidget} from '../widgets/lineChartListWidget';
 import {SingleFieldAreaWidget} from '../widgets/singleFieldAreaWidget';
 import {TrendsWidget} from '../widgets/trendsWidget';
 import {VitalWidget} from '../widgets/vitalWidget';
+import {VitalWidgetMetrics} from '../widgets/vitalWidgetMetrics';
 
 import {ChartRowProps} from './widgetChartRow';
 
@@ -113,8 +114,8 @@ const _WidgetContainer = (props: Props) => {
     ),
   };
 
-  if (isMetricsData) {
-    return <h1>{t('Using metrics')}</h1>;
+  if (isMetricsData && widgetProps.title !== t('Worst LCP Web Vitals')) {
+    return <h1>todo</h1>;
   }
 
   const passedProps = pick(props, [
@@ -130,6 +131,9 @@ const _WidgetContainer = (props: Props) => {
     case GenericPerformanceWidgetDataType.area:
       return <SingleFieldAreaWidget {...passedProps} {...widgetProps} />;
     case GenericPerformanceWidgetDataType.vitals:
+      if (isMetricsData) {
+        return <VitalWidgetMetrics {...passedProps} {...widgetProps} />;
+      }
       return <VitalWidget {...passedProps} {...widgetProps} />;
     case GenericPerformanceWidgetDataType.line_list:
       return <LineChartListWidget {...passedProps} {...widgetProps} />;
