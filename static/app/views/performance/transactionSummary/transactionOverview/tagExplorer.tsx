@@ -35,7 +35,10 @@ import {
   platformAndConditionsToPerformanceType,
   PROJECT_PERFORMANCE_TYPE,
 } from '../../utils';
-import {SpanOperationBreakdownFilter} from '../filter';
+import {
+  SPAN_OPERATION_BREAKDOWN_FILTER_TO_FIELD,
+  SpanOperationBreakdownFilter,
+} from '../filter';
 import {tagsRouteWithQuery} from '../transactionTags/utils';
 
 const TAGS_CURSOR_NAME = 'tags_cursor';
@@ -115,19 +118,12 @@ const COLUMN_ORDER: TagColumn[] = [
   },
 ];
 
-const filterToField = {
-  [SpanOperationBreakdownFilter.Browser]: 'spans.browser',
-  [SpanOperationBreakdownFilter.Http]: 'spans.http',
-  [SpanOperationBreakdownFilter.Db]: 'spans.db',
-  [SpanOperationBreakdownFilter.Resource]: 'spans.resource',
-};
-
 export const getTransactionField = (
   currentFilter: SpanOperationBreakdownFilter,
   projects: Project[],
   eventView: EventView
 ) => {
-  const fieldFromFilter = filterToField[currentFilter];
+  const fieldFromFilter = SPAN_OPERATION_BREAKDOWN_FILTER_TO_FIELD[currentFilter];
   if (fieldFromFilter) {
     return fieldFromFilter;
   }
@@ -152,7 +148,7 @@ const getColumnsWithReplacedDuration = (
     return columns;
   }
 
-  const fieldFromFilter = filterToField[currentFilter];
+  const fieldFromFilter = SPAN_OPERATION_BREAKDOWN_FILTER_TO_FIELD[currentFilter];
   if (fieldFromFilter) {
     durationColumn.name = 'Avg Span Duration';
     return columns;
