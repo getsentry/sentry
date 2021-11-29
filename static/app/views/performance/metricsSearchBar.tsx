@@ -1,12 +1,13 @@
-import * as React from 'react';
+import {useEffect, useState} from 'react';
 import {ClassNames} from '@emotion/react';
 import memoize from 'lodash/memoize';
 
-import {Client} from 'sentry/api';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {MetricTagValue, Organization, Project, Tag} from 'sentry/types';
+import {MetricTag, MetricTagValue, Organization, Tag} from 'sentry/types';
+import useApi from 'sentry/utils/useApi';
 
 const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   `^${NEGATION_OPERATOR}|\\${SEARCH_WILDCARD}`,
@@ -15,15 +16,44 @@ const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
 
 type Props = Pick<
   React.ComponentProps<typeof SmartSearchBar>,
-  'onSearch' | 'onBlur' | 'query'
+  'onSearch' | 'onBlur' | 'query' | 'maxQueryLength' | 'searchSource'
 > & {
-  api: Client;
   orgSlug: Organization['slug'];
-  projectId: Project['id'];
-  tags: string[];
+  projectIds: number[] | readonly number[];
 };
 
-function SearchQueryField({api, orgSlug, projectId, tags, onSearch, onBlur}: Props) {
+function MetricsSearchBar({
+  orgSlug,
+  onSearch,
+  onBlur,
+  maxQueryLength,
+  searchSource,
+  projectIds,
+}: Props) {
+  const api = useApi();
+  const [tags, setTags] = useState<MetricTag[]>([]);
+
+  useEffect(() => {
+    fetchTags();
+  }, [projectIds]);
+
+  async function fetchTags() {
+    try {
+      const response = await api.requestPromise(
+        `/organizations/${orgSlug}/metrics/tags/`,
+        {
+          query: {
+            project: !projectIds.length ? undefined : projectIds,
+          },
+        }
+      );
+
+      setTags(response);
+    } catch {
+      addErrorMessage(t('Unable to fetch search bar tags'));
+    }
+  }
+
   /**
    * Prepare query string (e.g. strip special characters like negation operator)
    */
@@ -33,8 +63,7 @@ function SearchQueryField({api, orgSlug, projectId, tags, onSearch, onBlur}: Pro
 
   function fetchTagValues(tagKey: string) {
     return api.requestPromise(`/organizations/${orgSlug}/metrics/tags/${tagKey}/`, {
-      method: 'GET',
-      query: {project: projectId},
+      query: {project: projectIds},
     });
   }
 
@@ -47,8 +76,8 @@ function SearchQueryField({api, orgSlug, projectId, tags, onSearch, onBlur}: Pro
     );
   }
 
-  const supportedTags = tags.reduce((acc, tag) => {
-    acc[tag] = {key: tag, name: tag};
+  const supportedTags = tags.reduce((acc, {key}) => {
+    acc[key] = {key, name: key};
     return acc;
   }, {});
 
@@ -56,22 +85,23 @@ function SearchQueryField({api, orgSlug, projectId, tags, onSearch, onBlur}: Pro
     <ClassNames>
       {({css}) => (
         <SmartSearchBar
-          placeholder={t('Search for tag')}
           onGetTagValues={memoize(getTagValues, ({key}, query) => `${key}-${query}`)}
           supportedTags={supportedTags}
           prepareQuery={prepareQuery}
-          onSearch={onSearch}
-          onBlur={onBlur}
-          useFormWrapper={false}
           excludeEnvironment
           dropdownClassName={css`
             max-height: 300px;
             overflow-y: auto;
           `}
+          onSearch={onSearch}
+          onBlur={onBlur}
+          maxQueryLength={maxQueryLength}
+          searchSource={searchSource}
+          hasRecentSearches
         />
       )}
     </ClassNames>
   );
 }
 
-export default SearchQueryField;
+export default MetricsSearchBar;
