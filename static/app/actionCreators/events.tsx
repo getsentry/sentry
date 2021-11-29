@@ -108,6 +108,7 @@ export const doEventsRequest = (
       ...periodObj,
     },
   };
+
   const pathname = `/organizations/${organization.slug}/events-stats/`;
 
   if (queryBatching?.batchRequest) {
