@@ -53,10 +53,16 @@ const GroupReleaseStats = ({
   const releaseTrackingUrl = `/settings/${organization.slug}/projects/${project.slug}/release-tracking/`;
 
   const generateGroupReleaseChartTitle = (duration: '24h' | '30d') => {
+    const getBaseTime = () => moment().subtract(moment().utcOffset(), 'minutes');
     const timeAgo =
-      duration === '24h' ? moment().subtract(24, 'hours') : moment().subtract(30, 'days');
+      duration === '24h'
+        ? getBaseTime().subtract(24, 'hours')
+        : getBaseTime().subtract(30, 'days');
     const title = duration === '24h' ? t('Last 24 Hours') : t('Last 30 Days');
     const interval = duration === '24h' ? '1h' : '1d';
+    const end = getBaseTime().toDate().toString();
+    const start = timeAgo.toDate().toString();
+
     const handleAddToDashboard = () => {
       trackAdvancedAnalyticsEvent('issue.create_dashboard_widget_from_histogram', {
         organization,
@@ -78,7 +84,8 @@ const GroupReleaseStats = ({
               },
             ],
           },
-          start: timeAgo.toDate().toString(),
+          start,
+          end,
           source: DashboardWidgetSource.ISSUE_DETAILS,
         });
     };
