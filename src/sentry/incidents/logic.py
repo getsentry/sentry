@@ -35,7 +35,7 @@ from sentry.search.events.fields import resolve_field
 from sentry.search.events.filter import get_filter
 from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.models import QueryDatasets
+from sentry.snuba.models import QueryEntity
 from sentry.snuba.subscriptions import (
     bulk_create_snuba_subscriptions,
     bulk_delete_snuba_subscriptions,
@@ -289,7 +289,7 @@ def build_incident_query_params(incident, start=None, end=None, windowed_stats=F
 
     snuba_query = incident.alert_rule.snuba_query
     snuba_filter = build_snuba_filter(
-        QueryDatasets(snuba_query.dataset),
+        QueryEntity(snuba_query.dataset),
         snuba_query.query,
         snuba_query.aggregate,
         snuba_query.environment,
@@ -350,7 +350,7 @@ def get_incident_aggregates(
     end: Optional[datetime] = None,
     windowed_stats: bool = False,
     use_alert_aggregate: bool = False,
-    dataset: QueryDatasets = QueryDatasets.EVENTS,
+    dataset: QueryEntity = QueryEntity.EVENTS,
 ) -> Dict[str, Union[float, int]]:
     """
     Calculates aggregate stats across the life of an incident, or the provided range.
@@ -361,7 +361,7 @@ def get_incident_aggregates(
     - unique_users: Total number of unique users
     """
     query_params = build_incident_query_params(incident, start, end, windowed_stats)
-    if dataset == QueryDatasets.SESSIONS:
+    if dataset == QueryEntity.SESSIONS:
         query_params["aggregations"][0][2] = "count"
         if not use_alert_aggregate:
             query_params["aggregations"][1] = ("identity", "users", "unique_users")
@@ -421,7 +421,7 @@ def create_alert_rule(
     environment=None,
     include_all_projects=False,
     excluded_projects=None,
-    dataset=QueryDatasets.EVENTS,
+    dataset=QueryEntity.EVENTS,
     user=None,
     event_types=None,
     comparison_delta: Optional[int] = None,
@@ -651,7 +651,7 @@ def update_alert_rule(
 
         if updated_query_fields or environment != alert_rule.snuba_query.environment:
             snuba_query = alert_rule.snuba_query
-            updated_query_fields.setdefault("dataset", QueryDatasets(snuba_query.dataset))
+            updated_query_fields.setdefault("dataset", QueryEntity(snuba_query.dataset))
             updated_query_fields.setdefault("query", snuba_query.query)
             updated_query_fields.setdefault("aggregate", snuba_query.aggregate)
             updated_query_fields.setdefault(

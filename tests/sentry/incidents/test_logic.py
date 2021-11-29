@@ -70,7 +70,7 @@ from sentry.incidents.models import (
 from sentry.models import ActorTuple, PagerDutyService
 from sentry.models.integration import Integration
 from sentry.shared_integrations.exceptions import ApiRateLimitedError
-from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQueryEventType
+from sentry.snuba.models import QueryEntity, QuerySubscription, SnubaQueryEventType
 from sentry.testutils import BaseIncidentsTest, SnubaTestCase, TestCase
 from sentry.utils import json
 
@@ -285,11 +285,11 @@ class GetCrashRateIncidentAggregatesTest(TestCase, SnubaTestCase):
             [self.project],
             query="",
             time_window=1,
-            dataset=QueryDatasets.SESSIONS,
+            dataset=QueryEntity.SESSIONS,
             aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
         )
         incident.update(alert_rule=alert_rule)
-        assert get_incident_aggregates(incident, dataset=QueryDatasets.SESSIONS) == {
+        assert get_incident_aggregates(incident, dataset=QueryEntity.SESSIONS) == {
             "count": 0.0,
             "unique_users": 2,
         }
@@ -428,7 +428,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.owner is None
         assert alert_rule.status == AlertRuleStatus.PENDING.value
         assert alert_rule.snuba_query.subscriptions.all().count() == 1
-        assert alert_rule.snuba_query.dataset == QueryDatasets.EVENTS.value
+        assert alert_rule.snuba_query.dataset == QueryEntity.EVENTS.value
         assert alert_rule.snuba_query.query == query
         assert alert_rule.snuba_query.aggregate == aggregate
         assert alert_rule.snuba_query.time_window == time_window * 60

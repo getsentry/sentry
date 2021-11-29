@@ -39,7 +39,7 @@ from sentry.incidents.subscription_processor import (
     update_alert_rule_stats,
 )
 from sentry.models import Integration
-from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQueryEventType
+from sentry.snuba.models import QueryEntity, QuerySubscription, SnubaQueryEventType
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.utils import json
@@ -139,7 +139,7 @@ class ProcessUpdateTest(TestCase, SnubaTestCase):
     def crash_rate_alert_rule(self):
         rule = self.create_alert_rule(
             projects=[self.project],
-            dataset=QueryDatasets.SESSIONS,
+            dataset=QueryEntity.SESSIONS,
             name="JustAValidRule",
             query="",
             aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",

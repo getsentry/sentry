@@ -7,7 +7,7 @@ import responses
 from django.utils import timezone
 from exam import patcher
 
-from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQuery, SnubaQueryEventType
+from sentry.snuba.models import QueryEntity, QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.tasks import (
     SUBSCRIPTION_STATUS_MAX_AGE,
     apply_dataset_query_conditions,
@@ -43,7 +43,7 @@ class BaseSnubaTaskTest(metaclass=abc.ABCMeta):
         if status is None:
             status = self.expected_status
         if dataset is None:
-            dataset = QueryDatasets.EVENTS
+            dataset = QueryEntity.EVENTS
         dataset = dataset.value
         aggregate = "count_unique(tags[sentry:user])"
         if query is None:
@@ -118,7 +118,7 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest, TestCase):
 
     def test_transaction(self):
         sub = self.create_subscription(
-            QuerySubscription.Status.CREATING, dataset=QueryDatasets.TRANSACTIONS
+            QuerySubscription.Status.CREATING, dataset=QueryEntity.TRANSACTIONS
         )
         create_subscription_in_snuba(sub.id)
         sub = QuerySubscription.objects.get(id=sub.id)
@@ -184,16 +184,14 @@ class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest, TestCase):
 
 class BuildSnubaFilterTest(TestCase):
     def test_simple_events(self):
-        snuba_filter = build_snuba_filter(
-            QueryDatasets.EVENTS, "", "count_unique(user)", None, None
-        )
+        snuba_filter = build_snuba_filter(QueryEntity.EVENTS, "", "count_unique(user)", None, None)
         assert snuba_filter
         assert snuba_filter.conditions == [["type", "=", "error"]]
         assert snuba_filter.aggregations == [["uniq", "tags[sentry:user]", "count_unique_user"]]
 
     def test_simple_transactions(self):
         snuba_filter = build_snuba_filter(
-            QueryDatasets.TRANSACTIONS, "", "count_unique(user)", None, None
+            QueryEntity.TRANSACTIONS, "", "count_unique(user)", None, None
         )
         assert snuba_filter
         assert snuba_filter.conditions == []
@@ -201,7 +199,7 @@ class BuildSnubaFilterTest(TestCase):
 
     def test_simple_sessions(self):
         snuba_filter = build_snuba_filter(
-            dataset=QueryDatasets.SESSIONS,
+            dataset=QueryEntity.SESSIONS,
             query="",
             aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
             environment=None,
@@ -219,7 +217,7 @@ class BuildSnubaFilterTest(TestCase):
 
     def test_simple_users(self):
         snuba_filter = build_snuba_filter(
-            dataset=QueryDatasets.SESSIONS,
+            dataset=QueryEntity.SESSIONS,
             query="",
             aggregate="percentage(users_crashed, users) AS _crash_rate_alert_aggregate",
             environment=None,
@@ -237,7 +235,7 @@ class BuildSnubaFilterTest(TestCase):
 
     def test_aliased_query_events(self):
         snuba_filter = build_snuba_filter(
-            QueryDatasets.EVENTS, "release:latest", "count_unique(user)", None, None
+            QueryEntity.EVENTS, "release:latest", "count_unique(user)", None, None
         )
         assert snuba_filter
         assert snuba_filter.conditions == [
@@ -249,7 +247,7 @@ class BuildSnubaFilterTest(TestCase):
     def test_query_and_environment_sessions(self):
         env = self.create_environment(self.project, name="development")
         snuba_filter = build_snuba_filter(
-            dataset=QueryDatasets.SESSIONS,
+            dataset=QueryEntity.SESSIONS,
             query="release:ahmed@12.2",
             aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
             environment=env,
@@ -272,7 +270,7 @@ class BuildSnubaFilterTest(TestCase):
     def test_query_and_environment_users(self):
         env = self.create_environment(self.project, name="development")
         snuba_filter = build_snuba_filter(
-            dataset=QueryDatasets.SESSIONS,
+            dataset=QueryEntity.SESSIONS,
             query="release:ahmed@12.2",
             aggregate="percentage(users_crashed, users) AS _crash_rate_alert_aggregate",
             environment=env,
@@ -294,7 +292,7 @@ class BuildSnubaFilterTest(TestCase):
 
     def test_aliased_query_transactions(self):
         snuba_filter = build_snuba_filter(
-            QueryDatasets.TRANSACTIONS,
+            QueryEntity.TRANSACTIONS,
             "release:latest",
             "percentile(transaction.duration,.95)",
             None,
@@ -308,7 +306,7 @@ class BuildSnubaFilterTest(TestCase):
 
     def test_user_query(self):
         snuba_filter = build_snuba_filter(
-            QueryDatasets.EVENTS, "user:anengineer@work.io", "count()", None, None
+            QueryEntity.EVENTS, "user:anengineer@work.io", "count()", None, None
         )
         assert snuba_filter
         assert snuba_filter.conditions == [
@@ -319,7 +317,7 @@ class BuildSnubaFilterTest(TestCase):
 
     def test_user_query_transactions(self):
         snuba_filter = build_snuba_filter(
-            QueryDatasets.TRANSACTIONS, "user:anengineer@work.io", "p95()", None, None
+            QueryEntity.TRANSACTIONS, "user:anengineer@work.io", "p95()", None, None
         )
         assert snuba_filter
         assert snuba_filter.conditions == [["user", "=", "anengineer@work.io"]]
@@ -327,7 +325,7 @@ class BuildSnubaFilterTest(TestCase):
 
     def test_boolean_query(self):
         snuba_filter = build_snuba_filter(
-            QueryDatasets.EVENTS, "release:latest OR release:123", "count_unique(user)", None, None
+            QueryEntity.EVENTS, "release:latest OR release:123", "count_unique(user)", None, None
         )
         assert snuba_filter
         assert snuba_filter.conditions == [
@@ -348,7 +346,7 @@ class BuildSnubaFilterTest(TestCase):
 
     def test_event_types(self):
         snuba_filter = build_snuba_filter(
-            QueryDatasets.EVENTS,
+            QueryEntity.EVENTS,
             "release:latest OR release:123",
             "count_unique(user)",
             None,
@@ -375,44 +373,44 @@ class BuildSnubaFilterTest(TestCase):
 class TestApplyDatasetQueryConditions(TestCase):
     def test_no_event_types_no_discover(self):
         assert (
-            apply_dataset_query_conditions(QueryDatasets.EVENTS, "release:123", None, False)
+            apply_dataset_query_conditions(QueryEntity.EVENTS, "release:123", None, False)
             == "(event.type:error) AND (release:123)"
         )
         assert (
             apply_dataset_query_conditions(
-                QueryDatasets.EVENTS, "release:123 OR release:456", None, False
+                QueryEntity.EVENTS, "release:123 OR release:456", None, False
             )
             == "(event.type:error) AND (release:123 OR release:456)"
         )
         assert (
-            apply_dataset_query_conditions(QueryDatasets.TRANSACTIONS, "release:123", None, False)
+            apply_dataset_query_conditions(QueryEntity.TRANSACTIONS, "release:123", None, False)
             == "release:123"
         )
         assert (
             apply_dataset_query_conditions(
-                QueryDatasets.TRANSACTIONS, "release:123 OR release:456", None, False
+                QueryEntity.TRANSACTIONS, "release:123 OR release:456", None, False
             )
             == "release:123 OR release:456"
         )
 
     def test_no_event_types_discover(self):
         assert (
-            apply_dataset_query_conditions(QueryDatasets.EVENTS, "release:123", None, True)
+            apply_dataset_query_conditions(QueryEntity.EVENTS, "release:123", None, True)
             == "(event.type:error) AND (release:123)"
         )
         assert (
             apply_dataset_query_conditions(
-                QueryDatasets.EVENTS, "release:123 OR release:456", None, True
+                QueryEntity.EVENTS, "release:123 OR release:456", None, True
             )
             == "(event.type:error) AND (release:123 OR release:456)"
         )
         assert (
-            apply_dataset_query_conditions(QueryDatasets.TRANSACTIONS, "release:123", None, True)
+            apply_dataset_query_conditions(QueryEntity.TRANSACTIONS, "release:123", None, True)
             == "(event.type:transaction) AND (release:123)"
         )
         assert (
             apply_dataset_query_conditions(
-                QueryDatasets.TRANSACTIONS, "release:123 OR release:456", None, True
+                QueryEntity.TRANSACTIONS, "release:123 OR release:456", None, True
             )
             == "(event.type:transaction) AND (release:123 OR release:456)"
         )
@@ -420,13 +418,13 @@ class TestApplyDatasetQueryConditions(TestCase):
     def test_event_types_no_discover(self):
         assert (
             apply_dataset_query_conditions(
-                QueryDatasets.EVENTS, "release:123", [SnubaQueryEventType.EventType.ERROR], False
+                QueryEntity.EVENTS, "release:123", [SnubaQueryEventType.EventType.ERROR], False
             )
             == "(event.type:error) AND (release:123)"
         )
         assert (
             apply_dataset_query_conditions(
-                QueryDatasets.EVENTS,
+                QueryEntity.EVENTS,
                 "release:123",
                 [SnubaQueryEventType.EventType.ERROR, SnubaQueryEventType.EventType.DEFAULT],
                 False,
@@ -435,7 +433,7 @@ class TestApplyDatasetQueryConditions(TestCase):
         )
         assert (
             apply_dataset_query_conditions(
-                QueryDatasets.TRANSACTIONS,
+                QueryEntity.TRANSACTIONS,
                 "release:123",
                 [SnubaQueryEventType.EventType.TRANSACTION],
                 False,
@@ -444,7 +442,7 @@ class TestApplyDatasetQueryConditions(TestCase):
         )
         assert (
             apply_dataset_query_conditions(
-                QueryDatasets.SESSIONS,
+                QueryEntity.SESSIONS,
                 "release:123",
                 [],
                 False,
@@ -455,13 +453,13 @@ class TestApplyDatasetQueryConditions(TestCase):
     def test_event_types_discover(self):
         assert (
             apply_dataset_query_conditions(
-                QueryDatasets.EVENTS, "release:123", [SnubaQueryEventType.EventType.ERROR], True
+                QueryEntity.EVENTS, "release:123", [SnubaQueryEventType.EventType.ERROR], True
             )
             == "(event.type:error) AND (release:123)"
         )
         assert (
             apply_dataset_query_conditions(
-                QueryDatasets.EVENTS,
+                QueryEntity.EVENTS,
                 "release:123",
                 [SnubaQueryEventType.EventType.ERROR, SnubaQueryEventType.EventType.DEFAULT],
                 True,
@@ -470,7 +468,7 @@ class TestApplyDatasetQueryConditions(TestCase):
         )
         assert (
             apply_dataset_query_conditions(
-                QueryDatasets.TRANSACTIONS,
+                QueryEntity.TRANSACTIONS,
                 "release:123",
                 [SnubaQueryEventType.EventType.TRANSACTION],
                 True,
@@ -481,7 +479,7 @@ class TestApplyDatasetQueryConditions(TestCase):
 
 class SubscriptionCheckerTest(TestCase):
     def create_subscription(self, status, subscription_id=None, date_updated=None):
-        dataset = QueryDatasets.EVENTS.value
+        dataset = QueryEntity.EVENTS.value
         aggregate = "count_unique(tags[sentry:user])"
         query = "hello"
         time_window = 60

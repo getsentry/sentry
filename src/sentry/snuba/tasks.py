@@ -9,7 +9,7 @@ from snuba_sdk.legacy import json_to_snql
 from sentry.constants import CRASH_RATE_ALERT_SESSION_COUNT_ALIAS
 from sentry.search.events.fields import resolve_field_list
 from sentry.search.events.filter import get_filter
-from sentry.snuba.models import QueryDatasets, QuerySubscription
+from sentry.snuba.models import QueryEntity, QuerySubscription
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, metrics
 from sentry.utils.snuba import (
@@ -27,8 +27,8 @@ logger = logging.getLogger(__name__)
 # differentiate within the dataset. For now we can just assume all subscriptions
 # created within this dataset are just for errors.
 DATASET_CONDITIONS = {
-    QueryDatasets.EVENTS: "event.type:error",
-    QueryDatasets.TRANSACTIONS: "event.type:transaction",
+    QueryEntity.EVENTS: "event.type:error",
+    QueryEntity.TRANSACTIONS: "event.type:transaction",
 }
 SUBSCRIPTION_STATUS_MAX_AGE = timedelta(minutes=10)
 
@@ -41,15 +41,15 @@ def apply_dataset_query_conditions(dataset, query, event_types, discover=False):
     :param query: A string containing query to apply conditions to
     :param event_types: A list of EventType(s) to apply to the query
     :param discover: Whether this is intended for use with the discover dataset or not.
-    When False, we won't modify queries for `QueryDatasets.TRANSACTIONS` at all. This is
+    When False, we won't modify queries for `QueryEntity.TRANSACTIONS` at all. This is
     because the discover dataset requires that we always specify `event.type` so we can
     differentiate between errors and transactions, but the TRANSACTIONS dataset doesn't
     need it specified, and `event.type` ends up becoming a tag search.
     """
-    if not discover and dataset == QueryDatasets.TRANSACTIONS:
+    if not discover and dataset == QueryEntity.TRANSACTIONS:
         return query
 
-    if dataset == QueryDatasets.SESSIONS:
+    if dataset == QueryEntity.SESSIONS:
         return query
 
     if event_types:
@@ -93,7 +93,7 @@ def create_subscription_in_snuba(query_subscription_id, **kwargs):
         # create a new one.
         try:
             _delete_from_snuba(
-                QueryDatasets(subscription.snuba_query.dataset), subscription.subscription_id
+                QueryEntity(subscription.snuba_query.dataset), subscription.subscription_id
             )
         except SnubaError:
             logger.exception("Failed to delete subscription")
@@ -128,7 +128,7 @@ def update_subscription_in_snuba(query_subscription_id, old_dataset=None, **kwar
 
     if subscription.subscription_id is not None:
         dataset = old_dataset if old_dataset is not None else subscription.snuba_query.dataset
-        _delete_from_snuba(QueryDatasets(dataset), subscription.subscription_id)
+        _delete_from_snuba(QueryEntity(dataset), subscription.subscription_id)
 
     subscription_id = _create_in_snuba(subscription)
     subscription.update(
@@ -164,7 +164,7 @@ def delete_subscription_from_snuba(query_subscription_id, **kwargs):
 
     if subscription.subscription_id is not None:
         _delete_from_snuba(
-            QueryDatasets(subscription.snuba_query.dataset), subscription.subscription_id
+            QueryEntity(subscription.snuba_query.dataset), subscription.subscription_id
         )
 
     if subscription.status == QuerySubscription.Status.DELETING.value:
@@ -175,15 +175,15 @@ def delete_subscription_from_snuba(query_subscription_id, **kwargs):
 
 def build_snuba_filter(dataset, query, aggregate, environment, event_types, params=None):
     resolve_func = {
-        QueryDatasets.EVENTS: resolve_column(Dataset.Events),
-        QueryDatasets.SESSIONS: resolve_column(Dataset.Sessions),
-        QueryDatasets.TRANSACTIONS: resolve_column(Dataset.Transactions),
+        QueryEntity.EVENTS: resolve_column(Dataset.Events),
+        QueryEntity.SESSIONS: resolve_column(Dataset.Sessions),
+        QueryEntity.TRANSACTIONS: resolve_column(Dataset.Transactions),
     }[dataset]
 
     functions_acl = None
 
     aggregations = [aggregate]
-    if dataset == QueryDatasets.SESSIONS:
+    if dataset == QueryEntity.SESSIONS:
         # This aggregation is added to return the total number of sessions in crash
         # rate alerts that is used to identify if we are below a general minimum alert threshold
         count_col = re.search(r"(sessions|users)", aggregate)
@@ -210,7 +210,7 @@ def build_snuba_filter(dataset, query, aggregate, environment, event_types, para
 def _create_in_snuba(subscription):
     snuba_query = subscription.snuba_query
     snuba_filter = build_snuba_filter(
-        QueryDatasets(snuba_query.dataset),
+        QueryEntity(snuba_query.dataset),
         snuba_query.query,
         snuba_query.aggregate,
         snuba_query.environment,
@@ -258,7 +258,7 @@ def _create_in_snuba(subscription):
     return json.loads(response.data)["subscription_id"]
 
 
-def _delete_from_snuba(dataset: QueryDatasets, subscription_id: str) -> None:
+def _delete_from_snuba(dataset: QueryEntity, subscription_id: str) -> None:
     response = _snuba_pool.urlopen("DELETE", f"/{dataset.value}/subscriptions/{subscription_id}")
     if response.status != 202:
         raise SnubaError("HTTP %s response from Snuba!" % response.status)

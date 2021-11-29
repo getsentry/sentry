@@ -2,7 +2,7 @@ import logging
 
 from django.db import transaction
 
-from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQuery, SnubaQueryEventType
+from sentry.snuba.models import QueryEntity, QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.tasks import (
     create_subscription_in_snuba,
     delete_subscription_from_snuba,
@@ -40,7 +40,7 @@ def create_snuba_query(
     if not event_types:
         event_types = [
             SnubaQueryEventType.EventType.ERROR
-            if dataset == QueryDatasets.EVENTS
+            if dataset == QueryEntity.EVENTS
             else SnubaQueryEventType.EventType.TRANSACTION
         ]
     sq_event_types = [
@@ -75,7 +75,7 @@ def update_snuba_query(
 
     new_event_types = set(event_types) - current_event_types
     removed_event_types = current_event_types - set(event_types)
-    old_dataset = QueryDatasets(snuba_query.dataset)
+    old_dataset = QueryEntity(snuba_query.dataset)
     with transaction.atomic():
         query_subscriptions = list(snuba_query.subscriptions.all())
         snuba_query.update(

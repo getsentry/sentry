@@ -22,7 +22,7 @@ from sentry.incidents.logic import (
 )
 from sentry.incidents.models import AlertRule, AlertRuleThresholdType, AlertRuleTriggerAction
 from sentry.models import ACTOR_TYPES, Environment, Integration
-from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
+from sentry.snuba.models import QueryEntity, SnubaQueryEventType
 from sentry.testutils import TestCase
 from sentry.utils import json
 
@@ -34,7 +34,7 @@ class TestAlertRuleSerializer(TestCase):
             "name": "hello",
             "owner": self.user.id,
             "time_window": 10,
-            "dataset": QueryDatasets.EVENTS.value,
+            "dataset": QueryEntity.EVENTS.value,
             "query": "level:error",
             "threshold_type": 0,
             "resolve_threshold": 100,
@@ -64,7 +64,7 @@ class TestAlertRuleSerializer(TestCase):
     @fixture
     def valid_transaction_params(self):
         params = self.valid_params.copy()
-        params["dataset"] = QueryDatasets.TRANSACTIONS.value
+        params["dataset"] = QueryEntity.TRANSACTIONS.value
         params["event_types"] = [SnubaQueryEventType.EventType.TRANSACTION.name.lower()]
         return params
 
@@ -135,7 +135,7 @@ class TestAlertRuleSerializer(TestCase):
 
     def test_dataset(self):
         invalid_values = [
-            "Invalid dataset, valid values are %s" % [item.value for item in QueryDatasets]
+            "Invalid dataset, valid values are %s" % [item.value for item in QueryEntity]
         ]
         self.run_fail_validation_test({"dataset": "events_wrong"}, {"dataset": invalid_values})
 
@@ -199,7 +199,7 @@ class TestAlertRuleSerializer(TestCase):
         serializer = AlertRuleSerializer(context=self.context, data=self.valid_transaction_params)
         assert serializer.is_valid(), serializer.errors
         alert_rule = serializer.save()
-        assert alert_rule.snuba_query.dataset == QueryDatasets.TRANSACTIONS.value
+        assert alert_rule.snuba_query.dataset == QueryEntity.TRANSACTIONS.value
         assert alert_rule.snuba_query.aggregate == "count()"
 
     def test_query_project(self):

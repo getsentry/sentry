@@ -5,7 +5,7 @@ from django.urls import reverse
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL, get_incident_aggregates
 from sentry.incidents.models import INCIDENT_STATUS, IncidentStatus, IncidentTrigger
-from sentry.snuba.models import QueryDatasets
+from sentry.snuba.models import QueryEntity
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
 
@@ -45,7 +45,7 @@ def incident_attachment_info(incident, metric_value=None, action=None, method=No
 
     if CRASH_RATE_ALERT_AGGREGATE_ALIAS in alert_rule.snuba_query.aggregate:
         agg_display_key = agg_display_key.split(f"AS {CRASH_RATE_ALERT_AGGREGATE_ALIAS}")[0].strip()
-        dataset = QueryDatasets.SESSIONS
+        dataset = QueryEntity.SESSIONS
 
     agg_text = QUERY_AGGREGATION_DISPLAY.get(agg_display_key, alert_rule.snuba_query.aggregate)
 

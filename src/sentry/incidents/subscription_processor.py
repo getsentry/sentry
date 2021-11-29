@@ -30,7 +30,7 @@ from sentry.incidents.models import (
 from sentry.incidents.tasks import handle_trigger_action
 from sentry.models import Project
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.models import QueryDatasets
+from sentry.snuba.models import QueryEntity
 from sentry.snuba.tasks import build_snuba_filter
 from sentry.utils import metrics, redis
 from sentry.utils.compat import zip
@@ -177,7 +177,7 @@ class SubscriptionProcessor:
 
         try:
             snuba_filter = build_snuba_filter(
-                QueryDatasets(snuba_query.dataset),
+                QueryEntity(snuba_query.dataset),
                 snuba_query.query,
                 snuba_query.aggregate,
                 snuba_query.environment,

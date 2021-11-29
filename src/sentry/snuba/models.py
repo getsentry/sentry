@@ -20,7 +20,7 @@ query_aggregation_to_snuba = {
 }
 
 
-class QueryDatasets(Enum):
+class QueryEntity(Enum):
     EVENTS = "events"
     TRANSACTIONS = "transactions"
     SESSIONS = "sessions"

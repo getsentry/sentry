@@ -43,7 +43,7 @@ from sentry.mediators import alert_rule_actions
 from sentry.models import OrganizationMember, SentryAppInstallation, Team, User
 from sentry.shared_integrations.exceptions import ApiRateLimitedError
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
+from sentry.snuba.models import QueryEntity, SnubaQueryEventType
 from sentry.snuba.tasks import build_snuba_filter
 from sentry.utils.compat import zip
 from sentry.utils.snuba import raw_query
@@ -63,11 +63,11 @@ action_target_type_to_string = {
 }
 string_to_action_target_type = {v: k for (k, v) in action_target_type_to_string.items()}
 dataset_valid_event_types = {
-    QueryDatasets.EVENTS: {
+    QueryEntity.EVENTS: {
         SnubaQueryEventType.EventType.ERROR,
         SnubaQueryEventType.EventType.DEFAULT,
     },
-    QueryDatasets.TRANSACTIONS: {SnubaQueryEventType.EventType.TRANSACTION},
+    QueryEntity.TRANSACTIONS: {SnubaQueryEventType.EventType.TRANSACTION},
 }
 
 # TODO(davidenwang): eventually we should pass some form of these to the event_search parser to raise an error
@@ -436,10 +436,10 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
 
     def validate_dataset(self, dataset):
         try:
-            return QueryDatasets(dataset)
+            return QueryEntity(dataset)
         except ValueError:
             raise serializers.ValidationError(
-                "Invalid dataset, valid values are %s" % [item.value for item in QueryDatasets]
+                "Invalid dataset, valid values are %s" % [item.value for item in QueryEntity]
             )
 
     def validate_event_types(self, event_types):
@@ -470,7 +470,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         both alert and resolve 'after' the warning trigger (whether that means
         > or < the value depends on threshold type).
         """
-        data.setdefault("dataset", QueryDatasets.EVENTS)
+        data.setdefault("dataset", QueryEntity.EVENTS)
         project_id = data.get("projects")
         if not project_id:
             # We just need a valid project id from the org so that we can verify

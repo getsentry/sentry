@@ -8,7 +8,7 @@ from dateutil.parser import parse as parse_date
 from django.conf import settings
 from exam import fixture, patcher
 
-from sentry.snuba.models import QueryDatasets, QuerySubscription
+from sentry.snuba.models import QueryEntity, QuerySubscription
 from sentry.snuba.query_subscription_consumer import (
     InvalidMessageError,
     InvalidSchemaError,
@@ -69,7 +69,7 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
             pool.urlopen.assert_called_once_with(
                 "DELETE",
                 "/{}/subscriptions/{}".format(
-                    QueryDatasets.EVENTS.value, self.valid_payload["subscription_id"]
+                    QueryEntity.EVENTS.value, self.valid_payload["subscription_id"]
                 ),
             )
         self.metrics.incr.assert_called_once_with(
@@ -93,7 +93,7 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
         register_subscriber(registration_key)(mock_callback)
         with self.tasks():
             snuba_query = create_snuba_query(
-                QueryDatasets.EVENTS,
+                QueryEntity.EVENTS,
                 "hello",
                 "count()",
                 timedelta(minutes=10),
