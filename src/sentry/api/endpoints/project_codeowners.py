@@ -24,7 +24,8 @@ from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
-MAX_RAW_LENGTH = 100000
+# Max accepted string length of the CODEOWNERS file
+MAX_RAW_LENGTH = 100_000
 
 
 def validate_association(
