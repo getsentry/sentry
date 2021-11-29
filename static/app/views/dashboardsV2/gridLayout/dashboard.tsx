@@ -62,10 +62,8 @@ type Props = {
   onSetWidgetToBeUpdated: (widget: Widget) => void;
   paramDashboardId?: string;
   newWidget?: Widget;
-
-  // TODO(nar): optional to maintain compatiblity with old dashboard types
-  layout?: Layout[];
-  onLayoutChange?: (layout: Layout[]) => void;
+  layout: Layout[];
+  onLayoutChange: (layout: Layout[]) => void;
 };
 
 class Dashboard extends Component<Props> {
