@@ -43,8 +43,8 @@ export type IssueEventParameters = {
   'issues_stream.issue_clicked': IssueStream;
   'issues_stream.issue_assigned': IssueStream & {
     did_assign_suggestion: boolean;
-    assigned_suggestion_reason?: string;
     assigned_type: string;
+    assigned_suggestion_reason?: string;
   };
 };
 
