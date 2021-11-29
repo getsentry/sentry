@@ -66,4 +66,26 @@ describe('SuspectSpansQuery', function () {
 
     expect(getMock).toHaveBeenCalledTimes(1);
   });
+
+  it('fetches data with the right per suspect param', async function () {
+    const getMock = MockApiClient.addMockResponse({
+      url: '/organizations/test-org/events-spans-performance/',
+      // just asserting that the data is being fetched, no need for actual data here
+      body: [],
+      match: [MockApiClient.matchQuery({perSuspect: 1})],
+    });
+
+    mountWithTheme(
+      <SuspectSpansQuery
+        location={location}
+        orgSlug="test-org"
+        eventView={eventView}
+        perSuspect={1}
+      >
+        {() => null}
+      </SuspectSpansQuery>
+    );
+
+    expect(getMock).toHaveBeenCalledTimes(1);
+  });
 });

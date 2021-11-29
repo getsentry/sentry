@@ -2,7 +2,7 @@ import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 
 import {Component} from 'react';
-import RGL, {WidthProvider} from 'react-grid-layout';
+import RGL, {Layout, WidthProvider} from 'react-grid-layout';
 import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -62,6 +62,10 @@ type Props = {
   onSetWidgetToBeUpdated: (widget: Widget) => void;
   paramDashboardId?: string;
   newWidget?: Widget;
+
+  // TODO(nar): optional to maintain compatiblity with old dashboard types
+  layout?: Layout[];
+  onLayoutChange?: (layout: Layout[]) => void;
 };
 
 class Dashboard extends Component<Props> {
@@ -235,6 +239,8 @@ class Dashboard extends Component<Props> {
       isEditing,
       dashboard: {widgets},
       organization,
+      layout,
+      onLayoutChange,
     } = this.props;
 
     return (
@@ -243,6 +249,8 @@ class Dashboard extends Component<Props> {
         rowHeight={ROW_HEIGHT}
         margin={WIDGET_MARGINS}
         draggableHandle={`.${DRAG_HANDLE_CLASS}`}
+        layout={layout}
+        onLayoutChange={onLayoutChange}
         isDraggable={isEditing}
         isResizable={isEditing}
         isBounded

@@ -1,4 +1,11 @@
-import {DisplayType} from '../utils';
+import {DateString} from './core';
+import {SeriesApi} from '.';
+
+export type MetricsApiResponse = SeriesApi & {
+  start: DateString;
+  end: DateString;
+  query: string;
+};
 
 export type MetricTag = {
   key: string;
@@ -19,11 +26,4 @@ export type MetricQuery = {
   aggregation?: string;
   groupBy?: string[];
   metricMeta?: MetricMeta;
-};
-
-export type MetricWidget = {
-  title: string;
-  displayType: DisplayType;
-  groupings: MetricQuery[];
-  searchQuery?: string;
 };

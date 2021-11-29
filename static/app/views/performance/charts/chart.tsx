@@ -193,6 +193,14 @@ function Chart({
     xAxisIndex: i,
   }));
 
+  const xAxis = disableXAxis
+    ? {
+        show: false,
+        axisLabel: {show: true, margin: 0},
+        axisLine: {show: false},
+      }
+    : undefined;
+
   return (
     <ChartZoom
       router={router}
@@ -210,8 +218,7 @@ function Chart({
               {...zoomRenderProps}
               series={series}
               previousPeriod={previousData}
-              xAxis={disableXAxis ? {show: false} : undefined}
-              {...areaChartProps}
+              xAxis={xAxis}
             />
           );
         }
@@ -222,7 +229,7 @@ function Chart({
             {...zoomRenderProps}
             series={series}
             previousPeriod={previousData}
-            xAxis={disableXAxis ? {show: false} : undefined}
+            xAxis={xAxis}
             {...areaChartProps}
           />
         );
