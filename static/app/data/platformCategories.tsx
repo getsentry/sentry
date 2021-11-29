@@ -123,7 +123,6 @@ export const desktop = [
   'minidump',
   'unity',
   'flutter',
-  'dart-flutter',
   'kotlin',
 ] as const;
 
