@@ -2,12 +2,12 @@ import {useEffect, useState} from 'react';
 import {ClassNames} from '@emotion/react';
 import memoize from 'lodash/memoize';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import SmartSearchBar from 'app/components/smartSearchBar';
-import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'app/constants';
-import {t} from 'app/locale';
-import {MetricTag, MetricTagValue, Organization, Tag} from 'app/types';
-import useApi from 'app/utils/useApi';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import SmartSearchBar from 'sentry/components/smartSearchBar';
+import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
+import {t} from 'sentry/locale';
+import {MetricTag, MetricTagValue, Organization, Tag} from 'sentry/types';
+import useApi from 'sentry/utils/useApi';
 
 const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   `^${NEGATION_OPERATOR}|\\${SEARCH_WILDCARD}`,
