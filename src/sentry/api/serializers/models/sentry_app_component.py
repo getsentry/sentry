@@ -1,6 +1,6 @@
 from sentry.api.serializers import Serializer, register
+from sentry.api.serializers.base import serialize
 from sentry.models import SentryAppComponent
-from sentry.models.sentryappavatar import get_sentry_app_avatars
 
 
 @register(SentryAppComponent)
@@ -14,7 +14,7 @@ class SentryAppComponentSerializer(Serializer):
                 "uuid": obj.sentry_app.uuid,
                 "slug": obj.sentry_app.slug,
                 "name": obj.sentry_app.name,
-                "avatars": get_sentry_app_avatars(sentry_app=obj.sentry_app),
+                "avatars": [serialize(avatar) for avatar in obj.sentry_app.avatars.all()],
             },
         }
 

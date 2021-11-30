@@ -1,25 +1,10 @@
 from enum import Enum
-from typing import TYPE_CHECKING, Iterable, Mapping, Union
 
 from django.db import models
 
 from sentry.db.models import FlexibleForeignKey
 
 from . import AvatarBase
-
-if TYPE_CHECKING:
-    from sentry.models import SentryApp
-
-
-def get_sentry_app_avatars(sentry_app: "SentryApp") -> Iterable[Mapping[str, Union[str, bool]]]:
-    return [
-        {
-            "avatarType": img.get_avatar_type_display(),
-            "avatarUuid": img.ident,
-            "color": img.color,
-        }
-        for img in SentryAppAvatar.objects.filter(sentry_app=sentry_app)
-    ]
 
 
 class SentryAppAvatarTypes(Enum):
@@ -41,7 +26,7 @@ class SentryAppAvatar(AvatarBase):
 
     FILE_TYPE = "avatar.file"
 
-    sentry_app = FlexibleForeignKey("sentry.SentryApp", related_name="avatar")
+    sentry_app = FlexibleForeignKey("sentry.SentryApp", related_name="avatars")
     avatar_type = models.PositiveSmallIntegerField(default=0, choices=AVATAR_TYPES)
     color = models.BooleanField(default=False)
     # e.g. issue linking logos will not have color
