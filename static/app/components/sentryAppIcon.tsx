@@ -1,3 +1,8 @@
+import {css} from '@emotion/react';
+import styled from '@emotion/styled';
+
+import Feature from 'sentry/components/acl/feature';
+import Avatar from 'sentry/components/avatar';
 import {
   IconCalixa,
   IconClickup,
@@ -10,13 +15,14 @@ import {
   IconTaskcall,
   IconTeamwork,
 } from 'sentry/icons';
+import ConfigStore from 'sentry/stores/configStore';
 import {SentryAppComponent} from 'sentry/types';
 
 type Props = {
-  slug: SentryAppComponent['sentryApp']['slug'];
+  sentryAppComponent: SentryAppComponent;
 };
 
-const SentryAppIcon = ({slug}: Props) => {
+const getFallbackIcon = (slug: string) => {
   switch (slug) {
     case 'calixa':
       return <IconCalixa size="md" />;
@@ -41,4 +47,29 @@ const SentryAppIcon = ({slug}: Props) => {
   }
 };
 
-export {SentryAppIcon};
+const SentryAppIcon = ({sentryAppComponent: {sentryApp}}: Props) => {
+  return (
+    <Feature features={['organizations:sentry-app-logo-upload']}>
+      {({hasFeature}) => {
+        return hasFeature ? (
+          <AvatarWrapper isDark={ConfigStore.get('theme') === 'dark'}>
+            <Avatar size={20} sentryApp={sentryApp} isColor={false} />
+          </AvatarWrapper>
+        ) : (
+          getFallbackIcon(sentryApp.slug)
+        );
+      }}
+    </Feature>
+  );
+};
+
+export default SentryAppIcon;
+
+const AvatarWrapper = styled('span')<{isDark: boolean}>`
+  ${({isDark}) =>
+    isDark &&
+    css`
+      filter: invert(1);
+    `}
+  line-height: 0;
+`;
