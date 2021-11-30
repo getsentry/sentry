@@ -5,9 +5,7 @@ import partition from 'lodash/partition';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {t} from 'sentry/locale';
-import {ExceptionType} from 'sentry/types';
-import {Event} from 'sentry/types/event';
-import {Thread} from 'sentry/types/events';
+import {Event, ExceptionType, Thread} from 'sentry/types';
 import theme from 'sentry/utils/theme';
 
 import filterThreadInfo from './filterThreadInfo';

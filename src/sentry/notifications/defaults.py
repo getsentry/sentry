@@ -15,14 +15,14 @@ NOTIFICATION_SETTINGS_ALL_SOMETIMES = {
     NotificationSettingTypes.APPROVAL: NotificationSettingOptionValues.ALWAYS,
 }
 
-NOTIFICATION_SETTINGS_ALL_NEVER = {
+NOTIFICATION_SETTINGS_SLACK = {
     NotificationSettingTypes.DEPLOY: NotificationSettingOptionValues.NEVER,
     NotificationSettingTypes.ISSUE_ALERTS: NotificationSettingOptionValues.NEVER,
     NotificationSettingTypes.WORKFLOW: NotificationSettingOptionValues.NEVER,
-    NotificationSettingTypes.APPROVAL: NotificationSettingOptionValues.NEVER,
+    NotificationSettingTypes.APPROVAL: NotificationSettingOptionValues.ALWAYS,
 }
 
 NOTIFICATION_SETTING_DEFAULTS = {
     ExternalProviders.EMAIL: NOTIFICATION_SETTINGS_ALL_SOMETIMES,
-    ExternalProviders.SLACK: NOTIFICATION_SETTINGS_ALL_NEVER,
+    ExternalProviders.SLACK: NOTIFICATION_SETTINGS_SLACK,
 }

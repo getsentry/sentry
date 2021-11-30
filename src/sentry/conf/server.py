@@ -923,6 +923,8 @@ SENTRY_FEATURES = {
     "organizations:event-attachments-viewer": True,
     # Enable Filters & Sampling in the org settings
     "organizations:filters-and-sampling": False,
+    # Enable Dynamic Sampling errors in the org settings
+    "organizations:filters-and-sampling-error-rules": False,
     # Allow organizations to configure built-in symbol sources.
     "organizations:symbol-sources": True,
     # Allow organizations to configure custom external symbol sources.
@@ -1051,8 +1053,6 @@ SENTRY_FEATURES = {
     "organizations:weekly-report-debugging": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": True,
-    # Automatically opt IN users to receiving Slack notifications.
-    "organizations:notification-slack-automatic": False,
     # Notify all project members when fallthrough is disabled, instead of just the auto-assignee
     "organizations:notification-all-recipients": False,
     # Enable the new native stack trace design

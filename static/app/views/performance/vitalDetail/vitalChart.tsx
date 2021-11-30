@@ -108,7 +108,7 @@ function VitalChart({
   const markLines = [
     {
       seriesName: 'Thresholds',
-      type: 'line',
+      type: 'line' as const,
       data: [],
       markLine: MarkLine({
         silent: true,
@@ -131,7 +131,7 @@ function VitalChart({
     },
     {
       seriesName: 'Thresholds',
-      type: 'line',
+      type: 'line' as const,
       data: [],
       markLine: MarkLine({
         silent: true,

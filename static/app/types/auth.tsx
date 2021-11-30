@@ -2,6 +2,9 @@ import u2f from 'u2f-api';
 
 import {Field} from 'sentry/views/settings/components/forms/type';
 
+import {DateString} from './core';
+import {Organization} from './organization';
+
 export type AuthenticatorDevice = {
   key_handle: string;
   authId: string;
@@ -97,4 +100,54 @@ export type UserEnrolledAuthenticator = {
   type: Authenticator['id'];
   id: EnrolledAuthenticator['authId'];
   name: EnrolledAuthenticator['name'];
+};
+
+/**
+ * XXX(ts): This actually all comes from getsentry. We should definitely
+ * refactor this into a more proper 'hook' mechanism in the future
+ */
+export type AuthConfig = {
+  canRegister: boolean;
+  serverHostname: string;
+  hasNewsletter: boolean;
+  githubLoginLink: string;
+  vstsLoginLink: string;
+  googleLoginLink: string;
+};
+
+export type AuthProvider = {
+  key: string;
+  name: string;
+  requiredFeature: string;
+  disables2FA: boolean;
+};
+
+export enum UserIdentityCategory {
+  SOCIAL_IDENTITY = 'social-identity',
+  GLOBAL_IDENTITY = 'global-identity',
+  ORG_IDENTITY = 'org-identity',
+}
+
+export enum UserIdentityStatus {
+  CAN_DISCONNECT = 'can_disconnect',
+  NEEDED_FOR_GLOBAL_AUTH = 'needed_for_global_auth',
+  NEEDED_FOR_ORG_AUTH = 'needed_for_org_auth',
+}
+
+export type UserIdentityProvider = {
+  key: string;
+  name: string;
+};
+
+/**
+ * UserIdentityConfig is used in Account Identities
+ */
+export type UserIdentityConfig = {
+  category: UserIdentityCategory;
+  id: string;
+  provider: UserIdentityProvider;
+  status: UserIdentityStatus;
+  isLogin: boolean;
+  organization: Organization | null;
+  dateAdded: DateString;
 };

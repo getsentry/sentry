@@ -7,6 +7,7 @@ import ErrorPanel from 'sentry/components/charts/errorPanel';
 import LoadingPanel from 'sentry/components/charts/loadingPanel';
 import OptionSelector from 'sentry/components/charts/optionSelector';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
+import {getTooltipArrow} from 'sentry/components/charts/utils';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -129,7 +130,7 @@ class LatencyChart extends Component<Props, State> {
         const seriesData = Array.isArray(series) ? series : [series];
         let contents: string[] = [];
         if (!zoomError) {
-          // Replicate the necessary logic from app/components/charts/components/tooltip.jsx
+          // Replicate the necessary logic from sentry/components/charts/components/tooltip.jsx
           contents = seriesData.map(item => {
             const label = item.seriesName;
             const value = item.value[1].toLocaleString();
@@ -148,7 +149,7 @@ class LatencyChart extends Component<Props, State> {
             '</div>',
           ];
         }
-        contents.push('<div class="tooltip-arrow"></div>');
+        contents.push(getTooltipArrow());
         return contents.join('');
       },
     };

@@ -110,6 +110,16 @@ ALL_KILLSWITCH_OPTIONS = {
             "project_id": "A project ID to filter events by.",
         },
     ),
+    "reprocessing2.drop-delete-old-primary-hash": KillswitchInfo(
+        description="""
+        Drop per-event messages emitted from delete_old_primary_hash. This message is currently lacking batching, and for the time being we should be able to drop it on a whim.
+
+        Side-effect is that events appear in Discover that are
+        supposed to be deleted. They have no valid group_id so
+        they're hidden in issuestream.
+        """,
+        fields={"project_id": "A project ID to filter those messages by."},
+    ),
 }
 
 
