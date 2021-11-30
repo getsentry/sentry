@@ -455,6 +455,7 @@ class AuthIdentityHandler:
         elif acting_user and not acting_user.has_usable_password():
             acting_user = None
 
+        auth_identity = None
         if op == "confirm" and self.user.is_authenticated:
             auth_identity = self.handle_attach_identity(identity)
         elif op == "newuser":
@@ -674,6 +675,8 @@ class AuthHelper(Pipeline):
             response = self._finish_login_pipeline(identity)
         elif self.state.flow == self.FLOW_SETUP_PROVIDER:
             response = self._finish_setup_pipeline(identity)
+        else:
+            raise Exception(f"Unrecognized flow value: {self.state.flow}")
 
         return response
 
