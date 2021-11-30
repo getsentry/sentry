@@ -43,7 +43,7 @@ const Chart = ({firstEvent, stats, transactionStats}: Props) => {
           color: theme.gray200,
           opacity: 1.0,
         },
-      },
+      } as any,
     });
   }
 
@@ -63,7 +63,7 @@ const Chart = ({firstEvent, stats, transactionStats}: Props) => {
           color: theme.purple300,
           opacity: 0.8,
         },
-      },
+      } as any,
     });
   }
   const grid = hasTransactions

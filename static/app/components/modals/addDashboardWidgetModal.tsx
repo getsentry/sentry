@@ -337,7 +337,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         from: source,
         field,
         value,
-        widgetType: 'discover',
+        widget_type: 'discover',
         organization,
       });
 

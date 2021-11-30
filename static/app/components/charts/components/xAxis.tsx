@@ -1,4 +1,4 @@
-import {EChartOption} from 'echarts';
+import type {XAXisComponentOption} from 'echarts';
 import merge from 'lodash/merge';
 
 import BaseChart from 'sentry/components/charts/baseChart';
@@ -30,7 +30,7 @@ function XAxis({
 
   addSecondsToTimeFormat = false,
   ...props
-}: Props): EChartOption.XAxis {
+}: Props): XAXisComponentOption {
   const axisLabelFormatter = (value: string, index: number) => {
     if (isGroupedByDate) {
       const timeFormat = getTimeFormat({displaySeconds: addSecondsToTimeFormat});
@@ -48,48 +48,50 @@ function XAxis({
     return undefined;
   };
 
-  return merge(
-    {
-      type: isGroupedByDate ? 'time' : 'category',
-      boundaryGap: false,
-      axisLine: {
-        lineStyle: {
-          color: theme.chartLabel,
-        },
-      },
-      axisTick: {
-        lineStyle: {
-          color: theme.chartLabel,
-        },
-      },
-      splitLine: {
-        show: false,
-      },
-      axisLabel: {
+  const defaults: XAXisComponentOption = {
+    type: isGroupedByDate ? 'time' : 'category',
+    splitNumber: 4,
+    axisLine: {
+      lineStyle: {
         color: theme.chartLabel,
-        fontFamily: theme.text.family,
-        margin: 12,
-
-        // This was default with ChartZoom, we are making it default for all charts now
-        // Otherwise the xAxis can look congested when there is always a min/max label
-        showMaxLabel: false,
-        showMinLabel: false,
-
-        formatter: axisLabelFormatter,
-      },
-      axisPointer: {
-        show: true,
-        type: 'line',
-        label: {
-          show: false,
-        },
-        lineStyle: {
-          width: 0.5,
-        },
       },
     },
-    props
-  );
+    axisTick: {
+      lineStyle: {
+        color: theme.chartLabel,
+      },
+    },
+    splitLine: {
+      show: false,
+    },
+    axisLabel: {
+      hideOverlap: true,
+      color: theme.chartLabel,
+      fontFamily: theme.text.family,
+      margin: 12,
+
+      // This was default with ChartZoom, we are making it default for all charts now
+      // Otherwise the xAxis can look congested when there is always a min/max label
+      showMaxLabel: false,
+      showMinLabel: false,
+
+      // @ts-expect-error formatter type is missing
+      formatter: axisLabelFormatter,
+    },
+    axisPointer: {
+      show: true,
+      type: 'line',
+      label: {
+        show: false,
+      },
+      lineStyle: {
+        type: 'solid',
+        width: 0.5,
+      },
+    },
+  };
+
+  return merge(defaults, props);
 }
 
 export default XAxis;

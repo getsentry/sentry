@@ -4,7 +4,7 @@ export type DashboardsEventParameters = {
     from: string;
     field: string;
     value: string;
-    widgetType: string;
+    widget_type: string;
   };
   'dashboards_views.edit_widget_modal.opened': {};
   'dashboards_views.query_selector.opened': {

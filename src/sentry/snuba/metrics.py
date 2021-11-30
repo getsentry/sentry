@@ -1,5 +1,6 @@
 import enum
 import itertools
+import math
 import random
 import re
 from abc import ABC, abstractmethod
@@ -37,16 +38,18 @@ from snuba_sdk import (
 from snuba_sdk.conditions import BooleanCondition
 from snuba_sdk.orderby import Direction, OrderBy
 
+from sentry.api.utils import get_date_range_from_params
 from sentry.models import Project
 from sentry.sentry_metrics import indexer
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.sessions_v2 import (  # TODO: unite metrics and sessions_v2
+    ONE_DAY,
     AllowedResolution,
     InvalidField,
     InvalidParams,
     finite_or_none,
-    get_constrained_date_range,
 )
+from sentry.utils.dates import parse_stats_period, to_datetime, to_timestamp
 from sentry.utils.snuba import parse_snuba_datetime, raw_snql_query
 
 FIELD_REGEX = re.compile(r"^(\w+)\(((\w|\.|_)+)\)$")
@@ -154,9 +157,7 @@ class QueryDefinition:
         self.orderby = self._parse_orderby(query_params)
         self.limit = self._parse_limit(query_params)
 
-        start, end, rollup = get_constrained_date_range(
-            query_params, AllowedResolution.ten_seconds, max_points=MAX_POINTS
-        )
+        start, end, rollup = get_date_range(query_params)
         self.rollup = rollup
         self.start = start
         self.end = end
@@ -250,6 +251,55 @@ def get_intervals(query: TimeRange):
     while start < end:
         yield start
         start += delta
+
+
+def get_date_range(params: Mapping) -> Tuple[datetime, datetime, int]:
+    """Get start, end, rollup for the given parameters.
+
+    Apply a similar logic as `sessions_v2.get_constrained_date_range`,
+    but with fewer constraints. More constraints may be added in the future.
+
+    Note that this function returns a right-exclusive date range [start, end),
+    contrary to the one used in sessions_v2.
+
+    """
+    interval = parse_stats_period(params.get("interval", "1h"))
+    interval = int(3600 if interval is None else interval.total_seconds())
+
+    # hard code min. allowed resolution to 10 seconds
+    allowed_resolution = AllowedResolution.ten_seconds
+
+    smallest_interval, interval_str = allowed_resolution.value
+    if interval % smallest_interval != 0 or interval < smallest_interval:
+        raise InvalidParams(
+            f"The interval has to be a multiple of the minimum interval of {interval_str}."
+        )
+
+    if ONE_DAY % interval != 0:
+        raise InvalidParams("The interval should divide one day without a remainder.")
+
+    start, end = get_date_range_from_params(params)
+
+    date_range = end - start
+
+    date_range = timedelta(seconds=int(interval * math.ceil(date_range.total_seconds() / interval)))
+
+    if date_range.total_seconds() / interval > MAX_POINTS:
+        raise InvalidParams(
+            "Your interval and date range would create too many results. "
+            "Use a larger interval, or a smaller date range."
+        )
+
+    end_ts = int(interval * math.ceil(to_timestamp(end) / interval))
+    end = to_datetime(end_ts)
+    start = end - date_range
+
+    # NOTE: The sessions_v2 implementation cuts the `end` time to now + 1 minute
+    # if `end` is in the future. This allows for better real time results when
+    # caching is enabled on the snuba queries. Removed here for simplicity,
+    # but we might want to reconsider once caching becomes an issue for metrics.
+
+    return start, end, interval
 
 
 #: The type of metric, which determines the snuba entity to query
