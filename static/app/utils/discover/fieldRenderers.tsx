@@ -16,7 +16,7 @@ import Tooltip from 'sentry/components/tooltip';
 import UserMisery from 'sentry/components/userMisery';
 import Version from 'sentry/components/version';
 import {IconUser} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {Actor, Organization} from 'sentry/types';
 import {defined, isUrl} from 'sentry/utils';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
