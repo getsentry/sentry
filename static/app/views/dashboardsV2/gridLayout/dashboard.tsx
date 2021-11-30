@@ -280,7 +280,7 @@ const GridItem = styled('div')`
   }
 `;
 
-function generateWidgetId(widget: Widget, index: number) {
+export function generateWidgetId(widget: Widget, index: number) {
   return widget.id ? `${SAVED_WIDGET_PREFIX}-${widget.id}` : `index-${index}`;
 }
 
