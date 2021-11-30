@@ -18,6 +18,10 @@ import {
 } from 'sentry/views/alerts/utils';
 import {AlertType, WizardRuleTemplate} from 'sentry/views/alerts/wizard/options';
 
+export const DEFAULT_COUNT_TIME_WINDOW = 1; // 1min
+export const DEFAULT_CHANGE_TIME_WINDOW = 60; // 1h
+export const DEFAULT_CHANGE_COMP_DELTA = 10080; // 1w
+
 export const DEFAULT_AGGREGATE = 'count()';
 export const DEFAULT_TRANSACTION_AGGREGATE = 'p95(transaction.duration)';
 

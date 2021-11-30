@@ -33,7 +33,12 @@ import Form from 'sentry/views/settings/components/forms/form';
 import FormModel from 'sentry/views/settings/components/forms/model';
 
 import {addOrUpdateRule} from '../actions';
-import {createDefaultTrigger} from '../constants';
+import {
+  createDefaultTrigger,
+  DEFAULT_CHANGE_COMP_DELTA,
+  DEFAULT_CHANGE_TIME_WINDOW,
+  DEFAULT_COUNT_TIME_WINDOW,
+} from '../constants';
 import RuleConditionsForm from '../ruleConditionsForm';
 import {
   AlertRuleComparisonType,
@@ -573,8 +578,10 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     const comparisonDelta =
       value === AlertRuleComparisonType.COUNT
         ? undefined
-        : this.state.comparisonDelta ?? 10080;
-    const timeWindow = this.state.comparisonDelta ? this.state.timeWindow : 60;
+        : this.state.comparisonDelta ?? DEFAULT_CHANGE_COMP_DELTA;
+    const timeWindow = this.state.comparisonDelta
+      ? DEFAULT_COUNT_TIME_WINDOW
+      : DEFAULT_CHANGE_TIME_WINDOW;
     this.setState({comparisonType: value, comparisonDelta, timeWindow});
   };
 
