@@ -71,7 +71,7 @@ jobs:
 
       - name: Copy artifact into getsentry/sentry-api-schema
         run: |
-          cp api-docs/openapi-derefed.json sentry-api-schema
+          cp tests/apidocs/openapi-derefed.json sentry-api-schema
 
       # - name: Git Commit & Push
       #   uses: stefanzweifel/git-auto-commit-action@v4
