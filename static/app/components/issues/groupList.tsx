@@ -12,8 +12,8 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {Panel, PanelBody} from 'sentry/components/panels';
-import {parseSearch, Token} from 'app/components/searchSyntax/parser';
-import {treeResultLocator} from 'app/components/searchSyntax/utils';
+import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
+import {treeResultLocator} from 'sentry/components/searchSyntax/utils';
 import StreamGroup, {
   DEFAULT_STREAM_GROUP_STATS_PERIOD,
 } from 'sentry/components/stream/group';
@@ -24,7 +24,7 @@ import {callIfFunction} from 'sentry/utils/callIfFunction';
 import StreamManager from 'sentry/utils/streamManager';
 import withApi from 'sentry/utils/withApi';
 import {TimePeriodType} from 'sentry/views/alerts/rules/details/constants';
-import {RELATED_ISSUES_BOOLEAN_QUERY_ERROR} from 'app/views/alerts/rules/details/relatedIssuesNotAvailable';
+import {RELATED_ISSUES_BOOLEAN_QUERY_ERROR} from 'sentry/views/alerts/rules/details/relatedIssuesNotAvailable';
 
 import GroupListHeader from './groupListHeader';
 
