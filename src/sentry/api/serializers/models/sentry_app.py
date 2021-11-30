@@ -53,6 +53,6 @@ class SentryAppSerializer(Serializer):
                 }
             )
 
-        data.update({"avatars": [serialize(avatar) for avatar in obj.sentry_app.avatars.all()]})
+        data.update({"avatars": [serialize(avatar) for avatar in obj.avatars.all()]})
 
         return data
