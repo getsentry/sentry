@@ -169,7 +169,7 @@ class TimeseriesQueryBuilder(QueryFilter):  # type: ignore
             functions_acl=[],
             equation_config={"auto_add": True, "aggregates_only": True},
         )
-        self.where, self.having = self.resolve_conditions(query, use_aggregate_conditions=True)
+        self.where, self.having = self.resolve_conditions(query, use_aggregate_conditions=False)
 
         self.limit = None if limit is None else Limit(limit)
 
@@ -255,9 +255,10 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
         equations: Optional[List[str]] = None,
         limit: Optional[int] = 10000,
     ):
-        timeseries_equations, timeseries_functions = categorize_columns(
-            timeseries_columns if timeseries_columns is not None else []
-        )
+        selected_columns = [] if selected_columns is None else selected_columns
+        timeseries_columns = [] if timeseries_columns is None else timeseries_columns
+        equations = [] if equations is None else equations
+        timeseries_equations, timeseries_functions = categorize_columns(timeseries_columns)
         super().__init__(
             dataset,
             params,

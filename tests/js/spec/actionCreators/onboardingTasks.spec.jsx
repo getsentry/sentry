@@ -1,6 +1,6 @@
-import {updateOnboardingTask} from 'app/actionCreators/onboardingTasks';
-import OrganizationActions from 'app/actions/organizationActions';
-import ConfigStore from 'app/stores/configStore';
+import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
+import OrganizationActions from 'sentry/actions/organizationActions';
+import ConfigStore from 'sentry/stores/configStore';
 
 describe('actionCreators/onboardingTasks', function () {
   const api = new MockApiClient();

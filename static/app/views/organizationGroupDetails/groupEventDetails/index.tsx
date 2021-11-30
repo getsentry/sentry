@@ -1,17 +1,17 @@
 import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 
-import {fetchOrganizationEnvironments} from 'app/actionCreators/environments';
-import {Client} from 'app/api';
-import LoadingError from 'app/components/loadingError';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {t} from 'app/locale';
-import OrganizationEnvironmentsStore from 'app/stores/organizationEnvironmentsStore';
-import {Environment, GlobalSelection, Group, Organization, Project} from 'app/types';
-import {Event} from 'app/types/event';
-import withApi from 'app/utils/withApi';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import withOrganization from 'app/utils/withOrganization';
+import {fetchOrganizationEnvironments} from 'sentry/actionCreators/environments';
+import {Client} from 'sentry/api';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {t} from 'sentry/locale';
+import OrganizationEnvironmentsStore from 'sentry/stores/organizationEnvironmentsStore';
+import {Environment, GlobalSelection, Group, Organization, Project} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import withApi from 'sentry/utils/withApi';
+import withGlobalSelection from 'sentry/utils/withGlobalSelection';
+import withOrganization from 'sentry/utils/withOrganization';
 
 import {ReprocessingStatus} from '../utils';
 

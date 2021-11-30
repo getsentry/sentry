@@ -24,6 +24,9 @@ from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
+# Max accepted string length of the CODEOWNERS file
+MAX_RAW_LENGTH = 100_000
+
 
 def validate_association(
     raw_items: Sequence[Union[UserEmail, ExternalActor]],
@@ -60,6 +63,16 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):  # type: ignore
 
         if not attrs.get("raw", "").strip():
             return attrs
+
+        # We want to limit `raw` to a reasonable length, so that people don't end up with values
+        # that are several megabytes large. To not break this functionality for existing customers
+        # we temporarily allow rows that already exceed this limit to still be updated.
+        # We do something similar with ProjectOwnership at the API level.
+        existing_raw = self.instance.raw if self.instance else ""
+        if len(attrs["raw"]) > MAX_RAW_LENGTH and len(existing_raw) <= MAX_RAW_LENGTH:
+            raise serializers.ValidationError(
+                {"raw": f"Raw needs to be <= {MAX_RAW_LENGTH} characters in length"}
+            )
 
         # Ignore association errors and continue parsing CODEOWNERS for valid lines.
         # Allow users to incrementally fix association errors; for CODEOWNERS with many external mappings.

@@ -1,12 +1,12 @@
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
-import EditableText from 'app/components/editableText';
-import {Title} from 'app/components/layouts/thirds';
-import {t} from 'app/locale';
-import {Organization, SavedQuery} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
-import useApi from 'app/utils/useApi';
+import EditableText from 'sentry/components/editableText';
+import {Title} from 'sentry/components/layouts/thirds';
+import {t} from 'sentry/locale';
+import {Organization, SavedQuery} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
+import useApi from 'sentry/utils/useApi';
 
 import {handleUpdateQueryName} from './savedQuery/utils';
 

@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import RouteError from 'app/views/routeError';
+import RouteError from 'sentry/views/routeError';
 
 type State = {
   hasError: boolean;

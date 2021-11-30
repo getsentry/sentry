@@ -1,9 +1,9 @@
 import {Component} from 'react';
 
-import {deviceNameMapper, loadDeviceListModule} from 'app/components/deviceName';
-import TagDistributionMeter from 'app/components/tagDistributionMeter';
-import {Group, Organization, TagWithTopValues} from 'app/types';
-import {IOSDeviceList} from 'app/types/iOSDeviceList';
+import {deviceNameMapper, loadDeviceListModule} from 'sentry/components/deviceName';
+import TagDistributionMeter from 'sentry/components/tagDistributionMeter';
+import {Group, Organization, TagWithTopValues} from 'sentry/types';
+import {IOSDeviceList} from 'sentry/types/iOSDeviceList';
 
 type Props = {
   group: Group;

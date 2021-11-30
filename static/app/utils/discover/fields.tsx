@@ -1,8 +1,8 @@
 import isEqual from 'lodash/isEqual';
 
-import {RELEASE_ADOPTION_STAGES} from 'app/constants';
-import {Organization, SelectValue} from 'app/types';
-import {assert} from 'app/types/utils';
+import {RELEASE_ADOPTION_STAGES} from 'sentry/constants';
+import {Organization, SelectValue} from 'sentry/types';
+import {assert} from 'sentry/types/utils';
 
 export type Sort = {
   kind: 'asc' | 'desc';
@@ -637,6 +637,22 @@ export const SEMVER_TAGS = {
     values: RELEASE_ADOPTION_STAGES,
   },
 };
+
+/**
+ * Some tag keys should never be formatted as `tag[...]`
+ * when used as a filter because they are predefined.
+ */
+const EXCLUDED_TAG_KEYS = new Set(['release']);
+
+export function formatTagKey(key: string): string {
+  // Some tags may be normalized from context, but not all of them are.
+  // This supports a user making a custom tag with the same name as one
+  // that comes from context as all of these are also tags.
+  if (key in FIELD_TAGS && !EXCLUDED_TAG_KEYS.has(key)) {
+    return `tags[${key}]`;
+  }
+  return key;
+}
 
 // Allows for a less strict field key definition in cases we are returning custom strings as fields
 export type LooseFieldKey = FieldKey | string | '';

@@ -1,13 +1,13 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Alert from 'app/components/alert';
-import Button from 'app/components/button';
-import TimeSince from 'app/components/timeSince';
-import {IconSettings, IconWarning} from 'app/icons';
-import {t, tct, tn} from 'app/locale';
-import space from 'app/styles/space';
-import {ProcessingIssue} from 'app/types';
+import Alert from 'sentry/components/alert';
+import Button from 'sentry/components/button';
+import TimeSince from 'sentry/components/timeSince';
+import {IconSettings, IconWarning} from 'sentry/icons';
+import {t, tct, tn} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {ProcessingIssue} from 'sentry/types';
 
 type Props = {
   showProject: boolean;

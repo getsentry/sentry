@@ -1,7 +1,7 @@
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {Client} from 'app/api';
-import ConfigStore from 'app/stores/configStore';
-import {User, UserIdentityConfig} from 'app/types';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {Client} from 'sentry/api';
+import ConfigStore from 'sentry/stores/configStore';
+import {User, UserIdentityConfig} from 'sentry/types';
 
 export async function disconnectIdentity(
   identity: UserIdentityConfig,

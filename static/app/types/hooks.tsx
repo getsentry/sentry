@@ -1,13 +1,13 @@
 import React from 'react';
 import {Route, RouteComponentProps} from 'react-router';
 
-import {ChildrenRenderFn} from 'app/components/acl/feature';
-import DateRange from 'app/components/organizations/timeRangeSelector/dateRange';
-import SelectorItems from 'app/components/organizations/timeRangeSelector/dateRange/selectorItems';
-import SidebarItem from 'app/components/sidebar/sidebarItem';
-import {IntegrationProvider, Member, Organization, Project, User} from 'app/types';
-import {ExperimentKey} from 'app/types/experiments';
-import {NavigationItem, NavigationSection} from 'app/views/settings/types';
+import {ChildrenRenderFn} from 'sentry/components/acl/feature';
+import DateRange from 'sentry/components/organizations/timeRangeSelector/dateRange';
+import SelectorItems from 'sentry/components/organizations/timeRangeSelector/dateRange/selectorItems';
+import SidebarItem from 'sentry/components/sidebar/sidebarItem';
+import {IntegrationProvider, Member, Organization, Project, User} from 'sentry/types';
+import {ExperimentKey} from 'sentry/types/experiments';
+import {NavigationItem, NavigationSection} from 'sentry/views/settings/types';
 
 // XXX(epurkhiser): A Note about `_`.
 //
@@ -98,14 +98,14 @@ export type CustomizationHooks = {
  */
 export type AnalyticsHooks = {
   'analytics:init-user': AnalyticsInitUser;
-  'analytics:track-event': AnalyticsTrackEvent;
   'analytics:track-event-v2': AnalyticsTrackEventV2;
-  'analytics:track-adhoc-event': AnalyticsTrackAdhocEvent;
   'analytics:log-experiment': AnalyticsLogExperiment;
   'metrics:event': MetricsEvent;
 
-  // TODO(epurkhiser): This is deprecated and should be replaced
+  // TODO(scefali): Below are deprecated and should be replaced
   'analytics:event': LegacyAnalyticsEvent;
+  'analytics:track-event': AnalyticsTrackEvent;
+  'analytics:track-adhoc-event': AnalyticsTrackAdhocEvent;
 };
 
 /**

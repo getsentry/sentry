@@ -8,7 +8,7 @@ from tests.sentry.integrations.slack.endpoints.commands import SlackCommandsTest
 class SlackCommandsPostTest(SlackCommandsTest):
     def test_invalid_signature(self):
         # The `get_error_response` method doesn't add a signature to the request.
-        self.get_error_response(status_code=status.HTTP_400_BAD_REQUEST)
+        self.get_error_response(status_code=status.HTTP_401_UNAUTHORIZED)
 
     def test_missing_team(self):
         self.get_slack_response({"text": ""}, status_code=status.HTTP_400_BAD_REQUEST)

@@ -3,23 +3,28 @@ import {useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps} from 'app/actionCreators/modal';
-import Tag from 'app/components/tagDeprecated';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import {DashboardDetails, Widget} from 'app/views/dashboardsV2/types';
-import {WidgetTemplate} from 'app/views/dashboardsV2/widgetLibrary/data';
+import {ModalRenderProps, openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
+import Tag from 'sentry/components/tagDeprecated';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {
+  DashboardDetails,
+  DashboardWidgetSource,
+  Widget,
+} from 'sentry/views/dashboardsV2/types';
+import {WidgetTemplate} from 'sentry/views/dashboardsV2/widgetLibrary/data';
 
 import Button from '../../button';
 import ButtonBar from '../../buttonBar';
 
-import DashboardWidgetCustomTab from './customTab';
 import DashboardWidgetLibraryTab from './libraryTab';
 
 export type DashboardWidgetLibraryModalOptions = {
   organization: Organization;
   dashboard: DashboardDetails;
+  initialSelectedWidgets?: WidgetTemplate[];
+  customWidget?: Widget;
   onAddWidget: (widgets: Widget[]) => void;
 };
 
@@ -35,11 +40,15 @@ function DashboardWidgetLibraryModal({
   Body,
   Footer,
   dashboard,
+  organization,
+  customWidget,
+  initialSelectedWidgets,
   closeModal,
   onAddWidget,
 }: Props) {
-  const [tab, setTab] = useState(TAB.Library);
-  const [selectedWidgets, setSelectedWidgets] = useState<WidgetTemplate[]>([]);
+  const [selectedWidgets, setSelectedWidgets] = useState<WidgetTemplate[]>(
+    initialSelectedWidgets ? initialSelectedWidgets : []
+  );
   const [errored, setErrored] = useState(false);
 
   function handleSubmit() {
@@ -53,24 +62,29 @@ function DashboardWidgetLibraryModal({
         <h4>{t('Add Widget')}</h4>
       </Header>
       <Body>
-        <StyledButtonBar active={tab}>
-          <Button barId={TAB.Library} onClick={() => setTab(TAB.Library)}>
-            {t('Library')}
-          </Button>
-          <Button barId={TAB.Custom} onClick={() => setTab(TAB.Custom)}>
+        <StyledButtonBar>
+          <Button
+            barId={TAB.Custom}
+            onClick={() => {
+              openAddDashboardWidgetModal({
+                organization,
+                dashboard,
+                selectedWidgets,
+                widget: customWidget,
+                source: DashboardWidgetSource.LIBRARY,
+                onAddLibraryWidget: onAddWidget,
+              });
+            }}
+          >
             {t('Custom')}
           </Button>
         </StyledButtonBar>
-        {tab === TAB.Library ? (
-          <DashboardWidgetLibraryTab
-            selectedWidgets={selectedWidgets}
-            errored={errored}
-            setSelectedWidgets={setSelectedWidgets}
-            setErrored={setErrored}
-          />
-        ) : (
-          <DashboardWidgetCustomTab />
-        )}
+        <DashboardWidgetLibraryTab
+          selectedWidgets={selectedWidgets}
+          errored={errored}
+          setSelectedWidgets={setSelectedWidgets}
+          setErrored={setErrored}
+        />
       </Body>
       <Footer>
         <FooterButtonbar gap={1}>
@@ -113,7 +127,6 @@ export const modalCss = css`
 `;
 
 const StyledButtonBar = styled(ButtonBar)`
-  grid-template-columns: repeat(2, minmax(0, 1fr));
   margin-bottom: ${space(1)};
 `;
 

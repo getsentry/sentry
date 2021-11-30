@@ -1,7 +1,8 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import BaseChart from 'app/components/charts/baseChart';
+import BaseChart from 'sentry/components/charts/baseChart';
+import theme from 'sentry/utils/theme';
 
 describe('BaseChart', function () {
   const {routerContext} = initializeOrg();
@@ -18,7 +19,7 @@ describe('BaseChart', function () {
     );
     const series = wrapper.find('ChartContainer').props().children.props.option.series;
     expect(series.length).toEqual(1);
-    expect(series[0].lineStyle.color).toEqual('#C6BECF');
+    expect(series[0].lineStyle.color).toEqual(theme.gray200);
     expect(series[0].lineStyle.type).toEqual('dotted');
   });
 

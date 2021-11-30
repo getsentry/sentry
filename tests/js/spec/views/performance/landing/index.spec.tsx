@@ -2,11 +2,11 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {act} from 'sentry-test/reactTestingLibrary';
 
-import TeamStore from 'app/stores/teamStore';
-import EventView from 'app/utils/discover/eventView';
-import {OrganizationContext} from 'app/views/organizationContext';
-import {PerformanceLanding} from 'app/views/performance/landing';
-import {LandingDisplayField} from 'app/views/performance/landing/utils';
+import TeamStore from 'sentry/stores/teamStore';
+import EventView from 'sentry/utils/discover/eventView';
+import {OrganizationContext} from 'sentry/views/organizationContext';
+import {PerformanceLanding} from 'sentry/views/performance/landing';
+import {LandingDisplayField} from 'sentry/views/performance/landing/utils';
 
 const WrappedComponent = ({data}) => {
   const eventView = EventView.fromLocation(data.router.location);
@@ -155,7 +155,25 @@ describe('Performance > Landing > Index', function () {
 
     expect(wrapper.find('Table').exists()).toBe(true);
 
-    expect(eventStatsMock).toHaveBeenCalledTimes(3); // Currently defaulting to 4 event stat charts on all transactions view + 1 event chart.
+    expect(eventStatsMock).toHaveBeenCalledTimes(1); // Only one request is made since the query batcher is working.
+
+    expect(eventStatsMock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: [],
+          interval: '1h',
+          partial: '1',
+          project: [],
+          query: '',
+          referrer: 'api.organization-event-stats',
+          statsPeriod: '28d',
+          yAxis: ['user_misery()', 'tpm()', 'failure_rate()'],
+        }),
+      })
+    );
+
     expect(eventsV2Mock).toHaveBeenCalledTimes(2);
 
     const titles = wrapper.find('div[data-test-id="performance-widget-title"]');

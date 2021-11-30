@@ -1,7 +1,8 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {act} from 'sentry-test/reactTestingLibrary';
 
-import GlobalSelectionStore from 'app/stores/globalSelectionStore';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
+import GlobalSelectionStore from 'sentry/stores/globalSelectionStore';
+import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 
 describe('withGlobalSelection HoC', function () {
   beforeEach(() => {
@@ -15,7 +16,7 @@ describe('withGlobalSelection HoC', function () {
 
     expect(wrapper.find('MyComponent').prop('selection').projects).toEqual([]);
 
-    GlobalSelectionStore.updateProjects([1]);
+    act(() => GlobalSelectionStore.updateProjects([1]));
     wrapper.update();
 
     expect(wrapper.find('MyComponent').prop('selection').projects).toEqual([1]);
@@ -32,11 +33,13 @@ describe('withGlobalSelection HoC', function () {
     expect(selection.datetime.start).toEqual(null);
     expect(selection.datetime.end).toEqual(null);
 
-    GlobalSelectionStore.updateDateTime({
-      period: '7d',
-      start: null,
-      end: null,
-    });
+    act(() =>
+      GlobalSelectionStore.updateDateTime({
+        period: '7d',
+        start: null,
+        end: null,
+      })
+    );
     wrapper.update();
 
     selection = wrapper.find('MyComponent').prop('selection');
@@ -44,11 +47,13 @@ describe('withGlobalSelection HoC', function () {
     expect(selection.datetime.start).toEqual(null);
     expect(selection.datetime.end).toEqual(null);
 
-    GlobalSelectionStore.updateDateTime({
-      period: null,
-      start: '2018-08-08T00:00:00',
-      end: '2018-08-08T00:00:00',
-    });
+    act(() =>
+      GlobalSelectionStore.updateDateTime({
+        period: null,
+        start: '2018-08-08T00:00:00',
+        end: '2018-08-08T00:00:00',
+      })
+    );
     wrapper.update();
 
     selection = wrapper.find('MyComponent').prop('selection');
@@ -64,7 +69,7 @@ describe('withGlobalSelection HoC', function () {
 
     expect(wrapper.find('MyComponent').prop('selection').environments).toEqual([]);
 
-    GlobalSelectionStore.updateEnvironments(['beta', 'alpha']);
+    act(() => GlobalSelectionStore.updateEnvironments(['beta', 'alpha']));
     wrapper.update();
 
     expect(wrapper.find('MyComponent').prop('selection').environments).toEqual([

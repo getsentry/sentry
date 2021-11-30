@@ -1,15 +1,15 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mockRouterPush} from 'sentry-test/mockRouterPush';
 import {act} from 'sentry-test/reactTestingLibrary';
 
-import * as globalActions from 'app/actionCreators/globalSelection';
-import OrganizationActions from 'app/actions/organizationActions';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import ConfigStore from 'app/stores/configStore';
-import GlobalSelectionStore from 'app/stores/globalSelectionStore';
-import ProjectsStore from 'app/stores/projectsStore';
-import {getItem} from 'app/utils/localStorage';
+import * as globalActions from 'sentry/actionCreators/globalSelection';
+import OrganizationActions from 'sentry/actions/organizationActions';
+import GlobalSelectionHeader from 'sentry/components/organizations/globalSelectionHeader';
+import ConfigStore from 'sentry/stores/configStore';
+import GlobalSelectionStore from 'sentry/stores/globalSelectionStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import {getItem} from 'sentry/utils/localStorage';
 
 const changeQuery = (routerContext, query) => ({
   ...routerContext,
@@ -24,12 +24,14 @@ const changeQuery = (routerContext, query) => ({
   },
 });
 
-jest.mock('app/utils/localStorage', () => ({
+jest.mock('sentry/utils/localStorage', () => ({
   getItem: jest.fn(),
   setItem: jest.fn(),
 }));
 
 describe('GlobalSelectionHeader', function () {
+  enforceActOnUseLegacyStoreHook();
+
   let wrapper;
   const {organization, router, routerContext} = initializeOrg({
     organization: {features: ['global-views']},
@@ -60,7 +62,7 @@ describe('GlobalSelectionHeader', function () {
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
-    act(() => ProjectsStore.loadInitialData(organization.projects));
+    ProjectsStore.loadInitialData(organization.projects);
 
     getItem.mockImplementation(() => null);
     MockApiClient.addMockResponse({
@@ -229,7 +231,7 @@ describe('GlobalSelectionHeader', function () {
         params: {orgId: 'org-slug'},
       },
     });
-    act(() => ProjectsStore.loadInitialData(initialData.projects));
+    ProjectsStore.loadInitialData(initialData.projects);
 
     wrapper = mountWithTheme(
       <GlobalSelectionHeader
@@ -532,7 +534,7 @@ describe('GlobalSelectionHeader', function () {
         body: [],
       });
 
-      act(() => ProjectsStore.reset());
+      ProjectsStore.reset();
 
       // This can happen when you switch organization so params.orgId !== the
       // current org in context In this case params.orgId = 'org-slug'
@@ -602,7 +604,7 @@ describe('GlobalSelectionHeader', function () {
       const project = TestStubs.Project({id: '3'});
       const org = TestStubs.Organization({projects: [project]});
 
-      act(() => ProjectsStore.loadInitialData(org.projects));
+      ProjectsStore.loadInitialData(org.projects);
 
       const initializationObj = initializeOrg({
         organization: org,
@@ -642,7 +644,7 @@ describe('GlobalSelectionHeader', function () {
         },
       });
 
-      act(() => ProjectsStore.loadInitialData(initialData.projects));
+      ProjectsStore.loadInitialData(initialData.projects);
 
       wrapper = mountWithTheme(
         <GlobalSelectionHeader
@@ -697,7 +699,7 @@ describe('GlobalSelectionHeader', function () {
       };
 
       beforeEach(function () {
-        act(() => ProjectsStore.loadInitialData(initialData.projects));
+        ProjectsStore.loadInitialData(initialData.projects);
 
         initialData.router.push.mockClear();
         initialData.router.replace.mockClear();
@@ -715,7 +717,7 @@ describe('GlobalSelectionHeader', function () {
       });
 
       it('appends projectId to URL when `forceProject` becomes available (async)', async function () {
-        act(() => ProjectsStore.reset());
+        ProjectsStore.reset();
 
         // forceProject generally starts undefined
         createWrapper({shouldForceProject: true});
@@ -789,7 +791,7 @@ describe('GlobalSelectionHeader', function () {
           params: {orgId: 'org-slug'},
         },
       });
-      act(() => ProjectsStore.loadInitialData(initialData.projects));
+      ProjectsStore.loadInitialData(initialData.projects);
 
       const createWrapper = props => {
         wrapper = mountWithTheme(
@@ -856,7 +858,7 @@ describe('GlobalSelectionHeader', function () {
       };
 
       beforeEach(function () {
-        act(() => ProjectsStore.loadInitialData(initialData.projects));
+        ProjectsStore.loadInitialData(initialData.projects);
 
         initialData.router.push.mockClear();
         initialData.router.replace.mockClear();
@@ -872,7 +874,7 @@ describe('GlobalSelectionHeader', function () {
       });
 
       it('does not append projectId to URL when `loadingProjects` changes and finishes loading', async function () {
-        act(() => ProjectsStore.reset());
+        ProjectsStore.reset();
 
         createWrapper();
 
@@ -887,7 +889,7 @@ describe('GlobalSelectionHeader', function () {
       });
 
       it('appends projectId to URL when `forceProject` becomes available (async)', async function () {
-        act(() => ProjectsStore.reset());
+        ProjectsStore.reset();
 
         // forceProject generally starts undefined
         createWrapper({shouldForceProject: true});
@@ -942,7 +944,7 @@ describe('GlobalSelectionHeader', function () {
         },
       });
 
-      act(() => ProjectsStore.loadInitialData(initialData.projects));
+      ProjectsStore.loadInitialData(initialData.projects);
 
       wrapper = mountWithTheme(
         <GlobalSelectionHeader organization={initialData.organization} />,
@@ -1093,7 +1095,7 @@ describe('GlobalSelectionHeader', function () {
     });
 
     beforeEach(function () {
-      act(() => ProjectsStore.loadInitialData(initialData.projects));
+      ProjectsStore.loadInitialData(initialData.projects);
     });
 
     it('shows IconProject when no projects are selected', async function () {

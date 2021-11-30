@@ -1,12 +1,12 @@
 import * as React from 'react';
 
-import {EventQuery} from 'app/actionCreators/events';
-import {LocationQuery} from 'app/utils/discover/eventView';
+import {EventQuery} from 'sentry/actionCreators/events';
+import {LocationQuery} from 'sentry/utils/discover/eventView';
 import GenericDiscoverQuery, {
   DiscoverQueryProps,
   GenericChildrenProps,
-} from 'app/utils/discover/genericDiscoverQuery';
-import withApi from 'app/utils/withApi';
+} from 'sentry/utils/discover/genericDiscoverQuery';
+import withApi from 'sentry/utils/withApi';
 
 /**
  * An individual row in a Segment explorer result

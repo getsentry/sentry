@@ -1,14 +1,14 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import GroupingActions from 'app/actions/groupingActions';
-import Checkbox from 'app/components/checkbox';
-import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
-import Tooltip from 'app/components/tooltip';
-import {IconChevron} from 'app/icons';
-import GroupingStore, {Fingerprint} from 'app/stores/groupingStore';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
+import GroupingActions from 'sentry/actions/groupingActions';
+import Checkbox from 'sentry/components/checkbox';
+import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
+import Tooltip from 'sentry/components/tooltip';
+import {IconChevron} from 'sentry/icons';
+import GroupingStore, {Fingerprint} from 'sentry/stores/groupingStore';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
 
 type Props = {
   organization: Organization;

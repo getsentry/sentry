@@ -1,23 +1,23 @@
 import * as React from 'react';
 import partition from 'lodash/partition';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {openModal} from 'app/actionCreators/modal';
-import Alert from 'app/components/alert';
-import ExternalLink from 'app/components/links/externalLink';
-import {t, tct} from 'app/locale';
-import {Organization, Project} from 'app/types';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {openModal} from 'sentry/actionCreators/modal';
+import Alert from 'sentry/components/alert';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {t, tct} from 'sentry/locale';
+import {Organization, Project} from 'sentry/types';
 import {
   DynamicSamplingConditionOperator,
   DynamicSamplingRule,
   DynamicSamplingRules,
   DynamicSamplingRuleType,
-} from 'app/types/dynamicSampling';
-import withProject from 'app/utils/withProject';
-import AsyncView from 'app/views/asyncView';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import TextBlock from 'app/views/settings/components/text/textBlock';
-import PermissionAlert from 'app/views/settings/organization/permissionAlert';
+} from 'sentry/types/dynamicSampling';
+import withProject from 'sentry/utils/withProject';
+import AsyncView from 'sentry/views/asyncView';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
 
 import {modalCss} from './modal/utils';
 import Modal from './modal';
@@ -194,7 +194,7 @@ class FiltersAndSampling extends AsyncView<Props, State> {
 
   renderBody() {
     const {errorRules, transactionRules} = this.state;
-    const {hasAccess} = this.props;
+    const {hasAccess, organization} = this.props;
     const disabled = !hasAccess;
 
     const hasNotSupportedConditionOperator = [...errorRules, ...transactionRules].some(
@@ -221,15 +221,17 @@ class FiltersAndSampling extends AsyncView<Props, State> {
             }
           )}
         </TextBlock>
-        <RulesPanel
-          rules={errorRules}
-          disabled={disabled}
-          onAddRule={this.handleAddRule('errorRules')}
-          onEditRule={this.handleEditRule}
-          onDeleteRule={this.handleDeleteRule}
-          onUpdateRules={this.handleUpdateRules}
-          isErrorPanel
-        />
+        {organization.features.includes('filters-and-sampling-error-rules') && (
+          <RulesPanel
+            rules={errorRules}
+            disabled={disabled}
+            onAddRule={this.handleAddRule('errorRules')}
+            onEditRule={this.handleEditRule}
+            onDeleteRule={this.handleDeleteRule}
+            onUpdateRules={this.handleUpdateRules}
+            isErrorPanel
+          />
+        )}
         <TextBlock>
           {t('Rules for traces should precede rules for individual transactions.')}
         </TextBlock>

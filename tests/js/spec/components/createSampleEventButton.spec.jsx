@@ -4,11 +4,11 @@ import * as Sentry from '@sentry/react';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import CreateSampleEventButton from 'app/views/onboarding/createSampleEventButton';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
 
 jest.useFakeTimers();
-jest.mock('app/utils/analytics');
+jest.mock('sentry/utils/analytics');
 
 describe('CreateSampleEventButton', function () {
   const {org, project, routerContext} = initializeOrg();

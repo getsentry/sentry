@@ -1,14 +1,14 @@
 import styled from '@emotion/styled';
 
-import ClippedBox from 'app/components/clippedBox';
-import ErrorBoundary from 'app/components/errorBoundary';
-import {IconFlag} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Frame, Organization, SentryAppComponent} from 'app/types';
-import {Event} from 'app/types/event';
-import {defined} from 'app/utils';
-import withOrganization from 'app/utils/withOrganization';
+import ClippedBox from 'sentry/components/clippedBox';
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import {IconFlag} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Frame, Organization, SentryAppComponent} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import {defined} from 'sentry/utils';
+import withOrganization from 'sentry/utils/withOrganization';
 
 import {parseAssembly} from '../utils';
 

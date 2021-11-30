@@ -1,4 +1,4 @@
-import SelectField from 'app/components/forms/selectField';
+import SelectField from 'sentry/components/forms/selectField';
 
 export default class MultiSelectField extends SelectField {
   isMultiple() {

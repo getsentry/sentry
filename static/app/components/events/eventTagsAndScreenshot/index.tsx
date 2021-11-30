@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import {DataSection} from 'app/components/events/styles';
-import space from 'app/styles/space';
+import {DataSection} from 'sentry/components/events/styles';
+import space from 'sentry/styles/space';
 
 import Screenshot from './screenshot';
 import Tags from './tags';

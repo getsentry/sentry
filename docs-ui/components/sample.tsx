@@ -2,9 +2,9 @@ import {createContext, ReactChild, useState} from 'react';
 import {ThemeProvider, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {IconMoon} from 'app/icons';
-import space from 'app/styles/space';
-import {darkTheme, lightTheme, Theme} from 'app/utils/theme';
+import {IconMoon} from 'sentry/icons';
+import space from 'sentry/styles/space';
+import {darkTheme, lightTheme, Theme} from 'sentry/utils/theme';
 
 type ThemeName = 'dark' | 'light';
 
@@ -17,11 +17,15 @@ type Props = {
    * components in both modes.
    */
   showThemeSwitcher?: boolean;
-  /** Remove the outer border and padding */
+  /**
+   * Remove the outer border and padding
+   */
   noBorder?: boolean;
 };
 
-/** Expose the selected theme to children of <Sample /> */
+/**
+ * Expose the selected theme to children of <Sample />
+ */
 export const SampleThemeContext = createContext<ThemeName>('light');
 
 const Sample = ({children, showThemeSwitcher = false, noBorder = false}: Props) => {

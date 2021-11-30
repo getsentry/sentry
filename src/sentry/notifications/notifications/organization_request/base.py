@@ -118,7 +118,7 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
     def build_notification_footer(self, recipient: Team | User) -> str:
         from sentry.integrations.slack.utils.notifications import get_settings_url
 
-        # not implemented for teams
+        # TODO(mgaeta): Implement this for team recipients.
         if isinstance(recipient, Team):
             raise NotImplementedError
         recipient_member = self.get_member(recipient)
@@ -127,6 +127,9 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
             "You are receiving this notification because you're listed as an organization "
             f"{self.get_role_string(recipient_member)} | <{settings_url}|Notification Settings>"
         )
+
+    def get_title_link(self) -> str | None:
+        return None
 
     def record_notification_sent(self, recipient: Team | User, provider: ExternalProviders) -> None:
         # this event is meant to work for multiple providers but architecture
@@ -138,6 +141,3 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
             target_user_id=recipient.id,
             providers=provider.name.lower(),
         )
-
-    def get_title_link(self) -> str | None:
-        return None

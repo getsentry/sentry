@@ -3,18 +3,19 @@ import {browserHistory} from 'react-router';
 import {Location} from 'history';
 import omit from 'lodash/omit';
 
-import {t} from 'app/locale';
-import {Organization, Project} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
+import {t} from 'sentry/locale';
+import {Organization, Project} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import EventView from 'sentry/utils/discover/eventView';
 import {
   formatAbbreviatedNumber,
   formatFloat,
   formatPercentage,
   getDuration,
-} from 'app/utils/formatters';
-import {HistogramData} from 'app/utils/performance/histogram/types';
-import {decodeScalar} from 'app/utils/queryString';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
+} from 'sentry/utils/formatters';
+import {HistogramData} from 'sentry/utils/performance/histogram/types';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 import {AxisOption, getTermHelp, PERFORMANCE_TERM} from '../data';
 import {Rectangle} from '../transactionSummary/transactionVitals/types';
@@ -86,12 +87,14 @@ export function getCurrentLandingDisplay(
   eventView?: EventView
 ): LandingDisplay {
   const landingField = decodeScalar(location?.query?.landingDisplay);
+
   const display = LANDING_DISPLAYS.find(({field}) => field === landingField);
   if (display) {
     return display;
   }
 
   const defaultDisplayField = getDefaultDisplayFieldForPlatform(projects, eventView);
+
   const defaultDisplay = LANDING_DISPLAYS.find(
     ({field}) => field === defaultDisplayField
   );
@@ -102,6 +105,7 @@ export function handleLandingDisplayChange(
   field: string,
   location: Location,
   projects: Project[],
+  organization: Organization,
   eventView?: EventView
 ) {
   // Transaction op can affect the display and show no results if it is explicitly set.
@@ -110,7 +114,7 @@ export function handleLandingDisplayChange(
   searchConditions.removeFilter('transaction.op');
 
   const queryWithConditions = {
-    ...omit(location.query, 'landingDisplay'),
+    ...omit(location.query, ['landingDisplay', 'sort']),
     query: searchConditions.formatString(),
   };
 
@@ -118,11 +122,20 @@ export function handleLandingDisplayChange(
   delete queryWithConditions[RIGHT_AXIS_QUERY_KEY];
 
   const defaultDisplay = getDefaultDisplayFieldForPlatform(projects, eventView);
+  const currentDisplay = getCurrentLandingDisplay(location, projects, eventView).field;
 
   const newQuery =
     defaultDisplay === field
       ? {...queryWithConditions}
       : {...queryWithConditions, landingDisplay: field};
+
+  trackAdvancedAnalyticsEvent('performance_views.landingv3.display_change', {
+    organization,
+    change_to_display: field,
+    default_display: defaultDisplay,
+    current_display: currentDisplay,
+    is_default: defaultDisplay === currentDisplay,
+  });
 
   browserHistory.push({
     pathname: location.pathname,

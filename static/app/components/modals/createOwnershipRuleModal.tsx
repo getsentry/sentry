@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 
-import {ModalRenderProps} from 'app/actionCreators/modal';
-import {t} from 'app/locale';
-import theme from 'app/utils/theme';
-import ProjectOwnershipModal from 'app/views/settings/project/projectOwnership/modal';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {t} from 'sentry/locale';
+import theme from 'sentry/utils/theme';
+import ProjectOwnershipModal from 'sentry/views/settings/project/projectOwnership/modal';
 
 type Props = ModalRenderProps &
   Pick<ProjectOwnershipModal['props'], 'organization' | 'project' | 'issueId'> & {

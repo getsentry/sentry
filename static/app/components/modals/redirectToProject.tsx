@@ -2,11 +2,11 @@ import {Component, Fragment} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps} from 'app/actionCreators/modal';
-import Button from 'app/components/button';
-import Text from 'app/components/text';
-import {t, tct} from 'app/locale';
-import recreateRoute from 'app/utils/recreateRoute';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import Button from 'sentry/components/button';
+import Text from 'sentry/components/text';
+import {t, tct} from 'sentry/locale';
+import recreateRoute from 'sentry/utils/recreateRoute';
 
 type Props = ModalRenderProps &
   WithRouterProps & {

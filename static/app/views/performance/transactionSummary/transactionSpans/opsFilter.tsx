@@ -2,23 +2,23 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import ErrorPanel from 'app/components/charts/errorPanel';
-import DropdownButton from 'app/components/dropdownButton';
-import DropdownControl from 'app/components/dropdownControl';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {pickBarColor} from 'app/components/performance/waterfall/utils';
-import Radio from 'app/components/radio';
-import {IconFilter, IconWarning} from 'app/icons';
-import {t} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import {defined} from 'app/utils';
-import EventView from 'app/utils/discover/eventView';
-import SpanOpsQuery from 'app/utils/performance/suspectSpans/spanOpsQuery';
-import {decodeScalar} from 'app/utils/queryString';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
+import ErrorPanel from 'sentry/components/charts/errorPanel';
+import DropdownButton from 'sentry/components/dropdownButton';
+import DropdownControl from 'sentry/components/dropdownControl';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
+import Radio from 'sentry/components/radio';
+import {IconFilter, IconWarning} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import EventView from 'sentry/utils/discover/eventView';
+import SpanOpsQuery from 'sentry/utils/performance/suspectSpans/spanOpsQuery';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 type Props = {
   location: Location;
@@ -55,7 +55,9 @@ export default function OpsFilter(props: Props) {
         >
           <Fragment>
             <IconFilter size="xs" />
-            <FilterLabel>{t('Filter')}</FilterLabel>
+            <FilterLabel>
+              {defined(currentOp) ? tct('Filter - [op]', {op: currentOp}) : t('Filter')}
+            </FilterLabel>
           </Fragment>
         </DropdownButton>
       )}
@@ -122,6 +124,7 @@ export default function OpsFilter(props: Props) {
 
 const FilterLabel = styled('span')`
   margin-left: ${space(1)};
+  white-space: nowrap;
 `;
 
 const List = styled('ul')`

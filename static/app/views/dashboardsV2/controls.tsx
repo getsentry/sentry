@@ -1,16 +1,16 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Feature from 'app/components/acl/feature';
-import FeatureDisabled from 'app/components/acl/featureDisabled';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import Confirm from 'app/components/confirm';
-import Hovercard from 'app/components/hovercard';
-import {IconAdd, IconEdit} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
+import Feature from 'sentry/components/acl/feature';
+import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import Confirm from 'sentry/components/confirm';
+import Hovercard from 'sentry/components/hovercard';
+import {IconAdd, IconEdit} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
 
 import {DashboardListItem, DashboardState} from './types';
 
@@ -22,6 +22,7 @@ type Props = {
   onCommit: () => void;
   onDelete: () => void;
   onAddWidget: () => void;
+  onAddIssueWidget: () => void;
   dashboardState: DashboardState;
 };
 
@@ -36,6 +37,7 @@ class Controls extends React.Component<Props> {
       onCommit,
       onDelete,
       onAddWidget,
+      onAddIssueWidget,
     } = this.props;
 
     const cancelButton = (
@@ -119,13 +121,27 @@ class Controls extends React.Component<Props> {
                 <Button
                   data-test-id="add-widget-library"
                   priority="primary"
-                  icon={<IconAdd isCircled size="s" />}
+                  icon={<IconAdd isCircled />}
                   onClick={e => {
                     e.preventDefault();
                     onAddWidget();
                   }}
                 >
                   {t('Add Widget')}
+                </Button>
+              ) : null}
+              {organization.features.includes('issues-in-dashboards') ? (
+                <Button
+                  data-test-id="dashboard-add-issues-widget"
+                  priority="primary"
+                  icon={<IconAdd isCircled />}
+                  onClick={e => {
+                    e.preventDefault();
+                    onAddIssueWidget();
+                  }}
+                  disabled={!hasFeature}
+                >
+                  {t('Add Issue Widget')}
                 </Button>
               ) : null}
             </React.Fragment>

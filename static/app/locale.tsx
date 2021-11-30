@@ -6,7 +6,7 @@ import isObject from 'lodash/isObject';
 import isString from 'lodash/isString';
 import {sprintf} from 'sprintf-js';
 
-import localStorage from 'app/utils/localStorage';
+import localStorage from 'sentry/utils/localStorage';
 
 const markerStyles = {
   background: '#ff801790',

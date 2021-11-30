@@ -1,8 +1,8 @@
 import * as React from 'react';
 
-import {experimentConfig, unassignedValue} from 'app/data/experimentConfig';
-import ConfigStore from 'app/stores/configStore';
-import {Organization} from 'app/types';
+import {experimentConfig, unassignedValue} from 'sentry/data/experimentConfig';
+import ConfigStore from 'sentry/stores/configStore';
+import {Organization} from 'sentry/types';
 import {
   ExperimentAssignment,
   ExperimentKey,
@@ -10,9 +10,9 @@ import {
   ExperimentType,
   OrgExperiments,
   UserExperiments,
-} from 'app/types/experiments';
-import {logExperiment} from 'app/utils/analytics';
-import getDisplayName from 'app/utils/getDisplayName';
+} from 'sentry/types/experiments';
+import {logExperiment} from 'sentry/utils/analytics';
+import getDisplayName from 'sentry/utils/getDisplayName';
 
 type Options<E extends ExperimentKey, L extends boolean> = {
   /**

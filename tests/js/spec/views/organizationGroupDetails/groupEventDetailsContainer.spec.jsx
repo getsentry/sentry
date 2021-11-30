@@ -1,10 +1,10 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import OrganizationEnvironmentsStore from 'app/stores/organizationEnvironmentsStore';
-import GroupEventDetailsContainer from 'app/views/organizationGroupDetails/groupEventDetails';
+import OrganizationEnvironmentsStore from 'sentry/stores/organizationEnvironmentsStore';
+import GroupEventDetailsContainer from 'sentry/views/organizationGroupDetails/groupEventDetails';
 
 jest.mock(
-  'app/views/organizationGroupDetails/groupEventDetails/groupEventDetails',
+  'sentry/views/organizationGroupDetails/groupEventDetails/groupEventDetails',
   () => () => <div>GroupEventDetails</div>
 );
 

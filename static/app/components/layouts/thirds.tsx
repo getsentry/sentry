@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-import NavTabs from 'app/components/navTabs';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
+import NavTabs from 'sentry/components/navTabs';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
 
 /**
  * Base container for 66/33 containers.
@@ -111,7 +111,6 @@ export const HeaderNavTabs = styled(NavTabs)`
   }
   & > li > a {
     padding: ${space(1)} 0;
-    font-size: ${p => p.theme.fontSizeLarge};
     margin-bottom: 4px;
   }
   & > li.active > a {

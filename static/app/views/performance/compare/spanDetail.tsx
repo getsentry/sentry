@@ -1,16 +1,16 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import DateTime from 'app/components/dateTime';
-import {SpanDetailContainer} from 'app/components/events/interfaces/spans/spanDetail';
-import {rawSpanKeys, SpanType} from 'app/components/events/interfaces/spans/types';
-import {getHumanDuration} from 'app/components/performance/waterfall/utils';
-import Pill from 'app/components/pill';
-import Pills from 'app/components/pills';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import getDynamicText from 'app/utils/getDynamicText';
-import theme from 'app/utils/theme';
+import DateTime from 'sentry/components/dateTime';
+import {SpanDetailContainer} from 'sentry/components/events/interfaces/spans/spanDetail';
+import {rawSpanKeys, SpanType} from 'sentry/components/events/interfaces/spans/types';
+import {getHumanDuration} from 'sentry/components/performance/waterfall/utils';
+import Pill from 'sentry/components/pill';
+import Pills from 'sentry/components/pills';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import getDynamicText from 'sentry/utils/getDynamicText';
+import theme from 'sentry/utils/theme';
 
 import SpanDetailContent from './spanDetailContent';
 import {SpanBarRectangle} from './styles';

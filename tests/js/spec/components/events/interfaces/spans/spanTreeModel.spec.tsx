@@ -1,13 +1,13 @@
-import {Client} from 'app/api';
-import SpanTreeModel from 'app/components/events/interfaces/spans/spanTreeModel';
-import {EnhancedProcessedSpanType} from 'app/components/events/interfaces/spans/types';
+import {Client} from 'sentry/api';
+import SpanTreeModel from 'sentry/components/events/interfaces/spans/spanTreeModel';
+import {EnhancedProcessedSpanType} from 'sentry/components/events/interfaces/spans/types';
 import {
   boundsGenerator,
   generateRootSpan,
   parseTrace,
-} from 'app/components/events/interfaces/spans/utils';
-import {EntryType, EventTransaction} from 'app/types/event';
-import {assert} from 'app/types/utils';
+} from 'sentry/components/events/interfaces/spans/utils';
+import {EntryType, EventTransaction} from 'sentry/types/event';
+import {assert} from 'sentry/types/utils';
 
 describe('SpanTreeModel', () => {
   const api: Client = new Client();

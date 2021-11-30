@@ -5,31 +5,31 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
-import AreaChart from 'app/components/charts/areaChart';
-import BarChart from 'app/components/charts/barChart';
-import ChartZoom from 'app/components/charts/chartZoom';
-import ErrorPanel from 'app/components/charts/errorPanel';
-import LineChart from 'app/components/charts/lineChart';
-import SimpleTableChart from 'app/components/charts/simpleTableChart';
-import TransitionChart from 'app/components/charts/transitionChart';
-import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
-import {getSeriesSelection, processTableResults} from 'app/components/charts/utils';
-import WorldMapChart from 'app/components/charts/worldMapChart';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import Placeholder from 'app/components/placeholder';
-import {IconWarning} from 'app/icons';
-import space from 'app/styles/space';
-import {GlobalSelection, Organization} from 'app/types';
-import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
-import {getFieldFormatter} from 'app/utils/discover/fieldRenderers';
+import AreaChart from 'sentry/components/charts/areaChart';
+import BarChart from 'sentry/components/charts/barChart';
+import ChartZoom from 'sentry/components/charts/chartZoom';
+import ErrorPanel from 'sentry/components/charts/errorPanel';
+import LineChart from 'sentry/components/charts/lineChart';
+import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
+import TransitionChart from 'sentry/components/charts/transitionChart';
+import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import {getSeriesSelection, processTableResults} from 'sentry/components/charts/utils';
+import WorldMapChart from 'sentry/components/charts/worldMapChart';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Placeholder from 'sentry/components/placeholder';
+import {IconWarning} from 'sentry/icons';
+import space from 'sentry/styles/space';
+import {GlobalSelection, Organization} from 'sentry/types';
+import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
+import {getFieldFormatter} from 'sentry/utils/discover/fieldRenderers';
 import {
   getAggregateArg,
   getMeasurementSlug,
   maybeEquationAlias,
   stripEquationPrefix,
-} from 'app/utils/discover/fields';
-import getDynamicText from 'app/utils/getDynamicText';
-import {Theme} from 'app/utils/theme';
+} from 'sentry/utils/discover/fields';
+import getDynamicText from 'sentry/utils/getDynamicText';
+import {Theme} from 'sentry/utils/theme';
 
 import {Widget} from './types';
 import WidgetQueries from './widgetQueries';
@@ -89,7 +89,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
 
     if (typeof tableResults === 'undefined' || loading) {
       // Align height to other charts.
-      return <Placeholder height="200px" />;
+      return <LoadingPlaceholder height="200px" />;
     }
 
     return tableResults.map((result, i) => {
@@ -332,6 +332,9 @@ const LoadingScreen = ({loading}: {loading: boolean}) => {
     </StyledTransparentLoadingMask>
   );
 };
+const LoadingPlaceholder = styled(Placeholder)`
+  background-color: ${p => p.theme.surface200};
+`;
 
 const BigNumber = styled('div')`
   font-size: 32px;

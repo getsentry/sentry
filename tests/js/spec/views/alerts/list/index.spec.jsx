@@ -7,9 +7,9 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'app/stores/projectsStore';
-import TeamStore from 'app/stores/teamStore';
-import IncidentsList from 'app/views/alerts/list';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import TeamStore from 'sentry/stores/teamStore';
+import IncidentsList from 'sentry/views/alerts/list';
 
 describe('IncidentsList', function () {
   let routerContext;

@@ -1,8 +1,8 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {Client} from 'app/api';
-import {SmartSearchBar} from 'app/components/smartSearchBar';
-import TagStore from 'app/stores/tagStore';
+import {Client} from 'sentry/api';
+import {SmartSearchBar} from 'sentry/components/smartSearchBar';
+import TagStore from 'sentry/stores/tagStore';
 
 describe('SmartSearchBar', function () {
   let location, options, organization, supportedTags;

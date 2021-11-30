@@ -1,6 +1,6 @@
-import {User} from 'app/types';
-import {IssueAlertRule} from 'app/types/alerts';
-import {IncidentRule} from 'app/views/alerts/incidentRules/types';
+import {User} from 'sentry/types';
+import {IssueAlertRule} from 'sentry/types/alerts';
+import {IncidentRule} from 'sentry/views/alerts/incidentRules/types';
 
 type Data = [number, {count: number}[]][];
 

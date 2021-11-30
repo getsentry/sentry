@@ -1,4 +1,4 @@
-import FeatureDisabled from 'app/components/acl/featureDisabled';
+import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 
 export default {
   title: 'Components/Alerts/Feature Disabled',

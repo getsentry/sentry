@@ -2,10 +2,10 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 import {selectByValue} from 'sentry-test/select-new';
 
-import {Client} from 'app/api';
-import ModalStore from 'app/stores/modalStore';
-import ProjectsStore from 'app/stores/projectsStore';
-import IntegrationCodeMappings from 'app/views/organizationIntegrations/integrationCodeMappings';
+import {Client} from 'sentry/api';
+import ModalStore from 'sentry/stores/modalStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import IntegrationCodeMappings from 'sentry/views/organizationIntegrations/integrationCodeMappings';
 
 const mockResponse = mocks => {
   mocks.forEach(([url, body]) =>
