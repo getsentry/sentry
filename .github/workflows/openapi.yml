@@ -8,7 +8,7 @@ on:
 
 jobs:
   test:
-    name: backend test
+    name: build api
     runs-on: ubuntu-20.04
     timeout-minutes: 90
     strategy:
@@ -16,6 +16,13 @@ jobs:
         python-version: [3.8.12]
 
     steps:
+      - name: Getsentry Token
+        id: getsentry
+        uses: getsentry/action-github-app-token@v1
+        with:
+          app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
+          private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
+
       - uses: actions/checkout@v2
         with:
           # Avoid codecov error message related to SHA resolution:
