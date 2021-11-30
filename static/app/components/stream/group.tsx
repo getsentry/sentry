@@ -34,7 +34,7 @@ import {
   User,
 } from 'sentry/types';
 import {defined, percent, valueIsEqual} from 'sentry/utils';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 import EventView from 'sentry/utils/discover/eventView';
 import {formatPercentage} from 'sentry/utils/formatters';
@@ -177,7 +177,7 @@ class StreamGroup extends React.Component<Props, State> {
     const tab = getTabs(organization).find(([tabQuery]) => tabQuery === query)?.[1];
     const owners = data?.owners || [];
     return {
-      organization_id: organization.id,
+      organization,
       group_id: data.id,
       tab: tab?.analyticsName || 'other',
       was_shown_suggestion: owners.length > 0,
@@ -188,20 +188,14 @@ class StreamGroup extends React.Component<Props, State> {
     const {query, organization} = this.props;
     const {data} = this.state;
     if (query === Query.FOR_REVIEW) {
-      trackAnalyticsEvent({
-        eventKey: 'inbox_tab.issue_clicked',
-        eventName: 'Clicked Issue from Inbox Tab',
-        organization_id: organization.id,
+      trackAdvancedAnalyticsEvent('inbox_tab.issue_clicked', {
+        organization,
         group_id: data.id,
       });
     }
 
     if (query !== undefined) {
-      trackAnalyticsEvent({
-        eventKey: 'issues_stream.issue_clicked',
-        eventName: 'Clicked Issue from Issues Stream',
-        ...this.sharedAnalytics(),
-      });
+      trackAdvancedAnalyticsEvent('issues_stream.issue_clicked', this.sharedAnalytics());
     }
   };
 
@@ -212,9 +206,7 @@ class StreamGroup extends React.Component<Props, State> {
   ) => {
     const {query} = this.props;
     if (query !== undefined) {
-      trackAnalyticsEvent({
-        eventKey: 'issues_stream.issue_assigned',
-        eventName: 'Assigned Issue from Issues Stream',
+      trackAdvancedAnalyticsEvent('issues_stream.issue_assigned', {
         ...this.sharedAnalytics(),
         did_assign_suggestion: !!suggestedAssignee,
         assigned_suggestion_reason: suggestedAssignee?.suggestedReason,
