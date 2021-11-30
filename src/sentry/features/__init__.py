@@ -61,6 +61,7 @@ default_manager.add("organizations:breadcrumb-linked-event", OrganizationFeature
 default_manager.add("organizations:change-alerts", OrganizationFeature, True)
 default_manager.add("organizations:chart-unfurls", OrganizationFeature, True)
 default_manager.add("organizations:connect-discover-and-dashboards", OrganizationFeature, True)
+default_manager.add("organizations:create-dashboard-widget-from-issue", OrganizationFeature, True)
 default_manager.add("organizations:crash-rate-alerts", OrganizationFeature, True)
 default_manager.add("organizations:custom-event-title", OrganizationFeature)
 default_manager.add("organizations:custom-symbol-sources", OrganizationFeature)
