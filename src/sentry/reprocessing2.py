@@ -264,7 +264,68 @@ def reprocess_event(project_id, event_id, start_time):
     )
 
 
-def delete_old_primary_hash(event):
+def buffered_delete_old_primary_hash(event, force_flush_batch: bool = False):
+    """
+    Like `buffered_handle_remaining_events`, is a quick and dirty way to batch
+    event IDs so requests to tombstone rows are not being individually sent
+    over to Snuba.
+    """
+
+    from sentry import killswitches
+
+    if killswitches.killswitch_matches_context(
+        "reprocessing2.drop-delete-old-primary-hash", {"project_id": event.project_id}
+    ):
+        return
+
+    client = _get_sync_redis_client()
+    old_primary_hash = get_path(event.data, "contexts", "reprocessing", "original_primary_hash")
+
+    # TODO: revisit this comment
+    # We explicitly cluster by only project_id and old_primary_hash here such that our
+    # RENAME command later succeeds.
+    #
+    # We also use legacy string formatting here because new-style Python
+    # formatting is quite confusing when the output string is supposed to
+    # contain {}.
+    key = f"re2:remaining:{{{event.project_id}:{old_primary_hash}}}"
+
+    # assuming that despite the name, primary hashes are not unique per-event when grouping is involved
+    # will have to rethink how to batch these if assumption is wrong
+    if old_primary_hash is None or old_primary_hash == event.get_primary_hash():
+        llen = client.lpush(key, f"{to_timestamp(event.datetime)};{event.event_id}")
+        client.expire(key, settings.SENTRY_REPROCESSING_SYNC_TTL)
+    else:
+        llen = client.llen(key)
+
+    # TODO: revisit batch size setting
+    if force_flush_batch or llen > settings.SENTRY_REPROCESSING_REMAINING_EVENTS_BUF_SIZE:
+        new_key = f"{key}:{uuid.uuid4().hex}"
+
+        try:
+            # Rename `key` to a new temp key that is passed to celery task. We
+            # use `renamenx` instead of `rename` only to detect UUID collisions.
+            assert client.renamenx(key, new_key), "UUID collision for new_key?"
+        except redis.exceptions.ResponseError:
+            # `key` does not exist in Redis. `ResponseError` is a bit too broad
+            # but it seems we'd have to do string matching on error message
+            # otherwise.
+            return
+
+        delete_old_primary_hash(
+            project_id=event.project_id,
+            old_primary_hash=old_primary_hash,
+            event_ids_redis_key=new_key,
+        )
+
+
+def delete_old_primary_hash(
+    project_id,
+    old_primary_hash,
+    event_ids_redis_key,
+    # TODO: Deprecated argument, can remove in next version.
+    event=None,
+):
     """In case the primary hash changed during reprocessing, we need to tell
     Snuba before reinserting the event. Snuba may then insert a tombstone row
     depending on whether the primary_hash is part of the PK/sortkey or not.
@@ -277,22 +338,19 @@ def delete_old_primary_hash(event):
     merge the two rows together.
     """
 
-    old_primary_hash = get_path(event.data, "contexts", "reprocessing", "original_primary_hash")
+    from sentry import eventstream
+    from sentry.reprocessing2 import pop_remaining_event_ids_from_redis
 
-    if old_primary_hash is not None and old_primary_hash != event.get_primary_hash():
-        from sentry import eventstream, killswitches
-
-        if killswitches.killswitch_matches_context(
-            "reprocessing2.drop-delete-old-primary-hash", {"project_id": event.project_id}
-        ):
-            return
-
+    if event_ids_redis_key is not None:
+        event_ids, from_timestamp, to_timestamp = pop_remaining_event_ids_from_redis(
+            event_ids_redis_key
+        )
         eventstream.tombstone_events_unsafe(
-            event.project_id,
-            [event.event_id],
+            project_id,
+            event_ids,
             old_primary_hash=old_primary_hash,
-            from_timestamp=event.datetime,
-            to_timestamp=event.datetime,
+            from_timestamp=from_timestamp,
+            to_timestamp=to_timestamp,
         )
 
 
