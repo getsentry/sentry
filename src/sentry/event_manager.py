@@ -68,7 +68,7 @@ from sentry.models import (
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.plugins.base import plugins
 from sentry.reprocessing2 import (
-    delete_old_primary_hash,
+    buffered_delete_old_primary_hash,
     is_reprocessed_event,
     save_unprocessed_event,
 )
@@ -515,7 +515,7 @@ class EventManager:
                 )
 
         if is_reprocessed:
-            safe_execute(delete_old_primary_hash, job["event"], _with_transaction=False)
+            safe_execute(buffered_delete_old_primary_hash, job["event"], _with_transaction=False)
 
         _eventstream_insert_many(jobs)
 
@@ -1279,6 +1279,9 @@ def _handle_regression(group, event, release):
     group.status = GroupStatus.UNRESOLVED
 
     if is_regression and release:
+        # TODO: pyright is complaining about resolution being unbound
+        resolution = None
+
         # resolutions are only valid if the state of the group is still
         # resolved -- if it were to change the resolution should get removed
         try:
@@ -1291,13 +1294,16 @@ def _handle_regression(group, event, release):
             cursor.execute("DELETE FROM sentry_groupresolution WHERE id = %s", [resolution.id])
             affected = cursor.rowcount > 0
 
-        if affected:
+        # TODO: pyright is complaining about resolution being unbound
+        if affected and resolution:
             # if we had to remove the GroupResolution (i.e. we beat the
             # the queue to handling this) then we need to also record
             # the corresponding event
             try:
                 activity = Activity.objects.filter(
-                    group=group, type=Activity.SET_RESOLVED_IN_RELEASE, ident=resolution.id
+                    group=group,
+                    type=Activity.SET_RESOLVED_IN_RELEASE,
+                    ident=resolution.id,
                 ).order_by("-datetime")[0]
             except IndexError:
                 # XXX: handle missing data, as its not overly important
