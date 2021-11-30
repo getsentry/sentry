@@ -2500,6 +2500,3 @@ SENTRY_POST_PROCESS_FORWARDER_BATCHING = True
 # Whether badly behaving projects will be automatically
 # sent to the low priority queue
 SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE = False
-
-
-from sentry.apidocs.extensions import *  # NOQA  # TODO: figure out better init import
