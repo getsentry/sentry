@@ -186,7 +186,7 @@ function getFormatter({
     // The data attribute is usually a list of [name, value] but can also be an object of {name, value} when
     // there is item specific formatting being used.
     const timestamp = Array.isArray(seriesParamsOrParam)
-      ? seriesParams[0].axisValue
+      ? seriesParams[0].data[0]
       : getSeriesValue(seriesParams[0], 0);
 
     const date =
