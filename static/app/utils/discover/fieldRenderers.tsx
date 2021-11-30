@@ -15,7 +15,8 @@ import {pickBarColor, toPercent} from 'sentry/components/performance/waterfall/u
 import Tooltip from 'sentry/components/tooltip';
 import UserMisery from 'sentry/components/userMisery';
 import Version from 'sentry/components/version';
-import {t} from 'sentry/locale';
+import {IconUser} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
 import {Actor, Organization} from 'sentry/types';
 import {defined, isUrl} from 'sentry/utils';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
@@ -439,9 +440,23 @@ const SPECIAL_FIELDS: SpecialFields = {
         name: data['assignee.name'],
         email: data['assignee.email'],
       };
+
       return (
         <ActorContainer>
-          <ActorAvatar actor={assignedTo} size={28} />
+          {assignedTo.type && assignedTo.id && assignedTo.name ? (
+            <ActorAvatar
+              actor={assignedTo}
+              size={28}
+              tooltip={tct('Assigned to [name]', {
+                name:
+                  assignedTo.type === 'team' ? `#${assignedTo.name}` : assignedTo.name,
+              })}
+            />
+          ) : (
+            <Tooltip isHoverable skipWrapper title={<div>{t('Unassigned')}</div>}>
+              <IconUser size="20px" color="gray400" />
+            </Tooltip>
+          )}
         </ActorContainer>
       );
     },
