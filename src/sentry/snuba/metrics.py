@@ -21,27 +21,13 @@ from typing import (
     Union,
 )
 
-from parsimonious import ParseError
 from parsimonious.grammar import Grammar
-from snuba_sdk import (
-    And,
-    Column,
-    Condition,
-    Entity,
-    Function,
-    Granularity,
-    Limit,
-    Offset,
-    Op,
-    Or,
-    Query,
-)
+from snuba_sdk import Column, Condition, Entity, Function, Granularity, Limit, Offset, Op, Query
 from snuba_sdk.conditions import BooleanCondition
 from snuba_sdk.orderby import Direction, OrderBy
 
-from sentry.api.event_search import parse_search_query
 from sentry.models import Project
-from sentry.search.events.filter import get_filter
+from sentry.search.events.filter import QueryFilter
 from sentry.sentry_metrics import indexer
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.sessions_v2 import (  # TODO: unite metrics and sessions_v2
@@ -164,13 +150,46 @@ def parse_tag(tag_string: str) -> Tuple[str, str]:
     return (verify_tag_name(name), value.strip('"'))
 
 
-def parse_query(query_string: str) -> dict:
-    parsed = TAG_FILTER_GRAMMAR.parse(query_string)
+def _resolve_tags(input_: Any) -> Any:
+    """Translate tags in snuba condition"""
+    if isinstance(input_, list):
+        return [_resolve_tags(item) for item in input_]
+    if isinstance(input_, Function):
+        return Function(
+            function=input_.function,
+            parameters=input_.parameters and [_resolve_tags(item) for item in input_.parameters],
+        )
+    if isinstance(input_, Condition):
+        return Condition(lhs=_resolve_tags(input_.lhs), op=input_.op, rhs=_resolve_tags(input_.rhs))
+    if isinstance(input_, BooleanCondition):
+        return input_.__class__(conditions=[_resolve_tags(item) for item in input_.conditions])
+    if isinstance(input_, Column):
+        # HACK: Some tags already take the form "tags[...]" in discover, take that into account:
+        if input_.subscriptable == "tags":
+            name = input_.key
+        else:
+            name = input_.name
+        return Column(name=f"tags[{indexer.resolve(name)}]")
+    if isinstance(input_, str):
+        return indexer.resolve(input_)
 
-    import ipdb
+    return input_
 
-    ipdb.set_trace()
-    return {}
+
+def parse_query(query_string: str) -> Sequence[Condition]:
+    """Parse given filter query into a list of snuba conditions"""
+    # HACK: Parse a discover query, validate / transform afterwards.
+    # We
+    query_filter = QueryFilter(
+        Dataset.Discover,  # HACK
+        params={
+            "project_id": 1,  # HACK
+        },
+    )
+    where, _ = query_filter.resolve_conditions(query_string, use_aggregate_conditions=True)
+    where = _resolve_tags(where)
+
+    return where
 
 
 class QueryDefinition:
@@ -657,35 +676,6 @@ class SnubaQueryBuilder:
 
         return operator(operands)
 
-    def _build_filter(self, query_definition: QueryDefinition) -> Optional[BooleanCondition]:
-        filter_ = query_definition.parsed_query
-        if filter_ is None:
-            return None
-
-        def to_int(string):
-            try:
-                return indexer.resolve(string)
-            except KeyError:
-                return None
-
-        return self._build_logical(
-            Or,
-            [
-                self._build_logical(
-                    And,
-                    [
-                        Condition(
-                            Column(f"tags[{to_int(tag)}]"),
-                            Op.EQ,
-                            to_int(value),
-                        )
-                        for tag, value in or_operand["and"]
-                    ],
-                )
-                for or_operand in filter_["or"]
-            ],
-        )
-
     def _build_where(
         self, query_definition: QueryDefinition
     ) -> List[Union[BooleanCondition, Condition]]:
@@ -702,9 +692,9 @@ class SnubaQueryBuilder:
             Condition(Column(TS_COL_QUERY), Op.GTE, query_definition.start),
             Condition(Column(TS_COL_QUERY), Op.LT, query_definition.end),
         ]
-        filter_ = self._build_filter(query_definition)
+        filter_ = query_definition.parsed_query
         if filter_:
-            where.append(filter_)
+            where.extend(filter_)
 
         return where
 

@@ -2,9 +2,11 @@ from dataclasses import dataclass
 from datetime import datetime
 from unittest import mock
 
+import pytest
 import pytz
 from django.utils.datastructures import MultiValueDict
 from snuba_sdk import (
+    And,
     Column,
     Condition,
     Direction,
@@ -14,6 +16,7 @@ from snuba_sdk import (
     Limit,
     Offset,
     Op,
+    Or,
     OrderBy,
     Query,
 )
@@ -38,16 +41,60 @@ class PseudoProject:
 MOCK_NOW = datetime(2021, 8, 25, 23, 59, tzinfo=pytz.utc)
 
 
-def test_parse_query():
-    for query in [
-        'release:""',  # Empty string is OK
-        "release:myapp@2.0.0",
-        "release:myapp@2.0.0 and environment:production",
-        "release:myapp@2.0.0 and environment:production or session.status:healthy",
-        "release:myapp@2.0.0 and environment:production or session.status:healthy",
-        'transaction:"/bar/:orgId/"',
-    ]:
-        parse_query(query)  # TODO: Validate results
+@pytest.mark.parametrize(
+    "query_string,expected",
+    [
+        ('release:""', [Condition(Column(name="tags[6]"), Op.IN, rhs=[14])]),
+        ("release:myapp@2.0.0", [Condition(Column(name="tags[6]"), Op.IN, rhs=[15])]),
+        (
+            "release:myapp@2.0.0 and environment:production",
+            [
+                And(
+                    [
+                        Condition(Column(name="tags[6]"), Op.IN, rhs=[15]),
+                        Condition(Column(name="tags[2]"), Op.EQ, rhs=5),
+                    ]
+                )
+            ],
+        ),
+        (
+            "release:myapp@2.0.0 environment:production",
+            [
+                Condition(Column(name="tags[6]"), Op.IN, rhs=[15]),
+                Condition(Column(name="tags[2]"), Op.EQ, rhs=5),
+            ],
+        ),
+        (
+            "release:myapp@2.0.0 and environment:production or session.status:healthy",
+            [
+                Or(
+                    [
+                        And(
+                            [
+                                Condition(Column(name="tags[6]"), Op.IN, rhs=[15]),
+                                Condition(Column(name="tags[2]"), Op.EQ, rhs=5),
+                            ]
+                        ),
+                        Condition(
+                            Function(function="ifNull", parameters=[Column(name="tags[8]"), 14]),
+                            Op.EQ,
+                            rhs=4,
+                        ),
+                    ]
+                ),
+            ],
+        ),
+        ('transaction:"/bar/:orgId/"', [Condition(Column(name="tags[16]"), Op.EQ, rhs=17)]),
+    ],
+)
+@mock.patch("sentry.snuba.metrics.indexer")
+def test_parse_query(mock_indexer, query_string, expected):
+    local_indexer = MockIndexer()
+    for s in ("", "myapp@2.0.0", "transaction", "/bar/:orgId/"):
+        local_indexer.record(s)
+    mock_indexer.resolve = local_indexer.resolve
+    parsed = parse_query(query_string)
+    assert parsed == expected
 
 
 @mock.patch("sentry.snuba.metrics.indexer")

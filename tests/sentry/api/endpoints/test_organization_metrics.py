@@ -285,7 +285,6 @@ class OrganizationMetricDataTest(APITestCase):
     @with_feature(FEATURE_FLAG)
     def test_invalid_filter(self):
         for query in [
-            "%w45698u",
             "release:foo or ",
         ]:
 
