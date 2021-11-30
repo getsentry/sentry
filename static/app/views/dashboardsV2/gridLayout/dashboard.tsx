@@ -159,8 +159,13 @@ class Dashboard extends Component<Props> {
   };
 
   handleDeleteWidget = (widget: Widget) => () => {
-    const deleteId = widget.id ?? widget.tempId;
-    const nextList = [...this.props.dashboard.widgets].filter(({id}) => id !== deleteId);
+    let removeDeletedWidget;
+    if (widget.id) {
+      removeDeletedWidget = ({id}: Widget) => id !== widget.id;
+    } else if (widget.tempId) {
+      removeDeletedWidget = ({tempId}) => tempId !== widget.tempId;
+    }
+    const nextList = [...this.props.dashboard.widgets].filter(removeDeletedWidget);
     this.props.onUpdate(nextList);
   };
 

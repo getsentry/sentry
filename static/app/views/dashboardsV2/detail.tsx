@@ -312,7 +312,7 @@ class DashboardDetail extends Component<Props, State> {
       dashboardId,
       layout.map((widgetLayout, index) => ({
         ...widgetLayout,
-        i: generateWidgetId(newWidgets[index], index),
+        i: generateWidgetId(newWidgets[index]),
       }))
     );
   };
