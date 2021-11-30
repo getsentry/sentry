@@ -2,8 +2,10 @@ from dataclasses import dataclass
 from datetime import datetime
 from unittest import mock
 
+import pytest
 import pytz
 from django.utils.datastructures import MultiValueDict
+from freezegun import freeze_time
 from snuba_sdk import (
     Column,
     Condition,
@@ -21,9 +23,11 @@ from snuba_sdk import (
 from sentry.sentry_metrics.indexer.mock import MockIndexer
 from sentry.snuba.metrics import (
     MAX_POINTS,
+    InvalidParams,
     QueryDefinition,
     SnubaQueryBuilder,
     SnubaResultConverter,
+    get_date_range,
     get_intervals,
 )
 
@@ -35,6 +39,71 @@ class PseudoProject:
 
 
 MOCK_NOW = datetime(2021, 8, 25, 23, 59, tzinfo=pytz.utc)
+
+
+@freeze_time("2018-12-11 03:21:00")
+def test_round_range():
+    start, end, interval = get_date_range({"statsPeriod": "2d"})
+    assert start == datetime(2018, 12, 9, 4, tzinfo=pytz.utc)
+    assert end == datetime(2018, 12, 11, 4, tzinfo=pytz.utc)
+
+    start, end, interval = get_date_range({"statsPeriod": "2d", "interval": "1d"})
+    assert start == datetime(2018, 12, 10, tzinfo=pytz.utc)
+    assert end == datetime(2018, 12, 12, 0, 0, tzinfo=pytz.utc)
+
+
+def test_invalid_interval():
+    with pytest.raises(InvalidParams):
+        start, end, interval = get_date_range({"interval": "0d"})
+
+
+def test_round_exact():
+    start, end, interval = get_date_range(
+        {"start": "2021-01-12T04:06:16", "end": "2021-01-17T08:26:13", "interval": "1d"},
+    )
+    assert start == datetime(2021, 1, 12, tzinfo=pytz.utc)
+    assert end == datetime(2021, 1, 18, tzinfo=pytz.utc)
+
+
+def test_exclusive_end():
+    start, end, interval = get_date_range(
+        {"start": "2021-02-24T00:00:00", "end": "2021-02-25T00:00:00", "interval": "1h"},
+    )
+    assert start == datetime(2021, 2, 24, tzinfo=pytz.utc)
+    assert end == datetime(2021, 2, 25, 0, tzinfo=pytz.utc)
+
+
+@freeze_time("2021-03-05T11:14:17.105Z")
+def test_interval_restrictions():
+    # making sure intervals are cleanly divisible
+    with pytest.raises(
+        InvalidParams, match="The interval should divide one day without a remainder."
+    ):
+        get_date_range({"statsPeriod": "6h", "interval": "59m"})
+
+    with pytest.raises(
+        InvalidParams, match="The interval should divide one day without a remainder."
+    ):
+        get_date_range({"statsPeriod": "4d", "interval": "5h"})
+
+    with pytest.raises(
+        InvalidParams,
+        match="The interval has to be a multiple of the minimum interval of ten seconds.",
+    ):
+        get_date_range({"statsPeriod": "1h", "interval": "9s"})
+
+    with pytest.raises(
+        InvalidParams, match="Your interval and date range would create too many results."
+    ):
+        get_date_range({"statsPeriod": "90d", "interval": "10s"})
+
+
+@freeze_time("2020-12-18T11:14:17.105Z")
+def test_timestamps():
+    start, end, interval = get_date_range({"statsPeriod": "1d", "interval": "12h"})
+    assert start == datetime(2020, 12, 17, 12, tzinfo=pytz.utc)
+    assert end == datetime(2020, 12, 18, 12, tzinfo=pytz.utc)
+    assert interval == 12 * 60 * 60
 
 
 @mock.patch("sentry.snuba.metrics.indexer")
