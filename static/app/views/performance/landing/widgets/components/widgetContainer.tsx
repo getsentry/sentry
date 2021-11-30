@@ -114,8 +114,11 @@ const _WidgetContainer = (props: Props) => {
     ),
   };
 
-  if (isMetricsData && widgetProps.title !== t('Worst LCP Web Vitals')) {
-    return <h1>todo</h1>;
+  if (
+    isMetricsData &&
+    ![GenericPerformanceWidgetDataType.vitals].includes(widgetProps.dataType)
+  ) {
+    return <h3>{t('todo')}</h3>;
   }
 
   const passedProps = pick(props, [
