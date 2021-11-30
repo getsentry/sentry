@@ -34,7 +34,7 @@ import {DataSet} from 'sentry/views/dashboardsV2/widget/utils';
 import SortableWidget from './sortableWidget';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';
-const SAVED_WIDGET_PREFIX = 'grid-item';
+const WIDGET_PREFIX = 'grid-item';
 const NUM_COLS = 6;
 const ROW_HEIGHT = 120;
 const WIDGET_MARGINS: [number, number] = [16, 16];
@@ -158,9 +158,9 @@ class Dashboard extends Component<Props> {
     this.props.onUpdate(nextList);
   };
 
-  handleDeleteWidget = (index: number) => () => {
-    const nextList = [...this.props.dashboard.widgets];
-    nextList.splice(index, 1);
+  handleDeleteWidget = (widget: Widget) => () => {
+    const deleteId = widget.id ?? widget.tempId;
+    const nextList = [...this.props.dashboard.widgets].filter(({id}) => id !== deleteId);
     this.props.onUpdate(nextList);
   };
 
@@ -230,7 +230,7 @@ class Dashboard extends Component<Props> {
           widget={widget}
           dragId={dragId}
           isEditing={isEditing}
-          onDelete={this.handleDeleteWidget(index)}
+          onDelete={this.handleDeleteWidget(widget)}
           onEdit={this.handleEditWidget(widget, index)}
         />
       </GridItem>
@@ -284,17 +284,12 @@ const GridItem = styled('div')`
   }
 `;
 
-function generateWidgetId(widget: Widget) {
-  if (widget.id) {
-    return `${SAVED_WIDGET_PREFIX}-${widget.id}`;
-  }
-  if (widget.tempId) {
-    return widget.tempId;
+export function generateWidgetId(widget: Widget) {
+  if (widget.id || widget.tempId) {
+    return `${WIDGET_PREFIX}-${widget.id ?? widget.tempId}`;
   }
 
-  // TODO(nar): Shouldn't be prefixed with index, but using it because of
-  // saving to local storage util
-  return `index-${shortid.generate()}`;
+  return shortid.generate();
 }
 
 /**

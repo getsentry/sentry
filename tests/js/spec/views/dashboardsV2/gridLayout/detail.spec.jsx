@@ -186,7 +186,7 @@ describe('Dashboards > Detail', function () {
   });
 
   describe('custom dashboards', function () {
-    let wrapper, initialData, widgets, mockPut;
+    let wrapper, initialData, widgets, mockVisit, mockPut;
 
     beforeEach(function () {
       initialData = initializeOrg({organization});
@@ -222,8 +222,7 @@ describe('Dashboards > Detail', function () {
           }
         ),
       ];
-      // TODO(nar): Assign to mockVisit when restoring 'can remove widgets' test
-      MockApiClient.addMockResponse({
+      mockVisit = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/visit/',
         method: 'POST',
         body: [],
@@ -285,61 +284,60 @@ describe('Dashboards > Detail', function () {
       MockApiClient.clearMockResponses();
     });
 
-    // TODO(nar): Fix in deletion PR
-    // it('can remove widgets', async function () {
-    //   const updateMock = MockApiClient.addMockResponse({
-    //     url: '/organizations/org-slug/dashboards/1/',
-    //     method: 'PUT',
-    //     body: {widgets: [widgets[0]]},
-    //   });
-    //   wrapper = mountWithTheme(
-    //     <ViewEditDashboard
-    //       organization={initialData.organization}
-    //       params={{orgId: 'org-slug', dashboardId: '1'}}
-    //       router={initialData.router}
-    //       location={initialData.router.location}
-    //     />,
-    //     initialData.routerContext
-    //   );
-    //   await tick();
-    //   wrapper.update();
+    it('can remove widgets', async function () {
+      const updateMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        method: 'PUT',
+        body: {widgets: [widgets[0]]},
+      });
+      wrapper = mountWithTheme(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        initialData.routerContext
+      );
+      await tick();
+      wrapper.update();
 
-    //   expect(mockVisit).toHaveBeenCalledTimes(1);
+      expect(mockVisit).toHaveBeenCalledTimes(1);
 
-    //   // Enter edit mode.
-    //   wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
+      // Enter edit mode.
+      wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
 
-    //   // Remove the second and third widgets
-    //   wrapper
-    //     .find('WidgetCard')
-    //     .at(1)
-    //     .find('IconClick[data-test-id="widget-delete"]')
-    //     .simulate('click');
+      // Remove the second and third widgets
+      wrapper
+        .find('WidgetCard')
+        .at(1)
+        .find('IconClick[data-test-id="widget-delete"]')
+        .simulate('click');
 
-    //   wrapper
-    //     .find('WidgetCard')
-    //     .at(1)
-    //     .find('IconClick[data-test-id="widget-delete"]')
-    //     .simulate('click');
+      wrapper
+        .find('WidgetCard')
+        .at(1)
+        .find('IconClick[data-test-id="widget-delete"]')
+        .simulate('click');
 
-    //   // Save changes
-    //   wrapper.find('Controls Button[data-test-id="dashboard-commit"]').simulate('click');
-    //   await tick();
+      // Save changes
+      wrapper.find('Controls Button[data-test-id="dashboard-commit"]').simulate('click');
+      await tick();
 
-    //   expect(updateMock).toHaveBeenCalled();
-    //   expect(updateMock).toHaveBeenCalledWith(
-    //     '/organizations/org-slug/dashboards/1/',
-    //     expect.objectContaining({
-    //       data: expect.objectContaining({
-    //         title: 'Custom Errors',
-    //         widgets: [widgets[0]],
-    //       }),
-    //     })
-    //   );
+      expect(updateMock).toHaveBeenCalled();
+      expect(updateMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/dashboards/1/',
+        expect.objectContaining({
+          data: expect.objectContaining({
+            title: 'Custom Errors',
+            widgets: [widgets[0]],
+          }),
+        })
+      );
 
-    //   // Visit should not be called again on dashboard update
-    //   expect(mockVisit).toHaveBeenCalledTimes(1);
-    // });
+      // Visit should not be called again on dashboard update
+      expect(mockVisit).toHaveBeenCalledTimes(1);
+    });
 
     it('can enter edit mode for widgets', async function () {
       wrapper = mountWithTheme(
