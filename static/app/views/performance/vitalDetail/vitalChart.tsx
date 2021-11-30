@@ -108,7 +108,7 @@ function VitalChart({
   const markLines = [
     {
       seriesName: 'Thresholds',
-      type: 'line',
+      type: 'line' as const,
       data: [],
       markLine: MarkLine({
         silent: true,
@@ -131,7 +131,7 @@ function VitalChart({
     },
     {
       seriesName: 'Thresholds',
-      type: 'line',
+      type: 'line' as const,
       data: [],
       markLine: MarkLine({
         silent: true,
@@ -343,16 +343,9 @@ function __VitalChart(props: _VitalChartProps) {
       },
     },
     xAxis: {
-      axisLine: {
-        show: false,
-      },
-      axisTick: {
-        show: false,
-      },
-      splitLine: {
-        show: false,
-      },
+      show: false,
     },
+    xAxes: undefined,
     yAxis: {
       axisLabel: {
         color: theme.chartLabel,

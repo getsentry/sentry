@@ -6,9 +6,7 @@ import {Client} from 'sentry/api';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {Organization, Project, Tag} from 'sentry/types';
-
-import {MetricTagValue} from './types';
+import {MetricTagValue, Organization, Project, Tag} from 'sentry/types';
 
 const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   `^${NEGATION_OPERATOR}|\\${SEARCH_WILDCARD}`,

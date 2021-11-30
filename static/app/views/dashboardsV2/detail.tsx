@@ -3,7 +3,6 @@ import type {Layout as RGLLayout} from 'react-grid-layout';
 import {browserHistory, PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
-import partial from 'lodash/partial';
 
 import {
   createDashboard,
@@ -29,12 +28,8 @@ import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
-import GridLayoutDashboard from './gridLayout/dashboard';
-import {
-  getDashboardLayout,
-  reassignLayoutId,
-  saveDashboardLayout,
-} from './gridLayout/utils';
+import GridLayoutDashboard, {generateWidgetId} from './gridLayout/dashboard';
+import {getDashboardLayout, saveDashboardLayout} from './gridLayout/utils';
 import Controls from './controls';
 import DnDKitDashboard from './dashboard';
 import {DEFAULT_STATS_PERIOD, EMPTY_DASHBOARD} from './data';
@@ -303,10 +298,23 @@ class DashboardDetail extends Component<Props, State> {
     });
   };
 
+  /**
+   * Saves a dashboard layout where the layout keys are replaced with the IDs of new widgets.
+   */
   saveLayoutWithNewWidgets = (organizationId, dashboardId, newWidgets) => {
     const {layout} = this.state;
-    const getLayoutWithNewId = partial(reassignLayoutId, newWidgets);
-    saveDashboardLayout(organizationId, dashboardId, layout.map(getLayoutWithNewId));
+    if (layout.length !== newWidgets.length) {
+      throw new Error('Expected layouts and widgets to be the same length');
+    }
+
+    saveDashboardLayout(
+      organizationId,
+      dashboardId,
+      layout.map((widgetLayout, index) => ({
+        ...widgetLayout,
+        i: generateWidgetId(newWidgets[index], index),
+      }))
+    );
   };
 
   onCommit = () => {

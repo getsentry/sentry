@@ -5,7 +5,6 @@ from django.conf import settings
 from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 
-from sentry import features
 from sentry.db.models import (
     BaseManager,
     BoundedPositiveIntegerField,
@@ -126,10 +125,6 @@ class GroupSubscriptionManager(BaseManager):  # type: ignore
             notification_settings, all_possible_users
         )
 
-        should_use_slack_automatic = features.has(
-            "organizations:notification-slack-automatic", group.organization
-        )
-
         result: MutableMapping[ExternalProviders, MutableMapping["User", int]] = defaultdict(dict)
         for user in all_possible_users:
             subscription_option = subscriptions_by_user_id.get(user.id)
@@ -137,7 +132,6 @@ class GroupSubscriptionManager(BaseManager):  # type: ignore
                 user,
                 subscription_option,
                 notification_settings_by_recipient,
-                should_use_slack_automatic=should_use_slack_automatic,
             )
             for provider in providers:
                 result[provider][user] = (

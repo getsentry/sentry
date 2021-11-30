@@ -390,8 +390,8 @@ export function getTermHelp(
 }
 
 function generateGenericPerformanceEventView(
-  _organization: Organization,
-  location: Location
+  location: Location,
+  isMetricsData: boolean
 ): EventView {
   const {query} = location;
 
@@ -432,7 +432,7 @@ function generateGenericPerformanceEventView(
   const conditions = new MutableSearch(searchQuery);
 
   // This is not an override condition since we want the duration to appear in the search bar as a default.
-  if (!conditions.hasFilter('transaction.duration')) {
+  if (!conditions.hasFilter('transaction.duration') && !isMetricsData) {
     conditions.setFilterValues('transaction.duration', ['<15m']);
   }
 
@@ -455,8 +455,8 @@ function generateGenericPerformanceEventView(
 }
 
 function generateBackendPerformanceEventView(
-  _organization: Organization,
-  location: Location
+  location: Location,
+  isMetricsData: boolean
 ): EventView {
   const {query} = location;
 
@@ -499,7 +499,7 @@ function generateBackendPerformanceEventView(
   const conditions = new MutableSearch(searchQuery);
 
   // This is not an override condition since we want the duration to appear in the search bar as a default.
-  if (!conditions.hasFilter('transaction.duration')) {
+  if (!conditions.hasFilter('transaction.duration') && !isMetricsData) {
     conditions.setFilterValues('transaction.duration', ['<15m']);
   }
 
@@ -522,10 +522,10 @@ function generateBackendPerformanceEventView(
 }
 
 function generateMobilePerformanceEventView(
-  _organization: Organization,
   location: Location,
   projects: Project[],
-  genericEventView: EventView
+  genericEventView: EventView,
+  isMetricsData: boolean
 ): EventView {
   const {query} = location;
 
@@ -584,7 +584,7 @@ function generateMobilePerformanceEventView(
   const conditions = new MutableSearch(searchQuery);
 
   // This is not an override condition since we want the duration to appear in the search bar as a default.
-  if (!conditions.hasFilter('transaction.duration')) {
+  if (!conditions.hasFilter('transaction.duration') && !isMetricsData) {
     conditions.setFilterValues('transaction.duration', ['<15m']);
   }
 
@@ -607,8 +607,8 @@ function generateMobilePerformanceEventView(
 }
 
 function generateFrontendPageloadPerformanceEventView(
-  _organization: Organization,
-  location: Location
+  location: Location,
+  isMetricsData: boolean
 ): EventView {
   const {query} = location;
 
@@ -649,7 +649,7 @@ function generateFrontendPageloadPerformanceEventView(
   const conditions = new MutableSearch(searchQuery);
 
   // This is not an override condition since we want the duration to appear in the search bar as a default.
-  if (!conditions.hasFilter('transaction.duration')) {
+  if (!conditions.hasFilter('transaction.duration') && !isMetricsData) {
     conditions.setFilterValues('transaction.duration', ['<15m']);
   }
 
@@ -674,8 +674,8 @@ function generateFrontendPageloadPerformanceEventView(
 }
 
 function generateFrontendOtherPerformanceEventView(
-  _organization: Organization,
-  location: Location
+  location: Location,
+  isMetricsData: boolean
 ): EventView {
   const {query} = location;
 
@@ -716,7 +716,7 @@ function generateFrontendOtherPerformanceEventView(
   const conditions = new MutableSearch(searchQuery);
 
   // This is not an override condition since we want the duration to appear in the search bar as a default.
-  if (!conditions.hasFilter('transaction.duration')) {
+  if (!conditions.hasFilter('transaction.duration') && !isMetricsData) {
     conditions.setFilterValues('transaction.duration', ['<15m']);
   }
 
@@ -741,12 +741,12 @@ function generateFrontendOtherPerformanceEventView(
 }
 
 export function generatePerformanceEventView(
-  organization,
-  location,
-  projects,
-  isTrends = false
+  location: Location,
+  projects: Project[],
+  {isTrends = false, isMetricsData = false} = {}
 ) {
-  const eventView = generateGenericPerformanceEventView(organization, location);
+  const eventView = generateGenericPerformanceEventView(location, isMetricsData);
+
   if (isTrends) {
     return eventView;
   }
@@ -754,17 +754,17 @@ export function generatePerformanceEventView(
   const display = getCurrentLandingDisplay(location, projects, eventView);
   switch (display?.field) {
     case LandingDisplayField.FRONTEND_PAGELOAD:
-      return generateFrontendPageloadPerformanceEventView(organization, location);
+      return generateFrontendPageloadPerformanceEventView(location, isMetricsData);
     case LandingDisplayField.FRONTEND_OTHER:
-      return generateFrontendOtherPerformanceEventView(organization, location);
+      return generateFrontendOtherPerformanceEventView(location, isMetricsData);
     case LandingDisplayField.BACKEND:
-      return generateBackendPerformanceEventView(organization, location);
+      return generateBackendPerformanceEventView(location, isMetricsData);
     case LandingDisplayField.MOBILE:
       return generateMobilePerformanceEventView(
-        organization,
         location,
         projects,
-        eventView
+        eventView,
+        isMetricsData
       );
     default:
       return eventView;

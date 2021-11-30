@@ -71,14 +71,14 @@ export const TripleChartRow = (props: ChartRowProps) => <ChartRow {...props} />;
 
 TripleChartRow.defaultProps = {
   chartCount: 3,
-  chartHeight: 120,
+  chartHeight: 100,
 };
 
 export const DoubleChartRow = (props: ChartRowProps) => <ChartRow {...props} />;
 
 DoubleChartRow.defaultProps = {
   chartCount: 2,
-  chartHeight: 220,
+  chartHeight: 180,
 };
 
 const StyledRow = styled(PerformanceLayoutBodyRow)`
