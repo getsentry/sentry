@@ -21,7 +21,6 @@ from typing import (
     Union,
 )
 
-from parsimonious.grammar import Grammar
 from snuba_sdk import Column, Condition, Entity, Function, Granularity, Limit, Offset, Op, Query
 from snuba_sdk.conditions import BooleanCondition
 from snuba_sdk.orderby import Direction, OrderBy
@@ -66,46 +65,6 @@ TS_COL_QUERY = "timestamp"
 TS_COL_GROUP = "bucketed_time"
 
 
-#: Sub-grammar of event search, allowing to filter by metric tags
-#: Examples:
-#:     tag1:value1 tag2:value2
-#:     tag1:value2 OR (tag2:value2 AND !tag3:value3)
-#:     tag1 in (value1, "some value 2")
-TAG_FILTER_GRAMMAR = Grammar(
-    r"""
-search_terms       = search_term*
-search_term = filter
-#search_term        = (boolean_operation / paren_group / filter) spaces
-boolean_operation  = search_term boolean_operator search_term
-paren_group        = open_paren spaces search_term+ closed_paren
-
-boolean_operator   = or_operator / and_operator
-or_operator        = ~r"OR"i  &end_value
-and_operator       = ~r"AND"i &end_value
-
-filter = negation? key sep free_text
-
-key                = ~r"[a-zA-Z0-9_.-]+"
-
-free_text          = free_text_quoted / free_text_unquoted
-free_text_unquoted = (!filter !boolean_operator (free_parens / ~r"[^()\n ]+") spaces)+
-free_text_quoted   = quoted_value
-free_parens        = open_paren free_text? closed_paren
-
-quoted_value           = '"' ('\\"' / ~r'[^"]')* '"'
-
-quote              = "\""
-sep                = ":"
-open_paren         = "("
-closed_paren       = ")"
-spaces             = " "*
-negation           = "!"
-
-end_value          = ~r"[\t\n )]|$"
-    """
-)
-
-
 def reverse_resolve(index: int) -> str:
     resolved = indexer.reverse_resolve(index)
     # If we cannot find a string for an integer index, that's a bug:
@@ -131,23 +90,6 @@ def parse_field(field: str) -> Tuple[str, str]:
             )
 
         return operation, metric_name
-
-
-def verify_tag_name(name: str) -> str:
-
-    if not TAG_REGEX.match(name):
-        raise InvalidParams(f"Invalid tag name: '{name}'")
-
-    return name
-
-
-def parse_tag(tag_string: str) -> Tuple[str, str]:
-    try:
-        name, value = tag_string.split(":")
-    except ValueError:
-        raise InvalidParams(f"Expected something like 'foo:\"bar\"' for tag, got '{tag_string}'")
-
-    return (verify_tag_name(name), value.strip('"'))
 
 
 def _resolve_tags(input_: Any) -> Any:
@@ -179,11 +121,11 @@ def _resolve_tags(input_: Any) -> Any:
 def parse_query(query_string: str) -> Sequence[Condition]:
     """Parse given filter query into a list of snuba conditions"""
     # HACK: Parse a discover query, validate / transform afterwards.
-    # We
+    # We will want to write our own grammar + interpreter for this later.
     query_filter = QueryFilter(
-        Dataset.Discover,  # HACK
+        Dataset.Discover,
         params={
-            "project_id": 1,  # HACK
+            "project_id": 0,
         },
     )
     where, _ = query_filter.resolve_conditions(query_string, use_aggregate_conditions=True)
