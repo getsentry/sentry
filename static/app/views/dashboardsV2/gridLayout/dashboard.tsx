@@ -33,7 +33,7 @@ import {DataSet} from 'sentry/views/dashboardsV2/widget/utils';
 import SortableWidget from './sortableWidget';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';
-export const SAVED_WIDGET_PREFIX = 'grid-item';
+const SAVED_WIDGET_PREFIX = 'grid-item';
 const NUM_COLS = 6;
 const ROW_HEIGHT = 120;
 const WIDGET_MARGINS: [number, number] = [16, 16];
