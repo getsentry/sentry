@@ -21,6 +21,8 @@ from typing import (
     Union,
 )
 
+from parsimonious import ParseError
+from parsimonious.grammar import Grammar
 from snuba_sdk import (
     And,
     Column,
@@ -37,7 +39,9 @@ from snuba_sdk import (
 from snuba_sdk.conditions import BooleanCondition
 from snuba_sdk.orderby import Direction, OrderBy
 
+from sentry.api.event_search import parse_search_query
 from sentry.models import Project
+from sentry.search.events.filter import get_filter
 from sentry.sentry_metrics import indexer
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.sessions_v2 import (  # TODO: unite metrics and sessions_v2
@@ -74,6 +78,46 @@ MAX_POINTS = 10000
 
 TS_COL_QUERY = "timestamp"
 TS_COL_GROUP = "bucketed_time"
+
+
+#: Sub-grammar of event search, allowing to filter by metric tags
+#: Examples:
+#:     tag1:value1 tag2:value2
+#:     tag1:value2 OR (tag2:value2 AND !tag3:value3)
+#:     tag1 in (value1, "some value 2")
+TAG_FILTER_GRAMMAR = Grammar(
+    r"""
+search_terms       = search_term*
+search_term = filter
+#search_term        = (boolean_operation / paren_group / filter) spaces
+boolean_operation  = search_term boolean_operator search_term
+paren_group        = open_paren spaces search_term+ closed_paren
+
+boolean_operator   = or_operator / and_operator
+or_operator        = ~r"OR"i  &end_value
+and_operator       = ~r"AND"i &end_value
+
+filter = negation? key sep free_text
+
+key                = ~r"[a-zA-Z0-9_.-]+"
+
+free_text          = free_text_quoted / free_text_unquoted
+free_text_unquoted = (!filter !boolean_operator (free_parens / ~r"[^()\n ]+") spaces)+
+free_text_quoted   = quoted_value
+free_parens        = open_paren free_text? closed_paren
+
+quoted_value           = '"' ('\\"' / ~r'[^"]')* '"'
+
+quote              = "\""
+sep                = ":"
+open_paren         = "("
+closed_paren       = ")"
+spaces             = " "*
+negation           = "!"
+
+end_value          = ~r"[\t\n )]|$"
+    """
+)
 
 
 def reverse_resolve(index: int) -> str:
@@ -121,12 +165,12 @@ def parse_tag(tag_string: str) -> Tuple[str, str]:
 
 
 def parse_query(query_string: str) -> dict:
-    return {
-        "or": [
-            {"and": [parse_tag(and_part) for and_part in or_part.split(" and ")]}
-            for or_part in query_string.split(" or ")
-        ]
-    }
+    parsed = TAG_FILTER_GRAMMAR.parse(query_string)
+
+    import ipdb
+
+    ipdb.set_trace()
+    return {}
 
 
 class QueryDefinition:
@@ -371,7 +415,7 @@ _MEASUREMENT_TAGS = dict(
     _BASE_TAGS,
     **{
         "measurement_rating": ["good", "meh", "poor"],
-        "transaction": ["/foo/:ordId/", "/bar/:ordId/"],
+        "transaction": ["/foo/:orgId/", "/bar/:orgId/"],
     },
 )
 

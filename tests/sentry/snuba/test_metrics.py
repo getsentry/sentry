@@ -25,6 +25,7 @@ from sentry.snuba.metrics import (
     SnubaQueryBuilder,
     SnubaResultConverter,
     get_intervals,
+    parse_query,
 )
 
 
@@ -35,6 +36,18 @@ class PseudoProject:
 
 
 MOCK_NOW = datetime(2021, 8, 25, 23, 59, tzinfo=pytz.utc)
+
+
+def test_parse_query():
+    for query in [
+        'release:""',  # Empty string is OK
+        "release:myapp@2.0.0",
+        "release:myapp@2.0.0 and environment:production",
+        "release:myapp@2.0.0 and environment:production or session.status:healthy",
+        "release:myapp@2.0.0 and environment:production or session.status:healthy",
+        'transaction:"/bar/:orgId/"',
+    ]:
+        parse_query(query)  # TODO: Validate results
 
 
 @mock.patch("sentry.snuba.metrics.indexer")

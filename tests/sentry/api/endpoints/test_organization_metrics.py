@@ -300,21 +300,14 @@ class OrganizationMetricDataTest(APITestCase):
 
     @with_feature(FEATURE_FLAG)
     def test_valid_filter(self):
-
-        for query in [
-            "release:",  # Empty string is OK
-            "release:myapp@2.0.0",
-            "release:myapp@2.0.0 and environment:production",
-            "release:myapp@2.0.0 and environment:production or session.status:healthy",
-        ]:
-
-            response = self.get_success_response(
-                self.project.organization.slug,
-                field="sum(session)",
-                groupBy="environment",
-                query=query,
-            )
-            assert response.data.keys() == {"start", "end", "query", "intervals", "groups"}
+        query = "release:myapp@2.0.0"
+        response = self.get_success_response(
+            self.project.organization.slug,
+            field="sum(session)",
+            groupBy="environment",
+            query=query,
+        )
+        assert response.data.keys() == {"start", "end", "query", "intervals", "groups"}
 
     @with_feature(FEATURE_FLAG)
     def test_orderby_unknown(self):
