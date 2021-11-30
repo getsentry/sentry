@@ -27,6 +27,7 @@ from snuba_sdk.conditions import BooleanCondition
 from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry.api.utils import get_date_range_from_params
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Project
 from sentry.search.events.filter import QueryFilter
 from sentry.sentry_metrics import indexer
@@ -125,13 +126,16 @@ def parse_query(query_string: str) -> Sequence[Condition]:
     """Parse given filter query into a list of snuba conditions"""
     # HACK: Parse a sessions query, validate / transform afterwards.
     # We will want to write our own grammar + interpreter for this later.
-    query_filter = QueryFilter(
-        Dataset.Sessions,
-        params={
-            "project_id": 0,
-        },
-    )
-    where, _ = query_filter.resolve_conditions(query_string, use_aggregate_conditions=True)
+    try:
+        query_filter = QueryFilter(
+            Dataset.Sessions,
+            params={
+                "project_id": 0,
+            },
+        )
+        where, _ = query_filter.resolve_conditions(query_string, use_aggregate_conditions=True)
+    except InvalidSearchQuery as e:
+        raise InvalidParams(f"Failed to parse query: {e}")
     where = _resolve_tags(where)
 
     return where
