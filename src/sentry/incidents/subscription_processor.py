@@ -311,7 +311,7 @@ class SubscriptionProcessor:
     def get_aggregation_value(self, subscription_update):
         if self.subscription.snuba_query.dataset == QueryDatasets.SESSIONS.value:
             aggregation_value = self.get_crash_rate_alert_aggregation_value(subscription_update)
-        elif self.subscription.snuba_query.dataset == QueryDatasets.METRICS_COUNTERS.value:
+        elif self.subscription.snuba_query.dataset == QueryDatasets.METRICS.value:
             aggregation_value = self.get_crash_rate_alert_metrics_aggregation_value(
                 subscription_update
             )
@@ -368,7 +368,7 @@ class SubscriptionProcessor:
 
         if (
             len(subscription_update["values"]["data"]) > 1
-            and self.subscription.snuba_query.dataset != QueryDatasets.METRICS_COUNTERS.value
+            and self.subscription.snuba_query.dataset != QueryDatasets.METRICS.value
         ):
             logger.warning(
                 "Subscription returned more than 1 row of data",

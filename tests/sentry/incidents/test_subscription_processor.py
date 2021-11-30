@@ -1646,7 +1646,7 @@ class MetricsCrashRateAlertProcessUpdateTest(
             )
         rule = self.crash_rate_alert_rule
         snuba_query = rule.snuba_query
-        snuba_query.dataset = QueryDatasets.METRICS_COUNTERS.value
+        snuba_query.dataset = QueryDatasets.METRICS.value
         snuba_query.save()
 
     def send_crash_rate_alert_update(self, rule, value, subscription, time_delta=None, count=EMPTY):
