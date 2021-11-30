@@ -1,5 +1,6 @@
 import 'echarts/lib/component/tooltip';
 
+import {useTheme} from '@emotion/react';
 import type {TooltipComponentFormatterCallback, TooltipComponentOption} from 'echarts';
 import moment from 'moment';
 
@@ -201,7 +202,7 @@ function getFormatter({
         seriesParamsOrParam
       );
 
-    const tooltipContent = [
+    return [
       '<div class="tooltip-series">',
       seriesParams
         .filter(getFilter)
@@ -224,8 +225,6 @@ function getFormatter({
       `<div class="tooltip-date">${date}</div>`,
       getTooltipArrow(),
     ].join('');
-
-    return `<div class="tooltip-container">${tooltipContent}</div>`;
   };
 
   return formatter;
@@ -252,6 +251,8 @@ export default function Tooltip({
   indentLabels,
   ...props
 }: Props = {}): TooltipComponentOption {
+  const theme = useTheme();
+
   formatter =
     formatter ||
     getFormatter({
@@ -272,8 +273,10 @@ export default function Tooltip({
   return {
     show: true,
     trigger: 'item',
-    backgroundColor: 'unset',
-    borderWidth: 0,
+    borderWidth: 1,
+    borderColor: `${theme.border}`,
+    backgroundColor: `${theme.backgroundElevated}`,
+    extraCssText: `box-shadow: ${theme.dropShadowHeavy}`,
     transitionDuration: 0,
     padding: 0,
     className: 'tooltip-container',
