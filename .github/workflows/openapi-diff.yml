@@ -1,32 +1,53 @@
 name: openapi-diff
 on:
   pull_request:
-    paths:
-      - 'api-docs/**'
 
 jobs:
   check-diff:
+    name: build api
     runs-on: ubuntu-20.04
+    timeout-minutes: 90
     strategy:
       matrix:
         python-version: [3.8.12]
+
     steps:
-      - name: Checkout getsentry/sentry
-        uses: actions/checkout@v2
-
-      - name: Setup sentry env (python ${{ matrix.python-version }})
-        uses: /.github/actions/setup-sentry
-        with:
-          python-version: ${{ matrix.python-version }}
-          # Note this uses a different cache key than other backend-based workflows because this workflows dependencies are different
-          cache-files-hash: ${{ hashFiles('requirements-pre-commit.txt') }}
-
       - name: Getsentry Token
         id: getsentry
         uses: getsentry/action-github-app-token@v1
         with:
           app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
+
+      - uses: actions/checkout@v2
+        with:
+          # Avoid codecov error message related to SHA resolution:
+          # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
+          fetch-depth: '2'
+
+      # If we make these jobs "required" to merge on GH, then on every PR, GitHub automatically
+      # creates a status check in the "pending" state. This means that the workflow needs to run
+      # for every PR in order to update the status checks.
+      #
+      # In order to optimize CI usage, we want the tests to only run when python files change,
+      # since frontend changes should have no effect on these test suites. We cannot use GH workflow
+      # path filters because entire workflow would be skipped vs skipping individual jobs which
+      # would still allow this status check to pass.
+      - name: Check for python file changes
+        uses: getsentry/paths-filter@v2
+        id: changes
+        with:
+          token: ${{ github.token }}
+          filters: .github/file-filters.yml
+
+      - name: Setup sentry env (python ${{ matrix.python-version }})
+        uses: ./.github/actions/setup-sentry
+        if: steps.changes.outputs.backend == 'true'
+        id: setup
+        with:
+          python-version: ${{ matrix.python-version }}
+          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
+          snuba: true
 
       - name: Checkout getsentry/sentry-api-schema
         uses: actions/checkout@v2
