@@ -248,7 +248,7 @@ describe('getFieldRenderer', function () {
       )
     );
 
-    expect(wrapper.find('Tooltip').props().title).toEqual('sentry user (user@sentry.io)');
+    expect(wrapper.find('Tooltip').props().title).toEqual('Assigned to sentry user');
   });
 
   describe('ops breakdown', () => {
