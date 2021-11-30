@@ -161,7 +161,7 @@ class Dashboard extends Component<Props> {
   handleDeleteWidget = (widget: Widget) => () => {
     let removeDeletedWidget;
     if (widget.id) {
-      removeDeletedWidget = ({id}: Widget) => id !== widget.id;
+      removeDeletedWidget = ({id}) => id !== widget.id;
     } else if (widget.tempId) {
       removeDeletedWidget = ({tempId}) => tempId !== widget.tempId;
     }
