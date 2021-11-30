@@ -194,7 +194,7 @@ class FiltersAndSampling extends AsyncView<Props, State> {
 
   renderBody() {
     const {errorRules, transactionRules} = this.state;
-    const {hasAccess} = this.props;
+    const {hasAccess, organization} = this.props;
     const disabled = !hasAccess;
 
     const hasNotSupportedConditionOperator = [...errorRules, ...transactionRules].some(
@@ -221,15 +221,17 @@ class FiltersAndSampling extends AsyncView<Props, State> {
             }
           )}
         </TextBlock>
-        <RulesPanel
-          rules={errorRules}
-          disabled={disabled}
-          onAddRule={this.handleAddRule('errorRules')}
-          onEditRule={this.handleEditRule}
-          onDeleteRule={this.handleDeleteRule}
-          onUpdateRules={this.handleUpdateRules}
-          isErrorPanel
-        />
+        {organization.features.includes('filters-and-sampling-error-rules') && (
+          <RulesPanel
+            rules={errorRules}
+            disabled={disabled}
+            onAddRule={this.handleAddRule('errorRules')}
+            onEditRule={this.handleEditRule}
+            onDeleteRule={this.handleDeleteRule}
+            onUpdateRules={this.handleUpdateRules}
+            isErrorPanel
+          />
+        )}
         <TextBlock>
           {t('Rules for traces should precede rules for individual transactions.')}
         </TextBlock>
