@@ -1,23 +1,50 @@
 name: openapi
-
 on:
   push:
     branches:
       - master
+      - releases/**
+  pull_request:
 
 jobs:
-  deref_json:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Getsentry Token
-        id: getsentry
-        uses: getsentry/action-github-app-token@v1
-        with:
-          app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
-          private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
+  test:
+    name: backend test
+    runs-on: ubuntu-20.04
+    timeout-minutes: 90
+    strategy:
+      matrix:
+        python-version: [3.8.12]
 
-      - name: Checkout getsentry/sentry
-        uses: actions/checkout@v2
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          # Avoid codecov error message related to SHA resolution:
+          # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
+          fetch-depth: '2'
+
+      # If we make these jobs "required" to merge on GH, then on every PR, GitHub automatically
+      # creates a status check in the "pending" state. This means that the workflow needs to run
+      # for every PR in order to update the status checks.
+      #
+      # In order to optimize CI usage, we want the tests to only run when python files change,
+      # since frontend changes should have no effect on these test suites. We cannot use GH workflow
+      # path filters because entire workflow would be skipped vs skipping individual jobs which
+      # would still allow this status check to pass.
+      - name: Check for python file changes
+        uses: getsentry/paths-filter@v2
+        id: changes
+        with:
+          token: ${{ github.token }}
+          filters: .github/file-filters.yml
+
+      - name: Setup sentry env (python ${{ matrix.python-version }})
+        uses: ./.github/actions/setup-sentry
+        if: steps.changes.outputs.backend == 'true'
+        id: setup
+        with:
+          python-version: ${{ matrix.python-version }}
+          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
+          snuba: true
 
       - name: Checkout getsentry/sentry-api-schema
         uses: actions/checkout@v2
@@ -27,14 +54,8 @@ jobs:
           path: sentry-api-schema
           token: ${{ steps.getsentry.outputs.token }}
 
-      - name: Setup sentry env (python ${{ matrix.python-version }})
-        uses: ./.github/actions/setup-sentry
-        id: setup
-        with:
-          python-version: ${{ matrix.python-version }}
-          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
-
-      - uses: volta-cli/action@v1
+      - name: Install/setup node
+        uses: volta-cli/action@v1
 
       - name: Build OpenAPI Derefed JSON
         run: |
@@ -42,15 +63,15 @@ jobs:
           yarn install --frozen-lockfile
           yarn run build-derefed-docs api-docs/openapi-derefed.json
 
-      - name: Copy artifact into getsentry/sentry-api-schema
-        run: |
-          cp sentry/api-docs/openapi-derefed.json sentry-api-schema
+      # - name: Copy artifact into getsentry/sentry-api-schema
+      #   run: |
+      #     cp sentry/api-docs/openapi-derefed.json sentry-api-schema
 
-      - name: Git Commit & Push
-        uses: stefanzweifel/git-auto-commit-action@v4
-        with:
-          repository: sentry-api-schema
-          branch: main
-          commit_message: Generated
-          commit_user_email: bot@getsentry.com
-          commit_user_name: openapi-getsentry-bot
+      # - name: Git Commit & Push
+      #   uses: stefanzweifel/git-auto-commit-action@v4
+      #   with:
+      #     repository: sentry-api-schema
+      #     branch: main
+      #     commit_message: Generated
+      #     commit_user_email: bot@getsentry.com
+      #     commit_user_name: openapi-getsentry-bot
