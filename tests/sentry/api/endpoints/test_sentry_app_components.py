@@ -1,9 +1,14 @@
 from unittest.mock import call, patch
 
+from sentry.api.serializers.base import serialize
 from sentry.constants import SentryAppInstallationStatus
 from sentry.coreapi import APIError
-from sentry.models.sentryappavatar import get_sentry_app_avatars
+from sentry.models.sentryapp import SentryApp
 from sentry.testutils import APITestCase
+
+
+def get_sentry_app_avatars(sentry_app: SentryApp):
+    return [serialize(avatar) for avatar in sentry_app.avatars.all()]
 
 
 class SentryAppComponentsTest(APITestCase):
@@ -183,7 +188,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
                     "uuid": self.sentry_app2.uuid,
                     "slug": self.sentry_app2.slug,
                     "name": self.sentry_app2.name,
-                    "avatars": get_sentry_app_avatars(sentry_app=self.sentry_app2),
+                    "avatars": get_sentry_app_avatars(self.sentry_app2),
                 },
             }
         ]
