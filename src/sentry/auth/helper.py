@@ -80,6 +80,16 @@ class AuthHelperSessionStore(PipelineSessionStore):
         self.request.session.modified = True
 
 
+def _using_okta_migration_workaround(
+    organization: Organization, user: User, auth_provider: Optional[AuthProvider]
+) -> bool:
+    # XXX(leedongwei): Workaround for migrating Okta instance
+    # TODO: Delete after workaround is not needed
+    has_flag = features.has("organizations:sso-migration", organization, actor=user)
+    has_provider = auth_provider and (auth_provider.provider in ("okta", "saml2"))
+    return has_flag and has_provider
+
+
 Identity = Mapping[str, Any]
 
 
@@ -441,7 +451,13 @@ class AuthIdentityHandler:
                     self._login(acting_user)
                 except self._NotCompletedSecurityChecks:
                     # adding is_account_verified to the check below in order to redirect to 2fa when the user migrates their idp but has 2fa enabled, otherwise it would stop them from linking their sso provider
-                    if acting_user.has_usable_password() or is_account_verified:
+                    if (
+                        acting_user.has_usable_password()
+                        or is_account_verified
+                        or _using_okta_migration_workaround(
+                            self.organization, acting_user, self.auth_provider
+                        )
+                    ):
                         return self._post_login_redirect()
                     else:
                         acting_user = None
@@ -724,10 +740,9 @@ class AuthHelper(Pipeline):
                     auth_identity = None
 
             if not auth_identity:
-                # XXX(leedongwei): Workaround for migrating Okta instance
-                if features.has(
-                    "organizations:sso-migration", self.organization, actor=self.request.user
-                ) and (auth_provider.provider == "okta" or auth_provider.provider == "saml2"):
+                if _using_okta_migration_workaround(
+                    self.organization, self.request.user, auth_provider
+                ):
                     identity["email_verified"] = True
 
                     logger.info(
