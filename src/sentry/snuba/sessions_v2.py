@@ -337,6 +337,9 @@ def get_constrained_date_range(
     if interval > ONE_DAY:
         raise InvalidParams("The interval has to be less than one day.")
 
+    if ONE_DAY % interval != 0:
+        raise InvalidParams("The interval should divide one day without a remainder.")
+
     using_minute_resolution = interval % ONE_HOUR != 0
 
     start, end = get_date_range_from_params(params)
