@@ -6,10 +6,11 @@ import isEqual from 'lodash/isEqual';
 import throttle from 'lodash/throttle';
 
 import Button from 'sentry/components/button';
-import BarChart from 'sentry/components/charts/barChart';
+import BarChart, {BarChartSeries} from 'sentry/components/charts/barChart';
 import BarChartZoom from 'sentry/components/charts/barChartZoom';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import {getTooltipArrow} from 'sentry/components/charts/utils';
 import DiscoverButton from 'sentry/components/discoverButton';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
@@ -421,7 +422,7 @@ class VitalCard extends Component<Props, State> {
     return vitalStateColors[VitalState.GOOD];
   }
 
-  getBaselineSeries() {
+  getBaselineSeries(): BarChartSeries | null {
     const {theme, chartData} = this.props;
     const summary = this.summary;
     if (summary === null || this.state.refPixelRect === null) {
@@ -469,23 +470,19 @@ class VitalCard extends Component<Props, State> {
         color: theme.textColor,
         type: 'solid',
       },
-    });
-
-    // TODO(tonyx): This conflicts with the types declaration of `MarkLine`
-    // if we add it in the constructor. So we opt to add it here so typescript
-    // doesn't complain.
-    (markLine as any).tooltip = {
-      formatter: () => {
-        return [
-          '<div class="tooltip-series tooltip-series-solo">',
-          '<span class="tooltip-label">',
-          `<strong>${t('p75')}</strong>`,
-          '</span>',
-          '</div>',
-          '<div class="tooltip-arrow"></div>',
-        ].join('');
+      tooltip: {
+        formatter: () => {
+          return [
+            '<div class="tooltip-series tooltip-series-solo">',
+            '<span class="tooltip-label">',
+            `<strong>${t('p75')}</strong>`,
+            '</span>',
+            '</div>',
+            getTooltipArrow(),
+          ].join('');
+        },
       },
-    };
+    });
 
     return {
       seriesName: t('p75'),
