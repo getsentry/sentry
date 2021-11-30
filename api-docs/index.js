@@ -1,5 +1,6 @@
 /* global process */
 /* eslint import/no-nodejs-modules:0 */
+/* eslint import/no-unresolved:0 */
 
 const fs = require('fs');
 const path = require('path');

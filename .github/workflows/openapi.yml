@@ -7,7 +7,7 @@ on:
   pull_request:
 
 jobs:
-  test:
+  build_and_deref_json:
     name: build api
     runs-on: ubuntu-20.04
     timeout-minutes: 90
