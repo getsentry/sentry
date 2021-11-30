@@ -1,6 +1,7 @@
 import {Component} from 'react';
 import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
+import type {LineSeriesOption} from 'echarts';
 import {Location} from 'history';
 import compact from 'lodash/compact';
 import pick from 'lodash/pick';
@@ -20,6 +21,7 @@ import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {
   getDiffInMinutes,
+  getTooltipArrow,
   ONE_WEEK,
   truncationFormatter,
 } from 'sentry/components/charts/utils';
@@ -97,6 +99,9 @@ class ReleasesAdoptionChart extends Component<Props> {
         response?.intervals,
         sessionDisplayToField(activeDisplay)
       ),
+      emphasis: {
+        focus: 'series',
+      } as LineSeriesOption['emphasis'],
     }));
   }
 
@@ -259,7 +264,7 @@ class ReleasesAdoptionChart extends Component<Props> {
                                 .join(''),
                               '</div>',
                               `<div class="tooltip-date">${intervalStart} &mdash; ${intervalEnd}</div>`,
-                              `<div class="tooltip-arrow"></div>`,
+                              getTooltipArrow(),
                             ].join('');
                           },
                         }}
