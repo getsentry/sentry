@@ -17,7 +17,7 @@ export function onRenderCallback(
     const now = timestampWithMs();
     const span = transaction.startChild({
       description: `<${id}>`,
-      op: `react.${phase}`,
+      op: `ui.react.${phase}`,
       startTimestamp: now - actualDuration / 1000,
       endTimestamp: now,
     });
