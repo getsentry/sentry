@@ -2,12 +2,12 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {Client} from 'app/api';
-import SelectControl from 'app/components/forms/selectControl';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {Tag, TagValue} from 'app/types';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {Client} from 'sentry/api';
+import SelectControl from 'sentry/components/forms/selectControl';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Tag, TagValue} from 'sentry/types';
 
 import {TagValueLoader} from './types';
 

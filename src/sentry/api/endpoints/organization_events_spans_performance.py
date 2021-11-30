@@ -18,6 +18,7 @@ from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.types import ParamsType
 from sentry.utils.snuba import Dataset, raw_snql_query
 from sentry.utils.time_window import TimeWindow, remove_time_windows, union_time_windows
+from sentry.utils.validators import INVALID_SPAN_ID, is_span_id
 
 
 @dataclasses.dataclass(frozen=True)
@@ -29,6 +30,10 @@ class SpanPerformanceColumn:
 SPAN_PERFORMANCE_COLUMNS: Dict[str, SpanPerformanceColumn] = {
     "count": SpanPerformanceColumn(
         ["count()", "sumArray(spans_exclusive_time)"], ["count()", "sumArray(spans_exclusive_time)"]
+    ),
+    "avgOccurrence": SpanPerformanceColumn(
+        ["equation[0]", "sumArray(spans_exclusive_time)"],
+        ["count()", "sumArray(spans_exclusive_time)"],
     ),
     "sumExclusiveTime": SpanPerformanceColumn(
         ["sumArray(spans_exclusive_time)"], ["sumArray(spans_exclusive_time)"]
@@ -69,6 +74,17 @@ class OrganizationEventsSpansPerformanceEndpoint(OrganizationEventsEndpointBase)
 
         query = request.GET.get("query")
         span_ops = request.GET.getlist("spanOp")
+        span_groups = request.GET.getlist("spanGroup")
+
+        try:
+            per_suspect = int(request.GET.get("perSuspect", 4))
+            if per_suspect < 0 or per_suspect > 10:
+                raise ValueError
+        except ValueError:
+            raise ParseError(detail="perSuspect must be integer between 0 and 10.")
+
+        if span_groups and any(not is_span_id(group) for group in span_groups):
+            raise ParseError(detail=INVALID_SPAN_ID.format("span.group"))
 
         direction, orderby_column = self.get_orderby_column(request)
 
@@ -77,7 +93,9 @@ class OrganizationEventsSpansPerformanceEndpoint(OrganizationEventsEndpointBase)
                 direction + column
                 for column in SPAN_PERFORMANCE_COLUMNS[orderby_column].suspect_op_group_columns
             ]
-            suspects = query_suspect_span_groups(params, query, span_ops, orderbys, limit, offset)
+            suspects = query_suspect_span_groups(
+                params, query, span_ops, span_groups, orderbys, limit, offset
+            )
 
             orderbys = [
                 direction + column
@@ -90,7 +108,7 @@ class OrganizationEventsSpansPerformanceEndpoint(OrganizationEventsEndpointBase)
             suspects_requiring_examples = suspects[: limit - 1]
 
             transaction_ids = query_example_transactions(
-                params, query, orderbys, suspects_requiring_examples
+                params, query, orderbys, suspects_requiring_examples, per_suspect
             )
 
             return [
@@ -181,6 +199,7 @@ class SuspectSpan:
     group: str
     frequency: int
     count: int
+    avg_occurrences: float
     sum_exclusive_time: float
     p50_exclusive_time: float
     p75_exclusive_time: float
@@ -196,6 +215,7 @@ class SuspectSpan:
             "group": self.group.rjust(16, "0"),
             "frequency": self.frequency,
             "count": self.count,
+            "avgOccurrences": self.avg_occurrences,
             "sumExclusiveTime": self.sum_exclusive_time,
             "p50ExclusiveTime": self.p50_exclusive_time,
             "p75ExclusiveTime": self.p75_exclusive_time,
@@ -220,6 +240,7 @@ def query_suspect_span_groups(
     params: ParamsType,
     query: Optional[str],
     span_ops: Optional[List[str]],
+    span_groups: Optional[List[str]],
     order_columns: List[str],
     limit: int,
     offset: int,
@@ -230,17 +251,22 @@ def query_suspect_span_groups(
         "transaction",
         "array_join(spans_op)",
         "array_join(spans_group)",
+        "count()",
         "count_unique(id)",
     ]
 
+    equations: List[str] = ["count() / count_unique(id)"]
+
     for column in SPAN_PERFORMANCE_COLUMNS.values():
         for col in column.suspect_op_group_columns:
-            selected_columns.append(col)
+            if not col.startswith("equation["):
+                selected_columns.append(col)
 
     builder = QueryBuilder(
         dataset=Dataset.Discover,
         params=params,
         selected_columns=selected_columns,
+        equations=equations,
         query=query,
         orderby=order_columns,
         auto_aggregations=True,
@@ -250,16 +276,28 @@ def query_suspect_span_groups(
         functions_acl=["array_join", "sumArray", "percentileArray", "maxArray"],
     )
 
+    extra_conditions = []
+
     if span_ops:
-        builder.add_conditions(
-            [
-                Condition(
-                    builder.resolve_function("array_join(spans_op)"),
-                    Op.IN,
-                    Function("tuple", span_ops),
-                ),
-            ]
+        extra_conditions.append(
+            Condition(
+                builder.resolve_function("array_join(spans_op)"),
+                Op.IN,
+                Function("tuple", span_ops),
+            )
         )
+
+    if span_groups:
+        extra_conditions.append(
+            Condition(
+                builder.resolve_function("array_join(spans_group)"),
+                Op.IN,
+                Function("tuple", span_groups),
+            )
+        )
+
+    if extra_conditions:
+        builder.add_conditions(extra_conditions)
 
     snql_query = builder.get_snql_query()
     results = raw_snql_query(snql_query, "api.organization-events-spans-performance-suspects")
@@ -273,6 +311,7 @@ def query_suspect_span_groups(
             group=suspect["array_join_spans_group"],
             frequency=suspect["count_unique_id"],
             count=suspect["count"],
+            avg_occurrences=suspect["equation[0]"],
             sum_exclusive_time=suspect["sumArray_spans_exclusive_time"],
             p50_exclusive_time=suspect.get("percentileArray_spans_exclusive_time_0_50"),
             p75_exclusive_time=suspect.get("percentileArray_spans_exclusive_time_0_75"),
@@ -291,7 +330,7 @@ def query_example_transactions(
     per_suspect: int = 5,
 ) -> Dict[Tuple[str, str], List[str]]:
     # there aren't any suspects, early return to save an empty query
-    if not suspects:
+    if not suspects or per_suspect == 0:
         return {}
 
     selected_columns: List[str] = [

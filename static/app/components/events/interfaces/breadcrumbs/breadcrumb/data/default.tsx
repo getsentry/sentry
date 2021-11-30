@@ -1,12 +1,13 @@
-import AnnotatedText from 'app/components/events/meta/annotatedText';
-import {getMeta} from 'app/components/events/meta/metaProxy';
-import Highlight from 'app/components/highlight';
-import Link from 'app/components/links/link';
-import {Organization, Project} from 'app/types';
-import {BreadcrumbTypeDefault, BreadcrumbTypeNavigation} from 'app/types/breadcrumbs';
-import {Event} from 'app/types/event';
-import {eventDetailsRoute, generateEventSlug} from 'app/utils/discover/urls';
-import withProjects from 'app/utils/withProjects';
+import AnnotatedText from 'sentry/components/events/meta/annotatedText';
+import {getMeta} from 'sentry/components/events/meta/metaProxy';
+import Highlight from 'sentry/components/highlight';
+import Link from 'sentry/components/links/link';
+import {Organization, Project} from 'sentry/types';
+import {BreadcrumbTypeDefault, BreadcrumbTypeNavigation} from 'sentry/types/breadcrumbs';
+import {Event} from 'sentry/types/event';
+import {generateEventSlug} from 'sentry/utils/discover/urls';
+import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
+import withProjects from 'sentry/utils/withProjects';
 
 import Summary from './summary';
 
@@ -82,7 +83,7 @@ const FormatMessage = withProjects(function FormatMessageInner({
     const projectSlug = maybeProject.slug;
     const eventSlug = generateEventSlug({project: projectSlug, id: message});
 
-    return <Link to={eventDetailsRoute({orgSlug, eventSlug})}>{content}</Link>;
+    return <Link to={getTransactionDetailsUrl(orgSlug, eventSlug)}>{content}</Link>;
   }
 
   return content;

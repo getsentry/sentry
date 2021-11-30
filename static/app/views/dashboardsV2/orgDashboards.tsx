@@ -3,13 +3,15 @@ import {browserHistory} from 'react-router';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
-import {Client} from 'app/api';
-import AsyncComponent from 'app/components/asyncComponent';
-import NotFound from 'app/components/errors/notFound';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import {t} from 'app/locale';
-import {Organization} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {Client} from 'sentry/api';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import NotFound from 'sentry/components/errors/notFound';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {t} from 'sentry/locale';
+import {PageContent} from 'sentry/styles/organization';
+import {Organization} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 
 import {DashboardDetails, DashboardListItem} from './types';
 
@@ -66,7 +68,7 @@ class OrgDashboards extends AsyncComponent<Props, State> {
         eventKey: 'dashboards2.view',
         eventName: 'Dashboards2: View dashboard',
         organization_id: parseInt(this.props.organization.id, 10),
-        dashboard_id: parseInt(params.dashboardId, 10),
+        dashboard_id: params.dashboardId,
       });
     }
 
@@ -95,6 +97,14 @@ class OrgDashboards extends AsyncComponent<Props, State> {
         ...location.query,
       },
     });
+  }
+
+  renderLoading() {
+    return (
+      <PageContent>
+        <LoadingIndicator />
+      </PageContent>
+    );
   }
 
   renderBody() {

@@ -1,4 +1,4 @@
-import BreakdownBars from 'app/components/charts/breakdownBars';
+import BreakdownBars from 'sentry/components/charts/breakdownBars';
 
 export default {
   title: 'Components/Data Visualization/Charts/Breakdown Bars',

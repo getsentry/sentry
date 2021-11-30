@@ -1,9 +1,9 @@
 import * as React from 'react';
 import isEqual from 'lodash/isEqual';
 
-import {Client} from 'app/api';
-import EventView from 'app/utils/discover/eventView';
-import withApi from 'app/utils/withApi';
+import {Client} from 'sentry/api';
+import EventView from 'sentry/utils/discover/eventView';
+import withApi from 'sentry/utils/withApi';
 
 export type BaselineQueryResults = {
   'transaction.duration': number;

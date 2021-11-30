@@ -2,13 +2,13 @@ import {cloneElement, Fragment, MouseEvent, useState} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import List from 'app/components/list';
-import ListItem from 'app/components/list/listItem';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Frame, Group, PlatformType} from 'app/types';
-import {Event} from 'app/types/event';
-import {StacktraceType} from 'app/types/stacktrace';
+import List from 'sentry/components/list';
+import ListItem from 'sentry/components/list/listItem';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Frame, Group, PlatformType} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import {StacktraceType} from 'sentry/types/stacktrace';
 
 import Line from '../../frame/lineV2';
 import {getImageRange, parseAddress, stackTracePlatformIcon} from '../../utils';

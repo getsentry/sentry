@@ -4,16 +4,24 @@ import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
-import * as globalSelection from 'app/actionCreators/globalSelection';
-import OrganizationStore from 'app/stores/organizationStore';
-import ProjectsStore from 'app/stores/projectsStore';
-import TeamStore from 'app/stores/teamStore';
-import {OrganizationContext} from 'app/views/organizationContext';
-import PerformanceContent from 'app/views/performance/content';
-import {DEFAULT_MAX_DURATION} from 'app/views/performance/trends/utils';
-import {vitalAbbreviations} from 'app/views/performance/vitalDetail/utils';
+import * as globalSelection from 'sentry/actionCreators/globalSelection';
+import OrganizationStore from 'sentry/stores/organizationStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import TeamStore from 'sentry/stores/teamStore';
+import {OrganizationContext} from 'sentry/views/organizationContext';
+import PerformanceContent from 'sentry/views/performance/content';
+import {DEFAULT_MAX_DURATION} from 'sentry/views/performance/trends/utils';
+import {vitalAbbreviations} from 'sentry/views/performance/vitalDetail/utils';
 
 const FEATURES = ['transaction-event', 'performance-view'];
+
+function WrappedComponent({organization, location}) {
+  return (
+    <OrganizationContext.Provider value={organization}>
+      <PerformanceContent organization={organization} location={location} />
+    </OrganizationContext.Provider>
+  );
+}
 
 function initializeData(projects, query, features = FEATURES) {
   const organization = TestStubs.Organization({
@@ -262,7 +270,7 @@ describe('Performance > Content', function () {
     const data = initializeData(projects, {});
 
     const wrapper = mountWithTheme(
-      <PerformanceContent
+      <WrappedComponent
         organization={data.organization}
         location={data.router.location}
       />,
@@ -290,7 +298,7 @@ describe('Performance > Content', function () {
     const data = initializeData(projects, {project: [1]});
 
     const wrapper = mountWithTheme(
-      <PerformanceContent
+      <WrappedComponent
         organization={data.organization}
         location={data.router.location}
       />,
@@ -314,7 +322,7 @@ describe('Performance > Content', function () {
     const data = initializeData(projects, {project: ['-1']});
 
     const wrapper = mountWithTheme(
-      <PerformanceContent
+      <WrappedComponent
         organization={data.organization}
         location={data.router.location}
       />,
@@ -330,7 +338,7 @@ describe('Performance > Content', function () {
     const data = initializeData(projects, {project: ['1'], query: 'sentry:yes'});
 
     const wrapper = mountWithTheme(
-      <PerformanceContent
+      <WrappedComponent
         organization={data.organization}
         location={data.router.location}
       />,
@@ -355,7 +363,7 @@ describe('Performance > Content', function () {
   it('Default period for trends does not call updateDateTime', async function () {
     const data = initializeTrendsData({query: 'tag:value'}, false);
     mountWithTheme(
-      <PerformanceContent
+      <WrappedComponent
         organization={data.organization}
         location={data.router.location}
       />,
@@ -372,7 +380,7 @@ describe('Performance > Content', function () {
     });
 
     const wrapper = mountWithTheme(
-      <PerformanceContent
+      <WrappedComponent
         organization={data.organization}
         location={data.router.location}
       />,
@@ -404,7 +412,7 @@ describe('Performance > Content', function () {
     const data = initializeData(projects, {view: undefined});
 
     mountWithTheme(
-      <PerformanceContent
+      <WrappedComponent
         organization={data.organization}
         location={data.router.location}
       />,
@@ -419,7 +427,7 @@ describe('Performance > Content', function () {
     const data = initializeTrendsData({view: undefined}, false);
 
     mountWithTheme(
-      <PerformanceContent
+      <WrappedComponent
         organization={data.organization}
         location={data.router.location}
       />,
@@ -434,7 +442,7 @@ describe('Performance > Content', function () {
     const data = initializeTrendsData({query: 'device.family:Mac'}, false);
 
     const wrapper = mountWithTheme(
-      <PerformanceContent
+      <WrappedComponent
         organization={data.organization}
         location={data.router.location}
       />,
@@ -462,7 +470,7 @@ describe('Performance > Content', function () {
     ]);
 
     const wrapper = mountWithTheme(
-      <PerformanceContent
+      <WrappedComponent
         organization={data.organization}
         location={data.router.location}
       />,
@@ -487,7 +495,7 @@ describe('Performance > Content', function () {
     ]);
 
     const wrapper = mountWithTheme(
-      <PerformanceContent
+      <WrappedComponent
         organization={data.organization}
         location={data.router.location}
       />,
@@ -517,7 +525,7 @@ describe('Performance > Content', function () {
     const data = initializeData(projects, {view: undefined});
 
     const wrapper = mountWithTheme(
-      <PerformanceContent
+      <WrappedComponent
         organization={data.organization}
         location={data.router.location}
       />,
@@ -536,12 +544,10 @@ describe('Performance > Content', function () {
     ]);
 
     const wrapper = mountWithTheme(
-      <OrganizationContext.Provider value={data.organization}>
-        <PerformanceContent
-          organization={data.organization}
-          location={data.router.location}
-        />
-      </OrganizationContext.Provider>,
+      <WrappedComponent
+        organization={data.organization}
+        location={data.router.location}
+      />,
       data.routerContext
     );
 

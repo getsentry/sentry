@@ -1,15 +1,15 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import EventView from 'app/utils/discover/eventView';
-import {SpanOperationBreakdownFilter} from 'app/views/performance/transactionSummary/filter';
-import SummaryContent from 'app/views/performance/transactionSummary/transactionOverview/content';
+import EventView from 'sentry/utils/discover/eventView';
+import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
+import SummaryContent from 'sentry/views/performance/transactionSummary/transactionOverview/content';
 
-function initialize(projects, query, additionalFeatures: string[] = []) {
+function initialize(project, query, additionalFeatures: string[] = []) {
   const features = ['transaction-event', 'performance-view', ...additionalFeatures];
   const organization = TestStubs.Organization({
     features,
-    projects,
+    projects: [project],
   });
   const initialOrgData = {
     organization,
@@ -18,7 +18,7 @@ function initialize(projects, query, additionalFeatures: string[] = []) {
         query: {...query},
       },
     },
-    project: 1,
+    project: parseInt(project.id, 10),
     projects: [],
   };
   const initialData = initializeOrg(initialOrgData);
@@ -81,6 +81,10 @@ describe('Transaction Summary Content', function () {
       body: [],
     });
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-facets-performance/',
+      body: {},
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-has-measurements/',
       body: {measurements: false},
     });
@@ -91,14 +95,14 @@ describe('Transaction Summary Content', function () {
   });
 
   it('Basic Rendering', async function () {
-    const projects = [TestStubs.Project()];
+    const project = TestStubs.Project();
     const {
       organization,
       location,
       eventView,
       spanOperationBreakdownFilter,
       transactionName,
-    } = initialize(projects, {});
+    } = initialize(project, {});
     const routerContext = TestStubs.routerContext([{organization}]);
 
     const wrapper = mountWithTheme(
@@ -106,6 +110,7 @@ describe('Transaction Summary Content', function () {
         location={location}
         organization={organization}
         eventView={eventView}
+        projectId={project.id}
         transactionName={transactionName}
         isLoading={false}
         totalValues={null}
@@ -136,14 +141,14 @@ describe('Transaction Summary Content', function () {
   });
 
   it('Renders with generatePerformanceTransactionEventsView instead when feature flagged', async function () {
-    const projects = [TestStubs.Project()];
+    const project = TestStubs.Project();
     const {
       organization,
       location,
       eventView,
       spanOperationBreakdownFilter,
       transactionName,
-    } = initialize(projects, {}, ['performance-events-page']);
+    } = initialize(project, {}, ['performance-events-page']);
     const routerContext = TestStubs.routerContext([{organization}]);
 
     const wrapper = mountWithTheme(
@@ -151,6 +156,7 @@ describe('Transaction Summary Content', function () {
         location={location}
         organization={organization}
         eventView={eventView}
+        projectId={project.id}
         transactionName={transactionName}
         isLoading={false}
         totalValues={null}
@@ -181,14 +187,14 @@ describe('Transaction Summary Content', function () {
   });
 
   it('Renders TransactionSummaryCharts withoutZerofill when feature flagged', async function () {
-    const projects = [TestStubs.Project()];
+    const project = TestStubs.Project();
     const {
       organization,
       location,
       eventView,
       spanOperationBreakdownFilter,
       transactionName,
-    } = initialize(projects, {}, [
+    } = initialize(project, {}, [
       'performance-events-page',
       'performance-chart-interpolation',
     ]);
@@ -199,6 +205,7 @@ describe('Transaction Summary Content', function () {
         location={location}
         organization={organization}
         eventView={eventView}
+        projectId={project.id}
         transactionName={transactionName}
         isLoading={false}
         totalValues={null}

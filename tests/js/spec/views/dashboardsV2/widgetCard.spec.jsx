@@ -3,10 +3,10 @@ import {browserHistory} from 'react-router';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import * as modal from 'app/actionCreators/modal';
-import {Client} from 'app/api';
-import {t} from 'app/locale';
-import WidgetCard from 'app/views/dashboardsV2/widgetCard';
+import * as modal from 'sentry/actionCreators/modal';
+import {Client} from 'sentry/api';
+import {t} from 'sentry/locale';
+import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
 
 describe('Dashboards > WidgetCard', function () {
   const initialData = initializeOrg({
@@ -175,43 +175,5 @@ describe('Dashboards > WidgetCard', function () {
         }),
       })
     );
-  });
-
-  it('renders a select field for choosing widget size when editing', async function () {
-    const resizeFeatureData = initializeOrg({
-      organization: TestStubs.Organization({
-        features: [
-          'connect-discover-and-dashboards',
-          'dashboards-edit',
-          'discover-basic',
-          'dashboard-widget-resizing',
-        ],
-        projects: [TestStubs.Project()],
-      }),
-    });
-
-    const wrapper = mountWithTheme(
-      <WidgetCard
-        isEditing
-        api={api}
-        organization={resizeFeatureData.organization}
-        widget={multipleQueryWidget}
-        selection={selection}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
-        renderErrorMessage={() => undefined}
-        isSorting={false}
-        currentWidgetDragging={false}
-        showContextMenu
-      >
-        {() => <div data-test-id="child" />}
-      </WidgetCard>,
-      resizeFeatureData.routerContext
-    );
-
-    await tick();
-
-    const sizeSelector = wrapper.find('SizeSelector');
-    expect(sizeSelector.length).toEqual(1);
   });
 });

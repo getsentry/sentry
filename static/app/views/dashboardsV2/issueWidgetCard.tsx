@@ -5,28 +5,34 @@ import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
+import * as qs from 'query-string';
 
-import {Client} from 'app/api';
-import ErrorPanel from 'app/components/charts/errorPanel';
-import SimpleTableChart from 'app/components/charts/simpleTableChart';
-import {HeaderTitle} from 'app/components/charts/styles';
-import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
-import ErrorBoundary from 'app/components/errorBoundary';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {isSelectionEqual} from 'app/components/organizations/globalSelectionHeader/utils';
-import {Panel} from 'app/components/panels';
-import Placeholder from 'app/components/placeholder';
-import {IconWarning} from 'app/icons';
-import {t} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {GlobalSelection, Group, Organization} from 'app/types';
-import {TableDataRow} from 'app/utils/discover/discoverQuery';
-import {ColumnType} from 'app/utils/discover/fields';
-import withApi from 'app/utils/withApi';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import withOrganization from 'app/utils/withOrganization';
+import {Client} from 'sentry/api';
+import ErrorPanel from 'sentry/components/charts/errorPanel';
+import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
+import {HeaderTitle} from 'sentry/components/charts/styles';
+import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import Link from 'sentry/components/links/link';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import MenuItem from 'sentry/components/menuItem';
+import {isSelectionEqual} from 'sentry/components/organizations/globalSelectionHeader/utils';
+import {Panel} from 'sentry/components/panels';
+import Placeholder from 'sentry/components/placeholder';
+import {IconDelete, IconEdit, IconGrabbable, IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {GlobalSelection, Group, Organization} from 'sentry/types';
+import {getUtcDateString} from 'sentry/utils/dates';
+import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import {ColumnType} from 'sentry/utils/discover/fields';
+import withApi from 'sentry/utils/withApi';
+import withGlobalSelection from 'sentry/utils/withGlobalSelection';
+import withOrganization from 'sentry/utils/withOrganization';
 
+import {DRAG_HANDLE_CLASS} from './gridLayout/dashboard';
+import ContextMenu from './contextMenu';
 import IssueWidgetQueries from './issueWidgetQueries';
 import {Widget} from './types';
 import WidgetQueries from './widgetQueries';
@@ -55,6 +61,7 @@ type Props = WithRouterProps & {
   isSorting: boolean;
   currentWidgetDragging: boolean;
   showContextMenu?: boolean;
+  hideToolbar?: boolean;
   draggableProps?: DraggableProps;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
 };
@@ -65,7 +72,8 @@ class IssueWidgetCard extends React.Component<Props> {
       !isEqual(nextProps.widget, this.props.widget) ||
       !isSelectionEqual(nextProps.selection, this.props.selection) ||
       this.props.isEditing !== nextProps.isEditing ||
-      this.props.isSorting !== nextProps.isSorting
+      this.props.isSorting !== nextProps.isSorting ||
+      this.props.hideToolbar !== nextProps.hideToolbar
     ) {
       return true;
     }
@@ -117,6 +125,63 @@ class IssueWidgetCard extends React.Component<Props> {
     );
   }
 
+  renderToolbar() {
+    const {onEdit, onDelete, draggableProps, hideToolbar, isEditing} = this.props;
+
+    if (!isEditing) {
+      return null;
+    }
+
+    return (
+      <ToolbarPanel>
+        <IconContainer style={{visibility: hideToolbar ? 'hidden' : 'visible'}}>
+          <IconClick>
+            <StyledIconGrabbable
+              color="textColor"
+              className={DRAG_HANDLE_CLASS}
+              {...draggableProps?.listeners}
+              {...draggableProps?.attributes}
+            />
+          </IconClick>
+          <IconClick data-test-id="widget-edit" onClick={onEdit}>
+            <IconEdit color="textColor" />
+          </IconClick>
+          <IconClick data-test-id="widget-delete" onClick={onDelete}>
+            <IconDelete color="textColor" />
+          </IconClick>
+        </IconContainer>
+      </ToolbarPanel>
+    );
+  }
+
+  renderContextMenu() {
+    const {widget, selection, organization, showContextMenu} = this.props;
+
+    if (!showContextMenu) {
+      return null;
+    }
+
+    const {start, end, utc, period} = selection.datetime;
+    const datetime =
+      start && end
+        ? {start: getUtcDateString(start), end: getUtcDateString(end), utc}
+        : {statsPeriod: period};
+    const issuesLocation = `/organizations/${organization.slug}/issues/?${qs.stringify({
+      query: widget.queries?.[0]?.conditions,
+      ...datetime,
+    })}`;
+
+    return (
+      <ContextWrapper>
+        <ContextMenu>
+          <Link to={issuesLocation}>
+            <StyledMenuItem>{t('Open in Issues')}</StyledMenuItem>
+          </Link>
+        </ContextMenu>
+      </ContextWrapper>
+    );
+  }
+
   render() {
     const {widget, api, organization, selection, renderErrorMessage} = this.props;
     return (
@@ -126,6 +191,7 @@ class IssueWidgetCard extends React.Component<Props> {
         <StyledPanel isDragging={false}>
           <WidgetHeader>
             <WidgetTitle>{widget.title}</WidgetTitle>
+            {this.renderContextMenu()}
           </WidgetHeader>
           <LazyLoad once height={200}>
             <IssueWidgetQueries
@@ -141,8 +207,8 @@ class IssueWidgetCard extends React.Component<Props> {
                       ? renderErrorMessage(errorMessage)
                       : null}
                     <LoadingScreen loading={loading} />
-                    {tableResults &&
-                      this.tableResultComponent({tableResults, loading, errorMessage})}
+                    {this.tableResultComponent({tableResults, loading, errorMessage})}
+                    {this.renderToolbar()}
                   </React.Fragment>
                 );
               }}
@@ -197,6 +263,8 @@ const StyledPanel = styled(Panel, {
   /* If a panel overflows due to a long title stretch its grid sibling */
   height: 100%;
   min-height: 96px;
+  display: flex;
+  flex-direction: column;
 `;
 
 const WidgetTitle = styled(HeaderTitle)`
@@ -216,4 +284,53 @@ const StyledSimpleTableChart = styled(SimpleTableChart)`
   border-bottom-right-radius: ${p => p.theme.borderRadius};
   font-size: ${p => p.theme.fontSizeMedium};
   box-shadow: none;
+`;
+
+const ToolbarPanel = styled('div')`
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+
+  width: 100%;
+  height: 100%;
+
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
+
+  background-color: ${p => p.theme.overlayBackgroundAlpha};
+  border-radius: ${p => p.theme.borderRadius};
+`;
+
+const IconContainer = styled('div')`
+  display: flex;
+  margin: 10px ${space(2)};
+  touch-action: none;
+`;
+
+const IconClick = styled('div')`
+  padding: ${space(1)};
+
+  &:hover {
+    cursor: pointer;
+  }
+`;
+
+const ContextWrapper = styled('div')`
+  margin-left: ${space(1)};
+`;
+
+const StyledMenuItem = styled(MenuItem)`
+  white-space: nowrap;
+  color: ${p => p.theme.textColor};
+  :hover {
+    color: ${p => p.theme.textColor};
+  }
+`;
+
+const StyledIconGrabbable = styled(IconGrabbable)`
+  &:hover {
+    cursor: grab;
+  }
 `;

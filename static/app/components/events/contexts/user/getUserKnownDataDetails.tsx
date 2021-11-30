@@ -1,9 +1,9 @@
 import * as React from 'react';
 
-import ExternalLink from 'app/components/links/externalLink';
-import {IconMail} from 'app/icons';
-import {t} from 'app/locale';
-import {AvatarUser as UserType} from 'app/types';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {IconMail} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {AvatarUser as UserType} from 'sentry/types';
 
 import {UserKnownDataType} from './types';
 

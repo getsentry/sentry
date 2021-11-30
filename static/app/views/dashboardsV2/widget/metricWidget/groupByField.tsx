@@ -1,16 +1,15 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import CheckboxFancy from 'app/components/checkboxFancy/checkboxFancy';
-import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
-import Highlight from 'app/components/highlight';
-import TextOverflow from 'app/components/textOverflow';
-import {IconChevron, IconClose} from 'app/icons';
-import {t} from 'app/locale';
-import {inputStyles} from 'app/styles/input';
-import space from 'app/styles/space';
-
-import {MetricQuery, MetricTag} from './types';
+import CheckboxFancy from 'sentry/components/checkboxFancy/checkboxFancy';
+import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
+import Highlight from 'sentry/components/highlight';
+import TextOverflow from 'sentry/components/textOverflow';
+import {IconChevron, IconClose} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {inputStyles} from 'sentry/styles/input';
+import space from 'sentry/styles/space';
+import {MetricQuery, MetricTag} from 'sentry/types';
 
 type Props = {
   onChange: (groupBy: MetricQuery['groupBy']) => void;

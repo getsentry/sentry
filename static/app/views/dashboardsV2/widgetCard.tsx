@@ -6,58 +6,36 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
-import {openDashboardWidgetQuerySelectorModal} from 'app/actionCreators/modal';
-import {Client} from 'app/api';
-import Feature from 'app/components/acl/feature';
-import ActionLink from 'app/components/actions/actionLink';
-import ActionButton from 'app/components/actions/button';
-import {HeaderTitle} from 'app/components/charts/styles';
-import DropdownLink from 'app/components/dropdownLink';
-import ErrorBoundary from 'app/components/errorBoundary';
-import FeatureBadge from 'app/components/featureBadge';
-import {SelectField} from 'app/components/forms';
-import MenuItem from 'app/components/menuItem';
-import {isSelectionEqual} from 'app/components/organizations/globalSelectionHeader/utils';
-import {Panel} from 'app/components/panels';
-import Placeholder from 'app/components/placeholder';
-import {IconCopy, IconDelete, IconEdit, IconEllipsis, IconGrabbable} from 'app/icons';
-import {t} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {GlobalSelection, Organization} from 'app/types';
-import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
-import {DisplayModes} from 'app/utils/discover/types';
-import withApi from 'app/utils/withApi';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import withOrganization from 'app/utils/withOrganization';
-import {eventViewFromWidget} from 'app/views/dashboardsV2/utils';
-import {DisplayType} from 'app/views/dashboardsV2/widget/utils';
+import {openDashboardWidgetQuerySelectorModal} from 'sentry/actionCreators/modal';
+import {Client} from 'sentry/api';
+import Feature from 'sentry/components/acl/feature';
+import ActionLink from 'sentry/components/actions/actionLink';
+import ActionButton from 'sentry/components/actions/button';
+import {HeaderTitle} from 'sentry/components/charts/styles';
+import DropdownLink from 'sentry/components/dropdownLink';
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import MenuItem from 'sentry/components/menuItem';
+import {isSelectionEqual} from 'sentry/components/organizations/globalSelectionHeader/utils';
+import {Panel} from 'sentry/components/panels';
+import Placeholder from 'sentry/components/placeholder';
+import {IconCopy, IconDelete, IconEdit, IconEllipsis, IconGrabbable} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {GlobalSelection, Organization} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {DisplayModes} from 'sentry/utils/discover/types';
+import withApi from 'sentry/utils/withApi';
+import withGlobalSelection from 'sentry/utils/withGlobalSelection';
+import withOrganization from 'sentry/utils/withOrganization';
+import {eventViewFromWidget} from 'sentry/views/dashboardsV2/utils';
+import {DisplayType} from 'sentry/views/dashboardsV2/widget/utils';
 
+import {DRAG_HANDLE_CLASS} from './gridLayout/dashboard';
 import ContextMenu from './contextMenu';
 import {Widget} from './types';
 import WidgetCardChart from './widgetCardChart';
 import WidgetQueries from './widgetQueries';
-
-type SizeSelectorProps = {
-  size: string;
-  onSizeChange: (size: string) => void;
-};
-
-const SizeSelector = ({size, onSizeChange}: SizeSelectorProps) => {
-  return (
-    <SelectField
-      name="size"
-      clearable={false}
-      choices={[
-        ['small', 'Small'],
-        ['medium', 'Medium'],
-        ['large', 'Large'],
-      ]}
-      onChange={value => onSizeChange(value as string)}
-      value={size}
-    />
-  );
-};
 
 type DraggableProps = Pick<ReturnType<typeof useSortable>, 'attributes' | 'listeners'>;
 
@@ -146,16 +124,12 @@ class WidgetCard extends React.Component<Props> {
           <IconClick>
             <StyledIconGrabbable
               color="textColor"
+              className={DRAG_HANDLE_CLASS}
               {...draggableProps?.listeners}
               {...draggableProps?.attributes}
             />
           </IconClick>
           <Wrapper>
-            <Feature features={['dashboard-widget-resizing']}>
-              <SizeSelectContainer>
-                <SizeSelector size="medium" onSizeChange={_ => {}} />
-              </SizeSelectContainer>
-            </Feature>
             <StyledActionLink
               type="button"
               onAction={() => onDuplicate()}
@@ -222,12 +196,7 @@ class WidgetCard extends React.Component<Props> {
                 });
               }}
             >
-              <StyledMenuItem key="open-discover">
-                {t('Open in Discover')}
-                {widget.displayType !== DisplayType.TABLE && (
-                  <FeatureBadge type="new" noTooltip />
-                )}
-              </StyledMenuItem>
+              <StyledMenuItem key="open-discover">{t('Open in Discover')}</StyledMenuItem>
             </Link>
           );
         } else {
@@ -343,6 +312,8 @@ const StyledPanel = styled(Panel, {
   /* If a panel overflows due to a long title stretch its grid sibling */
   height: 100%;
   min-height: 96px;
+  display: flex;
+  flex-direction: column;
 `;
 
 const ToolbarPanel = styled('div')`

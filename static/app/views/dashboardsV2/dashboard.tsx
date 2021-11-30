@@ -6,21 +6,30 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 
-import {validateWidget} from 'app/actionCreators/dashboards';
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {openAddDashboardWidgetModal} from 'app/actionCreators/modal';
-import {loadOrganizationTags} from 'app/actionCreators/tags';
-import {Client} from 'app/api';
-import space from 'app/styles/space';
-import {GlobalSelection, Organization} from 'app/types';
-import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
-import withApi from 'app/utils/withApi';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
+import {validateWidget} from 'sentry/actionCreators/dashboards';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {
+  openAddDashboardIssueWidgetModal,
+  openAddDashboardWidgetModal,
+} from 'sentry/actionCreators/modal';
+import {loadOrganizationTags} from 'sentry/actionCreators/tags';
+import {Client} from 'sentry/api';
+import space from 'sentry/styles/space';
+import {GlobalSelection, Organization} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import withApi from 'sentry/utils/withApi';
+import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 
 import {DataSet} from './widget/utils';
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
 import SortableWidget from './sortableWidget';
-import {DashboardDetails, MAX_WIDGETS, Widget} from './types';
+import {
+  DashboardDetails,
+  DashboardWidgetSource,
+  MAX_WIDGETS,
+  Widget,
+  WidgetType,
+} from './types';
 
 type Props = {
   api: Client;
@@ -91,6 +100,7 @@ class Dashboard extends Component<Props> {
       dashboard,
       selection,
       onAddWidget: this.handleAddComplete,
+      source: DashboardWidgetSource.DASHBOARDS,
     });
   };
 
@@ -167,15 +177,22 @@ class Dashboard extends Component<Props> {
     trackAdvancedAnalyticsEvent('dashboards_views.edit_widget_modal.opened', {
       organization,
     });
-
-    openAddDashboardWidgetModal({
+    const modalProps = {
       organization,
-      dashboard,
       widget,
       selection,
       onAddWidget: this.handleAddComplete,
       onUpdateWidget: this.handleUpdateComplete(index),
-    });
+    };
+    if (widget.widgetType === WidgetType.ISSUE) {
+      openAddDashboardIssueWidgetModal(modalProps);
+    } else {
+      openAddDashboardWidgetModal({
+        ...modalProps,
+        dashboard,
+        source: DashboardWidgetSource.DASHBOARDS,
+      });
+    }
   };
 
   handleDuplicateWidget = (widget: Widget, index: number) => () => {

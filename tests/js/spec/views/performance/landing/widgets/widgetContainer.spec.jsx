@@ -1,15 +1,15 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';
 
-import {PerformanceDisplayProvider} from 'app/utils/performance/contexts/performanceDisplayContext';
-import {OrganizationContext} from 'app/views/organizationContext';
-import WidgetContainer from 'app/views/performance/landing/widgets/components/widgetContainer';
-import {PerformanceWidgetSetting} from 'app/views/performance/landing/widgets/widgetDefinitions';
-import {PROJECT_PERFORMANCE_TYPE} from 'app/views/performance/utils';
+import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
+import {OrganizationContext} from 'sentry/views/organizationContext';
+import WidgetContainer from 'sentry/views/performance/landing/widgets/components/widgetContainer';
+import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
+import {PROJECT_PERFORMANCE_TYPE} from 'sentry/views/performance/utils';
 
-const initializeData = () => {
+const initializeData = (query = {}) => {
   const data = _initializeData({
-    query: {statsPeriod: '7d', environment: ['prod'], project: [-42]},
+    query: {statsPeriod: '7d', environment: ['prod'], project: [-42], ...query},
   });
 
   data.eventView.additionalConditions.addFilterValues('transaction.op', ['pageload']);
@@ -22,14 +22,16 @@ const WrappedComponent = ({data, ...rest}) => {
     <PerformanceDisplayProvider value={{performanceType: PROJECT_PERFORMANCE_TYPE.ANY}}>
       <OrganizationContext.Provider value={data.organization}>
         <WidgetContainer
-          {...data}
-          {...rest}
           allowedCharts={[
             PerformanceWidgetSetting.TPM_AREA,
             PerformanceWidgetSetting.FAILURE_RATE_AREA,
             PerformanceWidgetSetting.USER_MISERY_AREA,
+            PerformanceWidgetSetting.DURATION_HISTOGRAM,
           ]}
+          rowChartSettings={[]}
           forceDefaultChartSetting
+          {...data}
+          {...rest}
         />
       </OrganizationContext.Provider>
     </PerformanceDisplayProvider>
@@ -81,6 +83,123 @@ describe('Performance > Widgets > WidgetContainer', function () {
       url: '/organizations/org-slug/events-trends-stats/',
       body: [],
     });
+  });
+
+  it('Check requests when changing widget props', async function () {
+    const data = initializeData();
+
+    const wrapper = mountWithTheme(
+      <WrappedComponent
+        data={data}
+        defaultChartSetting={PerformanceWidgetSetting.TPM_AREA}
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(eventStatsMock).toHaveBeenCalledTimes(1);
+
+    // Change eventView reference
+    wrapper.setProps({
+      eventView: data.eventView.clone(),
+    });
+
+    await tick();
+    wrapper.update();
+
+    expect(eventStatsMock).toHaveBeenCalledTimes(1);
+
+    const modifiedData = initializeData({
+      statsPeriod: '14d',
+    });
+
+    // Change eventView statsperiod
+    wrapper.setProps({
+      eventView: modifiedData.eventView,
+    });
+
+    await tick();
+    wrapper.update();
+
+    expect(eventStatsMock).toHaveBeenCalledTimes(2);
+
+    expect(eventStatsMock).toHaveBeenNthCalledWith(
+      2,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          interval: '1h',
+          partial: '1',
+          query: 'transaction.op:pageload',
+          statsPeriod: '28d',
+          yAxis: 'tpm()',
+        }),
+      })
+    );
+  });
+
+  it('Check requests when changing widget props for GenericDiscoverQuery based widget', async function () {
+    const data = initializeData();
+
+    const wrapper = mountWithTheme(
+      <WrappedComponent
+        data={data}
+        defaultChartSetting={PerformanceWidgetSetting.MOST_IMPROVED}
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(eventsTrendsStats).toHaveBeenCalledTimes(1);
+
+    // Change eventView reference
+    wrapper.setProps({
+      eventView: data.eventView.clone(),
+    });
+
+    await tick();
+    wrapper.update();
+
+    expect(eventsTrendsStats).toHaveBeenCalledTimes(1);
+
+    const modifiedData = initializeData({
+      statsPeriod: '14d',
+    });
+
+    // Change eventView statsperiod
+    wrapper.setProps({
+      eventView: modifiedData.eventView,
+    });
+
+    await tick();
+    wrapper.update();
+
+    expect(eventsTrendsStats).toHaveBeenCalledTimes(2);
+
+    expect(eventsTrendsStats).toHaveBeenNthCalledWith(
+      2,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          cursor: '0:0:1',
+          environment: ['prod'],
+          field: ['transaction', 'project'],
+          interval: undefined,
+          middle: undefined,
+          noPagination: true,
+          per_page: 3,
+          project: ['-42'],
+          query:
+            'transaction.op:pageload tpm():>0.01 count_percentage():>0.25 count_percentage():<4 trend_percentage():>0% confidence():>6',
+          sort: 'trend_percentage()',
+          statsPeriod: '14d',
+          trendFunction: 'avg(transaction.duration)',
+          trendType: 'improved',
+        }),
+      })
+    );
   });
 
   it('TPM Widget', async function () {
@@ -576,10 +695,13 @@ describe('Performance > Widgets > WidgetContainer', function () {
   it('Able to change widget type from menu', async function () {
     const data = initializeData();
 
+    const setRowChartSettings = jest.fn(() => {});
+
     const wrapper = mountWithTheme(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.FAILURE_RATE_AREA}
+        setRowChartSettings={setRowChartSettings}
       />,
       data.routerContext
     );
@@ -590,6 +712,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       'Failure Rate'
     );
     expect(eventStatsMock).toHaveBeenCalledTimes(1);
+    expect(setRowChartSettings).toHaveBeenCalledTimes(0);
 
     wrapper.find('IconEllipsis[data-test-id="context-menu"]').simulate('click');
 
@@ -597,6 +720,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     wrapper.update();
 
     expect(wrapper.find('MenuItem').at(2).text()).toEqual('User Misery');
+
     wrapper.find('MenuItem').at(2).simulate('click');
 
     await tick();
@@ -606,5 +730,43 @@ describe('Performance > Widgets > WidgetContainer', function () {
       'User Misery'
     );
     expect(eventStatsMock).toHaveBeenCalledTimes(2);
+    expect(setRowChartSettings).toHaveBeenCalledTimes(1);
+  });
+
+  it('Chart settings passed from the row are disabled in the menu', async function () {
+    const data = initializeData();
+
+    const setRowChartSettings = jest.fn(() => {});
+
+    const wrapper = mountWithTheme(
+      <WrappedComponent
+        data={data}
+        defaultChartSetting={PerformanceWidgetSetting.FAILURE_RATE_AREA}
+        setRowChartSettings={setRowChartSettings}
+        rowChartSettings={[
+          PerformanceWidgetSetting.FAILURE_RATE_AREA,
+          PerformanceWidgetSetting.USER_MISERY_AREA,
+        ]}
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+      'Failure Rate'
+    );
+
+    wrapper.find('IconEllipsis[data-test-id="context-menu"]').simulate('click');
+
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('MenuItem').at(1).text()).toEqual('Failure Rate');
+    expect(wrapper.find('MenuItem').at(1).props().isActive).toBe(true);
+    expect(wrapper.find('MenuItem').at(1).props().disabled).toBe(false);
+
+    expect(wrapper.find('MenuItem').at(2).text()).toEqual('User Misery');
+    expect(wrapper.find('MenuItem').at(2).props().disabled).toBe(true);
   });
 });

@@ -1,23 +1,24 @@
-import {EChartOption} from 'echarts';
+import type {SeriesOption} from 'echarts';
 import isArray from 'lodash/isArray';
 import max from 'lodash/max';
 
-import XAxis from 'app/components/charts/components/xAxis';
-import AreaSeries from 'app/components/charts/series/areaSeries';
-import BarSeries from 'app/components/charts/series/barSeries';
-import LineSeries from 'app/components/charts/series/lineSeries';
-import MapSeries from 'app/components/charts/series/mapSeries';
-import {lightenHexToRgb} from 'app/components/charts/utils';
-import * as countryCodesMap from 'app/data/countryCodesMap';
-import {t} from 'app/locale';
-import {EventsGeoData, EventsStats} from 'app/types';
-import {lightTheme as theme} from 'app/utils/theme';
+import XAxis from 'sentry/components/charts/components/xAxis';
+import AreaSeries from 'sentry/components/charts/series/areaSeries';
+import BarSeries from 'sentry/components/charts/series/barSeries';
+import LineSeries from 'sentry/components/charts/series/lineSeries';
+import MapSeries from 'sentry/components/charts/series/mapSeries';
+import {lightenHexToRgb} from 'sentry/components/charts/utils';
+import * as countryCodesMap from 'sentry/data/countryCodesMap';
+import {t} from 'sentry/locale';
+import {EventsGeoData, EventsStats} from 'sentry/types';
+import {lightTheme as theme} from 'sentry/utils/theme';
 
 import {slackChartDefaults, slackChartSize, slackGeoChartSize} from './slack';
 import {ChartType, RenderDescriptor} from './types';
 
 const discoverxAxis = XAxis({
   theme,
+  // @ts-expect-error Not sure whats wrong with boundryGap type
   boundaryGap: true,
   splitNumber: 3,
   isGroupedByDate: true,
@@ -361,8 +362,8 @@ discoverCharts.push({
     const color = theme.charts.getColorPalette(stats.length - 2);
     const previousPeriodColor = lightenHexToRgb(color);
 
-    const areaSeries: EChartOption.SeriesLine[] = [];
-    const lineSeries: EChartOption.SeriesLine[] = [];
+    const areaSeries: SeriesOption[] = [];
+    const lineSeries: SeriesOption[] = [];
 
     stats
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))

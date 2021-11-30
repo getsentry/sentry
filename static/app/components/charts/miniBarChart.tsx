@@ -5,11 +5,11 @@ import * as React from 'react';
 import {useTheme} from '@emotion/react';
 import set from 'lodash/set';
 
-import {getFormattedDate} from 'app/utils/dates';
+import {getFormattedDate} from 'sentry/utils/dates';
 
 import BarChart, {BarChartSeries} from './barChart';
 import BaseChart from './baseChart';
-import {truncationFormatter} from './utils';
+import {getTooltipArrow, truncationFormatter} from './utils';
 
 type Marker = {
   name: string;
@@ -142,7 +142,7 @@ function MiniBarChart({
           time,
           '</div>',
           '</div>',
-          '<div class="tooltip-arrow"></div>',
+          getTooltipArrow(),
         ].join('');
       },
     };

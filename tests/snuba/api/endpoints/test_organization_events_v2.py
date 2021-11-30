@@ -4672,3 +4672,34 @@ class OrganizationEventsV2EndpointTestWithSnql(OrganizationEventsV2EndpointTest)
     def setUp(self):
         super().setUp()
         self.features["organizations:discover-use-snql"] = True
+
+    def test_timestamp_different_from_params(self):
+        project = self.create_project()
+        fifteen_days_ago = iso_format(before_now(days=15))
+        fifteen_days_later = iso_format(before_now(days=-15))
+
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": iso_format(before_now(minutes=5)),
+                "fingerprint": ["1123581321"],
+                "user": {"email": "foo@example.com"},
+                "tags": {"language": "C++"},
+            },
+            project_id=project.id,
+        )
+
+        for query_text in [
+            f"timestamp:<{fifteen_days_ago}",
+            f"timestamp:<={fifteen_days_ago}",
+            f"timestamp:>{fifteen_days_later}",
+            f"timestamp:>={fifteen_days_later}",
+        ]:
+            query = {
+                "field": ["count()"],
+                "query": query_text,
+                "statsPeriod": "14d",
+            }
+            response = self.do_request(query)
+
+            assert response.status_code == 400, query_text

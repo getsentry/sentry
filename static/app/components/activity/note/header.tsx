@@ -1,12 +1,12 @@
 import styled from '@emotion/styled';
 
-import ActivityAuthor from 'app/components/activity/author';
-import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
-import Tooltip from 'app/components/tooltip';
-import {t} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
-import {User} from 'app/types';
-import {Theme} from 'app/utils/theme';
+import ActivityAuthor from 'sentry/components/activity/author';
+import LinkWithConfirmation from 'sentry/components/links/linkWithConfirmation';
+import Tooltip from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import {User} from 'sentry/types';
+import {Theme} from 'sentry/utils/theme';
 
 import EditorTools from './editorTools';
 

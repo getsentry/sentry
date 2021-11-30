@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import ConfigStore from 'app/stores/configStore';
-import InstallWizard from 'app/views/admin/installWizard';
+import ConfigStore from 'sentry/stores/configStore';
+import InstallWizard from 'sentry/views/admin/installWizard';
 
 describe('InstallWizard', function () {
   beforeAll(function () {

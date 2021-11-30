@@ -1,9 +1,9 @@
 import Reflux from 'reflux';
 
-import AlertActions from 'app/actions/alertActions';
-import {defined} from 'app/utils';
-import localStorage from 'app/utils/localStorage';
-import {Theme} from 'app/utils/theme';
+import AlertActions from 'sentry/actions/alertActions';
+import {defined} from 'sentry/utils';
+import localStorage from 'sentry/utils/localStorage';
+import {Theme} from 'sentry/utils/theme';
 
 import {CommonStoreInterface} from './types';
 

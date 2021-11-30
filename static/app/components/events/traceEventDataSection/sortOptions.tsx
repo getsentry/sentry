@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
-import {t} from 'app/locale';
-import {SelectValue} from 'app/types';
+import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
+import {t} from 'sentry/locale';
+import {SelectValue} from 'sentry/types';
 
 export enum SortOption {
   RECENT_FIRST = 'recent-first',
@@ -64,16 +64,8 @@ const Wrapper = styled(DropdownControl)`
   button {
     width: 100%;
   }
-  grid-column: 1/-1;
-  grid-row: 2/3;
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    grid-column: 1/2;
-    grid-row: 2/2;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    grid-column: auto;
-    grid-row: auto;
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    grid-column: 1/-1;
   }
 `;

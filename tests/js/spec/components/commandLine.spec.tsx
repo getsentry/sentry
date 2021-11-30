@@ -1,6 +1,6 @@
 import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
-import CommandLine from 'app/components/commandLine';
+import CommandLine from 'sentry/components/commandLine';
 
 describe('CommandLine', () => {
   it('renders', () => {

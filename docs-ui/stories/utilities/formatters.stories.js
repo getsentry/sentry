@@ -1,8 +1,8 @@
-import Count from 'app/components/count';
-import DateTime from 'app/components/dateTime';
-import Duration from 'app/components/duration';
-import FileSize from 'app/components/fileSize';
-import Version from 'app/components/version';
+import Count from 'sentry/components/count';
+import DateTime from 'sentry/components/dateTime';
+import Duration from 'sentry/components/duration';
+import FileSize from 'sentry/components/fileSize';
+import Version from 'sentry/components/version';
 
 export default {
   title: 'Utilities/Text/Formatters',

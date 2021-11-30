@@ -280,7 +280,12 @@ def delete_old_primary_hash(event):
     old_primary_hash = get_path(event.data, "contexts", "reprocessing", "original_primary_hash")
 
     if old_primary_hash is not None and old_primary_hash != event.get_primary_hash():
-        from sentry import eventstream
+        from sentry import eventstream, killswitches
+
+        if killswitches.killswitch_matches_context(
+            "reprocessing2.drop-delete-old-primary-hash", {"project_id": event.project_id}
+        ):
+            return
 
         eventstream.tombstone_events_unsafe(
             event.project_id,

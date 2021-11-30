@@ -3,8 +3,8 @@ import {withRouter, WithRouterProps} from 'react-router';
 import {LocationDescriptor} from 'history';
 import * as qs from 'query-string';
 
-import Link from 'app/components/links/link';
-import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
+import Link from 'sentry/components/links/link';
+import {extractSelectionParameters} from 'sentry/components/organizations/globalSelectionHeader/utils';
 
 type Props = WithRouterProps & {
   /**

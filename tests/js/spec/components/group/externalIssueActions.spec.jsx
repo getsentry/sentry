@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import ExternalIssueActions from 'app/components/group/externalIssueActions';
+import ExternalIssueActions from 'sentry/components/group/externalIssueActions';
 
 describe('ExternalIssueActions', function () {
   const group = TestStubs.Group();
