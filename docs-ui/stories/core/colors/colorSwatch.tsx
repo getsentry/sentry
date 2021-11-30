@@ -1,25 +1,25 @@
 import styled from '@emotion/styled';
-import * as Color from 'color';
+import Color from 'color';
 
 import space from 'sentry/styles/space';
+import {darkColors, lightColors} from 'sentry/utils/theme';
 
 type Props = {
   theme: 'light' | 'dark';
-  colors: [
-    {
-      name: string;
-      darkValue: string;
-      lightValue: string;
-    }
-  ];
+  colors: string[];
 };
 
 const ColorSwatch = ({colors, theme}: Props) => {
   return (
     <Wrap>
       {colors.map(color => {
-        const colorValue = theme === 'light' ? color.lightValue : color.darkValue;
-        let labelColor = 'gray500';
+        /**
+         * Get color name from color key,
+         * e.g. 'gray500' becomes 'gray 500'
+         */
+        const colorName = color.replace(/(\D+)(\d+)/, '$1 $2');
+        const colorValue = theme === 'light' ? lightColors[color] : darkColors[color];
+        let labelColor = 'black';
         /**
          * Use a white label if the color is dark or if
          * the background is dark and the color is semi-transparent
@@ -32,8 +32,8 @@ const ColorSwatch = ({colors, theme}: Props) => {
         }
 
         return (
-          <ColorWrap key={color.name} value={colorValue}>
-            <ColorName color={labelColor}>{color.name}</ColorName>
+          <ColorWrap key={color} value={colorValue}>
+            <ColorName color={labelColor}>{colorName}</ColorName>
             <ColorValue color={labelColor}>{colorValue}</ColorValue>
           </ColorWrap>
         );
@@ -64,6 +64,8 @@ const Label = styled('p')<{color: boolean}>`
 
 const ColorName = styled(Label)`
   font-weight: bold;
+  text-transform: capitalize;
+  opacity: 0.95;
 `;
 
 const ColorValue = styled(Label)`

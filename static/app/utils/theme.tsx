@@ -5,7 +5,7 @@ import color from 'color';
 import CHART_PALETTE from 'sentry/constants/chartPalette';
 import {DataCategory} from 'sentry/types';
 
-const lightColors = {
+export const lightColors = {
   black: '#1D1127',
   white: '#FFFFFF',
 
@@ -50,7 +50,7 @@ const lightColors = {
   pink100: 'rgba(250, 51, 150, 0.1)',
 };
 
-const darkColors = {
+export const darkColors = {
   black: '#1D1127',
   white: '#FFFFFF',
 
