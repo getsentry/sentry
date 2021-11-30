@@ -447,10 +447,11 @@ const SPECIAL_FIELDS: SpecialFields = {
             <ActorAvatar
               actor={assignedTo}
               size={28}
-              tooltip={tct('Assigned to [name]', {
-                name:
-                  assignedTo.type === 'team' ? `#${assignedTo.name}` : assignedTo.name,
-              })}
+              tooltip={t(
+                `Assigned to ${
+                  assignedTo.type === 'team' ? `#${assignedTo.name}` : assignedTo.name
+                }`
+              )}
             />
           ) : (
             <Tooltip isHoverable skipWrapper title={<div>{t('Unassigned')}</div>}>
