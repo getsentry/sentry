@@ -39,8 +39,10 @@ from sentry.incidents.subscription_processor import (
     update_alert_rule_stats,
 )
 from sentry.models import Integration
+from sentry.release_health.metrics import tag_key, tag_value
 from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQueryEventType
 from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.cases import SessionMetricsTestCase
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.utils import json
 from sentry.utils.dates import to_timestamp
@@ -49,9 +51,8 @@ EMPTY = object()
 
 
 @freeze_time()
-class ProcessUpdateTest(TestCase, SnubaTestCase):
+class ProcessUpdateBaseClass(TestCase, SnubaTestCase):
     metrics = patcher("sentry.incidents.subscription_processor.metrics")
-    slack_client = patcher("sentry.integrations.slack.SlackClient.post")
 
     def setUp(self):
         super().setUp()
@@ -68,196 +69,6 @@ class ProcessUpdateTest(TestCase, SnubaTestCase):
         super().tearDown()
         AlertRuleTriggerAction._type_registrations = self.old_handlers
         self._run_tasks.__exit__(None, None, None)
-
-    @fixture
-    def other_project(self):
-        return self.create_project()
-
-    @fixture
-    def sub(self):
-        return self.rule.snuba_query.subscriptions.filter(project=self.project).get()
-
-    @fixture
-    def other_sub(self):
-        return self.rule.snuba_query.subscriptions.filter(project=self.other_project).get()
-
-    @fixture
-    def rule(self):
-        rule = self.create_alert_rule(
-            projects=[self.project, self.other_project],
-            name="some rule",
-            query="",
-            aggregate="count()",
-            time_window=1,
-            threshold_type=AlertRuleThresholdType.ABOVE,
-            resolve_threshold=10,
-            threshold_period=1,
-            event_types=[
-                SnubaQueryEventType.EventType.ERROR,
-                SnubaQueryEventType.EventType.DEFAULT,
-            ],
-        )
-        # Make sure the trigger exists
-        trigger = create_alert_rule_trigger(rule, CRITICAL_TRIGGER_LABEL, 100)
-        create_alert_rule_trigger_action(
-            trigger,
-            AlertRuleTriggerAction.Type.EMAIL,
-            AlertRuleTriggerAction.TargetType.USER,
-            str(self.user.id),
-        )
-        return rule
-
-    @fixture
-    def comparison_rule_above(self):
-        rule = self.rule
-        rule.update(comparison_delta=60 * 60, resolve_threshold=None)
-        rule.snuba_query.update(time_window=60 * 60)
-        self.trigger.update(alert_threshold=150)
-        return rule
-
-    @fixture
-    def comparison_rule_below(self):
-        rule = self.rule
-        rule.update(
-            comparison_delta=60,
-            threshold_type=AlertRuleThresholdType.BELOW.value,
-            resolve_threshold=None,
-        )
-        rule.snuba_query.update(time_window=60 * 60)
-        self.trigger.update(alert_threshold=50)
-        return rule
-
-    @fixture
-    def trigger(self):
-        return self.rule.alertruletrigger_set.get()
-
-    @fixture
-    def action(self):
-        return self.trigger.alertruletriggeraction_set.get()
-
-    @fixture
-    def crash_rate_alert_rule(self):
-        rule = self.create_alert_rule(
-            projects=[self.project],
-            dataset=QueryDatasets.SESSIONS,
-            name="JustAValidRule",
-            query="",
-            aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
-            time_window=1,
-            threshold_type=AlertRuleThresholdType.BELOW,
-            threshold_period=1,
-        )
-        trigger = create_alert_rule_trigger(rule, "critical", 80)
-        create_alert_rule_trigger_action(
-            trigger,
-            AlertRuleTriggerAction.Type.EMAIL,
-            AlertRuleTriggerAction.TargetType.USER,
-            str(self.user.id),
-        )
-        return rule
-
-    @fixture
-    def crash_rate_alert_critical_trigger(self):
-        return self.crash_rate_alert_rule.alertruletrigger_set.get()
-
-    @fixture
-    def crash_rate_alert_critical_action(self):
-        return self.crash_rate_alert_critical_trigger.alertruletriggeraction_set.get()
-
-    @fixture
-    def crash_rate_alert_warning_trigger(self):
-        return create_alert_rule_trigger(self.crash_rate_alert_rule, "warning", 90)
-
-    @fixture
-    def crash_rate_alert_warning_action(self):
-        return create_alert_rule_trigger_action(
-            self.crash_rate_alert_warning_trigger,
-            AlertRuleTriggerAction.Type.EMAIL,
-            AlertRuleTriggerAction.TargetType.USER,
-            str(self.user.id),
-        )
-
-    def build_subscription_update(self, subscription, time_delta=None, value=EMPTY):
-        if time_delta is not None:
-            timestamp = timezone.now() + time_delta
-        else:
-            timestamp = timezone.now()
-        timestamp = timestamp.replace(tzinfo=pytz.utc, microsecond=0)
-
-        data = {}
-
-        if subscription:
-            data = {"some_col_name": randint(0, 100) if value is EMPTY else value}
-        values = {"data": [data]}
-        return {
-            "subscription_id": subscription.subscription_id if subscription else uuid4().hex,
-            "values": values,
-            "timestamp": timestamp,
-            "interval": 1,
-            "partition": 1,
-            "offset": 1,
-        }
-
-    def send_update(self, rule, value, time_delta=None, subscription=None):
-        self.email_action_handler.reset_mock()
-        if time_delta is None:
-            time_delta = timedelta()
-        if subscription is None:
-            subscription = self.sub
-        processor = SubscriptionProcessor(subscription)
-        message = self.build_subscription_update(subscription, value=value, time_delta=time_delta)
-        with self.feature(
-            ["organizations:incidents", "organizations:performance-view"]
-        ), self.capture_on_commit_callbacks(execute=True):
-            processor.process_update(message)
-        return processor
-
-    def send_crash_rate_alert_update(self, rule, value, subscription, time_delta=None, count=EMPTY):
-        self.email_action_handler.reset_mock()
-        if time_delta is None:
-            time_delta = timedelta()
-        processor = SubscriptionProcessor(subscription)
-
-        if time_delta is not None:
-            timestamp = timezone.now() + time_delta
-        else:
-            timestamp = timezone.now()
-        timestamp = timestamp.replace(tzinfo=pytz.utc, microsecond=0)
-
-        with self.feature(
-            ["organizations:incidents", "organizations:performance-view"]
-        ), self.capture_on_commit_callbacks(execute=True):
-            processor.process_update(
-                {
-                    "subscription_id": subscription.subscription_id
-                    if subscription
-                    else uuid4().hex,
-                    "values": {
-                        "data": [
-                            {
-                                CRASH_RATE_ALERT_AGGREGATE_ALIAS: value,
-                                CRASH_RATE_ALERT_SESSION_COUNT_ALIAS: randint(0, 100)
-                                if count is EMPTY
-                                else count,
-                            }
-                        ]
-                    },
-                    "timestamp": timestamp,
-                    "interval": 1,
-                    "partition": 1,
-                    "offset": 1,
-                }
-            )
-        return processor
-
-    def assert_slack_calls(self, trigger_labels):
-        expected = [f"{label}: some rule 2" for label in trigger_labels]
-        actual = [
-            json.loads(call_kwargs["data"]["attachments"])[0]["title"]
-            for (_, call_kwargs) in self.slack_client.call_args_list
-        ]
-        assert expected == actual
-        self.slack_client.reset_mock()
 
     def assert_trigger_exists_with_status(self, incident, trigger, status):
         assert IncidentTrigger.objects.filter(
@@ -332,6 +143,121 @@ class ProcessUpdateTest(TestCase, SnubaTestCase):
         )[1:]
         assert alert_stats[trigger.id] == alert_triggers
         assert resolve_stats[trigger.id] == resolve_triggers
+
+
+@freeze_time()
+class ProcessUpdateTest(ProcessUpdateBaseClass):
+    slack_client = patcher("sentry.integrations.slack.SlackClient.post")
+
+    @fixture
+    def other_project(self):
+        return self.create_project()
+
+    @fixture
+    def sub(self):
+        return self.rule.snuba_query.subscriptions.filter(project=self.project).get()
+
+    @fixture
+    def other_sub(self):
+        return self.rule.snuba_query.subscriptions.filter(project=self.other_project).get()
+
+    @fixture
+    def rule(self):
+        rule = self.create_alert_rule(
+            projects=[self.project, self.other_project],
+            name="some rule",
+            query="",
+            aggregate="count()",
+            time_window=1,
+            threshold_type=AlertRuleThresholdType.ABOVE,
+            resolve_threshold=10,
+            threshold_period=1,
+            event_types=[
+                SnubaQueryEventType.EventType.ERROR,
+                SnubaQueryEventType.EventType.DEFAULT,
+            ],
+        )
+        # Make sure the trigger exists
+        trigger = create_alert_rule_trigger(rule, CRITICAL_TRIGGER_LABEL, 100)
+        create_alert_rule_trigger_action(
+            trigger,
+            AlertRuleTriggerAction.Type.EMAIL,
+            AlertRuleTriggerAction.TargetType.USER,
+            str(self.user.id),
+        )
+        return rule
+
+    @fixture
+    def comparison_rule_above(self):
+        rule = self.rule
+        rule.update(comparison_delta=60 * 60, resolve_threshold=None)
+        rule.snuba_query.update(time_window=60 * 60)
+        self.trigger.update(alert_threshold=150)
+        return rule
+
+    @fixture
+    def comparison_rule_below(self):
+        rule = self.rule
+        rule.update(
+            comparison_delta=60,
+            threshold_type=AlertRuleThresholdType.BELOW.value,
+            resolve_threshold=None,
+        )
+        rule.snuba_query.update(time_window=60 * 60)
+        self.trigger.update(alert_threshold=50)
+        return rule
+
+    @fixture
+    def trigger(self):
+        return self.rule.alertruletrigger_set.get()
+
+    @fixture
+    def action(self):
+        return self.trigger.alertruletriggeraction_set.get()
+
+    def build_subscription_update(self, subscription, time_delta=None, value=EMPTY):
+        if time_delta is not None:
+            timestamp = timezone.now() + time_delta
+        else:
+            timestamp = timezone.now()
+        timestamp = timestamp.replace(tzinfo=pytz.utc, microsecond=0)
+
+        data = {}
+
+        if subscription:
+            data = {"some_col_name": randint(0, 100) if value is EMPTY else value}
+        values = {"data": [data]}
+        return {
+            "subscription_id": subscription.subscription_id if subscription else uuid4().hex,
+            "values": values,
+            "timestamp": timestamp,
+            "interval": 1,
+            "partition": 1,
+            "offset": 1,
+        }
+
+    def send_update(self, rule, value, time_delta=None, subscription=None):
+        self.email_action_handler.reset_mock()
+        if time_delta is None:
+            time_delta = timedelta()
+        if subscription is None:
+            subscription = self.sub
+        processor = SubscriptionProcessor(subscription)
+        message = self.build_subscription_update(subscription, value=value, time_delta=time_delta)
+        with self.feature(
+            ["organizations:incidents", "organizations:performance-view"]
+        ), self.capture_on_commit_callbacks(execute=True):
+            processor.process_update(message)
+        return processor
+
+    def assert_slack_calls(self, trigger_labels):
+        expected = [f"{label}: some rule 2" for label in trigger_labels]
+        actual = [
+            json.loads(call_kwargs["data"]["attachments"])[0]["title"]
+            for (_, call_kwargs) in self.slack_client.call_args_list
+        ]
+        assert expected == actual
+        self.slack_client.reset_mock()
 
     def test_removed_alert_rule(self):
         message = self.build_subscription_update(self.sub)
@@ -1198,6 +1124,294 @@ class ProcessUpdateTest(TestCase, SnubaTestCase):
         self.assert_trigger_exists_with_status(incident, other_trigger, TriggerStatus.RESOLVED)
         self.assert_actions_resolved_for_incident(incident, [self.action])
 
+    def test_comparison_alert_above(self):
+        rule = self.comparison_rule_above
+        comparison_delta = timedelta(seconds=rule.comparison_delta)
+        trigger = self.trigger
+        processor = self.send_update(
+            rule, trigger.alert_threshold + 1, timedelta(minutes=-10), subscription=self.sub
+        )
+        # Shouldn't trigger, since there should be no data in the comparison period
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_does_not_exist(trigger)
+        self.assert_action_handler_called_with_actions(None, [])
+        self.metrics.incr.assert_has_calls(
+            [
+                call("incidents.alert_rules.skipping_update_comparison_value_invalid"),
+                call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
+            ]
+        )
+        comparison_date = timezone.now() - comparison_delta
+
+        for i in range(4):
+            self.store_event(
+                data={"timestamp": iso_format(comparison_date - timedelta(minutes=30 + i))},
+                project_id=self.project.id,
+            )
+
+        self.metrics.incr.reset_mock()
+        processor = self.send_update(rule, 2, timedelta(minutes=-9), subscription=self.sub)
+        # Shouldn't trigger, since there are 4 events in the comparison period, and 2/4 == 50%
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_does_not_exist(trigger)
+        self.assert_action_handler_called_with_actions(None, [])
+        assert self.metrics.incr.call_count == 0
+
+        processor = self.send_update(rule, 4, timedelta(minutes=-8), subscription=self.sub)
+        # Shouldn't trigger, since there are 4 events in the comparison period, and 4/4 == 100%, so
+        # no change
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_does_not_exist(trigger)
+        self.assert_action_handler_called_with_actions(None, [])
+
+        processor = self.send_update(rule, 6, timedelta(minutes=-7), subscription=self.sub)
+        # Shouldn't trigger, 6/4 == 150%, but we want > 150%
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_does_not_exist(trigger)
+        self.assert_action_handler_called_with_actions(None, [])
+
+        processor = self.send_update(rule, 7, timedelta(minutes=-6), subscription=self.sub)
+        # Should trigger, 7/4 == 175% > 150%
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        incident = self.assert_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_fired_for_incident(incident, [self.action])
+
+        # Check we successfully resolve
+        processor = self.send_update(rule, 6, timedelta(minutes=-5), subscription=self.sub)
+        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.RESOLVED)
+        self.assert_actions_resolved_for_incident(incident, [self.action])
+
+    def test_comparison_alert_below(self):
+        rule = self.comparison_rule_below
+        comparison_delta = timedelta(seconds=rule.comparison_delta)
+        trigger = self.trigger
+        processor = self.send_update(
+            rule, trigger.alert_threshold + 1, timedelta(minutes=-10), subscription=self.sub
+        )
+        # Shouldn't trigger at all, since there should be no data in the comparison period
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_does_not_exist(trigger)
+        self.assert_action_handler_called_with_actions(None, [])
+        self.metrics.incr.assert_has_calls(
+            [
+                call("incidents.alert_rules.skipping_update_comparison_value_invalid"),
+                call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
+            ]
+        )
+        comparison_date = timezone.now() - comparison_delta
+
+        for i in range(4):
+            self.store_event(
+                data={
+                    "timestamp": iso_format(comparison_date - timedelta(minutes=30 + i)),
+                },
+                project_id=self.project.id,
+            )
+
+        self.metrics.incr.reset_mock()
+        processor = self.send_update(rule, 6, timedelta(minutes=-9), subscription=self.sub)
+        # Shouldn't trigger, since there are 4 events in the comparison period, and 6/4== 150%
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_does_not_exist(trigger)
+        self.assert_action_handler_called_with_actions(None, [])
+        assert self.metrics.incr.call_count == 0
+
+        processor = self.send_update(rule, 4, timedelta(minutes=-8), subscription=self.sub)
+        # Shouldn't trigger, since there are 4 events in the comparison period, and 4/4== 100%
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_does_not_exist(trigger)
+        self.assert_action_handler_called_with_actions(None, [])
+
+        processor = self.send_update(rule, 2, timedelta(minutes=-7), subscription=self.sub)
+        # Shouldn't trigger, 2/4== 50%, but we want < 50%
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_does_not_exist(trigger)
+        self.assert_action_handler_called_with_actions(None, [])
+
+        processor = self.send_update(rule, 1, timedelta(minutes=-6), subscription=self.sub)
+        # Should trigger, 1/4== 25% < 50%
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        incident = self.assert_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_fired_for_incident(incident, [self.action])
+
+        # Check we successfully resolve
+        processor = self.send_update(rule, 2, timedelta(minutes=-5), subscription=self.sub)
+        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.RESOLVED)
+        self.assert_actions_resolved_for_incident(incident, [self.action])
+
+    def test_comparison_alert_different_aggregate(self):
+        rule = self.comparison_rule_above
+        update_alert_rule(rule, aggregate="count_unique(tags[sentry:user])")
+        comparison_delta = timedelta(seconds=rule.comparison_delta)
+        trigger = self.trigger
+        processor = self.send_update(
+            rule, trigger.alert_threshold + 1, timedelta(minutes=-10), subscription=self.sub
+        )
+        # Shouldn't trigger, since there should be no data in the comparison period
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_does_not_exist(trigger)
+        self.assert_action_handler_called_with_actions(None, [])
+        self.metrics.incr.assert_has_calls(
+            [
+                call("incidents.alert_rules.skipping_update_comparison_value_invalid"),
+                call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
+            ]
+        )
+        comparison_date = timezone.now() - comparison_delta
+
+        for i in range(4):
+            self.store_event(
+                data={
+                    "timestamp": iso_format(comparison_date - timedelta(minutes=30 + i)),
+                    "tags": {"sentry:user": i},
+                },
+                project_id=self.project.id,
+            )
+
+        self.metrics.incr.reset_mock()
+        processor = self.send_update(rule, 2, timedelta(minutes=-9), subscription=self.sub)
+        # Shouldn't trigger, since there are 4 events in the comparison period, and 2/4 == 50%
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_does_not_exist(trigger)
+        self.assert_action_handler_called_with_actions(None, [])
+        assert self.metrics.incr.call_count == 0
+
+        processor = self.send_update(rule, 4, timedelta(minutes=-8), subscription=self.sub)
+        # Shouldn't trigger, since there are 4 events in the comparison period, and 4/4 == 100%, so
+        # no change
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_does_not_exist(trigger)
+        self.assert_action_handler_called_with_actions(None, [])
+
+        processor = self.send_update(rule, 6, timedelta(minutes=-7), subscription=self.sub)
+        # Shouldn't trigger, 6/4 == 150%, but we want > 150%
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_does_not_exist(trigger)
+        self.assert_action_handler_called_with_actions(None, [])
+
+        processor = self.send_update(rule, 7, timedelta(minutes=-6), subscription=self.sub)
+        # Should trigger, 7/4 == 175% > 150%
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        incident = self.assert_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_fired_for_incident(incident, [self.action])
+
+        # Check we successfully resolve
+        processor = self.send_update(rule, 6, timedelta(minutes=-5), subscription=self.sub)
+        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.RESOLVED)
+        self.assert_actions_resolved_for_incident(incident, [self.action])
+
+
+class CrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass):
+    def setUp(self):
+        super().setUp()
+
+    @fixture
+    def sub(self):
+        return self.crash_rate_alert_rule.snuba_query.subscriptions.filter(
+            project=self.project
+        ).get()
+
+    @fixture
+    def crash_rate_alert_rule(self):
+        rule = self.create_alert_rule(
+            projects=[self.project],
+            dataset=QueryDatasets.SESSIONS,
+            name="JustAValidRule",
+            query="",
+            aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
+            time_window=1,
+            threshold_type=AlertRuleThresholdType.BELOW,
+            threshold_period=1,
+        )
+        trigger = create_alert_rule_trigger(rule, "critical", 80)
+        create_alert_rule_trigger_action(
+            trigger,
+            AlertRuleTriggerAction.Type.EMAIL,
+            AlertRuleTriggerAction.TargetType.USER,
+            str(self.user.id),
+        )
+        return rule
+
+    @fixture
+    def crash_rate_alert_critical_trigger(self):
+        return self.crash_rate_alert_rule.alertruletrigger_set.get()
+
+    @fixture
+    def crash_rate_alert_critical_action(self):
+        return self.crash_rate_alert_critical_trigger.alertruletriggeraction_set.get()
+
+    @fixture
+    def crash_rate_alert_warning_trigger(self):
+        return create_alert_rule_trigger(self.crash_rate_alert_rule, "warning", 90)
+
+    @fixture
+    def crash_rate_alert_warning_action(self):
+        return create_alert_rule_trigger_action(
+            self.crash_rate_alert_warning_trigger,
+            AlertRuleTriggerAction.Type.EMAIL,
+            AlertRuleTriggerAction.TargetType.USER,
+            str(self.user.id),
+        )
+
+    def send_crash_rate_alert_update(self, rule, value, subscription, time_delta=None, count=EMPTY):
+        self.email_action_handler.reset_mock()
+        if time_delta is None:
+            time_delta = timedelta()
+        processor = SubscriptionProcessor(subscription)
+
+        if time_delta is not None:
+            timestamp = timezone.now() + time_delta
+        else:
+            timestamp = timezone.now()
+        timestamp = timestamp.replace(tzinfo=pytz.utc, microsecond=0)
+
+        with self.feature(
+            ["organizations:incidents", "organizations:performance-view"]
+        ), self.capture_on_commit_callbacks(execute=True):
+            processor.process_update(
+                {
+                    "subscription_id": subscription.subscription_id
+                    if subscription
+                    else uuid4().hex,
+                    "values": {
+                        "data": [
+                            {
+                                CRASH_RATE_ALERT_AGGREGATE_ALIAS: value,
+                                CRASH_RATE_ALERT_SESSION_COUNT_ALIAS: randint(0, 100)
+                                if count is EMPTY
+                                else count,
+                            }
+                        ]
+                    },
+                    "timestamp": timestamp,
+                    "interval": 1,
+                    "partition": 1,
+                    "offset": 1,
+                }
+            )
+        return processor
+
     def test_crash_rate_alert_for_sessions_with_auto_resolve_critical(self):
         """
         Test that ensures that a Critical alert is triggered when `crash_free_percentage` falls
@@ -1213,7 +1427,7 @@ class ProcessUpdateTest(TestCase, SnubaTestCase):
         self.send_crash_rate_alert_update(
             rule=rule,
             value=update_value,
-            time_delta=timedelta(minutes=-10),
+            time_delta=timedelta(minutes=-2),
             subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
         )
         incident = self.assert_active_incident(rule)
@@ -1418,202 +1632,71 @@ class ProcessUpdateTest(TestCase, SnubaTestCase):
         self.assert_actions_fired_for_incident(incident, [action_critical])
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
 
-    def test_comparison_alert_above(self):
-        rule = self.comparison_rule_above
-        comparison_delta = timedelta(seconds=rule.comparison_delta)
-        trigger = self.trigger
-        processor = self.send_update(
-            rule, trigger.alert_threshold + 1, timedelta(minutes=-10), subscription=self.sub
-        )
-        # Shouldn't trigger, since there should be no data in the comparison period
-        self.assert_trigger_counts(processor, trigger, 0, 0)
-        self.assert_no_active_incident(rule)
-        self.assert_trigger_does_not_exist(trigger)
-        self.assert_action_handler_called_with_actions(None, [])
-        self.metrics.incr.assert_has_calls(
-            [
-                call("incidents.alert_rules.skipping_update_comparison_value_invalid"),
-                call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
-            ]
-        )
-        comparison_date = timezone.now() - comparison_delta
 
-        for i in range(4):
-            self.store_event(
-                data={"timestamp": iso_format(comparison_date - timedelta(minutes=30 + i))},
-                project_id=self.project.id,
+class MetricsCrashRateAlertProcessUpdateTest(
+    CrashRateAlertProcessUpdateTest, SessionMetricsTestCase
+):
+    def setUp(self):
+        super().setUp()
+        for status in ["exited", "crashed"]:
+            self.store_session(
+                self.build_session(
+                    status=status,
+                )
             )
+        rule = self.crash_rate_alert_rule
+        snuba_query = rule.snuba_query
+        snuba_query.dataset = QueryDatasets.METRICS_COUNTERS.value
+        snuba_query.save()
 
-        self.metrics.incr.reset_mock()
-        processor = self.send_update(rule, 2, timedelta(minutes=-9), subscription=self.sub)
-        # Shouldn't trigger, since there are 4 events in the comparison period, and 2/4 == 50%
-        self.assert_trigger_counts(processor, trigger, 0, 0)
-        self.assert_no_active_incident(rule)
-        self.assert_trigger_does_not_exist(trigger)
-        self.assert_action_handler_called_with_actions(None, [])
-        assert self.metrics.incr.call_count == 0
+    def send_crash_rate_alert_update(self, rule, value, subscription, time_delta=None, count=EMPTY):
+        self.email_action_handler.reset_mock()
+        if time_delta is None:
+            time_delta = timedelta()
+        processor = SubscriptionProcessor(subscription)
 
-        processor = self.send_update(rule, 4, timedelta(minutes=-8), subscription=self.sub)
-        # Shouldn't trigger, since there are 4 events in the comparison period, and 4/4 == 100%, so
-        # no change
-        self.assert_trigger_counts(processor, trigger, 0, 0)
-        self.assert_no_active_incident(rule)
-        self.assert_trigger_does_not_exist(trigger)
-        self.assert_action_handler_called_with_actions(None, [])
+        if time_delta is not None:
+            timestamp = timezone.now() + time_delta
+        else:
+            timestamp = timezone.now()
+        timestamp = timestamp.replace(tzinfo=pytz.utc, microsecond=0)
 
-        processor = self.send_update(rule, 6, timedelta(minutes=-7), subscription=self.sub)
-        # Shouldn't trigger, 6/4 == 150%, but we want > 150%
-        self.assert_trigger_counts(processor, trigger, 0, 0)
-        self.assert_no_active_incident(rule)
-        self.assert_trigger_does_not_exist(trigger)
-        self.assert_action_handler_called_with_actions(None, [])
-
-        processor = self.send_update(rule, 7, timedelta(minutes=-6), subscription=self.sub)
-        # Should trigger, 7/4 == 175% > 150%
-        self.assert_trigger_counts(processor, trigger, 0, 0)
-        incident = self.assert_active_incident(rule)
-        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
-        self.assert_actions_fired_for_incident(incident, [self.action])
-
-        # Check we successfully resolve
-        processor = self.send_update(rule, 6, timedelta(minutes=-5), subscription=self.sub)
-        self.assert_trigger_counts(processor, self.trigger, 0, 0)
-        self.assert_no_active_incident(rule)
-        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.RESOLVED)
-        self.assert_actions_resolved_for_incident(incident, [self.action])
-
-    def test_comparison_alert_below(self):
-        rule = self.comparison_rule_below
-        comparison_delta = timedelta(seconds=rule.comparison_delta)
-        trigger = self.trigger
-        processor = self.send_update(
-            rule, trigger.alert_threshold + 1, timedelta(minutes=-10), subscription=self.sub
-        )
-        # Shouldn't trigger at all, since there should be no data in the comparison period
-        self.assert_trigger_counts(processor, trigger, 0, 0)
-        self.assert_no_active_incident(rule)
-        self.assert_trigger_does_not_exist(trigger)
-        self.assert_action_handler_called_with_actions(None, [])
-        self.metrics.incr.assert_has_calls(
-            [
-                call("incidents.alert_rules.skipping_update_comparison_value_invalid"),
-                call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
-            ]
-        )
-        comparison_date = timezone.now() - comparison_delta
-
-        for i in range(4):
-            self.store_event(
-                data={
-                    "timestamp": iso_format(comparison_date - timedelta(minutes=30 + i)),
-                },
-                project_id=self.project.id,
+        with self.feature(
+            ["organizations:incidents", "organizations:performance-view"]
+        ), self.capture_on_commit_callbacks(execute=True):
+            if value is None:
+                numerator, denominator = 0, 0
+            else:
+                if count is EMPTY:
+                    numerator, denominator = value.as_integer_ratio()
+                else:
+                    denominator = count
+                    numerator = int(value * denominator)
+            session_status = tag_key(self.project.organization.id, "session.status")
+            tag_value_init = tag_value(self.project.organization.id, "init")
+            tag_value_crashed = tag_value(self.project.organization.id, "crashed")
+            processor.process_update(
+                {
+                    "subscription_id": subscription.subscription_id
+                    if subscription
+                    else uuid4().hex,
+                    "values": {
+                        "data": [
+                            {"project_id": 8, session_status: tag_value_init, "value": denominator},
+                            {
+                                "project_id": 8,
+                                session_status: tag_value_crashed,
+                                "value": numerator,
+                            },
+                        ]
+                    },
+                    "timestamp": timestamp,
+                    "interval": 1,
+                    "partition": 1,
+                    "offset": 1,
+                }
             )
-
-        self.metrics.incr.reset_mock()
-        processor = self.send_update(rule, 6, timedelta(minutes=-9), subscription=self.sub)
-        # Shouldn't trigger, since there are 4 events in the comparison period, and 6/4== 150%
-        self.assert_trigger_counts(processor, trigger, 0, 0)
-        self.assert_no_active_incident(rule)
-        self.assert_trigger_does_not_exist(trigger)
-        self.assert_action_handler_called_with_actions(None, [])
-        assert self.metrics.incr.call_count == 0
-
-        processor = self.send_update(rule, 4, timedelta(minutes=-8), subscription=self.sub)
-        # Shouldn't trigger, since there are 4 events in the comparison period, and 4/4== 100%
-        self.assert_trigger_counts(processor, trigger, 0, 0)
-        self.assert_no_active_incident(rule)
-        self.assert_trigger_does_not_exist(trigger)
-        self.assert_action_handler_called_with_actions(None, [])
-
-        processor = self.send_update(rule, 2, timedelta(minutes=-7), subscription=self.sub)
-        # Shouldn't trigger, 2/4== 50%, but we want < 50%
-        self.assert_trigger_counts(processor, trigger, 0, 0)
-        self.assert_no_active_incident(rule)
-        self.assert_trigger_does_not_exist(trigger)
-        self.assert_action_handler_called_with_actions(None, [])
-
-        processor = self.send_update(rule, 1, timedelta(minutes=-6), subscription=self.sub)
-        # Should trigger, 1/4== 25% < 50%
-        self.assert_trigger_counts(processor, trigger, 0, 0)
-        incident = self.assert_active_incident(rule)
-        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
-        self.assert_actions_fired_for_incident(incident, [self.action])
-
-        # Check we successfully resolve
-        processor = self.send_update(rule, 2, timedelta(minutes=-5), subscription=self.sub)
-        self.assert_trigger_counts(processor, self.trigger, 0, 0)
-        self.assert_no_active_incident(rule)
-        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.RESOLVED)
-        self.assert_actions_resolved_for_incident(incident, [self.action])
-
-    def test_comparison_alert_different_aggregate(self):
-        rule = self.comparison_rule_above
-        update_alert_rule(rule, aggregate="count_unique(tags[sentry:user])")
-        comparison_delta = timedelta(seconds=rule.comparison_delta)
-        trigger = self.trigger
-        processor = self.send_update(
-            rule, trigger.alert_threshold + 1, timedelta(minutes=-10), subscription=self.sub
-        )
-        # Shouldn't trigger, since there should be no data in the comparison period
-        self.assert_trigger_counts(processor, trigger, 0, 0)
-        self.assert_no_active_incident(rule)
-        self.assert_trigger_does_not_exist(trigger)
-        self.assert_action_handler_called_with_actions(None, [])
-        self.metrics.incr.assert_has_calls(
-            [
-                call("incidents.alert_rules.skipping_update_comparison_value_invalid"),
-                call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
-            ]
-        )
-        comparison_date = timezone.now() - comparison_delta
-
-        for i in range(4):
-            self.store_event(
-                data={
-                    "timestamp": iso_format(comparison_date - timedelta(minutes=30 + i)),
-                    "tags": {"sentry:user": i},
-                },
-                project_id=self.project.id,
-            )
-
-        self.metrics.incr.reset_mock()
-        processor = self.send_update(rule, 2, timedelta(minutes=-9), subscription=self.sub)
-        # Shouldn't trigger, since there are 4 events in the comparison period, and 2/4 == 50%
-        self.assert_trigger_counts(processor, trigger, 0, 0)
-        self.assert_no_active_incident(rule)
-        self.assert_trigger_does_not_exist(trigger)
-        self.assert_action_handler_called_with_actions(None, [])
-        assert self.metrics.incr.call_count == 0
-
-        processor = self.send_update(rule, 4, timedelta(minutes=-8), subscription=self.sub)
-        # Shouldn't trigger, since there are 4 events in the comparison period, and 4/4 == 100%, so
-        # no change
-        self.assert_trigger_counts(processor, trigger, 0, 0)
-        self.assert_no_active_incident(rule)
-        self.assert_trigger_does_not_exist(trigger)
-        self.assert_action_handler_called_with_actions(None, [])
-
-        processor = self.send_update(rule, 6, timedelta(minutes=-7), subscription=self.sub)
-        # Shouldn't trigger, 6/4 == 150%, but we want > 150%
-        self.assert_trigger_counts(processor, trigger, 0, 0)
-        self.assert_no_active_incident(rule)
-        self.assert_trigger_does_not_exist(trigger)
-        self.assert_action_handler_called_with_actions(None, [])
-
-        processor = self.send_update(rule, 7, timedelta(minutes=-6), subscription=self.sub)
-        # Should trigger, 7/4 == 175% > 150%
-        self.assert_trigger_counts(processor, trigger, 0, 0)
-        incident = self.assert_active_incident(rule)
-        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
-        self.assert_actions_fired_for_incident(incident, [self.action])
-
-        # Check we successfully resolve
-        processor = self.send_update(rule, 6, timedelta(minutes=-5), subscription=self.sub)
-        self.assert_trigger_counts(processor, self.trigger, 0, 0)
-        self.assert_no_active_incident(rule)
-        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.RESOLVED)
-        self.assert_actions_resolved_for_incident(incident, [self.action])
+        return processor
 
 
 class TestBuildAlertRuleStatKeys(unittest.TestCase):
