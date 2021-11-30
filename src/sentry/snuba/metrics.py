@@ -658,16 +658,6 @@ class SnubaQueryBuilder:
         self._projects = projects
         self._queries = self._build_queries(query_definition)
 
-    def _build_logical(self, operator, operands) -> Optional[BooleanCondition]:
-        """Snuba only accepts And and Or if they have 2 elements or more"""
-        operands = [operand for operand in operands if operand is not None]
-        if not operands:
-            return None
-        if len(operands) == 1:
-            return operands[0]
-
-        return operator(operands)
-
     def _build_where(
         self, query_definition: QueryDefinition
     ) -> List[Union[BooleanCondition, Condition]]:
