@@ -2,7 +2,6 @@ import {browserHistory} from 'react-router';
 import {Location, LocationDescriptor, Query} from 'history';
 
 import Duration from 'sentry/components/duration';
-import {spanTargetHash} from 'sentry/components/events/interfaces/spans/utils';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/globalSelectionHeader';
 import {backend, frontend, mobile} from 'sentry/data/platformCategories';
 import {
@@ -219,28 +218,6 @@ export function removeTracingKeysFromSearch(
   });
 
   return currentFilter;
-}
-
-export function getTransactionDetailsUrl(
-  organization: OrganizationSummary,
-  eventSlug: string,
-  transaction: string,
-  query: Query,
-  spanId?: string
-): LocationDescriptor {
-  const hash = defined(spanId) ? spanTargetHash(spanId) : undefined;
-  const target = {
-    pathname: `/organizations/${organization.slug}/performance/${eventSlug}/`,
-    query: {
-      ...query,
-      transaction,
-    },
-    hash,
-  };
-  if (!defined(hash)) {
-    delete target.hash;
-  }
-  return target;
 }
 
 export function getTransactionComparisonUrl({

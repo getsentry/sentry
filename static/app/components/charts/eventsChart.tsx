@@ -1,7 +1,12 @@
 import * as React from 'react';
 import {InjectedRouter} from 'react-router';
 import {withTheme} from '@emotion/react';
-import {EChartOption} from 'echarts/lib/echarts';
+import type {
+  EChartsOption,
+  LegendComponentOption,
+  XAXisComponentOption,
+  YAXisComponentOption,
+} from 'echarts';
 import {Query} from 'history';
 import isEqual from 'lodash/isEqual';
 
@@ -53,10 +58,10 @@ type ChartProps = {
   timeseriesData: Series[];
   showLegend?: boolean;
   minutesThresholdToDisplaySeconds?: number;
-  legendOptions?: EChartOption.Legend;
-  chartOptions?: Omit<EChartOption, 'xAxis' | 'yAxis'> & {
-    xAxis?: EChartOption.XAxis;
-    yAxis?: EChartOption.YAxis;
+  legendOptions?: LegendComponentOption;
+  chartOptions?: Omit<EChartsOption, 'xAxis' | 'yAxis'> & {
+    xAxis?: XAXisComponentOption;
+    yAxis?: YAXisComponentOption;
   };
   currentSeriesNames: string[];
   releaseSeries?: Series[];

@@ -1,6 +1,6 @@
 import 'echarts/lib/component/markArea';
 
-import {EChartOption} from 'echarts';
+import type {MarkAreaComponentOption} from 'echarts';
 
 /**
  * eCharts markArea
@@ -8,8 +8,8 @@ import {EChartOption} from 'echarts';
  * See https://echarts.apache.org/en/option.html#series-line.markArea
  */
 export default function MarkArea(
-  props: EChartOption.SeriesLine['markArea']
-): EChartOption.SeriesLine['markArea'] {
+  props: MarkAreaComponentOption
+): MarkAreaComponentOption {
   return {
     ...props,
   };
