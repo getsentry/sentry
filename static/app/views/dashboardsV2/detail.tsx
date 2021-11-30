@@ -3,7 +3,6 @@ import type {Layout as RGLLayout} from 'react-grid-layout';
 import {browserHistory, PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
-import partial from 'lodash/partial';
 
 import {
   createDashboard,
@@ -29,12 +28,8 @@ import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
-import GridLayoutDashboard from './gridLayout/dashboard';
-import {
-  getDashboardLayout,
-  reassignLayoutId,
-  saveDashboardLayout,
-} from './gridLayout/utils';
+import GridLayoutDashboard, {SAVED_WIDGET_PREFIX} from './gridLayout/dashboard';
+import {getDashboardLayout, saveDashboardLayout} from './gridLayout/utils';
 import Controls from './controls';
 import DnDKitDashboard from './dashboard';
 import {DEFAULT_STATS_PERIOD, EMPTY_DASHBOARD} from './data';
@@ -312,8 +307,14 @@ class DashboardDetail extends Component<Props, State> {
       throw new Error('Expected layouts and widgets to be the same length');
     }
 
-    const getLayoutWithNewId = partial(reassignLayoutId, newWidgets);
-    saveDashboardLayout(organizationId, dashboardId, layout.map(getLayoutWithNewId));
+    saveDashboardLayout(
+      organizationId,
+      dashboardId,
+      layout.map((widgetLayout, index) => ({
+        ...widgetLayout,
+        i: `${SAVED_WIDGET_PREFIX}-${newWidgets[index].id}`,
+      }))
+    );
   };
 
   onCommit = () => {

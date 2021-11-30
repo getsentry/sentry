@@ -33,6 +33,7 @@ import {DataSet} from 'sentry/views/dashboardsV2/widget/utils';
 import SortableWidget from './sortableWidget';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';
+export const SAVED_WIDGET_PREFIX = 'grid-item';
 const NUM_COLS = 6;
 const ROW_HEIGHT = 120;
 const WIDGET_MARGINS: [number, number] = [16, 16];
@@ -280,7 +281,7 @@ const GridItem = styled('div')`
 `;
 
 function generateWidgetId(widget: Widget, index: number) {
-  return widget.id ? `${widget.id}-index-${index}` : `index-${index}`;
+  return widget.id ? `${SAVED_WIDGET_PREFIX}-${widget.id}` : `index-${index}`;
 }
 
 /**
