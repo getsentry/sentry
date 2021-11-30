@@ -145,7 +145,7 @@ class AddDashboardIssueWidgetModal extends React.Component<Props, State> {
         from: 'dashboards',
         field,
         value,
-        widgetType: 'issue',
+        widget_type: 'issue',
         organization,
       });
 
