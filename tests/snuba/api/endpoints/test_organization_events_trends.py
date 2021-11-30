@@ -637,6 +637,52 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
             [{"count": 4000}],
         ]
 
+    def test_alias_in_conditions(self):
+        query_parts = [
+            "event.type:transaction",
+            "count_percentage():>0.25",
+            "count_percentage():<4",
+            "trend_percentage():>0%",
+        ]
+        queries = [" ".join(query_parts), " AND ".join(query_parts)]
+        for query in queries:
+            with self.feature(self.features):
+                response = self.client.get(
+                    self.url,
+                    format="json",
+                    data={
+                        "end": iso_format(self.day_ago + timedelta(hours=2)),
+                        "interval": "1h",
+                        "start": iso_format(self.day_ago),
+                        "field": ["project", "transaction"],
+                        "query": query,
+                        "trendFunction": "avg(transaction.duration)",
+                        "project": [self.project.id],
+                    },
+                )
+            assert response.status_code == 200, response.content
+
+            events = response.data["events"]
+            result_stats = response.data["stats"]
+
+            assert len(events["data"]) == 1
+            self.expected_data.update(
+                {
+                    "aggregate_range_1": 2000,
+                    "aggregate_range_2": 4000,
+                    "count_percentage": 3.0,
+                    "trend_difference": 2000.0,
+                    "trend_percentage": 2.0,
+                }
+            )
+            self.assert_event(events["data"][0])
+
+            stats = result_stats[f"{self.project.slug},{self.prototype['transaction']}"]
+            assert [attrs for time, attrs in stats["data"]] == [
+                [{"count": 2000}],
+                [{"count": 4000}],
+            ]
+
     def test_trend_with_middle(self):
         with self.feature(self.features):
             response = self.client.get(
