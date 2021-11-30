@@ -26,7 +26,7 @@ class SentryAppAvatar(AvatarBase):
 
     FILE_TYPE = "avatar.file"
 
-    sentry_app = FlexibleForeignKey("sentry.SentryApp", related_name="avatars")
+    sentry_app = FlexibleForeignKey("sentry.SentryApp", related_name="avatar")
     avatar_type = models.PositiveSmallIntegerField(default=0, choices=AVATAR_TYPES)
     color = models.BooleanField(default=False)
     # e.g. issue linking logos will not have color

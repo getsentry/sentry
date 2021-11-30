@@ -8,7 +8,7 @@ from sentry.testutils import APITestCase
 
 
 def get_sentry_app_avatars(sentry_app: SentryApp):
-    return [serialize(avatar) for avatar in sentry_app.avatars.all()]
+    return [serialize(avatar) for avatar in sentry_app.avatar.all()]
 
 
 class SentryAppComponentsTest(APITestCase):
