@@ -13,6 +13,7 @@ import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {isAggregateField} from 'sentry/utils/discover/fields';
@@ -29,6 +30,19 @@ import SuspectSpanCard from './suspectSpanCard';
 import {SpansTotalValues} from './types';
 import {getSuspectSpanSortFromEventView, SPAN_SORT_OPTIONS} from './utils';
 
+const ANALYTICS_VALUES = {
+  spanOp: (organization: Organization, value: string | undefined) =>
+    trackAdvancedAnalyticsEvent('performance_views.spans.change_op', {
+      organization,
+      operation_name: value,
+    }),
+  sort: (organization: Organization, value: string | undefined) =>
+    trackAdvancedAnalyticsEvent('performance_views.spans.change_sort', {
+      organization,
+      sort_column: value,
+    }),
+};
+
 type Props = {
   location: Location;
   organization: Organization;
@@ -43,6 +57,8 @@ function SpansContent(props: Props) {
 
   function handleChange(key: string) {
     return function (value: string | undefined) {
+      ANALYTICS_VALUES[key]?.(organization, value);
+
       const queryParams = getParams({
         ...(location.query || {}),
         [key]: value,
