@@ -89,7 +89,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
 
     if (typeof tableResults === 'undefined' || loading) {
       // Align height to other charts.
-      return <Placeholder height="200px" />;
+      return <LoadingPlaceholder height="200px" />;
     }
 
     return tableResults.map((result, i) => {
@@ -332,6 +332,9 @@ const LoadingScreen = ({loading}: {loading: boolean}) => {
     </StyledTransparentLoadingMask>
   );
 };
+const LoadingPlaceholder = styled(Placeholder)`
+  background-color: ${p => p.theme.surface200};
+`;
 
 const BigNumber = styled('div')`
   font-size: 32px;
