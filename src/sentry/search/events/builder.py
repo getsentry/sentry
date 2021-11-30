@@ -169,7 +169,7 @@ class TimeseriesQueryBuilder(QueryFilter):  # type: ignore
             functions_acl=[],
             equation_config={"auto_add": True, "aggregates_only": True},
         )
-        self.where, self.having = self.resolve_conditions(query, use_aggregate_conditions=True)
+        self.where, self.having = self.resolve_conditions(query, use_aggregate_conditions=False)
 
         self.limit = None if limit is None else Limit(limit)
 
