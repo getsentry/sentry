@@ -312,14 +312,14 @@ def buffered_delete_old_primary_hash(event, force_flush_batch: bool = False):
             # otherwise.
             return
 
-        delete_old_primary_hash(
+        _delete_old_primary_hash(
             project_id=event.project_id,
             old_primary_hash=old_primary_hash,
             event_ids_redis_key=new_key,
         )
 
 
-def delete_old_primary_hash(
+def _delete_old_primary_hash(
     project_id,
     old_primary_hash,
     event_ids_redis_key,
