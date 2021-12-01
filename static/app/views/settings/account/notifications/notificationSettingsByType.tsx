@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
 import {t} from 'sentry/locale';
@@ -228,7 +228,7 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
     const unlinkedOrgs = this.getUnlinkedOrgs();
     const {title, description} = ACCOUNT_NOTIFICATION_FIELDS[notificationType];
     return (
-      <React.Fragment>
+      <Fragment>
         <SettingsPageHeader title={title} />
         {description && <TextBlock>{description}</TextBlock>}
         {hasSlack && unlinkedOrgs.length > 0 && (
@@ -264,7 +264,7 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
               onChange={this.getStateToPutForParent}
             />
           ))}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

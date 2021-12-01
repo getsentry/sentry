@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 
 import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -11,10 +11,10 @@ import {
 function TestComponent() {
   const {isMetricsData} = useMetricsSwitch();
   return (
-    <React.Fragment>
+    <Fragment>
       <MetricsSwitch />
       {isMetricsData ? 'using metrics' : 'using transactions'}
-    </React.Fragment>
+    </Fragment>
   );
 }
 

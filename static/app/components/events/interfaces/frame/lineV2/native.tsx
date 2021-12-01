@@ -1,4 +1,3 @@
-import {MouseEvent, MouseEventHandler} from 'react';
 import styled from '@emotion/styled';
 import scrollToElement from 'scroll-to-element';
 
@@ -24,7 +23,7 @@ type Props = React.ComponentProps<typeof Expander> &
   React.ComponentProps<typeof LeadHint> & {
     frame: Frame;
     isUsedForGrouping: boolean;
-    onMouseDown?: MouseEventHandler<HTMLDivElement>;
+    onMouseDown?: React.MouseEventHandler<HTMLDivElement>;
     onClick?: () => void;
     isFrameAfterLastNonApp?: boolean;
     includeSystemFrames?: boolean;
@@ -86,7 +85,7 @@ function Native({
     return addr;
   }
 
-  function scrollToImage(event: MouseEvent<HTMLAnchorElement>) {
+  function scrollToImage(event: React.MouseEvent<HTMLAnchorElement>) {
     event.stopPropagation(); // to prevent collapsing if collapsible
 
     if (instructionAddr) {
