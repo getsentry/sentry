@@ -11,7 +11,6 @@ import {
 } from 'sentry/actionCreators/globalSelection';
 import {DATE_TIME_KEYS} from 'sentry/constants/globalSelectionHeader';
 import ConfigStore from 'sentry/stores/configStore';
-import {Organization} from 'sentry/types';
 import useProjects from 'sentry/utils/useProjects';
 import withOrganization from 'sentry/utils/withOrganization';
 
@@ -26,38 +25,36 @@ const getDateObjectFromQuery = (query: Record<string, any>) =>
 type GlobalSelectionHeaderProps = Omit<
   ComponentPropsWithoutRef<typeof GlobalSelectionHeader>,
   | 'router'
-  | 'nonMemberProjects'
   | 'memberProjects'
+  | 'nonMemberProjects'
   | 'selection'
   | 'projects'
   | 'loadingProjects'
 >;
 
-type Props = {
-  organization: Organization;
-  /**
-   * Skip loading from local storage
-   * An example is Issue Details, in the case where it is accessed directly (e.g. from email).
-   * We do not want to load the user's last used env/project in this case, otherwise will
-   * lead to very confusing behavior.
-   */
-  skipLoadLastUsed?: boolean;
-} & WithRouterProps &
-  GlobalSelectionHeaderProps;
+type Props = WithRouterProps &
+  GlobalSelectionHeaderProps & {
+    /**
+     * Skip loading from local storage
+     * An example is Issue Details, in the case where it is accessed directly (e.g. from email).
+     * We do not want to load the user's last used env/project in this case, otherwise will
+     * lead to very confusing behavior.
+     */
+    skipLoadLastUsed?: boolean;
+  };
 
-function GlobalSelectionHeaderContainer({
-  organization,
-  location,
-  router,
-  routes,
-  defaultSelection,
-  forceProject,
-  shouldForceProject,
-  skipLoadLastUsed,
-  specificProjectSlugs,
-  showAbsolute,
-  ...props
-}: Props) {
+function GlobalSelectionHeaderContainer({skipLoadLastUsed, ...props}: Props) {
+  const {
+    location,
+    router,
+    forceProject,
+    organization,
+    defaultSelection,
+    showAbsolute,
+    shouldForceProject,
+    specificProjectSlugs,
+  } = props;
+
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
 
   const {isSuperuser} = ConfigStore.get('user');
@@ -74,6 +71,13 @@ function GlobalSelectionHeaderContainer({
   );
 
   const nonMemberProjects = isSuperuser || isOrgAdmin ? otherProjects : [];
+
+  const additionalProps = {
+    loadingProjects: !projectsLoaded,
+    projects,
+    memberProjects,
+    nonMemberProjects,
+  };
 
   // Initializes GlobalSelectionHeader
   //
@@ -144,23 +148,7 @@ function GlobalSelectionHeaderContainer({
     lastQuery.current = location.query;
   }, [location.query]);
 
-  return (
-    <GlobalSelectionHeader
-      {...props}
-      loadingProjects={!projectsLoaded}
-      location={location}
-      organization={organization}
-      router={router}
-      routes={routes}
-      projects={projects}
-      shouldForceProject={!!shouldForceProject}
-      defaultSelection={defaultSelection}
-      forceProject={forceProject}
-      memberProjects={memberProjects}
-      nonMemberProjects={nonMemberProjects}
-      showAbsolute={showAbsolute}
-    />
-  );
+  return <GlobalSelectionHeader {...props} {...additionalProps} />;
 }
 
 export default withOrganization(withRouter(GlobalSelectionHeaderContainer));
