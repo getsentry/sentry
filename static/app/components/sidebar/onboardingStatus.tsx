@@ -154,7 +154,7 @@ const hoverCss = (p: {theme: Theme}) => css`
     color: ${p.theme.white};
   }
   ${Remaining} {
-    color: ${p.theme.gray200};
+    color: ${p.theme.textColor};
   }
 `;
 
