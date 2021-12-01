@@ -39,6 +39,19 @@ import PermissionsObserver from 'sentry/views/settings/organizationDeveloperSett
 
 type Resource = 'Project' | 'Team' | 'Release' | 'Event' | 'Organization' | 'Member';
 
+const AVATAR_STYLES = {
+  color: {
+    size: 50,
+    title: t('Default Logo'),
+    description: t('The default icon for integrations'),
+  },
+  simple: {
+    size: 20,
+    title: t('Default Icon'),
+    description: t('This is an optional icon used for Issue Linking'),
+  },
+};
+
 /**
  * Finds the resource in SENTRY_APP_PERMISSIONS that contains a given scope
  * We should always find a match unless there is a bug
@@ -282,36 +295,26 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
     }
   };
 
-  getAvatarPreview = (avatarStyle: 'color' | 'simple') => {
+  getAvatarPreview = (isColor: boolean) => {
     const {app} = this.state;
-    const styleMap = {
-      color: {
-        size: 50,
-        title: t('Default Logo'),
-        description: t('The default icon for integrations'),
-      },
-      simple: {
-        size: 20,
-        title: t('Default Icon'),
-        description: t('This is an optional icon used for Issue Linking'),
-      },
-    };
+    if (!app) {
+      return null;
+    }
+    const avatarStyle = isColor ? 'color' : 'simple';
     return (
-      app && (
-        <AvatarPreview>
-          <StyledPreviewAvatar
-            size={styleMap[avatarStyle].size}
-            sentryApp={app}
-            isDefault
-          />
-          <AvatarPreviewTitle>{styleMap[avatarStyle].title}</AvatarPreviewTitle>
-          <AvatarPreviewText>{styleMap[avatarStyle].description}</AvatarPreviewText>
-        </AvatarPreview>
-      )
+      <AvatarPreview>
+        <StyledPreviewAvatar
+          size={AVATAR_STYLES[avatarStyle].size}
+          sentryApp={app}
+          isDefault
+        />
+        <AvatarPreviewTitle>{AVATAR_STYLES[avatarStyle].title}</AvatarPreviewTitle>
+        <AvatarPreviewText>{AVATAR_STYLES[avatarStyle].description}</AvatarPreviewText>
+      </AvatarPreview>
     );
   };
 
-  getAvatarModel = (avatarStyle: 'color' | 'simple'): Model => {
+  getAvatarModel = (isColor: boolean): Model => {
     const {app} = this.state;
     const defaultModel: Model = {
       avatar: {
@@ -322,20 +325,16 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
     if (!app) {
       return defaultModel;
     }
-    const isColor = avatarStyle === 'color';
     return {
-      avatar:
-        (app?.avatars || []).find(({color}) => color === isColor) || defaultModel.avatar,
+      avatar: app?.avatars?.find(({color}) => color === isColor) || defaultModel.avatar,
     };
   };
 
-  getAvatarChooser = (avatarStyle: 'color' | 'simple') => {
+  getAvatarChooser = (isColor: boolean) => {
     const {app} = this.state;
     if (!app) {
       return null;
     }
-    const isColor = avatarStyle === 'color';
-
     return (
       <Feature features={['organizations:sentry-app-logo-upload']}>
         <AvatarChooser
@@ -343,13 +342,12 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
           allowGravatar={false}
           allowLetter={false}
           endpoint={`/sentry-apps/${app.slug}/avatar/`}
-          model={this.getAvatarModel(avatarStyle)}
+          model={this.getAvatarModel(isColor)}
           onSave={({avatar}) => {
             if (avatar) {
-              const prevAvatars = app?.avatars ?? [];
-              const avatars = prevAvatars.filter(
-                prevAvatar => prevAvatar.color !== avatar.color
-              );
+              const avatars =
+                app?.avatars?.filter(prevAvatar => prevAvatar.color !== avatar.color) ||
+                [];
               avatars.push(avatar);
               this.setState({app: {...app, avatars}});
             }
@@ -359,7 +357,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
           defaultChoice={{
             allowDefault: true,
             choiceText: isColor ? t('Default logo') : t('Default small icon'),
-            preview: this.getAvatarPreview(avatarStyle),
+            preview: this.getAvatarPreview(isColor),
           }}
         />
       </Feature>
@@ -412,8 +410,8 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
               return (
                 <React.Fragment>
                   <JsonForm additionalFieldProps={{webhookDisabled}} forms={forms} />
-                  {this.getAvatarChooser('color')}
-                  {this.getAvatarChooser('simple')}
+                  {this.getAvatarChooser(true)}
+                  {this.getAvatarChooser(false)}
                   <PermissionsObserver
                     webhookDisabled={webhookDisabled}
                     appPublished={app ? app.status === 'published' : false}

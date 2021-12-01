@@ -13,9 +13,6 @@ import {API_ACCESS_SCOPES, DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 export type Avatar = {
   avatarUuid: string | null;
   avatarType: 'letter_avatar' | 'upload' | 'gravatar' | 'background' | 'default';
-  /**
-   * Whether or not the avatar is colorful
-   */
   color?: boolean;
 };
 

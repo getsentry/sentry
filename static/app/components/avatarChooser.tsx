@@ -92,12 +92,12 @@ class AvatarChooser extends React.Component<Props, State> {
   getModelFromResponse(resp: any): Model {
     const {type} = this.props;
     const isSentryApp = type?.startsWith('sentryApp');
-    const isColor = type === 'sentryAppColor';
     // SentryApp endpoint returns all avatars, we need to return only the edited one
-    if (isSentryApp) {
-      return {avatar: resp?.avatars?.find(({color}) => color === isColor) ?? undefined};
+    if (!isSentryApp) {
+      return resp;
     }
-    return resp;
+    const isColor = type === 'sentryAppColor';
+    return {avatar: resp?.avatars?.find(({color}) => color === isColor) ?? undefined};
   }
 
   handleError(msg: string) {
