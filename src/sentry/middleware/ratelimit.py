@@ -1,6 +1,4 @@
-# ratelimit.py
-#
-# Middleware that applies a rate limit to every endpoint
+"""Middleware that applies a rate limit to every endpoint."""
 
 
 from __future__ import annotations
@@ -66,7 +64,6 @@ def get_rate_limit_value(http_method: str, endpoint: Endpoint, category: str) ->
 
 
 def above_rate_limit_check(key: str, rate_limit: RateLimit):
-
     is_limited, current = ratelimiter.is_limited_with_value(
         key, limit=rate_limit.limit, window=rate_limit.window
     )
