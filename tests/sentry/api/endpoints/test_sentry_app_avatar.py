@@ -21,9 +21,9 @@ class SentryAppAvatarTestBase(APITestCase):
 
     def create_avatar(self, is_color):
         avatar_photo = (
-            b64encode(self.load_fixture("avatar.jpg"))
+            b64encode(self.load_fixture("rookout-color.png"))
             if is_color is True
-            else b64encode(self.load_fixture("rookout.jpg"))
+            else b64encode(self.load_fixture("rookout-bw.png"))
         )
         with self.feature("organizations:sentry-app-logo-upload"):
             data = {
