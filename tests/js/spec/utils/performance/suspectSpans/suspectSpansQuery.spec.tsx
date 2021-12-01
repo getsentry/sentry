@@ -45,7 +45,7 @@ describe('SuspectSpansQuery', function () {
     expect(getMock).toHaveBeenCalledTimes(1);
   });
 
-  it('fetches data with the right ops filter', async function () {
+  it('fetches data with the right op filter', async function () {
     const getMock = MockApiClient.addMockResponse({
       url: '/organizations/test-org/events-spans-performance/',
       // just asserting that the data is being fetched, no need for actual data here
@@ -59,6 +59,28 @@ describe('SuspectSpansQuery', function () {
         orgSlug="test-org"
         eventView={eventView}
         spanOps={['op1']}
+      >
+        {() => null}
+      </SuspectSpansQuery>
+    );
+
+    expect(getMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('fetches data with the right group filter', async function () {
+    const getMock = MockApiClient.addMockResponse({
+      url: '/organizations/test-org/events-spans-performance/',
+      // just asserting that the data is being fetched, no need for actual data here
+      body: [],
+      match: [MockApiClient.matchQuery({spanGroup: ['aaaaaaaaaaaaaaaa']})],
+    });
+
+    mountWithTheme(
+      <SuspectSpansQuery
+        location={location}
+        orgSlug="test-org"
+        eventView={eventView}
+        spanGroups={['aaaaaaaaaaaaaaaa']}
       >
         {() => null}
       </SuspectSpansQuery>
