@@ -277,11 +277,11 @@ class DashboardDetail extends Component<Props, State> {
           widgets,
         };
         this.setState({modifiedDashboard});
-        if (onDashboardUpdate) {
-          onDashboardUpdate(modifiedDashboard);
-        }
         updateDashboard(api, organization.slug, modifiedDashboard).then(
           (newDashboard: DashboardDetails) => {
+            if (onDashboardUpdate) {
+              onDashboardUpdate(modifiedDashboard);
+            }
             addSuccessMessage(t('Dashboard updated'));
             if (dashboard && newDashboard.id !== dashboard.id) {
               browserHistory.replace({
@@ -348,11 +348,11 @@ class DashboardDetail extends Component<Props, State> {
             });
             return;
           }
-          if (onDashboardUpdate) {
-            onDashboardUpdate(modifiedDashboard);
-          }
           updateDashboard(api, organization.slug, modifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
+              if (onDashboardUpdate) {
+                onDashboardUpdate(modifiedDashboard);
+              }
               addSuccessMessage(t('Dashboard updated'));
               trackAnalyticsEvent({
                 eventKey: 'dashboards2.edit.complete',
@@ -439,11 +439,11 @@ class DashboardDetail extends Component<Props, State> {
           ...dashboard,
           widgets: [...dashboard.widgets, widget],
         };
-        if (onDashboardUpdate) {
-          onDashboardUpdate(modifiedDashboard);
-        }
         updateDashboard(api, organization.slug, modifiedDashboard).then(
           (newDashboard: DashboardDetails) => {
+            if (onDashboardUpdate) {
+              onDashboardUpdate(modifiedDashboard);
+            }
             if (dashboard && newDashboard.id !== dashboard.id) {
               browserHistory.replace({
                 pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
