@@ -1,3 +1,4 @@
+from PIL import Image
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
@@ -30,11 +31,35 @@ class SentryAppLogoSerializer(serializers.Serializer):
     avatar_type = serializers.ChoiceField(choices=(("default", "default"), ("upload", "upload")))
     color = serializers.BooleanField(required=True)
 
+    def is_black_and_white(self, data):
+        """Check if an image has only black or white pixels"""
+        b_w = [0, 255]
+        image = Image.open(data)
+        w, h = image.size
+
+        for y in range(h):
+            for x in range(w):
+                value = image.getpixel((y, x))
+                # value is (R, G, B, A) - we don't want to check alpha
+                for v in value[:-1]:
+                    if v not in b_w:
+                        return False
+        return True
+
     def validate(self, attrs):
         attrs = super().validate(attrs)
 
         if attrs.get("avatar_type") == "upload" and not attrs.get("avatar_photo"):
             raise serializers.ValidationError({"avatar_photo": "A logo is required."})
+
+        if (
+            not attrs.get("color")
+            and attrs.get("avatar_type") == "upload"
+            and not self.is_black_and_white(attrs.get("avatar_photo"))
+        ):
+            raise serializers.ValidationError(
+                {"avatar_photo": "Issue linking icon must be black and white."}
+            )
 
         return attrs
 

@@ -20,11 +20,16 @@ class SentryAppAvatarTestBase(APITestCase):
                 return avatar
 
     def create_avatar(self, is_color):
+        avatar_photo = (
+            b64encode(self.load_fixture("avatar.jpg"))
+            if is_color is True
+            else b64encode(self.load_fixture("rookout.jpg"))
+        )
         with self.feature("organizations:sentry-app-logo-upload"):
             data = {
                 "color": is_color,
                 "avatar_type": "upload",
-                "avatar_photo": b64encode(self.load_fixture("avatar.jpg")),
+                "avatar_photo": avatar_photo,
             }
             return self.get_success_response(self.unpublished_app.slug, **data)
 
@@ -112,6 +117,16 @@ class SentryAppAvatarPutTest(SentryAppAvatarTestBase):
         assert simple_avatar["avatarType"] == "default"
         assert simple_avatar["avatarUuid"] is not None
         assert simple_avatar["color"] is False
+
+    def test_upload_color_for_black_white(self):
+        """Test that we reject a color image meant for the black and white icon"""
+        with self.feature("organizations:sentry-app-logo-upload"):
+            data = {
+                "color": False,
+                "avatar_type": "upload",
+                "avatar_photo": b64encode(self.load_fixture("avatar.jpg")),
+            }
+            return self.get_error_response(self.unpublished_app.slug, **data)
 
     def test_put_bad(self):
         SentryAppAvatar.objects.create(sentry_app=self.unpublished_app)
