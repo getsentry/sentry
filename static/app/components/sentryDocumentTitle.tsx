@@ -2,15 +2,14 @@ import * as React from 'react';
 import DocumentTitle from 'react-document-title';
 
 type Props = {
-  // Main page title
-  title: string;
+  title?: string;
   orgSlug?: string;
   projectSlug?: string;
-  children?: React.ReactNode;
+  children?: React.ReactChild;
 };
 
 function SentryDocumentTitle({title, orgSlug, projectSlug, children}: Props) {
-  function getDocTitle() {
+  function getPageTitle() {
     if (!orgSlug && !projectSlug) {
       return title;
     }
@@ -26,13 +25,10 @@ function SentryDocumentTitle({title, orgSlug, projectSlug, children}: Props) {
     return `${title} - ${projectSlug}`;
   }
 
-  const docTitle = getDocTitle();
+  const pageTitle = getPageTitle();
+  const documentTitle = pageTitle ? `${pageTitle} - Sentry` : 'Sentry';
 
-  return (
-    <DocumentTitle title={`${docTitle} - Sentry`}>
-      {children as React.ReactChild}
-    </DocumentTitle>
-  );
+  return <DocumentTitle title={documentTitle}>{children}</DocumentTitle>;
 }
 
 export default SentryDocumentTitle;

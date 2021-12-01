@@ -328,7 +328,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
         orgSlug={organization.slug}
         projectSlug={projectSlug}
       >
-        {super.renderComponent()}
+        {super.renderComponent() as React.ReactChild}
       </SentryDocumentTitle>
     );
   }

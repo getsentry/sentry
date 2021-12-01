@@ -21,7 +21,7 @@ function TeamInsightsContainer({children, organization}: Props) {
             ? cloneElement(children, {
                 organization,
               })
-            : children}
+            : (children as React.ReactChild)}
         </SentryDocumentTitle>
       </NoProjectMessage>
     </Feature>
