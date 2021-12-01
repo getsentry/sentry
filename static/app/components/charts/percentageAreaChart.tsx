@@ -76,7 +76,7 @@ export default class PercentageAreaChart extends React.Component<Props> {
             // Filter series that have 0 counts
             const date =
               `${
-                series.length && moment(series[0].axisValue).format('MMM D, YYYY')
+                series.length && moment(series[0].data[0]).format('MMM D, YYYY')
               }<br />` || '';
 
             return [
