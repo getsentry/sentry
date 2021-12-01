@@ -128,6 +128,16 @@ class SentryAppAvatarPutTest(SentryAppAvatarTestBase):
             }
             return self.get_error_response(self.unpublished_app.slug, **data)
 
+    def test_reject_jpgs(self):
+        """Test that we reject a non-png file type"""
+        with self.feature("organizations:sentry-app-logo-upload"):
+            data = {
+                "color": False,
+                "avatar_type": "upload",
+                "avatar_photo": b64encode(self.load_fixture("avatar.jpg")),
+            }
+            return self.get_error_response(self.unpublished_app.slug, **data)
+
     def test_put_bad(self):
         SentryAppAvatar.objects.create(sentry_app=self.unpublished_app)
         with self.feature("organizations:sentry-app-logo-upload"):
