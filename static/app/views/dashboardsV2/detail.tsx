@@ -28,7 +28,7 @@ import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
-import GridLayoutDashboard, {generateWidgetId} from './gridLayout/dashboard';
+import GridLayoutDashboard, {generateGridItemId} from './gridLayout/dashboard';
 import {getDashboardLayout, saveDashboardLayout} from './gridLayout/utils';
 import Controls from './controls';
 import DnDKitDashboard from './dashboard';
@@ -312,7 +312,7 @@ class DashboardDetail extends Component<Props, State> {
       dashboardId,
       layout.map((widgetLayout, index) => ({
         ...widgetLayout,
-        i: generateWidgetId(newWidgets[index]),
+        i: generateGridItemId(newWidgets[index]),
       }))
     );
   };
