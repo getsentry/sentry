@@ -1,4 +1,3 @@
-import {ComponentProps, ReactNode} from 'react';
 import {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
@@ -24,7 +23,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 import {MetaData} from './styles';
 
-type Props = Pick<ComponentProps<typeof QuickTrace>, 'errorDest' | 'transactionDest'> & {
+type Props = Pick<
+  React.ComponentProps<typeof QuickTrace>,
+  'errorDest' | 'transactionDest'
+> & {
   event: Event;
   location: Location;
   quickTrace: QuickTraceQueryChildrenProps | null;
@@ -62,8 +64,8 @@ export default function QuickTraceMeta({
   const traceId = event.contexts?.trace?.trace_id ?? null;
   const traceTarget = generateTraceTarget(event, organization);
 
-  let body: ReactNode;
-  let footer: ReactNode;
+  let body: React.ReactNode;
+  let footer: React.ReactNode;
 
   if (!traceId || !quickTrace || quickTrace.trace === null) {
     // this platform doesn't support performance don't show anything here
@@ -138,7 +140,13 @@ export default function QuickTraceMeta({
   );
 }
 
-export function QuickTraceMetaBase({body, footer}: {body: ReactNode; footer: ReactNode}) {
+export function QuickTraceMetaBase({
+  body,
+  footer,
+}: {
+  body: React.ReactNode;
+  footer: React.ReactNode;
+}) {
   return (
     <MetaData
       headingText={t('Trace Navigator')}

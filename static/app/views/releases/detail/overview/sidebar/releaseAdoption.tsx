@@ -1,4 +1,3 @@
-import {ComponentProps} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -144,7 +143,7 @@ function ReleaseAdoption({
     },
   };
 
-  const chartOptions: Omit<ComponentProps<typeof LineChart>, 'series' | 'ref'> = {
+  const chartOptions: Omit<React.ComponentProps<typeof LineChart>, 'series' | 'ref'> = {
     height: hasUsers ? 280 : 140,
     grid: [
       {

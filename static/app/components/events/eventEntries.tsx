@@ -1,4 +1,4 @@
-import React, {memo, useEffect, useState} from 'react';
+import {memo, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {Location} from 'history';

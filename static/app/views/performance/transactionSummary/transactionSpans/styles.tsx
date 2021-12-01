@@ -1,4 +1,3 @@
-import {ReactNode} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -50,7 +49,7 @@ export const LowerPanel = styled('div')`
 
 type HeaderItemProps = {
   label: string;
-  value: ReactNode;
+  value: React.ReactNode;
   align: 'left' | 'right';
   isSortKey?: boolean;
 };

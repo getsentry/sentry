@@ -1,4 +1,3 @@
-import {ComponentProps} from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
@@ -46,7 +45,7 @@ function ReleasesSortOptions({
           [ReleasesSortOption.SESSIONS_24_HOURS]: {label: t('Active Sessions')},
           [ReleasesSortOption.CRASH_FREE_SESSIONS]: {label: t('Crash Free Sessions')},
         }),
-  } as ComponentProps<typeof ReleasesDropdown>['options'];
+  } as React.ComponentProps<typeof ReleasesDropdown>['options'];
 
   if (organization.features.includes('semver')) {
     sortOptions[ReleasesSortOption.BUILD] = {label: t('Build Number')};

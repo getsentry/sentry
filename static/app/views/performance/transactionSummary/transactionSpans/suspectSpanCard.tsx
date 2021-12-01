@@ -1,4 +1,3 @@
-import {ReactNode} from 'react';
 import {Location, LocationDescriptor, Query} from 'history';
 
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
@@ -265,7 +264,7 @@ function TotalCumulativeDuration(props: HeaderItemProps) {
   );
 }
 
-function renderHeadCell(column: SuspectSpanTableColumn, _index: number): ReactNode {
+function renderHeadCell(column: SuspectSpanTableColumn, _index: number): React.ReactNode {
   const align = fieldAlignment(column.key, SPANS_TABLE_COLUMN_TYPE[column.key]);
   return (
     <SortLink
@@ -289,7 +288,10 @@ function renderBodyCellWithMeta(
   ) => LocationDescriptor,
   suspectSpan: SuspectSpan
 ) {
-  return (column: SuspectSpanTableColumn, dataRow: SuspectSpanDataRow): ReactNode => {
+  return (
+    column: SuspectSpanTableColumn,
+    dataRow: SuspectSpanDataRow
+  ): React.ReactNode => {
     // if the transaction duration is falsey, then just render the span duration on its own
     if (column.key === 'spanDuration' && dataRow.transactionDuration) {
       return (

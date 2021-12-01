@@ -1,4 +1,3 @@
-import {MouseEvent} from 'react';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
 import isNumber from 'lodash/isNumber';
@@ -610,7 +609,7 @@ export function scrollToSpan(
   scrollToHash: (hash: string) => void,
   location: Location
 ) {
-  return (e: MouseEvent<Element>) => {
+  return (e: React.MouseEvent<Element>) => {
     // do not use the default anchor behaviour
     // because it will be hidden behind the minimap
     e.preventDefault();

@@ -1,4 +1,4 @@
-import {Component, createRef, Fragment, MouseEvent} from 'react';
+import {Component, createRef, Fragment} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
@@ -80,7 +80,7 @@ class OptionCheckboxSelector extends Component<Props, State> {
     return disabled || (selected.length > 2 && !selected.includes(value));
   }
 
-  handleCheckboxClick(event: MouseEvent, opt: SelectValue<string>) {
+  handleCheckboxClick(event: React.MouseEvent, opt: SelectValue<string>) {
     const {onChange} = this.props;
     event.stopPropagation();
     if (!this.shouldBeDisabled(opt)) {

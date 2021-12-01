@@ -1,4 +1,4 @@
-import {Component, ComponentClass, Fragment, ReactPortal} from 'react';
+import {Component, Fragment} from 'react';
 import ReactDOM from 'react-dom';
 import {Manager, Popper, Reference} from 'react-popper';
 import styled from '@emotion/styled';
@@ -25,7 +25,7 @@ export type TitleProps = Partial<ReturnType<GetActorPropsFn>> & {
 type Props = {
   isLoading: boolean;
   error: string | null;
-  title: ComponentClass<TitleProps>;
+  title: React.ComponentClass<TitleProps>;
   handleToggleKeyTransaction: (selection: TeamSelection) => void;
   teams: Team[];
   project: Project;
@@ -201,7 +201,7 @@ class TeamKeyTransaction extends Component<Props, State> {
     );
   }
 
-  renderMenu(): ReactPortal | null {
+  renderMenu(): React.ReactPortal | null {
     const {isLoading, counts, keyedTeams} = this.props;
 
     if (isLoading || !defined(counts) || !defined(keyedTeams)) {
@@ -242,7 +242,7 @@ class TeamKeyTransaction extends Component<Props, State> {
     const {isLoading, error, title: Title, keyedTeams, initialValue, teams} = this.props;
     const {isOpen} = this.state;
 
-    const menu: ReactPortal | null = isOpen ? this.renderMenu() : null;
+    const menu: React.ReactPortal | null = isOpen ? this.renderMenu() : null;
 
     return (
       <Manager>

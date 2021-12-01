@@ -1,4 +1,4 @@
-import React, {memo} from 'react';
+import {memo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 

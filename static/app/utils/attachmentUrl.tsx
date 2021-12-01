@@ -1,4 +1,4 @@
-import {memo, ReactNode} from 'react';
+import {memo} from 'react';
 
 import Role from 'sentry/components/acl/role';
 import {IssueAttachment, Organization} from 'sentry/types';
@@ -9,7 +9,7 @@ type Props = {
   projectId: string;
   eventId: string;
   attachment: IssueAttachment;
-  children: (downloadUrl: string | null) => ReactNode;
+  children: (downloadUrl: string | null) => React.ReactNode;
 };
 
 function AttachmentUrl({attachment, organization, eventId, projectId, children}: Props) {

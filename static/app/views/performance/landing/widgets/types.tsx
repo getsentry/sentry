@@ -1,4 +1,3 @@
-import {FunctionComponent, ReactNode} from 'react';
 import {Location} from 'history';
 
 import {Client} from 'sentry/api';
@@ -39,7 +38,7 @@ export type PerformanceWidgetProps = {
   location: Location;
   organization: Organization;
 
-  ContainerActions: FunctionComponent<{isLoading: boolean}>;
+  ContainerActions: React.FC<{isLoading: boolean}>;
 };
 
 export interface WidgetDataResult {
@@ -52,9 +51,9 @@ export interface WidgetDataConstraint {
 }
 
 export type QueryChildren = {
-  children: (props: any) => ReactNode; // TODO(k-fish): Fix any type.
+  children: (props: any) => React.ReactNode; // TODO(k-fish): Fix any type.
 };
-export type QueryFC<T extends WidgetDataConstraint> = FunctionComponent<
+export type QueryFC<T extends WidgetDataConstraint> = React.FC<
   QueryChildren & {
     fields?: string | string[];
     yAxis?: string | string[];
@@ -91,7 +90,7 @@ export type Queries<T extends WidgetDataConstraint> = Record<
 >;
 
 type Visualization<T> = {
-  component: FunctionComponent<{
+  component: React.FC<{
     widgetData: T;
     queryFields?: string;
     grid?: React.ComponentProps<typeof BaseChart>['grid'];
@@ -107,11 +106,11 @@ type Visualization<T> = {
 
 type Visualizations<T extends WidgetDataConstraint> = Readonly<Visualization<T>[]>; // Readonly because of index being used for React key.
 
-type HeaderActions<T> = FunctionComponent<{
+type HeaderActions<T> = React.FC<{
   widgetData: T;
 }>;
 
-type Subtitle<T> = FunctionComponent<{
+type Subtitle<T> = React.FC<{
   widgetData: T;
 }>;
 
@@ -134,7 +133,7 @@ export type GenericPerformanceWidgetProps<T extends WidgetDataConstraint> = {
   // Components
   Subtitle?: Subtitle<T>;
   HeaderActions?: HeaderActions<T>;
-  EmptyComponent?: FunctionComponent<{height?: number}>;
+  EmptyComponent?: React.FC<{height?: number}>;
 
   Queries: Queries<T>;
   Visualizations: Visualizations<T>;
@@ -159,7 +158,7 @@ export type QueryDefinitionWithKey<T extends WidgetDataConstraint> = QueryDefini
 export type QueryHandlerProps<T extends WidgetDataConstraint> = {
   api: Client;
   queries: QueryDefinitionWithKey<T>[];
-  children?: ReactNode;
+  children?: React.ReactNode;
   eventView: EventView;
   queryProps: WidgetPropUnion<T>;
 } & WidgetDataProps<T>;

@@ -1,4 +1,4 @@
-import {Component, createContext, ReactNode} from 'react';
+import {Component, createContext} from 'react';
 import isEqual from 'lodash/isEqual';
 
 import {
@@ -39,7 +39,7 @@ const TeamKeyTransactionsManagerContext =
 
 type Props = {
   api: Client;
-  children: ReactNode;
+  children: React.ReactNode;
   organization: Organization;
   teams: Team[];
   selectedTeams: string[];

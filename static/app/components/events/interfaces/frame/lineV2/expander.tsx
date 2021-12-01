@@ -1,4 +1,3 @@
-import {MouseEvent} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
@@ -13,7 +12,7 @@ import {isDotnet} from '../utils';
 type Props = {
   isExpandable: boolean;
   platform: PlatformType;
-  onToggleContext: (evt: MouseEvent) => void;
+  onToggleContext: (evt: React.MouseEvent) => void;
   isHoverPreviewed?: boolean;
   isExpanded?: boolean;
 };

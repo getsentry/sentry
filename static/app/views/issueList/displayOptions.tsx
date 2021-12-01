@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
@@ -81,10 +81,10 @@ const IssueListDisplayOptions = ({
             : getDisplayLabel(display)
         }
       >
-        <React.Fragment>
+        <Fragment>
           {getMenuItem(IssueDisplayOptions.EVENTS)}
           {getMenuItem(IssueDisplayOptions.SESSIONS)}
-        </React.Fragment>
+        </Fragment>
       </StyledDropdownControl>
     </GuideAnchor>
   );

@@ -1,4 +1,3 @@
-import {MouseEventHandler} from 'react';
 import styled from '@emotion/styled';
 
 import {IconRefresh} from 'sentry/icons/iconRefresh';
@@ -17,7 +16,7 @@ type Props = React.ComponentProps<typeof Expander> &
   React.ComponentProps<typeof LeadHint> & {
     frame: Frame;
     isUsedForGrouping: boolean;
-    onMouseDown?: MouseEventHandler<HTMLDivElement>;
+    onMouseDown?: React.MouseEventHandler<HTMLDivElement>;
     onClick?: () => void;
     timesRepeated?: number;
   };

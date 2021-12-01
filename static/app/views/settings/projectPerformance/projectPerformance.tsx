@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -138,7 +138,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
     const {organization, project} = this.props;
     const endpoint = `/projects/${organization.slug}/${project.slug}/transaction-threshold/configure/`;
     return (
-      <React.Fragment>
+      <Fragment>
         <SettingsPageHeader title={t('Performance')} />
         <PermissionAlert />
         <Form
@@ -173,7 +173,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
             )}
           />
         </Form>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

@@ -1,4 +1,4 @@
-import {ComponentPropsWithoutRef, useEffect, useRef} from 'react';
+import {useEffect, useRef} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
@@ -23,7 +23,7 @@ const getDateObjectFromQuery = (query: Record<string, any>) =>
   );
 
 type GlobalSelectionHeaderProps = Omit<
-  ComponentPropsWithoutRef<typeof GlobalSelectionHeader>,
+  React.ComponentPropsWithoutRef<typeof GlobalSelectionHeader>,
   | 'router'
   | 'memberProjects'
   | 'nonMemberProjects'

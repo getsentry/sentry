@@ -1,4 +1,3 @@
-import React from 'react';
 import {Route, RouteComponentProps} from 'react-router';
 
 import {ChildrenRenderFn} from 'sentry/components/acl/feature';
