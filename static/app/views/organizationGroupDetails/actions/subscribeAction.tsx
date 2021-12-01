@@ -24,6 +24,7 @@ function SubscribeAction({disabled, group, onClick}: Props) {
     <ActionButton
       disabled={disabled}
       title={getSubscriptionReason(group, true)}
+      tooltipProps={{delay: 300}}
       priority={group.isSubscribed ? 'primary' : 'default'}
       size="zero"
       label={t('Subscribe')}

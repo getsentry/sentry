@@ -263,6 +263,7 @@ class Actions extends React.Component<Props, State> {
         <Tooltip
           disabled={!!group.inbox || disabled}
           title={t('Issue has been reviewed')}
+          delay={300}
         >
           <ReviewAction onUpdate={this.onUpdate} disabled={!group.inbox || disabled} />
         </Tooltip>
@@ -306,6 +307,7 @@ class Actions extends React.Component<Props, State> {
           disabled={disabled}
           isActive={group.isBookmarked}
           title={bookmarkTitle}
+          tooltipProps={{delay: 300}}
           label={bookmarkTitle}
           onClick={this.handleClick(disabled, this.onToggleBookmark)}
           icon={<IconStar isSolid size="xs" />}

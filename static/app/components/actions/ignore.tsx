@@ -116,15 +116,23 @@ const IgnoreActions = ({
 
   return (
     <ButtonBar merged>
-      <ActionLink
-        {...actionLinkProps}
-        type="button"
-        title={t('Ignore')}
-        onAction={() => onUpdate({status: ResolutionStatus.IGNORED})}
-        icon={<IconMute size="xs" />}
+      <Tooltip
+        disabled={actionLinkProps.disabled}
+        title={t(
+          'Silences alerts for this issue and removes it from the issue stream by default.'
+        )}
+        delay={300}
       >
-        {t('Ignore')}
-      </ActionLink>
+        <ActionLink
+          {...actionLinkProps}
+          type="button"
+          title={t('Ignore')}
+          onAction={() => onUpdate({status: ResolutionStatus.IGNORED})}
+          icon={<IconMute size="xs" />}
+        >
+          {t('Ignore')}
+        </ActionLink>
+      </Tooltip>
       <StyledDropdownLink
         customTitle={
           <ActionButton
