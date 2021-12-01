@@ -1,9 +1,9 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {fireEvent, mountWithTheme, screen, within} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import ThreadsV2 from 'app/components/events/interfaces/threadsV2';
-import {EventOrGroupType} from 'app/types';
-import {EntryType, Event} from 'app/types/event';
+import ThreadsV2 from 'sentry/components/events/interfaces/threadsV2';
+import {EventOrGroupType} from 'sentry/types';
+import {EntryType, Event} from 'sentry/types/event';
 
 describe('ThreadsV2', function () {
   const {project, organization} = initializeOrg();
@@ -68,8 +68,8 @@ describe('ThreadsV2', function () {
                         vars: null,
                       },
                       {
-                        filename: 'app/controllers/welcome_controller.rb',
-                        absPath: 'app/controllers/welcome_controller.rb',
+                        filename: 'sentry/controllers/welcome_controller.rb',
+                        absPath: 'sentry/controllers/welcome_controller.rb',
                         module: null,
                         package: null,
                         platform: null,
@@ -96,8 +96,8 @@ describe('ThreadsV2', function () {
                         minGroupingLevel: 1,
                       },
                       {
-                        filename: 'app/controllers/welcome_controller.rb',
-                        absPath: 'app/controllers/welcome_controller.rb',
+                        filename: 'sentry/controllers/welcome_controller.rb',
+                        absPath: 'sentry/controllers/welcome_controller.rb',
                         module: null,
                         package: null,
                         platform: null,
@@ -156,7 +156,7 @@ describe('ThreadsV2', function () {
         dist: null,
         message: '',
         title: 'ZeroDivisionError: divided by 0',
-        location: 'app/controllers/welcome_controller.rb',
+        location: 'sentry/controllers/welcome_controller.rb',
         user: null,
         contexts: {},
         sdk: null,
@@ -165,7 +165,7 @@ describe('ThreadsV2', function () {
         type: EventOrGroupType.ERROR,
         metadata: {
           display_title_with_tree_label: false,
-          filename: 'app/controllers/welcome_controller.rb',
+          filename: 'sentry/controllers/welcome_controller.rb',
           finest_tree_label: [
             {filebase: 'welcome_controller.rb', function: '/'},
             {filebase: 'welcome_controller.rb', function: 'index'},
@@ -179,7 +179,7 @@ describe('ThreadsV2', function () {
         dateReceived: '2021-10-28T12:28:22.318469Z',
         errors: [],
         crashFile: null,
-        culprit: 'app/controllers/welcome_controller.rb in /',
+        culprit: 'sentry/controllers/welcome_controller.rb in /',
         dateCreated: '2021-10-28T12:28:22.318469Z',
         fingerprints: ['58f1f47bea5239ea25397888dc9253d1'],
         groupingConfig: {
@@ -215,7 +215,7 @@ describe('ThreadsV2', function () {
         expect(screen.getByRole('checkbox', {name: 'Raw'})).not.toBeChecked();
 
         expect(
-          screen.getByRole('button', {name: 'Options 1 Active'})
+          screen.getByRole('button', {name: 'Options 0 Active'})
         ).toBeInTheDocument();
         expect(
           screen.getByRole('button', {name: 'Sort By Recent first'})
@@ -228,7 +228,7 @@ describe('ThreadsV2', function () {
         expect(screen.getByText('divided by 0')).toBeInTheDocument();
 
         expect(screen.getByTestId('stack-trace')).toBeInTheDocument();
-        expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(4);
+        expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
 
         expect(container).toSnapshot();
       });
@@ -237,7 +237,7 @@ describe('ThreadsV2', function () {
         mountWithTheme(<ThreadsV2 {...props} />, {organization: org});
 
         expect(screen.getByRole('checkbox', {name: 'Raw'})).not.toBeChecked();
-        fireEvent.click(screen.getByRole('checkbox', {name: 'Raw'}));
+        userEvent.click(screen.getByRole('checkbox', {name: 'Raw'}));
         expect(screen.getByRole('checkbox', {name: 'Raw'})).toBeChecked();
 
         // Actions must not be rendered
@@ -258,11 +258,11 @@ describe('ThreadsV2', function () {
 
         expect(
           within(screen.queryAllByTestId('stack-trace-frame')[0]).getByText(
-            'app/controllers/welcome_controller.rb'
+            'sentry/controllers/welcome_controller.rb'
           )
         ).toBeInTheDocument();
 
-        fireEvent.click(screen.getByRole('button', {name: 'Sort By Recent first'}));
+        userEvent.click(screen.getByRole('button', {name: 'Sort By Recent first'}));
 
         expect(screen.queryAllByLabelText('Sort option')).toHaveLength(2);
         expect(screen.queryAllByLabelText('Sort option')[0]).toHaveTextContent(
@@ -272,7 +272,7 @@ describe('ThreadsV2', function () {
           'Recent last'
         );
 
-        fireEvent.click(screen.getByText('Recent last'));
+        userEvent.click(screen.getByText('Recent last'));
 
         expect(
           screen.getByRole('button', {name: 'Sort By Recent last'})
@@ -280,13 +280,13 @@ describe('ThreadsV2', function () {
 
         expect(
           within(screen.queryAllByTestId('stack-trace-frame')[0]).getByText(
-            'puma (3.12.6) lib/puma/thread_pool.rb'
+            'puma (3.12.6) lib/puma/server.rb'
           )
         ).toBeInTheDocument();
 
-        fireEvent.click(screen.getByRole('button', {name: 'Sort By Recent last'}));
+        userEvent.click(screen.getByRole('button', {name: 'Sort By Recent last'}));
 
-        fireEvent.click(screen.getByText('Recent first'));
+        userEvent.click(screen.getByText('Recent first'));
 
         expect(
           screen.getByRole('button', {name: 'Sort By Recent first'})
@@ -297,10 +297,10 @@ describe('ThreadsV2', function () {
         mountWithTheme(<ThreadsV2 {...props} />, {organization: org});
 
         expect(
-          screen.getByRole('button', {name: 'Options 1 Active'})
+          screen.getByRole('button', {name: 'Options 0 Active'})
         ).toBeInTheDocument();
 
-        fireEvent.click(screen.getByRole('button', {name: 'Options 1 Active'}));
+        userEvent.click(screen.getByRole('button', {name: 'Options 0 Active'}));
 
         expect(screen.queryAllByLabelText('Display option')).toHaveLength(2);
 
@@ -313,30 +313,30 @@ describe('ThreadsV2', function () {
         );
 
         // hover over the Minified option
-        fireEvent.mouseEnter(within(displayOption0).getByText('Minified'));
+        userEvent.hover(within(displayOption0).getByText('Minified'));
         expect(
           await screen.findByText('Minified version not available')
         ).toBeInTheDocument();
 
         const displayOption1 = screen.queryAllByLabelText('Display option')[1];
         expect(displayOption1).toHaveTextContent('Full Stack Trace');
-        expect(within(displayOption1).getByRole('checkbox')).toBeChecked();
+        expect(within(displayOption1).getByRole('checkbox')).not.toBeChecked();
         expect(within(displayOption1).getByRole('checkbox')).toHaveAttribute(
           'aria-disabled',
           'false'
         );
 
         expect(screen.getByTestId('stack-trace')).toBeInTheDocument();
-        expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(4);
+        expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
 
-        // Uncheck Full Stack Trace
-        fireEvent.click(screen.queryAllByLabelText('Display option')[1]);
+        // Check Full Stack Trace
+        userEvent.click(screen.queryAllByLabelText('Display option')[1]);
         expect(
           within(screen.queryAllByLabelText('Display option')[1]).getByRole('checkbox')
-        ).not.toBeChecked();
+        ).toBeChecked();
 
-        // Display less frames
-        expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
+        // Display more frames
+        expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(4);
       });
     });
   });
@@ -870,7 +870,7 @@ describe('ThreadsV2', function () {
         expect(screen.getByRole('checkbox', {name: 'Raw'})).not.toBeChecked();
 
         expect(
-          screen.getByRole('button', {name: 'Options 1 Active'})
+          screen.getByRole('button', {name: 'Options 0 Active'})
         ).toBeInTheDocument();
         expect(
           screen.getByRole('button', {name: 'Sort By Recent first'})
@@ -885,7 +885,7 @@ describe('ThreadsV2', function () {
         ).toBeInTheDocument();
 
         expect(screen.getByTestId('stack-trace')).toBeInTheDocument();
-        expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(4);
+        expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
 
         expect(container).toSnapshot();
       });
@@ -894,7 +894,7 @@ describe('ThreadsV2', function () {
         mountWithTheme(<ThreadsV2 {...props} />, {organization: org});
 
         expect(screen.getByRole('checkbox', {name: 'Raw'})).not.toBeChecked();
-        fireEvent.click(screen.getByRole('checkbox', {name: 'Raw'}));
+        userEvent.click(screen.getByRole('checkbox', {name: 'Raw'}));
         expect(screen.getByRole('checkbox', {name: 'Raw'})).toBeChecked();
 
         // Actions must not be rendered
@@ -919,7 +919,7 @@ describe('ThreadsV2', function () {
           )
         ).toBeInTheDocument();
 
-        fireEvent.click(screen.getByRole('button', {name: 'Sort By Recent first'}));
+        userEvent.click(screen.getByRole('button', {name: 'Sort By Recent first'}));
 
         expect(screen.queryAllByLabelText('Sort option')).toHaveLength(2);
         expect(screen.queryAllByLabelText('Sort option')[0]).toHaveTextContent(
@@ -929,21 +929,19 @@ describe('ThreadsV2', function () {
           'Recent last'
         );
 
-        fireEvent.click(screen.getByText('Recent last'));
+        userEvent.click(screen.getByText('Recent last'));
 
         expect(
           screen.getByRole('button', {name: 'Sort By Recent last'})
         ).toBeInTheDocument();
 
         expect(
-          within(screen.queryAllByTestId('stack-trace-frame')[0]).getByText(
-            '__44-[SentryBreadcrumbTracker swizzleSendAction]_block_invoke_2'
-          )
+          within(screen.queryAllByTestId('stack-trace-frame')[0]).getByText('UIKit')
         ).toBeInTheDocument();
 
-        fireEvent.click(screen.getByRole('button', {name: 'Sort By Recent last'}));
+        userEvent.click(screen.getByRole('button', {name: 'Sort By Recent last'}));
 
-        fireEvent.click(screen.getByText('Recent first'));
+        userEvent.click(screen.getByText('Recent first'));
 
         expect(
           screen.getByRole('button', {name: 'Sort By Recent first'})
@@ -954,9 +952,9 @@ describe('ThreadsV2', function () {
         mountWithTheme(<ThreadsV2 {...props} />, {organization: org});
 
         expect(
-          screen.getByRole('button', {name: 'Options 1 Active'})
+          screen.getByRole('button', {name: 'Options 0 Active'})
         ).toBeInTheDocument();
-        fireEvent.click(screen.getByRole('button', {name: 'Options 1 Active'}));
+        userEvent.click(screen.getByRole('button', {name: 'Options 0 Active'}));
 
         expect(screen.queryAllByLabelText('Display option')).toHaveLength(5);
 
@@ -994,14 +992,14 @@ describe('ThreadsV2', function () {
 
         const displayOption4 = screen.queryAllByLabelText('Display option')[4];
         expect(displayOption4).toHaveTextContent('Full Stack Trace');
-        expect(within(displayOption4).getByRole('checkbox')).toBeChecked();
+        expect(within(displayOption4).getByRole('checkbox')).not.toBeChecked();
         expect(within(displayOption4).getByRole('checkbox')).toHaveAttribute(
           'aria-disabled',
           'false'
         );
 
         expect(screen.getByTestId('stack-trace')).toBeInTheDocument();
-        expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(4);
+        expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
 
         // Check Verbose Function Names
         expect(
@@ -1010,7 +1008,7 @@ describe('ThreadsV2', function () {
           )
         ).toBeInTheDocument();
 
-        fireEvent.click(screen.queryAllByLabelText('Display option')[3]);
+        userEvent.click(screen.queryAllByLabelText('Display option')[3]);
         expect(within(displayOption3).getByRole('checkbox')).toBeChecked();
 
         expect(
@@ -1024,7 +1022,7 @@ describe('ThreadsV2', function () {
           within(screen.queryAllByTestId('stack-trace-frame')[1]).getByText('+0x085ac')
         ).toBeInTheDocument();
 
-        fireEvent.click(screen.queryAllByLabelText('Display option')[1]);
+        userEvent.click(screen.queryAllByLabelText('Display option')[1]);
         expect(
           within(screen.queryAllByLabelText('Display option')[1]).getByRole('checkbox')
         ).toBeChecked();
@@ -1033,14 +1031,14 @@ describe('ThreadsV2', function () {
           within(screen.queryAllByTestId('stack-trace-frame')[1]).getByText('0x10008c5ac')
         ).toBeInTheDocument();
 
-        // Uncheck Full Stack Trace
-        fireEvent.click(screen.queryAllByLabelText('Display option')[4]);
+        // Check Full Stack Trace
+        userEvent.click(screen.queryAllByLabelText('Display option')[4]);
         expect(
           within(screen.queryAllByLabelText('Display option')[4]).getByRole('checkbox')
-        ).not.toBeChecked();
+        ).toBeChecked();
 
-        // Display less frames
-        expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
+        // Display more frames
+        expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(4);
       });
     });
   });

@@ -1,9 +1,9 @@
 import * as React from 'react';
 
-import ActionButton from 'app/components/actions/button';
-import {IconBell} from 'app/icons';
-import {t} from 'app/locale';
-import {Group} from 'app/types';
+import ActionButton from 'sentry/components/actions/button';
+import {IconBell} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {Group} from 'sentry/types';
 
 import {getSubscriptionReason} from '../utils';
 

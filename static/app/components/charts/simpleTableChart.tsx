@@ -2,14 +2,14 @@ import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import PanelTable, {PanelTableHeader} from 'app/components/panels/panelTable';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
-import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
-import {fieldAlignment} from 'app/utils/discover/fields';
-import withOrganization from 'app/utils/withOrganization';
-import {decodeColumnOrder} from 'app/views/eventsV2/utils';
+import PanelTable, {PanelTableHeader} from 'sentry/components/panels/panelTable';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {fieldAlignment} from 'sentry/utils/discover/fields';
+import withOrganization from 'sentry/utils/withOrganization';
+import {decodeColumnOrder} from 'sentry/views/eventsV2/utils';
 
 type Props = {
   organization: Organization;

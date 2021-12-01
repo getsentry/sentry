@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
 
-import TimeSince from 'app/components/timeSince';
-import {IconClock} from 'app/icons';
-import {t} from 'app/locale';
-import getDynamicText from 'app/utils/getDynamicText';
+import TimeSince from 'sentry/components/timeSince';
+import {IconClock} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import getDynamicText from 'sentry/utils/getDynamicText';
 
 /**
  * Used in new inbox
@@ -63,7 +64,7 @@ const Separator = styled('span')`
 `;
 
 const StyledIconClock = styled(IconClock)`
-  margin-right: 2px;
+  margin-right: ${space(0.5)};
 `;
 
 export default TimesTag;

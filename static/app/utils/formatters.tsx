@@ -1,8 +1,8 @@
 import {Release} from '@sentry/release-parser';
 import round from 'lodash/round';
 
-import {t, tn} from 'app/locale';
-import {CommitAuthor, User} from 'app/types';
+import {t, tn} from 'sentry/locale';
+import {CommitAuthor, User} from 'sentry/types';
 
 export function userDisplayName(user: User | CommitAuthor, includeEmail = true): string {
   let displayName = String(user?.name ?? t('Unknown author')).trim();

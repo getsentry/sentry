@@ -4,11 +4,11 @@ import * as Sentry from '@sentry/react';
 import * as cbor from 'cbor-web';
 import u2f from 'u2f-api';
 
-import {base64urlToBuffer, bufferToBase64url} from 'app/components/u2f/webAuthnHelper';
-import {t, tct} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
-import {ChallengeData, Organization} from 'app/types';
-import withOrganization from 'app/utils/withOrganization';
+import {base64urlToBuffer, bufferToBase64url} from 'sentry/components/u2f/webAuthnHelper';
+import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import {ChallengeData, Organization} from 'sentry/types';
+import withOrganization from 'sentry/utils/withOrganization';
 
 type TapParams = {
   response: string;
@@ -45,7 +45,10 @@ class U2fInterface extends React.Component<Props, State> {
   };
 
   async componentDidMount() {
-    const supported = !!window.PublicKeyCredential;
+    let supported = await u2f.isSupported();
+    if (this.props.isWebauthnSigninFFEnabled) {
+      supported = !!window.PublicKeyCredential;
+    }
 
     // eslint-disable-next-line react/no-did-mount-set-state
     this.setState({isSupported: supported});

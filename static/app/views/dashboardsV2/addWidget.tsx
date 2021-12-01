@@ -1,9 +1,9 @@
 import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import {IconAdd} from 'app/icons';
-import {Organization} from 'app/types';
+import Button from 'sentry/components/button';
+import {IconAdd} from 'sentry/icons';
+import {Organization} from 'sentry/types';
 
 import {DisplayType} from './types';
 import WidgetWrapper from './widgetWrapper';

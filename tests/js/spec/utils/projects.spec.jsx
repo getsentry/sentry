@@ -1,14 +1,14 @@
 import {
   act,
-  fireEvent,
   mountWithTheme,
   screen,
+  userEvent,
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import ProjectActions from 'app/actions/projectActions';
-import ProjectsStore from 'app/stores/projectsStore';
-import Projects from 'app/utils/projects';
+import ProjectActions from 'sentry/actions/projectActions';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import Projects from 'sentry/utils/projects';
 
 describe('utils.projects', function () {
   const renderer = jest.fn(() => null);
@@ -342,7 +342,7 @@ describe('utils.projects', function () {
         ],
       });
 
-      fireEvent.change(screen.getByRole('textbox'), {target: {value: 'test'}});
+      userEvent.type(screen.getByRole('textbox'), 'test');
 
       expect(request).toHaveBeenCalledWith(
         expect.anything(),
@@ -397,7 +397,7 @@ describe('utils.projects', function () {
         ],
       });
 
-      fireEvent.change(screen.getByRole('textbox'), {target: {value: 'test'}});
+      userEvent.type(screen.getByRole('textbox'), 'test');
 
       expect(request).toHaveBeenCalledWith(
         expect.anything(),
@@ -438,7 +438,7 @@ describe('utils.projects', function () {
       );
 
       // Should not have duplicates
-      fireEvent.change(screen.getByRole('textbox'), {target: {value: 'test'}});
+      userEvent.type(screen.getByRole('textbox'), 'test');
 
       await waitFor(() =>
         expect(myRenderer).toHaveBeenLastCalledWith(

@@ -25,13 +25,27 @@ class AvatarSerializer(serializers.Serializer):
         return attrs
 
 
+class SentryAppLogoSerializer(serializers.Serializer):
+    avatar_photo = AvatarField(required=False)
+    avatar_type = serializers.ChoiceField(choices=(("default", "default"), ("upload", "upload")))
+    color = serializers.BooleanField(required=True)
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+
+        if attrs.get("avatar_type") == "upload" and not attrs.get("avatar_photo"):
+            raise serializers.ValidationError({"avatar_photo": "A logo is required."})
+
+        return attrs
+
+
 class AvatarMixin:
     object_type = None
     model = None
 
     def get(self, request, **kwargs):
-        obj = kwargs[self.object_type]
-        return Response(serialize(obj, request.user))
+        obj = kwargs.pop(self.object_type, None)
+        return Response(serialize(obj, request.user, **kwargs))
 
     def get_serializer_context(self, obj, **kwargs):
         return {"type": self.model, "kwargs": {self.object_type: obj}}
@@ -40,8 +54,14 @@ class AvatarMixin:
         return f"{obj.id}.png"
 
     def put(self, request, **kwargs):
-        obj = kwargs[self.object_type]
-        serializer = AvatarSerializer(data=request.data, context=self.get_serializer_context(obj))
+        obj = kwargs.pop(self.object_type, None)
+
+        SerializerCls = AvatarSerializer
+        if self.object_type == "sentry_app":
+            SerializerCls = SentryAppLogoSerializer
+
+        serializer = SerializerCls(data=request.data, context=self.get_serializer_context(obj))
+
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -52,6 +72,7 @@ class AvatarMixin:
             type=result["avatar_type"],
             avatar=result.get("avatar_photo"),
             filename=self.get_avatar_filename(obj),
+            color=result.get("color"),
         )
 
-        return Response(serialize(obj, request.user))
+        return Response(serialize(obj, request.user, **kwargs))

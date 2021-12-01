@@ -1,8 +1,8 @@
 import {Location} from 'history';
 
-import {IconInfo} from 'app/icons';
-import {tct} from 'app/locale';
-import {crashReportTypes} from 'app/views/organizationGroupDetails/groupEventAttachments/groupEventAttachmentsFilter';
+import {IconInfo} from 'sentry/icons';
+import {tct} from 'sentry/locale';
+import {crashReportTypes} from 'sentry/views/organizationGroupDetails/groupEventAttachments/groupEventAttachmentsFilter';
 
 import Alert from '../alert';
 import Link from '../links/link';

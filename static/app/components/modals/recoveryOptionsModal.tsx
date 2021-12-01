@@ -1,13 +1,13 @@
 import {Fragment} from 'react';
 
-import {ModalRenderProps} from 'app/actionCreators/modal';
-import Alert from 'app/components/alert';
-import AsyncComponent from 'app/components/asyncComponent';
-import Button from 'app/components/button';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Authenticator} from 'app/types';
-import TextBlock from 'app/views/settings/components/text/textBlock';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import Alert from 'sentry/components/alert';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import Button from 'sentry/components/button';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Authenticator} from 'sentry/types';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 type Props = AsyncComponent['props'] &
   ModalRenderProps & {

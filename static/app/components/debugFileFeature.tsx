@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
-import Tag from 'app/components/tag';
-import {IconCheckmark, IconClose} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
+import Tag from 'sentry/components/tag';
+import {IconCheckmark, IconClose} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 
 const FEATURE_TOOLTIPS = {
   symtab: t(

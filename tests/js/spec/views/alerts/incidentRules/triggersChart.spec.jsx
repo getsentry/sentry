@@ -1,11 +1,11 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'app/api';
-import AreaChart from 'app/components/charts/areaChart';
-import TriggersChart from 'app/views/alerts/incidentRules/triggers/chart';
+import {Client} from 'sentry/api';
+import AreaChart from 'sentry/components/charts/areaChart';
+import TriggersChart from 'sentry/views/alerts/incidentRules/triggers/chart';
 
-jest.mock('app/components/charts/areaChart');
+jest.mock('sentry/components/charts/areaChart');
 
 describe('Incident Rules Create', () => {
   let eventStatsMock;
@@ -42,7 +42,7 @@ describe('Incident Rules Create', () => {
         aggregate="count()"
         triggers={[]}
       />,
-      routerContext
+      {context: routerContext}
     );
 
     await tick();
@@ -105,7 +105,7 @@ describe('Incident Rules Create', () => {
         aggregate="count()"
         triggers={[]}
       />,
-      routerContext
+      {context: routerContext}
     );
 
     await tick();

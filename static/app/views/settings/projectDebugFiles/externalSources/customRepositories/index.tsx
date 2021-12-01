@@ -3,22 +3,22 @@ import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {openDebugFileSourceModal} from 'app/actionCreators/modal';
-import ProjectActions from 'app/actions/projectActions';
-import {Client} from 'app/api';
-import Access from 'app/components/acl/access';
-import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
-import DropdownButton from 'app/components/dropdownButton';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
-import HookOrDefault from 'app/components/hookOrDefault';
-import MenuItem from 'app/components/menuItem';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import AppStoreConnectContext from 'app/components/projects/appStoreConnectContext';
-import {t} from 'app/locale';
-import {Organization, Project} from 'app/types';
-import {CustomRepo, CustomRepoType} from 'app/types/debugFiles';
-import {defined} from 'app/utils';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {openDebugFileSourceModal} from 'sentry/actionCreators/modal';
+import ProjectActions from 'sentry/actions/projectActions';
+import {Client} from 'sentry/api';
+import Access from 'sentry/components/acl/access';
+import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
+import DropdownButton from 'sentry/components/dropdownButton';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import HookOrDefault from 'sentry/components/hookOrDefault';
+import MenuItem from 'sentry/components/menuItem';
+import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import AppStoreConnectContext from 'sentry/components/projects/appStoreConnectContext';
+import {t} from 'sentry/locale';
+import {Organization, Project} from 'sentry/types';
+import {CustomRepo, CustomRepoType} from 'sentry/types/debugFiles';
+import {defined} from 'sentry/utils';
 
 import Repository from './repository';
 import {
@@ -86,7 +86,10 @@ function CustomRepositories({
       return;
     }
 
-    const itemIndex = repositories.findIndex(v => v.id === customRepository);
+    const itemIndex = repositories.findIndex(
+      repository => repository.id === customRepository
+    );
+
     const item = repositories[itemIndex];
 
     if (!item) {
@@ -96,7 +99,7 @@ function CustomRepositories({
     openDebugFileSourceModal({
       sourceConfig: item,
       sourceType: item.type,
-      appStoreConnectContext,
+      appStoreConnectStatusData: appStoreConnectContext?.[item.id],
       onSave: updatedItem =>
         persistData({updatedItem: updatedItem as CustomRepo, index: itemIndex}),
       onClose: handleCloseModal,
@@ -250,23 +253,21 @@ function CustomRepositories({
             <p>{t('No custom repositories configured')}</p>
           </EmptyStateWarning>
         ) : (
-          repositories.map((repository, index) => {
-            const repositoryCopy = {...repository};
-            if (
-              repositoryCopy.type === CustomRepoType.APP_STORE_CONNECT &&
-              repositoryCopy.id === appStoreConnectContext?.id
-            ) {
-              repositoryCopy.details = appStoreConnectContext;
-            }
-            return (
-              <Repository
-                key={index}
-                repository={repositoryCopy}
-                onDelete={handleDeleteRepository}
-                onEdit={handleEditRepository}
-              />
-            );
-          })
+          repositories.map((repository, index) => (
+            <Repository
+              key={index}
+              repository={
+                repository.type === CustomRepoType.APP_STORE_CONNECT
+                  ? {
+                      ...repository,
+                      details: appStoreConnectContext?.[repository.id],
+                    }
+                  : repository
+              }
+              onDelete={handleDeleteRepository}
+              onEdit={handleEditRepository}
+            />
+          ))
         )}
       </PanelBody>
     </Panel>

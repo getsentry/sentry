@@ -1,17 +1,13 @@
 import * as React from 'react';
 
-import GlobalSelectionStore from 'app/stores/globalSelectionStore';
-import {GlobalSelection} from 'app/types';
-import getDisplayName from 'app/utils/getDisplayName';
+import GlobalSelectionStore from 'sentry/stores/globalSelectionStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import {GlobalSelection} from 'sentry/types';
+import getDisplayName from 'sentry/utils/getDisplayName';
 
 type InjectedGlobalSelectionProps = {
   selection?: GlobalSelection;
   isGlobalSelectionReady?: boolean;
-};
-
-type State = {
-  selection: GlobalSelection;
-  isReady?: boolean;
 };
 
 /**
@@ -21,36 +17,21 @@ type State = {
 function withGlobalSelection<P extends InjectedGlobalSelectionProps>(
   WrappedComponent: React.ComponentType<P>
 ) {
-  class WithGlobalSelection extends React.Component<
-    Omit<P, keyof InjectedGlobalSelectionProps> & Partial<InjectedGlobalSelectionProps>,
-    State
-  > {
-    static displayName = `withGlobalSelection(${getDisplayName(WrappedComponent)})`;
+  type Props = Omit<P, keyof InjectedGlobalSelectionProps> & InjectedGlobalSelectionProps;
 
-    state = GlobalSelectionStore.get();
+  const WithGlobalSelection: React.FC<Props> = props => {
+    const {selection, isReady} = useLegacyStore(GlobalSelectionStore);
 
-    componentWillUnmount() {
-      this.unsubscribe();
-    }
+    const selectionProps = {
+      selection,
+      isGlobalSelectionReady: isReady,
+    };
 
-    unsubscribe = GlobalSelectionStore.listen((selection: State) => {
-      if (this.state !== selection) {
-        this.setState(selection);
-      }
-    }, undefined);
+    return <WrappedComponent {...selectionProps} {...(props as P)} />;
+  };
 
-    render() {
-      const {isReady, selection} = this.state;
-
-      return (
-        <WrappedComponent
-          selection={selection as GlobalSelection}
-          isGlobalSelectionReady={isReady}
-          {...(this.props as P)}
-        />
-      );
-    }
-  }
+  const displayName = getDisplayName(WrappedComponent);
+  WithGlobalSelection.displayName = `withGlobalSelection(${displayName})`;
 
   return WithGlobalSelection;
 }

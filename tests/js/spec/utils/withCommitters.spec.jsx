@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import CommitterStore from 'app/stores/committerStore';
-import withCommitters from 'app/utils/withCommitters';
+import CommitterStore from 'sentry/stores/committerStore';
+import withCommitters from 'sentry/utils/withCommitters';
 
 describe('withCommitters HoC', function () {
   const organization = TestStubs.Organization();

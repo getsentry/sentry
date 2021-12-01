@@ -1,8 +1,8 @@
-import {ActiveFilter, noFilter} from 'app/components/events/interfaces/spans/filter';
-import {EnhancedProcessedSpanType} from 'app/components/events/interfaces/spans/types';
-import WaterfallModel from 'app/components/events/interfaces/spans/waterfallModel';
-import {EntryType, EventTransaction} from 'app/types/event';
-import {assert} from 'app/types/utils';
+import {ActiveFilter, noFilter} from 'sentry/components/events/interfaces/spans/filter';
+import {EnhancedProcessedSpanType} from 'sentry/components/events/interfaces/spans/types';
+import WaterfallModel from 'sentry/components/events/interfaces/spans/waterfallModel';
+import {EntryType, EventTransaction} from 'sentry/types/event';
+import {assert} from 'sentry/types/utils';
 
 describe('WaterfallModel', () => {
   const event = {
@@ -599,7 +599,6 @@ describe('WaterfallModel', () => {
     expect(waterfallModel.fuse).toBe(undefined);
 
     // Fuzzy search needs to be loaded asynchronously
-    // @ts-expect-error
     await tick();
 
     // expect fuse index to be created
@@ -620,7 +619,6 @@ describe('WaterfallModel', () => {
     const waterfallModel = new WaterfallModel(event);
 
     // Fuzzy search needs to be loaded asynchronously
-    // @ts-expect-error
     await tick();
 
     // show all spans in the waterfall

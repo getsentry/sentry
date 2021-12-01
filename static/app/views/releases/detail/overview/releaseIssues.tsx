@@ -5,20 +5,20 @@ import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import * as qs from 'query-string';
 
-import {Client} from 'app/api';
-import Button, {ButtonLabel} from 'app/components/button';
-import ButtonBar, {ButtonGrid} from 'app/components/buttonBar';
-import GroupList from 'app/components/issues/groupList';
-import Pagination from 'app/components/pagination';
-import QueryCount from 'app/components/queryCount';
-import {DEFAULT_RELATIVE_PERIODS} from 'app/constants';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {GlobalSelection, Organization} from 'app/types';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
-import withApi from 'app/utils/withApi';
-import withOrganization from 'app/utils/withOrganization';
-import {IssueSortOptions} from 'app/views/issueList/utils';
+import {Client} from 'sentry/api';
+import Button, {ButtonLabel} from 'sentry/components/button';
+import ButtonBar, {ButtonGrid} from 'sentry/components/buttonBar';
+import GroupList from 'sentry/components/issues/groupList';
+import Pagination from 'sentry/components/pagination';
+import QueryCount from 'sentry/components/queryCount';
+import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {GlobalSelection, Organization} from 'sentry/types';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import withApi from 'sentry/utils/withApi';
+import withOrganization from 'sentry/utils/withOrganization';
+import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 import {getReleaseParams, ReleaseBounds} from '../../utils';
 import EmptyState from '../commitsAndFiles/emptyState';
@@ -26,6 +26,7 @@ import EmptyState from '../commitsAndFiles/emptyState';
 enum IssuesType {
   NEW = 'new',
   UNHANDLED = 'unhandled',
+  REGRESSED = 'regressed',
   RESOLVED = 'resolved',
   ALL = 'all',
 }
@@ -33,6 +34,7 @@ enum IssuesType {
 enum IssuesQuery {
   NEW = 'first-release',
   UNHANDLED = 'error.handled:0',
+  REGRESSED = 'regressed_in_release',
   RESOLVED = 'is:resolved',
   ALL = 'release',
 }
@@ -62,6 +64,7 @@ type State = {
   count: {
     new: number | null;
     unhandled: number | null;
+    regressed: number | null;
     resolved: number | null;
     all: number | null;
   };
@@ -81,6 +84,8 @@ class ReleaseIssues extends Component<Props, State> {
       : query.includes(IssuesType.NEW)
       ? IssuesType.NEW
       : query.includes(IssuesType.UNHANDLED)
+      ? IssuesType.REGRESSED
+      : query.includes(IssuesType.REGRESSED)
       ? IssuesType.UNHANDLED
       : query.includes(IssuesType.RESOLVED)
       ? IssuesType.RESOLVED
@@ -95,6 +100,7 @@ class ReleaseIssues extends Component<Props, State> {
         all: null,
         resolved: null,
         unhandled: null,
+        regressed: null,
       },
     };
   }
@@ -133,6 +139,9 @@ class ReleaseIssues extends Component<Props, State> {
       case IssuesType.UNHANDLED:
         query.setFilterValues('release', [version]);
         query.setFilterValues('error.handled', ['0']);
+        break;
+      case IssuesType.REGRESSED:
+        query.setFilterValues('regressed_in_release', [version]);
         break;
       case IssuesType.RESOLVED:
       case IssuesType.ALL:
@@ -190,6 +199,16 @@ class ReleaseIssues extends Component<Props, State> {
             ]).formatString(),
           },
         };
+      case IssuesType.REGRESSED:
+        return {
+          path: `/organizations/${organization.slug}/issues/`,
+          queryParams: {
+            ...queryParams,
+            query: new MutableSearch([
+              `${IssuesQuery.REGRESSED}:${version}`,
+            ]).formatString(),
+          },
+        };
       case IssuesType.NEW:
       default:
         return {
@@ -220,6 +239,7 @@ class ReleaseIssues extends Component<Props, State> {
             unhandled:
               issueResponse[`${IssuesQuery.UNHANDLED} ${IssuesQuery.ALL}:"${version}"`] ||
               0,
+            regressed: issueResponse[`${IssuesQuery.REGRESSED}:"${version}"`] || 0,
           },
         });
       });
@@ -236,6 +256,7 @@ class ReleaseIssues extends Component<Props, State> {
       `${IssuesQuery.NEW}:"${version}"`,
       `${IssuesQuery.ALL}:"${version}"`,
       `${IssuesQuery.UNHANDLED} ${IssuesQuery.ALL}:"${version}"`,
+      `${IssuesQuery.REGRESSED}:"${version}"`,
     ];
     const queryParams = params.map(param => param);
     const queryParameters = {
@@ -260,6 +281,8 @@ class ReleaseIssues extends Component<Props, State> {
         ? IssuesType.RESOLVED
         : issuesType === IssuesType.UNHANDLED
         ? IssuesType.UNHANDLED
+        : issuesType === IssuesType.REGRESSED
+        ? IssuesType.REGRESSED
         : '';
 
     const to = {
@@ -310,6 +333,13 @@ class ReleaseIssues extends Component<Props, State> {
                 timePeriod: displayedPeriod,
               })
           : null}
+        {issuesType === IssuesType.REGRESSED
+          ? isEntireReleasePeriod
+            ? t('No regressed issues in this release.')
+            : tct('No regressed issues for the [timePeriod].', {
+                timePeriod: displayedPeriod,
+              })
+          : null}
         {issuesType === IssuesType.RESOLVED && t('No resolved issues in this release.')}
         {issuesType === IssuesType.ALL
           ? isEntireReleasePeriod
@@ -331,12 +361,17 @@ class ReleaseIssues extends Component<Props, State> {
       {value: IssuesType.NEW, label: t('New Issues'), issueCount: count.new},
       {
         value: IssuesType.UNHANDLED,
-        label: t('Unhandled Issues'),
+        label: t('Unhandled'),
         issueCount: count.unhandled,
       },
       {
+        value: IssuesType.REGRESSED,
+        label: t('Regressed'),
+        issueCount: count.regressed,
+      },
+      {
         value: IssuesType.RESOLVED,
-        label: t('Resolved Issues'),
+        label: t('Resolved'),
         issueCount: count.resolved,
       },
     ];

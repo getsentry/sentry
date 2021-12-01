@@ -1,9 +1,9 @@
 import {browserHistory, Router} from 'react-router';
 
-import DemoHeader from 'app/components/demo/demoHeader';
-import ThemeAndStyleProvider from 'app/components/themeAndStyleProvider';
-import routes from 'app/routes';
-import ConfigStore from 'app/stores/configStore';
+import DemoHeader from 'sentry/components/demo/demoHeader';
+import ThemeAndStyleProvider from 'sentry/components/themeAndStyleProvider';
+import routes from 'sentry/routes';
+import ConfigStore from 'sentry/stores/configStore';
 
 function Main() {
   return (

@@ -1,11 +1,11 @@
 import {browserHistory} from 'react-router';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'app/stores/projectsStore';
-import Results from 'app/views/eventsV2/results';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import Results from 'sentry/views/eventsV2/results';
 
 const FIELDS = [
   {
@@ -27,6 +27,8 @@ const generateFields = () => ({
 });
 
 describe('EventsV2 > Results', function () {
+  enforceActOnUseLegacyStoreHook();
+
   const eventTitle = 'Oh no something bad';
   const features = ['discover-basic'];
   let eventResultsMock, mockSaved, eventsStatsMock, mockVisit;
@@ -113,11 +115,15 @@ describe('EventsV2 > Results', function () {
       body: [
         {
           key: 'release',
-          topValues: [{count: 2, value: 'abcd123', name: 'abcd123'}],
+          topValues: [{count: 3, value: 'abcd123', name: 'abcd123'}],
         },
         {
           key: 'environment',
-          topValues: [{count: 2, value: 'abcd123', name: 'abcd123'}],
+          topValues: [{count: 2, value: 'dev', name: 'dev'}],
+        },
+        {
+          key: 'foo',
+          topValues: [{count: 1, value: 'bar', name: 'bar'}],
         },
       ],
     });
@@ -169,7 +175,7 @@ describe('EventsV2 > Results', function () {
       },
     });
 
-    act(() => ProjectsStore.loadInitialData([TestStubs.Project()]));
+    ProjectsStore.loadInitialData([TestStubs.Project()]);
 
     const wrapper = mountWithTheme(
       <Results
@@ -216,7 +222,7 @@ describe('EventsV2 > Results', function () {
       },
     });
 
-    act(() => ProjectsStore.loadInitialData([TestStubs.Project()]));
+    ProjectsStore.loadInitialData([TestStubs.Project()]);
 
     const wrapper = mountWithTheme(
       <Results
@@ -273,7 +279,7 @@ describe('EventsV2 > Results', function () {
       },
     });
 
-    act(() => ProjectsStore.loadInitialData([TestStubs.Project()]));
+    ProjectsStore.loadInitialData([TestStubs.Project()]);
 
     const wrapper = mountWithTheme(
       <Results
@@ -356,7 +362,7 @@ describe('EventsV2 > Results', function () {
       },
     });
 
-    act(() => ProjectsStore.loadInitialData([TestStubs.Project()]));
+    ProjectsStore.loadInitialData([TestStubs.Project()]);
 
     const wrapper = mountWithTheme(
       <Results
@@ -633,7 +639,7 @@ describe('EventsV2 > Results', function () {
       },
     });
 
-    act(() => ProjectsStore.loadInitialData([TestStubs.Project()]));
+    ProjectsStore.loadInitialData([TestStubs.Project()]);
 
     const wrapper = mountWithTheme(
       <Results
@@ -693,7 +699,7 @@ describe('EventsV2 > Results', function () {
       },
     });
 
-    act(() => ProjectsStore.loadInitialData([TestStubs.Project()]));
+    ProjectsStore.loadInitialData([TestStubs.Project()]);
 
     const wrapper = mountWithTheme(
       <Results
@@ -753,7 +759,7 @@ describe('EventsV2 > Results', function () {
       },
     });
 
-    act(() => ProjectsStore.loadInitialData([TestStubs.Project()]));
+    ProjectsStore.loadInitialData([TestStubs.Project()]);
 
     const wrapper = mountWithTheme(
       <Results
@@ -799,5 +805,46 @@ describe('EventsV2 > Results', function () {
       })
     );
     wrapper.unmount();
+  });
+
+  it('appends tag value to existing query when clicked', async function () {
+    const organization = TestStubs.Organization({
+      features,
+    });
+
+    const initialData = initializeOrg({
+      organization,
+      router: {
+        location: {query: {...generateFields(), display: 'default', yAxis: 'count'}},
+      },
+    });
+
+    const wrapper = mountWithTheme(
+      <Results
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+      />,
+      initialData.routerContext
+    );
+
+    act(() => ProjectsStore.loadInitialData([TestStubs.Project()]));
+    await tick();
+    wrapper.update();
+
+    wrapper.find('[data-test-id="toggle-show-tags"]').first().simulate('click');
+    await tick();
+    wrapper.update();
+
+    // since environment collides with the environment field, it is wrapped with `tags[...]`
+    const envSegment = wrapper.find(
+      '[data-test-id="tag-environment-segment-dev"] Segment'
+    );
+    const envTarget = envSegment.props().to;
+    expect(envTarget.query.query).toEqual('tags[environment]:dev');
+
+    const fooSegment = wrapper.find('[data-test-id="tag-foo-segment-bar"] Segment');
+    const fooTarget = fooSegment.props().to;
+    expect(fooTarget.query.query).toEqual('foo:bar');
   });
 });

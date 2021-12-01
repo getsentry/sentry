@@ -22,6 +22,7 @@ type TestStubFixtures = {
   BitbucketIntegrationConfig: SimpleStub;
   Broadcast: OverridableStub;
   Commit: OverridableStub;
+  Config: OverridableStub;
   CommitAuthor: OverridableStub;
   DataScrubbingRelayPiiConfig: SimpleStub;
   DebugFile: OverridableStub;

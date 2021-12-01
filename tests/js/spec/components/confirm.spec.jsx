@@ -1,7 +1,7 @@
 import {mountWithTheme, shallow} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 
-import Confirm from 'app/components/confirm';
+import Confirm from 'sentry/components/confirm';
 
 describe('Confirm', function () {
   it('renders', function () {

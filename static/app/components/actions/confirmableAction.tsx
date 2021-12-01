@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import Confirm from 'app/components/confirm';
+import Confirm from 'sentry/components/confirm';
 
 type ConfirmProps = React.ComponentProps<typeof Confirm>;
 type Props = {

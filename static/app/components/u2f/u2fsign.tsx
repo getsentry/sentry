@@ -1,6 +1,6 @@
 import {Component} from 'react';
 
-import {t} from 'app/locale';
+import {t} from 'sentry/locale';
 
 import U2fInterface from './u2finterface';
 

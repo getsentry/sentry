@@ -1,8 +1,13 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import GroupReleaseStats from 'app/components/group/releaseStats';
-import ConfigStore from 'app/stores/configStore';
+import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
+import GroupReleaseStats from 'sentry/components/group/releaseStats';
+import ConfigStore from 'sentry/stores/configStore';
+
+jest.mock('sentry/actionCreators/modal', () => ({
+  openAddDashboardWidgetModal: jest.fn(),
+}));
 
 describe('GroupReleaseStats', function () {
   const {organization, project, routerContext} = initializeOrg();
@@ -45,5 +50,34 @@ describe('GroupReleaseStats', function () {
     );
     expect(wrapper.find('GroupReleaseChart')).toHaveLength(2);
     expect(wrapper.find('SeenInfo')).toHaveLength(2);
+  });
+  it('opens dashboard widget', function () {
+    const wrapper = createWrapper({
+      organization: {
+        ...organization,
+        features: ['create-dashboard-widget-from-issue', 'dashboards-edit'],
+      },
+    });
+    expect(wrapper.find('AddToDashboard')).toHaveLength(2);
+    wrapper.find('AddToDashboard').first().simulate('click');
+    expect(openAddDashboardWidgetModal).toHaveBeenCalled();
+  });
+  it('need create-dashboard-widget-from-issue to render add to dashboards', function () {
+    const wrapper = createWrapper({
+      organization: {
+        ...organization,
+        features: ['dashboards-edit'],
+      },
+    });
+    expect(wrapper.find('AddToDashboard')).toHaveLength(0);
+  });
+  it('need dashboards-edit to render add to dashboards', function () {
+    const wrapper = createWrapper({
+      organization: {
+        ...organization,
+        features: ['create-dashboard-widget-from-issue'],
+      },
+    });
+    expect(wrapper.find('AddToDashboard')).toHaveLength(0);
   });
 });

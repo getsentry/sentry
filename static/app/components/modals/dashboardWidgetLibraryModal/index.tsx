@@ -3,23 +3,29 @@ import {useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps} from 'app/actionCreators/modal';
-import Tag from 'app/components/tagDeprecated';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import {DashboardDetails} from 'app/views/dashboardsV2/types';
-import {DEFAULT_WIDGETS, WidgetTemplate} from 'app/views/dashboardsV2/widgetLibrary/data';
+import {ModalRenderProps, openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
+import Tag from 'sentry/components/tagDeprecated';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {
+  DashboardDetails,
+  DashboardWidgetSource,
+  Widget,
+} from 'sentry/views/dashboardsV2/types';
+import {WidgetTemplate} from 'sentry/views/dashboardsV2/widgetLibrary/data';
 
 import Button from '../../button';
 import ButtonBar from '../../buttonBar';
 
-import DashboardWidgetCustomTab from './customTab';
 import DashboardWidgetLibraryTab from './libraryTab';
 
 export type DashboardWidgetLibraryModalOptions = {
   organization: Organization;
   dashboard: DashboardDetails;
+  initialSelectedWidgets?: WidgetTemplate[];
+  customWidget?: Widget;
+  onAddWidget: (widgets: Widget[]) => void;
 };
 
 export enum TAB {
@@ -29,9 +35,26 @@ export enum TAB {
 
 type Props = ModalRenderProps & DashboardWidgetLibraryModalOptions;
 
-function DashboardWidgetLibraryModal({Header, Body, Footer}: Props) {
-  const [tab, setTab] = useState(TAB.Library);
-  const [selectedWidgets, setSelectedWidgets] = useState<WidgetTemplate[]>([]);
+function DashboardWidgetLibraryModal({
+  Header,
+  Body,
+  Footer,
+  dashboard,
+  organization,
+  customWidget,
+  initialSelectedWidgets,
+  closeModal,
+  onAddWidget,
+}: Props) {
+  const [selectedWidgets, setSelectedWidgets] = useState<WidgetTemplate[]>(
+    initialSelectedWidgets ? initialSelectedWidgets : []
+  );
+  const [errored, setErrored] = useState(false);
+
+  function handleSubmit() {
+    onAddWidget([...dashboard.widgets, ...selectedWidgets]);
+    closeModal();
+  }
 
   return (
     <React.Fragment>
@@ -39,23 +62,29 @@ function DashboardWidgetLibraryModal({Header, Body, Footer}: Props) {
         <h4>{t('Add Widget')}</h4>
       </Header>
       <Body>
-        <StyledButtonBar active={tab}>
-          <Button barId={TAB.Library} onClick={() => setTab(TAB.Library)}>
-            {t('Library')}
-          </Button>
-          <Button barId={TAB.Custom} onClick={() => setTab(TAB.Custom)}>
+        <StyledButtonBar>
+          <Button
+            barId={TAB.Custom}
+            onClick={() => {
+              openAddDashboardWidgetModal({
+                organization,
+                dashboard,
+                selectedWidgets,
+                widget: customWidget,
+                source: DashboardWidgetSource.LIBRARY,
+                onAddLibraryWidget: onAddWidget,
+              });
+            }}
+          >
             {t('Custom')}
           </Button>
         </StyledButtonBar>
-        <Title>{t('%s WIDGETS', DEFAULT_WIDGETS.length)}</Title>
-        {tab === TAB.Library ? (
-          <DashboardWidgetLibraryTab
-            selectedWidgets={selectedWidgets}
-            setSelectedWidgets={setSelectedWidgets}
-          />
-        ) : (
-          <DashboardWidgetCustomTab />
-        )}
+        <DashboardWidgetLibraryTab
+          selectedWidgets={selectedWidgets}
+          errored={errored}
+          setSelectedWidgets={setSelectedWidgets}
+          setErrored={setErrored}
+        />
       </Body>
       <Footer>
         <FooterButtonbar gap={1}>
@@ -70,12 +99,19 @@ function DashboardWidgetLibraryModal({Header, Body, Footer}: Props) {
               {`${selectedWidgets.length} Selected`}
             </SelectedBadge>
             <Button
-              data-test-id="add-widget"
+              data-test-id="confirm-widgets"
               priority="primary"
               type="button"
-              onClick={() => {}}
+              onClick={(event: React.FormEvent) => {
+                event.preventDefault();
+                if (!!!selectedWidgets.length) {
+                  setErrored(true);
+                  return;
+                }
+                handleSubmit();
+              }}
             >
-              {t('Add Widget')}
+              {t('Confirm')}
             </Button>
           </div>
         </FooterButtonbar>
@@ -91,21 +127,12 @@ export const modalCss = css`
 `;
 
 const StyledButtonBar = styled(ButtonBar)`
-  grid-template-columns: repeat(2, minmax(0, 1fr));
   margin-bottom: ${space(1)};
 `;
 
 const FooterButtonbar = styled(ButtonBar)`
   justify-content: space-between;
   width: 100%;
-`;
-
-const Title = styled('h3')`
-  margin-bottom: ${space(1)};
-  padding: 0 !important;
-  font-size: ${p => p.theme.fontSizeSmall};
-  text-transform: uppercase;
-  color: ${p => p.theme.gray300};
 `;
 
 const SelectedBadge = styled(Tag)`

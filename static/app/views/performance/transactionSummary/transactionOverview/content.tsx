@@ -4,35 +4,38 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import omit from 'lodash/omit';
 
-import Feature from 'app/components/acl/feature';
-import TransactionsList, {DropdownOption} from 'app/components/discover/transactionsList';
-import SearchBar from 'app/components/events/searchBar';
-import GlobalSdkUpdateAlert from 'app/components/globalSdkUpdateAlert';
-import * as Layout from 'app/components/layouts/thirds';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {MAX_QUERY_LENGTH} from 'app/constants';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import {generateQueryWithTag} from 'app/utils';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import EventView from 'app/utils/discover/eventView';
+import Feature from 'sentry/components/acl/feature';
+import TransactionsList, {
+  DropdownOption,
+} from 'sentry/components/discover/transactionsList';
+import SearchBar from 'sentry/components/events/searchBar';
+import GlobalSdkUpdateAlert from 'sentry/components/globalSdkUpdateAlert';
+import * as Layout from 'sentry/components/layouts/thirds';
+import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {MAX_QUERY_LENGTH} from 'sentry/constants';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import {generateQueryWithTag} from 'sentry/utils';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import EventView from 'sentry/utils/discover/eventView';
 import {
+  formatTagKey,
   getAggregateAlias,
   isRelativeSpanOperationBreakdownField,
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
-} from 'app/utils/discover/fields';
-import {decodeScalar} from 'app/utils/queryString';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
-import withProjects from 'app/utils/withProjects';
-import {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
-import {TableColumn} from 'app/views/eventsV2/table/types';
-import Tags from 'app/views/eventsV2/tags';
+} from 'sentry/utils/discover/fields';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import withProjects from 'sentry/utils/withProjects';
+import {Actions, updateQuery} from 'sentry/views/eventsV2/table/cellAction';
+import {TableColumn} from 'sentry/views/eventsV2/table/types';
+import Tags from 'sentry/views/eventsV2/tags';
 import {
   PERCENTILE as VITAL_PERCENTILE,
   VITAL_GROUPS,
-} from 'app/views/performance/transactionSummary/transactionVitals/constants';
+} from 'sentry/views/performance/transactionSummary/transactionVitals/constants';
 
 import {isSummaryViewFrontend, isSummaryViewFrontendPageLoad} from '../../utils';
 import Filter, {
@@ -52,12 +55,14 @@ import TransactionSummaryCharts from './charts';
 import RelatedIssues from './relatedIssues';
 import SidebarCharts from './sidebarCharts';
 import StatusBreakdown from './statusBreakdown';
+import SuspectSpans from './suspectSpans';
 import {TagExplorer} from './tagExplorer';
 import UserStats from './userStats';
 
 type Props = {
   location: Location;
   eventView: EventView;
+  projectId: string;
   transactionName: string;
   organization: Organization;
   isLoading: boolean;
@@ -88,7 +93,7 @@ class SummaryContent extends React.Component<Props> {
 
   generateTagUrl = (key: string, value: string) => {
     const {location} = this.props;
-    const query = generateQueryWithTag(location.query, {key, value});
+    const query = generateQueryWithTag(location.query, {key: formatTagKey(key), value});
 
     return {
       ...location,
@@ -185,6 +190,7 @@ class SummaryContent extends React.Component<Props> {
   render() {
     let {eventView} = this.props;
     const {
+      projectId,
       transactionName,
       location,
       organization,
@@ -351,17 +357,24 @@ class SummaryContent extends React.Component<Props> {
           />
           <Feature
             requireAll={false}
-            features={['performance-tag-explorer', 'performance-tag-page']}
+            features={['organizations:performance-suspect-spans-view']}
           >
-            <TagExplorer
-              eventView={eventView}
-              organization={organization}
+            <SuspectSpans
               location={location}
-              projects={projects}
+              organization={organization}
+              eventView={eventView}
+              projectId={projectId}
               transactionName={transactionName}
-              currentFilter={spanOperationBreakdownFilter}
             />
           </Feature>
+          <TagExplorer
+            eventView={eventView}
+            organization={organization}
+            location={location}
+            projects={projects}
+            transactionName={transactionName}
+            currentFilter={spanOperationBreakdownFilter}
+          />
           <RelatedIssues
             organization={organization}
             location={location}

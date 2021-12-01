@@ -1,5 +1,5 @@
-import {t} from 'app/locale';
-import {DebugFile, DebugFileFeature, DebugFileType} from 'app/types/debugFiles';
+import {t} from 'sentry/locale';
+import {DebugFile, DebugFileFeature, DebugFileType} from 'sentry/types/debugFiles';
 
 export function getFileType(dsym: DebugFile) {
   switch (dsym.data?.type) {

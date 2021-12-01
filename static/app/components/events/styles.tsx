@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
-import {Theme} from 'app/utils/theme';
+import space from 'sentry/styles/space';
+import {Theme} from 'sentry/utils/theme';
 
 export const DataSection = styled('div')`
   display: flex;

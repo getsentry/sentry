@@ -1,18 +1,27 @@
 import {browserHistory} from 'react-router';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
-import * as globalSelection from 'app/actionCreators/globalSelection';
-import ProjectsStore from 'app/stores/projectsStore';
-import TeamStore from 'app/stores/teamStore';
-import {OrganizationContext} from 'app/views/organizationContext';
-import PerformanceContent from 'app/views/performance/content';
-import {DEFAULT_MAX_DURATION} from 'app/views/performance/trends/utils';
-import {vitalAbbreviations} from 'app/views/performance/vitalDetail/utils';
+import * as globalSelection from 'sentry/actionCreators/globalSelection';
+import OrganizationStore from 'sentry/stores/organizationStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import TeamStore from 'sentry/stores/teamStore';
+import {OrganizationContext} from 'sentry/views/organizationContext';
+import PerformanceContent from 'sentry/views/performance/content';
+import {DEFAULT_MAX_DURATION} from 'sentry/views/performance/trends/utils';
+import {vitalAbbreviations} from 'sentry/views/performance/vitalDetail/utils';
 
 const FEATURES = ['transaction-event', 'performance-view'];
+
+function WrappedComponent({organization, location}) {
+  return (
+    <OrganizationContext.Provider value={organization}>
+      <PerformanceContent organization={organization} location={location} />
+    </OrganizationContext.Provider>
+  );
+}
 
 function initializeData(projects, query, features = FEATURES) {
   const organization = TestStubs.Organization({
@@ -27,6 +36,7 @@ function initializeData(projects, query, features = FEATURES) {
       },
     },
   });
+  act(() => void OrganizationStore.onUpdate(initialData.organization, {replace: true}));
   act(() => ProjectsStore.loadInitialData(initialData.organization.projects));
   return initialData;
 }
@@ -63,6 +73,8 @@ function initializeTrendsData(query, addDefaultQuery = true) {
 }
 
 describe('Performance > Content', function () {
+  enforceActOnUseLegacyStoreHook();
+
   beforeEach(function () {
     act(() => void TeamStore.loadInitialData([]));
     browserHistory.push = jest.fn();
@@ -105,42 +117,40 @@ describe('Performance > Content', function () {
       url: '/prompts-activity/',
       body: {},
     });
-    MockApiClient.addMockResponse(
-      {
-        url: '/organizations/org-slug/eventsv2/',
-        body: {
-          meta: {
-            user: 'string',
-            transaction: 'string',
-            'project.id': 'integer',
-            tpm: 'number',
-            p50: 'number',
-            p95: 'number',
-            failure_rate: 'number',
-            apdex_300: 'number',
-            count_unique_user: 'number',
-            count_miserable_user_300: 'number',
-            user_misery_300: 'number',
-          },
-          data: [
-            {
-              transaction: '/apple/cart',
-              'project.id': 1,
-              user: 'uhoh@example.com',
-              tpm: 30,
-              p50: 100,
-              p95: 500,
-              failure_rate: 0.1,
-              apdex_300: 0.6,
-              count_unique_user: 1000,
-              count_miserable_user_300: 122,
-              user_misery_300: 0.114,
-            },
-          ],
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/eventsv2/',
+      body: {
+        meta: {
+          user: 'string',
+          transaction: 'string',
+          'project.id': 'integer',
+          tpm: 'number',
+          p50: 'number',
+          p95: 'number',
+          failure_rate: 'number',
+          apdex_300: 'number',
+          count_unique_user: 'number',
+          count_miserable_user_300: 'number',
+          user_misery_300: 'number',
         },
+        data: [
+          {
+            transaction: '/apple/cart',
+            'project.id': 1,
+            user: 'uhoh@example.com',
+            tpm: 30,
+            p50: 100,
+            p95: 500,
+            failure_rate: 0.1,
+            apdex_300: 0.6,
+            count_unique_user: 1000,
+            count_miserable_user_300: 122,
+            user_misery_300: 0.114,
+          },
+        ],
       },
-      {
-        predicate: (_, options) => {
+      match: [
+        (_, options) => {
           if (!options.hasOwnProperty('query')) {
             return false;
           }
@@ -149,59 +159,57 @@ describe('Performance > Content', function () {
           }
           return !options.query.field.includes('team_key_transaction');
         },
-      }
-    );
-    MockApiClient.addMockResponse(
-      {
-        url: '/organizations/org-slug/eventsv2/',
-        body: {
-          meta: {
-            user: 'string',
-            transaction: 'string',
-            'project.id': 'integer',
-            tpm: 'number',
-            p50: 'number',
-            p95: 'number',
-            failure_rate: 'number',
-            apdex_300: 'number',
-            count_unique_user: 'number',
-            count_miserable_user_300: 'number',
-            user_misery_300: 'number',
-          },
-          data: [
-            {
-              team_key_transaction: 1,
-              transaction: '/apple/cart',
-              'project.id': 1,
-              user: 'uhoh@example.com',
-              tpm: 30,
-              p50: 100,
-              p95: 500,
-              failure_rate: 0.1,
-              apdex_300: 0.6,
-              count_unique_user: 1000,
-              count_miserable_user_300: 122,
-              user_misery_300: 0.114,
-            },
-            {
-              team_key_transaction: 0,
-              transaction: '/apple/checkout',
-              'project.id': 1,
-              user: 'uhoh@example.com',
-              tpm: 30,
-              p50: 100,
-              p95: 500,
-              failure_rate: 0.1,
-              apdex_300: 0.6,
-              count_unique_user: 1000,
-              count_miserable_user_300: 122,
-              user_misery_300: 0.114,
-            },
-          ],
+      ],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/eventsv2/',
+      body: {
+        meta: {
+          user: 'string',
+          transaction: 'string',
+          'project.id': 'integer',
+          tpm: 'number',
+          p50: 'number',
+          p95: 'number',
+          failure_rate: 'number',
+          apdex_300: 'number',
+          count_unique_user: 'number',
+          count_miserable_user_300: 'number',
+          user_misery_300: 'number',
         },
+        data: [
+          {
+            team_key_transaction: 1,
+            transaction: '/apple/cart',
+            'project.id': 1,
+            user: 'uhoh@example.com',
+            tpm: 30,
+            p50: 100,
+            p95: 500,
+            failure_rate: 0.1,
+            apdex_300: 0.6,
+            count_unique_user: 1000,
+            count_miserable_user_300: 122,
+            user_misery_300: 0.114,
+          },
+          {
+            team_key_transaction: 0,
+            transaction: '/apple/checkout',
+            'project.id': 1,
+            user: 'uhoh@example.com',
+            tpm: 30,
+            p50: 100,
+            p95: 500,
+            failure_rate: 0.1,
+            apdex_300: 0.6,
+            count_unique_user: 1000,
+            count_miserable_user_300: 122,
+            user_misery_300: 0.114,
+          },
+        ],
       },
-      {
-        predicate: (_, options) => {
+      match: [
+        (_, options) => {
           if (!options.hasOwnProperty('query')) {
             return false;
           }
@@ -210,8 +218,8 @@ describe('Performance > Content', function () {
           }
           return options.query.field.includes('team_key_transaction');
         },
-      }
-    );
+      ],
+    });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-meta/',
       body: {
@@ -262,7 +270,7 @@ describe('Performance > Content', function () {
     const data = initializeData(projects, {});
 
     const wrapper = mountWithTheme(
-      <PerformanceContent
+      <WrappedComponent
         organization={data.organization}
         location={data.router.location}
       />,
@@ -290,14 +298,13 @@ describe('Performance > Content', function () {
     const data = initializeData(projects, {project: [1]});
 
     const wrapper = mountWithTheme(
-      <PerformanceContent
+      <WrappedComponent
         organization={data.organization}
         location={data.router.location}
       />,
       data.routerContext
     );
     await tick();
-    wrapper.update();
 
     // onboarding should show.
     expect(wrapper.find('Onboarding')).toHaveLength(1);
@@ -315,14 +322,13 @@ describe('Performance > Content', function () {
     const data = initializeData(projects, {project: ['-1']});
 
     const wrapper = mountWithTheme(
-      <PerformanceContent
+      <WrappedComponent
         organization={data.organization}
         location={data.router.location}
       />,
       data.routerContext
     );
     await tick();
-    wrapper.update();
 
     expect(wrapper.find('Onboarding')).toHaveLength(0);
   });
@@ -332,7 +338,7 @@ describe('Performance > Content', function () {
     const data = initializeData(projects, {project: ['1'], query: 'sentry:yes'});
 
     const wrapper = mountWithTheme(
-      <PerformanceContent
+      <WrappedComponent
         organization={data.organization}
         location={data.router.location}
       />,
@@ -356,15 +362,14 @@ describe('Performance > Content', function () {
 
   it('Default period for trends does not call updateDateTime', async function () {
     const data = initializeTrendsData({query: 'tag:value'}, false);
-    const wrapper = mountWithTheme(
-      <PerformanceContent
+    mountWithTheme(
+      <WrappedComponent
         organization={data.organization}
         location={data.router.location}
       />,
       data.routerContext
     );
     await tick();
-    wrapper.update();
     expect(globalSelection.updateDateTime).toHaveBeenCalledTimes(0);
   });
 
@@ -375,14 +380,13 @@ describe('Performance > Content', function () {
     });
 
     const wrapper = mountWithTheme(
-      <PerformanceContent
+      <WrappedComponent
         organization={data.organization}
         location={data.router.location}
       />,
       data.routerContext
     );
     await tick();
-    wrapper.update();
 
     const trendsLink = wrapper.find('[data-test-id="landing-header-trends"]').at(0);
     trendsLink.simulate('click');
@@ -407,15 +411,14 @@ describe('Performance > Content', function () {
     ];
     const data = initializeData(projects, {view: undefined});
 
-    const wrapper = mountWithTheme(
-      <PerformanceContent
+    mountWithTheme(
+      <WrappedComponent
         organization={data.organization}
         location={data.router.location}
       />,
       data.routerContext
     );
     await tick();
-    wrapper.update();
 
     expect(browserHistory.push).toHaveBeenCalledTimes(0);
   });
@@ -423,15 +426,14 @@ describe('Performance > Content', function () {
   it('Default page (transactions) with trends feature will not update filters if none are set', async function () {
     const data = initializeTrendsData({view: undefined}, false);
 
-    const wrapper = mountWithTheme(
-      <PerformanceContent
+    mountWithTheme(
+      <WrappedComponent
         organization={data.organization}
         location={data.router.location}
       />,
       data.routerContext
     );
     await tick();
-    wrapper.update();
 
     expect(browserHistory.push).toHaveBeenCalledTimes(0);
   });
@@ -440,14 +442,13 @@ describe('Performance > Content', function () {
     const data = initializeTrendsData({query: 'device.family:Mac'}, false);
 
     const wrapper = mountWithTheme(
-      <PerformanceContent
+      <WrappedComponent
         organization={data.organization}
         location={data.router.location}
       />,
       data.routerContext
     );
     await tick();
-    wrapper.update();
 
     const trendsLink = wrapper.find('[data-test-id="landing-header-trends"]').at(0);
     trendsLink.simulate('click');
@@ -469,14 +470,13 @@ describe('Performance > Content', function () {
     ]);
 
     const wrapper = mountWithTheme(
-      <PerformanceContent
+      <WrappedComponent
         organization={data.organization}
         location={data.router.location}
       />,
       data.routerContext
     );
     await tick();
-    wrapper.update();
 
     const vitalsContainer = wrapper.find('VitalsContainer');
     expect(vitalsContainer).toHaveLength(0);
@@ -495,14 +495,13 @@ describe('Performance > Content', function () {
     ]);
 
     const wrapper = mountWithTheme(
-      <PerformanceContent
+      <WrappedComponent
         organization={data.organization}
         location={data.router.location}
       />,
       data.routerContext
     );
     await tick();
-    wrapper.update();
 
     const vitalsContainer = wrapper.find('VitalsContainer');
     expect(vitalsContainer).toHaveLength(1);
@@ -526,7 +525,7 @@ describe('Performance > Content', function () {
     const data = initializeData(projects, {view: undefined});
 
     const wrapper = mountWithTheme(
-      <PerformanceContent
+      <WrappedComponent
         organization={data.organization}
         location={data.router.location}
       />,
@@ -545,12 +544,10 @@ describe('Performance > Content', function () {
     ]);
 
     const wrapper = mountWithTheme(
-      <OrganizationContext.Provider value={data.organization}>
-        <PerformanceContent
-          organization={data.organization}
-          location={data.router.location}
-        />
-      </OrganizationContext.Provider>,
+      <WrappedComponent
+        organization={data.organization}
+        location={data.router.location}
+      />,
       data.routerContext
     );
 

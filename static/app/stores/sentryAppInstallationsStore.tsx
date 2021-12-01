@@ -1,6 +1,6 @@
 import Reflux from 'reflux';
 
-import {SentryAppInstallation} from 'app/types';
+import {SentryAppInstallation} from 'sentry/types';
 
 type SentryAppInstallationStoreInterface = {
   load(items: SentryAppInstallation[]): void;

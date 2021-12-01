@@ -1,13 +1,13 @@
 import {ClassNames, css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps} from 'app/actionCreators/modal';
-import HelpSearch from 'app/components/helpSearch';
-import Hook from 'app/components/hook';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import withOrganization from 'app/utils/withOrganization';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import HelpSearch from 'sentry/components/helpSearch';
+import Hook from 'sentry/components/hook';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = ModalRenderProps & {
   organization: Organization;

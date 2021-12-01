@@ -1,11 +1,11 @@
 import {Component, Fragment} from 'react';
 
-import {Panel, PanelBody} from 'app/components/panels';
-import {Organization, Project} from 'app/types';
-import {removeAtArrayIndex} from 'app/utils/removeAtArrayIndex';
-import {replaceAtArrayIndex} from 'app/utils/replaceAtArrayIndex';
-import ActionsPanel from 'app/views/alerts/incidentRules/triggers/actionsPanel';
-import TriggerForm from 'app/views/alerts/incidentRules/triggers/form';
+import {Panel, PanelBody} from 'sentry/components/panels';
+import {Organization, Project} from 'sentry/types';
+import {removeAtArrayIndex} from 'sentry/utils/removeAtArrayIndex';
+import {replaceAtArrayIndex} from 'sentry/utils/replaceAtArrayIndex';
+import ActionsPanel from 'sentry/views/alerts/incidentRules/triggers/actionsPanel';
+import TriggerForm from 'sentry/views/alerts/incidentRules/triggers/form';
 
 import {
   Action,

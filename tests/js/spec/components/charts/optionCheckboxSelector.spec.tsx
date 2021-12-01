@@ -1,8 +1,8 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import OptionCheckboxSelector from 'app/components/charts/optionCheckboxSelector';
-import {t} from 'app/locale';
+import OptionCheckboxSelector from 'sentry/components/charts/optionCheckboxSelector';
+import {t} from 'sentry/locale';
 
 describe('EventsV2 > OptionCheckboxSelector', function () {
   const features = ['discover-basic'];
@@ -16,7 +16,6 @@ describe('EventsV2 > OptionCheckboxSelector', function () {
   let organization, initialData, selected, wrapper, onChangeStub, dropdownItem;
 
   beforeEach(() => {
-    // @ts-expect-error
     organization = TestStubs.Organization({
       features: [...features, 'connect-discover-and-dashboards'],
     });

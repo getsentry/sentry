@@ -1,10 +1,9 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import accountDetailsFields from 'app/data/forms/accountDetails';
-import {fields} from 'app/data/forms/projectGeneralSettings';
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
+import accountDetailsFields from 'sentry/data/forms/accountDetails';
+import {fields} from 'sentry/data/forms/projectGeneralSettings';
+import JsonForm from 'sentry/views/settings/components/forms/jsonForm';
 
-// @ts-expect-error
 const user = TestStubs.User({});
 
 describe('JsonForm', function () {

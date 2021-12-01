@@ -2,14 +2,10 @@ from django.http import Http404
 from rest_framework import status
 
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
-from sentry.models import RepositoryProjectPathConfig
-
-from .organization_code_mappings import NullableOrganizationIntegrationMixin
+from sentry.models import OrganizationIntegration, RepositoryProjectPathConfig
 
 
-class OrganizationCodeMappingCodeOwnersEndpoint(
-    OrganizationEndpoint, NullableOrganizationIntegrationMixin
-):
+class OrganizationCodeMappingCodeOwnersEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationIntegrationsPermission,)
 
     def convert_args(self, request, organization_slug, config_id, *args, **kwargs):
@@ -18,6 +14,9 @@ class OrganizationCodeMappingCodeOwnersEndpoint(
         try:
             kwargs["config"] = RepositoryProjectPathConfig.objects.get(
                 id=config_id,
+                organization_integration__in=OrganizationIntegration.objects.filter(
+                    organization=kwargs["organization"]
+                ).values_list("id", flat=True),
             )
         except RepositoryProjectPathConfig.DoesNotExist:
             raise Http404

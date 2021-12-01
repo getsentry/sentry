@@ -3,9 +3,9 @@ import {Component} from 'react';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {act} from 'sentry-test/reactTestingLibrary';
 
-import NoProjectMessage from 'app/components/noProjectMessage';
-import ConfigStore from 'app/stores/configStore';
-import ProjectsStore from 'app/stores/projectsStore';
+import NoProjectMessage from 'sentry/components/noProjectMessage';
+import ConfigStore from 'sentry/stores/configStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
 
 describe('NoProjectMessage', function () {
   beforeEach(function () {

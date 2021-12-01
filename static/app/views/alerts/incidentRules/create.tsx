@@ -1,14 +1,14 @@
 import {RouteComponentProps} from 'react-router';
 
-import {Organization, Project} from 'app/types';
-import {metric} from 'app/utils/analytics';
-import EventView from 'app/utils/discover/eventView';
+import {Organization, Project} from 'sentry/types';
+import {metric} from 'sentry/utils/analytics';
+import EventView from 'sentry/utils/discover/eventView';
 import {
   createDefaultRule,
   createRuleFromEventView,
   createRuleFromWizardTemplate,
-} from 'app/views/alerts/incidentRules/constants';
-import {WizardRuleTemplate} from 'app/views/alerts/wizard/options';
+} from 'sentry/views/alerts/incidentRules/constants';
+import {WizardRuleTemplate} from 'sentry/views/alerts/wizard/options';
 
 import RuleForm from './ruleForm';
 
@@ -33,11 +33,14 @@ type Props = {
  */
 function IncidentRulesCreate(props: Props) {
   function handleSubmitSuccess() {
-    const {router} = props;
+    const {router, project} = props;
     const {orgId} = props.params;
 
     metric.endTransaction({name: 'saveAlertRule'});
-    router.push(`/organizations/${orgId}/alerts/rules/`);
+    router.push({
+      pathname: `/organizations/${orgId}/alerts/rules/`,
+      query: {project: project.id},
+    });
   }
 
   const {project, eventView, wizardTemplate, sessionId, userTeamIds, ...otherProps} =

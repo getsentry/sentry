@@ -1,14 +1,14 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {act, mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import OrganizationStore from 'app/stores/organizationStore';
-import ProjectsStore from 'app/stores/projectsStore';
-import TeamStore from 'app/stores/teamStore';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import AlertRulesList from 'app/views/alerts/rules';
-import {IncidentStatus} from 'app/views/alerts/types';
+import OrganizationStore from 'sentry/stores/organizationStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import TeamStore from 'sentry/stores/teamStore';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import AlertRulesList from 'sentry/views/alerts/rules';
+import {IncidentStatus} from 'sentry/views/alerts/types';
 
-jest.mock('app/utils/analytics');
+jest.mock('sentry/utils/analytics');
 
 describe('OrganizationRuleList', () => {
   const {routerContext, organization, router} = initializeOrg();
@@ -190,8 +190,7 @@ describe('OrganizationRuleList', () => {
     expect(search).toBeInTheDocument();
 
     const testQuery = 'test name';
-    fireEvent.change(search, {target: {value: testQuery}});
-    fireEvent.submit(search);
+    userEvent.type(search, `${testQuery}{enter}`);
 
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -214,10 +213,10 @@ describe('OrganizationRuleList', () => {
       getComponent({location: {query: {team: 'myteams'}, search: '?team=myteams`'}})
     );
 
-    fireEvent.click(await screen.findByTestId('filter-button'));
+    userEvent.click(await screen.findByTestId('filter-button'));
 
     // Uncheck myteams
-    fireEvent.click(await screen.findByText('My Teams'));
+    userEvent.click(await screen.findByText('My Teams'));
 
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -266,7 +265,7 @@ describe('OrganizationRuleList', () => {
     });
     expect(await screen.findByText('First Issue Alert')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByLabelText('Next'));
+    userEvent.click(screen.getByLabelText('Next'));
 
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({

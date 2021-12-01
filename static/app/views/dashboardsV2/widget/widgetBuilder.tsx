@@ -1,11 +1,11 @@
 import {useEffect, useState} from 'react';
 import {RouteComponentProps} from 'react-router';
 
-import Alert from 'app/components/alert';
-import {IconWarning} from 'app/icons';
-import {t} from 'app/locale';
-import {Organization} from 'app/types';
-import {defined} from 'app/utils';
+import Alert from 'sentry/components/alert';
+import {IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {Organization} from 'sentry/types';
+import {defined} from 'sentry/utils';
 
 import {DashboardDetails, Widget} from '../types';
 

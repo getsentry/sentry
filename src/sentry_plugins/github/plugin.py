@@ -9,8 +9,8 @@ from sentry.app import locks
 from sentry.exceptions import PluginError
 from sentry.integrations import FeatureDescription, IntegrationFeatures
 from sentry.models import Integration, Organization, OrganizationOption, Repository
-from sentry.plugins import providers
 from sentry.plugins.bases.issue2 import IssueGroupActionEndpoint, IssuePlugin2
+from sentry.plugins.providers import RepositoryProvider
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.http import absolute_uri
@@ -256,7 +256,7 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
             self.logger.info("apps-not-configured")
 
 
-class GitHubRepositoryProvider(GitHubMixin, providers.RepositoryProvider):
+class GitHubRepositoryProvider(GitHubMixin, RepositoryProvider):
     name = "GitHub"
     auth_provider = "github"
     logger = logging.getLogger("sentry.plugins.github")

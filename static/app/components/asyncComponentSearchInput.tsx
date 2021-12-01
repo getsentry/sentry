@@ -3,10 +3,10 @@ import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import {Client, ResponseMeta} from 'app/api';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {t} from 'app/locale';
-import Input from 'app/views/settings/components/forms/controls/input';
+import {Client, ResponseMeta} from 'sentry/api';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {t} from 'sentry/locale';
+import Input from 'sentry/views/settings/components/forms/controls/input';
 
 type RenderProps = {
   defaultSearchBar: React.ReactNode;

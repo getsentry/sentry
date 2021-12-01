@@ -2,9 +2,9 @@ import {Fragment} from 'react';
 import {InjectedRouter} from 'react-router';
 import {Location} from 'history';
 
-import {Client} from 'app/api';
-import {Organization, Project} from 'app/types';
-import {BuiltinSymbolSource, CustomRepo} from 'app/types/debugFiles';
+import {Client} from 'sentry/api';
+import {Organization, Project} from 'sentry/types';
+import {BuiltinSymbolSource, CustomRepo} from 'sentry/types/debugFiles';
 
 import BuiltInRepositories from './builtInRepositories';
 import CustomRepositories from './customRepositories';

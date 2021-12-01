@@ -53,7 +53,9 @@ class RepositoryProjectPathConfig(DefaultFieldsModel):
 
     repository = FlexibleForeignKey("sentry.Repository")
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
-    organization_integration = FlexibleForeignKey("sentry.OrganizationIntegration", null=True)
+    organization_integration = FlexibleForeignKey(
+        "sentry.OrganizationIntegration", on_delete=models.CASCADE
+    )
     stack_root = models.TextField()
     source_root = models.TextField()
     default_branch = models.TextField(null=True)
@@ -75,6 +77,8 @@ class OrganizationIntegration(DefaultFieldsModel):
     status = BoundedPositiveIntegerField(
         default=ObjectStatus.VISIBLE, choices=ObjectStatus.as_choices()
     )
+    # after the grace period, we will mark the status as disabled
+    grace_period_end = models.DateTimeField(null=True, blank=True, db_index=True)
 
     class Meta:
         app_label = "sentry"

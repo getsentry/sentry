@@ -1,9 +1,9 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import {IconEdit} from 'app/icons';
-import space from 'app/styles/space';
-import {callIfFunction} from 'app/utils/callIfFunction';
+import {IconEdit} from 'sentry/icons';
+import space from 'sentry/styles/space';
+import {callIfFunction} from 'sentry/utils/callIfFunction';
 
 type Props = {
   name: string;

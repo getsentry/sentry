@@ -1,5 +1,5 @@
-import {usePageError} from 'app/utils/performance/contexts/pageError';
-import {PerformanceDisplayProvider} from 'app/utils/performance/contexts/performanceDisplayContext';
+import {usePageError} from 'sentry/utils/performance/contexts/pageError';
+import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 
 import Table from '../../table';
 import {PROJECT_PERFORMANCE_TYPE} from '../../utils';
@@ -28,9 +28,11 @@ export function FrontendPageloadView(props: BasePerformanceViewProps) {
         <DoubleChartRow
           {...props}
           allowedCharts={[
+            PerformanceWidgetSetting.WORST_LCP_VITALS,
+            PerformanceWidgetSetting.WORST_FCP_VITALS,
+            PerformanceWidgetSetting.WORST_FID_VITALS,
             PerformanceWidgetSetting.MOST_RELATED_ERRORS,
             PerformanceWidgetSetting.MOST_RELATED_ISSUES,
-            PerformanceWidgetSetting.WORST_LCP_VITALS,
             PerformanceWidgetSetting.SLOW_HTTP_OPS,
             PerformanceWidgetSetting.SLOW_BROWSER_OPS,
             PerformanceWidgetSetting.SLOW_RESOURCE_OPS,

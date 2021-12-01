@@ -1,10 +1,9 @@
 import {act, renderHook} from '@testing-library/react-hooks';
 
-import TeamStore from 'app/stores/teamStore';
-import {useLegacyStore} from 'app/stores/useLegacyStore';
+import TeamStore from 'sentry/stores/teamStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 
 describe('useLegacyStore', () => {
-  // @ts-expect-error
   const team = TestStubs.Team();
 
   beforeEach(() => void TeamStore.reset());

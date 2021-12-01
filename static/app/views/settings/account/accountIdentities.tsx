@@ -3,22 +3,22 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
-import {disconnectIdentity} from 'app/actionCreators/account';
-import Alert from 'app/components/alert';
-import Button from 'app/components/button';
-import Confirm from 'app/components/confirm';
-import DateTime from 'app/components/dateTime';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
-import Tag from 'app/components/tag';
-import {IconFlag} from 'app/icons';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {UserIdentityCategory, UserIdentityConfig, UserIdentityStatus} from 'app/types';
-import AsyncView from 'app/views/asyncView';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import IdentityIcon from 'app/views/settings/components/identityIcon';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import TextBlock from 'app/views/settings/components/text/textBlock';
+import {disconnectIdentity} from 'sentry/actionCreators/account';
+import Alert from 'sentry/components/alert';
+import Button from 'sentry/components/button';
+import Confirm from 'sentry/components/confirm';
+import DateTime from 'sentry/components/dateTime';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
+import Tag from 'sentry/components/tag';
+import {IconFlag} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {UserIdentityCategory, UserIdentityConfig, UserIdentityStatus} from 'sentry/types';
+import AsyncView from 'sentry/views/asyncView';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
+import IdentityIcon from 'sentry/views/settings/components/identityIcon';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 const ENDPOINT = '/users/me/user-identities/';
 

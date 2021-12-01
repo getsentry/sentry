@@ -1,6 +1,6 @@
-import {fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import ArrayValue from 'app/utils/discover/arrayValue';
+import ArrayValue from 'sentry/utils/discover/arrayValue';
 
 describe('Discover > ArrayValue', function () {
   it('renders an expand link', function () {
@@ -19,7 +19,7 @@ describe('Discover > ArrayValue', function () {
 
     // Should have a button
     let button = screen.getByRole('button');
-    fireEvent.click(button);
+    userEvent.click(button);
 
     // Button text should update.
     button = screen.getByRole('button');

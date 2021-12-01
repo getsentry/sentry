@@ -1,6 +1,6 @@
 import {action} from '@storybook/addon-actions';
 
-import U2fEnrolledDetails from 'app/views/settings/account/accountSecurity/components/u2fEnrolledDetails';
+import U2fEnrolledDetails from 'sentry/views/settings/account/accountSecurity/components/u2fEnrolledDetails';
 
 export default {
   title: 'Components/Tables/U2fEnrolledDetails',
