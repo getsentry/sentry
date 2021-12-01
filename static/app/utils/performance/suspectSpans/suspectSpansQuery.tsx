@@ -13,6 +13,7 @@ import {SuspectSpans} from './types';
 type SuspectSpansProps = {
   perSuspect?: number;
   spanOps?: string[];
+  spanGroups?: string[];
 };
 
 type RequestProps = DiscoverQueryProps & SuspectSpansProps;
@@ -26,13 +27,16 @@ type Props = RequestProps & {
 };
 
 function getSuspectSpanPayload(props: RequestProps) {
-  const {perSuspect, spanOps} = props;
-  const payload = {perSuspect, spanOp: spanOps};
+  const {perSuspect, spanOps, spanGroups} = props;
+  const payload = {perSuspect, spanOp: spanOps, spanGroup: spanGroups};
   if (!defined(payload.perSuspect)) {
     delete payload.perSuspect;
   }
   if (!defined(payload.spanOp)) {
     delete payload.spanOp;
+  }
+  if (!defined(payload.spanGroup)) {
+    delete payload.spanGroup;
   }
   const additionalPayload = omit(props.eventView.getEventsAPIPayload(props.location), [
     'field',

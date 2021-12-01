@@ -1,4 +1,4 @@
-import {EChartOption} from 'echarts';
+import type {EChartsOption} from 'echarts';
 
 /**
  * Defines the keys which may be passed into the chartcuterie chart rendering
@@ -23,7 +23,7 @@ export enum ChartType {
  * prefer not to install with sentry.
  */
 
-export type RenderOption = Omit<EChartOption, 'animation' | 'tooltip' | 'toolbox'>;
+export type RenderOption = Omit<EChartsOption, 'animation' | 'tooltip' | 'toolbox'>;
 
 /**
  * Describes configuration for a renderable chart style

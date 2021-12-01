@@ -140,9 +140,9 @@ class MetricsRequest extends React.Component<Props, State> {
 
   render() {
     const {reloading, errored, response} = this.state;
-    const {children} = this.props;
+    const {children, isDisabled} = this.props;
 
-    const loading = response === null;
+    const loading = response === null && !isDisabled;
 
     return children?.({
       loading,

@@ -1,24 +1,12 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import IssueWidgetCard from 'sentry/views/dashboardsV2/issueWidgetCard';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
 
 describe('Dashboards > IssueWidgetCard', function () {
-  const initialData = initializeOrg({
-    organization: TestStubs.Organization({
-      features: [
-        'connect-discover-and-dashboards',
-        'dashboards-edit',
-        'discover-basic',
-        'issues-in-dashboards',
-      ],
-    }),
-    projects: [TestStubs.Project()],
-    router: {},
-    project: 1,
-  });
+  const initialData = initializeOrg();
 
   const widget: Widget = {
     title: 'Issues',
@@ -56,9 +44,10 @@ describe('Dashboards > IssueWidgetCard', function () {
           title: 'ChunkLoadError: Loading chunk app_bootstrap_index_tsx failed.',
           shortId: 'ISSUE',
           assignedTo: {
-            type: 'team',
+            type: 'user',
             id: '2222222',
-            name: 'discoveranddashboards',
+            name: 'dashboard user',
+            email: 'dashboarduser@sentry.io',
           },
         },
       ],
@@ -70,7 +59,7 @@ describe('Dashboards > IssueWidgetCard', function () {
   });
 
   it('renders with title and issues chart', async function () {
-    const wrapper = mountWithTheme(
+    mountWithTheme(
       <IssueWidgetCard
         api={api}
         organization={initialData.organization}
@@ -83,24 +72,46 @@ describe('Dashboards > IssueWidgetCard', function () {
         isSorting={false}
         currentWidgetDragging={false}
         showContextMenu
-      >
-        {() => <div data-test-id="child" />}
-      </IssueWidgetCard>
+      />
     );
 
     await tick();
-    await tick();
-    await tick();
+
+    expect(screen.getByText('Issues')).toBeInTheDocument();
+    expect(screen.getByText('assignee')).toBeInTheDocument();
+    expect(screen.getByText('title')).toBeInTheDocument();
+    expect(screen.getByText('issue')).toBeInTheDocument();
+    expect(screen.getByText('DU')).toBeInTheDocument();
+    expect(screen.getByText('ISSUE')).toBeInTheDocument();
+    expect(
+      screen.getByText('ChunkLoadError: Loading chunk app_bootstrap_index_tsx failed.')
+    ).toBeInTheDocument();
+    userEvent.hover(screen.getByTitle('dashboard user'));
+    expect(await screen.findByText('Assigned to dashboard user')).toBeInTheDocument();
+  });
+
+  it('opens in issues page', async function () {
+    mountWithTheme(
+      <IssueWidgetCard
+        api={api}
+        organization={initialData.organization}
+        widget={widget}
+        selection={selection}
+        isEditing={false}
+        onDelete={() => undefined}
+        onEdit={() => undefined}
+        renderErrorMessage={() => undefined}
+        isSorting={false}
+        currentWidgetDragging={false}
+        showContextMenu
+      />
+    );
+
     await tick();
 
-    expect(wrapper.getByText('Issues')).toBeInTheDocument();
-    expect(wrapper.getByText('assignee')).toBeInTheDocument();
-    expect(wrapper.getByText('title')).toBeInTheDocument();
-    expect(wrapper.getByText('issue #')).toBeInTheDocument();
-    expect(wrapper.getByText('discoveranddashboards')).toBeInTheDocument();
-    expect(wrapper.getByText('ISSUE')).toBeInTheDocument();
-    expect(
-      wrapper.getByText('ChunkLoadError: Loading chunk app_bootstrap_index_tsx failed.')
-    ).toBeInTheDocument();
+    userEvent.click(screen.getByTestId('context-menu'));
+    expect(screen.getByText('Open in Issues').closest('a')?.href).toContain(
+      '/organizations/org-slug/issues/?query=event.type%3Adefault&statsPeriod=14d'
+    );
   });
 });

@@ -179,14 +179,15 @@ function generateReleaseMarkLine(
       label: {
         position: 'insideEndBottom',
         formatter: hideLabel ? '' : title,
+        // @ts-expect-error weird echart types
         font: 'Rubik',
         fontSize: 11,
-      } as any, // TODO(ts): weird echart types,
+      },
       data: [
         {
           xAxis: position,
         },
-      ] as any, // TODO(ts): weird echart types
+      ],
     }),
   };
 }
