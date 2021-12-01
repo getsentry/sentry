@@ -295,6 +295,32 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
     }
   };
 
+  addAvatar = ({avatar}: Model) => {
+    const {app} = this.state;
+    if (app && avatar) {
+      const avatars =
+        app?.avatars?.filter(prevAvatar => prevAvatar.color !== avatar.color) || [];
+      avatars.push(avatar);
+      this.setState({app: {...app, avatars}});
+    }
+  };
+
+  getAvatarModel = (isColor: boolean): Model => {
+    const {app} = this.state;
+    const defaultModel: Model = {
+      avatar: {
+        avatarType: 'default',
+        avatarUuid: null,
+      },
+    };
+    if (!app) {
+      return defaultModel;
+    }
+    return {
+      avatar: app?.avatars?.find(({color}) => color === isColor) || defaultModel.avatar,
+    };
+  };
+
   getAvatarPreview = (isColor: boolean) => {
     const {app} = this.state;
     if (!app) {
@@ -314,22 +340,6 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
     );
   };
 
-  getAvatarModel = (isColor: boolean): Model => {
-    const {app} = this.state;
-    const defaultModel: Model = {
-      avatar: {
-        avatarType: 'default',
-        avatarUuid: null,
-      },
-    };
-    if (!app) {
-      return defaultModel;
-    }
-    return {
-      avatar: app?.avatars?.find(({color}) => color === isColor) || defaultModel.avatar,
-    };
-  };
-
   getAvatarChooser = (isColor: boolean) => {
     const {app} = this.state;
     if (!app) {
@@ -343,15 +353,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
           allowLetter={false}
           endpoint={`/sentry-apps/${app.slug}/avatar/`}
           model={this.getAvatarModel(isColor)}
-          onSave={({avatar}) => {
-            if (avatar) {
-              const avatars =
-                app?.avatars?.filter(prevAvatar => prevAvatar.color !== avatar.color) ||
-                [];
-              avatars.push(avatar);
-              this.setState({app: {...app, avatars}});
-            }
-          }}
+          onSave={this.addAvatar}
           title={isColor ? t('Logo') : t('Small Icon')}
           savedDataUrl={undefined}
           defaultChoice={{
