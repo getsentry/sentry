@@ -431,6 +431,12 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             "organizations:filters-and-sampling", project.organization, actor=request.user
         )
 
+        allow_dynamic_sampling_error_rules = features.has(
+            "organizations:filters-and-sampling-error-rules",
+            project.organization,
+            actor=request.user,
+        )
+
         if not allow_dynamic_sampling and result.get("dynamicSampling"):
             # trying to set dynamic sampling with feature disabled
             return Response(
@@ -612,16 +618,18 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         if "dynamicSampling" in result:
             raw_dynamic_sampling = result["dynamicSampling"]
-            if not features.has("projects:custom-inbound-filters", project, actor=request.user):
-                if not self._dynamic_sampling_contains_transaction_rules_only(raw_dynamic_sampling):
-                    return Response(
-                        {
-                            "detail": [
-                                "Dynamic Sampling only accepts rules of type transaction or trace"
-                            ]
-                        },
-                        status=400,
-                    )
+            if (
+                not allow_dynamic_sampling_error_rules
+                and self._dynamic_sampling_contains_error_rule(raw_dynamic_sampling)
+            ):
+                return Response(
+                    {
+                        "detail": [
+                            "Dynamic Sampling only accepts rules of type transaction or trace"
+                        ]
+                    },
+                    status=400,
+                )
 
             fixed_rules = self._fix_rule_ids(project, raw_dynamic_sampling)
             project.update_option("sentry:dynamic_sampling", fixed_rules)
@@ -826,11 +834,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         raw_dynamic_sampling["next_id"] = next_id
         return raw_dynamic_sampling
 
-    def _dynamic_sampling_contains_transaction_rules_only(self, raw_dynamic_sampling):
+    def _dynamic_sampling_contains_error_rule(self, raw_dynamic_sampling):
         if raw_dynamic_sampling is not None:
             rules = raw_dynamic_sampling.get("rules", [])
             for rule in rules:
-                if rule["type"] not in ("transaction", "trace"):
-                    return False
-                else:
+                if rule["type"] == "error":
                     return True
+                else:
+                    return False
