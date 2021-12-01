@@ -11,9 +11,9 @@ import {
 } from 'sentry/actionCreators/globalSelection';
 import {DATE_TIME_KEYS} from 'sentry/constants/globalSelectionHeader';
 import ConfigStore from 'sentry/stores/configStore';
-import {Organization, Project} from 'sentry/types';
+import {Organization} from 'sentry/types';
+import useProjects from 'sentry/utils/useProjects';
 import withOrganization from 'sentry/utils/withOrganization';
-import withProjects from 'sentry/utils/withProjects';
 
 import GlobalSelectionHeader from './globalSelectionHeader';
 import {getStateFromQuery} from './utils';
@@ -25,12 +25,16 @@ const getDateObjectFromQuery = (query: Record<string, any>) =>
 
 type GlobalSelectionHeaderProps = Omit<
   ComponentPropsWithoutRef<typeof GlobalSelectionHeader>,
-  'router' | 'nonMemberProjects' | 'memberProjects' | 'selection'
+  | 'router'
+  | 'nonMemberProjects'
+  | 'memberProjects'
+  | 'selection'
+  | 'projects'
+  | 'loadingProjects'
 >;
 
 type Props = {
   organization: Organization;
-  projects: Project[];
   /**
    * Skip loading from local storage
    * An example is Issue Details, in the case where it is accessed directly (e.g. from email).
@@ -43,8 +47,6 @@ type Props = {
 
 function GlobalSelectionHeaderContainer({
   organization,
-  projects,
-  loadingProjects,
   location,
   router,
   routes,
@@ -56,6 +58,8 @@ function GlobalSelectionHeaderContainer({
   showAbsolute,
   ...props
 }: Props) {
+  const {projects, initiallyLoaded: projectsLoaded} = useProjects();
+
   const {isSuperuser} = ConfigStore.get('user');
   const isOrgAdmin = organization.access.includes('org:admin');
   const enforceSingleProject = !organization.features.includes('global-views');
@@ -81,7 +85,7 @@ function GlobalSelectionHeaderContainer({
   useEffect(() => {
     // We can initialize before ProjectsStore is fully loaded if we don't need to
     // enforce single project.
-    if (loadingProjects && (shouldForceProject || enforceSingleProject)) {
+    if (!projectsLoaded && (shouldForceProject || enforceSingleProject)) {
       return;
     }
 
@@ -97,7 +101,7 @@ function GlobalSelectionHeaderContainer({
       shouldEnforceSingleProject: enforceSingleProject,
       showAbsolute,
     });
-  }, [loadingProjects, shouldForceProject, enforceSingleProject]);
+  }, [projectsLoaded, shouldForceProject, enforceSingleProject]);
 
   const lastQuery = useRef(location.query);
 
@@ -143,7 +147,7 @@ function GlobalSelectionHeaderContainer({
   return (
     <GlobalSelectionHeader
       {...props}
-      loadingProjects={loadingProjects}
+      loadingProjects={!projectsLoaded}
       location={location}
       organization={organization}
       router={router}
@@ -159,4 +163,4 @@ function GlobalSelectionHeaderContainer({
   );
 }
 
-export default withOrganization(withProjects(withRouter(GlobalSelectionHeaderContainer)));
+export default withOrganization(withRouter(GlobalSelectionHeaderContainer));
