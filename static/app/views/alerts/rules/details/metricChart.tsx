@@ -519,6 +519,15 @@ class MetricChart extends React.PureComponent<Props, State> {
       maxThresholdValue = Math.max(maxThresholdValue, alertThreshold);
     }
 
+    if (!rule.comparisonDelta && rule.resolveThreshold) {
+      const resolveThresholdLine = createThresholdSeries(
+        theme.green300,
+        rule.resolveThreshold
+      );
+      series.push(resolveThresholdLine);
+      maxThresholdValue = Math.max(maxThresholdValue, rule.resolveThreshold);
+    }
+
     const comparisonSeriesName = capitalize(
       COMPARISON_DELTA_OPTIONS.find(({value}) => value === rule.comparisonDelta)?.label ||
         ''
