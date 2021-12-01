@@ -51,6 +51,7 @@ export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
   const [selectedListIndex, setSelectListIndex] = useState(0);
   const field = props.fields[0];
   const metricsField = `avg(${field})`;
+
   const vital = settingToVital[chartSetting];
 
   const Queries = {
