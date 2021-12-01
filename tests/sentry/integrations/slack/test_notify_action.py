@@ -2,7 +2,10 @@ from urllib.parse import parse_qs
 
 import responses
 
-from sentry.integrations.slack import SlackNotifyServiceAction
+from sentry.integrations.slack import (
+    SlackNotifyServiceAction,
+    register_additional_attachment_generator,
+)
 from sentry.integrations.slack.utils import SLACK_RATE_LIMITED_MESSAGE
 from sentry.models import Integration
 from sentry.testutils.cases import RuleTestCase
@@ -10,11 +13,19 @@ from sentry.testutils.helpers import install_slack
 from sentry.utils import json
 
 
+def additional_attachment_generator(integration, organization):
+    # nonsense to make sure we pass in the right fields
+    return {"title": organization.slug, "text": integration.id}
+
+
 class SlackNotifyActionTest(RuleTestCase):
     rule_cls = SlackNotifyServiceAction
 
     def setUp(self):
         self.integration = install_slack(self.get_event().project.organization)
+
+    def tearDown(self):
+        register_additional_attachment_generator(None)
 
     def assert_form_valid(self, form, expected_channel_id, expected_channel):
         assert form.is_valid()
@@ -338,3 +349,33 @@ class SlackNotifyActionTest(RuleTestCase):
         assert [
             'Multiple users were found with display name "@morty". Please use your username, found at sentry.slack.com/account/settings#username.'
         ] in form.errors.values()
+
+    @responses.activate
+    def test_additional_attachment(self):
+        register_additional_attachment_generator(additional_attachment_generator)
+        event = self.get_event()
+
+        rule = self.get_rule(data={"workspace": self.integration.id, "channel": "#my-channel"})
+
+        results = list(rule.after(event=event, state=self.get_state()))
+        assert len(results) == 1
+
+        responses.add(
+            method=responses.POST,
+            url="https://slack.com/api/chat.postMessage",
+            body='{"ok": true}',
+            status=200,
+            content_type="application/json",
+        )
+
+        # Trigger rule callback
+        results[0].callback(event, futures=[])
+        data = parse_qs(responses.calls[0].request.body)
+
+        assert "attachments" in data
+        attachments = json.loads(data["attachments"][0])
+
+        assert len(attachments) == 2
+        assert attachments[0]["title"] == event.title
+        assert attachments[1]["title"] == self.organization.slug
+        assert attachments[1]["text"] == self.integration.id
