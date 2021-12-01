@@ -493,7 +493,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
 
         sessions_fn = getattr(self.sessions, fn_name)
         tags = {"method": fn_name}
-        with timer("releasehealth.sessions.duration", tags=tags):
+        with timer("releasehealth.sessions.duration", tags=tags, sample_rate=1.0):
             ret_val = sessions_fn(*args)
 
         if organization is None or not features.has(
@@ -525,9 +525,9 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
             copy = deepcopy(ret_val)
             try:
                 metrics_fn = getattr(self.metrics, fn_name)
-                with timer("releasehealth.metrics.duration", tags=tags):
+                with timer("releasehealth.metrics.duration", tags=tags, sample_rate=1.0):
                     metrics_val = metrics_fn(*args)
-                with timer("releasehealth.results-diff.duration", tags=tags):
+                with timer("releasehealth.results-diff.duration", tags=tags, sample_rate=1.0):
                     errors = compare_results(copy, metrics_val, rollup, None, schema)
 
                 incr(
