@@ -62,7 +62,7 @@ const SUSPECT_SPANS_TABLE_COLUMN_ORDER: SuspectSpanTableColumn[] = [
   },
   {
     key: 'count',
-    name: t('Total Occurrences'),
+    name: t('Total Count'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
