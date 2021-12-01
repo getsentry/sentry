@@ -841,4 +841,4 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 if rule["type"] == "error":
                     return True
                 else:
-                    return False
+                    continue
