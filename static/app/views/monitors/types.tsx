@@ -1,4 +1,4 @@
-import {Project} from 'app/types';
+import {Project} from 'sentry/types';
 
 export type Status = 'ok' | 'error' | 'disabled' | 'active';
 

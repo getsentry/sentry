@@ -1,16 +1,15 @@
 import styled from '@emotion/styled';
 
-import Count from 'app/components/count';
-import DateTime from 'app/components/dateTime';
-import {KeyValueTable, KeyValueTableRow} from 'app/components/keyValueTable';
-import Link from 'app/components/links/link';
-import TextOverflow from 'app/components/textOverflow';
-import TimeSince from 'app/components/timeSince';
-import Version from 'app/components/version';
-import {t, tn} from 'app/locale';
-import {ReleaseMeta, ReleaseWithHealth} from 'app/types';
-
-import {SectionHeading, Wrapper} from '../styles';
+import Count from 'sentry/components/count';
+import DateTime from 'sentry/components/dateTime';
+import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
+import Link from 'sentry/components/links/link';
+import SidebarSection from 'sentry/components/sidebarSection';
+import TextOverflow from 'sentry/components/textOverflow';
+import TimeSince from 'sentry/components/timeSince';
+import Version from 'sentry/components/version';
+import {t, tn} from 'sentry/locale';
+import {ReleaseMeta, ReleaseWithHealth} from 'sentry/types';
 
 type Props = {
   release: ReleaseWithHealth;
@@ -23,8 +22,7 @@ const ProjectReleaseDetails = ({release, releaseMeta, orgSlug, projectSlug}: Pro
   const {version, versionInfo, dateCreated, firstEvent, lastEvent} = release;
 
   return (
-    <Wrapper>
-      <SectionHeading>{t('Project Release Details')}</SectionHeading>
+    <SidebarSection title={t('Project Release Details')}>
       <KeyValueTable>
         <KeyValueTableRow
           keyName={t('Created')}
@@ -64,7 +62,7 @@ const ProjectReleaseDetails = ({release, releaseMeta, orgSlug, projectSlug}: Pro
           }
         />
       </KeyValueTable>
-    </Wrapper>
+    </SidebarSection>
   );
 };
 

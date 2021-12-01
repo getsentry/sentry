@@ -1,24 +1,24 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import FeatureBadge from 'app/components/featureBadge';
-import SelectControl from 'app/components/forms/selectControl';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
+import FeatureBadge from 'sentry/components/featureBadge';
+import SelectControl from 'sentry/components/forms/selectControl';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
 import {
   IssueAlertRuleAction,
   IssueAlertRuleActionTemplate,
   IssueAlertRuleCondition,
   IssueAlertRuleConditionTemplate,
-} from 'app/types/alerts';
+} from 'sentry/types/alerts';
 import {
   CHANGE_ALERT_CONDITION_IDS,
   COMPARISON_INTERVAL_CHOICES,
   COMPARISON_TYPE_CHOICE_VALUES,
   COMPARISON_TYPE_CHOICES,
-} from 'app/views/alerts/changeAlerts/constants';
-import {EVENT_FREQUENCY_PERCENT_CONDITION} from 'app/views/projectInstall/issueAlertOptions';
+} from 'sentry/views/alerts/changeAlerts/constants';
+import {EVENT_FREQUENCY_PERCENT_CONDITION} from 'sentry/views/projectInstall/issueAlertOptions';
 
 import RuleNode from './ruleNode';
 

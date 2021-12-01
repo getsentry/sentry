@@ -4,11 +4,11 @@ import * as Sentry from '@sentry/react';
 import * as cbor from 'cbor-web';
 import u2f from 'u2f-api';
 
-import {base64urlToBuffer, bufferToBase64url} from 'app/components/u2f/webAuthnHelper';
-import {t, tct} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
-import {ChallengeData, Organization} from 'app/types';
-import withOrganization from 'app/utils/withOrganization';
+import {base64urlToBuffer, bufferToBase64url} from 'sentry/components/u2f/webAuthnHelper';
+import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import {ChallengeData, Organization} from 'sentry/types';
+import withOrganization from 'sentry/utils/withOrganization';
 
 type TapParams = {
   response: string;
@@ -45,7 +45,10 @@ class U2fInterface extends React.Component<Props, State> {
   };
 
   async componentDidMount() {
-    const supported = !!window.PublicKeyCredential;
+    let supported = await u2f.isSupported();
+    if (this.props.isWebauthnSigninFFEnabled) {
+      supported = !!window.PublicKeyCredential;
+    }
 
     // eslint-disable-next-line react/no-did-mount-set-state
     this.setState({isSupported: supported});
@@ -57,7 +60,7 @@ class U2fInterface extends React.Component<Props, State> {
 
   getU2FResponse(data) {
     if (data.response) {
-      if ( this.props.flowMode === 'sign') {
+      if (this.props.flowMode === 'sign') {
         const authenticatorData = {
           keyHandle: data.id,
           clientData: bufferToBase64url(data.response.clientDataJSON),
@@ -66,7 +69,7 @@ class U2fInterface extends React.Component<Props, State> {
         };
         return JSON.stringify(authenticatorData);
       }
-      else if ( this.props.flowMode === 'enroll') {
+      if (this.props.flowMode === 'enroll') {
         const authenticatorData = {
           id: data.id,
           rawId: bufferToBase64url(data.rawId),

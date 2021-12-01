@@ -1,15 +1,14 @@
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import Button from 'app/components/button';
-import Collapsible from 'app/components/collapsible';
-import IdBadge from 'app/components/idBadge';
-import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
-import {t, tn} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, ReleaseProject} from 'app/types';
-
-import {SectionHeading, Wrapper} from '../styles';
+import Button from 'sentry/components/button';
+import Collapsible from 'sentry/components/collapsible';
+import IdBadge from 'sentry/components/idBadge';
+import {extractSelectionParameters} from 'sentry/components/organizations/globalSelectionHeader/utils';
+import SidebarSection from 'sentry/components/sidebarSection';
+import {t, tn} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, ReleaseProject} from 'sentry/types';
 
 type Props = {
   projects: ReleaseProject[];
@@ -20,15 +19,13 @@ type Props = {
 
 function OtherProjects({projects, location, version, organization}: Props) {
   return (
-    <Wrapper>
-      <SectionHeading>
-        {tn(
-          'Other Project for This Release',
-          'Other Projects for This Release',
-          projects.length
-        )}
-      </SectionHeading>
-
+    <SidebarSection
+      title={tn(
+        'Other Project for This Release',
+        'Other Projects for This Release',
+        projects.length
+      )}
+    >
       <Collapsible
         expandButton={({onExpand, numberOfHiddenItems}) => (
           <Button priority="link" onClick={onExpand}>
@@ -61,7 +58,7 @@ function OtherProjects({projects, location, version, organization}: Props) {
           </Row>
         ))}
       </Collapsible>
-    </Wrapper>
+    </SidebarSection>
   );
 }
 

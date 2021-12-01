@@ -2,10 +2,10 @@ import * as React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import Level from 'app/components/events/interfaces/breadcrumbs/breadcrumb/level';
-import Type from 'app/components/events/interfaces/breadcrumbs/breadcrumb/type';
-import SearchBarActionFilter from 'app/components/events/interfaces/searchBarAction/searchBarActionFilter';
-import {BreadcrumbLevelType, BreadcrumbType} from 'app/types/breadcrumbs';
+import Level from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/level';
+import Type from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type';
+import SearchBarActionFilter from 'sentry/components/events/interfaces/searchBarAction/searchBarActionFilter';
+import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 
 const options: React.ComponentProps<typeof SearchBarActionFilter>['options'] = {
   ['Types']: [

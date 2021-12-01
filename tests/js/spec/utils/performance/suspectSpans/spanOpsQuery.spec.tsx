@@ -1,11 +1,11 @@
 import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
-import EventView from 'app/utils/discover/eventView';
-import SpanOpsQuery from 'app/utils/performance/suspectSpans/spanOpsQuery';
+import EventView from 'sentry/utils/discover/eventView';
+import SpanOpsQuery from 'sentry/utils/performance/suspectSpans/spanOpsQuery';
 import {
   SpanSortOthers,
   SpanSortPercentiles,
-} from 'app/views/performance/transactionSummary/transactionSpans/types';
+} from 'sentry/views/performance/transactionSummary/transactionSpans/types';
 
 describe('SuspectSpansQuery', function () {
   let eventView, location;
@@ -25,7 +25,6 @@ describe('SuspectSpansQuery', function () {
   });
 
   it('fetches data on mount', async function () {
-    // @ts-expect-error
     const getMock = MockApiClient.addMockResponse({
       url: '/organizations/test-org/events-span-ops/',
       // just asserting that the data is being fetched, no need for actual data here

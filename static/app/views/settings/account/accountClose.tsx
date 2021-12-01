@@ -1,24 +1,24 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import {addErrorMessage, addLoadingMessage} from 'app/actionCreators/indicator';
-import {ModalRenderProps, openModal} from 'app/actionCreators/modal';
-import Alert from 'app/components/alert';
-import Button from 'app/components/button';
-import Confirm from 'app/components/confirm';
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
+import {ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
+import Alert from 'sentry/components/alert';
+import Button from 'sentry/components/button';
+import Confirm from 'sentry/components/confirm';
 import {
   Panel,
   PanelAlert,
   PanelBody,
   PanelHeader,
   PanelItem,
-} from 'app/components/panels';
-import {IconFlag} from 'app/icons';
-import {t, tct} from 'app/locale';
-import {Organization} from 'app/types';
-import AsyncView from 'app/views/asyncView';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import TextBlock from 'app/views/settings/components/text/textBlock';
+} from 'sentry/components/panels';
+import {IconFlag} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import {Organization} from 'sentry/types';
+import AsyncView from 'sentry/views/asyncView';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 const BYE_URL = '/';
 const leaveRedirect = () => (window.location.href = BYE_URL);

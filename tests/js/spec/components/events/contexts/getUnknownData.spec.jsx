@@ -1,4 +1,4 @@
-import getUnknownData from 'app/components/events/contexts/getUnknownData';
+import getUnknownData from 'sentry/components/events/contexts/getUnknownData';
 
 describe('getUnknownData', function () {
   it('filters out known data and transforms into the right way', function () {

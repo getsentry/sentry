@@ -2,8 +2,8 @@ import styled from '@emotion/styled';
 
 import video from 'sentry-images/spot/congrats-robots.mp4';
 
-import AutoplayVideo from 'app/components/autoplayVideo';
-import space from 'app/styles/space';
+import AutoplayVideo from 'sentry/components/autoplayVideo';
+import space from 'sentry/styles/space';
 
 /**
  * Note, video needs `muted` for `autoplay` to work on Chrome

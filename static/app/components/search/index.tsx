@@ -3,21 +3,21 @@ import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {navigateTo} from 'app/actionCreators/navigation';
-import AutoComplete from 'app/components/autoComplete';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import SearchResult from 'app/components/search/searchResult';
-import SearchResultWrapper from 'app/components/search/searchResultWrapper';
-import SearchSources from 'app/components/search/sources';
-import ApiSource from 'app/components/search/sources/apiSource';
-import CommandSource from 'app/components/search/sources/commandSource';
-import FormSource from 'app/components/search/sources/formSource';
-import RouteSource from 'app/components/search/sources/routeSource';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import replaceRouterParams from 'app/utils/replaceRouterParams';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {navigateTo} from 'sentry/actionCreators/navigation';
+import AutoComplete from 'sentry/components/autoComplete';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import SearchResult from 'sentry/components/search/searchResult';
+import SearchResultWrapper from 'sentry/components/search/searchResultWrapper';
+import SearchSources from 'sentry/components/search/sources';
+import ApiSource from 'sentry/components/search/sources/apiSource';
+import CommandSource from 'sentry/components/search/sources/commandSource';
+import FormSource from 'sentry/components/search/sources/formSource';
+import RouteSource from 'sentry/components/search/sources/routeSource';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 
 import {Result} from './sources/types';
 

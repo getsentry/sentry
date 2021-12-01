@@ -1,6 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountGlobalModal} from 'sentry-test/modal';
 
-import DashboardList from 'app/views/dashboardsV2/manage/dashboardList';
+import DashboardList from 'sentry/views/dashboardsV2/manage/dashboardList';
 
 function openContextMenu(card) {
   card.find('DropdownMenu MoreOptions svg').simulate('click');
@@ -191,6 +192,12 @@ describe('Dashboards > DashboardList', function () {
 
     card = wrapper.find('DashboardCard').last();
     clickMenuItem(card, 'dashboard-delete');
+
+    expect(deleteMock).not.toHaveBeenCalled();
+
+    // Confirm
+    const modal = await mountGlobalModal();
+    modal.find('Button').last().simulate('click');
 
     await tick();
 

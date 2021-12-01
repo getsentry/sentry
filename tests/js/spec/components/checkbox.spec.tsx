@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
-import Checkbox from 'app/components/checkbox';
+import Checkbox from 'sentry/components/checkbox';
 
 describe('Checkbox', function () {
   it('renders', function () {

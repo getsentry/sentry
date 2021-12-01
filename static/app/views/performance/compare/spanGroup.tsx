@@ -1,6 +1,6 @@
 import {Component, Fragment} from 'react';
 
-import {TreeDepthType} from 'app/components/events/interfaces/spans/types';
+import {TreeDepthType} from 'sentry/components/events/interfaces/spans/types';
 
 import SpanBar from './spanBar';
 import {DiffSpanType, SpanGeneratedBoundsType} from './utils';

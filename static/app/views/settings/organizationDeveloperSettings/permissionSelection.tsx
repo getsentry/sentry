@@ -2,11 +2,11 @@ import {Component, Fragment} from 'react';
 import find from 'lodash/find';
 import flatMap from 'lodash/flatMap';
 
-import {SENTRY_APP_PERMISSIONS} from 'app/constants';
-import {t} from 'app/locale';
-import {Permissions} from 'app/types/index';
-import FormContext from 'app/views/settings/components/forms/formContext';
-import SelectField from 'app/views/settings/components/forms/selectField';
+import {SENTRY_APP_PERMISSIONS} from 'sentry/constants';
+import {t} from 'sentry/locale';
+import {Permissions} from 'sentry/types/index';
+import FormContext from 'sentry/views/settings/components/forms/formContext';
+import SelectField from 'sentry/views/settings/components/forms/selectField';
 
 /**
  * Custom form element that presents API scopes in a resource-centric way. Meaning
@@ -129,8 +129,8 @@ export default class PermissionSelection extends Component<Props, State> {
     return (
       <Fragment>
         {SENTRY_APP_PERMISSIONS.map(config => {
-          const toChoice = ([value, opt]) => [value, opt.label];
-          const choices = Object.entries(config.choices).map(toChoice);
+          const toOption = ([value, {label}]) => ({value, label});
+          const options = Object.entries(config.choices).map(toOption);
           const value = permissions[config.resource];
 
           return (
@@ -141,7 +141,7 @@ export default class PermissionSelection extends Component<Props, State> {
               // sentryApplicationDetails.jsx
               name={`${config.resource}--permission`}
               key={config.resource}
-              choices={choices}
+              options={options}
               help={t(config.help)}
               label={t(config.label || config.resource)}
               onChange={this.onChange.bind(this, config.resource)}

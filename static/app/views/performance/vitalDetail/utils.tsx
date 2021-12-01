@@ -1,11 +1,11 @@
 import * as React from 'react';
 import {Location, Query} from 'history';
 
-import {IconCheckmark, IconFire, IconWarning} from 'app/icons';
-import {Series} from 'app/types/echarts';
-import {getAggregateAlias, WebVital} from 'app/utils/discover/fields';
-import {decodeScalar} from 'app/utils/queryString';
-import {Color} from 'app/utils/theme';
+import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
+import {Series} from 'sentry/types/echarts';
+import {getAggregateAlias, WebVital} from 'sentry/utils/discover/fields';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {Color} from 'sentry/utils/theme';
 
 export function generateVitalDetailRoute({orgSlug}: {orgSlug: string}): string {
   return `/organizations/${orgSlug}/performance/vitaldetail/`;
@@ -31,32 +31,6 @@ export enum VitalState {
   POOR = 'Poor',
   MEH = 'Meh',
   GOOD = 'Good',
-}
-
-// For mapping field equations for the vitals widget
-export function fieldToVital(field: string) {
-  const FIELD_TO_VITAL_MAP: Record<string, VitalState> = {
-    'count_if(measurements.lcp,greaterOrEquals,0) - count_if(measurements.lcp,greaterOrEquals,2500)':
-      VitalState.GOOD,
-    'count_if(measurements.lcp,greaterOrEquals,2500) - count_if(measurements.lcp,greaterOrEquals,4000)':
-      VitalState.MEH,
-    'count_if(measurements.lcp,greaterOrEquals,4000)': VitalState.POOR,
-  };
-
-  return FIELD_TO_VITAL_MAP[field];
-}
-
-// For mapping field equations for the vitals widget
-export function vitalToField(vital: VitalState) {
-  const VITAL_MAP: Record<VitalState, string> = {
-    [VitalState.GOOD]:
-      'count_if(measurements.lcp,greaterOrEquals,0) - count_if(measurements.lcp,greaterOrEquals,2500)',
-    [VitalState.MEH]:
-      'count_if(measurements.lcp,greaterOrEquals,2500) - count_if(measurements.lcp,greaterOrEquals,4000)',
-    [VitalState.POOR]: 'count_if(measurements.lcp,greaterOrEquals,4000)',
-  };
-
-  return VITAL_MAP[vital];
 }
 
 export const vitalStateColors: Record<VitalState, Color> = {

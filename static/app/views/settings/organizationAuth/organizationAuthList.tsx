@@ -1,13 +1,13 @@
-import ExternalLink from 'app/components/links/externalLink';
-import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
-import {t, tct} from 'app/locale';
-import {AuthProvider, Organization} from 'app/types';
-import {descopeFeatureName} from 'app/utils';
-import getCsrfToken from 'app/utils/getCsrfToken';
-import withOrganization from 'app/utils/withOrganization';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import PermissionAlert from 'app/views/settings/organization/permissionAlert';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
+import {t, tct} from 'sentry/locale';
+import {AuthProvider, Organization} from 'sentry/types';
+import {descopeFeatureName} from 'sentry/utils';
+import getCsrfToken from 'sentry/utils/getCsrfToken';
+import withOrganization from 'sentry/utils/withOrganization';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
 
 import ProviderItem from './providerItem';
 

@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import PlatformList from 'app/components/platformList';
-import space from 'app/styles/space';
+import PlatformList from 'sentry/components/platformList';
+import space from 'sentry/styles/space';
 
 export default {
   title: 'Assets/Platforms/Platform List',

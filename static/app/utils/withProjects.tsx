@@ -1,8 +1,8 @@
 import * as React from 'react';
 
-import {Project} from 'app/types';
-import getDisplayName from 'app/utils/getDisplayName';
-import useProjects from 'app/utils/useProjects';
+import {Project} from 'sentry/types';
+import getDisplayName from 'sentry/utils/getDisplayName';
+import useProjects from 'sentry/utils/useProjects';
 
 type InjectedProjectsProps = {
   projects: Project[];
@@ -18,7 +18,8 @@ function withProjects<P extends InjectedProjectsProps>(
   type Props = Omit<P, keyof InjectedProjectsProps>;
 
   const Wrapper: React.FC<Props> = props => {
-    const {projects, loadingProjects} = useProjects();
+    const {projects, initiallyLoaded} = useProjects();
+    const loadingProjects = !initiallyLoaded;
 
     return <WrappedComponent {...(props as P)} {...{projects, loadingProjects}} />;
   };

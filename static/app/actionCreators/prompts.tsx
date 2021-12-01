@@ -1,4 +1,4 @@
-import {Client} from 'app/api';
+import {Client} from 'sentry/api';
 
 type PromptsUpdateParams = {
   /**
@@ -76,6 +76,7 @@ export async function promptsCheck(
   const response: PromptResponse = await api.requestPromise('/prompts-activity/', {
     query,
   });
+
   const data = response?.data;
 
   if (!data) {

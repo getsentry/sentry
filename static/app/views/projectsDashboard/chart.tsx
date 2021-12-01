@@ -1,10 +1,10 @@
 import * as React from 'react';
 import {useTheme} from '@emotion/react';
 
-import BaseChart from 'app/components/charts/baseChart';
-import {t} from 'app/locale';
-import {Project} from 'app/types';
-import {axisLabelFormatter} from 'app/utils/discover/charts';
+import BaseChart from 'sentry/components/charts/baseChart';
+import {t} from 'sentry/locale';
+import {Project} from 'sentry/types';
+import {axisLabelFormatter} from 'sentry/utils/discover/charts';
 
 import NoEvents from './noEvents';
 
@@ -43,7 +43,7 @@ const Chart = ({firstEvent, stats, transactionStats}: Props) => {
           color: theme.gray200,
           opacity: 1.0,
         },
-      },
+      } as any,
     });
   }
 
@@ -63,7 +63,7 @@ const Chart = ({firstEvent, stats, transactionStats}: Props) => {
           color: theme.purple300,
           opacity: 0.8,
         },
-      },
+      } as any,
     });
   }
   const grid = hasTransactions

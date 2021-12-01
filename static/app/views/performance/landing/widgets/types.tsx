@@ -1,14 +1,14 @@
 import {FunctionComponent, ReactNode} from 'react';
 import {Location} from 'history';
 
-import {Client} from 'app/api';
-import BaseChart from 'app/components/charts/baseChart';
-import {RenderProps} from 'app/components/charts/eventsRequest';
-import {DateString, Organization, OrganizationSummary} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
+import {Client} from 'sentry/api';
+import BaseChart from 'sentry/components/charts/baseChart';
+import {RenderProps} from 'sentry/components/charts/eventsRequest';
+import {DateString, Organization, OrganizationSummary} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
 
 import {PerformanceWidgetContainerTypes} from './components/performanceWidgetContainer';
-import {PerformanceWidgetSetting} from './widgetDefinitions';
+import {ChartDefinition, PerformanceWidgetSetting} from './widgetDefinitions';
 
 export enum VisualizationDataState {
   ERROR = 'error',
@@ -24,6 +24,23 @@ export enum GenericPerformanceWidgetDataType {
   line_list = 'line_list',
   trends = 'trends',
 }
+
+export type PerformanceWidgetProps = {
+  chartSetting: PerformanceWidgetSetting;
+  chartDefinition: ChartDefinition;
+  chartHeight: number;
+
+  title: string;
+  titleTooltip: string;
+  fields: string[];
+  chartColor?: string;
+
+  eventView: EventView;
+  location: Location;
+  organization: Organization;
+
+  ContainerActions: FunctionComponent<{isLoading: boolean}>;
+};
 
 export interface WidgetDataResult {
   isLoading: boolean;
@@ -49,6 +66,7 @@ export type QueryFC<T extends WidgetDataConstraint> = FunctionComponent<
     team?: Readonly<string | string[]>;
     query?: string;
     orgSlug: string;
+    eventView: EventView;
     organization: OrganizationSummary;
     widgetData: T;
   }
@@ -99,6 +117,7 @@ type Subtitle<T> = FunctionComponent<{
 
 export type GenericPerformanceWidgetProps<T extends WidgetDataConstraint> = {
   chartSetting: PerformanceWidgetSetting;
+  chartDefinition: ChartDefinition;
 
   // Header;
   title: string;
@@ -141,6 +160,7 @@ export type QueryHandlerProps<T extends WidgetDataConstraint> = {
   api: Client;
   queries: QueryDefinitionWithKey<T>[];
   children?: ReactNode;
+  eventView: EventView;
   queryProps: WidgetPropUnion<T>;
 } & WidgetDataProps<T>;
 

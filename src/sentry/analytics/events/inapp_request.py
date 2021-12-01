@@ -11,11 +11,15 @@ class InAppRequestSentEvent(analytics.Event):
     )
 
 
-class InviteRequestSentEvent(InAppRequestSentEvent):
+class InviteOrJoinRequest(InAppRequestSentEvent):
+    attributes = InAppRequestSentEvent.attributes + (analytics.Attribute("invited_member_id"),)
+
+
+class InviteRequestSentEvent(InviteOrJoinRequest):
     type = "invite_request.sent"
 
 
-class JoinRequestSentEvent(InAppRequestSentEvent):
+class JoinRequestSentEvent(InviteOrJoinRequest):
     type = "join_request.sent"
 
 

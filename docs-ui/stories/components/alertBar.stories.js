@@ -1,4 +1,4 @@
-import PageAlertBar from 'app/components/pageAlertBar';
+import PageAlertBar from 'sentry/components/pageAlertBar';
 
 export default {
   title: 'Components/Alerts/Alert Bar',

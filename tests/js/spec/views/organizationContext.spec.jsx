@@ -1,17 +1,17 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {openSudo} from 'app/actionCreators/modal';
-import * as OrganizationActionCreator from 'app/actionCreators/organization';
-import ProjectActions from 'app/actions/projectActions';
-import TeamActions from 'app/actions/teamActions';
-import ConfigStore from 'app/stores/configStore';
-import OrganizationStore from 'app/stores/organizationStore';
-import {OrganizationLegacyContext} from 'app/views/organizationContext';
+import {openSudo} from 'sentry/actionCreators/modal';
+import * as OrganizationActionCreator from 'sentry/actionCreators/organization';
+import ProjectActions from 'sentry/actions/projectActions';
+import TeamActions from 'sentry/actions/teamActions';
+import ConfigStore from 'sentry/stores/configStore';
+import OrganizationStore from 'sentry/stores/organizationStore';
+import {OrganizationLegacyContext} from 'sentry/views/organizationContext';
 
-jest.mock('app/stores/configStore', () => ({
+jest.mock('sentry/stores/configStore', () => ({
   get: jest.fn(),
 }));
-jest.mock('app/actionCreators/modal', () => ({
+jest.mock('sentry/actionCreators/modal', () => ({
   openSudo: jest.fn(),
 }));
 

@@ -7,7 +7,7 @@ import {
   parseRepo,
   sortProjects,
   valueIsEqual,
-} from 'app/utils';
+} from 'sentry/utils';
 
 describe('utils.valueIsEqual', function () {
   it('should return true when objects are deeply equal', function () {

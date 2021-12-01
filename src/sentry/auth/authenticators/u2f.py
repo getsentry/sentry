@@ -138,20 +138,6 @@ class U2fInterface(AuthenticatorInterface):
     def activate(self, request):
         challenge = dict(u2f.begin_authentication(self.u2f_app_id, self.get_u2f_devices()))
 
-        # TODO for completeness change to webauthn when functionalities for everything else is done
-        # server = U2FFido2Server(
-        #     app_id=self.u2f_app_id, rp={"id": self.u2f_app_id, "name": "Example RP"}
-        # )
-        # # credentials = []
-        # # for device in self.get_u2f_devices():
-        # #     credentials.append(
-        # #         {
-        # #             "credential_id": device["keyHandle"],
-        # #             "publicKey": device["publicKey"],
-        # #         }
-        # #     )
-        # challenge = server.authenticate_begin()
-
         # XXX: Upgrading python-u2flib-server to 5.0.0 changes the response
         # format. Our current js u2f library expects the old format, so
         # massaging the data to include the old `authenticateRequests` key here.

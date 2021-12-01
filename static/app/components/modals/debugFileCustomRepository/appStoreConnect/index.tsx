@@ -1,24 +1,25 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {ModalRenderProps} from 'app/actionCreators/modal';
-import {Client} from 'app/api';
-import Alert from 'app/components/alert';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {AppStoreConnectContextProps} from 'app/components/projects/appStoreConnectContext';
-import {IconWarning} from 'app/icons';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import withApi from 'app/utils/withApi';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {Client} from 'sentry/api';
+import Alert from 'sentry/components/alert';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {IconWarning} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import {AppStoreConnectStatusData} from 'sentry/types/debugFiles';
+import {unexpectedErrorMessage} from 'sentry/utils/appStoreValidationErrorMessage';
+import withApi from 'sentry/utils/withApi';
 
 import StepOne from './stepOne';
 import StepTwo from './stepTwo';
 import {AppStoreApp, StepOneData, StepTwoData} from './types';
-import {getAppStoreErrorMessage, unexpectedErrorMessage} from './utils';
+import {getAppStoreErrorMessage} from './utils';
 
 type InitialData = {
   type: string;
@@ -39,7 +40,7 @@ type Props = Pick<ModalRenderProps, 'Header' | 'Body' | 'Footer'> & {
   orgSlug: Organization['slug'];
   projectSlug: Project['slug'];
   onSubmit: () => void;
-  appStoreConnectContext?: AppStoreConnectContextProps;
+  appStoreConnectStatusData?: AppStoreConnectStatusData;
   initialData?: InitialData;
 };
 
@@ -54,9 +55,9 @@ function AppStoreConnect({
   orgSlug,
   projectSlug,
   onSubmit,
-  appStoreConnectContext,
+  appStoreConnectStatusData,
 }: Props) {
-  const {credentials} = appStoreConnectContext ?? {};
+  const {credentials} = appStoreConnectStatusData ?? {};
 
   const [isLoading, setIsLoading] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
@@ -238,6 +239,7 @@ function AppStoreConnect({
     if (activeStep !== 0) {
       return alerts;
     }
+
     if (credentials?.status === 'invalid') {
       alerts.push(
         <StyledAlert type="warning" icon={<IconWarning />}>
@@ -272,7 +274,7 @@ function AppStoreConnect({
     );
   }
 
-  if (initialData && !appStoreConnectContext) {
+  if (initialData && !appStoreConnectStatusData) {
     return <LoadingIndicator />;
   }
 

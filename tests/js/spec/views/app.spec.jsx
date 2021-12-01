@@ -1,7 +1,7 @@
 import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'app/stores/configStore';
-import App from 'app/views/app';
+import ConfigStore from 'sentry/stores/configStore';
+import App from 'sentry/views/app';
 
 describe('App', function () {
   beforeEach(function () {

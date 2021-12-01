@@ -1,24 +1,24 @@
 import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 
-import Feature from 'app/components/acl/feature';
-import FeatureDisabled from 'app/components/acl/featureDisabled';
-import Alert from 'app/components/alert';
-import AsyncComponent from 'app/components/asyncComponent';
-import MiniBarChart from 'app/components/charts/miniBarChart';
-import ExternalLink from 'app/components/links/externalLink';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import PluginList from 'app/components/pluginList';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import {IconInfo} from 'app/icons';
-import {t, tct} from 'app/locale';
-import {Organization, Plugin, Project, TimeseriesValue} from 'app/types';
-import {Series} from 'app/types/echarts';
-import withOrganization from 'app/utils/withOrganization';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import TextBlock from 'app/views/settings/components/text/textBlock';
-import PermissionAlert from 'app/views/settings/project/permissionAlert';
+import Feature from 'sentry/components/acl/feature';
+import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import Alert from 'sentry/components/alert';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import MiniBarChart from 'sentry/components/charts/miniBarChart';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import PluginList from 'sentry/components/pluginList';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {IconInfo} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import {Organization, Plugin, Project, TimeseriesValue} from 'sentry/types';
+import {Series} from 'sentry/types/echarts';
+import withOrganization from 'sentry/utils/withOrganization';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
 type RouteParams = {projectId: string; orgId: string};
 

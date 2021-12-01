@@ -4,29 +4,29 @@ import {Component, Fragment} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {loadDocs} from 'app/actionCreators/projects';
-import {Client} from 'app/api';
-import Feature from 'app/components/acl/feature';
-import Alert from 'app/components/alert';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import NotFound from 'app/components/errors/notFound';
-import LoadingError from 'app/components/loadingError';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import {loadDocs} from 'sentry/actionCreators/projects';
+import {Client} from 'sentry/api';
+import Feature from 'sentry/components/acl/feature';
+import Alert from 'sentry/components/alert';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import NotFound from 'sentry/components/errors/notFound';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {
   performance as performancePlatforms,
   PlatformKey,
-} from 'app/data/platformCategories';
-import platforms from 'app/data/platforms';
-import {IconInfo} from 'app/icons';
-import {t, tct} from 'app/locale';
-import {PageHeader} from 'app/styles/organization';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import Projects from 'app/utils/projects';
-import withApi from 'app/utils/withApi';
-import withOrganization from 'app/utils/withOrganization';
+} from 'sentry/data/platformCategories';
+import platforms from 'sentry/data/platforms';
+import {IconInfo} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import {PageHeader} from 'sentry/styles/organization';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import Projects from 'sentry/utils/projects';
+import withApi from 'sentry/utils/withApi';
+import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {
   api: Client;
@@ -236,6 +236,16 @@ const DocumentationWrapper = styled('div')`
   pre {
     word-break: break-all;
     white-space: pre-wrap;
+  }
+
+  blockquote {
+    padding: ${space(1)};
+    margin-left: 0;
+    background: ${p => p.theme.alert.info.backgroundLight};
+    border-left: 2px solid ${p => p.theme.alert.info.border};
+  }
+  blockquote > *:last-child {
+    margin-bottom: 0;
   }
 `;
 

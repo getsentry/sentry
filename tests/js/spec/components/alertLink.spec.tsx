@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
-import AlertLink from 'app/components/alertLink';
-import {IconMail} from 'app/icons';
+import AlertLink from 'sentry/components/alertLink';
+import {IconMail} from 'sentry/icons';
 
 describe('AlertLink', function () {
   it('renders', function () {

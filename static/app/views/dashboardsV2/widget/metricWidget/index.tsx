@@ -6,18 +6,25 @@ import {Location, LocationDescriptor} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import set from 'lodash/set';
 
-import ProjectBadge from 'app/components/idBadge/projectBadge';
-import * as Layout from 'app/components/layouts/thirds';
-import PickProjectToContinue from 'app/components/pickProjectToContinue';
-import {t} from 'app/locale';
-import {PageContent} from 'app/styles/organization';
-import space from 'app/styles/space';
-import {GlobalSelection, Organization, Project} from 'app/types';
-import {Theme} from 'app/utils/theme';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import withProjects from 'app/utils/withProjects';
-import AsyncView from 'app/views/asyncView';
-import SelectField from 'app/views/settings/components/forms/selectField';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import * as Layout from 'sentry/components/layouts/thirds';
+import PickProjectToContinue from 'sentry/components/pickProjectToContinue';
+import {t} from 'sentry/locale';
+import {PageContent} from 'sentry/styles/organization';
+import space from 'sentry/styles/space';
+import {
+  GlobalSelection,
+  MetricMeta,
+  MetricQuery,
+  MetricTag,
+  Organization,
+  Project,
+} from 'sentry/types';
+import {Theme} from 'sentry/utils/theme';
+import withGlobalSelection from 'sentry/utils/withGlobalSelection';
+import withProjects from 'sentry/utils/withProjects';
+import AsyncView from 'sentry/views/asyncView';
+import SelectField from 'sentry/views/settings/components/forms/selectField';
 
 import {DashboardDetails} from '../../types';
 import BuildStep from '../buildStep';
@@ -29,7 +36,6 @@ import {DataSet, DisplayType, displayTypes} from '../utils';
 import Card from './card';
 import FiltersAndGroups from './filtersAndGroups';
 import Queries from './queries';
-import {MetricMeta, MetricQuery} from './types';
 
 type Props = AsyncView['props'] & {
   dashboardTitle: DashboardDetails['title'];
@@ -49,7 +55,7 @@ type State = AsyncView['state'] &
     title: string;
     displayType: DisplayType;
     metricMetas: MetricMeta[] | null;
-    metricTags: string[] | null;
+    metricTags: MetricTag[] | null;
     queries: MetricQuery[];
   };
 
@@ -83,11 +89,19 @@ class MetricWidget extends AsyncView<Props, State> {
     }
 
     const orgSlug = organization.slug;
-    const projectSlug = this.project.slug;
+    const projectId = this.project.id;
 
     return [
-      ['metricMetas', `/projects/${orgSlug}/${projectSlug}/metrics/meta/`],
-      ['metricTags', `/projects/${orgSlug}/${projectSlug}/metrics/tags/`],
+      [
+        'metricMetas',
+        `/organizations/${orgSlug}/metrics/meta/`,
+        {query: {project: projectId}},
+      ],
+      [
+        'metricTags',
+        `/organizations/${orgSlug}/metrics/tags/`,
+        {query: {project: projectId}},
+      ],
     ];
   }
 
@@ -343,7 +357,7 @@ class MetricWidget extends AsyncView<Props, State> {
               <FiltersAndGroups
                 api={this.api}
                 orgSlug={organization.slug}
-                projSlug={selectedProject.slug}
+                projectId={selectedProject.id}
                 metricTags={metricTags}
                 searchQuery={searchQuery}
                 groupBy={groupBy}

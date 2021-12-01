@@ -1,10 +1,10 @@
 import {Component} from 'react';
 
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import EventDataSection from 'app/components/events/eventDataSection';
-import {t} from 'app/locale';
-import {Event} from 'app/types/event';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import EventDataSection from 'sentry/components/events/eventDataSection';
+import {t} from 'sentry/locale';
+import {Event} from 'sentry/types/event';
 
 import Content from './content';
 import Help from './help';

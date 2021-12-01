@@ -1,4 +1,4 @@
-import {PlatformKey} from 'app/data/platformCategories';
+import {PlatformKey} from 'sentry/data/platformCategories';
 
 type MobilePromptBannerParams = {
   matchedUserAgentString: string;
@@ -39,6 +39,10 @@ type InviteRequestParam = {
   invite_status: string;
 };
 
+type InviteModal = {
+  modal_session: string;
+};
+
 // define the event key to payload mappings
 export type GrowthEventParameters = {
   'growth.show_mobile_prompt_banner': ShowParams;
@@ -71,6 +75,18 @@ export type GrowthEventParameters = {
     platform?: string;
   };
   'growth.issue_open_in_discover_btn_clicked': {};
+  'member_settings_page.loaded': {
+    num_members: number;
+    num_invite_requests: number;
+  };
+  'invite_modal.closed': InviteModal;
+  'invite_modal.opened': InviteModal & {
+    source?: string;
+    can_invite: boolean;
+  };
+  'invite_modal.invites_sent': InviteModal;
+  'invite_modal.requests_sent': InviteModal;
+  'invite_modal.add_more': InviteModal;
 };
 
 type GrowthAnalyticsKey = keyof GrowthEventParameters;
@@ -109,4 +125,10 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string> = {
     'Growth: Sample Transacton Onboarding Link Clicked',
   'growth.issue_open_in_discover_btn_clicked':
     'Growth: Open in Discover Button in Issue Details clicked',
+  'member_settings_page.loaded': 'Member Settings Page Loaded',
+  'invite_modal.opened': 'Invite Modal: Opened',
+  'invite_modal.closed': 'Invite Modal: Closed',
+  'invite_modal.add_more': 'Invite Modal: Add More',
+  'invite_modal.invites_sent': 'Invite Modal: Invites Sent',
+  'invite_modal.requests_sent': 'Invite Modal: Requests Sent',
 };

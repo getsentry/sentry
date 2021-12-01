@@ -5,23 +5,26 @@ import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 import * as qs from 'query-string';
 
-import {fetchOrgMembers, indexMembersByProject} from 'app/actionCreators/members';
-import {Client} from 'app/api';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
-import LoadingError from 'app/components/loadingError';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import Pagination from 'app/components/pagination';
-import {Panel, PanelBody} from 'app/components/panels';
+import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
+import {Client} from 'sentry/api';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Pagination from 'sentry/components/pagination';
+import {Panel, PanelBody} from 'sentry/components/panels';
+import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
+import {treeResultLocator} from 'sentry/components/searchSyntax/utils';
 import StreamGroup, {
   DEFAULT_STREAM_GROUP_STATS_PERIOD,
-} from 'app/components/stream/group';
-import {t} from 'app/locale';
-import GroupStore from 'app/stores/groupStore';
-import {Group} from 'app/types';
-import {callIfFunction} from 'app/utils/callIfFunction';
-import StreamManager from 'app/utils/streamManager';
-import withApi from 'app/utils/withApi';
-import {TimePeriodType} from 'app/views/alerts/rules/details/constants';
+} from 'sentry/components/stream/group';
+import {t} from 'sentry/locale';
+import GroupStore from 'sentry/stores/groupStore';
+import {Group} from 'sentry/types';
+import {callIfFunction} from 'sentry/utils/callIfFunction';
+import StreamManager from 'sentry/utils/streamManager';
+import withApi from 'sentry/utils/withApi';
+import {TimePeriodType} from 'sentry/views/alerts/rules/details/constants';
+import {RELATED_ISSUES_BOOLEAN_QUERY_ERROR} from 'sentry/views/alerts/rules/details/relatedIssuesNotAvailable';
 
 import GroupListHeader from './groupListHeader';
 
@@ -114,7 +117,7 @@ class GroupList extends React.Component<Props, State> {
 
   fetchData = () => {
     GroupStore.loadInitialData([]);
-    const {api, orgId} = this.props;
+    const {api, orgId, queryParams} = this.props;
     api.clear();
 
     this.setState({loading: true, error: false, errorData: null});
@@ -124,6 +127,28 @@ class GroupList extends React.Component<Props, State> {
     });
 
     const endpoint = this.getGroupListEndpoint();
+
+    const parsedQuery = parseSearch((queryParams ?? this.getQueryParams()).query);
+    const hasLogicBoolean = parsedQuery
+      ? treeResultLocator<boolean>({
+          tree: parsedQuery,
+          noResultValue: false,
+          visitorTest: ({token, returnResult}) => {
+            return token.type === Token.LogicBoolean ? returnResult(true) : null;
+          },
+        })
+      : false;
+
+    // Check if the alert rule query has AND or OR
+    // logic queries haven't been implemented for issue search yet
+    if (hasLogicBoolean) {
+      this.setState({
+        error: true,
+        errorData: {detail: RELATED_ISSUES_BOOLEAN_QUERY_ERROR},
+        loading: false,
+      });
+      return;
+    }
 
     api.request(endpoint, {
       success: (data, _, resp) => {

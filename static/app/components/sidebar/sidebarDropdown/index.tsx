@@ -1,25 +1,25 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {logout} from 'app/actionCreators/account';
-import {Client} from 'app/api';
-import DemoModeGate from 'app/components/acl/demoModeGate';
-import Avatar from 'app/components/avatar';
-import DropdownMenu from 'app/components/dropdownMenu';
-import Hook from 'app/components/hook';
-import IdBadge from 'app/components/idBadge';
-import Link from 'app/components/links/link';
-import SidebarDropdownMenu from 'app/components/sidebar/sidebarDropdownMenu.styled';
-import SidebarMenuItem, {menuItemStyles} from 'app/components/sidebar/sidebarMenuItem';
-import SidebarOrgSummary from 'app/components/sidebar/sidebarOrgSummary';
-import TextOverflow from 'app/components/textOverflow';
-import {IconChevron, IconSentry} from 'app/icons';
-import {t} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
-import space from 'app/styles/space';
-import {Config, Organization, Project, User} from 'app/types';
-import withApi from 'app/utils/withApi';
-import withProjects from 'app/utils/withProjects';
+import {logout} from 'sentry/actionCreators/account';
+import {Client} from 'sentry/api';
+import DemoModeGate from 'sentry/components/acl/demoModeGate';
+import Avatar from 'sentry/components/avatar';
+import DropdownMenu from 'sentry/components/dropdownMenu';
+import Hook from 'sentry/components/hook';
+import IdBadge from 'sentry/components/idBadge';
+import Link from 'sentry/components/links/link';
+import SidebarDropdownMenu from 'sentry/components/sidebar/sidebarDropdownMenu.styled';
+import SidebarMenuItem, {menuItemStyles} from 'sentry/components/sidebar/sidebarMenuItem';
+import SidebarOrgSummary from 'sentry/components/sidebar/sidebarOrgSummary';
+import TextOverflow from 'sentry/components/textOverflow';
+import {IconChevron, IconSentry} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import space from 'sentry/styles/space';
+import {Config, Organization, Project, User} from 'sentry/types';
+import withApi from 'sentry/utils/withApi';
+import withProjects from 'sentry/utils/withProjects';
 
 import SidebarMenuItemLink from '../sidebarMenuItemLink';
 import {CommonSidebarProps} from '../types';
@@ -243,7 +243,7 @@ const SidebarDropdownActor = styled('button')`
       text-shadow: 0 0 6px rgba(255, 255, 255, 0.1);
     }
     ${UserNameOrEmail} {
-      color: ${p => p.theme.gray200};
+      color: ${p => p.theme.white};
     }
   }
 `;

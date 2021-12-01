@@ -1,4 +1,4 @@
-import {User} from 'app/types';
+import {User} from 'sentry/types';
 
 // Max widgets per dashboard we are currently willing
 // to allow to limit the load on snuba from the
@@ -17,6 +17,11 @@ export enum DisplayType {
   TOP_N = 'top_n',
 }
 
+export enum WidgetType {
+  DISCOVER = 'discover',
+  ISSUE = 'issue',
+}
+
 export type WidgetQuery = {
   name: string;
   fields: string[];
@@ -30,6 +35,7 @@ export type Widget = {
   displayType: DisplayType;
   interval: string;
   queries: WidgetQuery[];
+  widgetType?: WidgetType;
 };
 
 /**
@@ -59,4 +65,12 @@ export enum DashboardState {
   EDIT = 'edit',
   CREATE = 'create',
   PENDING_DELETE = 'pending_delete',
+}
+
+// where we launch the dashboard widget from
+export enum DashboardWidgetSource {
+  DISCOVERV2 = 'discoverv2',
+  DASHBOARDS = 'dashboards',
+  LIBRARY = 'library',
+  ISSUE_DETAILS = 'issueDetail',
 }

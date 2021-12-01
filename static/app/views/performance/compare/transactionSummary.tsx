@@ -2,15 +2,14 @@ import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {parseTrace} from 'app/components/events/interfaces/spans/utils';
-import Link from 'app/components/links/link';
-import {getHumanDuration} from 'app/components/performance/waterfall/utils';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import {Event} from 'app/types/event';
-
-import {getTransactionDetailsUrl} from '../utils';
+import {parseTrace} from 'sentry/components/events/interfaces/spans/utils';
+import Link from 'sentry/components/links/link';
+import {getHumanDuration} from 'sentry/components/performance/waterfall/utils';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 
 import {isTransactionEvent} from './utils';
 
@@ -53,7 +52,7 @@ class TransactionSummary extends Component<Props> {
                 <span>{t('ID')}: </span>
                 <StyledLink
                   to={getTransactionDetailsUrl(
-                    organization,
+                    organization.slug,
                     baselineEventSlug.trim(),
                     baselineEvent.title,
                     location.query
@@ -77,7 +76,7 @@ class TransactionSummary extends Component<Props> {
                 <span>{t('ID')}: </span>
                 <StyledLink
                   to={getTransactionDetailsUrl(
-                    organization,
+                    organization.slug,
                     regressionEventSlug.trim(),
                     regressionEvent.title,
                     location.query

@@ -1,4 +1,4 @@
-import MutedBox from 'app/components/mutedBox';
+import MutedBox from 'sentry/components/mutedBox';
 
 export default {
   title: 'Features/Issues/Muted Box',
