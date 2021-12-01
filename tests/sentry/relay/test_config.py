@@ -99,12 +99,23 @@ def test_project_config_uses_filters_and_sampling_feature(
 
 
 @pytest.mark.django_db
-def test_project_config_with_breakdown(default_project, insta_snapshot):
-    with Feature("organizations:performance-ops-breakdown"):
+@pytest.mark.parametrize("transaction_metrics", ("with_metrics", "without_metrics"))
+def test_project_config_with_breakdown(default_project, insta_snapshot, transaction_metrics):
+    with Feature(
+        {
+            "organizations:performance-ops-breakdown": True,
+            "organizations:transaction-metrics-extraction": transaction_metrics == "with_metrics",
+        }
+    ):
         cfg = get_project_config(default_project, full_config=True)
 
     cfg = cfg.to_dict()
-    insta_snapshot(cfg["config"]["breakdownsV2"])
+    insta_snapshot(
+        {
+            "breakdownsV2": cfg["config"]["breakdownsV2"],
+            "transactionMetrics": cfg["config"].get("transactionMetrics"),
+        }
+    )
 
 
 @pytest.mark.django_db

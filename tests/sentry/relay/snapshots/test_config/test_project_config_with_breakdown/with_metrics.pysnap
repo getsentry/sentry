@@ -1,0 +1,38 @@
+---
+created: '2021-12-01T11:50:07.421262Z'
+creator: sentry
+source: tests/sentry/relay/test_config.py
+---
+breakdownsV2:
+  span_ops:
+    matches:
+    - http
+    - db
+    - browser
+    - resource
+    type: spanOperations
+transactionMetrics:
+  extractCustomTags: []
+  extractMetrics:
+  - measurements.app_start_cold
+  - measurements.app_start_warm
+  - measurements.cls
+  - measurements.fcp
+  - measurements.fid
+  - measurements.fp
+  - measurements.frames_frozen
+  - measurements.frames_frozen_rate
+  - measurements.frames_slow
+  - measurements.frames_slow_rate
+  - measurements.frames_total
+  - measurements.lcp
+  - measurements.stall_count
+  - measurements.stall_longest_time
+  - measurements.stall_percentage
+  - measurements.stall_total_time
+  - measurements.ttfb
+  - measurements.ttfb.requesttime
+  - breakdown.span_ops.http
+  - breakdown.span_ops.db
+  - breakdown.span_ops.browser
+  - breakdown.span_ops.resource
