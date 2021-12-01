@@ -385,7 +385,7 @@ def get_transaction_metrics_settings(
         # TODO: for now let's extract all known measurements. we might want to
         # be more fine-grained in the future once we know which measurements we
         # really need (or how that can be dynamically determined)
-        metrics.extend(ALL_MEASUREMENT_METRICS)
+        metrics.extend(sorted(ALL_MEASUREMENT_METRICS))
 
         if breakdowns_config is not None:
             # we already have a breakdown configuration that tells relay which

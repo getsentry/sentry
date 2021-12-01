@@ -1,5 +1,5 @@
 ---
-created: '2021-11-24T12:58:33.586954Z'
+created: '2021-12-01T11:50:07.421262Z'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
@@ -14,24 +14,24 @@ breakdownsV2:
 transactionMetrics:
   extractCustomTags: []
   extractMetrics:
-  - measurements.stall_total_time
-  - measurements.lcp
-  - measurements.ttfb.requesttime
-  - measurements.frames_frozen_rate
-  - measurements.stall_count
-  - measurements.stall_longest_time
-  - measurements.frames_slow_rate
-  - measurements.fcp
-  - measurements.ttfb
-  - measurements.stall_percentage
   - measurements.app_start_cold
   - measurements.app_start_warm
-  - measurements.frames_slow
   - measurements.cls
+  - measurements.fcp
   - measurements.fid
   - measurements.fp
   - measurements.frames_frozen
+  - measurements.frames_frozen_rate
+  - measurements.frames_slow
+  - measurements.frames_slow_rate
   - measurements.frames_total
+  - measurements.lcp
+  - measurements.stall_count
+  - measurements.stall_longest_time
+  - measurements.stall_percentage
+  - measurements.stall_total_time
+  - measurements.ttfb
+  - measurements.ttfb.requesttime
   - breakdown.span_ops.http
   - breakdown.span_ops.db
   - breakdown.span_ops.browser
