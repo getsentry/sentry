@@ -27,7 +27,7 @@ class AvatarSerializer(serializers.Serializer):
 
 
 class SentryAppLogoSerializer(serializers.Serializer):
-    avatar_photo = AvatarField(required=False)
+    avatar_photo = AvatarField(required=False, is_sentry_app=True)
     avatar_type = serializers.ChoiceField(choices=(("default", "default"), ("upload", "upload")))
     color = serializers.BooleanField(required=True)
 
