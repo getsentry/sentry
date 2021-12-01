@@ -248,7 +248,6 @@ describe('Dashboards > Detail', function () {
       mockPut = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
         method: 'PUT',
-        status: 400,
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-stats/',
