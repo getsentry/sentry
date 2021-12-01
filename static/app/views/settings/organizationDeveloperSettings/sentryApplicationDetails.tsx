@@ -10,6 +10,9 @@ import {
   addSentryAppToken,
   removeSentryAppToken,
 } from 'sentry/actionCreators/sentryAppTokens';
+import Feature from 'sentry/components/acl/feature';
+import Avatar from 'sentry/components/avatar';
+import AvatarChooser, {Model} from 'sentry/components/avatarChooser';
 import Button from 'sentry/components/button';
 import DateTime from 'sentry/components/dateTime';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
@@ -20,10 +23,10 @@ import {
   publicIntegrationForms,
 } from 'sentry/data/forms/sentryApplication';
 import {IconAdd, IconDelete} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {InternalAppApiToken, Scope, SentryApp} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import routeTitleGen from 'sentry/utils/routeTitle';
 import AsyncView from 'sentry/views/asyncView';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 import Form from 'sentry/views/settings/components/forms/form';
@@ -35,6 +38,19 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 import PermissionsObserver from 'sentry/views/settings/organizationDeveloperSettings/permissionsObserver';
 
 type Resource = 'Project' | 'Team' | 'Release' | 'Event' | 'Organization' | 'Member';
+
+const AVATAR_STYLES = {
+  color: {
+    size: 50,
+    title: t('Default Logo'),
+    description: t('The default icon for integrations'),
+  },
+  simple: {
+    size: 20,
+    title: t('Default Icon'),
+    description: t('This is an optional icon used for Issue Linking'),
+  },
+};
 
 /**
  * Finds the resource in SENTRY_APP_PERMISSIONS that contains a given scope
@@ -139,9 +155,11 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
     return [];
   }
 
-  getTitle() {
-    const {orgId} = this.props.params;
-    return routeTitleGen(t('Sentry Integration Details'), orgId, false);
+  getHeaderTitle() {
+    const {app} = this.state;
+    const action = app ? 'Edit' : 'Create';
+    const type = this.isInternal ? 'Internal' : 'Public';
+    return tct('[action] [type] Integration', {action, type});
   }
 
   // Events may come from the API as "issue.created" when we just want "issue" here.
@@ -277,6 +295,77 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
     }
   };
 
+  addAvatar = ({avatar}: Model) => {
+    const {app} = this.state;
+    if (app && avatar) {
+      const avatars =
+        app?.avatars?.filter(prevAvatar => prevAvatar.color !== avatar.color) || [];
+      avatars.push(avatar);
+      this.setState({app: {...app, avatars}});
+    }
+  };
+
+  getAvatarModel = (isColor: boolean): Model => {
+    const {app} = this.state;
+    const defaultModel: Model = {
+      avatar: {
+        avatarType: 'default',
+        avatarUuid: null,
+      },
+    };
+    if (!app) {
+      return defaultModel;
+    }
+    return {
+      avatar: app?.avatars?.find(({color}) => color === isColor) || defaultModel.avatar,
+    };
+  };
+
+  getAvatarPreview = (isColor: boolean) => {
+    const {app} = this.state;
+    if (!app) {
+      return null;
+    }
+    const avatarStyle = isColor ? 'color' : 'simple';
+    return (
+      <AvatarPreview>
+        <StyledPreviewAvatar
+          size={AVATAR_STYLES[avatarStyle].size}
+          sentryApp={app}
+          isDefault
+        />
+        <AvatarPreviewTitle>{AVATAR_STYLES[avatarStyle].title}</AvatarPreviewTitle>
+        <AvatarPreviewText>{AVATAR_STYLES[avatarStyle].description}</AvatarPreviewText>
+      </AvatarPreview>
+    );
+  };
+
+  getAvatarChooser = (isColor: boolean) => {
+    const {app} = this.state;
+    if (!app) {
+      return null;
+    }
+    return (
+      <Feature features={['organizations:sentry-app-logo-upload']}>
+        <AvatarChooser
+          type={isColor ? 'sentryAppColor' : 'sentryAppSimple'}
+          allowGravatar={false}
+          allowLetter={false}
+          endpoint={`/sentry-apps/${app.slug}/avatar/`}
+          model={this.getAvatarModel(isColor)}
+          onSave={this.addAvatar}
+          title={isColor ? t('Logo') : t('Small Icon')}
+          savedDataUrl={undefined}
+          defaultChoice={{
+            allowDefault: true,
+            choiceText: isColor ? t('Default logo') : t('Default small icon'),
+            preview: this.getAvatarPreview(isColor),
+          }}
+        />
+      </Feature>
+    );
+  };
+
   renderBody() {
     const {orgId} = this.props.params;
     const {app} = this.state;
@@ -297,7 +386,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
 
     return (
       <div>
-        <SettingsPageHeader title={this.getTitle()} />
+        <SettingsPageHeader title={this.getHeaderTitle()} />
         <Form
           apiMethod={method}
           apiEndpoint={endpoint}
@@ -323,7 +412,8 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
               return (
                 <React.Fragment>
                   <JsonForm additionalFieldProps={{webhookDisabled}} forms={forms} />
-
+                  {this.getAvatarChooser(true)}
+                  {this.getAvatarChooser(false)}
                   <PermissionsObserver
                     webhookDisabled={webhookDisabled}
                     appPublished={app ? app.status === 'published' : false}
@@ -414,4 +504,28 @@ const CreatedDate = styled('div')`
   flex-direction: column;
   font-size: 14px;
   margin: 0 10px;
+`;
+
+const AvatarPreview = styled('div')`
+  flex: 1;
+  display: grid;
+  grid: 25px 25px / 50px 1fr;
+`;
+
+const StyledPreviewAvatar = styled(Avatar)`
+  grid-area: 1 / 1 / 3 / 2;
+  justify-self: end;
+`;
+
+const AvatarPreviewTitle = styled('span')`
+  display: block;
+  grid-area: 1 / 2 / 2 / 3;
+  padding-left: ${space(2)};
+  font-weight: bold;
+`;
+
+const AvatarPreviewText = styled('span')`
+  display: block;
+  grid-area: 2 / 2 / 3 / 3;
+  padding-left: ${space(2)};
 `;

@@ -69,7 +69,12 @@ type DefaultProps = {
   /**
    * Path to uploaded avatar (differs based on model type)
    */
-  uploadPath?: 'avatar' | 'team-avatar' | 'organization-avatar' | 'project-avatar';
+  uploadPath?:
+    | 'avatar'
+    | 'team-avatar'
+    | 'organization-avatar'
+    | 'project-avatar'
+    | 'sentry-app-avatar';
 };
 
 type BaseProps = DefaultProps & {

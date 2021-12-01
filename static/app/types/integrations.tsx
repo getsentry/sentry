@@ -7,7 +7,7 @@ import {
 } from 'sentry/views/organizationIntegrations/constants';
 import {Field} from 'sentry/views/settings/components/forms/type';
 
-import {Choices, ObjectStatus, Scope} from './core';
+import {Avatar, Choices, ObjectStatus, Scope} from './core';
 import {BaseRelease} from './release';
 import {User} from './user';
 
@@ -161,6 +161,7 @@ export type SentryApp = {
     slug: string;
   };
   featureData: IntegrationFeature[];
+  avatars?: Avatar[];
 };
 
 export type SentryAppInstallation = {
