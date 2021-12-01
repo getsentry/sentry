@@ -289,8 +289,9 @@ const GridItem = styled('div')`
 `;
 
 export function generateWidgetId(widget: Widget) {
-  if (widget.id || widget.tempId) {
-    return `${WIDGET_PREFIX}-${widget.id ?? widget.tempId}`;
+  const id = widget.id ?? widget.tempId;
+  if (id) {
+    return `${WIDGET_PREFIX}-${id}`;
   }
 
   return Date.now().toString();
