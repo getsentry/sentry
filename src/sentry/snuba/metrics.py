@@ -22,24 +22,14 @@ from typing import (
     Union,
 )
 
-from snuba_sdk import (
-    And,
-    Column,
-    Condition,
-    Entity,
-    Function,
-    Granularity,
-    Limit,
-    Offset,
-    Op,
-    Or,
-    Query,
-)
+from snuba_sdk import Column, Condition, Entity, Function, Granularity, Limit, Offset, Op, Query
 from snuba_sdk.conditions import BooleanCondition
 from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry.api.utils import get_date_range_from_params
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Project
+from sentry.search.events.filter import QueryFilter
 from sentry.sentry_metrics import indexer
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.sessions_v2 import (  # TODO: unite metrics and sessions_v2
@@ -106,30 +96,49 @@ def parse_field(field: str) -> Tuple[str, str]:
         return operation, metric_name
 
 
-def verify_tag_name(name: str) -> str:
+def _resolve_tags(input_: Any) -> Any:
+    """Translate tags in snuba condition"""
+    if isinstance(input_, list):
+        return [_resolve_tags(item) for item in input_]
+    if isinstance(input_, Function):
+        return Function(
+            function=input_.function,
+            parameters=input_.parameters and [_resolve_tags(item) for item in input_.parameters],
+        )
+    if isinstance(input_, Condition):
+        return Condition(lhs=_resolve_tags(input_.lhs), op=input_.op, rhs=_resolve_tags(input_.rhs))
+    if isinstance(input_, BooleanCondition):
+        return input_.__class__(conditions=[_resolve_tags(item) for item in input_.conditions])
+    if isinstance(input_, Column):
+        # HACK: Some tags already take the form "tags[...]" in discover, take that into account:
+        if input_.subscriptable == "tags":
+            name = input_.key
+        else:
+            name = input_.name
+        return Column(name=f"tags[{indexer.resolve(name)}]")
+    if isinstance(input_, str):
+        return indexer.resolve(input_)
 
-    if not TAG_REGEX.match(name):
-        raise InvalidParams(f"Invalid tag name: '{name}'")
-
-    return name
+    return input_
 
 
-def parse_tag(tag_string: str) -> Tuple[str, str]:
+def parse_query(query_string: str) -> Sequence[Condition]:
+    """Parse given filter query into a list of snuba conditions"""
+    # HACK: Parse a sessions query, validate / transform afterwards.
+    # We will want to write our own grammar + interpreter for this later.
     try:
-        name, value = tag_string.split(":")
-    except ValueError:
-        raise InvalidParams(f"Expected something like 'foo:\"bar\"' for tag, got '{tag_string}'")
+        query_filter = QueryFilter(
+            Dataset.Sessions,
+            params={
+                "project_id": 0,
+            },
+        )
+        where, _ = query_filter.resolve_conditions(query_string, use_aggregate_conditions=True)
+    except InvalidSearchQuery as e:
+        raise InvalidParams(f"Failed to parse query: {e}")
+    where = _resolve_tags(where)
 
-    return (verify_tag_name(name), value.strip('"'))
-
-
-def parse_query(query_string: str) -> dict:
-    return {
-        "or": [
-            {"and": [parse_tag(and_part) for and_part in or_part.split(" and ")]}
-            for or_part in query_string.split(" or ")
-        ]
-    }
+    return where
 
 
 class QueryDefinition:
@@ -421,7 +430,7 @@ _MEASUREMENT_TAGS = dict(
     _BASE_TAGS,
     **{
         "measurement_rating": ["good", "meh", "poor"],
-        "transaction": ["/foo/:ordId/", "/bar/:ordId/"],
+        "transaction": ["/foo/:orgId/", "/bar/:orgId/"],
     },
 )
 
@@ -653,45 +662,6 @@ class SnubaQueryBuilder:
         self._projects = projects
         self._queries = self._build_queries(query_definition)
 
-    def _build_logical(self, operator, operands) -> Optional[BooleanCondition]:
-        """Snuba only accepts And and Or if they have 2 elements or more"""
-        operands = [operand for operand in operands if operand is not None]
-        if not operands:
-            return None
-        if len(operands) == 1:
-            return operands[0]
-
-        return operator(operands)
-
-    def _build_filter(self, query_definition: QueryDefinition) -> Optional[BooleanCondition]:
-        filter_ = query_definition.parsed_query
-        if filter_ is None:
-            return None
-
-        def to_int(string):
-            try:
-                return indexer.resolve(string)
-            except KeyError:
-                return None
-
-        return self._build_logical(
-            Or,
-            [
-                self._build_logical(
-                    And,
-                    [
-                        Condition(
-                            Column(f"tags[{to_int(tag)}]"),
-                            Op.EQ,
-                            to_int(value),
-                        )
-                        for tag, value in or_operand["and"]
-                    ],
-                )
-                for or_operand in filter_["or"]
-            ],
-        )
-
     def _build_where(
         self, query_definition: QueryDefinition
     ) -> List[Union[BooleanCondition, Condition]]:
@@ -708,9 +678,9 @@ class SnubaQueryBuilder:
             Condition(Column(TS_COL_QUERY), Op.GTE, query_definition.start),
             Condition(Column(TS_COL_QUERY), Op.LT, query_definition.end),
         ]
-        filter_ = self._build_filter(query_definition)
+        filter_ = query_definition.parsed_query
         if filter_:
-            where.append(filter_)
+            where.extend(filter_)
 
         return where
 
