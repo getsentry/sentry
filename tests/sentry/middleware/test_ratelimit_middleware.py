@@ -9,12 +9,8 @@ from rest_framework.response import Response
 from sentry.api.base import Endpoint
 from sentry.api.endpoints.organization_group_index import OrganizationGroupIndexEndpoint
 from sentry.auth.access import from_request
-from sentry.middleware.ratelimit import (
-    RatelimitMiddleware,
-    above_rate_limit_check,
-    get_rate_limit_key,
-    get_rate_limit_value,
-)
+from sentry.middleware.ratelimit import RatelimitMiddleware
+from sentry.ratelimits import above_rate_limit_check, get_rate_limit_key, get_rate_limit_value
 from sentry.testutils import TestCase
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
