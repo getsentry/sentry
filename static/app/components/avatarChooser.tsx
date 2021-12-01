@@ -12,13 +12,23 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import Well from 'sentry/components/well';
 import {t} from 'sentry/locale';
-import {AvatarUser, Organization, Team} from 'sentry/types';
+import {AvatarUser, Organization, SentryApp, Team} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import RadioGroup from 'sentry/views/settings/components/forms/controls/radioGroup';
 
-type Model = Pick<AvatarUser, 'avatar'>;
+export type Model = Pick<AvatarUser, 'avatar'>;
 type AvatarType = Required<Model>['avatar']['avatarType'];
-type AvatarChooserType = 'user' | 'team' | 'organization';
+type AvatarChooserType =
+  | 'user'
+  | 'team'
+  | 'organization'
+  | 'sentryAppColor'
+  | 'sentryAppSimple';
+type DefaultChoice = {
+  preview?: React.ReactNode;
+  allowDefault?: boolean;
+  choiceText?: string;
+};
 
 type DefaultProps = {
   onSave: (model: Model) => void;
@@ -26,6 +36,7 @@ type DefaultProps = {
   allowLetter?: boolean;
   allowUpload?: boolean;
   type?: AvatarChooserType;
+  defaultChoice?: DefaultChoice;
 };
 
 type Props = {
@@ -35,6 +46,10 @@ type Props = {
   disabled?: boolean;
   savedDataUrl?: string;
   isUser?: boolean;
+  /**
+   * Title in the PanelHeader component (default: 'Avatar')
+   */
+  title?: string;
 } & DefaultProps;
 
 type State = {
@@ -51,6 +66,9 @@ class AvatarChooser extends React.Component<Props, State> {
     allowUpload: true,
     type: 'user',
     onSave: () => {},
+    defaultChoice: {
+      allowDefault: false,
+    },
   };
 
   state: State = {
@@ -71,6 +89,17 @@ class AvatarChooser extends React.Component<Props, State> {
     this.setState({model});
   }
 
+  getModelFromResponse(resp: any): Model {
+    const {type} = this.props;
+    const isSentryApp = type?.startsWith('sentryApp');
+    // SentryApp endpoint returns all avatars, we need to return only the edited one
+    if (!isSentryApp) {
+      return resp;
+    }
+    const isColor = type === 'sentryAppColor';
+    return {avatar: resp?.avatars?.find(({color}) => color === isColor) ?? undefined};
+  }
+
   handleError(msg: string) {
     addErrorMessage(msg);
   }
@@ -83,24 +112,33 @@ class AvatarChooser extends React.Component<Props, State> {
   }
 
   handleSaveSettings = (ev: React.MouseEvent) => {
-    const {endpoint, api} = this.props;
+    const {endpoint, api, type} = this.props;
     const {model, dataUrl} = this.state;
+    const isSentryApp = type?.startsWith('sentryApp');
+
     ev.preventDefault();
-    let data = {};
     const avatarType = model && model.avatar ? model.avatar.avatarType : undefined;
     const avatarPhoto = dataUrl ? dataUrl.split(',')[1] : undefined;
 
-    data = {
+    const data: {
+      avatar_photo: string | undefined;
+      avatar_type: string | undefined;
+      color?: boolean;
+    } = {
       avatar_photo: avatarPhoto,
       avatar_type: avatarType,
     };
+
+    if (isSentryApp) {
+      data.color = type === 'sentryAppColor';
+    }
 
     api.request(endpoint, {
       method: 'PUT',
       data,
       success: resp => {
         this.setState({savedDataUrl: this.state.dataUrl});
-        this.handleSuccess(resp);
+        this.handleSuccess(this.getModelFromResponse(resp));
       },
       error: this.handleError.bind(this, 'There was an error saving your preferences.'),
     });
@@ -121,6 +159,8 @@ class AvatarChooser extends React.Component<Props, State> {
       type,
       isUser,
       disabled,
+      title,
+      defaultChoice,
     } = this.props;
     const {hasError, model} = this.state;
 
@@ -130,14 +170,21 @@ class AvatarChooser extends React.Component<Props, State> {
     if (!model) {
       return <LoadingIndicator />;
     }
+    const {allowDefault, preview, choiceText: defaultChoiceText} = defaultChoice || {};
 
     const avatarType = model.avatar?.avatarType ?? 'letter_avatar';
     const isLetter = avatarType === 'letter_avatar';
+    const isDefault = Boolean(preview && avatarType === 'default');
 
     const isTeam = type === 'team';
     const isOrganization = type === 'organization';
+    const isSentryApp = type?.startsWith('sentryApp');
+
     const choices: [AvatarType, string][] = [];
 
+    if (allowDefault && preview) {
+      choices.push(['default', defaultChoiceText ?? t('Use default avatar')]);
+    }
     if (allowLetter) {
       choices.push(['letter_avatar', t('Use initials')]);
     }
@@ -147,13 +194,12 @@ class AvatarChooser extends React.Component<Props, State> {
     if (allowGravatar) {
       choices.push(['gravatar', t('Use Gravatar')]);
     }
-
     return (
       <Panel>
-        <PanelHeader>{t('Avatar')}</PanelHeader>
+        <PanelHeader>{title || t('Avatar')}</PanelHeader>
         <PanelBody>
           <AvatarForm>
-            <AvatarGroup inline={isLetter}>
+            <AvatarGroup inline={isLetter || isDefault}>
               <RadioGroup
                 style={{flex: 1}}
                 choices={choices}
@@ -169,10 +215,11 @@ class AvatarChooser extends React.Component<Props, State> {
                   user={isUser ? (model as AvatarUser) : undefined}
                   organization={isOrganization ? (model as Organization) : undefined}
                   team={isTeam ? (model as Team) : undefined}
+                  sentryApp={isSentryApp ? (model as SentryApp) : undefined}
                 />
               )}
+              {isDefault && preview}
             </AvatarGroup>
-
             <AvatarUploadSection>
               {allowGravatar && avatarType === 'gravatar' && (
                 <Well>
@@ -180,7 +227,6 @@ class AvatarChooser extends React.Component<Props, State> {
                   <ExternalLink href="http://gravatar.com">Gravatar.com</ExternalLink>
                 </Well>
               )}
-
               {model.avatar && avatarType === 'upload' && (
                 <AvatarCropper
                   {...this.props}
@@ -216,12 +262,13 @@ const AvatarGroup = styled('div')<{inline: boolean}>`
 const AvatarForm = styled('div')`
   line-height: 1.5em;
   padding: 1em 1.25em;
+  margin: 1em 0.5em 0;
 `;
 
 const AvatarSubmit = styled('fieldset')`
   display: flex;
   justify-content: flex-end;
-  margin-top: 1em;
+  margin-top: 1.25em;
 `;
 
 const AvatarUploadSection = styled('div')`
