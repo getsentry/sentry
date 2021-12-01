@@ -43,7 +43,7 @@ ReleaseHealthResult = Any
 Scalars = Union[int, str, float, datetime, None]
 
 
-def _coerce_utc(timestamp):
+def _coerce_utc(timestamp: datetime) -> datetime:
     if timestamp.tzinfo is None:
         return timestamp.replace(tzinfo=pytz.utc)
     return timestamp
