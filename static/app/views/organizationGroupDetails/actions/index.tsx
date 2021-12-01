@@ -174,6 +174,11 @@ class Actions extends React.Component<Props, State> {
   }
 
   onToggleShare = () => {
+    if (!this.props.group.isPublic) {
+      trackAdvancedAnalyticsEvent('issue.shared_publicly', {
+        organization: this.props.organization,
+      });
+    }
     this.onShare(!this.props.group.isPublic);
   };
 
