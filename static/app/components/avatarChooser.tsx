@@ -69,7 +69,7 @@ class AvatarChooser extends React.Component<Props, State> {
 
   updateState(model: Model) {
     this.setState({model});
-<<  }
+  }
 
   handleError(msg: string) {
     addErrorMessage(msg);
