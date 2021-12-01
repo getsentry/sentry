@@ -20,4 +20,5 @@ coverage:
   - src/bitfield/.*
   - src/social_auth/.*
   - static/app/routes.tsx
+  - tests/
 comment: false
