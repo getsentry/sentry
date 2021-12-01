@@ -1,7 +1,7 @@
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {Client} from 'app/api';
-import {t} from 'app/locale';
-import {DashboardDetails, Widget} from 'app/views/dashboardsV2/types';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {Client} from 'sentry/api';
+import {t} from 'sentry/locale';
+import {DashboardDetails, Widget} from 'sentry/views/dashboardsV2/types';
 
 export function createDashboard(
   api: Client,

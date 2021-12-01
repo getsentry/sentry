@@ -1,7 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import GroupTags from 'app/views/organizationGroupDetails/groupTags';
+import GroupTags from 'sentry/views/organizationGroupDetails/groupTags';
 
 describe('GroupTags', function () {
   const {routerContext, router, organization} = initializeOrg();
@@ -36,7 +36,7 @@ describe('GroupTags', function () {
     // Check headers have been sorted alphabetically
     expect(headers).toEqual(['browser', 'device', 'environment', 'url', 'user']);
 
-    fireEvent.click(screen.getByText('david'));
+    userEvent.click(screen.getByText('david'));
 
     expect(router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/issues/1/events/',

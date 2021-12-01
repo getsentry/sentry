@@ -2,24 +2,24 @@ import {Component, Fragment} from 'react';
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import {SectionHeading} from 'app/components/charts/styles';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
-import GroupList from 'app/components/issues/groupList';
-import LoadingError from 'app/components/loadingError';
-import {Panel, PanelBody} from 'app/components/panels';
-import Tooltip from 'app/components/tooltip';
-import {IconInfo} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {OrganizationSummary, Project} from 'app/types';
-import {makeDefaultCta} from 'app/views/alerts/incidentRules/incidentRulePresets';
-import {IncidentRule} from 'app/views/alerts/incidentRules/types';
+import Button from 'sentry/components/button';
+import {SectionHeading} from 'sentry/components/charts/styles';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import GroupList from 'sentry/components/issues/groupList';
+import LoadingError from 'sentry/components/loadingError';
+import {Panel, PanelBody} from 'sentry/components/panels';
+import Tooltip from 'sentry/components/tooltip';
+import {IconInfo} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {OrganizationSummary, Project} from 'sentry/types';
+import {makeDefaultCta} from 'sentry/views/alerts/incidentRules/incidentRulePresets';
+import {IncidentRule} from 'sentry/views/alerts/incidentRules/types';
 import {
-  RELATED_ISSUES_QUERY_ERROR,
+  RELATED_ISSUES_BOOLEAN_QUERY_ERROR,
   RelatedIssuesNotAvailable,
-} from 'app/views/alerts/rules/details/relatedIssuesNotAvailable';
-import {isSessionAggregate} from 'app/views/alerts/utils';
+} from 'sentry/views/alerts/rules/details/relatedIssuesNotAvailable';
+import {isSessionAggregate} from 'sentry/views/alerts/utils';
 
 import {TimePeriodType} from './constants';
 
@@ -35,7 +35,10 @@ class RelatedIssues extends Component<Props> {
   renderErrorMessage = ({detail}: {detail: string}, retry: () => void) => {
     const {rule, organization, projects, query, timePeriod} = this.props;
 
-    if (detail === RELATED_ISSUES_QUERY_ERROR && !isSessionAggregate(rule.aggregate)) {
+    if (
+      detail === RELATED_ISSUES_BOOLEAN_QUERY_ERROR &&
+      !isSessionAggregate(rule.aggregate)
+    ) {
       const ctaOpts = {
         orgSlug: organization.slug,
         projects,

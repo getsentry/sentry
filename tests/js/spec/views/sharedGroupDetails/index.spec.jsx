@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
-import SharedGroupDetails from 'app/views/sharedGroupDetails';
+import SharedGroupDetails from 'sentry/views/sharedGroupDetails';
 
 describe('SharedGroupDetails', function () {
   const eventEntry = TestStubs.EventEntry();

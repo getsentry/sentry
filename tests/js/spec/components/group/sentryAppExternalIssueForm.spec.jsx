@@ -1,9 +1,9 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {changeInputValue, selectByValue} from 'sentry-test/select-new';
 
-import {Client} from 'app/api';
-import SentryAppExternalIssueForm from 'app/components/group/sentryAppExternalIssueForm';
-import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
+import {Client} from 'sentry/api';
+import SentryAppExternalIssueForm from 'sentry/components/group/sentryAppExternalIssueForm';
+import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 
 const optionLabelSelector = label => `[label="${label}"]`;
 
@@ -233,44 +233,34 @@ describe('SentryAppExternalIssueForm Dependent fields', () => {
   describe('create', () => {
     it('load options for field that has dependencies when the dependent option is selected', async () => {
       const url = `/sentry-app-installations/${sentryAppInstallation.uuid}/external-requests/`;
-      Client.addMockResponse(
-        {
-          method: 'GET',
-          url,
-          body: {
-            choices: [
-              ['A', 'project A'],
-              ['B', 'project B'],
-            ],
-          },
+      Client.addMockResponse({
+        method: 'GET',
+        url,
+        body: {
+          choices: [
+            ['A', 'project A'],
+            ['B', 'project B'],
+          ],
         },
-        {
-          predicate: (_url, options) => {
-            return options.query.uri === '/integrations/sentry/projects';
-          },
-        }
-      );
+        match: [MockApiClient.matchQuery({uri: '/integrations/sentry/projects'})],
+      });
 
-      const boardMock = Client.addMockResponse(
-        {
-          method: 'GET',
-          url,
-          body: {
-            choices: [
-              ['R', 'board R'],
-              ['S', 'board S'],
-            ],
-          },
+      const boardMock = Client.addMockResponse({
+        method: 'GET',
+        url,
+        body: {
+          choices: [
+            ['R', 'board R'],
+            ['S', 'board S'],
+          ],
         },
-        {
-          predicate: (_url, {query}) => {
-            return (
-              query.uri === '/integrations/sentry/boards' &&
-              query.dependentData === JSON.stringify({project_id: 'A'})
-            );
-          },
-        }
-      );
+        match: [
+          MockApiClient.matchQuery({
+            uri: '/integrations/sentry/boards',
+            dependentData: JSON.stringify({project_id: 'A'}),
+          }),
+        ],
+      });
 
       const projectInput = wrapper.find('[data-test-id="project_id"] input').at(0);
       changeInputValue(projectInput, 'p');

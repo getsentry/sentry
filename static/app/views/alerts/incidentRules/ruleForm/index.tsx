@@ -7,33 +7,38 @@ import {
   addSuccessMessage,
   clearIndicators,
   Indicator,
-} from 'app/actionCreators/indicator';
-import {fetchOrganizationTags} from 'app/actionCreators/tags';
-import Access from 'app/components/acl/access';
-import AsyncComponent from 'app/components/asyncComponent';
-import Button from 'app/components/button';
-import Confirm from 'app/components/confirm';
-import List from 'app/components/list';
-import ListItem from 'app/components/list/listItem';
-import {t} from 'app/locale';
-import IndicatorStore from 'app/stores/indicatorStore';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import {defined} from 'app/utils';
-import {metric, trackAnalyticsEvent} from 'app/utils/analytics';
-import {isActiveSuperuser} from 'app/utils/isActiveSuperuser';
-import RuleNameOwnerForm from 'app/views/alerts/incidentRules/ruleNameOwnerForm';
-import Triggers from 'app/views/alerts/incidentRules/triggers';
-import TriggersChart from 'app/views/alerts/incidentRules/triggers/chart';
-import {getEventTypeFilter} from 'app/views/alerts/incidentRules/utils/getEventTypeFilter';
-import hasThresholdValue from 'app/views/alerts/incidentRules/utils/hasThresholdValue';
-import {AlertWizardAlertNames} from 'app/views/alerts/wizard/options';
-import {getAlertTypeFromAggregateDataset} from 'app/views/alerts/wizard/utils';
-import Form from 'app/views/settings/components/forms/form';
-import FormModel from 'app/views/settings/components/forms/model';
+} from 'sentry/actionCreators/indicator';
+import {fetchOrganizationTags} from 'sentry/actionCreators/tags';
+import Access from 'sentry/components/acl/access';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import Button from 'sentry/components/button';
+import Confirm from 'sentry/components/confirm';
+import List from 'sentry/components/list';
+import ListItem from 'sentry/components/list/listItem';
+import {t} from 'sentry/locale';
+import IndicatorStore from 'sentry/stores/indicatorStore';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import {metric, trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import RuleNameOwnerForm from 'sentry/views/alerts/incidentRules/ruleNameOwnerForm';
+import Triggers from 'sentry/views/alerts/incidentRules/triggers';
+import TriggersChart from 'sentry/views/alerts/incidentRules/triggers/chart';
+import {getEventTypeFilter} from 'sentry/views/alerts/incidentRules/utils/getEventTypeFilter';
+import hasThresholdValue from 'sentry/views/alerts/incidentRules/utils/hasThresholdValue';
+import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
+import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
+import Form from 'sentry/views/settings/components/forms/form';
+import FormModel from 'sentry/views/settings/components/forms/model';
 
 import {addOrUpdateRule} from '../actions';
-import {createDefaultTrigger} from '../constants';
+import {
+  createDefaultTrigger,
+  DEFAULT_CHANGE_COMP_DELTA,
+  DEFAULT_CHANGE_TIME_WINDOW,
+  DEFAULT_COUNT_TIME_WINDOW,
+} from '../constants';
 import RuleConditionsForm from '../ruleConditionsForm';
 import {
   AlertRuleComparisonType,
@@ -251,8 +256,8 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     // without modifying the values, this boundary case will fail.
     const isValid =
       thresholdType === AlertRuleThresholdType.BELOW
-        ? alertThreshold - 1 <= resolveThreshold + 1
-        : alertThreshold + 1 >= resolveThreshold - 1;
+        ? alertThreshold - 1 < resolveThreshold + 1
+        : alertThreshold + 1 > resolveThreshold - 1;
 
     const otherErrors = errors.get(triggerIndex) || {};
 
@@ -573,8 +578,10 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     const comparisonDelta =
       value === AlertRuleComparisonType.COUNT
         ? undefined
-        : this.state.comparisonDelta ?? 10080;
-    const timeWindow = this.state.comparisonDelta ? this.state.timeWindow : 60;
+        : this.state.comparisonDelta ?? DEFAULT_CHANGE_COMP_DELTA;
+    const timeWindow = this.state.comparisonDelta
+      ? DEFAULT_COUNT_TIME_WINDOW
+      : DEFAULT_CHANGE_TIME_WINDOW;
     this.setState({comparisonType: value, comparisonDelta, timeWindow});
   };
 

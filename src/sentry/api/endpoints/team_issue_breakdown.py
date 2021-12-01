@@ -6,6 +6,7 @@ from django.db.models.functions import TruncDay
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.utils import get_date_range_from_params
@@ -20,14 +21,15 @@ class TeamIssueBreakdownEndpoint(TeamEndpoint, EnvironmentMixin):  # type: ignor
 
         Right now the stats we return are the count of reviewed issues and the total count of issues.
         """
-        project_list = Project.objects.get_for_team_ids(team_ids=[team.id])
+        if not features.has("organizations:team-insights", team.organization, actor=request.user):
+            return Response({"detail": "You do not have the insights feature enabled"}, status=400)
         start, end = get_date_range_from_params(request.GET)
         end = end.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
         start = start.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
         bucketed_issues = (
-            GroupHistory.objects.filter(
+            GroupHistory.objects.filter_to_team(team)
+            .filter(
                 status__in=[GroupHistoryStatus.UNRESOLVED] + ACTIONED_STATUSES,
-                project__in=project_list,
                 date_added__gte=start,
                 date_added__lte=end,
             )
@@ -42,6 +44,7 @@ class TeamIssueBreakdownEndpoint(TeamEndpoint, EnvironmentMixin):  # type: ignor
             date_series_dict[current_day.isoformat()] = {"reviewed": 0, "total": 0}
             current_day += timedelta(days=1)
 
+        project_list = Project.objects.get_for_team_ids(team_ids=[team.id])
         agg_project_counts = {
             project.id: copy.deepcopy(date_series_dict) for project in project_list
         }

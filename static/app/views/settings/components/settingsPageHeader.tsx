@@ -1,8 +1,8 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import {HeaderTitle} from 'app/styles/organization';
-import space from 'app/styles/space';
+import {HeaderTitle} from 'sentry/styles/organization';
+import space from 'sentry/styles/space';
 
 type Props = {
   // Icon left of title

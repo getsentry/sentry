@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import FeatureBadge from 'app/components/featureBadge';
+import FeatureBadge from 'sentry/components/featureBadge';
 
 export default {
   title: 'Components/Badges/Feature Badge',

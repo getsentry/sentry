@@ -1,8 +1,11 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import theme from 'app/utils/theme';
-import EventIdField from 'app/views/settings/components/dataScrubbing/modals/form/eventIdField';
-import {EventId, EventIdStatus} from 'app/views/settings/components/dataScrubbing/types';
+import theme from 'sentry/utils/theme';
+import EventIdField from 'sentry/views/settings/components/dataScrubbing/modals/form/eventIdField';
+import {
+  EventId,
+  EventIdStatus,
+} from 'sentry/views/settings/components/dataScrubbing/types';
 
 const handleUpdateEventId = jest.fn();
 const eventIdValue = '887ab369df634e74aea708bcafe1a175';

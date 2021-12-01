@@ -1,4 +1,4 @@
-import {IconCheckmark, IconSubtract} from 'app/icons';
+import {IconCheckmark, IconSubtract} from 'sentry/icons';
 
 type Props = {
   isChecked?: boolean;

@@ -1,4 +1,4 @@
-import getProjectsByTeams from 'app/utils/getProjectsByTeams';
+import getProjectsByTeams from 'sentry/utils/getProjectsByTeams';
 
 describe('getProjectsByTeams', function () {
   let projectsByTeams;

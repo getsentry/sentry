@@ -1,10 +1,10 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
-import ProjectBadge from 'app/components/idBadge/projectBadge';
-import BookmarkStar from 'app/components/projects/bookmarkStar';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import BookmarkStar from 'sentry/components/projects/bookmarkStar';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
 
 type Props = {
   project: Project;

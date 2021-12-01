@@ -1,16 +1,16 @@
 import {browserHistory} from 'react-router';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'app/stores/projectsStore';
-import TrendsIndex from 'app/views/performance/trends/';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import TrendsIndex from 'sentry/views/performance/trends/';
 import {
   DEFAULT_MAX_DURATION,
   TRENDS_FUNCTIONS,
   TRENDS_PARAMETERS,
-} from 'app/views/performance/trends/utils';
+} from 'sentry/views/performance/trends/utils';
 
 const trendsViewQuery = {
   query: `tpm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION}`,
@@ -78,6 +78,8 @@ function initializeTrendsData(
 }
 
 describe('Performance > Trends', function () {
+  enforceActOnUseLegacyStoreHook();
+
   let trendsStatsMock;
   let wrapper;
   beforeEach(function () {

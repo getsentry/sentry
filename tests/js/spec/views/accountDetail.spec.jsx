@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import AccountDetails from 'app/views/settings/account/accountDetails';
+import AccountDetails from 'sentry/views/settings/account/accountDetails';
 
 jest.mock('scroll-to-element', () => 'scroll-to-element');
 

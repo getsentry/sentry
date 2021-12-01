@@ -1,4 +1,4 @@
-import TextOverflow from 'app/components/textOverflow';
+import TextOverflow from 'sentry/components/textOverflow';
 
 export default {
   title: 'Utilities/Text/Overflow',

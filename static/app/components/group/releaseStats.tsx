@@ -1,15 +1,19 @@
 import {Fragment, memo} from 'react';
 import styled from '@emotion/styled';
 
-import GroupReleaseChart from 'app/components/group/releaseChart';
-import SeenInfo from 'app/components/group/seenInfo';
-import Placeholder from 'app/components/placeholder';
-import Tooltip from 'app/components/tooltip';
-import {IconQuestion} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {CurrentRelease, Environment, Group, Organization, Project} from 'app/types';
-import getDynamicText from 'app/utils/getDynamicText';
+import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
+import Feature from 'sentry/components/acl/feature';
+import GroupReleaseChart from 'sentry/components/group/releaseChart';
+import SeenInfo from 'sentry/components/group/seenInfo';
+import Placeholder from 'sentry/components/placeholder';
+import Tooltip from 'sentry/components/tooltip';
+import {IconAdd, IconQuestion} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {CurrentRelease, Environment, Group, Organization, Project} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import getDynamicText from 'sentry/utils/getDynamicText';
+import {DashboardWidgetSource, DisplayType} from 'sentry/views/dashboardsV2/types';
 
 import SidebarSection from './sidebarSection';
 
@@ -47,6 +51,62 @@ const GroupReleaseStats = ({
   const hasRelease = new Set(project.features).has('releases');
   const releaseTrackingUrl = `/settings/${organization.slug}/projects/${project.slug}/release-tracking/`;
 
+  const generateGroupReleaseChartTitle = (statsPeriod: '24h' | '30d') => {
+    const title = statsPeriod === '24h' ? t('Last 24 Hours') : t('Last 30 Days');
+    const interval = statsPeriod === '24h' ? '1h' : '1d';
+
+    const handleAddToDashboard = () => {
+      trackAdvancedAnalyticsEvent('issue.create_dashboard_widget_from_histogram', {
+        organization,
+        stats_period: statsPeriod,
+      });
+      group &&
+        openAddDashboardWidgetModal({
+          organization,
+          widget: {
+            title: group.title,
+            displayType: DisplayType.AREA,
+            interval,
+            queries: [
+              {
+                name: '',
+                fields: ['count()'],
+                conditions: `issue.id:${group.id}`,
+                orderby: '',
+              },
+            ],
+          },
+          statsPeriod,
+          source: DashboardWidgetSource.ISSUE_DETAILS,
+        });
+    };
+
+    return (
+      <Feature
+        features={[
+          'organizations:create-dashboard-widget-from-issue',
+          'organizations:dashboards-edit',
+        ]}
+        organization={organization}
+        renderDisabled={() => title}
+      >
+        <GroupReleaseChartWrapper>
+          <span>{title}</span>
+          <DashboardWidgetTooltip
+            title={t('Save this chart to your dashboard to keep tabs on this issue')}
+          >
+            <AddToDashboard onClick={handleAddToDashboard}>
+              <IconWrapper>
+                <IconAdd size="9px" />
+              </IconWrapper>
+              {t('Add to Dashboard')}
+            </AddToDashboard>
+          </DashboardWidgetTooltip>
+        </GroupReleaseChartWrapper>
+      </Feature>
+    );
+  };
+
   return (
     <SidebarSection title={<span data-test-id="env-label">{environmentLabel}</span>}>
       {!group || !allEnvironments ? (
@@ -60,7 +120,7 @@ const GroupReleaseStats = ({
             release={currentRelease?.release}
             releaseStats={currentRelease?.stats}
             statsPeriod="24h"
-            title={t('Last 24 Hours')}
+            title={generateGroupReleaseChartTitle('24h')}
             firstSeen={group.firstSeen}
             lastSeen={group.lastSeen}
           />
@@ -71,7 +131,7 @@ const GroupReleaseStats = ({
             release={currentRelease?.release}
             releaseStats={currentRelease?.stats}
             statsPeriod="30d"
-            title={t('Last 30 Days')}
+            title={generateGroupReleaseChartTitle('30d')}
             className="bar-chart-small"
             firstSeen={group.firstSeen}
             lastSeen={group.lastSeen}
@@ -161,4 +221,27 @@ const TooltipWrapper = styled('span')`
 const StyledIconQuest = styled(IconQuestion)`
   position: relative;
   top: 2px;
+`;
+
+const GroupReleaseChartWrapper = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+`;
+
+const DashboardWidgetTooltip = styled(Tooltip)`
+  cursor: pointer;
+`;
+
+const AddToDashboard = styled('span')`
+  color: ${p => p.theme.blue300};
+  display: grid;
+  vertical-align: baseline;
+  grid-auto-flow: column;
+  align-items: center;
+`;
+
+const IconWrapper = styled('span')`
+  height: 100%;
+  margin-right: ${space(0.25)};
 `;

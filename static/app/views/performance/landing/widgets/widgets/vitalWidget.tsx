@@ -1,74 +1,112 @@
-import {Fragment, FunctionComponent, useMemo, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 import pick from 'lodash/pick';
 
-import Button from 'app/components/button';
-import _EventsRequest from 'app/components/charts/eventsRequest';
-import {getInterval} from 'app/components/charts/utils';
-import Link from 'app/components/links/link';
-import Truncate from 'app/components/truncate';
-import {IconClose} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import DiscoverQuery, {TableDataRow} from 'app/utils/discover/discoverQuery';
-import EventView from 'app/utils/discover/eventView';
-import {WebVital} from 'app/utils/discover/fields';
-import {VitalData} from 'app/utils/performance/vitals/vitalsCardsDiscoverQuery';
-import {decodeList} from 'app/utils/queryString';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
-import withApi from 'app/utils/withApi';
-import {vitalDetailRouteWithQuery} from 'app/views/performance/vitalDetail/utils';
-import {_VitalChart} from 'app/views/performance/vitalDetail/vitalChart';
+import Button from 'sentry/components/button';
+import _EventsRequest from 'sentry/components/charts/eventsRequest';
+import {getInterval} from 'sentry/components/charts/utils';
+import Truncate from 'sentry/components/truncate';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
+import DiscoverQuery, {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import {WebVital} from 'sentry/utils/discover/fields';
+import {VitalData} from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
+import {decodeList} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import withApi from 'sentry/utils/withApi';
+import {vitalDetailRouteWithQuery} from 'sentry/views/performance/vitalDetail/utils';
+import {_VitalChart} from 'sentry/views/performance/vitalDetail/vitalChart';
 
 import {excludeTransaction} from '../../utils';
 import {VitalBar} from '../../vitalsCards';
 import {GenericPerformanceWidget} from '../components/performanceWidget';
-import SelectableList, {RightAlignedCell} from '../components/selectableList';
+import SelectableList, {
+  GrowLink,
+  ListClose,
+  RightAlignedCell,
+  Subtitle,
+  WidgetEmptyStateWarning,
+} from '../components/selectableList';
 import {transformDiscoverToList} from '../transforms/transformDiscoverToList';
 import {transformEventsRequestToVitals} from '../transforms/transformEventsToVitals';
-import {QueryDefinition, WidgetDataResult} from '../types';
+import {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
 import {eventsRequestQueryProps} from '../utils';
-import {PerformanceWidgetSetting} from '../widgetDefinitions';
-
-type Props = {
-  title: string;
-  titleTooltip: string;
-  fields: string[];
-  chartColor?: string;
-
-  eventView: EventView;
-  location: Location;
-  organization: Organization;
-  chartSetting: PerformanceWidgetSetting;
-
-  ContainerActions: FunctionComponent<{isLoading: boolean}>;
-};
+import {ChartDefinition, PerformanceWidgetSetting} from '../widgetDefinitions';
 
 type DataType = {
   list: WidgetDataResult & ReturnType<typeof transformDiscoverToList>;
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToVitals>;
 };
 
-export function VitalWidget(props: Props) {
+export function transformFieldsWithStops(props: {
+  field: string;
+  fields: string[];
+  vitalStops: ChartDefinition['vitalStops'];
+}) {
+  const {field, fields, vitalStops} = props;
+  const poorStop = vitalStops?.poor;
+  const mehStop = vitalStops?.meh;
+
+  if (!defined(poorStop) || !defined(mehStop)) {
+    return {
+      sortField: fields[0],
+      fieldsList: fields,
+    };
+  }
+
+  const poorCountField = `count_if(${field},greaterOrEquals,${poorStop})`;
+  const mehCountField = `equation|count_if(${field},greaterOrEquals,${mehStop}) - count_if(${field},greaterOrEquals,${poorStop})`;
+  const goodCountField = `equation|count_if(${field},greaterOrEquals,0) - count_if(${field},greaterOrEquals,${mehStop})`;
+
+  const otherRequiredFieldsForQuery = [
+    `count_if(${field},greaterOrEquals,${mehStop})`,
+    `count_if(${field},greaterOrEquals,0)`,
+  ];
+
+  const vitalFields = {
+    poorCountField,
+    mehCountField,
+    goodCountField,
+  };
+
+  const fieldsList = [
+    poorCountField,
+    ...otherRequiredFieldsForQuery,
+    mehCountField,
+    goodCountField,
+  ];
+
+  return {
+    sortField: poorCountField,
+    vitalFields,
+    fieldsList,
+  };
+}
+
+export function VitalWidget(props: PerformanceWidgetProps) {
   const {ContainerActions, eventView, organization, location} = props;
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
-
   const field = props.fields[0];
+
+  const {fieldsList, vitalFields, sortField} = transformFieldsWithStops({
+    field,
+    fields: props.fields,
+    vitalStops: props.chartDefinition.vitalStops,
+  });
 
   const Queries = {
     list: useMemo<QueryDefinition<DataType, WidgetDataResult>>(
       () => ({
-        fields: field,
+        fields: sortField,
         component: provided => {
-          const _eventView = props.eventView.clone();
+          const _eventView = provided.eventView.clone();
 
-          const fieldFromProps = props.fields.map(propField => ({
+          const fieldFromProps = fieldsList.map(propField => ({
             field: propField,
           }));
 
-          _eventView.sorts = [{kind: 'desc', field}];
+          _eventView.sorts = [{kind: 'desc', field: sortField}];
 
           _eventView.fields = [
             {field: 'transaction'},
@@ -84,21 +122,23 @@ export function VitalWidget(props: Props) {
               eventView={_eventView}
               location={props.location}
               limit={3}
+              cursor="0:0:1"
+              noPagination
             />
           );
         },
         transform: transformDiscoverToList,
       }),
-      [props.eventView, props.fields, props.organization.slug]
+      [props.eventView, fieldsList, props.organization.slug]
     ),
     chart: useMemo<QueryDefinition<DataType, WidgetDataResult>>(
       () => ({
         enabled: widgetData => {
           return !!widgetData?.list?.data?.length;
         },
-        fields: props.fields,
+        fields: fieldsList,
         component: provided => {
-          const _eventView = props.eventView.clone();
+          const _eventView = provided.eventView.clone();
 
           _eventView.additionalConditions.setFilterValues('transaction', [
             provided.widgetData.list.data[selectedListIndex].transaction as string,
@@ -108,7 +148,7 @@ export function VitalWidget(props: Props) {
             <EventsRequest
               {...pick(provided, eventsRequestQueryProps)}
               limit={1}
-              currentSeriesNames={[field]}
+              currentSeriesNames={[sortField]}
               includePrevious={false}
               partial={false}
               includeTransformedData
@@ -126,12 +166,15 @@ export function VitalWidget(props: Props) {
         },
         transform: transformEventsRequestToVitals,
       }),
-      [props.eventView, selectedListIndex, props.organization.slug]
+      [props.chartSetting, selectedListIndex]
     ),
   };
 
   const settingToVital: {[x: string]: WebVital} = {
     [PerformanceWidgetSetting.WORST_LCP_VITALS]: WebVital.LCP,
+    [PerformanceWidgetSetting.WORST_FCP_VITALS]: WebVital.FCP,
+    [PerformanceWidgetSetting.WORST_FID_VITALS]: WebVital.FID,
+    [PerformanceWidgetSetting.WORST_CLS_VITALS]: WebVital.CLS,
   };
 
   const handleViewAllClick = () => {
@@ -165,6 +208,7 @@ export function VitalWidget(props: Props) {
           </Subtitle>
         );
       }}
+      EmptyComponent={WidgetEmptyStateWarning}
       HeaderActions={provided => {
         const vital = settingToVital[props.chartSetting];
         const target = vitalDetailRouteWithQuery({
@@ -198,19 +242,15 @@ export function VitalWidget(props: Props) {
               {...provided.widgetData.chart}
               {...provided}
               field={field}
+              vitalFields={vitalFields}
               organization={organization}
               query={eventView.query}
               project={eventView.project}
               environment={eventView.environment}
-              grid={{
-                left: space(0),
-                right: space(0),
-                top: space(2),
-                bottom: space(2),
-              }}
+              grid={provided.grid}
             />
           ),
-          height: 160,
+          height: props.chartHeight,
         },
         {
           component: provided => (
@@ -252,23 +292,20 @@ export function VitalWidget(props: Props) {
                         showBar
                         showDurationDetail={false}
                         showDetail={false}
-                        barHeight={24}
+                        showTooltip
+                        barHeight={20}
                       />
                     </VitalBarCell>
-                    <CloseContainer>
-                      <StyledIconClose
-                        onClick={() => {
-                          excludeTransaction(listItem.transaction, props);
-                          setSelectListIndex(0);
-                        }}
-                      />
-                    </CloseContainer>
+                    <ListClose
+                      setSelectListIndex={setSelectListIndex}
+                      onClick={() => excludeTransaction(listItem.transaction, props)}
+                    />
                   </Fragment>
                 );
               })}
             />
           ),
-          height: 200,
+          height: 124,
           noPadding: true,
         },
       ]}
@@ -297,26 +334,10 @@ function getVitalDataForListItem(listItem: TableDataRow) {
 
 const VitalBarCell = styled(RightAlignedCell)`
   width: 120px;
+  margin-left: ${space(1)};
   margin-right: ${space(1)};
-`;
-const EventsRequest = withApi(_EventsRequest);
-const Subtitle = styled('span')`
-  color: ${p => p.theme.gray300};
-  font-size: ${p => p.theme.fontSizeMedium};
-`;
-const CloseContainer = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
 `;
-const GrowLink = styled(Link)`
-  flex-grow: 1;
-`;
-
-const StyledIconClose = styled(IconClose)`
-  cursor: pointer;
-  color: ${p => p.theme.gray200};
-  &:hover {
-    color: ${p => p.theme.gray300};
-  }
-`;
+const EventsRequest = withApi(_EventsRequest);

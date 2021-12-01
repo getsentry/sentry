@@ -1,9 +1,9 @@
 import * as React from 'react';
 import isEqual from 'lodash/isEqual';
 
-import {Form, FormState} from 'app/components/forms';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import DefaultSettings from 'app/plugins/components/settings';
+import {Form, FormState} from 'sentry/components/forms';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import DefaultSettings from 'sentry/plugins/components/settings';
 
 type Field = Parameters<typeof DefaultSettings.prototype.renderField>[0]['config'];
 

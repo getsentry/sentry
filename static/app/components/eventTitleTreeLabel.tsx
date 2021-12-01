@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {TreeLabelPart} from 'app/types';
-import {getTreeLabelPartDetails} from 'app/utils/events';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {TreeLabelPart} from 'sentry/types';
+import {getTreeLabelPartDetails} from 'sentry/utils/events';
 
 type Props = {
   treeLabel: TreeLabelPart[];

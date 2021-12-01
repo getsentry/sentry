@@ -2,24 +2,24 @@ import * as React from 'react';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Color from 'color';
-import {EChartOption} from 'echarts';
+import type {SeriesOption, TooltipComponentOption} from 'echarts';
 
-import BaseChart from 'app/components/charts/baseChart';
-import Legend from 'app/components/charts/components/legend';
-import Tooltip from 'app/components/charts/components/tooltip';
-import xAxis from 'app/components/charts/components/xAxis';
-import barSeries from 'app/components/charts/series/barSeries';
-import {ChartContainer, HeaderTitleLegend} from 'app/components/charts/styles';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import Panel from 'app/components/panels/panel';
-import Placeholder from 'app/components/placeholder';
-import {IconWarning} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {DataCategory, DataCategoryName, IntervalPeriod, SelectValue} from 'app/types';
-import {parsePeriodToHours, statsPeriodToDays} from 'app/utils/dates';
-import {formatAbbreviatedNumber} from 'app/utils/formatters';
-import commonTheme, {Theme} from 'app/utils/theme';
+import BaseChart from 'sentry/components/charts/baseChart';
+import Legend from 'sentry/components/charts/components/legend';
+import Tooltip from 'sentry/components/charts/components/tooltip';
+import xAxis from 'sentry/components/charts/components/xAxis';
+import barSeries from 'sentry/components/charts/series/barSeries';
+import {ChartContainer, HeaderTitleLegend} from 'sentry/components/charts/styles';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Panel from 'sentry/components/panels/panel';
+import Placeholder from 'sentry/components/placeholder';
+import {IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {DataCategory, DataCategoryName, IntervalPeriod, SelectValue} from 'sentry/types';
+import {parsePeriodToHours, statsPeriodToDays} from 'sentry/utils/dates';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import commonTheme, {Theme} from 'sentry/utils/theme';
 
 import {formatUsageWithUnits, GIGABYTE} from '../utils';
 
@@ -126,12 +126,12 @@ type Props = DefaultProps & {
   /**
    * Additional data to draw on the chart alongside usage
    */
-  chartSeries?: EChartOption.Series[];
+  chartSeries?: SeriesOption[];
 
   /**
    * Replace default tooltip
    */
-  chartTooltip?: EChartOption.Tooltip;
+  chartTooltip?: TooltipComponentOption;
 };
 
 type State = {
@@ -139,10 +139,10 @@ type State = {
 };
 
 export type ChartStats = {
-  accepted: NonNullable<EChartOption.SeriesBar['data']>;
-  dropped: NonNullable<EChartOption.SeriesBar['data']>;
-  projected: NonNullable<EChartOption.SeriesBar['data']>;
-  filtered?: NonNullable<EChartOption.SeriesBar['data']>;
+  accepted: NonNullable<SeriesOption['data']>;
+  dropped: NonNullable<SeriesOption['data']>;
+  projected: NonNullable<SeriesOption['data']>;
+  filtered?: NonNullable<SeriesOption['data']>;
 };
 
 export class UsageChart extends React.Component<Props, State> {
@@ -307,7 +307,7 @@ export class UsageChart extends React.Component<Props, State> {
     const {chartSeries} = this.props;
     const {chartData} = this.chartMetadata;
 
-    let series: EChartOption.Series[] = [
+    let series: SeriesOption[] = [
       barSeries({
         name: SeriesTypes.ACCEPTED,
         data: chartData.accepted as any, // TODO(ts)
@@ -339,7 +339,7 @@ export class UsageChart extends React.Component<Props, State> {
 
     // Additional series passed by parent component
     if (chartSeries) {
-      series = series.concat(chartSeries as EChartOption.Series[]);
+      series = series.concat(chartSeries as SeriesOption[]);
     }
 
     return series;
@@ -353,19 +353,19 @@ export class UsageChart extends React.Component<Props, State> {
       },
     ];
 
-    if (chartData.filtered && chartData.filtered.length > 0) {
+    if (chartData.filtered && (chartData.filtered as any[]).length > 0) {
       legend.push({
         name: SeriesTypes.FILTERED,
       });
     }
 
-    if (chartData.dropped.length > 0) {
+    if ((chartData.dropped as any[]).length > 0) {
       legend.push({
         name: SeriesTypes.DROPPED,
       });
     }
 
-    if (chartData.projected.length > 0) {
+    if ((chartData.projected as any[]).length > 0) {
       legend.push({
         name: SeriesTypes.PROJECTED,
       });
@@ -373,7 +373,7 @@ export class UsageChart extends React.Component<Props, State> {
     return legend;
   }
 
-  get chartTooltip() {
+  get chartTooltip(): TooltipComponentOption {
     const {chartTooltip} = this.props;
 
     if (chartTooltip) {

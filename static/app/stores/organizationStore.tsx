@@ -1,9 +1,9 @@
 import Reflux from 'reflux';
 
-import OrganizationActions from 'app/actions/organizationActions';
-import {ORGANIZATION_FETCH_ERROR_TYPES} from 'app/constants';
-import {Organization} from 'app/types';
-import RequestError from 'app/utils/requestError/requestError';
+import OrganizationActions from 'sentry/actions/organizationActions';
+import {ORGANIZATION_FETCH_ERROR_TYPES} from 'sentry/constants';
+import {Organization} from 'sentry/types';
+import RequestError from 'sentry/utils/requestError/requestError';
 
 import {CommonStoreInterface} from './types';
 

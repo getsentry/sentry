@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import CircleIndicator from 'app/components/circleIndicator';
+import CircleIndicator from 'sentry/components/circleIndicator';
 
 export default {
   title: 'Components/Data Visualization/Misc/Circle Indicator',

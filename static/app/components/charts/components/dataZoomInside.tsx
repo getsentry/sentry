@@ -1,8 +1,8 @@
 import 'echarts/lib/component/dataZoomInside';
 
-import {EChartOption} from 'echarts';
+import type {InsideDataZoomComponentOption} from 'echarts';
 
-const DEFAULT = {
+const DEFAULT: InsideDataZoomComponentOption = {
   type: 'inside',
   // Mouse wheel can not trigger zoom
   zoomOnMouseWheel: false,
@@ -12,14 +12,14 @@ const DEFAULT = {
 };
 
 export default function DataZoomInside(
-  props: EChartOption.DataZoom.Inside
-): EChartOption.DataZoom[] {
+  props: InsideDataZoomComponentOption | InsideDataZoomComponentOption[]
+): InsideDataZoomComponentOption[] {
   // `props` can be boolean, if so return default
   if (!props || !Array.isArray(props)) {
     const dataZoom = {
       ...DEFAULT,
       ...props,
-    } as EChartOption.DataZoom.Inside;
+    };
     return [dataZoom];
   }
 

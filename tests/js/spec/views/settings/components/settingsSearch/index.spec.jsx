@@ -1,11 +1,11 @@
-import {fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {navigateTo} from 'app/actionCreators/navigation';
-import FormSearchStore from 'app/stores/formSearchStore';
-import SettingsSearch from 'app/views/settings/components/settingsSearch';
+import {navigateTo} from 'sentry/actionCreators/navigation';
+import FormSearchStore from 'sentry/stores/formSearchStore';
+import SettingsSearch from 'sentry/views/settings/components/settingsSearch';
 
-jest.mock('app/actionCreators/formSearch');
-jest.mock('app/actionCreators/navigation');
+jest.mock('sentry/actionCreators/formSearch');
+jest.mock('sentry/actionCreators/navigation');
 
 describe('SettingsSearch', function () {
   let orgsMock;
@@ -67,29 +67,37 @@ describe('SettingsSearch', function () {
   });
 
   it('can focus when hotkey is pressed', function () {
-    mountWithTheme(<SettingsSearch params={{orgId: 'org-slug'}} />);
-
-    fireEvent.keyDown(document, {code: 'Slash', key: '/', keyCode: 191});
+    mountWithTheme(<SettingsSearch />);
+    userEvent.keyboard('/', {keyboardMap: [{code: 'Slash', key: '/', keyCode: 191}]});
     expect(screen.getByPlaceholderText('Search')).toHaveFocus();
   });
 
   it('can search', async function () {
-    mountWithTheme(<SettingsSearch params={{orgId: 'org-slug'}} />, {
+    mountWithTheme(<SettingsSearch />, {
       context: routerContext,
     });
 
     const input = screen.getByPlaceholderText('Search');
-    fireEvent.change(input, {target: {value: 'bil'}});
+    userEvent.type(input, 'bil');
 
     await tick();
 
-    expect(orgsMock).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        // This nested 'query' is correct
-        query: {query: 'bil'},
-      })
-    );
+    expect(orgsMock.mock.calls).toEqual([
+      [
+        '/organizations/',
+        expect.objectContaining({
+          // This nested 'query' is correct
+          query: {query: 'b'},
+        }),
+      ],
+      [
+        '/organizations/',
+        expect.objectContaining({
+          // This nested 'query' is correct
+          query: {query: 'bi'},
+        }),
+      ],
+    ]);
 
     const results = screen.getAllByTestId('badge-display-name');
 
@@ -99,7 +107,10 @@ describe('SettingsSearch', function () {
 
     expect(firstResult).toBeDefined();
 
-    fireEvent.click(firstResult);
+    if (firstResult) {
+      userEvent.click(firstResult);
+    }
+
     expect(navigateTo).toHaveBeenCalledWith('/billy-org/', expect.anything(), undefined);
   });
 });

@@ -4,13 +4,13 @@ import styled from '@emotion/styled';
 
 import sentryPattern from 'sentry-images/pattern/sentry-pattern.png';
 
-import Alert from 'app/components/alert';
-import {IconWarning} from 'app/icons';
-import {t} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
-import space from 'app/styles/space';
-import AsyncView from 'app/views/asyncView';
-import {ApiForm} from 'app/views/settings/components/forms';
+import Alert from 'sentry/components/alert';
+import {IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import space from 'sentry/styles/space';
+import AsyncView from 'sentry/views/asyncView';
+import {ApiForm} from 'sentry/views/settings/components/forms';
 
 import {getForm, getOptionDefault, getOptionField} from '../options';
 

@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Panel, PanelBody} from 'app/components/panels';
-import space from 'app/styles/space';
+import {Panel, PanelBody} from 'sentry/components/panels';
+import space from 'sentry/styles/space';
 
 export const GRID_HEAD_ROW_HEIGHT = 45;
 export const GRID_BODY_ROW_HEIGHT = 40;
@@ -249,9 +249,9 @@ export const GridResizer = styled('div')<{dataRows: number}>`
     const numOfRows = p.dataRows;
     let height = GRID_HEAD_ROW_HEIGHT + numOfRows * GRID_BODY_ROW_HEIGHT;
 
-    if (numOfRows >= 2) {
+    if (numOfRows >= 1) {
       // account for border-bottom height
-      height += numOfRows - 1;
+      height += numOfRows;
     }
 
     return height;

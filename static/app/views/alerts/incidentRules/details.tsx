@@ -1,10 +1,10 @@
 import {RouteComponentProps} from 'react-router';
 
-import {Organization, Project} from 'app/types';
-import {metric} from 'app/utils/analytics';
-import RuleForm from 'app/views/alerts/incidentRules/ruleForm';
-import {IncidentRule} from 'app/views/alerts/incidentRules/types';
-import AsyncView from 'app/views/asyncView';
+import {Organization, Project} from 'sentry/types';
+import {metric} from 'sentry/utils/analytics';
+import RuleForm from 'sentry/views/alerts/incidentRules/ruleForm';
+import {IncidentRule} from 'sentry/views/alerts/incidentRules/types';
+import AsyncView from 'sentry/views/asyncView';
 
 type RouteParams = {
   orgId: string;
@@ -45,11 +45,14 @@ class IncidentRulesDetails extends AsyncView<Props, State> {
   }
 
   handleSubmitSuccess = () => {
-    const {router} = this.props;
+    const {router, project} = this.props;
     const {orgId} = this.props.params;
 
     metric.endTransaction({name: 'saveAlertRule'});
-    router.push(`/organizations/${orgId}/alerts/rules/`);
+    router.push({
+      pathname: `/organizations/${orgId}/alerts/rules/`,
+      query: {project: project.id},
+    });
   };
 
   renderBody() {

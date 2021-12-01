@@ -1,12 +1,14 @@
 import {Location} from 'history';
+import pick from 'lodash/pick';
 
-import {t} from 'app/locale';
-import {Organization, Project} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
-import {decodeScalar} from 'app/utils/queryString';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
-import withOrganization from 'app/utils/withOrganization';
-import withProjects from 'app/utils/withProjects';
+import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
+import {t} from 'sentry/locale';
+import {Organization, Project} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import withOrganization from 'sentry/utils/withOrganization';
+import withProjects from 'sentry/utils/withProjects';
 
 import PageLayout from '../pageLayout';
 import Tab from '../tabs';
@@ -14,6 +16,14 @@ import Tab from '../tabs';
 import SpansContent from './content';
 import {SpanSortOthers, SpanSortPercentiles} from './types';
 import {getSuspectSpanSortFromLocation} from './utils';
+
+const RELATIVE_PERIODS = pick(DEFAULT_RELATIVE_PERIODS, [
+  '1h',
+  '24h',
+  '7d',
+  '14d',
+  '30d',
+]);
 
 type Props = {
   location: Location;
@@ -33,6 +43,8 @@ function TransactionSpans(props: Props) {
       getDocumentTitle={getDocumentTitle}
       generateEventView={generateEventView}
       childComponent={SpansContent}
+      relativeDateOptions={RELATIVE_PERIODS}
+      maxPickableDays={30}
     />
   );
 }

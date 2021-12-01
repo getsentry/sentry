@@ -9,6 +9,7 @@ export type Item = {
    * Error message to display for the field
    */
   error?: React.ReactNode;
+  'data-test-id'?: string;
 } & Record<string, any>;
 
 type Items<T> = Array<

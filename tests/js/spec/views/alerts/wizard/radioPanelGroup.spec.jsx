@@ -1,12 +1,12 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import RadioGroupPanel from 'app/views/alerts/wizard/radioPanelGroup';
+import RadioGroupPanel from 'sentry/views/alerts/wizard/radioPanelGroup';
 
 describe('RadioGroupPanel', function () {
   it('calls onChange when clicked', function () {
     const mock = jest.fn();
 
-    const wrapper = mountWithTheme(
+    mountWithTheme(
       <RadioGroupPanel
         label="test"
         value="choice_one"
@@ -18,14 +18,16 @@ describe('RadioGroupPanel', function () {
         onChange={mock}
       />
     );
-    wrapper.find('[role="radio"] Radio').last().simulate('change');
+
+    userEvent.click(screen.getByText('Choice Three'));
+
     expect(mock).toHaveBeenCalledWith(expect.any(String), expect.any(Object));
   });
 
   it('Renders extra content', function () {
     const mock = jest.fn();
 
-    const wrapper = mountWithTheme(
+    mountWithTheme(
       <RadioGroupPanel
         label="test"
         value="choice_one"
@@ -37,6 +39,6 @@ describe('RadioGroupPanel', function () {
         onChange={mock}
       />
     );
-    expect(wrapper.text().includes('extra content')).toEqual(true);
+    expect(screen.getByText('extra content')).toBeInTheDocument();
   });
 });

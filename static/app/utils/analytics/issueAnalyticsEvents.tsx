@@ -1,3 +1,9 @@
+type IssueStream = {
+  group_id: string;
+  tab: string;
+  was_shown_suggestion: boolean;
+};
+
 export type IssueEventParameters = {
   'event_cause.viewed': {
     project_id?: string;
@@ -31,6 +37,19 @@ export type IssueEventParameters = {
     id: number;
   };
   'issue.search_sidebar_clicked': {};
+  'issue.create_dashboard_widget_from_histogram': {
+    stats_period: string;
+  };
+  'inbox_tab.issue_clicked': {
+    group_id: string;
+  };
+  'issues_stream.issue_clicked': IssueStream;
+  'issues_stream.issue_assigned': IssueStream & {
+    did_assign_suggestion: boolean;
+    assigned_type: string;
+    assigned_suggestion_reason?: string;
+  };
+  'issue.shared_publicly': {};
 };
 
 export type IssueEventKey = keyof IssueEventParameters;
@@ -47,4 +66,10 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'organization_saved_search.selected':
     'Organization Saved Search: Selected saved search',
   'issue.search_sidebar_clicked': 'Issue Search Sidebar Clicked',
+  'issue.create_dashboard_widget_from_histogram':
+    'Issue Create Dashboard Widget from Histogram',
+  'inbox_tab.issue_clicked': 'Clicked Issue from Inbox Tab',
+  'issues_stream.issue_clicked': 'Clicked Issue from Issues Stream',
+  'issues_stream.issue_assigned': 'Assigned Issue from Issues Stream',
+  'issue.shared_publicly': 'Issue Shared Publicly',
 };

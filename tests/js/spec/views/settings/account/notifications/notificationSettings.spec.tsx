@@ -1,19 +1,17 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import {NotificationSettingsObject} from 'app/views/settings/account/notifications/constants';
-import NotificationSettings from 'app/views/settings/account/notifications/notificationSettings';
+import {NotificationSettingsObject} from 'sentry/views/settings/account/notifications/constants';
+import NotificationSettings from 'sentry/views/settings/account/notifications/notificationSettings';
 
 const createWrapper = (notificationSettings: NotificationSettingsObject) => {
   const {routerContext} = initializeOrg();
-  // @ts-expect-error
   MockApiClient.addMockResponse({
     url: '/users/me/notification-settings/',
     method: 'GET',
     body: notificationSettings,
   });
 
-  // @ts-expect-error
   MockApiClient.addMockResponse({
     url: '/users/me/notifications/',
     method: 'GET',

@@ -6,19 +6,20 @@ import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import moment from 'moment';
 
-import {DateTimeObject} from 'app/components/charts/utils';
-import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
-import ErrorBoundary from 'app/components/errorBoundary';
-import * as Layout from 'app/components/layouts/thirds';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {ChangeData} from 'app/components/organizations/timeRangeSelector';
-import PageHeading from 'app/components/pageHeading';
-import PageTimeRangeSelector from 'app/components/pageTimeRangeSelector';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'app/constants';
-import {t} from 'app/locale';
-import {PageHeader} from 'app/styles/organization';
-import space from 'app/styles/space';
+import {DateTimeObject} from 'sentry/components/charts/utils';
+import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import HookOrDefault from 'sentry/components/hookOrDefault';
+import * as Layout from 'sentry/components/layouts/thirds';
+import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
+import PageHeading from 'sentry/components/pageHeading';
+import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'sentry/constants';
+import {t} from 'sentry/locale';
+import {PageHeader} from 'sentry/styles/organization';
+import space from 'sentry/styles/space';
 import {
   DataCategory,
   DataCategoryName,
@@ -26,13 +27,15 @@ import {
   Organization,
   Project,
   RelativePeriod,
-} from 'app/types';
-import withOrganization from 'app/utils/withOrganization';
-import HeaderTabs from 'app/views/organizationStats/header';
+} from 'sentry/types';
+import withOrganization from 'sentry/utils/withOrganization';
+import HeaderTabs from 'sentry/views/organizationStats/header';
 
 import {CHART_OPTIONS_DATACATEGORY, ChartDataTransform} from './usageChart';
 import UsageStatsOrg from './usageStatsOrg';
 import UsageStatsProjects from './usageStatsProjects';
+
+const HookHeader = HookOrDefault({hookName: 'component:org-stats-banner'});
 
 const PAGE_QUERY_PARAMS = [
   'pageStatsPeriod',
@@ -289,6 +292,7 @@ export class OrganizationStats extends Component<Props> {
                   </p>
                 </Fragment>
               )}
+              <HookHeader organization={organization} />
 
               <PageGrid>
                 {this.renderPageControl()}

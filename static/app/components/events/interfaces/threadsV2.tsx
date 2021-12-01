@@ -2,14 +2,18 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import isNil from 'lodash/isNil';
 
-import Pill from 'app/components/pill';
-import Pills from 'app/components/pills';
-import {t} from 'app/locale';
-import {Frame, PlatformType, Project} from 'app/types';
-import {Event} from 'app/types/event';
-import {Thread} from 'app/types/events';
-import {STACK_TYPE, STACK_VIEW} from 'app/types/stacktrace';
-import {defined} from 'app/utils';
+import Pill from 'sentry/components/pill';
+import Pills from 'sentry/components/pills';
+import {t} from 'sentry/locale';
+import {
+  Event,
+  Frame,
+  PlatformType,
+  Project,
+  STACK_TYPE,
+  STACK_VIEW,
+  Thread,
+} from 'sentry/types';
 
 import TraceEventDataSection from '../traceEventDataSection';
 import {DisplayOption} from '../traceEventDataSection/displayOptions';
@@ -223,41 +227,39 @@ function Threads({
         !!activeThread?.rawStacktrace
       }
       hasVerboseFunctionNames={
-        !!exception?.values?.find(
+        !!exception?.values?.some(
           value =>
-            !!value.stacktrace?.frames?.find(
+            !!value.stacktrace?.frames?.some(
               frame =>
-                defined(frame.rawFunction) &&
-                defined(frame.function) &&
+                !!frame.rawFunction &&
+                !!frame.function &&
                 frame.rawFunction !== frame.function
             )
         ) ||
-        !!activeThread?.stacktrace?.frames?.find(
+        !!activeThread?.stacktrace?.frames?.some(
           frame =>
-            defined(frame.rawFunction) &&
-            defined(frame.function) &&
+            !!frame.rawFunction &&
+            !!frame.function &&
             frame.rawFunction !== frame.function
         )
       }
       hasAbsoluteFilePaths={
-        !!exception?.values?.find(
-          value => !!value.stacktrace?.frames?.find(frame => defined(frame.filename))
-        ) || !!activeThread?.stacktrace?.frames?.find(frame => defined(frame.filename))
+        !!exception?.values?.some(
+          value => !!value.stacktrace?.frames?.some(frame => !!frame.filename)
+        ) || !!activeThread?.stacktrace?.frames?.some(frame => !!frame.filename)
       }
       hasAbsoluteAddresses={
-        !!exception?.values?.find(
-          value =>
-            !!value.stacktrace?.frames?.find(frame => defined(frame.instructionAddr))
-        ) ||
-        !!activeThread?.stacktrace?.frames?.find(frame => defined(frame.instructionAddr))
+        !!exception?.values?.some(
+          value => !!value.stacktrace?.frames?.some(frame => !!frame.instructionAddr)
+        ) || !!activeThread?.stacktrace?.frames?.some(frame => !!frame.instructionAddr)
       }
       hasAppOnlyFrames={
-        !!exception?.values?.find(
-          value => !!value.stacktrace?.frames?.find(frame => !!frame.inApp)
-        ) || !!activeThread?.stacktrace?.frames?.find(frame => !!frame.inApp)
+        !!exception?.values?.some(
+          value => !!value.stacktrace?.frames?.some(frame => frame.inApp !== true)
+        ) || !!activeThread?.stacktrace?.frames?.some(frame => frame.inApp !== true)
       }
       hasNewestFirst={
-        !!exception?.values?.find(value => (value.stacktrace?.frames ?? []).length > 1) ||
+        !!exception?.values?.some(value => (value.stacktrace?.frames ?? []).length > 1) ||
         (activeThread?.stacktrace?.frames ?? []).length > 1
       }
       stackTraceNotFound={stackTraceNotFound}

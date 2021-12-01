@@ -1,7 +1,7 @@
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import Button from 'app/components/button';
-import {t} from 'app/locale';
-import AsyncView from 'app/views/asyncView';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import Button from 'sentry/components/button';
+import {t} from 'sentry/locale';
+import AsyncView from 'sentry/views/asyncView';
 
 type Data = {
   mailHost: string;

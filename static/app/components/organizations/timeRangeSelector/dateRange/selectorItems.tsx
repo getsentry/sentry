@@ -1,8 +1,8 @@
 import * as React from 'react';
 
-import RelativeSelector from 'app/components/organizations/timeRangeSelector/dateRange/relativeSelector';
-import SelectorItem from 'app/components/organizations/timeRangeSelector/dateRange/selectorItem';
-import {t} from 'app/locale';
+import RelativeSelector from 'sentry/components/organizations/timeRangeSelector/dateRange/relativeSelector';
+import SelectorItem from 'sentry/components/organizations/timeRangeSelector/dateRange/selectorItem';
+import {t} from 'sentry/locale';
 
 type Props = {
   handleSelectRelative: (value: string, e?: React.MouseEvent) => void;

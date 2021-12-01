@@ -1,11 +1,11 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import Card from 'app/components/card';
-import {IconAdd, IconCheckmark} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
+import Button from 'sentry/components/button';
+import Card from 'sentry/components/card';
+import {IconAdd, IconCheckmark} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 
 import {miniWidget} from '../utils';
 
@@ -14,16 +14,23 @@ import {WidgetTemplate} from './data';
 type Props = {
   widget: WidgetTemplate;
   setSelectedWidgets: (widgets: WidgetTemplate[]) => void;
+  setErrored: (errored: boolean) => void;
   selectedWidgets: WidgetTemplate[];
 };
 
-function WidgetLibraryCard({selectedWidgets, widget, setSelectedWidgets}: Props) {
+function WidgetLibraryCard({
+  selectedWidgets,
+  widget,
+  setSelectedWidgets,
+  setErrored,
+}: Props) {
   const selectButton = (
     <StyledButton
       type="button"
-      icon={<IconAdd size="small" isCircled color="gray300" />}
+      icon={<IconAdd size="sm" isCircled color="gray300" />}
       onClick={() => {
         const updatedWidgets = selectedWidgets.slice().concat(widget);
+        setErrored(false);
         setSelectedWidgets(updatedWidgets);
       }}
     >
@@ -34,7 +41,7 @@ function WidgetLibraryCard({selectedWidgets, widget, setSelectedWidgets}: Props)
   const selectedButton = (
     <StyledButton
       type="button"
-      icon={<IconCheckmark size="small" isCircled color="gray300" />}
+      icon={<IconCheckmark size="sm" isCircled color="gray300" />}
       onClick={() => {
         const updatedWidgets = selectedWidgets.filter(selected => widget !== selected);
         setSelectedWidgets(updatedWidgets);

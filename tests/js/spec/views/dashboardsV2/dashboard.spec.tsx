@@ -1,11 +1,10 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import Dashboard from 'app/views/dashboardsV2/dashboard';
-import {DisplayType} from 'app/views/dashboardsV2/types';
+import Dashboard from 'sentry/views/dashboardsV2/dashboard';
+import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
 
 describe('Dashboards > Dashboard', () => {
-  // @ts-expect-error
   const organization = TestStubs.Organization({
     features: ['dashboards-basic', 'dashboards-edit'],
   });
@@ -18,6 +17,7 @@ describe('Dashboards > Dashboard', () => {
   const newWidget = {
     title: 'Test Query',
     displayType: DisplayType.LINE,
+    widgetType: WidgetType.DISCOVER,
     interval: '5m',
     queries: [
       {
@@ -33,7 +33,6 @@ describe('Dashboards > Dashboard', () => {
 
   beforeEach(() => {
     initialData = initializeOrg({organization, router: {}, project: 1, projects: []});
-    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/dashboards/widgets/`,
       method: 'POST',
@@ -56,7 +55,6 @@ describe('Dashboards > Dashboard', () => {
       />,
       initialData.routerContext
     );
-    // @ts-expect-error
     await tick();
     wrapper.update();
     expect(mock).toHaveBeenCalled();
@@ -79,7 +77,6 @@ describe('Dashboards > Dashboard', () => {
     );
     expect(mock).not.toHaveBeenCalled();
     wrapper.setProps({newWidget});
-    // @ts-expect-error
     await tick();
     wrapper.update();
     expect(mock).toHaveBeenCalled();

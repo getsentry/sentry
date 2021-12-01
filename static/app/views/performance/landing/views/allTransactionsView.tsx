@@ -1,5 +1,5 @@
-import {usePageError} from 'app/utils/performance/contexts/pageError';
-import {PerformanceDisplayProvider} from 'app/utils/performance/contexts/performanceDisplayContext';
+import {usePageError} from 'sentry/utils/performance/contexts/pageError';
+import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 
 import Table from '../../table';
 import {PROJECT_PERFORMANCE_TYPE} from '../../utils';
@@ -20,6 +20,7 @@ export function AllTransactionsView(props: BasePerformanceViewProps) {
             PerformanceWidgetSetting.FAILURE_RATE_AREA,
             PerformanceWidgetSetting.APDEX_AREA,
             PerformanceWidgetSetting.P50_DURATION_AREA,
+            PerformanceWidgetSetting.P75_DURATION_AREA,
             PerformanceWidgetSetting.P95_DURATION_AREA,
             PerformanceWidgetSetting.P99_DURATION_AREA,
           ]}
