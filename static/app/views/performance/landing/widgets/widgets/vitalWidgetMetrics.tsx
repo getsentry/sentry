@@ -33,7 +33,7 @@ import {PerformanceWidgetSetting} from '../widgetDefinitions';
 
 import {VitalBarCell} from './vitalWidget';
 
-const settingToVital: {[x: string]: WebVital} = {
+const settingToVital: Record<string, WebVital> = {
   [PerformanceWidgetSetting.WORST_LCP_VITALS]: WebVital.LCP,
   [PerformanceWidgetSetting.WORST_FCP_VITALS]: WebVital.FCP,
   [PerformanceWidgetSetting.WORST_FID_VITALS]: WebVital.FID,
@@ -48,7 +48,7 @@ type DataType = {
 export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
   const api = useApi();
   const {ContainerActions, eventView, organization, location, chartSetting} = props;
-  const [selectedListIndex, setSelectListIndex] = useState<number>(0);
+  const [selectedListIndex, setSelectListIndex] = useState(0);
   const field = props.fields[0];
   const metricsField = `avg(${field})`;
   const vital = settingToVital[chartSetting];
