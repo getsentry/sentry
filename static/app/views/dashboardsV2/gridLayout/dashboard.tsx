@@ -33,6 +33,7 @@ import {DataSet} from 'sentry/views/dashboardsV2/widget/utils';
 import SortableWidget from './sortableWidget';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';
+const SAVED_WIDGET_PREFIX = 'grid-item';
 const NUM_COLS = 6;
 const ROW_HEIGHT = 120;
 const WIDGET_MARGINS: [number, number] = [16, 16];
@@ -248,7 +249,10 @@ class Dashboard extends Component<Props> {
         margin={WIDGET_MARGINS}
         draggableHandle={`.${DRAG_HANDLE_CLASS}`}
         layout={layout}
-        onLayoutChange={onLayoutChange}
+        onLayoutChange={newLayout => {
+          const isNotAddButton = ({i}) => i !== ADD_WIDGET_BUTTON_DRAG_ID;
+          onLayoutChange(newLayout.filter(isNotAddButton));
+        }}
         isDraggable={isEditing}
         isResizable={isEditing}
         isBounded
@@ -276,8 +280,8 @@ const GridItem = styled('div')`
   }
 `;
 
-function generateWidgetId(widget: Widget, index: number) {
-  return widget.id ? `${widget.id}-index-${index}` : `index-${index}`;
+export function generateWidgetId(widget: Widget, index: number) {
+  return widget.id ? `${SAVED_WIDGET_PREFIX}-${widget.id}` : `index-${index}`;
 }
 
 /**

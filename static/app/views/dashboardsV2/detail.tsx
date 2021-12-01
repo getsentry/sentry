@@ -28,7 +28,7 @@ import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
-import GridLayoutDashboard from './gridLayout/dashboard';
+import GridLayoutDashboard, {generateWidgetId} from './gridLayout/dashboard';
 import {getDashboardLayout, saveDashboardLayout} from './gridLayout/utils';
 import Controls from './controls';
 import DnDKitDashboard from './dashboard';
@@ -298,15 +298,41 @@ class DashboardDetail extends Component<Props, State> {
     });
   };
 
+  /**
+   * Saves a dashboard layout where the layout keys are replaced with the IDs of new widgets.
+   */
+  saveLayoutWithNewWidgets = (organizationId, dashboardId, newWidgets) => {
+    const {layout} = this.state;
+    if (layout.length !== newWidgets.length) {
+      throw new Error('Expected layouts and widgets to be the same length');
+    }
+
+    saveDashboardLayout(
+      organizationId,
+      dashboardId,
+      layout.map((widgetLayout, index) => ({
+        ...widgetLayout,
+        i: generateWidgetId(newWidgets[index], index),
+      }))
+    );
+  };
+
   onCommit = () => {
     const {api, organization, location, dashboard, reloadData} = this.props;
-    const {modifiedDashboard, dashboardState} = this.state;
+    const {layout, modifiedDashboard, dashboardState} = this.state;
 
     switch (dashboardState) {
       case DashboardState.CREATE: {
         if (modifiedDashboard) {
           createDashboard(api, organization.slug, modifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
+              if (organization.features.includes('dashboard-grid-layout')) {
+                this.saveLayoutWithNewWidgets(
+                  organization.id,
+                  newDashboard.id,
+                  newDashboard.widgets
+                );
+              }
               addSuccessMessage(t('Dashboard created'));
               trackAnalyticsEvent({
                 eventKey: 'dashboards2.create.complete',
@@ -335,7 +361,7 @@ class DashboardDetail extends Component<Props, State> {
         // TODO(nar): This should only fire when there are changes to the layout
         // and the dashboard can be successfully saved
         if (organization.features.includes('dashboard-grid-layout')) {
-          saveDashboardLayout(organization.id, dashboard.id, this.state.layout);
+          saveDashboardLayout(organization.id, dashboard.id, layout);
         }
 
         // only update the dashboard if there are changes
@@ -349,6 +375,13 @@ class DashboardDetail extends Component<Props, State> {
           }
           updateDashboard(api, organization.slug, modifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
+              if (organization.features.includes('dashboard-grid-layout')) {
+                this.saveLayoutWithNewWidgets(
+                  organization.id,
+                  newDashboard.id,
+                  newDashboard.widgets
+                );
+              }
               addSuccessMessage(t('Dashboard updated'));
               trackAnalyticsEvent({
                 eventKey: 'dashboards2.edit.complete',
