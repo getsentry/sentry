@@ -7,7 +7,7 @@ export default {
 
 export const _PieChart = () => (
   <PieChart
-    startDate={new Date()}
+    selectOnRender
     series={[
       {
         seriesName: 'Browsers',
