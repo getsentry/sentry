@@ -335,7 +335,6 @@ const TooltipContent = styled(motion.div)<Pick<Props, 'popperStyle'>>`
 
   color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: bold;
   line-height: 1.2;
 
   margin: 6px;
