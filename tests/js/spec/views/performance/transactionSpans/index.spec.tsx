@@ -132,7 +132,7 @@ describe('Performance > Transaction Spans', function () {
 
         for (const example of SAMPLE_SPANS[i].examples) {
           expect(
-            await within(upper).findByText(getShortEventId(example.id))
+            await within(card).findByText(getShortEventId(example.id))
           ).toBeInTheDocument();
         }
       }
