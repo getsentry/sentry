@@ -233,6 +233,24 @@ describe('getFieldRenderer', function () {
     expect(wrapper.find('TeamKeyTransaction')).toHaveLength(0);
   });
 
+  it('can render issue assignees', function () {
+    const renderer = getFieldRenderer('assignee');
+    expect(renderer).toBeInstanceOf(Function);
+    const wrapper = mountWithTheme(
+      renderer(
+        {
+          'assignee.type': 'user',
+          'assignee.id': '1',
+          'assignee.name': 'sentry user',
+          'assignee.email': 'user@sentry.io',
+        },
+        {location, organization}
+      )
+    );
+
+    expect(wrapper.find('Tooltip').props().title).toEqual('Assigned to sentry user');
+  });
+
   describe('ops breakdown', () => {
     const getWidth = (wrapper, index) =>
       wrapper.children().children().at(index).getDOMNode().style.width;
