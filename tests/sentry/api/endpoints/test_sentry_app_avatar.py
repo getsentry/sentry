@@ -124,7 +124,7 @@ class SentryAppAvatarPutTest(SentryAppAvatarTestBase):
             data = {
                 "color": False,
                 "avatar_type": "upload",
-                "avatar_photo": b64encode(self.load_fixture("avatar.jpg")),
+                "avatar_photo": b64encode(self.load_fixture("rookout-color.png")),
             }
             return self.get_error_response(self.unpublished_app.slug, **data)
 
