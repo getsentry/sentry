@@ -49,6 +49,7 @@ export type IssueEventParameters = {
     assigned_type: string;
     assigned_suggestion_reason?: string;
   };
+  'issue.shared_publicly': {};
 };
 
 export type IssueEventKey = keyof IssueEventParameters;
@@ -70,4 +71,5 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'inbox_tab.issue_clicked': 'Clicked Issue from Inbox Tab',
   'issues_stream.issue_clicked': 'Clicked Issue from Issues Stream',
   'issues_stream.issue_assigned': 'Assigned Issue from Issues Stream',
+  'issue.shared_publicly': 'Issue Shared Publicly',
 };
