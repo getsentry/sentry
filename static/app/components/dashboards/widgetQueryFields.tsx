@@ -11,7 +11,7 @@ import {
   isLegalYAxisType,
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
-import {Widget} from 'sentry/views/dashboardsV2/types';
+import {Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
 import ColumnEditCollection from 'sentry/views/eventsV2/table/columnEditCollection';
 import {QueryField} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
@@ -20,9 +20,10 @@ import Field from 'sentry/views/settings/components/forms/field';
 
 type Props = {
   /**
-   * The widget type. Used to render different fieldsets.
+   * The widget display type. Used to render different fieldsets.
    */
   displayType: Widget['displayType'];
+  widgetType: Widget['widgetType'];
   fieldOptions: ReturnType<typeof generateFieldOptions>;
   /**
    * The field list for the widget.
@@ -41,6 +42,7 @@ type Props = {
 };
 
 function WidgetQueryFields({
+  widgetType,
   displayType,
   errors,
   fields,
@@ -99,28 +101,6 @@ function WidgetQueryFields({
     onChange(columns);
   }
 
-  if (displayType === 'table') {
-    return (
-      <Field
-        data-test-id="columns"
-        label={t('Columns')}
-        inline={false}
-        style={{padding: `${space(1)} 0`, ...(style ?? {})}}
-        error={errors?.fields}
-        flexibleControlStateSize
-        stacked
-        required
-      >
-        <StyledColumnEditCollection
-          columns={fields}
-          onChange={handleColumnChange}
-          fieldOptions={fieldOptions}
-          organization={organization}
-        />
-      </Field>
-    );
-  }
-
   // Any function/field choice for Big Number widgets is legal since the
   // data source is from an endpoint that is not timeseries-based.
   // The function/field choice for World Map widget will need to be numeric-like.
@@ -172,6 +152,80 @@ function WidgetQueryFields({
     return isLegalYAxisType(option.value.meta.dataType);
   };
 
+  const hideAddYAxisButton =
+    (['world_map', 'big_number'].includes(displayType) && fields.length === 1) ||
+    (['line', 'area', 'stacked_area', 'bar'].includes(displayType) &&
+      fields.length === 3);
+
+  const canDelete = fields.length > 1;
+
+  if (displayType === 'table') {
+    switch (widgetType) {
+      case WidgetType.ISSUE:
+        return (
+          <Field
+            data-test-id="columns"
+            label={t('Columns')}
+            inline={false}
+            style={{padding: `${space(1)} 0`, ...(style ?? {})}}
+            error={errors?.fields}
+            flexibleControlStateSize
+            stacked
+            required
+          >
+            {fields.map((field, i) => {
+              return (
+                <QueryFieldWrapper key={`${field}:${i}`}>
+                  <QueryField
+                    fieldValue={field}
+                    fieldOptions={fieldOptions}
+                    onChange={value => handleChangeField(value, i)}
+                    shouldRenderTag={false}
+                  />
+                  {canDelete && (
+                    <Button
+                      size="zero"
+                      borderless
+                      onClick={event => handleRemove(event, i)}
+                      icon={<IconDelete />}
+                      title={t('Remove this Column')}
+                      label={t('Remove this Column')}
+                    />
+                  )}
+                </QueryFieldWrapper>
+              );
+            })}
+            <Actions>
+              <Button size="small" icon={<IconAdd isCircled />} onClick={handleAdd}>
+                {t('Add Column')}
+              </Button>
+            </Actions>
+          </Field>
+        );
+      case WidgetType.DISCOVER:
+      default:
+        return (
+          <Field
+            data-test-id="columns"
+            label={t('Columns')}
+            inline={false}
+            style={{padding: `${space(1)} 0`, ...(style ?? {})}}
+            error={errors?.fields}
+            flexibleControlStateSize
+            stacked
+            required
+          >
+            <StyledColumnEditCollection
+              columns={fields}
+              onChange={handleColumnChange}
+              fieldOptions={fieldOptions}
+              organization={organization}
+            />
+          </Field>
+        );
+    }
+  }
+
   if (displayType === 'top_n') {
     const fieldValue = fields[fields.length - 1];
     const columns = fields.slice(0, fields.length - 1);
@@ -218,13 +272,6 @@ function WidgetQueryFields({
       </React.Fragment>
     );
   }
-
-  const hideAddYAxisButton =
-    (['world_map', 'big_number'].includes(displayType) && fields.length === 1) ||
-    (['line', 'area', 'stacked_area', 'bar'].includes(displayType) &&
-      fields.length === 3);
-
-  const canDelete = fields.length > 1;
 
   return (
     <Field

@@ -26,6 +26,7 @@ import {
   WidgetType,
 } from 'sentry/views/dashboardsV2/types';
 import {mapErrors} from 'sentry/views/dashboardsV2/widget/eventWidget/utils';
+import {generateIssueWidgetFieldOptions} from 'sentry/views/dashboardsV2/widget/issueWidget/utils';
 import Input from 'sentry/views/settings/components/forms/controls/input';
 import Field from 'sentry/views/settings/components/forms/field';
 
@@ -185,6 +186,7 @@ class AddDashboardIssueWidgetModal extends React.Component<Props, State> {
       : start && end
       ? {...selection, datetime: {start, end, period: '', utc: null}}
       : selection;
+    const fieldOptions = generateIssueWidgetFieldOptions();
 
     const isUpdatingWidget = defined(onUpdateWidget) && !!previousWidget;
 
@@ -218,6 +220,7 @@ class AddDashboardIssueWidgetModal extends React.Component<Props, State> {
           <IssueWidgetQueriesForm
             organization={organization}
             selection={querySelection}
+            fieldOptions={fieldOptions}
             query={state.queries[0]}
             error={errors?.queries?.[0]}
             onChange={(widgetQuery: WidgetQuery) => this.handleQueryChange(widgetQuery)}
