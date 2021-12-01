@@ -555,4 +555,81 @@ describe('Dashboards > WidgetQueries', function () {
       })
     );
   });
+
+  it('calls events-stats with 1d interval when interval buckets would exceed 4000', async function () {
+    const eventsStatsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: [],
+    });
+    const barWidget = {
+      ...singleQueryWidget,
+      displayType: 'bar',
+      // Should be ignored for bars.
+      interval: '5m',
+    };
+    const wrapper = mountWithTheme(
+      <WidgetQueries
+        api={api}
+        widget={barWidget}
+        organization={initialData.organization}
+        selection={{
+          ...selection,
+          datetime: {
+            period: '90d',
+          },
+        }}
+      >
+        {() => <div data-test-id="child" />}
+      </WidgetQueries>,
+      initialData.routerContext
+    );
+    await tick();
+    await tick();
+
+    // Child should be rendered and 1 requests should be sent.
+    expect(wrapper.find('[data-test-id="child"]')).toHaveLength(1);
+    expect(eventsStatsMock).toHaveBeenCalledTimes(1);
+    expect(eventsStatsMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({query: expect.objectContaining({interval: '1d'})})
+    );
+  });
+
+  it('calls events-stats with 4h interval when interval buckets would exceed 4000', async function () {
+    const eventsStatsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: [],
+    });
+    const barWidget = {
+      ...singleQueryWidget,
+      displayType: 'area',
+      interval: '5m',
+    };
+    const wrapper = mountWithTheme(
+      <WidgetQueries
+        api={api}
+        widget={barWidget}
+        organization={initialData.organization}
+        selection={{
+          ...selection,
+          datetime: {
+            period: '90d',
+          },
+        }}
+      >
+        {() => <div data-test-id="child" />}
+      </WidgetQueries>,
+      initialData.routerContext
+    );
+    await tick();
+    await tick();
+
+    // Child should be rendered and 1 requests should be sent.
+    expect(wrapper.find('[data-test-id="child"]')).toHaveLength(1);
+    expect(eventsStatsMock).toHaveBeenCalledTimes(1);
+    expect(eventsStatsMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({query: expect.objectContaining({interval: '4h'})})
+    );
+  });
 });
