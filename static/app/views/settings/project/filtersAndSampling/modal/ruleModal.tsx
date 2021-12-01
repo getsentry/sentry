@@ -25,8 +25,7 @@ import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 import NumberField from 'sentry/views/settings/components/forms/numberField';
 
 import Conditions from './conditions';
-import handleXhrErrorResponse from './handleXhrErrorResponse';
-import {isLegacyBrowser} from './utils';
+import {getErrorMessage, isLegacyBrowser} from './utils';
 
 type ConditionsProps = React.ComponentProps<typeof Conditions>['conditions'];
 
@@ -138,11 +137,16 @@ function RuleModal({
       );
       closeModal();
     } catch (error) {
-      convertErrorXhrResponse(handleXhrErrorResponse(error, currentRuleIndex));
+      convertRequestErrorResponse(getErrorMessage(error, currentRuleIndex));
     }
   }
 
-  function convertErrorXhrResponse(error: ReturnType<typeof handleXhrErrorResponse>) {
+  function convertRequestErrorResponse(error: ReturnType<typeof getErrorMessage>) {
+    if (typeof error === 'string') {
+      addErrorMessage(error);
+      return;
+    }
+
     switch (error.type) {
       case 'sampleRate':
         setData({...data, errors: {...errors, sampleRate: error.message}});
