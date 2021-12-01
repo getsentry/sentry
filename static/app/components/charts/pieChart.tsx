@@ -164,6 +164,11 @@ class PieChart extends React.Component<Props> {
               position: 'center',
               fontSize: '18',
             },
+            emphasis: {
+              label: {
+                show: true,
+              },
+            },
             labelLine: {
               show: false,
             },
