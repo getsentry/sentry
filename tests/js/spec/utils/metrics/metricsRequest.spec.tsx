@@ -87,7 +87,7 @@ describe('MetricsRequest', () => {
     });
   });
 
-  it('refetches when props change', async () => {
+  it('refetches when props change', () => {
     const {rerender} = mountWithTheme(
       <MetricsRequest {...props}>{childrenMock}</MetricsRequest>
     );
@@ -109,7 +109,7 @@ describe('MetricsRequest', () => {
     );
   });
 
-  it('does not refetch when ignored props change', async () => {
+  it('does not refetch when ignored props change', () => {
     const {rerender} = mountWithTheme(
       <MetricsRequest {...props}>{childrenMock}</MetricsRequest>
     );
