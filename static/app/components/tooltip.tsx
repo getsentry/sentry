@@ -347,6 +347,7 @@ const TooltipArrow = styled('span')`
   width: 6px;
   height: 6px;
   border: solid 6px transparent;
+  pointer-events: none;
 
   &[data-placement*='bottom'] {
     top: 0;
