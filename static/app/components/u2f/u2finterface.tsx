@@ -199,6 +199,7 @@ class U2fInterface extends React.Component<Props, State> {
           this.props.challengeData.webAuthnRegisterData
         );
         const challenge = cbor.decodeAllSync(challengeArray);
+        // challenge contains an array that contains one PublicKeyCredentialRequestOptions object, only need first index to register
         this.webAuthnRegister(challenge[0].publicKey);
       } else {
         const {registerRequests, registeredKeys} = this.props.challengeData;
