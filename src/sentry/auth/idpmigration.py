@@ -1,16 +1,15 @@
-import string
 from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any, Dict
 
 from django.urls import reverse
-from django.utils.crypto import get_random_string
 
 from sentry import options
 from sentry.models import AuthProvider, Organization, OrganizationMember, User
 from sentry.utils import json, metrics, redis
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
+from sentry.utils.security import get_secure_token
 
 _REDIS_KEY = "verificationKeyStorage"
 _TTL = timedelta(minutes=10)
@@ -56,7 +55,7 @@ class AccountConfirmLink:
     identity_id: str
 
     def __post_init__(self):
-        self.verification_code = get_random_string(32, string.ascii_letters + string.digits)
+        self.verification_code = get_secure_token()
         self.verification_key = f"auth:one-time-key:{self.verification_code}"
 
     def send_confirm_email(self) -> None:
