@@ -175,7 +175,7 @@ describe('Dashboards > Detail', function () {
   });
 
   describe('custom dashboards', function () {
-    let wrapper, initialData, widgets, mockVisit, mockPut;
+    let wrapper, initialData, widgets, mockVisit, mockPut, mockGet;
 
     beforeEach(function () {
       initialData = initializeOrg({organization});
@@ -240,7 +240,8 @@ describe('Dashboards > Detail', function () {
           }),
         ],
       });
-      MockApiClient.addMockResponse({
+      mockGet = MockApiClient.addMockResponse({
+        method: 'GET',
         url: '/organizations/org-slug/dashboards/1/',
         body: TestStubs.Dashboard(widgets, {id: '1', title: 'Custom Errors'}),
       });
@@ -539,6 +540,7 @@ describe('Dashboards > Detail', function () {
       expect(wrapper.find('DashboardDetail').state().dashboardState).toEqual(
         DashboardState.VIEW
       );
+      expect(mockGet).toHaveBeenCalledTimes(1);
       expect(mockPut).toHaveBeenCalledTimes(1);
       expect(mockPut).toHaveBeenCalledWith(
         '/organizations/org-slug/dashboards/1/',
@@ -642,6 +644,7 @@ describe('Dashboards > Detail', function () {
       expect(wrapper.find('DashboardDetail').state().dashboardState).toEqual(
         DashboardState.VIEW
       );
+      expect(mockGet).toHaveBeenCalledTimes(1);
       expect(mockPut).toHaveBeenCalledTimes(1);
       expect(mockPut).toHaveBeenCalledWith(
         '/organizations/org-slug/dashboards/1/',
