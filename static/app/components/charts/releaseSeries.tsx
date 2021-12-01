@@ -1,7 +1,6 @@
 import * as React from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import {withTheme} from '@emotion/react';
-import type {ToolboxComponentOption} from 'echarts';
 import {Query} from 'history';
 import isEqual from 'lodash/isEqual';
 import memoize from 'lodash/memoize';
@@ -75,7 +74,7 @@ type Props = WithRouterProps & {
   period?: string;
   utc?: boolean | null;
   releases?: ReleaseMetaBasic[] | null;
-  tooltip?: ToolboxComponentOption;
+  tooltip?: Exclude<Parameters<typeof MarkLine>[0], undefined>['tooltip'];
   memoized?: boolean;
   preserveQueryParams?: boolean;
   emphasizeReleases?: string[];
@@ -265,14 +264,7 @@ class ReleaseSeries extends React.Component<Props, State> {
           formatter: () => formatVersion(release.version, true),
         },
       })),
-    });
-
-    // TODO(tonyx): This conflicts with the types declaration of `MarkLine`
-    // if we add it in the constructor. So we opt to add it here so typescript
-    // doesn't complain.
-    (markLine as any).tooltip =
-      tooltip ||
-      ({
+      tooltip: tooltip || {
         trigger: 'item',
         formatter: ({data}: any) => {
           // XXX using this.props here as this function does not get re-run
@@ -295,7 +287,8 @@ class ReleaseSeries extends React.Component<Props, State> {
             getTooltipArrow(),
           ].join('');
         },
-      } as ToolboxComponentOption);
+      },
+    });
 
     return {
       seriesName: 'Releases',
