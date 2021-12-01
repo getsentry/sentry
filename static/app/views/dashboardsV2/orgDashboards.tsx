@@ -154,7 +154,7 @@ class OrgDashboards extends AsyncComponent<Props, State> {
 
     return (
       <SentryDocumentTitle title={t('Dashboards')} orgSlug={organization.slug}>
-        {super.renderComponent()}
+        {super.renderComponent() as React.ReactChild}
       </SentryDocumentTitle>
     );
   }
