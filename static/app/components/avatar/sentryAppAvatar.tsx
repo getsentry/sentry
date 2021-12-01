@@ -11,15 +11,16 @@ type Props = {
 const SentryAppAvatar = ({isColor = true, sentryApp, isDefault, ...props}: Props) => {
   const avatarDetails = sentryApp?.avatars?.find(({color}) => color === isColor);
   // Render the default if the prop is provided, there is no existing avatar, or it has been reverted to 'default'
-  const shouldRenderDefault =
-    isDefault || !avatarDetails || avatarDetails.avatarType === 'default';
-  return shouldRenderDefault ? (
-    <IconGeneric
-      size={`${props.size}`}
-      className={props.className}
-      data-test-id="default-sentry-app-avatar"
-    />
-  ) : (
+  if (isDefault || !avatarDetails || avatarDetails.avatarType === 'default') {
+    return (
+      <IconGeneric
+        size={`${props.size}`}
+        className={props.className}
+        data-test-id="default-sentry-app-avatar"
+      />
+    );
+  }
+  return (
     <BaseAvatar
       {...props}
       type="upload"
