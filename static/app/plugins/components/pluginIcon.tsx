@@ -52,6 +52,7 @@ import visualstudio from 'sentry-logos/logo-visualstudio.svg';
 import youtrack from 'sentry-logos/logo-youtrack.svg';
 import zulip from 'sentry-logos/logo-zulip.svg';
 
+import Feature from 'sentry/components/acl/feature';
 import Avatar from 'sentry/components/avatar';
 import {SentryApp} from 'sentry/types';
 
@@ -144,10 +145,15 @@ const FallbackPluginIcon = styled('div')<Props>`
 `;
 
 const PluginIcon = ({pluginId, size, sentryApp, isColor}: Props) => {
-  return sentryApp ? (
-    <Avatar size={size} sentryApp={sentryApp} isColor={isColor} />
-  ) : (
-    <FallbackPluginIcon pluginId={pluginId} size={size} />
+  return (
+    <Feature features={['organizations:sentry-app-logo-upload']}>
+      {({hasFeature}) => {
+        if (hasFeature && sentryApp) {
+          return <Avatar size={size} sentryApp={sentryApp} isColor={isColor} />;
+        }
+        return <FallbackPluginIcon pluginId={pluginId} size={size} />;
+      }}
+    </Feature>
   );
 };
 
