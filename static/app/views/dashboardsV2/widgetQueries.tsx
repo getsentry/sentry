@@ -47,8 +47,14 @@ function getWidgetInterval(
   const desiredPeriod = parsePeriodToHours(interval);
   const selectedRange = getDiffInMinutes(datetimeObj);
 
-  if (selectedRange / desiredPeriod > MAX_BIN_COUNT) {
-    return getInterval(datetimeObj, 'high');
+  // selectedRange is in minutes, desiredPeriod is in hours
+  // convert desiredPeriod to minutes
+  if (selectedRange / (desiredPeriod * 60) > MAX_BIN_COUNT) {
+    const highInterval = getInterval(datetimeObj, 'high');
+    // Only return high fidelity interval if desired interval is higher fidelity
+    if (desiredPeriod < parsePeriodToHours(highInterval)) {
+      return highInterval;
+    }
   }
   return interval;
 }
