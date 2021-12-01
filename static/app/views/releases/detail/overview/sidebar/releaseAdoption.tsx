@@ -197,7 +197,7 @@ function ReleaseAdoption({
         return label && Object.values(releaseMarkLinesLabels).includes(label)
           ? ''
           : `<span>${formatAbbreviatedNumber(absoluteCount)} <span style="color: ${
-              theme.white
+              theme.textColor
             };margin-left: ${space(0.5)}">${value}%</span></span>`;
       },
       filter: (_, seriesParam: any) => {
