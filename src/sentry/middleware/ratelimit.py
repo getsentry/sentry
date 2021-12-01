@@ -14,18 +14,23 @@ class RatelimitMiddleware(MiddlewareMixin):
     """Middleware that applies a rate limit to every endpoint."""
 
     def process_view(self, request, view_func, view_args, view_kwargs):
-        """Check if the endpoint call will violate"""
+        """Check if the endpoint call will violate."""
+        request.will_be_rate_limited = False
+
         if not can_be_ratelimited(request, view_func):
-            request.will_be_rate_limited = False
             return
 
         key = get_rate_limit_key(view_func, request)
-        if key is not None:
-            category = key.split(":", 1)[0]
-            rate_limit = get_rate_limit_value(request.method, view_func.view_class, category)
-            request.will_be_rate_limited = (
-                above_rate_limit_check(key, rate_limit)["is_limited"]
-                if rate_limit is not None
-                else False
-            )
-        return
+        if key is None:
+            return
+
+        rate_limit = get_rate_limit_value(
+            http_method=request.method,
+            endpoint=view_func.view_class,
+            category=key.split(":", 1)[0],
+        )
+        if rate_limit is None:
+            return
+
+        if above_rate_limit_check(key, rate_limit)["is_limited"]:
+            request.will_be_rate_limited = True
