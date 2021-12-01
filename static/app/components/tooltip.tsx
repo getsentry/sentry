@@ -326,7 +326,7 @@ const TooltipContent = styled(motion.div)<Pick<Props, 'popperStyle'>>`
   will-change: transform, opacity;
   position: relative;
   background: ${p => p.theme.backgroundElevated};
-  padding: ${space(1)};
+  padding: ${space(1)} ${space(1.5)};
   border-radius: ${p => p.theme.borderRadius};
   border: solid 1px ${p => p.theme.border};
   box-shadow: ${p => p.theme.dropShadowHeavy};
