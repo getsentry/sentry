@@ -323,8 +323,6 @@ def _delete_old_primary_hash(
     project_id,
     old_primary_hash,
     event_ids_redis_key,
-    # TODO: Deprecated argument, can remove in next version.
-    event=None,
 ):
     """In case the primary hash changed during reprocessing, we need to tell
     Snuba before reinserting the event. Snuba may then insert a tombstone row
