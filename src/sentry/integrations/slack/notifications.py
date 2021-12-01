@@ -4,6 +4,7 @@ import logging
 from collections import defaultdict
 from typing import Any, Iterable, Mapping, MutableMapping
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.notifications import NotifyBasicMixin
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder import SlackBody
@@ -99,12 +100,13 @@ def get_channel_and_integration_by_team(
     team: Team, organization: Organization
 ) -> Mapping[str, Integration]:
     try:
-        # TODO check status
         external_actor = (
             ExternalActor.objects.filter(
                 provider=ExternalProviders.SLACK.value,
                 actor_id=team.actor_id,
                 organization=organization,
+                integration__status=ObjectStatus.ACTIVE,
+                integration__organizationintegration__status=ObjectStatus.ACTIVE,
             )
             .select_related("integration")
             .get()
