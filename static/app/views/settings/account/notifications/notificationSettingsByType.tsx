@@ -3,6 +3,7 @@ import React from 'react';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import {t} from 'sentry/locale';
 import {Organization, OrganizationSummary} from 'sentry/types';
+import {OrganizationIntegration} from 'sentry/types/integrations';
 import withOrganizations from 'sentry/utils/withOrganizations';
 import {
   CONFIRMATION_MESSAGE,
@@ -14,10 +15,7 @@ import {ACCOUNT_NOTIFICATION_FIELDS} from 'sentry/views/settings/account/notific
 import {NOTIFICATION_SETTING_FIELDS} from 'sentry/views/settings/account/notifications/fields2';
 import NotificationSettingsByOrganization from 'sentry/views/settings/account/notifications/notificationSettingsByOrganization';
 import NotificationSettingsByProjects from 'sentry/views/settings/account/notifications/notificationSettingsByProjects';
-import {
-  Identity,
-  OrganizationIntegration,
-} from 'sentry/views/settings/account/notifications/types';
+import {Identity} from 'sentry/views/settings/account/notifications/types';
 import UnlinkedAlert from 'sentry/views/settings/account/notifications/unlinkedAlert';
 import {
   getCurrentDefault,

@@ -140,6 +140,7 @@ class OrganizationIntegrationSerializer(Serializer):  # type: ignore
                 "configData": config_data,
                 "externalId": obj.integration.external_id,
                 "organizationId": obj.organization.id,
+                "organizationIntegrationStatus": obj.get_status_display(),
             }
         )
 

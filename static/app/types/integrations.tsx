@@ -275,6 +275,10 @@ export type IntegrationProvider = BaseIntegrationProvider & {
   };
 };
 
+type OrganizationIntegrationProvider = BaseIntegrationProvider & {
+  aspects: IntegrationAspects;
+};
+
 export type Integration = {
   id: string;
   name: string;
@@ -283,7 +287,7 @@ export type Integration = {
   accountType: string;
   scopes?: string[];
   status: ObjectStatus;
-  provider: BaseIntegrationProvider & {aspects: IntegrationAspects};
+  provider: OrganizationIntegrationProvider;
   dynamicDisplayInformation?: {
     configure_integration?: {
       instructions: string[];
@@ -294,10 +298,29 @@ export type Integration = {
   };
 };
 
+type ConfigData = {
+  installationType?: string;
+};
+
+export type OrganizationIntegration = {
+  id: string;
+  name: string;
+  status: ObjectStatus;
+  organizationIntegrationStatus: ObjectStatus;
+  provider: OrganizationIntegrationProvider;
+  configOrganization: Field[];
+  configData: ConfigData | null;
+  organizationId: string;
+  externalId: string;
+  icon: string | null;
+  domainName: string | null;
+  accountType: string | null;
+};
+
 // we include the configOrganization when we need it
 export type IntegrationWithConfig = Integration & {
   configOrganization: Field[];
-  configData: object | null;
+  configData: ConfigData;
 };
 
 /**
