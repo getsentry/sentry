@@ -23,7 +23,7 @@ import {
   publicIntegrationForms,
 } from 'sentry/data/forms/sentryApplication';
 import {IconAdd, IconDelete} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {InternalAppApiToken, Scope, SentryApp} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -155,11 +155,11 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
     return [];
   }
 
-  getTitle() {
+  getHeaderTitle() {
     const {app} = this.state;
-    const integrationAction = app ? 'Edit' : 'Create';
-    const integrationType = this.isInternal ? 'Internal' : 'Public';
-    return t('%s %s Integration', integrationAction, integrationType);
+    const action = app ? 'Edit' : 'Create';
+    const type = this.isInternal ? 'Internal' : 'Public';
+    return tct('[action] [type] Integration', {action, type});
   }
 
   // Events may come from the API as "issue.created" when we just want "issue" here.
@@ -386,7 +386,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
 
     return (
       <div>
-        <SettingsPageHeader title={this.getTitle()} />
+        <SettingsPageHeader title={this.getHeaderTitle()} />
         <Form
           apiMethod={method}
           apiEndpoint={endpoint}

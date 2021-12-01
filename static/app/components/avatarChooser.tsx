@@ -120,8 +120,11 @@ class AvatarChooser extends React.Component<Props, State> {
     const avatarType = model && model.avatar ? model.avatar.avatarType : undefined;
     const avatarPhoto = dataUrl ? dataUrl.split(',')[1] : undefined;
 
-    // TODO(Leander): Fix this payload's type
-    const data: any = {
+    const data: {
+      avatar_photo: string | undefined;
+      avatar_type: string | undefined;
+      color?: boolean;
+    } = {
       avatar_photo: avatarPhoto,
       avatar_type: avatarType,
     };
@@ -171,7 +174,7 @@ class AvatarChooser extends React.Component<Props, State> {
 
     const avatarType = model.avatar?.avatarType ?? 'letter_avatar';
     const isLetter = avatarType === 'letter_avatar';
-    const isDefault = preview !== undefined && avatarType === 'default';
+    const isDefault = Boolean(preview && avatarType === 'default');
 
     const isTeam = type === 'team';
     const isOrganization = type === 'organization';
@@ -193,7 +196,7 @@ class AvatarChooser extends React.Component<Props, State> {
     }
     return (
       <Panel>
-        <PanelHeader>{title ?? t('Avatar')}</PanelHeader>
+        <PanelHeader>{title || t('Avatar')}</PanelHeader>
         <PanelBody>
           <AvatarForm>
             <AvatarGroup inline={isLetter || isDefault}>
