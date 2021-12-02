@@ -10,23 +10,21 @@ import PageHeading from 'sentry/components/pageHeading';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
-import withProjects from 'sentry/utils/withProjects';
+import {Organization} from 'sentry/types';
+import useProjects from 'sentry/utils/useProjects';
 
 type Props = React.PropsWithChildren<{
   organization: Organization;
-  projects: Project[];
-  loadingProjects: boolean;
   superuserNeedsToBeProjectMember?: boolean;
 }>;
 
 function NoProjectMessage({
   children,
   organization,
-  projects,
-  loadingProjects,
   superuserNeedsToBeProjectMember,
 }: Props) {
+  const {projects, initiallyLoaded: projectsLoaded} = useProjects();
+
   const orgSlug = organization.slug;
   const canCreateProject = organization.access.includes('project:write');
   const canJoinTeam = organization.access.includes('team:read');
@@ -39,7 +37,7 @@ function NoProjectMessage({
       ? !!projects?.some(p => p.hasAccess)
       : !!projects?.some(p => p.isMember && p.hasAccess);
 
-  if (hasProjectAccess || loadingProjects) {
+  if (hasProjectAccess || !projectsLoaded) {
     return <Fragment>{children}</Fragment>;
   }
 
@@ -129,4 +127,4 @@ const Actions = styled(ButtonBar)`
   width: fit-content;
 `;
 
-export default withProjects(NoProjectMessage);
+export default NoProjectMessage;
