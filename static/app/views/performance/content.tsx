@@ -122,7 +122,10 @@ function PerformanceContent({selection, location, demoMode}: Props) {
   }
 
   function setError(newError?: string) {
-    if (typeof newError !== 'string') {
+    if (
+      typeof newError === 'object' ||
+      (Array.isArray(newError) && typeof newError[0] === 'object')
+    ) {
       Sentry.withScope(scope => {
         scope.setExtra('error', newError);
         Sentry.captureException(new Error('setError failed with error type.'));
