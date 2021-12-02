@@ -92,7 +92,7 @@ class PluginSerializer(Serializer):
 
         d["isDeprecated"] = is_plugin_deprecated(obj, self.project)
 
-        d["isHidden"] = d["isDeprecated"] or d.get("enabled", False) is False and obj.is_hidden()
+        d["isHidden"] = d["isDeprecated"] or (not d.get("enabled", False) and obj.is_hidden())
 
         if obj.description:
             d["description"] = str(obj.description)
