@@ -281,42 +281,52 @@ def buffered_delete_old_primary_hash(event, force_flush_batch: bool = False):
     client = _get_sync_redis_client()
     old_primary_hash = get_path(event.data, "contexts", "reprocessing", "original_primary_hash")
 
-    # TODO: revisit this comment
-    # We explicitly cluster by only project_id and old_primary_hash here such that our
-    # RENAME command later succeeds.
-    #
-    # We also use legacy string formatting here because new-style Python
-    # formatting is quite confusing when the output string is supposed to
-    # contain {}.
-    key = f"re2:remaining:{{{event.project_id}:{old_primary_hash}}}"
+    # This is a meta key pointing to a set of keys which each point to lists of events that need to
+    # be tombstoned.
+    # Tombstonable events are bucketed by their old primary hashes, and are integrated into the
+    # keys which are stored as values for this meta-entry.
+    event_keys_set_key = f"re2:tombstone-fingerprinted:{{{event.project_id}:{event.group_id}}}"
+    # todo: is this an empty list or none if the key doesn't exist?
+    event_keys = client.smembers(event_keys_set_key)
 
-    # assuming that despite the name, primary hashes are not unique per-event when grouping is involved
-    # will have to rethink how to batch these if assumption is wrong
-    if old_primary_hash is None or old_primary_hash == event.get_primary_hash():
-        llen = client.lpush(key, f"{to_timestamp(event.datetime)};{event.event_id}")
-        client.expire(key, settings.SENTRY_REPROCESSING_SYNC_TTL)
-    else:
-        llen = client.llen(key)
+    if old_primary_hash is not None and old_primary_hash != event.get_primary_hash():
+        event_key = f"re2:tombstones:{{{event.project_id}:{event.group_id}:{old_primary_hash}}}"
+        client.lpush(event_key, f"{to_timestamp(event.datetime)};{event.event_id}")
+        client.expire(event_key, settings.SENTRY_REPROCESSING_SYNC_TTL)
 
-    # TODO: revisit batch size setting
-    if force_flush_batch or llen > settings.SENTRY_REPROCESSING_REMAINING_EVENTS_BUF_SIZE:
-        new_key = f"{key}:{uuid.uuid4().hex}"
+        if event_key not in event_keys:
+            client.sadd(event_keys_set_key, event_key)
+            client.expire(event_keys_set_key, settings.SENTRY_REPROCESSING_SYNC_TTL)
 
-        try:
-            # Rename `key` to a new temp key that is passed to celery task. We
-            # use `renamenx` instead of `rename` only to detect UUID collisions.
-            assert client.renamenx(key, new_key), "UUID collision for new_key?"
-        except redis.exceptions.ResponseError:
-            # `key` does not exist in Redis. `ResponseError` is a bit too broad
-            # but it seems we'd have to do string matching on error message
-            # otherwise.
-            return
+    event_count = 0
+    for fkey in event_keys:
+        event_count += client.llen(fkey)
+        # todo: is it possible for multiple events for a single group to be simultaneously processed,
+        # causing the event count to spike above the flush threshold?
 
-        _delete_old_primary_hash(
-            project_id=event.project_id,
-            old_primary_hash=old_primary_hash,
-            event_ids_redis_key=new_key,
-        )
+    if force_flush_batch or event_count > settings.SENTRY_REPROCESSING_REMAINING_EVENTS_BUF_SIZE:
+        for fkey in event_keys:
+            new_key = f"{fkey}:{uuid.uuid4().hex}"
+
+            try:
+                # Rename `fingerprint_set_key` to a new temp key that is passed to celery task. We
+                # use `renamenx` instead of `rename` only to detect UUID collisions.
+                assert client.renamenx(fkey, new_key), "UUID collision for new_key?"
+            except redis.exceptions.ResponseError:
+                # `key` does not exist in Redis. `ResponseError` is a bit too broad
+                # but it seems we'd have to do string matching on error message
+                # otherwise.
+                return
+
+            # worst case scenario a group has a 1:1 mapping of primary hashes to events, which means
+            # 1 insert per event.
+            # this is marginally better than the unbatched version if a group has a lot of old
+            # primary hashes.
+            _delete_old_primary_hash(
+                project_id=event.project_id,
+                old_primary_hash=old_primary_hash,
+                event_ids_redis_key=new_key,
+            )
 
 
 def _delete_old_primary_hash(
