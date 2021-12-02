@@ -456,16 +456,40 @@ _METRICS = {
         "operations": _AVAILABLE_OPERATIONS["metrics_sets"],
         "tags": _SESSION_TAGS,
     },
+    "transaction.duration": {
+        "type": "distribution",
+        "operations": _AVAILABLE_OPERATIONS["metrics_distributions"],
+        "tags": {
+            **_MEASUREMENT_TAGS,
+            "transaction.status": [
+                # Subset of possible states:
+                # https://develop.sentry.dev/sdk/event-payloads/transaction/
+                "ok",
+                "cancelled",
+                "aborted",
+            ],
+        },
+    },
 }
 
 _METRICS.update(
     {
-        f"measurements.{web_vital}": {
+        f"measurements.{measurement}": {
             "type": "distribution",
             "operations": _AVAILABLE_OPERATIONS["metrics_distributions"],
             "tags": _MEASUREMENT_TAGS,
         }
-        for web_vital in ("lcp", "fcp", "fid", "cls")
+        for measurement in (
+            "lcp",
+            "fcp",
+            "fid",
+            "cls",
+            "frames_total",
+            "frames_slow",
+            "frames_frozen",
+            "app_start_cold",
+            "app_start_warm",
+        )
     }
 )
 
