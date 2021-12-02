@@ -3,14 +3,17 @@ from time import time
 from cryptography.exceptions import InvalidKey, InvalidSignature
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
+from fido2 import cbor
 from fido2.client import ClientData
 from fido2.ctap2 import AuthenticatorData, base
-from fido2.server import U2FFido2Server
+from fido2.server import Fido2Server, U2FFido2Server
 from fido2.utils import websafe_decode
+from fido2.webauthn import PublicKeyCredentialRpEntity
 from u2flib_server import u2f
 from u2flib_server.model import DeviceRegistration
 
 from sentry import options
+from sentry.utils import json
 from sentry.utils.dates import to_datetime
 from sentry.utils.decorators import classproperty
 from sentry.utils.http import absolute_uri
@@ -31,6 +34,10 @@ class U2fInterface(AuthenticatorInterface):
         "Chrome)."
     )
     allow_multi_enrollment = True
+    # rp is a relying party for webauthn, this would be sentry.io on prod and the prefix for one's dev environment
+    rp_id = options.get("system.url-prefix").replace("https://", "")
+    rp = PublicKeyCredentialRpEntity(rp_id, "Sentry")
+    server = Fido2Server(rp)
 
     @classproperty
     def u2f_app_id(cls):
@@ -49,10 +56,30 @@ class U2fInterface(AuthenticatorInterface):
         url_prefix = options.get("system.url-prefix")
         return url_prefix and url_prefix.startswith("https://")
 
+    def _create_credential_object(self, registeredKey):
+        return base.AttestedCredentialData.from_ctap1(
+            websafe_decode(registeredKey["keyHandle"]),
+            websafe_decode(registeredKey["publicKey"]),
+        )
+
     def generate_new_config(self):
         return {}
 
-    def start_enrollment(self):
+    def start_enrollment(self, user, is_webauthn_register_ff):
+        if is_webauthn_register_ff:
+            credentials = []
+            for registeredKey in self.get_u2f_devices():
+                c = self._create_credential_object(registeredKey)
+                credentials.append(c)
+
+            registration_data, state = self.server.register_begin(
+                user={"id": bytes(user.id), "name": user.username, "displayName": user.username},
+                credentials=credentials,
+                # user_verification is where the authenticator verifies that the user is authorized to use the authenticator, this isn't needed for our usecase so set a discouraged
+                user_verification="discouraged",
+            )
+            return cbor.encode(registration_data), state
+
         return u2f.begin_registration(self.u2f_app_id, self.get_u2f_devices()).data_for_client
 
     def get_u2f_devices(self):
@@ -94,11 +121,20 @@ class U2fInterface(AuthenticatorInterface):
         rv.sort(key=lambda x: x["name"])
         return rv
 
-    def try_enroll(self, enrollment_data, response_data, device_name=None):
-        binding, cert = u2f.complete_registration(enrollment_data, response_data, self.u2f_facets)
+    def try_enroll(
+        self, enrollment_data, response_data, is_webauthn_register_ff, device_name=None, state=None
+    ):
+        if is_webauthn_register_ff:
+            data = json.loads(response_data)
+            client_data = ClientData(websafe_decode(data["response"]["clientDataJSON"]))
+            att_obj = base.AttestationObject(websafe_decode(data["response"]["attestationObject"]))
+            binding = self.server.register_complete(state, client_data, att_obj)
+        else:
+            data, cert = u2f.complete_registration(enrollment_data, response_data, self.u2f_facets)
+            binding = dict(data)
         devices = self.config.setdefault("devices", [])
         devices.append(
-            {"name": device_name or "Security Key", "ts": int(time()), "binding": dict(binding)}
+            {"name": device_name or "Security Key", "ts": int(time()), "binding": binding}
         )
 
     def activate(self, request):
