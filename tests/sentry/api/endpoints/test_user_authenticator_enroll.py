@@ -227,9 +227,7 @@ class UserAuthenticatorEnrollTest(APITestCase):
                 )
 
             assert try_enroll.call_count == 1
-            assert try_enroll.call_args == mock.call(
-                "challenge", "response", False, "device name", None
-            )
+            assert try_enroll.call_args == mock.call("challenge", "response", "device name")
 
             assert_security_email_sent("mfa-added")
 
