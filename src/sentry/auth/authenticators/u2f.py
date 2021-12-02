@@ -1,4 +1,5 @@
 from time import time
+from urllib.parse import urlparse
 
 from cryptography.exceptions import InvalidKey, InvalidSignature
 from django.urls import reverse
@@ -36,8 +37,7 @@ class U2fInterface(AuthenticatorInterface):
     allow_multi_enrollment = True
     # rp is a relying party for webauthn, this would be sentry.io for SAAS
     # and the prefix for on-premise / dev environments
-    rp_id = options.get("system.url-prefix").replace("https://", "")
-    rp = PublicKeyCredentialRpEntity(rp_id, "Sentry")
+    rp = PublicKeyCredentialRpEntity(urlparse(options.get("system.url-prefix")).hostname, "Sentry")
     server = Fido2Server(rp)
 
     @classproperty
