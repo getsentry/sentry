@@ -481,13 +481,13 @@ class OrganizationMemberListPostTest(OrganizationMemberListTestBase):
     method = "post"
 
     def test_forbid_qq(self):
-        data = dict(email="1234@qq.com", role="member", teams=[self.team.slug])
+        data = {"email": "1234@qq.com", "role": "member", "teams": [self.team.slug]}
         response = self.get_error_response(self.organization.slug, **data, status_code=400)
         assert response.data["email"][0] == "Enter a valid email address."
 
     @patch.object(OrganizationMember, "send_invite_email")
     def test_simple(self, mock_send_invite_email):
-        data = dict(email="jane@gmail.com", role="member", teams=[self.team.slug])
+        data = {"email": "jane@gmail.com", "role": "member", "teams": [self.team.slug]}
         response = self.get_success_response(self.organization.slug, **data)
 
         om = OrganizationMember.objects.get(id=response.data["id"])
@@ -500,7 +500,7 @@ class OrganizationMemberListPostTest(OrganizationMemberListTestBase):
         mock_send_invite_email.assert_called_once_with()
 
     def test_no_teams(self):
-        data = dict(email="jane@gmail.com", role="member")
+        data = {"email": "jane@gmail.com", "role": "member"}
         response = self.get_success_response(self.organization.slug, **data)
 
         om = OrganizationMember.objects.get(id=response.data["id"])
@@ -512,12 +512,12 @@ class OrganizationMemberListPostTest(OrganizationMemberListTestBase):
 
     @patch.object(OrganizationMember, "send_invite_email")
     def test_no_email(self, mock_send_invite_email):
-        data = dict(
-            email="jane@gmail.com",
-            role="member",
-            teams=[self.team.slug],
-            sendInvite=False,
-        )
+        data = {
+            "email": "jane@gmail.com",
+            "role": "member",
+            "teams": [self.team.slug],
+            "sendInvite": False,
+        }
         response = self.get_success_response(self.organization.slug, **data)
         om = OrganizationMember.objects.get(id=response.data["id"])
         assert om.user_id is None
@@ -532,6 +532,6 @@ class OrganizationMemberListPostTest(OrganizationMemberListTestBase):
     def test_rate_limited(self, mock_rate_limit):
         mock_rate_limit.return_value = True
 
-        data = dict(email="jane@gmail.com", role="member")
+        data = {"email": "jane@gmail.com", "role": "member"}
         self.get_error_response(self.organization.slug, **data, status_code=429)
         assert not OrganizationMember.objects.filter(email="jane@gmail.com").exists()
