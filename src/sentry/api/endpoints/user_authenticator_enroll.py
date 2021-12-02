@@ -99,9 +99,7 @@ def get_serializer_field_metadata(serializer, fields=None):
 class UserAuthenticatorEnrollEndpoint(UserEndpoint):
     def _check_webauthn_register_ff(self, user):
         orgs = user.get_orgs()
-        if any(features.has("organizations:webauthn-register", org, actor=user) for org in orgs):
-            return True
-        return False
+        return any(features.has("organizations:webauthn-register", org, actor=user) for org in orgs)
 
     @sudo_required
     def get(self, request, user, interface_id):

@@ -36,6 +36,7 @@ class U2fInterface(AuthenticatorInterface):
         "Chrome)."
     )
     allow_multi_enrollment = True
+    # rp is a relying party for webauthn, this would be sentry.io on prod and the prefix for one's dev environment
     rp_id = options.get("system.url-prefix").replace("https://", "")
     rp = PublicKeyCredentialRpEntity(rp_id, "Sentry")
     webauthn_registration_server = Fido2Server(rp)
@@ -86,6 +87,7 @@ class U2fInterface(AuthenticatorInterface):
             registration_data, state = self.webauthn_registration_server.register_begin(
                 user={"id": bytes(user.id), "name": user.username, "displayName": user.username},
                 credentials=credentials,
+                # user_verification is where the authenticator verifies that the user is authorized to use the authenticator, this isn't needed for our usecase so set a discouraged
                 user_verification="discouraged",
             )
             return cbor.encode(registration_data), state
