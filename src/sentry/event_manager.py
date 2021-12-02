@@ -1259,6 +1259,16 @@ def _handle_regression(group, event, release):
             active_at__gte=date
             - timedelta(seconds=5)
         )
+        .exclude(
+            # If the group got resolved after date, then this is actually not a
+            # regression but a delayed event. This can happen for various reasons,
+            # for example if an issue got closed right after an event is sent, the
+            # delay in processing can cause the issue to be reopened. The same can
+            # happen even if the event -> closure times are further apart, given
+            # the kafka queue sizes are big enough to delay the event longer than
+            # the event -> closure time interval.
+            resolved_at__gte=date
+        )
         .update(
             active_at=date,
             # explicitly set last_seen here as ``is_resolved()`` looks
