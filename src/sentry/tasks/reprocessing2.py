@@ -6,6 +6,7 @@ from django.db import transaction
 
 from sentry import eventstore, eventstream, nodestore
 from sentry.eventstore.models import Event
+from sentry.reprocessing2 import buffered_delete_old_primary_hash
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils import metrics
 from sentry.utils.query import celery_run_batch_query
@@ -63,12 +64,23 @@ def reprocess_group(
     )
 
     if not events:
+        # Migrate events that belong to new group generated after reprocessing
         buffered_handle_remaining_events(
             project_id=project_id,
             old_group_id=group_id,
             new_group_id=new_group_id,
             datetime_to_event=[],
             remaining_events=remaining_events,
+            force_flush_batch=True,
+        )
+        # Tombstone unwanted events that should be dropped after new group
+        # is generated after reprocessing
+        buffered_delete_old_primary_hash(
+            event={
+                "project_id": project_id,
+                "group_id": group_id,
+                "data": None,
+            },
             force_flush_batch=True,
         )
 
