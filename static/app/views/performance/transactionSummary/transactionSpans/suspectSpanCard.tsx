@@ -53,7 +53,7 @@ const SPANS_TABLE_COLUMN_ORDER: SuspectSpanTableColumn[] = [
   },
   {
     key: 'occurrences',
-    name: t('Occurrences'),
+    name: t('Count'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
@@ -155,10 +155,10 @@ type HeaderItemProps = {
 };
 
 const PERCENTILE_LABELS: Record<SpanSortPercentiles, string> = {
-  [SpanSortPercentiles.P50_EXCLUSIVE_TIME]: t('p50 Duration'),
-  [SpanSortPercentiles.P75_EXCLUSIVE_TIME]: t('p75 Duration'),
-  [SpanSortPercentiles.P95_EXCLUSIVE_TIME]: t('p95 Duration'),
-  [SpanSortPercentiles.P99_EXCLUSIVE_TIME]: t('p99 Duration'),
+  [SpanSortPercentiles.P50_EXCLUSIVE_TIME]: t('p50 Exclusive Time'),
+  [SpanSortPercentiles.P75_EXCLUSIVE_TIME]: t('p75 Exclusive Time'),
+  [SpanSortPercentiles.P95_EXCLUSIVE_TIME]: t('p95 Exclusive Time'),
+  [SpanSortPercentiles.P99_EXCLUSIVE_TIME]: t('p99 Exclusive Time'),
 };
 
 function PercentileDuration(props: HeaderItemProps) {
@@ -184,7 +184,7 @@ function SpanCount(props: HeaderItemProps) {
   if (sort.field === SpanSortOthers.COUNT) {
     return (
       <HeaderItem
-        label={t('Occurrences')}
+        label={t('Total Count')}
         value={String(suspectSpan.count)}
         align="right"
         isSortKey
@@ -195,7 +195,7 @@ function SpanCount(props: HeaderItemProps) {
   if (sort.field === SpanSortOthers.AVG_OCCURRENCE) {
     return (
       <HeaderItem
-        label={t('Avg Occurrences')}
+        label={t('Average Count')}
         value={formatFloat(suspectSpan.avgOccurrences, 2)}
         align="right"
         isSortKey
@@ -256,7 +256,7 @@ function TotalCumulativeDuration(props: HeaderItemProps) {
 
   return (
     <HeaderItem
-      label={t('Total Cumulative Duration')}
+      label={t('Total Exclusive Time')}
       value={value}
       align="right"
       isSortKey={sort.field === SpanSortOthers.SUM_EXCLUSIVE_TIME}
