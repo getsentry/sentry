@@ -29,6 +29,7 @@ from snuba_sdk.orderby import Direction, OrderBy
 from sentry.api.utils import get_date_range_from_params
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Project
+from sentry.relay.config import ALL_MEASUREMENT_METRICS
 from sentry.search.events.filter import QueryFilter
 from sentry.sentry_metrics import indexer
 from sentry.snuba.dataset import Dataset, EntityKey
@@ -474,22 +475,12 @@ _METRICS = {
 
 _METRICS.update(
     {
-        f"measurements.{measurement}": {
+        measurement_metric: {
             "type": "distribution",
             "operations": _AVAILABLE_OPERATIONS["metrics_distributions"],
             "tags": _MEASUREMENT_TAGS,
         }
-        for measurement in (
-            "lcp",
-            "fcp",
-            "fid",
-            "cls",
-            "frames_total",
-            "frames_slow",
-            "frames_frozen",
-            "app_start_cold",
-            "app_start_warm",
-        )
+        for measurement_metric in ALL_MEASUREMENT_METRICS
     }
 )
 
