@@ -85,7 +85,7 @@ def get_rate_limit_value(
             return ratelimit_option
 
         # Everything will eventually hit `object`, which has no __bases__.
-        for klass in endpoint.__bases__:
+        for klass in next_class.__bases__:
             classes_queue.append(klass)
 
     return settings.SENTRY_RATELIMITER_DEFAULTS[category]

@@ -55,4 +55,15 @@ class TestGetRateLimitValue(TestCase):
         class TestEndpoint:
             pass
 
-        assert get_rate_limit_value("GET", TestEndpoint, RateLimitCategory.IP) is None
+        assert (
+            get_rate_limit_value("GET", TestEndpoint, RateLimitCategory.IP)
+            == settings.SENTRY_RATELIMITER_DEFAULTS[RateLimitCategory.IP]
+        )
+        assert (
+            get_rate_limit_value("POST", TestEndpoint, RateLimitCategory.ORGANIZATION)
+            == settings.SENTRY_RATELIMITER_DEFAULTS[RateLimitCategory.ORGANIZATION]
+        )
+        assert (
+            get_rate_limit_value("DELETE", TestEndpoint, RateLimitCategory.USER)
+            == settings.SENTRY_RATELIMITER_DEFAULTS[RateLimitCategory.USER]
+        )
