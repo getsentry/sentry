@@ -2,7 +2,7 @@
 Note: Also see letterAvatar.jsx. Anything changed in this file (how colors are
       selected, the svg, etc) will also need to be changed there.
 """
-from typing import Any, MutableMapping, Optional, Union
+from typing import MutableMapping, Optional, Union
 from urllib.parse import urlencode
 
 from django.conf import settings
@@ -128,8 +128,8 @@ def get_email_avatar(
     return get_letter_avatar(display_name, identifier, size, use_svg=False)
 
 
-def is_black_alpha_only(data: Any) -> bool:
-    """Check if an image has only black pixels"""
+def is_black_alpha_only(data: bytes) -> bool:
+    """Check if an image has only black pixels (with alpha)"""
     image = Image.open(data)
     if image.mode != "RGBA":
         return False

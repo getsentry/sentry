@@ -49,7 +49,10 @@ class AvatarField(serializers.Field):
 
         with Image.open(BytesIO(data)) as img:
             if self.is_sentry_app and Image.MIME[img.format] not in SENTRY_APP_ALLOWED_MIMETYPES:
-                raise serializers.ValidationError("Invalid image format. Must use pngs.")
+                valid_formats = ", ".join(SENTRY_APP_ALLOWED_MIMETYPES)
+                raise serializers.ValidationError(
+                    f"Invalid image format. App icons should be {valid_formats}."
+                )
 
             if Image.MIME[img.format] not in ALLOWED_MIMETYPES:
                 raise serializers.ValidationError("Invalid image format.")
