@@ -781,7 +781,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                     Condition(
                         Column(session_status_column_name),
                         Op.IN,
-                        get_tag_values_list(org_id, ["abnormal", "crashed", "init"]),
+                        get_tag_values_list(
+                            org_id, ["abnormal", "crashed", "init", "errored_preaggr"]
+                        ),
                     ),
                 ],
                 groupby=aggregates,
