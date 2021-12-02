@@ -49,6 +49,27 @@ class TestGetRateLimitValue(TestCase):
             20, 4
         )
 
+    def test_inherit(self):
+        class ParentEndpoint(Endpoint):
+            rate_limits = {"GET": {RateLimitCategory.IP: RateLimit(100, 5)}}
+
+        class ChildEndpoint(ParentEndpoint):
+            rate_limits = {"GET": {}}
+
+        assert get_rate_limit_value("GET", ChildEndpoint, RateLimitCategory.IP) == RateLimit(100, 5)
+
+    def test_multiple_inheritance(self):
+        class ParentEndpoint(Endpoint):
+            rate_limits = {"GET": {RateLimitCategory.IP: RateLimit(100, 5)}}
+
+        class Mixin:
+            rate_limits = {"GET": {RateLimitCategory.IP: RateLimit(2, 4)}}
+
+        class ChildEndpoint(ParentEndpoint, Mixin):
+            rate_limits = {"GET": {}}
+
+        assert get_rate_limit_value("GET", ChildEndpoint, RateLimitCategory.IP) == RateLimit(100, 5)
+
     def test_non_endpoint(self):
         """Views that don't inherit Endpoint should not return a value."""
 
