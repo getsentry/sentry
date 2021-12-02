@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 
 import AlertLink from 'sentry/components/alertLink';
 import AsyncComponent from 'sentry/components/asyncComponent';
@@ -112,7 +112,7 @@ class NotificationSettings extends AsyncComponent<Props, State> {
       const field = Object.assign({}, NOTIFICATION_SETTING_FIELDS[notificationType], {
         getData: data => this.getStateToPutForDefault(data, notificationType),
         help: (
-          <React.Fragment>
+          <Fragment>
             <p>
               {NOTIFICATION_SETTING_FIELDS[notificationType].help}
               &nbsp;
@@ -123,7 +123,7 @@ class NotificationSettings extends AsyncComponent<Props, State> {
                 Fine tune
               </Link>
             </p>
-          </React.Fragment>
+          </Fragment>
         ),
       }) as any;
 
@@ -143,7 +143,7 @@ class NotificationSettings extends AsyncComponent<Props, State> {
     const {legacyData} = this.state;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SettingsPageHeader title="Notifications" />
         <TextBlock>Personal notifications sent via email or an integration.</TextBlock>
         <FeedbackAlert />
@@ -171,7 +171,7 @@ class NotificationSettings extends AsyncComponent<Props, State> {
         <AlertLink to="/settings/account/emails" icon={<IconMail />}>
           {t('Looking to add or remove an email address? Use the emails panel.')}
         </AlertLink>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

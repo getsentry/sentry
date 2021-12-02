@@ -1,4 +1,3 @@
-import {MouseEvent} from 'react';
 import * as React from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
@@ -392,7 +391,7 @@ const ContextMenu = ({children}) => (
         >
           <DropdownTarget
             {...getActorProps<HTMLDivElement>({
-              onClick: (event: MouseEvent) => {
+              onClick: (event: React.MouseEvent) => {
                 event.stopPropagation();
                 event.preventDefault();
               },

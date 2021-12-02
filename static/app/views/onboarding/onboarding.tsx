@@ -251,7 +251,7 @@ const ProgressBar = styled('div')`
     display: block;
     content: '';
     height: 4px;
-    background: ${p => p.theme.inactive};
+    background: ${p => p.theme.border};
     left: 2px;
     right: 2px;
     top: 50%;
@@ -264,7 +264,7 @@ const ProgressStep = styled('div')<{active: boolean}>`
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  border: 4px solid ${p => (p.active ? p.theme.active : p.theme.inactive)};
+  border: 4px solid ${p => (p.active ? p.theme.active : p.theme.border)};
   background: ${p => p.theme.background};
 `;
 
@@ -301,9 +301,18 @@ const Back = styled(({className, animate, ...props}: BackProps) => (
     animate={animate}
     transition={testableTransition()}
     variants={{
-      initial: {opacity: 0},
-      visible: {opacity: 1, transition: testableTransition({delay: 1})},
-      hidden: {opacity: 0},
+      initial: {opacity: 0, visibility: 'hidden'},
+      visible: {
+        opacity: 1,
+        visibility: 'visible',
+        transition: testableTransition({delay: 1}),
+      },
+      hidden: {
+        opacity: 0,
+        transitionEnd: {
+          visibility: 'hidden',
+        },
+      },
     }}
   >
     <Button {...props} icon={<IconChevron direction="left" size="sm" />} priority="link">

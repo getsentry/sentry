@@ -94,12 +94,12 @@ class MetricsRequest extends React.Component<Props, State> {
       environment,
       field,
       statsPeriod,
-      query,
+      query: query || undefined,
       groupBy,
       orderBy,
       limit,
-      start,
-      end,
+      start: start ?? undefined,
+      end: end ?? undefined,
       interval: interval ? interval : getInterval({start, end, period: statsPeriod}),
     };
   }
@@ -140,9 +140,9 @@ class MetricsRequest extends React.Component<Props, State> {
 
   render() {
     const {reloading, errored, response} = this.state;
-    const {children} = this.props;
+    const {children, isDisabled} = this.props;
 
-    const loading = response === null;
+    const loading = response === null && !isDisabled;
 
     return children?.({
       loading,

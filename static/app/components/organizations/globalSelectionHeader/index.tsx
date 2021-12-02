@@ -1,4 +1,4 @@
-import {ComponentPropsWithoutRef, useEffect, useRef} from 'react';
+import {useEffect, useRef} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
@@ -11,9 +11,8 @@ import {
 } from 'sentry/actionCreators/globalSelection';
 import {DATE_TIME_KEYS} from 'sentry/constants/globalSelectionHeader';
 import ConfigStore from 'sentry/stores/configStore';
-import {Organization, Project} from 'sentry/types';
+import useProjects from 'sentry/utils/useProjects';
 import withOrganization from 'sentry/utils/withOrganization';
-import withProjects from 'sentry/utils/withProjects';
 
 import GlobalSelectionHeader from './globalSelectionHeader';
 import {getStateFromQuery} from './utils';
@@ -24,38 +23,40 @@ const getDateObjectFromQuery = (query: Record<string, any>) =>
   );
 
 type GlobalSelectionHeaderProps = Omit<
-  ComponentPropsWithoutRef<typeof GlobalSelectionHeader>,
-  'router' | 'nonMemberProjects' | 'memberProjects' | 'selection'
+  React.ComponentPropsWithoutRef<typeof GlobalSelectionHeader>,
+  | 'router'
+  | 'memberProjects'
+  | 'nonMemberProjects'
+  | 'selection'
+  | 'projects'
+  | 'loadingProjects'
 >;
 
-type Props = {
-  organization: Organization;
-  projects: Project[];
-  /**
-   * Skip loading from local storage
-   * An example is Issue Details, in the case where it is accessed directly (e.g. from email).
-   * We do not want to load the user's last used env/project in this case, otherwise will
-   * lead to very confusing behavior.
-   */
-  skipLoadLastUsed?: boolean;
-} & WithRouterProps &
-  GlobalSelectionHeaderProps;
+type Props = WithRouterProps &
+  GlobalSelectionHeaderProps & {
+    /**
+     * Skip loading from local storage
+     * An example is Issue Details, in the case where it is accessed directly (e.g. from email).
+     * We do not want to load the user's last used env/project in this case, otherwise will
+     * lead to very confusing behavior.
+     */
+    skipLoadLastUsed?: boolean;
+  };
 
-function GlobalSelectionHeaderContainer({
-  organization,
-  projects,
-  loadingProjects,
-  location,
-  router,
-  routes,
-  defaultSelection,
-  forceProject,
-  shouldForceProject,
-  skipLoadLastUsed,
-  specificProjectSlugs,
-  showAbsolute,
-  ...props
-}: Props) {
+function GlobalSelectionHeaderContainer({skipLoadLastUsed, ...props}: Props) {
+  const {
+    location,
+    router,
+    forceProject,
+    organization,
+    defaultSelection,
+    showAbsolute,
+    shouldForceProject,
+    specificProjectSlugs,
+  } = props;
+
+  const {projects, initiallyLoaded: projectsLoaded} = useProjects();
+
   const {isSuperuser} = ConfigStore.get('user');
   const isOrgAdmin = organization.access.includes('org:admin');
   const enforceSingleProject = !organization.features.includes('global-views');
@@ -71,6 +72,13 @@ function GlobalSelectionHeaderContainer({
 
   const nonMemberProjects = isSuperuser || isOrgAdmin ? otherProjects : [];
 
+  const additionalProps = {
+    loadingProjects: !projectsLoaded,
+    projects,
+    memberProjects,
+    nonMemberProjects,
+  };
+
   // Initializes GlobalSelectionHeader
   //
   // Calls an actionCreator to load project/environment from local storage if possible,
@@ -81,7 +89,7 @@ function GlobalSelectionHeaderContainer({
   useEffect(() => {
     // We can initialize before ProjectsStore is fully loaded if we don't need to
     // enforce single project.
-    if (loadingProjects && (shouldForceProject || enforceSingleProject)) {
+    if (!projectsLoaded && (shouldForceProject || enforceSingleProject)) {
       return;
     }
 
@@ -97,7 +105,7 @@ function GlobalSelectionHeaderContainer({
       shouldEnforceSingleProject: enforceSingleProject,
       showAbsolute,
     });
-  }, [loadingProjects, shouldForceProject, enforceSingleProject]);
+  }, [projectsLoaded, shouldForceProject, enforceSingleProject]);
 
   const lastQuery = useRef(location.query);
 
@@ -140,23 +148,7 @@ function GlobalSelectionHeaderContainer({
     lastQuery.current = location.query;
   }, [location.query]);
 
-  return (
-    <GlobalSelectionHeader
-      {...props}
-      loadingProjects={loadingProjects}
-      location={location}
-      organization={organization}
-      router={router}
-      routes={routes}
-      projects={projects}
-      shouldForceProject={!!shouldForceProject}
-      defaultSelection={defaultSelection}
-      forceProject={forceProject}
-      memberProjects={memberProjects}
-      nonMemberProjects={nonMemberProjects}
-      showAbsolute={showAbsolute}
-    />
-  );
+  return <GlobalSelectionHeader {...props} {...additionalProps} />;
 }
 
-export default withOrganization(withProjects(withRouter(GlobalSelectionHeaderContainer)));
+export default withOrganization(withRouter(GlobalSelectionHeaderContainer));

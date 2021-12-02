@@ -5,6 +5,7 @@ import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/perf
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import WidgetContainer from 'sentry/views/performance/landing/widgets/components/widgetContainer';
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
+import {MetricsSwitchContext} from 'sentry/views/performance/metricsSwitch';
 import {PROJECT_PERFORMANCE_TYPE} from 'sentry/views/performance/utils';
 
 const initializeData = (query = {}) => {
@@ -17,24 +18,26 @@ const initializeData = (query = {}) => {
   return data;
 };
 
-const WrappedComponent = ({data, ...rest}) => {
+const WrappedComponent = ({data, isMetricsData = false, ...rest}) => {
   return (
-    <PerformanceDisplayProvider value={{performanceType: PROJECT_PERFORMANCE_TYPE.ANY}}>
-      <OrganizationContext.Provider value={data.organization}>
-        <WidgetContainer
-          allowedCharts={[
-            PerformanceWidgetSetting.TPM_AREA,
-            PerformanceWidgetSetting.FAILURE_RATE_AREA,
-            PerformanceWidgetSetting.USER_MISERY_AREA,
-            PerformanceWidgetSetting.DURATION_HISTOGRAM,
-          ]}
-          rowChartSettings={[]}
-          forceDefaultChartSetting
-          {...data}
-          {...rest}
-        />
-      </OrganizationContext.Provider>
-    </PerformanceDisplayProvider>
+    <MetricsSwitchContext.Provider value={{isMetricsData}}>
+      <PerformanceDisplayProvider value={{performanceType: PROJECT_PERFORMANCE_TYPE.ANY}}>
+        <OrganizationContext.Provider value={data.organization}>
+          <WidgetContainer
+            allowedCharts={[
+              PerformanceWidgetSetting.TPM_AREA,
+              PerformanceWidgetSetting.FAILURE_RATE_AREA,
+              PerformanceWidgetSetting.USER_MISERY_AREA,
+              PerformanceWidgetSetting.DURATION_HISTOGRAM,
+            ]}
+            rowChartSettings={[]}
+            forceDefaultChartSetting
+            {...data}
+            {...rest}
+          />
+        </OrganizationContext.Provider>
+      </PerformanceDisplayProvider>
+    </MetricsSwitchContext.Provider>
   );
 };
 
@@ -44,6 +47,7 @@ const issuesPredicate = (url, options) =>
 describe('Performance > Widgets > WidgetContainer', function () {
   let eventStatsMock;
   let eventsV2Mock;
+  let metricsMock;
   let eventsTrendsStats;
 
   let issuesListMock;
@@ -343,6 +347,65 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
+  it('Worst LCP widget - metrics based', async function () {
+    metricsMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics/data/`,
+      body: TestStubs.VitalByTransactionAndRating({measurement: 'lcp'}),
+      match: [(...args) => !issuesPredicate(...args)],
+    });
+    const data = initializeData();
+
+    const wrapper = mountWithTheme(
+      <WrappedComponent
+        data={data}
+        defaultChartSetting={PerformanceWidgetSetting.WORST_LCP_VITALS}
+        isMetricsData
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+      'Worst LCP Web Vitals'
+    );
+
+    expect(wrapper.find('a[data-test-id="view-all-button"]').text()).toEqual('View All');
+    expect(metricsMock).toHaveBeenCalledTimes(2);
+    expect(metricsMock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: ['prod'],
+          field: ['avg(measurements.lcp)'],
+          groupBy: ['transaction', 'measurement_rating'],
+          interval: '1h',
+          limit: 3,
+          orderBy: 'avg(measurements.lcp)',
+          project: [-42],
+          statsPeriod: '7d',
+        }),
+      })
+    );
+    expect(metricsMock).toHaveBeenNthCalledWith(
+      2,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: ['prod'],
+          field: ['avg(measurements.lcp)'],
+          groupBy: ['measurement_rating'],
+          interval: '1h',
+          project: [-42],
+          query: 'transaction:foo',
+          statsPeriod: '7d',
+        }),
+      })
+    );
+  });
+
   it('Worst FCP widget', async function () {
     const data = initializeData();
 
@@ -387,6 +450,65 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
+  it('Worst FCP widget - metrics based', async function () {
+    metricsMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics/data/`,
+      body: TestStubs.VitalByTransactionAndRating({measurement: 'fcp'}),
+      match: [(...args) => !issuesPredicate(...args)],
+    });
+    const data = initializeData();
+
+    const wrapper = mountWithTheme(
+      <WrappedComponent
+        data={data}
+        defaultChartSetting={PerformanceWidgetSetting.WORST_FCP_VITALS}
+        isMetricsData
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+      'Worst FCP Web Vitals'
+    );
+
+    expect(wrapper.find('a[data-test-id="view-all-button"]').text()).toEqual('View All');
+    expect(metricsMock).toHaveBeenCalledTimes(2);
+    expect(metricsMock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: ['prod'],
+          field: ['avg(measurements.fcp)'],
+          groupBy: ['transaction', 'measurement_rating'],
+          interval: '1h',
+          limit: 3,
+          orderBy: 'avg(measurements.fcp)',
+          project: [-42],
+          statsPeriod: '7d',
+        }),
+      })
+    );
+    expect(metricsMock).toHaveBeenNthCalledWith(
+      2,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: ['prod'],
+          field: ['avg(measurements.fcp)'],
+          groupBy: ['measurement_rating'],
+          interval: '1h',
+          project: [-42],
+          query: 'transaction:foo',
+          statsPeriod: '7d',
+        }),
+      })
+    );
+  });
+
   it('Worst FID widget', async function () {
     const data = initializeData();
 
@@ -425,6 +547,65 @@ describe('Performance > Widgets > WidgetContainer', function () {
           project: ['-42'],
           query: 'transaction.op:pageload',
           sort: '-count_if(measurements.fid,greaterOrEquals,300)',
+          statsPeriod: '7d',
+        }),
+      })
+    );
+  });
+
+  it('Worst FID widget - metrics based', async function () {
+    metricsMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics/data/`,
+      body: TestStubs.VitalByTransactionAndRating({measurement: 'fid'}),
+      match: [(...args) => !issuesPredicate(...args)],
+    });
+    const data = initializeData();
+
+    const wrapper = mountWithTheme(
+      <WrappedComponent
+        data={data}
+        defaultChartSetting={PerformanceWidgetSetting.WORST_FID_VITALS}
+        isMetricsData
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+      'Worst FID Web Vitals'
+    );
+
+    expect(wrapper.find('a[data-test-id="view-all-button"]').text()).toEqual('View All');
+    expect(metricsMock).toHaveBeenCalledTimes(2);
+    expect(metricsMock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: ['prod'],
+          field: ['avg(measurements.fid)'],
+          groupBy: ['transaction', 'measurement_rating'],
+          interval: '1h',
+          limit: 3,
+          orderBy: 'avg(measurements.fid)',
+          project: [-42],
+          statsPeriod: '7d',
+        }),
+      })
+    );
+    expect(metricsMock).toHaveBeenNthCalledWith(
+      2,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: ['prod'],
+          field: ['avg(measurements.fid)'],
+          groupBy: ['measurement_rating'],
+          interval: '1h',
+          project: [-42],
+          query: 'transaction:foo',
           statsPeriod: '7d',
         }),
       })
