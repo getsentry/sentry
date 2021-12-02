@@ -8,10 +8,11 @@ from sentry.models import SentryAppAvatar, SentryAppAvatarTypes
 from sentry.utils import email
 
 
-def is_issue_link_integration(sentry_app):
-    """Determine if the sentry app supports issue linking"""
+def has_ui_component(sentry_app):
+    """Determine if the sentry app supports issue linking or stack trace linking."""
+    ui_components = ["issue-link", "stacktrace-link"]
     elements = (sentry_app.schema or {}).get("elements", [])
-    return any(element.get("type") == "issue-link" for element in elements)
+    return any(element.get("type") in ui_components for element in elements)
 
 
 class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
@@ -34,7 +35,7 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
                 return Response({"detail": "Must upload a logo for the integration."}, status=400)
 
             if (
-                is_issue_link_integration(sentry_app)
+                has_ui_component(sentry_app)
                 and not SentryAppAvatar.objects.filter(
                     sentry_app=sentry_app,
                     color=False,
@@ -43,7 +44,7 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
             ):
                 return Response(
                     {
-                        "detail": "Must upload a black and white logo for issue linking integrations."
+                        "detail": "Must upload a black icon for issue and stack trace linking integrations."
                     },
                     status=400,
                 )
