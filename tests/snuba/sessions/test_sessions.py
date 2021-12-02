@@ -987,7 +987,7 @@ class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
             )
 
     def test_get_current_and_previous_crash_free_rates(self):
-        now = timezone.now()
+        now = timezone.now().replace(minute=15, second=23)
         last_24h_start = now - 24 * timedelta(hours=1)
         last_48h_start = now - 2 * 24 * timedelta(hours=1)
 
@@ -998,7 +998,7 @@ class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
             current_end=now,
             previous_start=last_48h_start,
             previous_end=last_24h_start,
-            rollup=86400,
+            rollup=3600,
         )
 
         assert data == {
@@ -1011,7 +1011,7 @@ class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
         }
 
     def test_get_current_and_previous_crash_free_rates_with_zero_sessions(self):
-        now = timezone.now()
+        now = timezone.now().replace(minute=15, second=23)
         last_48h_start = now - 2 * 24 * timedelta(hours=1)
         last_72h_start = now - 3 * 24 * timedelta(hours=1)
         last_96h_start = now - 4 * 24 * timedelta(hours=1)
@@ -1023,7 +1023,7 @@ class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
             current_end=last_48h_start,
             previous_start=last_96h_start,
             previous_end=last_72h_start,
-            rollup=86400,
+            rollup=3600,
         )
 
         assert data == {
