@@ -66,7 +66,7 @@ export function SingleFieldAreaWidgetMetrics(props: PerformanceWidgetProps) {
             },
             'medium'
           )}
-          field={decodeList(chatFields)}
+          field={decodeList(chartFields)}
           includePrevious
         >
           {children}
