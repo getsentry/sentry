@@ -639,7 +639,10 @@ def create_result_key(result_row, fields, issues) -> str:
     values = []
     for field in fields:
         if field == "issue.id":
-            values.append(issues.get(result_row["issue.id"], "unknown"))
+            issue_id = issues.get(result_row["issue.id"], "unknown")
+            if issue_id is None:
+                issue_id = "unknown"
+            values.append(issue_id)
         else:
             value = result_row.get(field)
             if isinstance(value, list):

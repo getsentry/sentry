@@ -1165,6 +1165,38 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert other["order"] == 5
         assert [{"count": 1}] in [attrs for _, attrs in other["data"]]
 
+    @mock.patch("sentry.models.Group.issues_mapping")
+    def test_top_events_with_unknown_issue(self, mock_issues_mapping):
+        event = self.events[0]
+        event_data = self.event_data[0]
+
+        # ensure that the issue mapping returns None for the issue
+        mock_issues_mapping.return_value = {event.group.id: None}
+
+        with self.feature(self.enabled_features):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "field": ["count()", "issue"],
+                    "topEvents": 5,
+                    # narrow the search to just one issue
+                    "query": f"issue.id:{event.group.id}",
+                },
+                format="json",
+            )
+        assert response.status_code == 200, response.content
+
+        data = response.data
+        assert len(data) == 1
+        results = data["unknown"]
+        assert results["order"] == 0
+        assert [{"count": event_data["count"]}] in [attrs for time, attrs in results["data"]]
+
     @mock.patch(
         "sentry.snuba.discover.raw_query",
         side_effect=[{"data": [{"group_id": 1}], "meta": []}, {"data": [], "meta": []}],
