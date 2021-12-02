@@ -94,6 +94,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
               {...provided}
               disableMultiAxis
               disableXAxis
+              definedAxisTicks={4}
               chartColors={props.chartColor ? [props.chartColor] : undefined}
             />
           ),
