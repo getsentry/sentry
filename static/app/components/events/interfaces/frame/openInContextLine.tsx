@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import ExternalLink from 'sentry/components/links/externalLink';
-import {SentryAppIcon} from 'sentry/components/sentryAppIcon';
+import SentryAppIcon from 'sentry/components/sentryAppIcon';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {SentryAppComponent} from 'sentry/types';
@@ -42,7 +42,7 @@ const OpenInContextLine = ({lineNo, filename, components}: Props) => {
             onContextMenu={onClickRecordInteraction}
             openInNewTab
           >
-            <SentryAppIcon slug={slug} />
+            <SentryAppIcon sentryAppComponent={component} />
             <OpenInName>{t(`${component.sentryApp.name}`)}</OpenInName>
           </OpenInLink>
         );

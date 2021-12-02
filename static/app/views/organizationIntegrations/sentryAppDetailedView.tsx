@@ -12,6 +12,7 @@ import CircleIndicator from 'sentry/components/circleIndicator';
 import Confirm from 'sentry/components/confirm';
 import {IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import space from 'sentry/styles/space';
 import {IntegrationFeature, SentryApp, SentryAppInstallation} from 'sentry/types';
 import {toPermissions} from 'sentry/utils/consolidatedScopes';
@@ -276,6 +277,17 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
   // no configurations for sentry apps
   renderConfigurations() {
     return null;
+  }
+
+  renderIntegrationIcon() {
+    return (
+      <PluginIcon
+        sentryApp={this.sentryApp}
+        isColor
+        pluginId={this.integrationSlug}
+        size={50}
+      />
+    );
   }
 }
 

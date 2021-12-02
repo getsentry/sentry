@@ -228,6 +228,10 @@ class AbstractIntegrationDetailedView<
     return getCategories(this.featureData);
   }
 
+  renderIntegrationIcon() {
+    return <PluginIcon pluginId={this.integrationSlug} size={50} />;
+  }
+
   renderRequestIntegrationButton() {
     return (
       <RequestIntegrationButton
@@ -276,7 +280,7 @@ class AbstractIntegrationDetailedView<
 
     return (
       <Flex>
-        <PluginIcon pluginId={this.integrationSlug} size={50} />
+        {this.renderIntegrationIcon()}
         <NameContainer>
           <Flex>
             <Name>{this.integrationName}</Name>

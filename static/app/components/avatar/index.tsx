@@ -5,13 +5,13 @@ import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import SentryAppAvatar from 'sentry/components/avatar/sentryAppAvatar';
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
-import {AvatarProject, OrganizationSummary, SentryApp, Team} from 'sentry/types';
+import {AvatarProject, AvatarSentryApp, OrganizationSummary, Team} from 'sentry/types';
 
 type Props = {
   team?: Team;
   organization?: OrganizationSummary;
   project?: AvatarProject;
-  sentryApp?: SentryApp;
+  sentryApp?: AvatarSentryApp;
   /**
    * True if the Avatar is full color, rather than B&W (Used for SentryAppAvatar)
    */

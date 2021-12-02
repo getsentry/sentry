@@ -157,17 +157,14 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
     return (
       <React.Fragment>
         <Heading>
-          <PluginIcon pluginId={sentryApp.slug} size={50} />
-
+          <PluginIcon sentryApp={sentryApp} isColor pluginId={sentryApp.slug} size={50} />
           <HeadingInfo>
             <Name>{sentryApp.name}</Name>
             {!!features.length && <Features>{this.featureTags(features)}</Features>}
           </HeadingInfo>
         </Heading>
-
         <Description dangerouslySetInnerHTML={{__html: marked(overview)}} />
         <FeatureList {...featureProps} provider={{...sentryApp, key: sentryApp.slug}} />
-
         <IntegrationFeatures {...featureProps}>
           {({disabled, disabledReason}) => (
             <React.Fragment>
