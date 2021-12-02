@@ -13,7 +13,6 @@ from sentry.utils.hashlib import md5_text
 from . import backend as ratelimiter
 
 if TYPE_CHECKING:
-    from sentry.api.base import Endpoint
     from sentry.models import ApiToken, Organization, User
 
 # TODO(mgaeta): It's not currently possible to type a Callable's args with kwargs.
@@ -72,19 +71,34 @@ def get_rate_limit_key(view_func: EndpointFunction, request: Request) -> str | N
 
 
 def get_rate_limit_value(
-    http_method: str, endpoint: Type[Endpoint], category: RateLimitCategory
+    http_method: str, endpoint: Type[object], category: RateLimitCategory
 ) -> RateLimit | None:
-    """
-    Read the rate limit from the view function to be used for the rate limit check
-    """
-    rate_limit_lookup_dict = getattr(endpoint, "rate_limits", None)
+    """Read the rate limit from the view function to be used for the rate limit check."""
+    found_endpoint_class = False
+    seen_classes = {endpoint}
+    classes_queue = [endpoint]
+    while len(classes_queue) > 0:
+        next_class = classes_queue.pop(0)
+        rate_limit_lookup_dict = getattr(next_class, "rate_limits", None)
+        if rate_limit_lookup_dict is not None:
+            found_endpoint_class = True
+        else:
+            rate_limit_lookup_dict = {}
+        ratelimits_by_category = rate_limit_lookup_dict.get(http_method, {})
+        ratelimit_option = ratelimits_by_category.get(category)
+        if ratelimit_option:
+            return ratelimit_option
 
-    # If the endpoint doesn't have a rate limit property, then it isn't a
-    # subclass to our Endpoint it should not be rate limited.
-    if rate_limit_lookup_dict is None:
+        # Everything will eventually hit `object`, which has no __bases__.
+        for klass in next_class.__bases__:
+            # Short-circuit for diamond inheritance.
+            if klass not in seen_classes:
+                classes_queue.append(klass)
+                seen_classes.add(klass)
+
+    if not found_endpoint_class:
         return None
-    rate_limits = rate_limit_lookup_dict.get(http_method, settings.SENTRY_RATELIMITER_DEFAULTS)
-    return rate_limits.get(category, settings.SENTRY_RATELIMITER_DEFAULTS[category])
+    return settings.SENTRY_RATELIMITER_DEFAULTS[category]
 
 
 def above_rate_limit_check(key: str, rate_limit: RateLimit) -> Mapping[str, bool | int]:
