@@ -10,6 +10,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.utils.encoding import force_text
 from django.utils.html import escape
+from PIL import Image
 
 from sentry.http import safe_urlopen
 from sentry.utils.compat import map
@@ -125,3 +126,12 @@ def get_email_avatar(
                     gravatar_url = get_gravatar_url(identifier, size=size)
                     return f'<img class="avatar" src="{gravatar_url}">'
     return get_letter_avatar(display_name, identifier, size, use_svg=False)
+
+
+def is_black_alpha_only(data):
+    """Check if an image has only black pixels"""
+    image = Image.open(data)
+    if image.mode != "RGBA":
+        return False
+
+    return not any(p[:3] != (0, 0, 0) for p in list(image.getdata()))
