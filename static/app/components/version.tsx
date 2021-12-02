@@ -117,7 +117,7 @@ const Version = ({
 
       <Clipboard value={version}>
         <TooltipClipboardIconWrapper>
-          <IconCopy size="xs" color="textColor" />
+          <IconCopy size="xs" />
         </TooltipClipboardIconWrapper>
       </Clipboard>
     </TooltipContent>
