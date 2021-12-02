@@ -110,6 +110,9 @@ def _resolve_tags(input_: Any) -> Any:
     if isinstance(input_, list):
         return [_resolve_tags(item) for item in input_]
     if isinstance(input_, Function):
+        if input_.function == "ifNull":
+            # This was wrapped automatically by QueryFilter, remove wrapper
+            return _resolve_tags(input_.parameters[0])
         return Function(
             function=input_.function,
             parameters=input_.parameters and [_resolve_tags(item) for item in input_.parameters],
@@ -145,7 +148,6 @@ def parse_query(query_string: str) -> Sequence[Condition]:
         where, _ = query_filter.resolve_conditions(query_string, use_aggregate_conditions=True)
     except InvalidSearchQuery as e:
         raise InvalidParams(f"Failed to parse query: {e}")
-    where = _resolve_tags(where)
 
     return where
 
@@ -701,7 +703,7 @@ class SnubaQueryBuilder:
             Condition(Column(TS_COL_QUERY), Op.GTE, query_definition.start),
             Condition(Column(TS_COL_QUERY), Op.LT, query_definition.end),
         ]
-        filter_ = query_definition.parsed_query
+        filter_ = _resolve_tags(query_definition.parsed_query)
         if filter_:
             where.extend(filter_)
 
@@ -941,15 +943,18 @@ class MetaFromSnuba:
             for row in self._get_metrics_for_entity(METRIC_TYPE_TO_ENTITY[metric_type])
         )
 
-        return [
-            MetricMeta(
-                name=indexer_reverse_resolve(row["metric_id"]),
-                type=metric_type,
-                operations=_AVAILABLE_OPERATIONS[METRIC_TYPE_TO_ENTITY[metric_type].value],
-                unit=None,  # snuba does not know the unit
-            )
-            for metric_type, row in metric_names
-        ]
+        return sorted(
+            (
+                MetricMeta(
+                    name=indexer_reverse_resolve(row["metric_id"]),
+                    type=metric_type,
+                    operations=_AVAILABLE_OPERATIONS[METRIC_TYPE_TO_ENTITY[metric_type].value],
+                    unit=None,  # snuba does not know the unit
+                )
+                for metric_type, row in metric_names
+            ),
+            key=itemgetter("name"),
+        )
 
     def get_single_metric(self, metric_name: str) -> MetricMetaWithTagKeys:
         """Get metadata for a single metric, without tag values"""

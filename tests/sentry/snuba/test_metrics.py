@@ -29,6 +29,7 @@ from sentry.snuba.metrics import (
     QueryDefinition,
     SnubaQueryBuilder,
     SnubaResultConverter,
+    _resolve_tags,
     get_date_range,
     get_intervals,
     parse_query,
@@ -79,7 +80,7 @@ MOCK_NOW = datetime(2021, 8, 25, 23, 59, tzinfo=pytz.utc)
                             ]
                         ),
                         Condition(
-                            Function(function="ifNull", parameters=[Column(name="tags[8]"), 14]),
+                            Column(name="tags[8]"),
                             Op.EQ,
                             rhs=4,
                         ),
@@ -96,7 +97,7 @@ def test_parse_query(mock_indexer, query_string, expected):
     for s in ("", "myapp@2.0.0", "transaction", "/bar/:orgId/"):
         local_indexer.record(s)
     mock_indexer.resolve = local_indexer.resolve
-    parsed = parse_query(query_string)
+    parsed = _resolve_tags(parse_query(query_string))
     assert parsed == expected
 
 
