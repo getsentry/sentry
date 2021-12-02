@@ -6,7 +6,7 @@ import GlobalSelectionActions from 'sentry/actions/globalSelectionActions';
 import OrganizationActions from 'sentry/actions/organizationActions';
 import ProjectActions from 'sentry/actions/projectActions';
 import TeamActions from 'sentry/actions/teamActions';
-import {Client} from 'sentry/api';
+import {Client, ResponseMeta} from 'sentry/api';
 import {Organization, Project, Team} from 'sentry/types';
 import {getPreloadedDataPromise} from 'sentry/utils/getPreloadedData';
 
@@ -15,13 +15,16 @@ async function fetchOrg(
   slug: string,
   isInitialFetch?: boolean
 ): Promise<Organization> {
-  const org = await getPreloadedDataPromise(
+  const [org] = await getPreloadedDataPromise(
     'organization',
     slug,
     () =>
       // This data should get preloaded in static/sentry/index.ejs
       // If this url changes make sure to update the preload
-      api.requestPromise(`/organizations/${slug}/`, {query: {detailed: 0}}),
+      api.requestPromise(`/organizations/${slug}/`, {
+        includeAllArgs: true,
+        query: {detailed: 0},
+      }),
     isInitialFetch
   );
 
@@ -38,7 +41,12 @@ async function fetchOrg(
 async function fetchProjectsAndTeams(
   slug: string,
   isInitialFetch?: boolean
-): Promise<[Project[], Team[]]> {
+): Promise<
+  [
+    [Project[], string | undefined, XMLHttpRequest | ResponseMeta | undefined],
+    [Team[], string | undefined, XMLHttpRequest | ResponseMeta | undefined]
+  ]
+> {
   // Create a new client so the request is not cancelled
   const uncancelableApi = new Client();
 
@@ -49,6 +57,7 @@ async function fetchProjectsAndTeams(
       // This data should get preloaded in static/sentry/index.ejs
       // If this url changes make sure to update the preload
       uncancelableApi.requestPromise(`/organizations/${slug}/projects/`, {
+        includeAllArgs: true,
         query: {
           all_projects: 1,
           collapse: 'latestDeploys',
@@ -62,7 +71,10 @@ async function fetchProjectsAndTeams(
     slug,
     // This data should get preloaded in static/sentry/index.ejs
     // If this url changes make sure to update the preload
-    () => uncancelableApi.requestPromise(`/organizations/${slug}/teams/`),
+    () =>
+      uncancelableApi.requestPromise(`/organizations/${slug}/teams/`, {
+        includeAllArgs: true,
+      }),
     isInitialFetch
   );
 
@@ -79,7 +91,10 @@ async function fetchProjectsAndTeams(
     }
   }
 
-  return [[], []];
+  return [
+    [[], undefined, undefined],
+    [[], undefined, undefined],
+  ];
 }
 
 /**
@@ -132,7 +147,8 @@ export async function fetchOrganizationDetails(
   };
 
   const loadTeamsAndProjects = async () => {
-    const [projects, teams] = await fetchProjectsAndTeams(slug, isInitialFetch);
+    const [[projects], [teams]] = await fetchProjectsAndTeams(slug, isInitialFetch);
+
     ProjectActions.loadProjects(projects);
     TeamActions.loadTeams(teams);
   };
