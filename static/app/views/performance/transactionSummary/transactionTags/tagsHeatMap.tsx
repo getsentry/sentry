@@ -1,4 +1,4 @@
-import React, {useRef, useState} from 'react';
+import {Fragment, useRef, useState} from 'react';
 import ReactDOM from 'react-dom';
 import {Popper} from 'react-popper';
 import styled from '@emotion/styled';
@@ -313,7 +313,7 @@ const TagsHeatMap = (
             };
 
             return (
-              <React.Fragment>
+              <Fragment>
                 {ReactDOM.createPortal(
                   <div>
                     {chartElement ? (
@@ -359,7 +359,7 @@ const TagsHeatMap = (
                                           },
                                         });
                                     return (
-                                      <React.Fragment>
+                                      <Fragment>
                                         {isTransactionsLoading ? (
                                           <LoadingContainer>
                                             <LoadingIndicator size={40} hideMessage />
@@ -412,7 +412,7 @@ const TagsHeatMap = (
                                             ) : null}
                                           </div>
                                         )}
-                                      </React.Fragment>
+                                      </Fragment>
                                     );
                                   }}
                                 </TagTransactionsQuery>
@@ -438,7 +438,7 @@ const TagsHeatMap = (
                   ),
                   fixed: <Placeholder height="290px" testId="skeleton-ui" />,
                 })}
-              </React.Fragment>
+              </Fragment>
             );
           }}
         </DropdownMenu>

@@ -326,7 +326,7 @@ const TooltipContent = styled(motion.div)<Pick<Props, 'popperStyle'>>`
   will-change: transform, opacity;
   position: relative;
   background: ${p => p.theme.backgroundElevated};
-  padding: ${space(1)};
+  padding: ${space(1)} ${space(1.5)};
   border-radius: ${p => p.theme.borderRadius};
   border: solid 1px ${p => p.theme.border};
   box-shadow: ${p => p.theme.dropShadowHeavy};
@@ -335,7 +335,6 @@ const TooltipContent = styled(motion.div)<Pick<Props, 'popperStyle'>>`
 
   color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: bold;
   line-height: 1.2;
 
   margin: 6px;
@@ -348,6 +347,17 @@ const TooltipArrow = styled('span')`
   width: 6px;
   height: 6px;
   border: solid 6px transparent;
+  pointer-events: none;
+
+  &::before {
+    content: '';
+    display: block;
+    position: absolute;
+    width: 0;
+    height: 0;
+    border: solid 7px transparent;
+    z-index: -1;
+  }
 
   &[data-placement*='bottom'] {
     top: 0;
@@ -391,16 +401,6 @@ const TooltipArrow = styled('span')`
       left: -6px;
       border-left-color: ${p => p.theme.border};
     }
-  }
-
-  &::before {
-    content: '';
-    display: block;
-    position: absolute;
-    width: 0;
-    height: 0;
-    border: solid 7px transparent;
-    z-index: -1;
   }
 `;
 

@@ -1,4 +1,4 @@
-import {cloneElement, Fragment, MouseEvent, useState} from 'react';
+import {cloneElement, Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import List from 'sentry/components/list';
@@ -86,12 +86,12 @@ function StackTraceContent({
     return minGroupingLevel <= groupingCurrentLevel;
   }
 
-  function handleToggleAddresses(mouseEvent: MouseEvent<SVGElement>) {
+  function handleToggleAddresses(mouseEvent: React.MouseEvent<SVGElement>) {
     mouseEvent.stopPropagation(); // to prevent collapsing if collapsible
     setShowingAbsoluteAddresses(!showingAbsoluteAddresses);
   }
 
-  function handleToggleFunctionName(mouseEvent: MouseEvent<SVGElement>) {
+  function handleToggleFunctionName(mouseEvent: React.MouseEvent<SVGElement>) {
     mouseEvent.stopPropagation(); // to prevent collapsing if collapsible
     setShowCompleteFunctionName(!showCompleteFunctionName);
   }
