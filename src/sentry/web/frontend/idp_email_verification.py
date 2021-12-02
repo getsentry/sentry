@@ -2,7 +2,7 @@ from django.http.response import HttpResponse
 from rest_framework.request import Request
 
 from sentry.auth.idpmigration import SSO_VERIFICATION_KEY, get_verification_value_from_key
-from sentry.models import Organization, OrganizationMember
+from sentry.models import Organization
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
 
@@ -28,25 +28,12 @@ class AccountConfirmationView(BaseView):
         return render_to_response("sentry/idp_account_not_verified.html", request=request)
 
     @staticmethod
-    def _recover_org_member(verification_value):
-        member_id = verification_value.get("member_id")
-        if member_id is None:
-            return None  # the user was not an org member when the record was written
-        try:
-            return OrganizationMember.objects.get(id=member_id)
-        except OrganizationMember.DoesNotExist:
-            return None  # the user has left the org since the record was written
-
-    @staticmethod
     def _recover_org_slug(verification_value):
-        om = AccountConfirmationView._recover_org_member(verification_value)
-        if om is not None:
-            return om.organization.slug
-
         organization_id = verification_value.get("organization_id")
+        if organization_id is None:
+            return None
         try:
             org = Organization.objects.get(id=organization_id)
         except Organization.DoesNotExist:
             return None
-        else:
-            return org.slug
+        return org.slug
