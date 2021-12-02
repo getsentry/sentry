@@ -556,7 +556,7 @@ describe('Dashboards > WidgetQueries', function () {
     );
   });
 
-  it('calls events-stats with 1d interval when interval buckets would exceed 4000', async function () {
+  it('calls events-stats with 1d interval when interval buckets would exceed 66', async function () {
     const eventsStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: [],
@@ -595,12 +595,12 @@ describe('Dashboards > WidgetQueries', function () {
     );
   });
 
-  it('calls events-stats with 4h interval when interval buckets would exceed 4000', async function () {
+  it('calls events-stats with 4h interval when interval buckets would exceed 66', async function () {
     const eventsStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: [],
     });
-    const barWidget = {
+    const areaWidget = {
       ...singleQueryWidget,
       displayType: 'area',
       interval: '5m',
@@ -608,7 +608,7 @@ describe('Dashboards > WidgetQueries', function () {
     const wrapper = mountWithTheme(
       <WidgetQueries
         api={api}
-        widget={barWidget}
+        widget={areaWidget}
         organization={initialData.organization}
         selection={{
           ...selection,

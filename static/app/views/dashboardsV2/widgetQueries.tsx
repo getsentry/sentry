@@ -30,8 +30,8 @@ import {TOP_N} from 'sentry/utils/discover/types';
 import {DisplayType, Widget, WidgetQuery} from './types';
 import {eventViewFromWidget} from './utils';
 
-// Don't fetch more than 4000 bins as we're plotting on a small area.
-const MAX_BIN_COUNT = 4000;
+// Don't fetch more than 66 bins as we're plotting on a small area.
+const MAX_BIN_COUNT = 66;
 
 function getWidgetInterval(
   widget: Widget,
