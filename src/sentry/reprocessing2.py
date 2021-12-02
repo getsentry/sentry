@@ -292,33 +292,34 @@ def buffered_delete_old_primary_hash(
 
     client = _get_sync_redis_client()
 
-    # This is a meta key pointing to a set of keys which each point to lists of events that need to
-    # be tombstoned.
-    # Tombstonable events are bucketed by their old primary hashes, and are integrated into the
-    # keys which are stored as values for this meta-entry.
-    event_keys_set_key = f"re2:tombstone-fingerprinted:{{{project_id}:{group_id}}}"
+    # This is a meta key that contains old primary hashes. These hashes are then combined with
+    # other values to construct a key that points to a list of tombstonable events.
+    primary_hash_set_key = f"re2:tombstone-primary-hashes:{{{project_id}:{group_id}}}"
     # todo: is this an empty list or none if the key doesn't exist?
-    event_keys = client.smembers(event_keys_set_key)
+    old_primary_hashes = client.smembers(primary_hash_set_key)
+
+    def build_event_key(primary_hash):
+        return f"re2:tombstones:{{{project_id}:{group_id}:{primary_hash}}}"
 
     if old_primary_hash is not None and old_primary_hash != current_primary_hash:
-        event_key = f"re2:tombstones:{{{project_id}:{group_id}:{old_primary_hash}}}"
+        event_key = build_event_key(old_primary_hash)
         client.lpush(event_key, f"{to_timestamp(datetime)};{event_id}")
         client.expire(event_key, settings.SENTRY_REPROCESSING_SYNC_TTL)
 
-        if event_key not in event_keys:
-            client.sadd(event_keys_set_key, event_key)
-            client.expire(event_keys_set_key, settings.SENTRY_REPROCESSING_SYNC_TTL)
+        if old_primary_hash not in old_primary_hashes:
+            client.sadd(primary_hash_set_key, old_primary_hash)
+            client.expire(primary_hash_set_key, settings.SENTRY_REPROCESSING_SYNC_TTL)
 
     event_count = 0
-    for fkey in event_keys:
+    for fkey in old_primary_hashes:
         event_count += client.llen(fkey)
 
     if force_flush_batch or event_count > settings.SENTRY_REPROCESSING_REMAINING_EVENTS_BUF_SIZE:
-        for fkey in event_keys:
-            new_key = f"{fkey}:{uuid.uuid4().hex}"
+        for primary_hash in old_primary_hashes:
+            new_key = f"{build_event_key(primary_hash)}:{uuid.uuid4().hex}"
 
             try:
-                # Rename `fingerprint_set_key` to a new temp key that is passed to celery task. We
+                # Rename `primary_hash_set_key` to a new temp key that is passed to celery task. We
                 # use `renamenx` instead of `rename` only to detect UUID collisions.
                 assert client.renamenx(fkey, new_key), "UUID collision for new_key?"
             except redis.exceptions.ResponseError:
@@ -333,7 +334,7 @@ def buffered_delete_old_primary_hash(
             # primary hashes.
             _delete_old_primary_hash(
                 project_id=project_id,
-                old_primary_hash=old_primary_hash,
+                old_primary_hash=primary_hash,
                 event_ids_redis_key=new_key,
             )
 
