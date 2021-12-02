@@ -147,7 +147,29 @@ class U2fInterface extends React.Component<Props, State> {
       });
   }
 
-  webAuthnSignIn(publicKeyCredentialRequestOptions) {
+  webAuthnSignIn(authenticateRequests) {
+    const credentials = [] as any;
+    // challenge and appId are the same for each device in authenticateRequests
+    const challenge = authenticateRequests[0].challenge;
+    const appId = authenticateRequests[0].appId;
+
+    authenticateRequests.forEach(device => {
+      credentials.push({
+        id: base64urlToBuffer(device.keyHandle),
+        type: 'public-key',
+        transports: ['usb', 'ble', 'nfc'],
+      });
+    });
+
+    const publicKeyCredentialRequestOptions = {
+      challenge: base64urlToBuffer(challenge),
+      allowCredentials: credentials,
+      userVerification: 'discouraged',
+      extensions: {
+        appid: appId,
+      },
+    } as PublicKeyCredentialRequestOptions;
+
     const promise = navigator.credentials.get({
       publicKey: publicKeyCredentialRequestOptions,
     });
@@ -165,11 +187,7 @@ class U2fInterface extends React.Component<Props, State> {
     let promise: Promise<u2f.SignResponse | u2f.RegisterResponse>;
     if (this.props.flowMode === 'sign') {
       if (this.props.isWebauthnSigninFFEnabled) {
-        const challengeArray = base64urlToBuffer(
-          this.props.challengeData.webAuthnAuthenticationData
-        );
-        const challenge = cbor.decodeAllSync(challengeArray);
-        this.webAuthnSignIn(challenge[0]);
+        this.webAuthnSignIn(this.props.challengeData.authenticateRequests);
       } else {
         promise = u2f.sign(this.props.challengeData.authenticateRequests);
         this.submitU2fResponse(promise);
@@ -181,6 +199,7 @@ class U2fInterface extends React.Component<Props, State> {
           this.props.challengeData.webAuthnRegisterData
         );
         const challenge = cbor.decodeAllSync(challengeArray);
+        // challenge contains an array that contains one PublicKeyCredentialRequestOptions object, only need first index to register
         this.webAuthnRegister(challenge[0].publicKey);
       } else {
         const {registerRequests, registeredKeys} = this.props.challengeData;
