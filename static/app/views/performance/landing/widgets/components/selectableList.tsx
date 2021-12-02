@@ -1,4 +1,3 @@
-import React, {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -13,7 +12,7 @@ import {RadioLineItem} from 'sentry/views/settings/components/forms/controls/rad
 type Props = {
   selectedIndex: number;
   setSelectedIndex: (index: number) => void;
-  items: (() => ReactNode)[];
+  items: (() => React.ReactNode)[];
   radioColor?: string;
 };
 
@@ -124,6 +123,7 @@ const ListItemContainer = styled('div')`
 
   border-top: 1px solid ${p => p.theme.border};
   padding: ${space(1)} ${space(2)};
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const ItemRadioContainer = styled('div')`

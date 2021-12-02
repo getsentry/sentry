@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -211,7 +211,7 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
 
   if (error) {
     return (
-      <React.Fragment>
+      <Fragment>
         <ErrorMessage
           onRetry={fetchGroupingLevels}
           groupId={groupId}
@@ -221,7 +221,7 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
           hasProjectWriteAccess={organization.access.includes('project:write')}
         />
         <LinkFooter />
-      </React.Fragment>
+      </Fragment>
     );
   }
 

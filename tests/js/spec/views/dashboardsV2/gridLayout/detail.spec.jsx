@@ -186,7 +186,7 @@ describe('Dashboards > Detail', function () {
   });
 
   describe('custom dashboards', function () {
-    let wrapper, initialData, widgets, mockVisit, mockPut;
+    let wrapper, initialData, widgets, mockPut;
 
     beforeEach(function () {
       initialData = initializeOrg({organization});
@@ -222,7 +222,8 @@ describe('Dashboards > Detail', function () {
           }
         ),
       ];
-      mockVisit = MockApiClient.addMockResponse({
+      // TODO(nar): Assign to mockVisit when restoring 'can remove widgets' test
+      MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/visit/',
         method: 'POST',
         body: [],
@@ -284,58 +285,7 @@ describe('Dashboards > Detail', function () {
       MockApiClient.clearMockResponses();
     });
 
-    it('can remove widgets', async function () {
-      const updateMock = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/dashboards/1/',
-        method: 'PUT',
-      });
-      wrapper = mountWithTheme(
-        <ViewEditDashboard
-          organization={initialData.organization}
-          params={{orgId: 'org-slug', dashboardId: '1'}}
-          router={initialData.router}
-          location={initialData.router.location}
-        />,
-        initialData.routerContext
-      );
-      await tick();
-      wrapper.update();
-
-      expect(mockVisit).toHaveBeenCalledTimes(1);
-
-      // Enter edit mode.
-      wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
-
-      // Remove the second and third widgets
-      wrapper
-        .find('WidgetCard')
-        .at(1)
-        .find('IconClick[data-test-id="widget-delete"]')
-        .simulate('click');
-
-      wrapper
-        .find('WidgetCard')
-        .at(1)
-        .find('IconClick[data-test-id="widget-delete"]')
-        .simulate('click');
-
-      // Save changes
-      wrapper.find('Controls Button[data-test-id="dashboard-commit"]').simulate('click');
-
-      expect(updateMock).toHaveBeenCalled();
-      expect(updateMock).toHaveBeenCalledWith(
-        '/organizations/org-slug/dashboards/1/',
-        expect.objectContaining({
-          data: expect.objectContaining({
-            title: 'Custom Errors',
-            widgets: [widgets[0]],
-          }),
-        })
-      );
-
-      // Visit should not be called again on dashboard update
-      expect(mockVisit).toHaveBeenCalledTimes(1);
-    });
+    // TODO(nar): Add deletion test
 
     it('can enter edit mode for widgets', async function () {
       wrapper = mountWithTheme(

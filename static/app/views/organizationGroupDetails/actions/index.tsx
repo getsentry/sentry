@@ -174,7 +174,13 @@ class Actions extends React.Component<Props, State> {
   }
 
   onToggleShare = () => {
-    this.onShare(!this.props.group.isPublic);
+    const newIsPublic = !this.props.group.isPublic;
+    if (newIsPublic) {
+      trackAdvancedAnalyticsEvent('issue.shared_publicly', {
+        organization: this.props.organization,
+      });
+    }
+    this.onShare(newIsPublic);
   };
 
   onToggleBookmark = () => {
@@ -257,6 +263,7 @@ class Actions extends React.Component<Props, State> {
         <Tooltip
           disabled={!!group.inbox || disabled}
           title={t('Issue has been reviewed')}
+          delay={300}
         >
           <ReviewAction onUpdate={this.onUpdate} disabled={!group.inbox || disabled} />
         </Tooltip>
@@ -300,6 +307,7 @@ class Actions extends React.Component<Props, State> {
           disabled={disabled}
           isActive={group.isBookmarked}
           title={bookmarkTitle}
+          tooltipProps={{delay: 300}}
           label={bookmarkTitle}
           onClick={this.handleClick(disabled, this.onToggleBookmark)}
           icon={<IconStar isSolid size="xs" />}

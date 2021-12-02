@@ -37,6 +37,9 @@ export type IssueEventParameters = {
     id: number;
   };
   'issue.search_sidebar_clicked': {};
+  'issue.create_dashboard_widget_from_histogram': {
+    stats_period: string;
+  };
   'inbox_tab.issue_clicked': {
     group_id: string;
   };
@@ -46,6 +49,7 @@ export type IssueEventParameters = {
     assigned_type: string;
     assigned_suggestion_reason?: string;
   };
+  'issue.shared_publicly': {};
 };
 
 export type IssueEventKey = keyof IssueEventParameters;
@@ -62,7 +66,10 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'organization_saved_search.selected':
     'Organization Saved Search: Selected saved search',
   'issue.search_sidebar_clicked': 'Issue Search Sidebar Clicked',
+  'issue.create_dashboard_widget_from_histogram':
+    'Issue Create Dashboard Widget from Histogram',
   'inbox_tab.issue_clicked': 'Clicked Issue from Inbox Tab',
   'issues_stream.issue_clicked': 'Clicked Issue from Issues Stream',
   'issues_stream.issue_assigned': 'Assigned Issue from Issues Stream',
+  'issue.shared_publicly': 'Issue Shared Publicly',
 };
