@@ -26,7 +26,7 @@ function ClipboardTooltip({title, onSuccess, ...props}: Props) {
           <TextOverflow>{title}</TextOverflow>
           <Clipboard value={title} onSuccess={onSuccess}>
             <TooltipClipboardIconWrapper>
-              <IconCopy size="xs" color="white" aria-label={t('Copy to clipboard')} />
+              <IconCopy size="xs" aria-label={t('Copy to clipboard')} />
             </TooltipClipboardIconWrapper>
           </Clipboard>
         </TooltipClipboardWrapper>
