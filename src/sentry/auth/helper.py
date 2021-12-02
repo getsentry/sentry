@@ -239,22 +239,25 @@ class AuthIdentityHandler:
         self,
         identity: Identity,
         member: Optional[OrganizationMember] = None,
+        user: Optional[User] = None,
     ) -> AuthIdentity:
         """
         Given an already authenticated user, attach or re-attach an identity.
         """
+        user = user or self.user
+
         # prioritize identifying by the SSO provider's user ID
         auth_identity = self._get_auth_identity(ident=identity["id"])
         if auth_identity is None:
             # otherwise look for an already attached identity
             # this can happen if the SSO provider's internal ID changes
-            auth_identity = self._get_auth_identity(user=self.user)
+            auth_identity = self._get_auth_identity(user=user)
 
         if auth_identity is None:
             auth_is_new = True
             auth_identity = AuthIdentity.objects.create(
                 auth_provider=self.auth_provider,
-                user=self.user,
+                user=user,
                 ident=identity["id"],
                 data=identity.get("data", {}),
             )
@@ -265,14 +268,14 @@ class AuthIdentityHandler:
             # and in that kind of situation its very reasonable that we could
             # test email addresses + is_managed to determine if we can auto
             # merge
-            if auth_identity.user != self.user:
+            if auth_identity.user != user:
                 wipe = self._wipe_existing_identity(auth_identity)
             else:
                 wipe = None
 
             now = timezone.now()
             auth_identity.update(
-                user=self.user,
+                user=user,
                 ident=identity["id"],
                 data=self.provider.update_identity(
                     new_data=identity.get("data", {}), current_data=auth_identity.data
@@ -286,7 +289,7 @@ class AuthIdentityHandler:
                 extra={
                     "wipe_result": repr(wipe),
                     "organization_id": self.organization.id,
-                    "user_id": self.user.id,
+                    "user_id": user.id,
                     "auth_identity_user_id": auth_identity.user.id,
                     "auth_provider_id": self.auth_provider.id,
                     "idp_identity_id": identity["id"],
@@ -295,13 +298,13 @@ class AuthIdentityHandler:
             )
 
         if member is None:
-            member = self._get_organization_member(auth_identity)
+            member = self._get_organization_member(auth_identity, user)
         self._set_linked_flag(member)
 
         if auth_is_new:
             AuditLogEntry.objects.create(
                 organization=self.organization,
-                actor=self.user,
+                actor=user,
                 ip_address=self.request.META["REMOTE_ADDR"],
                 target_object=auth_identity.id,
                 event=AuditLogEntryEvent.SSO_IDENTITY_LINK,
@@ -337,13 +340,16 @@ class AuthIdentityHandler:
 
         return deletion_result
 
-    def _get_organization_member(self, auth_identity: AuthIdentity) -> OrganizationMember:
+    def _get_organization_member(
+        self, auth_identity: AuthIdentity, user: Optional[User] = None
+    ) -> OrganizationMember:
         """
         Check to see if the user has a member associated, if not, create a new membership
         based on the auth_identity email.
         """
+        user = user or self.user
         try:
-            return OrganizationMember.objects.get(user=self.user, organization=self.organization)
+            return OrganizationMember.objects.get(user=user, organization=self.organization)
         except OrganizationMember.DoesNotExist:
             return self._handle_new_membership(auth_identity)
 
@@ -466,6 +472,8 @@ class AuthIdentityHandler:
                 else:
                     # assume they've confirmed they want to attach the identity
                     op = "confirm"
+            elif is_account_verified:
+                op = "confirm"
             else:
                 # force them to create a new account
                 acting_user = None
@@ -476,6 +484,8 @@ class AuthIdentityHandler:
         auth_identity = None
         if op == "confirm" and self.user.is_authenticated:
             auth_identity = self.handle_attach_identity(identity)
+        elif op == "confirm" and is_account_verified:
+            auth_identity = self.handle_attach_identity(identity, user=acting_user)
         elif op == "newuser":
             auth_identity = self.handle_new_user(identity)
         elif op == "login" and not self.user.is_authenticated:
