@@ -849,7 +849,9 @@ class ProjectUpdateTest(APITestCase):
             )
             assert response.status_code == 400
             assert json.loads(response.content) == {
-                "symbolSources": ["Sources contain unknown hidden secret"]
+                "symbolSources": [
+                    "Obfuscated symbol source secret does not have a corresponding saved value in project options"
+                ]
             }
 
     def symbol_sources(self):
