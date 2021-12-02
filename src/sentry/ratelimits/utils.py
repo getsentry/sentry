@@ -75,6 +75,7 @@ def get_rate_limit_value(
 ) -> RateLimit | None:
     """Read the rate limit from the view function to be used for the rate limit check."""
     found_endpoint_class = False
+    seen_classes = {endpoint}
     classes_queue = [endpoint]
     while len(classes_queue) > 0:
         next_class = classes_queue.pop(0)
@@ -90,7 +91,10 @@ def get_rate_limit_value(
 
         # Everything will eventually hit `object`, which has no __bases__.
         for klass in next_class.__bases__:
-            classes_queue.append(klass)
+            # Short-circuit for diamond inheritance.
+            if klass not in seen_classes:
+                classes_queue.append(klass)
+                seen_classes.add(klass)
 
     if not found_endpoint_class:
         return None
