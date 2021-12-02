@@ -6,6 +6,7 @@ import {RequestOptions} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import {IconFlag, IconOpen, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -16,6 +17,11 @@ import withOrganization from 'sentry/utils/withOrganization';
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
 import AddIntegrationButton from './addIntegrationButton';
 import InstalledIntegration from './installedIntegration';
+
+const FirstPartyIntegrationAlert = HookOrDefault({
+  hookName: 'component:first-party-integration-alert',
+  defaultComponent: () => null,
+});
 
 type State = {
   configurations: Integration[];
@@ -99,7 +105,14 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
   }
 
   get installationStatus() {
-    return this.isEnabled ? 'Installed' : 'Not Installed';
+    const {configurations} = this.state;
+    if (
+      configurations.filter(i => i.organizationIntegrationStatus === 'disabled').length >
+      0
+    ) {
+      return 'Disabled';
+    }
+    return configurations.length > 0 ? 'Installed' : 'Not Installed';
   }
 
   get integrationName() {
@@ -153,6 +166,15 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
   handleExternalInstall = () => {
     this.trackIntegrationAnalytics('integrations.installation_start');
   };
+
+  renderAlert() {
+    return (
+      <FirstPartyIntegrationAlert
+        integrations={this.state.configurations ?? []}
+        source="detail"
+      />
+    );
+  }
 
   renderTopButton(disabledFromFeatures: boolean, userHasAccess: boolean) {
     const {organization} = this.props;
@@ -216,6 +238,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     }
 
     const alertText = getAlertText(configurations);
+
     return (
       <Fragment>
         {alertText && (

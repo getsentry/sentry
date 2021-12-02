@@ -4,7 +4,14 @@ import {ChildrenRenderFn} from 'sentry/components/acl/feature';
 import DateRange from 'sentry/components/organizations/timeRangeSelector/dateRange';
 import SelectorItems from 'sentry/components/organizations/timeRangeSelector/dateRange/selectorItems';
 import SidebarItem from 'sentry/components/sidebar/sidebarItem';
-import {IntegrationProvider, Member, Organization, Project, User} from 'sentry/types';
+import {
+  Integration,
+  IntegrationProvider,
+  Member,
+  Organization,
+  Project,
+  User,
+} from 'sentry/types';
 import {ExperimentKey} from 'sentry/types/experiments';
 import {NavigationItem, NavigationSection} from 'sentry/views/settings/types';
 
@@ -65,6 +72,11 @@ type CodeOwnersHeaderProps = {
   addCodeOwner: () => void;
   handleRequest: () => void;
 };
+type FirstPartyIntegrationAlertProps = {
+  integrations: Integration[];
+  source: string;
+  wrapWithContainer?: boolean;
+};
 /**
  * Component wrapping hooks
  */
@@ -79,6 +91,7 @@ export type ComponentHooks = {
   'component:disabled-app-store-connect-item': () => React.ComponentType<DisabledAppStoreConnectItem>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
   'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
+  'component:first-party-integration-alert': () => React.ComponentType<FirstPartyIntegrationAlertProps>;
 };
 
 /**

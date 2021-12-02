@@ -53,6 +53,19 @@ export default class InstalledIntegration extends React.Component<Props> {
     this.props.trackIntegrationAnalytics('integrations.uninstall_completed');
   }
 
+  get integrationStatus() {
+    const {integration} = this.props;
+    // multiple status fields
+    const statusList = [integration.status, integration.organizationIntegrationStatus];
+    const notActive = statusList.filter(s => s !== 'active');
+    // if all statuses active, we're active
+    if (notActive.length === 0) {
+      return 'active';
+    }
+    // otherwise use the status of the first inactive status
+    return notActive[0];
+  }
+
   get removeConfirmProps() {
     const {integration} = this.props;
     const {body, actionText} = this.getRemovalBodyAndText(integration.provider.aspects);
@@ -95,7 +108,7 @@ export default class InstalledIntegration extends React.Component<Props> {
     const {className, integration, organization, provider, requiresUpgrade} = this.props;
 
     const removeConfirmProps =
-      integration.status === 'active' && integration.provider.canDisable
+      this.integrationStatus === 'active' && integration.provider.canDisable
         ? this.disableConfirmProps
         : this.removeConfirmProps;
 
@@ -122,7 +135,7 @@ export default class InstalledIntegration extends React.Component<Props> {
                     }}
                     buttonText={t('Update Now')}
                     data-test-id="integration-upgrade-button"
-                    disabled={!(hasAccess && integration.status === 'active')}
+                    disabled={!(hasAccess && this.integrationStatus === 'active')}
                     icon={<IconWarning />}
                     onAddIntegration={() => {}}
                     organization={organization}
@@ -134,7 +147,7 @@ export default class InstalledIntegration extends React.Component<Props> {
                 <StyledButton
                   borderless
                   icon={<IconSettings />}
-                  disabled={!(hasAccess && integration.status === 'active')}
+                  disabled={!(hasAccess && this.integrationStatus === 'active')}
                   to={`/settings/${organization.slug}/integrations/${provider.key}/${integration.id}/`}
                   data-test-id="integration-configure-button"
                 >
@@ -167,7 +180,11 @@ export default class InstalledIntegration extends React.Component<Props> {
               </Tooltip>
             </div>
 
-            <StyledIntegrationStatus status={integration.status} />
+            <StyledIntegrationStatus
+              status={this.integrationStatus}
+              // Let the hook handle the alert for disabled org integrations
+              hideTooltip={integration.organizationIntegrationStatus === 'disabled'}
+            />
           </IntegrationFlex>
         )}
       </Access>
@@ -189,23 +206,33 @@ const IntegrationItemBox = styled('div')`
 `;
 
 const IntegrationStatus = (
-  props: React.HTMLAttributes<HTMLDivElement> & {status: ObjectStatus}
+  props: React.HTMLAttributes<HTMLDivElement> & {
+    status: ObjectStatus;
+    hideTooltip?: boolean;
+  }
 ) => {
   const theme = useTheme();
-  const {status, ...p} = props;
+  const {status, hideTooltip, ...p} = props;
   const color = status === 'active' ? theme.success : theme.gray300;
-  const titleText =
-    status === 'active'
-      ? t('This Integration can be disabled by clicking the Uninstall button')
-      : t('This Integration has been disconnected from the external provider');
-  return (
-    <Tooltip title={titleText}>
-      <div {...p}>
-        <CircleIndicator size={6} color={color} />
-        <IntegrationStatusText>{`${
-          status === 'active' ? t('enabled') : t('disabled')
-        }`}</IntegrationStatusText>
-      </div>
+  const inner = (
+    <div {...p}>
+      <CircleIndicator size={6} color={color} />
+      <IntegrationStatusText>{`${
+        status === 'active' ? t('enabled') : t('disabled')
+      }`}</IntegrationStatusText>
+    </div>
+  );
+  return hideTooltip ? (
+    inner
+  ) : (
+    <Tooltip
+      title={
+        status === 'active'
+          ? t('This Integration can be disabled by clicking the Uninstall button')
+          : t('This Integration has been disconnected from the external provider')
+      }
+    >
+      {inner}
     </Tooltip>
   );
 };

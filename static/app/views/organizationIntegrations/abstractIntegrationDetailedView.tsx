@@ -228,6 +228,10 @@ class AbstractIntegrationDetailedView<
     return getCategories(this.featureData);
   }
 
+  renderAlert(): React.ReactNode {
+    return null;
+  }
+
   renderRequestIntegrationButton() {
     return (
       <RequestIntegrationButton
@@ -359,6 +363,7 @@ class AbstractIntegrationDetailedView<
   renderBody() {
     return (
       <React.Fragment>
+        {this.renderAlert()}
         {this.renderTopSection()}
         {this.renderTabs()}
         {this.state.tab === 'overview'

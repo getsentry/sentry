@@ -1,3 +1,4 @@
+import React from 'react';
 import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 
@@ -20,6 +21,7 @@ import {
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
 
+import AlertContainer from './integrationAlertContainer';
 import IntegrationStatus from './integrationStatus';
 import PluginDeprecationAlert from './pluginDeprecationAlert';
 
@@ -28,10 +30,10 @@ type Props = {
   type: 'plugin' | 'firstParty' | 'sentryApp' | 'documentIntegration';
   slug: string;
   displayName: string;
-  status?: IntegrationInstallationStatus;
   publishStatus: 'unpublished' | 'published' | 'internal';
   configurations: number;
   categories: string[];
+  status?: IntegrationInstallationStatus;
   /**
    * If provided, render an alert message with this text.
    */
@@ -41,6 +43,7 @@ type Props = {
    * in the alert.
    */
   resolveText?: string;
+  customAlert?: React.ReactNode;
 
   plugin?: PluginWithProjectList;
 };
@@ -65,6 +68,7 @@ const IntegrationRow = (props: Props) => {
     alertText,
     resolveText,
     plugin,
+    customAlert,
   } = props;
 
   const baseUrl =
@@ -133,6 +137,7 @@ const IntegrationRow = (props: Props) => {
           </Alert>
         </AlertContainer>
       )}
+      {customAlert}
       {plugin?.deprecationDate && (
         <PluginDeprecationAlertWrapper>
           <PluginDeprecationAlert organization={organization} plugin={plugin} />
@@ -235,10 +240,6 @@ const CategoryTag = styled(
 const ResolveNowButton = styled(Button)`
   color: ${p => p.theme.subText};
   float: right;
-`;
-
-const AlertContainer = styled('div')`
-  padding: 0px ${space(3)} 0px 68px;
 `;
 
 export default IntegrationRow;
