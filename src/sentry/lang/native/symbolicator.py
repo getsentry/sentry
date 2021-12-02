@@ -367,8 +367,15 @@ def parse_backfill_sources(sources_json, original_sources):
             if secret in source and source[secret] == {"hidden-secret": True}:
                 secret_value = safe.get_path(orig_by_id, source["id"], secret)
                 if secret_value is None:
-                    sentry_sdk.capture_message("Hidden secret not present in project options")
-                    raise InvalidSourcesError("Sources contain unknown hidden secret")
+                    with sentry_sdk.push_scope():
+                        sentry_sdk.set_tag("missing_secret", secret)
+                        sentry_sdk.set_tag("source_id", source["id"])
+                        sentry_sdk.capture_message(
+                            "Obfuscated symbol source secret does not have a corresponding saved value in project options"
+                        )
+                    raise InvalidSourcesError(
+                        "Obfuscated symbol source secret does not have a corresponding saved value in project options"
+                    )
                 else:
                     source[secret] = secret_value
 
