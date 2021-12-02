@@ -15,6 +15,7 @@ import Avatar from 'sentry/components/avatar';
 import AvatarChooser, {Model} from 'sentry/components/avatarChooser';
 import Button from 'sentry/components/button';
 import DateTime from 'sentry/components/dateTime';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
 import Tooltip from 'sentry/components/tooltip';
 import {SENTRY_APP_PERMISSIONS} from 'sentry/constants';
@@ -43,12 +44,23 @@ const AVATAR_STYLES = {
   color: {
     size: 50,
     title: t('Default Logo'),
-    description: t('The default icon for integrations'),
+    previewText: t('The default icon for integrations'),
+    description: t('Image must be between 255px by 255px and 1024px by 1024px'),
   },
   simple: {
     size: 20,
     title: t('Default Icon'),
-    description: t('This is an optional icon used for Issue Linking'),
+    previewText: tct(
+      'This is an optional silhouette icon used for [uiDocs:UI Components]',
+      {
+        uiDocs: (
+          <ExternalLink href="https://docs.sentry.io/product/integrations/integration-platform/ui-components/" />
+        ),
+      }
+    ),
+    description: t(
+      'Image must be between 255px by 255px and 1024px by 1024px, and completely black/transparent.'
+    ),
   },
 };
 
@@ -335,7 +347,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
           isDefault
         />
         <AvatarPreviewTitle>{AVATAR_STYLES[avatarStyle].title}</AvatarPreviewTitle>
-        <AvatarPreviewText>{AVATAR_STYLES[avatarStyle].description}</AvatarPreviewText>
+        <AvatarPreviewText>{AVATAR_STYLES[avatarStyle].previewText}</AvatarPreviewText>
       </AvatarPreview>
     );
   };
@@ -345,6 +357,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
     if (!app) {
       return null;
     }
+    const avatarStyle = isColor ? 'color' : 'simple';
     return (
       <Feature features={['organizations:sentry-app-logo-upload']}>
         <AvatarChooser
@@ -355,6 +368,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
           model={this.getAvatarModel(isColor)}
           onSave={this.addAvatar}
           title={isColor ? t('Logo') : t('Small Icon')}
+          description={AVATAR_STYLES[avatarStyle].description}
           savedDataUrl={undefined}
           defaultChoice={{
             allowDefault: true,

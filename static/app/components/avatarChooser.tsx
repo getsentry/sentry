@@ -12,6 +12,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import Well from 'sentry/components/well';
 import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {AvatarUser, Organization, SentryApp, Team} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import RadioGroup from 'sentry/views/settings/components/forms/controls/radioGroup';
@@ -46,10 +47,8 @@ type Props = {
   disabled?: boolean;
   savedDataUrl?: string;
   isUser?: boolean;
-  /**
-   * Title in the PanelHeader component (default: 'Avatar')
-   */
   title?: string;
+  description?: React.ReactNode;
 } & DefaultProps;
 
 type State = {
@@ -160,6 +159,7 @@ class AvatarChooser extends React.Component<Props, State> {
       isUser,
       disabled,
       title,
+      description,
       defaultChoice,
     } = this.props;
     const {hasError, model} = this.state;
@@ -220,6 +220,7 @@ class AvatarChooser extends React.Component<Props, State> {
               )}
               {isDefault && preview}
             </AvatarGroup>
+            {description && <AvatarDescription>{description}</AvatarDescription>}
             <AvatarUploadSection>
               {allowGravatar && avatarType === 'gravatar' && (
                 <Well>
@@ -253,6 +254,13 @@ class AvatarChooser extends React.Component<Props, State> {
     );
   }
 }
+
+const AvatarDescription = styled('p')`
+  margin: ${space(1)} 0 ${space(2)};
+  color: ${p => p.theme.gray300};
+  font-size: 14px;
+  width: 50%;
+`;
 
 const AvatarGroup = styled('div')<{inline: boolean}>`
   display: flex;
