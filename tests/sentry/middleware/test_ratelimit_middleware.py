@@ -1,18 +1,14 @@
 from unittest.mock import patch
 
-from django.conf import settings
 from django.test import RequestFactory
 from exam import fixture
 from freezegun import freeze_time
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
-from sentry.api.endpoints.organization_group_index import OrganizationGroupIndexEndpoint
-from sentry.auth.access import from_request
 from sentry.middleware.ratelimit import RatelimitMiddleware
-from sentry.ratelimits import above_rate_limit_check, get_rate_limit_key, get_rate_limit_value
 from sentry.testutils import TestCase
-from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.types.ratelimit import RateLimit
 
 
 class RatelimitMiddlewareTest(TestCase):
@@ -58,94 +54,3 @@ class RatelimitMiddlewareTest(TestCase):
             frozen_time.tick(1)
             self.middleware.process_view(request, self._test_endpoint, [], {})
             assert not request.will_be_rate_limited
-
-    def test_above_rate_limit_check(self):
-
-        return_val = above_rate_limit_check("foo", RateLimit(10, 100))
-        assert return_val == dict(is_limited=False, current=1, limit=10, window=100)
-
-    def test_get_rate_limit_key(self):
-        # Import an endpoint
-
-        view = OrganizationGroupIndexEndpoint
-
-        # Test for default IP
-        request = self.factory.get("/")
-        assert (
-            get_rate_limit_key(view, request) == "ip:OrganizationGroupIndexEndpoint:GET:127.0.0.1"
-        )
-        # Test when IP address is missing
-        request.META["REMOTE_ADDR"] = None
-        assert get_rate_limit_key(view, request) is None
-
-        # Test when IP addess is IPv6
-        request.META["REMOTE_ADDR"] = "684D:1111:222:3333:4444:5555:6:77"
-        assert (
-            get_rate_limit_key(view, request)
-            == "ip:OrganizationGroupIndexEndpoint:GET:684D:1111:222:3333:4444:5555:6:77"
-        )
-
-        # Test for users
-        request.session = {}
-        request.user = self.user
-        assert (
-            get_rate_limit_key(view, request)
-            == f"user:OrganizationGroupIndexEndpoint:GET:{self.user.id}"
-        )
-
-        # Test for organization tokens (ie: sentry apps)
-        request.access = from_request(request, self.organization)
-        request.user = self.create_user(is_sentry_app=True)
-        assert (
-            get_rate_limit_key(view, request)
-            == f"org:OrganizationGroupIndexEndpoint:GET:{self.organization.id}"
-        )
-
-
-class TestGetRateLimitValue(TestCase):
-    def test_default_rate_limit_values(self):
-        """Ensure that the default rate limits are called for endpoints without overrides"""
-
-        class TestEndpoint(Endpoint):
-            pass
-
-        assert (
-            get_rate_limit_value("GET", TestEndpoint, "ip")
-            == settings.SENTRY_RATELIMITER_DEFAULTS["ip"]
-        )
-        assert (
-            get_rate_limit_value("POST", TestEndpoint, "org")
-            == settings.SENTRY_RATELIMITER_DEFAULTS["org"]
-        )
-        assert (
-            get_rate_limit_value("DELETE", TestEndpoint, "user")
-            == settings.SENTRY_RATELIMITER_DEFAULTS["user"]
-        )
-
-    def test_override_rate_limit(self):
-        """Override one or more of the default rate limits"""
-
-        class TestEndpoint(Endpoint):
-            rate_limits = {
-                "GET": {RateLimitCategory.IP: RateLimit(100, 5)},
-                "POST": {RateLimitCategory.USER: RateLimit(20, 4)},
-            }
-
-        assert get_rate_limit_value("GET", TestEndpoint, "ip") == RateLimit(100, 5)
-        assert (
-            get_rate_limit_value("GET", TestEndpoint, "user")
-            == settings.SENTRY_RATELIMITER_DEFAULTS["user"]
-        )
-        assert (
-            get_rate_limit_value("POST", TestEndpoint, "ip")
-            == settings.SENTRY_RATELIMITER_DEFAULTS["ip"]
-        )
-        assert get_rate_limit_value("POST", TestEndpoint, "user") == RateLimit(20, 4)
-
-    def test_non_endpoint(self):
-        """views that don't inherit Endpoint shouldn not return a value"""
-
-        class TestEndpoint:
-            pass
-
-        assert get_rate_limit_value("GET", TestEndpoint, "ip") is None
