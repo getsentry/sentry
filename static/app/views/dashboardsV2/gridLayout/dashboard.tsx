@@ -147,7 +147,7 @@ class Dashboard extends Component<Props> {
   handleAddComplete = (widget: Widget) => {
     this.props.onUpdate([
       ...this.props.dashboard.widgets,
-      {...widget, tempId: generateGridItemId(widget)},
+      {...widget, tempId: Date.now().toString()},
     ]);
   };
 
@@ -225,7 +225,7 @@ class Dashboard extends Component<Props> {
   renderWidget(widget: Widget, index: number) {
     const {isEditing} = this.props;
 
-    const key = generateGridItemId(widget);
+    const key = constructGridItemKey(widget);
     const dragId = key;
 
     return (
@@ -288,13 +288,8 @@ const GridItem = styled('div')`
   }
 `;
 
-export function generateGridItemId(widget: Widget) {
-  const id = widget.id ?? widget.tempId;
-  if (id) {
-    return `${WIDGET_PREFIX}-${id}`;
-  }
-
-  return Date.now().toString();
+export function constructGridItemKey(widget: Widget) {
+  return `${WIDGET_PREFIX}-${widget.id ?? widget.tempId}`;
 }
 
 /**
