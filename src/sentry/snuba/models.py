@@ -24,6 +24,7 @@ class QueryDatasets(Enum):
     EVENTS = "events"
     TRANSACTIONS = "transactions"
     SESSIONS = "sessions"
+    METRICS = "metrics"
 
 
 class SnubaQuery(Model):

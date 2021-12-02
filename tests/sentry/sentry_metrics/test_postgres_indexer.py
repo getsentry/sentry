@@ -9,7 +9,12 @@ class PostgresIndexerTest(TestCase):
 
     def test_indexer(self):
         results = PGStringIndexer().bulk_record(strings=["hello", "hey", "hi"])
-        assert list(results.values()) == [1, 2, 3]
+        obj_ids = list(
+            MetricsKeyIndexer.objects.filter(string__in=["hello", "hey", "hi"]).values_list(
+                "id", flat=True
+            )
+        )
+        assert list(results.values()) == obj_ids
 
         # test resolve and reverse_resolve
         obj = MetricsKeyIndexer.objects.get(string="hello")
