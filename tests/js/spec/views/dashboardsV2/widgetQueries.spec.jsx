@@ -556,7 +556,7 @@ describe('Dashboards > WidgetQueries', function () {
     );
   });
 
-  it('calls events-stats with 1d interval when interval buckets would exceed 66', async function () {
+  it('calls events-stats with desired 1d interval when interval buckets would exceed 66 and calculated interval is higher fidelity', async function () {
     const eventsStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: [],
