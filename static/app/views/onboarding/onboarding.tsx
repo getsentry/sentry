@@ -251,7 +251,7 @@ const ProgressBar = styled('div')`
     display: block;
     content: '';
     height: 4px;
-    background: ${p => p.theme.inactive};
+    background: ${p => p.theme.border};
     left: 2px;
     right: 2px;
     top: 50%;
@@ -264,7 +264,7 @@ const ProgressStep = styled('div')<{active: boolean}>`
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  border: 4px solid ${p => (p.active ? p.theme.active : p.theme.inactive)};
+  border: 4px solid ${p => (p.active ? p.theme.active : p.theme.border)};
   background: ${p => p.theme.background};
 `;
 
