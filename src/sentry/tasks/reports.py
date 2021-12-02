@@ -44,6 +44,7 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.iterators import chunked
 from sentry.utils.math import mean
 from sentry.utils.outcomes import Outcome
+from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.snuba import raw_snql_query
 
 date_format = partial(dateformat.format, format_string="F jS, Y")
@@ -576,7 +577,7 @@ def prepare_reports(dry_run=False, *args, **kwargs):
     logger.info("reports.begin_prepare_report")
 
     organizations = _get_organization_queryset()
-    for organization in organizations:
+    for organization in RangeQuerySetWrapper(organizations, step=10000):
         if features.has("organizations:weekly-report-debugging", organization):
             logger.info(
                 "reports.org.begin_prepare_report",
