@@ -45,7 +45,7 @@ const AVATAR_STYLES = {
     size: 50,
     title: t('Default Logo'),
     previewText: t('The default icon for integrations'),
-    description: t('Image must be between 255px by 255px and 1024px by 1024px'),
+    description: t('Image must be between 255px by 255px and 1024px by 1024px.'),
   },
   simple: {
     size: 20,
