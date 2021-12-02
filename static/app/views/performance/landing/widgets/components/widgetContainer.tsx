@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
 import MenuItem from 'sentry/components/menuItem';
-import {t} from 'sentry/locale';
+import {Panel, PanelBody} from 'sentry/components/panels';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
@@ -118,7 +118,12 @@ const _WidgetContainer = (props: Props) => {
     isMetricsData &&
     ![GenericPerformanceWidgetDataType.vitals].includes(widgetProps.dataType)
   ) {
-    return <h3>{t('todo')}</h3>;
+    // TODO(metrics): Remove this once all widgets are converted
+    return (
+      <Panel style={{minHeight: '167px', marginBottom: 0}}>
+        <PanelBody withPadding>TODO: {widgetProps.title}</PanelBody>
+      </Panel>
+    );
   }
 
   const passedProps = pick(props, [

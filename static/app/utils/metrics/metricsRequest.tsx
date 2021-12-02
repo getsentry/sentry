@@ -101,6 +101,7 @@ class MetricsRequest extends React.Component<Props, State> {
       start: start ?? undefined,
       end: end ?? undefined,
       interval: interval ? interval : getInterval({start, end, period: statsPeriod}),
+      datasource: localStorage.getItem('metrics.datasource') ?? undefined,
     };
   }
 
