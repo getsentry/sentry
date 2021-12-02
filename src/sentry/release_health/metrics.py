@@ -163,7 +163,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             prj: {"currentCrashFreeRate": None, "previousCrashFreeRate": None}
             for prj in project_ids
         }
-
         previous = self._get_crash_free_rate_data(
             org_id,
             project_ids,
