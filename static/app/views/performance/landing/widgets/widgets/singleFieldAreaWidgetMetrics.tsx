@@ -47,7 +47,7 @@ export function SingleFieldAreaWidgetMetrics(props: PerformanceWidgetProps) {
         project,
         environment,
         children,
-        fields: chatFields,
+        fields: chartFields,
       }) => (
         <MetricsRequest
           api={api}
