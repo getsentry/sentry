@@ -584,7 +584,7 @@ def prepare_reports(dry_run=False, *args, **kwargs):
                     "organization_id": organization.id,
                 },
             )
-        if organization.id == 1:
+
             prepare_organization_report.delay(timestamp, duration, organization.id, dry_run=dry_run)
 
 
