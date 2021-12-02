@@ -2,7 +2,7 @@ import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 
 import {Component} from 'react';
-import RGL, {Layout, WidthProvider} from 'react-grid-layout';
+import {Layout, Responsive, WidthProvider} from 'react-grid-layout';
 import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -243,16 +243,22 @@ class Dashboard extends Component<Props> {
       onLayoutChange,
     } = this.props;
 
+    const breakpoint = 'desktop';
+
     return (
       <GridLayout
-        cols={NUM_COLS}
+        breakpoints={{mobile: 0, desktop: 700}}
+        cols={{mobile: 2, desktop: 6}}
         rowHeight={ROW_HEIGHT}
         margin={WIDGET_MARGINS}
         draggableHandle={`.${DRAG_HANDLE_CLASS}`}
-        layout={layout}
+        layouts={{desktop: layout, mobile: []}}
         onLayoutChange={newLayout => {
-          const isNotAddButton = ({i}) => i !== ADD_WIDGET_BUTTON_DRAG_ID;
-          onLayoutChange(newLayout.filter(isNotAddButton));
+          // TODO(nar): How do we get breakpoint on the fly?
+          if (breakpoint === 'desktop') {
+            const isNotAddButton = ({i}) => i !== ADD_WIDGET_BUTTON_DRAG_ID;
+            onLayoutChange(newLayout.filter(isNotAddButton));
+          }
         }}
         isDraggable={isEditing}
         isResizable={isEditing}
@@ -282,7 +288,7 @@ const GridItem = styled('div')`
 `;
 
 // HACK: to stack chart tooltips above other grid items
-const GridLayout = styled(WidthProvider(RGL))`
+const GridLayout = styled(WidthProvider(Responsive))`
   .react-grid-item:hover {
     z-index: 10;
   }
