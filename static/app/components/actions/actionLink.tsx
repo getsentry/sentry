@@ -15,6 +15,7 @@ const StyledActionButton = styled(ActionButton)`
   display: flex;
   align-items: center;
   ${p => p.disabled && 'cursor: not-allowed;'}
+  pointer-events: ${p => (p.disabled ? 'none' : 'auto')};
 `;
 
 type ConfirmableActionProps = React.ComponentProps<typeof ConfirmableAction>;
