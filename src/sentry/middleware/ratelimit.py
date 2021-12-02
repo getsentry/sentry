@@ -8,6 +8,7 @@ from sentry.ratelimits import (
     get_rate_limit_key,
     get_rate_limit_value,
 )
+from sentry.types.ratelimit import RateLimitCategory
 
 
 class RatelimitMiddleware(MiddlewareMixin):
@@ -27,7 +28,7 @@ class RatelimitMiddleware(MiddlewareMixin):
         rate_limit = get_rate_limit_value(
             http_method=request.method,
             endpoint=view_func.view_class,
-            category=key.split(":", 1)[0],
+            category=RateLimitCategory(key.split(":", 1)[0]),
         )
         if rate_limit is None:
             return

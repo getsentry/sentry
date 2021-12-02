@@ -1,19 +1,19 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Callable, Mapping
+from typing import TYPE_CHECKING, Any, Callable, Mapping, Type
 
 from django.conf import settings
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
-from sentry.api.base import Endpoint
-from sentry.types.ratelimit import RateLimit
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.hashlib import md5_text
 
 from . import backend as ratelimiter
 
 if TYPE_CHECKING:
+    from sentry.api.base import Endpoint
     from sentry.models import ApiToken, Organization, User
 
 # TODO(mgaeta): It's not currently possible to type a Callable's args with kwargs.
@@ -71,7 +71,9 @@ def get_rate_limit_key(view_func: EndpointFunction, request: Request) -> str | N
     return f"{category}:{view}:{http_method}:{id}"
 
 
-def get_rate_limit_value(http_method: str, endpoint: Endpoint, category: str) -> RateLimit | None:
+def get_rate_limit_value(
+    http_method: str, endpoint: Type[Endpoint], category: RateLimitCategory
+) -> RateLimit | None:
     """
     Read the rate limit from the view function to be used for the rate limit check
     """
