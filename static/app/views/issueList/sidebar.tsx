@@ -176,4 +176,5 @@ const StreamTagFilter = styled('div')`
 
 const StyledHr = styled('hr')`
   margin: ${space(2)} 0 0;
+  border-top: solid 1px ${p => p.theme.innerBorder};
 `;
