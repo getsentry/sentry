@@ -36,12 +36,11 @@ jobs:
 
       - name: Setup sentry env (python ${{ matrix.python-version }})
         uses: ./.github/actions/setup-sentry
-        if: steps.changes.outputs.backend == 'true'
+        if: steps.changes.outputs.api_docs == 'true'
         id: setup
         with:
           python-version: ${{ matrix.python-version }}
           pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
-          snuba: true
 
       - name: Checkout getsentry/sentry-api-schema
         uses: actions/checkout@v2
@@ -56,8 +55,7 @@ jobs:
 
       - name: Build OpenAPI Derefed JSON
         run: |
-          yarn install --frozen-lockfile
-          yarn run build-derefed-docs
+          make build-api-docs
 
       - name: Copy artifact into getsentry/sentry-api-schema
         run: |
