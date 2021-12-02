@@ -59,7 +59,7 @@ const AVATAR_STYLES = {
       }
     ),
     description: t(
-      'Image must be between 255px by 255px and 1024px by 1024px, and completely black/transparent.'
+      'Image must be between 255px by 255px and 1024px by 1024px, and use only black and transparency.'
     ),
   },
 };
