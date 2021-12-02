@@ -46,6 +46,7 @@ const ADD_BUTTON_POSITION = {
   isResizable: false,
 };
 const DEFAULT_WIDGET_WIDTH = 2;
+const MOBILE_BREAKPOINT = 700;
 
 type Props = {
   api: Client;
@@ -66,7 +67,15 @@ type Props = {
   onLayoutChange: (layout: Layout[]) => void;
 };
 
-class Dashboard extends Component<Props> {
+type State = {
+  breakpoint: string;
+};
+
+class Dashboard extends Component<Props, State> {
+  state = {
+    breakpoint: 'desktop',
+  };
+
   async componentDidMount() {
     const {isEditing} = this.props;
     // Load organization tags when in edit mode.
@@ -234,33 +243,41 @@ class Dashboard extends Component<Props> {
     );
   }
 
+  onLayoutChange = newLayout => {
+    const {onLayoutChange} = this.props;
+    // Workaround because onBreakpointChange occurs after onLayoutChange
+    const rect = document.querySelector('.react-grid-layout')?.getBoundingClientRect();
+    if (rect && rect.width <= MOBILE_BREAKPOINT) {
+      // Do not save the layout if we're in single column view
+      this.setState({breakpoint: 'mobile'});
+      return;
+    }
+
+    this.setState({breakpoint: 'desktop'});
+
+    const isNotAddButton = ({i}) => i !== ADD_WIDGET_BUTTON_DRAG_ID;
+    onLayoutChange(newLayout.filter(isNotAddButton));
+  };
+
   render() {
     const {
       isEditing,
       dashboard: {widgets},
       organization,
       layout,
-      onLayoutChange,
     } = this.props;
 
-    // TODO(nar): How do we get breakpoint on the fly?
-    const breakpoint = 'desktop';
-    const canModifyLayout = breakpoint === 'desktop' && isEditing;
+    const canModifyLayout = this.state.breakpoint === 'desktop' && isEditing;
 
     return (
       <GridLayout
-        breakpoints={{mobile: 0, desktop: 700}}
+        breakpoints={{mobile: 0, desktop: MOBILE_BREAKPOINT}}
         cols={{mobile: 2, desktop: 6}}
         rowHeight={ROW_HEIGHT}
         margin={WIDGET_MARGINS}
         draggableHandle={`.${DRAG_HANDLE_CLASS}`}
-        layouts={{desktop: layout, mobile: []}}
-        onLayoutChange={newLayout => {
-          if (breakpoint === 'desktop') {
-            const isNotAddButton = ({i}) => i !== ADD_WIDGET_BUTTON_DRAG_ID;
-            onLayoutChange(newLayout.filter(isNotAddButton));
-          }
-        }}
+        layouts={{desktop: layout, mobile: layout}}
+        onLayoutChange={this.onLayoutChange}
         isDraggable={canModifyLayout}
         isResizable={canModifyLayout}
         isBounded
