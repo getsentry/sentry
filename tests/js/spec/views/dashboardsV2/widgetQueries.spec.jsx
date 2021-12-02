@@ -561,16 +561,15 @@ describe('Dashboards > WidgetQueries', function () {
       url: '/organizations/org-slug/events-stats/',
       body: [],
     });
-    const barWidget = {
+    const areaWidget = {
       ...singleQueryWidget,
-      displayType: 'bar',
-      // Should be ignored for bars.
-      interval: '5m',
+      displayType: 'area',
+      interval: '1d',
     };
     const wrapper = mountWithTheme(
       <WidgetQueries
         api={api}
-        widget={barWidget}
+        widget={areaWidget}
         organization={initialData.organization}
         selection={{
           ...selection,
