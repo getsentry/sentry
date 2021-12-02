@@ -287,6 +287,7 @@ export type Integration = {
   accountType: string;
   scopes?: string[];
   status: ObjectStatus;
+  organizationIntegrationStatus: ObjectStatus;
   provider: OrganizationIntegrationProvider;
   dynamicDisplayInformation?: {
     configure_integration?: {
