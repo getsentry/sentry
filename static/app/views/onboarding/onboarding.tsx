@@ -301,9 +301,18 @@ const Back = styled(({className, animate, ...props}: BackProps) => (
     animate={animate}
     transition={testableTransition()}
     variants={{
-      initial: {opacity: 0},
-      visible: {opacity: 1, transition: testableTransition({delay: 1})},
-      hidden: {opacity: 0},
+      initial: {opacity: 0, visibility: 'hidden'},
+      visible: {
+        opacity: 1,
+        visibility: 'visible',
+        transition: testableTransition({delay: 1}),
+      },
+      hidden: {
+        opacity: 0,
+        transitionEnd: {
+          visibility: 'hidden',
+        },
+      },
     }}
   >
     <Button {...props} icon={<IconChevron direction="left" size="sm" />} priority="link">
