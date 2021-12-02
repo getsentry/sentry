@@ -1,4 +1,3 @@
-import {ReactText} from 'react';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
 import omit from 'lodash/omit';
@@ -63,7 +62,7 @@ export const LANDING_DISPLAYS = [
 ];
 
 export function excludeTransaction(
-  transaction: string | ReactText,
+  transaction: string | React.ReactText,
   props: {eventView: EventView; location: Location}
 ) {
   const {eventView, location} = props;

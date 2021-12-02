@@ -1,4 +1,4 @@
-import React, {Component} from 'react';
+import {Component, Fragment} from 'react';
 import DocumentTitle from 'react-document-title';
 
 import NoProjectMessage from 'sentry/components/noProjectMessage';
@@ -27,12 +27,12 @@ class IssueListContainer extends Component<Props, State> {
     const {organization, children} = this.props;
     return (
       <DocumentTitle title={this.getTitle()}>
-        <React.Fragment>
+        <Fragment>
           {this.state.showSampleEventBanner && <SampleEventAlert />}
           <GlobalSelectionHeader>
             <NoProjectMessage organization={organization}>{children}</NoProjectMessage>
           </GlobalSelectionHeader>
-        </React.Fragment>
+        </Fragment>
       </DocumentTitle>
     );
   }
