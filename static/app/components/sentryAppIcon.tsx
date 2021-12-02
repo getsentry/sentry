@@ -51,8 +51,10 @@ const SentryAppIcon = ({sentryAppComponent: {sentryApp}}: Props) => {
   return (
     <Feature features={['organizations:sentry-app-logo-upload']}>
       {({hasFeature}) => {
+        const selectedAvatar = sentryApp?.avatars?.find(({color}) => color === false);
+        const isDefault = !(selectedAvatar && selectedAvatar?.avatarType === 'upload');
         return hasFeature ? (
-          <AvatarWrapper isDark={ConfigStore.get('theme') === 'dark'}>
+          <AvatarWrapper shouldInvert={ConfigStore.get('theme') === 'dark' && !isDefault}>
             <Avatar size={20} sentryApp={sentryApp} isColor={false} />
           </AvatarWrapper>
         ) : (
@@ -65,9 +67,9 @@ const SentryAppIcon = ({sentryAppComponent: {sentryApp}}: Props) => {
 
 export default SentryAppIcon;
 
-const AvatarWrapper = styled('span')<{isDark: boolean}>`
-  ${({isDark}) =>
-    isDark &&
+const AvatarWrapper = styled('span')<{shouldInvert: boolean}>`
+  ${({shouldInvert}) =>
+    shouldInvert &&
     css`
       filter: invert(1);
     `}

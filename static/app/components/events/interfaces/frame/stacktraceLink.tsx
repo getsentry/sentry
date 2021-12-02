@@ -10,6 +10,7 @@ import {Body, Header, Hovercard} from 'sentry/components/hovercard';
 import {IconInfo} from 'sentry/icons';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
 import {
   Frame,
@@ -328,7 +329,9 @@ class StacktraceLink extends AsyncComponent<Props, State> {
       <OpenInContainer columnQuantity={2}>
         <div>{t('Open this line in')}</div>
         <OpenInLink onClick={() => this.onOpenLink()} href={url} openInNewTab>
-          {getIntegrationIcon(config.provider.key)}
+          <StyledIconWrapper isDark={ConfigStore.get('theme') === 'dark'}>
+            {getIntegrationIcon(config.provider.key)}
+          </StyledIconWrapper>
           <OpenInName>{config.provider.name}</OpenInName>
         </OpenInLink>
       </OpenInContainer>
@@ -359,6 +362,11 @@ export {StacktraceLink};
 
 export const CodeMappingButtonContainer = styled(OpenInContainer)`
   justify-content: space-between;
+`;
+
+const StyledIconWrapper = styled('span')<{isDark: boolean}>`
+  color: ${({isDark}) => (isDark ? 'white' : 'black')};
+  line-height: 0;
 `;
 
 const StyledIconClose = styled(IconClose)`
