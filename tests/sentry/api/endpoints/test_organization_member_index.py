@@ -588,7 +588,7 @@ class OrganizationMemberListPostTest(APITestCase):
 
         assert not mock_send_invite_email.mock_calls
 
-    @patch("sentry.utils.ratelimits.for_organization_member_invite")
+    @patch("sentry.ratelimits.for_organization_member_invite")
     def test_rate_limited(self, mock_rate_limit):
         mock_rate_limit.return_value = True
 
