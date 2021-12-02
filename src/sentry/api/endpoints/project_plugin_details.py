@@ -40,7 +40,7 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
             context["config_error"] = str(e)
             context["auth_url"] = reverse("socialauth_associate", args=[plugin.slug])
 
-        if context["isDeprecated"] and context["isHidden"]:
+        if context["isDeprecated"]:
             raise Http404
         return Response(context)
 

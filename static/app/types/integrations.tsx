@@ -394,6 +394,7 @@ export type PluginNoProject = {
   features: string[];
   featureDescriptions: IntegrationFeature[];
   isHidden: boolean;
+  isDeprecated: boolean;
   version?: string;
   author?: {name: string; url: string};
   description?: string;
