@@ -47,7 +47,7 @@ export function SingleFieldAreaWidgetMetrics(props: PerformanceWidgetProps) {
         project,
         environment,
         children,
-        fields: chatFields,
+        fields: chartFields,
       }) => (
         <MetricsRequest
           api={api}
@@ -66,7 +66,7 @@ export function SingleFieldAreaWidgetMetrics(props: PerformanceWidgetProps) {
             },
             'medium'
           )}
-          field={decodeList(chatFields)}
+          field={decodeList(chartFields)}
           includePrevious
         >
           {children}

@@ -152,7 +152,7 @@ class MetricsRequest extends React.Component<Props, State> {
     const promises = [api.requestPromise(this.path, {query: this.baseQueryParams()})];
 
     if (shouldFetchPreviousPeriod({start, end, period: statsPeriod, includePrevious})) {
-      promises.push(api.requestPromise(this.path, {query: this.baseQueryParams(true)}));
+      promises.push(api.requestPromise(this.path, {query: this.baseQueryParams({previousPeriod: true})}));
     }
 
     try {
