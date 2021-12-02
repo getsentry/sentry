@@ -7,6 +7,7 @@ import {Client} from 'sentry/api';
 import {getInterval} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import {DateString, MetricsApiResponse, Organization} from 'sentry/types';
+import localStorage from 'sentry/utils/localStorage';
 
 const propNamesToIgnore = ['api', 'children'];
 const omitIgnoredProps = (props: Props) =>
