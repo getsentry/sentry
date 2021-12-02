@@ -652,6 +652,87 @@ describe('Performance > Widgets > WidgetContainer', function () {
     // TODO(k-fish): Add histogram mock
   });
 
+  it('P75 LCP Single Area Widget - metrics based', async function () {
+    metricsMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics/data/`,
+      body: TestStubs.SingleFieldAreaP75LCP(),
+      match: [(...args) => !issuesPredicate(...args)],
+    });
+
+    const metricsMockPreviousData = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics/data/`,
+      body: TestStubs.SingleFieldAreaP75LCP({previousData: true}),
+      match: [
+        (...args) => {
+          return (
+            !issuesPredicate(...args) &&
+            args[1].query.statsPeriodStart &&
+            args[1].query.statsPeriodEnd
+          );
+        },
+      ],
+    });
+
+    const data = initializeData();
+
+    const wrapper = mountWithTheme(
+      <WrappedComponent
+        data={data}
+        defaultChartSetting={PerformanceWidgetSetting.P75_LCP_AREA}
+        isMetricsData
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+      'p75 LCP'
+    );
+
+    expect(wrapper.find('HighlightNumber').text()).toEqual('534ms');
+    expect(metricsMock).toHaveBeenCalledTimes(1);
+    expect(metricsMockPreviousData).toHaveBeenCalledTimes(1);
+
+    expect(metricsMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          project: [-42],
+          environment: ['prod'],
+          field: ['p75(measurements.lcp)'],
+          query: 'transaction:foo',
+          groupBy: undefined,
+          orderBy: undefined,
+          limit: undefined,
+          interval: '1h',
+          statsPeriod: '7d',
+          start: undefined,
+          end: undefined,
+        }),
+      })
+    );
+    expect(metricsMockPreviousData).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          project: [-42],
+          environment: ['prod'],
+          field: ['p75(measurements.lcp)'],
+          query: 'transaction:foo',
+          groupBy: undefined,
+          orderBy: undefined,
+          limit: undefined,
+          interval: '1h',
+          statsPeriodStart: '14d',
+          statsPeriodEnd: '7d',
+        }),
+      })
+    );
+  });
+
   it('Most errors widget', async function () {
     const data = initializeData();
 
