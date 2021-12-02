@@ -14,7 +14,17 @@ from django.db.models import Func
 from django.utils.encoding import force_text
 from pytz import UTC
 
-from sentry import buffer, eventstore, eventstream, eventtypes, features, options, quotas, tsdb
+from sentry import (
+    buffer,
+    eventstore,
+    eventstream,
+    eventtypes,
+    features,
+    options,
+    quotas,
+    reprocessing2,
+    tsdb,
+)
 from sentry.attachments import MissingAttachmentChunks, attachment_cache
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
@@ -67,11 +77,7 @@ from sentry.models import (
 )
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.plugins.base import plugins
-from sentry.reprocessing2 import (
-    buffered_delete_old_primary_hash,
-    is_reprocessed_event,
-    save_unprocessed_event,
-)
+from sentry.reprocessing2 import is_reprocessed_event, save_unprocessed_event
 from sentry.signals import first_event_received, first_transaction_received, issue_unresolved
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.types.activity import ActivityType
@@ -515,7 +521,16 @@ class EventManager:
                 )
 
         if is_reprocessed:
-            safe_execute(buffered_delete_old_primary_hash, job["event"], _with_transaction=False)
+            safe_execute(
+                reprocessing2.buffered_delete_old_primary_hash,
+                project_id=job["event"].project_id,
+                group_id=job["event"].group_id,
+                event_id=job["event"].event_id,
+                datetime=job["event"].datetime,
+                old_primary_hash=reprocessing2.get_original_primary_hash(job["event"]),
+                current_primary_hash=job["event"].get_primary_hash(),
+                _with_transaction=False,
+            )
 
         _eventstream_insert_many(jobs)
 

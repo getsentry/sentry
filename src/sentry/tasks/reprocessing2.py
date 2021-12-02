@@ -76,11 +76,8 @@ def reprocess_group(
         # Tombstone unwanted events that should be dropped after new group
         # is generated after reprocessing
         buffered_delete_old_primary_hash(
-            event={
-                "project_id": project_id,
-                "group_id": group_id,
-                "data": None,
-            },
+            project_id=project_id,
+            group_id=group_id,
             force_flush_batch=True,
         )
 

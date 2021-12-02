@@ -264,7 +264,19 @@ def reprocess_event(project_id, event_id, start_time):
     )
 
 
-def buffered_delete_old_primary_hash(event, force_flush_batch: bool = False):
+def get_original_primary_hash(event):
+    return get_path(event.data, "contexts", "reprocessing", "original_primary_hash")
+
+
+def buffered_delete_old_primary_hash(
+    project_id,
+    group_id,
+    event_id=None,
+    datetime=None,
+    old_primary_hash=None,
+    current_primary_hash=None,
+    force_flush_batch: bool = False,
+):
     """
     Like `buffered_handle_remaining_events`, is a quick and dirty way to batch
     event IDs so requests to tombstone rows are not being individually sent
@@ -274,24 +286,23 @@ def buffered_delete_old_primary_hash(event, force_flush_batch: bool = False):
     from sentry import killswitches
 
     if killswitches.killswitch_matches_context(
-        "reprocessing2.drop-delete-old-primary-hash", {"project_id": event.project_id}
+        "reprocessing2.drop-delete-old-primary-hash", {"project_id": project_id}
     ):
         return
 
     client = _get_sync_redis_client()
-    old_primary_hash = get_path(event.data, "contexts", "reprocessing", "original_primary_hash")
 
     # This is a meta key pointing to a set of keys which each point to lists of events that need to
     # be tombstoned.
     # Tombstonable events are bucketed by their old primary hashes, and are integrated into the
     # keys which are stored as values for this meta-entry.
-    event_keys_set_key = f"re2:tombstone-fingerprinted:{{{event.project_id}:{event.group_id}}}"
+    event_keys_set_key = f"re2:tombstone-fingerprinted:{{{project_id}:{group_id}}}"
     # todo: is this an empty list or none if the key doesn't exist?
     event_keys = client.smembers(event_keys_set_key)
 
-    if old_primary_hash is not None and old_primary_hash != event.get_primary_hash():
-        event_key = f"re2:tombstones:{{{event.project_id}:{event.group_id}:{old_primary_hash}}}"
-        client.lpush(event_key, f"{to_timestamp(event.datetime)};{event.event_id}")
+    if old_primary_hash is not None and old_primary_hash != current_primary_hash:
+        event_key = f"re2:tombstones:{{{project_id}:{group_id}:{old_primary_hash}}}"
+        client.lpush(event_key, f"{to_timestamp(datetime)};{event_id}")
         client.expire(event_key, settings.SENTRY_REPROCESSING_SYNC_TTL)
 
         if event_key not in event_keys:
@@ -301,8 +312,6 @@ def buffered_delete_old_primary_hash(event, force_flush_batch: bool = False):
     event_count = 0
     for fkey in event_keys:
         event_count += client.llen(fkey)
-        # todo: is it possible for multiple events for a single group to be simultaneously processed,
-        # causing the event count to spike above the flush threshold?
 
     if force_flush_batch or event_count > settings.SENTRY_REPROCESSING_REMAINING_EVENTS_BUF_SIZE:
         for fkey in event_keys:
@@ -323,7 +332,7 @@ def buffered_delete_old_primary_hash(event, force_flush_batch: bool = False):
             # this is marginally better than the unbatched version if a group has a lot of old
             # primary hashes.
             _delete_old_primary_hash(
-                project_id=event.project_id,
+                project_id=project_id,
                 old_primary_hash=old_primary_hash,
                 event_ids_redis_key=new_key,
             )
