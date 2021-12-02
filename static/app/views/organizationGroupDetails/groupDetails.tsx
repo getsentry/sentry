@@ -1,5 +1,4 @@
 import * as React from 'react';
-import DocumentTitle from 'react-document-title';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 import PropTypes from 'prop-types';
@@ -9,6 +8,7 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import GlobalSelectionHeader from 'sentry/components/organizations/globalSelectionHeader';
 import MissingProjectMembership from 'sentry/components/projects/missingProjectMembership';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import SentryTypes from 'sentry/sentryTypes';
 import GroupStore from 'sentry/stores/groupStore';
@@ -547,7 +547,7 @@ class GroupDetails extends React.Component<Props, State> {
     const {project} = this.state;
 
     return (
-      <DocumentTitle title={this.getTitle()}>
+      <SentryDocumentTitle noSuffix title={this.getTitle()}>
         <GlobalSelectionHeader
           skipLoadLastUsed
           forceProject={project}
@@ -559,7 +559,7 @@ class GroupDetails extends React.Component<Props, State> {
         >
           <PageContent>{this.renderPageContent()}</PageContent>
         </GlobalSelectionHeader>
-      </DocumentTitle>
+      </SentryDocumentTitle>
     );
   }
 }

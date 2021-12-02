@@ -1,5 +1,4 @@
 import * as React from 'react';
-import DocumentTitle from 'react-document-title';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, MotionProps, useAnimation} from 'framer-motion';
@@ -7,6 +6,7 @@ import {AnimatePresence, motion, MotionProps, useAnimation} from 'framer-motion'
 import Button from 'sentry/components/button';
 import Hook from 'sentry/components/hook';
 import LogoSentry from 'sentry/components/logoSentry';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -24,7 +24,7 @@ import OnboardingWelcome from './welcome';
 const ONBOARDING_STEPS: StepDescriptor[] = [
   {
     id: 'welcome',
-    title: t('Welcome to Sentry'),
+    title: t('Welcome'),
     Component: OnboardingWelcome,
     centered: true,
   },
@@ -188,7 +188,7 @@ class Onboarding extends React.Component<Props, State> {
 
     return (
       <OnboardingWrapper>
-        <DocumentTitle title={this.activeStep.title} />
+        <SentryDocumentTitle title={this.activeStep.title} />
         <Header>
           <LogoSvg />
           <HeaderRight>

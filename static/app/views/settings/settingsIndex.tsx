@@ -1,5 +1,4 @@
 import * as React from 'react';
-import DocumentTitle from 'react-document-title';
 import {RouteComponentProps} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -13,6 +12,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconDocs, IconLock, IconStack, IconSupport} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -80,7 +80,9 @@ class SettingsIndex extends React.Component<Props> {
     const supportText = isOnPremise ? t('Community Forums') : t('Contact Support');
 
     return (
-      <DocumentTitle title={organization ? `${organization.slug} Settings` : 'Settings'}>
+      <SentryDocumentTitle
+        title={organization ? `${organization.slug} Settings` : 'Settings'}
+      >
         <SettingsLayout {...this.props}>
           <GridLayout>
             <DemoModeGate>
@@ -258,7 +260,7 @@ class SettingsIndex extends React.Component<Props> {
             </DemoModeGate>
           </GridLayout>
         </SettingsLayout>
-      </DocumentTitle>
+      </SentryDocumentTitle>
     );
   }
 }
