@@ -6,7 +6,6 @@ import type {SeriesOption, TooltipComponentOption} from 'echarts';
 
 import BaseChart from 'sentry/components/charts/baseChart';
 import Legend from 'sentry/components/charts/components/legend';
-import Tooltip from 'sentry/components/charts/components/tooltip';
 import xAxis from 'sentry/components/charts/components/xAxis';
 import barSeries from 'sentry/components/charts/series/barSeries';
 import {ChartContainer, HeaderTitleLegend} from 'sentry/components/charts/styles';
@@ -24,6 +23,8 @@ import commonTheme, {Theme} from 'sentry/utils/theme';
 import {formatUsageWithUnits, GIGABYTE} from '../utils';
 
 import {getTooltipFormatter, getXAxisDates, getXAxisLabelInterval} from './utils';
+
+type ChartProps = React.ComponentProps<typeof BaseChart>;
 
 const COLOR_ERRORS = Color(commonTheme.dataCategory.errors).lighten(0.25).string();
 const COLOR_TRANSACTIONS = Color(commonTheme.dataCategory.transactions)
@@ -373,7 +374,7 @@ export class UsageChart extends React.Component<Props, State> {
     return legend;
   }
 
-  get chartTooltip(): TooltipComponentOption {
+  get chartTooltip(): ChartProps['tooltip'] {
     const {chartTooltip} = this.props;
 
     if (chartTooltip) {
@@ -382,12 +383,12 @@ export class UsageChart extends React.Component<Props, State> {
 
     const {tooltipValueFormatter} = this.chartMetadata;
 
-    return Tooltip({
+    return {
       // Trigger to axis prevents tooltip from redrawing when hovering
       // over individual bars
       trigger: 'axis',
       valueFormatter: tooltipValueFormatter,
-    });
+    };
   }
 
   renderChart() {

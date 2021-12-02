@@ -509,17 +509,12 @@ function BaseChartUnwrapped({
 // elements directly
 const ChartContainer = styled('div')`
   /* Tooltip styling */
-  .tooltip-container {
-    box-shadow: ${p => p.theme.dropShadowHeavy};
-  }
   .tooltip-series,
   .tooltip-date {
     color: ${p => p.theme.subText};
     font-family: ${p => p.theme.text.family};
     font-variant-numeric: tabular-nums;
-    background: ${p => p.theme.backgroundElevated};
     padding: ${space(1)} ${space(2)};
-    border: solid 1px ${p => p.theme.border};
     border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
   }
   .tooltip-series {
@@ -551,7 +546,7 @@ const ChartContainer = styled('div')`
     border-radius: ${p => p.theme.borderRadiusBottom};
   }
   .tooltip-arrow {
-    top: calc(100% - 1px);
+    top: 100%;
     left: 50%;
     position: absolute;
     pointer-events: none;
