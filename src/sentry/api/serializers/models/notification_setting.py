@@ -2,7 +2,6 @@ from collections import defaultdict
 from typing import Any, Iterable, Mapping, MutableMapping, Optional, Set, Union
 
 from sentry.api.serializers import Serializer
-from sentry.features.helpers import any_organization_has_feature
 from sentry.models import NotificationSetting, Team, User
 from sentry.notifications.helpers import get_fallback_settings
 from sentry.notifications.types import VALID_VALUES_FOR_KEY, NotificationSettingTypes
@@ -105,11 +104,6 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
             project_ids,
             organization_ids,
             recipient=obj,
-            should_use_slack_automatic=any_organization_has_feature(
-                "organizations:notification-slack-automatic",
-                organizations=[obj.organization] if isinstance(obj, Team) else obj.get_orgs(),
-                actor=user,
-            ),
         )
 
         # Forgive the variable name, I wanted the following lines to be legible.

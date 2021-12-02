@@ -1,5 +1,6 @@
 import enum
 import itertools
+import math
 import random
 import re
 from abc import ABC, abstractmethod
@@ -21,32 +22,25 @@ from typing import (
     Union,
 )
 
-from snuba_sdk import (
-    And,
-    Column,
-    Condition,
-    Entity,
-    Function,
-    Granularity,
-    Limit,
-    Offset,
-    Op,
-    Or,
-    Query,
-)
+from snuba_sdk import Column, Condition, Entity, Function, Granularity, Limit, Offset, Op, Query
 from snuba_sdk.conditions import BooleanCondition
 from snuba_sdk.orderby import Direction, OrderBy
 
+from sentry.api.utils import get_date_range_from_params
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Project
+from sentry.relay.config import ALL_MEASUREMENT_METRICS
+from sentry.search.events.filter import QueryFilter
 from sentry.sentry_metrics import indexer
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.sessions_v2 import (  # TODO: unite metrics and sessions_v2
+    ONE_DAY,
     AllowedResolution,
     InvalidField,
     InvalidParams,
     finite_or_none,
-    get_constrained_date_range,
 )
+from sentry.utils.dates import parse_stats_period, to_datetime, to_timestamp
 from sentry.utils.snuba import parse_snuba_datetime, raw_snql_query
 
 FIELD_REGEX = re.compile(r"^(\w+)\(((\w|\.|_)+)\)$")
@@ -103,30 +97,49 @@ def parse_field(field: str) -> Tuple[str, str]:
         return operation, metric_name
 
 
-def verify_tag_name(name: str) -> str:
+def _resolve_tags(input_: Any) -> Any:
+    """Translate tags in snuba condition"""
+    if isinstance(input_, list):
+        return [_resolve_tags(item) for item in input_]
+    if isinstance(input_, Function):
+        return Function(
+            function=input_.function,
+            parameters=input_.parameters and [_resolve_tags(item) for item in input_.parameters],
+        )
+    if isinstance(input_, Condition):
+        return Condition(lhs=_resolve_tags(input_.lhs), op=input_.op, rhs=_resolve_tags(input_.rhs))
+    if isinstance(input_, BooleanCondition):
+        return input_.__class__(conditions=[_resolve_tags(item) for item in input_.conditions])
+    if isinstance(input_, Column):
+        # HACK: Some tags already take the form "tags[...]" in discover, take that into account:
+        if input_.subscriptable == "tags":
+            name = input_.key
+        else:
+            name = input_.name
+        return Column(name=f"tags[{indexer.resolve(name)}]")
+    if isinstance(input_, str):
+        return indexer.resolve(input_)
 
-    if not TAG_REGEX.match(name):
-        raise InvalidParams(f"Invalid tag name: '{name}'")
-
-    return name
+    return input_
 
 
-def parse_tag(tag_string: str) -> Tuple[str, str]:
+def parse_query(query_string: str) -> Sequence[Condition]:
+    """Parse given filter query into a list of snuba conditions"""
+    # HACK: Parse a sessions query, validate / transform afterwards.
+    # We will want to write our own grammar + interpreter for this later.
     try:
-        name, value = tag_string.split(":")
-    except ValueError:
-        raise InvalidParams(f"Expected something like 'foo:\"bar\"' for tag, got '{tag_string}'")
+        query_filter = QueryFilter(
+            Dataset.Sessions,
+            params={
+                "project_id": 0,
+            },
+        )
+        where, _ = query_filter.resolve_conditions(query_string, use_aggregate_conditions=True)
+    except InvalidSearchQuery as e:
+        raise InvalidParams(f"Failed to parse query: {e}")
+    where = _resolve_tags(where)
 
-    return (verify_tag_name(name), value.strip('"'))
-
-
-def parse_query(query_string: str) -> dict:
-    return {
-        "or": [
-            {"and": [parse_tag(and_part) for and_part in or_part.split(" and ")]}
-            for or_part in query_string.split(" or ")
-        ]
-    }
+    return where
 
 
 class QueryDefinition:
@@ -154,9 +167,7 @@ class QueryDefinition:
         self.orderby = self._parse_orderby(query_params)
         self.limit = self._parse_limit(query_params)
 
-        start, end, rollup = get_constrained_date_range(
-            query_params, AllowedResolution.ten_seconds, max_points=MAX_POINTS
-        )
+        start, end, rollup = get_date_range(query_params)
         self.rollup = rollup
         self.start = start
         self.end = end
@@ -250,6 +261,55 @@ def get_intervals(query: TimeRange):
     while start < end:
         yield start
         start += delta
+
+
+def get_date_range(params: Mapping) -> Tuple[datetime, datetime, int]:
+    """Get start, end, rollup for the given parameters.
+
+    Apply a similar logic as `sessions_v2.get_constrained_date_range`,
+    but with fewer constraints. More constraints may be added in the future.
+
+    Note that this function returns a right-exclusive date range [start, end),
+    contrary to the one used in sessions_v2.
+
+    """
+    interval = parse_stats_period(params.get("interval", "1h"))
+    interval = int(3600 if interval is None else interval.total_seconds())
+
+    # hard code min. allowed resolution to 10 seconds
+    allowed_resolution = AllowedResolution.ten_seconds
+
+    smallest_interval, interval_str = allowed_resolution.value
+    if interval % smallest_interval != 0 or interval < smallest_interval:
+        raise InvalidParams(
+            f"The interval has to be a multiple of the minimum interval of {interval_str}."
+        )
+
+    if ONE_DAY % interval != 0:
+        raise InvalidParams("The interval should divide one day without a remainder.")
+
+    start, end = get_date_range_from_params(params)
+
+    date_range = end - start
+
+    date_range = timedelta(seconds=int(interval * math.ceil(date_range.total_seconds() / interval)))
+
+    if date_range.total_seconds() / interval > MAX_POINTS:
+        raise InvalidParams(
+            "Your interval and date range would create too many results. "
+            "Use a larger interval, or a smaller date range."
+        )
+
+    end_ts = int(interval * math.ceil(to_timestamp(end) / interval))
+    end = to_datetime(end_ts)
+    start = end - date_range
+
+    # NOTE: The sessions_v2 implementation cuts the `end` time to now + 1 minute
+    # if `end` is in the future. This allows for better real time results when
+    # caching is enabled on the snuba queries. Removed here for simplicity,
+    # but we might want to reconsider once caching becomes an issue for metrics.
+
+    return start, end, interval
 
 
 #: The type of metric, which determines the snuba entity to query
@@ -371,7 +431,7 @@ _MEASUREMENT_TAGS = dict(
     _BASE_TAGS,
     **{
         "measurement_rating": ["good", "meh", "poor"],
-        "transaction": ["/foo/:ordId/", "/bar/:ordId/"],
+        "transaction": ["/foo/:orgId/", "/bar/:orgId/"],
     },
 )
 
@@ -397,16 +457,30 @@ _METRICS = {
         "operations": _AVAILABLE_OPERATIONS["metrics_sets"],
         "tags": _SESSION_TAGS,
     },
+    "transaction.duration": {
+        "type": "distribution",
+        "operations": _AVAILABLE_OPERATIONS["metrics_distributions"],
+        "tags": {
+            **_MEASUREMENT_TAGS,
+            "transaction.status": [
+                # Subset of possible states:
+                # https://develop.sentry.dev/sdk/event-payloads/transaction/
+                "ok",
+                "cancelled",
+                "aborted",
+            ],
+        },
+    },
 }
 
 _METRICS.update(
     {
-        f"measurements.{web_vital}": {
+        measurement_metric: {
             "type": "distribution",
             "operations": _AVAILABLE_OPERATIONS["metrics_distributions"],
             "tags": _MEASUREMENT_TAGS,
         }
-        for web_vital in ("lcp", "fcp", "fid", "cls")
+        for measurement_metric in ALL_MEASUREMENT_METRICS
     }
 )
 
@@ -603,45 +677,6 @@ class SnubaQueryBuilder:
         self._projects = projects
         self._queries = self._build_queries(query_definition)
 
-    def _build_logical(self, operator, operands) -> Optional[BooleanCondition]:
-        """Snuba only accepts And and Or if they have 2 elements or more"""
-        operands = [operand for operand in operands if operand is not None]
-        if not operands:
-            return None
-        if len(operands) == 1:
-            return operands[0]
-
-        return operator(operands)
-
-    def _build_filter(self, query_definition: QueryDefinition) -> Optional[BooleanCondition]:
-        filter_ = query_definition.parsed_query
-        if filter_ is None:
-            return None
-
-        def to_int(string):
-            try:
-                return indexer.resolve(string)
-            except KeyError:
-                return None
-
-        return self._build_logical(
-            Or,
-            [
-                self._build_logical(
-                    And,
-                    [
-                        Condition(
-                            Column(f"tags[{to_int(tag)}]"),
-                            Op.EQ,
-                            to_int(value),
-                        )
-                        for tag, value in or_operand["and"]
-                    ],
-                )
-                for or_operand in filter_["or"]
-            ],
-        )
-
     def _build_where(
         self, query_definition: QueryDefinition
     ) -> List[Union[BooleanCondition, Condition]]:
@@ -658,9 +693,9 @@ class SnubaQueryBuilder:
             Condition(Column(TS_COL_QUERY), Op.GTE, query_definition.start),
             Condition(Column(TS_COL_QUERY), Op.LT, query_definition.end),
         ]
-        filter_ = self._build_filter(query_definition)
+        filter_ = query_definition.parsed_query
         if filter_:
-            where.append(filter_)
+            where.extend(filter_)
 
         return where
 

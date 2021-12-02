@@ -787,11 +787,6 @@ CELERYBEAT_SCHEDULE = {
         "schedule": timedelta(minutes=20),
         "options": {"expires": 20 * 60},
     },
-    "check-symbolicator-lpq-project-eligibility": {
-        "task": "sentry.tasks.low_priority_symbolication.scan_for_suspect_projects",
-        "schedule": timedelta(seconds=10),
-        "options": {"expires": 10},
-    },
 }
 
 BGTASKS = {
@@ -923,6 +918,8 @@ SENTRY_FEATURES = {
     "organizations:event-attachments-viewer": True,
     # Enable Filters & Sampling in the org settings
     "organizations:filters-and-sampling": False,
+    # Enable Dynamic Sampling errors in the org settings
+    "organizations:filters-and-sampling-error-rules": False,
     # Allow organizations to configure built-in symbol sources.
     "organizations:symbol-sources": True,
     # Allow organizations to configure custom external symbol sources.
@@ -1015,6 +1012,8 @@ SENTRY_FEATURES = {
     "organizations:issues-in-dashboards": False,
     # Enable navigation features between Discover and Dashboards
     "organizations:connect-discover-and-dashboards": False,
+    # Enable creating a dashboard widget from the timeseries on an issue detail
+    "organizations:create-dashboard-widget-from-issue": False,
     # Enable experimental performance improvements.
     "organizations:enterprise-perf": False,
     # Enable the API to importing CODEOWNERS for a project
@@ -1051,8 +1050,6 @@ SENTRY_FEATURES = {
     "organizations:weekly-report-debugging": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": True,
-    # Automatically opt IN users to receiving Slack notifications.
-    "organizations:notification-slack-automatic": False,
     # Notify all project members when fallthrough is disabled, instead of just the auto-assignee
     "organizations:notification-all-recipients": False,
     # Enable the new native stack trace design
@@ -2402,7 +2399,7 @@ SENTRY_REPROCESSING_REMAINING_EVENTS_BUF_SIZE = 500
 #
 # Currently, only redis is supported.
 SENTRY_REALTIME_METRICS_BACKEND = (
-    "sentry.processing.realtime_metrics.redis.RedisRealtimeMetricsStore"
+    "sentry.processing.realtime_metrics.dummy.DummyRealtimeMetricsStore"
 )
 SENTRY_REALTIME_METRICS_OPTIONS = {
     # The redis cluster used for the realtime store redis backend.

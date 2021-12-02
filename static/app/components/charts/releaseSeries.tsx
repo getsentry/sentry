@@ -1,7 +1,6 @@
 import * as React from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import {withTheme} from '@emotion/react';
-import {EChartOption} from 'echarts/lib/echarts';
 import {Query} from 'history';
 import isEqual from 'lodash/isEqual';
 import memoize from 'lodash/memoize';
@@ -20,6 +19,8 @@ import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {Theme} from 'sentry/utils/theme';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
+
+import {getTooltipArrow} from './utils';
 
 type ReleaseMetaBasic = {
   version: string;
@@ -73,7 +74,7 @@ type Props = WithRouterProps & {
   period?: string;
   utc?: boolean | null;
   releases?: ReleaseMetaBasic[] | null;
-  tooltip?: EChartOption.Tooltip;
+  tooltip?: Exclude<Parameters<typeof MarkLine>[0], undefined>['tooltip'];
   memoized?: boolean;
   preserveQueryParams?: boolean;
   emphasizeReleases?: string[];
@@ -263,16 +264,9 @@ class ReleaseSeries extends React.Component<Props, State> {
           formatter: () => formatVersion(release.version, true),
         },
       })),
-    });
-
-    // TODO(tonyx): This conflicts with the types declaration of `MarkLine`
-    // if we add it in the constructor. So we opt to add it here so typescript
-    // doesn't complain.
-    (markLine as any).tooltip =
-      tooltip ||
-      ({
+      tooltip: tooltip || {
         trigger: 'item',
-        formatter: ({data}: EChartOption.Tooltip.Format) => {
+        formatter: ({data}: any) => {
           // XXX using this.props here as this function does not get re-run
           // unless projects are changed. Using a closure variable would result
           // in stale values.
@@ -290,10 +284,11 @@ class ReleaseSeries extends React.Component<Props, State> {
             time,
             '</div>',
             '</div>',
-            '<div class="tooltip-arrow"></div>',
+            getTooltipArrow(),
           ].join('');
         },
-      } as EChartOption.Tooltip);
+      },
+    });
 
     return {
       seriesName: 'Releases',

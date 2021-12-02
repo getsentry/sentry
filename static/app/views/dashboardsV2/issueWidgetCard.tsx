@@ -5,6 +5,7 @@ import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
+import * as qs from 'query-string';
 
 import {Client} from 'sentry/api';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
@@ -12,7 +13,9 @@ import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import MenuItem from 'sentry/components/menuItem';
 import {isSelectionEqual} from 'sentry/components/organizations/globalSelectionHeader/utils';
 import {Panel} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
@@ -21,6 +24,7 @@ import {t} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {GlobalSelection, Group, Organization} from 'sentry/types';
+import {getUtcDateString} from 'sentry/utils/dates';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {ColumnType} from 'sentry/utils/discover/fields';
 import withApi from 'sentry/utils/withApi';
@@ -28,12 +32,13 @@ import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import {DRAG_HANDLE_CLASS} from './gridLayout/dashboard';
+import ContextMenu from './contextMenu';
 import IssueWidgetQueries from './issueWidgetQueries';
 import {Widget} from './types';
 import WidgetQueries from './widgetQueries';
 
 const ISSUE_TABLE_FIELDS_META: Record<string, ColumnType> = {
-  'issue #': 'string',
+  issue: 'string',
   title: 'string',
   assignee: 'string',
 };
@@ -79,9 +84,13 @@ class IssueWidgetCard extends React.Component<Props> {
     return tableResults.map(({id, shortId, title, assignedTo}) => {
       const transformedTableResults = {
         id,
-        'issue #': shortId,
+        'issue.id': id,
+        issue: shortId,
         title,
-        assignee: assignedTo?.name ?? '',
+        'assignee.type': assignedTo?.type,
+        'assignee.name': assignedTo?.name ?? '',
+        'assignee.id': assignedTo?.id,
+        'assignee.email': assignedTo?.email ?? '',
       };
       return transformedTableResults;
     });
@@ -103,7 +112,7 @@ class IssueWidgetCard extends React.Component<Props> {
 
     if (loading) {
       // Align height to other charts.
-      return <Placeholder height="200px" />;
+      return <LoadingPlaceholder height="200px" />;
     }
     const transformedTableResults = this.transformTableResults(tableResults);
 
@@ -149,6 +158,34 @@ class IssueWidgetCard extends React.Component<Props> {
     );
   }
 
+  renderContextMenu() {
+    const {widget, selection, organization, showContextMenu} = this.props;
+
+    if (!showContextMenu) {
+      return null;
+    }
+
+    const {start, end, utc, period} = selection.datetime;
+    const datetime =
+      start && end
+        ? {start: getUtcDateString(start), end: getUtcDateString(end), utc}
+        : {statsPeriod: period};
+    const issuesLocation = `/organizations/${organization.slug}/issues/?${qs.stringify({
+      query: widget.queries?.[0]?.conditions,
+      ...datetime,
+    })}`;
+
+    return (
+      <ContextWrapper>
+        <ContextMenu>
+          <Link to={issuesLocation}>
+            <StyledMenuItem>{t('Open in Issues')}</StyledMenuItem>
+          </Link>
+        </ContextMenu>
+      </ContextWrapper>
+    );
+  }
+
   render() {
     const {widget, api, organization, selection, renderErrorMessage} = this.props;
     return (
@@ -158,6 +195,7 @@ class IssueWidgetCard extends React.Component<Props> {
         <StyledPanel isDragging={false}>
           <WidgetHeader>
             <WidgetTitle>{widget.title}</WidgetTitle>
+            {this.renderContextMenu()}
           </WidgetHeader>
           <LazyLoad once height={200}>
             <IssueWidgetQueries
@@ -208,6 +246,10 @@ const LoadingScreen = ({loading}: {loading: boolean}) => {
     </StyledTransparentLoadingMask>
   );
 };
+const LoadingPlaceholder = styled(Placeholder)`
+  background-color: ${p => p.theme.surface200};
+`;
+
 const ErrorCard = styled(Placeholder)`
   display: flex;
   align-items: center;
@@ -280,6 +322,18 @@ const IconClick = styled('div')`
 
   &:hover {
     cursor: pointer;
+  }
+`;
+
+const ContextWrapper = styled('div')`
+  margin-left: ${space(1)};
+`;
+
+const StyledMenuItem = styled(MenuItem)`
+  white-space: nowrap;
+  color: ${p => p.theme.textColor};
+  :hover {
+    color: ${p => p.theme.textColor};
   }
 `;
 

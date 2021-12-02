@@ -28,7 +28,7 @@ import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
-import GridLayoutDashboard from './gridLayout/dashboard';
+import GridLayoutDashboard, {generateWidgetId} from './gridLayout/dashboard';
 import {getDashboardLayout, saveDashboardLayout} from './gridLayout/utils';
 import Controls from './controls';
 import DnDKitDashboard from './dashboard';
@@ -55,6 +55,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   dashboards: DashboardListItem[];
   route: PlainRoute;
   reloadData?: () => void;
+  onDashboardUpdate?: (updatedDashboard: DashboardDetails) => void;
   newWidget?: Widget;
 };
 
@@ -263,7 +264,7 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   onAddWidget = () => {
-    const {organization, dashboard, api, reloadData, location} = this.props;
+    const {organization, dashboard, api, onDashboardUpdate, location} = this.props;
     this.setState({
       modifiedDashboard: cloneDashboard(dashboard),
     });
@@ -275,13 +276,13 @@ class DashboardDetail extends Component<Props, State> {
           ...cloneDashboard(dashboard),
           widgets,
         };
+        this.setState({modifiedDashboard});
         updateDashboard(api, organization.slug, modifiedDashboard).then(
           (newDashboard: DashboardDetails) => {
-            addSuccessMessage(t('Dashboard updated'));
-
-            if (reloadData) {
-              reloadData();
+            if (onDashboardUpdate) {
+              onDashboardUpdate(modifiedDashboard);
             }
+            addSuccessMessage(t('Dashboard updated'));
             if (dashboard && newDashboard.id !== dashboard.id) {
               browserHistory.replace({
                 pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
@@ -298,15 +299,41 @@ class DashboardDetail extends Component<Props, State> {
     });
   };
 
+  /**
+   * Saves a dashboard layout where the layout keys are replaced with the IDs of new widgets.
+   */
+  saveLayoutWithNewWidgets = (organizationId, dashboardId, newWidgets) => {
+    const {layout} = this.state;
+    if (layout.length !== newWidgets.length) {
+      throw new Error('Expected layouts and widgets to be the same length');
+    }
+
+    saveDashboardLayout(
+      organizationId,
+      dashboardId,
+      layout.map((widgetLayout, index) => ({
+        ...widgetLayout,
+        i: generateWidgetId(newWidgets[index], index),
+      }))
+    );
+  };
+
   onCommit = () => {
-    const {api, organization, location, dashboard, reloadData} = this.props;
-    const {modifiedDashboard, dashboardState} = this.state;
+    const {api, organization, location, dashboard, onDashboardUpdate} = this.props;
+    const {layout, modifiedDashboard, dashboardState} = this.state;
 
     switch (dashboardState) {
       case DashboardState.CREATE: {
         if (modifiedDashboard) {
           createDashboard(api, organization.slug, modifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
+              if (organization.features.includes('dashboard-grid-layout')) {
+                this.saveLayoutWithNewWidgets(
+                  organization.id,
+                  newDashboard.id,
+                  newDashboard.widgets
+                );
+              }
               addSuccessMessage(t('Dashboard created'));
               trackAnalyticsEvent({
                 eventKey: 'dashboards2.create.complete',
@@ -335,7 +362,7 @@ class DashboardDetail extends Component<Props, State> {
         // TODO(nar): This should only fire when there are changes to the layout
         // and the dashboard can be successfully saved
         if (organization.features.includes('dashboard-grid-layout')) {
-          saveDashboardLayout(organization.id, dashboard.id, this.state.layout);
+          saveDashboardLayout(organization.id, dashboard.id, layout);
         }
 
         // only update the dashboard if there are changes
@@ -349,6 +376,17 @@ class DashboardDetail extends Component<Props, State> {
           }
           updateDashboard(api, organization.slug, modifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
+              if (onDashboardUpdate) {
+                onDashboardUpdate(modifiedDashboard);
+              }
+
+              if (organization.features.includes('dashboard-grid-layout')) {
+                this.saveLayoutWithNewWidgets(
+                  organization.id,
+                  newDashboard.id,
+                  newDashboard.widgets
+                );
+              }
               addSuccessMessage(t('Dashboard updated'));
               trackAnalyticsEvent({
                 eventKey: 'dashboards2.edit.complete',
@@ -360,9 +398,6 @@ class DashboardDetail extends Component<Props, State> {
                 modifiedDashboard: null,
               });
 
-              if (reloadData) {
-                reloadData();
-              }
               if (dashboard && newDashboard.id !== dashboard.id) {
                 browserHistory.replace({
                   pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
@@ -429,18 +464,19 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   onAddIssueWidget = () => {
-    const {api, organization, location, dashboard, reloadData} = this.props;
+    const {api, organization, location, dashboard, onDashboardUpdate} = this.props;
 
     openAddDashboardIssueWidgetModal({
       organization,
       onAddWidget: widget => {
-        updateDashboard(api, organization.slug, {
+        const modifiedDashboard = {
           ...dashboard,
           widgets: [...dashboard.widgets, widget],
-        }).then(
+        };
+        updateDashboard(api, organization.slug, modifiedDashboard).then(
           (newDashboard: DashboardDetails) => {
-            if (reloadData) {
-              reloadData();
+            if (onDashboardUpdate) {
+              onDashboardUpdate(modifiedDashboard);
             }
             if (dashboard && newDashboard.id !== dashboard.id) {
               browserHistory.replace({
@@ -473,12 +509,19 @@ class DashboardDetail extends Component<Props, State> {
 
   renderDefaultDashboardDetail() {
     const {organization, dashboard, dashboards, params, router, location} = this.props;
-    const {modifiedDashboard, dashboardState} = this.state;
+    const {layout, modifiedDashboard, dashboardState} = this.state;
     const {dashboardId} = params;
 
-    const Dashboard = organization.features.includes('dashboard-grid-layout')
-      ? GridLayoutDashboard
-      : DnDKitDashboard;
+    const dashboardProps = {
+      paramDashboardId: dashboardId,
+      dashboard: modifiedDashboard ?? dashboard,
+      organization,
+      isEditing: this.isEditing,
+      onUpdate: this.onUpdateWidget,
+      onSetWidgetToBeUpdated: this.onSetWidgetToBeUpdated,
+      router,
+      location,
+    };
 
     return (
       <GlobalSelectionHeader
@@ -513,16 +556,15 @@ class DashboardDetail extends Component<Props, State> {
               />
             </StyledPageHeader>
             <HookHeader organization={organization} />
-            <Dashboard
-              paramDashboardId={dashboardId}
-              dashboard={modifiedDashboard ?? dashboard}
-              organization={organization}
-              isEditing={this.isEditing}
-              onUpdate={this.onUpdateWidget}
-              onSetWidgetToBeUpdated={this.onSetWidgetToBeUpdated}
-              router={router}
-              location={location}
-            />
+            {organization.features.includes('dashboard-grid-layout') ? (
+              <GridLayoutDashboard
+                {...dashboardProps}
+                layout={layout}
+                onLayoutChange={this.onLayoutChange}
+              />
+            ) : (
+              <DnDKitDashboard {...dashboardProps} />
+            )}
           </NoProjectMessage>
         </PageContent>
       </GlobalSelectionHeader>
@@ -532,12 +574,20 @@ class DashboardDetail extends Component<Props, State> {
   renderDashboardDetail() {
     const {organization, dashboard, dashboards, params, router, location, newWidget} =
       this.props;
-    const {modifiedDashboard, dashboardState} = this.state;
+    const {layout, modifiedDashboard, dashboardState} = this.state;
     const {dashboardId} = params;
 
-    const Dashboard = organization.features.includes('dashboard-grid-layout')
-      ? GridLayoutDashboard
-      : DnDKitDashboard;
+    const dashboardProps = {
+      paramDashboardId: dashboardId,
+      dashboard: modifiedDashboard ?? dashboard,
+      organization,
+      isEditing: this.isEditing,
+      onUpdate: this.onUpdateWidget,
+      onSetWidgetToBeUpdated: this.onSetWidgetToBeUpdated,
+      router,
+      location,
+      newWidget,
+    };
 
     return (
       <GlobalSelectionHeader
@@ -596,19 +646,15 @@ class DashboardDetail extends Component<Props, State> {
             </Layout.Header>
             <Layout.Body>
               <Layout.Main fullWidth>
-                <Dashboard
-                  paramDashboardId={dashboardId}
-                  dashboard={modifiedDashboard ?? dashboard}
-                  organization={organization}
-                  isEditing={this.isEditing}
-                  onUpdate={this.onUpdateWidget}
-                  onSetWidgetToBeUpdated={this.onSetWidgetToBeUpdated}
-                  router={router}
-                  location={location}
-                  newWidget={newWidget}
-                  layout={this.state.layout}
-                  onLayoutChange={this.onLayoutChange}
-                />
+                {organization.features.includes('dashboard-grid-layout') ? (
+                  <GridLayoutDashboard
+                    {...dashboardProps}
+                    layout={layout}
+                    onLayoutChange={this.onLayoutChange}
+                  />
+                ) : (
+                  <DnDKitDashboard {...dashboardProps} />
+                )}
               </Layout.Main>
             </Layout.Body>
           </NoProjectMessage>

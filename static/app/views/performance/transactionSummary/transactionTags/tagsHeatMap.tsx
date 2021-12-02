@@ -1,10 +1,10 @@
-import React, {useRef, useState} from 'react';
+import {Fragment, useRef, useState} from 'react';
 import ReactDOM from 'react-dom';
 import {Popper} from 'react-popper';
 import styled from '@emotion/styled';
 import {truncate} from '@sentry/utils';
 import classNames from 'classnames';
-import {EChartOption} from 'echarts';
+import type {VisualMapComponentOption} from 'echarts';
 import {Location} from 'history';
 import memoize from 'lodash/memoize';
 
@@ -167,7 +167,7 @@ const TagsHeatMap = (
       axisLabel: {
         formatter: (value: string) => truncate(value, 30),
       },
-    } as any, // TODO(k-fish): Expand typing to allow data option
+    },
     xAxis: {
       boundaryGap: true,
       type: 'category' as const,
@@ -190,7 +190,7 @@ const TagsHeatMap = (
         interval: 0,
         alignWithLabel: true,
       },
-    } as any, // TODO(k-fish): Expand typing to allow data option
+    },
 
     grid: {
       left: space(3),
@@ -200,7 +200,7 @@ const TagsHeatMap = (
     },
   };
 
-  const visualMaps = [
+  const visualMaps: VisualMapComponentOption[] = [
     {
       min: 0,
       max: maxCount,
@@ -210,7 +210,7 @@ const TagsHeatMap = (
       inRange: {
         color: purples,
       },
-    } as EChartOption.VisualMap,
+    },
   ];
 
   const series: Series[] = [];
@@ -313,7 +313,7 @@ const TagsHeatMap = (
             };
 
             return (
-              <React.Fragment>
+              <Fragment>
                 {ReactDOM.createPortal(
                   <div>
                     {chartElement ? (
@@ -359,7 +359,7 @@ const TagsHeatMap = (
                                           },
                                         });
                                     return (
-                                      <React.Fragment>
+                                      <Fragment>
                                         {isTransactionsLoading ? (
                                           <LoadingContainer>
                                             <LoadingIndicator size={40} hideMessage />
@@ -412,7 +412,7 @@ const TagsHeatMap = (
                                             ) : null}
                                           </div>
                                         )}
-                                      </React.Fragment>
+                                      </Fragment>
                                     );
                                   }}
                                 </TagTransactionsQuery>
@@ -438,7 +438,7 @@ const TagsHeatMap = (
                   ),
                   fixed: <Placeholder height="290px" testId="skeleton-ui" />,
                 })}
-              </React.Fragment>
+              </Fragment>
             );
           }}
         </DropdownMenu>

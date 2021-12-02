@@ -1,4 +1,4 @@
-import React, {Component} from 'react';
+import {Component} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptorObject} from 'history';
@@ -284,7 +284,7 @@ export class TagValueTable extends Component<Props, State> {
               newColumns
             ) as any,
             renderBodyCell: this.renderBodyCellWithData(this.props) as any,
-            onResizeColumn: this.handleResizeColumn as any,
+            onResizeColumn: this.handleResizeColumn,
           }}
           location={location}
         />

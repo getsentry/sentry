@@ -20,6 +20,7 @@ type OrgDashboardsChildrenProps = {
   dashboards: DashboardListItem[];
   error: boolean;
   reloadData: () => void;
+  onDashboardUpdate: (updatedDashboard: DashboardDetails) => void;
 };
 
 type Props = {
@@ -75,6 +76,10 @@ class OrgDashboards extends AsyncComponent<Props, State> {
     return endpoints;
   }
 
+  onDashboardUpdate(updatedDashboard: DashboardDetails) {
+    this.setState({selectedDashboard: updatedDashboard});
+  }
+
   getDashboards(): DashboardListItem[] {
     const {dashboards} = this.state;
 
@@ -116,6 +121,8 @@ class OrgDashboards extends AsyncComponent<Props, State> {
       dashboard: selectedDashboard,
       dashboards: this.getDashboards(),
       reloadData: this.reloadData.bind(this),
+      onDashboardUpdate: (updatedDashboard: DashboardDetails) =>
+        this.onDashboardUpdate(updatedDashboard),
     });
   }
 
@@ -147,7 +154,7 @@ class OrgDashboards extends AsyncComponent<Props, State> {
 
     return (
       <SentryDocumentTitle title={t('Dashboards')} orgSlug={organization.slug}>
-        {super.renderComponent()}
+        {super.renderComponent() as React.ReactChild}
       </SentryDocumentTitle>
     );
   }

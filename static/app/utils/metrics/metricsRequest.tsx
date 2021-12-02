@@ -6,7 +6,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {getInterval} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
-import {MetricsApiResponse, Organization} from 'sentry/types';
+import {DateString, MetricsApiResponse, Organization} from 'sentry/types';
 
 const propNamesToIgnore = ['api', 'children'];
 const omitIgnoredProps = (props: Props) =>
@@ -24,11 +24,11 @@ type Props = {
   organization: Organization;
   field: string[];
   children?: (renderProps: MetricsRequestRenderProps) => React.ReactNode;
-  project?: number[];
-  environment?: string[];
+  project?: Readonly<number[]>;
+  environment?: Readonly<string[]>;
   statsPeriod?: string;
-  start?: string;
-  end?: string;
+  start?: DateString;
+  end?: DateString;
   query?: string;
   groupBy?: string[];
   orderBy?: string;
@@ -94,12 +94,12 @@ class MetricsRequest extends React.Component<Props, State> {
       environment,
       field,
       statsPeriod,
-      query,
+      query: query || undefined,
       groupBy,
       orderBy,
       limit,
-      start,
-      end,
+      start: start ?? undefined,
+      end: end ?? undefined,
       interval: interval ? interval : getInterval({start, end, period: statsPeriod}),
     };
   }
@@ -140,9 +140,9 @@ class MetricsRequest extends React.Component<Props, State> {
 
   render() {
     const {reloading, errored, response} = this.state;
-    const {children} = this.props;
+    const {children, isDisabled} = this.props;
 
-    const loading = response === null;
+    const loading = response === null && !isDisabled;
 
     return children?.({
       loading,

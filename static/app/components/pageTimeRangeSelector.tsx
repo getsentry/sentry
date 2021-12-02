@@ -1,4 +1,4 @@
-import {ComponentProps, useState} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import TimeRangeSelector from 'sentry/components/organizations/timeRangeSelector';
@@ -7,7 +7,7 @@ import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
-type Props = ComponentProps<typeof TimeRangeSelector> & {
+type Props = React.ComponentProps<typeof TimeRangeSelector> & {
   className?: string;
 };
 

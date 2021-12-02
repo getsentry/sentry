@@ -7,6 +7,7 @@ import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {Client, ResponseMeta} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import DateTime from 'sentry/components/dateTime';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
@@ -71,7 +72,7 @@ class AlertRuleDetails extends Component<Props, State> {
     trackAnalyticsEvent({
       eventKey: 'alert_rule_details.viewed',
       eventName: 'Alert Rule Details: Viewed',
-      organization_id: organization.id,
+      organization_id: organization ? organization.id : null,
       rule_id: parseInt(params.ruleId, 10),
       alert: location.query.alert ?? '',
     });
@@ -216,6 +217,8 @@ class AlertRuleDetails extends Component<Props, State> {
 
     return (
       <Fragment>
+        <SentryDocumentTitle title={rule?.name ?? ''} />
+
         <DetailsHeader
           hasIncidentRuleDetailsError={hasError}
           params={params}

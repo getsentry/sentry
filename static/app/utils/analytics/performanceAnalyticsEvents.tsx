@@ -31,8 +31,20 @@ export type PerformanceEventParameters = {
     num_sent: number;
     num_saved: number;
   };
+  'performance_views.landingv3.display_change': {
+    change_to_display: string;
+    default_display: string;
+    current_display: string;
+    is_default: boolean;
+  };
   'performance_views.overview.navigate.summary': {};
   'performance_views.overview.cellaction': {action?: string};
+  'performance_views.spans.change_op': {
+    operation_name?: string;
+  };
+  'performance_views.spans.change_sort': {
+    sort_column?: string;
+  };
 };
 
 export type PerformanceEventKey = keyof PerformanceEventParameters;
@@ -53,4 +65,7 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
     'Performance Views: Landing Widget Switched',
   'performance_views.landingv3.batch_queries':
     'Performance Views: Landing Query Batching',
+  'performance_views.landingv3.display_change': 'Performance Views: Switch Landing Tabs',
+  'performance_views.spans.change_op': 'Performance Views: Change span operation name',
+  'performance_views.spans.change_sort': 'Performance Views: Change span sort column',
 };

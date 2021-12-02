@@ -27,6 +27,15 @@ export enum SpanOperationBreakdownFilter {
   Resource = 'resource',
 }
 
+export const SPAN_OPERATION_BREAKDOWN_FILTER_TO_FIELD: Partial<
+  Record<SpanOperationBreakdownFilter, string>
+> = {
+  [SpanOperationBreakdownFilter.Http]: 'spans.http',
+  [SpanOperationBreakdownFilter.Db]: 'spans.db',
+  [SpanOperationBreakdownFilter.Browser]: 'spans.browser',
+  [SpanOperationBreakdownFilter.Resource]: 'spans.resource',
+};
+
 const OPTIONS: SpanOperationBreakdownFilter[] = [
   SpanOperationBreakdownFilter.Http,
   SpanOperationBreakdownFilter.Db,
