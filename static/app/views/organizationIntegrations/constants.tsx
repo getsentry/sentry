@@ -61,7 +61,7 @@ export const POPULARITY_WEIGHT: {
   rocketchat: 8,
   bitbucket_pipelines: 8,
   github_actions: 8,
-  grafana: 8,
+  grafana: 10,
   insight_finder: 8,
   octohook: 8,
 } as const;
