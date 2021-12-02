@@ -34,7 +34,7 @@ function DashboardsV2Container(props: Props) {
         params={params}
         organization={organization}
       >
-        {({dashboard, dashboards, error, reloadData, onDashboardUpdate}) => {
+        {({dashboard, dashboards, error, onDashboardUpdate}) => {
           return error ? (
             <NotFound />
           ) : dashboard ? (
@@ -43,7 +43,6 @@ function DashboardsV2Container(props: Props) {
               initialState={DashboardState.VIEW}
               dashboard={dashboard}
               dashboards={dashboards}
-              reloadData={reloadData}
               onDashboardUpdate={onDashboardUpdate}
             />
           ) : (
