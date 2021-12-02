@@ -76,4 +76,9 @@ function useMetricsSwitch() {
   return contextValue;
 }
 
-export {MetricsSwitch, MetricsSwitchContextContainer, useMetricsSwitch};
+export {
+  MetricsSwitch,
+  MetricsSwitchContextContainer,
+  useMetricsSwitch,
+  MetricsSwitchContext,
+};

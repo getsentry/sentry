@@ -94,12 +94,12 @@ class MetricsRequest extends React.Component<Props, State> {
       environment,
       field,
       statsPeriod,
-      query,
+      query: query || undefined,
       groupBy,
       orderBy,
       limit,
-      start,
-      end,
+      start: start ?? undefined,
+      end: end ?? undefined,
       interval: interval ? interval : getInterval({start, end, period: statsPeriod}),
     };
   }
