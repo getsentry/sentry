@@ -48,7 +48,7 @@ type Props = {
   savedDataUrl?: string;
   isUser?: boolean;
   title?: string;
-  description?: React.ReactNode;
+  help?: React.ReactNode;
 } & DefaultProps;
 
 type State = {
@@ -159,7 +159,7 @@ class AvatarChooser extends React.Component<Props, State> {
       isUser,
       disabled,
       title,
-      description,
+      help,
       defaultChoice,
     } = this.props;
     const {hasError, model} = this.state;
@@ -220,7 +220,7 @@ class AvatarChooser extends React.Component<Props, State> {
               )}
               {isDefault && preview}
             </AvatarGroup>
-            {description && <AvatarDescription>{description}</AvatarDescription>}
+            {help && <AvatarHelp>{help}</AvatarHelp>}
             <AvatarUploadSection>
               {allowGravatar && avatarType === 'gravatar' && (
                 <Well>
@@ -255,7 +255,7 @@ class AvatarChooser extends React.Component<Props, State> {
   }
 }
 
-const AvatarDescription = styled('p')`
+const AvatarHelp = styled('p')`
   margin: ${space(1)} 0 ${space(2)};
   color: ${p => p.theme.gray300};
   font-size: 14px;

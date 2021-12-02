@@ -45,20 +45,17 @@ const AVATAR_STYLES = {
     size: 50,
     title: t('Default Logo'),
     previewText: t('The default icon for integrations'),
-    description: t('Image must be between 255px by 255px and 1024px by 1024px.'),
+    help: t('Image must be between 255px by 255px and 1024px by 1024px.'),
   },
   simple: {
     size: 20,
     title: t('Default Icon'),
-    previewText: tct(
-      'This is an optional silhouette icon used for [uiDocs:UI Components]',
-      {
-        uiDocs: (
-          <ExternalLink href="https://docs.sentry.io/product/integrations/integration-platform/ui-components/" />
-        ),
-      }
-    ),
-    description: t(
+    previewText: tct('This is a silhouette icon used only for [uiDocs:UI Components]', {
+      uiDocs: (
+        <ExternalLink href="https://docs.sentry.io/product/integrations/integration-platform/ui-components/" />
+      ),
+    }),
+    help: t(
       'Image must be between 255px by 255px and 1024px by 1024px, and use only black and transparency.'
     ),
   },
@@ -368,7 +365,9 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
           model={this.getAvatarModel(isColor)}
           onSave={this.addAvatar}
           title={isColor ? t('Logo') : t('Small Icon')}
-          description={AVATAR_STYLES[avatarStyle].description}
+          help={AVATAR_STYLES[avatarStyle].help.concat(
+            this.isInternal ? '' : t(' Required for publishing.')
+          )}
           savedDataUrl={undefined}
           defaultChoice={{
             allowDefault: true,
