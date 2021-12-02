@@ -574,6 +574,8 @@ backend = RedisReportBackend(redis.clusters.get("default"), 60 * 60 * 3)
 def prepare_reports(dry_run=False, *args, **kwargs):
     timestamp, duration = _fill_default_parameters(*args, **kwargs)
 
+    logger.info("reports.begin_prepare_report")
+
     organizations = _get_organization_queryset()
     for organization in RangeQuerySetWrapper(organizations, step=10000):
         if features.has("organizations:weekly-report-debugging", organization):
