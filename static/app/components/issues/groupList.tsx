@@ -151,7 +151,6 @@ class GroupList extends React.Component<Props, State> {
 
     try {
       const [data, , jqXHR] = await api.requestPromise(endpoint, {
-        method: 'GET',
         includeAllArgs: true,
       });
 
