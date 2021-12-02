@@ -37,6 +37,7 @@ describe('MetricsRequest', () => {
       loading: true,
       reloading: false,
       response: null,
+      responsePrevious: null,
     });
 
     expect(metricsMock).toHaveBeenCalledTimes(1);
@@ -65,6 +66,7 @@ describe('MetricsRequest', () => {
         loading: false,
         reloading: false,
         response: {groups: [], intervals: []},
+        responsePrevious: null,
       })
     );
   });
@@ -84,6 +86,7 @@ describe('MetricsRequest', () => {
       loading: false,
       reloading: false,
       response: null,
+      responsePrevious: null,
     });
   });
 
