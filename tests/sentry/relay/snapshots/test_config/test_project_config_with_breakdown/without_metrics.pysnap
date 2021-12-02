@@ -10,5 +10,6 @@ breakdownsV2:
     - db
     - browser
     - resource
+    - ui
     type: spanOperations
 transactionMetrics: null
