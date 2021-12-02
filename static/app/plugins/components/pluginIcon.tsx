@@ -127,6 +127,7 @@ type Props = {
   size?: number;
   isColor?: boolean;
   sentryApp?: SentryApp;
+  className?: string;
 };
 
 // The following component uses hardcoded frontend resources
@@ -144,18 +145,23 @@ const FallbackPluginIcon = styled('div')<Props>`
     (pluginId !== undefined && ICON_PATHS[pluginId]) || DEFAULT_ICON});
 `;
 
-const PluginIcon = ({pluginId, size, sentryApp, isColor}: Props) => {
-  return (
-    <Feature features={['organizations:sentry-app-logo-upload']}>
-      {({hasFeature}) => {
-        if (hasFeature && sentryApp) {
-          return <Avatar size={size} sentryApp={sentryApp} isColor={isColor} />;
-        }
-        return <FallbackPluginIcon pluginId={pluginId} size={size} />;
-      }}
-    </Feature>
-  );
-};
+const PluginIcon = ({pluginId, size, sentryApp, isColor, className}: Props) => (
+  <Feature features={['organizations:sentry-app-logo-upload']}>
+    {({hasFeature}) => {
+      if (hasFeature && sentryApp) {
+        return (
+          <Avatar
+            size={size}
+            sentryApp={sentryApp}
+            isColor={isColor}
+            className={className}
+          />
+        );
+      }
+      return <FallbackPluginIcon pluginId={pluginId} size={size} className={className} />;
+    }}
+  </Feature>
+);
 
 PluginIcon.defaultProps = {
   pluginId: '_default',
