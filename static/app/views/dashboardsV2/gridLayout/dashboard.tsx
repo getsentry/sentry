@@ -243,7 +243,9 @@ class Dashboard extends Component<Props> {
       onLayoutChange,
     } = this.props;
 
+    // TODO(nar): How do we get breakpoint on the fly?
     const breakpoint = 'desktop';
+    const canModifyLayout = breakpoint === 'desktop' && isEditing;
 
     return (
       <GridLayout
@@ -254,14 +256,13 @@ class Dashboard extends Component<Props> {
         draggableHandle={`.${DRAG_HANDLE_CLASS}`}
         layouts={{desktop: layout, mobile: []}}
         onLayoutChange={newLayout => {
-          // TODO(nar): How do we get breakpoint on the fly?
           if (breakpoint === 'desktop') {
             const isNotAddButton = ({i}) => i !== ADD_WIDGET_BUTTON_DRAG_ID;
             onLayoutChange(newLayout.filter(isNotAddButton));
           }
         }}
-        isDraggable={isEditing}
-        isResizable={isEditing}
+        isDraggable={canModifyLayout}
+        isResizable={canModifyLayout}
         isBounded
       >
         {widgets.map((widget, index) => this.renderWidget(widget, index))}
