@@ -198,9 +198,20 @@ class U2fInterface extends React.Component<Props, State> {
         const challengeArray = base64urlToBuffer(
           this.props.challengeData.webAuthnRegisterData
         );
-        const challenge = cbor.decodeAllSync(challengeArray);
+        const challenge = cbor.decodeAll(challengeArray);
         // challenge contains an array that contains one PublicKeyCredentialRequestOptions object, only need first index to register
-        this.webAuthnRegister(challenge[0].publicKey);
+        challenge
+          .then(data => {
+            this.webAuthnRegister(data[0].publicKey);
+          })
+          .catch(err => {
+            const failure = 'DEVICE_ERROR';
+            Sentry.captureException(err);
+            this.setState({
+              deviceFailure: failure,
+              hasBeenTapped: false,
+            });
+          });
       } else {
         const {registerRequests, registeredKeys} = this.props.challengeData;
         promise = u2f.register(registerRequests as any, registeredKeys as any);
