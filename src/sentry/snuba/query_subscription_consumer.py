@@ -56,7 +56,7 @@ class QuerySubscriptionConsumer:
         settings.KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS: QueryDatasets.EVENTS,
         settings.KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS: QueryDatasets.TRANSACTIONS,
         settings.KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS: QueryDatasets.SESSIONS,
-        settings.KAFKA_METRICS_SUBSCRIPTIONS_RESULTS: QueryDatasets.METRICS_COUNTERS,
+        settings.KAFKA_METRICS_SUBSCRIPTIONS_RESULTS: QueryDatasets.METRICS,
     }
 
     def __init__(
