@@ -1,7 +1,6 @@
 from unittest import TestCase
 
 from django.test import RequestFactory
-from exam import fixture
 
 from sentry.api.endpoints.organization_group_index import OrganizationGroupIndexEndpoint
 from sentry.auth.access import Access
@@ -10,11 +9,9 @@ from sentry.ratelimits import get_rate_limit_key
 
 
 class GetRateLimitKeyTest(TestCase):
-    factory = fixture(RequestFactory)
-
     def setUp(self) -> None:
         self.view = OrganizationGroupIndexEndpoint
-        self.request = self.factory.get("/")
+        self.request = RequestFactory().get("/")
 
     def test_default_ip(self):
         assert (
