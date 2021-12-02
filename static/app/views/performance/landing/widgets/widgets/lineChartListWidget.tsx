@@ -42,20 +42,14 @@ const slowList = [
   PerformanceWidgetSetting.SLOW_DB_OPS,
   PerformanceWidgetSetting.SLOW_BROWSER_OPS,
   PerformanceWidgetSetting.SLOW_RESOURCE_OPS,
-  PerformanceWidgetSetting.MOST_SLOW_FRAMES,
-  PerformanceWidgetSetting.MOST_FROZEN_FRAMES,
 ];
 
 export function LineChartListWidget(props: PerformanceWidgetProps) {
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const {ContainerActions} = props;
 
-  if (props.fields.length !== 1) {
-    throw new Error(
-      `Line chart list widget can only accept a single field (${props.fields})`
-    );
-  }
   const field = props.fields[0];
+  const sortField = props.chartDefinition.sortField;
 
   const isSlowestType = slowList.includes(props.chartSetting);
 
@@ -64,7 +58,10 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
       fields: field,
       component: provided => {
         const eventView = provided.eventView.clone();
-        eventView.sorts = [{kind: 'desc', field}];
+
+        eventView.sorts = sortField
+          ? [{kind: 'desc', field: sortField}]
+          : [{kind: 'desc', field}];
         if (props.chartSetting === PerformanceWidgetSetting.MOST_RELATED_ISSUES) {
           eventView.fields = [
             {field: 'issue'},
@@ -86,7 +83,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             {field: 'transaction'},
             {field: 'project.id'},
             {field: 'epm()'},
-            {field},
+            ...props.fields.map(f => ({field: f})),
           ];
         } else {
           // Most related errors
@@ -243,7 +240,8 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                   slowest: getPerformanceDuration(listItem[fieldString] as number),
                 };
                 const rightValue =
-                  valueMap[isSlowestType ? 'slowest' : props.chartSetting];
+                  valueMap[isSlowestType ? 'slowest' : props.chartSetting] ??
+                  listItem[fieldString];
 
                 switch (props.chartSetting) {
                   case PerformanceWidgetSetting.MOST_RELATED_ISSUES:
@@ -285,6 +283,24 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                       </Fragment>
                     );
                   default:
+                    if (typeof rightValue === 'number') {
+                      return (
+                        <Fragment>
+                          <GrowLink to={transactionTarget} className="truncate">
+                            <Truncate value={transaction} maxLength={40} />
+                          </GrowLink>
+                          <RightAlignedCell>
+                            <Count value={rightValue} />
+                          </RightAlignedCell>
+                          <ListClose
+                            setSelectListIndex={setSelectListIndex}
+                            onClick={() =>
+                              excludeTransaction(listItem.transaction, props)
+                            }
+                          />
+                        </Fragment>
+                      );
+                    }
                     return (
                       <Fragment>
                         <GrowLink to={transactionTarget} className="truncate">
