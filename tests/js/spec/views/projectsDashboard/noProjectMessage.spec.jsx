@@ -123,7 +123,6 @@ describe('NoProjectMessage', function () {
     // verify MockComponent is mounted once
     expect(mount).toHaveBeenCalledTimes(1);
     expect(wrapper.find('NoProjectMessage')).toHaveLength(1);
-    expect(wrapper.find('NoProjectMessage').prop('loadingProjects')).toEqual(true);
     act(() => ProjectsStore.loadInitialData([project1, project2]));
     // await for trigger from projects store to resolve
     await tick();
@@ -133,6 +132,5 @@ describe('NoProjectMessage', function () {
     expect(unmount).toHaveBeenCalledTimes(0);
     expect(mount).toHaveBeenCalledTimes(1);
     expect(wrapper.find('NoProjectMessage')).toHaveLength(1);
-    expect(wrapper.find('NoProjectMessage').prop('loadingProjects')).toEqual(false);
   });
 });

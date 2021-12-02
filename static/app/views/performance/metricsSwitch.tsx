@@ -1,4 +1,4 @@
-import {createContext, ReactNode, useContext, useState} from 'react';
+import {createContext, useContext, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -46,7 +46,7 @@ const MetricsSwitchContext = createContext({
   setIsMetricsData: (_isMetricsData: boolean) => {},
 });
 
-function MetricsSwitchContextContainer({children}: {children: ReactNode}) {
+function MetricsSwitchContextContainer({children}: {children: React.ReactNode}) {
   const organization = useOrganization();
   const localStorageKey = `metrics-performance:${organization.slug}`;
   const [isMetricsData, setIsMetricsData] = useState(
@@ -76,4 +76,9 @@ function useMetricsSwitch() {
   return contextValue;
 }
 
-export {MetricsSwitch, MetricsSwitchContextContainer, useMetricsSwitch};
+export {
+  MetricsSwitch,
+  MetricsSwitchContextContainer,
+  useMetricsSwitch,
+  MetricsSwitchContext,
+};

@@ -55,6 +55,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   dashboards: DashboardListItem[];
   route: PlainRoute;
   reloadData?: () => void;
+  onDashboardUpdate?: (updatedDashboard: DashboardDetails) => void;
   newWidget?: Widget;
 };
 
@@ -263,7 +264,7 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   onAddWidget = () => {
-    const {organization, dashboard, api, reloadData, location} = this.props;
+    const {organization, dashboard, api, onDashboardUpdate, location} = this.props;
     this.setState({
       modifiedDashboard: cloneDashboard(dashboard),
     });
@@ -275,13 +276,13 @@ class DashboardDetail extends Component<Props, State> {
           ...cloneDashboard(dashboard),
           widgets,
         };
+        this.setState({modifiedDashboard});
         updateDashboard(api, organization.slug, modifiedDashboard).then(
           (newDashboard: DashboardDetails) => {
-            addSuccessMessage(t('Dashboard updated'));
-
-            if (reloadData) {
-              reloadData();
+            if (onDashboardUpdate) {
+              onDashboardUpdate(modifiedDashboard);
             }
+            addSuccessMessage(t('Dashboard updated'));
             if (dashboard && newDashboard.id !== dashboard.id) {
               browserHistory.replace({
                 pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
@@ -318,7 +319,7 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   onCommit = () => {
-    const {api, organization, location, dashboard, reloadData} = this.props;
+    const {api, organization, location, dashboard, onDashboardUpdate} = this.props;
     const {layout, modifiedDashboard, dashboardState} = this.state;
 
     switch (dashboardState) {
@@ -375,6 +376,10 @@ class DashboardDetail extends Component<Props, State> {
           }
           updateDashboard(api, organization.slug, modifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
+              if (onDashboardUpdate) {
+                onDashboardUpdate(modifiedDashboard);
+              }
+
               if (organization.features.includes('dashboard-grid-layout')) {
                 this.saveLayoutWithNewWidgets(
                   organization.id,
@@ -393,9 +398,6 @@ class DashboardDetail extends Component<Props, State> {
                 modifiedDashboard: null,
               });
 
-              if (reloadData) {
-                reloadData();
-              }
               if (dashboard && newDashboard.id !== dashboard.id) {
                 browserHistory.replace({
                   pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
@@ -462,18 +464,19 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   onAddIssueWidget = () => {
-    const {api, organization, location, dashboard, reloadData} = this.props;
+    const {api, organization, location, dashboard, onDashboardUpdate} = this.props;
 
     openAddDashboardIssueWidgetModal({
       organization,
       onAddWidget: widget => {
-        updateDashboard(api, organization.slug, {
+        const modifiedDashboard = {
           ...dashboard,
           widgets: [...dashboard.widgets, widget],
-        }).then(
+        };
+        updateDashboard(api, organization.slug, modifiedDashboard).then(
           (newDashboard: DashboardDetails) => {
-            if (reloadData) {
-              reloadData();
+            if (onDashboardUpdate) {
+              onDashboardUpdate(modifiedDashboard);
             }
             if (dashboard && newDashboard.id !== dashboard.id) {
               browserHistory.replace({
