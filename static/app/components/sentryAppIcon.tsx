@@ -1,4 +1,3 @@
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -54,7 +53,10 @@ const SentryAppIcon = ({sentryAppComponent: {sentryApp}}: Props) => {
         const selectedAvatar = sentryApp?.avatars?.find(({color}) => color === false);
         const isDefault = !(selectedAvatar && selectedAvatar?.avatarType === 'upload');
         return hasFeature ? (
-          <AvatarWrapper shouldInvert={ConfigStore.get('theme') === 'dark' && !isDefault}>
+          <AvatarWrapper
+            isDark={ConfigStore.get('theme') === 'dark'}
+            isDefault={isDefault}
+          >
             <Avatar size={20} sentryApp={sentryApp} isColor={false} />
           </AvatarWrapper>
         ) : (
@@ -67,11 +69,8 @@ const SentryAppIcon = ({sentryAppComponent: {sentryApp}}: Props) => {
 
 export default SentryAppIcon;
 
-const AvatarWrapper = styled('span')<{shouldInvert: boolean}>`
-  ${({shouldInvert}) =>
-    shouldInvert &&
-    css`
-      filter: invert(1);
-    `}
+const AvatarWrapper = styled('span')<{isDark: boolean; isDefault: boolean}>`
+  color: ${({isDark}) => (isDark ? 'white' : 'black')};
+  filter: ${({isDark, isDefault}) => (isDark && !isDefault ? 'invert(1)' : 'invert(0)')};
   line-height: 0;
 `;
