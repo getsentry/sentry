@@ -1,5 +1,6 @@
 import {useEffect, useState} from 'react';
 import {browserHistory, InjectedRouter} from 'react-router';
+import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
@@ -121,6 +122,13 @@ function PerformanceContent({selection, location, demoMode}: Props) {
   }
 
   function setError(newError?: string) {
+    if (typeof newError !== 'string') {
+      Sentry.withScope(scope => {
+        scope.setExtra('error', newError);
+        Sentry.captureException(new Error('setError failed with error type.'));
+      });
+      return;
+    }
     setState({...state, error: newError});
   }
 
