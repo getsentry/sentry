@@ -288,6 +288,7 @@ export type Integration = {
   scopes?: string[];
   status: ObjectStatus;
   organizationIntegrationStatus: ObjectStatus;
+  gracePeriodEnd: string;
   provider: OrganizationIntegrationProvider;
   dynamicDisplayInformation?: {
     configure_integration?: {
@@ -308,6 +309,7 @@ export type OrganizationIntegration = {
   name: string;
   status: ObjectStatus;
   organizationIntegrationStatus: ObjectStatus;
+  gracePeriodEnd: string;
   provider: OrganizationIntegrationProvider;
   configOrganization: Field[];
   configData: ConfigData | null;
