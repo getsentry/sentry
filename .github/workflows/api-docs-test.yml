@@ -37,10 +37,9 @@ jobs:
           pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           snuba: true
 
-      - name: Install Javascript Dependencies
-        if: steps.changes.outputs.api_docs == 'true'
+      - name: Build OpenAPI Derefed JSON
         run: |
-          cd api-docs && yarn install --frozen-lockfile
+          make build-api-docs
 
       - name: Run API docs tests
         if: steps.changes.outputs.api_docs == 'true'
