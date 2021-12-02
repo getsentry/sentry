@@ -574,8 +574,6 @@ backend = RedisReportBackend(redis.clusters.get("default"), 60 * 60 * 3)
 def prepare_reports(dry_run=False, *args, **kwargs):
     timestamp, duration = _fill_default_parameters(*args, **kwargs)
 
-    logger.info("reports.begin_prepare_report")
-
     organizations = _get_organization_queryset()
     for organization in RangeQuerySetWrapper(organizations, step=10000):
         if features.has("organizations:weekly-report-debugging", organization):
@@ -585,8 +583,7 @@ def prepare_reports(dry_run=False, *args, **kwargs):
                     "organization_id": organization.id,
                 },
             )
-
-            prepare_organization_report.delay(timestamp, duration, organization.id, dry_run=dry_run)
+        prepare_organization_report.delay(timestamp, duration, organization.id, dry_run=dry_run)
 
 
 @instrumented_task(
@@ -596,10 +593,6 @@ def prepare_reports(dry_run=False, *args, **kwargs):
     acks_late=True,
 )
 def prepare_organization_report(timestamp, duration, organization_id, dry_run=False):
-    logger.info(
-        "reports.begin_prepare_organization_report", extra={"organization_id": organization_id}
-    )
-
     try:
         organization = _get_organization_queryset().get(id=organization_id)
     except Organization.DoesNotExist:
