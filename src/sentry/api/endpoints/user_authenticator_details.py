@@ -119,12 +119,14 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
 
         :auth required:
         """
+
         try:
             authenticator = Authenticator.objects.get(user=user, id=auth_id)
         except (ValueError, Authenticator.DoesNotExist):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
         interface = authenticator.interface
+
         # Remove a single device and not entire authentication method
         if interface.interface_id == "u2f" and interface_device_id is not None:
             device_name = interface.get_device_name(interface_device_id)

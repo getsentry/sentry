@@ -1,4 +1,3 @@
-from base64 import urlsafe_b64encode
 from time import time
 
 from cryptography.exceptions import InvalidKey, InvalidSignature
@@ -14,7 +13,6 @@ from u2flib_server import u2f
 from u2flib_server.model import DeviceRegistration
 
 from sentry import options
-from sentry.auth.authenticators.base import EnrollmentStatus
 from sentry.utils import json
 from sentry.utils.dates import to_datetime
 from sentry.utils.decorators import classproperty
@@ -36,16 +34,10 @@ class U2fInterface(AuthenticatorInterface):
         "Chrome)."
     )
     allow_multi_enrollment = True
+    # rp is a relying party for webauthn, this would be sentry.io on prod and the prefix for one's dev environment
     rp_id = options.get("system.url-prefix").replace("https://", "")
     rp = PublicKeyCredentialRpEntity(rp_id, "Sentry")
-    webauthn_registration_server = Fido2Server(rp)
-
-    def __init__(self, authenticator=None, status=EnrollmentStatus.EXISTING):
-        super().__init__(authenticator, status)
-
-        self.webauthn_authentication_server = U2FFido2Server(
-            app_id=self.u2f_app_id, rp={"id": self.rp_id, "name": "Example RP"}
-        )
+    server = Fido2Server(rp)
 
     @classproperty
     def u2f_app_id(cls):
@@ -77,15 +69,13 @@ class U2fInterface(AuthenticatorInterface):
         if is_webauthn_register_ff:
             credentials = []
             for registeredKey in self.get_u2f_devices():
-                if not type(registeredKey) == AuthenticatorData:
-                    c = self._create_credential_object(registeredKey)
-                    credentials.append(c)
-                else:
-                    credentials.append(registeredKey.credential_data)
+                c = self._create_credential_object(registeredKey)
+                credentials.append(c)
 
-            registration_data, state = self.webauthn_registration_server.register_begin(
+            registration_data, state = self.server.register_begin(
                 user={"id": bytes(user.id), "name": user.username, "displayName": user.username},
                 credentials=credentials,
+                # user_verification is where the authenticator verifies that the user is authorized to use the authenticator, this isn't needed for our usecase so set a discouraged
                 user_verification="discouraged",
             )
             return cbor.encode(registration_data), state
@@ -98,26 +88,15 @@ class U2fInterface(AuthenticatorInterface):
             # XXX: The previous version of python-u2flib-server didn't store
             # the `version` in the device binding. Defaulting to `U2F_V2` here
             # so that we don't break existing u2f registrations.
-            if type(data["binding"]) == AuthenticatorData:
-                rv.append(data["binding"])
-            else:
-                data["binding"].setdefault("version", "U2F_V2")
-                rv.append(DeviceRegistration(data["binding"]))
+            data["binding"].setdefault("version", "U2F_V2")
+            rv.append(DeviceRegistration(data["binding"]))
         return rv
 
     def remove_u2f_device(self, key):
         """Removes a U2F device but never removes the last one.  This returns
         False if the last device would be removed.
         """
-        devices = [
-            x
-            for x in self.config.get("devices") or ()
-            if (
-                urlsafe_b64encode(x["binding"].credential_data.credential_id).decode("ascii") != key
-                if type(x["binding"]) == AuthenticatorData
-                else x["binding"]["keyHandle"] != key
-            )
-        ]
+        devices = [x for x in self.config.get("devices") or () if x["binding"]["keyHandle"] != key]
         if devices:
             self.config["devices"] = devices
             return True
@@ -125,38 +104,20 @@ class U2fInterface(AuthenticatorInterface):
 
     def get_device_name(self, key):
         for device in self.config.get("devices") or ():
-            if not type(device["binding"]) == AuthenticatorData:
-                if device["binding"]["keyHandle"] == key:
-                    return device["name"]
-            elif (
-                urlsafe_b64encode(device["binding"].credential_data.credential_id).decode("ascii")
-                == key
-            ):
+            if device["binding"]["keyHandle"] == key:
                 return device["name"]
 
     def get_registered_devices(self):
         rv = []
         for device in self.config.get("devices") or ():
-            if type(device["binding"]) == AuthenticatorData:
-                rv.append(
-                    {
-                        "timestamp": to_datetime(device["ts"]),
-                        "name": device["name"],
-                        "key_handle": urlsafe_b64encode(
-                            device["binding"].credential_data.credential_id
-                        ).decode("ascii"),
-                        "app_id": self.rp_id,
-                    }
-                )
-            else:
-                rv.append(
-                    {
-                        "timestamp": to_datetime(device["ts"]),
-                        "name": device["name"],
-                        "key_handle": device["binding"]["keyHandle"],
-                        "app_id": device["binding"]["appId"],
-                    }
-                )
+            rv.append(
+                {
+                    "timestamp": to_datetime(device["ts"]),
+                    "name": device["name"],
+                    "key_handle": device["binding"]["keyHandle"],
+                    "app_id": device["binding"]["appId"],
+                }
+            )
         rv.sort(key=lambda x: x["name"])
         return rv
 
@@ -167,9 +128,7 @@ class U2fInterface(AuthenticatorInterface):
             data = json.loads(response_data)
             client_data = ClientData(websafe_decode(data["response"]["clientDataJSON"]))
             att_obj = base.AttestationObject(websafe_decode(data["response"]["attestationObject"]))
-            binding = self.webauthn_registration_server.register_complete(
-                state, client_data, att_obj
-            )
+            binding = self.server.register_complete(state, client_data, att_obj)
         else:
             data, cert = u2f.complete_registration(enrollment_data, response_data, self.u2f_facets)
             binding = dict(data)
@@ -178,56 +137,50 @@ class U2fInterface(AuthenticatorInterface):
             {"name": device_name or "Security Key", "ts": int(time()), "binding": binding}
         )
 
-    def activate(self, request, is_webauthn_signin_ff_enabled):
-        if not is_webauthn_signin_ff_enabled:
-            challenge = dict(u2f.begin_authentication(self.u2f_app_id, self.get_u2f_devices()))
-            # XXX: Upgrading python-u2flib-server to 5.0.0 changes the response
-            # format. Our current js u2f library expects the old format, so
-            # massaging the data to include the old `authenticateRequests` key here.
+    def activate(self, request):
+        challenge = dict(u2f.begin_authentication(self.u2f_app_id, self.get_u2f_devices()))
 
-            authenticate_requests = []
-            for registered_key in challenge["registeredKeys"]:
-                authenticate_requests.append(
-                    {
-                        "challenge": challenge["challenge"],
-                        "version": registered_key["version"],
-                        "keyHandle": registered_key["keyHandle"],
-                        "appId": registered_key["appId"],
-                    }
-                )
-            challenge["authenticateRequests"] = authenticate_requests
+        # XXX: Upgrading python-u2flib-server to 5.0.0 changes the response
+        # format. Our current js u2f library expects the old format, so
+        # massaging the data to include the old `authenticateRequests` key here.
 
-            return ActivationChallengeResult(challenge=challenge)
+        authenticate_requests = []
+        for registered_key in challenge["registeredKeys"]:
+            authenticate_requests.append(
+                {
+                    "challenge": challenge["challenge"],
+                    "version": registered_key["version"],
+                    "keyHandle": registered_key["keyHandle"],
+                    "appId": registered_key["appId"],
+                }
+            )
+        challenge["authenticateRequests"] = authenticate_requests
 
-        credentials = []
-
-        for device in self.get_u2f_devices():
-            if type(device) == AuthenticatorData:
-                credentials.append(device.credential_data)
-            else:
-                credentials.append(self._create_credential_object(device))
-        challenge, state = self.webauthn_authentication_server.authenticate_begin(
-            credentials=credentials
-        )
-        request.session["webauthn_authentication_state"] = state
-
-        return ActivationChallengeResult(challenge=cbor.encode(challenge["publicKey"]))
+        return ActivationChallengeResult(challenge=challenge)
 
     def validate_response(self, request, challenge, response, is_webauthn_signin_ff_enabled):
         try:
             if not is_webauthn_signin_ff_enabled:
                 u2f.complete_authentication(challenge, response, self.u2f_facets)
                 return True
-
+            # TODO change rp.id later when register is implemented
+            server = U2FFido2Server(
+                app_id=challenge["appId"],
+                rp={"id": challenge["appId"], "name": "Relying Party"},
+            )
+            state = {
+                "challenge": challenge["challenge"],
+                "user_verification": None,
+            }
             credentials = []
-            for device in self.get_u2f_devices():
-                if type(device) == AuthenticatorData:
-                    credentials.append(device.credential_data)
-                else:
-                    credentials.append(self._create_credential_object(device))
-
-            self.webauthn_authentication_server.authenticate_complete(
-                state=request.session["webauthn_authentication_state"],
+            for registeredKey in challenge["registeredKeys"]:
+                c = base.AttestedCredentialData.from_ctap1(
+                    websafe_decode(registeredKey["keyHandle"]),
+                    websafe_decode(registeredKey["publicKey"]),
+                )
+                credentials.append(c)
+            server.authenticate_complete(
+                state=state,
                 credentials=credentials,
                 credential_id=websafe_decode(response["keyHandle"]),
                 client_data=ClientData(websafe_decode(response["clientData"])),
