@@ -68,7 +68,8 @@ class RuleSerializer(Serializer):
         for rule in rules.values():
             if rule.owner_id:
                 type = actor_type_to_string(rule.owner.type)
-                result[rule]["owner"] = f"{type}:{resolved_actors[type][rule.owner_id]}"
+                if rule.owner_id in resolved_actors[type]:
+                    result[rule]["owner"] = f"{type}:{resolved_actors[type][rule.owner_id]}"
 
         return result
 
