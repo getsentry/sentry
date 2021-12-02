@@ -10,6 +10,7 @@ import _DurationChart from 'sentry/views/performance/charts/chart';
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import {transformMetricsToArea} from '../transforms/transformMetricsToArea';
 import {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
+import {ChartDefinition, PerformanceWidgetSetting} from '../widgetDefinitions';
 
 import {DurationChart, HighlightNumber, Subtitle} from './singleFieldAreaWidget';
 
@@ -17,7 +18,11 @@ type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformMetricsToArea>;
 };
 
-export function SingleFieldAreaWidgetMetrics(props: PerformanceWidgetProps) {
+export function SingleFieldAreaWidgetMetrics(
+  props: PerformanceWidgetProps & {
+    widgetDefinitions: Record<PerformanceWidgetSetting, ChartDefinition>;
+  }
+) {
   const api = useApi();
   const {
     ContainerActions,
@@ -27,7 +32,9 @@ export function SingleFieldAreaWidgetMetrics(props: PerformanceWidgetProps) {
     chartColor,
     chartHeight,
     fields,
+    widgetDefinitions,
   } = props;
+
   const globalSelection = eventView.getGlobalSelection();
 
   if (fields.length !== 1) {
@@ -36,9 +43,21 @@ export function SingleFieldAreaWidgetMetrics(props: PerformanceWidgetProps) {
 
   const field = fields[0];
 
+  // TODO(metrics): make this list complete once api is ready
+  const metricsFieldMap = {
+    [widgetDefinitions.p75_lcp_area.fields[0]]: widgetDefinitions.p75_lcp_area.fields[0],
+    [widgetDefinitions.tpm_area.fields[0]]: 'count(transaction.duration)',
+  };
+
+  const metricsField = metricsFieldMap[field];
+
+  if (!metricsField) {
+    throw new Error(`The field ${field} is not yet supported by metrics`);
+  }
+
   const chart = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
     () => ({
-      fields: field,
+      fields: metricsField,
       component: ({
         start,
         end,
@@ -73,6 +92,7 @@ export function SingleFieldAreaWidgetMetrics(props: PerformanceWidgetProps) {
   return (
     <GenericPerformanceWidget<DataType>
       {...props}
+      fields={[metricsField]}
       Subtitle={() => (
         <Subtitle>
           {globalSelection.datetime.period

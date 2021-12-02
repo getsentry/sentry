@@ -99,7 +99,8 @@ const _WidgetContainer = (props: Props) => {
     setChartSettingState(_chartSetting);
   }, [rest.defaultChartSetting]);
 
-  const chartDefinition = WIDGET_DEFINITIONS({organization})[chartSetting];
+  const widgetDefinitions = WIDGET_DEFINITIONS({organization});
+  const chartDefinition = widgetDefinitions[chartSetting];
   const widgetProps = {
     ...chartDefinition,
     chartSetting,
@@ -137,7 +138,13 @@ const _WidgetContainer = (props: Props) => {
       return <TrendsWidget {...passedProps} {...widgetProps} />;
     case GenericPerformanceWidgetDataType.area:
       if (isMetricsData) {
-        return <SingleFieldAreaWidgetMetrics {...passedProps} {...widgetProps} />;
+        return (
+          <SingleFieldAreaWidgetMetrics
+            {...passedProps}
+            {...widgetProps}
+            widgetDefinitions={widgetDefinitions}
+          />
+        );
       }
       return <SingleFieldAreaWidget {...passedProps} {...widgetProps} />;
     case GenericPerformanceWidgetDataType.vitals:
