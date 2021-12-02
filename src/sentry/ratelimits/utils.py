@@ -74,17 +74,21 @@ def get_rate_limit_key(view_func: EndpointFunction, request: Request) -> str | N
 def get_rate_limit_value(
     http_method: str, endpoint: Type[Endpoint], category: RateLimitCategory
 ) -> RateLimit | None:
-    """
-    Read the rate limit from the view function to be used for the rate limit check
-    """
-    rate_limit_lookup_dict = getattr(endpoint, "rate_limits", None)
+    """Read the rate limit from the view function to be used for the rate limit check."""
+    classes_queue = [endpoint]
+    while len(classes_queue) > 0:
+        next_class = classes_queue.pop(0)
+        rate_limit_lookup_dict = getattr(next_class, "rate_limits", {})
+        ratelimits_by_category = rate_limit_lookup_dict.get(http_method, {})
+        ratelimit_option = ratelimits_by_category.get(category)
+        if ratelimit_option:
+            return ratelimit_option
 
-    # If the endpoint doesn't have a rate limit property, then it isn't a
-    # subclass to our Endpoint it should not be rate limited.
-    if rate_limit_lookup_dict is None:
-        return None
-    rate_limits = rate_limit_lookup_dict.get(http_method, settings.SENTRY_RATELIMITER_DEFAULTS)
-    return rate_limits.get(category, settings.SENTRY_RATELIMITER_DEFAULTS[category])
+        # Everything will eventually hit `object`, which has no __bases__.
+        for klass in endpoint.__bases__:
+            classes_queue.append(klass)
+
+    return settings.SENTRY_RATELIMITER_DEFAULTS[category]
 
 
 def above_rate_limit_check(key: str, rate_limit: RateLimit) -> Mapping[str, bool | int]:
