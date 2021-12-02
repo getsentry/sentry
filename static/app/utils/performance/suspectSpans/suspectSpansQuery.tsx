@@ -1,4 +1,3 @@
-import {ReactNode} from 'react';
 import omit from 'lodash/omit';
 
 import {defined} from 'sentry/utils';
@@ -13,6 +12,7 @@ import {SuspectSpans} from './types';
 type SuspectSpansProps = {
   perSuspect?: number;
   spanOps?: string[];
+  spanGroups?: string[];
 };
 
 type RequestProps = DiscoverQueryProps & SuspectSpansProps;
@@ -22,17 +22,20 @@ type ChildrenProps = Omit<GenericChildrenProps<SuspectSpansProps>, 'tableData'> 
 };
 
 type Props = RequestProps & {
-  children: (props: ChildrenProps) => ReactNode;
+  children: (props: ChildrenProps) => React.ReactNode;
 };
 
 function getSuspectSpanPayload(props: RequestProps) {
-  const {perSuspect, spanOps} = props;
-  const payload = {perSuspect, spanOp: spanOps};
+  const {perSuspect, spanOps, spanGroups} = props;
+  const payload = {perSuspect, spanOp: spanOps, spanGroup: spanGroups};
   if (!defined(payload.perSuspect)) {
     delete payload.perSuspect;
   }
   if (!defined(payload.spanOp)) {
     delete payload.spanOp;
+  }
+  if (!defined(payload.spanGroup)) {
+    delete payload.spanGroup;
   }
   const additionalPayload = omit(props.eventView.getEventsAPIPayload(props.location), [
     'field',

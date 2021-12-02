@@ -237,15 +237,23 @@ class ResolveActions extends React.Component<Props> {
     return (
       <Tooltip disabled={!projectFetchError} title={t('Error fetching project')}>
         <ButtonBar merged>
-          <ActionLink
-            {...actionLinkProps}
-            type="button"
-            title={t('Resolve')}
-            icon={<IconCheckmark size="xs" />}
-            onAction={() => onUpdate({status: ResolutionStatus.RESOLVED})}
+          <Tooltip
+            disabled={actionLinkProps.disabled}
+            title={t(
+              'Resolves the issue. The issue will get unresolved if it happens again.'
+            )}
+            delay={300}
           >
-            {t('Resolve')}
-          </ActionLink>
+            <ActionLink
+              {...actionLinkProps}
+              type="button"
+              title={t('Resolve')}
+              icon={<IconCheckmark size="xs" />}
+              onAction={() => onUpdate({status: ResolutionStatus.RESOLVED})}
+            >
+              {t('Resolve')}
+            </ActionLink>
+          </Tooltip>
           {this.renderDropdownMenu()}
         </ButtonBar>
       </Tooltip>

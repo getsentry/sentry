@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 
 import {t} from 'sentry/locale';
 import {OrganizationSummary} from 'sentry/types';
@@ -26,7 +26,7 @@ type Props = {
 
 type State = {};
 
-class NotificationSettingsByOrganization extends React.Component<Props, State> {
+class NotificationSettingsByOrganization extends Component<Props, State> {
   render() {
     const {notificationType, notificationSettings, onChange, organizations} = this.props;
 
