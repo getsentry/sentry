@@ -23,6 +23,10 @@ from sentry.utils.http import absolute_uri
 from .base import ActivationChallengeResult, AuthenticatorInterface
 
 
+def decode_credential_id(device):
+    return urlsafe_b64encode(device["binding"].credential_data.credential_id).decode("ascii")
+
+
 class U2fInterface(AuthenticatorInterface):
     type = 3
     interface_id = "u2f"
@@ -36,7 +40,6 @@ class U2fInterface(AuthenticatorInterface):
         "Chrome)."
     )
     allow_multi_enrollment = True
-    # rp is a relying party for webauthn, this would be sentry.io on prod and the prefix for one's dev environment
     rp_id = options.get("system.url-prefix").replace("https://", "")
     rp = PublicKeyCredentialRpEntity(rp_id, "Sentry")
     webauthn_registration_server = Fido2Server(rp)
@@ -45,7 +48,7 @@ class U2fInterface(AuthenticatorInterface):
         super().__init__(authenticator, status)
 
         self.webauthn_authentication_server = U2FFido2Server(
-            app_id=self.u2f_app_id, rp={"id": self.rp_id, "name": "Example RP"}
+            app_id=self.u2f_app_id, rp={"id": self.rp_id, "name": "Sentry"}
         )
 
     @classproperty
@@ -71,6 +74,18 @@ class U2fInterface(AuthenticatorInterface):
             websafe_decode(registeredKey["publicKey"]),
         )
 
+    def _get_kept_devices(self, key):
+        # return a list of devices that doesn't match the key
+        return [
+            x
+            for x in self.config.get("devices") or ()
+            if (
+                decode_credential_id(x) != key
+                if type(x["binding"]) == AuthenticatorData
+                else x["binding"]["keyHandle"] != key
+            )
+        ]
+
     def generate_new_config(self):
         return {}
 
@@ -78,16 +93,15 @@ class U2fInterface(AuthenticatorInterface):
         if is_webauthn_register_ff:
             credentials = []
             for registeredKey in self.get_u2f_devices():
-                if not type(registeredKey) == AuthenticatorData:
+                if type(registeredKey) == AuthenticatorData:
+                    credentials.append(registeredKey.credential_data)
+                else:
                     c = self._create_credential_object(registeredKey)
                     credentials.append(c)
-                else:
-                    credentials.append(registeredKey.credential_data)
 
             registration_data, state = self.webauthn_registration_server.register_begin(
                 user={"id": bytes(user.id), "name": user.username, "displayName": user.username},
                 credentials=credentials,
-                # user_verification is where the authenticator verifies that the user is authorized to use the authenticator, this isn't needed for our usecase so set a discouraged
                 user_verification="discouraged",
             )
             return cbor.encode(registration_data), state
@@ -111,15 +125,8 @@ class U2fInterface(AuthenticatorInterface):
         """Removes a U2F device but never removes the last one.  This returns
         False if the last device would be removed.
         """
-        devices = [
-            x
-            for x in self.config.get("devices") or ()
-            if (
-                urlsafe_b64encode(x["binding"].credential_data.credential_id).decode("ascii") != key
-                if type(x["binding"]) == AuthenticatorData
-                else x["binding"]["keyHandle"] != key
-            )
-        ]
+        devices = self._get_kept_devices(key)
+
         if devices:
             self.config["devices"] = devices
             return True
@@ -127,13 +134,10 @@ class U2fInterface(AuthenticatorInterface):
 
     def get_device_name(self, key):
         for device in self.config.get("devices") or ():
-            if not type(device["binding"]) == AuthenticatorData:
-                if device["binding"]["keyHandle"] == key:
+            if type(device["binding"]) == AuthenticatorData:
+                if decode_credential_id(device) == key:
                     return device["name"]
-            elif (
-                urlsafe_b64encode(device["binding"].credential_data.credential_id).decode("ascii")
-                == key
-            ):
+            elif device["binding"]["keyHandle"] == key:
                 return device["name"]
 
     def get_registered_devices(self):
@@ -144,9 +148,7 @@ class U2fInterface(AuthenticatorInterface):
                     {
                         "timestamp": to_datetime(device["ts"]),
                         "name": device["name"],
-                        "key_handle": urlsafe_b64encode(
-                            device["binding"].credential_data.credential_id
-                        ).decode("ascii"),
+                        "key_handle": decode_credential_id(device),
                         "app_id": self.rp_id,
                     }
                 )

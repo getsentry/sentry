@@ -1,10 +1,12 @@
 from django.db import transaction
+from fido2.ctap2 import AuthenticatorData
 from rest_framework import status
 from rest_framework.response import Response
 
 from sentry.api.bases.user import OrganizationUserPermission, UserEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
+from sentry.auth.authenticators.u2f import decode_credential_id
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import Authenticator
 from sentry.security import capture_security_activity
@@ -16,7 +18,10 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
     def _get_device_for_rename(self, authenticator, interface_device_id):
         devices = authenticator.config
         for device in devices["devices"]:
-            if device["binding"]["keyHandle"] == interface_device_id:
+            if type(device["binding"]) == AuthenticatorData:
+                if decode_credential_id(device) == interface_device_id:
+                    return device
+            elif device["binding"]["keyHandle"] == interface_device_id:
                 return device
         return None
 

@@ -17,6 +17,7 @@ COOKIE_MAX_AGE = 60 * 60 * 24 * 31
 
 
 class TwoFactorAuthView(BaseView):
+    U2F_INTERFACE = 3
     auth_required = False
 
     def _is_webauthn_signin_ff_enabled(self, user, request_user):
@@ -137,7 +138,7 @@ class TwoFactorAuthView(BaseView):
         webauthn_signin_ff = self._is_webauthn_signin_ff_enabled(user, request.user)
 
         if request.method == "GET":
-            if interface.type == 3:
+            if interface.type == self.U2F_INTERFACE:
                 activation = interface.activate(request, webauthn_signin_ff)
             else:
                 activation = interface.activate(request)
@@ -145,7 +146,7 @@ class TwoFactorAuthView(BaseView):
             if activation is not None and activation.type == "challenge":
                 challenge = activation.challenge
 
-                if webauthn_signin_ff and interface.type == 3:
+                if webauthn_signin_ff and interface.type == self.U2F_INTERFACE:
                     activation.challenge = {}
                     activation.challenge["webAuthnAuthenticationData"] = b64encode(challenge)
 
