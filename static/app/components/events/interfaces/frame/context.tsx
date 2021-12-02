@@ -110,6 +110,20 @@ const Context = ({
           );
         })}
 
+      {organization?.features.includes('integrations-stacktrace-link') &&
+        !frame.context &&
+        frame.lineNo &&
+        frame.filename && (
+          <ErrorBoundary customComponent={null}>
+            <StacktraceLink
+              key={0}
+              lineNo={frame.lineNo}
+              frame={frame}
+              event={event}
+            />
+          </ErrorBoundary>
+      )}
+
       {(hasContextRegisters || hasContextVars) && (
         <StyledClippedBox clipHeight={100}>
           {hasContextRegisters && (
