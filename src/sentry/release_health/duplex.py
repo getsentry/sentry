@@ -35,7 +35,7 @@ from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.release_health.sessions import SessionsReleaseHealthBackend
 from sentry.snuba.sessions import get_rollup_starts_and_buckets
 from sentry.snuba.sessions_v2 import QueryDefinition
-from sentry.utils.metrics import timer
+from sentry.utils.metrics import incr, timer
 
 DateLike = Union[datetime, str]
 
@@ -500,7 +500,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
 
         sessions_fn = getattr(self.sessions, fn_name)
         tags = {"method": fn_name}
-        with timer("releasehealth.sessions.duration", tags=tags):
+        with timer("releasehealth.sessions.duration", tags=tags, sample_rate=1.0):
             ret_val = sessions_fn(*args)
 
         if organization is None or not features.has(
@@ -516,17 +516,40 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         except Exception as ex:
             should_compare = False
             self.log_exception(ex, fn_name)
+            incr(
+                "releasehealth.metrics.check_should_compare",
+                tags={"should_compare": "crashed", **tags},
+                sample_rate=1.0,
+            )
+        else:
+            incr(
+                "releasehealth.metrics.check_should_compare",
+                tags={"should_compare": str(should_compare), **tags},
+                sample_rate=1.0,
+            )
 
         if should_compare:
             copy = deepcopy(ret_val)
             try:
                 metrics_fn = getattr(self.metrics, fn_name)
-                with timer("releasehealth.metrics.duration", tags=tags):
+                with timer("releasehealth.metrics.duration", tags=tags, sample_rate=1.0):
                     metrics_val = metrics_fn(*args)
-                with timer("releasehealth.results-diff.duration", tags=tags):
+                with timer("releasehealth.results-diff.duration", tags=tags, sample_rate=1.0):
                     errors = compare_results(copy, metrics_val, rollup, None, schema)
+
+                incr(
+                    "releasehealth.metrics.compare",
+                    tags={"has_errors": str(bool(errors)), **tags},
+                    sample_rate=1.0,
+                )
+
                 self.log_errors(errors, fn_name, copy, metrics_val)
             except Exception as ex:
+                incr(
+                    "releasehealth.metrics.compare",
+                    tags={"has_errors": "crashed", **tags},
+                    sample_rate=1.0,
+                )
                 self.log_exception(ex, fn_name, copy)
         return ret_val
 
