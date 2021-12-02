@@ -1,9 +1,6 @@
 import {Fragment, useMemo} from 'react';
-import {withRouter} from 'react-router';
-import styled from '@emotion/styled';
 
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
-import {getInterval} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import MetricsRequest from 'sentry/utils/metrics/metricsRequest';
 import {decodeList} from 'sentry/utils/queryString';
@@ -13,6 +10,8 @@ import _DurationChart from 'sentry/views/performance/charts/chart';
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import {transformMetricsToArea} from '../transforms/transformMetricsToArea';
 import {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
+
+import {DurationChart, HighlightNumber, Subtitle} from './singleFieldAreaWidget';
 
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformMetricsToArea>;
@@ -58,14 +57,6 @@ export function SingleFieldAreaWidgetMetrics(props: PerformanceWidgetProps) {
           project={project}
           environment={environment}
           query="transaction:foo" // TODO(metrics): make this dynamic once api is ready (widgetData.list.data[selectedListIndex].transaction)
-          interval={getInterval(
-            {
-              start,
-              end,
-              period,
-            },
-            'medium'
-          )}
           field={decodeList(chartFields)}
           includePrevious
         >
@@ -117,14 +108,3 @@ export function SingleFieldAreaWidgetMetrics(props: PerformanceWidgetProps) {
     />
   );
 }
-
-const DurationChart = withRouter(_DurationChart);
-const Subtitle = styled('span')`
-  color: ${p => p.theme.gray300};
-  font-size: ${p => p.theme.fontSizeMedium};
-`;
-
-const HighlightNumber = styled('div')<{color?: string}>`
-  color: ${p => p.color};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-`;

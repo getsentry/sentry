@@ -90,7 +90,7 @@ class MetricsRequest extends React.Component<Props, State> {
     return `/organizations/${organization.slug}/metrics/data/`;
   }
 
-  baseQueryParams(previousPeriod = false) {
+  baseQueryParams({previousPeriod = false} = {}) {
     const {
       project,
       environment,
@@ -152,7 +152,11 @@ class MetricsRequest extends React.Component<Props, State> {
     const promises = [api.requestPromise(this.path, {query: this.baseQueryParams()})];
 
     if (shouldFetchPreviousPeriod({start, end, period: statsPeriod, includePrevious})) {
-      promises.push(api.requestPromise(this.path, {query: this.baseQueryParams({previousPeriod: true})}));
+      promises.push(
+        api.requestPromise(this.path, {
+          query: this.baseQueryParams({previousPeriod: true}),
+        })
+      );
     }
 
     try {
