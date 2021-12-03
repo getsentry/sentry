@@ -7,7 +7,8 @@ import {Client} from 'sentry/api';
 import {getInterval} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import {DateString, MetricsApiResponse, Organization} from 'sentry/types';
-import localStorage from 'sentry/utils/localStorage';
+
+import {getMetricsDataSource} from './getMetricsDataSource';
 
 const propNamesToIgnore = ['api', 'children'];
 const omitIgnoredProps = (props: Props) =>
@@ -102,7 +103,7 @@ class MetricsRequest extends React.Component<Props, State> {
       start: start ?? undefined,
       end: end ?? undefined,
       interval: interval ? interval : getInterval({start, end, period: statsPeriod}),
-      datasource: localStorage.getItem('metrics.datasource') ?? undefined,
+      datasource: getMetricsDataSource(),
     };
   }
 
