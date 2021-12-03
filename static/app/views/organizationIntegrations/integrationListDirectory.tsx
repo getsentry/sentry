@@ -433,6 +433,7 @@ export class IntegrationListDirectory extends AsyncComponent<
 
     return (
       <IntegrationRow
+        sentryApp={app}
         key={`sentry-app-row-${app.slug}`}
         data-test-id="integration-row"
         organization={organization}
