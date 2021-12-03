@@ -42,6 +42,7 @@ jobs:
 
       - name: Checkout getsentry/sentry-api-schema
         uses: actions/checkout@v2
+        if: steps.changes.outputs.api_docs == 'true'
         with:
           ref: 'main'
           repository: getsentry/sentry-api-schema
@@ -49,12 +50,15 @@ jobs:
           token: ${{ steps.getsentry.outputs.token }}
 
       - name: Install/setup node
+        if: steps.changes.outputs.api_docs == 'true'
         uses: volta-cli/action@v1
 
       - name: Build OpenAPI Derefed JSON
+        if: steps.changes.outputs.api_docs == 'true'
         run: |
           make build-api-docs
 
       - name: Compare OpenAPI Derefed JSON
+        if: steps.changes.outputs.api_docs == 'true'
         run: |
           npx json-diff --color sentry-api-schema/openapi-derefed.json tests/apidocs/openapi-derefed.json

@@ -37,10 +37,6 @@ jobs:
           pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           snuba: true
 
-      - name: Build OpenAPI Derefed JSON
-        run: |
-          make build-api-docs
-
       - name: Run API docs tests
         if: steps.changes.outputs.api_docs == 'true'
         run: |

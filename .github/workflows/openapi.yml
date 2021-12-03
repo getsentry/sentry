@@ -43,6 +43,7 @@ jobs:
           pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
 
       - name: Checkout getsentry/sentry-api-schema
+        if: steps.changes.outputs.api_docs == 'true'
         uses: actions/checkout@v2
         with:
           ref: 'main'
@@ -51,13 +52,16 @@ jobs:
           token: ${{ steps.getsentry.outputs.token }}
 
       - name: Install/setup node
+        if: steps.changes.outputs.api_docs == 'true'
         uses: volta-cli/action@v1
 
       - name: Build OpenAPI Derefed JSON
+        if: steps.changes.outputs.api_docs == 'true'
         run: |
           make build-api-docs
 
       - name: Copy artifact into getsentry/sentry-api-schema
+        if: steps.changes.outputs.api_docs == 'true'
         run: |
           cp tests/apidocs/openapi-derefed.json sentry-api-schema
 
