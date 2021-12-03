@@ -2,7 +2,6 @@ import {Fragment, useMemo, useState} from 'react';
 import {withRouter} from 'react-router';
 
 import Button from 'sentry/components/button';
-import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
 import TrendsDiscoverQuery from 'sentry/utils/performance/trends/trendsDiscoverQuery';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -144,9 +143,7 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
                 });
                 return (
                   <Fragment>
-                    <GrowLink to={trendsTarget}>
-                      <Truncate value={listItem.transaction} maxLength={40} />
-                    </GrowLink>
+                    <GrowLink to={trendsTarget}>{listItem.transaction}</GrowLink>
                     <RightAlignedCell>
                       <CompareDurations transaction={listItem} />
                     </RightAlignedCell>

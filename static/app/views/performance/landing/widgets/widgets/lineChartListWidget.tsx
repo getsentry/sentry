@@ -7,7 +7,6 @@ import {getInterval} from 'sentry/components/charts/utils';
 import Count from 'sentry/components/count';
 import Link from 'sentry/components/links/link';
 import Tooltip from 'sentry/components/tooltip';
-import Truncate from 'sentry/components/truncate';
 import {t, tct} from 'sentry/locale';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
@@ -258,12 +257,13 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                     return (
                       <Fragment>
                         <GrowLink to={transactionTarget} className="truncate">
-                          <Truncate value={transaction} maxLength={40} />
+                          {transaction}
                         </GrowLink>
                         <RightAlignedCell>
                           <Tooltip title={listItem.title}>
                             <Link
                               to={`/organizations/${props.organization.slug}/issues/${listItem['issue.id']}/`}
+                              className="truncate"
                             >
                               {rightValue}
                             </Link>
@@ -279,7 +279,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                     return (
                       <Fragment>
                         <GrowLink to={transactionTarget} className="truncate">
-                          <Truncate value={transaction} maxLength={40} />
+                          {transaction}
                         </GrowLink>
                         <RightAlignedCell>
                           {tct('[count] errors', {
@@ -297,7 +297,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                       return (
                         <Fragment>
                           <GrowLink to={transactionTarget} className="truncate">
-                            <Truncate value={transaction} maxLength={40} />
+                            {transaction}
                           </GrowLink>
                           <RightAlignedCell>
                             <Count value={rightValue} />
@@ -314,7 +314,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                     return (
                       <Fragment>
                         <GrowLink to={transactionTarget} className="truncate">
-                          <Truncate value={transaction} maxLength={40} />
+                          {transaction}
                         </GrowLink>
                         <RightAlignedCell>{rightValue}</RightAlignedCell>
                         <ListClose

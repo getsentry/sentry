@@ -5,7 +5,6 @@ import pick from 'lodash/pick';
 import Button from 'sentry/components/button';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
-import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
@@ -281,9 +280,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
 
                 return (
                   <Fragment>
-                    <GrowLink to={target}>
-                      <Truncate value={transaction} maxLength={40} />
-                    </GrowLink>
+                    <GrowLink to={target}>{transaction}</GrowLink>
                     <VitalBarCell>
                       <VitalBar
                         isLoading={provided.widgetData.list?.isLoading}

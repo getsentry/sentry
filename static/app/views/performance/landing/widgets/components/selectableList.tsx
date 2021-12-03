@@ -67,6 +67,7 @@ export const Subtitle = styled('span')`
 `;
 export const GrowLink = styled(Link)`
   flex-grow: 1;
+  margin-right: ${space(2)};
 `;
 
 export const WidgetEmptyStateWarning = () => {
