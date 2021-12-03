@@ -499,21 +499,23 @@ class EventView {
   }
 
   isEqualTo(other: EventView): boolean {
-    const keys = [
-      'id',
-      'name',
-      'query',
-      'statsPeriod',
-      'fields',
-      'sorts',
-      'project',
-      'environment',
-      'topEvents',
-    ];
-
+    const defaults = {
+      id: undefined,
+      name: undefined,
+      query: undefined,
+      statsPeriod: undefined,
+      fields: undefined,
+      sorts: undefined,
+      project: undefined,
+      environment: undefined,
+      yAxis: 'count()',
+      display: DisplayModes.DEFAULT,
+      topEvents: '5',
+    };
+    const keys = Object.keys(defaults);
     for (const key of keys) {
-      const currentValue = this[key];
-      const otherValue = other[key];
+      const currentValue = this[key] ?? defaults[key];
+      const otherValue = other[key] ?? defaults[key];
 
       if (!isEqual(currentValue, otherValue)) {
         return false;
@@ -538,21 +540,6 @@ class EventView {
       }
     }
 
-    // compare yAxis selections
-    // undefined yAxis values default to count()
-    const currentYAxisValue = this.yAxis ?? 'count()';
-    const otherYAxisValue = other.yAxis ?? 'count()';
-    if (!isEqual(currentYAxisValue, otherYAxisValue)) {
-      return false;
-    }
-
-    // compare Display Mode selections
-    // undefined Display Mode values default to "default"
-    const currentDisplayMode = this.display ?? DisplayModes.DEFAULT;
-    const otherDisplayMode = other.display ?? DisplayModes.DEFAULT;
-    if (!isEqual(currentDisplayMode, otherDisplayMode)) {
-      return false;
-    }
     return true;
   }
 

@@ -47,7 +47,7 @@ export default class SentryApplicationRow extends PureComponent<Props> {
     return (
       <SentryAppItem data-test-id={app.slug}>
         <StyledFlex>
-          <PluginIcon size={36} pluginId={app.slug} />
+          <PluginIcon sentryApp={app} isColor size={36} pluginId={app.slug} />
           <SentryAppBox>
             <SentryAppName hideStatus={this.hideStatus()}>
               <Link to={`/settings/${organization.slug}/developer-settings/${app.slug}/`}>
