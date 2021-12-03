@@ -2,14 +2,13 @@ from urllib.parse import parse_qs
 
 import responses
 
-from sentry.integrations.slack import (
-    SlackNotifyServiceAction,
-    register_additional_attachment_generator,
-)
+from sentry.integrations.slack import SlackNotifyServiceAction
 from sentry.integrations.slack.utils import SLACK_RATE_LIMITED_MESSAGE
 from sentry.models import Integration
+from sentry.notifications.additional_attachment_manager import manager
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.helpers import install_slack
+from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
 
@@ -25,7 +24,7 @@ class SlackNotifyActionTest(RuleTestCase):
         self.integration = install_slack(self.get_event().project.organization)
 
     def tearDown(self):
-        register_additional_attachment_generator(None)
+        manager.attachment_generators[ExternalProviders.SLACK] = None
 
     def assert_form_valid(self, form, expected_channel_id, expected_channel):
         assert form.is_valid()
@@ -352,7 +351,7 @@ class SlackNotifyActionTest(RuleTestCase):
 
     @responses.activate
     def test_additional_attachment(self):
-        register_additional_attachment_generator(additional_attachment_generator)
+        manager.attachment_generators[ExternalProviders.SLACK] = additional_attachment_generator
         event = self.get_event()
 
         rule = self.get_rule(data={"workspace": self.integration.id, "channel": "#my-channel"})

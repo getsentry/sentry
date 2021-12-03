@@ -6,9 +6,9 @@ from django.core.exceptions import ValidationError
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.eventstore.models import Event
-from sentry.integrations.slack import get_additional_attachment
 from sentry.integrations.slack.message_builder.issues import build_group_attachment
 from sentry.models import Integration
+from sentry.notifications.additional_attachment_manager import get_additional_attachment
 from sentry.rules.actions.base import IntegrationEventAction
 from sentry.rules.processor import RuleFuture
 from sentry.shared_integrations.exceptions import (
