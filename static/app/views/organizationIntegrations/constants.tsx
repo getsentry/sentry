@@ -257,16 +257,16 @@ export const documentIntegrationList: DocumentIntegration[] = [
     ],
   },
   {
-    slug: 'insight_finder',
-    name: 'Insight Finder',
-    author: 'Insight Finder',
+    slug: 'insightfinder',
+    name: 'InsightFinder',
+    author: 'InsightFinder',
     docUrl: 'https://insightfinder.com/insightfinder-sentry-integration/',
     description:
       'InsightFinder ingests the errors that Sentry detects through its standard APIs and analyzes them using its patented, unsupervised, neural network algorithms. InsightFinder prioritizes those errors and provides context so anomalous events can be resolved before business is impacted.',
     features: [
       {
         featureGate: 'webhook',
-        description: 'Forward Sentry events to Insight Finder.',
+        description: 'Forward Sentry events to InsightFinder.',
       },
     ],
     resourceLinks: [

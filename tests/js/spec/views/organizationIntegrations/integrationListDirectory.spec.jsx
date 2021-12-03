@@ -61,11 +61,11 @@ describe('IntegrationListDirectory', function () {
         'datadog',
         'fullstory',
         'github_actions',
-        'insight_finder',
         'netlify',
         'octohook',
         'rocketchat',
         'amazon-sqs',
+        'insightfinder',
         'la-croix-monitor',
       ].map((name, index) =>
         expect(wrapper.find('IntegrationRow').at(index).props().slug).toEqual(name)
