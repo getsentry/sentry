@@ -6,7 +6,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {deleteExternalIssue} from 'sentry/actionCreators/platformExternalIssues';
 import {Client} from 'sentry/api';
 import {IntegrationLink} from 'sentry/components/issueSyncListElement';
-import {SentryAppIcon} from 'sentry/components/sentryAppIcon';
+import SentryAppComponentIcon from 'sentry/components/sentryAppComponentIcon';
 import {IconAdd, IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -126,7 +126,7 @@ class SentryAppExternalIssueActions extends React.Component<Props, State> {
     return (
       <IssueLinkContainer>
         <IssueLink>
-          <StyledSentryAppIcon slug={sentryAppComponent.sentryApp.slug} />
+          <StyledSentryAppComponentIcon sentryAppComponent={sentryAppComponent} />
           <IntegrationLink onClick={this.doOpenModal} href={url}>
             {displayName}
           </IntegrationLink>
@@ -139,7 +139,7 @@ class SentryAppExternalIssueActions extends React.Component<Props, State> {
   }
 }
 
-const StyledSentryAppIcon = styled(SentryAppIcon)`
+const StyledSentryAppComponentIcon = styled(SentryAppComponentIcon)`
   color: ${p => p.theme.textColor};
   width: ${space(3)};
   height: ${space(3)};

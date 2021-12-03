@@ -3,7 +3,13 @@ import {
   generateSuspectSpansResponse,
   SAMPLE_SPANS,
 } from 'sentry-test/performance/initializePerformanceData';
-import {act, mountWithTheme, screen, within} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  fireEvent,
+  mountWithTheme,
+  screen,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {getShortEventId} from 'sentry/utils/events';
@@ -130,7 +136,8 @@ describe('Performance > Transaction Spans', function () {
           await within(upper).findByText('Total Exclusive Time')
         ).toBeInTheDocument();
 
-        for (const example of SAMPLE_SPANS[i].examples) {
+        // only 2 examples show by default
+        for (const example of SAMPLE_SPANS[i].examples.slice(0, 2)) {
           expect(
             await within(card).findByText(getShortEventId(example.id))
           ).toBeInTheDocument();
@@ -269,6 +276,54 @@ describe('Performance > Transaction Spans', function () {
         expect(await within(lower).findByText('Span Duration')).toBeInTheDocument();
         expect(await within(lower).findByText('Count')).toBeInTheDocument();
         expect(await within(lower).findByText('Cumulative Duration')).toBeInTheDocument();
+      }
+    });
+
+    it('allows toggling of more examples', async function () {
+      const initialData = initializeData();
+      mountWithTheme(
+        <TransactionSpans
+          organization={initialData.organization}
+          location={initialData.router.location}
+        />,
+        {context: initialData.routerContext}
+      );
+
+      const cards = await screen.findAllByTestId('suspect-card');
+      expect(cards).toHaveLength(2);
+      for (let i = 0; i < cards.length; i++) {
+        const card = cards[i];
+
+        expect(
+          within(card).queryByText('Show More Transaction Examples')
+        ).toBeInTheDocument();
+        expect(
+          within(card).queryByText('Hide Transaction Examples')
+        ).not.toBeInTheDocument();
+
+        // only 2 examples show by default
+        for (const example of SAMPLE_SPANS[i].examples.slice(0, 2)) {
+          expect(
+            await within(card).findByText(getShortEventId(example.id))
+          ).toBeInTheDocument();
+        }
+
+        fireEvent.click(await within(card).findByText('Show More Transaction Examples'));
+
+        expect(within(card).queryByText('Hide Transaction Examples')).toBeInTheDocument();
+        expect(
+          within(card).queryByText('Show More Transaction Examples')
+        ).not.toBeInTheDocument();
+
+        // each span has 3 examples
+        expect(SAMPLE_SPANS[i].examples).toHaveLength(3);
+
+        // all the examples should be shown now
+        for (const example of SAMPLE_SPANS[i].examples) {
+          expect(
+            await within(card).findByText(getShortEventId(example.id))
+          ).toBeInTheDocument();
+        }
       }
     });
   });

@@ -164,6 +164,14 @@ export type SentryApp = {
   avatars?: Avatar[];
 };
 
+// Minimal Sentry App representation for use with avatars
+export type AvatarSentryApp = {
+  name: string;
+  slug: string;
+  uuid: string;
+  avatars?: Avatar[];
+};
+
 export type SentryAppInstallation = {
   app: {
     uuid: string;
@@ -183,17 +191,9 @@ export type SentryAppComponent = {
   schema: SentryAppSchemaStacktraceLink;
   sentryApp: {
     uuid: string;
-    slug:
-      | 'calixa'
-      | 'clickup'
-      | 'komodor'
-      | 'linear'
-      | 'rookout'
-      | 'shortcut'
-      | 'spikesh'
-      | 'taskcall'
-      | 'teamwork';
+    slug: string;
     name: string;
+    avatars: Avatar[];
   };
 };
 
@@ -394,6 +394,7 @@ export type PluginNoProject = {
   features: string[];
   featureDescriptions: IntegrationFeature[];
   isHidden: boolean;
+  isDeprecated: boolean;
   version?: string;
   author?: {name: string; url: string};
   description?: string;
