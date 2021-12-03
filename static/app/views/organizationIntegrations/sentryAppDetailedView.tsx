@@ -10,9 +10,9 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import Confirm from 'sentry/components/confirm';
+import SentryAppIcon from 'sentry/components/sentryAppIcon';
 import {IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import space from 'sentry/styles/space';
 import {IntegrationFeature, SentryApp, SentryAppInstallation} from 'sentry/types';
 import {toPermissions} from 'sentry/utils/consolidatedScopes';
@@ -280,14 +280,7 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
   }
 
   renderIntegrationIcon() {
-    return (
-      <PluginIcon
-        sentryApp={this.sentryApp}
-        isColor
-        pluginId={this.integrationSlug}
-        size={50}
-      />
-    );
+    return <SentryAppIcon sentryApp={this.sentryApp} size={50} />;
   }
 }
 
