@@ -72,7 +72,7 @@ function OrganizationTeams({
 
   const [teamQuery, setTeamQuery] = useState('');
   const {initiallyLoaded} = useTeams({provideUserTeams: true});
-  const {teams, onSearch} = useTeams();
+  const {teams, onSearch, loadMore, hasMore, fetching} = useTeams();
 
   const debouncedSearch = debounce(onSearch, DEFAULT_DEBOUNCE_DURATION);
   function handleSearch(query: string) {
@@ -130,12 +130,26 @@ function OrganizationTeams({
           />
         </PanelBody>
       </Panel>
+      {hasMore && (
+        <LoadMoreWrapper>
+          {fetching && <LoadingIndicator mini />}
+          <Button onClick={() => loadMore(teamQuery)}>{t('Load more')}</Button>
+        </LoadMoreWrapper>
+      )}
     </div>
   );
 }
 
 const StyledSearchBar = styled(SearchBar)`
   margin-bottom: ${space(2)};
+`;
+
+const LoadMoreWrapper = styled('div')`
+  display: grid;
+  grid-gap: ${space(2)};
+  align-items: center;
+  justify-content: end;
+  grid-auto-flow: column;
 `;
 
 export default OrganizationTeams;
