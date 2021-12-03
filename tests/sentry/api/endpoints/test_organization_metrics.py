@@ -492,6 +492,35 @@ class OrganizationMetricIntegrationTest(SessionMetricsTestCase, APITestCase):
         )
         assert response.status_code == 400
 
+    @with_feature(FEATURE_FLAG)
+    def test_unknown_filter(self):
+        """Use a tag key/value in filter that does not exist in the indexer"""
+        # Insert session metrics:
+        self.store_session(self.build_session(project_id=self.project.id))
+
+        response = self.get_response(
+            self.organization.slug,
+            field="sum(session)",
+            statsPeriod="1h",
+            interval="1h",
+            datasource="snuba",
+            query="foo:123",  # Unknown tag key
+        )
+        print(response.data)
+        assert response.status_code == 400
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field="sum(session)",
+            statsPeriod="1h",
+            interval="1h",
+            datasource="snuba",
+            query="release:123",  # Unknown tag value is fine.
+        )
+
+        groups = response.data["groups"]
+        assert len(groups) == 0
+
 
 class OrganizationMetricMetaIntegrationTest(SessionMetricsTestCase, APITestCase):
     def setUp(self):

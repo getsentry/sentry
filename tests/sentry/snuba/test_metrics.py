@@ -383,7 +383,7 @@ def test_translate_results(_1, _2, mock_indexer):
                     },
                     {
                         "metric_id": 7,  # session.duration
-                        "tags[8]": 0,
+                        "tags[8]": 1,
                         "bucketed_time": "2021-08-24T00:00Z",
                         "max": 20.2,
                         "percentiles": [1.2, 2.2, 3.2, 4.2, 5.2],
@@ -397,7 +397,7 @@ def test_translate_results(_1, _2, mock_indexer):
                     },
                     {
                         "metric_id": 7,  # session.duration
-                        "tags[8]": 0,
+                        "tags[8]": 1,
                         "bucketed_time": "2021-08-25T00:00Z",
                         "max": 40.4,
                         "percentiles": [1.4, 2.4, 3.4, 4.4, 5.4],
@@ -424,7 +424,7 @@ def test_translate_results(_1, _2, mock_indexer):
             },
         },
         {
-            "by": {"session.status": "abnormal"},
+            "by": {"session.status": "crashed"},
             "totals": {
                 "sum(session)": 330,
                 "max(session.duration)": 456.7,
