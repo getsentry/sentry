@@ -328,7 +328,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         return response
 
     @track_slo_response("workflow")
-    @rate_limit_endpoint(limit=10, window=1)
+    @rate_limit_endpoint(limit=5, window=5)
     def put(self, request, organization):
         """
         Bulk Mutate a List of Issues
@@ -411,7 +411,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         )
 
     @track_slo_response("workflow")
-    @rate_limit_endpoint(limit=10, window=1)
+    @rate_limit_endpoint(limit=5, window=5)
     def delete(self, request, organization):
         """
         Bulk Remove a List of Issues

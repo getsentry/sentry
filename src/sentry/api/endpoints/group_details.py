@@ -106,9 +106,10 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         :pparam string issue_id: the ID of the issue to retrieve.
         :auth: required
         """
+        from sentry.utils import snuba
+
         try:
             # TODO(dcramer): handle unauthenticated/public response
-            from sentry.utils import snuba
 
             organization = group.project.organization
             environments = get_environments(request, organization)
@@ -276,7 +277,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         except Exception:
             raise
 
-    @rate_limit_endpoint(limit=5, window=1)
+    @rate_limit_endpoint(limit=5, window=5)
     def delete(self, request, group):
         """
         Remove an Issue
