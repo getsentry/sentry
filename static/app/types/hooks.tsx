@@ -74,8 +74,11 @@ type CodeOwnersHeaderProps = {
 };
 type FirstPartyIntegrationAlertProps = {
   integrations: Integration[];
-  source: string;
   wrapWithContainer?: boolean;
+  hideCTA?: boolean;
+};
+type FirstPartyIntegrationAdditionalCTAProps = {
+  integrations: Integration[];
 };
 /**
  * Component wrapping hooks
@@ -92,6 +95,7 @@ export type ComponentHooks = {
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
   'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
   'component:first-party-integration-alert': () => React.ComponentType<FirstPartyIntegrationAlertProps>;
+  'component:first-party-integration-additional-cta': () => React.ComponentType<FirstPartyIntegrationAdditionalCTAProps>;
 };
 
 /**

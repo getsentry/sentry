@@ -23,6 +23,11 @@ const FirstPartyIntegrationAlert = HookOrDefault({
   defaultComponent: () => null,
 });
 
+const FirstPartyIntegrationAdditionalCTA = HookOrDefault({
+  hookName: 'component:first-party-integration-additional-cta',
+  defaultComponent: () => null,
+});
+
 type State = {
   configurations: Integration[];
   information: {providers: IntegrationProvider[]};
@@ -171,7 +176,15 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     return (
       <FirstPartyIntegrationAlert
         integrations={this.state.configurations ?? []}
-        source="detail"
+        hideCTA
+      />
+    );
+  }
+
+  renderAdditionalCTA() {
+    return (
+      <FirstPartyIntegrationAdditionalCTA
+        integrations={this.state.configurations ?? []}
       />
     );
   }

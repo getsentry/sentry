@@ -390,11 +390,7 @@ export class IntegrationListDirectory extends AsyncComponent<
         alertText={getAlertText(integrations)}
         resolveText={t('Update Now')}
         customAlert={
-          <FirstPartyIntegrationAlert
-            integrations={integrations}
-            wrapWithContainer
-            source="directory"
-          />
+          <FirstPartyIntegrationAlert integrations={integrations} wrapWithContainer />
         }
       />
     );
