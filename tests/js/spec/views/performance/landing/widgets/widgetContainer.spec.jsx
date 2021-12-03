@@ -853,18 +853,58 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
+          cursor: '0:0:1',
+          environment: ['prod'],
+          field: ['transaction', 'project.id', 'epm()', 'avg(measurements.frames_slow)'],
+          noPagination: true,
+          per_page: 3,
+          project: ['-42'],
+          query: 'transaction.op:pageload epm():>0.01 avg(measurements.frames_slow):>0',
+          sort: '-avg(measurements.frames_slow)',
+          statsPeriod: '7d',
+        }),
+      })
+    );
+
+    expect(wrapper.find('div[data-test-id="empty-message"]').exists()).toBe(true);
+  });
+
+  it('Most frozen frames widget', async function () {
+    const data = initializeData();
+
+    const wrapper = mountWithTheme(
+      <WrappedComponent
+        data={data}
+        defaultChartSetting={PerformanceWidgetSetting.MOST_FROZEN_FRAMES}
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+      'Most Frozen Frames'
+    );
+
+    expect(eventsV2Mock).toHaveBeenCalledTimes(1);
+    expect(eventsV2Mock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          cursor: '0:0:1',
           environment: ['prod'],
           field: [
             'transaction',
             'project.id',
             'epm()',
-            'p75(measurements.frames_slow_rate)',
+            'avg(measurements.frames_frozen)',
           ],
+          noPagination: true,
           per_page: 3,
           project: ['-42'],
-          query:
-            'transaction.op:pageload epm():>0.01 p75(measurements.frames_slow_rate):>0',
-          sort: '-p75(measurements.frames_slow_rate)',
+          query: 'transaction.op:pageload epm():>0.01 avg(measurements.frames_frozen):>0',
+          sort: '-avg(measurements.frames_frozen)',
           statsPeriod: '7d',
         }),
       })
