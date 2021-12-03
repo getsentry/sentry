@@ -35,7 +35,7 @@ class OrganizationEventsFacetsPerformanceEndpointBase(OrganizationEventsV2Endpoi
     #       We don't fit its semantics, but I couldn't think of a better name, and
     #       it's only used in child classes.
     def _setup(self, request, organization):
-        if not (self.has_feature(organization, request)):
+        if not self.has_feature(organization, request):
             raise Http404
 
         params = self.get_snuba_params(request, organization)
