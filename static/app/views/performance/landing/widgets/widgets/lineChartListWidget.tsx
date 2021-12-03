@@ -208,6 +208,8 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                 const transaction = listItem.transaction as string;
 
                 const additionalQuery: Record<string, string> = {};
+                const summaryQuery = props.eventView.clone().getGlobalSelectionQuery();
+                const conditions = new MutableSearch(props.eventView.clone().query);
 
                 if (props.chartSetting === PerformanceWidgetSetting.SLOW_HTTP_OPS) {
                   additionalQuery.breakdown = 'http';
@@ -225,13 +227,27 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                 ) {
                   additionalQuery.breakdown = 'resource';
                   additionalQuery.display = 'latency';
+                } else if (
+                  props.chartSetting === PerformanceWidgetSetting.MOST_SLOW_FRAMES
+                ) {
+                  conditions.setFilterValues('measurements.frames_slow', [
+                    `>=${listItem.avg_measurements_frames_slow}`,
+                  ]);
+                } else if (
+                  props.chartSetting === PerformanceWidgetSetting.MOST_FROZEN_FRAMES
+                ) {
+                  conditions.setFilterValues('measurements.frames_frozen', [
+                    `>=${listItem.avg_measurements_frames_frozen}`,
+                  ]);
                 }
+
+                summaryQuery.query = conditions.formatString();
 
                 const transactionTarget = transactionSummaryRouteWithQuery({
                   orgSlug: props.organization.slug,
                   projectID: listItem['project.id'] as string,
                   transaction,
-                  query: props.eventView.getGlobalSelectionQuery(),
+                  query: summaryQuery,
                   additionalQuery,
                 });
 
