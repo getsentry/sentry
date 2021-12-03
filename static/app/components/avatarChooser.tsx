@@ -140,7 +140,12 @@ class AvatarChooser extends React.Component<Props, State> {
         this.setState({savedDataUrl: this.state.dataUrl});
         this.handleSuccess(this.getModelFromResponse(resp));
       },
-      error: this.handleError.bind(this, 'There was an error saving your preferences.'),
+      error: resp => {
+        const avatarPhotoErrors = resp?.responseJSON?.avatar_photo || [];
+        avatarPhotoErrors.length
+          ? avatarPhotoErrors.map(this.handleError)
+          : this.handleError.bind(this, t('There was an error saving your preferences.'));
+      },
     });
   };
 
