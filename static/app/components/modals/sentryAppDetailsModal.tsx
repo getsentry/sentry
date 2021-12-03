@@ -3,13 +3,12 @@ import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
 import AsyncComponent from 'sentry/components/asyncComponent';
-import SentryAppAvatar from 'sentry/components/avatar/sentryAppAvatar';
 import Button from 'sentry/components/button';
 import CircleIndicator from 'sentry/components/circleIndicator';
+import SentryAppIcon from 'sentry/components/sentryAppIcon';
 import Tag from 'sentry/components/tag';
 import {IconFlag} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import space from 'sentry/styles/space';
 import {IntegrationFeature, Organization, SentryApp} from 'sentry/types';
 import {toPermissions} from 'sentry/utils/consolidatedScopes';
@@ -155,16 +154,10 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
     const overview = sentryApp.overview || '';
     const featureProps = {organization, features};
 
-    const isAvatar = organization.features?.includes('sentry-app-logo-upload');
-
     return (
       <React.Fragment>
         <Heading>
-          {isAvatar ? (
-            <SentryAppAvatar sentryApp={sentryApp} isColor />
-          ) : (
-            <PluginIcon pluginId={sentryApp.slug} size={50} />
-          )}
+          <SentryAppIcon sentryApp={sentryApp} size={50} />
           <HeadingInfo>
             <Name>{sentryApp.name}</Name>
             {!!features.length && <Features>{this.featureTags(features)}</Features>}

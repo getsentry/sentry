@@ -9,11 +9,11 @@ import uniq from 'lodash/uniq';
 import * as queryString from 'query-string';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
-import SentryAppAvatar from 'sentry/components/avatar/sentryAppAvatar';
 import SelectControl from 'sentry/components/forms/selectControl';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import SearchBar from 'sentry/components/searchBar';
+import SentryAppIcon from 'sentry/components/sentryAppIcon';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -418,9 +418,6 @@ export class IntegrationListDirectory extends AsyncComponent<
     const {organization} = this.props;
     const status = getSentryAppInstallStatus(this.getAppInstall(app));
     const categories = getCategoriesForIntegration(app);
-    const customIcon = organization.features?.includes('sentry-app-logo-upload') ? (
-      <SentryAppAvatar sentryApp={app} isColor size={36} />
-    ) : undefined;
 
     return (
       <IntegrationRow
@@ -434,7 +431,7 @@ export class IntegrationListDirectory extends AsyncComponent<
         publishStatus={app.status}
         configurations={0}
         categories={categories}
-        customIcon={customIcon}
+        customIcon={<SentryAppIcon sentryApp={app} size={36} />}
       />
     );
   };
