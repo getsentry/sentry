@@ -21,7 +21,9 @@ describe('JsonForm', function () {
       try {
         mountWithTheme(<JsonForm forms={accountDetailsFields} />);
       } catch (error) {
-        expect(error.message).toBe("Cannot read property 'email' of undefined");
+        expect(error.message).toBe(
+          "Cannot read properties of undefined (reading 'email')"
+        );
       }
     });
 
@@ -119,7 +121,9 @@ describe('JsonForm', function () {
           />
         );
       } catch (error) {
-        expect(error.message).toBe("Cannot read property 'email' of undefined");
+        expect(error.message).toBe(
+          "Cannot read properties of undefined (reading 'email')"
+        );
       }
     });
 
