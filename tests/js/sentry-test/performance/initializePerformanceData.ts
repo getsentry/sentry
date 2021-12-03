@@ -61,6 +61,11 @@ export const SAMPLE_SPANS = [
         description: 'span-2',
         spans: [{id: 'acacac11'}, {id: 'acacac22'}],
       },
+      {
+        id: 'adadadadadadadad',
+        description: 'span-3',
+        spans: [{id: 'adadad11'}, {id: 'adadad22'}],
+      },
     ],
   },
   {
@@ -69,13 +74,18 @@ export const SAMPLE_SPANS = [
     examples: [
       {
         id: 'bcbcbcbcbcbcbcbc',
-        description: 'span-3',
+        description: 'span-4',
         spans: [{id: 'bcbcbc11'}, {id: 'bcbcbc11'}],
       },
       {
         id: 'bdbdbdbdbdbdbdbd',
-        description: 'span-4',
+        description: 'span-5',
         spans: [{id: 'bdbdbd11'}, {id: 'bdbdbd22'}],
+      },
+      {
+        id: 'bebebebebebebebe',
+        description: 'span-6',
+        spans: [{id: 'bebebe11'}, {id: 'bebebe22'}],
       },
     ],
   },
