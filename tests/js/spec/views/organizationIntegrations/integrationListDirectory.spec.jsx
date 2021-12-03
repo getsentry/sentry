@@ -61,7 +61,7 @@ describe('IntegrationListDirectory', function () {
         'datadog',
         'fullstory',
         'github_actions',
-        'insight_finder',
+        'insightfinder',
         'netlify',
         'octohook',
         'rocketchat',
