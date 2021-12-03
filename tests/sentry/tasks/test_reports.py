@@ -237,9 +237,8 @@ class ReportTestCase(TestCase, SnubaTestCase):
             # timestamp.
             get_earliest_timestamp.return_value = to_timestamp(now - timedelta(days=60))
 
-            with self.feature("organizations:weekly-report-debugging"):
-                prepare_reports(timestamp=to_timestamp(now))
-                assert len(mail.outbox) == len(member_set) == 1
+            prepare_reports(timestamp=to_timestamp(now))
+            assert len(mail.outbox) == len(member_set) == 1
 
             message = mail.outbox[0]
             assert self.organization.name in message.subject
