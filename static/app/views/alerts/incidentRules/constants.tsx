@@ -152,7 +152,7 @@ export function createRuleFromEventView(eventView: EventView): UnsavedIncidentRu
   let aggregate = eventView.getYAxis();
   if (
     datasetAndEventtypes.dataset === 'transactions' &&
-    /^p\d{2}\(\)/.test(eventView.getYAxis())
+    /^p\d{2,3}\(\)/.test(eventView.getYAxis())
   ) {
     // p95() -> p95(transaction.duration)
     aggregate = eventView.getYAxis().slice(0, 3) + '(transaction.duration)';
