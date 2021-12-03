@@ -29,21 +29,13 @@ DEFAULT_TAG_KEY_LIMIT = 5
 
 class OrganizationEventsFacetsPerformanceEndpointBase(OrganizationEventsV2EndpointBase):
     def has_feature(self, organization, request):
-        return features.has(
-            "organizations:performance-tag-explorer", organization, actor=request.user
-        )
-
-    def has_tag_page_feature(self, organization, request):
-        return features.has("organizations:performance-tag-page", organization, actor=request.user)
+        return features.has("organizations:performance-view", organization, actor=request.user)
 
     # NOTE: This used to be called setup, but since Django 2.2 it's a View method.
     #       We don't fit its semantics, but I couldn't think of a better name, and
     #       it's only used in child classes.
     def _setup(self, request, organization):
-        if not (
-            self.has_feature(organization, request)
-            or self.has_tag_page_feature(organization, request)
-        ):
+        if not (self.has_feature(organization, request)):
             raise Http404
 
         params = self.get_snuba_params(request, organization)
@@ -132,9 +124,6 @@ class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsFacetsPerfor
 class OrganizationEventsFacetsPerformanceHistogramEndpoint(
     OrganizationEventsFacetsPerformanceEndpointBase
 ):
-    def has_feature(self, organization, request):
-        return self.has_tag_page_feature(organization, request)
-
     def get(self, request, organization):
         try:
             params, aggregate_column, filter_query = self._setup(request, organization)
