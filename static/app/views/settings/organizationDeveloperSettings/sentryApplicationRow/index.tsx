@@ -2,6 +2,7 @@ import {PureComponent} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
+import SentryAppAvatar from 'sentry/components/avatar/sentryAppAvatar';
 import Link from 'sentry/components/links/link';
 import SentryAppPublishRequestModal from 'sentry/components/modals/sentryAppPublishRequestModal';
 import {PanelItem} from 'sentry/components/panels';
@@ -48,12 +49,11 @@ export default class SentryApplicationRow extends PureComponent<Props> {
     return (
       <SentryAppItem data-test-id={app.slug}>
         <StyledFlex>
-          <PluginIcon
-            pluginId={app.slug}
-            size={36}
-            isAvatar={isAvatar}
-            avatarProps={{sentryApp: app, isColor: true}}
-          />
+          {isAvatar ? (
+            <SentryAppAvatar sentryApp={app} isColor size={36} />
+          ) : (
+            <PluginIcon pluginId={app.slug} size={36} />
+          )}
           <SentryAppBox>
             <SentryAppName hideStatus={this.hideStatus()}>
               <Link to={`/settings/${organization.slug}/developer-settings/${app.slug}/`}>

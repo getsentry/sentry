@@ -9,13 +9,13 @@ import uniq from 'lodash/uniq';
 import * as queryString from 'query-string';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
+import SentryAppAvatar from 'sentry/components/avatar/sentryAppAvatar';
 import SelectControl from 'sentry/components/forms/selectControl';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import space from 'sentry/styles/space';
 import {
   AppOrProviderOrPlugin,
@@ -418,7 +418,9 @@ export class IntegrationListDirectory extends AsyncComponent<
     const {organization} = this.props;
     const status = getSentryAppInstallStatus(this.getAppInstall(app));
     const categories = getCategoriesForIntegration(app);
-    const isAvatar = organization.features?.includes('sentry-app-logo-upload');
+    const customIcon = organization.features?.includes('sentry-app-logo-upload') ? (
+      <SentryAppAvatar sentryApp={app} isColor size={36} />
+    ) : undefined;
 
     return (
       <IntegrationRow
@@ -432,14 +434,7 @@ export class IntegrationListDirectory extends AsyncComponent<
         publishStatus={app.status}
         configurations={0}
         categories={categories}
-        customIcon={
-          <PluginIcon
-            pluginId={app.slug}
-            size={36}
-            isAvatar={isAvatar}
-            avatarProps={{sentryApp: app, isColor: true}}
-          />
-        }
+        customIcon={customIcon}
       />
     );
   };

@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
 import AsyncComponent from 'sentry/components/asyncComponent';
+import SentryAppAvatar from 'sentry/components/avatar/sentryAppAvatar';
 import Button from 'sentry/components/button';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import Tag from 'sentry/components/tag';
@@ -159,12 +160,11 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
     return (
       <React.Fragment>
         <Heading>
-          <PluginIcon
-            pluginId={sentryApp.slug}
-            size={50}
-            isAvatar={isAvatar}
-            avatarProps={{sentryApp, isColor: true}}
-          />
+          {isAvatar ? (
+            <SentryAppAvatar sentryApp={sentryApp} isColor />
+          ) : (
+            <PluginIcon pluginId={sentryApp.slug} size={50} />
+          )}
           <HeadingInfo>
             <Name>{sentryApp.name}</Name>
             {!!features.length && <Features>{this.featureTags(features)}</Features>}

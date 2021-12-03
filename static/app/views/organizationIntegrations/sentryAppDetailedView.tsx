@@ -7,6 +7,7 @@ import {
   uninstallSentryApp,
 } from 'sentry/actionCreators/sentryAppInstallations';
 import AsyncComponent from 'sentry/components/asyncComponent';
+import SentryAppAvatar from 'sentry/components/avatar/sentryAppAvatar';
 import Button from 'sentry/components/button';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import Confirm from 'sentry/components/confirm';
@@ -282,16 +283,10 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
   renderIntegrationIcon() {
     const {organization} = this.props;
     const isAvatar = organization.features?.includes('sentry-app-logo-upload');
-    return (
-      <PluginIcon
-        pluginId={this.integrationSlug}
-        size={50}
-        isAvatar={isAvatar}
-        avatarProps={{
-          sentryApp: this.sentryApp,
-          isColor: true,
-        }}
-      />
+    return isAvatar ? (
+      <SentryAppAvatar sentryApp={this.sentryApp} isColor size={50} />
+    ) : (
+      <PluginIcon pluginId={this.integrationSlug} size={50} />
     );
   }
 }
