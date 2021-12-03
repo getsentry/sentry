@@ -29,6 +29,7 @@ from snuba_sdk.orderby import Direction, OrderBy
 from sentry.api.utils import get_date_range_from_params
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Project
+from sentry.relay.config import ALL_MEASUREMENT_METRICS
 from sentry.search.events.filter import QueryFilter
 from sentry.sentry_metrics import indexer
 from sentry.snuba.dataset import Dataset, EntityKey
@@ -456,16 +457,30 @@ _METRICS = {
         "operations": _AVAILABLE_OPERATIONS["metrics_sets"],
         "tags": _SESSION_TAGS,
     },
+    "transaction.duration": {
+        "type": "distribution",
+        "operations": _AVAILABLE_OPERATIONS["metrics_distributions"],
+        "tags": {
+            **_MEASUREMENT_TAGS,
+            "transaction.status": [
+                # Subset of possible states:
+                # https://develop.sentry.dev/sdk/event-payloads/transaction/
+                "ok",
+                "cancelled",
+                "aborted",
+            ],
+        },
+    },
 }
 
 _METRICS.update(
     {
-        f"measurements.{web_vital}": {
+        measurement_metric: {
             "type": "distribution",
             "operations": _AVAILABLE_OPERATIONS["metrics_distributions"],
             "tags": _MEASUREMENT_TAGS,
         }
-        for web_vital in ("lcp", "fcp", "fid", "cls")
+        for measurement_metric in ALL_MEASUREMENT_METRICS
     }
 )
 

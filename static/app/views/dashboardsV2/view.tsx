@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import {useEffect, useState} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 
 import {updateDashboardVisit} from 'sentry/actionCreators/dashboards';
