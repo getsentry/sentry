@@ -12,7 +12,6 @@ export interface ChartDefinition {
 
   titleTooltip: string;
   fields: string[]; // The first field in the list will be treated as the primary field in most widgets (except for special casing).
-  sortField?: string; // If a specific field should be used for sort, this will override the first field from being used.
 
   chartColor?: string; // Optional. Will default to colors depending on placement in list or colors from the chart itself.
 
@@ -268,16 +267,14 @@ export const WIDGET_DEFINITIONS: ({
   [PerformanceWidgetSetting.MOST_SLOW_FRAMES]: {
     title: t('Most Slow Frames'),
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.SLOW_FRAMES),
-    fields: ['avg(measurements.frames_slow)', 'avg(measurements.frames_slow_rate)'],
-    sortField: 'avg(measurements.frames_slow_rate)',
+    fields: ['avg(measurements.frames_slow)'],
     dataType: GenericPerformanceWidgetDataType.line_list,
     chartColor: WIDGET_PALETTE[0],
   },
   [PerformanceWidgetSetting.MOST_FROZEN_FRAMES]: {
     title: t('Most Frozen Frames'),
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.FROZEN_FRAMES),
-    fields: ['avg(measurements.frames_frozen)', 'avg(measurements.frames_frozen_rate)'],
-    sortField: 'avg(measurements.frames_frozen_rate)',
+    fields: ['avg(measurements.frames_frozen)'],
     dataType: GenericPerformanceWidgetDataType.line_list,
     chartColor: WIDGET_PALETTE[0],
   },

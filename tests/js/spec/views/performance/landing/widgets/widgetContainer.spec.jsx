@@ -855,12 +855,12 @@ describe('Performance > Widgets > WidgetContainer', function () {
         query: expect.objectContaining({
           cursor: '0:0:1',
           environment: ['prod'],
-          field: ['transaction', 'project.id', 'avg(measurements.frames_slow)'],
+          field: ['transaction', 'project.id', 'epm()', 'avg(measurements.frames_slow)'],
           noPagination: true,
           per_page: 3,
           project: ['-42'],
-          query: 'transaction.op:pageload avg(measurements.frames_slow):>0',
-          sort: '-avg(measurements.frames_slow_rate)',
+          query: 'transaction.op:pageload epm():>0.01 avg(measurements.frames_slow):>0',
+          sort: '-avg(measurements.frames_slow)',
           statsPeriod: '7d',
         }),
       })
@@ -894,12 +894,17 @@ describe('Performance > Widgets > WidgetContainer', function () {
         query: expect.objectContaining({
           cursor: '0:0:1',
           environment: ['prod'],
-          field: ['transaction', 'project.id', 'avg(measurements.frames_frozen)'],
+          field: [
+            'transaction',
+            'project.id',
+            'epm()',
+            'avg(measurements.frames_frozen)',
+          ],
           noPagination: true,
           per_page: 3,
           project: ['-42'],
-          query: 'transaction.op:pageload avg(measurements.frames_frozen):>0',
-          sort: '-avg(measurements.frames_frozen_rate)',
+          query: 'transaction.op:pageload epm():>0.01 avg(measurements.frames_frozen):>0',
+          sort: '-avg(measurements.frames_frozen)',
           statsPeriod: '7d',
         }),
       })

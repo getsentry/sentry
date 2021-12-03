@@ -44,6 +44,12 @@ const slowList = [
   PerformanceWidgetSetting.SLOW_RESOURCE_OPS,
 ];
 
+// Most N Frames, low population, and count vs. duration so treated separately from 'slow' widgets.
+const framesList = [
+  PerformanceWidgetSetting.MOST_SLOW_FRAMES,
+  PerformanceWidgetSetting.MOST_FROZEN_FRAMES,
+];
+
 export function LineChartListWidget(props: PerformanceWidgetProps) {
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const {ContainerActions} = props;
@@ -52,6 +58,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
   const sortField = props.chartDefinition.sortField;
 
   const isSlowestType = slowList.includes(props.chartSetting);
+  const isFramesType = framesList.includes(props.chartSetting);
 
   const listQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
     () => ({
@@ -77,7 +84,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           eventView.additionalConditions.removeFilter('transaction.op'); // Remove transaction op incase it's applied from the performance view.
           eventView.additionalConditions.removeFilter('!transaction.op'); // Remove transaction op incase it's applied from the performance view.
           eventView.query = mutableSearch.formatString();
-        } else if (isSlowestType) {
+        } else if (isSlowestType || isFramesType) {
           eventView.additionalConditions.setFilterValues('epm()', ['>0.01']);
           eventView.fields = [
             {field: 'transaction'},
