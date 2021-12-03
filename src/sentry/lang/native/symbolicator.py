@@ -373,9 +373,7 @@ def parse_backfill_sources(sources_json, original_sources):
                         sentry_sdk.capture_message(
                             "Obfuscated symbol source secret does not have a corresponding saved value in project options"
                         )
-                    raise InvalidSourcesError(
-                        "Obfuscated symbol source secret does not have a corresponding saved value in project options"
-                    )
+                    raise InvalidSourcesError("Hidden symbol source secret is missing a value")
                 else:
                     source[secret] = secret_value
 
