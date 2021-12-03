@@ -236,7 +236,7 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest):
 
     @responses.activate
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
-    def test_disabled_org_initegration(self, mock_func):
+    def test_disabled_org_integration_for_team(self, mock_func):
         # update the team's notification settings
         ExternalActor.objects.create(
             actor=self.team.actor,
