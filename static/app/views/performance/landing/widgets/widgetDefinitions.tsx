@@ -212,14 +212,14 @@ export const WIDGET_DEFINITIONS: ({
   [PerformanceWidgetSetting.SLOW_FRAMES_AREA]: {
     title: t('Slow Frames'),
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.SLOW_FRAMES),
-    fields: ['measurements.frames_slow', 'p75(measurements.frames_slow_rate)'],
+    fields: ['p75(measurements.frames_slow_rate)'],
     dataType: GenericPerformanceWidgetDataType.area,
     chartColor: WIDGET_PALETTE[0],
   },
   [PerformanceWidgetSetting.FROZEN_FRAMES_AREA]: {
     title: t('Frozen Frames'),
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.FROZEN_FRAMES),
-    fields: ['measurements.frames_frozen', 'p75(measurements.frames_frozen_rate)'],
+    fields: ['p75(measurements.frames_frozen_rate)'],
     dataType: GenericPerformanceWidgetDataType.area,
     chartColor: WIDGET_PALETTE[5],
   },
