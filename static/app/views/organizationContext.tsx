@@ -1,6 +1,5 @@
 import * as React from 'react';
 import {createContext} from 'react';
-import DocumentTitle from 'react-document-title';
 import {PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -12,6 +11,7 @@ import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import Sidebar from 'sentry/components/sidebar';
 import {ORGANIZATION_FETCH_ERROR_TYPES} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -288,10 +288,7 @@ class OrganizationContextContainer extends React.Component<Props, State> {
   }
 
   getTitle() {
-    if (this.state.organization) {
-      return this.state.organization.name;
-    }
-    return 'Sentry';
+    return this.state.organization?.name ?? 'Sentry';
   }
 
   renderSidebar(): React.ReactNode {
@@ -327,7 +324,7 @@ class OrganizationContextContainer extends React.Component<Props, State> {
 
   renderBody() {
     return (
-      <DocumentTitle title={this.getTitle()}>
+      <SentryDocumentTitle noSuffix title={this.getTitle()}>
         <OrganizationContext.Provider value={this.state.organization}>
           <div className="app">
             {this.state.hooks}
@@ -335,7 +332,7 @@ class OrganizationContextContainer extends React.Component<Props, State> {
             {this.props.children}
           </div>
         </OrganizationContext.Provider>
-      </DocumentTitle>
+      </SentryDocumentTitle>
     );
   }
 
