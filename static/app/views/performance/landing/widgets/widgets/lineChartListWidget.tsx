@@ -55,7 +55,12 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
   const {ContainerActions} = props;
 
   const field = props.fields[0];
-  const sortField = props.chartDefinition.sortField;
+
+  if (props.fields.length !== 1) {
+    throw new Error(
+      `Line chart list widget can only accept a single field (${props.fields})`
+    );
+  }
 
   const isSlowestType = slowList.includes(props.chartSetting);
   const isFramesType = framesList.includes(props.chartSetting);
@@ -66,9 +71,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
       component: provided => {
         const eventView = provided.eventView.clone();
 
-        eventView.sorts = sortField
-          ? [{kind: 'desc', field: sortField}]
-          : [{kind: 'desc', field}];
+        eventView.sorts = [{kind: 'desc', field}];
         if (props.chartSetting === PerformanceWidgetSetting.MOST_RELATED_ISSUES) {
           eventView.fields = [
             {field: 'issue'},
