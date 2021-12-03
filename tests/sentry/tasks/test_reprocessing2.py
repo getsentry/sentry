@@ -18,7 +18,7 @@ from sentry.models import (
     UserReport,
 )
 from sentry.plugins.base.v2 import Plugin2
-from sentry.reprocessing2 import is_group_finished
+from sentry.reprocessing2 import _get_sync_redis_client, is_group_finished
 from sentry.tasks.reprocessing2 import reprocess_group
 from sentry.tasks.store import preprocess_event
 from sentry.testutils.helpers import Feature
@@ -58,7 +58,11 @@ def reprocessing_feature(settings):
 @pytest.fixture
 def process_and_save(default_project, task_runner):
     def inner(data, seconds_ago=1):
+        # Set platform to native so all parts of reprocessing fire, symbolication will
+        # not happen without this set to certain values
         data.setdefault("platform", "native")
+        # Every request to snuba has a timestamp that's clamped in a curious way to
+        # ensure data consistency
         data.setdefault("timestamp", iso_format(before_now(seconds=seconds_ago)))
         mgr = EventManager(data=data, project=default_project)
         mgr.normalize()
@@ -164,6 +168,14 @@ def test_basic(
     assert not Group.objects.filter(id=old_event.group_id).exists()
 
     assert is_group_finished(old_event.group_id)
+
+    # Dirty hack to get
+    # This is fine because we're close enough to the end of the test to be
+    # demolishing this
+    redis_client = _get_sync_redis_client()
+    redis_client.execute_command("FLUSHALL")
+
+    assert not get_event_by_processing_counter("x0")
 
 
 @pytest.mark.django_db

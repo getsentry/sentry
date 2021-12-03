@@ -41,6 +41,7 @@ def reprocess_group(
 
     sentry_sdk.set_tag("is_start", "false")
 
+    # Only executed once during reprocessing
     if start_time is None:
         assert new_group_id is None
         start_time = time.time()
@@ -75,11 +76,11 @@ def reprocess_group(
         )
         # Tombstone unwanted events that should be dropped after new group
         # is generated after reprocessing
-        buffered_delete_old_primary_hash(
-            project_id=project_id,
-            group_id=group_id,
-            force_flush_batch=True,
-        )
+        # buffered_delete_old_primary_hash(
+        #     project_id=project_id,
+        #     group_id=group_id,
+        #     force_flush_batch=True,
+        # )
 
         return
 
