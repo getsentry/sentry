@@ -259,7 +259,11 @@ class _SumSessionField(_OutputField):
             abnormal = int(data_points.get(replace(key, raw_session_status="abnormal"), 0))
             crashed = int(data_points.get(replace(key, raw_session_status="crashed"), 0))
             errored_key = replace(key, metric_name="session.error", raw_session_status=None)
-            all_errored = int(data_points.get(errored_key, 0))
+            individual_errors = int(data_points.get(errored_key, 0))
+            aggregated_errors = int(
+                data_points.get(replace(key, raw_session_status="errored_preaggr"), 0)
+            )
+            all_errored = individual_errors + aggregated_errors
 
             healthy = max(0, started - all_errored)
             errored = max(0, all_errored - abnormal - crashed)
