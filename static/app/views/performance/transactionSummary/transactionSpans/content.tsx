@@ -129,6 +129,7 @@ function SpansContent(props: Props) {
               location={location}
               orgSlug={organization.slug}
               eventView={eventView}
+              perSuspect={10}
               spanOps={defined(spanOp) ? [spanOp] : []}
               spanGroups={defined(spanGroup) ? [spanGroup] : []}
             >
@@ -164,6 +165,7 @@ function SpansContent(props: Props) {
                         generateTransactionLink={generateTransactionLink(transactionName)}
                         eventView={eventView}
                         totals={totals}
+                        preview={2}
                       />
                     ))}
                     <Pagination pageLinks={pageLinks} />
