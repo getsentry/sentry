@@ -41,7 +41,7 @@ type Props = {
    * in the alert.
    */
   resolveText?: string;
-
+  sentryApp?: SentryApp;
   plugin?: PluginWithProjectList;
 };
 
@@ -65,6 +65,7 @@ const IntegrationRow = (props: Props) => {
     alertText,
     resolveText,
     plugin,
+    sentryApp,
   } = props;
 
   const baseUrl =
@@ -95,7 +96,7 @@ const IntegrationRow = (props: Props) => {
   return (
     <PanelRow noPadding data-test-id={slug}>
       <FlexContainer>
-        <PluginIcon size={36} pluginId={slug} />
+        <PluginIcon sentryApp={sentryApp} isColor size={36} pluginId={slug} />
         <Container>
           <IntegrationName to={baseUrl}>{displayName}</IntegrationName>
           <IntegrationDetails>

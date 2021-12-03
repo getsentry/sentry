@@ -48,18 +48,20 @@ describe('IntegrationListDirectory', function () {
     it('shows installed integrations at the top in order of weight', async function () {
       expect(wrapper.find('SearchBar').exists()).toBeTruthy();
       expect(wrapper.find('PanelBody').exists()).toBeTruthy();
-      expect(wrapper.find('IntegrationRow')).toHaveLength(14);
+      expect(wrapper.find('IntegrationRow')).toHaveLength(16);
 
       [
         'bitbucket',
         'pagerduty',
         'my-headband-washer-289499',
+        'grafana',
         'clickup',
         'asayer',
         'bitbucket_pipelines',
         'datadog',
         'fullstory',
         'github_actions',
+        'insight_finder',
         'netlify',
         'octohook',
         'rocketchat',
