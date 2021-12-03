@@ -359,7 +359,7 @@ function BaseChartUnwrapped({
       ? (series as LineSeriesOption[] | undefined)?.map(s => ({
           ...s,
           type: 'line',
-          itemStyle: {},
+          itemStyle: {...(s.lineStyle ?? {})},
           markLine: MarkLine({
             silent: true,
             lineStyle: {
