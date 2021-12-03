@@ -37,6 +37,7 @@ type Props = {
   noParameters?: boolean;
   noHeaders?: boolean;
   noTags?: boolean;
+  noEquation?: boolean;
 };
 
 type State = {
@@ -428,6 +429,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
           />
           {canDelete || col.kind === 'equation' ? (
             <Button
+              data-test-id={`remove-column-${i}`}
               aria-label={t('Remove column')}
               onClick={() => this.removeColumn(i)}
               icon={<IconDelete />}
@@ -443,7 +445,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
   }
 
   render() {
-    const {className, columns, noParameters, noHeaders} = this.props;
+    const {className, columns, noParameters, noHeaders, noEquation} = this.props;
     const canDelete = columns.filter(field => field.kind !== 'equation').length > 1;
     const canDrag = columns.length > 1;
     const canAdd = columns.length < MAX_COL_COUNT;
@@ -490,16 +492,18 @@ class ColumnEditCollection extends React.Component<Props, State> {
             >
               {t('Add a Column')}
             </Button>
-            <Button
-              size="small"
-              label={t('Add an Equation')}
-              onClick={this.handleAddEquation}
-              title={title}
-              disabled={!canAdd}
-              icon={<IconAdd isCircled size="xs" />}
-            >
-              {t('Add an Equation')}
-            </Button>
+            {!noEquation && (
+              <Button
+                size="small"
+                label={t('Add an Equation')}
+                onClick={this.handleAddEquation}
+                title={title}
+                disabled={!canAdd}
+                icon={<IconAdd isCircled size="xs" />}
+              >
+                {t('Add an Equation')}
+              </Button>
+            )}
           </Actions>
         </RowContainer>
       </div>

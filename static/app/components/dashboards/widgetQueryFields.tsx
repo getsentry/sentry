@@ -181,6 +181,7 @@ function WidgetQueryFields({
               noParameters
               noHeaders
               noTags
+              noEquation
             />
           </Field>
         );
