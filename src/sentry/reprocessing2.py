@@ -310,17 +310,19 @@ def buffered_delete_old_primary_hash(
             client.expire(primary_hash_set_key, settings.SENTRY_REPROCESSING_SYNC_TTL)
 
     event_count = 0
-    for fkey in old_primary_hashes:
-        event_count += client.llen(fkey)
+    for primary_hash in old_primary_hashes:
+        key = build_event_key(primary_hash)
+        event_count += client.llen(key)
 
     if force_flush_batch or event_count > settings.SENTRY_REPROCESSING_REMAINING_EVENTS_BUF_SIZE:
         for primary_hash in old_primary_hashes:
-            new_key = f"{build_event_key(primary_hash)}:{uuid.uuid4().hex}"
+            old_key = build_event_key(primary_hash)
+            new_key = f"{old_key}:{uuid.uuid4().hex}"
 
             try:
-                # Rename `primary_hash_set_key` to a new temp key that is passed to celery task. We
+                # Rename the event key to a new temp key that is passed to celery task. We
                 # use `renamenx` instead of `rename` only to detect UUID collisions.
-                assert client.renamenx(fkey, new_key), "UUID collision for new_key?"
+                assert client.renamenx(old_key, new_key), "UUID collision for new_key?"
             except redis.exceptions.ResponseError:
                 # `key` does not exist in Redis. `ResponseError` is a bit too broad
                 # but it seems we'd have to do string matching on error message
