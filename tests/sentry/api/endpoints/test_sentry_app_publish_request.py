@@ -82,7 +82,7 @@ class SentryAppPublishRequestTest(APITestCase):
 
     @mock.patch("sentry.utils.email.send_mail")
     def test_publish_no_issue_link_logo(self, send_mail):
-        """Test that you cannot submit a pulication request for an issue link
+        """Test that you cannot submit a publication request for an issue link
         integration without having uploaded a black icon."""
         self.upload_logo()
         with self.feature("organizations:sentry-app-logo-upload"):
@@ -96,7 +96,7 @@ class SentryAppPublishRequestTest(APITestCase):
 
     @mock.patch("sentry.utils.email.send_mail")
     def test_publish_no_stacktrace_link_logo(self, send_mail):
-        """Test that you cannot submit a pulication request for a stacktrace link
+        """Test that you cannot submit a publication request for a stacktrace link
         integration without having uploaded a black icon."""
         stacktrace_link_sentry_app = self.create_sentry_app(
             name="Meowin",
