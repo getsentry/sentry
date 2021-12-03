@@ -75,9 +75,16 @@ class IssueWidgetCard extends React.Component<Props> {
   }
 
   transformTableResults(tableResults: Group[]): TableDataRow[] {
-    return tableResults.map(({id, shortId, title, assignedTo, ...props}) => {
+    return tableResults.map(({id, shortId, title, assignedTo, ...resultProps}) => {
+      const transformedResultProps = {};
+      Object.keys(resultProps).map(key => {
+        const value = resultProps[key];
+        transformedResultProps[key] = ['number', 'string'].includes(typeof value)
+          ? value
+          : String(value);
+      });
       const transformedTableResults = {
-        ...props,
+        ...transformedResultProps,
         id,
         'issue.id': id,
         issue: shortId,
