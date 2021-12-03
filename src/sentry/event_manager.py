@@ -1294,7 +1294,6 @@ def _handle_regression(group, event, release):
     group.status = GroupStatus.UNRESOLVED
 
     if is_regression and release:
-        # TODO: pyright is complaining about resolution being unbound
         resolution = None
 
         # resolutions are only valid if the state of the group is still
@@ -1309,7 +1308,6 @@ def _handle_regression(group, event, release):
             cursor.execute("DELETE FROM sentry_groupresolution WHERE id = %s", [resolution.id])
             affected = cursor.rowcount > 0
 
-        # TODO: pyright is complaining about resolution being unbound
         if affected and resolution:
             # if we had to remove the GroupResolution (i.e. we beat the
             # the queue to handling this) then we need to also record
