@@ -14,7 +14,7 @@ from django.db.models import Func
 from django.utils.encoding import force_text
 from pytz import UTC
 
-from sentry import (  # reprocessing2,
+from sentry import (
     buffer,
     eventstore,
     eventstream,
@@ -22,6 +22,7 @@ from sentry import (  # reprocessing2,
     features,
     options,
     quotas,
+    reprocessing2,
     tsdb,
 )
 from sentry.attachments import MissingAttachmentChunks, attachment_cache
@@ -519,17 +520,17 @@ class EventManager:
                     project=project, event=job["event"], sender=Project
                 )
 
-        # if is_reprocessed:
-        # safe_execute(
-        #     reprocessing2.buffered_delete_old_primary_hash,
-        #     project_id=job["event"].project_id,
-        #     group_id=job["event"].group_id,
-        #     event_id=job["event"].event_id,
-        #     datetime=job["event"].datetime,
-        #     old_primary_hash=reprocessing2.get_original_primary_hash(job["event"]),
-        #     current_primary_hash=job["event"].get_primary_hash(),
-        #     _with_transaction=False,
-        # )
+        if is_reprocessed:
+            safe_execute(
+                reprocessing2.buffered_delete_old_primary_hash,
+                project_id=job["event"].project_id,
+                group_id=job["event"].group_id,
+                event_id=job["event"].event_id,
+                datetime=job["event"].datetime,
+                old_primary_hash=reprocessing2.get_original_primary_hash(job["event"]),
+                current_primary_hash=job["event"].get_primary_hash(),
+                _with_transaction=False,
+            )
 
         _eventstream_insert_many(jobs)
 
