@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import Avatar from 'sentry/components/avatar';
+import SentryAppAvatar from 'sentry/components/avatar/sentryAppAvatar';
 import {
   IconCalixa,
   IconClickup,
@@ -54,11 +54,14 @@ const SentryAppComponentIcon = ({sentryAppComponent: {sentryApp}}: Props) => (
   <Feature features={['organizations:sentry-app-logo-upload']}>
     {({hasFeature}) => {
       const selectedAvatar = sentryApp?.avatars?.find(({color}) => color === false);
-      const isDefault = !(selectedAvatar && selectedAvatar?.avatarType === 'upload');
+      const isDefault = selectedAvatar?.avatarType !== 'upload';
       return hasFeature ? (
-        <AvatarWrapper isDark={ConfigStore.get('theme') === 'dark'} isDefault={isDefault}>
-          <Avatar size={20} sentryApp={sentryApp} isColor={false} />
-        </AvatarWrapper>
+        <SentryAppAvatarWrapper
+          isDark={ConfigStore.get('theme') === 'dark'}
+          isDefault={isDefault}
+        >
+          <SentryAppAvatar sentryApp={sentryApp} size={20} isColor={false} />
+        </SentryAppAvatarWrapper>
       ) : (
         getFallbackIcon(sentryApp.slug)
       );
@@ -68,7 +71,7 @@ const SentryAppComponentIcon = ({sentryAppComponent: {sentryApp}}: Props) => (
 
 export default SentryAppComponentIcon;
 
-const AvatarWrapper = styled('span')<{isDark: boolean; isDefault: boolean}>`
+const SentryAppAvatarWrapper = styled('span')<{isDark: boolean; isDefault: boolean}>`
   color: ${({isDark}) => (isDark ? 'white' : 'black')};
   filter: ${({isDark, isDefault}) => (isDark && !isDefault ? 'invert(1)' : 'invert(0)')};
   line-height: 0;
