@@ -96,7 +96,7 @@ const IntegrationRow = (props: Props) => {
   return (
     <PanelRow noPadding data-test-id={slug}>
       <FlexContainer>
-        {customIcon ? customIcon : <PluginIcon size={36} pluginId={slug} />}
+        {customIcon ?? <PluginIcon size={36} pluginId={slug} />}
         <Container>
           <IntegrationName to={baseUrl}>{displayName}</IntegrationName>
           <IntegrationDetails>
