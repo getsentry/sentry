@@ -1012,8 +1012,6 @@ SENTRY_FEATURES = {
     "organizations:issues-in-dashboards": False,
     # Enable navigation features between Discover and Dashboards
     "organizations:connect-discover-and-dashboards": False,
-    # Enable creating a dashboard widget from the timeseries on an issue detail
-    "organizations:create-dashboard-widget-from-issue": False,
     # Enable experimental performance improvements.
     "organizations:enterprise-perf": False,
     # Enable the API to importing CODEOWNERS for a project

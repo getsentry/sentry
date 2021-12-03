@@ -19,7 +19,7 @@ type StatsGroup = Record<string, TimeseriesValue[]>;
 type Props = {
   group: Group;
   statsPeriod: string;
-  title: React.ReactNode;
+  title: string;
   className?: string;
   firstSeen?: string;
   lastSeen?: string;
