@@ -93,7 +93,7 @@ from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.deletions.defaults.group import DIRECT_GROUP_RELATED_MODELS
 from sentry.eventstore.models import Event
 from sentry.eventstore.processing import event_processing_store
-from sentry.utils import json, snuba
+from sentry.utils import json, metrics, snuba
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.redis import redis_clusters
@@ -325,17 +325,37 @@ def buffered_delete_old_primary_hash(
                 # `key` does not exist in Redis. `ResponseError` is a bit too broad
                 # but it seems we'd have to do string matching on error message
                 # otherwise.
-                return
+                continue
 
-            # worst case scenario a group has a 1:1 mapping of primary hashes to events, which means
-            # 1 insert per event.
-            # this is marginally better than the unbatched version if a group has a lot of old
-            # primary hashes.
+            # In the worst case scenario, a group will have a 1:1 mapping of primary hashes to
+            # events, which means 1 insert per event.
+            # The overall performance of this will be marginally better than the unbatched version
+            # if a group has a lot of old primary hashes.
             _delete_old_primary_hash(
                 project_id=project_id,
                 old_primary_hash=primary_hash,
                 event_ids_redis_key=new_key,
             )
+
+        # Try to track counts so if it turns out that tombstoned events trend towards a ratio of 1
+        # event per hash, a different solution may need to be considered.
+        ratio = 0 if len(old_primary_hashes) == 0 else event_count / len(old_primary_hashes)
+        metrics.gauge(
+            "reprocessing2.buffered_delete_old_primary_hash.event_count",
+            event_count,
+            {
+                "project_id": project_id,
+                "group_id": group_id,
+            },
+        )
+        metrics.gauge(
+            "reprocessing2.buffered_delete_old_primary_hash.primary_hash_to_event_ratio",
+            ratio,
+            {
+                "project_id": project_id,
+                "group_id": group_id,
+            },
+        )
 
 
 def _delete_old_primary_hash(
