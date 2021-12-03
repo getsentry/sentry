@@ -45,7 +45,7 @@ const AVATAR_STYLES = {
     size: 50,
     title: t('Default Logo'),
     previewText: t('The default icon for integrations'),
-    help: t('Image must be between 255px by 255px and 1024px by 1024px.'),
+    help: t('Image must be between 256px by 256px and 1024px by 1024px.'),
   },
   simple: {
     size: 20,
@@ -56,7 +56,7 @@ const AVATAR_STYLES = {
       ),
     }),
     help: t(
-      'Image must be between 255px by 255px and 1024px by 1024px, and may only use black and transparent pixels.'
+      'Image must be between 256px by 256px and 1024px by 1024px, and may only use black and transparent pixels.'
     ),
   },
 };
