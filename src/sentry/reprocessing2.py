@@ -281,6 +281,9 @@ def buffered_delete_old_primary_hash(
     Like `buffered_handle_remaining_events`, is a quick and dirty way to batch
     event IDs so requests to tombstone rows are not being individually sent
     over to Snuba.
+
+    See `_delete_old_primary_hash` for an explanation of the purpose and
+    intent of this routine.
     """
 
     from sentry import killswitches
