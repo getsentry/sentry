@@ -860,7 +860,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           per_page: 3,
           project: ['-42'],
           query: 'transaction.op:pageload avg(measurements.frames_slow):>0',
-          sort: '-avg(measurements.frames_slow)',
+          sort: '-avg(measurements.frames_slow_rate)',
           statsPeriod: '7d',
         }),
       })
@@ -899,7 +899,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           per_page: 3,
           project: ['-42'],
           query: 'transaction.op:pageload avg(measurements.frames_frozen):>0',
-          sort: '-avg(measurements.frames_frozen)',
+          sort: '-avg(measurements.frames_frozen_rate)',
           statsPeriod: '7d',
         }),
       })
