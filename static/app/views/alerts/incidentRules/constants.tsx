@@ -150,11 +150,12 @@ export function createRuleFromEventView(eventView: EventView): UnsavedIncidentRu
     : DATA_SOURCE_TO_SET_AND_EVENT_TYPES.error;
 
   let aggregate = eventView.getYAxis();
-  if (datasetAndEventtypes.dataset === 'transactions') {
+  if (
+    datasetAndEventtypes.dataset === 'transactions' &&
+    /^p\d{2}\(\)/.test(eventView.getYAxis())
+  ) {
     // p95() -> p95(transaction.duration)
-    if (/^p\d{2}\(\)/.test(eventView.getYAxis())) {
-      aggregate = eventView.getYAxis().slice(0, 3) + '(transaction.duration)';
-    }
+    aggregate = eventView.getYAxis().slice(0, 3) + '(transaction.duration)';
   }
 
   return {
