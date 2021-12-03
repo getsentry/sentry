@@ -1,18 +1,21 @@
 import logging
 import operator
+from copy import copy
 from datetime import timedelta
 
 from django.db import transaction
 from django.utils import timezone
 from django.utils.encoding import force_text
 from rest_framework import serializers
+from snuba_sdk import Entity
+from snuba_sdk.legacy import json_to_snql
 
 from sentry import analytics
 from sentry.api.fields.actor import ActorField
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.serializers.rest_framework.environment import EnvironmentField
 from sentry.api.serializers.rest_framework.project import ProjectField
-from sentry.exceptions import InvalidSearchQuery
+from sentry.exceptions import InvalidSearchQuery, UnsupportedQuerySubscription
 from sentry.incidents.logic import (
     CRITICAL_TRIGGER_LABEL,
     WARNING_TRIGGER_LABEL,
@@ -43,10 +46,11 @@ from sentry.mediators import alert_rule_actions
 from sentry.models import OrganizationMember, SentryAppInstallation, Team, User
 from sentry.shared_integrations.exceptions import ApiRateLimitedError
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.entity_subscription import map_aggregate_to_entity_subscription
 from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
 from sentry.snuba.tasks import build_snuba_filter
 from sentry.utils.compat import zip
-from sentry.utils.snuba import raw_query
+from sentry.utils.snuba import raw_snql_query
 
 logger = logging.getLogger(__name__)
 
@@ -443,7 +447,8 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             )
 
     def validate_event_types(self, event_types):
-        if self.initial_data.get("dataset") == Dataset.Sessions.value:
+        dataset = self.initial_data.get("dataset")
+        if dataset not in [Dataset.Events.value, Dataset.Transactions.value]:
             return []
         try:
             return [SnubaQueryEventType.EventType[event_type.upper()] for event_type in event_types]
@@ -477,13 +482,24 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             # the query. We don't use the returned data anywhere, so it doesn't
             # matter which.
             project_id = list(self.context["organization"].project_set.all()[:1])
+
+        try:
+            entity_subscription = map_aggregate_to_entity_subscription(
+                dataset=QueryDatasets(data["dataset"]),
+                aggregate=data["aggregate"],
+                extra_fields={
+                    "org_id": project_id[0].organization_id,
+                    "event_types": data.get("event_types"),
+                },
+            )
+        except UnsupportedQuerySubscription as e:
+            raise serializers.ValidationError(f"{e}")
+
         try:
             snuba_filter = build_snuba_filter(
-                data["dataset"],
+                entity_subscription,
                 data["query"],
-                data["aggregate"],
                 data.get("environment"),
-                data.get("event_types"),
                 params={
                     "project_id": [p.id for p in project_id],
                     "start": timezone.now() - timedelta(minutes=10),
@@ -503,18 +519,30 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             dataset = Dataset(data["dataset"].value)
             self._validate_time_window(dataset, data.get("time_window"))
 
+            conditions = copy(snuba_filter.conditions)
+            time_col = entity_subscription.time_col
+            conditions += [
+                [time_col, ">=", snuba_filter.start],
+                [time_col, "<", snuba_filter.end],
+            ]
+
+            body = {
+                "project": project_id[0].id,
+                "project_id": project_id[0].id,
+                "aggregations": snuba_filter.aggregations,
+                "conditions": conditions,
+                "filter_keys": snuba_filter.filter_keys,
+                "having": snuba_filter.having,
+                "dataset": dataset.value,
+                "limit": 1,
+                **entity_subscription.get_entity_extra_params(),
+            }
+
+            snql_query = json_to_snql(body, dataset.value)
+            snql_query = snql_query.set_match(Entity(entity_subscription.entity_key))
+            snql_query.validate()
             try:
-                raw_query(
-                    aggregations=snuba_filter.aggregations,
-                    start=snuba_filter.start,
-                    end=snuba_filter.end,
-                    conditions=snuba_filter.conditions,
-                    filter_keys=snuba_filter.filter_keys,
-                    having=snuba_filter.having,
-                    dataset=dataset,
-                    limit=1,
-                    referrer="alertruleserializer.test_query",
-                )
+                raw_snql_query(snql_query, referrer="alertruleserializer.test_query")
             except Exception:
                 logger.exception("Error while validating snuba alert rule query")
                 raise serializers.ValidationError(
@@ -582,7 +610,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
 
     @staticmethod
     def _validate_time_window(dataset, time_window):
-        if dataset == Dataset.Sessions:
+        if dataset in [Dataset.Sessions, Dataset.Metrics]:
             # Validate time window
             if time_window not in CRASH_RATE_ALERTS_ALLOWED_TIME_WINDOWS:
                 raise serializers.ValidationError(
