@@ -173,33 +173,15 @@ function WidgetQueryFields({
             stacked
             required
           >
-            {fields.map((field, i) => {
-              return (
-                <QueryFieldWrapper key={`${field}:${i}`}>
-                  <QueryField
-                    fieldValue={field}
-                    fieldOptions={fieldOptions}
-                    onChange={value => handleChangeField(value, i)}
-                    shouldRenderTag={false}
-                  />
-                  {canDelete && (
-                    <Button
-                      size="zero"
-                      borderless
-                      onClick={event => handleRemove(event, i)}
-                      icon={<IconDelete />}
-                      title={t('Remove this Column')}
-                      label={t('Remove this Column')}
-                    />
-                  )}
-                </QueryFieldWrapper>
-              );
-            })}
-            <Actions>
-              <Button size="small" icon={<IconAdd isCircled />} onClick={handleAdd}>
-                {t('Add Column')}
-              </Button>
-            </Actions>
+            <StyledColumnEditCollection
+              columns={fields}
+              onChange={handleColumnChange}
+              fieldOptions={fieldOptions}
+              organization={organization}
+              noParameters
+              noHeaders
+              noTags
+            />
           </Field>
         );
       case WidgetType.DISCOVER:

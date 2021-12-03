@@ -34,6 +34,9 @@ type Props = {
   onChange: (columns: Column[]) => void;
   organization: Organization;
   className?: string;
+  noParameters?: boolean;
+  noHeaders?: boolean;
+  noTags?: boolean;
 };
 
 type State = {
@@ -372,7 +375,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
       gridColumns = 2,
     }: {canDelete?: boolean; canDrag?: boolean; isGhost?: boolean; gridColumns: number}
   ) {
-    const {columns, fieldOptions} = this.props;
+    const {columns, fieldOptions, noTags} = this.props;
     const {isDragging, draggingTargetIndex, draggingIndex} = this.state;
 
     let placeholder: React.ReactNode = null;
@@ -421,6 +424,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
             error={this.state.error.get(i)}
             takeFocus={i === this.props.columns.length - 1}
             otherColumns={columns}
+            shouldRenderTag={!noTags}
           />
           {canDelete || col.kind === 'equation' ? (
             <Button
@@ -439,7 +443,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
   }
 
   render() {
-    const {className, columns} = this.props;
+    const {className, columns, noParameters, noHeaders} = this.props;
     const canDelete = columns.filter(field => field.kind !== 'equation').length > 1;
     const canDrag = columns.length > 1;
     const canAdd = columns.length < MAX_COL_COUNT;
@@ -449,23 +453,28 @@ class ColumnEditCollection extends React.Component<Props, State> {
 
     // Get the longest number of columns so we can layout the rows.
     // We always want at least 2 columns.
-    const gridColumns = Math.max(
-      ...columns.map(col =>
-        col.kind === 'function' && AGGREGATIONS[col.function[0]].parameters.length === 2
-          ? 3
-          : 2
-      )
-    );
+    const gridColumns = noParameters
+      ? 1
+      : Math.max(
+          ...columns.map(col =>
+            col.kind === 'function' &&
+            AGGREGATIONS[col.function[0]].parameters.length === 2
+              ? 3
+              : 2
+          )
+        );
 
     return (
       <div className={className}>
         {this.renderGhost(gridColumns)}
-        <RowContainer>
-          <Heading gridColumns={gridColumns}>
-            <StyledSectionHeading>{t('Tag / Field / Function')}</StyledSectionHeading>
-            <StyledSectionHeading>{t('Field Parameter')}</StyledSectionHeading>
-          </Heading>
-        </RowContainer>
+        {!noHeaders && (
+          <RowContainer>
+            <Heading gridColumns={gridColumns}>
+              <StyledSectionHeading>{t('Tag / Field / Function')}</StyledSectionHeading>
+              <StyledSectionHeading>{t('Field Parameter')}</StyledSectionHeading>
+            </Heading>
+          </RowContainer>
+        )}
         {columns.map((col: Column, i: number) =>
           this.renderItem(col, i, {canDelete, canDrag, gridColumns})
         )}

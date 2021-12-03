@@ -63,7 +63,7 @@ type State = {
 
 const newQuery = {
   name: '',
-  fields: [] as string[],
+  fields: ['issue', 'title', 'assignee'] as string[],
   conditions: '',
   orderby: '',
 };
@@ -108,13 +108,21 @@ class AddDashboardIssueWidgetModal extends React.Component<Props, State> {
     } = this.props;
     this.setState({loading: true});
     let errors: FlatValidationError = {};
+
+    // Clear any empty fields
+    const queries = this.state.queries.map(query => {
+      return {...query, fields: query.fields.filter(field => field)};
+    });
+    this.setState({queries});
+
     const widgetData: Widget = {
       title: this.state.title,
       interval: this.state.interval,
-      queries: this.state.queries,
+      queries,
       displayType: DisplayType.TABLE,
       widgetType: this.state.widgetType,
     };
+
     try {
       await validateWidget(api, organization.slug, widgetData);
       if (defined(onUpdateWidget) && !!previousWidget) {
