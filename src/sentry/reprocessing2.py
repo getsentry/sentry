@@ -312,6 +312,9 @@ def buffered_delete_old_primary_hash(
             client.sadd(primary_hash_set_key, old_primary_hash)
             client.expire(primary_hash_set_key, settings.SENTRY_REPROCESSING_SYNC_TTL)
 
+    # Events for a group are split and bucketed by their primary hashes. If flushing is to be
+    # performed on a per-group basis, the event count needs to be summed up across all buckets
+    # belonging to a single group.
     event_count = 0
     for primary_hash in old_primary_hashes:
         key = build_event_key(primary_hash)
