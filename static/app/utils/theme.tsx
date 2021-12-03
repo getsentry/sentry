@@ -5,6 +5,10 @@ import color from 'color';
 import CHART_PALETTE from 'sentry/constants/chartPalette';
 import {DataCategory} from 'sentry/types';
 
+/**
+ * Exporting for use in Storybook only. Do not import this
+ * anywhere else! Instead, use the theme prop or import useTheme.
+ */
 export const lightColors = {
   black: '#1D1127',
   white: '#FFFFFF',
@@ -50,6 +54,10 @@ export const lightColors = {
   pink100: 'rgba(250, 51, 150, 0.1)',
 };
 
+/**
+ * Exporting for use in Storybook only. Do not import this
+ * anywhere else! Instead, use the theme prop or import useTheme.
+ */
 export const darkColors = {
   black: '#1D1127',
   white: '#FFFFFF',
