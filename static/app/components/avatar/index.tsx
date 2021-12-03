@@ -7,7 +7,7 @@ import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import {AvatarProject, AvatarSentryApp, OrganizationSummary, Team} from 'sentry/types';
 
-type Props = {
+export type AvatarProps = {
   team?: Team;
   organization?: OrganizationSummary;
   project?: AvatarProject;
@@ -33,7 +33,7 @@ const Avatar = React.forwardRef(function Avatar(
     isColor = true,
     isDefault = false,
     ...props
-  }: Props,
+  }: AvatarProps,
   ref: React.Ref<HTMLSpanElement>
 ) {
   const commonProps = {hasTooltip, forwardedRef: ref, ...props};

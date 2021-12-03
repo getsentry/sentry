@@ -15,6 +15,7 @@ import {Panel, PanelBody} from 'sentry/components/panels';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
+import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import space from 'sentry/styles/space';
 import {
   AppOrProviderOrPlugin,
@@ -417,10 +418,10 @@ export class IntegrationListDirectory extends AsyncComponent<
     const {organization} = this.props;
     const status = getSentryAppInstallStatus(this.getAppInstall(app));
     const categories = getCategoriesForIntegration(app);
+    const isAvatar = organization.features?.includes('sentry-app-logo-upload');
 
     return (
       <IntegrationRow
-        sentryApp={app}
         key={`sentry-app-row-${app.slug}`}
         data-test-id="integration-row"
         organization={organization}
@@ -431,6 +432,14 @@ export class IntegrationListDirectory extends AsyncComponent<
         publishStatus={app.status}
         configurations={0}
         categories={categories}
+        customIcon={
+          <PluginIcon
+            pluginId={app.slug}
+            size={36}
+            isAvatar={isAvatar}
+            avatarProps={{sentryApp: app, isColor: true}}
+          />
+        }
       />
     );
   };

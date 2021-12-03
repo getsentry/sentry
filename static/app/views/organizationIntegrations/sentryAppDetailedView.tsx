@@ -280,12 +280,17 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
   }
 
   renderIntegrationIcon() {
+    const {organization} = this.props;
+    const isAvatar = organization.features?.includes('sentry-app-logo-upload');
     return (
       <PluginIcon
-        sentryApp={this.sentryApp}
-        isColor
         pluginId={this.integrationSlug}
         size={50}
+        isAvatar={isAvatar}
+        avatarProps={{
+          sentryApp: this.sentryApp,
+          isColor: true,
+        }}
       />
     );
   }

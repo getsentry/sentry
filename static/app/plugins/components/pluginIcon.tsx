@@ -54,9 +54,7 @@ import visualstudio from 'sentry-logos/logo-visualstudio.svg';
 import youtrack from 'sentry-logos/logo-youtrack.svg';
 import zulip from 'sentry-logos/logo-zulip.svg';
 
-import Feature from 'sentry/components/acl/feature';
-import Avatar from 'sentry/components/avatar';
-import {SentryApp} from 'sentry/types';
+import Avatar, {AvatarProps} from 'sentry/components/avatar';
 
 // Map of plugin id -> logo filename
 export const DEFAULT_ICON = placeholder;
@@ -129,9 +127,9 @@ export const ICON_PATHS = {
 type Props = {
   pluginId?: string;
   size?: number;
-  isColor?: boolean;
-  sentryApp?: SentryApp;
   className?: string;
+  isAvatar?: boolean;
+  avatarProps?: AvatarProps;
 };
 
 // The following component uses hardcoded frontend resources
@@ -149,23 +147,12 @@ const FallbackPluginIcon = styled('div')<Props>`
     (pluginId !== undefined && ICON_PATHS[pluginId]) || DEFAULT_ICON});
 `;
 
-const PluginIcon = ({pluginId, size, sentryApp, isColor, className}: Props) => (
-  <Feature features={['organizations:sentry-app-logo-upload']}>
-    {({hasFeature}) => {
-      if (hasFeature && sentryApp) {
-        return (
-          <Avatar
-            size={size}
-            sentryApp={sentryApp}
-            isColor={isColor}
-            className={className}
-          />
-        );
-      }
-      return <FallbackPluginIcon pluginId={pluginId} size={size} className={className} />;
-    }}
-  </Feature>
-);
+const PluginIcon = ({pluginId, size, isAvatar = false, avatarProps, className}: Props) =>
+  isAvatar && avatarProps ? (
+    <Avatar size={size} className={className} {...avatarProps} />
+  ) : (
+    <FallbackPluginIcon pluginId={pluginId} size={size} className={className} />
+  );
 
 PluginIcon.defaultProps = {
   pluginId: '_default',

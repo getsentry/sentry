@@ -44,10 +44,16 @@ export default class SentryApplicationRow extends PureComponent<Props> {
 
   render() {
     const {app, organization, onRemoveApp} = this.props;
+    const isAvatar = organization.features?.includes('sentry-app-logo-upload');
     return (
       <SentryAppItem data-test-id={app.slug}>
         <StyledFlex>
-          <PluginIcon sentryApp={app} isColor size={36} pluginId={app.slug} />
+          <PluginIcon
+            pluginId={app.slug}
+            size={36}
+            isAvatar={isAvatar}
+            avatarProps={{sentryApp: app, isColor: true}}
+          />
           <SentryAppBox>
             <SentryAppName hideStatus={this.hideStatus()}>
               <Link to={`/settings/${organization.slug}/developer-settings/${app.slug}/`}>

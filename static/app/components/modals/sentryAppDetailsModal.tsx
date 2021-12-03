@@ -154,10 +154,17 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
     const overview = sentryApp.overview || '';
     const featureProps = {organization, features};
 
+    const isAvatar = organization.features?.includes('sentry-app-logo-upload');
+
     return (
       <React.Fragment>
         <Heading>
-          <PluginIcon sentryApp={sentryApp} isColor pluginId={sentryApp.slug} size={50} />
+          <PluginIcon
+            pluginId={sentryApp.slug}
+            size={50}
+            isAvatar={isAvatar}
+            avatarProps={{sentryApp, isColor: true}}
+          />
           <HeadingInfo>
             <Name>{sentryApp.name}</Name>
             {!!features.length && <Features>{this.featureTags(features)}</Features>}
