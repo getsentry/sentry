@@ -299,9 +299,10 @@ def buffered_delete_old_primary_hash(
 
     client = _get_sync_redis_client()
 
-    # This is a meta key that contains old primary hashes. These hashes are then combined with
-    # other values to construct a key that points to a list of tombstonable events.
-    primary_hash_set_key = f"re2:tombstone-primary-hashes:{{{project_id}:{group_id}}}"
+    # This is a meta key that contains old primary hashes. These hashes are then
+    # combined with other values to construct a key that points to a list of
+    # tombstonable events.
+    primary_hash_set_key = f"re2:tombstone-primary-hashes:{project_id}:{group_id}"
     old_primary_hashes = client.smembers(primary_hash_set_key)
 
     def build_event_key(primary_hash):
