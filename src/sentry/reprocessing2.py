@@ -350,25 +350,21 @@ def buffered_delete_old_primary_hash(
                 event_ids_redis_key=new_key,
             )
 
-        # Try to track counts so if it turns out that tombstoned events trend towards a ratio of 1
-        # event per hash, a different solution may need to be considered.
-        ratio = 0 if len(old_primary_hashes) == 0 else event_count / len(old_primary_hashes)
-        metrics.gauge(
-            "reprocessing2.buffered_delete_old_primary_hash.event_count",
-            event_count,
-            {
-                "project_id": project_id,
-                "group_id": group_id,
-            },
-        )
-        metrics.gauge(
-            "reprocessing2.buffered_delete_old_primary_hash.primary_hash_to_event_ratio",
-            ratio,
-            {
-                "project_id": project_id,
-                "group_id": group_id,
-            },
-        )
+    # Try to track counts so if it turns out that tombstoned events trend towards a ratio of 1
+    # event per hash, a different solution may need to be considered.
+    ratio = 0 if len(old_primary_hashes) == 0 else event_count / len(old_primary_hashes)
+    metrics.timing(
+        key="reprocessing2.buffered_delete_old_primary_hash.event_count",
+        value=event_count,
+    )
+    metrics.timing(
+        key="reprocessing2.buffered_delete_old_primary_hash.primary_hash_count",
+        value=len(old_primary_hashes),
+    )
+    metrics.timing(
+        key="reprocessing2.buffered_delete_old_primary_hash.primary_hash_to_event_ratio",
+        value=ratio,
+    )
 
 
 def _delete_old_primary_hash(
