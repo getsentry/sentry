@@ -110,7 +110,6 @@ def test_basic(
 ):
     from sentry import eventstream
 
-
     tombstone_calls = 0
     old_tombstone_fn = eventstream.tombstone_events_unsafe
 
