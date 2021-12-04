@@ -314,6 +314,7 @@ def buffered_delete_old_primary_hash(
         client.expire(event_key, settings.SENTRY_REPROCESSING_SYNC_TTL)
 
         if old_primary_hash not in old_primary_hashes:
+            old_primary_hashes.add(old_primary_hash)
             client.sadd(primary_hash_set_key, old_primary_hash)
             client.expire(primary_hash_set_key, settings.SENTRY_REPROCESSING_SYNC_TTL)
 
