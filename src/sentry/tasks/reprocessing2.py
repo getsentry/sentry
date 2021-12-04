@@ -74,13 +74,6 @@ def reprocess_group(
             remaining_events=remaining_events,
             force_flush_batch=True,
         )
-        # Tombstone unwanted events that should be dropped after new group
-        # is generated after reprocessing
-        buffered_delete_old_primary_hash(
-            project_id=project_id,
-            group_id=group_id,
-            force_flush_batch=True,
-        )
 
         return
 
@@ -248,6 +241,14 @@ def finish_reprocessing(project_id, group_id):
         # All the associated models (groupassignee and eventattachments) should
         # have moved to a successor group that may be deleted independently.
         group.delete()
+
+    # Tombstone unwanted events that should be dropped after new group
+    # is generated after reprocessing
+    buffered_delete_old_primary_hash(
+        project_id=project_id,
+        group_id=group_id,
+        force_flush_batch=True,
+    )
 
     eventstream.exclude_groups(project_id, [group_id])
 
