@@ -330,15 +330,9 @@ def buffered_delete_old_primary_hash(
             old_key = build_event_key(primary_hash)
             new_key = f"{old_key}:{uuid.uuid4().hex}"
 
-            try:
-                # Rename the event key to a new temp key that is passed to celery task. We
-                # use `renamenx` instead of `rename` only to detect UUID collisions.
-                assert client.renamenx(old_key, new_key), "UUID collision for new_key?"
-            except redis.exceptions.ResponseError:
-                # `key` does not exist in Redis. `ResponseError` is a bit too broad
-                # but it seems we'd have to do string matching on error message
-                # otherwise.
-                continue
+            assert client.renamenx(old_key, new_key), "UUID collision for new_key?"
+
+            # TODO: inline the below bit
 
             # In the worst case scenario, a group will have a 1:1 mapping of primary hashes to
             # events, which means 1 insert per event.
