@@ -130,8 +130,9 @@ def get_email_avatar(
 
 def is_black_alpha_only(data: bytes) -> bool:
     """Check if an image has only black pixels (with alpha)"""
-    image = Image.open(data)
-    if image.mode != "RGBA":
-        return False
-
-    return not any(p[:3] != (0, 0, 0) for p in list(image.getdata()))
+    result = False
+    with Image.open(data) as image:
+        if image.mode == "RGBA":
+            result = not any(p[:3] != (0, 0, 0) for p in list(image.getdata()))
+    data.seek(0)
+    return result
