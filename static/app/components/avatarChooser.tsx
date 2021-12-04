@@ -114,22 +114,22 @@ class AvatarChooser extends React.Component<Props, State> {
   handleSaveSettings = (ev: React.MouseEvent) => {
     const {endpoint, api, type} = this.props;
     const {model, dataUrl} = this.state;
-    const isSentryApp = type?.startsWith('sentryApp');
 
     ev.preventDefault();
-    const avatarType = model && model.avatar ? model.avatar.avatarType : undefined;
-    const avatarPhoto = dataUrl ? dataUrl.split(',')[1] : undefined;
+    const avatarType = model?.avatar?.avatarType;
+    const avatarPhoto = dataUrl?.split(',')[1];
 
     const data: {
       avatar_photo: string | undefined;
       avatar_type: string | undefined;
       color?: boolean;
     } = {
-      avatar_photo: avatarPhoto,
+      // If an image has been uploaded, then another option is selected, we should not submit the image
+      avatar_photo: avatarType === 'upload' ? avatarPhoto : undefined,
       avatar_type: avatarType,
     };
 
-    if (isSentryApp) {
+    if (type?.startsWith('sentryApp')) {
       data.color = type === 'sentryAppColor';
     }
 
