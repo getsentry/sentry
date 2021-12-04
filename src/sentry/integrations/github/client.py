@@ -179,23 +179,23 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         Should the token have expired, a new token will be generated and
         automatically persisted into the integration.
         """
-        token = self.integration.metadata.get("access_token")
-        expires_at = self.integration.metadata.get("expires_at")
+        token: str | None = self.integration.metadata.get("access_token")
+        expires_at: str | None = self.integration.metadata.get("expires_at")
 
-        if expires_at is not None:
-            expires_at = datetime.strptime(expires_at, "%Y-%m-%dT%H:%M:%S")
-
-        if not token or expires_at < datetime.utcnow() or force_refresh:
+        if (
+            not token
+            or not expires_at
+            or (datetime.strptime(expires_at, "%Y-%m-%dT%H:%M:%S") < datetime.utcnow())
+            or force_refresh
+        ):
             res = self.create_token()
             token = res["token"]
-            expires_at = datetime.strptime(res["expires_at"], "%Y-%m-%dT%H:%M:%SZ")
+            expires_at = datetime.strptime(res["expires_at"], "%Y-%m-%dT%H:%M:%SZ").isoformat()
 
-            self.integration.metadata.update(
-                {"access_token": token, "expires_at": expires_at.isoformat()}
-            )
+            self.integration.metadata.update({"access_token": token, "expires_at": expires_at})
             self.integration.save()
 
-        return token
+        return token or ""
 
     def create_token(self) -> JSONData:
         headers = {

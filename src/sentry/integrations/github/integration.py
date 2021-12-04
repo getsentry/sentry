@@ -97,15 +97,18 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
     ) -> Mapping[str, Any] | None:
         try:
             files = self.get_client().search_file(repo.name, "CODEOWNERS")
-            for f in files["items"]:
-                if f["name"] == "CODEOWNERS":
-                    filepath = f["path"]
-                    html_url = f["html_url"]
-                    contents = self.get_client().get_file(repo.name, filepath)
-                    return {"filepath": filepath, "html_url": html_url, "raw": contents}
         except ApiError:
             return None
 
+        for f in files["items"]:
+            if f["name"] == "CODEOWNERS":
+                filepath = f["path"]
+                html_url = f["html_url"]
+                try:
+                    contents = self.get_client().get_file(repo.name, filepath)
+                except ApiError:
+                    return None
+                return {"filepath": filepath, "html_url": html_url, "raw": contents}
         return None
 
     def get_repositories(self, query: str | None = None) -> Sequence[Mapping[str, Any]]:
