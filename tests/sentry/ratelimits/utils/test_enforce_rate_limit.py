@@ -1,6 +1,7 @@
 from django.conf.urls import url
 from django.test import override_settings
 from freezegun import freeze_time
+from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
@@ -9,24 +10,21 @@ from sentry.testutils import APITestCase
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
-class RateLimitEnforcedEndpoint(Endpoint):
+class RateLimitTestEndpoint(Endpoint):
     permission_classes = (AllowAny,)
 
     rate_limits = {"GET": {RateLimitCategory.IP: RateLimit(1, 100)}}
+
+    def get(self, request):
+        return Response({"ok": True})
+
+
+class RateLimitEnforcedEndpoint(RateLimitTestEndpoint):
     enforce_rate_limit = True
 
-    def get(self, request):
-        return Response({"ok": True})
 
-
-class RateLimitUnenforcedEndpoint(Endpoint):
-    permission_classes = (AllowAny,)
-
-    rate_limits = {"GET": {RateLimitCategory.IP: RateLimit(1, 100)}}
+class RateLimitUnenforcedEndpoint(RateLimitTestEndpoint):
     enforce_rate_limit = False
-
-    def get(self, request):
-        return Response({"ok": True})
 
 
 urlpatterns = [
@@ -39,20 +37,14 @@ urlpatterns = [
 class EnforceRateLimitTest(APITestCase):
     def test_enforced_rate_limit(self):
         """Endpoints with enforce_rate_limit enabled should result in 429s"""
+        self.endpoint = "enforced-endpoint"
         with freeze_time("2000-01-01"):
-            self.endpoint = "enforced-endpoint"
-            response = self.get_response()
-            assert response.status_code == 200
-
-            response = self.get_response()
-            assert response.status_code == 429
+            self.get_success_response()
+            self.get_error_response(status_code=status.HTTP_429_TOO_MANY_REQUESTS)
 
     def test_unenforced_rate_limit(self):
         """Endpoints with enforce_rate_limit disabled shouldn't reject requests"""
+        self.endpoint = "unenforced-endpoint"
         with freeze_time("2000-01-01"):
-            self.endpoint = "unenforced-endpoint"
-            response = self.get_response()
-            assert response.status_code == 200
-
-            response = self.get_response()
-            assert response.status_code == 200
+            self.get_success_response()
+            self.get_success_response()

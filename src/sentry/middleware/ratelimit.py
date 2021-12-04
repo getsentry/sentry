@@ -41,8 +41,9 @@ class RatelimitMiddleware(MiddlewareMixin):
             if enforce_rate_limit:
                 return HttpResponse(
                     {
-                        "detail": f"You are attempting to use this endpoint too quickly. "
-                        f"Limit is {rate_limit_check_dict['limit']}/{rate_limit_check_dict['window']}s"
+                        "detail": f"You are attempting to use this endpoint too frequently. "
+                        f"Limit is {rate_limit_check_dict['limit']} requests in "
+                        f"{rate_limit_check_dict['window']} seconds"
                     },
                     status=429,
                 )
