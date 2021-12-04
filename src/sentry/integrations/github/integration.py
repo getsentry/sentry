@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import re
+from typing import Any, Mapping, Sequence
 
 from django.utils.text import slugify
 from django.utils.translation import ugettext_lazy as _
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry import options
 from sentry.integrations import (
@@ -14,15 +17,15 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.repositories import RepositoryMixin
-from sentry.models import Integration, OrganizationIntegration, Repository
-from sentry.pipeline import PipelineView
+from sentry.models import Integration, Organization, OrganizationIntegration, Repository
+from sentry.pipeline import Pipeline, PipelineView
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.integrations import migrate_repo
 from sentry.utils import jwt
 from sentry.web.helpers import render_to_response
 
-from .client import GitHubAppsClient
+from .client import GitHubAppsClient, GitHubClientMixin
 from .issues import GitHubIssueBasic
 from .repository import GitHubRepositoryProvider
 from .utils import get_jwt
@@ -60,7 +63,6 @@ FEATURES = [
     ),
 ]
 
-
 metadata = IntegrationMetadata(
     description=DESCRIPTION.strip(),
     features=FEATURES,
@@ -79,18 +81,20 @@ API_ERRORS = {
 }
 
 
-def build_repository_query(metadata, name, query):
+def build_repository_query(metadata: Mapping[str, Any], name: str, query: str) -> bytes:
     account_type = "user" if metadata["account_type"] == "User" else "org"
-    return (f"{account_type}:{name} {query}").encode()
+    return f"{account_type}:{name} {query}".encode()
 
 
-class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMixin):
+class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMixin):  # type: ignore
     repo_search = True
 
-    def get_client(self):
+    def get_client(self) -> GitHubClientMixin:
         return GitHubAppsClient(integration=self.model)
 
-    def get_codeowner_file(self, repo, ref=None):
+    def get_codeowner_file(
+        self, repo: Repository, ref: str | None = None
+    ) -> Mapping[str, Any] | None:
         try:
             files = self.get_client().search_file(repo.name, "CODEOWNERS")
             for f in files["items"]:
@@ -104,7 +108,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
 
         return None
 
-    def get_repositories(self, query=None):
+    def get_repositories(self, query: str | None = None) -> Sequence[Mapping[str, Any]]:
         if not query:
             return [
                 {"name": i["name"], "identifier": i["full_name"]}
@@ -117,7 +121,8 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
             {"name": i["name"], "identifier": i["full_name"]} for i in response.get("items", [])
         ]
 
-    def search_issues(self, query):
+    def search_issues(self, query: str) -> Mapping[str, Sequence[Mapping[str, Any]]]:
+        # TODO MARCOS FIRST
         return self.get_client().search_issues(query)
 
     def format_source_url(self, repo: Repository, filepath: str, branch: str) -> str:
@@ -125,7 +130,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         # "https://github.com/octokit/octokit.rb/blob/master/README.md"
         return f"https://github.com/{repo.name}/blob/{branch}/{filepath}"
 
-    def get_unmigratable_repositories(self):
+    def get_unmigratable_repositories(self) -> Sequence[Repository]:
         accessible_repos = self.get_repositories()
         accessible_repo_names = [r["identifier"] for r in accessible_repos]
 
@@ -135,14 +140,19 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
 
         return [repo for repo in existing_repos if repo.name not in accessible_repo_names]
 
-    def reinstall(self):
+    def reinstall(self) -> None:
         self.reinstall_repositories()
 
-    def message_from_error(self, exc):
+    def message_from_error(self, exc: Exception) -> str:
         if isinstance(exc, ApiError):
             message = API_ERRORS.get(exc.code)
             if exc.code == 404 and re.search(r"/repos/.*/(compare|commits)", exc.url):
-                message += f" Please also confirm that the commits associated with the following URL have been pushed to GitHub: {exc.url}"
+                if message is None:
+                    message = ""
+                message += (
+                    " Please also confirm that the commits associated with"
+                    f" the following URL have been pushed to GitHub: {exc.url} "
+                )
 
             if message is None:
                 message = exc.json.get("message", "unknown error") if exc.json else "unknown error"
@@ -150,7 +160,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         else:
             return ERR_INTERNAL
 
-    def has_repo_access(self, repo):
+    def has_repo_access(self, repo: Repository) -> bool:
         client = self.get_client()
         try:
             # make sure installation has access to this specific repo
@@ -163,7 +173,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         return True
 
 
-class GitHubIntegrationProvider(IntegrationProvider):
+class GitHubIntegrationProvider(IntegrationProvider):  # type: ignore
     key = "github"
     name = "GitHub"
     metadata = metadata
@@ -179,10 +189,15 @@ class GitHubIntegrationProvider(IntegrationProvider):
 
     setup_dialog_config = {"width": 1030, "height": 1000}
 
-    def get_client(self):
+    def get_client(self) -> GitHubClientMixin:
         return GitHubAppsClient(integration=self.integration_cls)
 
-    def post_install(self, integration, organization, extra=None):
+    def post_install(
+        self,
+        integration: Integration,
+        organization: Organization,
+        extra: Mapping[str, Any] | None = None,
+    ) -> None:
         repo_ids = Repository.objects.filter(
             organization_id=organization.id,
             provider__in=["github", "integrations:github"],
@@ -198,21 +213,23 @@ class GitHubIntegrationProvider(IntegrationProvider):
                 }
             )
 
-    def get_pipeline_views(self):
+    def get_pipeline_views(self) -> Sequence[PipelineView]:
         return [GitHubInstallationRedirect()]
 
-    def get_installation_info(self, installation_id):
+    def get_installation_info(self, installation_id: str) -> Mapping[str, Any]:
         client = self.get_client()
         headers = {
             # TODO(jess): remove this whenever it's out of preview
             "Accept": "application/vnd.github.machine-man-preview+json",
         }
         headers.update(jwt.authorization_header(get_jwt()))
-        resp = client.get(f"/app/installations/{installation_id}", headers=headers)
 
+        resp: Mapping[str, Any] = client.get(
+            f"/app/installations/{installation_id}", headers=headers
+        )
         return resp
 
-    def build_integration(self, state):
+    def build_integration(self, state: Mapping[str, str]) -> Mapping[str, Any]:
         installation = self.get_installation_info(state["installation_id"])
 
         integration = {
@@ -237,7 +254,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
 
         return integration
 
-    def setup(self):
+    def setup(self) -> None:
         from sentry.plugins.base import bindings
 
         bindings.add(
@@ -245,12 +262,12 @@ class GitHubIntegrationProvider(IntegrationProvider):
         )
 
 
-class GitHubInstallationRedirect(PipelineView):
-    def get_app_url(self):
+class GitHubInstallationRedirect(PipelineView):  # type: ignore
+    def get_app_url(self) -> str:
         name = options.get("github-app.name")
         return f"https://github.com/apps/{slugify(name)}"
 
-    def dispatch(self, request, pipeline):
+    def dispatch(self, request: Request, pipeline: Pipeline) -> Response:
         if "reinstall_id" in request.GET:
             pipeline.bind_state("reinstall_id", request.GET["reinstall_id"])
 
