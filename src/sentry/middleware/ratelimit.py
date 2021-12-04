@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+from django.conf import settings
 from django.http.response import HttpResponse
 from django.utils.deprecation import MiddlewareMixin
+from rest_framework.request import Request
 
+from sentry.api.helpers.group_index.index import EndpointFunction
+from sentry.models import SentryAppInstallationToken
 from sentry.ratelimits import (
     above_rate_limit_check,
     can_be_ratelimited,
@@ -10,6 +14,59 @@ from sentry.ratelimits import (
     get_rate_limit_value,
 )
 from sentry.types.ratelimit import RateLimitCategory
+
+
+def get_rate_limit_key(view_func: EndpointFunction, request: Request) -> str | None:
+    """Construct a consistent global rate limit key using the arguments provided"""
+
+    view = view_func.__qualname__
+    http_method = request.method
+
+    # This avoids touching user session, which means we avoid
+    # setting `Vary: Cookie` as a response header which will
+    # break HTTP caching entirely.
+    if request.path_info.startswith(settings.ANONYMOUS_STATIC_PREFIXES):
+        return None
+
+    request_user = getattr(request, "user", None)
+    user_id = getattr(request_user, "id", None)
+    is_sentry_app = getattr(request_user, "is_sentry_app", None)
+
+    ip_address = request.META.get("REMOTE_ADDR")
+
+    request_auth = getattr(request, "auth", None)
+    token_class = getattr(request_auth, "__class__", None)
+    token_name = token_class.__name__ if token_class else None
+
+    if token_name == "ApiToken" and is_sentry_app:
+        category = "org"
+        token = (
+            SentryAppInstallationToken.objects.filter(api_token_id=request_auth.id)
+            .select_related("sentry_app_installation")
+            .first()
+        )
+        installation = getattr(token, "sentry_app_installation", None)
+        id = getattr(installation, "organization_id", None)
+
+    elif token_name == "ApiToken" and not is_sentry_app:
+        category = "user"
+        id = getattr(request_auth, "user_id", None)
+
+    elif token_name == "ApiKey" and ip_address is not None:
+        category = "ip"
+        id = ip_address
+
+    elif user_id is not None:
+        category = "user"
+        id = user_id
+
+    elif ip_address is not None:
+        category = "ip"
+        id = ip_address
+    # If IP address doesn't exist, skip ratelimiting for now
+    else:
+        return None
+    return f"{category}:{view}:{http_method}:{id}"
 
 
 class RatelimitMiddleware(MiddlewareMixin):
