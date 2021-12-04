@@ -50,17 +50,36 @@ def get_rate_limit_key(view_func: EndpointFunction, request: Request) -> str | N
     user_id = getattr(request_user, "id", None)
     is_sentry_app = getattr(request_user, "is_sentry_app", None)
 
-    request_access = getattr(request, "access", None)
-    org_id = getattr(request_access, "organization_id", None)
-
     ip_address = request.META.get("REMOTE_ADDR")
 
-    if is_sentry_app and org_id is not None:
+    request_auth = getattr(request, "auth", None)
+    token_class = getattr(request_auth, "__class__", None)
+    token_name = token_class.__name__ if token_class else None
+
+    if token_name == "ApiToken" and is_sentry_app:
+        from sentry.models import SentryAppInstallationToken
+
         category = "org"
-        id = org_id
+        token = (
+            SentryAppInstallationToken.objects.filter(api_token_id=request_auth.id)
+            .select_related("sentry_app_installation")
+            .first()
+        )
+        installation = getattr(token, "sentry_app_installation", None)
+        id = getattr(installation, "organization_id", None)
+
+    elif token_name == "ApiToken" and not is_sentry_app:
+        category = "user"
+        id = getattr(request_auth, "user_id", None)
+
+    elif token_name == "ApiKey" and ip_address is not None:
+        category = "ip"
+        id = ip_address
+
     elif user_id is not None:
         category = "user"
         id = user_id
+
     elif ip_address is not None:
         category = "ip"
         id = ip_address
