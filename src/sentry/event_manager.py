@@ -524,7 +524,7 @@ class EventManager:
             safe_execute(
                 reprocessing2.buffered_delete_old_primary_hash,
                 project_id=job["event"].project_id,
-                group_id=job["event"].group_id,
+                group_id=reprocessing2.get_original_group_id(job["event"]),
                 event_id=job["event"].event_id,
                 datetime=job["event"].datetime,
                 old_primary_hash=reprocessing2.get_original_primary_hash(job["event"]),

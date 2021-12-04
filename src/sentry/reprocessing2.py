@@ -264,6 +264,10 @@ def reprocess_event(project_id, event_id, start_time):
     )
 
 
+def get_original_group_id(event):
+    return get_path(event.data, "contexts", "reprocessing", "original_issue_id")
+
+
 def get_original_primary_hash(event):
     return get_path(event.data, "contexts", "reprocessing", "original_primary_hash")
 
