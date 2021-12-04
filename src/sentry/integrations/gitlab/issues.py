@@ -1,4 +1,5 @@
 import re
+from typing import Sequence
 
 from django.urls import reverse
 
@@ -18,7 +19,7 @@ class GitlabIssueBasic(IssueBasicMixin):
         project, issue_id = match.group(1), match.group(2)
         return "{}/{}/issues/{}".format(self.model.metadata["base_url"], project, issue_id)
 
-    def get_persisted_default_config_fields(self):
+    def get_persisted_default_config_fields(self) -> Sequence[str]:
         return ["project"]
 
     def get_projects_and_default(self, group, **kwargs):
