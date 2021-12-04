@@ -106,7 +106,21 @@ def test_basic(
     process_and_save,
     register_event_preprocessor,
     burst_task_runner,
+    monkeypatch,
 ):
+    from sentry import eventstream
+
+
+    tombstone_calls = 0
+    old_tombstone_fn = eventstream.tombstone_events_unsafe
+
+    def tombstone_called(*args, **kwargs):
+        nonlocal tombstone_calls
+        tombstone_calls += 1
+        old_tombstone_fn(*args, **kwargs)
+
+    monkeypatch.setattr("sentry.eventstream.tombstone_events_unsafe", tombstone_called)
+
     # Replace this with an int and nonlocal when we have Python 3
     abs_count = []
 
@@ -169,13 +183,12 @@ def test_basic(
 
     assert is_group_finished(old_event.group_id)
 
-    # Dirty hack to get
-    # This is fine because we're close enough to the end of the test to be
-    # demolishing this
-    redis_client = _get_sync_redis_client()
-    redis_client.execute_command("FLUSHALL")
-
+    # Old event is actually getting tombstoned
     assert not get_event_by_processing_counter("x0")
+    if change_groups:
+        assert tombstone_calls == 1
+    else:
+        assert tombstone_calls == 0
 
 
 @pytest.mark.django_db
