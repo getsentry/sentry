@@ -3,7 +3,6 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Panel, PanelBody} from 'sentry/components/panels';
-import {IconGraphLine} from 'sentry/icons/iconGraphLine';
 import space from 'sentry/styles/space';
 
 import {WidgetTemplate} from './data';
@@ -43,14 +42,10 @@ function WidgetLibraryCard({
     >
       <PanelBody>
         <TitleContainer>
-          <IconGraphLine />
+          {widget.icon}
           <Title>{widget.title}</Title>
         </TitleContainer>
-        <Description>
-          {
-            'Widget Description stuff like a super long one because I want to see it wrap around.'
-          }
-        </Description>
+        <Description>{widget.description}</Description>
       </PanelBody>
     </StyledPanel>
   );
@@ -67,11 +62,11 @@ const TitleContainer = styled('div')`
   padding: ${space(1.5)} ${space(2)};
   padding-bottom: ${space(0.5)};
   display: flex;
+  align-items: center;
 `;
 
 const Description = styled('div')`
-  padding-left: 40px;
-  padding-bottom: ${space(1)};
+  padding: 0 ${space(1)} ${space(1.5)} 40px;
   font-size: 14px;
   line-height: 21px;
   color: ${p => p.theme.gray300};
