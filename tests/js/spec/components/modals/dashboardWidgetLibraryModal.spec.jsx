@@ -2,6 +2,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import DashboardWidgetLibraryModal from 'sentry/components/modals/dashboardWidgetLibraryModal';
+import * as types from 'sentry/views/dashboardsV2/types';
 
 const stubEl = props => <div>{props.children}</div>;
 const alertText =
@@ -77,6 +78,7 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
     userEvent.click(selectButtons[2]);
 
     expect(screen.getByTestId('selected-badge')).toHaveTextContent('1 Selected');
+    expect(screen.getByTestId('confirm-widgets')).toBeEnabled();
     userEvent.click(screen.getByTestId('confirm-widgets'));
 
     expect(mockApply).toHaveBeenCalledTimes(1);
@@ -114,6 +116,22 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
     expect(mockApply).toHaveBeenCalledTimes(0);
     expect(closeModal).toHaveBeenCalledTimes(0);
     expect(screen.getByText(alertText)).toBeInTheDocument();
+
+    container.unmount();
+  });
+
+  it('disables save button if widget limit is exceeded', function () {
+    // Checking initial modal states
+    const mockApply = jest.fn();
+    const closeModal = jest.fn();
+    types.MAX_WIDGETS = 1;
+    const container = mountModal({initialData}, mockApply, closeModal);
+
+    const selectButtons = screen.getAllByRole('button');
+    userEvent.click(selectButtons[3]);
+    userEvent.click(selectButtons[4]);
+
+    expect(screen.getByTestId('confirm-widgets')).toBeDisabled();
 
     container.unmount();
   });

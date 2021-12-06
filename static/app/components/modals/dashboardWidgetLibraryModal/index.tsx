@@ -5,12 +5,14 @@ import styled from '@emotion/styled';
 
 import {ModalRenderProps, openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
 import Tag from 'sentry/components/tagDeprecated';
-import {t} from 'sentry/locale';
+import Tooltip from 'sentry/components/tooltip';
+import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {
   DashboardDetails,
   DashboardWidgetSource,
+  MAX_WIDGETS,
   Widget,
 } from 'sentry/views/dashboardsV2/types';
 import {WidgetTemplate} from 'sentry/views/dashboardsV2/widgetLibrary/data';
@@ -98,21 +100,31 @@ function DashboardWidgetLibraryModal({
             <SelectedBadge data-test-id="selected-badge">
               {`${selectedWidgets.length} Selected`}
             </SelectedBadge>
-            <Button
-              data-test-id="confirm-widgets"
-              priority="primary"
-              type="button"
-              onClick={(event: React.FormEvent) => {
-                event.preventDefault();
-                if (!!!selectedWidgets.length) {
-                  setErrored(true);
-                  return;
-                }
-                handleSubmit();
-              }}
+            <Tooltip
+              title={tct('Max widgets ([maxWidgets]) per dashboard exceeded.', {
+                maxWidgets: MAX_WIDGETS,
+              })}
+              disabled={
+                !!!(dashboard.widgets.length + selectedWidgets.length >= MAX_WIDGETS)
+              }
             >
-              {t('Confirm')}
-            </Button>
+              <Button
+                data-test-id="confirm-widgets"
+                disabled={dashboard.widgets.length + selectedWidgets.length > MAX_WIDGETS}
+                priority="primary"
+                type="button"
+                onClick={(event: React.FormEvent) => {
+                  event.preventDefault();
+                  if (!!!selectedWidgets.length) {
+                    setErrored(true);
+                    return;
+                  }
+                  handleSubmit();
+                }}
+              >
+                {t('Confirm')}
+              </Button>
+            </Tooltip>
           </div>
         </FooterButtonbar>
       </Footer>

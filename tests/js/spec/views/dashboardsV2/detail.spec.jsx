@@ -495,6 +495,8 @@ describe('Dashboards > Detail', function () {
       expect(breadcrumbs.exists()).toBe(true);
       expect(breadcrumbs.find('BreadcrumbLink').find('a').text()).toEqual('Dashboards');
       expect(breadcrumbs.find('BreadcrumbItem').last().text()).toEqual('Custom Errors');
+
+      wrapper.unmount();
     });
 
     it('enters edit mode when given a new widget in location query', async function () {
@@ -523,6 +525,7 @@ describe('Dashboards > Detail', function () {
       expect(wrapper.find('DashboardDetail').props().initialState).toEqual(
         DashboardState.EDIT
       );
+      wrapper.unmount();
     });
 
     it('enters view mode when not given a new widget in location query', async function () {
@@ -540,9 +543,12 @@ describe('Dashboards > Detail', function () {
       expect(wrapper.find('DashboardDetail').props().initialState).toEqual(
         DashboardState.VIEW
       );
+      wrapper.unmount();
     });
 
     it('can add library widgets', async function () {
+      types.MAX_WIDGETS = 10;
+
       initialData = initializeOrg({
         organization: TestStubs.Organization({
           features: [
@@ -567,6 +573,8 @@ describe('Dashboards > Detail', function () {
       );
       await tick();
       wrapper.update();
+
+      expect(wrapper.find('Controls Tooltip').prop('disabled')).toBe(true);
 
       // Enter Add Widget mode
       wrapper
@@ -647,6 +655,44 @@ describe('Dashboards > Detail', function () {
           }),
         })
       );
+      wrapper.unmount();
+    });
+
+    it('disables add library widgets when max widgets reached', async function () {
+      types.MAX_WIDGETS = 1;
+
+      initialData = initializeOrg({
+        organization: TestStubs.Organization({
+          features: [
+            'global-views',
+            'dashboards-basic',
+            'dashboards-edit',
+            'discover-query',
+            'widget-library',
+          ],
+          projects: [TestStubs.Project()],
+        }),
+      });
+
+      wrapper = mountWithTheme(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        initialData.routerContext
+      );
+      await tick();
+      wrapper.update();
+
+      // Enter Add Widget mode
+      expect(
+        wrapper.find('Controls Button[data-test-id="add-widget-library"]').props()
+          .disabled
+      ).toEqual(true);
+      expect(wrapper.find('Controls Tooltip').prop('disabled')).toBe(false);
+      wrapper.unmount();
     });
 
     it('adds an Issue widget to the dashboard', async function () {
@@ -711,6 +757,7 @@ describe('Dashboards > Detail', function () {
           }),
         })
       );
+      wrapper.unmount();
     });
   });
 });
