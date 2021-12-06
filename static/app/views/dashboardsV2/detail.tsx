@@ -308,14 +308,12 @@ class DashboardDetail extends Component<Props, State> {
       throw new Error('Expected layouts and widgets to be the same length');
     }
 
-    saveDashboardLayout(
-      organizationId,
-      dashboardId,
-      layout.map((widgetLayout, index) => ({
-        ...widgetLayout,
-        i: constructGridItemKey(newWidgets[index]),
-      }))
-    );
+    const newLayout = layout.map((widgetLayout, index) => ({
+      ...widgetLayout,
+      i: constructGridItemKey(newWidgets[index]),
+    }));
+    saveDashboardLayout(organizationId, dashboardId, newLayout);
+    this.onLayoutChange(newLayout);
   };
 
   onCommit = () => {
@@ -367,7 +365,8 @@ class DashboardDetail extends Component<Props, State> {
 
         // only update the dashboard if there are changes
         if (modifiedDashboard) {
-          if (isEqual(dashboard, modifiedDashboard)) {
+          const hasCommittedKey = ({i}) => i.match(/^grid-item-[0-9]+$/);
+          if (isEqual(dashboard, modifiedDashboard) && layout.every(hasCommittedKey)) {
             this.setState({
               dashboardState: DashboardState.VIEW,
               modifiedDashboard: null,
@@ -377,7 +376,13 @@ class DashboardDetail extends Component<Props, State> {
           updateDashboard(api, organization.slug, modifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
               if (onDashboardUpdate) {
-                onDashboardUpdate(modifiedDashboard);
+                onDashboardUpdate({
+                  ...modifiedDashboard,
+                  widgets: modifiedDashboard.widgets.map((newWidget, index) => ({
+                    ...newWidget,
+                    id: newDashboard.widgets[index].id,
+                  })),
+                });
               }
 
               if (organization.features.includes('dashboard-grid-layout')) {

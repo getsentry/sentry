@@ -8,6 +8,7 @@ import Tag from 'sentry/components/tagDeprecated';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
+import {assignWidgetId} from 'sentry/views/dashboardsV2/gridLayout/dashboard';
 import {
   DashboardDetails,
   DashboardWidgetSource,
@@ -52,7 +53,7 @@ function DashboardWidgetLibraryModal({
   const [errored, setErrored] = useState(false);
 
   function handleSubmit() {
-    onAddWidget([...dashboard.widgets, ...selectedWidgets]);
+    onAddWidget([...dashboard.widgets, ...selectedWidgets.map(assignWidgetId)]);
     closeModal();
   }
 

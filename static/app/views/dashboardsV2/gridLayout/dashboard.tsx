@@ -6,6 +6,7 @@ import RGL, {Layout, WidthProvider} from 'react-grid-layout';
 import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
+import {nanoid} from 'nanoid';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -286,6 +287,17 @@ const GridItem = styled('div')`
 
 export function constructGridItemKey(widget: Widget) {
   return `${WIDGET_PREFIX}-${widget.id ?? widget.tempId}`;
+}
+
+export function generateGridItemKey() {
+  return nanoid();
+}
+
+export function assignWidgetId(widget) {
+  if (!(widget.id ?? widget.tempId)) {
+    return {...widget, tempId: generateGridItemKey()};
+  }
+  return widget;
 }
 
 /**
