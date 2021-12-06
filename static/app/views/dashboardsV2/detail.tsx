@@ -3,6 +3,7 @@ import type {Layout as RGLLayout} from 'react-grid-layout';
 import {browserHistory, PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
+import isMatch from 'lodash/isMatch';
 
 import {
   createDashboard,
@@ -366,7 +367,7 @@ class DashboardDetail extends Component<Props, State> {
         if (modifiedDashboard) {
           if (
             isEqual(dashboard, modifiedDashboard) &&
-            isEqual(layout, getDashboardLayout(organization.id, dashboard.id))
+            isMatch(layout, getDashboardLayout(organization.id, dashboard.id))
           ) {
             this.setState({
               dashboardState: DashboardState.VIEW,
