@@ -43,8 +43,11 @@ export function transformMetricsToVitalList<T extends WidgetDataConstraint>(
       acc.push({
         transaction: String(group.by.transaction),
         measurement_rating: {
+          poor: 0,
+          meh: 0,
+          good: 0,
           [group.by.measurement_rating]: group.totals[metricsField],
-        } as VitalsMetricsItem['measurement_rating'],
+        },
       });
       return acc;
     }, [] as VitalsMetricsItem[]) ?? [];
