@@ -29,7 +29,11 @@ import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import GridLayoutDashboard, {constructGridItemKey} from './gridLayout/dashboard';
-import {getDashboardLayout, saveDashboardLayout} from './gridLayout/utils';
+import {
+  getDashboardLayout,
+  hasCommittedKey,
+  saveDashboardLayout,
+} from './gridLayout/utils';
 import Controls from './controls';
 import DnDKitDashboard from './dashboard';
 import {DEFAULT_STATS_PERIOD, EMPTY_DASHBOARD} from './data';
@@ -357,15 +361,8 @@ class DashboardDetail extends Component<Props, State> {
         break;
       }
       case DashboardState.EDIT: {
-        // TODO(nar): This should only fire when there are changes to the layout
-        // and the dashboard can be successfully saved
-        if (organization.features.includes('dashboard-grid-layout')) {
-          saveDashboardLayout(organization.id, dashboard.id, layout);
-        }
-
         // only update the dashboard if there are changes
         if (modifiedDashboard) {
-          const hasCommittedKey = ({i}) => i.match(/^grid-item-[0-9]+$/);
           if (isEqual(dashboard, modifiedDashboard) && layout.every(hasCommittedKey)) {
             this.setState({
               dashboardState: DashboardState.VIEW,

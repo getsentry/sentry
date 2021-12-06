@@ -293,13 +293,6 @@ export function generateGridItemKey() {
   return nanoid();
 }
 
-export function assignWidgetId(widget) {
-  if (!(widget.id ?? widget.tempId)) {
-    return {...widget, tempId: generateGridItemKey()};
-  }
-  return widget;
-}
-
 /**
  * Naive positioning for widgets assuming no resizes.
  */
