@@ -37,6 +37,7 @@ describe('MetricsRequest', () => {
       loading: true,
       reloading: false,
       response: null,
+      responsePrevious: null,
     });
 
     expect(metricsMock).toHaveBeenCalledTimes(1);
@@ -65,6 +66,7 @@ describe('MetricsRequest', () => {
         loading: false,
         reloading: false,
         response: {groups: [], intervals: []},
+        responsePrevious: null,
       })
     );
   });
@@ -84,6 +86,7 @@ describe('MetricsRequest', () => {
       loading: false,
       reloading: false,
       response: null,
+      responsePrevious: null,
     });
   });
 
@@ -118,5 +121,71 @@ describe('MetricsRequest', () => {
     rerender(<MetricsRequest {...props}>{differentChildrenMock}</MetricsRequest>);
 
     expect(metricsMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('make two requests if includePrevious is enabled', async () => {
+    mountWithTheme(
+      <MetricsRequest {...props} includePrevious>
+        {childrenMock}
+      </MetricsRequest>
+    );
+
+    expect(childrenMock).toHaveBeenNthCalledWith(1, {
+      errored: false,
+      loading: true,
+      reloading: false,
+      response: null,
+      responsePrevious: null,
+    });
+
+    expect(metricsMock).toHaveBeenCalledTimes(2);
+
+    expect(metricsMock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: {
+          end: undefined,
+          environment: ['prod'],
+          field: ['fieldA'],
+          groupBy: ['status'],
+          interval: '1h',
+          limit: 3,
+          orderBy: 'fieldA',
+          project: ['2'],
+          query: 'abc',
+          start: undefined,
+          statsPeriod: '14d',
+        },
+      })
+    );
+
+    expect(metricsMock).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: {
+          project: ['2'],
+          environment: ['prod'],
+          field: ['fieldA'],
+          query: 'abc',
+          groupBy: ['status'],
+          orderBy: 'fieldA',
+          limit: 3,
+          interval: '1h',
+          statsPeriodStart: '28d',
+          statsPeriodEnd: '14d',
+        },
+      })
+    );
+
+    await waitFor(() =>
+      expect(childrenMock).toHaveBeenLastCalledWith({
+        errored: false,
+        loading: false,
+        reloading: false,
+        response: {groups: [], intervals: []},
+        responsePrevious: {groups: [], intervals: []},
+      })
+    );
   });
 });

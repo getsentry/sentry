@@ -2,6 +2,7 @@ import * as React from 'react';
 import round from 'lodash/round';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
+import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import Count from 'sentry/components/count';
 import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
 import {parseStatsPeriod} from 'sentry/components/organizations/timeRangeSelector/utils';
@@ -16,7 +17,6 @@ import {getPeriod} from 'sentry/utils/getPeriod';
 import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
 
 import MissingPerformanceButtons from '../missingFeatureButtons/missingPerformanceButtons';
-import {shouldFetchPreviousPeriod} from '../utils';
 
 type Props = AsyncComponent['props'] & {
   organization: Organization;
@@ -66,7 +66,13 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
       ],
     ];
 
-    if (shouldFetchPreviousPeriod(datetime)) {
+    if (
+      shouldFetchPreviousPeriod({
+        start: datetime.start,
+        end: datetime.end,
+        period: datetime.period,
+      })
+    ) {
       const {start: previousStart} = parseStatsPeriod(
         getPeriod({period, start: undefined, end: undefined}, {shouldDoublePeriod: true})
           .statsPeriod!

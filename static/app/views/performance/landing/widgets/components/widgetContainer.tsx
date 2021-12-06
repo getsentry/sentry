@@ -19,6 +19,7 @@ import {PerformanceWidgetSetting, WIDGET_DEFINITIONS} from '../widgetDefinitions
 import {HistogramWidget} from '../widgets/histogramWidget';
 import {LineChartListWidget} from '../widgets/lineChartListWidget';
 import {SingleFieldAreaWidget} from '../widgets/singleFieldAreaWidget';
+import {SingleFieldAreaWidgetMetrics} from '../widgets/singleFieldAreaWidgetMetrics';
 import {TrendsWidget} from '../widgets/trendsWidget';
 import {VitalWidget} from '../widgets/vitalWidget';
 import {VitalWidgetMetrics} from '../widgets/vitalWidgetMetrics';
@@ -98,7 +99,8 @@ const _WidgetContainer = (props: Props) => {
     setChartSettingState(_chartSetting);
   }, [rest.defaultChartSetting]);
 
-  const chartDefinition = WIDGET_DEFINITIONS({organization})[chartSetting];
+  const widgetDefinitions = WIDGET_DEFINITIONS({organization});
+  const chartDefinition = widgetDefinitions[chartSetting];
   const widgetProps = {
     ...chartDefinition,
     chartSetting,
@@ -116,7 +118,10 @@ const _WidgetContainer = (props: Props) => {
 
   if (
     isMetricsData &&
-    ![GenericPerformanceWidgetDataType.vitals].includes(widgetProps.dataType)
+    ![
+      GenericPerformanceWidgetDataType.vitals,
+      GenericPerformanceWidgetDataType.area,
+    ].includes(widgetProps.dataType)
   ) {
     return <h3>{t('todo')}</h3>;
   }
@@ -132,6 +137,15 @@ const _WidgetContainer = (props: Props) => {
     case GenericPerformanceWidgetDataType.trends:
       return <TrendsWidget {...passedProps} {...widgetProps} />;
     case GenericPerformanceWidgetDataType.area:
+      if (isMetricsData) {
+        return (
+          <SingleFieldAreaWidgetMetrics
+            {...passedProps}
+            {...widgetProps}
+            widgetDefinitions={widgetDefinitions}
+          />
+        );
+      }
       return <SingleFieldAreaWidget {...passedProps} {...widgetProps} />;
     case GenericPerformanceWidgetDataType.vitals:
       if (isMetricsData) {
