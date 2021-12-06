@@ -1,76 +1,25 @@
-import styled from '@emotion/styled';
+import React from 'react';
 
 import Feature from 'sentry/components/acl/feature';
-import Avatar from 'sentry/components/avatar';
-import {
-  IconCalixa,
-  IconClickup,
-  IconGeneric,
-  IconKomodor,
-  IconLinear,
-  IconRookout,
-  IconShortcut,
-  IconSpikesh,
-  IconTaskcall,
-  IconTeamwork,
-} from 'sentry/icons';
-import ConfigStore from 'sentry/stores/configStore';
-import {SentryAppComponent} from 'sentry/types';
+import SentryAppAvatar from 'sentry/components/avatar/sentryAppAvatar';
+import PluginIcon from 'sentry/plugins/components/pluginIcon';
+import {AvatarSentryApp} from 'sentry/types';
 
 type Props = {
-  sentryAppComponent: SentryAppComponent;
+  size: number;
+  sentryApp: AvatarSentryApp;
 };
 
-const getFallbackIcon = (slug: string) => {
-  switch (slug) {
-    case 'calixa':
-      return <IconCalixa size="md" />;
-    case 'clickup':
-      return <IconClickup size="md" />;
-    case 'komodor':
-      return <IconKomodor size="md" />;
-    case 'linear':
-      return <IconLinear size="md" />;
-    case 'rookout':
-      return <IconRookout size="md" />;
-    case 'shortcut':
-      return <IconShortcut size="md" />;
-    case 'spikesh':
-      return <IconSpikesh size="md" />;
-    case 'taskcall':
-      return <IconTaskcall size="md" />;
-    case 'teamwork':
-      return <IconTeamwork size="md" />;
-    default:
-      return <IconGeneric size="md" />;
-  }
-};
-
-const SentryAppIcon = ({sentryAppComponent: {sentryApp}}: Props) => {
-  return (
-    <Feature features={['organizations:sentry-app-logo-upload']}>
-      {({hasFeature}) => {
-        const selectedAvatar = sentryApp?.avatars?.find(({color}) => color === false);
-        const isDefault = !(selectedAvatar && selectedAvatar?.avatarType === 'upload');
-        return hasFeature ? (
-          <AvatarWrapper
-            isDark={ConfigStore.get('theme') === 'dark'}
-            isDefault={isDefault}
-          >
-            <Avatar size={20} sentryApp={sentryApp} isColor={false} />
-          </AvatarWrapper>
-        ) : (
-          getFallbackIcon(sentryApp.slug)
-        );
-      }}
-    </Feature>
-  );
-};
+const SentryAppIcon = ({sentryApp, size}: Props) => (
+  <Feature features={['organizations:sentry-app-logo-upload']}>
+    {({hasFeature}) =>
+      hasFeature ? (
+        <SentryAppAvatar sentryApp={sentryApp} size={size} isColor />
+      ) : (
+        <PluginIcon pluginId={sentryApp.slug} size={size} />
+      )
+    }
+  </Feature>
+);
 
 export default SentryAppIcon;
-
-const AvatarWrapper = styled('span')<{isDark: boolean; isDefault: boolean}>`
-  color: ${({isDark}) => (isDark ? 'white' : 'black')};
-  filter: ${({isDark, isDefault}) => (isDark && !isDefault ? 'invert(1)' : 'invert(0)')};
-  line-height: 0;
-`;

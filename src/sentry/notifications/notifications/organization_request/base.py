@@ -4,7 +4,7 @@ import abc
 import logging
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequence
 
-from sentry import analytics, features, roles
+from sentry import analytics, roles
 from sentry.models import NotificationSetting, OrganizationMember, Team
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notify import notification_providers
@@ -57,10 +57,7 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
         raise NotImplementedError
 
     def get_participants(self) -> Mapping[ExternalProviders, Iterable[Team | User]]:
-        available_providers: Iterable[ExternalProviders] = {ExternalProviders.EMAIL}
-        if features.has("organizations:slack-requests", self.organization):
-            available_providers = notification_providers()
-
+        available_providers = notification_providers()
         recipients = list(self.determine_recipients())
         recipients_by_provider = NotificationSetting.objects.filter_to_accepting_recipients(
             self.organization, recipients, NotificationSettingTypes.APPROVAL

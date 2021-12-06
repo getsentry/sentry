@@ -21,6 +21,7 @@ export function FrontendOtherView(props: BasePerformanceViewProps) {
             PerformanceWidgetSetting.TPM_AREA,
             PerformanceWidgetSetting.DURATION_HISTOGRAM,
             PerformanceWidgetSetting.P50_DURATION_AREA,
+            PerformanceWidgetSetting.P75_DURATION_AREA,
             PerformanceWidgetSetting.P95_DURATION_AREA,
             PerformanceWidgetSetting.P99_DURATION_AREA,
           ]}

@@ -5,6 +5,7 @@ import omit from 'lodash/omit';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
+import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
 import {t} from 'sentry/locale';
 import {
@@ -28,7 +29,6 @@ import {Theme} from 'sentry/utils/theme';
 import {getCrashFreePercent} from 'sentry/views/releases/utils';
 
 import {DisplayModes} from '../projectCharts';
-import {shouldFetchPreviousPeriod} from '../utils';
 
 const omitIgnoredProps = (props: Props) =>
   omit(props, ['api', 'organization', 'children', 'selection.datetime.utc']);
@@ -88,10 +88,20 @@ class ProjectSessionsChartRequest extends React.Component<Props, State> {
   private unmounting: boolean = false;
 
   fetchData = async () => {
-    const {api, selection, onTotalValuesChange, displayMode, disablePrevious} =
-      this.props;
+    const {
+      api,
+      selection: {datetime},
+      onTotalValuesChange,
+      displayMode,
+      disablePrevious,
+    } = this.props;
     const shouldFetchWithPrevious =
-      !disablePrevious && shouldFetchPreviousPeriod(selection.datetime);
+      !disablePrevious &&
+      shouldFetchPreviousPeriod({
+        start: datetime.start,
+        end: datetime.end,
+        period: datetime.period,
+      });
 
     this.setState(state => ({
       reloading: state.timeseriesData !== null,
