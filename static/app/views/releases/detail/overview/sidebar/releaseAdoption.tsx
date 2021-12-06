@@ -312,7 +312,12 @@ function ReleaseAdoption({
               xAxisIndex={[sessionsAxisIndex, usersAxisIndex]}
             >
               {zoomRenderProps => (
-                <LineChart {...chartOptions} {...zoomRenderProps} series={getSeries()} />
+                <LineChart
+                  {...chartOptions}
+                  {...zoomRenderProps}
+                  series={getSeries()}
+                  transformSinglePointToLine
+                />
               )}
             </ChartZoom>
           </TransitionChart>
