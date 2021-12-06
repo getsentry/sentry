@@ -11,6 +11,7 @@ from sentry.api.exceptions import SentryAPIException
 MIN_DIMENSION = 256
 MAX_DIMENSION = 1024
 ALLOWED_MIMETYPES = ("image/gif", "image/jpeg", "image/png")
+SENTRY_APP_ALLOWED_MIMETYPES = "image/png"
 
 
 class ImageTooLarge(SentryAPIException):
@@ -25,12 +26,14 @@ class AvatarField(serializers.Field):
         max_size=settings.SENTRY_MAX_AVATAR_SIZE,
         min_dimension=MIN_DIMENSION,
         max_dimension=MAX_DIMENSION,
+        is_sentry_app=None,
         **kwargs,
     ):
         super().__init__(**kwargs)
         self.max_size = max_size
         self.min_dimension = min_dimension
         self.max_dimension = max_dimension
+        self.is_sentry_app = is_sentry_app
 
     def to_representation(self, value):
         if not value:
@@ -45,6 +48,12 @@ class AvatarField(serializers.Field):
             raise ImageTooLarge()
 
         with Image.open(BytesIO(data)) as img:
+            if self.is_sentry_app and Image.MIME[img.format] not in SENTRY_APP_ALLOWED_MIMETYPES:
+                valid_formats = ", ".join(SENTRY_APP_ALLOWED_MIMETYPES)
+                raise serializers.ValidationError(
+                    f"Invalid image format. App icons should be {valid_formats}."
+                )
+
             if Image.MIME[img.format] not in ALLOWED_MIMETYPES:
                 raise serializers.ValidationError("Invalid image format.")
 

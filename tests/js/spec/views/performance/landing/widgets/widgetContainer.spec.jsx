@@ -379,11 +379,11 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           environment: ['prod'],
-          field: ['avg(measurements.lcp)'],
+          field: ['count(measurements.lcp)'],
           groupBy: ['transaction', 'measurement_rating'],
           interval: '1h',
           limit: 3,
-          orderBy: 'avg(measurements.lcp)',
+          orderBy: 'count(measurements.lcp)',
           project: [-42],
           statsPeriod: '7d',
         }),
@@ -395,11 +395,11 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           environment: ['prod'],
-          field: ['avg(measurements.lcp)'],
+          field: ['count(measurements.lcp)'],
           groupBy: ['measurement_rating'],
           interval: '1h',
           project: [-42],
-          query: 'transaction:foo',
+          query: 'transaction:/bar/:ordId/',
           statsPeriod: '7d',
         }),
       })
@@ -482,11 +482,11 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           environment: ['prod'],
-          field: ['avg(measurements.fcp)'],
+          field: ['count(measurements.fcp)'],
           groupBy: ['transaction', 'measurement_rating'],
           interval: '1h',
           limit: 3,
-          orderBy: 'avg(measurements.fcp)',
+          orderBy: 'count(measurements.fcp)',
           project: [-42],
           statsPeriod: '7d',
         }),
@@ -498,11 +498,11 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           environment: ['prod'],
-          field: ['avg(measurements.fcp)'],
+          field: ['count(measurements.fcp)'],
           groupBy: ['measurement_rating'],
           interval: '1h',
           project: [-42],
-          query: 'transaction:foo',
+          query: 'transaction:/bar/:ordId/',
           statsPeriod: '7d',
         }),
       })
@@ -585,11 +585,11 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           environment: ['prod'],
-          field: ['avg(measurements.fid)'],
+          field: ['count(measurements.fid)'],
           groupBy: ['transaction', 'measurement_rating'],
           interval: '1h',
           limit: 3,
-          orderBy: 'avg(measurements.fid)',
+          orderBy: 'count(measurements.fid)',
           project: [-42],
           statsPeriod: '7d',
         }),
@@ -601,11 +601,11 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           environment: ['prod'],
-          field: ['avg(measurements.fid)'],
+          field: ['count(measurements.fid)'],
           groupBy: ['measurement_rating'],
           interval: '1h',
           project: [-42],
-          query: 'transaction:foo',
+          query: 'transaction:/bar/:ordId/',
           statsPeriod: '7d',
         }),
       })
@@ -650,6 +650,586 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
 
     // TODO(k-fish): Add histogram mock
+  });
+
+  describe('Single Area Widget - metrics based', function () {
+    const data = initializeData();
+
+    it('P50 Duration', async function () {
+      metricsMock = MockApiClient.addMockResponse({
+        method: 'GET',
+        url: `/organizations/org-slug/metrics/data/`,
+        body: TestStubs.SingleFieldArea({field: 'p50(transaction.duration)'}),
+        match: [(...args) => !issuesPredicate(...args)],
+      });
+
+      const metricsMockPreviousData = MockApiClient.addMockResponse({
+        method: 'GET',
+        url: `/organizations/org-slug/metrics/data/`,
+        body: TestStubs.SingleFieldArea({
+          field: 'p50(transaction.duration)',
+          previousData: true,
+        }),
+        match: [
+          (...args) => {
+            return (
+              !issuesPredicate(...args) &&
+              args[1].query.statsPeriodStart &&
+              args[1].query.statsPeriodEnd
+            );
+          },
+        ],
+      });
+
+      const wrapper = mountWithTheme(
+        <WrappedComponent
+          data={data}
+          defaultChartSetting={PerformanceWidgetSetting.P50_DURATION_AREA}
+          isMetricsData
+        />,
+        data.routerContext
+      );
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+        'p50 Duration'
+      );
+
+      expect(wrapper.find('HighlightNumber').text()).toEqual('534ms');
+      expect(metricsMock).toHaveBeenCalledTimes(1);
+      expect(metricsMockPreviousData).toHaveBeenCalledTimes(1);
+
+      expect(metricsMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({
+            project: [-42],
+            environment: ['prod'],
+            field: ['p50(transaction.duration)'],
+            query: 'transaction:foo',
+            groupBy: undefined,
+            orderBy: undefined,
+            limit: undefined,
+            interval: '1h',
+            statsPeriod: '7d',
+            start: undefined,
+            end: undefined,
+          }),
+        })
+      );
+      expect(metricsMockPreviousData).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({
+            project: [-42],
+            environment: ['prod'],
+            field: ['p50(transaction.duration)'],
+            query: 'transaction:foo',
+            groupBy: undefined,
+            orderBy: undefined,
+            limit: undefined,
+            interval: '1h',
+            statsPeriodStart: '14d',
+            statsPeriodEnd: '7d',
+          }),
+        })
+      );
+    });
+
+    it('P75 Duration', async function () {
+      metricsMock = MockApiClient.addMockResponse({
+        method: 'GET',
+        url: `/organizations/org-slug/metrics/data/`,
+        body: TestStubs.SingleFieldArea({field: 'p75(transaction.duration)'}),
+        match: [(...args) => !issuesPredicate(...args)],
+      });
+
+      const metricsMockPreviousData = MockApiClient.addMockResponse({
+        method: 'GET',
+        url: `/organizations/org-slug/metrics/data/`,
+        body: TestStubs.SingleFieldArea({
+          field: 'p75(transaction.duration)',
+          previousData: true,
+        }),
+        match: [
+          (...args) => {
+            return (
+              !issuesPredicate(...args) &&
+              args[1].query.statsPeriodStart &&
+              args[1].query.statsPeriodEnd
+            );
+          },
+        ],
+      });
+
+      const wrapper = mountWithTheme(
+        <WrappedComponent
+          data={data}
+          defaultChartSetting={PerformanceWidgetSetting.P75_DURATION_AREA}
+          isMetricsData
+        />,
+        data.routerContext
+      );
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+        'p75 Duration'
+      );
+
+      expect(wrapper.find('HighlightNumber').text()).toEqual('534ms');
+      expect(metricsMock).toHaveBeenCalledTimes(1);
+      expect(metricsMockPreviousData).toHaveBeenCalledTimes(1);
+
+      expect(metricsMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({
+            project: [-42],
+            environment: ['prod'],
+            field: ['p75(transaction.duration)'],
+            query: 'transaction:foo',
+            groupBy: undefined,
+            orderBy: undefined,
+            limit: undefined,
+            interval: '1h',
+            statsPeriod: '7d',
+            start: undefined,
+            end: undefined,
+          }),
+        })
+      );
+      expect(metricsMockPreviousData).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({
+            project: [-42],
+            environment: ['prod'],
+            field: ['p75(transaction.duration)'],
+            query: 'transaction:foo',
+            groupBy: undefined,
+            orderBy: undefined,
+            limit: undefined,
+            interval: '1h',
+            statsPeriodStart: '14d',
+            statsPeriodEnd: '7d',
+          }),
+        })
+      );
+    });
+
+    it('P95 Duration', async function () {
+      metricsMock = MockApiClient.addMockResponse({
+        method: 'GET',
+        url: `/organizations/org-slug/metrics/data/`,
+        body: TestStubs.SingleFieldArea({field: 'p95(transaction.duration)'}),
+        match: [(...args) => !issuesPredicate(...args)],
+      });
+
+      const metricsMockPreviousData = MockApiClient.addMockResponse({
+        method: 'GET',
+        url: `/organizations/org-slug/metrics/data/`,
+        body: TestStubs.SingleFieldArea({
+          field: 'p95(transaction.duration)',
+          previousData: true,
+        }),
+        match: [
+          (...args) => {
+            return (
+              !issuesPredicate(...args) &&
+              args[1].query.statsPeriodStart &&
+              args[1].query.statsPeriodEnd
+            );
+          },
+        ],
+      });
+
+      const wrapper = mountWithTheme(
+        <WrappedComponent
+          data={data}
+          defaultChartSetting={PerformanceWidgetSetting.P95_DURATION_AREA}
+          isMetricsData
+        />,
+        data.routerContext
+      );
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+        'p95 Duration'
+      );
+
+      expect(wrapper.find('HighlightNumber').text()).toEqual('534ms');
+      expect(metricsMock).toHaveBeenCalledTimes(1);
+      expect(metricsMockPreviousData).toHaveBeenCalledTimes(1);
+
+      expect(metricsMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({
+            project: [-42],
+            environment: ['prod'],
+            field: ['p95(transaction.duration)'],
+            query: 'transaction:foo',
+            groupBy: undefined,
+            orderBy: undefined,
+            limit: undefined,
+            interval: '1h',
+            statsPeriod: '7d',
+            start: undefined,
+            end: undefined,
+          }),
+        })
+      );
+      expect(metricsMockPreviousData).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({
+            project: [-42],
+            environment: ['prod'],
+            field: ['p95(transaction.duration)'],
+            query: 'transaction:foo',
+            groupBy: undefined,
+            orderBy: undefined,
+            limit: undefined,
+            interval: '1h',
+            statsPeriodStart: '14d',
+            statsPeriodEnd: '7d',
+          }),
+        })
+      );
+    });
+
+    it('P99 Duration', async function () {
+      metricsMock = MockApiClient.addMockResponse({
+        method: 'GET',
+        url: `/organizations/org-slug/metrics/data/`,
+        body: TestStubs.SingleFieldArea({field: 'p99(transaction.duration)'}),
+        match: [(...args) => !issuesPredicate(...args)],
+      });
+
+      const metricsMockPreviousData = MockApiClient.addMockResponse({
+        method: 'GET',
+        url: `/organizations/org-slug/metrics/data/`,
+        body: TestStubs.SingleFieldArea({
+          field: 'p99(transaction.duration)',
+          previousData: true,
+        }),
+        match: [
+          (...args) => {
+            return (
+              !issuesPredicate(...args) &&
+              args[1].query.statsPeriodStart &&
+              args[1].query.statsPeriodEnd
+            );
+          },
+        ],
+      });
+
+      const wrapper = mountWithTheme(
+        <WrappedComponent
+          data={data}
+          defaultChartSetting={PerformanceWidgetSetting.P99_DURATION_AREA}
+          isMetricsData
+        />,
+        data.routerContext
+      );
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+        'p99 Duration'
+      );
+
+      expect(wrapper.find('HighlightNumber').text()).toEqual('534ms');
+      expect(metricsMock).toHaveBeenCalledTimes(1);
+      expect(metricsMockPreviousData).toHaveBeenCalledTimes(1);
+
+      expect(metricsMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({
+            project: [-42],
+            environment: ['prod'],
+            field: ['p99(transaction.duration)'],
+            query: 'transaction:foo',
+            groupBy: undefined,
+            orderBy: undefined,
+            limit: undefined,
+            interval: '1h',
+            statsPeriod: '7d',
+            start: undefined,
+            end: undefined,
+          }),
+        })
+      );
+      expect(metricsMockPreviousData).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({
+            project: [-42],
+            environment: ['prod'],
+            field: ['p99(transaction.duration)'],
+            query: 'transaction:foo',
+            groupBy: undefined,
+            orderBy: undefined,
+            limit: undefined,
+            interval: '1h',
+            statsPeriodStart: '14d',
+            statsPeriodEnd: '7d',
+          }),
+        })
+      );
+    });
+
+    it('P75 LCP', async function () {
+      metricsMock = MockApiClient.addMockResponse({
+        method: 'GET',
+        url: `/organizations/org-slug/metrics/data/`,
+        body: TestStubs.SingleFieldArea({field: 'p75(measurements.lcp)'}),
+        match: [(...args) => !issuesPredicate(...args)],
+      });
+
+      const metricsMockPreviousData = MockApiClient.addMockResponse({
+        method: 'GET',
+        url: `/organizations/org-slug/metrics/data/`,
+        body: TestStubs.SingleFieldArea({
+          field: 'p75(measurements.lcp)',
+          previousData: true,
+        }),
+        match: [
+          (...args) => {
+            return (
+              !issuesPredicate(...args) &&
+              args[1].query.statsPeriodStart &&
+              args[1].query.statsPeriodEnd
+            );
+          },
+        ],
+      });
+
+      const wrapper = mountWithTheme(
+        <WrappedComponent
+          data={data}
+          defaultChartSetting={PerformanceWidgetSetting.P75_LCP_AREA}
+          isMetricsData
+        />,
+        data.routerContext
+      );
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+        'p75 LCP'
+      );
+
+      expect(wrapper.find('HighlightNumber').text()).toEqual('534ms');
+      expect(metricsMock).toHaveBeenCalledTimes(1);
+      expect(metricsMockPreviousData).toHaveBeenCalledTimes(1);
+
+      expect(metricsMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({
+            project: [-42],
+            environment: ['prod'],
+            field: ['p75(measurements.lcp)'],
+            query: 'transaction:foo',
+            groupBy: undefined,
+            orderBy: undefined,
+            limit: undefined,
+            interval: '1h',
+            statsPeriod: '7d',
+            start: undefined,
+            end: undefined,
+          }),
+        })
+      );
+      expect(metricsMockPreviousData).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({
+            project: [-42],
+            environment: ['prod'],
+            field: ['p75(measurements.lcp)'],
+            query: 'transaction:foo',
+            groupBy: undefined,
+            orderBy: undefined,
+            limit: undefined,
+            interval: '1h',
+            statsPeriodStart: '14d',
+            statsPeriodEnd: '7d',
+          }),
+        })
+      );
+    });
+
+    it('TPM', async function () {
+      metricsMock = MockApiClient.addMockResponse({
+        method: 'GET',
+        url: `/organizations/org-slug/metrics/data/`,
+        body: TestStubs.SingleFieldArea({field: 'count(transaction.duration)'}),
+        match: [(...args) => !issuesPredicate(...args)],
+      });
+
+      const metricsMockPreviousData = MockApiClient.addMockResponse({
+        method: 'GET',
+        url: `/organizations/org-slug/metrics/data/`,
+        body: TestStubs.SingleFieldArea({
+          field: 'count(transaction.duration)',
+          previousData: true,
+        }),
+        match: [
+          (...args) => {
+            return (
+              !issuesPredicate(...args) &&
+              args[1].query.statsPeriodStart &&
+              args[1].query.statsPeriodEnd
+            );
+          },
+        ],
+      });
+
+      const wrapper = mountWithTheme(
+        <WrappedComponent
+          data={data}
+          defaultChartSetting={PerformanceWidgetSetting.TPM_AREA}
+          isMetricsData
+        />,
+        data.routerContext
+      );
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+        'Transactions Per Minute'
+      );
+
+      expect(wrapper.find('HighlightNumber').text()).toEqual('534.302');
+      expect(metricsMock).toHaveBeenCalledTimes(1);
+      expect(metricsMockPreviousData).toHaveBeenCalledTimes(1);
+
+      expect(metricsMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({
+            project: [-42],
+            environment: ['prod'],
+            field: ['count(transaction.duration)'],
+            query: 'transaction:foo',
+            groupBy: undefined,
+            orderBy: undefined,
+            limit: undefined,
+            interval: '1h',
+            statsPeriod: '7d',
+            start: undefined,
+            end: undefined,
+          }),
+        })
+      );
+      expect(metricsMockPreviousData).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({
+            project: [-42],
+            environment: ['prod'],
+            field: ['count(transaction.duration)'],
+            query: 'transaction:foo',
+            groupBy: undefined,
+            orderBy: undefined,
+            limit: undefined,
+            interval: '1h',
+            statsPeriodStart: '14d',
+            statsPeriodEnd: '7d',
+          }),
+        })
+      );
+    });
+  });
+
+  it('TPM - Single Area Widget - metrics based', async function () {
+    metricsMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics/data/`,
+      body: TestStubs.SingleFieldArea({field: 'count(transaction.duration)'}),
+      match: [(...args) => !issuesPredicate(...args)],
+    });
+
+    const metricsMockPreviousData = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics/data/`,
+      body: TestStubs.SingleFieldArea({
+        field: 'count(transaction.duration)',
+        previousData: true,
+      }),
+      match: [
+        (...args) => {
+          return (
+            !issuesPredicate(...args) &&
+            args[1].query.statsPeriodStart &&
+            args[1].query.statsPeriodEnd
+          );
+        },
+      ],
+    });
+
+    const data = initializeData();
+
+    const wrapper = mountWithTheme(
+      <WrappedComponent
+        data={data}
+        defaultChartSetting={PerformanceWidgetSetting.TPM_AREA}
+        isMetricsData
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+      'Transactions Per Minute'
+    );
+
+    expect(wrapper.find('HighlightNumber').text()).toEqual('534.302');
+    expect(metricsMock).toHaveBeenCalledTimes(1);
+    expect(metricsMockPreviousData).toHaveBeenCalledTimes(1);
+
+    expect(metricsMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          project: [-42],
+          environment: ['prod'],
+          field: ['count(transaction.duration)'],
+          query: 'transaction:foo',
+          groupBy: undefined,
+          orderBy: undefined,
+          limit: undefined,
+          interval: '1h',
+          statsPeriod: '7d',
+          start: undefined,
+          end: undefined,
+        }),
+      })
+    );
+    expect(metricsMockPreviousData).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          project: [-42],
+          environment: ['prod'],
+          field: ['count(transaction.duration)'],
+          query: 'transaction:foo',
+          groupBy: undefined,
+          orderBy: undefined,
+          limit: undefined,
+          interval: '1h',
+          statsPeriodStart: '14d',
+          statsPeriodEnd: '7d',
+        }),
+      })
+    );
   });
 
   it('Most errors widget', async function () {
@@ -853,18 +1433,58 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
+          cursor: '0:0:1',
+          environment: ['prod'],
+          field: ['transaction', 'project.id', 'epm()', 'avg(measurements.frames_slow)'],
+          noPagination: true,
+          per_page: 3,
+          project: ['-42'],
+          query: 'transaction.op:pageload epm():>0.01 avg(measurements.frames_slow):>0',
+          sort: '-avg(measurements.frames_slow)',
+          statsPeriod: '7d',
+        }),
+      })
+    );
+
+    expect(wrapper.find('div[data-test-id="empty-message"]').exists()).toBe(true);
+  });
+
+  it('Most frozen frames widget', async function () {
+    const data = initializeData();
+
+    const wrapper = mountWithTheme(
+      <WrappedComponent
+        data={data}
+        defaultChartSetting={PerformanceWidgetSetting.MOST_FROZEN_FRAMES}
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+      'Most Frozen Frames'
+    );
+
+    expect(eventsV2Mock).toHaveBeenCalledTimes(1);
+    expect(eventsV2Mock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          cursor: '0:0:1',
           environment: ['prod'],
           field: [
             'transaction',
             'project.id',
             'epm()',
-            'p75(measurements.frames_slow_rate)',
+            'avg(measurements.frames_frozen)',
           ],
+          noPagination: true,
           per_page: 3,
           project: ['-42'],
-          query:
-            'transaction.op:pageload epm():>0.01 p75(measurements.frames_slow_rate):>0',
-          sort: '-p75(measurements.frames_slow_rate)',
+          query: 'transaction.op:pageload epm():>0.01 avg(measurements.frames_frozen):>0',
+          sort: '-avg(measurements.frames_frozen)',
           statsPeriod: '7d',
         }),
       })

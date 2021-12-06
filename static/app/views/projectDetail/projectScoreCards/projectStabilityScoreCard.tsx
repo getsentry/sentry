@@ -2,7 +2,10 @@ import * as React from 'react';
 import round from 'lodash/round';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
-import {getDiffInMinutes} from 'sentry/components/charts/utils';
+import {
+  getDiffInMinutes,
+  shouldFetchPreviousPeriod,
+} from 'sentry/components/charts/utils';
 import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
 import ScoreCard from 'sentry/components/scoreCard';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
@@ -19,7 +22,6 @@ import {
 } from 'sentry/views/releases/utils/sessionTerm';
 
 import MissingReleasesButtons from '../missingFeatureButtons/missingReleasesButtons';
-import {shouldFetchPreviousPeriod} from '../utils';
 
 type Props = AsyncComponent['props'] & {
   organization: Organization;
@@ -79,7 +81,13 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
       ],
     ];
 
-    if (shouldFetchPreviousPeriod(datetime)) {
+    if (
+      shouldFetchPreviousPeriod({
+        start: datetime.start,
+        end: datetime.end,
+        period: datetime.period,
+      })
+    ) {
       const doubledPeriod = getPeriod(
         {period, start: undefined, end: undefined},
         {shouldDoublePeriod: true}

@@ -18,7 +18,9 @@ import github from 'sentry-logos/logo-github.svg';
 import githubActions from 'sentry-logos/logo-github-actions.svg';
 import githubEnterprise from 'sentry-logos/logo-github-enterprise.svg';
 import gitlab from 'sentry-logos/logo-gitlab.svg';
+import grafana from 'sentry-logos/logo-grafana.svg';
 import heroku from 'sentry-logos/logo-heroku.svg';
+import insightfinder from 'sentry-logos/logo-insightfinder.svg';
 import jira from 'sentry-logos/logo-jira.svg';
 import jiraserver from 'sentry-logos/logo-jira-server.svg';
 import komodor from 'sentry-logos/logo-komodor.svg';
@@ -63,7 +65,6 @@ export const ICON_PATHS = {
   os: sentry,
   urls: sentry,
   webhooks: sentry,
-
   'amazon-sqs': aws,
   aws_lambda: aws,
   amixr,
@@ -83,7 +84,9 @@ export const ICON_PATHS = {
   github_actions: githubActions,
   github_enterprise: githubEnterprise,
   gitlab,
+  grafana,
   heroku,
+  insightfinder,
   jira,
   jira_server: jiraserver,
   komodor,

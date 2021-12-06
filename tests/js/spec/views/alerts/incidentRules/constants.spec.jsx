@@ -53,4 +53,15 @@ describe('createRuleFromEventView()', () => {
     expect(rule.dataset).toBe(Dataset.ERRORS);
     expect(rule.eventTypes).toEqual([EventTypes.ERROR, EventTypes.DEFAULT]);
   });
+  it('allows pXX transaction querys', () => {
+    const eventView = EventView.fromSavedQuery({
+      id: undefined,
+      query: 'event.type:transaction',
+      yAxis: 'p95()',
+      fields: ['p95()'],
+    });
+
+    const rule = createRuleFromEventView(eventView);
+    expect(rule.aggregate).toBe('p95(transaction.duration)');
+  });
 });
