@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from django.http.response import HttpResponse
 from django.utils.deprecation import MiddlewareMixin
 
 from sentry.ratelimits import (
@@ -33,5 +34,16 @@ class RatelimitMiddleware(MiddlewareMixin):
         if rate_limit is None:
             return
 
-        if above_rate_limit_check(key, rate_limit)["is_limited"]:
+        rate_limit_check_dict = above_rate_limit_check(key, rate_limit)
+        if rate_limit_check_dict["is_limited"]:
             request.will_be_rate_limited = True
+            enforce_rate_limit = getattr(view_func.view_class, "enforce_rate_limit", False)
+            if enforce_rate_limit:
+                return HttpResponse(
+                    {
+                        "detail": f"You are attempting to use this endpoint too frequently. "
+                        f"Limit is {rate_limit_check_dict['limit']} requests in "
+                        f"{rate_limit_check_dict['window']} seconds"
+                    },
+                    status=429,
+                )

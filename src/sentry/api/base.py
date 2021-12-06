@@ -102,6 +102,7 @@ class Endpoint(APIView):
     # Default Rate Limit Values, override in subclass
     # Should be of format: { <http function>: { <category>: RateLimit(limit, window) } }
     rate_limits: Mapping[str, Mapping[RateLimitCategory | str, RateLimit]] = {}
+    enforce_rate_limit: bool = False
 
     def build_cursor_link(self, request, name, cursor):
         querystring = None
