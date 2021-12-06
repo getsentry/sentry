@@ -1,18 +1,16 @@
 import * as React from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
-import Card from 'sentry/components/card';
-import {IconAdd, IconCheckmark} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {Panel, PanelBody} from 'sentry/components/panels';
+import {IconGraphLine} from 'sentry/icons/iconGraphLine';
 import space from 'sentry/styles/space';
-
-import {miniWidget} from '../utils';
 
 import {WidgetTemplate} from './data';
 
 type Props = {
   widget: WidgetTemplate;
+  ['data-test-id']?: string;
   setSelectedWidgets: (widgets: WidgetTemplate[]) => void;
   setErrored: (errored: boolean) => void;
   selectedWidgets: WidgetTemplate[];
@@ -22,94 +20,73 @@ function WidgetLibraryCard({
   selectedWidgets,
   widget,
   setSelectedWidgets,
-  setErrored,
+  ['data-test-id']: dataTestId,
 }: Props) {
-  const selectButton = (
-    <StyledButton
-      type="button"
-      icon={<IconAdd size="sm" isCircled color="gray300" />}
-      onClick={() => {
-        const updatedWidgets = selectedWidgets.slice().concat(widget);
-        setErrored(false);
-        setSelectedWidgets(updatedWidgets);
-      }}
-    >
-      {t('Select')}
-    </StyledButton>
-  );
-
-  const selectedButton = (
-    <StyledButton
-      type="button"
-      icon={<IconCheckmark size="sm" isCircled color="gray300" />}
-      onClick={() => {
-        const updatedWidgets = selectedWidgets.filter(selected => widget !== selected);
-        setSelectedWidgets(updatedWidgets);
-      }}
-      priority="primary"
-    >
-      {t('Selected')}
-    </StyledButton>
-  );
+  const [selected, setSelected] = useState(selectedWidgets.includes(widget));
 
   return (
-    <Card>
-      <CardHeader>
-        <CardContent>
+    <StyledPanel
+      data-test-id={dataTestId}
+      selected={selected}
+      onClick={() => {
+        if (selected) {
+          const updatedWidgets = selectedWidgets.filter(
+            selectedWidget => widget !== selectedWidget
+          );
+          setSelectedWidgets(updatedWidgets);
+        } else {
+          const updatedWidgets = selectedWidgets.slice().concat(widget);
+          setSelectedWidgets(updatedWidgets);
+        }
+        setSelected(!!!selected);
+      }}
+    >
+      <PanelBody>
+        <TitleContainer>
+          <IconGraphLine />
           <Title>{widget.title}</Title>
-        </CardContent>
-      </CardHeader>
-      <CardBody>
-        <WidgetImage src={miniWidget(widget.displayType)} />
-      </CardBody>
-      <CardFooter>
-        {selectedWidgets.includes(widget) ? selectedButton : selectButton}
-      </CardFooter>
-    </Card>
+        </TitleContainer>
+        <Description>
+          {
+            'Widget Description stuff like a super long one because I want to see it wrap around.'
+          }
+        </Description>
+      </PanelBody>
+    </StyledPanel>
   );
 }
 
-const CardContent = styled('div')`
-  flex-grow: 1;
-  overflow: hidden;
-  margin-right: ${space(1)};
-`;
-
-const CardHeader = styled('div')`
-  display: flex;
-  padding: ${space(1.5)} ${space(2)};
-`;
-
 const Title = styled('div')`
-  color: ${p => p.theme.textColor};
+  padding-left: ${space(1)};
+  font-size: 16px;
+  line-height: 140%;
+  color: ${p => p.theme.gray500};
 `;
 
-const CardBody = styled('div')`
-  background: ${p => p.theme.gray100};
+const TitleContainer = styled('div')`
   padding: ${space(1.5)} ${space(2)};
-  max-height: 150px;
-  min-height: 150px;
-  overflow: hidden;
-`;
-
-const CardFooter = styled('div')`
+  padding-bottom: ${space(0.5)};
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: ${space(1)} ${space(2)};
 `;
 
-const StyledButton = styled(Button)`
-  width: 100%;
-  vertical-align: middle;
-  > span:first-child {
-    padding: 8px 16px;
-  }
+const Description = styled('div')`
+  padding-left: 40px;
+  padding-bottom: ${space(1)};
+  font-size: 14px;
+  line-height: 21px;
+  color: ${p => p.theme.gray300};
 `;
 
-const WidgetImage = styled('img')`
-  width: 100%;
-  height: 100%;
+type PanelProps = {
+  selected?: boolean;
+};
+
+const StyledPanel = styled(Panel)<PanelProps>`
+  margin-bottom: 0;
+  border: ${p =>
+    p.selected ? '2px solid' + p.theme.purple400 : '1px solid ' + p.theme.border};
+  box-sizing: border-box;
+  box-shadow: 0px 2px 1px rgba(0, 0, 0, 0.08);
 `;
 
 export default WidgetLibraryCard;
