@@ -33,7 +33,7 @@ import {DataSet} from 'sentry/views/dashboardsV2/widget/utils';
 import SortableWidget from './sortableWidget';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';
-const SAVED_WIDGET_PREFIX = 'grid-item';
+const WIDGET_PREFIX = 'grid-item';
 const NUM_COLS = 6;
 const ROW_HEIGHT = 120;
 const WIDGET_MARGINS: [number, number] = [16, 16];
@@ -145,7 +145,10 @@ class Dashboard extends Component<Props> {
   };
 
   handleAddComplete = (widget: Widget) => {
-    this.props.onUpdate([...this.props.dashboard.widgets, widget]);
+    this.props.onUpdate([
+      ...this.props.dashboard.widgets,
+      {...widget, tempId: Date.now().toString()},
+    ]);
   };
 
   handleUpdateComplete = (index: number) => (nextWidget: Widget) => {
@@ -154,9 +157,10 @@ class Dashboard extends Component<Props> {
     this.props.onUpdate(nextList);
   };
 
-  handleDeleteWidget = (index: number) => () => {
-    const nextList = [...this.props.dashboard.widgets];
-    nextList.splice(index, 1);
+  handleDeleteWidget = (widgetToDelete: Widget) => () => {
+    const nextList = this.props.dashboard.widgets.filter(
+      widget => widget !== widgetToDelete
+    );
     this.props.onUpdate(nextList);
   };
 
@@ -217,7 +221,7 @@ class Dashboard extends Component<Props> {
   renderWidget(widget: Widget, index: number) {
     const {isEditing} = this.props;
 
-    const key = generateWidgetId(widget, index);
+    const key = constructGridItemKey(widget);
     const dragId = key;
 
     return (
@@ -226,7 +230,7 @@ class Dashboard extends Component<Props> {
           widget={widget}
           dragId={dragId}
           isEditing={isEditing}
-          onDelete={this.handleDeleteWidget(index)}
+          onDelete={this.handleDeleteWidget(widget)}
           onEdit={this.handleEditWidget(widget, index)}
         />
       </GridItem>
@@ -280,8 +284,8 @@ const GridItem = styled('div')`
   }
 `;
 
-export function generateWidgetId(widget: Widget, index: number) {
-  return widget.id ? `${SAVED_WIDGET_PREFIX}-${widget.id}` : `index-${index}`;
+export function constructGridItemKey(widget: Widget) {
+  return `${WIDGET_PREFIX}-${widget.id ?? widget.tempId}`;
 }
 
 /**

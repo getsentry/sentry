@@ -2,21 +2,24 @@ from __future__ import annotations
 
 import logging
 from time import time
+from typing import TYPE_CHECKING, Any
 
 from django.conf import settings
 from redis.exceptions import RedisError
 
 from sentry.exceptions import InvalidConfiguration
-from sentry.models.project import Project
 from sentry.ratelimits.base import RateLimiter
 from sentry.utils import redis
 from sentry.utils.hashlib import md5_text
+
+if TYPE_CHECKING:
+    from sentry.models.project import Project
 
 logger = logging.getLogger(__name__)
 
 
 class RedisRateLimiter(RateLimiter):
-    def __init__(self, **options):
+    def __init__(self, **options: Any) -> None:
         cluster_key = getattr(settings, "SENTRY_RATE_LIMIT_REDIS_CLUSTER", "default")
         self.client = redis.redis_clusters.get(cluster_key)
 
@@ -42,7 +45,7 @@ class RedisRateLimiter(RateLimiter):
 
         return redis_key
 
-    def validate(self):
+    def validate(self) -> None:
         try:
             self.client.ping()
         except Exception as e:
@@ -69,7 +72,9 @@ class RedisRateLimiter(RateLimiter):
             return 0
         return int(current_count)
 
-    def is_limited_with_value(self, key, limit, project=None, window=None) -> tuple[bool, int]:
+    def is_limited_with_value(
+        self, key: str, limit: int, project: Project | None = None, window: int | None = None
+    ) -> tuple[bool, int]:
         """Does a rate limit check as well as return the new rate limit value"""
         if window is None or window == 0:
             window = self.window
