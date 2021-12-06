@@ -27,6 +27,13 @@ def decode_credential_id(device):
     return urlsafe_b64encode(device["binding"].credential_data.credential_id).decode("ascii")
 
 
+def create_credential_object(registeredKey):
+    return base.AttestedCredentialData.from_ctap1(
+        websafe_decode(registeredKey["keyHandle"]),
+        websafe_decode(registeredKey["publicKey"]),
+    )
+
+
 class U2fInterface(AuthenticatorInterface):
     type = 3
     interface_id = "u2f"
@@ -68,12 +75,6 @@ class U2fInterface(AuthenticatorInterface):
         url_prefix = options.get("system.url-prefix")
         return url_prefix and url_prefix.startswith("https://")
 
-    def _create_credential_object(self, registeredKey):
-        return base.AttestedCredentialData.from_ctap1(
-            websafe_decode(registeredKey["keyHandle"]),
-            websafe_decode(registeredKey["publicKey"]),
-        )
-
     def _get_kept_devices(self, key):
         # return a list of devices that doesn't match the key
         return [
@@ -96,7 +97,7 @@ class U2fInterface(AuthenticatorInterface):
                 if type(registeredKey) == AuthenticatorData:
                     credentials.append(registeredKey.credential_data)
                 else:
-                    c = self._create_credential_object(registeredKey)
+                    c = create_credential_object(registeredKey)
                     credentials.append(c)
 
             registration_data, state = self.webauthn_registration_server.register_begin(
@@ -209,7 +210,7 @@ class U2fInterface(AuthenticatorInterface):
             if type(device) == AuthenticatorData:
                 credentials.append(device.credential_data)
             else:
-                credentials.append(self._create_credential_object(device))
+                credentials.append(create_credential_object(device))
         challenge, state = self.webauthn_authentication_server.authenticate_begin(
             credentials=credentials
         )
@@ -228,8 +229,7 @@ class U2fInterface(AuthenticatorInterface):
                 if type(device) == AuthenticatorData:
                     credentials.append(device.credential_data)
                 else:
-                    credentials.append(self._create_credential_object(device))
-
+                    credentials.append(create_credential_object(device))
             self.webauthn_authentication_server.authenticate_complete(
                 state=request.session["webauthn_authentication_state"],
                 credentials=credentials,
