@@ -7,6 +7,7 @@ import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import {QueryBatchNode} from 'sentry/utils/performance/contexts/genericQueryBatcher';
+import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import withApi from 'sentry/utils/withApi';
 import _DurationChart from 'sentry/views/performance/charts/chart';
 
@@ -22,6 +23,7 @@ type DataType = {
 export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
   const {ContainerActions} = props;
   const globalSelection = props.eventView.getGlobalSelection();
+  const pageError = usePageError();
 
   if (props.fields.length !== 1) {
     throw new Error(`Single field area can only accept a single field (${props.fields})`);
@@ -44,6 +46,8 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
               currentSeriesNames={[field]}
               previousSeriesNames={[`previous ${field}`]}
               query={provided.eventView.getQueryWithAdditionalConditions()}
+              hideError
+              onError={pageError.setPageError}
               interval={getInterval(
                 {
                   start: provided.start,

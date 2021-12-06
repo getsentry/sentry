@@ -167,9 +167,13 @@ type EventsRequestPartialProps = {
    */
   partial: boolean;
   /**
-   * Hide error toast (used for pages which also query eventsV2)
+   * Hide error toast (used for pages which also query eventsV2). Stops error appearing as a toast.
    */
   hideError?: boolean;
+  /**
+   * A way to control error if error handling is not owned by the toast.
+   */
+  onError?: (error: string) => void;
   /**
    * Whether or not to zerofill results
    */
@@ -242,7 +246,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
   private unmounting: boolean = false;
 
   fetchData = async () => {
-    const {api, confirmedQuery, expired, name, hideError, ...props} = this.props;
+    const {api, confirmedQuery, expired, name, hideError, onError, ...props} = this.props;
     let timeseriesData: EventsStats | MultiSeriesEventsStats | null = null;
 
     if (confirmedQuery === false) {
@@ -261,6 +265,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
         '%s has an invalid date range. Please try a more recent date range.',
         name
       );
+
       addErrorMessage(errorMessage, {append: true});
 
       this.setState({
@@ -279,6 +284,9 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
         }
         if (!hideError) {
           addErrorMessage(errorMessage);
+        }
+        if (onError) {
+          onError(errorMessage);
         }
         this.setState({
           errored: true,
