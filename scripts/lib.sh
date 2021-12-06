@@ -119,8 +119,13 @@ install-py-dev() {
     # Webpacked assets are only necessary for devserver (which does it lazily anyways)
     # and acceptance tests, which webpack automatically if run.
     SENTRY_LIGHT_BUILD=1 pip install -e '.[dev]'
+}
 
+patch-selenium() {
     # This hack is until we can upgrade to a newer version of Selenium
+    echo '$$$$$$'
+    echo "${HERE}"
+    echo '$$$$$$'
     fx_profile=.venv/lib/python3.8/site-packages/selenium/webdriver/firefox/firefox_profile.py
     # Remove this block when upgrading the selenium package
     if grep -q "or setting is" "${fx_profile}"; then
