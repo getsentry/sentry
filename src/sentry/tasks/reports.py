@@ -578,13 +578,6 @@ def prepare_reports(dry_run=False, *args, **kwargs):
 
     organizations = _get_organization_queryset()
     for organization in RangeQuerySetWrapper(organizations, step=10000):
-        if features.has("organizations:weekly-report-debugging", organization):
-            logger.info(
-                "reports.org.begin_prepare_report",
-                extra={
-                    "organization_id": organization.id,
-                },
-            )
         prepare_organization_report.delay(timestamp, duration, organization.id, dry_run=dry_run)
 
 
