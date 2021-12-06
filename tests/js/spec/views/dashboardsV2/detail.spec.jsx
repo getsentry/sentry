@@ -548,7 +548,7 @@ describe('Dashboards > Detail', function () {
       mockPut = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
         method: 'PUT',
-        body: TestStubs.Dashboard([widgets[0]], {id: '1', title: 'Custom Errors'}),
+        body: TestStubs.Dashboard(widgets, {id: '1', title: 'Custom Errors'}),
       });
       initialData = initializeOrg({
         organization: TestStubs.Organization({
