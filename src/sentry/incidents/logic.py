@@ -1272,8 +1272,8 @@ def get_available_action_integrations_for_org(organization):
         for registration in AlertRuleTriggerAction.get_registered_types()
         if registration.integration_provider is not None
     ]
-    return Integration.objects.get_active_integrations().filter(
-        organizations=organization, provider__in=providers
+    return Integration.objects.get_active_integrations(organization.id).filter(
+        provider__in=providers
     )
 
 

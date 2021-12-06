@@ -80,9 +80,8 @@ def get_channel_and_integration_by_user(
         # recipients.
         return {}
 
-    integrations = Integration.objects.get_active_integrations().filter(
+    integrations = Integration.objects.get_active_integrations(organization.id).filter(
         provider=EXTERNAL_PROVIDERS[ExternalProviders.SLACK],
-        organizations=organization,
         external_id__in=[identity.idp.external_id for identity in identities],
     )
 

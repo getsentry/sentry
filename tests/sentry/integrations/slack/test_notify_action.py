@@ -351,6 +351,8 @@ class SlackNotifyActionTest(RuleTestCase):
         ] in form.errors.values()
 
     def test_disabled_org_integration(self):
+        org = self.create_organization(owner=self.user)
+        OrganizationIntegration.objects.create(organization=org, integration=self.integration)
         OrganizationIntegration.objects.filter(
             integration=self.integration, organization=self.event.project.organization
         ).update(status=ObjectStatus.DISABLED)

@@ -103,12 +103,12 @@ class ProjectIntegration(Model):
 
 
 class IntegrationManager(BaseManager):
-    def get_active_integrations(self):
-        # make sure we only return distinct rows
+    def get_active_integrations(self, organization_id: str):
         return self.filter(
             status=ObjectStatus.ACTIVE,
             organizationintegration__status=ObjectStatus.ACTIVE,
-        ).distinct()
+            organizationintegration__organization_id=organization_id,
+        )
 
 
 class Integration(DefaultFieldsModel):
