@@ -43,10 +43,23 @@ export function SingleFieldAreaWidgetMetrics(
 
   const field = fields[0];
 
+  const {
+    p50_duration_area,
+    p75_duration_area,
+    p95_duration_area,
+    p99_duration_area,
+    p75_lcp_area,
+    tpm_area,
+  } = widgetDefinitions;
+
   // TODO(metrics): make this list complete once api is ready
   const metricsFieldMap = {
-    [widgetDefinitions.p75_lcp_area.fields[0]]: widgetDefinitions.p75_lcp_area.fields[0],
-    [widgetDefinitions.tpm_area.fields[0]]: 'count(transaction.duration)',
+    [p50_duration_area.fields[0]]: p50_duration_area.fields[0],
+    [p75_duration_area.fields[0]]: p75_duration_area.fields[0],
+    [p95_duration_area.fields[0]]: p95_duration_area.fields[0],
+    [p99_duration_area.fields[0]]: p99_duration_area.fields[0],
+    [p75_lcp_area.fields[0]]: p75_lcp_area.fields[0],
+    [tpm_area.fields[0]]: 'count(transaction.duration)',
   };
 
   const metricsField = metricsFieldMap[field];
