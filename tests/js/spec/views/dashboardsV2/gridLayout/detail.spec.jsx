@@ -288,7 +288,7 @@ describe('Dashboards > Detail', function () {
       const updateMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
         method: 'PUT',
-        body: {widgets: [widgets[0]]},
+        body: TestStubs.Dashboard([widgets[0]], {id: '1', title: 'Custom Errors'}),
       });
       wrapper = mountWithTheme(
         <ViewEditDashboard
@@ -508,6 +508,11 @@ describe('Dashboards > Detail', function () {
     });
 
     it('can add library widgets', async function () {
+      mockPut = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        method: 'PUT',
+        body: TestStubs.Dashboard(widgets, {id: '1', title: 'Custom Errors'}),
+      });
       initialData = initializeOrg({
         organization: TestStubs.Organization({
           features: [
@@ -562,7 +567,7 @@ describe('Dashboards > Detail', function () {
           data: expect.objectContaining({
             title: 'Custom Errors',
             widgets: [
-              {
+              expect.objectContaining({
                 id: '1',
                 interval: '1d',
                 queries: [
@@ -570,8 +575,8 @@ describe('Dashboards > Detail', function () {
                 ],
                 title: 'Errors',
                 type: 'line',
-              },
-              {
+              }),
+              expect.objectContaining({
                 id: '2',
                 interval: '1d',
                 queries: [
@@ -579,8 +584,8 @@ describe('Dashboards > Detail', function () {
                 ],
                 title: 'Transactions',
                 type: 'line',
-              },
-              {
+              }),
+              expect.objectContaining({
                 id: '3',
                 interval: '1d',
                 queries: [
@@ -592,8 +597,8 @@ describe('Dashboards > Detail', function () {
                 ],
                 title: 'p50 of /api/cats',
                 type: 'line',
-              },
-              {
+              }),
+              expect.objectContaining({
                 displayType: 'area',
                 id: undefined,
                 interval: '5m',
@@ -607,7 +612,7 @@ describe('Dashboards > Detail', function () {
                 ],
                 title: 'All Events',
                 widgetType: 'discover',
-              },
+              }),
             ],
           }),
         })
@@ -615,6 +620,11 @@ describe('Dashboards > Detail', function () {
     });
 
     it('adds an Issue widget to the dashboard', async function () {
+      mockPut = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        method: 'PUT',
+        body: TestStubs.Dashboard([widgets[0]], {id: '1', title: 'Custom Errors'}),
+      });
       initialData = initializeOrg({
         organization: TestStubs.Organization({
           features: [
@@ -665,13 +675,13 @@ describe('Dashboards > Detail', function () {
         expect.objectContaining({
           data: expect.objectContaining({
             widgets: expect.arrayContaining([
-              {
+              expect.objectContaining({
                 displayType: 'table',
                 interval: '5m',
                 queries: [{conditions: '', fields: [], name: '', orderby: ''}],
                 title: 'Issue Widget',
                 widgetType: 'issue',
-              },
+              }),
             ]),
           }),
         })
