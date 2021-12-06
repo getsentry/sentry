@@ -45,6 +45,7 @@ export function SingleFieldAreaWidgetMetrics(
 
   const metricsFieldMap = {
     [widgetDefinitions.tpm_area.fields[0]]: 'count(transaction.duration)',
+    [widgetDefinitions.failure_rate_area.fields[0]]: 'count(transaction.duration)',
   };
 
   const metricsField = metricsFieldMap[field] ?? field;
@@ -71,6 +72,11 @@ export function SingleFieldAreaWidgetMetrics(
           environment={environment}
           query="transaction:foo" // TODO(metrics): make this dynamic once api is ready (widgetData.list.data[selectedListIndex].transaction)
           field={decodeList(chartFields)}
+          groupBy={
+            field === widgetDefinitions.failure_rate_area.fields[0]
+              ? ['transaction.status']
+              : undefined
+          }
           includePrevious
         >
           {children}
