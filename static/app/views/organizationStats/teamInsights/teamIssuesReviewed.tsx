@@ -139,8 +139,7 @@ class TeamIssuesReviewed extends AsyncComponent<Props, State> {
                   seriesName: t('Reviewed'),
                   data: reviewedSeries,
                   silent: true,
-                  // silent is not incldued in the type for BarSeries
-                } as any,
+                },
                 {
                   seriesName: t('Not Reviewed'),
                   data: notReviewedSeries,
