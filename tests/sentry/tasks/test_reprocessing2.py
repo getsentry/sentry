@@ -18,7 +18,7 @@ from sentry.models import (
     UserReport,
 )
 from sentry.plugins.base.v2 import Plugin2
-from sentry.reprocessing2 import _get_sync_redis_client, is_group_finished
+from sentry.reprocessing2 import is_group_finished
 from sentry.tasks.reprocessing2 import reprocess_group
 from sentry.tasks.store import preprocess_event
 from sentry.testutils.helpers import Feature
@@ -297,6 +297,7 @@ def test_max_events(
 
     burst(max_jobs=100)
 
+    event = None
     for i, event_id in enumerate(event_ids):
         event = eventstore.get_event_by_id(default_project.id, event_id)
         if max_events is not None and i < (len(event_ids) - max_events):
