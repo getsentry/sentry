@@ -54,7 +54,7 @@ function PerformanceContent({selection, location, demoMode}: Props) {
   const previousDateTime = usePrevious(selection.datetime);
 
   const [state, setState] = useState<State>({
-    eventView: generatePerformanceEventView(location, projects, {
+    eventView: generatePerformanceEventView(location, organization, projects, {
       isMetricsData,
     }),
     error: undefined,
@@ -74,7 +74,7 @@ function PerformanceContent({selection, location, demoMode}: Props) {
   useEffect(() => {
     setState({
       ...state,
-      eventView: generatePerformanceEventView(location, projects, {
+      eventView: generatePerformanceEventView(location, organization, projects, {
         isMetricsData,
       }),
     });
