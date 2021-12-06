@@ -3,7 +3,10 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Panel, PanelBody} from 'sentry/components/panels';
+import {IconGraph, IconMenu} from 'sentry/icons';
 import space from 'sentry/styles/space';
+
+import {DisplayType} from '../types';
 
 import {WidgetTemplate} from './data';
 
@@ -22,6 +25,16 @@ function WidgetLibraryCard({
   ['data-test-id']: dataTestId,
 }: Props) {
   const [selected, setSelected] = useState(selectedWidgets.includes(widget));
+
+  function getWidgetIcon(displayType: DisplayType) {
+    switch (displayType) {
+      case DisplayType.TABLE:
+        return <IconMenu size="xs" />;
+      case DisplayType.LINE:
+      default:
+        return <IconGraph size="xs" />;
+    }
+  }
 
   return (
     <StyledPanel
@@ -42,7 +55,7 @@ function WidgetLibraryCard({
     >
       <PanelBody>
         <TitleContainer>
-          {widget.icon}
+          {getWidgetIcon(widget.displayType)}
           <Title>{widget.title}</Title>
         </TitleContainer>
         <Description>{widget.description}</Description>

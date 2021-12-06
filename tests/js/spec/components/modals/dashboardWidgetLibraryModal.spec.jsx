@@ -3,7 +3,6 @@ import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary
 
 import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
 import DashboardWidgetLibraryModal from 'sentry/components/modals/dashboardWidgetLibraryModal';
-import {IconGraph} from 'sentry/icons';
 
 const stubEl = props => <div>{props.children}</div>;
 const alertText =
@@ -92,7 +91,6 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
         id: undefined,
         interval: '5m',
         description: 'Area chart reflecting all error and transaction events.',
-        icon: <IconGraph size="xs" />,
         queries: [
           {
             conditions: '!event.type:transaction',
