@@ -64,10 +64,6 @@ export function SingleFieldAreaWidgetMetrics(
 
   const metricsField = metricsFieldMap[field];
 
-  if (!metricsField) {
-    throw new Error(`The field ${field} is not yet supported by metrics`);
-  }
-
   const chart = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
     () => ({
       fields: metricsField,

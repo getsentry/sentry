@@ -36,10 +36,10 @@ export function VitalByTransactionAndRating({measurement, ...rest}) {
           measurement_rating: 'poor',
         },
         totals: {
-          [`avg(measurements.${measurement})`]: 913.2667882519335,
+          [`count(measurements.${measurement})`]: 913.2667882519335,
         },
         series: {
-          [`avg(measurements.${measurement})`]: [
+          [`count(measurements.${measurement})`]: [
             878.0965537951091, 892.4128102279035, 917.4473775231118, 884.0592721573165,
             882.8631377404286, 977.3661107427924, 860.5718105590834, 1036.8824425087375,
             857.4349331408594, 872.0064570283837, 954.3387108987523, 982.0946255973818,
@@ -55,10 +55,10 @@ export function VitalByTransactionAndRating({measurement, ...rest}) {
           measurement_rating: 'meh',
         },
         totals: {
-          [`avg(measurements.${measurement})`]: 537.0443448410027,
+          [`count(measurements.${measurement})`]: 537.0443448410027,
         },
         series: {
-          [`avg(measurements.${measurement})`]: [
+          [`count(measurements.${measurement})`]: [
             480.25279914214235, 446.2470330439192, 540.2723720628555, 578.8238603650881,
             521.333776306769, 565.7998107918086, 552.484459768386, 556.4380473259937,
             463.13632179530805, 610.3239126307383, 568.8398422912862, 490.7285481925072,
@@ -74,10 +74,10 @@ export function VitalByTransactionAndRating({measurement, ...rest}) {
           measurement_rating: 'good',
         },
         totals: {
-          [`avg(measurements.${measurement})`]: 310.99324556336916,
+          [`count(measurements.${measurement})`]: 310.99324556336916,
         },
         series: {
-          [`avg(measurements.${measurement})`]: [
+          [`count(measurements.${measurement})`]: [
             301.84940453421194, 304.68814732362097, 301.9642776305766, 314.8072375586307,
             257.72640884714446, 269.49092851324036, 319.92471568867126, 396.0333440504141,
             282.919294815697, 288.60267153849486, 322.426440794062, 346.5679457744942,
@@ -93,10 +93,10 @@ export function VitalByTransactionAndRating({measurement, ...rest}) {
           measurement_rating: 'poor',
         },
         totals: {
-          [`avg(measurements.${measurement})`]: 334.68332989807976,
+          [`count(measurements.${measurement})`]: 334.68332989807976,
         },
         series: {
-          [`avg(measurements.${measurement})`]: [
+          [`count(measurements.${measurement})`]: [
             250.3774996770386, 371.6466508301939, 389.0367396067616, 364.3194808493991,
             200.31796886834115, 382.2695255829035, 315.19978364600627, 343.65161544673435,
             394.0993214558925, 303.2183329284477, 331.8381124232099, 303.94194516767607,
@@ -112,10 +112,10 @@ export function VitalByTransactionAndRating({measurement, ...rest}) {
           measurement_rating: 'meh',
         },
         totals: {
-          [`avg(measurements.${measurement})`]: 678.2848709983151,
+          [`count(measurements.${measurement})`]: 678.2848709983151,
         },
         series: {
-          [`avg(measurements.${measurement})`]: [
+          [`count(measurements.${measurement})`]: [
             738.9628961315675, 705.2147839253868, 697.751323586985, 653.2820567061374,
             699.4645282581238, 700.331139178481, 631.6492978710824, 676.3301175125379,
             700.0691909918392, 617.811038380621, 633.3687666897259, 681.3519605114661,
@@ -131,10 +131,10 @@ export function VitalByTransactionAndRating({measurement, ...rest}) {
           measurement_rating: 'good',
         },
         totals: {
-          [`avg(measurements.${measurement})`]: 733.2314556449236,
+          [`count(measurements.${measurement})`]: 733.2314556449236,
         },
         series: {
-          [`avg(measurements.${measurement})`]: [
+          [`count(measurements.${measurement})`]: [
             683.3645918170907, 686.2188745079375, 638.5992986501745, 841.2356927608002,
             720.2768463363028, 673.2745128606168, 761.1691750270439, 636.7014142246217,
             736.3066317858726, 675.5427607945265, 797.414473494506, 754.1362217563709,
@@ -149,7 +149,7 @@ export function VitalByTransactionAndRating({measurement, ...rest}) {
   };
 }
 
-export function SingleFieldAreaP75LCP({includePrevious = false, ...rest} = {}) {
+export function SingleFieldArea({field, includePrevious = false, ...rest} = {}) {
   if (!includePrevious) {
     return {
       start: '2021-12-01T16:15:00Z',
@@ -257,10 +257,10 @@ export function SingleFieldAreaP75LCP({includePrevious = false, ...rest} = {}) {
         {
           by: {},
           totals: {
-            'p75(measurements.lcp)': 462.32331107946504,
+            [field]: 462.32331107946504,
           },
           series: {
-            'p75(measurements.lcp)': [
+            [field]: [
               443.6200417187068, 471.7512262596214, 632.5356294251225, 538.6063865509535,
               524.4706847412767, 552.1308328866158, 491.4847951529728, 540.5649544109818,
               430.31622543090765, 513.2803858330382, 498.20598088568426,
@@ -399,10 +399,10 @@ export function SingleFieldAreaP75LCP({includePrevious = false, ...rest} = {}) {
       {
         by: {},
         totals: {
-          'p75(measurements.lcp)': 129.72492971780008,
+          [field]: 129.72492971780008,
         },
         series: {
-          'p75(measurements.lcp)': [
+          [field]: [
             221.52973175192722, 82.76857796001401, 137.76855565875306, 100.90038107992447,
             181.2435929849948, 194.158107204712, 143.61147836258434, 185.65573515697082,
             100.21081794317811, 208.29608362878938, 118.18731151487796,

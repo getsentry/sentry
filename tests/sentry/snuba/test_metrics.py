@@ -29,6 +29,7 @@ from sentry.snuba.metrics import (
     QueryDefinition,
     SnubaQueryBuilder,
     SnubaResultConverter,
+    _resolve_tags,
     get_date_range,
     get_intervals,
     parse_query,
@@ -47,14 +48,14 @@ MOCK_NOW = datetime(2021, 8, 25, 23, 59, tzinfo=pytz.utc)
 @pytest.mark.parametrize(
     "query_string,expected",
     [
-        ('release:""', [Condition(Column(name="tags[6]"), Op.IN, rhs=[14])]),
-        ("release:myapp@2.0.0", [Condition(Column(name="tags[6]"), Op.IN, rhs=[15])]),
+        ('release:""', [Condition(Column(name="tags[6]"), Op.IN, rhs=[15])]),
+        ("release:myapp@2.0.0", [Condition(Column(name="tags[6]"), Op.IN, rhs=[16])]),
         (
             "release:myapp@2.0.0 and environment:production",
             [
                 And(
                     [
-                        Condition(Column(name="tags[6]"), Op.IN, rhs=[15]),
+                        Condition(Column(name="tags[6]"), Op.IN, rhs=[16]),
                         Condition(Column(name="tags[2]"), Op.EQ, rhs=5),
                     ]
                 )
@@ -63,7 +64,7 @@ MOCK_NOW = datetime(2021, 8, 25, 23, 59, tzinfo=pytz.utc)
         (
             "release:myapp@2.0.0 environment:production",
             [
-                Condition(Column(name="tags[6]"), Op.IN, rhs=[15]),
+                Condition(Column(name="tags[6]"), Op.IN, rhs=[16]),
                 Condition(Column(name="tags[2]"), Op.EQ, rhs=5),
             ],
         ),
@@ -74,12 +75,12 @@ MOCK_NOW = datetime(2021, 8, 25, 23, 59, tzinfo=pytz.utc)
                     [
                         And(
                             [
-                                Condition(Column(name="tags[6]"), Op.IN, rhs=[15]),
+                                Condition(Column(name="tags[6]"), Op.IN, rhs=[16]),
                                 Condition(Column(name="tags[2]"), Op.EQ, rhs=5),
                             ]
                         ),
                         Condition(
-                            Function(function="ifNull", parameters=[Column(name="tags[8]"), 14]),
+                            Column(name="tags[8]"),
                             Op.EQ,
                             rhs=4,
                         ),
@@ -87,7 +88,7 @@ MOCK_NOW = datetime(2021, 8, 25, 23, 59, tzinfo=pytz.utc)
                 ),
             ],
         ),
-        ('transaction:"/bar/:orgId/"', [Condition(Column(name="tags[16]"), Op.EQ, rhs=17)]),
+        ('transaction:"/bar/:orgId/"', [Condition(Column(name="tags[17]"), Op.EQ, rhs=18)]),
     ],
 )
 @mock.patch("sentry.snuba.metrics.indexer")
@@ -96,7 +97,7 @@ def test_parse_query(mock_indexer, query_string, expected):
     for s in ("", "myapp@2.0.0", "transaction", "/bar/:orgId/"):
         local_indexer.record(s)
     mock_indexer.resolve = local_indexer.resolve
-    parsed = parse_query(query_string)
+    parsed = _resolve_tags(parse_query(query_string))
     assert parsed == expected
 
 
@@ -320,7 +321,7 @@ def test_translate_results(_1, _2, mock_indexer):
                     },
                     {
                         "metric_id": 9,  # session
-                        "tags[8]": 0,  # session.status:abnormal
+                        "tags[8]": 14,  # session.status:abnormal
                         "value": 330,
                     },
                 ],
@@ -335,7 +336,7 @@ def test_translate_results(_1, _2, mock_indexer):
                     },
                     {
                         "metric_id": 9,  # session
-                        "tags[8]": 0,
+                        "tags[8]": 14,
                         "bucketed_time": "2021-08-24T00:00Z",
                         "value": 110,
                     },
@@ -347,7 +348,7 @@ def test_translate_results(_1, _2, mock_indexer):
                     },
                     {
                         "metric_id": 9,  # session
-                        "tags[8]": 0,
+                        "tags[8]": 14,
                         "bucketed_time": "2021-08-25T00:00Z",
                         "value": 220,
                     },
@@ -365,7 +366,7 @@ def test_translate_results(_1, _2, mock_indexer):
                     },
                     {
                         "metric_id": 7,  # session.duration
-                        "tags[8]": 0,
+                        "tags[8]": 14,
                         "max": 456.7,
                         "percentiles": [1.5, 2.5, 3.5, 4.5, 5.5],
                     },
@@ -382,7 +383,7 @@ def test_translate_results(_1, _2, mock_indexer):
                     },
                     {
                         "metric_id": 7,  # session.duration
-                        "tags[8]": 0,
+                        "tags[8]": 14,
                         "bucketed_time": "2021-08-24T00:00Z",
                         "max": 20.2,
                         "percentiles": [1.2, 2.2, 3.2, 4.2, 5.2],
@@ -396,7 +397,7 @@ def test_translate_results(_1, _2, mock_indexer):
                     },
                     {
                         "metric_id": 7,  # session.duration
-                        "tags[8]": 0,
+                        "tags[8]": 14,
                         "bucketed_time": "2021-08-25T00:00Z",
                         "max": 40.4,
                         "percentiles": [1.4, 2.4, 3.4, 4.4, 5.4],
