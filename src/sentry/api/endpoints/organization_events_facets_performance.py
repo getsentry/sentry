@@ -62,9 +62,8 @@ class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsFacetsPerfor
         all_tag_keys = None
         tag_key = None
 
-        if self.has_tag_page_feature(organization, request):
-            all_tag_keys = request.GET.get("allTagKeys")
-            tag_key = request.GET.get("tagKey")
+        all_tag_keys = request.GET.get("allTagKeys")
+        tag_key = request.GET.get("tagKey")
 
         if tag_key in TAG_ALIASES:
             tag_key = TAG_ALIASES.get(tag_key)
