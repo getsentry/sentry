@@ -330,7 +330,7 @@ class DashboardDetail extends Component<Props, State> {
     }));
     saveDashboardLayout(organizationId, dashboardId, newLayout);
 
-    // Layout changed because widget have new IDs
+    // Layout changed because widgets have new IDs
     this.onLayoutChange(newLayout);
   };
 
