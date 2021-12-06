@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import FeatureBadge from 'sentry/components/featureBadge';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 
 type MetaDataProps = {
@@ -51,6 +52,7 @@ const SectionBody = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   padding: ${space(0.5)} 0;
   max-height: 32px;
+  ${overflowEllipsis};
 `;
 
 const StyledFeatureBadge = styled(FeatureBadge)`
