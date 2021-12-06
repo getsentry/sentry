@@ -56,18 +56,22 @@ class AuthenticationMiddleware(MiddlewareMixin):
                 if result:
                     request.user = result[0]
                     request.auth = result[1]
+                else:
+                    raise Exception
             except Exception:
                 # default to anonymous user and use IP ratelimit
-                request.user = AnonymousUser()
+                request.user = SimpleLazyObject(lambda: get_user(request))
         elif auth and auth[0].lower() == ApiKeyAuthentication.token_name:
             try:
                 result = ApiKeyAuthentication().authenticate(request=request)
                 if result:
                     request.user = result[0]
                     request.auth = result[1]
+                else:
+                    raise Exception
             except Exception:
                 # default to anonymous user and use IP ratelimit
-                request.user = AnonymousUser()
+                request.user = SimpleLazyObject(lambda: get_user(request))
         else:
             request.user = SimpleLazyObject(lambda: get_user(request))
 

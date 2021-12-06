@@ -7,14 +7,14 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.models import ApiKey, ApiToken, SentryAppInstallation
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.hashlib import md5_text
 
 from . import backend as ratelimiter
 
 if TYPE_CHECKING:
-    from sentry.models import ApiToken, Organization, User
-
+    from sentry.models import Organization, User
 # TODO(mgaeta): It's not currently possible to type a Callable's args with kwargs.
 EndpointFunction = Callable[..., Response]
 
@@ -46,47 +46,34 @@ def get_rate_limit_key(view_func: EndpointFunction, request: Request) -> str | N
     if request.path_info.startswith(settings.ANONYMOUS_STATIC_PREFIXES):
         return None
 
-    request_user = getattr(request, "user", None)
-    user_id = getattr(request_user, "id", None)
-    is_sentry_app = getattr(request_user, "is_sentry_app", None)
-
     ip_address = request.META.get("REMOTE_ADDR")
 
-    request_auth = getattr(request, "auth", None)
-    token_class = getattr(request_auth, "__class__", None)
-    token_name = token_class.__name__ if token_class else None
+    if isinstance(request.auth, ApiToken):
+        if request.user.is_sentry_app:
+            category = "org"
+            id = get_organization_id_from_token(request.auth.id)
+        else:
+            category = "user"
+            id = request.auth.user_id
 
-    if token_name == "ApiToken" and is_sentry_app:
-        from sentry.models import SentryAppInstallationToken
-
-        category = "org"
-        token = (
-            SentryAppInstallationToken.objects.filter(api_token_id=request_auth.id)
-            .select_related("sentry_app_installation")
-            .first()
-        )
-        installation = getattr(token, "sentry_app_installation", None)
-        id = getattr(installation, "organization_id", None)
-
-    elif token_name == "ApiToken" and not is_sentry_app:
+    elif not isinstance(request.auth, ApiKey) and request.user:
         category = "user"
-        id = getattr(request_auth, "user_id", None)
+        id = request.user.id
 
-    elif token_name == "ApiKey" and ip_address is not None:
-        category = "ip"
-        id = ip_address
-
-    elif user_id is not None:
-        category = "user"
-        id = user_id
-
+    # ApiKeys will be treated with IP ratelimits
     elif ip_address is not None:
         category = "ip"
         id = ip_address
+
     # If IP address doesn't exist, skip ratelimiting for now
     else:
         return None
     return f"{category}:{view}:{http_method}:{id}"
+
+
+def get_organization_id_from_token(token_id: str) -> int | None:
+    installation = SentryAppInstallation.objects.get_by_api_token(token_id).first()
+    return installation.organization_id if installation else None
 
 
 def get_rate_limit_value(
