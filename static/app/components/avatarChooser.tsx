@@ -120,14 +120,15 @@ class AvatarChooser extends React.Component<Props, State> {
     const avatarPhoto = dataUrl?.split(',')[1];
 
     const data: {
-      avatar_photo: string | undefined;
-      avatar_type: string | undefined;
+      avatar_photo?: string;
+      avatar_type?: string;
       color?: boolean;
-    } = {
-      // If an image has been uploaded, then another option is selected, we should not submit the image
-      avatar_photo: avatarType === 'upload' ? avatarPhoto : undefined,
-      avatar_type: avatarType,
-    };
+    } = {avatar_type: avatarType};
+
+    // If an image has been uploaded, then another option is selected, we should not submit the uploaded image
+    if (avatarType === 'upload') {
+      data.avatar_photo = avatarPhoto;
+    }
 
     if (type?.startsWith('sentryApp')) {
       data.color = type === 'sentryAppColor';
