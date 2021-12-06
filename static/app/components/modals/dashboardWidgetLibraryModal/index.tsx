@@ -1,7 +1,6 @@
 import * as React from 'react';
 import {useState} from 'react';
 import {css} from '@emotion/react';
-import styled from '@emotion/styled';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
@@ -68,7 +67,7 @@ function DashboardWidgetLibraryModal({
         />
       </Body>
       <Footer>
-        <FooterButtonbar gap={1}>
+        <ButtonBar gap={1}>
           <Button
             external
             href="https://docs.sentry.io/product/dashboards/custom-dashboards/#widget-builder"
@@ -90,7 +89,7 @@ function DashboardWidgetLibraryModal({
           >
             {t('Save')}
           </Button>
-        </FooterButtonbar>
+        </ButtonBar>
       </Footer>
     </React.Fragment>
   );
@@ -100,11 +99,6 @@ export const modalCss = css`
   width: 100%;
   max-width: 700px;
   margin: 70px auto;
-`;
-
-const FooterButtonbar = styled(ButtonBar)`
-  justify-content: space-between;
-  width: 100%;
 `;
 
 export default DashboardWidgetLibraryModal;

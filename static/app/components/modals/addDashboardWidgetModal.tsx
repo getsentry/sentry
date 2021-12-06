@@ -615,7 +615,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
           />
         </Body>
         <Footer>
-          <StyledButtonBar gap={1}>
+          <ButtonBar gap={1}>
             <Button
               external
               href="https://docs.sentry.io/product/dashboards/custom-dashboards/#widget-builder"
@@ -636,7 +636,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
                 ? t('Update Widget')
                 : t('Add Widget')}
             </Button>
-          </StyledButtonBar>
+          </ButtonBar>
         </Footer>
       </React.Fragment>
     );
@@ -658,11 +658,6 @@ export const modalCss = css`
 
 const StyledField = styled(Field)`
   position: relative;
-`;
-
-const StyledButtonBar = styled(ButtonBar)`
-  justify-content: space-between;
-  width: 100%;
 `;
 
 export default withApi(withGlobalSelection(withTags(AddDashboardWidgetModal)));
