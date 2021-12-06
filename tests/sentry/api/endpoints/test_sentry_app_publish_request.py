@@ -90,7 +90,7 @@ class SentryAppPublishRequestTest(APITestCase):
         assert response.status_code == 400
         assert (
             response.data["detail"]
-            == "Must upload a black icon for issue and stack trace linking integrations."
+            == "Must upload an icon for issue and stack trace linking integrations."
         )
         send_mail.asssert_not_called()
 
@@ -114,6 +114,6 @@ class SentryAppPublishRequestTest(APITestCase):
         assert response.status_code == 400
         assert (
             response.data["detail"]
-            == "Must upload a black icon for issue and stack trace linking integrations."
+            == "Must upload an icon for issue and stack trace linking integrations."
         )
         send_mail.asssert_not_called()
