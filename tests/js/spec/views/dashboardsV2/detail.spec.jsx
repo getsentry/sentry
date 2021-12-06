@@ -684,7 +684,10 @@ describe('Dashboards > Detail', function () {
       await tick();
       await modal.update();
 
-      modal.find('ModalBody input').simulate('change', {target: {value: 'Issue Widget'}});
+      modal
+        .find('ModalBody input')
+        .first()
+        .simulate('change', {target: {value: 'Issue Widget'}});
       modal.find('ModalFooter button').simulate('click');
 
       await tick();
@@ -703,7 +706,14 @@ describe('Dashboards > Detail', function () {
               {
                 displayType: 'table',
                 interval: '5m',
-                queries: [{conditions: '', fields: [], name: '', orderby: ''}],
+                queries: [
+                  {
+                    conditions: '',
+                    fields: ['issue', 'title', 'assignee'],
+                    name: '',
+                    orderby: '',
+                  },
+                ],
                 title: 'Issue Widget',
                 widgetType: 'issue',
               },
