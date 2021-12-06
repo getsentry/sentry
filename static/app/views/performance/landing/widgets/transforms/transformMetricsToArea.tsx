@@ -9,7 +9,9 @@ import {MetricsRequestRenderProps} from 'sentry/utils/metrics/metricsRequest';
 import {QueryDefinitionWithKey, WidgetDataConstraint, WidgetPropUnion} from '../types';
 import {PerformanceWidgetSetting} from '../widgetDefinitions';
 
-const TRANSACTION_SUCCESSFUL_STATUS = ['ok', 'unknown', 'canceled'];
+// Sentry treats transactions with a status other than “ok,” “canceled,” and “unknown” as failures.
+// For more details, see https://docs.sentry.io/product/performance/metrics/#failure-rate
+const TRANSACTION_SUCCESS_STATUS = ['ok', 'unknown', 'canceled'];
 
 export function transformMetricsToArea<T extends WidgetDataConstraint>(
   widgetProps: WidgetPropUnion<T>,
@@ -47,7 +49,7 @@ export function transformMetricsToArea<T extends WidgetDataConstraint>(
 
   if (widgetProps.chartSetting === PerformanceWidgetSetting.FAILURE_RATE_AREA) {
     const failureGroups = response.groups.filter(
-      group => !TRANSACTION_SUCCESSFUL_STATUS.includes(group.by['transaction.status'])
+      group => !TRANSACTION_SUCCESS_STATUS.includes(group.by['transaction.status'])
     );
 
     const seriesTotal = response.groups.reduce(
