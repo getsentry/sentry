@@ -101,11 +101,16 @@ function DashboardWidgetLibraryModal({
               {`${selectedWidgets.length} Selected`}
             </SelectedBadge>
             <Tooltip
-              title={tct('Max widgets ([maxWidgets]) per dashboard exceeded.', {
-                maxWidgets: MAX_WIDGETS,
-              })}
+              title={tct(
+                'Exceeds max widgets ([maxWidgets]) per dashboard. Plese uselect [unselectWidgets] widget(s).',
+                {
+                  maxWidgets: MAX_WIDGETS,
+                  unselectWidgets:
+                    dashboard.widgets.length + selectedWidgets.length - MAX_WIDGETS,
+                }
+              )}
               disabled={
-                !!!(dashboard.widgets.length + selectedWidgets.length >= MAX_WIDGETS)
+                !!!(dashboard.widgets.length + selectedWidgets.length > MAX_WIDGETS)
               }
             >
               <Button
