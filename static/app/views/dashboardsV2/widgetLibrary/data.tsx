@@ -100,7 +100,7 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
     queries: [
       {
         name: 'Error counts',
-        conditions: '!event.type:transaction has:geo.country_code.',
+        conditions: '!event.type:transaction has:geo.country_code',
         fields: ['count()'],
         orderby: '',
       },
