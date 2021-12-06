@@ -143,11 +143,11 @@ export default class DetailsBody extends React.Component<Props> {
         : t('Resolved');
     const statusIcon =
       label === 'critical' ? (
-        <StyledIconRectangle color="red300" size="sm" />
+        <StyledIconRectangle color="red300" size="md" />
       ) : label === 'warning' ? (
-        <StyledIconRectangle color="yellow300" size="sm" />
+        <StyledIconRectangle color="yellow300" size="md" />
       ) : (
-        <StyledIconRectangle color="green300" size="sm" />
+        <StyledIconRectangle color="green300" size="md" />
       );
 
     const thresholdTypeText = (
@@ -597,10 +597,14 @@ const TriggerCondition = styled('div')`
   display: flex;
   flex-direction: column;
   margin-left: ${space(0.75)};
+  line-height: 1.4;
+  position: relative;
+  top: 2px;
 `;
 
 const TriggerText = styled('div')`
   color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const CreatedBy = styled('div')`
@@ -608,5 +612,5 @@ const CreatedBy = styled('div')`
 `;
 
 const StyledIconRectangle = styled(IconRectangle)`
-  margin-top: ${space(0.75)};
+  margin-top: ${space(0.5)};
 `;
