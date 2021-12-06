@@ -48,7 +48,7 @@ const MetricsSwitchContext = createContext({
 
 function MetricsSwitchContextContainer({children}: {children: React.ReactNode}) {
   const organization = useOrganization();
-  const localStorageKey = `metrics-performance:${organization.slug}`;
+  const localStorageKey = `metrics.performance:${organization.slug}`;
   const [isMetricsData, setIsMetricsData] = useState(
     localStorage.getItem(localStorageKey) === 'true'
   );
