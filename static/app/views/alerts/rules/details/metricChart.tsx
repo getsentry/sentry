@@ -2,7 +2,7 @@ import * as React from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import color from 'color';
-import {LineSeriesOption} from 'echarts';
+import type {LineSeriesOption} from 'echarts';
 import capitalize from 'lodash/capitalize';
 import moment from 'moment';
 import momentTimezone from 'moment-timezone';
