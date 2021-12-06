@@ -370,6 +370,7 @@ describe('Dashboards > Detail', function () {
       const modal = await mountGlobalModal();
 
       expect(modal.find('AddDashboardWidgetModal').props().widget).toEqual(widgets[0]);
+      wrapper.unmount();
     });
 
     it('shows add wiget option', async function () {
@@ -460,6 +461,7 @@ describe('Dashboards > Detail', function () {
       expect(breadcrumbs.exists()).toBe(true);
       expect(breadcrumbs.find('BreadcrumbLink').find('a').text()).toEqual('Dashboards');
       expect(breadcrumbs.find('BreadcrumbItem').last().text()).toEqual('Custom Errors');
+      wrapper.unmount();
     });
 
     it('enters edit mode when given a new widget in location query', async function () {
@@ -488,6 +490,7 @@ describe('Dashboards > Detail', function () {
       expect(wrapper.find('DashboardDetail').props().initialState).toEqual(
         DashboardState.EDIT
       );
+      wrapper.unmount();
     });
 
     it('enters view mode when not given a new widget in location query', async function () {
@@ -505,6 +508,7 @@ describe('Dashboards > Detail', function () {
       expect(wrapper.find('DashboardDetail').props().initialState).toEqual(
         DashboardState.VIEW
       );
+      wrapper.unmount();
     });
 
     it('can add library widgets', async function () {
@@ -536,16 +540,14 @@ describe('Dashboards > Detail', function () {
 
       // Enter Add Widget mode
       wrapper
-        .find('Controls Button[data-test-id="add-widget-library"]')
+        .find('Controls Button[data-test-id="add-widget-library"] button')
         .simulate('click');
 
       const modal = await mountGlobalModal();
       await tick();
       await modal.update();
 
-      modal.find('Button').at(3).simulate('click');
-
-      expect(modal.find('SelectedBadge').text()).toEqual('1 Selected');
+      modal.find('WidgetLibraryCard').at(1).simulate('click');
 
       modal.find('Button[data-test-id="confirm-widgets"]').simulate('click');
 
@@ -596,6 +598,7 @@ describe('Dashboards > Detail', function () {
               {
                 displayType: 'area',
                 id: undefined,
+                description: 'Area chart reflecting all error and transaction events.',
                 interval: '5m',
                 queries: [
                   {
@@ -612,6 +615,7 @@ describe('Dashboards > Detail', function () {
           }),
         })
       );
+      wrapper.unmount();
     });
 
     it('adds an Issue widget to the dashboard', async function () {
@@ -676,6 +680,7 @@ describe('Dashboards > Detail', function () {
           }),
         })
       );
+      wrapper.unmount();
     });
   });
 });

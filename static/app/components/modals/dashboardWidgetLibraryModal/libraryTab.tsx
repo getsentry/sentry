@@ -32,22 +32,20 @@ function DashboardWidgetLibraryTab({
           )}
         </Alert>
       ) : null}
-      <Title>{t('%s WIDGETS', DEFAULT_WIDGETS.length)}</Title>
-      <ScrollGrid>
-        <WidgetLibraryGrid>
-          {DEFAULT_WIDGETS.map(widgetCard => {
-            return (
-              <WidgetLibraryCard
-                key={widgetCard.title}
-                widget={widgetCard}
-                selectedWidgets={selectedWidgets}
-                setSelectedWidgets={setSelectedWidgets}
-                setErrored={setErrored}
-              />
-            );
-          })}
-        </WidgetLibraryGrid>
-      </ScrollGrid>
+      <WidgetLibraryGrid>
+        {DEFAULT_WIDGETS.map((widgetCard, index) => {
+          return (
+            <WidgetLibraryCard
+              data-test-id={`widget-library-card-${index}`}
+              key={widgetCard.title}
+              widget={widgetCard}
+              selectedWidgets={selectedWidgets}
+              setSelectedWidgets={setSelectedWidgets}
+              setErrored={setErrored}
+            />
+          );
+        })}
+      </WidgetLibraryGrid>
     </React.Fragment>
   );
 }
@@ -56,25 +54,8 @@ const WidgetLibraryGrid = styled('div')`
   display: grid;
   grid-template-columns: repeat(2, minmax(100px, 1fr));
   grid-template-rows: repeat(2, max-content);
-  grid-gap: ${space(1)};
-`;
-
-const ScrollGrid = styled('div')`
-  max-height: 550px;
-  overflow: scroll;
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-  &::-webkit-scrollbar {
-    display: none;
-  }
-`;
-
-const Title = styled('h3')`
-  margin-bottom: ${space(1)};
-  padding: 0 !important;
-  font-size: ${p => p.theme.fontSizeSmall};
-  text-transform: uppercase;
-  color: ${p => p.theme.gray300};
+  row-gap: ${space(1.5)};
+  column-gap: ${space(2)};
 `;
 
 export default DashboardWidgetLibraryTab;
