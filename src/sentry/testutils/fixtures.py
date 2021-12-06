@@ -250,6 +250,9 @@ class Fixtures:
     def create_sentry_app_installation(self, *args, **kwargs):
         return Factories.create_sentry_app_installation(*args, **kwargs)
 
+    def create_stacktrace_link_schema(self, *args, **kwargs):
+        return Factories.create_stacktrace_link_schema(*args, **kwargs)
+
     def create_issue_link_schema(self, *args, **kwargs):
         return Factories.create_issue_link_schema(*args, **kwargs)
 

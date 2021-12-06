@@ -15,6 +15,8 @@ from sentry.models import Organization, SentryApp, SentryAppInstallation
 from sentry.utils.sdk import configure_scope
 from sentry.utils.strings import to_single_line_str
 
+COMPONENT_TYPES = ["stacktrace-link", "issue-link"]
+
 
 def catch_raised_errors(func):
     @wraps(func)

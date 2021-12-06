@@ -5,11 +5,11 @@ from rest_framework.response import Response
 from sentry import tsdb
 from sentry.api.base import StatsMixin
 from sentry.api.bases import SentryAppBaseEndpoint, SentryAppStatsPermission
+from sentry.api.bases.sentryapps import COMPONENT_TYPES
 
 logger = logging.getLogger(__name__)
 
 TSDB_MODELS = [tsdb.models.sentry_app_viewed, tsdb.models.sentry_app_component_interacted]
-COMPONENT_TYPES = ["stacktrace-link", "issue-link"]
 
 
 def get_component_interaction_key(sentry_app, component_type):
