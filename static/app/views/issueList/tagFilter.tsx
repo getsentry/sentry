@@ -8,6 +8,7 @@ import SelectControl from 'sentry/components/forms/selectControl';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Tag, TagValue} from 'sentry/types';
+import Input from 'sentry/views/settings/components/forms/controls/input';
 
 import {TagValueLoader} from './types';
 
@@ -160,12 +161,7 @@ class IssueListTagFilter extends React.Component<Props, State> {
         <StyledHeader>{tag.key}</StyledHeader>
 
         {!!tag.isInput && (
-          <input
-            className="form-control"
-            type="text"
-            value={this.state.textValue}
-            onChange={this.handleChangeInput}
-          />
+          <Input value={this.state.textValue} onChange={this.handleChangeInput} />
         )}
 
         {!tag.isInput && (
