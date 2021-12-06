@@ -2,7 +2,19 @@ import collections.abc
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Callable, List, Mapping, Optional, Sequence, Set, Tuple, Union, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Union,
+    cast,
+)
 
 import pytz
 from dateutil import parser
@@ -457,10 +469,6 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
     def _org_from_id(org_id: OrganizationId) -> Organization:
         return Organization.objects.get_from_cache(id=org_id)
 
-    def _dispatch_call(self, *args, **kwargs):
-        with push_scope():
-            return self._dispatch_call_inner(*args, **kwargs)
-
     def _dispatch_call_inner(
         self,
         fn_name: str,
@@ -542,6 +550,18 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
             )
 
         return ret_val
+
+    if TYPE_CHECKING:
+        # Mypy is not smart enough to figure out _dispatch_call is a wrapper
+        # around _dispatch_call_inner with the same exact signature, and I am
+        # pretty sure there is no sensible way to tell it something like that
+        # without duplicating the entire signature.
+        _dispatch_call = _dispatch_call_inner
+    else:
+
+        def _dispatch_call(self, *args, **kwargs):
+            with push_scope():
+                return self._dispatch_call_inner(*args, **kwargs)
 
     def get_current_and_previous_crash_free_rates(
         self,
