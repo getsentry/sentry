@@ -43,13 +43,11 @@ export function SingleFieldAreaWidgetMetrics(
 
   const field = fields[0];
 
-  // TODO(metrics): make this list complete once api is ready
   const metricsFieldMap = {
-    [widgetDefinitions.p75_lcp_area.fields[0]]: widgetDefinitions.p75_lcp_area.fields[0],
     [widgetDefinitions.tpm_area.fields[0]]: 'count(transaction.duration)',
   };
 
-  const metricsField = metricsFieldMap[field];
+  const metricsField = metricsFieldMap[field] ?? field;
 
   const chart = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
     () => ({
