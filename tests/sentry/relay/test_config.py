@@ -82,7 +82,7 @@ def test_project_config_uses_filters_and_sampling_feature(
 ):
     """
     Tests that dynamic sampling information is retrieved for both "full config" and "restricted config"
-    but only when the organization has "organizations:filter-and-sampling" feature enabled.
+    but only when the organization has "organizations:filters-and-sampling" feature enabled.
     """
     default_project.update_option("sentry:dynamic_sampling", dyn_sampling_data())
 
