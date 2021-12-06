@@ -82,24 +82,23 @@ def static_media(request, **kwargs):
         # for static files, rather than our full blown HTML.
         return HttpResponseNotFound("", content_type="text/plain")
 
+    response = None
+
     if (
         "gzip" in request.META.get("HTTP_ACCEPT_ENCODING", "")
         and not path.endswith(".gz")
         and not settings.DEBUG
     ):
-        paths = (path + ".gz", path)
-    else:
-        paths = (path,)
-
-    for p in paths:
         try:
-            response = static.serve(request, p, document_root=document_root)
-            break
+            response = static.serve(request, path + ".gz", document_root=document_root)
         except Http404:
-            # We don't need to handle this since `resolve()` is assuring to us that
-            # at least the non-gzipped version exists, so in theory, this can
-            # only happen on the first .gz path
-            continue
+            pass
+
+    if response is None:
+        # We don't need to handle Http404 since `resolve()` is assuring to us
+        # that at least the non-gzipped version exists, so in theory, this can
+        # only happen on the first .gz path
+        response = static.serve(request, path, document_root=document_root)
 
     # Make sure we Vary: Accept-Encoding for gzipped responses
     response["Vary"] = "Accept-Encoding"

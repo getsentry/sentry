@@ -585,9 +585,7 @@ describe('Dashboards > Detail', function () {
       await tick();
       await modal.update();
 
-      modal.find('Button').at(3).simulate('click');
-
-      expect(modal.find('SelectedBadge').text()).toEqual('1 Selected');
+      modal.find('WidgetLibraryCard').at(1).simulate('click');
 
       modal.find('Button[data-test-id="confirm-widgets"]').simulate('click');
 
@@ -640,6 +638,7 @@ describe('Dashboards > Detail', function () {
                 displayType: 'area',
                 id: undefined,
                 interval: '5m',
+                description: 'Area chart reflecting all error and transaction events.',
                 queries: [
                   {
                     conditions: '!event.type:transaction',
