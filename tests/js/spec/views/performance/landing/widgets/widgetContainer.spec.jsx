@@ -652,18 +652,21 @@ describe('Performance > Widgets > WidgetContainer', function () {
     // TODO(k-fish): Add histogram mock
   });
 
-  it('P75 LCP Single Area Widget - metrics based', async function () {
+  it('P75 LCP - Single Area Widget - metrics based', async function () {
     metricsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/metrics/data/`,
-      body: TestStubs.SingleFieldAreaP75LCP(),
+      body: TestStubs.SingleFieldArea({field: 'p75(measurements.lcp)'}),
       match: [(...args) => !issuesPredicate(...args)],
     });
 
     const metricsMockPreviousData = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/metrics/data/`,
-      body: TestStubs.SingleFieldAreaP75LCP({previousData: true}),
+      body: TestStubs.SingleFieldArea({
+        field: 'p75(measurements.lcp)',
+        previousData: true,
+      }),
       match: [
         (...args) => {
           return (
@@ -721,6 +724,90 @@ describe('Performance > Widgets > WidgetContainer', function () {
           project: [-42],
           environment: ['prod'],
           field: ['p75(measurements.lcp)'],
+          query: 'transaction:foo',
+          groupBy: undefined,
+          orderBy: undefined,
+          limit: undefined,
+          interval: '1h',
+          statsPeriodStart: '14d',
+          statsPeriodEnd: '7d',
+        }),
+      })
+    );
+  });
+
+  it('TPM - Single Area Widget - metrics based', async function () {
+    metricsMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics/data/`,
+      body: TestStubs.SingleFieldArea({field: 'count(transaction.duration)'}),
+      match: [(...args) => !issuesPredicate(...args)],
+    });
+
+    const metricsMockPreviousData = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics/data/`,
+      body: TestStubs.SingleFieldArea({
+        field: 'count(transaction.duration)',
+        previousData: true,
+      }),
+      match: [
+        (...args) => {
+          return (
+            !issuesPredicate(...args) &&
+            args[1].query.statsPeriodStart &&
+            args[1].query.statsPeriodEnd
+          );
+        },
+      ],
+    });
+
+    const data = initializeData();
+
+    const wrapper = mountWithTheme(
+      <WrappedComponent
+        data={data}
+        defaultChartSetting={PerformanceWidgetSetting.TPM_AREA}
+        isMetricsData
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+      'Transactions Per Minute'
+    );
+
+    expect(wrapper.find('HighlightNumber').text()).toEqual('534.302');
+    expect(metricsMock).toHaveBeenCalledTimes(1);
+    expect(metricsMockPreviousData).toHaveBeenCalledTimes(1);
+
+    expect(metricsMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          project: [-42],
+          environment: ['prod'],
+          field: ['count(transaction.duration)'],
+          query: 'transaction:foo',
+          groupBy: undefined,
+          orderBy: undefined,
+          limit: undefined,
+          interval: '1h',
+          statsPeriod: '7d',
+          start: undefined,
+          end: undefined,
+        }),
+      })
+    );
+    expect(metricsMockPreviousData).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          project: [-42],
+          environment: ['prod'],
+          field: ['count(transaction.duration)'],
           query: 'transaction:foo',
           groupBy: undefined,
           orderBy: undefined,
