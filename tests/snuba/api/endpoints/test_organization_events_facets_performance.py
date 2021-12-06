@@ -11,6 +11,7 @@ class BaseOrganizationEventsFacetsPerformanceEndpointTest(SnubaTestCase, APITest
     feature_list = (
         "organizations:discover-basic",
         "organizations:global-views",
+        "organizations:performance-view",
     )
 
     def setUp(self):

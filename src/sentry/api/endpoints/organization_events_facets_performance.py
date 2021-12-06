@@ -28,6 +28,11 @@ DEFAULT_TAG_KEY_LIMIT = 5
 
 
 class OrganizationEventsFacetsPerformanceEndpointBase(OrganizationEventsV2EndpointBase):
+    def has_feature(self, organization, request):
+        return features.has(
+            "organizations:performance-view", organization, actor=request.user
+        )
+
     # NOTE: This used to be called setup, but since Django 2.2 it's a View method.
     #       We don't fit its semantics, but I couldn't think of a better name, and
     #       it's only used in child classes.
