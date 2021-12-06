@@ -5,7 +5,6 @@ from typing import DefaultDict, Dict, Optional
 from .base import StringIndexer
 
 _STRINGS = (
-    "abnormal",
     "crashed",
     "environment",
     "errored",
@@ -19,6 +18,7 @@ _STRINGS = (
     "user",
     "init",
     "session.error",
+    "abnormal",
 )
 
 
@@ -27,7 +27,7 @@ class SimpleIndexer(StringIndexer):
     """Simple indexer with in-memory store. Do not use in production."""
 
     def __init__(self) -> None:
-        self._counter = itertools.count()
+        self._counter = itertools.count(start=1)
         self._strings: DefaultDict[str, int] = defaultdict(self._counter.__next__)
         self._reverse: Dict[int, str] = {}
 

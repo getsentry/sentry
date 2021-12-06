@@ -72,8 +72,35 @@ TS_COL_GROUP = "bucketed_time"
 
 def reverse_resolve(index: int) -> str:
     resolved = indexer.reverse_resolve(index)
-    # If we cannot find a string for an integer index, that's a bug:
-    assert resolved is not None, index
+    # The indexer should never return None for integers > 0:
+    assert resolved is not None
+
+    return resolved
+
+
+def reverse_resolve_groupby(index: int) -> Optional[str]:
+    if index == 0:
+        # When a groupBy is requested with a tag that does not exist for the given
+        # metric, tags[i] == 0. In this case, return None
+        return None
+
+    return reverse_resolve(index)
+
+
+def resolve_tag_key(string: str) -> str:
+    resolved = indexer.resolve(string)
+    if resolved is None:
+        raise InvalidParams(f"Unknown tag key: '{string}'")
+
+    return f"tags[{resolved}]"
+
+
+def resolve_tag_value(string: str) -> int:
+    resolved = indexer.resolve(string)
+    if resolved is None:
+        # This delegates the problem of dealing with missing tag values to
+        # snuba
+        return 0
 
     return resolved
 
@@ -98,10 +125,18 @@ def parse_field(field: str) -> Tuple[str, str]:
 
 
 def _resolve_tags(input_: Any) -> Any:
-    """Translate tags in snuba condition"""
+    """Translate tags in snuba condition
+
+    This assumes that all strings are either tag names or tag values, so do not
+    pass Column("metric_id") or Column("project_id") into this function.
+
+    """
     if isinstance(input_, list):
         return [_resolve_tags(item) for item in input_]
     if isinstance(input_, Function):
+        if input_.function == "ifNull":
+            # This was wrapped automatically by QueryFilter, remove wrapper
+            return _resolve_tags(input_.parameters[0])
         return Function(
             function=input_.function,
             parameters=input_.parameters and [_resolve_tags(item) for item in input_.parameters],
@@ -116,9 +151,9 @@ def _resolve_tags(input_: Any) -> Any:
             name = input_.key
         else:
             name = input_.name
-        return Column(name=f"tags[{indexer.resolve(name)}]")
+        return Column(name=resolve_tag_key(name))
     if isinstance(input_, str):
-        return indexer.resolve(input_)
+        return resolve_tag_value(input_)
 
     return input_
 
@@ -137,7 +172,6 @@ def parse_query(query_string: str) -> Sequence[Condition]:
         where, _ = query_filter.resolve_conditions(query_string, use_aggregate_conditions=True)
     except InvalidSearchQuery as e:
         raise InvalidParams(f"Failed to parse query: {e}")
-    where = _resolve_tags(where)
 
     return where
 
@@ -688,12 +722,12 @@ class SnubaQueryBuilder:
             Condition(
                 Column("metric_id"),
                 Op.IN,
-                [indexer.resolve(name) for _, name in query_definition.fields.values()],
+                [resolve_tag_value(name) for _, name in query_definition.fields.values()],
             ),
             Condition(Column(TS_COL_QUERY), Op.GTE, query_definition.start),
             Condition(Column(TS_COL_QUERY), Op.LT, query_definition.end),
         ]
-        filter_ = query_definition.parsed_query
+        filter_ = _resolve_tags(query_definition.parsed_query)
         if filter_:
             where.extend(filter_)
 
@@ -701,7 +735,7 @@ class SnubaQueryBuilder:
 
     def _build_groupby(self, query_definition: QueryDefinition) -> List[Column]:
         return [Column("metric_id")] + [
-            Column(f"tags[{indexer.resolve(field)}]") for field in query_definition.groupby
+            Column(resolve_tag_key(field)) for field in query_definition.groupby
         ]
 
     def _build_orderby(
@@ -863,7 +897,7 @@ class SnubaResultConverter:
 
         groups = [
             dict(
-                by={self._parse_tag(key): reverse_resolve(value) for key, value in tags},
+                by={self._parse_tag(key): reverse_resolve_groupby(value) for key, value in tags},
                 **data,
             )
             for tags, data in groups.items()
@@ -933,15 +967,18 @@ class MetaFromSnuba:
             for row in self._get_metrics_for_entity(METRIC_TYPE_TO_ENTITY[metric_type])
         )
 
-        return [
-            MetricMeta(
-                name=reverse_resolve(row["metric_id"]),
-                type=metric_type,
-                operations=_AVAILABLE_OPERATIONS[METRIC_TYPE_TO_ENTITY[metric_type].value],
-                unit=None,  # snuba does not know the unit
-            )
-            for metric_type, row in metric_names
-        ]
+        return sorted(
+            (
+                MetricMeta(
+                    name=reverse_resolve(row["metric_id"]),
+                    type=metric_type,
+                    operations=_AVAILABLE_OPERATIONS[METRIC_TYPE_TO_ENTITY[metric_type].value],
+                    unit=None,  # snuba does not know the unit
+                )
+                for metric_type, row in metric_names
+            ),
+            key=itemgetter("name"),
+        )
 
     def get_single_metric(self, metric_name: str) -> MetricMetaWithTagKeys:
         """Get metadata for a single metric, without tag values"""
