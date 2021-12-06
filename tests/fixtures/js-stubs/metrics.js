@@ -149,7 +149,7 @@ export function VitalByTransactionAndRating({measurement, ...rest}) {
   };
 }
 
-export function SingleFieldAreaP75LCP({includePrevious = false, ...rest} = {}) {
+export function SingleFieldArea({field, includePrevious = false, ...rest} = {}) {
   if (!includePrevious) {
     return {
       start: '2021-12-01T16:15:00Z',
@@ -257,10 +257,10 @@ export function SingleFieldAreaP75LCP({includePrevious = false, ...rest} = {}) {
         {
           by: {},
           totals: {
-            'p75(measurements.lcp)': 462.32331107946504,
+            [field]: 462.32331107946504,
           },
           series: {
-            'p75(measurements.lcp)': [
+            [field]: [
               443.6200417187068, 471.7512262596214, 632.5356294251225, 538.6063865509535,
               524.4706847412767, 552.1308328866158, 491.4847951529728, 540.5649544109818,
               430.31622543090765, 513.2803858330382, 498.20598088568426,
@@ -399,10 +399,10 @@ export function SingleFieldAreaP75LCP({includePrevious = false, ...rest} = {}) {
       {
         by: {},
         totals: {
-          'p75(measurements.lcp)': 129.72492971780008,
+          [field]: 129.72492971780008,
         },
         series: {
-          'p75(measurements.lcp)': [
+          [field]: [
             221.52973175192722, 82.76857796001401, 137.76855565875306, 100.90038107992447,
             181.2435929849948, 194.158107204712, 143.61147836258434, 185.65573515697082,
             100.21081794317811, 208.29608362878938, 118.18731151487796,
