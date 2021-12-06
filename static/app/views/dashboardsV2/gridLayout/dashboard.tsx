@@ -146,10 +146,7 @@ class Dashboard extends Component<Props> {
   };
 
   handleAddComplete = (widget: Widget) => {
-    this.props.onUpdate([
-      ...this.props.dashboard.widgets,
-      {...widget, tempId: Date.now().toString()},
-    ]);
+    this.props.onUpdate([...this.props.dashboard.widgets, assignTempId(widget)]);
   };
 
   handleUpdateComplete = (index: number) => (nextWidget: Widget) => {
@@ -289,12 +286,8 @@ export function constructGridItemKey(widget: Widget) {
   return `${WIDGET_PREFIX}-${widget.id ?? widget.tempId}`;
 }
 
-function generateGridItemKey() {
-  return nanoid();
-}
-
 export function assignTempId(widget) {
-  return {...widget, tempId: generateGridItemKey()};
+  return {...widget, tempId: nanoid()};
 }
 
 /**
