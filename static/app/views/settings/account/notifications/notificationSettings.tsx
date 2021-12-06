@@ -83,21 +83,11 @@ class NotificationSettings extends AsyncComponent<Props, State> {
     return updatedNotificationSettings;
   };
 
-  get notificationSettingsType() {
-    const hasApprovalFeatureFlag =
-      this.props.organizations.filter(org => org.features?.includes('slack-requests'))
-        .length > 0;
-    // filter out approvals if the feature flag isn't set
-    return NOTIFICATION_SETTINGS_TYPES.filter(
-      type => type !== 'approval' || hasApprovalFeatureFlag
-    );
-  }
-
   getInitialData(): {[key: string]: string} {
     const {notificationSettings} = this.state;
 
     return Object.fromEntries(
-      this.notificationSettingsType.map(notificationType => [
+      NOTIFICATION_SETTINGS_TYPES.map(notificationType => [
         notificationType,
         decideDefault(notificationType, notificationSettings),
       ])
@@ -108,7 +98,7 @@ class NotificationSettings extends AsyncComponent<Props, State> {
     const {notificationSettings} = this.state;
 
     const fields: FieldObject[] = [];
-    for (const notificationType of this.notificationSettingsType) {
+    for (const notificationType of NOTIFICATION_SETTINGS_TYPES) {
       const field = Object.assign({}, NOTIFICATION_SETTING_FIELDS[notificationType], {
         getData: data => this.getStateToPutForDefault(data, notificationType),
         help: (
