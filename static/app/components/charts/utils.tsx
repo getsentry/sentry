@@ -170,6 +170,17 @@ export function canIncludePreviousPeriod(
   return !!includePrevious;
 }
 
+export function shouldFetchPreviousPeriod({
+  includePrevious = true,
+  period,
+  start,
+  end,
+}: {
+  includePrevious?: boolean;
+} & Pick<DateTimeObject, 'start' | 'end' | 'period'>) {
+  return !start && !end && canIncludePreviousPeriod(includePrevious, period);
+}
+
 /**
  * Generates a series selection based on the query parameters defined by the location.
  */
