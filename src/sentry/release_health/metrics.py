@@ -163,7 +163,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             prj: {"currentCrashFreeRate": None, "previousCrashFreeRate": None}
             for prj in project_ids
         }
-
         previous = self._get_crash_free_rate_data(
             org_id,
             project_ids,
@@ -723,7 +722,8 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         where: List[Condition], org_id: int
     ) -> Mapping[Tuple[int, str], int]:
         """
-        Count of errored sessions, incl fatal (abnormal, crashed) sessions
+        Count of errored sessions, incl fatal (abnormal, crashed) sessions,
+        excl errored *preaggregated* sessions
         """
         rv_errored_sessions: Dict[Tuple[int, str], int] = {}
 
@@ -780,7 +780,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                     Condition(
                         Column(session_status_column_name),
                         Op.IN,
-                        get_tag_values_list(org_id, ["abnormal", "crashed", "init"]),
+                        get_tag_values_list(
+                            org_id, ["abnormal", "crashed", "init", "errored_preaggr"]
+                        ),
                     ),
                 ],
                 groupby=aggregates,
@@ -1014,6 +1016,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 "sessions_errored": max(
                     0,
                     rv_errored_sessions.get((project_id, release), 0)
+                    + rv_sessions.get((project_id, release, "errored_preaggr"), 0)
                     - sessions_crashed
                     - rv_sessions.get((project_id, release, "abnormal"), 0),
                 ),
@@ -1446,6 +1449,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 target["sessions_crashed"] = value
                 # This is an error state, so subtract from total error count
                 target["sessions_errored"] -= value
+            elif status == "errored_preaggr":
+                target["sessions_errored"] += value
+                target["sessions_healthy"] -= value
             else:
                 logger.warning("Unexpected session.status '%s'", status)
 

@@ -460,6 +460,67 @@ class OrganizationMetricIntegrationTest(SessionMetricsTestCase, APITestCase):
             totals = group["totals"]
             assert totals == {"count(measurements.lcp)": expected_count}
 
+    @with_feature(FEATURE_FLAG)
+    def test_unknown_groupby(self):
+        """Use a tag name in groupby that does not exist in the indexer"""
+        # Insert session metrics:
+        self.store_session(self.build_session(project_id=self.project.id))
+
+        # "foo" is known by indexer, "bar" is not
+        indexer.record("foo")
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field="sum(session)",
+            statsPeriod="1h",
+            interval="1h",
+            datasource="snuba",
+            groupBy=["session.status", "foo"],
+        )
+
+        groups = response.data["groups"]
+        assert len(groups) == 1
+        assert groups[0]["by"] == {"session.status": "init", "foo": None}
+
+        response = self.get_response(
+            self.organization.slug,
+            field="sum(session)",
+            statsPeriod="1h",
+            interval="1h",
+            datasource="snuba",
+            groupBy=["session.status", "bar"],
+        )
+        assert response.status_code == 400
+
+    @with_feature(FEATURE_FLAG)
+    def test_unknown_filter(self):
+        """Use a tag key/value in filter that does not exist in the indexer"""
+        # Insert session metrics:
+        self.store_session(self.build_session(project_id=self.project.id))
+
+        response = self.get_response(
+            self.organization.slug,
+            field="sum(session)",
+            statsPeriod="1h",
+            interval="1h",
+            datasource="snuba",
+            query="foo:123",  # Unknown tag key
+        )
+        print(response.data)
+        assert response.status_code == 400
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field="sum(session)",
+            statsPeriod="1h",
+            interval="1h",
+            datasource="snuba",
+            query="release:123",  # Unknown tag value is fine.
+        )
+
+        groups = response.data["groups"]
+        assert len(groups) == 0
+
 
 class OrganizationMetricMetaIntegrationTest(SessionMetricsTestCase, APITestCase):
     def setUp(self):

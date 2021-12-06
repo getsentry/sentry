@@ -10,6 +10,7 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import Confirm from 'sentry/components/confirm';
+import SentryAppIcon from 'sentry/components/sentryAppIcon';
 import {IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -276,6 +277,10 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
   // no configurations for sentry apps
   renderConfigurations() {
     return null;
+  }
+
+  renderIntegrationIcon() {
+    return <SentryAppIcon sentryApp={this.sentryApp} size={50} />;
   }
 }
 
