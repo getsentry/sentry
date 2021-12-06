@@ -282,12 +282,20 @@ def buffered_delete_old_primary_hash(
     force_flush_batch: bool = False,
 ):
     """
-    Like `buffered_handle_remaining_events`, is a quick and dirty way to batch
-    event IDs so requests to tombstone rows are not being individually sent
-    over to Snuba.
+    In case the primary hash changed during reprocessing, we need to tell
+    Snuba before reinserting the event. Snuba may then insert a tombstone row
+    depending on whether the primary_hash is part of the PK/sortkey or not.
 
-    See `_delete_old_primary_hash` for an explanation of the purpose and
-    intent of this routine.
+    Only when the primary_hash changed and is part of the sortkey, we need to
+    explicitly tombstone the old row.
+
+    If the primary_hash is not part of the PK/sortkey, or if the primary_hash
+    did not change, nothing needs to be done as ClickHouse's table merge will
+    merge the two rows together.
+
+    Like `buffered_handle_remaining_events` this is a quick and dirty way to
+    batch event IDs so requests to tombstone rows are not being individually
+    sent over to Snuba.
     """
 
     from sentry import killswitches
@@ -328,70 +336,41 @@ def buffered_delete_old_primary_hash(
 
     if force_flush_batch or event_count > settings.SENTRY_REPROCESSING_REMAINING_EVENTS_BUF_SIZE:
         for primary_hash in old_primary_hashes:
-            old_key = build_event_key(primary_hash)
-            new_key = f"{old_key}:{uuid.uuid4().hex}"
+            event_key = build_event_key(primary_hash)
+            events = client.lrange(event_key, 0, -1)
+            event_ids, from_date, to_date = calculate_date_range_and_get_event_ids(events)
 
-            assert client.renamenx(old_key, new_key), "UUID collision for new_key?"
+            if len(event_ids) == 0:
+                continue
 
-            # TODO: inline the below bit
+            from sentry import eventstream
 
             # In the worst case scenario, a group will have a 1:1 mapping of primary hashes to
             # events, which means 1 insert per event.
             # The overall performance of this will be marginally better than the unbatched version
             # if a group has a lot of old primary hashes.
-            _delete_old_primary_hash(
-                project_id=project_id,
-                old_primary_hash=primary_hash,
-                event_ids_redis_key=new_key,
+            eventstream.tombstone_events_unsafe(
+                project_id,
+                event_ids,
+                old_primary_hash=old_primary_hash,
+                from_timestamp=from_date,
+                to_timestamp=to_date,
             )
 
-    # Try to track counts so if it turns out that tombstoned events trend towards a ratio of 1
-    # event per hash, a different solution may need to be considered.
-    ratio = 0 if len(old_primary_hashes) == 0 else event_count / len(old_primary_hashes)
-    metrics.timing(
-        key="reprocessing2.buffered_delete_old_primary_hash.event_count",
-        value=event_count,
-    )
-    metrics.timing(
-        key="reprocessing2.buffered_delete_old_primary_hash.primary_hash_count",
-        value=len(old_primary_hashes),
-    )
-    metrics.timing(
-        key="reprocessing2.buffered_delete_old_primary_hash.primary_hash_to_event_ratio",
-        value=ratio,
-    )
-
-
-def _delete_old_primary_hash(
-    project_id,
-    old_primary_hash,
-    event_ids_redis_key,
-):
-    """In case the primary hash changed during reprocessing, we need to tell
-    Snuba before reinserting the event. Snuba may then insert a tombstone row
-    depending on whether the primary_hash is part of the PK/sortkey or not.
-
-    Only when the primary_hash changed and is part of the sortkey, we need to
-    explicitly tombstone the old row.
-
-    If the primary_hash is not part of the PK/sortkey, or if the primary_hash
-    did not change, nothing needs to be done as ClickHouse's table merge will
-    merge the two rows together.
-    """
-
-    from sentry import eventstream
-    from sentry.reprocessing2 import pop_remaining_event_ids_from_redis
-
-    if event_ids_redis_key is not None:
-        event_ids, from_timestamp, to_timestamp = pop_remaining_event_ids_from_redis(
-            event_ids_redis_key
+        # Try to track counts so if it turns out that tombstoned events trend towards a ratio of 1
+        # event per hash, a different solution may need to be considered.
+        ratio = 0 if len(old_primary_hashes) == 0 else event_count / len(old_primary_hashes)
+        metrics.timing(
+            key="reprocessing2.buffered_delete_old_primary_hash.event_count",
+            value=event_count,
         )
-        eventstream.tombstone_events_unsafe(
-            project_id,
-            event_ids,
-            old_primary_hash=old_primary_hash,
-            from_timestamp=from_timestamp,
-            to_timestamp=to_timestamp,
+        metrics.timing(
+            key="reprocessing2.buffered_delete_old_primary_hash.primary_hash_count",
+            value=len(old_primary_hashes),
+        )
+        metrics.timing(
+            key="reprocessing2.buffered_delete_old_primary_hash.primary_hash_to_event_ratio",
+            value=ratio,
         )
 
 
@@ -515,12 +494,28 @@ def buffered_handle_remaining_events(
 
 def pop_remaining_event_ids_from_redis(key):
     client = _get_sync_redis_client()
+    events = client.lrange(key, 0, -1)
+
+    event_ids_batch, min_datetime, max_datetime = calculate_date_range_and_get_event_ids(events)
+
+    client.delete(key)
+
+    return event_ids_batch, min_datetime, max_datetime
+
+
+def calculate_date_range_and_get_event_ids(events):
+    """
+    For some iterable of buffered events fetched from a redis store
+    with values that look like `event id;datetime of event`, returns
+    a list of event IDs, the earliest datetime, and the latest
+    datetime.
+    """
     event_ids_batch = []
     min_datetime = None
     max_datetime = None
 
-    for row in client.lrange(key, 0, -1):
-        datetime_raw, event_id = row.split(";")
+    for item in events:
+        datetime_raw, event_id = item.split(";")
         datetime = to_datetime(float(datetime_raw))
 
         assert datetime is not None
@@ -531,8 +526,6 @@ def pop_remaining_event_ids_from_redis(key):
             max_datetime = datetime
 
         event_ids_batch.append(event_id)
-
-    client.delete(key)
 
     return event_ids_batch, min_datetime, max_datetime
 
