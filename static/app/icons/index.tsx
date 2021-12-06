@@ -61,6 +61,7 @@ export {IconMoon} from './iconMoon';
 export {IconMute} from './iconMute';
 export {IconNext} from './iconNext';
 export {IconNot} from './iconNot';
+export {IconNumber} from './iconNumber';
 export {IconOpen} from './iconOpen';
 export {IconPause} from './iconPause';
 export {IconPin} from './iconPin';
