@@ -131,6 +131,7 @@ default_manager.add("organizations:performance-tag-explorer", OrganizationFeatur
 default_manager.add("organizations:performance-tag-page", OrganizationFeature, True)
 default_manager.add("organizations:performance-use-snql", OrganizationFeature, True)
 default_manager.add("organizations:performance-view", OrganizationFeature)
+default_manager.add("organizations:profiling", OrganizationFeature, True)
 default_manager.add("organizations:project-event-date-limit", OrganizationFeature, True)
 default_manager.add("organizations:prompt-dashboards", OrganizationFeature)
 default_manager.add("organizations:related-events", OrganizationFeature)
