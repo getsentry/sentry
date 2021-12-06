@@ -379,11 +379,11 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           environment: ['prod'],
-          field: ['avg(measurements.lcp)'],
+          field: ['count(measurements.lcp)'],
           groupBy: ['transaction', 'measurement_rating'],
           interval: '1h',
           limit: 3,
-          orderBy: 'avg(measurements.lcp)',
+          orderBy: 'count(measurements.lcp)',
           project: [-42],
           statsPeriod: '7d',
         }),
@@ -395,11 +395,11 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           environment: ['prod'],
-          field: ['avg(measurements.lcp)'],
+          field: ['count(measurements.lcp)'],
           groupBy: ['measurement_rating'],
           interval: '1h',
           project: [-42],
-          query: 'transaction:foo',
+          query: 'transaction:/bar/:ordId/',
           statsPeriod: '7d',
         }),
       })
@@ -482,11 +482,11 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           environment: ['prod'],
-          field: ['avg(measurements.fcp)'],
+          field: ['count(measurements.fcp)'],
           groupBy: ['transaction', 'measurement_rating'],
           interval: '1h',
           limit: 3,
-          orderBy: 'avg(measurements.fcp)',
+          orderBy: 'count(measurements.fcp)',
           project: [-42],
           statsPeriod: '7d',
         }),
@@ -498,11 +498,11 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           environment: ['prod'],
-          field: ['avg(measurements.fcp)'],
+          field: ['count(measurements.fcp)'],
           groupBy: ['measurement_rating'],
           interval: '1h',
           project: [-42],
-          query: 'transaction:foo',
+          query: 'transaction:/bar/:ordId/',
           statsPeriod: '7d',
         }),
       })
@@ -585,11 +585,11 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           environment: ['prod'],
-          field: ['avg(measurements.fid)'],
+          field: ['count(measurements.fid)'],
           groupBy: ['transaction', 'measurement_rating'],
           interval: '1h',
           limit: 3,
-          orderBy: 'avg(measurements.fid)',
+          orderBy: 'count(measurements.fid)',
           project: [-42],
           statsPeriod: '7d',
         }),
@@ -601,11 +601,11 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           environment: ['prod'],
-          field: ['avg(measurements.fid)'],
+          field: ['count(measurements.fid)'],
           groupBy: ['measurement_rating'],
           interval: '1h',
           project: [-42],
-          query: 'transaction:foo',
+          query: 'transaction:/bar/:ordId/',
           statsPeriod: '7d',
         }),
       })

@@ -50,7 +50,7 @@ export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
   const {ContainerActions, eventView, organization, location, chartSetting} = props;
   const [selectedListIndex, setSelectListIndex] = useState(0);
   const field = props.fields[0];
-  const metricsField = `avg(${field})`;
+  const metricsField = `count(${field})`;
   const vital = settingToVital[chartSetting];
 
   const Queries = {
@@ -66,8 +66,7 @@ export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
             statsPeriod={period}
             project={project}
             environment={environment}
-            query="" // TODO(metrics): make this dynamic once api is ready
-            interval="1h" // TODO(metrics): make this dynamic once api is ready
+            query={new MutableSearch(eventView.query).formatString()} // TODO(metrics): not all tags will be compatible with metrics
             field={decodeList(fields)}
             groupBy={['transaction', 'measurement_rating']}
             orderBy={decodeList(fields)[0]}
@@ -86,7 +85,16 @@ export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
           return !!widgetData?.list?.data?.length;
         },
         fields: [metricsField],
-        component: ({start, end, period, project, environment, children, fields}) => (
+        component: ({
+          start,
+          end,
+          period,
+          project,
+          environment,
+          children,
+          fields,
+          widgetData,
+        }) => (
           <MetricsRequest
             api={api}
             organization={organization}
@@ -95,8 +103,11 @@ export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
             statsPeriod={period}
             project={project}
             environment={environment}
-            query="transaction:foo" // TODO(metrics): make this dynamic once api is ready (widgetData.list.data[selectedListIndex].transaction)
-            interval="1h" // TODO(metrics): make this dynamic once api is ready
+            query={new MutableSearch(eventView.query)
+              .addFilterValues('transaction', [
+                widgetData.list.data[selectedListIndex].transaction,
+              ])
+              .formatString()} // TODO(metrics): not all tags will be compatible with metrics
             field={decodeList(fields)}
             groupBy={['measurement_rating']}
           >

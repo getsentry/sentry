@@ -10,6 +10,8 @@ import {t} from 'sentry/locale';
 import {DateString, MetricsApiResponse, Organization} from 'sentry/types';
 import {getPeriod} from 'sentry/utils/getPeriod';
 
+import {getMetricsDataSource} from './getMetricsDataSource';
+
 const propNamesToIgnore = ['api', 'children'];
 const omitIgnoredProps = (props: Props) =>
   omitBy(props, (_value, key) => propNamesToIgnore.includes(key));
@@ -114,6 +116,7 @@ class MetricsRequest extends React.Component<Props, State> {
       orderBy,
       limit,
       interval: interval ? interval : getInterval({start, end, period: statsPeriod}),
+      datasource: getMetricsDataSource(),
     };
 
     if (!previousPeriod) {

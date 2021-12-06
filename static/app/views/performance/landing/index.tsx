@@ -21,7 +21,7 @@ import {GenericQueryBatcher} from 'sentry/utils/performance/contexts/genericQuer
 import useTeams from 'sentry/utils/useTeams';
 
 import MetricsSearchBar from '../metricsSearchBar';
-import {MetricsSwitch} from '../metricsSwitch';
+import {MetricsSwitch, useMetricsSwitch} from '../metricsSwitch';
 import {getTransactionSearchQuery} from '../utils';
 
 import {AllTransactionsView} from './views/allTransactionsView';
@@ -45,7 +45,6 @@ type Props = {
   setError: (msg: string | undefined) => void;
   handleSearch: (searchQuery: string) => void;
   handleTrendsClick: () => void;
-  isMetricsData?: boolean;
 };
 
 const fieldToViewMap: Record<LandingDisplayField, FC<Props>> = {
@@ -65,13 +64,13 @@ export function PerformanceLanding(props: Props) {
     handleSearch,
     handleTrendsClick,
     shouldShowOnboarding,
-    isMetricsData,
   } = props;
 
   const {teams, initiallyLoaded} = useTeams({provideUserTeams: true});
 
   const currentLandingDisplay = getCurrentLandingDisplay(location, projects, eventView);
   const filterString = getTransactionSearchQuery(location, eventView.query);
+  const {isMetricsData} = useMetricsSwitch();
 
   const showOnboarding = shouldShowOnboarding;
 
