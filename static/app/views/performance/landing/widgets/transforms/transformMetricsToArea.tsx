@@ -134,11 +134,14 @@ export function transformMetricsToArea<T extends WidgetDataConstraint>(
     };
   });
 
-  const dataMean = data.map(series => ({
-    mean: series.totals,
-    outputType: aggregateOutputType(series.seriesName),
-    label: axisLabelFormatter(series.totals, series.seriesName),
-  }));
+  const dataMean = data.map(series => {
+    const meanData = series.totals / series.data.length;
+    return {
+      mean: meanData,
+      outputType: aggregateOutputType(series.seriesName),
+      label: axisLabelFormatter(meanData, series.seriesName),
+    };
+  });
 
   const previousData = responsePrevious.groups.map(group => {
     return {
