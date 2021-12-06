@@ -13,7 +13,6 @@ from sentry.db.models import (
     FlexibleForeignKey,
     Model,
 )
-from sentry.db.models.manager import BaseManager
 from sentry.signals import integration_added
 from sentry.tasks.code_owners import update_code_owners_schema
 
@@ -102,14 +101,6 @@ class ProjectIntegration(Model):
         unique_together = (("project", "integration"),)
 
 
-class IntegrationManager(BaseManager):
-    def get_active_integrations(self):
-        return self.filter(
-            status=ObjectStatus.ACTIVE,
-            organizationintegration__status=ObjectStatus.ACTIVE,
-        )
-
-
 class Integration(DefaultFieldsModel):
     __include_in_export__ = False
 
@@ -129,8 +120,6 @@ class Integration(DefaultFieldsModel):
     status = BoundedPositiveIntegerField(
         default=ObjectStatus.VISIBLE, choices=ObjectStatus.as_choices(), null=True
     )
-
-    objects = IntegrationManager()
 
     class Meta:
         app_label = "sentry"

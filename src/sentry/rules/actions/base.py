@@ -71,9 +71,10 @@ class IntegrationEventAction(EventAction):
             return "[removed]"
 
     def get_integrations(self):
-        return Integration.objects.get_active_integrations().filter(
+        return Integration.objects.filter(
             provider=self.provider,
             organizations=self.project.organization,
+            status=ObjectStatus.VISIBLE,
         )
 
     def get_integration_id(self):
@@ -87,10 +88,11 @@ class IntegrationEventAction(EventAction):
         :raises: Integration.DoesNotExist
         :return: Integration
         """
-        return Integration.objects.get_active_integrations().get(
+        return Integration.objects.get(
             id=self.get_integration_id(),
             provider=self.provider,
             organizations=self.project.organization,
+            status=ObjectStatus.VISIBLE,
         )
 
     def get_installation(self):
