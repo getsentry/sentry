@@ -19,7 +19,6 @@ type OrgDashboardsChildrenProps = {
   dashboard: DashboardDetails | null;
   dashboards: DashboardListItem[];
   error: boolean;
-  reloadData: () => void;
   onDashboardUpdate: (updatedDashboard: DashboardDetails) => void;
 };
 
@@ -120,7 +119,6 @@ class OrgDashboards extends AsyncComponent<Props, State> {
       error,
       dashboard: selectedDashboard,
       dashboards: this.getDashboards(),
-      reloadData: this.reloadData.bind(this),
       onDashboardUpdate: (updatedDashboard: DashboardDetails) =>
         this.onDashboardUpdate(updatedDashboard),
     });

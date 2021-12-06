@@ -54,7 +54,6 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   dashboard: DashboardDetails;
   dashboards: DashboardListItem[];
   route: PlainRoute;
-  reloadData?: () => void;
   onDashboardUpdate?: (updatedDashboard: DashboardDetails) => void;
   newWidget?: Widget;
 };
