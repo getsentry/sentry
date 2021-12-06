@@ -508,6 +508,7 @@ describe('Dashboards > Detail', function () {
     });
 
     it('can add library widgets', async function () {
+      types.MAX_WIDGETS = 10;
       initialData = initializeOrg({
         organization: TestStubs.Organization({
           features: [
