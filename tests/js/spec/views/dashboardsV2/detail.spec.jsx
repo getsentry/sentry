@@ -175,7 +175,7 @@ describe('Dashboards > Detail', function () {
   });
 
   describe('custom dashboards', function () {
-    let wrapper, initialData, widgets, mockVisit, mockPut;
+    let wrapper, initialData, widgets, mockVisit, mockPut, mockGet;
 
     beforeEach(function () {
       initialData = initializeOrg({organization});
@@ -240,7 +240,8 @@ describe('Dashboards > Detail', function () {
           }),
         ],
       });
-      MockApiClient.addMockResponse({
+      mockGet = MockApiClient.addMockResponse({
+        method: 'GET',
         url: '/organizations/org-slug/dashboards/1/',
         body: TestStubs.Dashboard(widgets, {id: '1', title: 'Custom Errors'}),
       });
@@ -360,6 +361,55 @@ describe('Dashboards > Detail', function () {
       const modal = await mountGlobalModal();
 
       expect(modal.find('AddDashboardWidgetModal').props().widget).toEqual(widgets[0]);
+    });
+
+    it('does not update if api update fails', async function () {
+      const fireEvent = createListeners('window');
+
+      mockPut = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        method: 'PUT',
+        statusCode: 400,
+      });
+      wrapper = mountWithTheme(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        initialData.routerContext
+      );
+      await tick();
+      wrapper.update();
+
+      // Enter edit mode.
+      wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
+
+      // Rename
+      const dashboardTitle = wrapper.find('DashboardTitle Label');
+      dashboardTitle.simulate('click');
+
+      wrapper.find('StyledInput').simulate('change', {
+        target: {innerText: 'Updated Name', value: 'Updated Name'},
+      });
+
+      act(() => {
+        // Press enter
+        fireEvent.keyDown('Enter');
+      });
+
+      wrapper.find('Controls Button[data-test-id="dashboard-commit"]').simulate('click');
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find('DashboardTitle EditableText').props().value).toEqual(
+        'Updated Name'
+      );
+      wrapper.find('Controls Button[data-test-id="dashboard-cancel"]').simulate('click');
+      expect(wrapper.find('DashboardTitle EditableText').props().value).toEqual(
+        'Custom Errors'
+      );
     });
 
     it('shows add wiget option', async function () {
@@ -539,6 +589,7 @@ describe('Dashboards > Detail', function () {
       expect(wrapper.find('DashboardDetail').state().dashboardState).toEqual(
         DashboardState.VIEW
       );
+      expect(mockGet).toHaveBeenCalledTimes(1);
       expect(mockPut).toHaveBeenCalledTimes(1);
       expect(mockPut).toHaveBeenCalledWith(
         '/organizations/org-slug/dashboards/1/',
@@ -642,6 +693,7 @@ describe('Dashboards > Detail', function () {
       expect(wrapper.find('DashboardDetail').state().dashboardState).toEqual(
         DashboardState.VIEW
       );
+      expect(mockGet).toHaveBeenCalledTimes(1);
       expect(mockPut).toHaveBeenCalledTimes(1);
       expect(mockPut).toHaveBeenCalledWith(
         '/organizations/org-slug/dashboards/1/',

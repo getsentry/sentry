@@ -39,11 +39,13 @@ const Chart = ({firstEvent, stats, transactionStats}: Props) => {
       itemStyle: {
         color: theme.gray200,
         opacity: 0.8,
-        emphasis: {
+      },
+      emphasis: {
+        itemStyle: {
           color: theme.gray200,
           opacity: 1.0,
         },
-      } as any,
+      },
     });
   }
 
@@ -59,11 +61,13 @@ const Chart = ({firstEvent, stats, transactionStats}: Props) => {
       itemStyle: {
         color: theme.purple300,
         opacity: 0.6,
-        emphasis: {
+      },
+      emphasis: {
+        itemStyle: {
           color: theme.purple300,
           opacity: 0.8,
         },
-      } as any,
+      },
     });
   }
   const grid = hasTransactions

@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import {useEffect, useState} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 
 import {updateDashboardVisit} from 'sentry/actionCreators/dashboards';
@@ -51,7 +51,7 @@ function ViewEditDashboard(props: Props) {
         params={params}
         organization={organization}
       >
-        {({dashboard, dashboards, error, reloadData}) => {
+        {({dashboard, dashboards, error, onDashboardUpdate}) => {
           return error ? (
             <NotFound />
           ) : dashboard ? (
@@ -60,12 +60,7 @@ function ViewEditDashboard(props: Props) {
               initialState={newWidget ? DashboardState.EDIT : DashboardState.VIEW}
               dashboard={dashboard}
               dashboards={dashboards}
-              reloadData={(...args) => {
-                if (newWidget) {
-                  setNewWidget(undefined);
-                }
-                return reloadData(...args);
-              }}
+              onDashboardUpdate={onDashboardUpdate}
               newWidget={newWidget}
             />
           ) : (

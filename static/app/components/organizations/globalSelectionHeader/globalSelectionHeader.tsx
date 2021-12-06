@@ -53,7 +53,7 @@ const defaultProps = {
 };
 
 type Props = {
-  children: React.ReactNode;
+  children?: React.ReactNode;
   organization: Organization;
 
   memberProjects: Project[];
@@ -438,11 +438,11 @@ const Header = styled('div')`
 
   background: ${p => p.theme.headerBackground};
   font-size: ${p => p.theme.fontSizeExtraLarge};
-  @media (min-width: ${props => props.theme.breakpoints[0]} and max-width: ${props =>
-      props.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints[0]} and max-width: ${p =>
+      p.theme.breakpoints[1]}) {
     margin-top: 54px;
   }
-  @media (max-width: calc(${props => props.theme.breakpoints[0]} - 1px)) {
+  @media (max-width: calc(${p => p.theme.breakpoints[0]} - 1px)) {
     margin-top: 0;
   }
 `;
