@@ -3,12 +3,14 @@ import styled from '@emotion/styled';
 import Sample, {SampleThemeContext} from 'docs-ui/components/sample';
 
 import space from 'sentry/styles/space';
+// eslint-disable-next-line no-restricted-imports
+import {lightColors} from 'sentry/utils/theme';
 
 import ColorSwatch from './colorSwatch';
 
 type ColorGroup = {
   id: string;
-  colors: string[];
+  colors: Array<keyof typeof lightColors>;
 };
 
 const Wrap = styled('div')`

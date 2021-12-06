@@ -7,7 +7,7 @@ import {darkColors, lightColors} from 'sentry/utils/theme';
 
 type Props = {
   theme: 'light' | 'dark';
-  colors: string[];
+  colors: Array<keyof typeof lightColors>;
 };
 
 const ColorSwatch = ({colors, theme}: Props) => {
