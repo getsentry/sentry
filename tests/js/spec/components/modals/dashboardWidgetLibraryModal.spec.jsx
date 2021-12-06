@@ -42,14 +42,18 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
       apdexThreshold: 400,
     },
   });
+  let container;
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
+    if (container) {
+      container.unmount();
+    }
   });
 
   it('opens modal and renders correctly', async function () {
     // Checking initial modal states
-    const container = mountModal({initialData});
+    container = mountModal({initialData});
 
     expect(screen.queryByText('All Events')).toBeInTheDocument();
     expect(screen.queryByText('Total Errors')).toBeInTheDocument();
@@ -69,15 +73,13 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
     userEvent.click(button);
 
     expect(openAddDashboardWidgetModal).toHaveBeenCalledTimes(1);
-
-    container.unmount();
   });
 
   it('submits selected widgets', function () {
     // Checking initial modal states
     const mockApply = jest.fn();
     const closeModal = jest.fn();
-    const container = mountModal({initialData}, mockApply, closeModal);
+    container = mountModal({initialData}, mockApply, closeModal);
 
     // Select some widgets
     const allEvents = screen.queryByText('All Events');
@@ -106,15 +108,13 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
       },
     ]);
     expect(closeModal).toHaveBeenCalledTimes(1);
-
-    container.unmount();
   });
 
   it('raises warning if widget not selected', function () {
     // Checking initial modal states
     const mockApply = jest.fn();
     const closeModal = jest.fn();
-    const container = mountModal({initialData}, mockApply, closeModal);
+    container = mountModal({initialData}, mockApply, closeModal);
     expect(screen.queryByText(alertText)).not.toBeInTheDocument();
 
     userEvent.click(screen.getByTestId('confirm-widgets'));
@@ -122,8 +122,6 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
     expect(mockApply).toHaveBeenCalledTimes(0);
     expect(closeModal).toHaveBeenCalledTimes(0);
     expect(screen.getByText(alertText)).toBeInTheDocument();
-
-    container.unmount();
   });
 
   it('disables save button if widget limit is exceeded', function () {
@@ -131,14 +129,15 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
     const mockApply = jest.fn();
     const closeModal = jest.fn();
     types.MAX_WIDGETS = 1;
-    const container = mountModal({initialData}, mockApply, closeModal);
+    container = mountModal({initialData}, mockApply, closeModal);
 
-    const selectButtons = screen.getAllByRole('button');
-    userEvent.click(selectButtons[3]);
-    userEvent.click(selectButtons[4]);
+    // Select some widgets
+    const allEvents = screen.queryByText('All Events');
+    userEvent.click(allEvents);
+
+    const totalErrors = screen.queryByText('Total Errors');
+    userEvent.click(totalErrors);
 
     expect(screen.getByTestId('confirm-widgets')).toBeDisabled();
-
-    container.unmount();
   });
 });

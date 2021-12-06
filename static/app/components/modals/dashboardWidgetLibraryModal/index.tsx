@@ -77,7 +77,7 @@ function DashboardWidgetLibraryModal({
           </Button>
           <Tooltip
             title={tct(
-              'Exceeds max widgets ([maxWidgets]) per dashboard. Plese uselect [unselectWidgets] widget(s).',
+              'Exceeds max widgets ([maxWidgets]) per dashboard. Plese unselect [unselectWidgets] widget(s).',
               {
                 maxWidgets: MAX_WIDGETS,
                 unselectWidgets:
@@ -91,6 +91,7 @@ function DashboardWidgetLibraryModal({
             <Button
               data-test-id="confirm-widgets"
               priority="primary"
+              disabled={dashboard.widgets.length + selectedWidgets.length > MAX_WIDGETS}
               type="button"
               onClick={(event: React.FormEvent) => {
                 event.preventDefault();

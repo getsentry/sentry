@@ -56,6 +56,9 @@ describe('Dashboards > Detail', function () {
 
     afterEach(function () {
       MockApiClient.clearMockResponses();
+      if (wrapper) {
+        wrapper.unmount();
+      }
     });
 
     it('can delete', async function () {
@@ -272,6 +275,9 @@ describe('Dashboards > Detail', function () {
 
     afterEach(function () {
       MockApiClient.clearMockResponses();
+      if (wrapper) {
+        wrapper.unmount();
+      }
     });
 
     it('can remove widgets', async function () {
@@ -429,8 +435,6 @@ describe('Dashboards > Detail', function () {
       wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
       wrapper.update();
       expect(wrapper.find('AddWidget').exists()).toBe(true);
-
-      wrapper.unmount();
     });
 
     it('hides add widget option', async function () {
@@ -452,8 +456,6 @@ describe('Dashboards > Detail', function () {
       wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
       wrapper.update();
       expect(wrapper.find('AddWidget').exists()).toBe(false);
-
-      wrapper.unmount();
     });
 
     it('hides and shows breadcrumbs based on feature', async function () {
@@ -495,8 +497,6 @@ describe('Dashboards > Detail', function () {
       expect(breadcrumbs.exists()).toBe(true);
       expect(breadcrumbs.find('BreadcrumbLink').find('a').text()).toEqual('Dashboards');
       expect(breadcrumbs.find('BreadcrumbItem').last().text()).toEqual('Custom Errors');
-
-      wrapper.unmount();
     });
 
     it('enters edit mode when given a new widget in location query', async function () {
@@ -525,7 +525,6 @@ describe('Dashboards > Detail', function () {
       expect(wrapper.find('DashboardDetail').props().initialState).toEqual(
         DashboardState.EDIT
       );
-      wrapper.unmount();
     });
 
     it('enters view mode when not given a new widget in location query', async function () {
@@ -543,7 +542,6 @@ describe('Dashboards > Detail', function () {
       expect(wrapper.find('DashboardDetail').props().initialState).toEqual(
         DashboardState.VIEW
       );
-      wrapper.unmount();
     });
 
     it('can add library widgets', async function () {
@@ -654,7 +652,6 @@ describe('Dashboards > Detail', function () {
           }),
         })
       );
-      wrapper.unmount();
     });
 
     it('disables add library widgets when max widgets reached', async function () {
@@ -691,7 +688,6 @@ describe('Dashboards > Detail', function () {
           .disabled
       ).toEqual(true);
       expect(wrapper.find('Controls Tooltip').prop('disabled')).toBe(false);
-      wrapper.unmount();
     });
 
     it('adds an Issue widget to the dashboard', async function () {
@@ -756,7 +752,6 @@ describe('Dashboards > Detail', function () {
           }),
         })
       );
-      wrapper.unmount();
     });
   });
 });
