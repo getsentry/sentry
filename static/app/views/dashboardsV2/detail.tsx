@@ -29,8 +29,8 @@ import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import GridLayoutDashboard, {
+  assignTempId,
   constructGridItemKey,
-  generateGridItemKey,
 } from './gridLayout/dashboard';
 import {getDashboardLayout, saveDashboardLayout} from './gridLayout/utils';
 import Controls from './controls';
@@ -277,7 +277,7 @@ class DashboardDetail extends Component<Props, State> {
       onAddWidget: (widgets: Widget[]) => {
         const modifiedDashboard = {
           ...cloneDashboard(dashboard),
-          widgets: widgets.map(widget => ({...widget, tempId: generateGridItemKey()})),
+          widgets: widgets.map(assignTempId),
         };
         this.setState({modifiedDashboard});
         updateDashboard(api, organization.slug, modifiedDashboard).then(
@@ -490,7 +490,7 @@ class DashboardDetail extends Component<Props, State> {
       onAddWidget: widget => {
         const modifiedDashboard = {
           ...dashboard,
-          widgets: [...dashboard.widgets, {...widget, tempId: generateGridItemKey()}],
+          widgets: [...dashboard.widgets, assignTempId(widget)],
         };
         updateDashboard(api, organization.slug, modifiedDashboard).then(
           (newDashboard: DashboardDetails) => {

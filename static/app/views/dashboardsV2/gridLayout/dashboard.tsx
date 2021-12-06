@@ -289,8 +289,12 @@ export function constructGridItemKey(widget: Widget) {
   return `${WIDGET_PREFIX}-${widget.id ?? widget.tempId}`;
 }
 
-export function generateGridItemKey() {
+function generateGridItemKey() {
   return nanoid();
+}
+
+export function assignTempId(widget) {
+  return {...widget, tempId: generateGridItemKey()};
 }
 
 /**
