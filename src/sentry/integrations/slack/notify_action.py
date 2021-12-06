@@ -8,6 +8,7 @@ from django.utils.translation import ugettext_lazy as _
 from sentry.eventstore.models import Event
 from sentry.integrations.slack.message_builder.issues import build_group_attachment
 from sentry.models import Integration
+from sentry.notifications.additional_attachment_manager import get_additional_attachment
 from sentry.rules.actions.base import IntegrationEventAction
 from sentry.rules.processor import RuleFuture
 from sentry.shared_integrations.exceptions import (
@@ -107,6 +108,8 @@ class SlackNotifyServiceForm(forms.Form):  # type: ignore
             )
 
         channel = cleaned_data.get("channel", "")
+        timed_out = False
+        channel_prefix = ""
 
         # XXX(meredith): If the user is creating/updating a rule via the API and provides
         # the channel_id in the request, we don't need to call the channel_transformer - we
@@ -188,6 +191,12 @@ class SlackNotifyServiceAction(IntegrationEventAction):  # type: ignore
         def send_notification(event: Event, futures: Sequence[RuleFuture]) -> None:
             rules = [f.rule for f in futures]
             attachments = [build_group_attachment(event.group, event=event, tags=tags, rules=rules)]
+            # getsentry might add a billing related attachment
+            additional_attachment = get_additional_attachment(
+                integration, self.project.organization
+            )
+            if additional_attachment:
+                attachments.append(additional_attachment)
 
             payload = {
                 "token": integration.metadata["access_token"],
