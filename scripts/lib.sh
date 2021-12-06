@@ -123,9 +123,6 @@ install-py-dev() {
 
 patch-selenium() {
     # This hack is until we can upgrade to a newer version of Selenium
-    echo '$$$$$$'
-    echo "${HERE}"
-    echo '$$$$$$'
     fx_profile=.venv/lib/python3.8/site-packages/selenium/webdriver/firefox/firefox_profile.py
     # Remove this block when upgrading the selenium package
     if grep -q "or setting is" "${fx_profile}"; then
