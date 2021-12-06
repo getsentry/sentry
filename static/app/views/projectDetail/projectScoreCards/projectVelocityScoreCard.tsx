@@ -2,6 +2,7 @@ import * as React from 'react';
 
 import {fetchAnyReleaseExistence} from 'sentry/actionCreators/projects';
 import AsyncComponent from 'sentry/components/asyncComponent';
+import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
 import {parseStatsPeriod} from 'sentry/components/organizations/timeRangeSelector/utils';
 import ScoreCard from 'sentry/components/scoreCard';
@@ -12,7 +13,6 @@ import {defined} from 'sentry/utils';
 import {getPeriod} from 'sentry/utils/getPeriod';
 
 import MissingReleasesButtons from '../missingFeatureButtons/missingReleasesButtons';
-import {shouldFetchPreviousPeriod} from '../utils';
 
 const API_LIMIT = 1000;
 
@@ -72,7 +72,13 @@ class ProjectVelocityScoreCard extends AsyncComponent<Props, State> {
       ],
     ];
 
-    if (shouldFetchPreviousPeriod(datetime)) {
+    if (
+      shouldFetchPreviousPeriod({
+        start: datetime.start,
+        end: datetime.end,
+        period: datetime.period,
+      })
+    ) {
       const {start: previousStart} = parseStatsPeriod(
         getPeriod({period, start: undefined, end: undefined}, {shouldDoublePeriod: true})
           .statsPeriod!
