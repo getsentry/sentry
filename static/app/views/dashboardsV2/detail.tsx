@@ -283,13 +283,7 @@ class DashboardDetail extends Component<Props, State> {
         updateDashboard(api, organization.slug, modifiedDashboard).then(
           (newDashboard: DashboardDetails) => {
             if (onDashboardUpdate) {
-              onDashboardUpdate({
-                ...modifiedDashboard,
-                widgets: modifiedDashboard.widgets.map((newWidget, index) => ({
-                  ...newWidget,
-                  id: newDashboard.widgets[index].id,
-                })),
-              });
+              onDashboardUpdate(newDashboard);
             }
             if (organization.features.includes('dashboard-grid-layout')) {
               this.saveLayoutWithNewWidgets(
@@ -390,13 +384,7 @@ class DashboardDetail extends Component<Props, State> {
           updateDashboard(api, organization.slug, modifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
               if (onDashboardUpdate) {
-                onDashboardUpdate({
-                  ...modifiedDashboard,
-                  widgets: modifiedDashboard.widgets.map((newWidget, index) => ({
-                    ...newWidget,
-                    id: newDashboard.widgets[index].id,
-                  })),
-                });
+                onDashboardUpdate(newDashboard);
               }
 
               if (organization.features.includes('dashboard-grid-layout')) {
@@ -495,13 +483,7 @@ class DashboardDetail extends Component<Props, State> {
         updateDashboard(api, organization.slug, modifiedDashboard).then(
           (newDashboard: DashboardDetails) => {
             if (onDashboardUpdate) {
-              onDashboardUpdate({
-                ...modifiedDashboard,
-                widgets: modifiedDashboard.widgets.map((newWidget, index) => ({
-                  ...newWidget,
-                  id: newDashboard.widgets[index].id,
-                })),
-              });
+              onDashboardUpdate(newDashboard);
             }
             if (organization.features.includes('dashboard-grid-layout')) {
               this.saveLayoutWithNewWidgets(
