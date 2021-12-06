@@ -28,12 +28,11 @@ import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
-import GridLayoutDashboard, {constructGridItemKey} from './gridLayout/dashboard';
-import {
-  getDashboardLayout,
-  hasCommittedKey,
-  saveDashboardLayout,
-} from './gridLayout/utils';
+import GridLayoutDashboard, {
+  constructGridItemKey,
+  generateGridItemKey,
+} from './gridLayout/dashboard';
+import {getDashboardLayout, saveDashboardLayout} from './gridLayout/utils';
 import Controls from './controls';
 import DnDKitDashboard from './dashboard';
 import {DEFAULT_STATS_PERIOD, EMPTY_DASHBOARD} from './data';
@@ -278,13 +277,26 @@ class DashboardDetail extends Component<Props, State> {
       onAddWidget: (widgets: Widget[]) => {
         const modifiedDashboard = {
           ...cloneDashboard(dashboard),
-          widgets,
+          widgets: widgets.map(widget => ({...widget, tempId: generateGridItemKey()})),
         };
         this.setState({modifiedDashboard});
         updateDashboard(api, organization.slug, modifiedDashboard).then(
           (newDashboard: DashboardDetails) => {
             if (onDashboardUpdate) {
-              onDashboardUpdate(modifiedDashboard);
+              onDashboardUpdate({
+                ...modifiedDashboard,
+                widgets: modifiedDashboard.widgets.map((newWidget, index) => ({
+                  ...newWidget,
+                  id: newDashboard.widgets[index].id,
+                })),
+              });
+            }
+            if (organization.features.includes('dashboard-grid-layout')) {
+              this.saveLayoutWithNewWidgets(
+                organization.id,
+                newDashboard.id,
+                newDashboard.widgets
+              );
             }
             addSuccessMessage(t('Dashboard updated'));
             if (dashboard && newDashboard.id !== dashboard.id) {
@@ -317,6 +329,8 @@ class DashboardDetail extends Component<Props, State> {
       i: constructGridItemKey(newWidgets[index]),
     }));
     saveDashboardLayout(organizationId, dashboardId, newLayout);
+
+    // Layout changed because widget have new IDs
     this.onLayoutChange(newLayout);
   };
 
@@ -363,7 +377,10 @@ class DashboardDetail extends Component<Props, State> {
       case DashboardState.EDIT: {
         // only update the dashboard if there are changes
         if (modifiedDashboard) {
-          if (isEqual(dashboard, modifiedDashboard) && layout.every(hasCommittedKey)) {
+          if (
+            isEqual(dashboard, modifiedDashboard) &&
+            isEqual(layout, getDashboardLayout(organization.id, dashboard.id))
+          ) {
             this.setState({
               dashboardState: DashboardState.VIEW,
               modifiedDashboard: null,
@@ -473,12 +490,25 @@ class DashboardDetail extends Component<Props, State> {
       onAddWidget: widget => {
         const modifiedDashboard = {
           ...dashboard,
-          widgets: [...dashboard.widgets, widget],
+          widgets: [...dashboard.widgets, {...widget, tempId: generateGridItemKey()}],
         };
         updateDashboard(api, organization.slug, modifiedDashboard).then(
           (newDashboard: DashboardDetails) => {
             if (onDashboardUpdate) {
-              onDashboardUpdate(modifiedDashboard);
+              onDashboardUpdate({
+                ...modifiedDashboard,
+                widgets: modifiedDashboard.widgets.map((newWidget, index) => ({
+                  ...newWidget,
+                  id: newDashboard.widgets[index].id,
+                })),
+              });
+            }
+            if (organization.features.includes('dashboard-grid-layout')) {
+              this.saveLayoutWithNewWidgets(
+                organization.id,
+                newDashboard.id,
+                newDashboard.widgets
+              );
             }
             if (dashboard && newDashboard.id !== dashboard.id) {
               browserHistory.replace({

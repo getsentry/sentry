@@ -18,7 +18,6 @@ import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import withApi from 'sentry/utils/withApi';
 import withGlobalSelection from 'sentry/utils/withGlobalSelection';
-import {generateGridItemKey} from 'sentry/views/dashboardsV2/gridLayout/dashboard';
 import IssueWidgetCard from 'sentry/views/dashboardsV2/issueWidgetCard';
 import {
   DisplayType,
@@ -114,7 +113,6 @@ class AddDashboardIssueWidgetModal extends React.Component<Props, State> {
       queries: this.state.queries,
       displayType: DisplayType.TABLE,
       widgetType: this.state.widgetType,
-      tempId: generateGridItemKey(),
     };
     try {
       await validateWidget(api, organization.slug, widgetData);

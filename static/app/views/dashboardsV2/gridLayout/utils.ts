@@ -27,5 +27,3 @@ export const saveDashboardLayout = (
     JSON.stringify(layout)
   );
 };
-
-export const hasCommittedKey = ({i}) => i.match(/^grid-item-[0-9]+$/);
