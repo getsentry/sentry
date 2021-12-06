@@ -32,7 +32,7 @@ import {MobileView} from './views/mobileView';
 import {
   getCurrentLandingDisplay,
   handleLandingDisplayChange,
-  LANDING_DISPLAYS,
+  LANDING_V3_DISPLAYS,
   LandingDisplayField,
 } from './utils';
 
@@ -74,7 +74,7 @@ export function PerformanceLanding(props: Props) {
 
   const showOnboarding = shouldShowOnboarding;
 
-  const shownLandingDisplays = LANDING_DISPLAYS.filter(
+  const shownLandingDisplays = LANDING_V3_DISPLAYS.filter(
     ({isShown}) => !isShown || isShown(organization)
   );
 
