@@ -186,6 +186,7 @@ class RedminePlugin(CorePluginMixin, IssuePlugin):
         initial = self.build_initial(initial_args, project)
 
         has_credentials = all(initial.get(k) for k in ("host", "key"))
+        client = None
         if has_credentials:
             client = RedmineClient(initial["host"], initial["key"])
             try:
@@ -202,7 +203,7 @@ class RedminePlugin(CorePluginMixin, IssuePlugin):
                 ]
                 self.add_choices("project_id", project_choices, choices_value)
 
-        if has_credentials:
+        if client is not None and has_credentials:
             try:
                 trackers = client.get_trackers()
             except Exception:

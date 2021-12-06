@@ -30,6 +30,7 @@ class RedmineOptionsForm(forms.Form):
             initial[key.lstrip(self.prefix or "")] = value
 
         has_credentials = all(initial.get(k) for k in ("host", "key"))
+        client = None
         if has_credentials:
             client = RedmineClient(initial["host"], initial["key"])
             try:
@@ -43,7 +44,7 @@ class RedmineOptionsForm(forms.Form):
                 ]
                 self.fields["project_id"].choices = project_choices
 
-        if has_credentials:
+        if client is not None and has_credentials:
             try:
                 trackers = client.get_trackers()
             except Exception:
