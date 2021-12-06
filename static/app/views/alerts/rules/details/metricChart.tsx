@@ -2,6 +2,7 @@ import * as React from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import color from 'color';
+import {LineSeriesOption} from 'echarts';
 import capitalize from 'lodash/capitalize';
 import moment from 'moment';
 import momentTimezone from 'moment-timezone';
@@ -229,7 +230,7 @@ class MetricChart extends React.PureComponent<Props, State> {
     }
   };
 
-  getRuleChangeSeries = (data: LineChartSeries[]): any[] => {
+  getRuleChangeSeries = (data: LineChartSeries[]): LineSeriesOption[] => {
     const {dateModified} = this.props.rule || {};
 
     if (!data.length || !data[0].data.length || !dateModified) {
@@ -250,7 +251,7 @@ class MetricChart extends React.PureComponent<Props, State> {
         markLine: MarkLine({
           silent: true,
           lineStyle: {color: theme.gray200, type: 'solid', width: 1},
-          data: [{xAxis: ruleChanged} as any],
+          data: [{xAxis: ruleChanged}],
           label: {
             show: false,
           },
@@ -260,7 +261,7 @@ class MetricChart extends React.PureComponent<Props, State> {
           itemStyle: {
             color: color(theme.gray100).alpha(0.42).rgb().string(),
           },
-          data: [[{xAxis: seriesStart}, {xAxis: ruleChanged}]] as any,
+          data: [[{xAxis: seriesStart}, {xAxis: ruleChanged}]],
         }),
         data: [],
       },
