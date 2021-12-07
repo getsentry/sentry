@@ -13,12 +13,12 @@ namespace JSSelfProfiling {
     parentId?: number;
   }
 
-  interface Frame {
+  type Frame = {
     name: string;
     resourceId: number;
     line: number;
     column: number;
-  }
+  };
 
   interface Trace {
     resources: string[];
