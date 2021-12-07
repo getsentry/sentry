@@ -3,6 +3,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.utils.deprecation import MiddlewareMixin
 from django.utils.functional import SimpleLazyObject
 from rest_framework.authentication import get_authorization_header
+from rest_framework.exceptions import AuthenticationFailed
 
 from sentry.api.authentication import ApiKeyAuthentication, TokenAuthentication
 from sentry.models import UserIP
@@ -53,23 +54,21 @@ class AuthenticationMiddleware(MiddlewareMixin):
         elif auth and auth[0].lower() == TokenAuthentication.token_name:
             try:
                 result = TokenAuthentication().authenticate(request=request)
-                if result:
-                    request.user = result[0]
-                    request.auth = result[1]
-                else:
-                    raise Exception
-            except Exception:
+            except AuthenticationFailed:
+                result = None
+            if result:
+                request.user, request.auth = result
+            else:
                 # default to anonymous user and use IP ratelimit
                 request.user = SimpleLazyObject(lambda: get_user(request))
         elif auth and auth[0].lower() == ApiKeyAuthentication.token_name:
             try:
                 result = ApiKeyAuthentication().authenticate(request=request)
-                if result:
-                    request.user = result[0]
-                    request.auth = result[1]
-                else:
-                    raise Exception
-            except Exception:
+            except AuthenticationFailed:
+                result = None
+            if result:
+                request.user, request.auth = result
+            else:
                 # default to anonymous user and use IP ratelimit
                 request.user = SimpleLazyObject(lambda: get_user(request))
         else:
