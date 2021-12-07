@@ -54,32 +54,43 @@ export type RouteHooks = {
  * These components have plan specific overrides in getsentry
  */
 type DateRangeProps = React.ComponentProps<typeof DateRange>;
+
 type SelectorItemsProps = React.ComponentProps<typeof SelectorItems>;
+
 type GlobalNotificationProps = {className: string; organization?: Organization};
+
 type DisabledMemberViewProps = RouteComponentProps<{orgId: string}, {}>;
+
 type MemberListHeaderProps = {
   members: Member[];
   organization: Organization;
 };
+
 type DisabledAppStoreConnectItem = {
   disabled: boolean;
   onTrialStarted: () => void;
   children: React.ReactElement;
 };
+
 type DisabledMemberTooltipProps = {children: React.ReactNode};
+
 type DashboardHeadersProps = {organization: Organization};
+
 type CodeOwnersHeaderProps = {
   addCodeOwner: () => void;
   handleRequest: () => void;
 };
+
 type FirstPartyIntegrationAlertProps = {
   integrations: Integration[];
   wrapWithContainer?: boolean;
   hideCTA?: boolean;
 };
+
 type FirstPartyIntegrationAdditionalCTAProps = {
   integrations: Integration[];
 };
+
 /**
  * Component wrapping hooks
  */
