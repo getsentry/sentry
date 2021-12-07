@@ -432,7 +432,7 @@ class AuthIdentityHandler:
             verification_key = self.request.session.get("confirm_account_verification_key")
             verification_value = get_verification_value_from_key(verification_key)
             if verification_value:
-                is_account_verified = self.has_verified_account(self.identity, verification_value)
+                is_account_verified = self.has_verified_account(verification_value)
 
         is_new_account = not self.user.is_authenticated  # stateful
         if self.identity.get("email_verified") or is_account_verified:
