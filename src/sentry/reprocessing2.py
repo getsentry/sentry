@@ -357,9 +357,9 @@ def buffered_delete_old_primary_hash(
 
                 if len(event_ids) == 0:
                     with sentry_sdk.push_scope() as scope:
-                        scope.set_tag("old_primary_hash", old_primary_hash)
                         scope.set_tag("project_id", project_id)
                         scope.set_tag("old_group_id", group_id)
+                        scope.set_tag("old_primary_hash", old_primary_hash)
                         raise CannotReprocess("events_batch.not_found")
 
                 from sentry import eventstream
