@@ -8,7 +8,6 @@ describe('generateIssueWidgetFieldOptions', function () {
       'field:culprit',
       'field:isBookmarked',
       'field:isHandled',
-      'field:isPublic',
       'field:isSubscribed',
       'field:issue',
       'field:level',
