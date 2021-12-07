@@ -934,6 +934,8 @@ SENTRY_FEATURES = {
     "organizations:discover-top-events": False,
     # Enable Performance view
     "organizations:performance-view": True,
+    # Enable profiling
+    "organizations:profiling": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
@@ -1027,10 +1029,6 @@ SENTRY_FEATURES = {
     "organizations:prompt-dashboards": False,
     # Enable views for ops breakdown
     "organizations:performance-ops-breakdown": False,
-    # Enable views for tag explorer
-    "organizations:performance-tag-explorer": True,
-    # Enable views for tag page
-    "organizations:performance-tag-page": True,
     # Enable landing improvements for performance
     "organizations:performance-landing-widgets": False,
     # Enable views for transaction events page in performance
@@ -1095,8 +1093,6 @@ SENTRY_FEATURES = {
     "organizations:release-comparison-performance": False,
     # Enable percent displays in issue stream
     "organizations:issue-percent-display": False,
-    # send organization request notifications through Slack
-    "organizations:slack-requests": False,
     # Enable team insights page
     "organizations:team-insights": True,
     # Adds additional filters and a new section to issue alert rules.

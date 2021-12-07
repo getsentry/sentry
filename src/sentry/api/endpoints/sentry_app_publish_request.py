@@ -1,22 +1,20 @@
 from rest_framework.response import Response
 
 from sentry import features, options
-from sentry.api.bases.sentryapps import SentryAppBaseEndpoint
+from sentry.api.bases.sentryapps import COMPONENT_TYPES, SentryAppBaseEndpoint
 from sentry.constants import SentryAppStatus
 from sentry.mediators.sentry_apps import Updater
 from sentry.models import SentryAppAvatar, SentryAppAvatarTypes
 from sentry.utils import email
 
 
-def is_issue_link_integration(sentry_app):
-    """Determine if the sentry app supports issue linking"""
-    elements = (sentry_app.schema or {}).get("elements", [])
-    return any(element.get("type") == "issue-link" for element in elements)
-
-
 class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
-    def post(self, request, sentry_app):
+    def has_ui_component(self, sentry_app):
+        """Determine if the sentry app supports issue linking or stack trace linking."""
+        elements = (sentry_app.schema or {}).get("elements", [])
+        return any(element.get("type") in COMPONENT_TYPES for element in elements)
 
+    def post(self, request, sentry_app):
         # check status of app to make sure it is unpublished
         if sentry_app.is_published:
             return Response({"detail": "Cannot publish already published integration."}, status=400)
@@ -34,7 +32,7 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
                 return Response({"detail": "Must upload a logo for the integration."}, status=400)
 
             if (
-                is_issue_link_integration(sentry_app)
+                self.has_ui_component(sentry_app)
                 and not SentryAppAvatar.objects.filter(
                     sentry_app=sentry_app,
                     color=False,
@@ -43,7 +41,7 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
             ):
                 return Response(
                     {
-                        "detail": "Must upload a black and white logo for issue linking integrations."
+                        "detail": "Must upload an icon for issue and stack trace linking integrations."
                     },
                     status=400,
                 )

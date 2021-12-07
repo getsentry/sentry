@@ -54,7 +54,6 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   dashboard: DashboardDetails;
   dashboards: DashboardListItem[];
   route: PlainRoute;
-  reloadData?: () => void;
   onDashboardUpdate?: (updatedDashboard: DashboardDetails) => void;
   newWidget?: Widget;
 };
@@ -553,6 +552,7 @@ class DashboardDetail extends Component<Props, State> {
                 onDelete={this.onDelete(dashboard)}
                 onAddIssueWidget={this.onAddIssueWidget}
                 dashboardState={dashboardState}
+                widgetCount={dashboard.widgets.length}
               />
             </StyledPageHeader>
             <HookHeader organization={organization} />
@@ -641,6 +641,7 @@ class DashboardDetail extends Component<Props, State> {
                   onDelete={this.onDelete(dashboard)}
                   onAddIssueWidget={this.onAddIssueWidget}
                   dashboardState={dashboardState}
+                  widgetCount={dashboard.widgets.length}
                 />
               </Layout.HeaderActions>
             </Layout.Header>
