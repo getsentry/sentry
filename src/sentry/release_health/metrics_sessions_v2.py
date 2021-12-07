@@ -36,6 +36,7 @@ from sentry.release_health.base import (
     SessionsQueryValue,
 )
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.sessions import SessionMetricKey as MetricKey
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics import TS_COL_GROUP, TS_COL_QUERY, get_intervals
 from sentry.snuba.sessions_v2 import QueryDefinition, finite_or_none
@@ -44,19 +45,19 @@ from sentry.utils.snuba import raw_snql_query
 #: Referrers for snuba queries
 #: Referrers must be searchable, so no string interpolation here
 REFERRERS = {
-    "user": {
+    MetricKey.USER: {
         "series": "release_health.metrics.sessions_v2.user.series",
         "totals": "release_health.metrics.sessions_v2.user.totals",
     },
-    "session.duration": {
+    MetricKey.SESSION_DURATION: {
         "series": "release_health.metrics.sessions_v2.session.duration.series",
         "totals": "release_health.metrics.sessions_v2.session.duration.totals",
     },
-    "session": {
+    MetricKey.SESSION: {
         "series": "release_health.metrics.sessions_v2.session.series",
         "totals": "release_health.metrics.sessions_v2.session.totals",
     },
-    "session.error": {
+    MetricKey.SESSION_ERROR: {
         "series": "release_health.metrics.sessions_v2.session.error.series",
         "totals": "release_health.metrics.sessions_v2.session.error.totals",
     },
@@ -102,8 +103,6 @@ class _SessionStatusValue:
     session_status: Optional[_SessionStatus]
     value: Union[None, float, int]
 
-
-_MetricName = Literal["session", "session.duration", "session.error", "user"]
 
 #: Actual column name in snuba
 _SnubaColumnName = Literal["value", "avg", "max", "percentiles"]
@@ -183,7 +182,7 @@ class _DataPointKey:
 
     """
 
-    metric_name: _MetricName
+    metric_name: MetricKey
     raw_session_status: Optional[str] = None
     release: Optional[int] = None
     environment: Optional[int] = None
@@ -194,7 +193,7 @@ class _DataPointKey:
 
 _DataPoints = MutableMapping[_DataPointKey, float]
 _SnubaData = Sequence[MutableMapping[str, Any]]
-_SnubaDataByMetric = Sequence[Tuple[_MetricName, _SnubaData]]
+_SnubaDataByMetric = Sequence[Tuple[MetricKey, _SnubaData]]
 
 
 class _OutputField(abc.ABC):
@@ -258,7 +257,7 @@ class _SumSessionField(_OutputField):
             started = int(data_points[key])
             abnormal = int(data_points.get(replace(key, raw_session_status="abnormal"), 0))
             crashed = int(data_points.get(replace(key, raw_session_status="crashed"), 0))
-            errored_key = replace(key, metric_name="session.error", raw_session_status=None)
+            errored_key = replace(key, metric_name=MetricKey.SESSION_ERROR, raw_session_status=None)
             individual_errors = int(data_points.get(errored_key, 0))
             aggregated_errors = int(
                 data_points.get(replace(key, raw_session_status="errored_preaggr"), 0)
@@ -362,12 +361,12 @@ def _get_snuba_query_data(
     org_id: int,
     query: QueryDefinition,
     entity_key: EntityKey,
-    metric_name: _MetricName,
+    metric_name: MetricKey,
     metric_id: int,
     columns: Sequence[SelectableExpression],
     extra_conditions: Optional[List[Condition]] = None,
     remove_groupby: Optional[Set[Column]] = None,
-) -> Generator[Tuple[_MetricName, _SnubaData], None, None]:
+) -> Generator[Tuple[MetricKey, _SnubaData], None, None]:
     """Get data from snuba"""
     if extra_conditions is None:
         extra_conditions = []
@@ -395,38 +394,36 @@ def _get_snuba_query_data(
 def _fetch_data(
     org_id: int,
     query: QueryDefinition,
-) -> Tuple[_SnubaDataByMetric, Mapping[Tuple[_MetricName, _VirtualColumnName], _OutputField]]:
+) -> Tuple[_SnubaDataByMetric, Mapping[Tuple[MetricKey, _VirtualColumnName], _OutputField]]:
     """Build & run necessary snuba queries"""
 
     # It greatly simplifies code if we just assume that these two tags exist:
     # TODO: Can we get away with that assumption?
     tag_key_session_status = _resolve_ensured("session.status")
 
-    data: List[Tuple[_MetricName, _SnubaData]] = []
+    data: List[Tuple[MetricKey, _SnubaData]] = []
 
     #: Find the field that needs a specific column in a specific metric
-    metric_to_output_field: MutableMapping[
-        Tuple[_MetricName, _VirtualColumnName], _OutputField
-    ] = {}
+    metric_to_output_field: MutableMapping[Tuple[MetricKey, _VirtualColumnName], _OutputField] = {}
 
     if "count_unique(user)" in query.raw_fields:
-        metric_id = _resolve("user")
+        metric_id = _resolve(MetricKey.USER.value)
         if metric_id is not None:
             data.extend(
                 _get_snuba_query_data(
                     org_id,
                     query,
                     EntityKey.MetricsSets,
-                    "user",
+                    MetricKey.USER,
                     metric_id,
                     [Function("uniq", [Column("value")], "value")],
                 )
             )
-            metric_to_output_field[("user", "value")] = _UserField()
+            metric_to_output_field[(MetricKey.USER, "value")] = _UserField()
 
     duration_fields = [field for field in query.raw_fields if "session.duration" in field]
     if duration_fields:
-        metric_id = _resolve("session.duration")
+        metric_id = _resolve(MetricKey.SESSION_DURATION.value)
         if metric_id is not None:
 
             def get_virtual_column(field: SessionsQueryFunction) -> _VirtualColumnName:
@@ -455,7 +452,7 @@ def _fetch_data(
                         org_id,
                         query,
                         EntityKey.MetricsDistributions,
-                        "session.duration",
+                        MetricKey.SESSION_DURATION,
                         metric_id,
                         snuba_columns,
                         extra_conditions=extra_conditions,
@@ -465,12 +462,12 @@ def _fetch_data(
                 group_by_status = "session.status" in query.raw_groupby
                 for field in duration_fields:
                     col = get_virtual_column(field)
-                    metric_to_output_field[("session.duration", col)] = _SessionDurationField(
-                        field, col, group_by_status
-                    )
+                    metric_to_output_field[
+                        (MetricKey.SESSION_DURATION, col)
+                    ] = _SessionDurationField(field, col, group_by_status)
 
     if "sum(session)" in query.raw_fields:
-        metric_id = _resolve("session")
+        metric_id = _resolve(MetricKey.SESSION.value)
         if metric_id is not None:
             if "session.status" in query.raw_groupby:
                 # We need session counters grouped by status, as well as the number of errored sessions
@@ -481,14 +478,14 @@ def _fetch_data(
                         org_id,
                         query,
                         EntityKey.MetricsCounters,
-                        "session",
+                        MetricKey.SESSION,
                         metric_id,
                         [Function("sum", [Column("value")], "value")],
                     )
                 )
 
                 # 2: session.error
-                error_metric_id = _resolve("session.error")
+                error_metric_id = _resolve(MetricKey.SESSION_ERROR.value)
                 if error_metric_id is not None:
                     remove_groupby = {Column(f"tags[{tag_key_session_status}]")}
                     data.extend(
@@ -496,7 +493,7 @@ def _fetch_data(
                             org_id,
                             query,
                             EntityKey.MetricsSets,
-                            "session.error",
+                            MetricKey.SESSION_ERROR,
                             error_metric_id,
                             [Function("uniq", [Column("value")], "value")],
                             remove_groupby=remove_groupby,
@@ -514,14 +511,14 @@ def _fetch_data(
                             org_id,
                             query,
                             EntityKey.MetricsCounters,
-                            "session",
+                            MetricKey.SESSION,
                             metric_id,
                             [Function("sum", [Column("value")], "value")],
                             extra_conditions,
                         )
                     )
 
-            metric_to_output_field[("session", "value")] = _SumSessionField()
+            metric_to_output_field[(MetricKey.SESSION, "value")] = _SumSessionField()
 
     return data, metric_to_output_field
 

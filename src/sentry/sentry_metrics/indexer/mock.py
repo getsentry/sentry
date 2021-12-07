@@ -11,13 +11,13 @@ _STRINGS = (
     "healthy",
     "production",
     "release",
-    "session.duration",
+    "sentry.sessions.session.duration",
     "session.status",
-    "session",
+    "sentry.sessions.session",
     "staging",
-    "user",
+    "sentry.sessions.user",
     "init",
-    "session.error",
+    "sentry.sessions.session.error",
     "abnormal",
 )
 
