@@ -79,7 +79,7 @@ const TitleContainer = styled('div')`
 `;
 
 const Description = styled('div')`
-  padding: 0 ${space(1)} ${space(1.5)} 40px;
+  padding: 0 ${space(1)} ${space(1.5)} 36px;
   font-size: 14px;
   line-height: 21px;
   color: ${p => p.theme.gray300};
