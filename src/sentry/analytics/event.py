@@ -13,61 +13,6 @@ from django.utils import timezone
 from sentry.utils.dates import to_timestamp
 
 
-def get_data(attributes: Sequence[Attribute], items: dict[str, Any]) -> Mapping[str, Any | None]:
-    data = {}
-    for attr in attributes:
-        nv = items.pop(attr.name, None)
-        if attr.required and nv is None:
-            raise ValueError(f"{attr.name} is required (cannot be None)")
-        data[attr.name] = attr.extract(nv)
-
-    if items:
-        raise ValueError("Unknown attributes: {}".format(", ".join(items.keys())))
-
-    return data
-
-
-@dataclass
-class Attribute:
-    name: str
-    type: type = str
-    required: bool = True
-
-    def extract(self, value: str | None) -> Any | None:
-        return None if value is None else self.type(value)
-
-
-class Map(Attribute):
-    def __init__(self, name, attributes=None, required=True):
-        self.name = name
-        self.required = required
-        self.attributes = attributes
-
-    def extract(self, value: dict[str, Any] | Any | None) -> Mapping[str, Any] | None:
-        """
-        If passed a non dictionary we assume we can pull attributes from it.
-
-        This will hard error in some situations if you're passing a bad type
-        (like an int).
-        """
-        if value is None:
-            return value
-
-        if not isinstance(value, Mapping):
-            new_value = {}
-            for attr in self.attributes:
-                new_value[attr.name] = attr.extract(getattr(value, attr.name, None))
-            items = new_value
-        else:
-            # ensure we don't mutate the original
-            # we don't need to deepcopy as if it recurses into another Map it
-            # will once again copy itself
-            items = value.copy()
-
-
-        return get_data(self.attributes, items)
-
-
 class Event(abc.ABC):
     __slots__ = ["uuid", "data", "datetime"]
 
