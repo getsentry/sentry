@@ -20,16 +20,18 @@ namespace Profiling {
     type: 'sampled';
   }
 
-  type Span = {
+  type RawProfile = EventedProfile | SampledProfile;
+
+  interface Span {
     duration_ms: number;
     name: string;
     queue_label: string;
     relative_start_ms: number;
     thread_id: number;
     children?: Span[];
-  };
+  }
 
-  type FrameInfo = {
+  interface FrameInfo {
     key: number | string;
     name: string;
     file?: string;
@@ -38,7 +40,7 @@ namespace Profiling {
     is_application?: boolean;
     image?: string;
     resource?: string;
-  };
+  }
 
   type ProfileTypes = EventedProfile | SampledProfile | JSSelfProfiling.Trace;
 
