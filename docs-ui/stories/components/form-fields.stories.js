@@ -1,5 +1,6 @@
 import {action} from '@storybook/addon-actions';
 
+import FileField from 'app/views/settings/components/forms/fileField';
 import {Panel} from 'sentry/components/panels';
 import Switch from 'sentry/components/switchButton';
 import NewBooleanField from 'sentry/views/settings/components/forms/booleanField';
@@ -200,6 +201,14 @@ export const _RadioField = () => (
     />
   </Form>
 );
+
+export const __FileField = () => (
+  <Form>
+    <FileField name="field" label="File Field" />
+  </Form>
+);
+
+__FileField.storyName = 'File';
 
 _RadioField.storyName = 'Radio';
 
