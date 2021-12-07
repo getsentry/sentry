@@ -2,32 +2,32 @@
 namespace JSSelfProfiling {
   type Marker = 'script' | 'gc' | 'style' | 'layout' | 'paint' | 'other';
 
-  interface Sample {
+  type Sample = {
     timestamp: number;
     stackId?: number;
     marker?: Marker;
-  }
+  };
 
-  interface Stack {
+  type Stack = {
     parentId?: number;
     frameId: number;
-  }
+  };
 
-  interface Frame {
+  type Frame = {
     name: string;
     resourceId: number;
     line: number;
     column: number;
-  }
+  };
 
   type Resource = string;
 
-  interface Trace {
+  type Trace = {
     resources: Resource[];
     frames: Frame[];
     stacks: Stack[];
     samples: Sample[];
-  }
+  };
 
   type BufferFullCallback = (trace: Trace) => void;
 
