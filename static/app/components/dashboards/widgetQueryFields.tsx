@@ -178,10 +178,7 @@ function WidgetQueryFields({
               onChange={handleColumnChange}
               fieldOptions={fieldOptions}
               organization={organization}
-              noParameters
-              noHeaders
-              noTags
-              noEquation
+              source={widgetType}
             />
           </Field>
         );

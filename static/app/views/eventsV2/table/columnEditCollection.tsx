@@ -20,11 +20,14 @@ import {
 import theme from 'sentry/utils/theme';
 import {getPointerPosition} from 'sentry/utils/touch';
 import {setBodyUserSelect, UserSelectValues} from 'sentry/utils/userselect';
+import {WidgetType} from 'sentry/views/dashboardsV2/types';
 
 import {generateFieldOptions} from '../utils';
 
 import {QueryField} from './queryField';
 import {FieldValueKind} from './types';
+
+type Sources = WidgetType;
 
 type Props = {
   // Input columns
@@ -34,10 +37,7 @@ type Props = {
   onChange: (columns: Column[]) => void;
   organization: Organization;
   className?: string;
-  noParameters?: boolean;
-  noHeaders?: boolean;
-  noTags?: boolean;
-  noEquation?: boolean;
+  source?: Sources;
 };
 
 type State = {
@@ -376,7 +376,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
       gridColumns = 2,
     }: {canDelete?: boolean; canDrag?: boolean; isGhost?: boolean; gridColumns: number}
   ) {
-    const {columns, fieldOptions, noTags} = this.props;
+    const {columns, fieldOptions, source} = this.props;
     const {isDragging, draggingTargetIndex, draggingIndex} = this.state;
 
     let placeholder: React.ReactNode = null;
@@ -425,7 +425,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
             error={this.state.error.get(i)}
             takeFocus={i === this.props.columns.length - 1}
             otherColumns={columns}
-            shouldRenderTag={!noTags}
+            shouldRenderTag={source !== WidgetType.ISSUE}
           />
           {canDelete || col.kind === 'equation' ? (
             <Button
@@ -445,7 +445,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
   }
 
   render() {
-    const {className, columns, noParameters, noHeaders, noEquation} = this.props;
+    const {className, columns, source} = this.props;
     const canDelete = columns.filter(field => field.kind !== 'equation').length > 1;
     const canDrag = columns.length > 1;
     const canAdd = columns.length < MAX_COL_COUNT;
@@ -455,21 +455,22 @@ class ColumnEditCollection extends React.Component<Props, State> {
 
     // Get the longest number of columns so we can layout the rows.
     // We always want at least 2 columns.
-    const gridColumns = noParameters
-      ? 1
-      : Math.max(
-          ...columns.map(col =>
-            col.kind === 'function' &&
-            AGGREGATIONS[col.function[0]].parameters.length === 2
-              ? 3
-              : 2
-          )
-        );
+    const gridColumns =
+      source === WidgetType.ISSUE
+        ? 1
+        : Math.max(
+            ...columns.map(col =>
+              col.kind === 'function' &&
+              AGGREGATIONS[col.function[0]].parameters.length === 2
+                ? 3
+                : 2
+            )
+          );
 
     return (
       <div className={className}>
         {this.renderGhost(gridColumns)}
-        {!noHeaders && (
+        {source !== WidgetType.ISSUE && (
           <RowContainer>
             <Heading gridColumns={gridColumns}>
               <StyledSectionHeading>{t('Tag / Field / Function')}</StyledSectionHeading>
@@ -492,7 +493,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
             >
               {t('Add a Column')}
             </Button>
-            {!noEquation && (
+            {source !== WidgetType.ISSUE && (
               <Button
                 size="small"
                 label={t('Add an Equation')}

@@ -63,7 +63,7 @@ type State = {
 
 const newQuery = {
   name: '',
-  fields: ['issue', 'title', 'assignee'] as string[],
+  fields: ['issue', 'assignee', 'title'] as string[],
   conditions: '',
   orderby: '',
 };
@@ -113,6 +113,13 @@ class AddDashboardIssueWidgetModal extends React.Component<Props, State> {
     const queries = this.state.queries.map(query => {
       return {...query, fields: query.fields.filter(field => field)};
     });
+    if (!!!queries[0].fields.length) {
+      this.setState({
+        errors: {queries: [{fields: 'No columns selected'}]},
+        loading: false,
+      });
+      return;
+    }
     this.setState({queries});
 
     const widgetData: Widget = {

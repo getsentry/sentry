@@ -106,7 +106,7 @@ class IssueWidgetQueriesForm extends React.Component<Props, State> {
           widgetType={WidgetType.ISSUE}
           displayType={DisplayType.TABLE}
           fieldOptions={fieldOptions}
-          errors={error?.fields}
+          errors={error}
           fields={explodedFields}
           organization={organization}
           onChange={fields => {
