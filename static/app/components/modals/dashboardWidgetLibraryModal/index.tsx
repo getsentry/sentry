@@ -93,8 +93,7 @@ function DashboardWidgetLibraryModal({
               priority="primary"
               disabled={dashboard.widgets.length + selectedWidgets.length > MAX_WIDGETS}
               type="button"
-              onClick={(event: React.FormEvent) => {
-                event.preventDefault();
+              onClick={() => {
                 if (!!!selectedWidgets.length) {
                   setErrored(true);
                   return;
