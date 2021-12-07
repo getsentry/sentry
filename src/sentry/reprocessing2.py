@@ -521,8 +521,8 @@ def pop_batched_events_from_redis(key):
     min_datetime = None
     max_datetime = None
 
-    for item in client.lrange(key, 0, -1):
-        datetime_raw, event_id = item.split(";")
+    for row in client.lrange(key, 0, -1):
+        datetime_raw, event_id = row.split(";")
         datetime = to_datetime(float(datetime_raw))
 
         assert datetime is not None
