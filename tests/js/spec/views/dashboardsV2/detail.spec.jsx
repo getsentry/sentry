@@ -251,6 +251,7 @@ describe('Dashboards > Detail', function () {
       mockPut = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
         method: 'PUT',
+        body: TestStubs.Dashboard(widgets, {id: '1', title: 'Custom Errors'}),
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-stats/',
@@ -284,6 +285,7 @@ describe('Dashboards > Detail', function () {
       const updateMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
         method: 'PUT',
+        body: TestStubs.Dashboard([widgets[0]], {id: '1', title: 'Custom Errors'}),
       });
       wrapper = mountWithTheme(
         <ViewEditDashboard
