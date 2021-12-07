@@ -30,6 +30,8 @@ const WrappedComponent = ({data}) => {
 describe('Performance > Landing > Index', function () {
   let eventStatsMock: any;
   let eventsV2Mock: any;
+  let wrapper: any;
+
   act(() => void TeamStore.loadInitialData([]));
   beforeEach(function () {
     MockApiClient.addMockResponse({
@@ -69,12 +71,16 @@ describe('Performance > Landing > Index', function () {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
+    if (wrapper) {
+      wrapper.unmount();
+      wrapper = undefined;
+    }
   });
 
   it('renders basic UI elements', async function () {
     const data = initializeData();
 
-    const wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
+    wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
     await tick();
     wrapper.update();
 
@@ -88,7 +94,7 @@ describe('Performance > Landing > Index', function () {
       query: {landingDisplay: LandingDisplayField.FRONTEND_PAGELOAD},
     });
 
-    const wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
+    wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
     await tick();
     wrapper.update();
 
@@ -113,7 +119,7 @@ describe('Performance > Landing > Index', function () {
       query: {landingDisplay: LandingDisplayField.FRONTEND_OTHER},
     });
 
-    const wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
+    wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
     await tick();
     wrapper.update();
 
@@ -125,7 +131,7 @@ describe('Performance > Landing > Index', function () {
       query: {landingDisplay: LandingDisplayField.BACKEND},
     });
 
-    const wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
+    wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
     await tick();
     wrapper.update();
 
@@ -137,7 +143,7 @@ describe('Performance > Landing > Index', function () {
       query: {landingDisplay: LandingDisplayField.MOBILE},
     });
 
-    const wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
+    wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
     await tick();
     wrapper.update();
 
@@ -149,7 +155,7 @@ describe('Performance > Landing > Index', function () {
       query: {landingDisplay: LandingDisplayField.ALL},
     });
 
-    const wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
+    wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
     await tick();
     wrapper.update();
 
