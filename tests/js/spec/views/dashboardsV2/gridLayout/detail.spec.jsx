@@ -282,6 +282,9 @@ describe('Dashboards > Detail', function () {
 
     afterEach(function () {
       MockApiClient.clearMockResponses();
+      if (wrapper) {
+        wrapper.unmount();
+      }
     });
 
     it('can remove widgets', async function () {
@@ -389,8 +392,6 @@ describe('Dashboards > Detail', function () {
       wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
       wrapper.update();
       expect(wrapper.find('AddWidget').exists()).toBe(true);
-
-      wrapper.unmount();
     });
 
     it('hides add widget option', async function () {
@@ -412,8 +413,6 @@ describe('Dashboards > Detail', function () {
       wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
       wrapper.update();
       expect(wrapper.find('AddWidget').exists()).toBe(false);
-
-      wrapper.unmount();
     });
 
     it('hides and shows breadcrumbs based on feature', async function () {
@@ -508,6 +507,7 @@ describe('Dashboards > Detail', function () {
     });
 
     it('can add library widgets', async function () {
+      types.MAX_WIDGETS = 10;
       initialData = initializeOrg({
         organization: TestStubs.Organization({
           features: [
@@ -536,16 +536,14 @@ describe('Dashboards > Detail', function () {
 
       // Enter Add Widget mode
       wrapper
-        .find('Controls Button[data-test-id="add-widget-library"]')
+        .find('Controls Button[data-test-id="add-widget-library"] button')
         .simulate('click');
 
       const modal = await mountGlobalModal();
       await tick();
       await modal.update();
 
-      modal.find('Button').at(3).simulate('click');
-
-      expect(modal.find('SelectedBadge').text()).toEqual('1 Selected');
+      modal.find('WidgetLibraryCard').at(1).simulate('click');
 
       modal.find('Button[data-test-id="confirm-widgets"]').simulate('click');
 
@@ -596,6 +594,7 @@ describe('Dashboards > Detail', function () {
               {
                 displayType: 'area',
                 id: undefined,
+                description: 'Area chart reflecting all error and transaction events.',
                 interval: '5m',
                 queries: [
                   {
