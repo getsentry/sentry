@@ -115,7 +115,7 @@ class AddDashboardIssueWidgetModal extends React.Component<Props, State> {
     });
     if (!!!queries[0].fields.length) {
       this.setState({
-        errors: {queries: [{fields: 'No columns selected'}]},
+        errors: {queries: [{fields: t('No columns selected')}]},
         loading: false,
       });
       return;
