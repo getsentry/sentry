@@ -533,6 +533,9 @@ def ingest_consumer(consumer_types, all_consumer_types, **options):
 @configuration
 def metrics_consumer(**options):
 
-    from sentry.sentry_metrics.indexer.indexer_consumer import get_metrics_consumer
+    # from sentry.sentry_metrics.indexer.indexer_consumer import get_metrics_consumer
+    from sentry.sentry_metrics.multiprocess import get_streaming_metrics_consumer
 
-    get_metrics_consumer(**options).run()
+    # get_metrics_consumer(**options).run()
+    streamer = get_streaming_metrics_consumer(**options)
+    streamer.run()

@@ -96,7 +96,7 @@ def patch_pickle_loaders():
     # XXX(epurkhiser): BIG IMPORTANT NOTE! When changing this, we will have to
     # make some updates to our data pipeline, which currently uses 'pickle.js'
     # to depickle some data using javascript.
-    pickle.DEFAULT_PROTOCOL = 2
+    pickle.DEFAULT_PROTOCOL = 5
 
     # Enforce protocol for kombu as well
     kombu_serializer.pickle_protocol = 2
