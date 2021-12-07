@@ -281,7 +281,7 @@ function TeamMiseryWrapper({
 export default TeamMiseryWrapper;
 
 const StyledPanelTable = styled(PanelTable)<{isEmpty: boolean}>`
-  grid-template-columns: 1fr 0.5fr 112px 112px 0.25fr;
+  grid-template-columns: 2fr 0.5fr 112px 112px 0.25fr;
   font-size: ${p => p.theme.fontSizeMedium};
   white-space: nowrap;
   margin-bottom: 0;
@@ -301,13 +301,15 @@ const StyledPanelTable = styled(PanelTable)<{isEmpty: boolean}>`
     `}
 `;
 
-const FlexCenter = styled('span')`
+const FlexCenter = styled('div')`
   display: flex;
   align-items: center;
 `;
 
 const StyledIconStar = styled(IconStar)`
-  padding-right: ${space(1)} ${space(2)};
+  display: block;
+  margin-right: ${space(1)};
+  margin-bottom: ${space(0.5)};
 `;
 
 const ProjectBadgeContainer = styled('div')`
