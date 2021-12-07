@@ -7,11 +7,13 @@ namespace Profiling {
     spans?: RawSpan[];
   }
 
+  // Android traces follow this format
   interface EventedProfile extends RawProfileBase {
     events: ReadonlyArray<{at: number; frame: number; type: 'O' | 'C'}>;
     type: 'evented';
   }
 
+  // iOS traces follow this format
   interface SampledProfile extends RawProfileBase {
     weights: number[];
     samples: number[][];
@@ -41,7 +43,7 @@ namespace Profiling {
   }
 
   // This extends speedscope's schema - we are keeping this as is, but we are likely to diverge as we add more
-  // sentry related features to the flamegraph. This should happen after the MVP integration
+  // sentry related features to the flamegraphs. This should happen after the MVP integration
   interface Schema {
     name: string;
     activeProfileIndex: number;
