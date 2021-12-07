@@ -115,7 +115,7 @@ describe('TeamMisery', () => {
     );
 
     expect(
-      screen.getByText('No key Transactions Starred By This Team')
+      screen.getByText('No Key Transactions Starred By This Team')
     ).toBeInTheDocument();
   });
 
