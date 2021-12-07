@@ -391,6 +391,10 @@ class AuthIdentityHandler:
     def _has_usable_password(self):
         return isinstance(self.user, User) and self.user.has_usable_password()
 
+    @property
+    def _logged_in_user(self) -> Optional[User]:
+        return self.request.user if self.request.user.is_authenticated else None
+
     def handle_unknown_identity(
         self,
         state: AuthHelperSessionStore,
@@ -413,7 +417,7 @@ class AuthIdentityHandler:
         op = self.request.POST.get("op")
         login_form = (
             None
-            if self.request.user.is_authenticated
+            if self._logged_in_user
             else AuthenticationForm(
                 self.request,
                 self.request.POST if self.request.POST.get("op") == "login" else None,
@@ -470,7 +474,7 @@ class AuthIdentityHandler:
             auth_identity = self.handle_attach_identity()
         elif op == "newuser":
             auth_identity = self.handle_new_user()
-        elif op == "login" and not self.request.user.is_authenticated:
+        elif op == "login" and not self._logged_in_user:
             # confirm authentication, login
             op = None
             if login_form.is_valid():
@@ -529,8 +533,8 @@ class AuthIdentityHandler:
             return " "
 
     def _dispatch_to_confirmation(self, is_new_account: bool) -> Tuple[Optional[User], str]:
-        if self.request.user.is_authenticated:
-            return self.request.user, "auth-confirm-link"
+        if self._logged_in_user:
+            return self._logged_in_user, "auth-confirm-link"
 
         if features.has("organizations:idp-automatic-migration", self.organization):
             if not self._has_usable_password():
