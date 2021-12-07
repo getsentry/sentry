@@ -347,27 +347,34 @@ def buffered_delete_old_primary_hash(
         event_count += client.llen(key)
 
     if force_flush_batch or event_count > settings.SENTRY_REPROCESSING_REMAINING_EVENTS_BUF_SIZE:
-        for primary_hash in old_primary_hashes:
-            event_key = build_event_key(primary_hash)
-            events = client.lrange(event_key, 0, -1)
-            event_ids, from_date, to_date = calculate_date_range_and_get_event_ids(events)
+        with sentry_sdk.start_span(
+            op="sentry.reprocessing2.buffered_delete_old_primary_hash.flush_events"
+        ):
+            for primary_hash in old_primary_hashes:
+                event_key = build_event_key(primary_hash)
+                events = client.lrange(event_key, 0, -1)
+                event_ids, from_date, to_date = calculate_date_range_and_get_event_ids(events)
 
-            if len(event_ids) == 0:
-                continue
+                if len(event_ids) == 0:
+                    with sentry_sdk.push_scope() as scope:
+                        scope.set_tag("old_primary_hash", old_primary_hash)
+                        scope.set_tag("project_id", project_id)
+                        scope.set_tag("old_group_id", group_id)
+                        raise CannotReprocess("events_batch.not_found")
 
-            from sentry import eventstream
+                from sentry import eventstream
 
-            # In the worst case scenario, a group will have a 1:1 mapping of primary hashes to
-            # events, which means 1 insert per event.
-            # The overall performance of this will be marginally better than the unbatched version
-            # if a group has a lot of old primary hashes.
-            eventstream.tombstone_events_unsafe(
-                project_id,
-                event_ids,
-                old_primary_hash=old_primary_hash,
-                from_timestamp=from_date,
-                to_timestamp=to_date,
-            )
+                # In the worst case scenario, a group will have a 1:1 mapping of primary hashes to
+                # events, which means 1 insert per event.
+                # The overall performance of this will be marginally better than the unbatched version
+                # if a group has a lot of old primary hashes.
+                eventstream.tombstone_events_unsafe(
+                    project_id,
+                    event_ids,
+                    old_primary_hash=old_primary_hash,
+                    from_timestamp=from_date,
+                    to_timestamp=to_date,
+                )
 
         # Try to track counts so if it turns out that tombstoned events trend towards a ratio of 1
         # event per hash, a different solution may need to be considered.
