@@ -197,7 +197,7 @@ describe('Performance > Landing > Index', function () {
       query: {landingDisplay: LandingDisplayField.FRONTEND_PAGELOAD},
     });
 
-    const wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
+    wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
     await tick();
     wrapper.update();
 
@@ -217,7 +217,7 @@ describe('Performance > Landing > Index', function () {
       query: {landingDisplay: LandingDisplayField.FRONTEND_PAGELOAD},
     });
 
-    const wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
+    wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
     await tick();
     wrapper.update();
 
