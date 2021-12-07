@@ -191,4 +191,51 @@ describe('Performance > Landing > Index', function () {
     expect(titles.at(3).text()).toEqual('Most Related Errors');
     expect(titles.at(4).text()).toEqual('Most Related Issues');
   });
+
+  it('Can switch between landing displays', async function () {
+    const data = initializeData({
+      query: {landingDisplay: LandingDisplayField.FRONTEND_PAGELOAD},
+    });
+
+    const wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('div[data-test-id="frontend-pageload-view"]').exists()).toBe(
+      true
+    );
+
+    wrapper.find('a[data-test-id="landing-tab-all"]').simulate('click');
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('div[data-test-id="all-transactions-view"]').exists()).toBe(true);
+  });
+
+  it('Updating projects switches performance view', async function () {
+    const data = initializeData({
+      query: {landingDisplay: LandingDisplayField.FRONTEND_PAGELOAD},
+    });
+
+    const wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('div[data-test-id="frontend-pageload-view"]').exists()).toBe(
+      true
+    );
+
+    const updatedData = initializeData({
+      query: {landingDisplay: LandingDisplayField.FRONTEND_PAGELOAD},
+      project: -1 as any,
+    });
+
+    wrapper.setProps({
+      data: updatedData,
+    } as any);
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('div[data-test-id="all-transactions-view"]').exists()).toBe(true);
+  });
 });

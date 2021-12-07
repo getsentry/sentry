@@ -105,18 +105,14 @@ export function excludeTransaction(
   });
 }
 
-export function getCurrentLandingDisplay(
-  location: Location,
-  projects: Project[],
-  eventView?: EventView
-): LandingDisplay {
+export function getLandingDisplayFromParam(location: Location) {
   const landingField = decodeScalar(location?.query?.landingDisplay);
 
   const display = LANDING_DISPLAYS.find(({field}) => field === landingField);
-  if (display) {
-    return display;
-  }
+  return display;
+}
 
+export function getDefaultDisplayForPlatform(projects: Project[], eventView?: EventView) {
   const defaultDisplayField = getDefaultDisplayFieldForPlatform(projects, eventView);
 
   const defaultDisplay = LANDING_DISPLAYS.find(
@@ -125,12 +121,26 @@ export function getCurrentLandingDisplay(
   return defaultDisplay || LANDING_DISPLAYS[0];
 }
 
+export function getCurrentLandingDisplay(
+  location: Location,
+  projects: Project[],
+  eventView?: EventView
+): LandingDisplay {
+  const display = getLandingDisplayFromParam(location);
+  if (display) {
+    return display;
+  }
+
+  return getDefaultDisplayForPlatform(projects, eventView);
+}
+
 export function handleLandingDisplayChange(
-  field: string,
+  field: LandingDisplayField,
   location: Location,
   projects: Project[],
   organization: Organization,
-  eventView?: EventView
+  eventView?: EventView,
+  setLandingDisplay?: (field: LandingDisplay) => void
 ) {
   // Transaction op can affect the display and show no results if it is explicitly set.
   const query = decodeScalar(location.query.query, '');
@@ -148,7 +158,7 @@ export function handleLandingDisplayChange(
   const defaultDisplay = getDefaultDisplayFieldForPlatform(projects, eventView);
   const currentDisplay = getCurrentLandingDisplay(location, projects, eventView).field;
 
-  const newQuery =
+  const newQuery: {query: string; landingDisplay?: LandingDisplayField} =
     defaultDisplay === field
       ? {...queryWithConditions}
       : {...queryWithConditions, landingDisplay: field};
@@ -161,6 +171,10 @@ export function handleLandingDisplayChange(
     is_default: defaultDisplay === currentDisplay,
   });
 
+  const display = LANDING_DISPLAYS.find(({field: f}) => f === field);
+  if (setLandingDisplay && display) {
+    setLandingDisplay(display);
+  }
   browserHistory.push({
     pathname: location.pathname,
     query: newQuery,
