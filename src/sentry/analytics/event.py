@@ -5,6 +5,7 @@ __all__ = ("Attribute", "Event", "Map")
 from typing import Any, Sequence
 from base64 import b64encode
 from collections.abc import Mapping
+from dataclasses import dataclass
 from uuid import uuid1
 
 from django.utils import timezone
@@ -26,16 +27,14 @@ def get_data(attributes: Sequence[Attribute], items: dict[str, Any]) -> Mapping[
     return data
 
 
+@dataclass
 class Attribute:
-    def __init__(self, name, type=str, required=True):
-        self.name = name
-        self.type = type
-        self.required = required
+    name: str
+    type: type = str
+    required: bool = True
 
-    def extract(self, value):
-        if value is None:
-            return value
-        return self.type(value)
+    def extract(self, value: str | None) -> Any | None:
+        return None if value is None else self.type(value)
 
 
 class Map(Attribute):
