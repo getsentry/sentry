@@ -25,19 +25,17 @@ class SentryAppAvatarTestBase(APITestCase):
             if is_color is True
             else b64encode(self.load_fixture("rookout-bw.png"))
         )
-        with self.feature("organizations:sentry-app-logo-upload"):
-            data = {
-                "color": is_color,
-                "avatar_type": "upload",
-                "avatar_photo": avatar_photo,
-            }
-            return self.get_success_response(self.unpublished_app.slug, **data)
+        data = {
+            "color": is_color,
+            "avatar_type": "upload",
+            "avatar_photo": avatar_photo,
+        }
+        return self.get_success_response(self.unpublished_app.slug, **data)
 
 
 class SentryAppAvatarTest(SentryAppAvatarTestBase):
     def test_get(self):
-        with self.feature("organizations:sentry-app-logo-upload"):
-            response = self.get_success_response(self.unpublished_app.slug)
+        response = self.get_success_response(self.unpublished_app.slug)
 
         color_avatar = self.get_avatar(response)
         simple_avatar = self.get_avatar(response, False)
@@ -92,20 +90,19 @@ class SentryAppAvatarPutTest(SentryAppAvatarTestBase):
         self.create_avatar(is_color=True)
         self.create_avatar(is_color=False)
 
-        with self.feature("organizations:sentry-app-logo-upload"):
-            # revert to default
-            data = {
-                "color": True,
-                "avatar_type": "default",
-            }
-            self.get_success_response(self.unpublished_app.slug, **data)
+        # revert to default
+        data = {
+            "color": True,
+            "avatar_type": "default",
+        }
+        self.get_success_response(self.unpublished_app.slug, **data)
 
-            # revert to default
-            data2 = {
-                "color": False,
-                "avatar_type": "default",
-            }
-            response = self.get_success_response(self.unpublished_app.slug, **data2)
+        # revert to default
+        data2 = {
+            "color": False,
+            "avatar_type": "default",
+        }
+        response = self.get_success_response(self.unpublished_app.slug, **data2)
 
         color_avatar = self.get_avatar(response)
         simple_avatar = self.get_avatar(response, False)
@@ -120,30 +117,25 @@ class SentryAppAvatarPutTest(SentryAppAvatarTestBase):
 
     def test_upload_color_for_black_white(self):
         """Test that we reject a color image meant for the black and white icon"""
-        with self.feature("organizations:sentry-app-logo-upload"):
-            data = {
-                "color": False,
-                "avatar_type": "upload",
-                "avatar_photo": b64encode(self.load_fixture("rookout-color.png")),
-            }
-            return self.get_error_response(self.unpublished_app.slug, **data)
+        data = {
+            "color": False,
+            "avatar_type": "upload",
+            "avatar_photo": b64encode(self.load_fixture("rookout-color.png")),
+        }
+        return self.get_error_response(self.unpublished_app.slug, **data)
 
     def test_reject_jpgs(self):
         """Test that we reject a non-png file type"""
-        with self.feature("organizations:sentry-app-logo-upload"):
-            data = {
-                "color": False,
-                "avatar_type": "upload",
-                "avatar_photo": b64encode(self.load_fixture("avatar.jpg")),
-            }
-            return self.get_error_response(self.unpublished_app.slug, **data)
+        data = {
+            "color": False,
+            "avatar_type": "upload",
+            "avatar_photo": b64encode(self.load_fixture("avatar.jpg")),
+        }
+        return self.get_error_response(self.unpublished_app.slug, **data)
 
     def test_put_bad(self):
         SentryAppAvatar.objects.create(sentry_app=self.unpublished_app)
-        with self.feature("organizations:sentry-app-logo-upload"):
-            self.get_error_response(
-                self.unpublished_app.slug, avatar_type="upload", status_code=400
-            )
+        self.get_error_response(self.unpublished_app.slug, avatar_type="upload", status_code=400)
 
 
 class SentryAppAvatarDeleteTest(SentryAppAvatarTestBase):
