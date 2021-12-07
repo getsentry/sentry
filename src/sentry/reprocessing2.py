@@ -352,8 +352,7 @@ def buffered_delete_old_primary_hash(
         ):
             for primary_hash in old_primary_hashes:
                 event_key = build_event_key(primary_hash)
-                events = client.lrange(event_key, 0, -1)
-                event_ids, from_date, to_date = calculate_date_range_and_get_event_ids(events)
+                event_ids, from_date, to_date = pop_batched_events_from_redis(event_key)
 
                 if len(event_ids) == 0:
                     with sentry_sdk.push_scope() as scope:
@@ -511,29 +510,18 @@ def buffered_handle_remaining_events(
         )
 
 
-def pop_remaining_event_ids_from_redis(key):
+def pop_batched_events_from_redis(key):
+    """
+    For redis key pointing to a list of buffered events structured like
+    `event id;datetime of event`, returns a list of event IDs, the
+    earliest datetime, and the latest datetime.
+    """
     client = _get_sync_redis_client()
-    events = client.lrange(key, 0, -1)
-
-    event_ids_batch, min_datetime, max_datetime = calculate_date_range_and_get_event_ids(events)
-
-    client.delete(key)
-
-    return event_ids_batch, min_datetime, max_datetime
-
-
-def calculate_date_range_and_get_event_ids(events):
-    """
-    For some iterable of buffered events fetched from a redis store
-    with values that look like `event id;datetime of event`, returns
-    a list of event IDs, the earliest datetime, and the latest
-    datetime.
-    """
     event_ids_batch = []
     min_datetime = None
     max_datetime = None
 
-    for item in events:
+    for item in client.lrange(key, 0, -1):
         datetime_raw, event_id = item.split(";")
         datetime = to_datetime(float(datetime_raw))
 
@@ -545,6 +533,8 @@ def calculate_date_range_and_get_event_ids(events):
             max_datetime = datetime
 
         event_ids_batch.append(event_id)
+
+    client.delete(key)
 
     return event_ids_batch, min_datetime, max_datetime
 

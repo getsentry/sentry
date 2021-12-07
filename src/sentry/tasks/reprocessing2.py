@@ -157,12 +157,10 @@ def handle_remaining_events(
 
     from sentry import buffer
     from sentry.models.group import Group
-    from sentry.reprocessing2 import EVENT_MODELS_TO_MIGRATE, pop_remaining_event_ids_from_redis
+    from sentry.reprocessing2 import EVENT_MODELS_TO_MIGRATE, pop_batched_events_from_redis
 
     if event_ids_redis_key is not None:
-        event_ids, from_timestamp, to_timestamp = pop_remaining_event_ids_from_redis(
-            event_ids_redis_key
-        )
+        event_ids, from_timestamp, to_timestamp = pop_batched_events_from_redis(event_ids_redis_key)
 
     metrics.timing(
         "events.reprocessing.handle_remaining_events.batch_size",
