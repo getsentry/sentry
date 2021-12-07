@@ -20,6 +20,7 @@ from sentry.models import (
     InviteStatus,
     OrganizationMember,
     OrganizationMemberTeam,
+    UserEmail,
 )
 from sentry.testutils import TestCase
 from sentry.utils import json
@@ -407,14 +408,12 @@ class HasVerifiedAccountTest(AuthIdentityHandlerTest):
             "identity_id": self.identity_id,
         }
 
-    @mock.patch("sentry.auth.helper.AuthIdentityHandler.initialize_user")
-    def test_has_verified_account_success(self, mock_init_user):
-        mock_init_user.return_value = self.user
+    def test_has_verified_account_success(self):
+        UserEmail.objects.create(email=self.email, user=self.user)
         assert self.handler.has_verified_account(self.verification_value) is True
 
-    @mock.patch("sentry.auth.helper.AuthIdentityHandler.initialize_user")
-    def test_has_verified_account_fail_email(self, mock_init_user):
-        mock_init_user.return_value = self.user
+    def test_has_verified_account_fail_email(self):
+        UserEmail.objects.create(email=self.email, user=self.user)
         identity = {
             "id": "1234",
             "email": "b@test.com",
@@ -423,8 +422,7 @@ class HasVerifiedAccountTest(AuthIdentityHandlerTest):
         }
         assert self._handler_with(identity).has_verified_account(self.verification_value) is False
 
-    @mock.patch("sentry.auth.helper.AuthIdentityHandler.initialize_user")
-    def test_has_verified_account_fail_user_id(self, mock_init_user):
-        mock_init_user.return_value = self.create_user()
-        self.wrong_user_flag = True
+    def test_has_verified_account_fail_user_id(self):
+        wrong_user = self.create_user()
+        UserEmail.objects.create(email=self.email, user=wrong_user)
         assert self.handler.has_verified_account(self.verification_value) is False

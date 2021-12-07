@@ -101,7 +101,9 @@ class AuthIdentityHandler:
     identity: Mapping[str, Any]
 
     def __post_init__(self) -> None:
-        self.user: Union[User, AnonymousUser] = self.initialize_user()
+        self.user: Union[User, AnonymousUser] = (
+            self._find_user_from_email(self.identity.get("email")) or self.request.user
+        )
 
     class _NotCompletedSecurityChecks(Exception):
         pass
@@ -340,24 +342,16 @@ class AuthIdentityHandler:
         except OrganizationMember.DoesNotExist:
             return self._handle_new_membership(auth_identity)
 
-    def initialize_user(self) -> Union[User, AnonymousUser]:
-        # Return the logged-in user if there is one
-        if self.request.user.is_authenticated:
-            return self.request.user
-
-        # Else, look up a user by email, defaulting to the request's
-        # AnonymousUser object if none is found.
-
-        email = self.identity.get("email")
+    @staticmethod
+    def _find_user_from_email(email: Optional[str]) -> Optional[User]:
         if email is None:
-            return self.request.user
+            return None
 
         # TODO(dcramer): its possible they have multiple accounts and at
         # least one is managed (per the check below)
-        user = User.objects.filter(
+        return User.objects.filter(
             id__in=UserEmail.objects.filter(email__iexact=email).values("user"), is_active=True
         ).first()
-        return self.request.user if user is None else user
 
     def _respond(
         self,
