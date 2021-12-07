@@ -132,10 +132,7 @@ class Controls extends React.Component<Props> {
                     priority="primary"
                     disabled={widgetCount >= MAX_WIDGETS}
                     icon={<IconAdd isCircled />}
-                    onClick={e => {
-                      e.preventDefault();
-                      onAddWidget();
-                    }}
+                    onClick={onAddWidget}
                   >
                     {t('Add Widget')}
                   </Button>
