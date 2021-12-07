@@ -622,7 +622,7 @@ describe('Dashboards > Detail', function () {
                 queries: [
                   {
                     conditions: '',
-                    fields: ['issue', 'title', 'assignee'],
+                    fields: ['issue', 'assignee', 'title'],
                     name: '',
                     orderby: '',
                   },

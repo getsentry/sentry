@@ -16,7 +16,7 @@ describe('Dashboards > IssueWidgetCard', function () {
     queries: [
       {
         conditions: 'event.type:default',
-        fields: ['issue', 'title', 'assignee'],
+        fields: ['issue', 'assignee', 'title'],
         name: '',
         orderby: '',
       },
