@@ -293,21 +293,21 @@ def buffered_delete_old_primary_hash(
     did not change, nothing needs to be done as ClickHouse's table merge will
     merge the two rows together.
 
-    Like `buffered_handle_remaining_events` this is a quick and dirty way to
+    Like `buffered_handle_remaining_events`, this is a quick and dirty way to
     batch event IDs so requests to tombstone rows are not being individually
     sent over to Snuba.
 
     This also includes the same constraints for optimal performance as
-    `buffered_handle_remaining_events` in that events being fed to this
-    should have datetimes as close to each other as possible. The assumption
-    is that since this goes through the same pipeline as
-    `buffered_handle_remaining_events`, this requirement continues to be
-    fulfilled.
+    `buffered_handle_remaining_events` in that events being fed to this should
+    have datetimes as close to each other as possible. Unfortunately, this
+    function is invoked by tasks that are run asynchronously and therefore the
+    guarantee from `buffered_handle_remaining_events` regarding events being
+    sorted by timestamps is not applicable here.
 
-    This does not batch events which have different old primary hashes
-    together into one operation. This means that if the data being fed in
-    tends to have a 1:1 ratio of event:old primary hashes, then the
-    buffering in this effectively does nothing.
+    This function also does not batch events which have different old primary
+    hashes together into one operation. This means that if the data being fed
+    in tends to have a 1:1 ratio of event:old primary hashes, then the buffering
+    in this effectively does nothing.
     """
 
     from sentry import killswitches
