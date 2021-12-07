@@ -604,21 +604,23 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
               />
             </StyledField>
           </DoubleFieldWrapper>
-          {state.displayType === DisplayType.TABLE && (
-            <React.Fragment>
-              <StyledFieldLabel>{t('Data Set')}</StyledFieldLabel>
-              <StyledRadioGroup
-                style={{flex: 1}}
-                choices={DATASET_CHOICES}
-                value={state.widgetType}
-                label={t('Data Set')}
-                onChange={this.handleDatasetChange}
-              />
-            </React.Fragment>
-          )}
+          {organization.features.includes('issues-in-dashboards') &&
+            state.displayType === DisplayType.TABLE && (
+              <React.Fragment>
+                <StyledFieldLabel>{t('Data Set')}</StyledFieldLabel>
+                <StyledRadioGroup
+                  style={{flex: 1}}
+                  choices={DATASET_CHOICES}
+                  value={state.widgetType}
+                  label={t('Data Set')}
+                  onChange={this.handleDatasetChange}
+                />
+              </React.Fragment>
+            )}
           {state.widgetType === WidgetType.ISSUE ? (
             <React.Fragment>
               <IssueWidgetQueriesForm
+                api={api}
                 organization={organization}
                 selection={querySelection}
                 fieldOptions={issueWidgetFieldOptions}

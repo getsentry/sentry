@@ -183,15 +183,11 @@ class Dashboard extends Component<Props> {
       onAddWidget: this.handleAddComplete,
       onUpdateWidget: this.handleUpdateComplete(index),
     };
-    if (widget.widgetType === WidgetType.ISSUE) {
-      openAddDashboardIssueWidgetModal(modalProps);
-    } else {
-      openAddDashboardWidgetModal({
-        ...modalProps,
-        dashboard,
-        source: DashboardWidgetSource.DASHBOARDS,
-      });
-    }
+    openAddDashboardWidgetModal({
+      ...modalProps,
+      dashboard,
+      source: DashboardWidgetSource.DASHBOARDS,
+    });
   };
 
   getWidgetIds() {
