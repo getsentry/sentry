@@ -301,6 +301,7 @@ describe('Performance > TransactionSummary', function () {
 
     // Ensure status breakdown exists
     expect(wrapper.find('StatusBreakdown')).toHaveLength(1);
+    wrapper.unmount();
   });
 
   it('renders feature flagged UI elements', async function () {
@@ -318,6 +319,7 @@ describe('Performance > TransactionSummary', function () {
 
     // Ensure create alert from discover is shown with metric alerts
     expect(wrapper.find('CreateAlertFromViewButton')).toHaveLength(1);
+    wrapper.unmount();
   });
 
   it('fetches transaction threshdold', async function () {
@@ -447,6 +449,10 @@ describe('Performance > TransactionSummary', function () {
 
     // Ensure request was made.
     expect(mockUpdate).toHaveBeenCalled();
+
+    await tick();
+    wrapper.update();
+    wrapper.unmount();
   });
 
   it('triggers a navigation on transaction filter', async function () {
@@ -480,6 +486,7 @@ describe('Performance > TransactionSummary', function () {
         transactionCursor: undefined,
       },
     });
+    wrapper.unmount();
   });
 
   it('renders pagination buttons', async function () {
@@ -509,6 +516,7 @@ describe('Performance > TransactionSummary', function () {
         transactionCursor: '2:0:0',
       },
     });
+    wrapper.unmount();
   });
 
   it('forwards conditions to related issues', async function () {
@@ -529,6 +537,7 @@ describe('Performance > TransactionSummary', function () {
     wrapper.update();
 
     expect(issueGet).toHaveBeenCalled();
+    wrapper.unmount();
   });
 
   it('does not forward event type to related issues', async function () {
@@ -557,6 +566,7 @@ describe('Performance > TransactionSummary', function () {
     wrapper.update();
 
     expect(issueGet).toHaveBeenCalled();
+    wrapper.unmount();
   });
 
   it('renders the suspect spans table if the feature is enabled', async function () {
@@ -579,6 +589,7 @@ describe('Performance > TransactionSummary', function () {
     wrapper.update();
 
     expect(wrapper.find('SuspectSpans')).toHaveLength(1);
+    wrapper.unmount();
   });
 
   it('adds search condition on transaction status when clicking on status breakdown', async function () {
@@ -605,6 +616,7 @@ describe('Performance > TransactionSummary', function () {
         }),
       })
     );
+    wrapper.unmount();
   });
 
   it('appends tag value to existing query when clicked', async function () {
@@ -629,5 +641,6 @@ describe('Performance > TransactionSummary', function () {
     const fooSegment = wrapper.find('[data-test-id="tag-foo-segment-bar"] Segment');
     const fooTarget = fooSegment.props().to;
     expect(fooTarget.query.query).toEqual('foo:bar');
+    wrapper.unmount();
   });
 });
