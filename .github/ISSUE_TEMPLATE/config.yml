@@ -3,9 +3,9 @@ contact_links:
   - name: Support Request
     url: https://sentry.io/support
     about: Use our dedicated support channel for paid accounts.
-  - name: Ask a question about self-hosting/on-premise
-    url: https://forum.sentry.io
-    about: Please use the community forums for questions about self-hosting.
+  - name: Ask a question about self-hosted Sentry (aka onpremise)
+    url: https://github.com/getsentry/self-hosted/issues/new
+    about: Please use the `self-hosted` repo for questions about self-hosted Sentry.
   - name: Report a security vulnerability
     url: https://sentry.io/security/#vulnerability-disclosure
     about: Please see our guide for responsible disclosure.
