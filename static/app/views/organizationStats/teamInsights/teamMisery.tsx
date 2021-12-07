@@ -10,7 +10,7 @@ import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import PanelTable from 'sentry/components/panels/panelTable';
-import {IconChevron, IconList} from 'sentry/icons';
+import {IconChevron, IconList, IconStar} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
@@ -22,6 +22,7 @@ import DiscoverQuery, {
 import EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Color} from 'sentry/utils/theme';
+import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 import {groupByTrend} from './utils';
 
@@ -97,7 +98,9 @@ function TeamMisery({
           </Button>
         }
         headers={[
-          t('Key transaction'),
+          <FlexCenter key="transaction">
+            <StyledIconStar isSolid color="yellow300" /> {t('Key transaction')}
+          </FlexCenter>,
           t('Project'),
           tct('Last [period]', {period}),
           t('Last 7 Days'),
@@ -125,28 +128,32 @@ function TeamMisery({
             return null;
           }
 
-          const linkEventView = EventView.fromSavedQuery({
-            id: undefined,
-            name: dataRow.transaction as string,
-            projects: [Number(project?.id)],
-            query: `transaction.duration:<15m transaction:${dataRow.transaction}`,
-            version: 2 as SavedQueryVersions,
-            range: '7d',
-            fields: ['id', 'title', 'event.type', 'project', 'user.display', 'timestamp'],
-          });
-
           return (
             <Fragment key={idx}>
-              <TransactionWrapper>
-                <Link to={linkEventView.getResultsViewUrlTarget(organization.slug)}>
-                  {dataRow.transaction}
-                </Link>
-              </TransactionWrapper>
-              <ProjectBadgeContainer>
-                {project && <ProjectBadge avatarSize={18} project={project} />}
-              </ProjectBadgeContainer>
-              <div>{periodMisery}</div>
-              <div>{weekMisery ?? '\u2014'}</div>
+              <FlexCenter>
+                <div>
+                  <StyledIconStar isSolid color="yellow300" />
+                </div>
+                <TransactionWrapper>
+                  <Link
+                    to={transactionSummaryRouteWithQuery({
+                      orgSlug: organization.slug,
+                      transaction: dataRow.transaction as string,
+                      projectID: project?.id,
+                      query: {query: 'transaction.duration:<15m'},
+                    })}
+                  >
+                    {dataRow.transaction}
+                  </Link>
+                </TransactionWrapper>
+              </FlexCenter>
+              <FlexCenter>
+                <ProjectBadgeContainer>
+                  {project && <ProjectBadge avatarSize={18} project={project} />}
+                </ProjectBadgeContainer>
+              </FlexCenter>
+              <FlexCenter>{periodMisery}</FlexCenter>
+              <FlexCenter>{weekMisery ?? '\u2014'}</FlexCenter>
               <ScoreWrapper>
                 {trendValue === 0 ? (
                   <SubText>
@@ -294,6 +301,15 @@ const StyledPanelTable = styled(PanelTable)<{isEmpty: boolean}>`
     `}
 `;
 
+const FlexCenter = styled('span')`
+  display: flex;
+  align-items: center;
+`;
+
+const StyledIconStar = styled(IconStar)`
+  padding-right: ${space(1)} ${space(2)};
+`;
+
 const ProjectBadgeContainer = styled('div')`
   display: flex;
 `;
@@ -304,6 +320,8 @@ const ProjectBadge = styled(IdBadge)`
 
 const TransactionWrapper = styled('div')`
   ${overflowEllipsis};
+  display: flex;
+  align-items: center;
 `;
 
 const RightAligned = styled('span')`
