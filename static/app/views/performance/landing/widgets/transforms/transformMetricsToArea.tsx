@@ -22,8 +22,6 @@ export function transformMetricsToArea<T extends WidgetDataConstraint>(
 
   const {errored, loading, reloading, response, responsePrevious} = results;
 
-  const metricsField = widgetProps.fields[0];
-
   const commonChildData = {
     loading,
     reloading,
@@ -47,116 +45,83 @@ export function transformMetricsToArea<T extends WidgetDataConstraint>(
     };
   }
 
-  if (widgetProps.chartSetting === PerformanceWidgetSetting.FAILURE_RATE_AREA) {
-    const failureGroups = response.groups.filter(
-      group => !TRANSACTION_SUCCESS_STATUS.includes(group.by['transaction.status'])
-    );
+  const metricsField = widgetProps.fields[0];
 
-    const seriesTotal = response.groups.reduce(
-      (acc, group) => acc + group.totals[metricsField],
-      0
-    );
+  const isFailureRateWidget =
+    widgetProps.chartSetting === PerformanceWidgetSetting.FAILURE_RATE_AREA;
 
-    const totalPerBucket = response.intervals.map((_intervalValue, intervalIndex) => {
-      return response.groups.reduce((acc, group) => {
-        return acc + group.series[metricsField][intervalIndex];
-      }, 0);
-    });
+  const groups = isFailureRateWidget
+    ? response.groups.filter(
+        group => !TRANSACTION_SUCCESS_STATUS.includes(group.by['transaction.status'])
+      )
+    : response.groups;
 
-    const data = failureGroups.map(failureGroup => ({
-      seriesName: metricsField,
-      totals: failureGroup.totals[metricsField],
-      data: response.intervals.map((intervalValue, intervalIndex) => {
-        return {
-          name: moment(intervalValue).valueOf(),
-          value:
-            failureGroup.series[metricsField][intervalIndex] /
-            totalPerBucket[intervalIndex],
-        };
-      }),
-    }));
+  const totalPerBucket = isFailureRateWidget
+    ? response.intervals.map((_intervalValue, intervalIndex) =>
+        response.groups.reduce(
+          (acc, group) => acc + group.series[metricsField][intervalIndex],
+          0
+        )
+      )
+    : undefined;
 
-    const dataMean = data.map(serie => {
-      const meanData = serie.totals / seriesTotal;
-      return {
-        mean: meanData,
-        outputType: aggregateOutputType('failure_rate()'),
-        label: axisLabelFormatter(meanData, 'failure_rate()'),
-      };
-    });
+  const data = groups.map(group => ({
+    seriesName: metricsField,
+    totals: group.totals[metricsField],
+    data: response.intervals.map((intervalValue, intervalIndex) => ({
+      name: moment(intervalValue).valueOf(),
+      value: defined(totalPerBucket)
+        ? group.series[metricsField][intervalIndex] / totalPerBucket[intervalIndex]
+        : group.series[metricsField][intervalIndex],
+    })),
+  }));
 
-    const previousFailureGroups = responsePrevious.groups.filter(
-      group => !TRANSACTION_SUCCESS_STATUS.includes(group.by['transaction.status'])
-    );
+  const seriesTotal = isFailureRateWidget
+    ? response.groups.reduce((acc, group) => acc + group.totals[metricsField], 0)
+    : undefined;
 
-    const previousTotalPerBucket = responsePrevious.intervals.map(
-      (_intervalValue, intervalIndex) => {
-        return responsePrevious.groups.reduce((acc, group) => {
-          return acc + group.series[metricsField][intervalIndex];
-        }, 0);
-      }
-    );
+  const dataMean = data.map(serie => {
+    let meanData = serie.totals / serie.data.length;
+    let seriesName = serie.seriesName;
 
-    const previousData = previousFailureGroups.map(previousFailureGroup => {
-      return {
-        seriesName: `previous ${metricsField}`,
-        data: response.intervals.map((intervalValue, intervalIndex) => {
-          return {
-            name: moment(intervalValue).valueOf(),
-            value:
-              previousFailureGroup.series[metricsField][intervalIndex] /
-              previousTotalPerBucket[intervalIndex],
-          };
-        }),
-        stack: 'previous',
-      };
-    });
+    if (defined(seriesTotal)) {
+      meanData = serie.totals / seriesTotal;
+      seriesName = 'failure_rate()';
+    }
 
-    const childData = {
-      ...commonChildData,
-      hasData: defined(data) && !!data.length && !!data[0].data.length,
-      data,
-      dataMean,
-      previousData: previousData ?? undefined,
-    };
-
-    return childData;
-  }
-
-  const data = response.groups.map(group => {
-    return {
-      seriesName: metricsField,
-      totals: group.totals[metricsField],
-      data: response.intervals.map((intervalValue, intervalIndex) => {
-        return {
-          name: moment(intervalValue).valueOf(),
-          value: group.series[metricsField][intervalIndex],
-        };
-      }),
-    };
-  });
-
-  const dataMean = data.map(series => {
-    const meanData = series.totals / series.data.length;
     return {
       mean: meanData,
-      outputType: aggregateOutputType(series.seriesName),
-      label: axisLabelFormatter(meanData, series.seriesName),
+      outputType: aggregateOutputType(seriesName),
+      label: axisLabelFormatter(meanData, seriesName),
     };
   });
 
-  const previousData = responsePrevious.groups.map(group => {
-    return {
-      seriesName: `previous ${metricsField}`,
-      data: response.intervals.map((intervalValue, intervalIndex) => {
-        return {
-          name: moment(intervalValue).valueOf(),
-          value: group.series[metricsField][intervalIndex],
-        };
-      }),
-      stack: 'previous',
-    };
-  });
+  const previousGroups = isFailureRateWidget
+    ? responsePrevious.groups.filter(
+        group => !TRANSACTION_SUCCESS_STATUS.includes(group.by['transaction.status'])
+      )
+    : responsePrevious.groups;
+
+  const previousTotalPerBucket = isFailureRateWidget
+    ? responsePrevious.intervals.map((_intervalValue, intervalIndex) =>
+        responsePrevious.groups.reduce(
+          (acc, group) => acc + group.series[metricsField][intervalIndex],
+          0
+        )
+      )
+    : undefined;
+
+  const previousData = previousGroups.map(group => ({
+    seriesName: `previous ${metricsField}`,
+    data: response?.intervals.map((intervalValue, intervalIndex) => ({
+      name: moment(intervalValue).valueOf(),
+      value: defined(previousTotalPerBucket)
+        ? group.series[metricsField][intervalIndex] /
+          previousTotalPerBucket[intervalIndex]
+        : group.series[metricsField][intervalIndex],
+    })),
+    stack: 'previous',
+  }));
 
   const childData = {
     ...commonChildData,
