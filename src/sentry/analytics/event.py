@@ -2,6 +2,7 @@ from sentry.utils.compat import map
 
 __all__ = ("Attribute", "Event", "Map")
 
+from typing import Any, Sequence
 from base64 import b64encode
 from collections.abc import Mapping
 from uuid import uuid1
@@ -9,6 +10,20 @@ from uuid import uuid1
 from django.utils import timezone
 
 from sentry.utils.dates import to_timestamp
+
+
+def get_data(attributes: Sequence[Attribute], items: dict[str, Any]) -> Mapping[str, Any | None]:
+    data = {}
+    for attr in attributes:
+        nv = items.pop(attr.name, None)
+        if attr.required and nv is None:
+            raise ValueError(f"{attr.name} is required (cannot be None)")
+        data[attr.name] = attr.extract(nv)
+
+    if items:
+        raise ValueError("Unknown attributes: {}".format(", ".join(items.keys())))
+
+    return data
 
 
 class Attribute:
@@ -50,18 +65,8 @@ class Map(Attribute):
             # will once again copy itself
             items = value.copy()
 
-        data = {}
-        for attr in self.attributes:
-            nv = items.pop(attr.name, None)
-            if attr.required and nv is None:
-                raise ValueError(f"{attr.name} is required (cannot be None)")
 
-            data[attr.name] = attr.extract(nv)
-
-        if items:
-            raise ValueError("Unknown attributes: {}".format(", ".join(map(str, items.keys()))))
-
-        return data
+        return get_data(self.attributes, items)
 
 
 class Event(abc.ABC):
@@ -77,21 +82,11 @@ class Event(abc.ABC):
         self.datetime = datetime or timezone.now()
         if type is not None:
             self.type = type
+        self.data = get_data(self.attributes, items)
 
         if self.type is None:
             raise ValueError("Event is missing type")
 
-        data = {}
-        for attr in self.attributes:
-            nv = items.pop(attr.name, None)
-            if attr.required and nv is None:
-                raise ValueError(f"{attr.name} is required (cannot be None)")
-            data[attr.name] = attr.extract(nv)
-
-        if items:
-            raise ValueError("Unknown attributes: {}".format(", ".join(items.keys())))
-
-        self.data = data
 
     def serialize(self) -> Mapping[str, Any]:
         return {
