@@ -447,13 +447,13 @@ class OrganizationMetricIntegrationTest(SessionMetricsTestCase, APITestCase):
 
         response = self.get_success_response(
             self.organization.slug,
-            field="count(transactions.measurements.lcp)",
+            field="count(sentry.transactions.measurements.lcp)",
             query="measurement_rating:poor",
             statsPeriod="1h",
             interval="1h",
             datasource="snuba",
             groupBy="transaction",
-            orderBy="-count(transactions.measurements.lcp)",
+            orderBy="-count(sentry.transactions.measurements.lcp)",
             limit=2,
         )
         groups = response.data["groups"]
@@ -468,7 +468,7 @@ class OrganizationMetricIntegrationTest(SessionMetricsTestCase, APITestCase):
             assert "series" not in group
             assert group["by"] == {"transaction": expected_transaction}
             totals = group["totals"]
-            assert totals == {"count(transactions.measurements.lcp)": expected_count}
+            assert totals == {"count(sentry.transactions.measurements.lcp)": expected_count}
 
     @with_feature(FEATURE_FLAG)
     def test_unknown_groupby(self):
