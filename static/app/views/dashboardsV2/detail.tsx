@@ -2,8 +2,10 @@ import {cloneElement, Component, isValidElement} from 'react';
 import type {Layout as RGLLayout} from 'react-grid-layout';
 import {browserHistory, PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import every from 'lodash/every';
 import isEqual from 'lodash/isEqual';
 import isMatch from 'lodash/isMatch';
+import zip from 'lodash/zip';
 
 import {
   createDashboard,
@@ -367,7 +369,7 @@ class DashboardDetail extends Component<Props, State> {
         if (modifiedDashboard) {
           if (
             isEqual(dashboard, modifiedDashboard) &&
-            isMatch(layout, getDashboardLayout(organization.id, dashboard.id))
+            isLayoutEqual(layout, organization.id, dashboard.id)
           ) {
             this.setState({
               dashboardState: DashboardState.VIEW,
@@ -700,3 +702,19 @@ const StyledPageContent = styled(PageContent)`
 `;
 
 export default withApi(withOrganization(DashboardDetail));
+
+function isLayoutEqual(currLayout, organizationId, dashboardId) {
+  const savedLayout = getDashboardLayout(organizationId, dashboardId);
+  if (currLayout.length !== savedLayout.length) {
+    return false;
+  }
+
+  // Compares each layout object with the one at the same index
+  // Uses isMatch because the current position might have keys that are set
+  // to undefined, but get lost when serializing to localStorage as JSON
+  return every(
+    zip(currLayout, savedLayout).map(([currPosition, savedPosition]) =>
+      isMatch(currPosition as object, savedPosition as object)
+    )
+  );
+}
