@@ -9,7 +9,7 @@ import {MetricsRequestRenderProps} from 'sentry/utils/metrics/metricsRequest';
 import {QueryDefinitionWithKey, WidgetDataConstraint, WidgetPropUnion} from '../types';
 import {PerformanceWidgetSetting} from '../widgetDefinitions';
 
-// Sentry treats transactions with a status other than “ok,” “canceled,” and “unknown” as failures.
+// Sentry treats transactions with a status other than “ok,” “cancelled,” and “unknown” as failures.
 // For more details, see https://docs.sentry.io/product/performance/metrics/#failure-rate
 const TRANSACTION_SUCCESS_STATUS = ['ok', 'unknown', 'cancelled'];
 
