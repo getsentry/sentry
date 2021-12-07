@@ -1,10 +1,11 @@
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, Mapping, Optional, Tuple
+from typing import Any, Dict, Mapping, Optional, Tuple, Union
 from uuid import uuid4
 
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, transaction
 from django.db.models import F
 from django.http import HttpResponseRedirect
@@ -100,11 +101,7 @@ class AuthIdentityHandler:
     identity: Mapping[str, Any]
 
     def __post_init__(self) -> None:
-        self.user: User = (
-            self.request.user
-            if self.request.user.is_authenticated
-            else (self._get_user() or self.request.user)
-        )
+        self.user: Union[User, AnonymousUser] = self.initialize_user()
 
     class _NotCompletedSecurityChecks(Exception):
         pass
@@ -343,20 +340,24 @@ class AuthIdentityHandler:
         except OrganizationMember.DoesNotExist:
             return self._handle_new_membership(auth_identity)
 
-    def _get_user(self) -> Optional[User]:
+    def initialize_user(self) -> Union[User, AnonymousUser]:
+        # Return the logged-in user if there is one
+        if self.request.user.is_authenticated:
+            return self.request.user
+
+        # Else, look up a user by email, defaulting to the request's
+        # AnonymousUser object if none is found.
+
         email = self.identity.get("email")
         if email is None:
-            return None
+            return self.request.user
 
         # TODO(dcramer): its possible they have multiple accounts and at
         # least one is managed (per the check below)
-        try:
-            return User.objects.filter(
-                id__in=UserEmail.objects.filter(email__iexact=email).values("user"),
-                is_active=True,
-            ).first()
-        except IndexError:
-            return None
+        user = User.objects.filter(
+            id__in=UserEmail.objects.filter(email__iexact=email).values("user"), is_active=True
+        ).first()
+        return self.request.user if user is None else user
 
     def _respond(
         self,
