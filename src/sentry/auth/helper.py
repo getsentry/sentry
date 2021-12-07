@@ -476,7 +476,7 @@ class AuthIdentityHandler:
             auth_identity = self.handle_attach_identity()
         elif op == "newuser":
             auth_identity = self.handle_new_user()
-        elif op == "login" and not self.user.is_authenticated:
+        elif op == "login" and not self.request.user.is_authenticated:
             # confirm authentication, login
             op = None
             if login_form.is_valid():
