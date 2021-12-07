@@ -497,12 +497,7 @@ class AuthIdentityHandler:
             op = None
 
         if not op:
-            template = self._dispatch_to_confirmation()
-            if template == "auth-confirm-account":
-                # Changed our mind; merging to an existing account instead
-                is_new_account = False
-
-            existing_user = None if is_new_account else self.user
+            existing_user, template = self._dispatch_to_confirmation(is_new_account)
 
             context = {
                 "identity": self.identity,
@@ -539,9 +534,9 @@ class AuthIdentityHandler:
             # A blank character is needed to prevent an HTML span from collapsing
             return " "
 
-    def _dispatch_to_confirmation(self) -> Tuple[Optional[User], str]:
+    def _dispatch_to_confirmation(self, is_new_account: bool) -> Tuple[Optional[User], str]:
         if self.request.user.is_authenticated:
-            return "auth-confirm-link"
+            return self.request.user, "auth-confirm-link"
 
         if features.has("organizations:idp-automatic-migration", self.organization):
             if not self._has_usable_password():
@@ -552,10 +547,10 @@ class AuthIdentityHandler:
                     self.identity["email"],
                     self.identity["id"],
                 )
-                return "auth-confirm-account"
+                return self.user, "auth-confirm-account"
 
         self.request.session.set_test_cookie()
-        return "auth-confirm-identity"
+        return None if is_new_account else self.user, "auth-confirm-identity"
 
     def handle_new_user(self) -> AuthIdentity:
         user = User.objects.create(
