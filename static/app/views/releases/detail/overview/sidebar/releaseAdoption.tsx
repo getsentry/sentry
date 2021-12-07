@@ -196,7 +196,7 @@ function ReleaseAdoption({
         return label && Object.values(releaseMarkLinesLabels).includes(label)
           ? ''
           : `<span>${formatAbbreviatedNumber(absoluteCount)} <span style="color: ${
-              theme.white
+              theme.textColor
             };margin-left: ${space(0.5)}">${value}%</span></span>`;
       },
       filter: (_, seriesParam: any) => {
@@ -312,7 +312,12 @@ function ReleaseAdoption({
               xAxisIndex={[sessionsAxisIndex, usersAxisIndex]}
             >
               {zoomRenderProps => (
-                <LineChart {...chartOptions} {...zoomRenderProps} series={getSeries()} />
+                <LineChart
+                  {...chartOptions}
+                  {...zoomRenderProps}
+                  series={getSeries()}
+                  transformSinglePointToLine
+                />
               )}
             </ChartZoom>
           </TransitionChart>

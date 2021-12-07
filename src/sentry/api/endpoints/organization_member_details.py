@@ -3,7 +3,7 @@ from django.db.models import Q
 from rest_framework import serializers
 from rest_framework.response import Response
 
-from sentry import roles
+from sentry import ratelimits, roles
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import (
@@ -26,7 +26,7 @@ from sentry.models import (
     TeamStatus,
     UserOption,
 )
-from sentry.utils import metrics, ratelimits
+from sentry.utils import metrics
 
 ERR_NO_AUTH = "You cannot remove this member with an unauthenticated API request."
 ERR_INSUFFICIENT_ROLE = "You cannot remove a member who has more access than you."

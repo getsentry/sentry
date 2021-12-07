@@ -354,6 +354,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
             <FormRow>
               <RadioGroup
                 style={{flex: 1}}
+                disabled={disabled}
                 choices={[
                   [AlertRuleComparisonType.COUNT, 'Count'],
                   [AlertRuleComparisonType.CHANGE, 'Percent Change'],
