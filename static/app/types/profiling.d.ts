@@ -57,9 +57,7 @@ namespace Profiling {
   type Schema = {
     name: string;
     activeProfileIndex: number;
-    profiles: ReadonlyArray<
-      EventedProfile | SampledProfile | JSSelfProfiling.SpectoProfilerTrace
-    >;
+    profiles: ReadonlyArray<ProfileTypes>;
     shared: {
       frames: ReadonlyArray<Omit<FrameInfo, 'key'>>;
     };
