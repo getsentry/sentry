@@ -1170,7 +1170,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     expect(wrapper.find('div[data-test-id="empty-message"]').exists()).toBe(true);
   });
 
-  it.only('Most frozen frames widget - metrics based', async function () {
+  it('Most frozen frames widget - metrics based', async function () {
     const field = 'avg(measurements.frames_frozen)';
     metricsMock = MockApiClient.addMockResponse({
       method: 'GET',
