@@ -123,13 +123,11 @@ export function transformMetricsToArea<T extends WidgetDataConstraint>(
     stack: 'previous',
   }));
 
-  const childData = {
+  return {
     ...commonChildData,
     hasData: defined(data) && !!data.length && !!data[0].data.length,
     data,
     dataMean,
     previousData: previousData ?? undefined,
   };
-
-  return childData;
 }
