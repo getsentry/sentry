@@ -55,15 +55,11 @@ export default class InstalledIntegration extends React.Component<Props> {
 
   get integrationStatus() {
     const {integration} = this.props;
-    // multiple status fields
+    // there are multiple status fields for an integration we consdier
     const statusList = [integration.status, integration.organizationIntegrationStatus];
-    const notActive = statusList.filter(s => s !== 'active');
-    // if all statuses active, we're active
-    if (notActive.length === 0) {
-      return 'active';
-    }
-    // otherwise use the status of the first inactive status
-    return notActive[0];
+    const firstNotActive = statusList.find(s => s !== 'active');
+    // Active if everything is active, otherwise the first inactive status
+    return firstNotActive ?? 'active';
   }
 
   get removeConfirmProps() {

@@ -288,28 +288,24 @@ class AbstractIntegrationDetailedView<
 
     return (
       <TopSectionWrapper>
-        <Flex>
-          {this.renderIntegrationIcon()}
-          <NameContainer>
-            <Flex>
-              <Name>{this.integrationName}</Name>
-              <StatusWrapper>
-                {this.installationStatus && (
-                  <IntegrationStatus status={this.installationStatus} />
-                )}
-              </StatusWrapper>
-            </Flex>
-            <Flex>
-              {tags.map(feature => (
-                <StyledTag key={feature}>{startCase(feature)}</StyledTag>
-              ))}
-            </Flex>
-          </NameContainer>
-        </Flex>
-        <Flex>
-          {this.renderAddInstallButton()}
-          {this.renderAdditionalCTA()}
-        </Flex>
+        {this.renderIntegrationIcon()}
+        <NameContainer>
+          <Flex>
+            <Name>{this.integrationName}</Name>
+            <StatusWrapper>
+              {this.installationStatus && (
+                <IntegrationStatus status={this.installationStatus} />
+              )}
+            </StatusWrapper>
+          </Flex>
+          <Flex>
+            {tags.map(feature => (
+              <StyledTag key={feature}>{startCase(feature)}</StyledTag>
+            ))}
+          </Flex>
+        </NameContainer>
+        {this.renderAddInstallButton()}
+        {this.renderAdditionalCTA()}
       </TopSectionWrapper>
     );
   }
