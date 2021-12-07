@@ -2,9 +2,10 @@ from urllib.parse import parse_qs
 
 import responses
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.slack import SlackNotifyServiceAction
 from sentry.integrations.slack.utils import SLACK_RATE_LIMITED_MESSAGE
-from sentry.models import Integration
+from sentry.models import Integration, OrganizationIntegration
 from sentry.notifications.additional_attachment_manager import manager
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.helpers import install_slack
@@ -349,6 +350,19 @@ class SlackNotifyActionTest(RuleTestCase):
             'Multiple users were found with display name "@morty". Please use your username, found at sentry.slack.com/account/settings#username.'
         ] in form.errors.values()
 
+    def test_disabled_org_integration(self):
+        org = self.create_organization(owner=self.user)
+        OrganizationIntegration.objects.create(organization=org, integration=self.integration)
+        OrganizationIntegration.objects.filter(
+            integration=self.integration, organization=self.event.project.organization
+        ).update(status=ObjectStatus.DISABLED)
+        event = self.get_event()
+
+        rule = self.get_rule(data={"workspace": self.integration.id, "channel": "#my-channel"})
+
+        results = list(rule.after(event=event, state=self.get_state()))
+        assert len(results) == 0
+
     @responses.activate
     def test_additional_attachment(self):
         manager.attachment_generators[ExternalProviders.SLACK] = additional_attachment_generator
@@ -378,3 +392,15 @@ class SlackNotifyActionTest(RuleTestCase):
         assert attachments[0]["title"] == event.title
         assert attachments[1]["title"] == self.organization.slug
         assert attachments[1]["text"] == self.integration.id
+
+    @responses.activate
+    def test_multiple_integrations(self):
+        org = self.create_organization(owner=self.user)
+        OrganizationIntegration.objects.create(organization=org, integration=self.integration)
+
+        event = self.get_event()
+
+        rule = self.get_rule(data={"workspace": self.integration.id, "channel": "#my-channel"})
+
+        results = list(rule.after(event=event, state=self.get_state()))
+        assert len(results) == 1
