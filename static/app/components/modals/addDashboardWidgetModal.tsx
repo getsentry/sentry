@@ -16,6 +16,7 @@ import {
 import {Client} from 'sentry/api';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import IssueWidgetQueriesForm from 'sentry/components/dashboards/issueWidgetQueriesForm';
 import WidgetQueriesForm from 'sentry/components/dashboards/widgetQueriesForm';
 import SelectControl from 'sentry/components/forms/selectControl';
 import {PanelAlert} from 'sentry/components/panels';
@@ -35,6 +36,7 @@ import withApi from 'sentry/utils/withApi';
 import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 import withTags from 'sentry/utils/withTags';
 import {DISPLAY_TYPE_CHOICES} from 'sentry/views/dashboardsV2/data';
+import IssueWidgetCard from 'sentry/views/dashboardsV2/issueWidgetCard';
 import {
   DashboardDetails,
   DashboardListItem,
@@ -49,11 +51,14 @@ import {
   mapErrors,
   normalizeQueries,
 } from 'sentry/views/dashboardsV2/widget/eventWidget/utils';
+import {generateIssueWidgetFieldOptions} from 'sentry/views/dashboardsV2/widget/issueWidget/utils';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
 import {WidgetTemplate} from 'sentry/views/dashboardsV2/widgetLibrary/data';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 import Input from 'sentry/views/settings/components/forms/controls/input';
+import RadioGroup from 'sentry/views/settings/components/forms/controls/radioGroup';
 import Field from 'sentry/views/settings/components/forms/field';
+import FieldLabel from 'sentry/views/settings/components/forms/field/fieldLabel';
 
 import Tooltip from '../tooltip';
 
@@ -107,6 +112,19 @@ const newQuery = {
   conditions: '',
   orderby: '',
 };
+
+const newIssueQuery = {
+  name: '',
+  fields: ['issue', 'title', 'assignee'] as string[],
+  conditions: '',
+  orderby: '',
+};
+
+const DATASET_CHOICES: [WidgetType, string][] = [
+  [WidgetType.DISCOVER, 'All Events'],
+  [WidgetType.ISSUE, 'Issue'],
+];
+
 class AddDashboardWidgetModal extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
@@ -136,7 +154,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       loading: false,
       dashboards: [],
       userHasModified: false,
-      widgetType: WidgetType.DISCOVER,
+      widgetType: widget.widgetType ?? WidgetType.DISCOVER,
     };
   }
 
@@ -379,6 +397,25 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     });
   };
 
+  handleDatasetChange = (widgetType: string) => {
+    this.setState(prevState => {
+      const newState = cloneDeep(prevState);
+      newState.queries.splice(0, newState.queries.length);
+      set(newState, 'widgetType', widgetType);
+      switch (widgetType) {
+        case WidgetType.ISSUE:
+          newState.queries.push(newIssueQuery);
+          break;
+        case WidgetType.DISCOVER:
+        default:
+          newState.queries.push(newQuery);
+          break;
+      }
+      set(newState, 'userHasModified', true);
+      return {...newState, errors: undefined};
+    });
+  };
+
   canAddSearchConditions() {
     const rightDisplayType = ['line', 'area', 'stacked_area', 'bar'].includes(
       this.state.displayType
@@ -509,6 +546,8 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         measurementKeys,
       });
 
+    const issueWidgetFieldOptions = generateIssueWidgetFieldOptions();
+
     const isUpdatingWidget = typeof onUpdateWidget === 'function' && !!previousWidget;
     return (
       <React.Fragment>
@@ -565,45 +604,88 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
               />
             </StyledField>
           </DoubleFieldWrapper>
-          <Measurements organization={organization}>
-            {({measurements}) => {
-              const measurementKeys = Object.values(measurements).map(({key}) => key);
-              const amendedFieldOptions = fieldOptions(measurementKeys);
-              return (
-                <WidgetQueriesForm
-                  organization={organization}
-                  selection={querySelection}
-                  fieldOptions={amendedFieldOptions}
-                  displayType={state.displayType}
-                  queries={state.queries}
-                  errors={errors?.queries}
-                  onChange={(queryIndex: number, widgetQuery: WidgetQuery) =>
-                    this.handleQueryChange(widgetQuery, queryIndex)
-                  }
-                  canAddSearchConditions={this.canAddSearchConditions()}
-                  handleAddSearchConditions={this.handleAddSearchConditions}
-                  handleDeleteQuery={this.handleQueryRemove}
-                />
-              );
-            }}
-          </Measurements>
-          <WidgetCard
-            api={api}
-            organization={organization}
-            selection={querySelection}
-            widget={this.state}
-            isEditing={false}
-            onDelete={() => undefined}
-            onEdit={() => undefined}
-            renderErrorMessage={errorMessage =>
-              typeof errorMessage === 'string' && (
-                <PanelAlert type="error">{errorMessage}</PanelAlert>
-              )
-            }
-            isSorting={false}
-            currentWidgetDragging={false}
-            noLazyLoad
-          />
+          {state.displayType === DisplayType.TABLE && (
+            <React.Fragment>
+              <StyledFieldLabel>{t('Data Set')}</StyledFieldLabel>
+              <StyledRadioGroup
+                style={{flex: 1}}
+                choices={DATASET_CHOICES}
+                value={state.widgetType}
+                label={t('Data Set')}
+                onChange={this.handleDatasetChange}
+              />
+            </React.Fragment>
+          )}
+          {state.widgetType === WidgetType.ISSUE ? (
+            <React.Fragment>
+              <IssueWidgetQueriesForm
+                organization={organization}
+                selection={querySelection}
+                fieldOptions={issueWidgetFieldOptions}
+                query={state.queries[0]}
+                error={errors?.queries?.[0]}
+                onChange={widgetQuery => this.handleQueryChange(widgetQuery, 0)}
+              />
+              <IssueWidgetCard
+                api={api}
+                organization={organization}
+                selection={querySelection}
+                widget={{...this.state, displayType: DisplayType.TABLE}}
+                isEditing={false}
+                onDelete={() => undefined}
+                onEdit={() => undefined}
+                renderErrorMessage={errorMessage =>
+                  typeof errorMessage === 'string' && (
+                    <PanelAlert type="error">{errorMessage}</PanelAlert>
+                  )
+                }
+                isSorting={false}
+                currentWidgetDragging={false}
+              />
+            </React.Fragment>
+          ) : (
+            <React.Fragment>
+              <Measurements organization={organization}>
+                {({measurements}) => {
+                  const measurementKeys = Object.values(measurements).map(({key}) => key);
+                  const amendedFieldOptions = fieldOptions(measurementKeys);
+                  return (
+                    <WidgetQueriesForm
+                      organization={organization}
+                      selection={querySelection}
+                      fieldOptions={amendedFieldOptions}
+                      displayType={state.displayType}
+                      queries={state.queries}
+                      errors={errors?.queries}
+                      onChange={(queryIndex: number, widgetQuery: WidgetQuery) =>
+                        this.handleQueryChange(widgetQuery, queryIndex)
+                      }
+                      canAddSearchConditions={this.canAddSearchConditions()}
+                      handleAddSearchConditions={this.handleAddSearchConditions}
+                      handleDeleteQuery={this.handleQueryRemove}
+                    />
+                  );
+                }}
+              </Measurements>
+              <WidgetCard
+                api={api}
+                organization={organization}
+                selection={querySelection}
+                widget={this.state}
+                isEditing={false}
+                onDelete={() => undefined}
+                onEdit={() => undefined}
+                renderErrorMessage={errorMessage =>
+                  typeof errorMessage === 'string' && (
+                    <PanelAlert type="error">{errorMessage}</PanelAlert>
+                  )
+                }
+                isSorting={false}
+                currentWidgetDragging={false}
+                noLazyLoad
+              />
+            </React.Fragment>
+          )}
         </Body>
         <Footer>
           <StyledButtonBar gap={1}>
@@ -673,6 +755,14 @@ const StyledField = styled(Field)`
 const StyledButtonBar = styled(ButtonBar)`
   justify-content: space-between;
   width: 100%;
+`;
+
+const StyledRadioGroup = styled(RadioGroup)`
+  padding-bottom: ${space(2)};
+`;
+
+const StyledFieldLabel = styled(FieldLabel)`
+  padding-bottom: ${space(1)};
 `;
 
 export default withApi(withGlobalSelection(withTags(AddDashboardWidgetModal)));
