@@ -500,7 +500,7 @@ _METRICS = {
                 # Subset of possible states:
                 # https://develop.sentry.dev/sdk/event-payloads/transaction/
                 "ok",
-                "canceled",
+                "cancelled",
                 "aborted",
             ],
         },
