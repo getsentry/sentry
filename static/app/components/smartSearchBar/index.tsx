@@ -464,6 +464,22 @@ class SmartSearchBar extends React.Component<Props, State> {
     callIfFunction(this.props.onChange, evt.target.value, evt);
   };
 
+  /**
+   * Prevent pasting extra spaces from formatted text
+   */
+  onPaste = (evt: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    // cancel paste
+    evt.preventDefault();
+
+    // get text representation of clipboard
+    const text = evt.clipboardData.getData('text/plain').replace('\n', '').trim();
+
+    // insert text manually
+    const query = this.state.query + text;
+    this.setState(makeQueryState(query), this.updateAutoCompleteItems);
+    callIfFunction(this.props.onChange, query, evt);
+  };
+
   onInputClick = () => this.updateAutoCompleteItems();
 
   /**
@@ -1312,6 +1328,7 @@ class SmartSearchBar extends React.Component<Props, State> {
         onKeyDown={this.onKeyDown}
         onChange={this.onQueryChange}
         onClick={this.onInputClick}
+        onPaste={this.onPaste}
         disabled={disabled}
         maxLength={maxQueryLength}
         spellCheck={false}
