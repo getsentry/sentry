@@ -29,7 +29,7 @@ class Map(Attribute):
         self.required = required
         self.attributes = attributes
 
-    def extract(self, value):
+    def extract(self, value: dict[str, Any] | Any | None) -> Mapping[str, Any] | None:
         """
         If passed a non dictionary we assume we can pull attributes from it.
 
@@ -64,7 +64,7 @@ class Map(Attribute):
         return data
 
 
-class Event:
+class Event(abc.ABC):
     __slots__ = ["uuid", "data", "datetime"]
 
     type = None
@@ -93,7 +93,7 @@ class Event:
 
         self.data = data
 
-    def serialize(self):
+    def serialize(self) -> Mapping[str, Any]:
         return {
             "uuid": b64encode(self.uuid.bytes),
             "timestamp": to_timestamp(self.datetime),
@@ -102,7 +102,7 @@ class Event:
         }
 
     @classmethod
-    def from_instance(cls, instance, **kwargs):
+    def from_instance(cls, instance: Any, **kwargs: Any) -> Event:
         values = {}
         for attr in cls.attributes:
             values[attr.name] = kwargs.get(attr.name, getattr(instance, attr.name, None))

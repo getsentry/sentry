@@ -1,3 +1,4 @@
 from sentry.utils.imports import import_submodules
 
-import_submodules(globals(), __name__, __path__)
+path = __path__  # type: ignore
+import_submodules(globals(), __name__, path)

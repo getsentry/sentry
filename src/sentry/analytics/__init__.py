@@ -8,16 +8,18 @@ from .event import *  # NOQA
 from .event_manager import default_manager
 
 
-def get_backend_path(backend):
+def get_backend_path(backend_: str) -> str:
     try:
-        backend = settings.SENTRY_ANALYTICS_ALIASES[backend]
+        backend_ = settings.SENTRY_ANALYTICS_ALIASES[backend_]
     except KeyError:
         pass
-    return backend
+    return backend_
 
 
 backend = LazyServiceWrapper(
-    Analytics, get_backend_path(options.get("analytics.backend")), options.get("analytics.options")
+    backend_base=Analytics,
+    backend_path=get_backend_path(options.get("analytics.backend")),
+    options=options.get("analytics.options"),
 )
 backend.expose(locals())
 
