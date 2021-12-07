@@ -46,6 +46,8 @@ function DashboardWidgetLibraryModal({
     closeModal();
   }
 
+  const overLimit = dashboard.widgets.length + selectedWidgets.length > MAX_WIDGETS;
+
   return (
     <React.Fragment>
       <Header closeButton>
@@ -84,14 +86,12 @@ function DashboardWidgetLibraryModal({
                   dashboard.widgets.length + selectedWidgets.length - MAX_WIDGETS,
               }
             )}
-            disabled={
-              !!!(dashboard.widgets.length + selectedWidgets.length > MAX_WIDGETS)
-            }
+            disabled={!!!overLimit}
           >
             <Button
               data-test-id="confirm-widgets"
               priority="primary"
-              disabled={dashboard.widgets.length + selectedWidgets.length > MAX_WIDGETS}
+              disabled={overLimit}
               type="button"
               onClick={() => {
                 if (!!!selectedWidgets.length) {
