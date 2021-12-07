@@ -1906,6 +1906,9 @@ SENTRY_DEVSERVICES = {
     ),
 }
 
+# Max file size for serialized file uploads in API
+SENTRY_MAX_SERIALIZED_FILE_SIZE = 5000000
+
 # Max file size for avatar photo uploads
 SENTRY_MAX_AVATAR_SIZE = 5000000
 
