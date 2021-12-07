@@ -3,9 +3,10 @@ import {useState} from 'react';
 import {css} from '@emotion/react';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {t} from 'sentry/locale';
+import Tooltip from 'sentry/components/tooltip';
+import {t, tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
-import {DashboardDetails, Widget} from 'sentry/views/dashboardsV2/types';
+import {DashboardDetails, MAX_WIDGETS, Widget} from 'sentry/views/dashboardsV2/types';
 import {WidgetTemplate} from 'sentry/views/dashboardsV2/widgetLibrary/data';
 
 import Button from '../../button';
@@ -45,6 +46,8 @@ function DashboardWidgetLibraryModal({
     closeModal();
   }
 
+  const overLimit = dashboard.widgets.length + selectedWidgets.length > MAX_WIDGETS;
+
   return (
     <React.Fragment>
       <Header closeButton>
@@ -74,21 +77,33 @@ function DashboardWidgetLibraryModal({
           >
             {t('Read the docs')}
           </Button>
-          <Button
-            data-test-id="confirm-widgets"
-            priority="primary"
-            type="button"
-            onClick={(event: React.FormEvent) => {
-              event.preventDefault();
-              if (!!!selectedWidgets.length) {
-                setErrored(true);
-                return;
+          <Tooltip
+            title={tct(
+              'Exceeds max widgets ([maxWidgets]) per dashboard. Plese unselect [unselectWidgets] widget(s).',
+              {
+                maxWidgets: MAX_WIDGETS,
+                unselectWidgets:
+                  dashboard.widgets.length + selectedWidgets.length - MAX_WIDGETS,
               }
-              handleSubmit();
-            }}
+            )}
+            disabled={!!!overLimit}
           >
-            {t('Save')}
-          </Button>
+            <Button
+              data-test-id="confirm-widgets"
+              priority="primary"
+              disabled={overLimit}
+              type="button"
+              onClick={() => {
+                if (!!!selectedWidgets.length) {
+                  setErrored(true);
+                  return;
+                }
+                handleSubmit();
+              }}
+            >
+              {t('Save')}
+            </Button>
+          </Tooltip>
         </ButtonBar>
       </Footer>
     </React.Fragment>
