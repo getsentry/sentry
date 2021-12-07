@@ -14,7 +14,6 @@ class RedisRateLimiterTest(TestCase):
             assert self.backend.is_limited("foo", 1, self.project)
 
     def test_simple_key(self):
-
         with freeze_time("2000-01-01"):
             assert not self.backend.is_limited("foo", 1)
             assert self.backend.is_limited("foo", 1)

@@ -13,6 +13,7 @@ import PageHeading from 'sentry/components/pageHeading';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {t} from 'sentry/locale';
+import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
@@ -21,7 +22,7 @@ import {GenericQueryBatcher} from 'sentry/utils/performance/contexts/genericQuer
 import useTeams from 'sentry/utils/useTeams';
 
 import MetricsSearchBar from '../metricsSearchBar';
-import {MetricsSwitch} from '../metricsSwitch';
+import {MetricsSwitch, useMetricsSwitch} from '../metricsSwitch';
 import {getTransactionSearchQuery} from '../utils';
 
 import {AllTransactionsView} from './views/allTransactionsView';
@@ -32,7 +33,7 @@ import {MobileView} from './views/mobileView';
 import {
   getCurrentLandingDisplay,
   handleLandingDisplayChange,
-  LANDING_DISPLAYS,
+  LANDING_V3_DISPLAYS,
   LandingDisplayField,
 } from './utils';
 
@@ -45,7 +46,6 @@ type Props = {
   setError: (msg: string | undefined) => void;
   handleSearch: (searchQuery: string) => void;
   handleTrendsClick: () => void;
-  isMetricsData?: boolean;
 };
 
 const fieldToViewMap: Record<LandingDisplayField, FC<Props>> = {
@@ -65,115 +65,121 @@ export function PerformanceLanding(props: Props) {
     handleSearch,
     handleTrendsClick,
     shouldShowOnboarding,
-    isMetricsData,
   } = props;
 
   const {teams, initiallyLoaded} = useTeams({provideUserTeams: true});
 
   const currentLandingDisplay = getCurrentLandingDisplay(location, projects, eventView);
   const filterString = getTransactionSearchQuery(location, eventView.query);
+  const {isMetricsData} = useMetricsSwitch();
 
   const showOnboarding = shouldShowOnboarding;
 
-  const shownLandingDisplays = LANDING_DISPLAYS.filter(
+  const shownLandingDisplays = LANDING_V3_DISPLAYS.filter(
     ({isShown}) => !isShown || isShown(organization)
   );
 
   const ViewComponent = fieldToViewMap[currentLandingDisplay.field];
 
   return (
-    <div data-test-id="performance-landing-v3">
-      <Layout.Header>
-        <Layout.HeaderContent>
-          <StyledHeading>{t('Performance')}</StyledHeading>
-        </Layout.HeaderContent>
-        <Layout.HeaderActions>
-          {!showOnboarding && (
-            <ButtonBar gap={3}>
-              <MetricsSwitch />
-              <Button
-                priority="primary"
-                data-test-id="landing-header-trends"
-                onClick={() => handleTrendsClick()}
-              >
-                {t('View Trends')}
-              </Button>
-            </ButtonBar>
-          )}
-        </Layout.HeaderActions>
-
-        <StyledNavTabs>
-          {shownLandingDisplays.map(({label, field}) => (
-            <li
-              key={label}
-              className={currentLandingDisplay.field === field ? 'active' : ''}
-            >
-              <a
-                href="#"
-                onClick={() =>
-                  handleLandingDisplayChange(
-                    field,
-                    location,
-                    projects,
-                    organization,
-                    eventView
-                  )
-                }
-              >
-                {t(label)}
-              </a>
-            </li>
-          ))}
-        </StyledNavTabs>
-      </Layout.Header>
-      <Layout.Body>
-        <Layout.Main fullWidth>
-          <GlobalSdkUpdateAlert />
-          <SearchContainerWithFilter>
-            {isMetricsData ? (
-              <MetricsSearchBar
-                searchSource="performance_landing_metrics"
-                orgSlug={organization.slug}
-                query={filterString}
-                onSearch={handleSearch}
-                maxQueryLength={MAX_QUERY_LENGTH}
-                projectIds={eventView.project}
-              />
-            ) : (
-              <SearchBar
-                searchSource="performance_landing"
-                organization={organization}
-                projectIds={eventView.project}
-                query={filterString}
-                fields={generateAggregateFields(
-                  organization,
-                  [...eventView.fields, {field: 'tps()'}],
-                  ['epm()', 'eps()']
-                )}
-                onSearch={handleSearch}
-                maxQueryLength={MAX_QUERY_LENGTH}
-              />
+    <StyledPageContent>
+      <div data-test-id="performance-landing-v3">
+        <Layout.Header>
+          <Layout.HeaderContent>
+            <StyledHeading>{t('Performance')}</StyledHeading>
+          </Layout.HeaderContent>
+          <Layout.HeaderActions>
+            {!showOnboarding && (
+              <ButtonBar gap={3}>
+                <MetricsSwitch />
+                <Button
+                  priority="primary"
+                  data-test-id="landing-header-trends"
+                  onClick={() => handleTrendsClick()}
+                >
+                  {t('View Trends')}
+                </Button>
+              </ButtonBar>
             )}
-          </SearchContainerWithFilter>
-          {initiallyLoaded ? (
-            <TeamKeyTransactionManager.Provider
-              organization={organization}
-              teams={teams}
-              selectedTeams={['myteams']}
-              selectedProjects={eventView.project.map(String)}
-            >
-              <GenericQueryBatcher>
-                <ViewComponent {...props} />
-              </GenericQueryBatcher>
-            </TeamKeyTransactionManager.Provider>
-          ) : (
-            <LoadingIndicator />
-          )}
-        </Layout.Main>
-      </Layout.Body>
-    </div>
+          </Layout.HeaderActions>
+
+          <StyledNavTabs>
+            {shownLandingDisplays.map(({label, field}) => (
+              <li
+                key={label}
+                className={currentLandingDisplay.field === field ? 'active' : ''}
+              >
+                <a
+                  href="#"
+                  onClick={() =>
+                    handleLandingDisplayChange(
+                      field,
+                      location,
+                      projects,
+                      organization,
+                      eventView
+                    )
+                  }
+                >
+                  {t(label)}
+                </a>
+              </li>
+            ))}
+          </StyledNavTabs>
+        </Layout.Header>
+        <Layout.Body>
+          <Layout.Main fullWidth>
+            <GlobalSdkUpdateAlert />
+            <SearchContainerWithFilter>
+              {isMetricsData ? (
+                <MetricsSearchBar
+                  searchSource="performance_landing_metrics"
+                  orgSlug={organization.slug}
+                  query={filterString}
+                  onSearch={handleSearch}
+                  maxQueryLength={MAX_QUERY_LENGTH}
+                  projectIds={eventView.project}
+                />
+              ) : (
+                <SearchBar
+                  searchSource="performance_landing"
+                  organization={organization}
+                  projectIds={eventView.project}
+                  query={filterString}
+                  fields={generateAggregateFields(
+                    organization,
+                    [...eventView.fields, {field: 'tps()'}],
+                    ['epm()', 'eps()']
+                  )}
+                  onSearch={handleSearch}
+                  maxQueryLength={MAX_QUERY_LENGTH}
+                />
+              )}
+            </SearchContainerWithFilter>
+            {initiallyLoaded ? (
+              <TeamKeyTransactionManager.Provider
+                organization={organization}
+                teams={teams}
+                selectedTeams={['myteams']}
+                selectedProjects={eventView.project.map(String)}
+              >
+                <GenericQueryBatcher>
+                  <ViewComponent {...props} />
+                </GenericQueryBatcher>
+              </TeamKeyTransactionManager.Provider>
+            ) : (
+              <LoadingIndicator />
+            )}
+          </Layout.Main>
+        </Layout.Body>
+      </div>
+    </StyledPageContent>
   );
 }
+
+const StyledPageContent = styled(PageContent)`
+  padding: 0;
+`;
 
 const StyledHeading = styled(PageHeading)`
   line-height: 40px;

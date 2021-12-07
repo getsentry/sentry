@@ -186,7 +186,7 @@ describe('Dashboards > Detail', function () {
   });
 
   describe('custom dashboards', function () {
-    let wrapper, initialData, widgets, mockPut;
+    let wrapper, initialData, widgets, mockVisit, mockPut;
 
     beforeEach(function () {
       initialData = initializeOrg({organization});
@@ -222,8 +222,7 @@ describe('Dashboards > Detail', function () {
           }
         ),
       ];
-      // TODO(nar): Assign to mockVisit when restoring 'can remove widgets' test
-      MockApiClient.addMockResponse({
+      mockVisit = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/visit/',
         method: 'POST',
         body: [],
@@ -283,9 +282,65 @@ describe('Dashboards > Detail', function () {
 
     afterEach(function () {
       MockApiClient.clearMockResponses();
+      if (wrapper) {
+        wrapper.unmount();
+      }
     });
 
-    // TODO(nar): Add deletion test
+    it('can remove widgets', async function () {
+      const updateMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        method: 'PUT',
+        body: {widgets: [widgets[0]]},
+      });
+      wrapper = mountWithTheme(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        initialData.routerContext
+      );
+      await tick();
+      wrapper.update();
+
+      expect(mockVisit).toHaveBeenCalledTimes(1);
+
+      // Enter edit mode.
+      wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
+
+      // Remove the second and third widgets
+      wrapper
+        .find('WidgetCard')
+        .at(1)
+        .find('IconClick[data-test-id="widget-delete"]')
+        .simulate('click');
+
+      wrapper
+        .find('WidgetCard')
+        .at(1)
+        .find('IconClick[data-test-id="widget-delete"]')
+        .simulate('click');
+
+      // Save changes
+      wrapper.find('Controls Button[data-test-id="dashboard-commit"]').simulate('click');
+      await tick();
+
+      expect(updateMock).toHaveBeenCalled();
+      expect(updateMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/dashboards/1/',
+        expect.objectContaining({
+          data: expect.objectContaining({
+            title: 'Custom Errors',
+            widgets: [widgets[0]],
+          }),
+        })
+      );
+
+      // Visit should not be called again on dashboard update
+      expect(mockVisit).toHaveBeenCalledTimes(1);
+    });
 
     it('can enter edit mode for widgets', async function () {
       wrapper = mountWithTheme(
@@ -337,8 +392,6 @@ describe('Dashboards > Detail', function () {
       wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
       wrapper.update();
       expect(wrapper.find('AddWidget').exists()).toBe(true);
-
-      wrapper.unmount();
     });
 
     it('hides add widget option', async function () {
@@ -360,8 +413,6 @@ describe('Dashboards > Detail', function () {
       wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
       wrapper.update();
       expect(wrapper.find('AddWidget').exists()).toBe(false);
-
-      wrapper.unmount();
     });
 
     it('hides and shows breadcrumbs based on feature', async function () {
@@ -456,6 +507,7 @@ describe('Dashboards > Detail', function () {
     });
 
     it('can add library widgets', async function () {
+      types.MAX_WIDGETS = 10;
       initialData = initializeOrg({
         organization: TestStubs.Organization({
           features: [
@@ -484,16 +536,14 @@ describe('Dashboards > Detail', function () {
 
       // Enter Add Widget mode
       wrapper
-        .find('Controls Button[data-test-id="add-widget-library"]')
+        .find('Controls Button[data-test-id="add-widget-library"] button')
         .simulate('click');
 
       const modal = await mountGlobalModal();
       await tick();
       await modal.update();
 
-      modal.find('Button').at(3).simulate('click');
-
-      expect(modal.find('SelectedBadge').text()).toEqual('1 Selected');
+      modal.find('WidgetLibraryCard').at(1).simulate('click');
 
       modal.find('Button[data-test-id="confirm-widgets"]').simulate('click');
 
@@ -544,6 +594,7 @@ describe('Dashboards > Detail', function () {
               {
                 displayType: 'area',
                 id: undefined,
+                description: 'Area chart reflecting all error and transaction events.',
                 interval: '5m',
                 queries: [
                   {

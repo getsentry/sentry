@@ -1,5 +1,7 @@
+import {useReducer} from 'react';
 import {Location, LocationDescriptor, Query} from 'history';
 
+import Button from 'sentry/components/button';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
@@ -18,6 +20,7 @@ import {PerformanceDuration} from '../../utils';
 
 import {
   emptyValue,
+  FooterPanel,
   HeaderItem,
   LowerPanel,
   SpanDurationBar,
@@ -86,6 +89,7 @@ type Props = {
   ) => LocationDescriptor;
   eventView: EventView;
   totals: SpansTotalValues | null;
+  preview: number;
 };
 
 export default function SuspectSpanEntry(props: Props) {
@@ -96,9 +100,18 @@ export default function SuspectSpanEntry(props: Props) {
     generateTransactionLink,
     eventView,
     totals,
+    preview,
   } = props;
 
-  const examples = suspectSpan.examples.map(example => ({
+  const expandable = suspectSpan.examples.length > preview;
+
+  const [collapsed, toggleCollapsed] = useReducer(state => !state, true);
+
+  const visibileExamples = collapsed
+    ? suspectSpan.examples.slice(0, preview)
+    : suspectSpan.examples;
+
+  const examples = visibileExamples.map(example => ({
     id: example.id,
     project: suspectSpan.project,
     // timestamps are in seconds but want them in milliseconds
@@ -127,7 +140,7 @@ export default function SuspectSpanEntry(props: Props) {
         <SpanCount sort={sort} suspectSpan={suspectSpan} totals={totals} />
         <TotalCumulativeDuration sort={sort} suspectSpan={suspectSpan} totals={totals} />
       </UpperPanel>
-      <LowerPanel data-test-id="suspect-card-lower">
+      <LowerPanel expandable={expandable} data-test-id="suspect-card-lower">
         <GridEditable
           data={examples}
           columnOrder={SPANS_TABLE_COLUMN_ORDER}
@@ -144,6 +157,15 @@ export default function SuspectSpanEntry(props: Props) {
           location={location}
         />
       </LowerPanel>
+      {expandable && (
+        <FooterPanel>
+          <Button priority="link" onClick={toggleCollapsed}>
+            {collapsed
+              ? t('Show More Transaction Examples')
+              : t('Hide Transaction Examples')}
+          </Button>
+        </FooterPanel>
+      )}
     </div>
   );
 }

@@ -761,6 +761,10 @@ class Factories:
         return install
 
     @staticmethod
+    def create_stacktrace_link_schema():
+        return {"type": "stacktrace-link", "uri": "/redirect/"}
+
+    @staticmethod
     def create_issue_link_schema():
         return {
             "type": "issue-link",
