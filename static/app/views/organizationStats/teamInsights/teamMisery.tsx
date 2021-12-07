@@ -281,7 +281,7 @@ function TeamMiseryWrapper({
 export default TeamMiseryWrapper;
 
 const StyledPanelTable = styled(PanelTable)<{isEmpty: boolean}>`
-  grid-template-columns: 2fr 0.5fr 112px 112px 0.25fr;
+  grid-template-columns: 1.25fr 0.5fr 112px 112px 0.25fr;
   font-size: ${p => p.theme.fontSizeMedium};
   white-space: nowrap;
   margin-bottom: 0;
