@@ -198,11 +198,11 @@ class U2fInterface extends React.Component<Props, State> {
         const challengeArray = base64urlToBuffer(
           this.props.challengeData.webAuthnRegisterData
         );
-        const challenge = cbor.decodeAll(challengeArray);
-        // challenge contains an array that contains one PublicKeyCredentialRequestOptions object, only need first index to register
+        const challenge = cbor.decodeFirst(challengeArray);
+        // challenge contains a PublicKeyCredentialRequestOptions object for webauthn registration
         challenge
           .then(data => {
-            this.webAuthnRegister(data[0].publicKey);
+            this.webAuthnRegister(data.publicKey);
           })
           .catch(err => {
             const failure = 'DEVICE_ERROR';
