@@ -47,7 +47,6 @@ def get_attachments(
     context: Mapping[str, Any],
 ) -> List[SlackAttachment]:
     klass = get_message_builder(notification.message_builder)
-    # .build only returns a single attachment for now
     attachments = klass(notification, context, recipient).build()
     if isinstance(attachments, List):
         return attachments
