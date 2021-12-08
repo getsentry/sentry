@@ -287,6 +287,10 @@ export function constructGridItemKey(widget: Widget) {
 }
 
 export function assignTempId(widget) {
+  if (widget.id ?? widget.tempId) {
+    return widget;
+  }
+
   return {...widget, tempId: nanoid()};
 }
 
