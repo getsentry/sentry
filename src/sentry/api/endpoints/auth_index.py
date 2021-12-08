@@ -135,7 +135,7 @@ class AuthIndexEndpoint(Endpoint):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        if request.user.is_superuser and not is_active_superuser(request):
+        if request.user.is_superuser and not is_active_superuser(request) and Superuser.org_id:
             # if a superuser hitting this endpoint is not active, they are most likely
             # trying to become active, and likely need to re-identify with SSO to do so.
             redirect = request.META.get("HTTP_REFERER", "")
