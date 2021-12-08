@@ -6,7 +6,6 @@ from django.urls import reverse
 from exam import fixture
 
 from sentry.auth.authenticators import RecoveryCodeInterface, TotpInterface
-from sentry.auth.provider import MigratingIdentityId
 from sentry.models import (
     AuthIdentity,
     AuthProvider,
@@ -759,7 +758,6 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
     @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
     @with_feature({"organizations:create": False})
     def test_basic_auth_flow_as_invited_user(self):
-
         user = self.create_user("foor@example.com")
         self.create_member(organization=self.organization, user=user)
         member = OrganizationMember.objects.get(organization=self.organization, user=user)
@@ -979,12 +977,11 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
         UserEmail.objects.filter(user=self.user, email="bar@example.com").update(is_verified=False)
 
     @with_feature("organizations:idp-automatic-migration")
-    @mock.patch("sentry.auth.helper.send_one_time_account_confirm_link")
-    def test_flow_verify_and_link_without_password_sends_email(
-        self, mock_send_one_time_account_confirm_link
-    ):
+    @mock.patch("sentry.auth.idpmigration.get_redis_cluster")
+    @mock.patch("sentry.auth.idpmigration.MessageBuilder")
+    def test_flow_verify_and_link_without_password_sends_email(self, email, mock_redis):
         assert not self.user.has_usable_password()
-        self.create_member(organization=self.organization, user=self.user)
+        om = self.create_member(organization=self.organization, user=self.user)
 
         resp = self.client.post(self.path, {"init": True})
 
@@ -992,16 +989,50 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
         assert self.provider.TEMPLATE in resp.content.decode("utf-8")
 
         resp = self.client.post(self.auth_sso_path, {"email": "bar@example.com"})
-        mock_send_one_time_account_confirm_link.assert_called_with(
-            self.user,
-            self.organization,
-            self.auth_provider,
-            "bar@example.com",
-            MigratingIdentityId(id="bar@example.com", legacy_id=None),
-        )
         self.assertTemplateUsed(resp, "sentry/auth-confirm-account.html")
         assert resp.status_code == 200
         assert resp.context["existing_user"] == self.user
+
+        ((name, time, value), kwargs) = mock_redis.return_value.setex.call_args
+        redis_obj = json.loads(value)
+        assert redis_obj["user_id"] == self.user.id
+        assert redis_obj["email"] == self.user.email
+        assert redis_obj["member_id"] == om.id
+        assert redis_obj["organization_id"] == self.organization.id
+        assert redis_obj["identity_id"]["id"] == self.user.email
+        assert redis_obj["provider"] == "dummy"
+
+        _, message = email.call_args
+        context = message["context"]
+        assert context["user"] == self.user
+        assert context["email"] == self.user.email
+        assert context["organization"] == self.organization.name
+        email.return_value.send_async.assert_called_with([self.user.email])
+
+    @with_feature("organizations:idp-automatic-migration")
+    @mock.patch("sentry.auth.idpmigration.get_redis_cluster")
+    @mock.patch("sentry.auth.idpmigration.MessageBuilder")
+    def test_flow_verify_without_org_membership(self, email, mock_redis):
+        assert not self.user.has_usable_password()
+
+        resp = self.client.post(self.path, {"init": True})
+
+        assert resp.status_code == 200
+        assert self.provider.TEMPLATE in resp.content.decode("utf-8")
+
+        resp = self.client.post(self.auth_sso_path, {"email": "bar@example.com"})
+        self.assertTemplateUsed(resp, "sentry/auth-confirm-account.html")
+        assert resp.status_code == 200
+        assert resp.context["existing_user"] == self.user
+
+        ((name, time, value), kwargs) = mock_redis.return_value.setex.call_args
+        redis_obj = json.loads(value)
+        assert redis_obj["member_id"] is None
+        assert redis_obj["organization_id"] == self.organization.id
+
+        _, message = email.call_args
+        context = message["context"]
+        assert context["organization"] == self.organization.name
 
     @with_feature("organizations:idp-automatic-migration")
     @mock.patch("sentry.auth.idpmigration.MessageBuilder")
