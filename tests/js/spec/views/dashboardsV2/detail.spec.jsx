@@ -56,6 +56,9 @@ describe('Dashboards > Detail', function () {
 
     afterEach(function () {
       MockApiClient.clearMockResponses();
+      if (wrapper) {
+        wrapper.unmount();
+      }
     });
 
     it('can delete', async function () {
@@ -273,6 +276,9 @@ describe('Dashboards > Detail', function () {
 
     afterEach(function () {
       MockApiClient.clearMockResponses();
+      if (wrapper) {
+        wrapper.unmount();
+      }
     });
 
     it('can remove widgets', async function () {
@@ -316,6 +322,7 @@ describe('Dashboards > Detail', function () {
 
       // Save changes
       wrapper.find('Controls Button[data-test-id="dashboard-commit"]').simulate('click');
+      await tick();
       await tick();
 
       expect(updateMock).toHaveBeenCalled();
@@ -432,8 +439,6 @@ describe('Dashboards > Detail', function () {
       wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
       wrapper.update();
       expect(wrapper.find('AddWidget').exists()).toBe(true);
-
-      wrapper.unmount();
     });
 
     it('hides add widget option', async function () {
@@ -455,8 +460,6 @@ describe('Dashboards > Detail', function () {
       wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
       wrapper.update();
       expect(wrapper.find('AddWidget').exists()).toBe(false);
-
-      wrapper.unmount();
     });
 
     it('hides and shows breadcrumbs based on feature', async function () {
@@ -546,6 +549,8 @@ describe('Dashboards > Detail', function () {
     });
 
     it('can add library widgets', async function () {
+      types.MAX_WIDGETS = 10;
+
       initialData = initializeOrg({
         organization: TestStubs.Organization({
           features: [
@@ -571,6 +576,8 @@ describe('Dashboards > Detail', function () {
       await tick();
       wrapper.update();
 
+      expect(wrapper.find('Controls Tooltip').prop('disabled')).toBe(true);
+
       // Enter Add Widget mode
       wrapper
         .find('Controls Button[data-test-id="add-widget-library"]')
@@ -580,9 +587,7 @@ describe('Dashboards > Detail', function () {
       await tick();
       await modal.update();
 
-      modal.find('Button').at(3).simulate('click');
-
-      expect(modal.find('SelectedBadge').text()).toEqual('1 Selected');
+      modal.find('WidgetLibraryCard').at(1).simulate('click');
 
       modal.find('Button[data-test-id="confirm-widgets"]').simulate('click');
 
@@ -635,6 +640,7 @@ describe('Dashboards > Detail', function () {
                 displayType: 'area',
                 id: undefined,
                 interval: '5m',
+                description: 'Area chart reflecting all error and transaction events.',
                 queries: [
                   {
                     conditions: '!event.type:transaction',
@@ -650,6 +656,42 @@ describe('Dashboards > Detail', function () {
           }),
         })
       );
+    });
+
+    it('disables add library widgets when max widgets reached', async function () {
+      types.MAX_WIDGETS = 1;
+
+      initialData = initializeOrg({
+        organization: TestStubs.Organization({
+          features: [
+            'global-views',
+            'dashboards-basic',
+            'dashboards-edit',
+            'discover-query',
+            'widget-library',
+          ],
+          projects: [TestStubs.Project()],
+        }),
+      });
+
+      wrapper = mountWithTheme(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        initialData.routerContext
+      );
+      await tick();
+      wrapper.update();
+
+      // Enter Add Widget mode
+      expect(
+        wrapper.find('Controls Button[data-test-id="add-widget-library"]').props()
+          .disabled
+      ).toEqual(true);
+      expect(wrapper.find('Controls Tooltip').prop('disabled')).toBe(false);
     });
 
     it('adds an Issue widget to the dashboard', async function () {
