@@ -26,22 +26,16 @@ import space from 'sentry/styles/space';
 import {GlobalSelection, Group, Organization} from 'sentry/types';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import {ColumnType} from 'sentry/utils/discover/fields';
 import withApi from 'sentry/utils/withApi';
 import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 import withOrganization from 'sentry/utils/withOrganization';
+import {ISSUE_FIELDS} from 'sentry/views/dashboardsV2/widget/issueWidget/fields';
 
 import {DRAG_HANDLE_CLASS} from './gridLayout/dashboard';
 import ContextMenu from './contextMenu';
 import IssueWidgetQueries from './issueWidgetQueries';
 import {Widget} from './types';
 import WidgetQueries from './widgetQueries';
-
-const ISSUE_TABLE_FIELDS_META: Record<string, ColumnType> = {
-  issue: 'string',
-  title: 'string',
-  assignee: 'string',
-};
 
 type TableResultProps = Pick<WidgetQueries['state'], 'errorMessage' | 'loading'> & {
   tableResults: Group[];
@@ -81,8 +75,16 @@ class IssueWidgetCard extends React.Component<Props> {
   }
 
   transformTableResults(tableResults: Group[]): TableDataRow[] {
-    return tableResults.map(({id, shortId, title, assignedTo}) => {
+    return tableResults.map(({id, shortId, title, assignedTo, ...resultProps}) => {
+      const transformedResultProps = {};
+      Object.keys(resultProps).map(key => {
+        const value = resultProps[key];
+        transformedResultProps[key] = ['number', 'string'].includes(typeof value)
+          ? value
+          : String(value);
+      });
       const transformedTableResults = {
+        ...transformedResultProps,
         id,
         'issue.id': id,
         issue: shortId,
@@ -101,7 +103,7 @@ class IssueWidgetCard extends React.Component<Props> {
     errorMessage,
     tableResults,
   }: TableResultProps): React.ReactNode {
-    const {location, organization} = this.props;
+    const {location, organization, widget} = this.props;
     if (errorMessage) {
       return (
         <ErrorPanel>
@@ -120,9 +122,9 @@ class IssueWidgetCard extends React.Component<Props> {
       <StyledSimpleTableChart
         location={location}
         title=""
-        fields={Object.keys(ISSUE_TABLE_FIELDS_META)}
+        fields={widget.queries[0].fields}
         loading={loading}
-        metadata={ISSUE_TABLE_FIELDS_META}
+        metadata={ISSUE_FIELDS}
         data={transformedTableResults}
         organization={organization}
       />

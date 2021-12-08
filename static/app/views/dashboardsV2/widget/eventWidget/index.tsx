@@ -304,6 +304,7 @@ class EventWidget extends AsyncView<Props, State> {
                 const amendedFieldOptions = fieldOptions(measurementKeys);
                 const buildStepContent = (
                   <WidgetQueryFields
+                    widgetType={WidgetType.DISCOVER}
                     style={{padding: 0}}
                     errors={this.getFirstQueryError('fields')}
                     displayType={displayType}

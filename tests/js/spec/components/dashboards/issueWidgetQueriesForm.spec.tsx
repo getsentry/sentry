@@ -1,6 +1,8 @@
 import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import IssueWidgetQueriesForm from 'sentry/components/dashboards/issueWidgetQueriesForm';
+import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
+import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 
 describe('IssueWidgetQueriesForm', function () {
   const organization = TestStubs.Organization();
@@ -29,6 +31,29 @@ describe('IssueWidgetQueriesForm', function () {
       method: 'POST',
     });
 
+    const fieldOptions = {
+      'field:issue': {
+        label: 'issue',
+        value: {
+          kind: FieldValueKind.FIELD,
+          meta: {
+            name: 'issue',
+            dataType: 'string',
+          },
+        },
+      },
+      'field:assignee': {
+        label: 'assignee',
+        value: {
+          kind: FieldValueKind.FIELD,
+          meta: {
+            name: 'assignee',
+            dataType: 'string',
+          },
+        },
+      },
+    };
+
     mountWithTheme(
       <IssueWidgetQueriesForm
         organization={organization}
@@ -44,11 +69,12 @@ describe('IssueWidgetQueriesForm', function () {
         }}
         query={{
           conditions: 'assigned:',
-          fields: [],
+          fields: ['issue', 'assignee'],
           name: '',
           orderby: '',
         }}
         onChange={onChangeHandler}
+        fieldOptions={fieldOptions as ReturnType<typeof generateFieldOptions>}
       />
     );
   });
@@ -61,5 +87,11 @@ describe('IssueWidgetQueriesForm', function () {
     userEvent.click(screen.getByText(':#visibility level:error'));
     await tick();
     expect(onChangeHandler).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders Widget Query Fields selector', async function () {
+    expect(screen.getByText('Columns')).toBeInTheDocument();
+    expect(screen.getByText('issue')).toBeInTheDocument();
+    expect(screen.getByText('assignee')).toBeInTheDocument();
   });
 });

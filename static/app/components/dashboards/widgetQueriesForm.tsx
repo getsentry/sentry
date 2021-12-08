@@ -15,7 +15,7 @@ import {
   generateFieldAsString,
   getAggregateAlias,
 } from 'sentry/utils/discover/fields';
-import {Widget, WidgetQuery} from 'sentry/views/dashboardsV2/types';
+import {Widget, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 import Input from 'sentry/views/settings/components/forms/controls/input';
 import Field from 'sentry/views/settings/components/forms/field';
@@ -155,6 +155,7 @@ class WidgetQueriesForm extends React.Component<Props> {
           </Button>
         )}
         <WidgetQueryFields
+          widgetType={WidgetType.DISCOVER}
           displayType={displayType}
           fieldOptions={fieldOptions}
           errors={this.getFirstQueryError('fields')}
