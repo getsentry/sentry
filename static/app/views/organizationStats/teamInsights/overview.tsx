@@ -350,7 +350,7 @@ const Body = styled(Layout.Body)`
 const ControlsWrapper = styled('div')`
   display: grid;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${space(2)};
   margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
