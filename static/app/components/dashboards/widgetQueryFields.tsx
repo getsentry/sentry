@@ -11,7 +11,7 @@ import {
   isLegalYAxisType,
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
-import {Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
+import {Widget} from 'sentry/views/dashboardsV2/types';
 import ColumnEditCollection from 'sentry/views/eventsV2/table/columnEditCollection';
 import {QueryField} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
@@ -160,50 +160,26 @@ function WidgetQueryFields({
   const canDelete = fields.length > 1;
 
   if (displayType === 'table') {
-    switch (widgetType) {
-      case WidgetType.ISSUE:
-        return (
-          <Field
-            data-test-id="columns"
-            label={t('Columns')}
-            inline={false}
-            style={{padding: `${space(1)} 0`, ...(style ?? {})}}
-            error={errors?.fields}
-            flexibleControlStateSize
-            stacked
-            required
-          >
-            <StyledColumnEditCollection
-              columns={fields}
-              onChange={handleColumnChange}
-              fieldOptions={fieldOptions}
-              organization={organization}
-              source={widgetType}
-            />
-          </Field>
-        );
-      case WidgetType.DISCOVER:
-      default:
-        return (
-          <Field
-            data-test-id="columns"
-            label={t('Columns')}
-            inline={false}
-            style={{padding: `${space(1)} 0`, ...(style ?? {})}}
-            error={errors?.fields}
-            flexibleControlStateSize
-            stacked
-            required
-          >
-            <StyledColumnEditCollection
-              columns={fields}
-              onChange={handleColumnChange}
-              fieldOptions={fieldOptions}
-              organization={organization}
-            />
-          </Field>
-        );
-    }
+    return (
+      <Field
+        data-test-id="columns"
+        label={t('Columns')}
+        inline={false}
+        style={{padding: `${space(1)} 0`, ...(style ?? {})}}
+        error={errors?.fields}
+        flexibleControlStateSize
+        stacked
+        required
+      >
+        <StyledColumnEditCollection
+          columns={fields}
+          onChange={handleColumnChange}
+          fieldOptions={fieldOptions}
+          organization={organization}
+          source={widgetType}
+        />
+      </Field>
+    );
   }
 
   if (displayType === 'top_n') {

@@ -50,11 +50,6 @@ class IssueWidgetQueriesForm extends React.Component<Props, State> {
     };
   };
 
-  getFirstQueryError(key: string) {
-    const {error} = this.props;
-    return error?.[key];
-  }
-
   render() {
     const {organization, error, query, tags, fieldOptions, onChange} = this.props;
     const explodedFields = query.fields.map(field => explodeField({field}));
