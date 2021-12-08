@@ -1,9 +1,11 @@
+import {Profiler} from 'react';
 import {cache} from '@emotion/css'; // eslint-disable-line emotion/no-vanilla
 import {CacheProvider, ThemeProvider} from '@emotion/react';
 import {mount, shallow as enzymeShallow} from 'enzyme'; // eslint-disable-line no-restricted-imports
 
 import {act} from 'sentry-test/reactTestingLibrary';
 
+import {onRenderCallback} from 'sentry/utils/performanceForSentry';
 import {lightTheme} from 'sentry/utils/theme';
 
 /**
@@ -13,9 +15,11 @@ import {lightTheme} from 'sentry/utils/theme';
  */
 export function mountWithTheme(tree, opts) {
   const WrappingThemeProvider = props => (
-    <CacheProvider value={cache}>
-      <ThemeProvider theme={lightTheme}>{props.children}</ThemeProvider>
-    </CacheProvider>
+    <Profiler id="enzyme-root" onRender={onRenderCallback}>
+      <CacheProvider value={cache}>
+        <ThemeProvider theme={lightTheme}>{props.children}</ThemeProvider>
+      </CacheProvider>
+    </Profiler>
   );
 
   return mount(tree, {wrappingComponent: WrappingThemeProvider, ...opts});

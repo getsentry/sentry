@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Component, Fragment, Profiler} from 'react';
 import {cache} from '@emotion/css';
 import {CacheProvider, ThemeProvider} from '@emotion/react';
 import {
@@ -10,6 +10,7 @@ import userEvent from '@testing-library/user-event';
 
 import GlobalModal from 'sentry/components/globalModal';
 import {Organization} from 'sentry/types';
+import {onRenderCallback} from 'sentry/utils/performanceForSentry';
 import {lightTheme} from 'sentry/utils/theme';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
@@ -37,19 +38,21 @@ function makeAllTheProviders({context, organization}: ProviderOptions) {
     const ContextProvider = context ? createProvider(context) : Fragment;
 
     return (
-      <ContextProvider>
-        <CacheProvider value={cache}>
-          <ThemeProvider theme={lightTheme}>
-            {organization ? (
-              <OrganizationContext.Provider value={organization}>
-                {children}
-              </OrganizationContext.Provider>
-            ) : (
-              children
-            )}
-          </ThemeProvider>
-        </CacheProvider>
-      </ContextProvider>
+      <Profiler id="rtl-root" onRender={onRenderCallback}>
+        <ContextProvider>
+          <CacheProvider value={cache}>
+            <ThemeProvider theme={lightTheme}>
+              {organization ? (
+                <OrganizationContext.Provider value={organization}>
+                  {children}
+                </OrganizationContext.Provider>
+              ) : (
+                children
+              )}
+            </ThemeProvider>
+          </CacheProvider>
+        </ContextProvider>
+      </Profiler>
     );
   };
 }
