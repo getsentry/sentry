@@ -139,8 +139,7 @@ export function handleLandingDisplayChange(
   location: Location,
   projects: Project[],
   organization: Organization,
-  eventView?: EventView,
-  setLandingDisplay?: (field: LandingDisplay) => void
+  eventView?: EventView
 ) {
   // Transaction op can affect the display and show no results if it is explicitly set.
   const query = decodeScalar(location.query.query, '');
@@ -171,10 +170,6 @@ export function handleLandingDisplayChange(
     is_default: defaultDisplay === currentDisplay,
   });
 
-  const display = LANDING_DISPLAYS.find(({field: f}) => f === field);
-  if (setLandingDisplay && display) {
-    setLandingDisplay(display);
-  }
   browserHistory.push({
     pathname: location.pathname,
     query: newQuery,

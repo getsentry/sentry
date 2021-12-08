@@ -1,3 +1,5 @@
+import {browserHistory} from 'react-router';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {act} from 'sentry-test/reactTestingLibrary';
@@ -194,7 +196,7 @@ describe('Performance > Landing > Index', function () {
 
   it('Can switch between landing displays', async function () {
     const data = initializeData({
-      query: {landingDisplay: LandingDisplayField.FRONTEND_PAGELOAD},
+      query: {landingDisplay: LandingDisplayField.FRONTEND_PAGELOAD, abc: '123'},
     });
 
     wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
@@ -209,7 +211,13 @@ describe('Performance > Landing > Index', function () {
     await tick();
     wrapper.update();
 
-    expect(wrapper.find('div[data-test-id="all-transactions-view"]').exists()).toBe(true);
+    expect(browserHistory.push).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        pathname: data.location.pathname,
+        query: {query: '', abc: '123'},
+      })
+    );
   });
 
   it('Updating projects switches performance view', async function () {
@@ -226,8 +234,8 @@ describe('Performance > Landing > Index', function () {
     );
 
     const updatedData = initializeData({
-      query: {landingDisplay: LandingDisplayField.FRONTEND_PAGELOAD},
-      project: -1 as any,
+      projects: [TestStubs.Project({id: 123, platform: 'unknown'})],
+      project: 123 as any,
     });
 
     wrapper.setProps({
@@ -237,5 +245,20 @@ describe('Performance > Landing > Index', function () {
     wrapper.update();
 
     expect(wrapper.find('div[data-test-id="all-transactions-view"]').exists()).toBe(true);
+  });
+
+  it('View correctly defaults based on project without url param', async function () {
+    const data = initializeData({
+      projects: [TestStubs.Project({id: 99, platform: 'javascript-react'})],
+      project: 99 as any,
+    });
+
+    wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('div[data-test-id="frontend-pageload-view"]').exists()).toBe(
+      true
+    );
   });
 });

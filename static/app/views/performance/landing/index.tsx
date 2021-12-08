@@ -1,8 +1,7 @@
-import {FC, useEffect, useRef, useState} from 'react';
+import {FC, useEffect, useRef} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
-import omit from 'lodash/omit';
 
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -78,17 +77,14 @@ export function PerformanceLanding(props: Props) {
     projects,
     eventView
   );
-  const [landingDisplay, setLocalLandingDisplay] = useState(
-    paramLandingDisplay || defaultLandingDisplayForProjects
-  );
+  const landingDisplay = paramLandingDisplay ?? defaultLandingDisplayForProjects;
 
   useEffect(() => {
     if (hasMounted.current) {
-      setLocalLandingDisplay(defaultLandingDisplayForProjects);
       browserHistory.replace({
         pathname: location.pathname,
         query: {
-          ...omit(location.query, ['landingDisplay']),
+          ...location.query,
           landingDisplay: undefined,
         },
       });
@@ -144,8 +140,7 @@ export function PerformanceLanding(props: Props) {
                       location,
                       projects,
                       organization,
-                      eventView,
-                      setLocalLandingDisplay
+                      eventView
                     )
                   }
                 >
