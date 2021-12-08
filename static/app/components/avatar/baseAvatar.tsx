@@ -89,6 +89,7 @@ type BaseProps = DefaultProps & {
   gravatarId?: string;
   letterId?: string;
   title?: string;
+  backupAvatar?: React.ReactNode;
   /**
    * The content for the tooltip. Requires hasTooltip to display
    */
@@ -213,6 +214,11 @@ class BaseAvatar extends React.Component<Props, State> {
     return <BackgroundAvatar round={round} suggested={suggested} />;
   }
 
+  renderBackupAvatar() {
+    const {backupAvatar} = this.props;
+    return backupAvatar ?? this.renderLetterAvatar();
+  }
+
   render() {
     const {
       className,
@@ -251,7 +257,7 @@ class BaseAvatar extends React.Component<Props, State> {
           }}
           {...props}
         >
-          {this.state.showBackupAvatar && this.renderLetterAvatar()}
+          {this.state.showBackupAvatar && this.renderBackupAvatar()}
           {this.renderImg()}
         </StyledBaseAvatar>
       </Tooltip>
