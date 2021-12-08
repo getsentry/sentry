@@ -40,10 +40,7 @@ namespace Profiling {
     resource?: string;
   };
 
-  type ProfileTypes =
-    | EventedProfile
-    | SampledProfile
-    | JSSelfProfiling.SpectoProfilerTrace;
+  type ProfileTypes = EventedProfile | SampledProfile | JSSelfProfiling.Trace;
 
   type ImportedProfiles = {
     name: string;
