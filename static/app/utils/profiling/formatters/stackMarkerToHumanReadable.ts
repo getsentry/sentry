@@ -13,6 +13,7 @@ export function stackMarkerToHumanReadable(marker: JSSelfProfiling.Marker): stri
     case 'other':
       return 'Other';
     default:
-      throw new TypeError(`Unknown marker of type ${marker}`);
+      // since spec is still in dev, just gracefully return whatever we received.
+      return marker;
   }
 }
