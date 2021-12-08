@@ -7,10 +7,7 @@ import {Location} from 'history';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {
-  openAddDashboardIssueWidgetModal,
-  openAddDashboardWidgetModal,
-} from 'sentry/actionCreators/modal';
+import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
 import space from 'sentry/styles/space';
@@ -22,13 +19,7 @@ import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 import {DataSet} from './widget/utils';
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
 import SortableWidget from './sortableWidget';
-import {
-  DashboardDetails,
-  DashboardWidgetSource,
-  MAX_WIDGETS,
-  Widget,
-  WidgetType,
-} from './types';
+import {DashboardDetails, DashboardWidgetSource, MAX_WIDGETS, Widget} from './types';
 
 type Props = {
   api: Client;

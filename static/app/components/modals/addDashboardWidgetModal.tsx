@@ -397,19 +397,15 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
   };
 
   handleDatasetChange = (widgetType: string) => {
+    const {widget} = this.props;
     this.setState(prevState => {
       const newState = cloneDeep(prevState);
       newState.queries.splice(0, newState.queries.length);
       set(newState, 'widgetType', widgetType);
-      switch (widgetType) {
-        case WidgetType.ISSUE:
-          newState.queries.push(newIssueQuery);
-          break;
-        case WidgetType.DISCOVER:
-        default:
-          newState.queries.push(newQuery);
-          break;
-      }
+      const defaultQuery = widgetType === WidgetType.ISSUE ? newIssueQuery : newQuery;
+      newState.queries.push(
+        ...(widget?.widgetType === widgetType ? widget.queries : [defaultQuery])
+      );
       set(newState, 'userHasModified', true);
       return {...newState, errors: undefined};
     });

@@ -23,7 +23,6 @@ type Props = {
   onCommit: () => void;
   onDelete: () => void;
   onAddWidget: () => void;
-  onAddIssueWidget: () => void;
   dashboardState: DashboardState;
   widgetCount: number;
 };
@@ -40,7 +39,6 @@ class Controls extends React.Component<Props> {
       onCommit,
       onDelete,
       onAddWidget,
-      onAddIssueWidget,
     } = this.props;
 
     const cancelButton = (

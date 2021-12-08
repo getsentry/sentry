@@ -550,7 +550,6 @@ class DashboardDetail extends Component<Props, State> {
                 onCommit={this.onCommit}
                 onAddWidget={this.onAddWidget}
                 onDelete={this.onDelete(dashboard)}
-                onAddIssueWidget={this.onAddIssueWidget}
                 dashboardState={dashboardState}
                 widgetCount={dashboard.widgets.length}
               />
@@ -639,7 +638,6 @@ class DashboardDetail extends Component<Props, State> {
                   onCommit={this.onCommit}
                   onAddWidget={this.onAddWidget}
                   onDelete={this.onDelete(dashboard)}
-                  onAddIssueWidget={this.onAddIssueWidget}
                   dashboardState={dashboardState}
                   widgetCount={dashboard.widgets.length}
                 />
