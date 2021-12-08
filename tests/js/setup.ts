@@ -44,7 +44,9 @@ Enzyme.configure({adapter: new Adapter()});
  * 2017-10-17T02:41:20.000Z
  */
 const constantDate = new Date(1508208080000);
+const RealDate = Date;
 MockDate.set(constantDate);
+(MockDate as any)._realDate = RealDate; // Expose the real date object for external uses (eg. test performance)
 
 /**
  * Load all files in `tests/js/fixtures/*` as a module.

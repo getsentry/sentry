@@ -15,7 +15,10 @@ export function onRenderCallback(
   try {
     const transaction = getCurrentSentryReactTransaction();
     if (transaction && actualDuration > MIN_UPDATE_SPAN_TIME) {
-      const now = timestampWithMs();
+      // Switch now if code is being run with a mocked date (eg. test environment)
+      const now = (Date as any)._realDate
+        ? (Date as any)._realDate.now()
+        : timestampWithMs();
       transaction.startChild({
         description: `<${id}>`,
         op: `ui.react.${phase}`,
