@@ -2,10 +2,7 @@ import {cloneElement, Component, isValidElement} from 'react';
 import type {Layout as RGLLayout} from 'react-grid-layout';
 import {browserHistory, PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import every from 'lodash/every';
 import isEqual from 'lodash/isEqual';
-import isMatch from 'lodash/isMatch';
-import zip from 'lodash/zip';
 
 import {
   createDashboard,
@@ -362,12 +359,15 @@ class DashboardDetail extends Component<Props, State> {
         break;
       }
       case DashboardState.EDIT: {
+        // TODO(nar): This should only fire when there are changes to the layout
+        // and the dashboard can be successfully saved
+        if (organization.features.includes('dashboard-grid-layout')) {
+          saveDashboardLayout(organization.id, dashboard.id, layout);
+        }
+
         // only update the dashboard if there are changes
         if (modifiedDashboard) {
-          if (
-            isEqual(dashboard, modifiedDashboard) &&
-            isLayoutEqual(layout, organization.id, dashboard.id)
-          ) {
+          if (isEqual(dashboard, modifiedDashboard)) {
             this.setState({
               dashboardState: DashboardState.VIEW,
               modifiedDashboard: null,
@@ -701,19 +701,3 @@ const StyledPageContent = styled(PageContent)`
 `;
 
 export default withApi(withOrganization(DashboardDetail));
-
-function isLayoutEqual(currLayout, organizationId, dashboardId) {
-  const savedLayout = getDashboardLayout(organizationId, dashboardId);
-  if (currLayout.length !== savedLayout.length) {
-    return false;
-  }
-
-  // Compares each layout object with the one at the same index
-  // Uses isMatch because the current position might have keys that are set
-  // to undefined, but get lost when serializing to localStorage as JSON
-  return every(
-    zip(currLayout, savedLayout).map(([currPosition, savedPosition]) =>
-      isMatch(currPosition as object, savedPosition as object)
-    )
-  );
-}
