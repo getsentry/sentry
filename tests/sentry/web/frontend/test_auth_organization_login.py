@@ -977,11 +977,10 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
         UserEmail.objects.filter(user=self.user, email="bar@example.com").update(is_verified=False)
 
     @with_feature("organizations:idp-automatic-migration")
-    @mock.patch("sentry.auth.idpmigration.get_redis_cluster")
     @mock.patch("sentry.auth.idpmigration.MessageBuilder")
-    def test_flow_verify_and_link_without_password_sends_email(self, email, mock_redis):
+    def test_flow_verify_and_link_without_password_sends_email(self, email):
         assert not self.user.has_usable_password()
-        om = self.create_member(organization=self.organization, user=self.user)
+        self.create_member(organization=self.organization, user=self.user)
 
         resp = self.client.post(self.path, {"init": True})
 
@@ -993,15 +992,6 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
         assert resp.status_code == 200
         assert resp.context["existing_user"] == self.user
 
-        ((name, time, value), kwargs) = mock_redis.return_value.setex.call_args
-        redis_obj = json.loads(value)
-        assert redis_obj["user_id"] == self.user.id
-        assert redis_obj["email"] == self.user.email
-        assert redis_obj["member_id"] == om.id
-        assert redis_obj["organization_id"] == self.organization.id
-        assert redis_obj["identity_id"]["id"] == self.user.email
-        assert redis_obj["provider"] == "dummy"
-
         _, message = email.call_args
         context = message["context"]
         assert context["user"] == self.user
@@ -1009,7 +999,6 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
         assert context["organization"] == self.organization.name
         email.return_value.send_async.assert_called_with([self.user.email])
 
-        mock_redis.return_value.get.return_value = value
         path = reverse("sentry-idp-email-verification", args=[context["verification_key"]])
         resp = self.client.get(path)
         assert resp.templates[0].name == "sentry/idp_account_verified.html"
@@ -1026,9 +1015,8 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
         assert self.user == auth_identity.user
 
     @with_feature("organizations:idp-automatic-migration")
-    @mock.patch("sentry.auth.idpmigration.get_redis_cluster")
     @mock.patch("sentry.auth.idpmigration.MessageBuilder")
-    def test_flow_verify_without_org_membership(self, email, mock_redis):
+    def test_flow_verify_without_org_membership(self, email):
         assert not self.user.has_usable_password()
         assert not OrganizationMember.objects.filter(
             organization=self.organization, user=self.user
@@ -1044,16 +1032,10 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
         assert resp.status_code == 200
         assert resp.context["existing_user"] == self.user
 
-        ((name, time, value), kwargs) = mock_redis.return_value.setex.call_args
-        redis_obj = json.loads(value)
-        assert redis_obj["member_id"] is None
-        assert redis_obj["organization_id"] == self.organization.id
-
         _, message = email.call_args
         context = message["context"]
         assert context["organization"] == self.organization.name
 
-        mock_redis.return_value.get.return_value = value
         path = reverse("sentry-idp-email-verification", args=[context["verification_key"]])
         resp = self.client.get(path)
         assert resp.templates[0].name == "sentry/idp_account_verified.html"
