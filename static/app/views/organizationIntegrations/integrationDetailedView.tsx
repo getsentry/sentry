@@ -112,12 +112,11 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
   get installationStatus() {
     const {configurations} = this.state;
     if (
-      configurations.filter(i => i.organizationIntegrationStatus === 'disabled').length >
-      0
+      configurations.filter(i => i.organizationIntegrationStatus === 'disabled').length
     ) {
       return 'Disabled';
     }
-    return configurations.length > 0 ? 'Installed' : 'Not Installed';
+    return configurations.length ? 'Installed' : 'Not Installed';
   }
 
   get integrationName() {

@@ -55,7 +55,7 @@ export default class InstalledIntegration extends React.Component<Props> {
 
   get integrationStatus() {
     const {integration} = this.props;
-    // there are multiple status fields for an integration we consdier
+    // there are multiple status fields for an integration we consider
     const statusList = [integration.status, integration.organizationIntegrationStatus];
     const firstNotActive = statusList.find(s => s !== 'active');
     // Active if everything is active, otherwise the first inactive status
