@@ -18,6 +18,7 @@ import space from 'sentry/styles/space';
 import {DataCategory, DataCategoryName, IntervalPeriod, SelectValue} from 'sentry/types';
 import {parsePeriodToHours, statsPeriodToDays} from 'sentry/utils/dates';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import getDynamicText from 'sentry/utils/getDynamicText';
 import commonTheme, {Theme} from 'sentry/utils/theme';
 
 import {formatUsageWithUnits, GIGABYTE} from '../utils';
@@ -424,43 +425,48 @@ export class UsageChart extends React.Component<Props, State> {
     return (
       <React.Fragment>
         <HeaderTitleLegend>{title || t('Current Usage Period')}</HeaderTitleLegend>
-        <BaseChart
-          colors={this.chartColors}
-          grid={{bottom: '3px', left: '0px', right: '10px', top: '40px'}}
-          xAxis={xAxis({
-            show: true,
-            type: 'category',
-            name: 'Date',
-            boundaryGap: true,
-            data: xAxisData,
-            axisTick: {
-              interval: xAxisTickInterval,
-              alignWithLabel: true,
-            },
-            axisLabel: {
-              interval: xAxisLabelInterval,
-              formatter: (label: string) => label.slice(0, 6), // Limit label to 6 chars
-            },
-            theme,
-          })}
-          yAxis={{
-            min: 0,
-            minInterval: yAxisMinInterval,
-            axisLabel: {
-              formatter: yAxisFormatter,
-              color: theme.chartLabel,
-            },
-          }}
-          series={this.chartSeries}
-          tooltip={this.chartTooltip}
-          onLegendSelectChanged={() => {}}
-          legend={Legend({
-            right: 10,
-            top: 5,
-            data: this.chartLegend,
-            theme,
-          })}
-        />
+        {getDynamicText({
+          value: (
+            <BaseChart
+              colors={this.chartColors}
+              grid={{bottom: '3px', left: '0px', right: '10px', top: '40px'}}
+              xAxis={xAxis({
+                show: true,
+                type: 'category',
+                name: 'Date',
+                boundaryGap: true,
+                data: xAxisData,
+                axisTick: {
+                  interval: xAxisTickInterval,
+                  alignWithLabel: true,
+                },
+                axisLabel: {
+                  interval: xAxisLabelInterval,
+                  formatter: (label: string) => label.slice(0, 6), // Limit label to 6 chars
+                },
+                theme,
+              })}
+              yAxis={{
+                min: 0,
+                minInterval: yAxisMinInterval,
+                axisLabel: {
+                  formatter: yAxisFormatter,
+                  color: theme.chartLabel,
+                },
+              }}
+              series={this.chartSeries}
+              tooltip={this.chartTooltip}
+              onLegendSelectChanged={() => {}}
+              legend={Legend({
+                right: 10,
+                top: 5,
+                data: this.chartLegend,
+                theme,
+              })}
+            />
+          ),
+          fixed: <Placeholder height="200px" />,
+        })}
       </React.Fragment>
     );
   }
