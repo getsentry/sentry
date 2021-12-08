@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
+from copy import copy
 from typing import Any, Iterable, List, Mapping, MutableMapping
 
 from sentry.constants import ObjectStatus
@@ -152,19 +153,20 @@ def send_notification_as_slack(
                     "recipient": recipient.id,
                 },
             )
+        extra_context = (extra_context_by_actor_id or {}).get(recipient.actor_id, {})
+        context = get_context(notification, recipient, shared_context, extra_context)
+        attachments = get_attachments(notification, recipient, context)
 
         for channel, integration in channels_to_integrations.items():
+            # make a local copy for appending
+            local_attachments = copy(attachments)
             token: str = integration.metadata["access_token"]
-            extra_context = (extra_context_by_actor_id or {}).get(recipient.actor_id, {})
-            context = get_context(notification, recipient, shared_context, extra_context)
-            attachments = get_attachments(notification, recipient, context)
-
             # getsentry might add a billing related attachment
             additional_attachment = get_additional_attachment(
                 integration, notification.organization
             )
             if additional_attachment:
-                attachments.append(additional_attachment)
+                local_attachments.append(additional_attachment)
 
             # unfurl_links and unfurl_media are needed to preserve the intended message format
             # and prevent the app from replying with help text to the unfurl
@@ -175,7 +177,7 @@ def send_notification_as_slack(
                 "unfurl_links": False,
                 "unfurl_media": False,
                 "text": notification.get_notification_title(),
-                "attachments": json.dumps(attachments),
+                "attachments": json.dumps(local_attachments),
             }
             log_params = {
                 "notification": notification,
