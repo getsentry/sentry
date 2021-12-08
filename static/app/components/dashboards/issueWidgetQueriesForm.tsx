@@ -54,11 +54,6 @@ class IssueWidgetQueriesForm extends React.Component<Props, State> {
     };
   };
 
-  getFirstQueryError(key: string) {
-    const {error} = this.props;
-    return error?.[key];
-  }
-
   tagValueLoader = (key: string, search: string) => {
     const {organization, selection} = this.props;
     const orgId = organization.slug;

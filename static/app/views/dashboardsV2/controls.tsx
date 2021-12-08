@@ -7,12 +7,13 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
 import Hovercard from 'sentry/components/hovercard';
+import Tooltip from 'sentry/components/tooltip';
 import {IconAdd, IconEdit} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 
-import {DashboardListItem, DashboardState} from './types';
+import {DashboardListItem, DashboardState, MAX_WIDGETS} from './types';
 
 type Props = {
   organization: Organization;
@@ -24,6 +25,7 @@ type Props = {
   onAddWidget: () => void;
   onAddIssueWidget: () => void;
   dashboardState: DashboardState;
+  widgetCount: number;
 };
 
 class Controls extends React.Component<Props> {
@@ -32,6 +34,7 @@ class Controls extends React.Component<Props> {
       organization,
       dashboardState,
       dashboards,
+      widgetCount,
       onEdit,
       onCancel,
       onCommit,
@@ -118,17 +121,22 @@ class Controls extends React.Component<Props> {
                 {t('Edit Dashboard')}
               </Button>
               {organization.features.includes('widget-library') ? (
-                <Button
-                  data-test-id="add-widget-library"
-                  priority="primary"
-                  icon={<IconAdd isCircled />}
-                  onClick={e => {
-                    e.preventDefault();
-                    onAddWidget();
-                  }}
+                <Tooltip
+                  title={tct('Max widgets ([maxWidgets]) per dashboard reached.', {
+                    maxWidgets: MAX_WIDGETS,
+                  })}
+                  disabled={!!!(widgetCount >= MAX_WIDGETS)}
                 >
-                  {t('Add Widget')}
-                </Button>
+                  <Button
+                    data-test-id="add-widget-library"
+                    priority="primary"
+                    disabled={widgetCount >= MAX_WIDGETS}
+                    icon={<IconAdd isCircled />}
+                    onClick={onAddWidget}
+                  >
+                    {t('Add Widget')}
+                  </Button>
+                </Tooltip>
               ) : null}
             </React.Fragment>
           )}

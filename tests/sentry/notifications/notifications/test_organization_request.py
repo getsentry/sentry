@@ -2,7 +2,6 @@ from sentry.models import NotificationSetting, OrganizationMember
 from sentry.notifications.notifications.organization_request import OrganizationRequestNotification
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils import TestCase
-from sentry.testutils.helpers import with_feature
 from sentry.types.integrations import ExternalProviders
 
 
@@ -22,7 +21,6 @@ class GetParticipantsTest(TestCase):
         self.member1 = self.create_member(user=self.user1, organization=self.organization)
         self.member2 = self.create_member(user=self.user2, organization=self.organization)
 
-    @with_feature("organizations:slack-requests")
     def test_default_to_slack(self):
         member_ids = [self.member1.id, self.member2.id]
         notification = DummyRequestNotification(self.organization, self.user, member_ids)
@@ -32,7 +30,6 @@ class GetParticipantsTest(TestCase):
             ExternalProviders.SLACK: {self.user1, self.user2},
         }
 
-    @with_feature("organizations:slack-requests")
     def test_turn_off_settings(self):
         NotificationSetting.objects.update_settings(
             ExternalProviders.SLACK,

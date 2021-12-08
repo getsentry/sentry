@@ -9,10 +9,7 @@ import set from 'lodash/set';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {
-  ModalRenderProps,
-  openDashboardWidgetLibraryModal,
-} from 'sentry/actionCreators/modal';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -61,6 +58,8 @@ import Field from 'sentry/views/settings/components/forms/field';
 import FieldLabel from 'sentry/views/settings/components/forms/field/fieldLabel';
 
 import Tooltip from '../tooltip';
+
+import {TAB, TabsButtonBar} from './dashboardWidgetLibraryModal/tabsButtonBar';
 
 export type DashboardWidgetModalOptions = {
   organization: Organization;
@@ -556,7 +555,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
             {this.omitDashboardProp
               ? t('Add Widget to Dashboard')
               : this.fromLibrary
-              ? t('Add Custom Widget')
+              ? t('Add Widget(s)')
               : isUpdatingWidget
               ? t('Edit Widget')
               : t('Add Widget')}
@@ -564,6 +563,16 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         </Header>
         <Body>
           {this.omitDashboardProp && this.renderDashboardSelector()}
+          {this.fromLibrary && dashboard && onAddLibraryWidget ? (
+            <TabsButtonBar
+              activeTab={TAB.Custom}
+              organization={organization}
+              dashboard={dashboard}
+              selectedWidgets={selectedWidgets}
+              customWidget={this.state}
+              onAddWidget={onAddLibraryWidget}
+            />
+          ) : null}
           <DoubleFieldWrapper>
             <StyledField
               data-test-id="widget-name"
@@ -690,47 +699,28 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
           )}
         </Body>
         <Footer>
-          <StyledButtonBar gap={1}>
+          <ButtonBar gap={1}>
             <Button
               external
               href="https://docs.sentry.io/product/dashboards/custom-dashboards/#widget-builder"
             >
               {t('Read the docs')}
             </Button>
-            <ButtonBar gap={1}>
-              {this.fromLibrary && dashboard && onAddLibraryWidget ? (
-                <Button
-                  data-test-id="back-to-library"
-                  type="button"
-                  onClick={() => {
-                    openDashboardWidgetLibraryModal({
-                      organization,
-                      dashboard,
-                      customWidget: this.state,
-                      initialSelectedWidgets: selectedWidgets,
-                      onAddWidget: onAddLibraryWidget,
-                    });
-                  }}
-                >
-                  {t('Back to Library')}
-                </Button>
-              ) : null}
-              <Button
-                data-test-id="add-widget"
-                priority="primary"
-                type="button"
-                onClick={this.handleSubmit}
-                disabled={state.loading}
-                busy={state.loading}
-              >
-                {this.fromLibrary
-                  ? t('Confirm')
-                  : isUpdatingWidget
-                  ? t('Update Widget')
-                  : t('Add Widget')}
-              </Button>
-            </ButtonBar>
-          </StyledButtonBar>
+            <Button
+              data-test-id="add-widget"
+              priority="primary"
+              type="button"
+              onClick={this.handleSubmit}
+              disabled={state.loading}
+              busy={state.loading}
+            >
+              {this.fromLibrary
+                ? t('Save')
+                : isUpdatingWidget
+                ? t('Update Widget')
+                : t('Add Widget')}
+            </Button>
+          </ButtonBar>
         </Footer>
       </React.Fragment>
     );
