@@ -23,21 +23,22 @@ export function initializeData(settings?: {
     project: _defaultProject,
     ...settings,
   };
-  const {query, features} = _settings;
-
-  const projects = [TestStubs.Project()];
-  const [project] = projects;
+  const {query, features, projects, project} = _settings;
 
   const organization = TestStubs.Organization({
     features,
     projects,
   });
-  const router = {
-    location: {
-      query: {
-        ...query,
-      },
+  const routerLocation: {query: {project?: number}} = {
+    query: {
+      ...query,
     },
+  };
+  if (settings?.project) {
+    routerLocation.query.project = project;
+  }
+  const router = {
+    location: routerLocation,
   };
   const initialData = initializeOrg({organization, projects, project, router});
   const location = initialData.router.location;

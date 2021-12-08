@@ -1,4 +1,5 @@
-import {FC} from 'react';
+import {FC, useEffect, useRef} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -31,7 +32,8 @@ import {FrontendOtherView} from './views/frontendOtherView';
 import {FrontendPageloadView} from './views/frontendPageloadView';
 import {MobileView} from './views/mobileView';
 import {
-  getCurrentLandingDisplay,
+  getDefaultDisplayForPlatform,
+  getLandingDisplayFromParam,
   handleLandingDisplayChange,
   LANDING_V3_DISPLAYS,
   LandingDisplayField,
@@ -69,7 +71,30 @@ export function PerformanceLanding(props: Props) {
 
   const {teams, initiallyLoaded} = useTeams({provideUserTeams: true});
 
-  const currentLandingDisplay = getCurrentLandingDisplay(location, projects, eventView);
+  const hasMounted = useRef(false);
+  const paramLandingDisplay = getLandingDisplayFromParam(location);
+  const defaultLandingDisplayForProjects = getDefaultDisplayForPlatform(
+    projects,
+    eventView
+  );
+  const landingDisplay = paramLandingDisplay ?? defaultLandingDisplayForProjects;
+
+  useEffect(() => {
+    if (hasMounted.current) {
+      browserHistory.replace({
+        pathname: location.pathname,
+        query: {
+          ...location.query,
+          landingDisplay: undefined,
+        },
+      });
+    }
+  }, [eventView.project.join('.')]);
+
+  useEffect(() => {
+    hasMounted.current = true;
+  }, []);
+
   const filterString = getTransactionSearchQuery(location, eventView.query);
   const {isMetricsData} = useMetricsSwitch();
 
@@ -79,7 +104,7 @@ export function PerformanceLanding(props: Props) {
     ({isShown}) => !isShown || isShown(organization)
   );
 
-  const ViewComponent = fieldToViewMap[currentLandingDisplay.field];
+  const ViewComponent = fieldToViewMap[landingDisplay.field];
 
   return (
     <StyledPageContent>
@@ -105,12 +130,10 @@ export function PerformanceLanding(props: Props) {
 
           <StyledNavTabs>
             {shownLandingDisplays.map(({label, field}) => (
-              <li
-                key={label}
-                className={currentLandingDisplay.field === field ? 'active' : ''}
-              >
+              <li key={label} className={landingDisplay.field === field ? 'active' : ''}>
                 <a
                   href="#"
+                  data-test-id={`landing-tab-${field}`}
                   onClick={() =>
                     handleLandingDisplayChange(
                       field,
