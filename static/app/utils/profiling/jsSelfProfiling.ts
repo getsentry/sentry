@@ -1,3 +1,13 @@
+import {stackMarkerToHumanReadable} from './formatters/stackMarkerToHumanReadable';
+
+function createMarkerFrame(marker: JSSelfProfiling.Marker): JSSelfProfiling.Frame {
+  return {
+    name: stackMarkerToHumanReadable(marker),
+    resourceId: undefined,
+    line: undefined,
+    column: undefined,
+  };
+}
 /**
  * Utility fn to resolve stack frames starting from the top most frame.
  * Each frame points to it's parent, with the initial stackId pointer pointing to the top of the frame.
@@ -10,35 +20,42 @@
 export function resolveJSSelfProfilingStack(
   trace: JSSelfProfiling.Trace,
   stackId: JSSelfProfiling.Sample['stackId'],
-  frameIndex: Record<string, JSSelfProfiling.Frame>,
   marker?: JSSelfProfiling.Marker
 ): JSSelfProfiling.Frame[] {
   // If there is no stack associated with a sample, it means the thread was idle
-  if (stackId === undefined) return [];
 
-  const stack: JSSelfProfiling.Frame[] = [];
+  const callStack: JSSelfProfiling.Frame[] = [];
 
-  // There can only be one marker per stack, so prepend it to the start of the stack
+  // There can only be one marker per callStack, so prepend it to the start of the stack
   if (marker && marker !== 'script') {
-    const current = frameIndex[marker];
-    stack.unshift(current);
+    callStack.unshift(createMarkerFrame(marker));
   }
 
-  let node: JSSelfProfiling.Stack | undefined = trace.stacks[stackId];
+  if (stackId === undefined) return callStack;
 
-  // If the stackId cannot be resolved from the stacks dict, it means the format is corrupted - this should never happen.
-  if (!node) throw new Error(`Missing stackId ${stackId} in trace, cannot resolve stack`);
+  let stack: JSSelfProfiling.Stack | undefined = trace.stacks[stackId];
 
-  while (node) {
-    const current = frameIndex[node.frameId];
-    stack.unshift(current);
+  // If the stackId cannot be resolved from the stacks dict, it means the format is corrupt or partial (possibly due to termination reasons).
+  // This should never happen, but in the offchance that it somehow does, it should be handled.
+  if (!stack) {
+    throw new Error(`Missing stackId ${stackId} in trace, cannot resolve stack`);
+  }
 
-    if (node.parentId) {
-      node = trace.stacks[node.parentId];
+  while (stack) {
+    // If the frameId pointer cannot be resolved, it means the format is corrupt or partial (possibly due to termination reasons).
+    // This should never happen, but in the offchance that it somehow does, it should be handled.
+    if (!trace.frames[stack.frameId]) {
+      return callStack;
+    }
+
+    callStack.unshift(trace.frames[stack.frameId]);
+
+    if (stack.parentId) {
+      stack = trace.stacks[stack.parentId];
     } else {
-      node = undefined;
+      stack = undefined;
     }
   }
 
-  return stack;
+  return callStack;
 }
