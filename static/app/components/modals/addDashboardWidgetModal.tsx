@@ -638,7 +638,6 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
                 onChange={widgetQuery => this.handleQueryChange(widgetQuery, 0)}
               />
               <IssueWidgetCard
-                api={api}
                 organization={organization}
                 selection={querySelection}
                 widget={{...this.state, displayType: DisplayType.TABLE}}
@@ -652,6 +651,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
                 }
                 isSorting={false}
                 currentWidgetDragging={false}
+                noLazyLoad
               />
             </React.Fragment>
           ) : (
@@ -679,7 +679,6 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
                 }}
               </Measurements>
               <WidgetCard
-                api={api}
                 organization={organization}
                 selection={querySelection}
                 widget={this.state}
@@ -742,11 +741,6 @@ export const modalCss = css`
 
 const StyledField = styled(Field)`
   position: relative;
-`;
-
-const StyledButtonBar = styled(ButtonBar)`
-  justify-content: space-between;
-  width: 100%;
 `;
 
 const StyledRadioGroup = styled(RadioGroup)`
