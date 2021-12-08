@@ -114,14 +114,14 @@ const newQuery = {
 
 const newIssueQuery = {
   name: '',
-  fields: ['issue', 'title', 'assignee'] as string[],
+  fields: ['issue', 'assignee', 'title'] as string[],
   conditions: '',
   orderby: '',
 };
 
 const DATASET_CHOICES: [WidgetType, string][] = [
-  [WidgetType.DISCOVER, 'All Events'],
-  [WidgetType.ISSUE, 'Issue'],
+  [WidgetType.DISCOVER, t('All Events (Errors, Transactions, CSP)')],
+  [WidgetType.ISSUE, t('Issues (Assignees, Status, ...)')],
 ];
 
 class AddDashboardWidgetModal extends React.Component<Props, State> {
