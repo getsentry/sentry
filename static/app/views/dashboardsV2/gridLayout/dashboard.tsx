@@ -260,6 +260,9 @@ class Dashboard extends Component<Props> {
         isDraggable={isEditing}
         isResizable={isEditing}
         isBounded
+        // Turn off CSS transforms to avoid stacking contexts
+        useCSSTransforms={false}
+        measureBeforeMount
       >
         {widgets.map((widget, index) => this.renderWidget(widget, index))}
         {isEditing && widgets.length < MAX_WIDGETS && (
