@@ -4,17 +4,41 @@ import omit from 'lodash/omit';
 import Input from 'sentry/views/settings/components/forms/controls/input';
 import FormField from 'sentry/views/settings/components/forms/formField';
 
-type Props = {
-  // TODO(ts) Add base types for this. Each input field
-  // has different props, but we could use have a base type that contains
-  // the common properties.
+// type Props = {
+//   // TODO(ts) Add base types for this. Each input field
+//   // has different props, but we could use have a base type that contains
+//   // the common properties.
+//   field?: (props) => React.ReactNode;
+//   value?: any;
+// } & Omit<FormField['props'], 'children'> &
+//   Omit<
+//     React.ComponentPropsWithoutRef<'input'>,
+//     'value' | 'placeholder' | 'disabled' | 'onBlur' | 'onKeyDown' | 'onChange'
+//   >;
+
+interface InputProps
+  extends Omit<
+    React.HTMLAttributes<HTMLDivElement>,
+    | 'value'
+    | 'placeholder'
+    | 'disabled'
+    | 'onBlur'
+    | 'onKeyDown'
+    | 'onChange'
+    | 'id'
+    // Below types are omitted because they conflict with FormFieldProps
+    | 'style'
+    | 'className'
+    | 'children'
+    | 'defaultValue'
+  > {}
+
+interface FormFieldProps extends Omit<FormField['props'], 'children'> {}
+
+interface Props extends InputProps, FormFieldProps {
   field?: (props) => React.ReactNode;
   value?: any;
-} & Omit<FormField['props'], 'children'> &
-  Omit<
-    React.ComponentPropsWithoutRef<'input'>,
-    'value' | 'placeholder' | 'disabled' | 'onBlur' | 'onKeyDown' | 'onChange'
-  >;
+}
 
 export type onEvent = (value, event?: React.FormEvent<HTMLInputElement>) => void;
 

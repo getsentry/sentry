@@ -42,9 +42,9 @@ const flexCenter = css`
   align-items: center;
 `;
 
-type Props = {
+interface Props extends RouteComponentProps<{}, {}> {
   organization: Organization;
-} & RouteComponentProps<{}, {}>;
+}
 
 class SettingsIndex extends React.Component<Props> {
   componentDidUpdate(prevProps: Props) {
@@ -321,15 +321,17 @@ const HomeLinkIcon = styled(HomeLink)`
   ${flexCenter};
 `;
 
-type CenterableProps = {
+interface CenterableProps {
   isCentered?: boolean;
-};
+}
 
-const ExternalHomeLink = styled(
-  (props: CenterableProps & React.ComponentPropsWithRef<typeof ExternalLink>) => (
-    <ExternalLink {...omit(props, 'isCentered')} />
-  )
-)<CenterableProps>`
+interface ExternalHomeLinkProps
+  extends CenterableProps,
+    React.AnchorHTMLAttributes<HTMLAnchorElement> {}
+
+const ExternalHomeLink = styled((props: ExternalHomeLinkProps) => {
+  return <ExternalLink {...omit(props, 'isCentered')} />;
+})<CenterableProps>`
   color: ${p => p.theme.purple300};
 
   &:hover {

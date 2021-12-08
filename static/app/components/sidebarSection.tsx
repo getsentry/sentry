@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 
 import space from 'sentry/styles/space';
 
-type Props = {
+interface Props {
   title: React.ReactNode;
   children?: React.ReactNode;
   icon?: React.ReactNode;
-};
+}
 
 /**
  * Used to add the new sidebar section on a page.

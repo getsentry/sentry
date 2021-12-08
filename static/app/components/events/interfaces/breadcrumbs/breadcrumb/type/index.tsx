@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
 
 import Tooltip from 'sentry/components/tooltip';
-import SvgIcon from 'sentry/icons/svgIcon';
+import {SVGIconProps} from 'sentry/icons/svgIcon';
 
 import Icon from './icon';
 
-type Props = Required<Pick<React.ComponentProps<typeof SvgIcon>, 'color'>> &
+type Props = Required<Pick<SVGIconProps, 'color'>> &
   React.ComponentProps<typeof Icon> & {
     description?: string;
     error?: boolean;

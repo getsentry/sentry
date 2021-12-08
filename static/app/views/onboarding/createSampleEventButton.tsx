@@ -8,7 +8,7 @@ import {
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import Button from 'sentry/components/button';
+import Button, {ButtonProps} from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {trackAdhocEvent, trackAnalyticsEvent} from 'sentry/utils/analytics';
@@ -16,12 +16,12 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
-type Props = React.ComponentProps<typeof Button> & {
+interface Props extends ButtonProps {
   api: Client;
   organization: Organization;
   project?: Project;
   source: string;
-};
+}
 
 type State = {
   creating: boolean;

@@ -5,7 +5,7 @@ import moment from 'moment';
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
-import Button from 'sentry/components/button';
+import Button, {ButtonProps} from 'sentry/components/button';
 import Hovercard from 'sentry/components/hovercard';
 import Link from 'sentry/components/links/link';
 import {IconCommit, IconWarning} from 'sentry/icons';
@@ -192,7 +192,7 @@ const OwnershipTag = styled(({tagType, ...props}) => <div {...props}>{tagType}</
   text-align: center;
 `;
 
-const ViewMoreButton = styled((p: React.ComponentProps<typeof Button>) => (
+const ViewMoreButton = styled((p: ButtonProps) => (
   <Button {...p} priority="link" size="zero">
     {t('View more')}
   </Button>

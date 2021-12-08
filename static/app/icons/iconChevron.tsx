@@ -3,14 +3,14 @@ import {css} from '@emotion/react';
 
 import theme from 'sentry/utils/theme';
 
-import SvgIcon from './svgIcon';
+import SvgIcon, {SVGIconProps} from './svgIcon';
 
-type Props = React.ComponentProps<typeof SvgIcon> & {
+interface Props extends SVGIconProps {
   direction?: 'up' | 'right' | 'down' | 'left';
   isCircled?: boolean;
-};
+}
 
-const IconChevron = React.forwardRef(function IconChevron(
+const IconChevron = React.forwardRef<SVGSVGElement, Props>(function IconChevron(
   {isCircled = false, direction = 'up', ...props}: Props,
   ref: React.Ref<SVGSVGElement>
 ) {

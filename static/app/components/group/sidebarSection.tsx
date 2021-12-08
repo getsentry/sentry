@@ -1,5 +1,6 @@
 import * as React from 'react';
-import styled from '@emotion/styled';
+import {Theme} from '@emotion/react';
+import styled, {StyledComponent} from '@emotion/styled';
 
 import space from 'sentry/styles/space';
 
@@ -27,11 +28,21 @@ const Subheading = styled('h6')`
   margin-bottom: ${space(1)};
 `;
 
-type Props = {
+interface HeadingProps
+  extends StyledComponent<
+    {
+      theme?: Theme | undefined;
+      as?: React.ElementType<any> | undefined;
+    },
+    React.DetailedHTMLProps<React.HTMLAttributes<HTMLHeadingElement>, HTMLHeadingElement>,
+    {}
+  > {}
+
+interface Props extends HeadingProps {
   title: React.ReactNode;
   children: React.ReactNode;
   secondary?: boolean;
-} & Omit<React.ComponentProps<typeof Heading>, 'title'>;
+}
 
 /**
  * Used to add a new section in Issue Details' sidebar.

@@ -16,7 +16,7 @@ import {Theme} from 'sentry/utils/theme';
  */
 type ButtonElement = HTMLButtonElement & HTMLAnchorElement & any;
 
-type Props = {
+interface Props {
   priority?: 'default' | 'primary' | 'danger' | 'link' | 'success' | 'form';
   size?: 'zero' | 'xsmall' | 'small';
   align?: 'center' | 'left' | 'right';
@@ -36,9 +36,11 @@ type Props = {
 
   // This is only used with `<ButtonBar>`
   barId?: string;
-};
+}
 
-type ButtonProps = Omit<React.HTMLProps<ButtonElement>, keyof Props | 'ref'> & Props;
+export interface ButtonProps
+  extends Props,
+    Omit<React.HTMLProps<ButtonElement>, keyof Props | 'ref'> {}
 
 type Url = ButtonProps['to'] | ButtonProps['href'];
 
@@ -129,7 +131,7 @@ class BaseButton extends React.Component<ButtonProps, {}> {
     // Doing this instead of using `Tooltip`'s `disabled` prop so that we can minimize snapshot nesting
     if (title) {
       return (
-        <Tooltip skipWrapper={!disabled} {...tooltipProps} title={title}>
+        <Tooltip skipWrapper {...tooltipProps} title={title}>
           {button}
         </Tooltip>
       );

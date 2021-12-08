@@ -1,5 +1,6 @@
 import * as React from 'react';
-import styled from '@emotion/styled';
+import {Theme} from '@emotion/react';
+import styled, {StyledComponent} from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import {PlatformIcon} from 'platformicons';
 
@@ -34,7 +35,14 @@ type Props = {
   platform?: string | null;
   showOther?: boolean;
   listClassName?: string;
-  listProps?: React.ComponentProps<typeof PlatformList>;
+  listProps?: StyledComponent<
+    {
+      theme?: Theme | undefined;
+      as?: React.ElementType<any> | undefined;
+    },
+    React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement>,
+    {}
+  >;
   noAutoFilter?: boolean;
   defaultCategory?: Category;
   organization?: Organization;

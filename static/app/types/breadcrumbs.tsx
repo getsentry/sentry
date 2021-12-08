@@ -1,7 +1,7 @@
-import SvgIcon from 'sentry/icons/svgIcon';
+import {SVGIconProps} from 'sentry/icons/svgIcon';
 import {Color} from 'sentry/utils/theme';
 
-export type IconProps = React.ComponentProps<typeof SvgIcon>;
+export type IconProps = SVGIconProps;
 
 export enum BreadcrumbLevelType {
   FATAL = 'fatal',

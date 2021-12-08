@@ -1,11 +1,9 @@
 import * as React from 'react';
 
-import SvgIcon from './svgIcon';
+import SvgIcon, {SVGIconProps} from './svgIcon';
 
-type Props = React.ComponentProps<typeof SvgIcon>;
-
-const IconRookout = React.forwardRef(function IconRookout(
-  props: Props,
+const IconRookout = React.forwardRef<SVGSVGElement, SVGIconProps>(function IconRookout(
+  props: SVGIconProps,
   ref: React.Ref<SVGSVGElement>
 ) {
   return (

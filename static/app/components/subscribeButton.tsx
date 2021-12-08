@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import Button from 'sentry/components/button';
+import Button, {ButtonProps} from 'sentry/components/button';
 import {IconBell} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
@@ -8,7 +8,7 @@ type Props = {
   onClick: (e: React.MouseEvent) => void;
   disabled?: boolean;
   isSubscribed?: boolean;
-  size?: React.ComponentProps<typeof Button>['size'];
+  size?: ButtonProps['size'];
 };
 
 export default class SubscribeButton extends React.Component<Props> {

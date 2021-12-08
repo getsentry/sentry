@@ -19,7 +19,7 @@ export const OPEN_DELAY = 50;
  */
 const CLOSE_DELAY = 50;
 
-type DefaultProps = {
+interface DefaultProps {
   /**
    * Position for the tooltip.
    */
@@ -29,9 +29,9 @@ type DefaultProps = {
    * Display mode for the container element
    */
   containerDisplayMode?: React.CSSProperties['display'];
-};
+}
 
-type Props = DefaultProps & {
+export interface TooltipProps extends DefaultProps {
   /**
    * The node to attach the Tooltip to
    */
@@ -80,7 +80,7 @@ type Props = DefaultProps & {
   forceShow?: boolean;
 
   className?: string;
-};
+}
 
 type State = {
   isOpen: boolean;
@@ -110,7 +110,7 @@ function computeOriginFromArrow(
   }
 }
 
-class Tooltip extends React.Component<Props, State> {
+class Tooltip extends React.Component<TooltipProps, State> {
   static defaultProps: DefaultProps = {
     position: 'top',
     containerDisplayMode: 'inline-block',
@@ -322,7 +322,7 @@ const PositionWrapper = styled('div')`
   z-index: ${p => p.theme.zIndex.tooltip};
 `;
 
-const TooltipContent = styled(motion.div)<Pick<Props, 'popperStyle'>>`
+const TooltipContent = styled(motion.div)<{popperStyle: TooltipProps['popperStyle']}>`
   will-change: transform, opacity;
   position: relative;
   background: ${p => p.theme.backgroundElevated};

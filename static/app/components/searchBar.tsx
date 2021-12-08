@@ -7,18 +7,18 @@ import {IconSearch} from 'sentry/icons';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
-import Input from 'sentry/views/settings/components/forms/controls/input';
+import Input, {InputProps} from 'sentry/views/settings/components/forms/controls/input';
 
-type DefaultProps = {
+interface DefaultProps {
   query: string;
   defaultQuery: string;
   onSearch: (query: string) => void;
-};
+}
 
-type Props = DefaultProps & {
+interface Props extends DefaultProps, Omit<InputProps, 'onChange'> {
   width?: string;
   onChange?: (query: string) => void;
-} & Omit<React.ComponentProps<typeof Input>, 'onChange'>;
+}
 
 type State = {
   query: string;

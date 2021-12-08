@@ -3,13 +3,13 @@ import {css} from '@emotion/react';
 
 import theme from 'sentry/utils/theme';
 
-import SvgIcon from './svgIcon';
+import SvgIcon, {SVGIconProps} from './svgIcon';
 
-type Props = React.ComponentProps<typeof SvgIcon> & {
+interface Props extends SVGIconProps {
   direction?: 'up' | 'right' | 'down' | 'left';
-};
+}
 
-const IconArrow = React.forwardRef(function IconArrow(
+const IconArrow = React.forwardRef<SVGSVGElement, Props>(function IconArrow(
   {direction = 'up', ...props}: Props,
   ref: React.Ref<SVGSVGElement>
 ) {

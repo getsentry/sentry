@@ -1,11 +1,9 @@
 import * as React from 'react';
 
-import SvgIcon from './svgIcon';
+import SvgIcon, {SVGIconProps} from './svgIcon';
 
-type Props = React.ComponentProps<typeof SvgIcon>;
-
-const IconCalixa = React.forwardRef(function IconCalixa(
-  props: Props,
+const IconCalixa = React.forwardRef<SVGSVGElement, SVGIconProps>(function IconCalixa(
+  props: SVGIconProps,
   ref: React.Ref<SVGSVGElement>
 ) {
   return (

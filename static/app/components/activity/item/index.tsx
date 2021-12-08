@@ -16,7 +16,7 @@ export type ActivityAuthorType = 'user' | 'system';
 
 type ChildFunction = () => React.ReactNode;
 
-type Props = {
+interface Props {
   children?: React.ReactChild | ChildFunction;
   className?: string;
   /**
@@ -65,9 +65,9 @@ type Props = {
   footer?: React.ReactNode | ChildFunction;
 
   bubbleProps?: React.ComponentProps<typeof ActivityBubble>;
-};
+}
 
-function ActivityItem({
+const ActivityItem: React.FC<Props> = function ({
   author,
   avatarSize,
   bubbleProps,
@@ -80,7 +80,7 @@ function ActivityItem({
   header,
   hideDate = false,
   showTime = false,
-}: Props) {
+}) {
   const showDate = !hideDate && date && !interval;
   const showRange = !hideDate && date && interval;
   const dateEnded = showRange
@@ -132,7 +132,7 @@ function ActivityItem({
       </StyledActivityBubble>
     </ActivityItemWrapper>
   );
-}
+};
 
 const ActivityItemWrapper = styled('div')`
   display: flex;

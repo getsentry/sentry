@@ -1,7 +1,7 @@
 import * as React from 'react';
 import classNames from 'classnames';
 
-import Button from 'sentry/components/button';
+import {ButtonProps} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 
 type Props = {
@@ -10,7 +10,7 @@ type Props = {
   onConfirm: () => void;
   disabled?: boolean;
   className?: string;
-  priority?: React.ComponentProps<typeof Button>['priority'];
+  priority?: ButtonProps['priority'];
 };
 
 /**

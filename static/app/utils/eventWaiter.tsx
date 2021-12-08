@@ -21,7 +21,7 @@ const recordAnalyticsFirstEvent = ({key, organization, project}) =>
  */
 type FirstIssue = null | true | Group;
 
-type Props = {
+export interface BaseEventWaiterProps {
   api: Client;
   organization: Organization;
   project: Project;
@@ -30,8 +30,11 @@ type Props = {
   pollInterval?: number;
   onIssueReceived?: (props: {firstIssue: FirstIssue}) => void;
   onTransactionReceived?: (props: {firstIssue: FirstIssue}) => void;
+}
+
+interface EventWaiterProps extends BaseEventWaiterProps {
   children: (props: {firstIssue: FirstIssue}) => React.ReactNode;
-};
+}
 
 type State = {
   firstIssue: FirstIssue;
@@ -41,7 +44,7 @@ type State = {
  * This is a render prop component that can be used to wait for the first event
  * of a project to be received via polling.
  */
-class EventWaiter extends React.Component<Props, State> {
+class EventWaiter extends React.Component<EventWaiterProps, State> {
   state: State = {
     firstIssue: null,
   };

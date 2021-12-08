@@ -1,6 +1,6 @@
 import * as React from 'react';
 import isPropValid from '@emotion/is-prop-valid';
-import styled from '@emotion/styled';
+import styled, {CreateStyledComponent} from '@emotion/styled';
 
 import Radio from 'sentry/components/radio';
 import space from 'sentry/styles/space';
@@ -13,7 +13,7 @@ const Container = styled('div')<{orientInline?: boolean}>`
   grid-auto-columns: max-content;
 `;
 
-type RadioGroupProps<C extends string> = {
+interface RadioGroupProps<C extends string> {
   label: string;
   disabled?: boolean;
   /**
@@ -26,10 +26,9 @@ type RadioGroupProps<C extends string> = {
    * Switch the radio items to flow left to right, instead of vertically.
    */
   orientInline?: boolean;
-};
+}
 
-type Props<C extends string> = RadioGroupProps<C> &
-  Omit<React.ComponentPropsWithoutRef<typeof Container>, keyof RadioGroupProps<C>>;
+interface Props<C extends string> extends RadioGroupProps<C>, CreateStyledComponent<{}> {}
 
 const RadioGroup = <C extends string>({
   value,

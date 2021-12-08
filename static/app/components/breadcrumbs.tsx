@@ -57,7 +57,7 @@ export type CrumbDropdown = {
   onSelect: React.ComponentProps<typeof BreadcrumbDropdown>['onSelect'];
 };
 
-type Props = React.ComponentPropsWithoutRef<typeof BreadcrumbList> & {
+interface Props {
   /**
    * Array of crumbs that will be rendered
    */
@@ -70,7 +70,7 @@ type Props = React.ComponentPropsWithoutRef<typeof BreadcrumbList> & {
    * assign `to: null/undefined` when passing props to this component.
    */
   linkLastItem?: boolean;
-};
+}
 
 function isCrumbDropdown(crumb: Crumb | CrumbDropdown): crumb is CrumbDropdown {
   return (crumb as CrumbDropdown).items !== undefined;
@@ -79,7 +79,7 @@ function isCrumbDropdown(crumb: Crumb | CrumbDropdown): crumb is CrumbDropdown {
 /**
  * Page breadcrumbs used for navigation, not to be confused with sentry's event breadcrumbs
  */
-const Breadcrumbs = ({crumbs, linkLastItem = false, ...props}: Props) => {
+const Breadcrumbs: React.FC<Props> = ({crumbs, linkLastItem = false}) => {
   if (crumbs.length === 0) {
     return null;
   }
@@ -92,7 +92,7 @@ const Breadcrumbs = ({crumbs, linkLastItem = false, ...props}: Props) => {
   }
 
   return (
-    <BreadcrumbList {...props}>
+    <BreadcrumbList>
       {crumbs.map((crumb, index) => {
         if (isCrumbDropdown(crumb)) {
           const {label, ...crumbProps} = crumb;

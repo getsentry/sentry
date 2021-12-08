@@ -3,19 +3,27 @@ import * as React from 'react';
 import RangeSlider from 'sentry/views/settings/components/forms/controls/rangeSlider';
 import InputField, {onEvent} from 'sentry/views/settings/components/forms/inputField';
 
-type DefaultProps = {
-  formatMessageValue?: false | Function;
-};
-
 type DisabledFunction = (props: Omit<Props, 'formatMessageValue'>) => boolean;
 type PlaceholderFunction = (props: any) => React.ReactNode;
 
-type Props = DefaultProps &
-  Omit<React.ComponentProps<typeof RangeSlider>, 'value' | 'disabled' | 'placeholder'> &
-  Omit<InputField['props'], 'disabled' | 'field'> & {
-    disabled?: boolean | DisabledFunction;
-    placeholder?: string | PlaceholderFunction;
-  };
+interface Props
+  extends Omit<
+      React.ComponentProps<typeof RangeSlider>,
+      | 'name'
+      | 'value'
+      | 'disabled'
+      | 'placeholder'
+      | 'formatMessageValue'
+      | 'css'
+      | 'onChange'
+      | 'onBlur'
+      | 'className'
+    >,
+    Omit<InputField['props'], 'disabled' | 'field'> {
+  disabled?: boolean | DisabledFunction;
+  placeholder?: string | PlaceholderFunction;
+  formatMessageValue?: false | Function;
+}
 
 function onChange(
   fieldOnChange: onEvent,

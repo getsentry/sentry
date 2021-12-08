@@ -1,11 +1,9 @@
 import * as React from 'react';
 
-import SvgIcon from './svgIcon';
+import SvgIcon, {SVGIconProps} from './svgIcon';
 
-type Props = React.ComponentProps<typeof SvgIcon>;
-
-const IconMute = React.forwardRef(function IconMute(
-  props: Props,
+const IconMute = React.forwardRef<SVGSVGElement, SVGIconProps>(function IconMute(
+  props: SVGIconProps,
   ref: React.Ref<SVGSVGElement>
 ) {
   return (

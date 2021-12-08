@@ -1,13 +1,13 @@
 import * as React from 'react';
 
-import SvgIcon from './svgIcon';
+import SvgIcon, {SVGIconProps} from './svgIcon';
 
-type Props = React.ComponentProps<typeof SvgIcon> & {
+interface Props extends SVGIconProps {
   isCircled?: boolean;
-};
+}
 
-const IconAdd = React.forwardRef(function IconAdd(
-  {isCircled = false, ...props}: Props,
+const IconAdd = React.forwardRef<SVGSVGElement, Props>(function IconAdd(
+  {isCircled = false, ...props},
   ref: React.Ref<SVGSVGElement>
 ) {
   return (

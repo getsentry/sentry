@@ -9,7 +9,7 @@ import space from 'sentry/styles/space';
 
 import {CommonSidebarProps} from './types';
 
-type PositionProps = Pick<CommonSidebarProps, 'orientation' | 'collapsed'>;
+interface PositionProps extends Pick<CommonSidebarProps, 'orientation' | 'collapsed'> {}
 
 const PanelContainer = styled('div')<PositionProps>`
   position: fixed;
@@ -40,10 +40,12 @@ const PanelContainer = styled('div')<PositionProps>`
         `};
 `;
 
-type Props = React.ComponentProps<typeof PanelContainer> &
-  Pick<CommonSidebarProps, 'collapsed' | 'orientation' | 'hidePanel'> & {
-    title?: string;
-  };
+interface Props extends React.HTMLAttributes<HTMLDivElement> {
+  collapsed: CommonSidebarProps['collapsed'];
+  orientation: CommonSidebarProps['orientation'];
+  hidePanel: CommonSidebarProps['hidePanel'];
+  title: string;
+}
 
 /**
  * Get the container element of the sidebar that react portals into.
@@ -59,7 +61,7 @@ const makePortal = () => {
   return portal;
 };
 
-function SidebarPanel({
+const SidebarPanel: React.FC<Props> = function ({
   orientation,
   collapsed,
   hidePanel,
@@ -108,7 +110,7 @@ function SidebarPanel({
   );
 
   return ReactDOM.createPortal(sidebar, portalEl.current);
-}
+};
 
 export default SidebarPanel;
 

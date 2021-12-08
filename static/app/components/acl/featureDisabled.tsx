@@ -65,7 +65,7 @@ class FeatureDisabled extends React.Component<Props, State> {
     showHelp: false,
   };
 
-  toggleHelp = (e: React.MouseEvent) => {
+  toggleHelp = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     this.setState(state => ({showHelp: !state.showHelp}));
   };

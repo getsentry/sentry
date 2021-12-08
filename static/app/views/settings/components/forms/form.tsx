@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
 import {APIRequestMethod} from 'sentry/api';
-import Button from 'sentry/components/button';
+import Button, {ButtonProps} from 'sentry/components/button';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -37,7 +37,7 @@ type Props = {
    */
   submitDisabled?: boolean;
   submitLabel?: string;
-  submitPriority?: React.ComponentProps<typeof Button>['priority'];
+  submitPriority?: ButtonProps['priority'];
   footerClass?: string;
   footerStyle?: React.CSSProperties;
   extraButton?: React.ReactNode;

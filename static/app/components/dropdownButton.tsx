@@ -1,11 +1,11 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
+import Button, {ButtonProps} from 'sentry/components/button';
 import {IconChevron} from 'sentry/icons';
 import space from 'sentry/styles/space';
 
-type Props = Omit<React.ComponentProps<typeof Button>, 'type' | 'priority'> & {
+type Props = Omit<ButtonProps, 'type' | 'priority'> & {
   /**
    * The fixed prefix text to show in the button eg: 'Sort By'
    */

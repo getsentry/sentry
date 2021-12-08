@@ -1,12 +1,12 @@
 import * as React from 'react';
 
-import Button from 'sentry/components/button';
+import Button, {ButtonProps} from 'sentry/components/button';
 import DiscoverFeature from 'sentry/components/discover/discoverFeature';
 
 type Props = React.PropsWithChildren<{
   className?: string;
 }> &
-  React.ComponentProps<typeof Button>;
+  ButtonProps;
 
 /**
  * Provide a button that turns itself off if the current organization

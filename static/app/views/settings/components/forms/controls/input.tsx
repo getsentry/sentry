@@ -1,9 +1,9 @@
 import isPropValid from '@emotion/is-prop-valid';
 import styled, {StyledComponent} from '@emotion/styled';
 
-import {inputStyles} from 'sentry/styles/input';
+import {InputProps as StyledInputProps, inputStyles} from 'sentry/styles/input';
 
-type Props = Omit<Parameters<typeof inputStyles>[0], 'theme'>;
+export interface InputProps extends Omit<StyledInputProps, 'theme'> {}
 
 /**
  * Do not forward required to `input` to avoid default browser behavior
