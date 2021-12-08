@@ -1009,11 +1009,30 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
         assert context["organization"] == self.organization.name
         email.return_value.send_async.assert_called_with([self.user.email])
 
+        mock_redis.return_value.get.return_value = value
+        path = reverse("sentry-idp-email-verification", args=[context["verification_key"]])
+        resp = self.client.get(path)
+        assert resp.templates[0].name == "sentry/idp_account_verified.html"
+        assert resp.status_code == 200
+
+        path = reverse("sentry-auth-organization", args=[self.organization.slug])
+        resp = self.client.post(path, follow=True)
+        assert resp.redirect_chain == [
+            (reverse("sentry-login"), 302),
+            ("/organizations/foo/issues/", 302),
+        ]
+
+        auth_identity = AuthIdentity.objects.get(auth_provider=self.auth_provider)
+        assert self.user == auth_identity.user
+
     @with_feature("organizations:idp-automatic-migration")
     @mock.patch("sentry.auth.idpmigration.get_redis_cluster")
     @mock.patch("sentry.auth.idpmigration.MessageBuilder")
     def test_flow_verify_without_org_membership(self, email, mock_redis):
         assert not self.user.has_usable_password()
+        assert not OrganizationMember.objects.filter(
+            organization=self.organization, user=self.user
+        ).exists()
 
         resp = self.client.post(self.path, {"init": True})
 
@@ -1033,6 +1052,27 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
         _, message = email.call_args
         context = message["context"]
         assert context["organization"] == self.organization.name
+
+        mock_redis.return_value.get.return_value = value
+        path = reverse("sentry-idp-email-verification", args=[context["verification_key"]])
+        resp = self.client.get(path)
+        assert resp.templates[0].name == "sentry/idp_account_verified.html"
+        assert resp.status_code == 200
+
+        path = reverse("sentry-auth-organization", args=[self.organization.slug])
+        resp = self.client.post(path, follow=True)
+        assert resp.redirect_chain == [
+            (reverse("sentry-login"), 302),
+            ("/organizations/foo/issues/", 302),
+        ]
+
+        auth_identity = AuthIdentity.objects.get(auth_provider=self.auth_provider)
+        assert self.user == auth_identity.user
+
+        # Check that OrganizationMember was created as a side effect
+        assert OrganizationMember.objects.filter(
+            organization=self.organization, user=self.user
+        ).exists()
 
     @with_feature("organizations:idp-automatic-migration")
     @mock.patch("sentry.auth.idpmigration.MessageBuilder")
