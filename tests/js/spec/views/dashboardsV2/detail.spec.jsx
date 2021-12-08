@@ -118,6 +118,9 @@ describe('Dashboards > Detail', function () {
       // Enter edit mode.
       wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
 
+      await tick();
+      wrapper.update();
+
       // Rename
       const dashboardTitle = wrapper.find('DashboardTitle Label');
       dashboardTitle.simulate('click');
@@ -133,6 +136,7 @@ describe('Dashboards > Detail', function () {
 
       wrapper.find('Controls Button[data-test-id="dashboard-commit"]').simulate('click');
       await tick();
+      wrapper.update();
 
       expect(updateMock).toHaveBeenCalledWith(
         '/organizations/org-slug/dashboards/default-overview/',
@@ -323,7 +327,6 @@ describe('Dashboards > Detail', function () {
       // Save changes
       wrapper.find('Controls Button[data-test-id="dashboard-commit"]').simulate('click');
       await tick();
-      await tick();
 
       expect(updateMock).toHaveBeenCalled();
       expect(updateMock).toHaveBeenCalledWith(
@@ -369,6 +372,8 @@ describe('Dashboards > Detail', function () {
       await tick();
       await wrapper.update();
       const modal = await mountGlobalModal();
+      await tick();
+      await modal.update();
 
       expect(modal.find('AddDashboardWidgetModal').props().widget).toEqual(widgets[0]);
     });
