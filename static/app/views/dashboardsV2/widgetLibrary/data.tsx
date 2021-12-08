@@ -10,7 +10,7 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
   {
     id: undefined,
     title: t('Duration Distribution'),
-    description: 'Compare transaction durations across different percentiles.',
+    description: t('Compare transaction durations across different percentiles.'),
     displayType: DisplayType.AREA,
     widgetType: WidgetType.DISCOVER,
     interval: '5m',
@@ -30,7 +30,7 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
   {
     id: undefined,
     title: t('High Throughput Transactions'),
-    description: 'Top 5 transactions with the largest volume.',
+    description: t('Top 5 transactions with the largest volume.'),
     displayType: DisplayType.TOP_N,
     widgetType: WidgetType.DISCOVER,
     interval: '5m',
@@ -46,7 +46,7 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
   {
     id: undefined,
     title: t('LCP by Country (Frontend)'),
-    description: 'Map showing page load times by country.',
+    description: t('Map showing page load times by country.'),
     displayType: DisplayType.WORLD_MAP,
     widgetType: WidgetType.DISCOVER,
     interval: '5m',
@@ -62,7 +62,7 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
   {
     id: undefined,
     title: t('Miserable Users'),
-    description: 'Unique users who have experienced slow load times.',
+    description: t('Unique users who have experienced slow load times.'),
     displayType: DisplayType.BIG_NUMBER,
     widgetType: WidgetType.DISCOVER,
     interval: '5m',
@@ -78,7 +78,7 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
   {
     id: undefined,
     title: t('Slow vs Fast Transactions'),
-    description: 'Breakdown of transaction durations over and under 300ms',
+    description: t('Breakdown of transaction durations over and under 300ms'),
     displayType: DisplayType.BAR,
     widgetType: WidgetType.DISCOVER,
     interval: '5m',
@@ -97,7 +97,7 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
   {
     id: undefined,
     title: t('Top Issues'),
-    description: 'Issues with the most error events.',
+    description: t('Issues with the most error events.'),
     displayType: DisplayType.TABLE,
     widgetType: WidgetType.DISCOVER,
     interval: '5m',
@@ -113,7 +113,7 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
   {
     id: undefined,
     title: t('Top Unhandled Error Types'),
-    description: 'Most frequently encountered unhandled errors.',
+    description: t('Most frequently encountered unhandled errors.'),
     displayType: DisplayType.TOP_N,
     widgetType: WidgetType.DISCOVER,
     interval: '5m',
@@ -129,7 +129,7 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
   {
     id: undefined,
     title: t('Users Affected by Errors'),
-    description: 'Footprint of unique users affected by errors.',
+    description: t('Footprint of unique users affected by errors.'),
     displayType: DisplayType.LINE,
     widgetType: WidgetType.DISCOVER,
     interval: '5m',
