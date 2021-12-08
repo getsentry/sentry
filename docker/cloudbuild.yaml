@@ -93,7 +93,7 @@ artifacts:
     location: 'gs://sentryio-cloudbuild-opensource/getsentry/sentry/$COMMIT_SHA/'
     paths: ['dist/*.whl']
 options:
-  # We need more memory for Webpack builds & e2e onpremise tests
+  # We need more memory for Webpack builds & e2e self-hosted tests
   machineType: 'N1_HIGHCPU_8'
   env:
     - 'CI=1'
