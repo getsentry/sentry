@@ -1,6 +1,5 @@
 import * as React from 'react';
 import * as Sentry from '@sentry/react';
-// @ts-ignore
 import * as cbor from 'cbor-web';
 import u2f from 'u2f-api';
 
