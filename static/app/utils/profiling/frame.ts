@@ -18,19 +18,24 @@ export class Frame extends WeightedNode {
     this.file = frameInfo.file;
     this.name = frameInfo.name;
     this.resource = frameInfo.resource;
+    this.line = frameInfo.line;
     this.column = frameInfo.column;
+    this.is_application =
+      type === 'web'
+        ? frameInfo.line === undefined && frameInfo.column === undefined
+        : !!frameInfo.is_application;
+    this.image = frameInfo.image;
 
     if (type === 'web') {
+      // If the frame is a web frame and there is no name associated to it, then it was likely invoked as an iife or anonymous callback as
+      // most modern browser engines properly show anonymous functions when they are assigned to references (e.g. `let foo = function() {};`)
       if (!frameInfo.name) {
         this.name = 'anonymous';
       }
+      // If the frame had no line or column, it was part of the native code, (e.g. calling String.fromCharCode)
       if (frameInfo.line === undefined && frameInfo.column === undefined) {
         this.name += ' [native code]';
       }
     }
-
-    this.line = frameInfo.line;
-    this.is_application = !!frameInfo.is_application;
-    this.image = frameInfo.image;
   }
 }
