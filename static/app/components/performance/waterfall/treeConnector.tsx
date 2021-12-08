@@ -14,9 +14,10 @@ const TREE_TOGGLE_CONTAINER_WIDTH = 40;
 export const ConnectorBar = styled('div')<{orphanBranch: boolean}>`
   height: 250%;
 
-  border-left: 1px ${p => (p.orphanBranch ? 'dashed' : 'solid')} ${p => p.theme.border};
+  border-left: 1px ${p => (p.orphanBranch ? 'dashed' : 'solid')} ${p => p.theme.subText};
   top: -5px;
   position: absolute;
+  opacity: 0.4;
 `;
 
 type TogglerTypes = OmitHtmlDivProps<{
@@ -28,16 +29,21 @@ export const TreeConnector = styled('div')<TogglerTypes & {orphanBranch: boolean
   height: ${p => (p.isLast ? ROW_HEIGHT / 2 : ROW_HEIGHT)}px;
   width: 100%;
   border-left: ${p => {
-    return `1px ${p.orphanBranch ? 'dashed' : 'solid'} ${p.theme.border}`;
+    return `1px ${p.orphanBranch ? 'dashed' : 'solid'} ${p.theme.subText}`;
   }};
   position: absolute;
   top: 0;
+  opacity: 0.4;
+
+  ${ConnectorBar} {
+    opacity: 1;
+  }
 
   &:before {
     content: '';
     height: 1px;
     border-bottom: ${p =>
-      `1px ${p.orphanBranch ? 'dashed' : 'solid'} ${p.theme.border};`};
+      `1px ${p.orphanBranch ? 'dashed' : 'solid'} ${p.theme.subText};`};
     left: 0;
     width: 100%;
     position: absolute;
@@ -46,7 +52,7 @@ export const TreeConnector = styled('div')<TogglerTypes & {orphanBranch: boolean
 
   &:after {
     content: '';
-    background-color: ${p => p.theme.border};
+    background-color: ${p => p.theme.subText};
     border-radius: 4px;
     height: 3px;
     width: 3px;
