@@ -322,6 +322,8 @@ describe('Dashboards > Detail', function () {
 
       // Save changes
       wrapper.find('Controls Button[data-test-id="dashboard-commit"]').simulate('click');
+
+      // Flakey with 1 tick
       await tick();
       await tick();
 
