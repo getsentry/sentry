@@ -370,10 +370,8 @@ describe('Dashboards > Detail', function () {
         .simulate('click');
 
       await tick();
-      wrapper.update();
 
       const modal = await mountGlobalModal();
-      await modal.update();
 
       expect(modal.find('AddDashboardWidgetModal').props().widget).toEqual(widgets[0]);
     });
