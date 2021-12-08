@@ -251,6 +251,7 @@ describe('Dashboards > Detail', function () {
       mockPut = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
         method: 'PUT',
+        body: TestStubs.Dashboard(widgets, {id: '1', title: 'Custom Errors'}),
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-stats/',
@@ -284,6 +285,7 @@ describe('Dashboards > Detail', function () {
       const updateMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
         method: 'PUT',
+        body: TestStubs.Dashboard([widgets[0]], {id: '1', title: 'Custom Errors'}),
       });
       wrapper = mountWithTheme(
         <ViewEditDashboard
@@ -320,6 +322,8 @@ describe('Dashboards > Detail', function () {
 
       // Save changes
       wrapper.find('Controls Button[data-test-id="dashboard-commit"]').simulate('click');
+      await tick();
+      await tick();
 
       expect(updateMock).toHaveBeenCalled();
       expect(updateMock).toHaveBeenCalledWith(
@@ -725,7 +729,10 @@ describe('Dashboards > Detail', function () {
       await tick();
       await modal.update();
 
-      modal.find('ModalBody input').simulate('change', {target: {value: 'Issue Widget'}});
+      modal
+        .find('ModalBody input')
+        .first()
+        .simulate('change', {target: {value: 'Issue Widget'}});
       modal.find('ModalFooter button').simulate('click');
 
       await tick();
@@ -744,7 +751,14 @@ describe('Dashboards > Detail', function () {
               {
                 displayType: 'table',
                 interval: '5m',
-                queries: [{conditions: '', fields: [], name: '', orderby: ''}],
+                queries: [
+                  {
+                    conditions: '',
+                    fields: ['issue', 'assignee', 'title'],
+                    name: '',
+                    orderby: '',
+                  },
+                ],
                 title: 'Issue Widget',
                 widgetType: 'issue',
               },
