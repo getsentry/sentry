@@ -194,8 +194,7 @@ class TimeseriesQueryBuilder(QueryFilter):  # type: ignore
             match=Entity(self.dataset.value),
             select=self.select,
             where=self.where,
-            having=self.having
-            + [Condition(aggregate, Op.IS_NOT_NULL) for aggregate in self.aggregates],
+            having=self.having,
             groupby=self.groupby,
             orderby=[OrderBy(self.time_column, Direction.ASC)],
             granularity=self.granularity,

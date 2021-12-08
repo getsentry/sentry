@@ -893,8 +893,8 @@ class OrganizationEventsStatsEndpointTestWithSnql(OrganizationEventsStatsEndpoin
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 2
         assert [attrs for time, attrs in response.data["data"]] == [
-            [{"count": 0}],
-            [{"count": 0}],
+            [{"count": None}],
+            [{"count": None}],
         ]
 
 
