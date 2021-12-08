@@ -9,7 +9,12 @@ from freezegun import freeze_time
 from rest_framework.exceptions import PermissionDenied
 
 from sentry.api.bases.organization import NoProjects, OrganizationEndpoint, OrganizationPermission
-from sentry.api.exceptions import MemberDisabledOverLimit, ResourceDoesNotExist, TwoFactorRequired
+from sentry.api.exceptions import (
+    MemberDisabledOverLimit,
+    ResourceDoesNotExist,
+    SuperuserRequired,
+    TwoFactorRequired,
+)
 from sentry.api.utils import MAX_STATS_PERIOD
 from sentry.auth.access import NoAccess, from_request
 from sentry.auth.authenticators import TotpInterface
@@ -97,6 +102,13 @@ class OrganizationPermissionTest(OrganizationPermissionBase):
 
         with self.assertRaises(TwoFactorRequired):
             self.has_object_perm("GET", self.org, user=user)
+
+    def test_org_requires_2fa_with_superuser_not_active(self):
+        self.org_require_2fa()
+        user = self.create_user(is_superuser=True)
+        self.create_member(user=user, organization=self.org, role="member")
+        with self.assertRaises(SuperuserRequired):
+            assert self.has_object_perm("GET", self.org, user=user)
 
     @mock.patch("sentry.api.utils.get_cached_organization_member")
     def test_member_limit_error(self, mock_get_org_member):

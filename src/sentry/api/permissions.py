@@ -7,7 +7,7 @@ from sentry.api.exceptions import (
     TwoFactorRequired,
 )
 from sentry.auth import access
-from sentry.auth.superuser import is_active_superuser
+from sentry.auth.superuser import Superuser, is_active_superuser
 from sentry.auth.system import is_system_auth
 from sentry.utils import auth
 
@@ -111,6 +111,9 @@ class SentryPermission(ScopedPermission):
                         "access.not-2fa-compliant",
                         extra=extra,
                     )
+                    if request.user.is_superuser and organization.id != Superuser.org_id:
+                        raise SuperuserRequired()
+
                     raise TwoFactorRequired()
 
                 if self.is_member_disabled_from_limit(request, organization):
