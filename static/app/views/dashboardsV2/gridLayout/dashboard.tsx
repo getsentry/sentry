@@ -247,7 +247,7 @@ class Dashboard extends Component<Props> {
     } = this.props;
 
     return (
-      <GridLayout
+      <GridLayoutContainer
         cols={NUM_COLS}
         rowHeight={ROW_HEIGHT}
         margin={WIDGET_MARGINS}
@@ -260,9 +260,6 @@ class Dashboard extends Component<Props> {
         isDraggable={isEditing}
         isResizable={isEditing}
         isBounded
-        // Turn off CSS transforms to avoid stacking contexts
-        useCSSTransforms={false}
-        measureBeforeMount
       >
         {widgets.map((widget, index) => this.renderWidget(widget, index))}
         {isEditing && widgets.length < MAX_WIDGETS && (
@@ -274,7 +271,7 @@ class Dashboard extends Component<Props> {
             />
           </div>
         )}
-      </GridLayout>
+      </GridLayoutContainer>
     );
   }
 }
@@ -284,6 +281,13 @@ export default withApi(withGlobalSelection(Dashboard));
 const GridItem = styled('div')`
   .react-resizable-handle {
     z-index: 1;
+  }
+`;
+
+// Hack to display chart tooltips above other grid items
+const GridLayoutContainer = styled(GridLayout)`
+  .react-grid-item:hover {
+    z-index: 10;
   }
 `;
 
