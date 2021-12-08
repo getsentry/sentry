@@ -26,10 +26,9 @@ def delete_code_mappings_with_no_integration(apps, schema_editor):
     RepositoryProjectPathConfig = apps.get_model("sentry", "RepositoryProjectPathConfig")
 
     for code_mapping in RangeQuerySetWrapperWithProgressBar(
-        RepositoryProjectPathConfig.objects.all()
+        RepositoryProjectPathConfig.objects.filter(organization_integration_id=None)
     ):
-        if code_mapping.organization_integration_id is None:
-            code_mapping.delete()
+        code_mapping.delete()
 
 
 class Migration(migrations.Migration):
