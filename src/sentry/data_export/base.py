@@ -2,6 +2,7 @@ from datetime import timedelta
 from enum import Enum
 
 MAX_BATCH_SIZE = 8 * 1024 * 1024
+MAX_FRAGMENTS_PER_BATCH = 10
 EXPORTED_ROWS_LIMIT = 10000000
 SNUBA_MAX_RESULTS = 10000
 DEFAULT_EXPIRATION = timedelta(weeks=4)
