@@ -45,6 +45,8 @@ const issuesPredicate = (url, options) =>
   url.includes('eventsv2') && options.query?.query.includes('error');
 
 describe('Performance > Widgets > WidgetContainer', function () {
+  let wrapper;
+
   let eventStatsMock;
   let eventsV2Mock;
   let metricsMock;
@@ -89,10 +91,17 @@ describe('Performance > Widgets > WidgetContainer', function () {
     });
   });
 
+  afterEach(function () {
+    if (wrapper) {
+      wrapper.unmount();
+      wrapper = undefined;
+    }
+  });
+
   it('Check requests when changing widget props', async function () {
     const data = initializeData();
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.TPM_AREA}
@@ -146,7 +155,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
   it('Check requests when changing widget props for GenericDiscoverQuery based widget', async function () {
     const data = initializeData();
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.MOST_IMPROVED}
@@ -209,7 +218,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
   it('TPM Widget', async function () {
     const data = initializeData();
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.TPM_AREA}
@@ -241,7 +250,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
   it('Failure Rate Widget', async function () {
     const data = initializeData();
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.FAILURE_RATE_AREA}
@@ -273,7 +282,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
   it('User misery Widget', async function () {
     const data = initializeData();
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.USER_MISERY_AREA}
@@ -305,7 +314,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
   it('Worst LCP widget', async function () {
     const data = initializeData();
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.WORST_LCP_VITALS}
@@ -358,7 +367,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     });
     const data = initializeData();
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.WORST_LCP_VITALS}
@@ -411,7 +420,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
   it('Worst FCP widget', async function () {
     const data = initializeData();
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.WORST_FCP_VITALS}
@@ -463,7 +472,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     });
     const data = initializeData();
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.WORST_FCP_VITALS}
@@ -516,7 +525,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
   it('Worst FID widget', async function () {
     const data = initializeData();
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.WORST_FID_VITALS}
@@ -568,7 +577,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     });
     const data = initializeData();
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.WORST_FID_VITALS}
@@ -621,7 +630,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
   it('LCP Histogram Widget', async function () {
     const data = initializeData();
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.LCP_HISTOGRAM}
@@ -641,7 +650,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
   it('FCP Histogram Widget', async function () {
     const data = initializeData();
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.FCP_HISTOGRAM}
@@ -686,7 +695,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
         ],
       });
 
-      const wrapper = mountWithTheme(
+      wrapper = mountWithTheme(
         <WrappedComponent
           data={data}
           defaultChartSetting={PerformanceWidgetSetting.P50_DURATION_AREA}
@@ -767,7 +776,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
         ],
       });
 
-      const wrapper = mountWithTheme(
+      wrapper = mountWithTheme(
         <WrappedComponent
           data={data}
           defaultChartSetting={PerformanceWidgetSetting.P75_DURATION_AREA}
@@ -848,7 +857,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
         ],
       });
 
-      const wrapper = mountWithTheme(
+      wrapper = mountWithTheme(
         <WrappedComponent
           data={data}
           defaultChartSetting={PerformanceWidgetSetting.P95_DURATION_AREA}
@@ -929,7 +938,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
         ],
       });
 
-      const wrapper = mountWithTheme(
+      wrapper = mountWithTheme(
         <WrappedComponent
           data={data}
           defaultChartSetting={PerformanceWidgetSetting.P99_DURATION_AREA}
@@ -1010,7 +1019,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
         ],
       });
 
-      const wrapper = mountWithTheme(
+      wrapper = mountWithTheme(
         <WrappedComponent
           data={data}
           defaultChartSetting={PerformanceWidgetSetting.P75_LCP_AREA}
@@ -1091,7 +1100,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
         ],
       });
 
-      const wrapper = mountWithTheme(
+      wrapper = mountWithTheme(
         <WrappedComponent
           data={data}
           defaultChartSetting={PerformanceWidgetSetting.TPM_AREA}
@@ -1174,7 +1183,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
         ],
       });
 
-      const wrapper = mountWithTheme(
+      wrapper = mountWithTheme(
         <WrappedComponent
           data={data}
           defaultChartSetting={PerformanceWidgetSetting.FAILURE_RATE_AREA}
@@ -1234,7 +1243,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
   it('Most errors widget', async function () {
     const data = initializeData();
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.MOST_RELATED_ERRORS}
@@ -1268,7 +1277,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
   it('Most related issues widget', async function () {
     const data = initializeData();
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.MOST_RELATED_ISSUES}
@@ -1302,7 +1311,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
   it('Switching from issues to errors widget', async function () {
     const data = initializeData();
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.MOST_RELATED_ISSUES}
@@ -1334,7 +1343,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
   it('Most improved trends widget', async function () {
     const data = initializeData();
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.MOST_IMPROVED}
@@ -1373,7 +1382,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
   it('Most regressed trends widget', async function () {
     const data = initializeData();
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.MOST_REGRESSED}
@@ -1412,7 +1421,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
   it('Most slow frames widget', async function () {
     const data = initializeData();
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.MOST_SLOW_FRAMES}
@@ -1473,7 +1482,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     });
     const data = initializeData();
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.MOST_SLOW_FRAMES}
@@ -1540,7 +1549,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
   it('Most frozen frames widget', async function () {
     const data = initializeData();
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.MOST_FROZEN_FRAMES}
@@ -1606,7 +1615,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     });
     const data = initializeData();
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.MOST_FROZEN_FRAMES}
@@ -1675,7 +1684,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
 
     const setRowChartSettings = jest.fn(() => {});
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.FAILURE_RATE_AREA}
@@ -1716,7 +1725,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
 
     const setRowChartSettings = jest.fn(() => {});
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.FAILURE_RATE_AREA}

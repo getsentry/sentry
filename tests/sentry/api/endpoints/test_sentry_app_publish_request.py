@@ -74,8 +74,7 @@ class SentryAppPublishRequestTest(APITestCase):
 
     @mock.patch("sentry.utils.email.send_mail")
     def test_publish_no_logo(self, send_mail):
-        with self.feature("organizations:sentry-app-logo-upload"):
-            response = self.client.post(self.url, format="json")
+        response = self.client.post(self.url, format="json")
         assert response.status_code == 400
         assert response.data["detail"] == "Must upload a logo for the integration."
         send_mail.asssert_not_called()
@@ -85,8 +84,7 @@ class SentryAppPublishRequestTest(APITestCase):
         """Test that you cannot submit a publication request for an issue link
         integration without having uploaded a black icon."""
         self.upload_logo()
-        with self.feature("organizations:sentry-app-logo-upload"):
-            response = self.client.post(self.url, format="json")
+        response = self.client.post(self.url, format="json")
         assert response.status_code == 400
         assert (
             response.data["detail"]
@@ -109,8 +107,7 @@ class SentryAppPublishRequestTest(APITestCase):
         url = reverse(
             "sentry-api-0-sentry-app-publish-request", args=[stacktrace_link_sentry_app.slug]
         )
-        with self.feature("organizations:sentry-app-logo-upload"):
-            response = self.client.post(url, format="json")
+        response = self.client.post(url, format="json")
         assert response.status_code == 400
         assert (
             response.data["detail"]

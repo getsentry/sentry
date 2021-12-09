@@ -1052,8 +1052,6 @@ SENTRY_FEATURES = {
     "organizations:notification-all-recipients": False,
     # Enable the new native stack trace design
     "organizations:native-stack-trace-v2": False,
-    # Enable the sentryapp logo upload feature
-    "organizations:sentry-app-logo-upload": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
     # Enable sorting+filtering by semantic version of a release
@@ -1909,6 +1907,9 @@ SENTRY_DEVSERVICES = {
         }
     ),
 }
+
+# Max file size for serialized file uploads in API
+SENTRY_MAX_SERIALIZED_FILE_SIZE = 5000000
 
 # Max file size for avatar photo uploads
 SENTRY_MAX_AVATAR_SIZE = 5000000

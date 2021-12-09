@@ -11,7 +11,7 @@ import {BasePerformanceViewProps} from './types';
 export function AllTransactionsView(props: BasePerformanceViewProps) {
   return (
     <PerformanceDisplayProvider value={{performanceType: PROJECT_PERFORMANCE_TYPE.ANY}}>
-      <div>
+      <div data-test-id="all-transactions-view">
         <TripleChartRow
           {...props}
           allowedCharts={[
