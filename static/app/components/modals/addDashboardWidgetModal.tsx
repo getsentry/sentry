@@ -512,7 +512,6 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       Footer,
       Body,
       Header,
-      api,
       organization,
       selection,
       tags,
@@ -625,7 +624,6 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
           {state.widgetType === WidgetType.ISSUE ? (
             <React.Fragment>
               <IssueWidgetQueriesForm
-                api={api}
                 organization={organization}
                 selection={querySelection}
                 fieldOptions={issueWidgetFieldOptions}
