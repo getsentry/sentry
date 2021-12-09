@@ -3409,7 +3409,7 @@ class QueryFields(QueryBase):
                         Function(
                             "plus",
                             [
-                                Function("uniq", [self.column("user")]),
+                                Function("nullIf", [Function("uniq", [self.column("user")]), 0]),
                                 args["parameter_sum"],
                             ],
                         ),
