@@ -279,7 +279,7 @@ class DashboardDetail extends Component<Props, State> {
         updateDashboard(api, organization.slug, modifiedDashboard).then(
           (newDashboard: DashboardDetails) => {
             if (onDashboardUpdate) {
-              onDashboardUpdate(modifiedDashboard);
+              onDashboardUpdate(newDashboard);
             }
             addSuccessMessage(t('Dashboard updated'));
             if (dashboard && newDashboard.id !== dashboard.id) {
@@ -376,7 +376,7 @@ class DashboardDetail extends Component<Props, State> {
           updateDashboard(api, organization.slug, modifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
               if (onDashboardUpdate) {
-                onDashboardUpdate(modifiedDashboard);
+                onDashboardUpdate(newDashboard);
               }
 
               if (organization.features.includes('dashboard-grid-layout')) {
@@ -475,7 +475,7 @@ class DashboardDetail extends Component<Props, State> {
         updateDashboard(api, organization.slug, modifiedDashboard).then(
           (newDashboard: DashboardDetails) => {
             if (onDashboardUpdate) {
-              onDashboardUpdate(modifiedDashboard);
+              onDashboardUpdate(newDashboard);
             }
             if (dashboard && newDashboard.id !== dashboard.id) {
               browserHistory.replace({
