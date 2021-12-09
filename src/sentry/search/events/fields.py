@@ -2923,8 +2923,9 @@ class QueryFields(QueryBase):
         """Convert this tree of Operations to the equivalent snql functions"""
         lhs = self._resolve_equation_operand(equation.lhs)
         rhs = self._resolve_equation_operand(equation.rhs)
-        result = Function(equation.operator, [lhs, rhs], alias)
-        return result
+        if equation.operator == "divide":
+            rhs = Function("nullIf", [rhs, 0])
+        return Function(equation.operator, [lhs, rhs], alias)
 
     def _resolve_equation_operand(self, operand: OperandType) -> Union[SelectType, float]:
         if isinstance(operand, Operation):
@@ -3408,7 +3409,7 @@ class QueryFields(QueryBase):
                         Function(
                             "plus",
                             [
-                                Function("uniq", [self.column("user")]),
+                                Function("nullIf", [Function("uniq", [self.column("user")]), 0]),
                                 args["parameter_sum"],
                             ],
                         ),
