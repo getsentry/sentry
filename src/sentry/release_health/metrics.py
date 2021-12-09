@@ -1212,7 +1212,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             select=query_cols,
             where=where_clause,
             groupby=query_cols,
-            orderby=query_cols,
+            orderby=[OrderBy(col, Direction.DESC) for col in query_cols],
         )
         result = raw_snql_query(
             query,
