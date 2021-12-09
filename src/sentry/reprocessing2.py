@@ -354,12 +354,16 @@ def buffered_delete_old_primary_hash(
                 event_key = build_event_key(primary_hash)
                 event_ids, from_date, to_date = pop_batched_events_from_redis(event_key)
 
+                # Racing might be happening between two different tasks. Give up on the
+                # task that's lagging behind by prematurely terminating flushing.
                 if len(event_ids) == 0:
-                    with sentry_sdk.push_scope() as scope:
+                    with sentry_sdk.configure_scope() as scope:
                         scope.set_tag("project_id", project_id)
                         scope.set_tag("old_group_id", group_id)
                         scope.set_tag("old_primary_hash", old_primary_hash)
-                        raise CannotReprocess("events_batch.not_found")
+
+                    logger.error("events_batch.not_found")
+                    return
 
                 from sentry import eventstream
 
