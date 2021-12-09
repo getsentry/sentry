@@ -75,7 +75,13 @@ class OrganizationSdkUpdatesEndpoint(OrganizationEventsEndpointBase):
         with self.handle_query_errors():
             result = discover.query(
                 query="has:sdk.version",
-                selected_columns=["project", "sdk.name", "sdk.version", "last_seen()"],
+                selected_columns=[
+                    "project",
+                    "project.id",
+                    "sdk.name",
+                    "sdk.version",
+                    "last_seen()",
+                ],
                 orderby="-project",
                 params={
                     "start": timezone.now() - timedelta(days=1),
@@ -85,7 +91,7 @@ class OrganizationSdkUpdatesEndpoint(OrganizationEventsEndpointBase):
                 },
                 referrer="api.organization-sdk-updates",
                 use_snql=features.has(
-                    "organizations:performance-view", organization, actor=request.user
+                    "organizations:performance-use-snql", organization, actor=request.user
                 ),
             )
 
