@@ -1836,10 +1836,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             Column("project_id"),
             Column(release_column_name),
         ]
-        group_by = [
-            Column("project_id"),
-            Column(release_column_name),
-        ]
 
         where_clause = [
             Condition(Column("org_id"), Op.EQ, org_id),
@@ -1937,6 +1933,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             entity = Entity(EntityKey.MetricsSets.value)
             having_clause = [Condition(users_column, Op.GT, 0)]
 
+        # Tiebreaker
+        order_by_clause.extend([OrderBy(col, Direction.DESC) for col in query_cols])
+
         query = Query(
             dataset=Dataset.Metrics.value,
             match=entity,
@@ -1944,7 +1943,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             where=where_clause,
             having=having_clause,
             orderby=order_by_clause,
-            groupby=group_by,
+            groupby=query_cols,
             offset=Offset(offset) if offset is not None else None,
             limit=Limit(limit) if limit is not None else None,
             granularity=Granularity(granularity),

@@ -173,6 +173,9 @@ def _get_project_releases_by_stability(
         "users": ["-users"],
     }[scope]
 
+    # Tiebreaker
+    orderby.extend(["project_id", "release"])
+
     conditions = []
     if environments is not None:
         conditions.append(["environment", "IN", environments])
