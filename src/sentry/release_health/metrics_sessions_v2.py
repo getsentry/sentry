@@ -361,7 +361,7 @@ def _get_snuba_query_data(
     org_id: int,
     query: QueryDefinition,
     entity_key: EntityKey,
-    metric_name: MetricKey,
+    metric_key: MetricKey,
     metric_id: int,
     columns: Sequence[SelectableExpression],
     extra_conditions: Optional[List[Condition]] = None,
@@ -385,10 +385,10 @@ def _get_snuba_query_data(
             extra_conditions=extra_conditions,
             remove_groupby=remove_groupby,
         )
-        referrer = REFERRERS[metric_name][query_type]
+        referrer = REFERRERS[metric_key][query_type]
         query_data = raw_snql_query(snuba_query, referrer=referrer)["data"]
 
-        yield (metric_name, query_data)
+        yield (metric_key, query_data)
 
 
 def _fetch_data(
