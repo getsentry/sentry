@@ -1,15 +1,16 @@
 from __future__ import annotations
 
+from abc import ABCMeta, abstractmethod
 from typing import TYPE_CHECKING, Iterable, MutableMapping
 
 from sentry import roles
-from sentry.models import OrganizationMember, Team
+from sentry.models import OrganizationMember
 
 if TYPE_CHECKING:
     from sentry.models import Organization, User
 
 
-class RoleBasedStrategy:
+class RoleBasedReceiptStrategy(metaclass=ABCMeta):
     member_by_user_id: MutableMapping[int, OrganizationMember] = {}
 
     def __init__(self, organization: Organization):
@@ -31,7 +32,7 @@ class RoleBasedStrategy:
 
     def determine_recipients(
         self,
-    ) -> Iterable[Team | User]:
+    ) -> Iterable[User]:
         members = self.determine_member_recipients()
         # store the members in our cache
         for member in members:
@@ -39,6 +40,7 @@ class RoleBasedStrategy:
         # convert members to users
         return map(lambda member: member.user, members)
 
+    @abstractmethod
     def determine_member_recipients(self) -> Iterable[OrganizationMember]:
         """
         Depending on the type of request this might be all organization owners,
@@ -51,10 +53,8 @@ class RoleBasedStrategy:
         return role_string
 
     def build_notification_footer_from_settings_url(
-        self, settings_url: str, recipient: Team | User
+        self, settings_url: str, recipient: User
     ) -> str:
-        if isinstance(recipient, Team):
-            raise NotImplementedError
         recipient_member = self.get_member(recipient)
         return (
             "You are receiving this notification because you're listed as an organization "

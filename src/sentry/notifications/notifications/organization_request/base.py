@@ -7,7 +7,9 @@ from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequen
 from sentry import analytics, roles
 from sentry.models import NotificationSetting, OrganizationMember, Team
 from sentry.notifications.notifications.base import BaseNotification
-from sentry.notifications.notifications.strategies.role_based_strategy import RoleBasedStrategy
+from sentry.notifications.notifications.strategies.role_based_receipt_strategy import (
+    RoleBasedReceiptStrategy,
+)
 from sentry.notifications.notify import notification_providers
 from sentry.notifications.types import NotificationSettingTypes
 from sentry.notifications.utils.actions import MessageAction
@@ -24,12 +26,12 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
     referrer_base: str = ""
     member_by_user_id: MutableMapping[int, OrganizationMember] = {}
     fine_tuning_key = "approval"
-    RoleBasedStategyClass: Type[RoleBasedStrategy] = RoleBasedStrategy
+    RoleBasedReceiptStrategyClass: Type[RoleBasedReceiptStrategy]
 
     def __init__(self, organization: Organization, requester: User) -> None:
         super().__init__(organization)
         self.requester = requester
-        self.role_based_strategy = self.RoleBasedStategyClass(organization)
+        self.role_based_receipt_strategy = self.RoleBasedReceiptStrategyClass(organization)
 
     def get_reference(self) -> Any:
         return self.organization
@@ -38,14 +40,14 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
         return {}
 
     def get_referrer(self, provider: ExternalProviders) -> str:
-        # referrer needs the provider as well
+        # referrer needs the provider as wellx
         return f"{self.referrer_base}-{EXTERNAL_PROVIDERS[provider]}"
 
     def get_sentry_query_params(self, provider: ExternalProviders) -> str:
         return f"?referrer={self.get_referrer(provider)}"
 
     def determine_recipients(self) -> Iterable[Team | User]:
-        return self.role_based_strategy.determine_recipients()
+        return self.role_based_receipt_strategy.determine_recipients()
 
     def determine_member_recipients(self) -> Iterable[OrganizationMember]:
         """
@@ -99,8 +101,11 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
     def build_notification_footer(self, recipient: Team | User) -> str:
         from sentry.integrations.slack.utils.notifications import get_settings_url
 
+        if isinstance(recipient, Team):
+            raise NotImplementedError
+
         settings_url = get_settings_url(self, recipient)
-        return self.role_based_strategy.build_notification_footer_from_settings_url(
+        return self.role_based_receipt_strategy.build_notification_footer_from_settings_url(
             settings_url, recipient
         )
 

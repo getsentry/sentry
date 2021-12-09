@@ -5,10 +5,10 @@ from typing import Iterable
 from sentry import roles
 from sentry.models import InviteStatus, OrganizationMember
 
-from .role_based_strategy import RoleBasedStrategy
+from .role_based_receipt_strategy import RoleBasedReceiptStrategy
 
 
-class MemberWriteRoleStrategy(RoleBasedStrategy):
+class MemberWriteRoleReceiptStrategy(RoleBasedReceiptStrategy):
     def determine_member_recipients(self) -> Iterable[OrganizationMember]:
         members: Iterable[OrganizationMember] = OrganizationMember.objects.select_related(
             "user"

@@ -7,8 +7,8 @@ from django.urls import reverse
 from sentry import analytics
 from sentry.models import OrganizationMember
 from sentry.notifications.notifications.organization_request import OrganizationRequestNotification
-from sentry.notifications.notifications.strategies.member_write_role_strategy import (
-    MemberWriteRoleStrategy,
+from sentry.notifications.notifications.strategies.member_write_role_receipt_strategy import (
+    MemberWriteRoleReceiptStrategy,
 )
 from sentry.notifications.utils.actions import MessageAction
 from sentry.types.integrations import ExternalProviders
@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
 # Abstract class for invite and join requests to inherit from
 class AbstractInviteRequestNotification(OrganizationRequestNotification):
-    RoleBasedStategyClass = MemberWriteRoleStrategy
+    RoleBasedReceiptStrategyClass = MemberWriteRoleReceiptStrategy
 
     def __init__(self, pending_member: OrganizationMember, requester: User):
         super().__init__(pending_member.organization, requester)
