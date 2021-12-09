@@ -88,6 +88,7 @@ class IntegrationFeature(Model):
     # TODO(CEO): change this to null=False
     target_id = BoundedBigIntegerField(null=True)
     target_type = BoundedPositiveIntegerField(
+        default=0,
         choices=(
             (IntegrationTypes.SENTRY_APP, "sentry_app"),
             (IntegrationTypes.DOC_INTEGRATION, "doc_integration"),
