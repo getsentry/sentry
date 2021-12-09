@@ -2,18 +2,15 @@ from __future__ import annotations
 
 import re
 from typing import Mapping
-from urllib.parse import urljoin
 
 from sentry.constants import ObjectStatus
 from sentry.incidents.models import AlertRuleTriggerAction, Incident
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
-from sentry.models import Environment, Integration, Team, User
-from sentry.notifications.notifications.activity.release import ReleaseActivityNotification
+from sentry.models import Integration, Team, User
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
-from sentry.utils.http import absolute_uri
 
 from . import logger
 
@@ -57,45 +54,6 @@ def get_referrer_qstring(notification: BaseNotification, recipient: Team | User)
         + re.sub("Notification$", "Slack", notification.__class__.__name__)
         + str(recipient.__class__.__name__)
     )
-
-
-def get_settings_url(notification: BaseNotification, recipient: Team | User) -> str:
-    url_str = "/settings/account/notifications/"
-    if notification.fine_tuning_key:
-        url_str += f"{notification.fine_tuning_key}/"
-    return str(urljoin(absolute_uri(url_str), get_referrer_qstring(notification, recipient)))
-
-
-def build_notification_footer(notification: BaseNotification, recipient: Team | User) -> str:
-    if isinstance(recipient, Team):
-        team = Team.objects.get(id=recipient.id)
-        url_str = f"/settings/{notification.organization.slug}/teams/{team.slug}/notifications/"
-        settings_url = str(
-            urljoin(absolute_uri(url_str), get_referrer_qstring(notification, recipient))
-        )
-    else:
-        settings_url = get_settings_url(notification, recipient)
-
-    if isinstance(notification, ReleaseActivityNotification):
-        # no environment related to a deploy
-        if notification.release:
-            return f"{notification.release.projects.all()[0].slug} | <{settings_url}|Notification Settings>"
-        return f"<{settings_url}|Notification Settings>"
-
-    parent = getattr(notification, "project", notification.organization)
-    footer: str = parent.slug
-    group = getattr(notification, "group", None)
-    latest_event = group.get_latest_event() if group else None
-    environment = None
-    if latest_event:
-        try:
-            environment = latest_event.get_environment()
-        except Environment.DoesNotExist:
-            pass
-    if environment and getattr(environment, "name", None) != "":
-        footer += f" | {environment.name}"
-    footer += f" | <{settings_url}|Notification Settings>"
-    return footer
 
 
 def send_slack_response(

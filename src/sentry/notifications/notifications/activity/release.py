@@ -5,6 +5,7 @@ from typing import Any, Iterable, Mapping, MutableMapping, Sequence
 from sentry_relay import parse_release
 
 from sentry.models import Activity, CommitFileChange, Project, Team, User
+from sentry.notifications.types import NotificationSettingTypes
 from sentry.notifications.utils import (
     get_commits_for_release,
     get_deploy,
@@ -26,7 +27,7 @@ from .base import ActivityNotification
 
 
 class ReleaseActivityNotification(ActivityNotification):
-    fine_tuning_key = "deploy"
+    notification_setting_type = NotificationSettingTypes.DEPLOY
 
     def __init__(self, activity: Activity) -> None:
         super().__init__(activity)
@@ -151,3 +152,11 @@ class ReleaseActivityNotification(ActivityNotification):
 
     def get_title_link(self) -> str | None:
         return None
+
+    def build_notification_footer_from_settings_url(
+        self, settings_url: str, _recipient: Team | User
+    ) -> str:
+        # no environment related to a deploy
+        if self.release:
+            return f"{self.release.projects.all()[0].slug} | <{settings_url}|Notification Settings>"
+        return f"<{settings_url}|Notification Settings>"
