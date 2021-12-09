@@ -934,6 +934,8 @@ SENTRY_FEATURES = {
     "organizations:discover-top-events": False,
     # Enable Performance view
     "organizations:performance-view": True,
+    # Enable profiling
+    "organizations:profiling": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
@@ -1012,8 +1014,6 @@ SENTRY_FEATURES = {
     "organizations:issues-in-dashboards": False,
     # Enable navigation features between Discover and Dashboards
     "organizations:connect-discover-and-dashboards": False,
-    # Enable creating a dashboard widget from the timeseries on an issue detail
-    "organizations:create-dashboard-widget-from-issue": False,
     # Enable experimental performance improvements.
     "organizations:enterprise-perf": False,
     # Enable the API to importing CODEOWNERS for a project
@@ -1029,16 +1029,14 @@ SENTRY_FEATURES = {
     "organizations:prompt-dashboards": False,
     # Enable views for ops breakdown
     "organizations:performance-ops-breakdown": False,
-    # Enable views for tag explorer
-    "organizations:performance-tag-explorer": True,
-    # Enable views for tag page
-    "organizations:performance-tag-page": True,
     # Enable landing improvements for performance
     "organizations:performance-landing-widgets": False,
     # Enable views for transaction events page in performance
     "organizations:performance-events-page": False,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
     "organizations:performance-chart-interpolation": False,
+    # Enable mobile vitals
+    "organizations:performance-mobile-vitals": False,
     # Enable views for suspect tags
     "organizations:performance-suspect-spans-view": False,
     # Enable the new Related Events feature
@@ -1054,8 +1052,6 @@ SENTRY_FEATURES = {
     "organizations:notification-all-recipients": False,
     # Enable the new native stack trace design
     "organizations:native-stack-trace-v2": False,
-    # Enable the sentryapp logo upload feature
-    "organizations:sentry-app-logo-upload": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
     # Enable sorting+filtering by semantic version of a release
@@ -1095,8 +1091,6 @@ SENTRY_FEATURES = {
     "organizations:release-comparison-performance": False,
     # Enable percent displays in issue stream
     "organizations:issue-percent-display": False,
-    # send organization request notifications through Slack
-    "organizations:slack-requests": False,
     # Enable team insights page
     "organizations:team-insights": True,
     # Enable login with WebAuthn
@@ -1918,6 +1912,9 @@ SENTRY_DEVSERVICES = {
     ),
 }
 
+# Max file size for serialized file uploads in API
+SENTRY_MAX_SERIALIZED_FILE_SIZE = 5000000
+
 # Max file size for avatar photo uploads
 SENTRY_MAX_AVATAR_SIZE = 5000000
 
@@ -2212,10 +2209,12 @@ KAFKA_OUTCOMES = "outcomes"
 KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS = "events-subscription-results"
 KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS = "transactions-subscription-results"
 KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS = "sessions-subscription-results"
+KAFKA_METRICS_SUBSCRIPTIONS_RESULTS = "metrics-subscription-results"
 KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
     "events": KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS,
     "transactions": KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS,
     "sessions": KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS,
+    "metrics": KAFKA_METRICS_SUBSCRIPTIONS_RESULTS,
 }
 KAFKA_INGEST_EVENTS = "ingest-events"
 KAFKA_INGEST_ATTACHMENTS = "ingest-attachments"
@@ -2237,6 +2236,10 @@ KAFKA_TOPICS = {
     KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS: {
         "cluster": "default",
         "topic": KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS,
+    },
+    KAFKA_METRICS_SUBSCRIPTIONS_RESULTS: {
+        "cluster": "default",
+        "topic": KAFKA_METRICS_SUBSCRIPTIONS_RESULTS,
     },
     # Topic for receiving simple events (error events without attachments) from Relay
     KAFKA_INGEST_EVENTS: {"cluster": "default", "topic": KAFKA_INGEST_EVENTS},

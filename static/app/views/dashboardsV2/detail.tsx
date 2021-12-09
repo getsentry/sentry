@@ -28,7 +28,7 @@ import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
-import GridLayoutDashboard, {generateWidgetId} from './gridLayout/dashboard';
+import GridLayoutDashboard, {constructGridItemKey} from './gridLayout/dashboard';
 import {getDashboardLayout, saveDashboardLayout} from './gridLayout/utils';
 import Controls from './controls';
 import DnDKitDashboard from './dashboard';
@@ -54,7 +54,6 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   dashboard: DashboardDetails;
   dashboards: DashboardListItem[];
   route: PlainRoute;
-  reloadData?: () => void;
   onDashboardUpdate?: (updatedDashboard: DashboardDetails) => void;
   newWidget?: Widget;
 };
@@ -280,7 +279,7 @@ class DashboardDetail extends Component<Props, State> {
         updateDashboard(api, organization.slug, modifiedDashboard).then(
           (newDashboard: DashboardDetails) => {
             if (onDashboardUpdate) {
-              onDashboardUpdate(modifiedDashboard);
+              onDashboardUpdate(newDashboard);
             }
             addSuccessMessage(t('Dashboard updated'));
             if (dashboard && newDashboard.id !== dashboard.id) {
@@ -313,7 +312,7 @@ class DashboardDetail extends Component<Props, State> {
       dashboardId,
       layout.map((widgetLayout, index) => ({
         ...widgetLayout,
-        i: generateWidgetId(newWidgets[index], index),
+        i: constructGridItemKey(newWidgets[index]),
       }))
     );
   };
@@ -377,7 +376,7 @@ class DashboardDetail extends Component<Props, State> {
           updateDashboard(api, organization.slug, modifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
               if (onDashboardUpdate) {
-                onDashboardUpdate(modifiedDashboard);
+                onDashboardUpdate(newDashboard);
               }
 
               if (organization.features.includes('dashboard-grid-layout')) {
@@ -476,7 +475,7 @@ class DashboardDetail extends Component<Props, State> {
         updateDashboard(api, organization.slug, modifiedDashboard).then(
           (newDashboard: DashboardDetails) => {
             if (onDashboardUpdate) {
-              onDashboardUpdate(modifiedDashboard);
+              onDashboardUpdate(newDashboard);
             }
             if (dashboard && newDashboard.id !== dashboard.id) {
               browserHistory.replace({
@@ -553,6 +552,7 @@ class DashboardDetail extends Component<Props, State> {
                 onDelete={this.onDelete(dashboard)}
                 onAddIssueWidget={this.onAddIssueWidget}
                 dashboardState={dashboardState}
+                widgetCount={dashboard.widgets.length}
               />
             </StyledPageHeader>
             <HookHeader organization={organization} />
@@ -641,6 +641,7 @@ class DashboardDetail extends Component<Props, State> {
                   onDelete={this.onDelete(dashboard)}
                   onAddIssueWidget={this.onAddIssueWidget}
                   dashboardState={dashboardState}
+                  widgetCount={dashboard.widgets.length}
                 />
               </Layout.HeaderActions>
             </Layout.Header>

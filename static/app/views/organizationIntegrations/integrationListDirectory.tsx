@@ -10,9 +10,11 @@ import * as queryString from 'query-string';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
 import SelectControl from 'sentry/components/forms/selectControl';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import SearchBar from 'sentry/components/searchBar';
+import SentryAppIcon from 'sentry/components/sentryAppIcon';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -42,6 +44,11 @@ import PermissionAlert from 'sentry/views/settings/organization/permissionAlert'
 
 import {documentIntegrations, POPULARITY_WEIGHT} from './constants';
 import IntegrationRow from './integrationRow';
+
+const FirstPartyIntegrationAlert = HookOrDefault({
+  hookName: 'component:first-party-integration-alert',
+  defaultComponent: () => null,
+});
 
 const fuseOptions = {
   threshold: 0.3,
@@ -383,6 +390,9 @@ export class IntegrationListDirectory extends AsyncComponent<
         categories={getCategoriesForIntegration(provider)}
         alertText={getAlertText(integrations)}
         resolveText={t('Update Now')}
+        customAlert={
+          <FirstPartyIntegrationAlert integrations={integrations} wrapWithContainer />
+        }
       />
     );
   };
@@ -430,6 +440,7 @@ export class IntegrationListDirectory extends AsyncComponent<
         publishStatus={app.status}
         configurations={0}
         categories={categories}
+        customIcon={<SentryAppIcon sentryApp={app} size={36} />}
       />
     );
   };
