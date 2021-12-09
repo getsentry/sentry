@@ -6,6 +6,7 @@ from django.db import transaction
 
 from sentry import eventstore, eventstream, nodestore
 from sentry.eventstore.models import Event
+from sentry.reprocessing2 import buffered_delete_old_primary_hash
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils import metrics
 from sentry.utils.query import celery_run_batch_query
@@ -40,6 +41,7 @@ def reprocess_group(
 
     sentry_sdk.set_tag("is_start", "false")
 
+    # Only executed once during reprocessing
     if start_time is None:
         assert new_group_id is None
         start_time = time.time()
@@ -63,6 +65,7 @@ def reprocess_group(
     )
 
     if not events:
+        # Migrate events that belong to new group generated after reprocessing
         buffered_handle_remaining_events(
             project_id=project_id,
             old_group_id=group_id,
@@ -154,12 +157,10 @@ def handle_remaining_events(
 
     from sentry import buffer
     from sentry.models.group import Group
-    from sentry.reprocessing2 import EVENT_MODELS_TO_MIGRATE, pop_remaining_event_ids_from_redis
+    from sentry.reprocessing2 import EVENT_MODELS_TO_MIGRATE, pop_batched_events_from_redis
 
     if event_ids_redis_key is not None:
-        event_ids, from_timestamp, to_timestamp = pop_remaining_event_ids_from_redis(
-            event_ids_redis_key
-        )
+        event_ids, from_timestamp, to_timestamp = pop_batched_events_from_redis(event_ids_redis_key)
 
     metrics.timing(
         "events.reprocessing.handle_remaining_events.batch_size",
@@ -238,6 +239,14 @@ def finish_reprocessing(project_id, group_id):
         # All the associated models (groupassignee and eventattachments) should
         # have moved to a successor group that may be deleted independently.
         group.delete()
+
+    # Tombstone unwanted events that should be dropped after new group
+    # is generated after reprocessing
+    buffered_delete_old_primary_hash(
+        project_id=project_id,
+        group_id=group_id,
+        force_flush_batch=True,
+    )
 
     eventstream.exclude_groups(project_id, [group_id])
 
