@@ -6,6 +6,8 @@ import {Layout, Responsive, WidthProvider} from 'react-grid-layout';
 import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
+import sortBy from 'lodash/sortBy';
+import zip from 'lodash/zip';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -276,7 +278,7 @@ class Dashboard extends Component<Props, State> {
         rowHeight={ROW_HEIGHT}
         margin={WIDGET_MARGINS}
         draggableHandle={`.${DRAG_HANDLE_CLASS}`}
-        layouts={{desktop: layout, mobile: getMobileLayout(layout)}}
+        layouts={{desktop: layout, mobile: getMobileLayout(layout, widgets)}}
         onLayoutChange={this.onLayoutChange}
         isDraggable={canModifyLayout}
         isResizable={canModifyLayout}
@@ -337,6 +339,19 @@ function getDefaultPosition(index: number, displayType: DisplayType) {
   };
 }
 
-function getMobileLayout(desktopLayout) {
-  return desktopLayout;
+function getMobileLayout(desktopLayout, widgets) {
+  const layoutWidgetPairs = zip(desktopLayout, widgets);
+
+  // Sort by y and then subsort by x
+  const sorted = sortBy(layoutWidgetPairs, ['0.y', '0.x']) as [Layout, Widget][];
+
+  const mobileLayout = sorted.map(([layout, widget], index) => ({
+    ...layout,
+    x: 0,
+    y: index * 2,
+    w: 2,
+    h: widget.displayType === DisplayType.BIG_NUMBER ? 1 : 2,
+  }));
+
+  return mobileLayout;
 }
