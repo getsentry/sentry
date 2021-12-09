@@ -276,7 +276,7 @@ class Dashboard extends Component<Props, State> {
         rowHeight={ROW_HEIGHT}
         margin={WIDGET_MARGINS}
         draggableHandle={`.${DRAG_HANDLE_CLASS}`}
-        layouts={{desktop: layout, mobile: layout}}
+        layouts={{desktop: layout, mobile: getMobileLayout(layout)}}
         onLayoutChange={this.onLayoutChange}
         isDraggable={canModifyLayout}
         isResizable={canModifyLayout}
@@ -335,4 +335,8 @@ function getDefaultPosition(index: number, displayType: DisplayType) {
     h: displayType === DisplayType.BIG_NUMBER ? 1 : 2,
     minH: displayType === DisplayType.BIG_NUMBER ? 1 : 2,
   };
+}
+
+function getMobileLayout(desktopLayout) {
+  return desktopLayout;
 }
