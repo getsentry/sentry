@@ -123,7 +123,7 @@ class SessionStackPlugin(CorePluginMixin, Plugin2):
             },
         ]
 
-        if settings.SENTRY_ONPREMISE:
+        if settings.SENTRY_SELF_HOSTED:
             configurations.extend(
                 [
                     {
