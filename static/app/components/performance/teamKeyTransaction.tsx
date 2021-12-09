@@ -298,6 +298,11 @@ function TeamKeyTransactionItem({team, isKeyed, disabled, onSelect}: ItemProps) 
 
 const StarWrapper = styled('div')`
   display: flex;
+
+  /* Fixes Star when it’s filled and is wrapped around Tooltip */
+  & > span {
+    display: flex;
+  }
 `;
 
 const DropdownWrapper = styled('div')`

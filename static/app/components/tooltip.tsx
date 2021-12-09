@@ -316,8 +316,6 @@ const Container = styled('span')<{
 }>`
   ${p => p.containerDisplayMode && `display: ${p.containerDisplayMode}`};
   max-width: 100%;
-  width: 100%;
-  display: flex;
 `;
 
 const PositionWrapper = styled('div')`
