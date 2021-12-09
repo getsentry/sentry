@@ -2839,7 +2839,7 @@ class QueryFields(QueryBase):
             return []
 
         resolved_columns = []
-        stripped_columns = [column.strip() for column in selected_columns]
+        stripped_columns = [column.strip() for column in set(selected_columns)]
 
         if equations:
             _, _, parsed_equations = resolve_equation_list(
