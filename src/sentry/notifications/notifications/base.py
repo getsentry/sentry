@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 class BaseNotification(abc.ABC):
     message_builder = "SlackNotificationsMessageBuilder"
     # some notifications have no settings for it
-    notification_setting_type: NotificationSettingTypes | None
+    notification_setting_type: NotificationSettingTypes | None = None
     metrics_key: str = ""
     analytics_event: str = ""
     referrer_base: str = ""
