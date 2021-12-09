@@ -28,7 +28,6 @@ export function AllTransactionsView(props: BasePerformanceViewProps) {
         <DoubleChartRow
           {...props}
           allowedCharts={[
-            PerformanceWidgetSetting.MOST_RELATED_ERRORS,
             PerformanceWidgetSetting.MOST_RELATED_ISSUES,
             PerformanceWidgetSetting.MOST_IMPROVED,
             PerformanceWidgetSetting.MOST_REGRESSED,

@@ -5,6 +5,8 @@ import sentry_sdk
 from django.http import Http404
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
+from snuba_sdk.column import Column
+from snuba_sdk.conditions import Condition, Op
 
 from sentry import features, tagstore
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
@@ -492,6 +494,7 @@ def query_facet_performance_key_histogram(
     num_buckets_per_key: int,
     limit: int,
     referrer: str,
+    use_snql: bool,
     aggregate_column: Optional[str] = None,
     filter_query: Optional[str] = None,
 ) -> Dict:
@@ -512,8 +515,13 @@ def query_facet_performance_key_histogram(
             ["tags_key", "IN", [tag_key]],
             ["tags_value", "IN", tag_values],
         ],
+        extra_snql_condition=[
+            Condition(Column("tags_key"), Op.EQ, tag_key),
+            Condition(Column("tags_value"), Op.IN, tag_values),
+        ],
         histogram_rows=limit,
         referrer="api.organization-events-facets-performance-histogram",
+        use_snql=use_snql,
         normalize_results=False,
     )
     return results
