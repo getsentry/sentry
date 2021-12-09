@@ -39,11 +39,12 @@ def _get_changed_project_release_model_adoptions(project_ids):
     # Find all releases with adoption in the last 48 hours
     for x in raw_query(
         dataset=Dataset.Sessions,
-        selected_columns=["project_id", "release", "users"],
+        selected_columns=["project_id", "release"],
         groupby=["release", "project_id"],
         start=start,
         referrer="sessions.get-adoption",
         filter_keys={"project_id": list(project_ids)},
+        orderby=["project_id", "release"],
     )["data"]:
         rv.append((x["project_id"], x["release"]))
 

@@ -1197,7 +1197,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         release_column_name = tag_key(org_id, "release")
 
         query_cols = [Column("project_id"), Column(release_column_name)]
-        group_by = query_cols
 
         where_clause = [
             Condition(Column("org_id"), Op.EQ, org_id),
@@ -1212,7 +1211,8 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             match=Entity(EntityKey.MetricsCounters.value),
             select=query_cols,
             where=where_clause,
-            groupby=group_by,
+            groupby=query_cols,
+            orderby=query_cols,
         )
         result = raw_snql_query(
             query,
