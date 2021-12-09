@@ -1,10 +1,10 @@
 import {useState} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {Client} from 'app/api';
-import parseLinkHeader from 'app/utils/parseLinkHeader';
-import RequestError from 'app/utils/requestError/requestError';
-import useApi from 'app/utils/useApi';
+import {Client} from 'sentry/api';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import RequestError from 'sentry/utils/requestError/requestError';
+import useApi from 'sentry/utils/useApi';
 
 type State = {
   data: null | any;
