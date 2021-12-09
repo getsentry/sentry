@@ -7,8 +7,7 @@ from . import AvatarBase
 
 class DocIntegrationAvatar(AvatarBase):
     """
-    A DocIntegrationAvatar associates a DocIntegration with
-        a logo photo File.
+    A DocIntegrationAvatar associates a DocIntegration with a logo photo File.
     """
 
     FILE_TYPE = "avatar.file"
