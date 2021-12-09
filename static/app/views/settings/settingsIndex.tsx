@@ -67,17 +67,17 @@ class SettingsIndex extends React.Component<Props> {
   render() {
     const {organization} = this.props;
     const user = ConfigStore.get('user');
-    const isOnPremise = ConfigStore.get('isOnPremise');
+    const isSelfHosted = ConfigStore.get('isSelfHosted');
 
     const organizationSettingsUrl =
       (organization && `/settings/${organization.slug}/`) || '';
 
     const supportLinkProps = {
-      isOnPremise,
+      isSelfHosted,
       href: LINKS.FORUM,
       to: `${organizationSettingsUrl}support`,
     };
-    const supportText = isOnPremise ? t('Community Forums') : t('Contact Support');
+    const supportText = isSelfHosted ? t('Community Forums') : t('Contact Support');
 
     return (
       <SentryDocumentTitle
@@ -340,7 +340,7 @@ const ExternalHomeLink = styled(
 `;
 
 type SupportLinkProps<T extends boolean> = {
-  isOnPremise: T;
+  isSelfHosted: T;
   href: string;
   to: string;
   isCentered?: boolean;
@@ -350,12 +350,12 @@ type SupportLinkProps<T extends boolean> = {
 
 const SupportLinkComponent = <T extends boolean>({
   isCentered,
-  isOnPremise,
+  isSelfHosted,
   href,
   to,
   ...props
 }: SupportLinkProps<T>) =>
-  isOnPremise ? (
+  isSelfHosted ? (
     <ExternalHomeLink isCentered={isCentered} href={href} {...props} />
   ) : (
     <HomeLink to={to} {...props} />
