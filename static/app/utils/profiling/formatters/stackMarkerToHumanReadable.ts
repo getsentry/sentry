@@ -1,19 +1,21 @@
+import {t} from 'sentry/locale';
+
 export function stackMarkerToHumanReadable(marker: JSSelfProfiling.Marker): string {
   switch (marker) {
     case 'gc':
-      return 'Garbage Collection';
+      return t('Garbage Collection');
     case 'style':
-      return 'Style';
+      return t('Style');
     case 'layout':
-      return 'Layout';
+      return t('Layout');
     case 'paint':
-      return 'Paint';
+      return t('Paint');
     case 'script':
-      return 'Script';
+      return t('Script');
     case 'other':
-      return 'Other';
+      return t('Other');
     default:
       // since spec is still in dev, just gracefully return whatever we received.
-      return marker;
+      return t(marker);
   }
 }
