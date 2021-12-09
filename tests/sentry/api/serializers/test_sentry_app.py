@@ -1,5 +1,6 @@
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.sentry_app import SentryAppSerializer
+from sentry.models.integrationfeature import IntegrationTypes
 from sentry.testutils import TestCase
 
 # from sentry.constants import SentryAppStatus
@@ -22,6 +23,8 @@ class SentryAppSerializerTest(TestCase):
             {
                 "description": "Tesla App can **utilize the Sentry API** to pull data or update resources in Sentry (with permissions granted, of course).",
                 "featureGate": "integrations-api",
+                "targetId": sentry_app.id,
+                "targetType": IntegrationTypes.SENTRY_APP.value,
             }
         ]
         assert result["scopes"] == ["org:write", "team:admin"]
