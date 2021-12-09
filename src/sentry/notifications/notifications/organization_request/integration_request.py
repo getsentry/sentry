@@ -1,9 +1,12 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequence
+from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Sequence
 
 from sentry import analytics
 from sentry.notifications.notifications.organization_request import OrganizationRequestNotification
+from sentry.notifications.notifications.strategies.owner_receipt_strategy import (
+    OwnerReceiptStrategy,
+)
 from sentry.notifications.utils.actions import MessageAction
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
@@ -32,8 +35,10 @@ def get_url(organization: Organization, provider_type: str, provider_slug: str) 
     return url
 
 
-# TODO: switch to a role-based strategy
 class IntegrationRequestNotification(OrganizationRequestNotification):
+    # TODO: switch to a strategy based on the integration write scope
+    RoleBasedReceiptStrategyClass = OwnerReceiptStrategy
+
     def __init__(
         self,
         organization: Organization,
@@ -89,12 +94,6 @@ class IntegrationRequestNotification(OrganizationRequestNotification):
 
     def get_message_actions(self) -> Sequence[MessageAction]:
         return [MessageAction(name="Check it out", url=self.integration_link)]
-
-    def determine_recipients(self) -> Iterable[Team | User]:
-        # Explicitly typing to satisfy mypy.
-        # TODO: notify anyone who can install an integration
-        recipients: Iterable[Team | User] = self.organization.get_owners()
-        return recipients
 
     def record_notification_sent(
         self, recipient: Team | User, provider: ExternalProviders, **kwargs: Any

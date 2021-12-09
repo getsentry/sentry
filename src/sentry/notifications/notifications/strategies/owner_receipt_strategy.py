@@ -8,11 +8,12 @@ from sentry.models import OrganizationMember
 from .role_based_receipt_strategy import RoleBasedReceiptStrategy
 
 
-class MemberWriteRoleReceiptStrategy(RoleBasedReceiptStrategy):
+class OwnerReceiptStrategy(RoleBasedReceiptStrategy):
     def determine_member_recipients(self) -> Iterable[OrganizationMember]:
+        # Explicitly typing to satisfy mypy.
         members: Iterable[
             OrganizationMember
         ] = OrganizationMember.objects.get_contactable_members_for_org(self.organization.id).filter(
-            role__in=(r.id for r in roles.get_all() if r.has_scope("member:write")),
+            role=roles.get_top_dog().id,
         )
         return members
