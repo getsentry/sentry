@@ -4,6 +4,7 @@ from datetime import timedelta
 from django.core.cache import cache
 from django.utils import timezone
 
+from sentry import features
 from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry.snuba import discover
 
@@ -51,6 +52,9 @@ class OrganizationHasMobileAppEvents(OrganizationEventsEndpointBase):
                     "project_id": [p.id for p in projects],
                 },
                 referrer="api.organization-has-mobile-app-events",
+                use_snql=features.has(
+                    "organizations:performance-view", organization, actor=request.user
+                ),
             )
             data = result["data"]
             if not data:
