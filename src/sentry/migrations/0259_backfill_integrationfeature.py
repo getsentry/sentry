@@ -5,7 +5,7 @@ from django.db import migrations
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 
-def backfill_target_id_and_type(apps, schema_editor):
+def backfill_target_id(apps, schema_editor):
     IntegrationFeature = apps.get_model("sentry", "IntegrationFeature")
 
     for integration_feature in RangeQuerySetWrapperWithProgressBar(
@@ -43,7 +43,7 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.RunPython(
-            backfill_target_id_and_type,
+            backfill_target_id,
             migrations.RunPython.noop,
             hints={"tables": ["sentry_integrationfeature"]},
         )
