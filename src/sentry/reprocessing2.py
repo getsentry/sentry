@@ -27,7 +27,7 @@ How reprocessing works
    A group redirect is installed. The old group is deleted, while the new group
    is unresolved. This effectively unsets the REPROCESSING status.
 
-   A user looking at the progressbar on the old group's URL is supposed to be
+   A user looking at the progress bar on the old group's URL is supposed to be
    redirected at this point. The new group can either:
 
    a. Have events by itself, but also show a success message based on the data in activity.
