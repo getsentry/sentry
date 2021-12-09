@@ -480,7 +480,7 @@ class SmartSearchBar extends React.Component<Props, State> {
     const cursorPosEnd = this.searchInput.current!.selectionEnd;
     const textBefore = currentQuery.substring(0, cursorPosStart);
     const textAfter = currentQuery.substring(cursorPosEnd, currentQuery.length);
-    const mergedText = textBefore + text + textAfter;
+    const mergedText = `${textBefore}${text}${textAfter}`;
 
     // Insert text manually
     this.setState(makeQueryState(mergedText), () => {
