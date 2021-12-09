@@ -11,10 +11,8 @@ def delete_codeowners_with_no_integration(apps, schema_editor):
     """
     ProjectCodeOwners = apps.get_model("sentry", "ProjectCodeOwners")
 
-    for code_owner in RangeQuerySetWrapperWithProgressBar(
-        ProjectCodeOwners.objects.filter(
-            repository_project_path_config__organization_integration_id=None
-        )
+    for code_owner in ProjectCodeOwners.objects.filter(
+        repository_project_path_config__organization_integration_id=None
     ):
         code_owner.delete()
 
@@ -50,7 +48,7 @@ class Migration(migrations.Migration):
     # You'll also usually want to set this to `False` if you're writing a data
     # migration, since we don't want the entire migration to run in one long-running
     # transaction.
-    atomic = True
+    atomic = False
 
     dependencies = [
         ("sentry", "0258_create_docintegrationavatar_table"),
