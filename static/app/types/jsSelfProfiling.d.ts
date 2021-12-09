@@ -20,7 +20,6 @@ namespace JSSelfProfiling {
     column: number;
   };
 
-  type Resource = string;
 
   type Trace = {
     resources: Resource[];
