@@ -344,7 +344,7 @@ describe('Dashboards > Detail', function () {
       expect(mockVisit).toHaveBeenCalledTimes(1);
     });
 
-    it('can enter edit mode for widgets', async function () {
+    it('opens edit modal for widgets', async function () {
       const openEditModal = jest.spyOn(modals, 'openAddDashboardWidgetModal');
 
       wrapper = mountWithTheme(
@@ -361,11 +361,12 @@ describe('Dashboards > Detail', function () {
 
       // Enter edit mode.
       wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
+      wrapper.update();
 
       const card = wrapper.find('WidgetCard').first();
       card.find('StyledPanel').simulate('mouseOver');
 
-      // // Edit the first widget
+      // Edit the first widget
       wrapper
         .find('WidgetCard')
         .first()
