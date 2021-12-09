@@ -383,6 +383,8 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
 
 
 class HistogramQueryBuilder(QueryBuilder):
+    base_function_acl = ["array_join", "histogram"]
+
     def __init__(
         self,
         num_buckets: int,
@@ -395,19 +397,20 @@ class HistogramQueryBuilder(QueryBuilder):
         *args: Any,
         **kwargs: Any,
     ):
+        kwargs["functions_acl"] = kwargs.get("functions_acl", []) + self.base_function_acl
         super().__init__(*args, **kwargs)
         self.additional_groupby = groupby
         selected_columns = kwargs["selected_columns"]
+
+        resolved_histogram = self.resolve_column(histogram_column)
+
         # Reset&Ignore the columns from the QueryBuilder
         self.aggregates: List[CurriedFunction] = []
-        self.columns = [self.resolve_column("count()")]
+        self.columns = [self.resolve_column("count()"), resolved_histogram]
 
         if key_column is not None and field_names is not None:
             key_values: List[str] = [field for field in field_names if isinstance(field, str)]
             self.where.append(Condition(self.resolve_column(key_column), Op.IN, key_values))
-
-        resolved_histogram = self.resolve_column(histogram_column)
-        self.columns.append(resolved_histogram)
 
         # make sure to bound the bins to get the desired range of results
         min_bin = histogram_params.start_offset

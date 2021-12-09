@@ -1418,7 +1418,6 @@ def histogram_query(
             query=user_query,
             selected_columns=fields,
             orderby=order_by,
-            functions_acl=["array_join", "histogram"],
             limitby=limit_by,
         )
         if extra_snql_condition is not None:
