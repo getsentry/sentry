@@ -459,37 +459,6 @@ class DashboardDetail extends Component<Props, State> {
     );
   };
 
-  onAddIssueWidget = () => {
-    const {api, organization, location, dashboard, onDashboardUpdate} = this.props;
-
-    openAddDashboardIssueWidgetModal({
-      organization,
-      onAddWidget: widget => {
-        const modifiedDashboard = {
-          ...dashboard,
-          widgets: [...dashboard.widgets, widget],
-        };
-        updateDashboard(api, organization.slug, modifiedDashboard).then(
-          (newDashboard: DashboardDetails) => {
-            if (onDashboardUpdate) {
-              onDashboardUpdate(newDashboard);
-            }
-            if (dashboard && newDashboard.id !== dashboard.id) {
-              browserHistory.replace({
-                pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
-                query: {
-                  ...location.query,
-                },
-              });
-              return;
-            }
-          },
-          () => undefined
-        );
-      },
-    });
-  };
-
   renderWidgetBuilder(dashboard: DashboardDetails) {
     const {children} = this.props;
     const {modifiedDashboard, widgetToBeUpdated} = this.state;
