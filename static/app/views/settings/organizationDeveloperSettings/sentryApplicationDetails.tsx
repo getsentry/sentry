@@ -10,7 +10,6 @@ import {
   addSentryAppToken,
   removeSentryAppToken,
 } from 'sentry/actionCreators/sentryAppTokens';
-import Feature from 'sentry/components/acl/feature';
 import Avatar from 'sentry/components/avatar';
 import AvatarChooser, {Model} from 'sentry/components/avatarChooser';
 import Button from 'sentry/components/button';
@@ -356,26 +355,24 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
     }
     const avatarStyle = isColor ? 'color' : 'simple';
     return (
-      <Feature features={['organizations:sentry-app-logo-upload']}>
-        <AvatarChooser
-          type={isColor ? 'sentryAppColor' : 'sentryAppSimple'}
-          allowGravatar={false}
-          allowLetter={false}
-          endpoint={`/sentry-apps/${app.slug}/avatar/`}
-          model={this.getAvatarModel(isColor)}
-          onSave={this.addAvatar}
-          title={isColor ? t('Logo') : t('Small Icon')}
-          help={AVATAR_STYLES[avatarStyle].help.concat(
-            this.isInternal ? '' : t(' Required for publishing.')
-          )}
-          savedDataUrl={undefined}
-          defaultChoice={{
-            allowDefault: true,
-            choiceText: isColor ? t('Default logo') : t('Default small icon'),
-            preview: this.getAvatarPreview(isColor),
-          }}
-        />
-      </Feature>
+      <AvatarChooser
+        type={isColor ? 'sentryAppColor' : 'sentryAppSimple'}
+        allowGravatar={false}
+        allowLetter={false}
+        endpoint={`/sentry-apps/${app.slug}/avatar/`}
+        model={this.getAvatarModel(isColor)}
+        onSave={this.addAvatar}
+        title={isColor ? t('Logo') : t('Small Icon')}
+        help={AVATAR_STYLES[avatarStyle].help.concat(
+          this.isInternal ? '' : t(' Required for publishing.')
+        )}
+        savedDataUrl={undefined}
+        defaultChoice={{
+          allowDefault: true,
+          choiceText: isColor ? t('Default logo') : t('Default small icon'),
+          preview: this.getAvatarPreview(isColor),
+        }}
+      />
     );
   };
 

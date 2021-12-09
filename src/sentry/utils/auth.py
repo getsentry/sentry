@@ -296,9 +296,10 @@ def login(request, user, passed_2fa=None, after_2fa=None, organization_id=None, 
     # reasonable place.
     if not hasattr(user, "backend"):
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
-    _login(request, user)
     if organization_id:
         mark_sso_complete(request, organization_id)
+    _login(request, user)
+
     log_auth_success(request, user.username, organization_id, source)
     return True
 
