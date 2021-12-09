@@ -1455,6 +1455,95 @@ describe('Performance > Widgets > WidgetContainer', function () {
     expect(wrapper.find('div[data-test-id="empty-message"]').exists()).toBe(true);
   });
 
+  it('Most slow frames widget - metrics based', async function () {
+    const field = 'avg(measurements.frames_slow)';
+    metricsMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics/data/`,
+      body: TestStubs.FieldByTransaction({field}),
+      match: [(...args) => !issuesPredicate(...args)],
+    });
+
+    const previousMetricsMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics/data/`,
+      body: TestStubs.FieldByTransaction({field}),
+      match: [
+        (...args) => {
+          return (
+            !issuesPredicate(...args) &&
+            args[1].query.statsPeriodStart &&
+            args[1].query.statsPeriodEnd
+          );
+        },
+      ],
+    });
+    const data = initializeData();
+
+    wrapper = mountWithTheme(
+      <WrappedComponent
+        data={data}
+        defaultChartSetting={PerformanceWidgetSetting.MOST_SLOW_FRAMES}
+        isMetricsData
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+      'Most Slow Frames'
+    );
+
+    expect(metricsMock).toHaveBeenCalledTimes(2);
+    expect(previousMetricsMock).toHaveBeenCalledTimes(1);
+    expect(metricsMock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: ['prod'],
+          field: [field],
+          groupBy: ['transaction'],
+          interval: '1h',
+          limit: 3,
+          orderBy: field,
+          project: [-42],
+          statsPeriod: '7d',
+        }),
+      })
+    );
+    expect(metricsMock).toHaveBeenNthCalledWith(
+      2,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: ['prod'],
+          field: [field],
+          interval: '1h',
+          project: [-42],
+          query: 'transaction:/bar/:ordId/',
+          statsPeriod: '7d',
+        }),
+      })
+    );
+    expect(previousMetricsMock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: ['prod'],
+          field: [field],
+          interval: '1h',
+          project: [-42],
+          query: 'transaction:/bar/:ordId/',
+          statsPeriodEnd: '7d',
+          statsPeriodStart: '14d',
+        }),
+      })
+    );
+  });
+
   it('Most frozen frames widget', async function () {
     const data = initializeData();
 
@@ -1497,6 +1586,95 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
 
     expect(wrapper.find('div[data-test-id="empty-message"]').exists()).toBe(true);
+  });
+
+  it('Most frozen frames widget - metrics based', async function () {
+    const field = 'avg(measurements.frames_frozen)';
+    metricsMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics/data/`,
+      body: TestStubs.FieldByTransaction({field}),
+      match: [(...args) => !issuesPredicate(...args)],
+    });
+
+    const previousMetricsMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics/data/`,
+      body: TestStubs.FieldByTransaction({field}),
+      match: [
+        (...args) => {
+          return (
+            !issuesPredicate(...args) &&
+            args[1].query.statsPeriodStart &&
+            args[1].query.statsPeriodEnd
+          );
+        },
+      ],
+    });
+    const data = initializeData();
+
+    wrapper = mountWithTheme(
+      <WrappedComponent
+        data={data}
+        defaultChartSetting={PerformanceWidgetSetting.MOST_FROZEN_FRAMES}
+        isMetricsData
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+      'Most Frozen Frames'
+    );
+
+    expect(metricsMock).toHaveBeenCalledTimes(2);
+    expect(previousMetricsMock).toHaveBeenCalledTimes(1);
+    expect(metricsMock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: ['prod'],
+          field: [field],
+          groupBy: ['transaction'],
+          interval: '1h',
+          limit: 3,
+          orderBy: field,
+          project: [-42],
+          statsPeriod: '7d',
+        }),
+      })
+    );
+    expect(metricsMock).toHaveBeenNthCalledWith(
+      2,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: ['prod'],
+          field: [field],
+          interval: '1h',
+          project: [-42],
+          query: 'transaction:/bar/:ordId/',
+          statsPeriod: '7d',
+        }),
+      })
+    );
+    expect(previousMetricsMock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: ['prod'],
+          field: [field],
+          interval: '1h',
+          project: [-42],
+          query: 'transaction:/bar/:ordId/',
+          statsPeriodEnd: '7d',
+          statsPeriodStart: '14d',
+        }),
+      })
+    );
   });
 
   it('Able to change widget type from menu', async function () {
