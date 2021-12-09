@@ -1480,7 +1480,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     });
     const data = initializeData();
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.MOST_SLOW_FRAMES}
@@ -1613,7 +1613,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     });
     const data = initializeData();
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.MOST_FROZEN_FRAMES}
