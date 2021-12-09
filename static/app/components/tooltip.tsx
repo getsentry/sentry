@@ -203,8 +203,8 @@ class Tooltip extends React.Component<Props, State> {
       'aria-describedby': this.tooltipId,
       onFocus: this.handleOpen,
       onBlur: this.handleClose,
-      onMouseEnter: this.handleOpen,
-      onMouseLeave: this.handleClose,
+      onPointerEnter: this.handleOpen,
+      onPointerLeave: this.handleClose,
     };
 
     // Use the `type` property of the react instance to detect whether we

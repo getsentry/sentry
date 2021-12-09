@@ -13,7 +13,7 @@ jest.mock('sentry/actionCreators/modal', () => ({
   openAddDashboardWidgetModal: jest.fn(),
 }));
 
-function mountModal({initialData}, onApply, closeModal) {
+function mountModal({initialData}, onApply, closeModal, widgets = []) {
   const routerContext = TestStubs.routerContext();
   return mountWithTheme(
     <DashboardWidgetLibraryModal
@@ -21,7 +21,7 @@ function mountModal({initialData}, onApply, closeModal) {
       Footer={stubEl}
       Body={stubEl}
       organization={initialData.organization}
-      dashboard={TestStubs.Dashboard([], {
+      dashboard={TestStubs.Dashboard(widgets, {
         id: '1',
         title: 'Dashboard 1',
         dateCreated: '2021-04-19T13:13:23.962105Z',
@@ -79,7 +79,17 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
     // Checking initial modal states
     const mockApply = jest.fn();
     const closeModal = jest.fn();
-    container = mountModal({initialData}, mockApply, closeModal);
+    container = mountModal({initialData}, mockApply, closeModal, [
+      TestStubs.Widget(
+        [{name: '', orderby: '', conditions: 'event.type:error', fields: ['count()']}],
+        {
+          title: 'Errors',
+          interval: '1d',
+          id: '1',
+          displayType: 'line',
+        }
+      ),
+    ]);
 
     // Select some widgets
     const allEvents = screen.queryByText('All Events');
@@ -90,6 +100,20 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
 
     expect(mockApply).toHaveBeenCalledTimes(1);
     expect(mockApply).toHaveBeenCalledWith([
+      expect.objectContaining({
+        displayType: 'line',
+        id: '1',
+        interval: '1d',
+        queries: [
+          {
+            conditions: 'event.type:error',
+            fields: ['count()'],
+            name: '',
+            orderby: '',
+          },
+        ],
+        title: 'Errors',
+      }),
       {
         displayType: 'area',
         id: undefined,

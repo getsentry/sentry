@@ -625,7 +625,7 @@ class SymbolicatorSession:
         params = {"timeout": self.timeout, "scope": self.project_id}
         with metrics.timer(
             "events.symbolicator.create_task",
-            tags={"path": path, "worker_id": self.get_worker_id()},
+            tags={"path": path},
         ):
             return self._request(method="post", path=path, params=params, **kwargs)
 
@@ -664,9 +664,7 @@ class SymbolicatorSession:
             "scope": self.project_id,
         }
 
-        with metrics.timer(
-            "events.symbolicator.query_task", tags={"worker_id": self.get_worker_id()}
-        ):
+        with metrics.timer("events.symbolicator.query_task"):
             return self._request("get", task_url, params=params)
 
     def healthcheck(self):

@@ -108,13 +108,14 @@ def get_channel_and_integration_by_team(
                 organization=organization,
                 integration__status=ObjectStatus.ACTIVE,
                 integration__organizationintegration__status=ObjectStatus.ACTIVE,
+                # limit to org here to prevent multiple query results
+                integration__organizationintegration__organization=organization,
             )
             .select_related("integration")
             .get()
         )
     except ExternalActor.DoesNotExist:
         return {}
-
     return {external_actor.external_id: external_actor.integration}
 
 
