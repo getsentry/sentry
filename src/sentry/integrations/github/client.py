@@ -13,24 +13,6 @@ from sentry.utils import jwt
 from sentry.utils.json import JSONData
 
 
-def get_next_link(resp: Response) -> str | None:
-    link_option: str | None = resp.headers.get("link")
-    if link_option is None:
-        return None
-
-    # Should be a comma separated string of links
-    links = link_option.split(",")
-
-    for link in links:
-        # If there is a 'next' link return the URL between the angle brackets, or None
-        if 'rel="next"' in link:
-            start = link.find("<") + 1
-            end = link.find(">")
-            return link[start:end]
-
-    return None
-
-
 class GitHubClientMixin(ApiClient):  # type: ignore
     allow_redirects = True
 
@@ -125,6 +107,24 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             resp = self.get(path, params={"per_page": self.page_size})
             output.extend(resp)
             page_number = 1
+
+            # TODO(mgaeta): Move this to utils.
+            def get_next_link(resp: Response) -> str | None:
+                link_option: str | None = resp.headers.get("link")
+                if link_option is None:
+                    return None
+
+                # Should be a comma separated string of links
+                links = link_option.split(",")
+
+                for link in links:
+                    # If there is a 'next' link return the URL between the angle brackets, or None
+                    if 'rel="next"' in link:
+                        start = link.find("<") + 1
+                        end = link.find(">")
+                        return link[start:end]
+
+                return None
 
             while get_next_link(resp) and page_number < self.page_number_limit:
                 resp = self.get(get_next_link(resp))

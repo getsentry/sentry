@@ -349,6 +349,7 @@ class PullRequestEventWebhook(Webhook):
         repo: Repository,
         host: str | None = None,
     ) -> None:
+
         pull_request = event["pull_request"]
         number = pull_request["number"]
         title = pull_request["title"]

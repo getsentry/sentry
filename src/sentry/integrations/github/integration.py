@@ -97,18 +97,15 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
     ) -> Mapping[str, Any] | None:
         try:
             files = self.get_client().search_file(repo.name, "CODEOWNERS")
+            # TODO(mgaeta): Pull this logic out of the try/catch.
+            for f in files["items"]:
+                if f["name"] == "CODEOWNERS":
+                    filepath = f["path"]
+                    html_url = f["html_url"]
+                    contents = self.get_client().get_file(repo.name, filepath)
+                    return {"filepath": filepath, "html_url": html_url, "raw": contents}
         except ApiError:
             return None
-
-        for f in files["items"]:
-            if f["name"] == "CODEOWNERS":
-                filepath = f["path"]
-                html_url = f["html_url"]
-                try:
-                    contents = self.get_client().get_file(repo.name, filepath)
-                except ApiError:
-                    return None
-                return {"filepath": filepath, "html_url": html_url, "raw": contents}
         return None
 
     def get_repositories(self, query: str | None = None) -> Sequence[Mapping[str, Any]]:
@@ -147,19 +144,17 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         self.reinstall_repositories()
 
     def message_from_error(self, exc: Exception) -> str:
-        if not isinstance(exc, ApiError):
+        # TODO(mgaeta): Clean up the conditional flow.
+        if isinstance(exc, ApiError):
+            message = API_ERRORS.get(exc.code)
+            if exc.code == 404 and re.search(r"/repos/.*/(compare|commits)", exc.url):
+                message += f" Please also confirm that the commits associated with the following URL have been pushed to GitHub: {exc.url}"
+
+            if message is None:
+                message = exc.json.get("message", "unknown error") if exc.json else "unknown error"
+            return f"Error Communicating with GitHub (HTTP {exc.code}): {message}"
+        else:
             return ERR_INTERNAL
-
-        message = API_ERRORS.get(exc.code, "")
-        if exc.code == 404 and re.search(r"/repos/.*/(compare|commits)", exc.url):
-            message += (
-                " Please also confirm that the commits associated with"
-                f" the following URL have been pushed to GitHub: {exc.url}"
-            )
-
-        if not message:
-            message = (exc.json or {}).get("message", "unknown error")
-        return f"Error Communicating with GitHub (HTTP {exc.code}): {message}"
 
     def has_repo_access(self, repo: Repository) -> bool:
         client = self.get_client()
