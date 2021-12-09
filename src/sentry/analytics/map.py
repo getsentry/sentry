@@ -35,4 +35,3 @@ class Map(Attribute):
             items = new_value
 
         return get_data(self.attributes, items)
-

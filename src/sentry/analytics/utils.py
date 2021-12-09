@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from django.conf import settings
 from typing import Any, Sequence
+
+from django.conf import settings
 
 from sentry.analytics.attribute import Attribute
 

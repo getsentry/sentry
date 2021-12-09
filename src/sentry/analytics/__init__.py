@@ -8,7 +8,15 @@ from .event_manager import default_manager
 from .map import Map
 from .utils import get_backend_path
 
-__all__ = ("Analytics", "Attribute", "Event", "Map", "record", "record_event", "setup",)
+__all__ = (
+    "Analytics",
+    "Attribute",
+    "Event",
+    "Map",
+    "record",
+    "record_event",
+    "setup",
+)
 
 backend = LazyServiceWrapper(
     backend_base=Analytics,
