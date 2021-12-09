@@ -1,3 +1,5 @@
+import {t} from 'sentry/locale';
+
 import {WeightedNode} from './weightedNode';
 
 export class Frame extends WeightedNode {
@@ -30,11 +32,11 @@ export class Frame extends WeightedNode {
       // If the frame is a web frame and there is no name associated to it, then it was likely invoked as an iife or anonymous callback as
       // most modern browser engines properly show anonymous functions when they are assigned to references (e.g. `let foo = function() {};`)
       if (!frameInfo.name) {
-        this.name = 'anonymous';
+        this.name = t('anonymous');
       }
       // If the frame had no line or column, it was part of the native code, (e.g. calling String.fromCharCode)
       if (frameInfo.line === undefined && frameInfo.column === undefined) {
-        this.name += ' [native code]';
+        this.name += ` ${t('[native code]')}`;
       }
     }
   }
