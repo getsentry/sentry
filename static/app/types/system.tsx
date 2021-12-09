@@ -121,8 +121,7 @@ export interface Config {
   invitesEnabled: boolean;
   privacyUrl: string | null;
   termsUrl: string | null;
-  isOnPremise: boolean; // deprecated, use ...
-  isSelfHosted: boolean; // ... this instead
+  isOnPremise: boolean;
   lastOrganization: string | null;
   gravatarBaseUrl: string;
 

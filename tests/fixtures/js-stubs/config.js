@@ -15,8 +15,7 @@ export function Config(params = {}) {
     invitesEnabled: false,
     privacyUrl: null,
     termsUrl: null,
-    isOnPremise: false, // deprecated, use ...
-    isSelfHosted: false, // ... this instead
+    isOnPremise: false,
     lastOrganization: null,
     gravatarBaseUrl: 'https://gravatar.com',
     dsn: 'test-dsn',

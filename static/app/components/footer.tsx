@@ -18,7 +18,7 @@ function BaseFooter({className}: Props) {
   return (
     <footer className={className}>
       <LeftLinks>
-        {config.isSelfHosted && (
+        {config.isOnPremise && (
           <Fragment>
             {'Sentry '}
             {getDynamicText({
@@ -47,7 +47,7 @@ function BaseFooter({className}: Props) {
         <FooterLink href="https://github.com/getsentry/sentry">
           {t('Contribute')}
         </FooterLink>
-        {config.isSelfHosted && !config.demoMode && (
+        {config.isOnPremise && !config.demoMode && (
           <FooterLink href="/out/">{t('Migrate to SaaS')}</FooterLink>
         )}
       </RightLinks>
