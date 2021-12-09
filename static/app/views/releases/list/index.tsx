@@ -628,7 +628,7 @@ const DropdownsWrapper = styled('div')`
 
     & > * {
       margin-top: ${space(0)};
-      margin-left: ${space(2)};
+      margin-left: ${space(1)};
     }
 
     & > *:nth-child(1) {
@@ -645,7 +645,7 @@ const DropdownsWrapper = styled('div')`
     margin-top: ${space(0)};
 
     & > * {
-      margin-left: ${space(2)} !important;
+      margin-left: ${space(1)} !important;
     }
 
     display: grid;
