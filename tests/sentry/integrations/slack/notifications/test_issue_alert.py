@@ -237,6 +237,7 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest):
     @responses.activate
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     def test_disabled_org_integration_for_team(self, mock_func):
+
         # update the team's notification settings
         ExternalActor.objects.create(
             actor=self.team.actor,
@@ -403,6 +404,9 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest):
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     def test_issue_alert_team(self, mock_func):
         """Test that issue alerts are sent to a team in Slack."""
+        # add a second organization
+        org = self.create_organization(owner=self.user)
+        OrganizationIntegration.objects.create(organization=org, integration=self.integration)
 
         # add a second user to the team so we can be sure it's only
         # sent once (to the team, and not to each individual user)
