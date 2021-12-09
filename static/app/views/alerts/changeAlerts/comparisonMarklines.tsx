@@ -121,7 +121,7 @@ export const getComparisonMarkLines = (
                   0,
                 ],
               },
-            ] as any,
+            ],
           ],
         }),
         data: [],

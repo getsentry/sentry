@@ -23,21 +23,22 @@ export function initializeData(settings?: {
     project: _defaultProject,
     ...settings,
   };
-  const {query, features} = _settings;
-
-  const projects = [TestStubs.Project()];
-  const [project] = projects;
+  const {query, features, projects, project} = _settings;
 
   const organization = TestStubs.Organization({
     features,
     projects,
   });
-  const router = {
-    location: {
-      query: {
-        ...query,
-      },
+  const routerLocation: {query: {project?: number}} = {
+    query: {
+      ...query,
     },
+  };
+  if (settings?.project) {
+    routerLocation.query.project = project;
+  }
+  const router = {
+    location: routerLocation,
   };
   const initialData = initializeOrg({organization, projects, project, router});
   const location = initialData.router.location;
@@ -61,6 +62,11 @@ export const SAMPLE_SPANS = [
         description: 'span-2',
         spans: [{id: 'acacac11'}, {id: 'acacac22'}],
       },
+      {
+        id: 'adadadadadadadad',
+        description: 'span-3',
+        spans: [{id: 'adadad11'}, {id: 'adadad22'}],
+      },
     ],
   },
   {
@@ -69,13 +75,18 @@ export const SAMPLE_SPANS = [
     examples: [
       {
         id: 'bcbcbcbcbcbcbcbc',
-        description: 'span-3',
+        description: 'span-4',
         spans: [{id: 'bcbcbc11'}, {id: 'bcbcbc11'}],
       },
       {
         id: 'bdbdbdbdbdbdbdbd',
-        description: 'span-4',
+        description: 'span-5',
         spans: [{id: 'bdbdbd11'}, {id: 'bdbdbd22'}],
+      },
+      {
+        id: 'bebebebebebebebe',
+        description: 'span-6',
+        spans: [{id: 'bebebe11'}, {id: 'bebebe22'}],
       },
     ],
   },

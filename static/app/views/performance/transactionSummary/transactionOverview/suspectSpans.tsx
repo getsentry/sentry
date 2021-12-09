@@ -1,4 +1,4 @@
-import {Fragment, ReactNode} from 'react';
+import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -62,7 +62,7 @@ const SUSPECT_SPANS_TABLE_COLUMN_ORDER: SuspectSpanTableColumn[] = [
   },
   {
     key: 'count',
-    name: t('Total Occurrences'),
+    name: t('Total Count'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
@@ -175,7 +175,7 @@ function renderHeadCellWithMeta(
   location: Location,
   sortColumn: GridColumnSortBy<SuspectSpanTableColumnKeys>
 ) {
-  return (column: SuspectSpanTableColumn, _index: number): ReactNode => {
+  return (column: SuspectSpanTableColumn, _index: number): React.ReactNode => {
     const columnType = SUSPECT_SPANS_TABLE_COLUMN_TYPE[column.key];
     const align = fieldAlignment(column.key, columnType);
 
@@ -218,7 +218,7 @@ function renderBodyCellWithMeta({
   return (
     column: SuspectSpanTableColumn,
     dataRow: SuspectSpanTableDataRow
-  ): ReactNode => {
+  ): React.ReactNode => {
     const fieldRenderer = getFieldRenderer(column.key, SUSPECT_SPANS_TABLE_COLUMN_TYPE);
     const rendered = fieldRenderer(dataRow, {location, organization});
 

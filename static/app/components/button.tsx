@@ -129,7 +129,7 @@ class BaseButton extends React.Component<ButtonProps, {}> {
     // Doing this instead of using `Tooltip`'s `disabled` prop so that we can minimize snapshot nesting
     if (title) {
       return (
-        <Tooltip skipWrapper={!disabled} {...tooltipProps} title={title}>
+        <Tooltip skipWrapper {...tooltipProps} title={title}>
           {button}
         </Tooltip>
       );
@@ -167,13 +167,13 @@ const getFontWeight = ({priority, borderless}: StyledButtonProps) =>
   `font-weight: ${priority === 'link' || borderless ? 'inherit' : 600};`;
 
 const getBoxShadow =
-  (active: boolean) =>
+  (theme: Theme, active: boolean) =>
   ({priority, borderless, disabled}: StyledButtonProps) => {
     if (disabled || borderless || priority === 'link') {
       return 'box-shadow: none';
     }
 
-    return `box-shadow: ${active ? 'inset' : ''} 0 2px rgba(0, 0, 0, 0.05)`;
+    return `box-shadow: ${active ? 'inset' : ''} ${theme.dropShadowLight}`;
   };
 
 const getColors = ({priority, disabled, borderless, theme}: StyledButtonProps) => {
@@ -263,12 +263,12 @@ const StyledButton = styled(
   ${getFontWeight};
   font-size: ${getFontSize};
   ${getColors};
-  ${getBoxShadow(false)};
+  ${p => getBoxShadow(p.theme, false)};
   cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
   opacity: ${p => (p.busy || p.disabled) && '0.65'};
 
   &:active {
-    ${getBoxShadow(true)};
+    ${p => getBoxShadow(p.theme, true)};
   }
   &:focus {
     outline: none;

@@ -7,6 +7,7 @@ import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {MetricTag, MetricTagValue, Organization, Tag} from 'sentry/types';
+import {getMetricsDataSource} from 'sentry/utils/metrics/getMetricsDataSource';
 import useApi from 'sentry/utils/useApi';
 
 const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
@@ -44,6 +45,7 @@ function MetricsSearchBar({
         {
           query: {
             project: !projectIds.length ? undefined : projectIds,
+            datasource: getMetricsDataSource(),
           },
         }
       );
@@ -63,7 +65,7 @@ function MetricsSearchBar({
 
   function fetchTagValues(tagKey: string) {
     return api.requestPromise(`/organizations/${orgSlug}/metrics/tags/${tagKey}/`, {
-      query: {project: projectIds},
+      query: {project: projectIds, datasource: getMetricsDataSource()},
     });
   }
 

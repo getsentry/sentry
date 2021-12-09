@@ -1,4 +1,3 @@
-import {ReactNode} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -21,7 +20,7 @@ type Props = Omit<ReleaseComparisonRow, 'diffDirection' | 'diffColor'> & {
   showPlaceholders: boolean;
   activeChart: ReleaseComparisonChartType;
   onChartChange: (type: ReleaseComparisonChartType) => void;
-  chartDiff: ReactNode;
+  chartDiff: React.ReactNode;
   onExpanderToggle: (type: ReleaseComparisonChartType) => void;
   expanded: boolean;
   withExpanders: boolean;

@@ -203,8 +203,8 @@ class Tooltip extends React.Component<Props, State> {
       'aria-describedby': this.tooltipId,
       onFocus: this.handleOpen,
       onBlur: this.handleClose,
-      onMouseEnter: this.handleOpen,
-      onMouseLeave: this.handleClose,
+      onPointerEnter: this.handleOpen,
+      onPointerLeave: this.handleClose,
     };
 
     // Use the `type` property of the react instance to detect whether we
@@ -349,6 +349,16 @@ const TooltipArrow = styled('span')`
   border: solid 6px transparent;
   pointer-events: none;
 
+  &::before {
+    content: '';
+    display: block;
+    position: absolute;
+    width: 0;
+    height: 0;
+    border: solid 7px transparent;
+    z-index: -1;
+  }
+
   &[data-placement*='bottom'] {
     top: 0;
     margin-top: -12px;
@@ -391,16 +401,6 @@ const TooltipArrow = styled('span')`
       left: -6px;
       border-left-color: ${p => p.theme.border};
     }
-  }
-
-  &::before {
-    content: '';
-    display: block;
-    position: absolute;
-    width: 0;
-    height: 0;
-    border: solid 7px transparent;
-    z-index: -1;
   }
 `;
 

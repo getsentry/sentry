@@ -23,6 +23,7 @@ type Props = {
   grid?: AreaChart['props']['grid'];
   disableMultiAxis?: boolean;
   disableXAxis?: boolean;
+  definedAxisTicks?: number;
   chartColors?: string[];
   loading: boolean;
   isLineChart?: boolean;
@@ -69,6 +70,7 @@ function Chart({
   grid,
   disableMultiAxis,
   disableXAxis,
+  definedAxisTicks,
   chartColors,
   isLineChart,
 }: Props) {
@@ -83,6 +85,7 @@ function Chart({
   const durationOnly = data.every(
     value => aggregateOutputType(value.seriesName) === 'duration'
   );
+
   const dataMax = durationOnly ? computeAxisMax(data) : undefined;
 
   const xAxes = disableMultiAxis
@@ -101,6 +104,7 @@ function Chart({
   const yAxes = disableMultiAxis
     ? [
         {
+          splitNumber: definedAxisTicks,
           axisLabel: {
             color: theme.chartLabel,
             formatter(value: number) {

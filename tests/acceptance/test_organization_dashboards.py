@@ -80,6 +80,23 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             button.click()
             self.browser.snapshot("dashboards - edit widget")
 
+    def test_widget_library(self):
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE + ["organizations:widget-library"]):
+            self.browser.get(self.default_path)
+            self.wait_until_loaded()
+
+            # Go to edit mode.
+            button = self.browser.element('[data-test-id="add-widget-library"]')
+            button.click()
+
+            # Edit the first widget.
+            self.browser.element('[data-test-id="widget-library-card-0"]').click()
+            self.browser.element('[data-test-id="widget-library-card-2"]').click()
+            self.browser.element('[data-test-id="widget-library-card-3"]').click()
+            self.browser.element('[data-test-id="widget-library-card-2"]').click()
+
+            self.browser.snapshot("dashboards - widget library")
+
 
 class OrganizationDashboardsManageAcceptanceTest(AcceptanceTestCase):
     def setUp(self):

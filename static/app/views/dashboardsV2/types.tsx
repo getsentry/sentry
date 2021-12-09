@@ -36,6 +36,7 @@ export type Widget = {
   interval: string;
   queries: WidgetQuery[];
   widgetType?: WidgetType;
+  tempId?: string;
 };
 
 /**
