@@ -9,8 +9,8 @@ namespace JSSelfProfiling {
   };
 
   type Stack = {
-    parentId?: number;
     frameId: number;
+    parentId?: number;
   };
 
   type Frame = {
