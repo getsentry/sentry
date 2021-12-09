@@ -705,7 +705,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
         'p50 Duration'
       );
 
-      expect(wrapper.find('HighlightNumber').text()).toEqual('534ms');
+      expect(wrapper.find('HighlightNumber').text()).toEqual('51s');
       expect(metricsMock).toHaveBeenCalledTimes(1);
       expect(metricsMockPreviousData).toHaveBeenCalledTimes(1);
 
@@ -787,7 +787,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
         'p75 Duration'
       );
 
-      expect(wrapper.find('HighlightNumber').text()).toEqual('534ms');
+      expect(wrapper.find('HighlightNumber').text()).toEqual('51s');
       expect(metricsMock).toHaveBeenCalledTimes(1);
       expect(metricsMockPreviousData).toHaveBeenCalledTimes(1);
 
@@ -869,7 +869,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
         'p95 Duration'
       );
 
-      expect(wrapper.find('HighlightNumber').text()).toEqual('534ms');
+      expect(wrapper.find('HighlightNumber').text()).toEqual('51s');
       expect(metricsMock).toHaveBeenCalledTimes(1);
       expect(metricsMockPreviousData).toHaveBeenCalledTimes(1);
 
@@ -951,7 +951,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
         'p99 Duration'
       );
 
-      expect(wrapper.find('HighlightNumber').text()).toEqual('534ms');
+      expect(wrapper.find('HighlightNumber').text()).toEqual('51s');
       expect(metricsMock).toHaveBeenCalledTimes(1);
       expect(metricsMockPreviousData).toHaveBeenCalledTimes(1);
 
@@ -1033,7 +1033,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
         'p75 LCP'
       );
 
-      expect(wrapper.find('HighlightNumber').text()).toEqual('534ms');
+      expect(wrapper.find('HighlightNumber').text()).toEqual('51s');
       expect(metricsMock).toHaveBeenCalledTimes(1);
       expect(metricsMockPreviousData).toHaveBeenCalledTimes(1);
 
@@ -1115,7 +1115,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
         'Transactions Per Minute'
       );
 
-      expect(wrapper.find('HighlightNumber').text()).toEqual('534.302');
+      expect(wrapper.find('HighlightNumber').text()).toEqual('51,292.954');
       expect(metricsMock).toHaveBeenCalledTimes(1);
       expect(metricsMockPreviousData).toHaveBeenCalledTimes(1);
 
