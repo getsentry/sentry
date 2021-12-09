@@ -58,7 +58,7 @@ class GitHubIssueBasic(IssueBasicMixin):  # type: ignore
         )
 
         # TODO(mgaeta): inline these lists.
-        return (
+        out: Sequence[Mapping[str, Any]] = (
             [
                 {
                     "name": "repo",
@@ -83,6 +83,7 @@ class GitHubIssueBasic(IssueBasicMixin):  # type: ignore
                 }
             ]
         )
+        return out
 
     def create_issue(self, data: Mapping[str, Any], **kwargs: Any) -> Mapping[str, Any]:
         client = self.get_client()
