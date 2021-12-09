@@ -68,6 +68,7 @@ export function transformMetricsToArea<T extends WidgetDataConstraint>(
   const data = groups.map(group => ({
     seriesName: metricsField,
     totals: group.totals[metricsField],
+    aggregation: defined(totalPerBucket) ? 'failure_rate()' : undefined,
     data: response.intervals.map((intervalValue, intervalIndex) => ({
       name: moment(intervalValue).valueOf(),
       value: defined(totalPerBucket)
@@ -80,19 +81,15 @@ export function transformMetricsToArea<T extends WidgetDataConstraint>(
     ? response.groups.reduce((acc, group) => acc + group.totals[metricsField], 0)
     : undefined;
 
-  const dataMean = data.map(serie => {
-    let meanData = serie.totals / serie.data.length;
-    let seriesName = serie.seriesName;
-
-    if (defined(seriesTotal)) {
-      meanData = serie.totals / seriesTotal;
-      seriesName = 'failure_rate()';
-    }
+  const dataMean = data.map(({seriesName, totals, aggregation, ...serie}) => {
+    const meanData = defined(seriesTotal)
+      ? totals / seriesTotal
+      : totals / serie.data.length;
 
     return {
       mean: meanData,
-      outputType: aggregateOutputType(seriesName),
-      label: axisLabelFormatter(meanData, seriesName),
+      outputType: aggregateOutputType(aggregation ?? seriesName),
+      label: axisLabelFormatter(meanData, aggregation ?? seriesName),
     };
   });
 
@@ -113,6 +110,7 @@ export function transformMetricsToArea<T extends WidgetDataConstraint>(
 
   const previousData = previousGroups.map(group => ({
     seriesName: `previous ${metricsField}`,
+    aggregation: defined(previousTotalPerBucket) ? 'failure_rate()' : undefined,
     data: response?.intervals.map((intervalValue, intervalIndex) => ({
       name: moment(intervalValue).valueOf(),
       value: defined(previousTotalPerBucket)

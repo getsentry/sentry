@@ -83,7 +83,8 @@ function Chart({
   const colors = chartColors ?? theme.charts.getColorPalette(4);
 
   const durationOnly = data.every(
-    value => aggregateOutputType(value.seriesName) === 'duration'
+    ({aggregation, seriesName}) =>
+      aggregateOutputType(aggregation ?? seriesName) === 'duration'
   );
 
   const dataMax = durationOnly ? computeAxisMax(data) : undefined;
@@ -108,7 +109,7 @@ function Chart({
           axisLabel: {
             color: theme.chartLabel,
             formatter(value: number) {
-              return axisLabelFormatter(value, data[0].seriesName);
+              return axisLabelFormatter(value, data[0].aggregation ?? data[0].seriesName);
             },
           },
         },
@@ -176,7 +177,7 @@ function Chart({
       valueFormatter: (value, seriesName) => {
         return tooltipFormatter(
           value,
-          data && data.length ? data[0].seriesName : seriesName
+          data && data.length ? data[0].aggregation ?? data[0].seriesName : seriesName
         );
       },
       nameFormatter(value: string) {
