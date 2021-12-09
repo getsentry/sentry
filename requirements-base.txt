@@ -43,8 +43,8 @@ python-u2flib-server==5.0.0
 python3-saml==1.10.1
 PyYAML==5.4
 rb==1.9.0
-redis-py-cluster==2.1.0
-redis==3.4.1
+redis-py-cluster==2.1.3
+redis==4.0.2
 requests-oauthlib==1.2.0
 requests==2.25.1
 # [start] jsonschema format validators
@@ -79,7 +79,7 @@ kombu==4.6.11
 grpcio==1.40.0
 
 # not directly used, but provides a speedup for redis
-hiredis==0.3.1
+hiredis==2.0.0
 
 # not directly used, but pinned for at least semaphore/symbolic
 cffi==1.14.5
