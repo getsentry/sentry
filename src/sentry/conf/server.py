@@ -1044,6 +1044,8 @@ SENTRY_FEATURES = {
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": True,
+    # Enables experimental new-style selection filters to replace the GSH
+    "organizations:selection-filters-v2": False,
     # Enable logging for weekly reports
     "organizations:weekly-report-debugging": False,
     # Enable Session Stats down to a minute resolution
