@@ -727,7 +727,9 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
                     "divide",
                     [
                         Function("count", [], "count"),
-                        Function("uniq", [Column("event_id")], "count_unique_id"),
+                        Function(
+                            "nullIf", [Function("uniq", [Column("event_id")], "count_unique_id"), 0]
+                        ),
                     ],
                     "equation[0]",
                 ),
