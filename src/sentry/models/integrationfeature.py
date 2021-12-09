@@ -89,6 +89,7 @@ class IntegrationFeature(Model):
     target_id = BoundedBigIntegerField(null=True)
     target_type = BoundedPositiveIntegerField(
         default=0,
+        null=True,
         choices=(
             (IntegrationTypes.SENTRY_APP, "sentry_app"),
             (IntegrationTypes.DOC_INTEGRATION, "doc_integration"),
