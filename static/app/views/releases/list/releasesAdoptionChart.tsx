@@ -84,15 +84,23 @@ class ReleasesAdoptionChart extends Component<Props> {
 
   getReleasesSeries(response: SessionApiResponse | null) {
     const {activeDisplay} = this.props;
-    const releases = response?.groups.map(group => group.by.release);
+    let releases: string[] | undefined;
+    if (response?.groups && response.groups.length > 50) {
+      releases = response!.groups
+        .sort((a, b) => b.totals['sum(session)'] - a.totals['sum(session)'])
+        .slice(0, 50)
+        .map(group => group.by.release as string);
+    } else {
+      releases = response?.groups.map(group => group.by.release as string) ?? [];
+    }
 
     if (!releases) {
       return null;
     }
 
     return releases.map(release => ({
-      id: release as string,
-      seriesName: formatVersion(release as string),
+      id: release,
+      seriesName: formatVersion(release),
       data: getAdoptionSeries(
         [response?.groups.find(({by}) => by.release === release)!],
         response?.groups,
