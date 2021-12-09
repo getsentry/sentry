@@ -247,10 +247,9 @@ class Dashboard extends Component<Props, State> {
 
   onLayoutChange = newLayout => {
     const {onLayoutChange} = this.props;
-    // Workaround because onBreakpointChange occurs after onLayoutChange
+    // HACK: Disable layout change when element is less than mobile width
     const rect = document.querySelector('.react-grid-layout')?.getBoundingClientRect();
     if (rect && rect.width <= MOBILE_BREAKPOINT) {
-      // Do not save the layout if we're in mobile view
       this.setState({breakpoint: 'mobile'});
       return;
     }
