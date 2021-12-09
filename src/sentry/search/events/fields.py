@@ -2819,8 +2819,58 @@ class QueryFields(QueryBase):
                     ),
                     default_result_type="number",
                 ),
+                SnQLFunction(
+                    "histogram",
+                    required_args=[
+                        NumericColumn("column", allow_array_value=True),
+                        # the bucket_size and start_offset should already be adjusted
+                        # using the multiplier before it is passed here
+                        NumberRange("bucket_size", 0, None),
+                        NumberRange("start_offset", 0, None),
+                        NumberRange("multiplier", 1, None),
+                    ],
+                    # floor((x * multiplier - start_offset) / bucket_size) * bucket_size + start_offset
+                    snql_column=lambda args, alias: Function(
+                        "plus",
+                        [
+                            Function(
+                                "multiply",
+                                [
+                                    Function(
+                                        "floor",
+                                        [
+                                            Function(
+                                                "divide",
+                                                [
+                                                    Function(
+                                                        "minus",
+                                                        [
+                                                            Function(
+                                                                "multiply",
+                                                                [
+                                                                    args["column"],
+                                                                    args["multiplier"],
+                                                                ],
+                                                            ),
+                                                            args["start_offset"],
+                                                        ],
+                                                    ),
+                                                    args["bucket_size"],
+                                                ],
+                                            ),
+                                        ],
+                                    ),
+                                    args["bucket_size"],
+                                ],
+                            ),
+                            args["start_offset"],
+                        ],
+                        alias,
+                    ),
+                    default_result_type="number",
+                    private=True,
+                ),
                 # TODO: implement these
-                SnQLFunction("histogram", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("absolute_delta", snql_aggregate=self._resolve_unimplemented_function),
             ]
         }
@@ -3066,7 +3116,16 @@ class QueryFields(QueryBase):
 
         for arg in snql_function.args:
             if isinstance(arg, ColumnArg):
-                arguments[arg.name] = self.resolve_column(arguments[arg.name])
+                if (
+                    arguments[arg.name] in NumericColumn.numeric_array_columns
+                    and isinstance(arg, NumericColumn)
+                    and not isinstance(combinator, SnQLArrayCombinator)
+                ):
+                    arguments[arg.name] = Function(
+                        "arrayJoin", [self.resolve_column(arguments[arg.name])]
+                    )
+                else:
+                    arguments[arg.name] = self.resolve_column(arguments[arg.name])
             if combinator is not None and combinator.is_applicable(arg.name):
                 arguments[arg.name] = combinator.apply(arguments[arg.name])
                 combinator_applied = True
