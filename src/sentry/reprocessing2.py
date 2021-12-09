@@ -362,7 +362,7 @@ def buffered_delete_old_primary_hash(
                         scope.set_tag("old_group_id", group_id)
                         scope.set_tag("old_primary_hash", old_primary_hash)
 
-                    logger.error("events_batch.not_found")
+                    logger.error("reprocessing2.buffered_delete_old_primary_hash.empty_batch")
                     return
 
                 from sentry import eventstream
