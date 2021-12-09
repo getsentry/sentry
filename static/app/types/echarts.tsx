@@ -23,9 +23,9 @@ export type Series = {
   z?: number; // https://echarts.apache.org/en/option.html#series-line.z
   markLine?: LineSeriesOption['markLine'];
   /**
-   * Temp solution used by the metrics Failure Rate Widget in performance,
-   * so even if the seriesName is different than failure_rate(),
-   * it will be still possible to use the failure_rate() aggregation from discover
+   * Temp solution used by the metrics Failure Rate Widget in performance, 
+   * making it possible to use discovery failure_rate() aggregation even if 
+   * the seriesName is different from failure_rate()
    */
   aggregation?: string;
 };
