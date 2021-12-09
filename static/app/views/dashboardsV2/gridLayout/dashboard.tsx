@@ -227,6 +227,7 @@ class Dashboard extends Component<Props, State> {
   };
 
   renderWidget(widget: Widget, index: number) {
+    const {breakpoint} = this.state;
     const {isEditing} = this.props;
 
     const key = constructGridItemKey(widget);
@@ -240,6 +241,7 @@ class Dashboard extends Component<Props, State> {
           isEditing={isEditing}
           onDelete={this.handleDeleteWidget(widget)}
           onEdit={this.handleEditWidget(widget, index)}
+          hideDragHandle={breakpoint === 'mobile'}
         />
       </GridItem>
     );

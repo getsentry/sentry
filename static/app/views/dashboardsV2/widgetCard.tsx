@@ -51,6 +51,7 @@ type Props = WithRouterProps & {
   draggableProps?: DraggableProps;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   noLazyLoad?: boolean;
+  hideDragHandle?: boolean;
 };
 
 class WidgetCard extends React.Component<Props> {
@@ -73,7 +74,8 @@ class WidgetCard extends React.Component<Props> {
   }
 
   renderToolbar() {
-    const {onEdit, onDelete, draggableProps, hideToolbar, isEditing} = this.props;
+    const {onEdit, onDelete, draggableProps, hideToolbar, isEditing, hideDragHandle} =
+      this.props;
 
     if (!isEditing) {
       return null;
@@ -82,14 +84,16 @@ class WidgetCard extends React.Component<Props> {
     return (
       <ToolbarPanel>
         <IconContainer style={{visibility: hideToolbar ? 'hidden' : 'visible'}}>
-          <IconClick>
-            <StyledIconGrabbable
-              color="textColor"
-              className={DRAG_HANDLE_CLASS}
-              {...draggableProps?.listeners}
-              {...draggableProps?.attributes}
-            />
-          </IconClick>
+          {!hideDragHandle && (
+            <IconClick>
+              <StyledIconGrabbable
+                color="textColor"
+                className={DRAG_HANDLE_CLASS}
+                {...draggableProps?.listeners}
+                {...draggableProps?.attributes}
+              />
+            </IconClick>
+          )}
           <IconClick
             data-test-id="widget-edit"
             onClick={() => {
