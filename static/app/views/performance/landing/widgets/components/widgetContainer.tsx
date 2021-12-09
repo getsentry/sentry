@@ -18,6 +18,7 @@ import {_setChartSetting, getChartSetting} from '../utils';
 import {PerformanceWidgetSetting, WIDGET_DEFINITIONS} from '../widgetDefinitions';
 import {HistogramWidget} from '../widgets/histogramWidget';
 import {LineChartListWidget} from '../widgets/lineChartListWidget';
+import {LineChartListWidgetMetrics} from '../widgets/lineChartListWidgetMetrics';
 import {SingleFieldAreaWidget} from '../widgets/singleFieldAreaWidget';
 import {SingleFieldAreaWidgetMetrics} from '../widgets/singleFieldAreaWidgetMetrics';
 import {TrendsWidget} from '../widgets/trendsWidget';
@@ -118,10 +119,20 @@ const _WidgetContainer = (props: Props) => {
 
   if (
     isMetricsData &&
-    ![
-      GenericPerformanceWidgetDataType.vitals,
-      GenericPerformanceWidgetDataType.area,
-    ].includes(widgetProps.dataType)
+    [
+      PerformanceWidgetSetting.DURATION_HISTOGRAM,
+      PerformanceWidgetSetting.LCP_HISTOGRAM,
+      PerformanceWidgetSetting.FCP_HISTOGRAM,
+      PerformanceWidgetSetting.FID_HISTOGRAM,
+      PerformanceWidgetSetting.MOST_IMPROVED,
+      PerformanceWidgetSetting.MOST_REGRESSED,
+      PerformanceWidgetSetting.MOST_RELATED_ERRORS,
+      PerformanceWidgetSetting.MOST_RELATED_ISSUES,
+      PerformanceWidgetSetting.SLOW_HTTP_OPS,
+      PerformanceWidgetSetting.SLOW_DB_OPS,
+      PerformanceWidgetSetting.SLOW_RESOURCE_OPS,
+      PerformanceWidgetSetting.SLOW_BROWSER_OPS,
+    ].includes(widgetProps.chartSetting)
   ) {
     // TODO(metrics): Remove this once all widgets are converted
     return (
@@ -158,6 +169,15 @@ const _WidgetContainer = (props: Props) => {
       }
       return <VitalWidget {...passedProps} {...widgetProps} />;
     case GenericPerformanceWidgetDataType.line_list:
+      if (
+        isMetricsData &&
+        [
+          PerformanceWidgetSetting.MOST_SLOW_FRAMES,
+          PerformanceWidgetSetting.MOST_FROZEN_FRAMES,
+        ].includes(widgetProps.chartSetting)
+      ) {
+        return <LineChartListWidgetMetrics {...passedProps} {...widgetProps} />;
+      }
       return <LineChartListWidget {...passedProps} {...widgetProps} />;
     case GenericPerformanceWidgetDataType.histogram:
       return <HistogramWidget {...passedProps} {...widgetProps} />;

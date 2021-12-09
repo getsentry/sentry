@@ -223,7 +223,7 @@ export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
                     orgSlug: organization.slug,
                     query: _eventView.generateQueryStringObject(),
                     vitalName: vital,
-                    projectID: decodeList(location.query.project),
+                    projectID: decodeList(location.query.project), // TODO(metrics): filter by project once api supports it (listItem['project.id'])
                   });
 
                   const data = {
