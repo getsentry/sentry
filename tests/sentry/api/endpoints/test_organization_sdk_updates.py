@@ -17,6 +17,7 @@ class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
             "sentry-api-0-organization-sdk-updates",
             kwargs={"organization_slug": self.organization.slug},
         )
+        self.features = {}
 
     @mock.patch(
         "sentry.api.endpoints.organization_sdk_updates.SdkIndexState",
@@ -36,7 +37,8 @@ class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
             assert_no_errors=False,
         )
 
-        response = self.client.get(self.url)
+        with self.feature(self.features):
+            response = self.client.get(self.url)
 
         update_suggestions = response.data
         assert len(update_suggestions) == 1
@@ -57,7 +59,8 @@ class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
             kwargs={"organization_slug": org.slug},
         )
 
-        response = self.client.get(url)
+        with self.feature(self.features):
+            response = self.client.get(url)
         assert len(response.data) == 0
 
     def test_filtered_project(self):
@@ -74,7 +77,8 @@ class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
             assert_no_errors=False,
         )
 
-        response = self.client.get(f"{self.url}?project={self.project2.id}")
+        with self.feature(self.features):
+            response = self.client.get(f"{self.url}?project={self.project2.id}")
 
         assert len(response.data) == 0
 
@@ -118,7 +122,14 @@ class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
             assert_no_errors=False,
         )
 
-        response = self.client.get(self.url)
+        with self.feature(self.features):
+            response = self.client.get(self.url)
 
         update_suggestions = response.data
         assert len(update_suggestions) == 0
+
+
+class OrganizationSdkUpdatesWithSnql(OrganizationSdkUpdates):
+    def setUp(self):
+        super().setUp()
+        self.features = {"organizations:performance-use-snql"}
