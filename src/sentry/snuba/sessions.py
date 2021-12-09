@@ -44,7 +44,7 @@ def _get_changed_project_release_model_adoptions(project_ids):
         start=start,
         referrer="sessions.get-adoption",
         filter_keys={"project_id": list(project_ids)},
-        orderby=["project_id", "release"],
+        orderby=["-project_id", "-release"],
     )["data"]:
         rv.append((x["project_id"], x["release"]))
 
@@ -174,7 +174,7 @@ def _get_project_releases_by_stability(
     }[scope]
 
     # Tiebreaker
-    orderby.extend(["project_id", "release"])
+    orderby.extend(["-project_id", "-release"])
 
     conditions = []
     if environments is not None:
