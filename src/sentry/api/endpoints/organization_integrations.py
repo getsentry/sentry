@@ -12,8 +12,9 @@ class OrganizationIntegrationsEndpoint(OrganizationEndpoint):
         # filter by integration provider features
         features = [feature.lower() for feature in request.GET.getlist("features", [])]
 
+        # show disabled org integrations but not ones being deleted
         integrations = OrganizationIntegration.objects.filter(
-            organization=organization, status=ObjectStatus.VISIBLE
+            organization=organization, status__in=[ObjectStatus.VISIBLE, ObjectStatus.DISABLED]
         )
 
         if "provider_key" in request.GET:
