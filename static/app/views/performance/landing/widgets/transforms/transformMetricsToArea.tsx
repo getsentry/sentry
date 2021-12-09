@@ -110,7 +110,6 @@ export function transformMetricsToArea<T extends WidgetDataConstraint>(
 
   const previousData = previousGroups.map(group => ({
     seriesName: `previous ${metricsField}`,
-    aggregation: defined(previousTotalPerBucket) ? 'failure_rate()' : undefined,
     data: response?.intervals.map((intervalValue, intervalIndex) => ({
       name: moment(intervalValue).valueOf(),
       value: defined(previousTotalPerBucket)
