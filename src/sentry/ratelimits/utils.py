@@ -7,14 +7,13 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
-from sentry.models import ApiKey, ApiToken, SentryAppInstallation
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.hashlib import md5_text
 
 from . import backend as ratelimiter
 
 if TYPE_CHECKING:
-    from sentry.models import Organization, User
+    from sentry.models import ApiToken, Organization, User
 # TODO(mgaeta): It's not currently possible to type a Callable's args with kwargs.
 EndpointFunction = Callable[..., Response]
 
@@ -48,6 +47,8 @@ def get_rate_limit_key(view_func: EndpointFunction, request: Request) -> str | N
 
     ip_address = request.META.get("REMOTE_ADDR")
 
+    from sentry.models import ApiKey, ApiToken
+
     if isinstance(request.auth, ApiToken):
         if request.user.is_sentry_app:
             category = "org"
@@ -72,6 +73,8 @@ def get_rate_limit_key(view_func: EndpointFunction, request: Request) -> str | N
 
 
 def get_organization_id_from_token(token_id: str) -> int | None:
+    from sentry.models import SentryAppInstallation
+
     installation = SentryAppInstallation.objects.get_by_api_token(token_id).first()
     return installation.organization_id if installation else None
 
