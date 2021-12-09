@@ -279,6 +279,11 @@ describe('Dashboards > Detail', function () {
         url: '/organizations/org-slug/issues/',
         body: [],
       });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/eventsv2/',
+        method: 'GET',
+        body: [],
+      });
     });
 
     afterEach(function () {
@@ -623,6 +628,7 @@ describe('Dashboards > Detail', function () {
             'dashboards-edit',
             'discover-query',
             'issues-in-dashboards',
+            'widget-library',
             'dashboard-grid-layout',
           ],
           projects: [TestStubs.Project()],
@@ -641,14 +647,22 @@ describe('Dashboards > Detail', function () {
       await tick();
       wrapper.update();
 
-      // Enter Add Issue Widget mode
       wrapper
-        .find('Controls Button[data-test-id="dashboard-add-issues-widget"]')
+        .find('Controls Button[data-test-id="add-widget-library"]')
         .simulate('click');
 
-      const modal = await mountGlobalModal();
+      let modal = await mountGlobalModal();
       await tick();
-      await modal.update();
+      await tick();
+      modal.update();
+      modal.find('CustomButton').simulate('click');
+      modal = await mountGlobalModal();
+      await tick();
+      modal.update();
+      modal.find('SelectControl').first().props().onChange({value: 'table'});
+      await tick();
+      modal.update();
+      modal.find('RadioGroup').props().onChange('issue');
 
       modal
         .find('ModalBody input')
